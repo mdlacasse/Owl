@@ -47,3 +47,48 @@ def xprint(*args, **kwargs):
     print("ERROR:", *args, file=sys.stderr, **kwargs)
     print("Exiting...", file=sys.stderr)
     sys.exit(-1)
+
+
+def d(value, f=0):
+    '''
+    Return a string formatting number in $ currency.
+    '''
+    mystr = '${:,.' + str(f) + 'f}'
+
+    return mystr.format(value)
+
+
+def pc(value, f=1, mul=100):
+    '''
+    Return a string formatting number in percent.
+    '''
+    mystr = '{:.' + str(f) + 'f}%'
+
+    return mystr.format(mul * value)
+
+
+def rescale(vals, fac):
+    '''
+    Rescale elements of a list by factor fac.
+    '''
+    for i in range(len(vals)):
+        vals[i] *= fac
+
+    return
+
+
+def getUnits(units):
+    '''
+    Return proper factor for units.
+    '''
+    if units is None:
+        fac = 1
+    elif units in {'k', 'K'}:
+        fac = 1000
+    elif units in {'m', 'M'}:
+        fac = 1000000
+    else:
+        xprint('Unknown units', units)
+
+    return fac
+

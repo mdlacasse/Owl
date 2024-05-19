@@ -1,5 +1,4 @@
 '''
-
 This class provides the historical annual rate of returns for different
 classes of assets: S&P500, Baa corporate bonds, Aaa corporate bonds,
 10-year Treasury notes, and inflation as measured by CPI all from
@@ -735,6 +734,11 @@ class rates:
     Rates are stored in a 4-array in the following order:
     Stocks, Bonds, Fixed assets, and Inflation.
     Rate are stored in decimal, but the API is in percent.
+
+    To use this class first build an object:
+    r = rates()
+    then r.setMethod(...)
+    then mySeries = r.genSeries()
     '''
 
     def __init__(self):

@@ -195,6 +195,108 @@ def q4(C, l1, l2=0, N2=1, l3=0, N3=1, l4=0, N4=1):
 
 class Owl:
     '''
+    This is the main class of the Owl Project.
     '''
-    def __init__(self, yobs, expectancy):
+    def __init__(self, yobs, expectancy, name):
+        '''
+        Constructor requires two lists: the first one is
+        the year of birth of each spouse, and the second
+        the life expectancy.
+        '''
+        self._name = name
+
+        # 7 tax brackets, 3 types of accounts, 4 classes of assets
+        self.N_t = 7
+        self.N_j = 3
+        self.N_k = 4
+
+        self.N_i = len(yobs)
+        assert self.N_i == len(expectancy)
+        assert 0 < self.N_i and self.N_i <= 2
+
+        self.status = ['single', 'married'][self.N_i - 1]
+
+        self.yobs = yobs
+        self.expectancy = expectancy
+
+        thisyear = date.today().year
+
+        self.horizons = [yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)]
+        self.N_n = max(self.horizons)
+        if self.N_i == 2:
+            self.n_d = min(self.horizons)
+        else:
+            self.n_d = self.N_n + 1
+
+        u.vprint('Preparing scenario of %d years for %d individual%s'%
+                (self.N_n - 1, self.N_i, ['', 's'][self.N_i-1]))
+
+        # All variables
+        self.b_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n + 1))
+        self.bp_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n))
+        self.bm_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n))
+        self.d_ikn = np.zeros((self.N_i, self.N_k, self.N_n))
+        self.f_tn = np.zeros((self.N_t, self.N_n))
+        self.g_n = np.zeros((self.N_n))
+        self.w_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n))
+        self.x_ikn = np.zeros((self.N_i, self.N_k, self.N_n))
+
+        return
+
+    def setVerbose(self):
+        pass
+    def setAssetBalances(self):
+        pass
+    def readContributions(self, filename):
+        pass
+    def setInitialAR(self):
+        pass
+    def setFinalAR(self):
+        pass
+    def interpotlateAR(self):
+        pass
+    def seCoordinatedAR(self):
+        pass
+    def setPension(self, amounts, ages, units=None):
+        '''
+        Set value of pension for each individual and commencement age. 
+        '''
+        assert len(amounts) == self.N_i
+        assert len(ages) == self.N_i
+
+        fac = u.getUnits(units)
+        u.rescale(amounts, fac)
+
+        thisyear = date.today().year
+        self.pi_in = np.zeros((self.N_i, self.N_n))
+        for i in range(N_i):
+            ns = max(0, self.yobs[i] + ages[i] - thiyear)
+            self.pi_in[i][ns:] = values[i]
+
+        return
+
+    def setSocialSecurity(self, amounts, ages, units=None):
+        '''
+        Set value of social security for each individual and commencement age. 
+        '''
+        assert len(amounts) == self.N_i
+        assert len(ages) == self.N_i
+
+        fac = u.getUnits(units)
+        u.rescale(amounts, fac)
+
+        thisyear = date.today().year
+        self.zeta_in = np.zeros((self.N_i, self.N_n))
+        for i in range(N_i):
+            ns = max(0, self.yobs[i] + ages[i] - thiyear)
+            self.zeta_in[i][ns:] = values[i]
+
+        return
+    def setDesiredIncome(self):
+        pass
+    def setRates(self):
+        pass
+    def setHeirsTaxRate(self):
+        pass
+        
 
