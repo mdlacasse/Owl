@@ -11,39 +11,39 @@ import utils as u
 import rates
 
 
-def gamma_n(tau, N):
-    """
+def gamma_n(tau, N_n):
+    '''
     Return time series of inflation multiplier at year n
     with respect to the current year.
-    """
-    gamma = np.ones(N)
+    '''
+    gamma = np.ones(N_n)
 
-    for n in range(1, N):
+    for n in range(1, N_n):
         gamma[n] = gamma[n - 1] * (1 + tau[3][n - 1])
 
     return gamma
 
 
-def taxParams(yobs, i_d, n_d, gamma, N):
-    """
+def _taxParams(yobs, i_d, n_d, N_n):
+    '''
     Return 3 time series:
     1) Standard deductions at year n (sigma_n).
     2) Difference in tax brackets (Delta_tn)
     3) Tax rate in year n (theta_tn)
     This is pure speculation on future values.
-    """
+    '''
     # Prepare the data.
     rates_2024 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.035, 0.370])
     rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.035, 0.396])
 
     # Single [0] and married filing jointly [1].
     brackets_2024 = np.array(
-        [11600, 47150, 100525, 191950, 243450, 609350, 10000000],
-        [23200, 94300, 201050, 383900, 487450, 731200, 10000000],
+        [[11600, 47150, 100525, 191950, 243450, 609350, 10000000],
+         [23200, 94300, 201050, 383900, 487450, 731200, 10000000]]
     )
     brackets_2026 = np.array(
-        [11600, 47150, 100525, 191950, 243450, 609350, 10000000],
-        [23200, 94300, 201050, 383900, 487450, 731200, 10000000],
+        [[11600, 47150, 100525, 191950, 243450, 609350, 10000000],
+         [23200, 94300, 201050, 383900, 487450, 731200, 10000000]]
     )
     # Compute the deltas in-place between brackets.
     for t in range(6, 0, -1):
@@ -56,15 +56,15 @@ def taxParams(yobs, i_d, n_d, gamma, N):
     extraDeduction_65 = np.array([1950, 1550])
 
     # Prepare the 3 arrays to return.
-    sigma = np.zeros((N))
-    Delta = np.zeros((7, N))
-    theta = np.zeros((7, N))
+    sigma = np.zeros((N_n))
+    Delta = np.zeros((N_n, 7))
+    theta = np.zeros((N_n, 7))
 
     filingStatus = len(yobs) - 1
     souls = list(range(len(yobs)))
     thisyear = date.today().year
 
-    for n in range(N):
+    for n in range(N_n):
         # Check for death in the family.
         if n == n_d + 1:
             souls.remove(i_d)
@@ -72,10 +72,10 @@ def taxParams(yobs, i_d, n_d, gamma, N):
 
         if thisyear + n < 2026:
             sigma[n] = stdDeduction_2024[filingStatus]
-            Delta[:][n] = brackets_2024[filingStatus][:]
+            Delta[n][:] = brackets_2024[filingStatus][:]
         else:
             sigma[n] = stdDeduction_2026[filingStatus]
-            Delta[:][n] = brackets_2026[filingStatus][:]
+            Delta[n][:] = brackets_2026[filingStatus][:]
 
         for i in souls:
             if thisyear + n - yobs[i] >= 65:
@@ -83,21 +83,20 @@ def taxParams(yobs, i_d, n_d, gamma, N):
 
         # Fill in future tax rates.
         if thisyear + n < 2026:
-            theta[:][n] = rates_2024[:]
+            theta[n][:] = rates_2024[:]
         else:
-            theta[:][n] = rates_2026[:]
+            theta[n][:] = rates_2026[:]
 
-    # Index for inflation.
-    sigma = sigma * gamma
-    Delta = Delta * gamma
+    Delta = Delta.transpose()
+    theta = theta.transpose()
+    # Return series unindexed for inflation
+    return sigma, theta, Delta
 
-    return sigma, Delta, theta
 
-
-def rho_in(yobs, N):
-    """
+def _rho_in(yobs, N_n):
+    '''
     Return RMD fractions for each individual.
-    """
+    '''
     rmdTable = [
         27.4,
         26.5,
@@ -135,15 +134,15 @@ def rho_in(yobs, N):
         4.6,
     ]
 
-    icount = len(yobs)
-    if icount == 2 and abs(yobs[0] - yobs[1]) > 10:
-        u.xprint("RMD: Unsupported age difference of more than 10 years.")
+    N_i = len(yobs)
+    if N_i == 2 and abs(yobs[0] - yobs[1]) > 10:
+        u.xprint('RMD: Unsupported age difference of more than 10 years.')
 
-    rho = np.zeros((icount, N))
+    rho = np.zeros((N_i, N_n))
     thisyear = date.today().year
-    for i in range(icount):
+    for i in range(N_i):
         agenow = thisyear - yobs[i]
-        for n in range(N):
+        for n in range(N_n):
             year = thisyear + n
             yage = agenow + n
 
@@ -156,47 +155,52 @@ def rho_in(yobs, N):
     return rho
 
 
-def xi_n(profile, frac, n_d, N):
-    """
+def _xi_n(profile, frac, n_d, N_n):
+    '''
     Return time series of spending profile.
-    Series is adjusted for inflation.
-    """
-    xi = np.ones(N)
-    if profile == "flat":
+    Series is unadjusted for inflation.
+    '''
+    xi = np.ones(N_n)
+    if profile == 'flat':
         pass
-    elif profile == "smile":
-        x = np.linspace(0, N, N)
+    elif profile == 'smile':
+        x = np.linspace(0, N_n, N_n)
         # Use a cosine over a gentle linear increase.
-        xi = xi + 0.15*np.cos((2*np.pi/N)*x) + (0.12/N)*x
+        xi = xi + 0.15 * np.cos((2 * np.pi / N_n) * x) + (0.12 / N_n) * x
         # Normalize sum to a flat profile.
-        xi = xi*(N/xi.sum())
+        xi = xi * (N_n / xi.sum())
     else:
-        u.xprint("Unknown profile " + profile)
+        u.xprint('Unknown profile ' + profile)
 
     # Reduce income at passing of one spouse.
-    for n in range(n_d+1, N):
+    for n in range(n_d + 1, N_n):
         xi[n] *= frac
 
     return xi
 
 
-def q0(C, N1, N2=1, N3=1, N4=1):
+def _q0(C, N1, N2=1, N3=1, N4=1):
     '''
     Index range accumulator.
     '''
-    return C + N1*N2*N3*N4
+    return C + N1 * N2 * N3 * N4
 
 
-def q4(C, l1, l2=0, N2=1, l3=0, N3=1, l4=0, N4=1):
+def _q4(C, l1, l2=0, N2=1, l3=0, N3=1, l4=0, N4=1):
     '''
     Index mapping function.
     '''
-    return C + l1*N2*N3*N4 + l2*N3*N4 + l3*N4 + l4
+    return C + l1 * N2 * N3 * N4 + l2 * N3 * N4 + l3 * N4 + l4
+
+
+##############################################################################
+
 
 class Owl:
     '''
     This is the main class of the Owl Project.
     '''
+
     def __init__(self, yobs, expectancy, name):
         '''
         Constructor requires two lists: the first one is
@@ -221,15 +225,30 @@ class Owl:
 
         thisyear = date.today().year
 
-        self.horizons = [yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)]
-        self.N_n = max(self.horizons)
+        self.horizons = [
+            yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)
+        ]
+        self.N_n = max(self.horizons) + 1
+        # Handle passing of one spouse before the other.
         if self.N_i == 2:
             self.n_d = min(self.horizons)
+            self.i_d = self.horizons.index(self.n_d)
         else:
             self.n_d = self.N_n + 1
+            self.i_d = 0
 
-        u.vprint('Preparing scenario of %d years for %d individual%s'%
-                (self.N_n - 1, self.N_i, ['', 's'][self.N_i-1]))
+        self.survivorFraction = 0.6
+        self.heirsTaxRate = 0.3
+
+        u.vprint(
+            'Preparing scenario of %d years for %d individual%s'
+            % (self.N_n - 1, self.N_i, ['', 's'][self.N_i - 1])
+        )
+
+        self.rho_in = _rho_in(self.yobs, self.N_n)
+        self.sigma_n, self.theta_tn, self.Delta_tn = _taxParams(
+            self.yobs, self.i_d, self.n_d, self.N_n
+        )
 
         # All variables
         self.b_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n + 1))
@@ -243,23 +262,79 @@ class Owl:
 
         return
 
+    def setName(self, name):
+        '''
+        Provide a name to the plan. This name is used
+        to distinguish the output.
+        '''
+        self._name = name
+
+        return
+
     def setVerbose(self):
-        pass
+        '''
+        Control verbosity of calculations. True or False for now.
+        '''
+        u.setVerbose(state)
+
     def setAssetBalances(self):
         pass
+
     def readContributions(self, filename):
-        pass
+        '''
+        Provide the name of the file containing the financial events
+        over the anticipated life span determined by the
+        assumed longevity. File can be an excel, or odt file with one
+        tab named after each spouse and must have the following
+        column headers:
+
+                'year',
+                'anticipated wages',
+                'ctrb taxable',
+                'ctrb 401k',
+                'ctrb Roth 401k',
+                'ctrb IRA',
+                'ctrb Roth IRA',
+                'Roth X',
+                'big ticket items'
+
+        in any order. A template is provided as an example.
+        '''
+        self.names, self.timeLists = timelists.read(filename, self.N_i)
+
+        timelists.check(self.names, self.timeLists, self.horizons)
+        self.timeListsFileName = filename
+
+        return
+
+    def setHeirsTaxRate(self, rate):
+        '''
+        Set the heirs tax rate on the tax-deferred portion of the estate.
+        '''
+        assert 0 <= rate and rate <= 100
+        rate /= 100
+        u.vprint(
+            'Heirs tax rate on tax-deferred portion of estate set to', u.pc(rate, f=0)
+        )
+        self.heirsTaxRate = rate
+
+        return
+
     def setInitialAR(self):
         pass
+
     def setFinalAR(self):
         pass
+
     def interpotlateAR(self):
         pass
+
     def seCoordinatedAR(self):
         pass
+
     def setPension(self, amounts, ages, units=None):
         '''
-        Set value of pension for each individual and commencement age. 
+        Set value of pension for each individual and commencement age.
         '''
         assert len(amounts) == self.N_i
         assert len(ages) == self.N_i
@@ -273,11 +348,13 @@ class Owl:
             ns = max(0, self.yobs[i] + ages[i] - thiyear)
             self.pi_in[i][ns:] = values[i]
 
+        u.vprint('Setting pension of', amounts, 'at age(s)', ages)
+
         return
 
     def setSocialSecurity(self, amounts, ages, units=None):
         '''
-        Set value of social security for each individual and commencement age. 
+        Set value of social security for each individual and commencement age.
         '''
         assert len(amounts) == self.N_i
         assert len(ages) == self.N_i
@@ -292,11 +369,55 @@ class Owl:
             self.zeta_in[i][ns:] = values[i]
 
         return
+
+    def setSpendingProfile(profile, frac):
+        '''
+        Generate time series for spending profile.
+        '''
+        self.survivorFraction = frac
+        self.spedingProfile = profile
+        self.xi_in = _xin(profile, frac, self.n_d, self.N_n)
+
+        return
+
     def setDesiredIncome(self):
         pass
+
     def setRates(self):
         pass
-    def setHeirsTaxRate(self):
-        pass
-        
 
+    def setAssetBalances(
+        self, *, taxable, taxDeferred, taxFree, beneficiary, units=None
+    ):
+        '''
+        Four entries must be provided. The first three are lists
+        containing the balance of all assets in each category for
+        each spouse. The last one is the fraction of assets left to
+        the other spouse as a beneficiary. For single individuals,
+        these lists will contain only one entry and the beneficiary
+        value is not relevant.
+
+        Units of 'k', or 'M'
+        '''
+        assert len(taxable) == self.N_i
+        assert len(taxDeferred) == self.N_i
+        assert len(taxFree) == self.N_i
+        assert len(beneficiary) == self.N_i
+
+        fac = u.getUnits(units)
+
+        u.rescale(taxable, fac)
+        u.rescale(taxDeferred, fac)
+        u.rescale(taxFree, fac)
+
+        self.n2balances['taxable'][:] = taxable
+        self.n2balances['tax-deferred'][:] = taxDeferred
+        self.n2balances['tax-free'][:] = taxFree
+        self.beneficiary = beneficiary
+
+        u.vprint('Taxable balances:', taxable)
+        u.vprint('Tax-deferred balances:', taxDeferred)
+        u.vprint('Tax-free balances:', taxFree)
+        u.vprint('Beneficiary:', beneficiary)
+
+        return
