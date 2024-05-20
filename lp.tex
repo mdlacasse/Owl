@@ -1,5 +1,6 @@
 \documentclass{article}[fleqn,12pt]
 \usepackage{amsmath}
+\usepackage{enumitem}
 \usepackage{bm}
 \usepackage{blindtext}
 \usepackage{scrextend}
@@ -40,7 +41,7 @@ sequential mapping of all the variables into a single one-dimensional array.
 
 The indices used and their range are defined here, while we also
 introduce the characteristics and dimensions of the problem.
-\begin{labeling}{someord}
+\begin{description}[leftmargin=4em,style=multiline]
 \item [$i$]
 	Individual. $i$ runs from 0 to $N_i - 1$ where $N_i = 2$ for couples,
 	or $N_i= 1$ for single individuals. 
@@ -59,12 +60,12 @@ introduce the characteristics and dimensions of the problem.
 \item [$t$]
 	Federal income tax bracket. $t$ goes from 0 to $N_t - 1$, from low to high.
 	There are $N_t = 7$ federal income tax brackets.
-\end{labeling}
+\end{description}
 
 \section{Variables}
 We will use lowercase roman letters to represent variables. All variables are assumed
 to take only positive values (positive inequality).
-\begin{labeling}{someord}
+\begin{description}[leftmargin=4em,style=multiline]
 \item [$b_{ijkn}$]
 	Balance for individual $i$ with asset class $k$ in savings account $j$ at the beginning of year $n$.
 \item [$b^+_{ijkn}$]
@@ -93,12 +94,14 @@ to take only positive values (positive inequality).
 	tax purposes as it is a taxable withdrawal.
 \item [$x_{ikn}$]
 	Roth conversion performed by individual $i$ using asset class $k$ at the beginning of year $n$.
-\end{labeling}
+\end{description}
 
 \section{Parameters}
 For more easily distinguishing parameters from variables, all parameters will be expressed in Greek letters.
 Parameter values are either set by the user, historical data, or by the tax code.
-\begin{labeling}{someord}
+\begin{description}[leftmargin=4em,style=multiline]
+\item [$\beta{ijk}$]
+	Initial balances savings accounts. These amounts are used to initialize $b_{ijk0}$.
 \item [$\tau_{kn}$]
 	Annual rate of return for asset class $k$ in year $n$.
 	A time series of annual return rates for each class of asset.
@@ -157,10 +160,10 @@ or an s-curve as in
 	These interpolation functions allow the allocation ratios to gradually change
 	or {\em glide} during retirement.
 
-\item [$\beta_{in}$]
+\item [$\Lambda_{in}$]
 	Big-ticket item requested by individual $i$ in year $n$.
 	These are large expenses or influx of money
-	that can be planned. Therefore, $\beta$ can be positive (e.g., sell a house, inheritance)
+	that can be planned. Therefore, $\Lambda$ can be positive (e.g., sell a house, inheritance)
 	or negative (e.g., buy a house, large gifts).
 \item [$\pi_{in}$]
 	Sum of pension benefits for individual $i$ in year $n$.
@@ -190,13 +193,15 @@ or an s-curve as in
 	at the death of individual $i_d$, the first one to pass.
 \item [$\psi$]
 	Income tax rate on long-term capital gain and qualified dividends (typically 15\%).
-\end{labeling}
+\item [$\eta$]
+	Spousal ratio for withdrawals.
+\end{description}
 
 \section{Intermediate variables}
 We use intermediate variables for conciseness or clarity,
 but they are ultimately replaced in the final formulation.
 All intermediate variables are in uppercase letters.
-\begin{labeling}{someord}
+\begin{description}[leftmargin=4em,style=multiline]
 \item [$G_n$]
 	Taxable ordinary income in year $n$. Sum of wages, pension, social security benefits, all withdrawals
 	from tax-exempt accounts, including Roth conversions, and gains from securities
@@ -247,7 +252,7 @@ All intermediate variables are in uppercase letters.
 	\end{equation}
 	Although it is not always the case, we assume that qualified dividends and long-term
 	capital gains are taxed at the same preferential rate.
-\end{labeling}
+\end{description}
 
 \section{Constraints}
 \paragraph*{Required minimum distributions (RMDs)}
@@ -279,7 +284,8 @@ All intermediate variables are in uppercase letters.
 	made through the year.
 	The account balance at the end of a year is the same as the balance
 	at the beginning of the following year.
-	Changes include contributions $\kappa$, distributions and withdrawals $w$, conversions $x$, and growth $\tau$.
+	Changes include contributions $\kappa$, distributions and withdrawals $w$,
+	conversions $x$, and growth $\tau$.
 	We track each asset class $k$ in each savings account $j$ separately.
 	Roth conversions are assumed to be made at the beginning of the year, while withdrawals
 	and surplus deposits are made at the end of the year.
@@ -311,6 +317,12 @@ All intermediate variables are in uppercase letters.
 		+ w_{ijkn}
 		- \delta(j, 0)d_{ikn} 
 		&=& \kappa_{ijkn} \left(1 + \tau_{kn}/2\right).
+	\end{eqnarray}
+
+	The initial balances are imposed as additional constraints as
+	\begin{eqnarray}
+		\label{Eq:InitialBalance}
+		b_{ijk0} = \beta_{ijk}.
 	\end{eqnarray}
 
 	It is also possible to eliminate the account balance variables $b$ through iterative
@@ -354,10 +366,10 @@ All intermediate variables are in uppercase letters.
 	and all taxes paid:
 	\begin{eqnarray}
 		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
-		+ \sum_{ijk} w_{ijkn} + \sum_i \beta_{in} - \sum_{ik}d_{ikn}
+		+ \sum_{ijk} w_{ijkn} + \sum_i \Lambda_{in} - \sum_{ik}d_{ikn}
 		- T_n - U_n.
 	\end{eqnarray}
-	Note that big-ticket items $\beta$ can be negative or positive.
+	Note that big-ticket items $\Lambda$ can be negative or positive.
 
 	Bringing all variables to the left-hand side and replacing intermediate variables, we get
 	\begin{eqnarray}
@@ -366,7 +378,7 @@ All intermediate variables are in uppercase letters.
 		+ \sum_t \bar{\Delta}_{t n}\theta_{t n} f_{t n}&&\nonumber \\
 		+ \psi \sum_{i} [\mu b_{i00n} + (w_{i00n} + b^-_{i00n})\max(0, \tau_{0n})] 
 		&= & \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
-		&& + \sum_i [\beta_{in} - .5\mu\psi\kappa_{i00n}].
+		&& + \sum_i [\Lambda_{in} - .5\mu\psi\kappa_{i00n}].
 	\end{eqnarray}
 	We also want the net income to be predictable and smooth. We will use
 \begin{equation}
@@ -628,12 +640,22 @@ where $v$ is
 \begin{equation}
 	v[J_0(i, j, k, n)] = \kappa_{ijkn}(1 + \tau_{kn}/2).
 \end{equation}
+The initial account balances expressed in Eq.~\ref{Eq:InitialBalance} are imposed through
+\begin{eqnarray}
+	A_e[J_1(i, j, k), q_b(i, j, k, 0)] &=& 1, \nonumber \\
+	v[J_1(i, j, k)] &=& \beta_{ijk},  \\
+	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
+	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
+	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber
+\end{eqnarray}
+leading to $N_i N_j N_k$ additional rows to $A_e$.
+
 For the constraint on rebalancing variables  $b^\pm$ expressed in Eq.~(\ref{Eq:NoNewMoney}),
 we add $N_iN_jN_n$ more rows to $A_ey = v$, as
 \begin{eqnarray}
-	A_e[J_1(i, j, n), q_{b^+}(i, j, k, n)] &=& 1, \nonumber \\
-	A_e[J_1(i, j, n), q_{b^-}(i, j, k, n)] &=& -1, \nonumber \\
-	v[J_1(i, j, n)] &=& 0, \nonumber \\
+	A_e[J_2(i, j, n), q_{b^+}(i, j, k, n)] &=& 1, \nonumber \\
+	A_e[J_2(i, j, n), q_{b^-}(i, j, k, n)] &=& -1, \nonumber \\
+	v[J_2(i, j, n)] &=& 0, \nonumber \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -655,13 +677,13 @@ inequality matrix $A_uy\le u$,
 For the equality constraint on net income expressed in Eq.~(\ref{Eq:C4}),
 we add $N_n$ more rows to $A_ey = v$ as
 \begin{eqnarray}
-	A_e[J_2(n), q_g(n)] &=& 1, \nonumber \\
-	A_e[J_2(n), q_w(i, j ,k, n)] &=& -1,\nonumber \\
-	A_e[J_2(n), q_d(i, ,k, n)] &=& 1, \nonumber \\
-	A_e[J_2(n), q_f(t, n)] &=& \bar\Delta_{t n}\theta_{t n}, \nonumber \\
-	A_e[J_2(n), q_b(i, 0, 0, n)] &=& \psi\mu, \nonumber \\
-	A_e[J_2(n), q_w(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n}), \nonumber \\
-	A_e[J_2(n), q_{b^-}(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n}), \nonumber \\
+	A_e[J_3(n), q_g(n)] &=& 1, \nonumber \\
+	A_e[J_3(n), q_w(i, j ,k, n)] &=& -1,\nonumber \\
+	A_e[J_3(n), q_d(i, ,k, n)] &=& 1, \nonumber \\
+	A_e[J_3(n), q_f(t, n)] &=& \bar\Delta_{t n}\theta_{t n}, \nonumber \\
+	A_e[J_3(n), q_b(i, 0, 0, n)] &=& \psi\mu, \nonumber \\
+	A_e[J_3(n), q_w(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n}), \nonumber \\
+	A_e[J_3(n), q_{b^-}(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n}), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -670,16 +692,16 @@ we add $N_n$ more rows to $A_ey = v$ as
 \end{eqnarray}
 where $v$ is
 \begin{equation}
-	v[J_2(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
-	+ \beta_{in} - .5\psi\mu\kappa_{i00n}].
+	v[J_3(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
+	+ \Lambda_{in} - .5\psi\mu\kappa_{i00n}].
 \end{equation}
 
 The condition of having a predictable net income expressed as an
 equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
 \begin{eqnarray}
-	A_e[J_3(n), q_g(n+1)] &=& 1, \nonumber \\
-	A_e[J_3(n), q_g(n)] &=& -(1 + \tau_{3n})\xi_n, \nonumber \\
-	v[J_3(n)] &=& 0, \\
+	A_e[J_4(n), q_g(n+1)] &=& 1, \nonumber \\
+	A_e[J_4(n), q_g(n)] &=& -(1 + \tau_{3n})\xi_n, \nonumber \\
+	v[J_4(n)] &=& 0, \\
 	&&\qquad\forall n \in \{0,\ldots, N_n-2\}. \nonumber
 \end{eqnarray}
 
@@ -687,10 +709,10 @@ equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
 Finally, for the equality constraint in Eq.~(\ref{Eq:C6}) establishing taxable
 ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 \begin{eqnarray}
-	A_e[J_4(n), q_f(t, n)] &=& \bar{\Delta}_{t n}, \nonumber \\
-	A_e[J_4(n), q_w(i, 1, k, n)] &=& -1, \nonumber \\
-	A_e[J_4(n), q_x(i, k, n)] &=& -1, \nonumber \\
-	A_e[J_4(n), q_b(i, 0, k, n)] &=& -(1-\delta(k, 0))\tau_{kn}, \nonumber \\
+	A_e[J_5(n), q_f(t, n)] &=& \bar{\Delta}_{t n}, \nonumber \\
+	A_e[J_5(n), q_w(i, 1, k, n)] &=& -1, \nonumber \\
+	A_e[J_5(n), q_x(i, k, n)] &=& -1, \nonumber \\
+	A_e[J_5(n), q_b(i, 0, k, n)] &=& -(1-\delta(k, 0))\tau_{kn}, \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -698,14 +720,14 @@ ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 \end{eqnarray}
 with
 \begin{eqnarray}
-	v[J_4(n)] &=& 
+	v[J_5(n)] &=& 
 	\sum_i [\omega_{in} + .85\bar\zeta_{in}  + \pi_{in}]
 	+ .5\sum_{ik} [(1-\delta(k, 0))\tau_{kn}\kappa_{i0kn}]
 	- \bar{\sigma}_n.
 \end{eqnarray}
 
 So far, $A_u$ has $[(N_iN_jN_k + N_i + N_t)N_n]$ or $33N_n$ rows,
-while $A_e$ has $[(N_k+1)N_iN_j + 3)N_n - 1]$ or $33N_n-1$ rows. For a 30-year
+while $A_e$ has $[(N_k+1)N_iN_j + 3)N_n + N_iN_jN_k - 1]$ or $33N_n+23$ rows. For a 30-year
 plan, this means about 990 rows for each.
 
 \subsection{Other considerations}
@@ -810,8 +832,8 @@ These asset allocation ratios can then be imposed as an equality constraint as
 which can be written as
 \begin{eqnarray}
 	\label{Eq:Alloc3}
-	A[J_5(i, j, k, n), q_b(i, j, k', n)] &=& \delta(k, k') - \alpha_{ijkn}, \nonumber\\
-	v[J_5(i, j, k, n)] &=& 0, \\
+	A[J_6(i, j, k, n), q_b(i, j, k', n)] &=& \delta(k, k') - \alpha_{ijkn}, \nonumber\\
+	v[J_6(i, j, k, n)] &=& 0, \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall k,k' \in \{0,\ldots, N_k-1\},\nonumber\\

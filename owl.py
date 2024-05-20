@@ -5,8 +5,10 @@ Copyright -- Martin-D. Lacasse (2024)
 
 '''
 
+###########################################################################
 import numpy as np
 from datetime import date
+
 import utils as u
 import rates
 
@@ -31,6 +33,7 @@ def _taxParams(yobs, i_d, n_d, N_n):
     2) Difference in tax brackets (Delta_tn)
     3) Tax rate in year n (theta_tn)
     This is pure speculation on future values.
+    Returned values are not indexed for inflation.
     '''
     # Prepare the data.
     rates_2024 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.035, 0.370])
@@ -38,12 +41,13 @@ def _taxParams(yobs, i_d, n_d, N_n):
 
     # Single [0] and married filing jointly [1].
     brackets_2024 = np.array(
-        [[11600, 47150, 100525, 191950, 243450, 609350, 10000000],
-         [23200, 94300, 201050, 383900, 487450, 731200, 10000000]]
+        [[11600, 47150, 100525, 191950, 243450, 609350, 99999999],
+         [23200, 94300, 201050, 383900, 487450, 731200, 99999999]]
     )
+    # Adjusted from 2017 with 30% increase.
     brackets_2026 = np.array(
-        [[11600, 47150, 100525, 191950, 243450, 609350, 10000000],
-         [23200, 94300, 201050, 383900, 487450, 731200, 10000000]]
+        [[12100, 49300, 119500, 249100, 541700, 543900, 99999999],
+         [24200, 98700, 199000, 303350, 541700, 611900, 99999999]]
     )
     # Compute the deltas in-place between brackets.
     for t in range(6, 0, -1):
@@ -167,7 +171,7 @@ def _xi_n(profile, frac, n_d, N_n):
         x = np.linspace(0, N_n, N_n)
         # Use a cosine over a gentle linear increase.
         xi = xi + 0.15 * np.cos((2 * np.pi / N_n) * x) + (0.12 / N_n) * x
-        # Normalize sum to a flat profile.
+        # Normalize sum to be equivalent to a flat profile.
         xi = xi * (N_n / xi.sum())
     else:
         u.xprint('Unknown profile ' + profile)
@@ -193,7 +197,7 @@ def _q4(C, l1, l2=0, N2=1, l3=0, N3=1, l4=0, N4=1):
     return C + l1 * N2 * N3 * N4 + l2 * N3 * N4 + l3 * N4 + l4
 
 
-##############################################################################
+############################################################################
 
 
 class Owl:
@@ -205,7 +209,8 @@ class Owl:
         '''
         Constructor requires two lists: the first one is
         the year of birth of each spouse, and the second
-        the life expectancy.
+        the life expectancy. Last argument is a name for
+        the plan.
         '''
         self._name = name
 
@@ -228,7 +233,7 @@ class Owl:
         self.horizons = [
             yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)
         ]
-        self.N_n = max(self.horizons) + 1
+        self.N_n = max(self.horizons)
         # Handle passing of one spouse before the other.
         if self.N_i == 2:
             self.n_d = min(self.horizons)
@@ -251,6 +256,7 @@ class Owl:
         )
 
         # All variables
+        self.b_ij0 = np.zeros((self.N_i, self.N_j))
         self.b_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n + 1))
         self.bp_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n))
         self.bm_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n))
@@ -264,7 +270,7 @@ class Owl:
 
     def setName(self, name):
         '''
-        Provide a name to the plan. This name is used
+        Override name of the plan. This name is used
         to distinguish the output.
         '''
         self._name = name
@@ -383,8 +389,30 @@ class Owl:
     def setDesiredIncome(self):
         pass
 
-    def setRates(self):
-        pass
+    def setRates(self, method, frm=rates.FROM, to=rates.TO, values=None):
+        '''
+        Generate rates for return and inflation based on the method and
+        years selected. Note that last bound is included.
+
+        The following methods are available:
+        default, fixed, realistic, conservative, average, stochastic,
+        mean, and historical.
+
+        For 'fixed', values must be provided.
+        For 'average', 'mean', 'stochastic', and 'historical', a range of
+        years can be provided.
+
+        '''
+        dr = rates.rates()
+        dr.setMethod(method, frm, to, values)
+        self.rateMethod = method
+        self.rateFrm = frm
+        self.rateTo = to
+        self.rateValues = values
+        self.rates = dr.genSeries(frm, to, self.span)
+        # u.vprint('Generated rate series of', len(self.rates))
+
+        return
 
     def setAssetBalances(
         self, *, taxable, taxDeferred, taxFree, beneficiary, units=None
@@ -410,7 +438,7 @@ class Owl:
         u.rescale(taxDeferred, fac)
         u.rescale(taxFree, fac)
 
-        self.n2balances['taxable'][:] = taxable
+        self.b['taxable'][:] = taxable
         self.n2balances['tax-deferred'][:] = taxDeferred
         self.n2balances['tax-free'][:] = taxFree
         self.beneficiary = beneficiary
