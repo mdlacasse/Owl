@@ -9,7 +9,7 @@
 \geometry{letterpaper}
 
 \begin{document}
-\title{Formulation of ARP Lab linear optimization model}
+\title{Formulation of linear optimization model in Owl}
 \author{Martin-D. Lacasse}
 \maketitle
 \thispagestyle{fancy}
@@ -18,12 +18,15 @@
 
 This document describes the mathematical models undelying
 the optimization algorithms implemented in
-ARP Lab: A Retirement Planning Laboratory. The goal of
+Owl. This code is a Python application optimizing retirement
+planning using linear programming. The goal of
 these calculations is to optimize the financial aspects
 of retirement planning, considering the types of savings accounts,
 income tax, contributions, return rates, Roth conversions,
 and desired income amongst many other things.
 
+The approach is described here mathematically and the implementation
+follows the structure and notation presented here.
 In the first sections, the indices, variables, and parameters are
 described in detail. Then the model constraints are introduced.
 For implementation in a linear programming solver, index mapping
@@ -37,14 +40,16 @@ and so are some useful objective functions.
 For all indices, we will follow the C array style (starting at 0),
 rather than the traditional mathematical standard starting at 1.
 This will facilitate the final
-sequential mapping of all the variables into a single one-dimensional array.
+sequential mapping of all the variables into a single one-dimensional array,
+and serve as a direct reference for better understanding the code implementation.
 
 The indices used and their range are defined here, while we also
 introduce the characteristics and dimensions of the problem.
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$i$]
 	Individual. $i$ runs from 0 to $N_i - 1$ where $N_i = 2$ for couples,
-	or $N_i= 1$ for single individuals. 
+	or $N_i= 1$ for single individuals. The first individual to pass
+		is denoted by $i_d$.
 \item [$j$]
 	Type of savings account. $j$ goes from 0 to $N_j - 1$, for taxable, tax-deferred,
 	and tax-exempt accounts respectively. Therefore $N_j = 3$.
@@ -54,9 +59,11 @@ introduce the characteristics and dimensions of the problem.
 	More asset classes could be considered at the cost of increasing
 	the complexity of the problem while not generating much more insights.
 \item [$n$]
-	Year being modeled. $n$ runs from 0 to $N_n - 1$, where $N_n$
+	Year being modeled. $n$ runs from 0 to $N_n-1$, and $N_n$
 	is the first year following the passing of all
 	individuals in the plan. The time period for all decision variables is annual.
+	For spouses, $n_d$ is the year in which the first individual passes while
+	the survivor will decease in year $N_n-1$ of the plan.
 \item [$t$]
 	Federal income tax bracket. $t$ goes from 0 to $N_t - 1$, from low to high.
 	There are $N_t = 7$ federal income tax brackets.
@@ -101,11 +108,11 @@ For more easily distinguishing parameters from variables, all parameters will be
 Parameter values are either set by the user, historical data, or by the tax code.
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$\beta{ijk}$]
-	Initial balances savings accounts. These amounts are used to initialize $b_{ijk0}$.
+	Initial balances in savings accounts. These amounts are used to initialize $b_{ijk0}$.
 \item [$\tau_{kn}$]
 	Annual rate of return for asset class $k$ in year $n$.
 	A time series of annual return rates for each class of asset.
-	Here, inflation is the rate of return of $(k=3)$ cash.
+	Here, inflation and the rate of return of $(k=3)$ cash are assumed to be the same.
 \item [$\gamma_n$]
 	Cumulative inflation at the beginning of year $n$ computed as
 	\begin{equation}
@@ -121,11 +128,22 @@ Parameter values are either set by the user, historical data, or by the tax code
 	and can be modified for additional age exemptions after 65 of age, for example.
 	It is a simple time series to be provided
 	which can include any foreseeable changes in the tax code, or change in filing status due to the
-	passing of one spouse.
+	passing of one spouse after $n>n_d$.
 \item [$\xi_{n}$]
 	Spending profile. This is a time series that multiplies the desired net income. It would be $\xi_n =1$ for
-	a flat profile, or could be a 'smile' profile allowing for more money at the start of retirement. Parameter
+	a flat profile, or could be a {\em smile} profile allowing for more money at the start
+	of retirement. Parameter
 	$\xi_n$ would also contain spending adjustments typically made at the passing of one spouse.
+	The {\em smile} can be implemented using a cosine superimposed over a gentle linear increase
+	such as in
+	\begin{equation}
+		\xi_n = 1 + 0.15*cos(2n\pi/(N_n-1)) + 0.12n/(N_n-1),
+	\end{equation}
+	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum neutral with respect to a flat profile.
+	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n > n_d$.
+\item [$\chi$]
+	Factor to reduce spending profile after the passing of one spouse. It is typically
+	assumed to be 0.6.
 \item [$\rho_{in}$]
 	Required minimum distribution for individual $i$ in year $n$. Expressed in fractions
 	which are determined from IRS tables. Simple if spouses are less than 10 years apart,
@@ -133,7 +151,8 @@ Parameter values are either set by the user, historical data, or by the tax code
 \item [$\Delta_{t n}$]
 	Difference between upper bound and lower bound of a federal income tax bracket. Once adjusted for inflation,
 	the taxable income can be expressed as in Eq.~(\ref{Eq:Tx1}). These data are 7 time series.
-	The filing status will change at the death of one spouse and so these brackets would need
+	The filing status will change after the death of one spouse ($n > n_d$) and so these
+	brackets would need
 	to be adjusted accordingly.
 \item [$\theta_{t n}$]
 	Tax rate for tax bracket $t$ in year $n$. Using $N_t$ time series allows to adjust income
@@ -159,6 +178,10 @@ or an s-curve as in
 	width (in years) of the transition. Constants $n_1$ and $n_2$ are selected by the user.
 	These interpolation functions allow the allocation ratios to gradually change
 	or {\em glide} during retirement.
+
+	It is also possible to have a coarser granularity on the portfolio by having an asset allocation
+	defined on a sum of accounts. For example, allocation can be coordinated between accounts
+	leading to $\alpha_{ikn}$, or even between spouses as $\alpha_{kn}$.
 
 \item [$\Lambda_{in}$]
 	Big-ticket item requested by individual $i$ in year $n$.
