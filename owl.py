@@ -95,10 +95,9 @@ def _taxParams(yobs, i_d, n_d, N_n):
             theta[n][:] = rates_2026[:]
 
         # Check for death in the family.
-        if n == n_d:
+        if n == n_d - 1:
             souls.remove(i_d)
             filingStatus -= 1
-
 
     Delta = Delta.transpose()
     theta = theta.transpose()
@@ -189,7 +188,7 @@ def _xi_n(profile, frac, n_d, N_n):
         u.xprint('Unknown profile ' + profile)
 
     # Reduce income at passing of one spouse.
-    for n in range(n_d + 1, N_n):
+    for n in range(n_d, N_n):
         xi[n] *= frac
 
     return xi
@@ -231,6 +230,12 @@ class Owl:
         self.N_j = 3
         self.N_k = 4
 
+        # Default interpolation parameters.
+        self.interpMethod = 'linear'
+        self._interpolator = self._linInterp
+        self.interpCenter = 15
+        self.interpWidth = 5
+
         self.N_i = len(yobs)
         assert self.N_i == len(expectancy)
         assert 0 < self.N_i and self.N_i <= 2
@@ -250,6 +255,7 @@ class Owl:
         if self.N_i == 2:
             self.n_d = min(self.horizons)
             self.i_d = self.horizons.index(self.n_d)
+            self.i_s = (self.i_d+1)%2
         else:
             self.n_d = self.N_n + 1
             self.i_d = 0
@@ -335,7 +341,7 @@ class Owl:
 
         return
 
-    def setLongTermIncomeTax(self, psi):
+    def setLongTermIncomeTaxRate(self, psi):
         '''
         Set long-term income tax rate. Default 15%.
         '''
@@ -346,12 +352,12 @@ class Owl:
 
         return
 
-    def setBeneficiary(self, phi):
+    def setBeneficiaryFraction(self, phi):
         '''
-        Set fractions of accounts that is left to survivor spouse.
+        Set fractions of accounts that is left to surviving spouse.
         '''
         assert len(phi) == 3
-        u.vprint('Beneficiary spousal fractions set to', phi)
+        u.vprint('Beneficiary spousal beneficiary fractions set to', phi)
         self.phi_j = phi
 
         return
@@ -372,6 +378,7 @@ class Owl:
     def setPension(self, amounts, ages, units=None):
         '''
         Set value of pension for each individual and commencement age.
+        Units of 'k', or 'M'
         '''
         assert len(amounts) == self.N_i
         assert len(ages) == self.N_i
@@ -379,20 +386,22 @@ class Owl:
         fac = u.getUnits(units)
         u.rescale(amounts, fac)
 
+        u.vprint('Setting pension of', amounts, 'at age(s)', ages)
+
         thisyear = date.today().year
         # Use zero array freshly initialized.
         self.pi_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
-            ns = max(0, self.yobs[i] + ages[i] - thiyear)
-            self.pi_in[i][ns:] = values[i]
-
-        u.vprint('Setting pension of', amounts, 'at age(s)', ages)
+            ns = max(0, self.yobs[i] + ages[i] - thisyear)
+            nd = self.horizons[i]
+            self.pi_in[i][ns:nd] = amounts[i]
 
         return
 
     def setSocialSecurity(self, amounts, ages, units=None):
         '''
         Set value of social security for each individual and commencement age.
+        Units of 'k', or 'M'
         '''
         assert len(amounts) == self.N_i
         assert len(ages) == self.N_i
@@ -400,26 +409,39 @@ class Owl:
         fac = u.getUnits(units)
         u.rescale(amounts, fac)
 
+        u.vprint('Setting social security benefits of', amounts, 'at age(s)', ages)
+
         thisyear = date.today().year
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
-            ns = max(0, self.yobs[i] + ages[i] - thiyear)
-            self.zeta_in[i][ns:] = values[i]
+            ns = max(0, self.yobs[i] + ages[i] - thisyear)
+            nd = self.horizons[i]
+            self.zeta_in[i][ns:nd] = amounts[i]
+
+        if self.N_i == 2:
+            # Approximate calculation for spousal benefit.
+            nd = self.horizons[self.i_d]
+            self.zeta_in[self.i_s][nd:] = max(amounts[self.i_s], amounts[self.i_d]/2)
 
         return
 
-    def setSpendingProfile(self, profile, frac=None):
+    def setSpendingProfile(self, profile, fraction=None):
         '''
         Generate time series for spending profile.
+        Surviving spouse fraction can be specified or
+        previous value can be used.
         '''
-        if frac is None:
+        if fraction is None:
             # Use previous or default.
-            frac = self.chi
+            fraction = self.chi
         else:
-            self.chi = frac
+            self.chi = fraction
+
+        u.vprint('Setting', profile, 'spending profile with',
+                 fraction, 'survivor fraction.')
 
         self.spendingProfile = profile
-        self.xi_n = _xi_n(profile, frac, self.n_d, self.N_n)
+        self.xi_n = _xi_n(profile, fraction, self.n_d, self.N_n)
 
         return
 
@@ -435,7 +457,6 @@ class Owl:
         For 'fixed', values must be provided.
         For 'average', 'mean', 'stochastic', and 'historical', a range of
         years can be provided.
-
         '''
         dr = rates.rates()
         dr.setMethod(method, frm, to, values)
@@ -443,41 +464,211 @@ class Owl:
         self.rateFrm = frm
         self.rateTo = to
         self.rateValues = values
-        self.rates = dr.genSeries(frm, to, self.N_n)
-        # u.vprint('Generated rate series of', len(self.rates))
+        self.tau_kn = dr.genSeries(self.N_n)
+        u.vprint('Generated rate series of', len(self.tau_kn),
+                 'with method', method)
+
+        # Once rates are selected, adjust values for inflation.
+        self.gamma_n = gamma_n(self.tau_kn, self.N_n)
+        self.DeltaBar_tn = self.Delta_tn * self.gamma_n
+        self.zetaBar_in = self.zeta_in * self.gamma_n
+        self.sigmaBar_n = self.sigma_n * self.gamma_n
 
         return
 
-    def setAssetBalances(self, *, taxable, taxDeferred, taxFree, units=None):
+    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, units=None):
         '''
         Four entries must be provided. The first three are lists
         containing the balance of all assets in each category for
         each spouse. The last one is the fraction of assets left to
         the other spouse as a beneficiary. For single individuals,
         these lists will contain only one entry and the beneficiary
-        value is not relevant.
-
-        Units of 'k', or 'M'
+        value is not relevant. Units of 'k', or 'M'
         '''
         assert len(taxable) == self.N_i
         assert len(taxDeferred) == self.N_i
         assert len(taxFree) == self.N_i
 
         fac = u.getUnits(units)
-
         u.rescale(taxable, fac)
         u.rescale(taxDeferred, fac)
         u.rescale(taxFree, fac)
 
-        b_ji = np.zeros((N_j, N_i))
-        b_ji[0][:] = taxable
-        b_ji[1][:] = taxDeferred
-        b_ji[2][:] = taxFree
-        self.b_ij = b_ji.transpose()
+        self.b_ji = np.zeros((self.N_j, self.N_i))
+        self.b_ji[0][:] = taxable
+        self.b_ji[1][:] = taxDeferred
+        self.b_ji[2][:] = taxFree
+        self.b_ij = self.b_ji.transpose()
 
         u.vprint('Taxable balances:', taxable)
         u.vprint('Tax-deferred balances:', taxDeferred)
         u.vprint('Tax-free balances:', taxFree)
+
+        return
+
+    def setInterpolationMethod(self, method, center=15, width=5):
+        '''
+        Interpolate assets allocation ratios from initial value (today) to
+        final value (at the end of horizon).
+
+        Two interpolation methods are supported: linear and s-curve.
+        Linear is a straight line between now and the end of the simulation.
+        Hyperbolic tangent give a smooth "S" curve centered at point "c"
+        with a width "w". Center point defaults to 15 years and width to
+        5 years. This means that the transition from initial to final
+        will start occuring in 10 years (15-5) and will end in 20 years (15+5).
+        '''
+        if method == 'linear':
+            self._interpolator = self._linInterp
+        elif method == 's-curve':
+            self._interpolator = self._tanhInterp
+            self.interpCenter = center
+            self.interpWidth = width
+        else:
+            u.xprint('Method', method, 'not supported.')
+
+        self.interpMethod = method
+
+        u.vprint('Asset allocation interpolation method set to', method)
+
+        return
+
+    def setAllocations(self, allocType, taxable=None, taxDeferred=None,
+                       taxFree=None, generic=None):
+        '''
+        Single function for setting all types of asset allocations.
+        Allocation types are 'account', 'individual', and 'spouses'.
+
+        For 'account' the three different account types taxable, taxDeferred,
+        and taxFree need to be set to a list. For spouses,
+        taxable = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]],
+                   [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]]
+        where ko is the initial allocation while kf is the final. 
+        The order of [initial, final] pairs is the same as for the birth
+        years and longevity provided. Single only provide one pair for each
+        type of savings account.
+
+        For 'individual' allocation type only one generic list needs
+        to be provided:
+        generic = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]],
+                  [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]].
+        while for 'spouses' only one pair needs to be given as follows:
+        generic = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]]]
+        as assets are coordinated between accounts and spouses.
+        '''
+        self.alpha = {}
+        if allocType == 'account':
+            # Make sure we have proper entries.
+            for item in [taxable, taxDeferred, taxFree]:
+                assert len(item) == self.N_i
+                for i in range(self.N_i):
+                    # Initial and final.
+                    assert len(item[i]) == 2
+                    for z in range(2):
+                        assert len(item[i][z]) == self.N_k
+                        assert abs(sum(item[i][z]) - 100) < 0.01
+
+            for i in range(self.N_i):
+                u.vprint(self.names[i], ': Setting allocation ratios (%) to')
+                u.vprint('    taxable:', taxable[i][0], '->', taxable[i][1])
+                u.vprint('taxDeferred:', taxDeferred[i][0], '->', taxDeferred[i][1])
+                u.vprint('    taxFree:', taxFree[i][0], '->', taxFree[i][1])
+
+            accList = ['taxable', 'taxDeferred', 'taxFree']
+            self.alpha['taxable'] = np.array(taxable) / 100
+            self.alpha['taxDeferred'] = np.array(taxDeferred) / 100
+            self.alpha['taxFree'] = np.array(taxFree) / 100
+            self.alpha['account'] = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n+1))
+            horizons = self.horizons
+            nwhos = self.N_i
+        elif allocType == 'individual':
+            assert len(generic) == self.N_i
+            for i in range(self.N_i):
+                # Initial and final.
+                assert len(generic[i]) == 2
+                for z in range(2):
+                    assert len(generic[i][z]) == self.N_k
+                    assert abs(sum(generic[i][z]) - 100) < 0.01
+
+            for i in range(self.N_i):
+                u.vprint(self.names[i], ': Setting allocation ratios (%) to')
+                u.vprint('individual:', generic[i][0], '->', generic[i][1])
+
+            accList = ['generic']
+            self.alpha['generic'] = np.array(generic) / 100
+            self.alpha['individual'] = np.zeros((self.N_i, self.N_k, self.N_n+1))
+            horizons = self.horizons
+            nwhos = self.N_i
+        elif allocType == 'spouses':
+            assert len(generic[0]) == 2
+            for z in range(2):
+                assert len(generic[0][z]) == self.N_k
+                assert abs(sum(generic[0][z]) - 100) < 0.01
+
+            u.vprint('Setting allocation ratios (%) to')
+            u.vprint('spouses:', generic[0][0], '->', generic[0][1])
+
+            accList = ['generic']
+            self.alpha['generic'] = np.array(generic) / 100
+            self.alpha['spouses'] = np.zeros((1, self.N_k, self.N_n+1))
+            # Use longest-lived spouse for both time scales.
+            horizons = np.ones(self.N_i, dtype=int) * max(self.horizons)
+            nwhos = 1
+
+        self.ARCoord = allocType
+        self._interpolator(accList, nwhos, horizons)
+
+        u.vprint('Interpolated assets allocation ratios using',
+                 self.interpMethod, 'method.')
+
+        return
+
+    def _linInterp(self, accList, N_i, numPoints):
+        '''
+        Utility function to interpolate multiple cases using
+        a linear interpolation. Range goes one more year than
+        horizon as year passed death includes estate.
+        '''
+        for accName in accList:
+            for i in range(N_i):
+                for k in range(self.N_k):
+                    dat = np.linspace(
+                        self.alpha[accName][i][0][k],
+                        self.alpha[accName][i][1][k],
+                        numPoints[i] + 1,
+                    )
+                    if self.ARCoord == 'account':
+                        j = ['taxable', 'taxDeferred', 'taxFree'].index(accName)
+                        for n in range(numPoints[i] + 1):
+                            self.alpha[self.ARCoord][i][j][k][n] = dat[n]
+                    else:
+                        for n in range(numPoints[i] + 1):
+                            self.alpha[self.ARCoord][i][k][n] = dat[n]
+
+        return
+
+    def _tanhInterp(self, accList, N_i, numPoints):
+        '''
+        Utility function to interpolate multiple cases using hyperbolic
+        tangent interpolation. "c" is the center where the inflection point
+        is, and "w" is the width of the transition.
+        '''
+        c = self.interpCenter
+        w = self.interpWidth
+        for accName in accList:
+            for i in range(N_i):
+                for k in range(self.N_k):
+                    t = np.linspace(0, numPoints[i], numPoints[i] + 1)
+                    a = self.alpha[accName][i][0][k]
+                    b = self.alpha[accName][i][1][k]
+                    dat = a + 0.5 * (b - a) * (1 + np.tanh((t - c) / w))
+                    if self.ARCoord == 'account':
+                        j = ['taxable', 'taxDeferred', 'taxFree'].index(accName)
+                        for n in range(numPoints[i] + 1):
+                            self.alpha[self.ARCoord][i][j][k][n] = dat[n]
+                    else:
+                        for n in range(numPoints[i] + 1):
+                            self.alpha[self.ARCoord][i][k][n] = dat[n]
 
         return
 
@@ -501,202 +692,24 @@ class Owl:
 
         in any order. A template is provided as an example.
         '''
-        self.inames, self.timeLists = timelists.read(filename, self.N_i)
+        self.inames, self.timeLists = timelists.read(filename, self.N_i, self.horizons)
 
         timelists.check(self.inames, self.timeLists, self.horizons)
         self.timeListsFileName = filename
 
         self.omega_in = np.zeros((self.N_i, self.N_n))
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
-        self.kappa_ijkn = np.zeros((self.N_i, self.N_n))
+        self.kappa_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n))
         # Now fill in parameters.
-        for i in range{self.N_i):
-            self.omega_in[i][:] = self.timeLists[i]['anticipated wages'][:]
-            self.Lambda_in[i][:] = self.timeLists[i]['big ticket items'][:]
-            self.kappa_ijkn[i][0][0][:] = self.timeLists[i]['ctrb taxable'][:]
-            self.kappa_ijkn[i][1][0][:] = self.timeLists[i]['ctrb 401k'][:]
-            self.kappa_ijkn[i][1][0][:] += self.timeLists[i]['ctrb IRA'][:]
-            self.kappa_ijkn[i][2][0][:] = self.timeLists[i]['ctrb Roth 401k'][:]
-            self.kappa_ijkn[i][2][0][:] += self.timeLists[i]['ctrb Roth IRA'][:]
-
-        return
-
-    def setInitialAR(self, *, taxable, taxDeferred, taxFree):
-        '''
-        Set values of assets allocation ratios in each of the accounts
-        for the first horizon year.
-        '''
-        self._setAR(taxable, taxDeferred, taxFree, 0)
-
-        return
-
-    def setFinalAR(self, *, taxable, taxDeferred, taxFree):
-        '''
-        Set values of assets allocation ratios in each of the accounts
-        for the last horizon year.
-        '''
-        self._setAR(taxable, taxDeferred, taxFree, 1)
-
-        return
-
-    def _setAR(self, taxable, taxDeferred, taxFree, k):
-        '''
-        Utility function for setting initial time and final time values
-        on assets allocation ratios.
-        '''
-        # Make sure we have proper entries.
-        assert len(taxable) == self.N_i
-        assert len(taxDeferred) == self.N_i
-        assert len(taxFree) == self.N_i
-
         for i in range(self.N_i):
-            assert len(taxable[i]) == 4
-            assert abs(sum(taxable[i]) - 100) < 0.01
-
-            assert len(taxDeferred[i]) == 4
-            assert abs(sum(taxDeferred[i]) - 100) < 0.01
-
-            assert len(taxFree[i]) == 4
-            assert abs(sum(taxFree[i]) - 100) < 0.01
-
-        which = ['Initial', 'Final'][k]
-
-        u.vprint(
-            which,
-            'assets allocation ratios set to: (%)\n',
-            taxable,
-            '\n',
-            taxDeferred,
-            '\n',
-            taxFree,
-        )
-        self.boundsAR['taxable'][k] = np.array(taxable) / 100
-        self.boundsAR['tax-deferred'][k] = np.array(taxDeferred) / 100
-        self.boundsAR['tax-free'][k] = np.array(taxFree) / 100
-        self.coordinatedAR = 'none'
-
-        return
-
-    def interpolateAR(self, method='linear', center=15, width=5):
-        '''
-        Interpolate assets allocation ratios from initial value (today) to
-        final value (at the end of horizon).
-
-        Two interpolation methods are supported: linear and s-curve.
-        Linear is a straight line between now and the end of the simulation.
-        Hyperbolic tangent give a smooth "S" curve centered at point "c"
-        with a width "w". Center point defaults to 15 years and width to
-        5 years. This means that the transition from initial to final
-        will start occuring in 10 years (15-5) and will end in 20 years (15+5).
-        '''
-        if method not in ['linear', 's-curve', 'none']:
-            u.xprint('Method', method, 'not supported.')
-
-        if self.coordinatedAR == 'both':
-            accType = 'coordinated'
-            # Use longest-lived spouse for both time scales.
-            maxhorizons = np.ones(self.N_i, dtype=int) * max(self.horizons)
-            if method == 'linear':
-                self._linInterp(accType, 1, maxhorizons)
-            elif method == 's-curve':
-                self._tanhInterp(accType, 1, maxhorizons, center, width)
-        elif self.coordinatedAR == 'individual':
-            accType = 'coordinated'
-            if method == 'linear':
-                self._linInterp(accType, self.N_i, self.horizons)
-            elif method == 's-curve':
-                self._tanhInterp(accType, self.N_i, self.horizons, center, width)
-        elif self.coordinatedAR == 'none':
-            for accType in ['taxable', 'tax-deferred', 'tax-free']:
-                if method == 'linear':
-                    self._linInterp(accType, self.N_i, self.horizons)
-                elif method == 's-curve':
-                    self._tanhInterp(accType, self.N_i, self.horizons, center, width)
-        else:
-            u.xprint('Unknown coordination:', self.coordinatedAR)
-
-        u.vprint('Interpolated assets allocation ratios using', method, 'method.')
-
-        return
-
-    def _linInterp(self, accType, N_i, numPoints):
-        '''
-        Utility function to interpolate multiple cases using
-        a linear interpolation. Range goes one more year than
-        horizon as year passed death includes estate.
-        '''
-        for who in range(N_i):
-            for j in range(4):
-                dat = np.linspace(
-                    self.boundsAR[accType][0][who][j],
-                    self.boundsAR[accType][1][who][j],
-                    numPoints[who] + 1,
-                )
-                for n in range(numPoints[who] + 1):
-                    self.y2assetRatios[accType][n][who][j] = dat[n]
-                for n in range(numPoints[who] + 1, self.span):
-                    self.y2assetRatios[accType][n][who][j] = 0
-
-        return
-
-    def _tanhInterp(self, accType, N_i, numPoints, c, w):
-        '''
-        Utility function to interpolate multiple cases using hyperbolic
-        tangent interpolation. "c" is the center where the inflection point
-        is, and "w" is the width of the transition.
-        '''
-        for who in range(N_i):
-            for j in range(4):
-                t = np.linspace(0, numPoints[who], numPoints[who] + 1)
-                a = self.boundsAR[accType][0][who][j]
-                b = self.boundsAR[accType][1][who][j]
-                dat = a + 0.5 * (b - a) * (1 + np.tanh((t - c) / w))
-                for n in range(numPoints[who] + 1):
-                    self.y2assetRatios[accType][n][who][j] = dat[n]
-                for n in range(numPoints[who] + 1, self.span):
-                    self.y2assetRatios[accType][n][who][j] = 0
-
-        return
-
-    def setCoordinatedAR(self, *, initial, final):
-        '''
-        Set bounds for portfolios coordinated between assets and spouses.
-        Scope of coordination is taken from size of arrays.
-        '''
-        if len(initial) == self.N_i:
-            scope = 'individual'
-            assert len(final) == self.N_i
-
-            for i in range(self.N_i):
-                assert len(initial[i]) == 4
-                assert len(final[i]) == 4
-                assert abs(sum(initial[i]) - 100) < 0.01
-                assert abs(sum(final[i]) - 100) < 0.01
-
-            self.boundsAR['coordinated'][0] = np.array(initial) / 100
-            self.boundsAR['coordinated'][1] = np.array(final) / 100
-        elif len(initial) == 4:
-            scope = 'both'
-            assert len(final) == 4
-            assert abs(sum(initial) - 100) < 0.01
-            assert abs(sum(final) - 100) < 0.01
-
-            for i in range(self.N_i):
-                self.boundsAR['coordinated'][0][i] = np.array(initial) / 100
-                self.boundsAR['coordinated'][1][i] = np.array(final) / 100
-        else:
-            u.xprint('Lists provided have wrong length:', len(initial))
-
-        self.coordinatedAR = scope
-        u.vprint(
-            'Coordinating',
-            scope,
-            'assets allocation ratios (%):\n',
-            'initial:',
-            initial,
-            '\n   final:',
-            final,
-        )
+            h = self.horizons[i]
+            self.omega_in[i][:h] = self.timeLists[i]['anticipated wages'][:h]
+            self.Lambda_in[i][:h] = self.timeLists[i]['big ticket items'][:h]
+            self.kappa_ijkn[i][0][0][:h] = self.timeLists[i]['ctrb taxable'][:h]
+            self.kappa_ijkn[i][1][0][:h] = self.timeLists[i]['ctrb 401k'][:h]
+            self.kappa_ijkn[i][1][0][:h] += self.timeLists[i]['ctrb IRA'][:h]
+            self.kappa_ijkn[i][2][0][:h] = self.timeLists[i]['ctrb Roth 401k'][:h]
+            self.kappa_ijkn[i][2][0][:h] += self.timeLists[i]['ctrb Roth IRA'][:h]
 
         return
 

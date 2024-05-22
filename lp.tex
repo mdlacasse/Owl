@@ -179,9 +179,17 @@ or an s-curve as in
 	These interpolation functions allow the allocation ratios to gradually change
 	or {\em glide} during retirement.
 
-	It is also possible to have a coarser granularity on the portfolio by having an asset allocation
+	It is also possible to have a coarser granularity on the portfolio by
+	having an asset allocation
 	defined on a sum of accounts. For example, allocation can be coordinated between accounts
 	leading to $\alpha_{ikn}$, or even between spouses as $\alpha_{kn}$.
+	For any of these cases, it is assumed that these weights are properly scaled so that
+	\begin{eqnarray}
+		\sum_{k} \alpha_{ijkn} &=& 1, \nonumber\\
+		\text{or} \qquad \sum_{k} \alpha_{ikn} &=& 1, \nonumber\\
+		\text{or} \qquad \sum_{k} \alpha_{kn} &=& 1. 
+	\end{eqnarray}
+
 
 \item [$\Lambda_{in}$]
 	Big-ticket item requested by individual $i$ in year $n$.

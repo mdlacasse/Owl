@@ -760,6 +760,8 @@ class rates:
 
         self.means = np.zeros((4))
         self.covar = np.zeros((4, 4))
+        self.frm = FROM
+        self.to = TO
 
     def setMethod(self, method, frm=FROM, to=TO, values=None):
         '''
@@ -805,6 +807,8 @@ class rates:
             assert FROM <= frm and frm <= TO
             assert FROM <= to and to <= TO
             assert frm < to
+            self.frm = frm
+            self.to = to
 
             if method == 'historical':
                 u.vprint('Using', method, 'rates representing data from', frm, 'to', to)
@@ -829,7 +833,9 @@ class rates:
         self._myRates = np.array(rates)
         self._rateMethod = self._fixedRates
 
-    def genSeries(self, frm=FROM, to=TO, N=TO - FROM + 1):
+        return
+
+    def genSeries(self, N):
         '''
         Generate a series of Nx4 entries of rates representing S&P500,
         corporate Baa bonds, 10-y treasury notes, and inflation,
@@ -840,18 +846,17 @@ class rates:
         rateSeries = np.zeros((N, 4))
 
         # Convert years to indices.
-        frm -= FROM
-        to -= FROM
+        ifrm = self.frm - FROM
+        ito = self.to - FROM
 
         # Add one since bounds are inclusive.
-        span = to - frm + 1
-        first = frm
+        span = ito - ifrm + 1
 
         # Assign 4 values at the time.
         for n in range(N):
-            rateSeries[n][:] = self.getRates(first + (n % span))[:]
+            rateSeries[n][:] = self.getRates(ifrm + (n % span))[:]
 
-        return rateSeries
+        return rateSeries.transpose()
 
     def getRates(self, n):
         '''

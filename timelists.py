@@ -7,7 +7,7 @@ import pandas as pd
 
 import utils as u
 
-def read(filename, n):
+def read(filename, N_i, horizons):
     '''
     Read listed parameters from an excel spreadsheet through pandas.
     Use one sheet for each individual with the following columns.
@@ -36,18 +36,32 @@ def read(filename, n):
     for name in dfDict.keys():
         u.vprint('Reading time horizon for', name, '...')
         names.append(name)
-        # Only consider lines after this year.
-        dfDict[name] = dfDict[name][dfDict[name]['year'] >= thisyear]
+        endyear = thisyear + horizons[i]
+        df = dfDict[name]
+        # Only consider lines in proper year range.
+        df = df[df['year'] >= thisyear]
+        df = df[df['year'] < endyear]
+        missing = 0
+        for n in range(horizons[i]):
+            year = thisyear + n
+            if not (df[df['year'] == year]).any(axis=None):
+                df.loc[len(df)] = [year, 0, 0, 0, 0, 0, 0, 0, 0]
+                missing += 1
+
+        if missing > 0:
+            u.vprint('\tAdding %d missing year for %s.'%(missing, name))
+
+        df.sort_values('year', inplace=True)
         # Replace empty (NaN) cells with 0 value.
-        dfDict[name].fillna(0, inplace=True)
+        df.fillna(0, inplace=True)
 
         timeLists.append({})
         # Transfer values from dataframe to lists
         for item in timeHorizonItems:
-            timeLists[i][item] = dfDict[name][item].tolist()
+            timeLists[i][item] = df[item].tolist()
 
         i += 1
-        if i >= n:
+        if i >= N_i:
             break
 
     u.vprint('Successfully read time horizons from file', filename)
@@ -68,7 +82,7 @@ def check(names, timeLists, horizons):
     thisyear = date.today().year
     for i in range(len(names)):
         yend = thisyear + horizons[i]
-        if timeLists[i]['year'][-1] < yend:
+        if timeLists[i]['year'][-1] < yend-1:
             u.xprint(
                 'Time horizon for',
                 names[i],
