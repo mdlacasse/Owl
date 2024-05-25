@@ -107,7 +107,7 @@ to take only positive values (positive inequality).
 For more easily distinguishing parameters from variables, all parameters will be expressed in Greek letters.
 Parameter values are either set by the user, historical data, or by the tax code.
 \begin{description}[leftmargin=4em,style=multiline]
-\item [$\beta{ijk}$]
+\item [$\beta{ij}$]
 	Initial balances in savings accounts. These amounts are used to initialize $b_{ijk0}$.
 \item [$\tau_{kn}$]
 	Annual rate of return for asset class $k$ in year $n$.
@@ -353,7 +353,7 @@ All intermediate variables are in uppercase letters.
 	The initial balances are imposed as additional constraints as
 	\begin{eqnarray}
 		\label{Eq:InitialBalance}
-		b_{ijk0} = \beta_{ijk}.
+		b_{ijk0} = \beta_{ij}\alpha_{ijk0}.
 	\end{eqnarray}
 
 	It is also possible to eliminate the account balance variables $b$ through iterative
@@ -388,6 +388,23 @@ All intermediate variables are in uppercase letters.
 	\begin{equation}
 		\label{Eq:EnoughMoney}
 		b_{ijkn} - b^-_{ijkn} \geq 0.
+	\end{equation}
+
+	The initial balances $b_{0}$ are one of the main inputs of this model. They are
+	enforced as a constraint that depends on the asset allocation scheme chosen.
+	For {\em account} prescribed allocations,
+	\begin{equation}
+		\label{Eq:AccountCoord}
+		b_{ijk0} = b_0 \alpha_{ijk0},
+	\end{equation}
+	while for {\em individual} coordination between accounts,
+	\begin{equation}
+		\sum_j b_{ijk0} = b_0 \alpha_{ik0},
+	\end{equation}
+	and finally, for {\em spouses} type of coordination,
+	\begin{equation}
+		\label{Eq:SpouseCoord}
+		\sum_ij b_{ijk0} = b_0 \alpha_{k0}.
 	\end{equation}
 
 \paragraph*{Net income}
@@ -489,7 +506,7 @@ and where $n$ exceptionally runs from 0 to $N_n$ inclusively, and therefore
 $q_b$ runs from $C_b = 0$ to $C_{b^+} - 1$,
 where
 \[
-	C_{b^+} = q_C(Ni, N_j, N_k, N_n+1, 0) = [N_i N_j N_k (N_n+1)].
+	C_{b^+} = q_C(Ni, N_j, N_k, N_n+1, C_b) = [N_i N_j N_k (N_n+1)].
 \]
 
 \paragraph*{Rebalancing amounts (\boldmath$b^\pm$)}
@@ -555,7 +572,7 @@ with $q_g$ running from $C_g$ to $C_w - 1$, where
 	C_w = q_C(N_n, 1, 1, 1, C_g) = [N_iN_jN_k(3N_n+1) + (N_iN_k + N_t + 1) N_n].
 \]
 
-\paragraph*{Withdrawals (\boldmath$g$)}
+\paragraph*{Withdrawals (\boldmath$w$)}
 For withdrawals $w_{ijkn}$ we will use
 \begin{equation}
 	y[q_w(i, j, k, n)] = w_{i j k n},
@@ -883,8 +900,8 @@ then Eq.~(\ref{Eq:Alloc2}) becomes
 leading to
 \begin{eqnarray}
 	\label{Eq:Alloc3a}
-	A[J_5(i, k, n), q_b(i, j, k', n)] &=& \delta(k, k') - \alpha_{ikn}, \nonumber\\
-	v[J_5(i, k, n)] &=& 0, \\
+	A[J_6(i, k, n), q_b(i, j, k', n)] &=& \delta(k, k') - \alpha_{ikn}, \nonumber\\
+	v[J_6(i, k, n)] &=& 0, \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall k,k' \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -895,8 +912,8 @@ specified by overall asset allocation ratios $\alpha_{kn}$,
 then Eq.~(\ref{Eq:Alloc3a}) becomes
 \begin{eqnarray}
 	\label{Eq:Alloc3b}
-	A[J_5(k, n), q_b(i, j, k', n)] &=& \delta(k, k') - \alpha_{kn}, \nonumber\\
-	v[J_5(k, n)] &=& 0, \\
+	A[J_6(k, n), q_b(i, j, k', n)] &=& \delta(k, k') - \alpha_{kn}, \nonumber\\
+	v[J_6(k, n)] &=& 0, \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall k,k' \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -923,9 +940,9 @@ adding $N_iN_kN_n$ additional rows to $A_e$.
 
 Assets allocation could have been handled easily by assuming that
 the accounts are always rebalanced
-and only using a single multiplier $\Lambda$, defined as
+and only using a single multiplier $\Xi$, defined as
 \begin{equation}
-	\Lambda_{ijn} = \sum_k \alpha_{ijkn}\tau_{kn},
+	\Xi_{ijn} = \sum_k \alpha_{ijkn}\tau_{kn},
 \end{equation}
 to compute to return
 on the total balance of each savings account.

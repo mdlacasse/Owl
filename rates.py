@@ -702,8 +702,8 @@ def getDistributions(frm, to):
     # Convert years to index and check range.
     frm -= FROM
     to -= FROM
-    assert 0 <= frm and frm <= len(SP500)
-    assert 0 <= to and to <= len(SP500)
+    assert 0 <= frm and frm <= len(SP500), 'Range from out of bounds.'
+    assert 0 <= to and to <= len(SP500), 'Range to out of bounds.'
     assert frm <= to
 
     series = {
@@ -780,7 +780,7 @@ class rates:
         # First process fixed methods relying on values.
         if method == 'default':
             # Convert decimal to percent for reporting.
-            u.vprint('Using default fixed rates values: (%)\n', 100.0 * self._defRates)
+            # u.vprint('Using default fixed rates values: (%)\n', 100.0 * self._defRates)
             self._setFixedRates(self._defRates)
         elif method == 'realistic':
             u.vprint(
@@ -804,9 +804,9 @@ class rates:
             self._setFixedRates(values)
         else:
             # Then methods relying on historical data range.
-            assert FROM <= frm and frm <= TO
-            assert FROM <= to and to <= TO
-            assert frm < to
+            assert FROM <= frm and frm <= TO, 'Range frm out of bounds.'
+            assert FROM <= to and to <= TO, 'Range to out of bounds.'
+            assert frm < to, 'Unacceptable range.'
             self.frm = frm
             self.to = to
 
@@ -829,7 +829,7 @@ class rates:
         return
 
     def _setFixedRates(self, rates):
-        assert len(rates) == 4
+        assert len(rates) == 4, 'Rate list provided must have 4 entries.'
         self._myRates = np.array(rates)
         self._rateMethod = self._fixedRates
 
@@ -848,26 +848,16 @@ class rates:
         # Convert years to indices.
         ifrm = self.frm - FROM
         ito = self.to - FROM
+        # TT = TO - FROM + 1 
 
         # Add one since bounds are inclusive.
         span = ito - ifrm + 1
 
         # Assign 4 values at the time.
         for n in range(N):
-            rateSeries[n][:] = self.getRates(ifrm + (n % span))[:]
+            rateSeries[n][:] = self._rateMethod((ifrm + (n % span)))[:]
 
         return rateSeries.transpose()
-
-    def getRates(self, n):
-        '''
-        This function is the front-end for getting rate values depending
-        on the method and the year range selected.
-
-        Index is in array coordinates, i.e., not in year coordinates.
-        '''
-        assert 0 <= n and n < len(SP500)
-
-        return self._rateMethod(n)
 
     def _fixedRates(self, n):
         '''

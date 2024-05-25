@@ -107,7 +107,7 @@ def check(names, timeLists, horizons):
     for i in range(len(names)):
         for n in range(horizons[i]):
             for item in timeHorizonItems:
-                assert timeLists[i][item][i] >= 0
+                assert timeLists[i][item][n] >= 0, 'Item %s for %s in year %d is < 0.'%(item, names[i], n)
 
     return
 
