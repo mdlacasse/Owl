@@ -26,7 +26,7 @@ income tax, contributions, return rates, Roth conversions,
 and desired income amongst many other things.
 
 The approach is described here mathematically and the implementation
-follows the structure and notation presented here.
+follows the structure and notation presented in this document.
 In the first sections, the indices, variables, and parameters are
 described in detail. Then the model constraints are introduced.
 For implementation in a linear programming solver, index mapping
@@ -49,7 +49,7 @@ introduce the characteristics and dimensions of the problem.
 \item [$i$]
 	Individual. $i$ runs from 0 to $N_i - 1$ where $N_i = 2$ for couples,
 	or $N_i= 1$ for single individuals. The first individual to pass
-		is denoted by $i_d$.
+		is denoted by $i_d$ while the survivor is $i_s$.
 \item [$j$]
 	Type of savings account. $j$ goes from 0 to $N_j - 1$, for taxable, tax-deferred,
 	and tax-exempt accounts respectively. Therefore $N_j = 3$.
@@ -62,7 +62,7 @@ introduce the characteristics and dimensions of the problem.
 	Year being modeled. $n$ runs from 0 to $N_n-1$, and $N_n$
 	is the first year following the passing of all
 	individuals in the plan. The time period for all decision variables is annual.
-	For spouses, $n_d$ is the year in which the first individual passes while
+	For spouses, $n_d-1$ is the year in which the first individual passes while
 	the survivor will decease in year $N_n-1$ of the plan.
 \item [$t$]
 	Federal income tax bracket. $t$ goes from 0 to $N_t - 1$, from low to high.
@@ -101,6 +101,7 @@ to take only positive values (positive inequality).
 	tax purposes as it is a taxable withdrawal.
 \item [$x_{ikn}$]
 	Roth conversion performed by individual $i$ using asset class $k$ at the beginning of year $n$.
+	These events are taxable.
 \end{description}
 
 \section{Parameters}
@@ -183,7 +184,7 @@ or an s-curve as in
 	having an asset allocation
 	defined on a sum of accounts. For example, allocation can be coordinated between accounts
 	leading to $\alpha_{ikn}$, or even between spouses as $\alpha_{kn}$.
-	For any of these cases, it is assumed that these weights are properly scaled so that
+	For any of these cases, it is assumed that these weights are always properly scaled so that
 	\begin{eqnarray}
 		\sum_{k} \alpha_{ijkn} &=& 1, \nonumber\\
 		\text{or} \qquad \sum_{k} \alpha_{ikn} &=& 1, \nonumber\\
@@ -202,7 +203,8 @@ or an s-curve as in
 	Social security benefits for individual $i$ in year $n$.
 \item [$\epsilon_{N_n}$]
 	Desired amount to leave as a bequest at the end of the final year of the plan, $N_n-1$,
-	which is the beginning of year $N_n$.
+	which is the beginning of year $N_n$. This amount is the after-tax value of the estate
+	for the heirs. See parameter $\nu$.
 \item [$\kappa_{ijkn}$]
 	Sum of contributions to savings account $j$ made by individual $i$ during year $n$.
 	We assume that contributions are made at half-year to balance regular contributions,
@@ -291,7 +293,7 @@ All intermediate variables are in uppercase letters.
 	or equal than the required minimum distributions, therefore
 	\begin{equation}
 		\label{Eq:C1}
-		\sum_k [w_{i1kn} -  \rho_{in}b_{i1k(n)}] \geq 0.
+		\sum_k [w_{i1kn} -  \rho_{in}b_{i1kn}] \geq 0.
 	\end{equation}
 	As $b_{ijkn}$ are the balances at the beginning of year $n$, they also are the balances
 	at December 31 of the previous year.
@@ -703,7 +705,7 @@ we add $N_iN_jN_n$ more rows to $A_ey = v$, as
 \begin{eqnarray}
 	A_e[J_2(i, j, n), q_{b^+}(i, j, k, n)] &=& 1, \nonumber \\
 	A_e[J_2(i, j, n), q_{b^-}(i, j, k, n)] &=& -1, \nonumber \\
-	v[J_2(i, j, n)] &=& 0, \nonumber \\
+	v[J_2(i, j, n)] &=& 0, \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -714,7 +716,7 @@ inequality matrix $A_uy\le u$,
 \begin{eqnarray}
 	A_u[I_2(i, j, k, n), q_{b}(i, j, k, n)] &=& -1, \nonumber \\
 	A_u[I_2(i, j, k, n), q_{b^-}(i, j, k, n)] &=& 1, \nonumber \\
-	u[I_2(i, j, k, n)] &=& 0, \nonumber \\
+	u[I_2(i, j, k, n)] &=& 0, \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -731,7 +733,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 	A_e[J_3(n), q_f(t, n)] &=& \bar\Delta_{t n}\theta_{t n}, \nonumber \\
 	A_e[J_3(n), q_b(i, 0, 0, n)] &=& \psi\mu, \nonumber \\
 	A_e[J_3(n), q_w(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n}), \nonumber \\
-	A_e[J_3(n), q_{b^-}(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n}), \nonumber \\
+	A_e[J_3(n), q_{b^-}(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n}), \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -760,7 +762,7 @@ ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 	A_e[J_5(n), q_f(t, n)] &=& \bar{\Delta}_{t n}, \nonumber \\
 	A_e[J_5(n), q_w(i, 1, k, n)] &=& -1, \nonumber \\
 	A_e[J_5(n), q_x(i, k, n)] &=& -1, \nonumber \\
-	A_e[J_5(n), q_b(i, 0, k, n)] &=& -(1-\delta(k, 0))\tau_{kn}, \nonumber \\
+	A_e[J_5(n), q_b(i, 0, k, n)] &=& -(1-\delta(k, 0))\tau_{kn}, \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -980,14 +982,27 @@ The term chosen on the right-hand side can be any monotonically increasing funct
 respect to $t$.
 
 \paragraph*{Maximum net income}
-There are a few ways by which a retirement plan can be optimized. For maximizing the net income under the constraint of
-a desired bequest, we introduce the following relation
+There are a few ways by which a retirement plan can be optimized. For maximizing the net income under
+the constraint of a desired bequest, we introduce the following relation
 \begin{equation}
 	\label{Eq:Bequest}
 	E_n = \sum_{ijk} (1 - \nu\delta(j, 1)) b_{ijkn},
 \end{equation}
 which is the value of the estate in nominal dollars at year $n$,
 taking into consideration the heir's income tax on the ($j=1$) tax-deferred account. 
+In this situation, the concept of surplus deposit is no longer valid, and therefore
+\begin{equation}
+	d_{ikn} = 0,
+\end{equation}
+implemented as
+\begin{eqnarray}
+	A_e[I(6), q_d(i, k, N_n)] &=& 0 \nonumber \\
+	v[I(0)] &=& \epsilon_{N_n}\gamma_{N_n} \\
+	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
+	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
+	&&\qquad\forall n \in \{0,\ldots, N_n-1\}.\nonumber
+\end{eqnarray}
+
 For a desired bequest $\epsilon_{N_n}$, expressed in today's
 dollars, the final amount in year $N_n$ will need to be
 \begin{equation}
