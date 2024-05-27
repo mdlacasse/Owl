@@ -181,7 +181,7 @@ def _rho_in(yobs, N_n):
     return rho
 
 
-def _xi_n(profile, frac, n_d, N_n):
+def _xi_n(profile, frac, n_d, N_n, a=15, b=12):
     '''
     Return time series of spending profile.
     Value is reduced by frac starting in year n_d,
@@ -193,8 +193,10 @@ def _xi_n(profile, frac, n_d, N_n):
         pass
     elif profile == 'smile':
         x = np.linspace(0, N_n-1, N_n)
+        a /= 100
+        b /= 100
         # Use a cosine +/- 15% combined with a gentle +12% linear increase.
-        xi = xi + 0.15 * np.cos((2 * np.pi / (N_n - 1)) * x) + (0.12 / (N_n-1)) * x
+        xi = xi + a * np.cos((2 * np.pi / (N_n - 1)) * x) + (b / (N_n-1)) * x
         # Normalize to be sum-neutral with respect to a flat profile.
         xi = xi * (N_n / xi.sum())
     else:
@@ -280,7 +282,7 @@ class Owl:
             yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)
         ]
         self.N_n = max(self.horizons)
-        self.yyear = np.linspace(thisyear, thisyear+self.N_n, self.N_n)
+        self.year_n = np.linspace(thisyear, thisyear+self.N_n-1, self.N_n)
         # Handle passing of one spouse before the other.
         if self.N_i == 2:
             self.n_d = min(self.horizons)
@@ -694,7 +696,7 @@ class Owl:
         t = np.linspace(0, numPoints, numPoints + 1)
         # Solve 2x2 system to match end points exactly.
         th0 = np.tanh((t[0]-c)/w)
-        thN = np.tanh((t[-1]-c)/w)
+        thN = np.tanh((t[numPoints]-c)/w)
         k11 = 0.5 - 0.5*th0
         k21 = 0.5 - 0.5*thN
         k12 = 0.5 + 0.5*th0
@@ -832,6 +834,28 @@ class Owl:
                         Ae.append(row)
                         vvec.append(rhs)
 
+        # Impose a constraint on estate.
+        if 'estate' in options:
+            estate = options['estate']
+            assert len(estate) == Ni, 'Estate values must have %d lists.'%Ni
+            for i in range(Ni):
+                assert len(estate[i]) == Nj, 'Sublists of estate values must have %d entries.'%Nj
+            u.vprint('Adding estate constraint of:', estate)
+        else:
+            # Set default values to $1.
+            if Ni == 1:
+                estate = [[1 for j in range(Nj)]]
+            else:
+                estate = [[1 for j in range(Nj)], [1 for j in range(Nj)]]
+
+        for i in range(Ni):
+            for j in range(Nj):
+                row = np.zeros(self.nvars)
+                for k in range(Nk):
+                    row[_q4(Cb, i, j, k, Nn, Ni, Nj, Nk, Nn+1)] = 1
+                Ae.append(row)
+                vvec.append(estate[i][j])
+
         # Limit Roth conversions.
         if 'maxRothConversion' in options:
             rhs = options['maxRothConversion']
@@ -863,7 +887,7 @@ class Owl:
                         row[_q4(Cw, i, j, k, n, Ni, Nj, Nk, Nn)] = fac1
                         row[_q3(Cd, i, k, n, Ni, Nk, Nn)] = -fac1*np.kron(j, 0)
   
-                        if Ni == 2 and i == i_s and n == n_d - 1`:
+                        if Ni == 2 and i == i_s and n == n_d - 1:
                             # fac2 = self.phi_j[j]*(np.kron(n, n_d - 1))*np.kron(i, i_s)
                             fac2 = self.phi_j[j]
                             rhs += (fac2*self.kappa_ijkn[i_d][j][k][n])*(.5 + tau1_kn[k][n]/2)
@@ -1055,28 +1079,28 @@ class Owl:
                 
         # Allocate, slice in, and reshape variables.
         self.b_ijkn = np.array(solution.x[Cb:Cbp])
-        self.b_ijkn.reshape((Ni, Nj, Nk, Nn + 1))
+        self.b_ijkn = self.b_ijkn.reshape((Ni, Nj, Nk, Nn + 1))
 
         self.bp_ijkn = np.array(solution.x[Cbp:Cbm])
-        self.bp_ijkn.reshape((Ni, Nj, Nk, Nn))
+        self.bp_ijkn = self.bp_ijkn.reshape((Ni, Nj, Nk, Nn))
 
         self.bm_ijkn = np.array(solution.x[Cbm:Cd])
-        self.bm_ijkn.reshape((Ni, Nj, Nk, Nn))
+        self.bm_ijkn = self.bm_ijkn.reshape((Ni, Nj, Nk, Nn))
 
         self.d_ikn = np.array(solution.x[Cd:Cf])
-        self.d_ikn.reshape((Ni, Nk, Nn))
+        self.d_ikn = self.d_ikn.reshape((Ni, Nk, Nn))
 
         self.f_tn = np.array(solution.x[Cf:Cg])
-        self.f_tn.reshape((Nt, Nn))
+        self.f_tn = self.f_tn.reshape((Nt, Nn))
 
         self.g_n = np.array(solution.x[Cg:Cw])
-        self.g_n.reshape((Nn))
+        self.g_n = self.g_n.reshape((Nn))
 
         self.w_ijkn = np.array(solution.x[Cw:Cx])
-        self.w_ijkn.reshape((Ni, Nj, Nk, Nn))
+        self.w_ijkn = self.w_ijkn.reshape((Ni, Nj, Nk, Nn))
 
         self.x_ikn = np.array(solution.x[Cx:])
-        self.x_ikn.reshape((Ni, Nk, Nn))
+        self.x_ikn = self.x_ikn.reshape((Ni, Nk, Nn))
 
         print('b:\n', self.b_ijkn)
         print('b+:\n', self.bp_ijkn)
@@ -1088,6 +1112,21 @@ class Owl:
         print('x:\n', self.x_ikn)
 
         return
+
+    def estate(self):
+        '''
+        Return final account balances.
+        '''
+        _estate = np.zeros((self.N_j))
+        for i in range(self.N_i):
+            for j in range(self.N_j):
+                for k in range(self.N_k):
+                    _estate[j] += self.b_ijkn[i][j][k][self.N_n]
+
+        _estate[1] *= (1 - self.nu)
+        u.vprint('Estate of', u.d(sum(_estate)))
+
+        return _estate
 
     def showRates(self, tag=''):
         '''
@@ -1119,7 +1158,7 @@ class Owl:
         for k in range(self.N_k):
             data = 100 * self.tau_kn[k]
             label = rateName[k] + ' <' + '{:.2f}'.format(np.mean(data)) + '>'
-            ax.plot(self.yyear, data, label=label, ls=ltype[k % self.N_k])
+            ax.plot(self.year_n, data, label=label, ls=ltype[k % self.N_k])
 
         ax.legend(loc='upper left', reverse=False, fontsize=8, framealpha=0.7)
         # ax.legend(loc='upper left')
@@ -1176,7 +1215,7 @@ class Owl:
         plt.grid(visible='both')
 
         for name in series:
-            ax.plot(self.yyear, series[name], label=name, ls=style[name])
+            ax.plot(self.year_n, series[name], label=name, ls=style[name])
 
         ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.7)
         # ax.legend(loc='upper left')
