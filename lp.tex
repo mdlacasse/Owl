@@ -122,26 +122,26 @@ Parameter values are either set by the user, historical data, or by the tax code
 	with $\gamma_0 := 1$, and where $n'$ is a dummy index.
 	Parameters indexed for inflation will be indicated by a bar on top as in $\bar\sigma_n$.
 \item [$\sigma_n$]
-	Standard deduction $\sigma$. It can be adjusted for inflation as follows
+	Standard deduction. It can be adjusted for inflation as follows
 	\begin{equation}
-		\bar\sigma_n = \sigma \gamma_n,
+		\bar\sigma_n = \sigma_n \gamma_n,
 	\end{equation}
 	and can be modified for additional age exemptions after 65 of age, for example.
 	It is a simple time series to be provided
 	which can include any foreseeable changes in the tax code, or change in filing status due to the
-	passing of one spouse after $n>n_d$.
+	passing of one spouse for $n\ge n_d$.
 \item [$\xi_{n}$]
-	Spending profile. This is a time series that multiplies the desired net income. It would be $\xi_n =1$ for
-	a flat profile, or could be a {\em smile} profile allowing for more money at the start
+	Spending profile. This is a time series that multiplies the desired net income. It is $\xi_n =1$ for
+	a flat profile, or can be a {\em smile} profile allowing for more money at the start
 	of retirement. Parameter
-	$\xi_n$ would also contain spending adjustments typically made at the passing of one spouse.
+	$\xi_n$ can also contain spending adjustments typically made at the passing of one spouse.
 	The {\em smile} can be implemented using a cosine superimposed over a gentle linear increase
 	such as in
 	\begin{equation}
 		\xi_n = 1 + 0.15*cos(2n\pi/(N_n-1)) + 0.12n/(N_n-1),
 	\end{equation}
-	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum neutral with respect to a flat profile.
-	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n > n_d$.
+	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum-neutral with respect to a flat profile.
+	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n \ge n_d$.
 \item [$\chi$]
 	Factor to reduce spending profile after the passing of one spouse. It is typically
 	assumed to be 0.6.
@@ -149,48 +149,63 @@ Parameter values are either set by the user, historical data, or by the tax code
 	Required minimum distribution for individual $i$ in year $n$. Expressed in fractions
 	which are determined from IRS tables. Simple if spouses are less than 10 years apart,
 	a little more complex otherwise, as the age of both spouses need to be taken into account.
+	Current implementation only supports spouses being less that 10 years apart.
 \item [$\Delta_{t n}$]
 	Difference between upper bound and lower bound of a federal income tax bracket. Once adjusted for inflation,
 	the taxable income can be expressed as in Eq.~(\ref{Eq:Tx1}). These data are 7 time series.
-	The filing status will change after the death of one spouse ($n > n_d$) and so these
-	brackets would need
-	to be adjusted accordingly.
+	The filing status will change after the death of one spouse ($n \ge n_d$) and so these
+	brackets would need to be adjusted accordingly.
 \item [$\theta_{t n}$]
 	Tax rate for tax bracket $t$ in year $n$. Using $N_t$ time series allows to adjust income
 	tax rates in foreseeable future.
 	For example, in 2024 the rates (in decimal) are .10, .12, .22, .24, .32, .35, and .37.
 	It is speculated that the rates will revert back to 2017 rates in 2026 with
-	.10, .15, .25, .28, .33, .35, and .396. See Eq.~\ref{Eq:Tax}.
+	.10, .15, .25, .28, .33, .35, and .396. See Eq.~\ref{Eq:Tax} for its use.
 \item [$\alpha_{ijkn}$]
 	Desired asset allocation for savings account $j$ of individual $i$ in assets class $k$ during year $n$.
 	When specified by the user, allocation ratios typically involve two values, one at the
-	beginning of the plan $(\alpha_{ijk0})$ and the other at the end
-	$(\alpha_{ijkN_n-1})$. Then, intermediate values are interpolated either using
+	beginning of the plan $\alpha_{ijk0}$ and the other at the end
+	$\alpha_{ijkN_n-1}$. Then, intermediate values are interpolated either using
 	a linear relation,
 \begin{equation}
-	\alpha_{ijkn} = \alpha_{ijk0} + \frac{n}{N_n - 1} (\alpha_{ijkN_n-1} - \alpha_{ijk0}),
+	\alpha_{ijkn} = a + \frac{n}{N_n - 1} (b - a),
 \end{equation}
 or an s-curve as in
 \begin{equation}
-	\alpha_{ijkn} = \alpha_{ijk0} + \frac{(\alpha_{ijkN_n-1} - \alpha_{ijk0})}{2}
+	\alpha_{ijkn} = a + \frac{(b - a)}{2}
 	(\tanh((n-n_1)/n_2) + 1),
 \end{equation}
 	where $n_1$ is the number of years ahead when inflection point will occur, and $n_2$ is the
 	width (in years) of the transition. Constants $n_1$ and $n_2$ are selected by the user.
+	Using $a = \alpha_{ijk0}$ and $b = \alpha_{ijkN_n-1}$ is an approximation as values of $\pm 1$
+	are only reached at $\pm \infty$.
+	More precise bounds $a'$ and $b'$ can be determined by solving a $2\times 2$ system
+	of equations leading to
+	\begin{eqnarray}
+		a' &=& (a - k_{12}b')/k_{11} \nonumber \\
+		b' &=& ((b - (k_{21}/k_{11})a)/(k_{22} - (k_{21}/k_{11})k_{12}),
+	\end{eqnarray}
+	where
+	\begin{eqnarray}
+		k_{11} &=& \frac{1}{2}(1 - \tanh((0-n_1)/n_2)) \nonumber \\
+		k_{12} &=& \frac{1}{2}(1 + \tanh((0-n_1)/n_2)) \nonumber \\
+		k_{21} &=& \frac{1}{2}(1 - \tanh((N_n-1-n_1)/n_2)) \nonumber \\
+		k_{22} &=& \frac{1}{2}(1 + \tanh((N_n-1-n_1)/n_2)).
+	\end{eqnarray}
 	These interpolation functions allow the allocation ratios to gradually change
 	or {\em glide} during retirement.
 
 	It is also possible to have a coarser granularity on the portfolio by
-	having an asset allocation
+	having an asset allocation scheme
 	defined on a sum of accounts. For example, allocation can be coordinated between accounts
 	leading to $\alpha_{ikn}$, or even between spouses as $\alpha_{kn}$.
-	For any of these cases, it is assumed that these weights are always properly scaled so that
+	For any of these cases, it is assumed that weights are always properly scaled so that
 	\begin{eqnarray}
 		\sum_{k} \alpha_{ijkn} &=& 1, \nonumber\\
 		\text{or} \qquad \sum_{k} \alpha_{ikn} &=& 1, \nonumber\\
-		\text{or} \qquad \sum_{k} \alpha_{kn} &=& 1. 
+		\text{or} \qquad \sum_{k} \alpha_{kn} &=& 1,
 	\end{eqnarray}
-
+	depending on the scheme selected.
 
 \item [$\Lambda_{in}$]
 	Big-ticket item requested by individual $i$ in year $n$.
@@ -198,9 +213,12 @@ or an s-curve as in
 	that can be planned. Therefore, $\Lambda$ can be positive (e.g., sell a house, inheritance)
 	or negative (e.g., buy a house, large gifts).
 \item [$\pi_{in}$]
-	Sum of pension benefits for individual $i$ in year $n$.
+	Sum of pension benefits for individual $i$ in year $n$. These amounts are typically
+	specified along with the ages at which these benefits begin.
 \item [$\zeta_{in}$]
-	Social security benefits for individual $i$ in year $n$.
+	Social security benefits for individual $i$ in year $n$. Starting age and the passing
+	of one individual for spouses will determine the time series. $\bar{\zeta}_{in}$ is
+	the same series adjusted for inflation.
 \item [$\epsilon_{N_n}$]
 	Desired amount to leave as a bequest at the end of the final year of the plan, $N_n-1$,
 	which is the beginning of year $N_n$. This amount is the after-tax value of the estate
@@ -208,8 +226,8 @@ or an s-curve as in
 \item [$\kappa_{ijkn}$]
 	Sum of contributions to savings account $j$ made by individual $i$ during year $n$.
 	We assume that contributions are made at half-year to balance regular contributions,
-	and that individual selects asset class $k$ when depositing. Most likely, the sum
-	$\kappa_{ijn}$ is specified in which case 
+	and that individual selects asset class $k$ when depositing. Most likely, a contribution
+	amount $\kappa_{ijn}$ is specified in which case 
 	\begin{equation}
 		\kappa_{ijkn} = \alpha_{ijkn}\kappa_{ijn}.
 	\end{equation}
@@ -219,13 +237,13 @@ or an s-curve as in
 \item [$\mu$]
 	Dividend return rate in taxable accounts. Average is little above 2\% for S\&P 500.
 \item [$\nu$]
-	Heirs income tax rate to be applied to tax-deferred portion of the estate. This is not an estate tax
+	Heirs income tax rate to be applied on the tax-deferred portion of the estate. This is not an estate tax
 	but rather the federal income marginal tax rate for the heirs.
 \item [$\phi_j$]
-	Fraction of savings account $j$ that is left to surviving spouse as a beneficiary
-	at the death of individual $i_d$, the first one to pass.
+	Fraction of savings account $j$ that is left to surviving spouse $i_s$ as a beneficiary
+	at the death of individual $i_d$, the first spouse to pass.
 \item [$\psi$]
-	Income tax rate on long-term capital gain and qualified dividends (typically 15\%).
+	Income tax rate on long-term capital gain and qualified dividends, typically 15\%.
 \item [$\eta$]
 	Spousal ratio for withdrawals.
 \end{description}
@@ -237,9 +255,9 @@ All intermediate variables are in uppercase letters.
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$G_n$]
 	Taxable ordinary income in year $n$. Sum of wages, pension, social security benefits, all withdrawals
-	from tax-exempt accounts, including Roth conversions, and gains from securities
-	(i.e., all gains except those from $(k=0)$ equities)
-	in ($j=0$) taxable account, including contributions $\kappa$, minus the standard deduction,
+	from tax-deferred accounts, including Roth conversions, and gains from securities
+	(i.e., all gains except those from the $(k=0)$ equities)
+	in the ($j=0$) taxable account, including contributions $\kappa$, minus the standard deduction,
 	\begin{eqnarray}
 		\label{Eq:Tx2}
 		G_n &=& \sum_{i} [\omega_{in} + .85\bar\zeta_{in} + \pi_{in}] \nonumber \\
@@ -248,7 +266,8 @@ All intermediate variables are in uppercase letters.
 	\end{eqnarray}
 	Social security is indexed for inflation and is assumed to be taxed at 85\%.
 	We use a discrete Kronecker $\delta$ function for selecting gains from non-equity assets in
-	taxable accounts, which are taxed as ordinary income. $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}).
+	taxable accounts. These gains are taxed as ordinary income.
+	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}).
 
 \item [$Q_n$]
 	Qualified dividends and long-term capital gains obtained in year $n$.
@@ -263,28 +282,29 @@ All intermediate variables are in uppercase letters.
 	\end{equation}
 	A formulation where only a fraction of dividends are qualified can easily be
 	implemented with the addition of another parameter.
-	The first terms on the right-hand side represent the amount or equities $(k=0)$ in the $(j=0)$
+	The first terms on the right-hand side represent the amount of equities $(k=0)$ in the $(j=0)$
 	taxable savings account plus
 	half the yearly contributions. The last terms account for withdrawals $w$ of equities assumed
-	to be purchased last year and others $b^-$ sold at the end
+	to have been purchased more than a year ago and others $b^-$ sold at the end
 	of the year as required for rebalancing the account. It does not account for losses, but a market drop
 	would most likely result in stock purchase rather than sale (and therefore $b^- = 0$). For withdrawals, we make the assumption of
 	selling the most recent stocks which would not be accurate in situations where
 	the taxable savings account is being depleted slowly.
 \item [$T_n$]
 	Amount of income tax paid on taxable ordinary income $G_n$ in year $n$.
-	Sum of taxes paid in each tax bracket which can be expressed as
+	This is the taxes paid on ordinary income expressed as the sum of the amounts
+	paid in each tax bracket as
 	\begin{equation}
 		\label{Eq:Tax}
 		T_n = \sum_t f_{t n}\bar{\Delta}_{t n}\theta_{t n}.
 	\end{equation}
 \item [$U_n$]
-	Amount of income tax paid on long-term capital gains and qualified dividends in year $n$.
+	Amount of income tax paid on long-term capital gains and qualified dividends in year $n$,
 	\begin{equation}
-		U_n = \psi Q_n
+		U_n = \psi Q_n.
 	\end{equation}
 	Although it is not always the case, we assume that qualified dividends and long-term
-	capital gains are taxed at the same preferential rate.
+	capital gains are taxed at the same preferential rate $\psi$.
 \end{description}
 
 \section{Constraints}
@@ -295,35 +315,40 @@ All intermediate variables are in uppercase letters.
 		\label{Eq:C1}
 		\sum_k [w_{i1kn} -  \rho_{in}b_{i1kn}] \geq 0.
 	\end{equation}
-	As $b_{ijkn}$ are the balances at the beginning of year $n$, they also are the balances
-	at December 31 of the previous year.
+	As $b_{ijkn}$ are the balances at the beginning of year $n$, they are also the balances
+	at December 31 of the previous year, which is the amount from which the IRS bases the RMD.
 	Eq.~\ref{Eq:C1} has to hold for each year $n$ and each individual $i$, and therefore, there
-	are $i\times N_n$ such equations. These constraints avoid paying the 50\% penalty
+	are $i\times N_n$ such equations (even when $\rho_{in} = 0$).
+	These constraints avoid paying the 50\% penalty
 	on amounts not withdrawn when RMDs are required.
+	Note that aggregate rules need to be considered separately as this approach only considers
+	the sum of assets in a class with similar tax treatment (e.g., IRA and 401k).
 
 \paragraph*{Income tax brackets}
-		\label{Eq:C2}
 	Taxable ordinary income is divided in tax brackets as defined in Eq.~(\ref{Eq:Tx1}), i.e.,
 	\begin{eqnarray}
+		\label{Eq:C2}
 		G_n = \sum_t f_{t n}\bar{\Delta}_{t n} ,\nonumber\\
 		0 \leq f_{t n} \leq 1.
 	\end{eqnarray}
 	Because $\theta_{t} > \theta_{t'}$ when $t > t'$, we anticipate that the lower
 	tax brackets will get filled by the minimization algorithm.
-	However, all bracket fractions $f$ must be positive and smaller than or equal to 1.
+	However, all bracket fractions $f$ must be positive and smaller than or equal to 1,
+	imposing an upper bound on $f$.
 
 \paragraph*{Account balances}
 	Contributions are assumed to be made at half-year to better represent periodic contributions
-	made through the year.
-	The account balance at the end of a year is the same as the balance
+	made throughout the year. As we already mentioned,
+	the account balance at the end of a year is the same as the balance
 	at the beginning of the following year.
 	Changes include contributions $\kappa$, distributions and withdrawals $w$,
 	conversions $x$, and growth $\tau$.
 	We track each asset class $k$ in each savings account $j$ separately.
 	Roth conversions are assumed to be made at the beginning of the year, while withdrawals
-	and surplus deposits are made at the end of the year.
+	and surplus deposits, if needed, are made at the end of the year.
 	Accounts are rebalanced using $b^{\pm}$ at the end of the year.
-	Timing controls which terms get multiplied by rate of return $(1 + \tau)$.
+	Timing controls which terms get multiplied by the rate of return $(1 + \tau)$
+	of this particular asset.
 	Therefore,
 	\begin{eqnarray}
 		\label{Eq:C3a}
@@ -337,7 +362,7 @@ All intermediate variables are in uppercase letters.
 	where we use discrete Kronecker $\delta$ functions for selecting the specific accounts involved
 	in Roth conversions. These conversions leave the asset classes unchanged, which can lead to a
 	change in allocation ratios in the savings accounts involved. But these changes
-	can be corrected by the rebalancing variables $b^\pm$ if
+	can be corrected by rebalancing variables $b^\pm$ as
 	specific allocation ratios have been imposed.
 
 	Bringing all variables
@@ -355,8 +380,9 @@ All intermediate variables are in uppercase letters.
 	The initial balances are imposed as additional constraints as
 	\begin{eqnarray}
 		\label{Eq:InitialBalance}
-		b_{ijk0} = \beta_{ij}\alpha_{ijk0}.
+		b_{ijk0} = \beta_{ij}\alpha_{ijk0},
 	\end{eqnarray}
+	where we applied the initial allocation ratios $\alpha$ on the initial account balances $\beta_{ij}$.
 
 	It is also possible to eliminate the account balance variables $b$ through iterative
 	substitutions, leading to
@@ -375,7 +401,7 @@ All intermediate variables are in uppercase letters.
 	highlights the fact that each amount, either withdrawn or deposited, can be accounted
 	for arithmetically when taking into account the compounding effects of annual rates.
 
-	The amounts used for rebalancing must preserve money in each account $j$, every year $n$,
+	The amounts $b^{\pm}$ used for rebalancing must preserve money in each account $j$, every year $n$,
 	and for each individual $i$, and therefore
 	\begin{equation}
 		\sum_k b^+_{ijkn} = \sum _k b^-_{ijkn},
@@ -421,7 +447,7 @@ All intermediate variables are in uppercase letters.
 	\end{eqnarray}
 	Note that big-ticket items $\Lambda$ can be negative or positive.
 
-	Bringing all variables to the left-hand side and replacing intermediate variables, we get
+	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
 		\label{Eq:C4}
 		g_n - \sum_{ijk} w_{ijkn} + \sum_{ik}d_{ikn}
@@ -430,13 +456,15 @@ All intermediate variables are in uppercase letters.
 		&= & \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
 		&& + \sum_i [\Lambda_{in} - .5\mu\psi\kappa_{i00n}].
 	\end{eqnarray}
+	Note that we do not consider market losses as we use $\max(0, \tau)$. Tax-loss
+	harvesting is beyond the scope of this model.
 	We also want the net income to be predictable and smooth. We will use
 \begin{equation}
 	\label{Eq:C5a}
 	g_{n+1} = (1+\tau_{3n})\xi_n g_n,
 \end{equation}
-where it is adjusted for inflation and where we introduced parameter $\xi_n$ 
-allowing for additional adjustments to the spending profile.
+where net income is adjusted for inflation and where we introduced parameter $\xi_n$ 
+allowing for additional adjustments to the overall desired spending.
 This can be used to lower the desired income at the passing of one spouse and/or to 
 allow for more realistic spending profiles.
 Eq.~(\ref{Eq:C5a}) will be rewritten
@@ -444,17 +472,17 @@ Eq.~(\ref{Eq:C5a}) will be rewritten
 	\label{Eq:C5}
 	g_{n+1} - (1+\tau_{3n})\xi_n g_n = 0,
 \end{equation}
-as the constraints to be enforced.
+as the constraints to be enforced. Once $g_0$ is determined, the whole time series is determined as well.
 
 \paragraph*{Taxable ordinary income}
-	We connect the two definitions for $G_n$ above in Eqs.~(\ref{Eq:Tx1}) and (\ref{Eq:Tx2}),
+	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:Tx1}) and (\ref{Eq:Tx2}),
 	\begin{eqnarray}
 		\sum_t f_{t n}\bar{\Delta}_{t n} &=&
 		\sum_i [\omega_{in} + .85\bar\zeta_{in} + \pi_{in}]  \nonumber \\
 		&& + \sum_{ik} [w_{i1kn} + x_{ikn} + (1 - \delta(k, 0))(b_{i0kn} +
 		.5\kappa_{i0kn})\tau_{kn}] - \bar{\sigma}_n,
 	\end{eqnarray}
-	and re-arrange as follows
+	and re-arrange to move variables on the LHS as follows
 	\begin{eqnarray}
 		\label{Eq:C6}
 		\sum_t \bar{\Delta}_{t n} f_{t n}
@@ -475,19 +503,20 @@ While this process can be achieved using slicing and reshaping in some programmi
 languages, we will present a generic approach suitable for all languages. Also,
 many domain specific languages allow the problem to be stated at a high level and
 the steps to cast the problem in a form suitable for solution are performed automatically.
+Here we use an approach suitable to leverage a general solver in Python.
 
 The detailed approach presented here also allows us to determine the size of the problem to solve.
-We proceed alphabetically for all variables, and continue to use
+We proceed alphabetically for all variables, and continue to use the convention of having
 index 0 for representing the first element.
 
 First we define two generic mapping functions as
 \begin{equation}
-	q_*(\ell_1, \ell_2, \ell_3, \ell_4; N_1, N_2, N_3, N_4, C) :=
+	q_*(C, \ell_1, \ell_2, \ell_3, \ell_4; N_1, N_2, N_3, N_4) :=
 	C + \ell_1N_2N_3N_4 + \ell_2N_3N_4 + \ell_3N_4 + \ell_4,
 \end{equation}
 and
 \begin{equation}
-	q_C(N_1, N_2, N_3, N_4, C) :=
+	q_C(C, N_1, N_2, N_3, N_4) :=
 	C + N_1N_2N_3N_4,
 \end{equation}
 with the constraint that $0 \le \ell_i < N_i$.
@@ -502,13 +531,13 @@ store the end-of-life estate value. Therefore, we use
 where
 \begin{equation}
 	\label{Eq:Extra}
-	q_b(i, j, k, n) = q_*(i, j, k, n; N_i, N_j, N_k, N_n+1, C_b)
+	q_b(i, j, k, n) = q_*(C_b, i, j, k, n; N_i, N_j, N_k, N_n+1)
 \end{equation}
 and where $n$ exceptionally runs from 0 to $N_n$ inclusively, and therefore
 $q_b$ runs from $C_b = 0$ to $C_{b^+} - 1$,
 where
 \[
-	C_{b^+} = q_C(Ni, N_j, N_k, N_n+1, C_b) = [N_i N_j N_k (N_n+1)].
+	C_{b^+} = q_C(C_b, Ni, N_j, N_k, N_n+1) = [N_i N_j N_k (N_n+1)].
 \]
 
 \paragraph*{Rebalancing amounts (\boldmath$b^\pm$)}
@@ -518,18 +547,18 @@ We have similar mappings for $b^\pm$ except for the range of indices,
 \end{equation}
 where
 \begin{equation}
-	q_{b^\pm}(i, j, k, n) = q_*(i, j, k, n; N_i, N_j, N_k, N_n, C_{b^\pm}),
+	q_{b^\pm}(i, j, k, n) = q_*(C_{b^\pm}, i, j, k, n; N_i, N_j, N_k, N_n),
 \end{equation}
 and where
 $q_{b^+}$ runs from $C_{b^+}$ to $C_{b^-} - 1$,
 where
 \[
-	C_{b^-} = q_C(N_i, N_j, N_k, N_n, C_{b^+}) = [N_i N_j N_k (2N_n + 1)],
+	C_{b^-} = q_C(C_{b^+}, N_i, N_j, N_k, N_n) = [N_i N_j N_k (2N_n + 1)],
 \]
 while
 $q_{b^-}$ runs from $C_{b^-}$ to $C_d - 1$, where
 \[
-	C_d = q_C(N_i, N_j, N_k, N_n, C_{b^-}) = [N_i N_j N_k  (3N_n + 1)].
+	C_d = q_C(C_{b^-}, N_i, N_j, N_k, N_n) = [N_i N_j N_k  (3N_n + 1)].
 \]
 
 \paragraph*{Surplus deposits (\boldmath$d$)}
@@ -539,11 +568,11 @@ For the surplus deposits in the taxable savings accounts $d_{ikn}$ we will use
 \end{equation}
 where
 \begin{equation}
-	q_d(i, k, n) = q_*(i, k, n, 0; N_i, N_k, N_n, 1, C_d)
+	q_d(i, k, n) = q_*(C_d, i, k, n, 0; N_i, N_k, N_n, 1)
 \end{equation}
 with $q_d$ running from $C_d$ to $C_f - 1$, where
 \[
-	C_f = q_C(N_i, N_k, N_n, 1, C_d) = [N_iN_jN_k(3N_n+1) + N_iN_kN_n].
+	C_f = q_C(C_d, N_i, N_k, N_n, 1) = [N_iN_jN_k(3N_n+1) + N_iN_kN_n].
 \]
 
 \paragraph*{Tax bracket fractions (\boldmath$f$)}
@@ -553,11 +582,11 @@ For tax bracket fractions $f_{t n}$ we will use
 \end{equation}
 where
 \begin{equation}
-	q_f(t, n) = q_*(t, n, 0, 0; N_t, N_n, 1, 1, C_f)
+	q_f(t, n) = q_*(C_f, t, n, 0, 0; N_t, N_n, 1, 1)
 \end{equation}
 with $q_f$ running from $C_f$ to $C_g - 1$, where
 \[
-	C_g = q_C(N_t, N_n, 1, 1, C_f) = [N_iN_jN_k(3N_n+1) + (N_iN_k + N_t) N_n].
+	C_g = q_C(C_f, N_t, N_n, 1, 1) = [N_iN_jN_k(3N_n+1) + (N_iN_k + N_t) N_n].
 \]
 
 \paragraph*{Net income (\boldmath$g$)}
@@ -567,11 +596,11 @@ For net income $g_{n}$ we will use
 \end{equation}
 where
 \begin{equation}
-	q_g(n) = q_*(n, 0, 0, 0; N_n, 1, 1, 1, C_g) = C_g + n,
+	q_g(n) = q_*(C_g, n, 0, 0, 0; N_n, 1, 1, 1) = C_g + n,
 \end{equation}
 with $q_g$ running from $C_g$ to $C_w - 1$, where
 \[
-	C_w = q_C(N_n, 1, 1, 1, C_g) = [N_iN_jN_k(3N_n+1) + (N_iN_k + N_t + 1) N_n].
+	C_w = q_C(C_g, N_n, 1, 1, 1) = [N_iN_jN_k(3N_n+1) + (N_iN_k + N_t + 1) N_n].
 \]
 
 \paragraph*{Withdrawals (\boldmath$w$)}
@@ -581,11 +610,11 @@ For withdrawals $w_{ijkn}$ we will use
 \end{equation}
 where
 \begin{equation}
-	q_w(i, j, k, n) = q_*(i, j, k, n; N_i, N_j, N_k, N_n, C_w)
+	q_w(i, j, k, n) = q_*(C_w, i, j, k, n; N_i, N_j, N_k, N_n)
 \end{equation}
 with $q_w$ running from $C_w$ to $C_x - 1$, where
 \[
-	C_x = q_C(N_i, N_j, N_k, N_n, C_w) = [N_iN_jN_k(4N_n + 1) + (N_iN_k + N_t + 1) N_n].
+	C_x = q_C(C_w, N_i, N_j, N_k, N_n) = [N_iN_jN_k(4N_n + 1) + (N_iN_k + N_t + 1) N_n].
 \]
 
 \paragraph*{Roth conversions (\boldmath$x$)}
@@ -595,11 +624,11 @@ Finally, for Roth conversions $x_{ikn}$ we will use
 \end{equation}
 where
 \begin{equation}
-	q_x(i, k, n) = q_*(i, k, n, 0; N_i, N_k, N_n, 1, C_x)
+	q_x(i, k, n) = q_*(C_x, i, k, n, 0; N_i, N_k, N_n, 1)
 \end{equation}
 with $q_x$ running from $C_x$ to $C_* - 1$, where
 \[
-	C_* = q_C(Ni, N_k, N_n, 1, C_x) = [N_iN_jN_k(4N_n + 1) + (2N_iN_k + N_t + 1) N_n].
+	C_* = q_C(C_x, Ni, N_k, N_n, 1) = [N_iN_jN_k(4N_n + 1) + (2N_iN_k + N_t + 1) N_n].
 \]
 
 With $N_i = 2, N_j = 3, N_k = 4, N_t = 7$ we have $120N_n + 24$ variables. For
@@ -611,7 +640,7 @@ The inverse functions for the index-mapping functions will be derived for the
 most complex case encountered in this paper.
 If we have
 \begin{equation}
-	z = q_*(i, j, k, n; N_i, N_j, N_k, N_n, C) := C + iN_jN_kN_n + jN_kN_n + kN_n + n,
+	z = q_*(C, i, j, k, n; N_i, N_j, N_k, N_n) := C + iN_jN_kN_n + jN_kN_n + kN_n + n,
 \end{equation}
 then $(i, j, k, n) = q_*^{-1}(z; N_i, N_j, N_k, N_n, C)$ is obtained from
 \begin{eqnarray}
@@ -621,7 +650,8 @@ then $(i, j, k, n) = q_*^{-1}(z; N_i, N_j, N_k, N_n, C)$ is obtained from
 	i &=& (z - C - n - kN_n - jN_kN_n)/(N_jN_kN_n).
 \end{eqnarray}
 While this holds for all cases presented in the previous section, this can be easily simplified
-for cases having fewer active indices.
+for cases having fewer active indices. However, some modern languages can accomplish this
+mapping rather easily by providing \texttt{reshape()} functions.
 
 \section{Building constraint matrices}
 Let's first define generic index-mapping functions $I$ and $J$ as
@@ -640,6 +670,8 @@ $C_* = [N_iN_jN_k(4N_n + 1) + (2N_iN_k + N_t + 1) N_n]$
 columns but will have less rows,
 forming an underdetermined system to be optimized using linear programming.
 
+\subsection{Inequality constraints}
+
 \paragraph*{Required minimum distributions (RMDs)}
 We rewrite the inequality constraint on required minimum distributions
 Eq.~(\ref{Eq:C1}) using matrix $A_{u}y \le u$ starting with the following $N_iN_n$ rows, 
@@ -652,9 +684,9 @@ Eq.~(\ref{Eq:C1}) using matrix $A_{u}y \le u$ starting with the following $N_iN_
 	&&\qquad\forall n \in \{0,\ldots, N_n -1\},\nonumber
 \end{eqnarray}
 and all other elements in the same rows of $A_u$ being $0$.
-Notice that while $n$ represents $N_n$ elements, the constraints
+Notice that while $b$ has $N_n+1$ elements, the constraints
 for $b$ go from $0$ to $N_n-1$ as there is no RMD required in the last year of the plan $N_n$.
-Therefore $b$ has $N_n + 1$ elements in the $n$ dimension. See Eq.~(\ref{Eq:Extra}).
+See Eq.~(\ref{Eq:Extra}).
 
 \paragraph*{Income tax brackets}
 Similarly, we add $N_t N_n$ more rows to matrix $A_uy \le u$ to express
@@ -667,6 +699,22 @@ setting an upper limit on fractions $f_{t n} \le 1$. Therefore,
 	&&\qquad\forall n \in \{0,\ldots, N_n -1\},\nonumber
 \end{eqnarray}
 and all other elements in the same rows of $A_u$ being $0$.
+
+\paragraph{Account rebalance}
+For Eq.~(\ref{Eq:EnoughMoney}), where we ensure that the
+rebalancing amounts do not overdraw, we add $N_iN_jN_kN_n$ rows to the upper-bound
+inequality matrix $A_uy\le u$,
+\begin{eqnarray}
+	A_u[I_2(i, j, k, n), q_{b}(i, j, k, n)] &=& -1, \nonumber \\
+	A_u[I_2(i, j, k, n), q_{b^-}(i, j, k, n)] &=& 1, \nonumber \\
+	u[I_2(i, j, k, n)] &=& 0, \\
+	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
+	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
+	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
+	&&\qquad\forall n \in \{0,\ldots. N_n-1\}. \nonumber
+\end{eqnarray}
+
+\subsection{Equality constraints}
 
 \paragraph*{Account balances}
 For the equality constraint on account balances expressed in Eq.~(\ref{Eq:C3}),
@@ -706,17 +754,6 @@ we add $N_iN_jN_n$ more rows to $A_ey = v$, as
 	A_e[J_2(i, j, n), q_{b^+}(i, j, k, n)] &=& 1, \nonumber \\
 	A_e[J_2(i, j, n), q_{b^-}(i, j, k, n)] &=& -1, \nonumber \\
 	v[J_2(i, j, n)] &=& 0, \\
-	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
-	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
-	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
-	&&\qquad\forall n \in \{0,\ldots. N_n-1\}. \nonumber
-\end{eqnarray}
-For Eq.~(\ref{Eq:EnoughMoney}), we add $N_iN_jN_kN_n$ rows to the upper-bound
-inequality matrix $A_uy\le u$,
-\begin{eqnarray}
-	A_u[I_2(i, j, k, n), q_{b}(i, j, k, n)] &=& -1, \nonumber \\
-	A_u[I_2(i, j, k, n), q_{b^-}(i, j, k, n)] &=& 1, \nonumber \\
-	u[I_2(i, j, k, n)] &=& 0, \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -786,71 +823,72 @@ Tax-exempt and tax-deferred accounts have special tax rules that allow giving pa
 or the entire value of
 tax-exempt accounts to a spouse who can then consider it as his/her own.
 Let $\phi_j$ be the fraction of the account $j$ that a spouse $i_d$ wishes
-to leave to his/her spouse
+to leave to his/her surviving spouse $i_s$
 in the year $n_d < N_n - 1$ of passing. 
 To account for that event in year $n_d$, Eq.~(\ref{Eq:C3a}) needs to be rewritten as
 \begin{eqnarray}
-	b_{ijk(n+1)} &=& (1 - \delta(n, n_d)\delta(i, i_d)) \nonumber \\
+	b_{ijk(n+1)} &=& (1 - \delta(n, n_d-1)\delta(i, i_d)) \nonumber \\
 	&&\times \Bigl\{\left[b_{ijkn} + (\delta(j, 2) - \delta(j, 1))x_{ikn}
 	+ .5\kappa_{ijkn}\right](1 + \tau_{kn}) 
 	\nonumber \\
 	&& +  b^+_{ijkn} - b^-_{ijkn} + .5 \kappa_{ijkn} - w_{ijkn} + \delta(j, 0)d_{ikn} \Bigr\}
-	+ (\phi_j\delta(n, n_d)\delta(i, i_d^*)) \nonumber  \\
-	&& \times \Bigl\{\left[b_{i^*jkn} + (\delta(j, 2) - \delta(j, 1))x_{i^*kn}
-	+ .5\kappa_{i^*jkn}\right](1 + \tau_{kn}) 
+	+ (\phi_j\delta(n, n_d-1)\delta(i, i_s)) \nonumber  \\
+	&& \times \Bigl\{\left[b_{i_djkn} + (\delta(j, 2) - \delta(j, 1))x_{i_dkn}
+	+ .5\kappa_{i_djkn}\right](1 + \tau_{kn}) 
 	\nonumber \\
-	&& + b^+_{i^*jkn} - b^-_{i^*jkn} + .5 \kappa_{i^*jkn} - w_{i^*jkn} + \delta(j, 0)d_{i^*kn}\Bigr\} ,
+	&& + b^+_{i_djkn} - b^-_{i_djkn} + .5 \kappa_{i_djkn} - w_{i_djkn} + \delta(j, 0)d_{i_dkn}\Bigr\} .
 \end{eqnarray}
-where $i^* := \texttt{mod}((i + 1), 2)$ (i.e., \texttt{(i+1)\%2} in computer code).
 The first multiplier $()$ on the right-hand side will always be one except for $i_d$ in
-year $n_d$ when it will be zero. This will result in emptying all accounts for $i_d$.
+year $n_d-1$ when it will be zero. This will result in emptying all accounts for $i_d$ for years
+$n_d$ and beyond.
 The second special multiplier $()$ before the second set of brackets
 $\{\}$ will always be zero except for the surviving
-spouse $i^*_d$ in year $n_d$, who will then inherit a fraction $\phi_j$ of account $j$ that
-was scheduled to go into $i_d^{**} = i_d$'s $j$ account.
+spouse $i_s$ in year $n_d-1$, who will then inherit a fraction $\phi_j$ of account $j$ that
+was scheduled to go into $i_d$'s $j$ account at the beginning of year $n_d$.
 
 Rewriting the last equation as a constraint results in
 \begin{eqnarray}
 	&&b_{ijk(n+1)} 
 	  \nonumber  \\
-	&& - (1 - \delta(n, n_d)\delta(i, i_d)) \nonumber\\
+	&& - (1 - \delta(n, n_d-1)\delta(i, i_d)) \nonumber\\
 	&& \times \Bigl\{ \left[b_{ijkn} + (\delta(j, 2) - \delta(j, 1))x_{ikn}\right](1 + \tau_{kn}) + b^+_{ijkn} - b^-_{ijkn} - w_{ijkn} + \delta(j, 0)d_{ikn} \Bigr\}
 	\nonumber \\
-	&&- (\phi_j\delta(n, n_d)\delta(i, i_d^*)) \nonumber \\
-	&& \times \Bigl\{ \left[b_{i^*jkn} + (\delta(j, 2) - \delta(j, 1))x_{i^*kn}\right](1 + \tau_{kn}) + b^+_{i^*jkn} - b^-_{i^*jkn} - w_{i^*jkn} + \delta(j, 0)d_{i^*kn} \Bigr\}
+	&&- (\phi_j\delta(n, n_d-1)\delta(i, i_s)) \nonumber \\
+	&& \times \Bigl\{ \left[b_{i_djkn} + (\delta(j, 2) - \delta(j, 1))x_{i_dkn}\right](1 + \tau_{kn}) + b^+_{i_djkn} - b^-_{i_djkn} - w_{i_djkn} + \delta(j, 0)d_{i_dkn} \Bigr\}
 	\nonumber \\
-	&&= \left[ (1 - \delta(n, n_d)\delta(i, i_d)) 
-	\kappa_{ijkn} + (\phi_j\delta(n, n_d)\delta(i, i^*_d))
-	\kappa_{i^*jkn}\right](1 + \tau_{kn}/2). \nonumber  \\
+	&&= \left[ (1 - \delta(n, n_d-1)\delta(i, i_d)) 
+	\kappa_{ijkn} + (\phi_j\delta(n, n_d-1)\delta(i, i_s))
+	\kappa_{i_djkn}\right](1 + \tau_{kn}/2). \nonumber  \\
 \end{eqnarray}
 We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
 \begin{eqnarray}
         \label{Eq:B2}
         A_e[J_0(i, j, k, n), q_b(i, j, k, n+1)] &=& 1, \nonumber \\
-        A_e[J_0(i, j, k, n), q_b(i, j, k, n)] &=& - (1 - \delta(n, n_d)\delta(i, i_d))
+        A_e[J_0(i, j, k, n), q_b(i, j, k, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
                 (1 + \tau_{kn}), \nonumber \\
-        A_e[J_0(i, j, k, n), q_x(i, k, n)] &=& - (1 - \delta(n, n_d)\delta(i, i_d))
+        A_e[J_0(i, j, k, n), q_x(i, k, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
                 (\delta(j, 2) - \delta(j, 1))
                 (1 + \tau_{kn}), \nonumber \\
-        A_e[J_0(i, j, k, n), q_{b^+}(i, j, k, n)] &=& - (1 - \delta(n, n_d)\delta(i, i_d)),
+        A_e[J_0(i, j, k, n), q_{b^+}(i, j, k, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d)),
                 \nonumber \\
-        A_e[J_0(i, j, k, n), q_{b^-}(i, j, k, n)] &=&  (1 - \delta(n, n_d)\delta(i, i_d),
+	A_e[J_0(i, j, k, n), q_{b^-}(i, j, k, n)] &=&  (1 - \delta(n, n_d-1)\delta(i, i_d)),
                 \nonumber \\
-        A_e[J_0(i, j, k, n), q_w(i, j, k, n)] &=& (1 - \delta(n, n_d)\delta(i, i_d)), \nonumber \\
-        A_e[J_0(i, j, k, n), q_d(i, j, n)] &=& - (1 - \delta(n, n_d)\delta(i, i_d))
+        A_e[J_0(i, j, k, n), q_w(i, j, k, n)] &=& (1 - \delta(n, n_d-1)\delta(i, i_d)), \nonumber \\
+        A_e[J_0(i, j, k, n), q_d(i, j, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
                 \delta(j, 0), \nonumber \\
-        A_e[J_0(i, j, k, n), q_b(i^*, j, k, n)] &=& - (\phi_j\delta(n, n_d)\delta(i, i^*_d))
+		\text{when $N_i =2$ and $i = i_s$} && \nonumber\\
+        A_e[J_0(i, j, k, n), q_b(i_d, j, k, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
                 (1 + \tau_{kn}), \nonumber \\
-        A_e[J_0(i, j, k, n), q_x(i^*, k, n)] &=& - (\phi_j\delta(n, n_d)\delta(i, i^*_d))
+        A_e[J_0(i, j, k, n), q_x(i_d, k, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
                 (\delta(j, 2) - \delta(j, 1))
                 (1 + \tau_{kn}), \nonumber \\
-        A_e[J_0(i, j, k, n), q_{b^+}(i^*, j, k, n)] &=& - (\phi_j\delta(n, n_d)\delta(i, i^*_d)),
+        A_e[J_0(i, j, k, n), q_{b^+}(i_d, j, k, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s)),
                 \nonumber \\
-        A_e[J_0(i, j, k, n), q_{b^-}(i^*, j, k, n)] &=& (\phi_j\delta(n, n_d)\delta(i, i^*_d)),
+        A_e[J_0(i, j, k, n), q_{b^-}(i_d, j, k, n)] &=& (\phi_j\delta(n, n_d-1)\delta(i, i_s)),
                 \nonumber \\
-        A_e[J_0(i, j, k, n), q_w(i^*, j, k, n)] &=& (\phi_j\delta(n, n_d)\delta(i, i^*_d)),
+        A_e[J_0(i, j, k, n), q_w(i_d, j, k, n)] &=& (\phi_j\delta(n, n_d-1)\delta(i, i_s)),
                 \nonumber \\
-        A_e[J_0(i, j, k, n), q_d(i^*, j, n)] &=&  -(\phi_j\delta(n, n_d)\delta(i, i^*_d))
+        A_e[J_0(i, j, k, n), q_d(i_d, j, n)] &=&  -(\phi_j\delta(n, n_d-1)\delta(i, i_s))
                 \delta(j, 0), \nonumber \\
         &&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
         &&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -861,14 +899,15 @@ where $v$ is
 \begin{equation}
 	v[I(i, j, k, n)] 
 	= [(1 - \delta(n, n_d)\delta(i, i_d))
-	\kappa_{ijkn} + (\phi_j\delta(n, n_d)\delta(i, i^*_d))\kappa_{i^*jkn}](1 + \tau_{kn}/2). 
+	\kappa_{ijkn} + (\phi_j\delta(n, n_d-1)\delta(i, i_s))\kappa_{i_djkn}](1 + \tau_{kn}/2). 
 \end{equation}
-While the last two equations may look cumbersome, their net effect is only to include a few more terms when $n=n_d$. 
+While the last two equations may look cumbersome, their net effect is only to include
+a few more terms when $n=n_d-1$. 
 
 \paragraph*{Assets allocation ratios}
 To avoid creating a quadratic problem while rebalancing the accounts, we track the account balances
 by asset classes using $b_{ijkn}$. We can then prescribe how to rebalance the accounts.
-The values of $b^\pm$ can be governed by a prescribed asset allocation ratios $\alpha$ defined as
+The values of $b^\pm$ can be governed by prescribed asset allocation ratios $\alpha$ defined as
 \begin{equation}
 	\label{Eq:Alloc1}
 	\alpha_{ijkn} = b_{ijkn}/\sum_{k'} b_{ijk'n},
@@ -989,7 +1028,7 @@ the constraint of a desired bequest, we introduce the following relation
 	E_n = \sum_{ijk} (1 - \nu\delta(j, 1)) b_{ijkn},
 \end{equation}
 which is the value of the estate in nominal dollars at year $n$,
-taking into consideration the heir's income tax on the ($j=1$) tax-deferred account. 
+taking into consideration the heir's marginal income tax rate on the ($j=1$) tax-deferred account. 
 In this situation, the concept of surplus deposit is no longer valid, and therefore
 \begin{equation}
 	d_{ikn} = 0,
@@ -1022,7 +1061,7 @@ which would add one more row to $A_ey = v$ as
 \end{eqnarray}
 where $I(0)$ is used only to provide the proper row offset $C_l$. See Eq.~(\ref{Eq:Offsets}).
 
-For maximizing net income under the constraint of a fixed bequest, one has simply to
+For maximizing the net income under the constraint of a fixed bequest, one has simply to
 minimize the inner product $c\cdot y$, where $c$ is
 \begin{eqnarray}
 	c[q_g(0)] &=& -1,
