@@ -39,7 +39,7 @@ def gamma_n(tau, N_n):
     gamma = np.ones(N_n)
 
     for n in range(1, N_n):
-        gamma[n] = gamma[n - 1] * (1 + tau[3][n - 1])
+        gamma[n] = gamma[n - 1] * (1 + tau[3, n - 1])
 
     return gamma
 
@@ -54,24 +54,24 @@ def _taxParams(yobs, i_d, n_d, N_n):
     Returned values are not indexed for inflation.
     '''
     # Prepare the data.
-    rates_2024 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.035, 0.370])
-    rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.035, 0.396])
+    rates_2024 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
+    rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 
     # Single [0] and married filing jointly [1].
     brackets_2024 = np.array(
-        [[11600, 47150, 100525, 191950, 243450, 609350, 99999999],
-         [23200, 94300, 201050, 383900, 487450, 731200, 99999999]]
+        [[11600, 47150, 100525, 191950, 243450, 609350, 999999],
+         [23200, 94300, 201050, 383900, 487450, 731200, 999999]]
     )
     # Adjusted from 2017 with 30% increase.
     brackets_2026 = np.array(
-        [[12100, 49300, 119500, 249100, 541700, 543900, 99999999],
-         [24200, 98700, 199000, 303350, 541700, 611900, 99999999]]
+        [[12100, 49300, 119500, 249100, 541700, 543900, 999999],
+         [24200, 98700, 199000, 303350, 541700, 611900, 999999]]
     )
     # Compute the deltas in-place between brackets, starting from the end.
     for t in range(6, 0, -1):
         for i in range(2):
-            brackets_2024[i][t] -= brackets_2024[i][t - 1]
-            brackets_2026[i][t] -= brackets_2026[i][t - 1]
+            brackets_2024[i, t] -= brackets_2024[i, t - 1]
+            brackets_2026[i, t] -= brackets_2026[i, t - 1]
 
     stdDeduction_2024 = np.array([14600, 29200])
     stdDeduction_2026 = np.array([8300, 16600])
@@ -94,10 +94,10 @@ def _taxParams(yobs, i_d, n_d, N_n):
 
         if thisyear + n < 2026:
             sigma[n] = stdDeduction_2024[filingStatus]
-            Delta[n][:] = brackets_2024[filingStatus][:]
+            Delta[n, :] = brackets_2024[filingStatus, :]
         else:
             sigma[n] = stdDeduction_2026[filingStatus]
-            Delta[n][:] = brackets_2026[filingStatus][:]
+            Delta[n, :] = brackets_2026[filingStatus, :]
 
         # Add 65+ additional exemption(s).
         for i in souls:
@@ -106,15 +106,59 @@ def _taxParams(yobs, i_d, n_d, N_n):
 
         # Fill in future tax rates for year n.
         if thisyear + n < 2026:
-            theta[n][:] = rates_2024[:]
+            theta[n, :] = rates_2024[:]
         else:
-            theta[n][:] = rates_2026[:]
+            theta[n, :] = rates_2026[:]
 
     Delta = Delta.transpose()
     theta = theta.transpose()
 
-    # Return series unindexed for inflation, in STD order.
+    # Return series unadjusted for inflation, in STD order.
     return sigma, theta, Delta
+
+
+def taxBrackets(status, horizons, rates):
+    '''
+    Return dictionary containing inflation-adjusted future tax
+    brackets for plotting.
+    '''
+    # brackets = ['10%', '12/15%', '22/25%', '24/28%',
+    #             '32/33%', '35%', '37/40%']
+    # Skip the first bracket.
+    brackets = ['12/15%', '22/25%', '24/28%', '32/33%', '35%', '37/40%']
+
+    if status == 'married':
+        list1 = list(tax2017_MFJ.keys())
+        list2 = list(tax2023_MFJ.keys())
+    elif status == 'single':
+        list1 = list(tax2017_S.keys())
+        list2 = list(tax2023_S.keys())
+    else:
+        u.xprint('Unknown status', status)
+
+    survivor = list(tax2023_S.keys())
+    horizon = max(horizons) + 1
+    switch = min(horizons)
+    data = {}
+    for k in range(len(brackets)):
+        array = np.zeros(horizon)
+        for n in range(switch):
+            # This 2 is the number of years left in TCJA from 2023.
+            if n < 2:
+                v = list1[k]
+            else:
+                v = list2[k]
+
+            array[n] = inflationAdjusted(v, n, rates)
+
+        # When/if one spouse has passed.
+        for n in range(switch, horizon):
+            v = survivor[k]
+            array[n] = inflationAdjusted(v, n, rates)
+
+        data[brackets[k]] = array
+
+    return data
 
 
 def _rho_in(yobs, N_n):
@@ -198,7 +242,10 @@ def _xi_n(profile, frac, n_d, N_n, a=15, b=12):
         # Use a cosine +/- 15% combined with a gentle +12% linear increase.
         xi = xi + a * np.cos((2 * np.pi / (N_n - 1)) * x) + (b / (N_n-1)) * x
         # Normalize to be sum-neutral with respect to a flat profile.
-        xi = xi * (N_n / xi.sum())
+        neutralSum = N_n
+        if (n_d < N_n):
+            neutralSum -= (1-frac)*(N_n - n_d) # Account for spousal reduction.
+        xi = xi * (neutralSum / xi.sum())
     else:
         u.xprint('Unknown profile', profile)
 
@@ -282,7 +329,7 @@ class Owl:
             yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)
         ]
         self.N_n = max(self.horizons)
-        self.year_n = np.linspace(thisyear, thisyear+self.N_n-1, self.N_n)
+        self.year_n = np.linspace(thisyear, thisyear+self.N_n-1, self.N_n, dtype=int)
         # Handle passing of one spouse before the other.
         if self.N_i == 2:
             self.n_d = min(self.horizons)
@@ -319,7 +366,7 @@ class Owl:
             % (self.N_n - 1, self.N_i, ['', 's'][self.N_i - 1])
         )
         for i in range(self.N_i):
-            u.vprint('%s: from %d -> %d.'%(self.inames[i], thisyear, thisyear+self.horizons[i]-1))
+            u.vprint('%s: life horizon from %d -> %d.'%(self.inames[i], thisyear, thisyear+self.horizons[i]-1))
 
         # Prepare income tax time series.
         self.rho_in = _rho_in(self.yobs, self.N_n)
@@ -328,6 +375,7 @@ class Owl:
         )
 
         self.adjustParameters = True
+        self._buildOffsetMap()
 
         return
 
@@ -417,7 +465,7 @@ class Owl:
         for i in range(self.N_i):
             ns = max(0, self.yobs[i] + ages[i] - thisyear)
             nd = self.horizons[i]
-            self.pi_in[i][ns:nd] = amounts[i]
+            self.pi_in[i, ns:nd] = amounts[i]
 
         return
 
@@ -440,12 +488,12 @@ class Owl:
         for i in range(self.N_i):
             ns = max(0, self.yobs[i] + ages[i] - thisyear)
             nd = self.horizons[i]
-            self.zeta_in[i][ns:nd] = amounts[i]
+            self.zeta_in[i, ns:nd] = amounts[i]
 
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
             nd = self.horizons[self.i_d]
-            self.zeta_in[self.i_s][nd:] = max(amounts[self.i_s], amounts[self.i_d]/2)
+            self.zeta_in[self.i_s, nd:] = max(amounts[self.i_s], amounts[self.i_d]/2)
 
         return
 
@@ -486,7 +534,7 @@ class Owl:
         self.rateFrm = frm
         self.rateTo = to
         self.rateValues = values
-        self.tau_kn = dr.genSeries(self.N_n)
+        self.tau_kn = dr.genSeries(self.N_n).transpose()
         u.vprint('Generating rate series of', len(self.tau_kn[0]),
                  'years using', method, 'method.')
 
@@ -505,13 +553,14 @@ class Owl:
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n
             self.zetaBar_in = self.zeta_in * self.gamma_n
             self.sigmaBar_n = self.sigma_n * self.gamma_n
+            self.xiBar_n = self.xi_n * self.gamma_n
             # Partition contributions along chosen allocations.
             for i in range(self.N_i):
                 for j in range(self.N_j):
                     for n in range(self.N_n):
-                        fac = self.kappa_ijn[i][j][n]
+                        fac = self.kappa_ijn[i, j, n]
                         for k in range(self.N_k):
-                            self.kappa_ijkn[i][j][k][n] = fac*self.alpha_ijkn[i][j][k][n]
+                            self.kappa_ijkn[i, j, k, n] = fac*self.alpha_ijkn[i, j, k, n]
 
             self.adjustParameters = False
 
@@ -621,10 +670,10 @@ class Owl:
                 Nn = self.horizons[i]
                 for j in range(self.N_j):
                     for k in range(self.N_k):
-                        start = alpha[j][i][0][k]
-                        end = alpha[j][i][1][k]
+                        start = alpha[j][i, 0, k]
+                        end = alpha[j][i, 1, k]
                         dat = self._interpolator(start, end, Nn)
-                        self.alpha_ijkn[i][j][k][:Nn+1] = dat[:Nn+1]
+                        self.alpha_ijkn[i, j, k, :Nn+1] = dat[:Nn+1]
 
         elif allocType == 'individual':
             assert len(generic) == self.N_i, 'generic must have one list per individual.'
@@ -646,7 +695,7 @@ class Owl:
                     end = generic[i][1][k]
                     dat = self._interpolator(start, end, Nn+1)
                     for j in range(self.N_j):
-                        self.alpha_ijkn[i][j][k][:Nn+1] = dat[:Nn+1]
+                        self.alpha_ijkn[i, j, k, :Nn+1] = dat[:Nn+1]
 
         elif allocType == 'spouses':
             assert len(generic) == 2, 'generic must have 2 entries (initial and final).'
@@ -666,7 +715,7 @@ class Owl:
                 dat = self._interpolator(start, end, Nn+1)
                 for i in range(self.N_i):
                     for j in range(self.N_j):
-                        self.alpha_ijkn[i][j][k][:Nn+1] = dat[:Nn+1]
+                        self.alpha_ijkn[i, j, k, :Nn+1] = dat[:Nn+1]
 
         self.ARCoord = allocType
 
@@ -735,13 +784,13 @@ class Owl:
         # Now fill in parameters.
         for i in range(self.N_i):
             h = self.horizons[i]
-            self.omega_in[i][:h] = self.timeLists[i]['anticipated wages'][:h]
-            self.Lambda_in[i][:h] = self.timeLists[i]['big ticket items'][:h]
-            self.kappa_ijn[i][0][:h] = self.timeLists[i]['ctrb taxable'][:h]
-            self.kappa_ijn[i][1][:h] = self.timeLists[i]['ctrb 401k'][:h]
-            self.kappa_ijn[i][1][:h] += self.timeLists[i]['ctrb IRA'][:h]
-            self.kappa_ijn[i][2][:h] = self.timeLists[i]['ctrb Roth 401k'][:h]
-            self.kappa_ijn[i][2][:h] += self.timeLists[i]['ctrb Roth IRA'][:h]
+            self.omega_in[i, :h] = self.timeLists[i]['anticipated wages'][:h]
+            self.Lambda_in[i, :h] = self.timeLists[i]['big ticket items'][:h]
+            self.kappa_ijn[i, 0, :h] = self.timeLists[i]['ctrb taxable'][:h]
+            self.kappa_ijn[i, 1, :h] = self.timeLists[i]['ctrb 401k'][:h]
+            self.kappa_ijn[i, 1, :h] += self.timeLists[i]['ctrb IRA'][:h]
+            self.kappa_ijn[i, 2, :h] = self.timeLists[i]['ctrb Roth 401k'][:h]
+            self.kappa_ijn[i, 2, :h] += self.timeLists[i]['ctrb Roth IRA'][:h]
 
         return
 
@@ -776,7 +825,7 @@ class Owl:
 
     def _buildConstraints(self, objective, options):
         '''
-        Refer to companion document for explanations.
+        Refer to companion document for notation and detailed explanations.
         '''
         Ni = self.N_i
         Nj = self.N_j
@@ -803,6 +852,18 @@ class Owl:
         Ae = []
         vvec = []
 
+        # TEMPORARILY disable rebalancing.
+        for i in range(Ni):
+            for j in range(Nj):
+                for k in range(Nk):
+                    for n in range(Nn):
+                        row = np.zeros(self.nvars)
+                        rhs = 0
+                        row[_q4(Cbm, i, j, k, n, Ni, Nj, Nk, Nn)] = 1
+                        row[_q4(Cbp, i, j, k, n, Ni, Nj, Nk, Nn)] = 1
+                        Ae.append(row)
+                        vvec.append(rhs)
+
         # RMDs inequalities.
         for i in range(Ni):
             for n in range(Nn):
@@ -810,7 +871,7 @@ class Owl:
                 rhs = 0
                 for k in range(Nk):
                     row[_q4(Cw, i, 1, k, n, Ni, Nj, Nk, Nn)] = -1
-                    row[_q4(Cb, i, 1, k, n, Ni, Nj, Nk, Nn+1)] = self.rho_in[i][n]
+                    row[_q4(Cb, i, 1, k, n, Ni, Nj, Nk, Nn+1)] = self.rho_in[i, n]
                 Au.append(row)
                 uvec.append(rhs)
 
@@ -818,13 +879,13 @@ class Owl:
         for t in range(Nt):
             for n in range(Nn):
                 row = np.zeros(self.nvars)
-                rhs = 1
+                rhs = self.DeltaBar_tn[t, n]
                 row[_q2(Cf, t, n, Nt, Nn)] = 1
                 Au.append(row)
                 uvec.append(rhs)
 
-        # Deposits should be zero in that case.
         if objective == 'maxIncome':
+            # Deposits should be zero in that case.
             for i in range(Ni):
                 for k in range(Nk):
                     for n in range(Nn):
@@ -833,28 +894,38 @@ class Owl:
                         row[_q3(Cd, i, k, n, Ni, Nk, Nn)] = 1
                         Ae.append(row)
                         vvec.append(rhs)
-
-        # Impose a constraint on estate.
-        if 'estate' in options:
-            estate = options['estate']
-            assert len(estate) == Ni, 'Estate values must have %d lists.'%Ni
-            for i in range(Ni):
-                assert len(estate[i]) == Nj, 'Sublists of estate values must have %d entries.'%Nj
-            u.vprint('Adding estate constraint of:', estate)
-        else:
-            # Set default values to $1.
-            if Ni == 1:
-                estate = [[1 for j in range(Nj)]]
+            # Impose requested constraint on estate.
+            if 'estate' in options:
+                estate = options['estate']
+                assert len(estate) == Ni, 'Estate values must have %d lists.'%Ni
+                for i in range(Ni):
+                    assert len(estate[i]) == Nj, 'Sublists of estate values must have %d entries.'%Nj
+                u.vprint('Adding estate constraint of:', estate)
             else:
-                estate = [[1 for j in range(Nj)], [1 for j in range(Nj)]]
+                # If not specified, set default is $1/account.
+                if Ni == 1:
+                    estate = np.array([[1. for j in range(Nj)]])
+                else:
+                    estate = np.array([[1. for j in range(Nj)], [1. for j in range(Nj)]])
+                estate[:, 1] *= 1/(1 - self.nu)
 
-        for i in range(Ni):
-            for j in range(Nj):
-                row = np.zeros(self.nvars)
-                for k in range(Nk):
-                    row[_q4(Cb, i, j, k, Nn, Ni, Nj, Nk, Nn+1)] = 1
-                Ae.append(row)
-                vvec.append(estate[i][j])
+            for i in range(Ni):
+                for j in range(Nj):
+                    row = np.zeros(self.nvars)
+                    for k in range(Nk):
+                        row[_q4(Cb, i, j, k, Nn, Ni, Nj, Nk, Nn+1)] = 1
+                    Ae.append(row)
+                    vvec.append(estate[i][j])
+
+        elif objective == 'maxBequest': 
+            income = options['netIncome']
+            row = np.zeros(self.nvars)
+            rhs = income
+            row[_q1(Cg, 0)] = 1
+            Ae.append(row)
+            vvec.append(rhs)
+        else:
+            u.xprint('Unknown objective function:', objective)
 
         # Limit Roth conversions.
         if 'maxRothConversion' in options:
@@ -877,11 +948,11 @@ class Owl:
                     for n in range(Nn):
                         row = np.zeros(self.nvars)
                         fac1 = (1 - np.kron(n, n_d - 1)*np.kron(i, i_d))
-                        rhs = (fac1*self.kappa_ijkn[i][j][k][n])*(.5 + tau1_kn[k][n]/2)
+                        rhs = fac1*self.kappa_ijkn[i, j, k, n] * (.5 + tau1_kn[k, n]/2)
 
                         row[_q4(Cb, i, j, k, n+1, Ni, Nj, Nk, Nn+1)] = 1
-                        row[_q4(Cb, i, j, k, n, Ni, Nj, Nk, Nn+1)] = -fac1*tau1_kn[k][n]
-                        row[_q3(Cx, i, k, n, Ni, Nk, Nn)] = -fac1*(np.kron(j, 2) - np.kron(j, 1))*tau1_kn[k][n]
+                        row[_q4(Cb, i, j, k, n, Ni, Nj, Nk, Nn+1)] = -fac1*tau1_kn[k, n]
+                        row[_q3(Cx, i, k, n, Ni, Nk, Nn)] = -fac1*(np.kron(j, 2) - np.kron(j, 1))*tau1_kn[k, n]
                         row[_q4(Cbp, i, j, k, n, Ni, Nj, Nk, Nn)] = -fac1
                         row[_q4(Cbm, i, j, k, n, Ni, Nj, Nk, Nn)] = fac1
                         row[_q4(Cw, i, j, k, n, Ni, Nj, Nk, Nn)] = fac1
@@ -890,9 +961,9 @@ class Owl:
                         if Ni == 2 and i == i_s and n == n_d - 1:
                             # fac2 = self.phi_j[j]*(np.kron(n, n_d - 1))*np.kron(i, i_s)
                             fac2 = self.phi_j[j]
-                            rhs += (fac2*self.kappa_ijkn[i_d][j][k][n])*(.5 + tau1_kn[k][n]/2)
-                            row[_q4(Cb, i_d, j, k, n, Ni, Nj, Nk, Nn+1)] = -fac2*tau1_kn[k][n]
-                            row[_q3(Cx, i_d, k, n, Ni, Nk, Nn)] = -fac2*(np.kron(j, 2) - np.kron(j, 1))*tau1_kn[k][n]
+                            rhs += fac2*self.kappa_ijkn[i_d, j, k, n] * (.5 + tau1_kn[k, n]/2)
+                            row[_q4(Cb, i_d, j, k, n, Ni, Nj, Nk, Nn+1)] = -fac2*tau1_kn[k, n]
+                            row[_q3(Cx, i_d, k, n, Ni, Nk, Nn)] = -fac2*(np.kron(j, 2) - np.kron(j, 1))*tau1_kn[k, n]
                             row[_q4(Cbp, i_d, j, k, n, Ni, Nj, Nk, Nn)] = -fac2
                             row[_q4(Cbm, i_d, j, k, n, Ni, Nj, Nk, Nn)] = fac2
                             row[_q4(Cw, i_d, j, k, n, Ni, Nj, Nk, Nn)] = fac2
@@ -900,6 +971,7 @@ class Owl:
                         Ae.append(row)
                         vvec.append(rhs)
 
+        '''
         # Rebalancing equalities 1/2.
         for i in range(Ni):
             for j in range(Nj):
@@ -923,21 +995,23 @@ class Owl:
                         row[_q4(Cbm, i, j, k, n, Ni, Nj, Nk, Nn)] = 1
                         Ae.append(row)
                         vvec.append(rhs)
+        '''
 
         # Net income equalities 1/2.
         for n in range(Nn):
             row = np.zeros(self.nvars)
+            rhs = 0
             row[_q1(Cg, n, Nn)] = 1
             for t in range(Nt):
-                row[_q2(Cf, t, n, Nt, Nn)] = self.DeltaBar_tn[t][n]*self.theta_tn[t][n]
-            rhs = 0
+                row[_q2(Cf, t, n, Nt, Nn)] = self.theta_tn[t, n]
             for i in range(Ni):
-                rhs += (self.omega_in[i][n] + self.zetaBar_in[i][n] 
-                        + self.pi_in[i][n] + self.Lambda_in[i][n]
-                        - 0.5*self.psi*self.mu*self.kappa_ijkn[i][0][0][n])
+                rhs += (self.omega_in[i, n] + self.zetaBar_in[i, n] 
+                        + self.pi_in[i, n] + self.Lambda_in[i, n]
+                        - 0.5*self.psi*self.mu*self.kappa_ijkn[i, 0, 0, n])
                 row[_q4(Cb, i, 0, 0, n, Ni, Nj, Nk, Nn+1)] = self.mu*self.psi
-                row[_q4(Cw, i, 0, 0, n, Ni, Nj, Nk, Nn)] = self.psi*max(0, self.tau_kn[0][n])
-                row[_q4(Cbm, i, 0, 0, n, Ni, Nj, Nk, Nn)] = self.psi*max(0, self.tau_kn[0][n])
+                fac = self.psi*max(0, self.tau_kn[0, n])/(1 + max(0, self.tau_kn[0, n]))
+                row[_q4(Cw, i, 0, 0, n, Ni, Nj, Nk, Nn)] = fac
+                row[_q4(Cbm, i, 0, 0, n, Ni, Nj, Nk, Nn)] = fac
                 for k in range(Nk):
                     row[_q3(Cd, i, k, n, Ni, Nk, Nn)] = 1
                     for j in range(Nj):
@@ -945,12 +1019,12 @@ class Owl:
             Ae.append(row)
             vvec.append(rhs)
 
-        # Net income equalities 2/2.
-        for n in range(Nn-1):
+        # Impose income profile.
+        for n in range(1,Nn):
             row = np.zeros(self.nvars)
             rhs = 0
-            row[_q1(Cg, n+1, Nn)] = 1
-            row[_q1(Cg, n, Nn)] = -tau1_kn[3][n]*self.xi_n[n]
+            row[_q1(Cg, 0, Nn)] = -self.xiBar_n[n]
+            row[_q1(Cg, n, Nn)] = 1
             Ae.append(row)
             vvec.append(rhs)
 
@@ -959,14 +1033,14 @@ class Owl:
             row = np.zeros(self.nvars)
             rhs = -self.sigmaBar_n[n]
             for t in range(Nt):
-                row[_q2(Cf, t, n, Nt, Nn)] = self.DeltaBar_tn[t][n]
+                row[_q2(Cf, t, n, Nt, Nn)] = 1
             for i in range(Ni):
-                rhs += (self.omega_in[i][n] + 0.85*self.zetaBar_in[i][n] + self.pi_in[i][n])
+                rhs += (self.omega_in[i, n] + 0.85*self.zetaBar_in[i, n] + self.pi_in[i, n])
                 for k in range(Nk):
-                    rhs += 0.5*(1 - np.kron(k, 0))*self.tau_kn[k][n]*self.kappa_ijkn[i][0][k][n]
+                    rhs += 0.5*(1 - np.kron(k, 0))*self.tau_kn[k, n]*self.kappa_ijkn[i, 0, k, n]
                     row[_q4(Cw, i, 1, k, n, Ni, Nj, Nk, Nn)] = -1
                     row[_q3(Cx, i, k, n, Ni, Nk, Nn)] = -1
-                    row[_q4(Cb, i, 0, k, n, Ni, Nj, Nk, Nn+1)] = (1 - np.kron(k, 0))*self.tau_kn[k][n]
+                    row[_q4(Cb, i, 0, k, n, Ni, Nj, Nk, Nn+1)] = -(1 - np.kron(k, 0))*self.tau_kn[k, n]
             Ae.append(row)
             vvec.append(rhs)
 
@@ -976,7 +1050,7 @@ class Owl:
                 for k in range(Nk):
                     row = np.zeros(self.nvars)
                     row[_q4(Cb, i, j, k, 0, Ni, Nj, Nk, Nn+1)] = 1
-                    rhs = self.beta_ij[i][j]*self.alpha_ijkn[i][j][k][0]
+                    rhs = self.beta_ij[i, j]*self.alpha_ijkn[i, j, k, 0]
                     Ae.append(row)
                     vvec.append(rhs)
 
@@ -989,7 +1063,7 @@ class Owl:
                             row2 = np.zeros(self.nvars)
                             rhs2 = 0
                             for k2 in range(Nk):
-                                row2[_q4(Cb, i, j, k2, n, Ni, Nj, Nk, Nn+1)] = np.kron(k, k2) - self.alpha_ijkn[i][j][k][n]
+                                row2[_q4(Cb, i, j, k2, n, Ni, Nj, Nk, Nn+1)] = np.kron(k, k2) - self.alpha_ijkn[i, j, k, n]
                             Ae.append(row2)
                             vvec.append(rhs2)
 
@@ -1000,7 +1074,7 @@ class Owl:
                         rhs2 = 0
                         for j in range(Nj):
                             for k2 in range(Nk):
-                                row2[_q4(Cb, i, j, k2, n, Ni, Nj, Nk, Nn+1)] = np.kron(k, k2) - self.alpha_ijkn[i][j][k][n]
+                                row2[_q4(Cb, i, j, k2, n, Ni, Nj, Nk, Nn+1)] = np.kron(k, k2) - self.alpha_ijkn[i, j, k, n]
                         Ae.append(row2)
                         vvec.append(rhs2)
 
@@ -1011,7 +1085,7 @@ class Owl:
                     for i in range(Ni):
                         for j in range(Nj):
                             for k2 in range(Nk):
-                                row2[_q4(Cb, i, j, k2, n, Ni, Nj, Nk, Nn+1)] = np.kron(k, k2) - self.alpha_ijkn[i][j][k][n]
+                                row2[_q4(Cb, i, j, k2, n, Ni, Nj, Nk, Nn+1)] = np.kron(k, k2) - self.alpha_ijkn[i, j, k, n]
                     Ae.append(row2)
                     vvec.append(rhs2)
 
@@ -1022,22 +1096,68 @@ class Owl:
         self.b_ub = np.array(uvec)
         self.A_eq = np.array(Ae)
         self.b_eq = np.array(vvec)
+        
+        # Now build objective vector.
+        c = np.zeros(self.nvars)
+        if objective == 'maxIncome':
+            c[_q1(Cg, 0, Nn)] = -1
+        elif objective == 'maxBequest':
+            for i in range(Ni):
+                for k in range(Nk):
+                    c[_q4(Cb, i, 0, k, Nn, Ni, Nj, Nk, Nn+1)] = -1
+                    c[_q4(Cb, i, 1, k, Nn, Ni, Nj, Nk, Nn+1)] = -1/(1 - self.nu)
+                    c[_q4(Cb, i, 2, k, Nn, Ni, Nj, Nk, Nn+1)] = -1
 
-        return
+        '''
+        # Minimize tax brackets. - Is that redundant?
+        for n in range(Nn):
+            for t in range(Nt):
+                c[_q2(Cf, t, n, Nt, Nn)] = -self.theta_tn[t, n]
+
+        # Minimize rebalancing variables.
+        for i in range(self.N_i):
+            for j in range(self.N_j):
+                for k in range(self.N_k):
+                    for n in range(self.N_n):
+                        c[_q4(self.C['bp'], i, j, k, n, self.N_i, self.N_j, self.N_k, self.N_n)] = 1
+                        c[_q4(self.C['bm'], i, j, k, n, self.N_i, self.N_j, self.N_k, self.N_n)] = 1
+        '''
+
+        return c
 
     def solve(self, objective='maxIncome', options={}):
         '''
         Refer to companion document for explanations.
         '''
-        knownOptions = ['maxRothConversion']
+        knownOptions = ['maxRothConversion', 'netIncome']
         for opt in options:
             if opt not in knownOptions:
-                u.xprint('Uknown option', opt)
+                u.xprint('Option', opt, 'not one of', knownOptions)
+        knownObjectives = ['maxBequest', 'maxIncome']
+        if objective not in knownObjectives: 
+            u.xprint('Objective', objective, 'not one of', knownObjectives)
+        if objective == 'maxBequest' and 'netIncome' not in options:
+            u.xprint('Objective', objective, 'needs netIncome option.')
 
         self._adjustParameters()
-        self._buildOffsetMap()
-        self._buildConstraints(objective, options)
+        c = self._buildConstraints(objective, options)
 
+        lpOptions = {'disp':True, 'maxiter':100000}
+        solution = optimize.linprog(c, A_ub=self.A_ub, b_ub=self.b_ub, A_eq=self.A_eq, b_eq=self.b_eq,
+                                     method='highs', options=lpOptions)
+        if solution.success == True:
+            u.vprint(solution.message)
+        else:
+            u.xprint('WARNING: Optimization failed:', solution.message, solution.success)
+                
+        self.aggregateResults(solution.x)
+
+        return
+
+    def aggregateResults(self, x):
+        '''
+        Process all results from solution vector.
+        '''
         # Define shortcuts.
         Ni = self.N_i
         Nj = self.N_j
@@ -1054,62 +1174,85 @@ class Owl:
         Cw = self.C['w']
         Cx = self.C['x']
 
-        c = np.zeros(self.nvars)
-        c[_q1(Cg, 0, Nn)] = -1
-        # Minimize tax brackets.
-        for t in range(Nt):
-            for n in range(Nn):
-                c[_q2(Cf, t, n, Nt, Nn)] = 2**t
-
-        # Minimize rebalancing variables.
-        for i in range(Ni):
-            for j in range(Nj):
-                for k in range(Nk):
-                    for n in range(Nn):
-                        c[_q4(Cbp, i, j, k, n, Ni, Nj, Nk, Nn)] = 1
-                        c[_q4(Cbm, i, j, k, n, Ni, Nj, Nk, Nn)] = 1
-
-        lpOptions = {'disp':True, 'maxiter':100000}
-        solution = optimize.linprog(c, A_ub=self.A_ub, b_ub=self.b_ub, A_eq=self.A_eq, b_eq=self.b_eq,
-                                     method='highs-ipm', options=lpOptions)
-        if solution.success == True:
-            u.vprint(solution.message)
-        else:
-            u.xprint('WARNING: Optimization failed:', solution.message, solution.success)
-                
         # Allocate, slice in, and reshape variables.
-        self.b_ijkn = np.array(solution.x[Cb:Cbp])
+        self.b_ijkn = np.array(x[Cb:Cbp])
         self.b_ijkn = self.b_ijkn.reshape((Ni, Nj, Nk, Nn + 1))
 
-        self.bp_ijkn = np.array(solution.x[Cbp:Cbm])
+        self.bp_ijkn = np.array(x[Cbp:Cbm])
         self.bp_ijkn = self.bp_ijkn.reshape((Ni, Nj, Nk, Nn))
 
-        self.bm_ijkn = np.array(solution.x[Cbm:Cd])
+        self.bm_ijkn = np.array(x[Cbm:Cd])
         self.bm_ijkn = self.bm_ijkn.reshape((Ni, Nj, Nk, Nn))
 
-        self.d_ikn = np.array(solution.x[Cd:Cf])
+        self.d_ikn = np.array(x[Cd:Cf])
         self.d_ikn = self.d_ikn.reshape((Ni, Nk, Nn))
 
-        self.f_tn = np.array(solution.x[Cf:Cg])
+        self.f_tn = np.array(x[Cf:Cg])
         self.f_tn = self.f_tn.reshape((Nt, Nn))
 
-        self.g_n = np.array(solution.x[Cg:Cw])
+        self.g_n = np.array(x[Cg:Cw])
         self.g_n = self.g_n.reshape((Nn))
 
-        self.w_ijkn = np.array(solution.x[Cw:Cx])
+        self.w_ijkn = np.array(x[Cw:Cx])
         self.w_ijkn = self.w_ijkn.reshape((Ni, Nj, Nk, Nn))
 
-        self.x_ikn = np.array(solution.x[Cx:])
+        self.x_ikn = np.array(x[Cx:])
         self.x_ikn = self.x_ikn.reshape((Ni, Nk, Nn))
 
         print('b:\n', self.b_ijkn)
         print('b+:\n', self.bp_ijkn)
         print('b-:\n', self.bm_ijkn)
-        print('d:\n', self.d_ikn)
+        #print('d:\n', self.d_ikn)
         print('f:\n', self.f_tn)
-        print('g:\n', self.g_n)
-        print('w:\n', self.w_ijkn)
+        #print('g:\n', self.g_n)
+        #print('w:\n', self.w_ijkn)
         print('x:\n', self.x_ikn)
+
+        # Make derivative variables.
+        sourcetypes = [
+            'wages',
+            'ssec',
+            'pension',
+            'dist',
+            'rmd',
+            'RothX',
+            'div',
+            'wdrwl taxable',
+            'wdrwl tax-free',
+        ]
+
+        # Aggregate all values in common _in format.
+        b_ijn = np.sum(self.b_ijkn, axis=2)
+        w_ijn = np.sum(self.w_ijkn[:, :, :, :], axis=2)
+        x_in = np.sum(self.x_ikn, axis=1)
+        div_ikn = self.b_ijkn[:, 0, :, :]
+
+        w_taxable_in = w_ijn[:, 0, :]
+        w_taxdefe_in = w_ijn[:, 1, :]
+        w_taxfree_in = w_ijn[:, 2, :]
+
+        rmd_in = self.rho_in*b_ijn[:, 1, :-1]
+        dist_in = w_taxdefe_in - rmd_in
+        dist_in[dist_in < 0] = 0
+
+        # Putting it all together in a dictionary.
+        sources = {}
+        sources['wages'] = self.omega_in
+        sources['ssec'] = self.zetaBar_in
+        sources['pension'] = self.pi_in
+        sources['rmd'] = rmd_in
+        sources['dist'] = dist_in
+        sources['RothX'] = x_in
+        sources['wdrwl taxable'] = w_taxable_in
+        sources['wdrwl tax-free'] = w_taxfree_in
+
+        savings = {}
+        savings['taxable'] = np.sum(self.b_ijkn[:, 0, :, :], axis=1)
+        savings['tax-deferred'] = np.sum(self.b_ijkn[:, 1, :, :], axis=1)
+        savings['tax-free'] = np.sum(self.b_ijkn[:, 2, :, :], axis=1)
+        
+        self.sources_in = sources
+        self.savings_in = savings
 
         return
 
@@ -1121,12 +1264,12 @@ class Owl:
         for i in range(self.N_i):
             for j in range(self.N_j):
                 for k in range(self.N_k):
-                    _estate[j] += self.b_ijkn[i][j][k][self.N_n]
+                    _estate[j] += self.b_ijkn[i, j, k, self.N_n]
 
         _estate[1] *= (1 - self.nu)
-        u.vprint('Estate of', u.d(sum(_estate)))
+        u.vprint('Estate value of %s in year %s.'%(u.d(sum(_estate)), self.year_n[-1]))
 
-        return _estate
+        return
 
     def showRates(self, tag=''):
         '''
@@ -1183,7 +1326,7 @@ class Owl:
         # style = {'net': '-', 'target': ':'}
         style = {'profile': '-'}
         series = {'profile': self.xi_n}
-        self._lineIncomePlot(series, style, title, yformat='xi')
+        _lineIncomePlot(self.year_n, series, style, title, yformat='xi')
 
         return
 
@@ -1193,39 +1336,271 @@ class Owl:
 
         A tag string can be set to add information to the title of the plot.
         '''
-        title = self._name + '\nNet Income vs. Target'
+        title = self._name + '\nNet Income'
         if tag != '':
             title += ' - ' + tag
 
-        # style = {'net': '-', 'target': ':'}
-        style = {'net': '-'}
-        series = {'net': self.g_n}
-        self._lineIncomePlot(series, style, title)
+        style = {'net': '-', 'target': ':'}
+        series = {'net': self.g_n, 'target': self.g_n[0]*self.xi_n*self.gamma_n}
+        _lineIncomePlot(self.year_n, series, style, title)
 
         return
 
-    def _lineIncomePlot(self, series, style, title, yformat='k$'):
+    def showAssetDistribution(self, tag=''):
         '''
-        Core line plotter function.
+        Plot the distribution of each savings account in thousands of dollars
+        during the simulation time. This function will generate three
+        graphs, one for taxable accounts, one the tax-deferred accounts,
+        and one for tax-free accounts.
+
+        A tag string can be set to add information to the title of the plot.
+        '''
+
+        y2stack = {}
+        jDic = {'taxable': 0, 'tax-deferred': 1, 'tax-free': 2}
+        kDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
+        for jkey in jDic:
+            stackNames = []
+            for kkey in kDic:
+                name = kkey + ' / ' + jkey
+                stackNames.append(name)
+                y2stack[name] = np.zeros((self.N_i, self.N_n+1))
+                for i in range(self.N_i):
+                    y2stack[name][i][:] = self.b_ijkn[i][jDic[jkey]][kDic[kkey]][:]
+
+            title = self._name + '\nAssets Distribution - ' + jkey
+            if tag != '':
+                title += ' - ' + tag
+
+            _stackPlot(self.year_n, self.inames, title, range(self.N_i),
+                       y2stack, stackNames, 'upper left')
+
+        return
+
+    def showAllocations(self, tag=''):
+        '''
+        Plot desired allocation of savings accounts in percentage
+        over simulation time and interpolated by the selected method
+        through the interpolateAR() method.
+
+        A tag string can be set to add information to the title of the plot.
+        '''
+        count = self.N_i
+        if self.coordinatedAR == 'both':
+            acList = ['coordinated']
+            count = 1
+        elif self.coordinatedAR == 'individual':
+            acList = ['coordinated']
+        else:
+            acList = ['taxable', 'tax-deferred', 'tax-free']
+
+        assetDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
+        for i in range(count):
+            y2stack = {}
+            for acType in acList:
+                stackNames = []
+                for key in assetDic:
+                    aname = key + ' / ' + acType
+                    stackNames.append(aname)
+                    y2stack[aname] = np.zeros((count, self.N_n))
+                    y2stack[aname][i][:] = self.y2assetRatios[acType].transpose(
+                        1, 2, 0
+                    )[i][assetDic[key]][:]
+                    y2stack[aname] = y2stack[aname].transpose()
+
+                    title = self._name + '\nAssets Allocations (%) - ' + acType
+                    if self.coordinatedAR == 'both':
+                        title += ' both'
+                    else:
+                        title += ' ' + self.names[i]
+
+                if tag != '':
+                    title += ' - ' + tag
+
+                _stackPlot(self.year_n, self.inames,
+                    title, [i], y2stack, stackNames, 'upper left', 'percent'
+                )
+
+        return
+
+    def showAccounts(self, tag=''):
+        '''
+        Plot values of savings accounts over time.
+
+        A tag string can be set to add information to the title of the plot.
+        '''
+        title = self._name + '\nSavings Balance'
+        if tag != '':
+            title += ' - ' + tag
+        stypes = self.savings_in.keys()
+        # Add one year for estate.
+        year_n = np.append(self.year_n, [self.year_n[-1]+1])
+
+        _stackPlot(year_n, self.inames, title, range(self.N_i), self.savings_in, stypes, 'upper left')
+
+        return
+
+    def showSources(self, tag=''):
+        '''
+        Plot income over time.
+
+        A tag string can be set to add information to the title of the plot.
+        '''
+        title = self._name + '\nRaw Income Sources'
+        if tag != '':
+            title += ' - ' + tag
+        stypes = self.sources_in.keys()
+        _stackPlot(self.year_n, self.inames, title, range(self.N_i), self.sources_in, stypes, 'upper left')
+
+        return
+
+    def showFeff(self, tag=''):
+        '''
+        Plot income tax paid over time.
+
+        A tag string can be set to add information to the title of the plot.
+        '''
+        title = self._name + '\nEff f '
+        if tag != '':
+            title += ' - ' + tag
+
+        various = ['-', '--', '-.', ':']
+        style = {}
+        series = {}
+        q = 0
+        for t in range(self.N_t):
+            key = 'f '+str(t)
+            series[key] = self.f_tn[t]/self.DeltaBar_tn[t]
+            style[key] = various[q%len(various)]
+            q += 1
+
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat='')
+
+        return
+
+    def showTaxes(self, tag=''):
+        '''
+        Plot income tax paid over time.
+
+        A tag string can be set to add information to the title of the plot.
+        '''
+        title = self._name + '\nIncome Tax'
+        if tag != '':
+            title += ' - ' + tag
+
+        T_tn = self.f_tn * self.theta_tn
+        T_n = np.sum(T_tn, axis=0)
+        style = {'income taxes': '-'}
+        series = {'income taxes': T_n}
+
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title)
+
+        return
+
+    def showGrossIncome(self, tag=''):
+        '''
+        Plot income tax and taxable income over time horizon.
+
+        A tag string can be set to add information to the title of the plot.
         '''
         import matplotlib.pyplot as plt
-        import matplotlib.ticker as tk
 
-        fig, ax = plt.subplots(figsize=(6, 4))
+        title = self._name + '\nGross Income vs. Tax Brackets'
+        if tag != '':
+            title += ' - ' + tag
+
+        tmp1 = np.sum(self.omega_in + 0.85*self.zetaBar_in + self.pi_in, axis=0)
+        tmp2 = np.sum(self.w_ijkn[:,1, :, :] + self.x_ikn, axis=(0, 1))
+        tmp3 = np.sum(self.b_ijkn[:, 0, 1:, :-1] + 0.5*self.kappa_ijkn[:, 0, 1:, :], axis=0) * self.tau_kn[1:, :]
+        tmp3 = np.sum(tmp3, axis=0)
+        otherG_n = tmp1 + tmp2 + tmp3 - self.sigmaBar_n
+        G_tn = self.f_tn 
+        G_n = np.sum(G_tn, axis=0)
+        style = {'gross1': '-', 'gross2': ':'}
+        series = {'gross1': G_n, 'gross2': otherG_n}
+
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title)
+
+        '''
+        data = taxBrackets(self.filingStatus, self.horizons, self.tau_kn)
+
+        # myyears = np.array([2022, 2025, 2026, 2052])
+        # tax2428 = np.array([178000, 220000, 205000, 400000])
+        # tax3233 = np.array([340000, 405000, 310000, 600000])
+        # tax35 = np.array([432000, 500000, 580000, 1000000])
+
+        for key in data:
+            ax.plot(self.year_n, data[key], label=key, ls=':')
+        '''
+
         plt.grid(visible='both')
-
-        for name in series:
-            ax.plot(self.year_n, series[name], label=name, ls=style[name])
-
         ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.7)
-        # ax.legend(loc='upper left')
-        ax.set_title(title)
-        ax.set_xlabel('year')
-        ax.set_ylabel(yformat)
-        if yformat == 'k$':
-            ax.get_yaxis().set_major_formatter(
-                tk.FuncFormatter(lambda x, p: format(int(x / 1000), ','))
-            )
 
-        # plt.show()
+        return
+
+
+def _lineIncomePlot(x, series, style, title, yformat='k$'):
+    '''
+    Core line plotter function.
+    '''
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as tk
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    plt.grid(visible='both')
+
+    for sname in series:
+        ax.plot(x, series[sname], label=sname, ls=style[sname])
+
+    ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.7)
+    ax.set_title(title)
+    ax.set_xlabel('year')
+    ax.set_ylabel(yformat)
+    if yformat == 'k$':
+        ax.get_yaxis().set_major_formatter(
+            tk.FuncFormatter(lambda x, p: format(int(x / 1000), ','))
+        )
+
+    return fig, ax
+
+
+def _stackPlot(x, inames, title, irange, series, snames, location, ytype='dollars'):
+    '''
+    Core function for stacked plots.
+    '''
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as tk
+
+    nonzeroSeries = {}
+    for sname in snames:
+        for i in irange:
+            tmp = series[sname][i]
+            if sum(tmp) > 1.:
+                nonzeroSeries[sname + ' ' + inames[i]] = tmp
+
+    if len(nonzeroSeries) == 0:
+        print('Nothing to plot for', title)
+        return
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    plt.grid(visible='both')
+
+    ax.stackplot(x, nonzeroSeries.values(), labels=nonzeroSeries.keys(), alpha=0.8)
+    ax.legend(loc=location, reverse=True, fontsize=8, ncol=2, framealpha=0.7)
+    ax.set_title(title)
+    ax.set_xlabel('year')
+    if ytype == 'dollars':
+        ax.set_ylabel('k$')
+        ax.get_yaxis().set_major_formatter(
+            tk.FuncFormatter(lambda x, p: format(int(x / 1000), ','))
+        )
+    elif ytype == 'percent':
+        ax.set_ylabel('%')
+        ax.get_yaxis().set_major_formatter(
+            tk.FuncFormatter(lambda x, p: format(int(100 * x), ','))
+        )
+    else:
+        u.xprint('Unknown ytype:', ytype)
+
         return fig, ax
+

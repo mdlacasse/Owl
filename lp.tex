@@ -9,14 +9,14 @@
 \geometry{letterpaper}
 
 \begin{document}
-\title{Formulation of linear optimization model in Owl}
+\title{Formulation of the linear optimization model in Owl}
 \author{Martin-D. Lacasse}
 \maketitle
 \thispagestyle{fancy}
 \fancyfoot[R]{\copyright\ Martin-D. Lacasse - 2024}
 \fancyhead{}
 
-This document describes the mathematical models undelying
+This document describes the mathematical model undelying
 the optimization algorithms implemented in
 Owl. This code is a Python application optimizing retirement
 planning using linear programming. The goal of
@@ -27,6 +27,9 @@ and desired income amongst many other things.
 
 The approach is described here mathematically and the implementation
 follows the structure and notation presented in this document.
+The goal of this document is to provide a guide to the Python code
+intended for any individual desiring to extend the model to other cases.
+
 In the first sections, the indices, variables, and parameters are
 described in detail. Then the model constraints are introduced.
 For implementation in a linear programming solver, index mapping
@@ -92,7 +95,7 @@ to take only positive values (positive inequality).
 		G_n = \sum_t f_{t n}\bar{\Delta}_{t n},\\
 		0 \leq f_{t n} \leq 1.
 	\end{eqnarray}
-	A definition of $\Delta$ can be found in the section describing parameters below. 
+	A definition of $\Delta$ can be found in the section describing the parameters below. 
 \item [$g_n$]
 	Net income in year $n$.
 \item [$w_{ijkn}$]
@@ -141,7 +144,8 @@ Parameter values are either set by the user, historical data, or by the tax code
 		\xi_n = 1 + 0.15*cos(2n\pi/(N_n-1)) + 0.12n/(N_n-1),
 	\end{equation}
 	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum-neutral with respect to a flat profile.
-	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n \ge n_d$.
+	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n \ge n_d$,
+	and the normalizing factor needs to be adjusted accordingly.
 \item [$\chi$]
 	Factor to reduce spending profile after the passing of one spouse. It is typically
 	assumed to be 0.6.
@@ -226,7 +230,7 @@ or an s-curve as in
 \item [$\kappa_{ijkn}$]
 	Sum of contributions to savings account $j$ made by individual $i$ during year $n$.
 	We assume that contributions are made at half-year to balance regular contributions,
-	and that individual selects asset class $k$ when depositing. Most likely, a contribution
+	and that individual selects asset class $k$ when depositing. In practice, a contribution
 	amount $\kappa_{ijn}$ is specified in which case 
 	\begin{equation}
 		\kappa_{ijkn} = \alpha_{ijkn}\kappa_{ijn}.
@@ -267,7 +271,6 @@ All intermediate variables are in uppercase letters.
 	Social security is indexed for inflation and is assumed to be taxed at 85\%.
 	We use a discrete Kronecker $\delta$ function for selecting gains from non-equity assets in
 	taxable accounts. These gains are taxed as ordinary income.
-	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}).
 
 \item [$Q_n$]
 	Qualified dividends and long-term capital gains obtained in year $n$.
@@ -278,16 +281,18 @@ All intermediate variables are in uppercase letters.
 	that all dividends are qualified, resulting in
 	\begin{equation}
 		\label{Eq:Qx2}
-		Q_n = \sum_{i} [(b_{i00n} + .5\kappa_{i00n})\mu + (w_{i00n} + b^-_{i00n})\max(0, \tau_{0n})].
+		Q_n = \sum_{i} \left[(b_{i00n} + .5\kappa_{i00n})\mu +
+		(w_{i00n} + b^-_{i00n})\frac{\max(0, \tau_{0n})}{1 + \max(0, \tau_{0n})}\right].
 	\end{equation}
 	A formulation where only a fraction of dividends are qualified can easily be
 	implemented with the addition of another parameter.
 	The first terms on the right-hand side represent the amount of equities $(k=0)$ in the $(j=0)$
 	taxable savings account plus
 	half the yearly contributions. The last terms account for withdrawals $w$ of equities assumed
-	to have been purchased more than a year ago and others $b^-$ sold at the end
+	to have been purchased a year ago and others $b^-$ sold at the end
 	of the year as required for rebalancing the account. It does not account for losses, but a market drop
-	would most likely result in stock purchase rather than sale (and therefore $b^- = 0$). For withdrawals, we make the assumption of
+	would most likely result in stock purchase rather than sale (and therefore $b^- = 0$).
+	For withdrawals, we make the assumption of
 	selling the most recent stocks which would not be accurate in situations where
 	the taxable savings account is being depleted slowly.
 \item [$T_n$]
@@ -298,6 +303,8 @@ All intermediate variables are in uppercase letters.
 		\label{Eq:Tax}
 		T_n = \sum_t f_{t n}\bar{\Delta}_{t n}\theta_{t n}.
 	\end{equation}
+	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that $f_{tn}$ have to
+	minimize $T_n$.
 \item [$U_n$]
 	Amount of income tax paid on long-term capital gains and qualified dividends in year $n$,
 	\begin{equation}
@@ -432,7 +439,7 @@ All intermediate variables are in uppercase letters.
 	and finally, for {\em spouses} type of coordination,
 	\begin{equation}
 		\label{Eq:SpouseCoord}
-		\sum_ij b_{ijk0} = b_0 \alpha_{k0}.
+		\sum_{ij} b_{ijk0} = b_0 \alpha_{k0}.
 	\end{equation}
 
 \paragraph*{Net income}
@@ -452,27 +459,30 @@ All intermediate variables are in uppercase letters.
 		\label{Eq:C4}
 		g_n - \sum_{ijk} w_{ijkn} + \sum_{ik}d_{ikn}
 		+ \sum_t \bar{\Delta}_{t n}\theta_{t n} f_{t n}&&\nonumber \\
-		+ \psi \sum_{i} [\mu b_{i00n} + (w_{i00n} + b^-_{i00n})\max(0, \tau_{0n})] 
+		+ \psi \sum_{i} \left[\mu b_{i00n} + (w_{i00n} + b^-_{i00n})
+		\frac{\max(0, \tau_{0n})}{1 + \max(0, \tau_{0n})}\right] 
 		&= & \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
 		&& + \sum_i [\Lambda_{in} - .5\mu\psi\kappa_{i00n}].
 	\end{eqnarray}
 	Note that we do not consider market losses as we use $\max(0, \tau)$. Tax-loss
 	harvesting is beyond the scope of this model.
+
 	We also want the net income to be predictable and smooth. We will use
 \begin{equation}
 	\label{Eq:C5a}
-	g_{n+1} = (1+\tau_{3n})\xi_n g_n,
+	g_{n} = g_0 \bar{\xi}_n,
 \end{equation}
 where net income is adjusted for inflation and where we introduced parameter $\xi_n$ 
 allowing for additional adjustments to the overall desired spending.
 This can be used to lower the desired income at the passing of one spouse and/or to 
 allow for more realistic spending profiles.
-Eq.~(\ref{Eq:C5a}) will be rewritten
+Eq.~(\ref{Eq:C5a}) will naturally be rewritten as
 \begin{equation}
 	\label{Eq:C5}
-	g_{n+1} - (1+\tau_{3n})\xi_n g_n = 0,
+	g_n - g_0 \bar{\xi}_n = 0,
 \end{equation}
-as the constraints to be enforced. Once $g_0$ is determined, the whole time series is determined as well.
+for the constraints to be enforced. Once $g_0$ is determined, the whole time series of net income
+is determined.
 
 \paragraph*{Taxable ordinary income}
 	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:Tx1}) and (\ref{Eq:Tx2}),
@@ -482,7 +492,7 @@ as the constraints to be enforced. Once $g_0$ is determined, the whole time seri
 		&& + \sum_{ik} [w_{i1kn} + x_{ikn} + (1 - \delta(k, 0))(b_{i0kn} +
 		.5\kappa_{i0kn})\tau_{kn}] - \bar{\sigma}_n,
 	\end{eqnarray}
-	and re-arrange to move variables on the LHS as follows
+	and re-arrange to move variables to the LHS as follows
 	\begin{eqnarray}
 		\label{Eq:C6}
 		\sum_t \bar{\Delta}_{t n} f_{t n}
@@ -769,8 +779,8 @@ we add $N_n$ more rows to $A_ey = v$ as
 	A_e[J_3(n), q_d(i, ,k, n)] &=& 1, \nonumber \\
 	A_e[J_3(n), q_f(t, n)] &=& \bar\Delta_{t n}\theta_{t n}, \nonumber \\
 	A_e[J_3(n), q_b(i, 0, 0, n)] &=& \psi\mu, \nonumber \\
-	A_e[J_3(n), q_w(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n}), \nonumber \\
-	A_e[J_3(n), q_{b^-}(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n}), \\
+	A_e[J_3(n), q_w(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n})/(1+\max(0, \tau_{0n})), \nonumber \\
+	A_e[J_3(n), q_{b^-}(i, 0, 0, n)] &=& \psi\max(0, \tau_{0n})/(1+\max(0, \tau_{0n})), \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -786,10 +796,10 @@ where $v$ is
 The condition of having a predictable net income expressed as an
 equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
 \begin{eqnarray}
-	A_e[J_4(n), q_g(n+1)] &=& 1, \nonumber \\
-	A_e[J_4(n), q_g(n)] &=& -(1 + \tau_{3n})\xi_n, \nonumber \\
+	A_e[J_4(n), q_g(0)] &=& -\bar{\xi}_n, \nonumber \\
+	A_e[J_4(n), q_g(n)] &=& 1, \nonumber \\
 	v[J_4(n)] &=& 0, \\
-	&&\qquad\forall n \in \{0,\ldots, N_n-2\}. \nonumber
+	&&\qquad\forall n \in \{1,\ldots, N_n\}. \nonumber
 \end{eqnarray}
 
 \paragraph*{Taxable ordinary income}

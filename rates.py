@@ -848,7 +848,6 @@ class rates:
         # Convert years to indices.
         ifrm = self.frm - FROM
         ito = self.to - FROM
-        # TT = TO - FROM + 1 
 
         # Add one since bounds are inclusive.
         span = ito - ifrm + 1
@@ -857,7 +856,7 @@ class rates:
         for n in range(N):
             rateSeries[n][:] = self._rateMethod((ifrm + (n % span)))[:]
 
-        return rateSeries.transpose()
+        return rateSeries
 
     def _fixedRates(self, n):
         '''
