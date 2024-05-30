@@ -23,8 +23,7 @@ def setVerbose(val):
     global verbose
     prevState = verbose
     verbose = val
-    # Force the use of the verbose variable through this following call.
-    vprint("Setting verbose to", val)
+    vprint("Setting verbose to", verbose)
 
     return prevState
 
@@ -81,7 +80,7 @@ def getUnits(units):
     '''
     Return proper factor for units.
     '''
-    if units is None:
+    if units is None or units == 1 or units =='1':
         fac = 1
     elif units in {'k', 'K'}:
         fac = 1000

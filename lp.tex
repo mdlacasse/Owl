@@ -154,12 +154,21 @@ Parameter values are either set by the user, historical data, or by the tax code
 	which are determined from IRS tables. Simple if spouses are less than 10 years apart,
 	a little more complex otherwise, as the age of both spouses need to be taken into account.
 	Current implementation only supports spouses being less that 10 years apart.
-\item [$\Delta_{t n}$]
-	Difference between upper bound and lower bound of a federal income tax bracket. Once adjusted for inflation,
+\item [$\Gamma{tn}$]
+	Bound for Federal income tax bracket. Note that $\Gamma_{(-1)n} := 0$, and therefore
+	$\Gamma_{0n}$ is the upper bound for the 10\% tax bracket in year $n$. As the filing status
+	can change for couples, and so can the tax code, there will be changes over $n$.
+\item [$\Delta_{tn}$]
+	Difference between upper bound $\Gamma_t$ and lower bound $\Gamma_{t-1}$
+	of a federal income tax bracket.
+	\begin{equation}
+		\Delta_{tn} = \Gamma_{tn} - \Gamma_{(t-1)n}.
+	\end{equation}
+	Once adjusted for inflation,
 	the taxable income can be expressed as in Eq.~(\ref{Eq:Tx1}). These data are 7 time series.
 	The filing status will change after the death of one spouse ($n \ge n_d$) and so these
 	brackets would need to be adjusted accordingly.
-\item [$\theta_{t n}$]
+\item [$\theta_{tn}$]
 	Tax rate for tax bracket $t$ in year $n$. Using $N_t$ time series allows to adjust income
 	tax rates in foreseeable future.
 	For example, in 2024 the rates (in decimal) are .10, .12, .22, .24, .32, .35, and .37.
@@ -301,10 +310,16 @@ All intermediate variables are in uppercase letters.
 	paid in each tax bracket as
 	\begin{equation}
 		\label{Eq:Tax}
-		T_n = \sum_t f_{t n}\bar{\Delta}_{t n}\theta_{t n}.
+		T_n = \sum_t f_{tn}\bar{\Delta}_{tn}\theta_{tn}.
 	\end{equation}
 	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that $f_{tn}$ have to
 	minimize $T_n$.
+
+	As the product $\bar{Delta}_{tn}\theta_{tn}$ does not garrantee that the tax brackets
+	will be favored monotonically, a more natural choice is to use the combined variable
+	$F_{tn} = f_{tn}\bar{\Delta_{tn}}$ in the optimization. Given that the rates on
+	the tax brackets $\theta_{tn}$ are incressing monotonically, we are then naturally
+	optimizing to fill in the lower brackets first.
 \item [$U_n$]
 	Amount of income tax paid on long-term capital gains and qualified dividends in year $n$,
 	\begin{equation}
@@ -335,13 +350,25 @@ All intermediate variables are in uppercase letters.
 	Taxable ordinary income is divided in tax brackets as defined in Eq.~(\ref{Eq:Tx1}), i.e.,
 	\begin{eqnarray}
 		\label{Eq:C2}
-		G_n = \sum_t f_{t n}\bar{\Delta}_{t n} ,\nonumber\\
-		0 \leq f_{t n} \leq 1.
+		G_n = \sum_t f_{tn}\bar{\Delta}_{tn} ,\nonumber\\
+		0 \leq f_{tn} \leq 1.
 	\end{eqnarray}
 	Because $\theta_{t} > \theta_{t'}$ when $t > t'$, we anticipate that the lower
 	tax brackets will get filled by the minimization algorithm.
 	However, all bracket fractions $f$ must be positive and smaller than or equal to 1,
-	imposing an upper bound on $f$.
+	imposing an upper bound on $f$. Since we will use the combined variable
+	\begin{equation}
+		\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn},
+	\end{equation}
+	this will imply that
+	\begin{equation}
+		\bar{F}_{tn} \le \bar{\Delta}_{tn},
+	\end{equation}
+	and that
+	\begin{equation}
+		G_n = \sum_t \bar{F}_{tn}.
+	\end{equation}
+
 
 \paragraph*{Account balances}
 	Contributions are assumed to be made at half-year to better represent periodic contributions
@@ -440,6 +467,17 @@ All intermediate variables are in uppercase letters.
 	\begin{equation}
 		\label{Eq:SpouseCoord}
 		\sum_{ij} b_{ijk0} = b_0 \alpha_{k0}.
+	\end{equation}
+
+\paragraph*{Roth Conversions}
+	Roth conversions cannot be larger than the balance in the account:
+	\begin{equation}
+		x_{ijn} \le b_i1kn.
+	\end{equation}
+	Additional constraints $x_{max}$ can be put on conversions and then the previous equation
+	becomes
+	\begin{equation}
+		x_{ijn} \le \min(b_i1kn, x_{max}).
 	\end{equation}
 
 \paragraph*{Net income}

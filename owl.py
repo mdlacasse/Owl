@@ -19,6 +19,7 @@ from scipy import optimize
 from datetime import date
 
 import utils as u
+import tax2024 as tx
 import rates
 import timelists
 
@@ -42,187 +43,6 @@ def gamma_n(tau, N_n):
         gamma[n] = gamma[n - 1] * (1 + tau[3, n - 1])
 
     return gamma
-
-
-def _taxParams(yobs, i_d, n_d, N_n):
-    '''
-    Return 3 time series:
-    1) Standard deductions at year n (sigma_n).
-    2) Tax rate in year n (theta_tn)
-    3) Delta from top to bottom of tax brackets (Delta_tn)
-    This is pure speculation on future values.
-    Returned values are not indexed for inflation.
-    '''
-    # Prepare the data.
-    rates_2024 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
-    rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
-
-    # Single [0] and married filing jointly [1].
-    brackets_2024 = np.array(
-        [[11600, 47150, 100525, 191950, 243450, 609350, 999999],
-         [23200, 94300, 201050, 383900, 487450, 731200, 999999]]
-    )
-    # Adjusted from 2017 with 30% increase.
-    brackets_2026 = np.array(
-        [[12100, 49300, 119500, 249100, 541700, 543900, 999999],
-         [24200, 98700, 199000, 303350, 541700, 611900, 999999]]
-    )
-    # Compute the deltas in-place between brackets, starting from the end.
-    for t in range(6, 0, -1):
-        for i in range(2):
-            brackets_2024[i, t] -= brackets_2024[i, t - 1]
-            brackets_2026[i, t] -= brackets_2026[i, t - 1]
-
-    stdDeduction_2024 = np.array([14600, 29200])
-    stdDeduction_2026 = np.array([8300, 16600])
-    extraDeduction_65 = np.array([1950, 1550])
-
-    # Prepare the 3 arrays to return - use transpose for easy slicing.
-    sigma = np.zeros((N_n))
-    Delta = np.zeros((N_n, 7))
-    theta = np.zeros((N_n, 7))
-
-    filingStatus = len(yobs) - 1
-    souls = list(range(len(yobs)))
-    thisyear = date.today().year
-
-    for n in range(N_n):
-        # First check if shortest-lived individual is still with us.
-        if n == n_d:
-            souls.remove(i_d)
-            filingStatus -= 1
-
-        if thisyear + n < 2026:
-            sigma[n] = stdDeduction_2024[filingStatus]
-            Delta[n, :] = brackets_2024[filingStatus, :]
-        else:
-            sigma[n] = stdDeduction_2026[filingStatus]
-            Delta[n, :] = brackets_2026[filingStatus, :]
-
-        # Add 65+ additional exemption(s).
-        for i in souls:
-            if thisyear + n - yobs[i] >= 65:
-                sigma[n] += extraDeduction_65[filingStatus]
-
-        # Fill in future tax rates for year n.
-        if thisyear + n < 2026:
-            theta[n, :] = rates_2024[:]
-        else:
-            theta[n, :] = rates_2026[:]
-
-    Delta = Delta.transpose()
-    theta = theta.transpose()
-
-    # Return series unadjusted for inflation, in STD order.
-    return sigma, theta, Delta
-
-
-def taxBrackets(status, horizons, rates):
-    '''
-    Return dictionary containing inflation-adjusted future tax
-    brackets for plotting.
-    '''
-    # brackets = ['10%', '12/15%', '22/25%', '24/28%',
-    #             '32/33%', '35%', '37/40%']
-    # Skip the first bracket.
-    brackets = ['12/15%', '22/25%', '24/28%', '32/33%', '35%', '37/40%']
-
-    if status == 'married':
-        list1 = list(tax2017_MFJ.keys())
-        list2 = list(tax2023_MFJ.keys())
-    elif status == 'single':
-        list1 = list(tax2017_S.keys())
-        list2 = list(tax2023_S.keys())
-    else:
-        u.xprint('Unknown status', status)
-
-    survivor = list(tax2023_S.keys())
-    horizon = max(horizons) + 1
-    switch = min(horizons)
-    data = {}
-    for k in range(len(brackets)):
-        array = np.zeros(horizon)
-        for n in range(switch):
-            # This 2 is the number of years left in TCJA from 2023.
-            if n < 2:
-                v = list1[k]
-            else:
-                v = list2[k]
-
-            array[n] = inflationAdjusted(v, n, rates)
-
-        # When/if one spouse has passed.
-        for n in range(switch, horizon):
-            v = survivor[k]
-            array[n] = inflationAdjusted(v, n, rates)
-
-        data[brackets[k]] = array
-
-    return data
-
-
-def _rho_in(yobs, N_n):
-    '''
-    Return Required Minimum Distribution fractions for each individual.
-    This implementation does not support spouses with more than
-    10-year difference.
-    '''
-    rmdTable = [
-        27.4,
-        26.5,
-        25.5,
-        24.6,
-        23.7,
-        22.9,
-        22.0,
-        21.1,
-        20.2,
-        19.4,
-        18.5,
-        17.7,
-        16.8,
-        16.0,
-        15.2,
-        14.4,
-        13.7,
-        12.9,
-        12.2,
-        11.5,
-        10.8,
-        10.1,
-        9.5,
-        8.9,
-        8.4,
-        7.8,
-        7.3,
-        6.8,
-        6.4,
-        6.0,
-        5.6,
-        5.2,
-        4.9,
-        4.6,
-    ]
-
-    N_i = len(yobs)
-    if N_i == 2 and abs(yobs[0] - yobs[1]) > 10:
-        u.xprint('RMD: Unsupported age difference of more than 10 years.')
-
-    rho = np.zeros((N_i, N_n))
-    thisyear = date.today().year
-    for i in range(N_i):
-        agenow = thisyear - yobs[i]
-        for n in range(N_n):
-            year = thisyear + n
-            yage = agenow + n
-
-            # Account for increase of RMD age between 2023 and 2032.
-            if (yage < 73) or (year > 2032 and yage < 75):
-                pass  # rho[i][n] = 0
-            else:
-                rho[i][n] = 1.0 / rmdTable[yage - 72]
-
-    return rho
 
 
 def _xi_n(profile, frac, n_d, N_n, a=15, b=12):
@@ -369,8 +189,8 @@ class Owl:
             u.vprint('%s: life horizon from %d -> %d.'%(self.inames[i], thisyear, thisyear+self.horizons[i]-1))
 
         # Prepare income tax time series.
-        self.rho_in = _rho_in(self.yobs, self.N_n)
-        self.sigma_n, self.theta_tn, self.Delta_tn = _taxParams(
+        self.rho_in = tx.rho_in(self.yobs, self.N_n)
+        self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(
             self.yobs, self.i_d, self.n_d, self.N_n
         )
 
@@ -446,10 +266,10 @@ class Owl:
 
         return
 
-    def setPension(self, amounts, ages, units=None):
+    def setPension(self, amounts, ages, units='k'):
         '''
         Set value of pension for each individual and commencement age.
-        Units of 'k', or 'M'
+        Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         '''
         assert len(amounts) == self.N_i, 'Amounts must have %d entries.'%self.N_i
         assert len(ages) == self.N_i, 'Ages must have %d entries.'%self.N_i
@@ -469,10 +289,10 @@ class Owl:
 
         return
 
-    def setSocialSecurity(self, amounts, ages, units=None):
+    def setSocialSecurity(self, amounts, ages, units='k'):
         '''
         Set value of social security for each individual and commencement age.
-        Units of 'k', or 'M'
+        Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         '''
         assert len(amounts) == self.N_i, 'Amounts must have %d entries.'%self.N_i
         assert len(ages) == self.N_i, 'Ages must have %d entries.'%self.N_i
@@ -566,11 +386,11 @@ class Owl:
 
         return
 
-    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, units=None):
+    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, units='k'):
         '''
         Three lists containing the balance of all assets in each category for
         each spouse.  For single individuals, these lists will contain only
-        one entry. Units are 'k', or 'M'.
+        one entry. Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         '''
         assert len(taxable) == self.N_i, 'taxable must have %d entries.'%self.N_i
         assert len(taxDeferred) == self.N_i, 'taxDeferred must have %d entries.'%self.N_i
@@ -852,6 +672,11 @@ class Owl:
         Ae = []
         vvec = []
 
+        if 'units' in options:
+            units = u.getUnits(options['units'])
+        else:
+            units = 1000
+
         # TEMPORARILY disable rebalancing.
         for i in range(Ni):
             for j in range(Nj):
@@ -875,7 +700,20 @@ class Owl:
                 Au.append(row)
                 uvec.append(rhs)
 
-        # Income tax bracket inequalities.
+        # Roth conversions inequalities. Limit amount and/or overdraw.
+        if 'maxRothConversion' in options:
+            rhsopt = options['maxRothConversion']*units
+            u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
+            for i in range(Ni):
+                for k in range(Nk):
+                    for n in range(Nn):
+                        row = np.zeros(self.nvars)
+                        row[_q3(Cx, i, k, n, Ni, Nk, Nn)] = 1
+                        rhs = min(rhsopt, _q4(Cb, i, 1, k, n, Ni, Nj, Nk, Nn+1))
+                        Au.append(row)
+                        uvec.append(rhs)
+
+        # Income tax bracket bounds inequalities.
         for t in range(Nt):
             for n in range(Nn):
                 row = np.zeros(self.nvars)
@@ -885,7 +723,7 @@ class Owl:
                 uvec.append(rhs)
 
         if objective == 'maxIncome':
-            # Deposits should be zero in that case.
+            # Deposits should be set to zero in that case.
             for i in range(Ni):
                 for k in range(Nk):
                     for n in range(Nn):
@@ -894,50 +732,35 @@ class Owl:
                         row[_q3(Cd, i, k, n, Ni, Nk, Nn)] = 1
                         Ae.append(row)
                         vvec.append(rhs)
-            # Impose requested constraint on estate.
+            # Impose requested constraint on estate, if any.
             if 'estate' in options:
-                estate = options['estate']
+                estate = np.array(options['estate'], dtype=float)
                 assert len(estate) == Ni, 'Estate values must have %d lists.'%Ni
-                for i in range(Ni):
-                    assert len(estate[i]) == Nj, 'Sublists of estate values must have %d entries.'%Nj
-                u.vprint('Adding estate constraint of:', estate)
+                u.rescale(estate, units)
             else:
-                # If not specified, set default is $1/account.
-                if Ni == 1:
-                    estate = np.array([[1. for j in range(Nj)]])
-                else:
-                    estate = np.array([[1. for j in range(Nj)], [1. for j in range(Nj)]])
-                estate[:, 1] *= 1/(1 - self.nu)
+                # If not specified, set default is $1.
+                estate = np.array([1. for i in Ni])
 
+            u.vprint('Adding estate constraint of:', estate)
             for i in range(Ni):
-                for j in range(Nj):
-                    row = np.zeros(self.nvars)
-                    for k in range(Nk):
-                        row[_q4(Cb, i, j, k, Nn, Ni, Nj, Nk, Nn+1)] = 1
-                    Ae.append(row)
-                    vvec.append(estate[i][j])
+                rhs = estate[i]
+                row = np.zeros(self.nvars)
+                for k in range(Nk):
+                    row[_q4(Cb, i, 0, k, Nn, Ni, Nj, Nk, Nn+1)] = 1
+                    row[_q4(Cb, i, 1, k, Nn, Ni, Nj, Nk, Nn+1)] = (1 - self.nu)
+                    row[_q4(Cb, i, 2, k, Nn, Ni, Nj, Nk, Nn+1)] = 1
+                Ae.append(row)
+                vvec.append(rhs)
 
         elif objective == 'maxBequest': 
-            income = options['netIncome']
+            rhs = options['netIncome']*units
+            u.vprint('Maximizing bequest with net income of:', u.d(rhs))
             row = np.zeros(self.nvars)
-            rhs = income
             row[_q1(Cg, 0)] = 1
             Ae.append(row)
             vvec.append(rhs)
         else:
             u.xprint('Unknown objective function:', objective)
-
-        # Limit Roth conversions.
-        if 'maxRothConversion' in options:
-            rhs = options['maxRothConversion']
-            u.vprint('Limiting Roth conversions to:', rhs)
-            for i in range(Ni):
-                for k in range(Nk):
-                    for n in range(Nn):
-                        row = np.zeros(self.nvars)
-                        row[_q3(Cx, i, k, n, Ni, Nk, Nn)] = 1
-                        Au.append(row)
-                        uvec.append(rhs)
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer.
@@ -1125,11 +948,12 @@ class Owl:
 
         return c
 
-    def solve(self, objective='maxIncome', options={}):
+    def solve(self, objective='maxIncome', options={'units':'k'}):
         '''
         Refer to companion document for explanations.
+        Units are in $k, unless specified otherwise.
         '''
-        knownOptions = ['maxRothConversion', 'netIncome']
+        knownOptions = ['units', 'maxRothConversion', 'netIncome', 'estate']
         for opt in options:
             if opt not in knownOptions:
                 u.xprint('Option', opt, 'not one of', knownOptions)
@@ -1142,9 +966,10 @@ class Owl:
         self._adjustParameters()
         c = self._buildConstraints(objective, options)
 
-        lpOptions = {'disp':True, 'maxiter':100000}
+        lpOptions = {'disp':True, 'ipm_optimality_tolerance':1e-12,
+                     'maxiter':100000}
         solution = optimize.linprog(c, A_ub=self.A_ub, b_ub=self.b_ub, A_eq=self.A_eq, b_eq=self.b_eq,
-                                     method='highs', options=lpOptions)
+                                     method='highs-ds', options=lpOptions)
         if solution.success == True:
             u.vprint(solution.message)
         else:
@@ -1521,17 +1346,11 @@ class Owl:
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title)
 
-        '''
-        data = taxBrackets(self.filingStatus, self.horizons, self.tau_kn)
-
-        # myyears = np.array([2022, 2025, 2026, 2052])
-        # tax2428 = np.array([178000, 220000, 205000, 400000])
-        # tax3233 = np.array([340000, 405000, 310000, 600000])
-        # tax35 = np.array([432000, 500000, 580000, 1000000])
+        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n)
 
         for key in data:
-            ax.plot(self.year_n, data[key], label=key, ls=':')
-        '''
+            data_adj = data[key]*self.gamma_n
+            ax.plot(self.year_n, data_adj, label=key, ls=':')
 
         plt.grid(visible='both')
         ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.7)
