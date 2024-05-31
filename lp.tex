@@ -154,8 +154,8 @@ Parameter values are either set by the user, historical data, or by the tax code
 	which are determined from IRS tables. Simple if spouses are less than 10 years apart,
 	a little more complex otherwise, as the age of both spouses need to be taken into account.
 	Current implementation only supports spouses being less that 10 years apart.
-\item [$\Gamma{tn}$]
-	Bound for Federal income tax bracket. Note that $\Gamma_{(-1)n} := 0$, and therefore
+\item [$\Gamma_{tn}$]
+	Bound for Federal income tax bracket. We define $\Gamma_{(-1)n} := 0$, so that
 	$\Gamma_{0n}$ is the upper bound for the 10\% tax bracket in year $n$. As the filing status
 	can change for couples, and so can the tax code, there will be changes over $n$.
 \item [$\Delta_{tn}$]
@@ -353,22 +353,23 @@ All intermediate variables are in uppercase letters.
 		G_n = \sum_t f_{tn}\bar{\Delta}_{tn} ,\nonumber\\
 		0 \leq f_{tn} \leq 1.
 	\end{eqnarray}
+	Given this definition, all bracket fractions $f$ must be positive and smaller than or equal to 1,
+	imposing an upper bound on $f$.
 	Because $\theta_{t} > \theta_{t'}$ when $t > t'$, we anticipate that the lower
 	tax brackets will get filled by the minimization algorithm.
-	However, all bracket fractions $f$ must be positive and smaller than or equal to 1,
-	imposing an upper bound on $f$. Since we will use the combined variable
+	To exploit the monotonically increasing feature
+	of tax rates with $t$, we use the combined variable
 	\begin{equation}
 		\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn},
 	\end{equation}
-	this will imply that
+	implying that
 	\begin{equation}
-		\bar{F}_{tn} \le \bar{\Delta}_{tn},
+		G_n = \sum_t \bar{F}_{tn},
 	\end{equation}
-	and that
+	with
 	\begin{equation}
-		G_n = \sum_t \bar{F}_{tn}.
+		\bar{F}_{tn} \le \bar{\Delta}_{tn}.
 	\end{equation}
-
 
 \paragraph*{Account balances}
 	Contributions are assumed to be made at half-year to better represent periodic contributions
@@ -414,7 +415,7 @@ All intermediate variables are in uppercase letters.
 	The initial balances are imposed as additional constraints as
 	\begin{eqnarray}
 		\label{Eq:InitialBalance}
-		b_{ijk0} = \beta_{ij}\alpha_{ijk0},
+		b_{ijk0} = \alpha_{ijk0}\beta_{ij},
 	\end{eqnarray}
 	where we applied the initial allocation ratios $\alpha$ on the initial account balances $\beta_{ij}$.
 
@@ -452,32 +453,40 @@ All intermediate variables are in uppercase letters.
 		b_{ijkn} - b^-_{ijkn} \geq 0.
 	\end{equation}
 
-	The initial balances $b_{0}$ are one of the main inputs of this model. They are
+	The initial balances $\beta_{ij}$ are one of the main inputs of this model. They are
 	enforced as a constraint that depends on the asset allocation scheme chosen.
 	For {\em account} prescribed allocations,
 	\begin{equation}
 		\label{Eq:AccountCoord}
-		b_{ijk0} = b_0 \alpha_{ijk0},
+		b_{ijk0} =  \alpha_{ijk0}\beta_{ij},
 	\end{equation}
 	while for {\em individual} coordination between accounts,
 	\begin{equation}
-		\sum_j b_{ijk0} = b_0 \alpha_{ik0},
+		\sum_j b_{ijk0} = \alpha_{ik0}\beta_{ij},
 	\end{equation}
 	and finally, for {\em spouses} type of coordination,
 	\begin{equation}
 		\label{Eq:SpouseCoord}
-		\sum_{ij} b_{ijk0} = b_0 \alpha_{k0}.
+		\sum_{ij} b_{ijk0} = \alpha_{k0}\beta_{ij}.
 	\end{equation}
+
+	Maintaining the allocation is provided by the rebalancing variables $b^\pm$. After each
+	rebalancing activity,
+	\begin{equation}
+		\label{Eq:Rebalance}
+		(b_{ijkn} + b^+_{ijkn} - b^-_{ijkn}) = \alpha_{ijkn}\sum_{k'} b_{ijk'n},
+	\end{equation}
+	where we used Eq.~\ref{Eq:NoNewMoney}.
 
 \paragraph*{Roth Conversions}
 	Roth conversions cannot be larger than the balance in the account:
 	\begin{equation}
-		x_{ijn} \le b_i1kn.
+		x_{ijn} \le b_{i1kn}.
 	\end{equation}
 	Additional constraints $x_{max}$ can be put on conversions and then the previous equation
 	becomes
 	\begin{equation}
-		x_{ijn} \le \min(b_i1kn, x_{max}).
+		x_{ijn} \le \min(b_{i1kn}, x_{max}).
 	\end{equation}
 
 \paragraph*{Net income}
@@ -958,18 +967,21 @@ by asset classes using $b_{ijkn}$. We can then prescribe how to rebalance the ac
 The values of $b^\pm$ can be governed by prescribed asset allocation ratios $\alpha$ defined as
 \begin{equation}
 	\label{Eq:Alloc1}
-	\alpha_{ijkn} = b_{ijkn}/\sum_{k'} b_{ijk'n},
+	\alpha_{ijkn} = (b_{ijkn} + b^+_{ijkn} - b^-_{ijkn})/\sum_{k'} b_{ijk'n},
 \end{equation}
 where $k'$ here is just a dummy index.
 These asset allocation ratios can then be imposed as an equality constraint as
 \begin{equation}
 	\label{Eq:Alloc2}
-	\sum_{k'} [(\delta(k, k') - \alpha_{ijkn}) b_{ijk'n}] = 0,
+	b_{ijkn} + b^+_{ijkn} - b^-_{ijkn} - \sum_{k'} \alpha_{ijkn} b_{ijk'n}] = 0,
 \end{equation}
 which can be written as
 \begin{eqnarray}
 	\label{Eq:Alloc3}
-	A[J_6(i, j, k, n), q_b(i, j, k', n)] &=& \delta(k, k') - \alpha_{ijkn}, \nonumber\\
+	A[J_6(i, j, k, n), q_b(i, j, k, n)] &=& 1, \nonumber\\
+	A[J_6(i, j, k, n), q_b^+(i, j, k, n)] &=& 1, \nonumber\\
+	A[J_6(i, j, k, n), q_b^-(i, j, k, n)] &=& -1, \nonumber\\
+	A[J_6(i, j, k, n), q_b(i, j, k', n)] &=& - \alpha_{ijkn}, \nonumber\\
 	v[J_6(i, j, k, n)] &=& 0, \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -1057,16 +1069,6 @@ but this can cause drawing an account empty while the other spousal account is n
 
 \section{Objective functions}
 The objective function is a simple scalar defined as $c\cdot y$ that will be minimized.
-\paragraph*{Generalities}
-To ensure that the tax brackets get filled from the bottom up, one can add the following to
-the objective function
-\begin{eqnarray}
-	c[q_f(t, n)] &=& 2^{t},\\
-	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
-	&&\qquad\forall n \in \{0,\ldots, N_n-1\}.\nonumber
-\end{eqnarray}
-The term chosen on the right-hand side can be any monotonically increasing function with
-respect to $t$.
 
 \paragraph*{Maximum net income}
 There are a few ways by which a retirement plan can be optimized. For maximizing the net income under
