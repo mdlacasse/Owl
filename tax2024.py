@@ -11,13 +11,13 @@ rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 
 # Single [0] and married filing jointly [1].
 brackets_2024 = np.array(
-    [[11600, 47150, 100525, 191950, 243450, 609350, 999999],
-     [23200, 94300, 201050, 383900, 487450, 731200, 999999]]
+    [[11600, 47150, 100525, 191950, 243450, 609350, 9999999],
+     [23200, 94300, 201050, 383900, 487450, 731200, 9999999]]
 )
 # Adjusted from 2017 with 30% increase.
 brackets_2026 = np.array(
-    [[12100, 49300, 119500, 249100, 541700, 543900, 999999],
-     [24200, 98700, 199000, 303350, 541700, 611900, 999999]]
+    [[12100, 49300, 119500, 249100, 541700, 543900, 9999999],
+     [24200, 98700, 199000, 303350, 541700, 611900, 9999999]]
 )
 
 stdDeduction_2024 = np.array([14600, 29200])
@@ -96,7 +96,7 @@ def taxBrackets(N_i, n_d, N_n):
     n_d = min(n_d, N_n)
 
     data = {}
-    for t in range(len(bracketNames)):
+    for t in range(len(bracketNames)-1):
         array = np.zeros(N_n)
         array[0:ytc] = brackets_2024[status][t]
         array[ytc:n_d] = brackets_2026[status][t]

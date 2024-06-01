@@ -763,11 +763,10 @@ class rates:
         self.frm = FROM
         self.to = TO
 
-    def setMethod(self, method, frm=FROM, to=TO, values=None):
+    def setMethod(self, method, frm=None, to=TO, values=None):
         '''
         Select the method to generate the annual rates of return
-        for the different classes of assets.
-        Different methods include:
+        for the different classes of assets.  Different methods include:
         - default:  average over last 30 years.
         - realistic: predictions from various firms reported by MorningStar.
         - conservative: conservative values.
@@ -795,8 +794,7 @@ class rates:
             )
             self._setFixedRates(self._conservRates)
         elif method == 'fixed':
-            if values is None:
-                u.xprint('Rates must be provided with the fixed option.')
+            assert values is not None, 'Values must be provided with the fixed option.'
             values = np.array(values, dtype=float)
             u.vprint('Setting rates using fixed values: (%)\n', values)
             # Convert percent to decimal for storing.
@@ -804,6 +802,7 @@ class rates:
             self._setFixedRates(values)
         else:
             # Then methods relying on historical data range.
+            assert frm is not None, 'From year must be provided with the this option.'
             assert FROM <= frm and frm <= TO, 'Range frm out of bounds.'
             assert FROM <= to and to <= TO, 'Range to out of bounds.'
             assert frm < to, 'Unacceptable range.'
