@@ -91,3 +91,11 @@ def getUnits(units):
 
     return fac
 
+def krond(a, b):
+    '''
+    Kronecker scalar delta function.
+    '''
+    if a == b:
+        return 1
+    else:
+        return 0

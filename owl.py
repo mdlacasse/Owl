@@ -692,29 +692,6 @@ class Owl:
                 Au.append(row)
                 uvec.append(rhs)
 
-        '''
-        '''
-        # Account overdraw inequalities. Implied with positivity?
-        for i in range(Ni):
-            for n in range(Nn):
-                for j in range(Nj):
-                    row = np.zeros(self.nvars)
-                    rhs = 0
-                    row[_q3(Cb, i, j, n, Ni, Nj, Nn+1)] = -1
-                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = 1
-                    Au.append(row)
-                    uvec.append(rhs)
-
-        # Roth conversions inequalities. Avoid overdraw.
-        for i in range(Ni):
-            for n in range(Nn):
-                row = np.zeros(self.nvars)
-                row[_q2(Cx, i, n, Ni, Nn)] = 1
-                row[_q3(Cb, i, 1, n, Ni, Nj, Nn+1)] = -1
-                rhs = 0
-                Au.append(row)
-                uvec.append(rhs)
-
         # Roth conversions inequalities. Limit amount.
         if 'maxRothConversion' in options:
             rhsopt = options['maxRothConversion']*units
@@ -789,22 +766,22 @@ class Owl:
             for j in range(Nj):
                 for n in range(Nn):
                     row = np.zeros(self.nvars)
-                    fac1 = (1 - np.kron(n, n_d - 1)*np.kron(i, i_d))
+                    fac1 = (1 - u.krond(n, n_d - 1)*u.krond(i, i_d))
                     rhs = fac1*self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
 
                     row[_q3(Cb, i, j, n+1, Ni, Nj, Nn+1)] = 1
                     row[_q3(Cb, i, j, n, Ni, Nj, Nn+1)] = -fac1*Tau1_ijn[i, j, n]
-                    row[_q2(Cx, i, n, Ni, Nn)] = -fac1*(np.kron(j, 2) - np.kron(j, 1))*Tau1_ijn[i, j, n]
+                    row[_q2(Cx, i, n, Ni, Nn)] = -fac1*(u.krond(j, 2) - u.krond(j, 1))*Tau1_ijn[i, j, n]
                     row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1
-                    row[_q2(Cd, i, n, Ni, Nn)] = -fac1*np.kron(j, 0)
+                    row[_q2(Cd, i, n, Ni, Nn)] = -fac1*u.krond(j, 0)
   
                     if Ni == 2 and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
                         rhs += fac2*self.kappa_ijn[i_d, j, n] * Tauh_ijn[i, j, n]
                         row[_q3(Cb, i_d, j, n, Ni, Nj, Nn+1)] = -fac2*Tau1_ijn[i, j, n]
-                        row[_q2(Cx, i_d, i, n, Ni, Nn)] = -fac2*(np.kron(j, 2) - np.kron(j, 1))*Tau1_ijn[i, j, n]
+                        row[_q2(Cx, i_d, i, n, Ni, Nn)] = -fac2*(u.krond(j, 2) - u.krond(j, 1))*Tau1_ijn[i, j, n]
                         row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2
-                        row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2*np.kron(j, 0)
+                        row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2*u.krond(j, 0)
                     Ae.append(row)
                     vvec.append(rhs)
 
@@ -832,7 +809,7 @@ class Owl:
         for n in range(1, Nn):
             row = np.zeros(self.nvars)
             rhs = 0
-            row[_q1(Cg, 0, Nn)] = -self.xiBar_n[n]
+            row[_q1(Cg, 0, Nn)] = -self.xiBar_n[n]/self.xi_n[0]
             row[_q1(Cg, n, Nn)] = 1
             Ae.append(row)
             vvec.append(rhs)
@@ -846,7 +823,7 @@ class Owl:
                 row[_q2(Cx, i, n, Ni, Nn)] = -1
                 row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
                 for k in range(Nk):
-                    fak = (1 - np.kron(k, 0))*self.tau_kn[k, n]*self.alpha_ijkn[i, 0, k, n]
+                    fak = (1 - u.krond(k, 0))*self.tau_kn[k, n]*self.alpha_ijkn[i, 0, k, n]
                     rhs += 0.5*fak*self.kappa_ijn[i, 0, n]
                     row[_q3(Cb, i, 0, n, Ni, Nj, Nn+1)] += -fak
             for t in range(Nt):
@@ -868,9 +845,9 @@ class Owl:
             c[_q1(Cg, 0, Nn)] = -1
         elif objective == 'maxBequest':
             for i in range(Ni):
-                c[_q4(Cb, i, 0, Nn, Ni, Nj, Nn+1)] = -1
-                c[_q4(Cb, i, 1, Nn, Ni, Nj, Nn+1)] = -1/(1 - self.nu)
-                c[_q4(Cb, i, 2, Nn, Ni, Nj, Nn+1)] = -1
+                c[_q3(Cb, i, 0, Nn, Ni, Nj, Nn+1)] = -1
+                c[_q3(Cb, i, 1, Nn, Ni, Nj, Nn+1)] = -(1 - self.nu)
+                c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn+1)] = -1
 
         return c
 
@@ -979,6 +956,14 @@ class Owl:
         w_i0n = w_ijn[:, 0, :]
         w_i1n = w_ijn[:, 1, :]
         w_i2n = w_ijn[:, 2, :]
+
+        # Reroute (Roth conversions + tax-free withdrawals) to w1.
+        new_x_in = x_in - w_i2n
+        new_x_in[new_x_in < 0] = 0
+        delta = (x_in - new_x_in)
+        w_i1n += delta
+        w_i2n -= delta
+        x_in = new_x_in
 
         rmd_in = self.rho_in*b_ijn[:, 1, :-1]
         dist_in = w_i1n - rmd_in
@@ -1101,7 +1086,7 @@ class Owl:
             title += ' - ' + tag
 
         style = {'net': '-', 'target': ':'}
-        series = {'net': self.g_n, 'target': self.g_n[0]*self.xi_n*self.gamma_n}
+        series = {'net': self.g_n, 'target': (self.g_n[0]/self.xi_n[0])*self.xiBar_n}
         _lineIncomePlot(self.year_n, series, style, title)
 
         return

@@ -37,12 +37,12 @@ def taxParams(yobs, i_d, n_d, N_n):
     Returned values are not indexed for inflation.
     '''
     # Compute the deltas in-place between brackets, starting from the end.
-    mybrackets_2024 = brackets_2024
-    mybrackets_2026 = brackets_2026
+    deltaBrackets_2024 = np.array(brackets_2024)
+    deltaBrackets_2026 = np.array(brackets_2026)
     for t in range(6, 0, -1):
         for i in range(2):
-            mybrackets_2024[i, t] -= brackets_2024[i, t - 1]
-            mybrackets_2026[i, t] -= brackets_2026[i, t - 1]
+            deltaBrackets_2024[i, t] -= deltaBrackets_2024[i, t - 1]
+            deltaBrackets_2026[i, t] -= deltaBrackets_2026[i, t - 1]
 
     # Prepare the 3 arrays to return - use transpose for easy slicing.
     sigma = np.zeros((N_n))
@@ -61,10 +61,10 @@ def taxParams(yobs, i_d, n_d, N_n):
 
         if thisyear + n < 2026:
             sigma[n] = stdDeduction_2024[filingStatus]
-            Delta[n, :] = brackets_2024[filingStatus, :]
+            Delta[n, :] = deltaBrackets_2024[filingStatus, :]
         else:
             sigma[n] = stdDeduction_2026[filingStatus]
-            Delta[n, :] = brackets_2026[filingStatus, :]
+            Delta[n, :] = deltaBrackets_2026[filingStatus, :]
 
         # Add 65+ additional exemption(s).
         for i in souls:
