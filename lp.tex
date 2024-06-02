@@ -6,6 +6,7 @@
 \usepackage{scrextend}
 \usepackage{geometry}
 \usepackage{fancyhdr}
+\usepackage{graphicx}
 \geometry{letterpaper}
 
 \begin{document}
@@ -143,11 +144,18 @@ Parameter values are either set by the user, historical data, or by the tax code
 	The {\em smile} can be implemented using a cosine superimposed over a gentle linear increase
 	such as in
 	\begin{equation}
-		\xi_n = 1 + 0.15*cos(2n\pi/(N_n-1)) + 0.12n/(N_n-1),
+		\xi_n = 1 + a_1*cos(2n\pi/(N_n-1)) + a_2n/(N_n-1),
 	\end{equation}
 	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum-neutral with respect to a flat profile.
+	Values of $a_1 = 15\%$ and $a_2=12\%$ provide curves that are similar to realistic
+		spending profiles reported in the literature. See Fig.~\ref{Fig:profile} for an example.
 	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n \ge n_d$,
 	and the normalizing factor needs to be adjusted accordingly.
+		\begin{figure}[t]
+		\includegraphics{profile.png}
+		\caption{\small Example of a spending profile with 15\% cosine factor and a 12\% linear
+		profile. \label{Fig:profile}}
+		\end{figure}
 \item [$\chi$]
 	Factor to reduce spending profile after the passing of one spouse. It is typically
 	assumed to be 0.6.
@@ -416,7 +424,17 @@ All intermediate variables are in uppercase letters.
 		&=& \kappa_{ijkn} \left(1 + \tau_{kn}/2\right).
 	\end{eqnarray}
 
-	The initial balances are imposed as additional constraints as
+	For each year, there is a degeneracy between a withdrawal from a tax-deferred account and a
+	Roth conversion followed by a withdrawal from a tax-tree account. To resolve this degeneracy,
+	we re-characterize the latter as a distribution by defining the following variables
+	\begin{eqnarray}
+		x'_{in} &=& max(0, x_{in} - w_{i2m}), \nonumber \\
+		w'_{i1n} &=& w_{i1n} + x'_{in}, \nonumber \\
+		w'_{i2n} &=& w_{i2n} - x'_{in}.
+	\end{eqnarray}
+	We then use the primed variables for analyzing the final results of a scenario.
+
+	The initial savings account balances are imposed through additional constraints as
 	\begin{eqnarray}
 		\label{Eq:InitialBalance}
 		b_{ijk0} = \alpha_{ijk0}\beta_{ij},
@@ -521,17 +539,17 @@ All intermediate variables are in uppercase letters.
 	We also want the net income to be predictable and smooth. We will use
 \begin{equation}
 	\label{Eq:C5a}
-	g_{n} = g_0 \bar{\xi}_n/\bar{\xi}_0,
+	g_{n}/\bar{\xi}_{n} = g_0/\bar{\xi}_0,
 \end{equation}
-where net income is adjusted for inflation and where we introduced parameter $\xi_n$ 
+where the net income is adjusted for inflation and where we introduced parameter $\xi_n$ 
 allowing for additional adjustments to the overall desired spending.
 Note that $\bar{\xi}_0 = \xi_0$ as $\gamma_0=1$.
-This can be used to lower the desired income at the passing of one spouse and/or to 
-allow for more realistic spending profiles.
-Eq.~(\ref{Eq:C5a}) will naturally be rewritten as
+This spending profile can also be used to lower the desired income at the passing
+of one spouse and/or to allow for more realistic spending profiles.
+Eq.~(\ref{Eq:C5a}) can naturally be rewritten as
 \begin{equation}
 	\label{Eq:C5}
-	g_n - g_0 \bar{\xi}_n = 0,
+	g_n \xi_0 - g_0 \bar{\xi}_n = 0,
 \end{equation}
 for the constraints to be enforced. Once $g_0$ is determined, the whole time series of net income
 is determined.

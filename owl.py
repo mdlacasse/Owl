@@ -178,6 +178,7 @@ class Owl:
         # Other parameters.
         self.omega_in = np.zeros((self.N_i, self.N_n))
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
+        self.myRothX_in = np.zeros((self.N_i, self.N_n))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
         self.kappa_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n))
 
@@ -196,6 +197,7 @@ class Owl:
 
         self.adjustedParameters = False
         self._buildOffsetMap()
+        self.timeListsFileName = None
 
         return
 
@@ -607,6 +609,7 @@ class Owl:
             h = self.horizons[i]
             self.omega_in[i, :h] = self.timeLists[i]['anticipated wages'][:h]
             self.Lambda_in[i, :h] = self.timeLists[i]['big ticket items'][:h]
+            self.myRothX_in[i, :h] = self.timeLists[i]['Roth X'][:h]
             self.kappa_ijn[i, 0, :h] = self.timeLists[i]['ctrb taxable'][:h]
             self.kappa_ijn[i, 1, :h] = self.timeLists[i]['ctrb 401k'][:h]
             self.kappa_ijn[i, 1, :h] += self.timeLists[i]['ctrb IRA'][:h]
@@ -741,6 +744,8 @@ class Owl:
                 vvec.append(rhs)
 
         elif objective == 'maxBequest': 
+            if 'estate' in options:
+                u.vprint('Ignoring estate option.')
             rhs = options['netIncome']*units
             u.vprint('Maximizing bequest with net income of:', u.d(rhs))
             row = np.zeros(self.nvars)
@@ -793,7 +798,7 @@ class Owl:
             for i in range(Ni):
                 rhs += (self.omega_in[i, n] + self.zetaBar_in[i, n] 
                         + self.pi_in[i, n] + self.Lambda_in[i, n]
-                        - 0.5*self.psi*self.mu*self.kappa_ijn[i, 0, n]*self.alpha_ijkn[i, 0, 0, n])
+                        - 0.5*self.psi*self.mu*self.kappa_ijkn[i, 0, 0, n])
                 row[_q3(Cb, i, 0, n, Ni, Nj, Nn+1)] = self.mu*self.psi*self.alpha_ijkn[i, 0, 0, n]
                 fac = self.psi*max(0, self.tau_kn[0, n])/(1 + max(0, self.tau_kn[0, n]))
                 row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fac*self.alpha_ijkn[i, 0, 0, n]
@@ -809,8 +814,8 @@ class Owl:
         for n in range(1, Nn):
             row = np.zeros(self.nvars)
             rhs = 0
-            row[_q1(Cg, 0, Nn)] = -self.xiBar_n[n]/self.xi_n[0]
-            row[_q1(Cg, n, Nn)] = 1
+            row[_q1(Cg, 0, Nn)] = -self.xiBar_n[n]
+            row[_q1(Cg, n, Nn)] = self.xi_n[0]
             Ae.append(row)
             vvec.append(rhs)
 
@@ -822,8 +827,8 @@ class Owl:
                 rhs += (self.omega_in[i, n] + 0.85*self.zetaBar_in[i, n] + self.pi_in[i, n])
                 row[_q2(Cx, i, n, Ni, Nn)] = -1
                 row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
-                for k in range(Nk):
-                    fak = (1 - u.krond(k, 0))*self.tau_kn[k, n]*self.alpha_ijkn[i, 0, k, n]
+                for k in range(1, Nk):
+                    fak = self.tau_kn[k, n]*self.alpha_ijkn[i, 0, k, n]
                     rhs += 0.5*fak*self.kappa_ijn[i, 0, n]
                     row[_q3(Cb, i, 0, n, Ni, Nj, Nn+1)] += -fak
             for t in range(Nt):
@@ -851,7 +856,7 @@ class Owl:
 
         return c
 
-    def solve(self, objective='maxIncome', options={'units':'k'}):
+    def solve(self, objective, options={}):
         '''
         Refer to companion document for explanations.
         Units are in $k, unless specified otherwise.
@@ -929,10 +934,10 @@ class Owl:
         self.x_in = self.x_in.reshape((Ni, Nn))
 
         print('b:\n', self.b_ijn)
-        #print('d:\n', self.d_ikn)
+        print('d:\n', self.d_in)
         print('f:\n', self.f_tn)
         print('g:\n', self.g_n)
-        #print('w:\n', self.w_ijn)
+        print('w:\n', self.w_ijn)
         print('x:\n', self.x_in)
 
         # Make derivative variables.
@@ -948,37 +953,28 @@ class Owl:
             'wdrwl tax-free',
         ]
 
-        # Aggregate all values in common _in format.
-        b_ijn = self.b_ijn
-        w_ijn = self.w_ijn
-        x_in = self.x_in
-
-        w_i0n = w_ijn[:, 0, :]
-        w_i1n = w_ijn[:, 1, :]
-        w_i2n = w_ijn[:, 2, :]
-
-        # Reroute (Roth conversions + tax-free withdrawals) to w1.
-        new_x_in = x_in - w_i2n
+        # Reroute (Roth conversions + tax-free withdrawals) to distributions.
+        new_x_in = self.x_in - self.w_ijn[:,2,:]
         new_x_in[new_x_in < 0] = 0
-        delta = (x_in - new_x_in)
-        w_i1n += delta
-        w_i2n -= delta
-        x_in = new_x_in
+        delta = (self.x_in - new_x_in)
+        self.w_ijn[:, 1, :] += delta
+        self.w_ijn[:, 2, :] -= delta
+        self.x_in = new_x_in
 
-        rmd_in = self.rho_in*b_ijn[:, 1, :-1]
-        dist_in = w_i1n - rmd_in
-        dist_in[dist_in < 0] = 0
+        self.rmd_in = self.rho_in*self.b_ijn[:, 1, :-1]
+        self.dist_in = self.w_ijn[:,1,:] - self.rmd_in
+        self.dist_in[self.dist_in < 0] = 0
 
         # Putting it all together in a dictionary.
         sources = {}
         sources['wages'] = self.omega_in
         sources['ssec'] = self.zetaBar_in
         sources['pension'] = self.pi_in
-        sources['rmd'] = rmd_in
-        sources['dist'] = dist_in
-        sources['RothX'] = x_in
-        sources['wdrwl taxable'] = w_i0n
-        sources['wdrwl tax-free'] = w_i2n
+        sources['wdrwl taxable'] = self.w_ijn[:, 0, :]
+        sources['rmd'] = self.rmd_in
+        sources['dist'] = self.dist_in
+        sources['RothX'] = self.x_in
+        sources['wdrwl tax-free'] = self.w_ijn[:, 2, :]
 
         savings = {}
         savings['taxable'] = self.b_ijn[:, 0, :]
@@ -1255,7 +1251,7 @@ class Owl:
             title += ' - ' + tag
 
         tmp1 = np.sum(self.omega_in + 0.85*self.zetaBar_in + self.pi_in, axis=0)
-        tmp2 = np.sum(self.w_ijn[:,1, :] + self.x_in, axis=0)
+        tmp2 = np.sum(self.w_ijn[:, 1, :] + self.x_in, axis=0)
         tmp3 = np.sum(self.b_ijkn[:, 0, 1:, :-1] + 0.5*self.kappa_ijkn[:, 0, 1:, :], axis=0) * self.tau_kn[1:, :]
         tmp3 = np.sum(tmp3, axis=0)
         otherG_n = tmp1 + tmp2 + tmp3 - self.sigmaBar_n
@@ -1273,7 +1269,7 @@ class Owl:
             ax.plot(self.year_n, data_adj, label=key, ls=':')
 
         plt.grid(visible='both')
-        ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.7)
+        ax.legend(loc='upper right', reverse=True, fontsize=8, framealpha=0.3)
 
         return
 
@@ -1291,7 +1287,7 @@ def _lineIncomePlot(x, series, style, title, yformat='k$'):
     for sname in series:
         ax.plot(x, series[sname], label=sname, ls=style[sname])
 
-    ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.7)
+    ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.3)
     ax.set_title(title)
     ax.set_xlabel('year')
     ax.set_ylabel(yformat)
@@ -1325,8 +1321,8 @@ def _stackPlot(x, inames, title, irange, series, snames, location, ytype='dollar
     fig, ax = plt.subplots(figsize=(6, 4))
     plt.grid(visible='both')
 
-    ax.stackplot(x, nonzeroSeries.values(), labels=nonzeroSeries.keys(), alpha=0.8)
-    ax.legend(loc=location, reverse=True, fontsize=8, ncol=2, framealpha=0.7)
+    ax.stackplot(x, nonzeroSeries.values(), labels=nonzeroSeries.keys(), alpha=0.6)
+    ax.legend(loc=location, reverse=True, fontsize=8, ncol=2, framealpha=0.6)
     ax.set_title(title)
     ax.set_xlabel('year')
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
