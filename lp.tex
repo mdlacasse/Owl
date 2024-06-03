@@ -322,13 +322,14 @@ All intermediate variables are in uppercase letters.
 		\label{Eq:Tax}
 		T_n = \sum_t f_{tn}\bar{\Delta}_{tn}\theta_{tn}.
 	\end{equation}
-	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that $f_{tn}$ have to
-	minimize $T_n$.
+	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that optimal
+	values of $f_{tn}$ have to
+	minimize $T_n$ when either the bequest or the desired net income are maximized.
 	As the product $\bar{\Delta}_{tn}\theta_{tn}$ does not garrantee that the tax brackets
 	will be favored monotonically, a more natural choice is to use the combined variable
 	$\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn}$ in the optimization. Given that the rates on
 	tax brackets $\theta_{tn}$ are always increasing monotonically, we are then naturally
-	optimizing to fill in the lower brackets first. In that case
+	filling in the lower brackets first when optimizing. In that case
 		\begin{equation}
 			T_n = \sum_t \bar{F}_t \theta_{tn}.
 		\end{equation}
@@ -428,7 +429,7 @@ All intermediate variables are in uppercase letters.
 	Roth conversion followed by a withdrawal from a tax-tree account. To resolve this degeneracy,
 	we re-characterize the latter as a distribution by defining the following variables
 	\begin{eqnarray}
-		x'_{in} &=& max(0, x_{in} - w_{i2m}), \nonumber \\
+		x'_{in} &=& max(0, x_{in} - w_{i2n}), \nonumber \\
 		w'_{i1n} &=& w_{i1n} + x'_{in}, \nonumber \\
 		w'_{i2n} &=& w_{i2n} - x'_{in}.
 	\end{eqnarray}
@@ -505,7 +506,8 @@ All intermediate variables are in uppercase letters.
 	\begin{equation}
 		x_{ijn} \le b_{i1kn}.
 	\end{equation}
-	Additional constraints $x_{max}$ can be put on conversions and then the previous equation
+	This constraint, however, is naturally satisfied when $b_{ijkn}$ is enforced.
+	Additional constraints $x_{max}$ can be imposed on conversions and then the previous equation
 	becomes
 	\begin{equation}
 		x_{ijn} \le \min(b_{i1kn}, x_{max}).
@@ -514,7 +516,7 @@ All intermediate variables are in uppercase letters.
 \paragraph*{Net income}
 	For calculating the net income $g$, we consider the cash flow of all withdrawals,
 	wages, social security and pension benefits, and big-ticket items. 
-	Then we subtract potential surplus deposits $d$ made to taxable savings account
+	Then we subtract potential surplus deposits $d$ made to the taxable savings account
 	and all taxes paid:
 	\begin{eqnarray}
 		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
@@ -546,7 +548,7 @@ allowing for additional adjustments to the overall desired spending.
 Note that $\bar{\xi}_0 = \xi_0$ as $\gamma_0=1$.
 This spending profile can also be used to lower the desired income at the passing
 of one spouse and/or to allow for more realistic spending profiles.
-Eq.~(\ref{Eq:C5a}) can naturally be rewritten as
+Eq.~(\ref{Eq:C5a}) can be rewritten as
 \begin{equation}
 	\label{Eq:C5}
 	g_n \xi_0 - g_0 \bar{\xi}_n = 0,

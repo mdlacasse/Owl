@@ -280,7 +280,7 @@ class Owl:
         u.rescale(amounts, fac)
 
         u.vprint('Setting pension of',
-                 [u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
+                 *[u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
 
         thisyear = date.today().year
         # Use zero array freshly initialized.
@@ -304,7 +304,7 @@ class Owl:
         u.rescale(amounts, fac)
 
         u.vprint('Setting social security benefits of', 
-                 [u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
+                 *[u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
 
         self.adjustedParameters = False
         thisyear = date.today().year
@@ -410,9 +410,9 @@ class Owl:
         self.b_ji[2][:] = taxFree
         self.beta_ij = self.b_ji.transpose()
 
-        u.vprint('Taxable balances:', [u.d(taxable[i]) for i in range(self.N_i)])
-        u.vprint('Tax-deferred balances:', [u.d(taxDeferred[i]) for i in range(self.N_i)])
-        u.vprint('Tax-free balances:', [u.d(taxFree[i]) for i in range(self.N_i)])
+        u.vprint('Taxable balances:', *[u.d(taxable[i]) for i in range(self.N_i)])
+        u.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
+        u.vprint('Tax-free balances:', *[u.d(taxFree[i]) for i in range(self.N_i)])
 
         return
 
@@ -466,7 +466,7 @@ class Owl:
         generic = [[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]]
         as assets are coordinated between accounts and spouses.
         '''
-        self.alpha_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n))
+        self.alpha_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n+1))
         if allocType == 'account':
             # Make sure we have proper input.
             for item in [taxable, taxDeferred, taxFree]:
@@ -495,7 +495,7 @@ class Owl:
                     for k in range(self.N_k):
                         start = alpha[j][i, 0, k]
                         end = alpha[j][i, 1, k]
-                        dat = self._interpolator(start, end, Nn)
+                        dat = self._interpolator(start, end, Nn+1)
                         self.alpha_ijkn[i, j, k, :] = dat[:]
 
         elif allocType == 'individual':
@@ -516,7 +516,7 @@ class Owl:
                 for k in range(self.N_k):
                     start = generic[i][0][k]
                     end = generic[i][1][k]
-                    dat = self._interpolator(start, end, Nn)
+                    dat = self._interpolator(start, end, Nn+1)
                     for j in range(self.N_j):
                         self.alpha_ijkn[i, j, k, :] = dat[:]
 
@@ -535,7 +535,7 @@ class Owl:
             for k in range(self.N_k):
                 start = generic[0][k]
                 end = generic[1][k]
-                dat = self._interpolator(start, end, Nn)
+                dat = self._interpolator(start, end, Nn+1)
                 for i in range(self.N_i):
                     for j in range(self.N_j):
                         self.alpha_ijkn[i, j, k, :] = dat[:]
@@ -642,6 +642,7 @@ class Owl:
         '''
         Refer to companion document for notation and detailed explanations.
         '''
+        # Simplified notation.
         Ni = self.N_i
         Nj = self.N_j
         Nk = self.N_k
@@ -660,6 +661,7 @@ class Owl:
         tau1_kn = 1 + self.tau_kn
         Tau1_ijn = np.zeros((Ni, Nj, Nn))
         Tauh_ijn = np.zeros((Ni, Nj, Nn))
+
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
@@ -675,6 +677,9 @@ class Owl:
         # Inequality constraint matrix and vector.
         Au = []
         uvec = []
+        # Equality constraint matrix and vector.
+        Ae = []
+        vvec = []
 
         # RMDs inequalities.
         for i in range(Ni):
@@ -695,26 +700,36 @@ class Owl:
                 Au.append(row)
                 uvec.append(rhs)
 
-        # Roth conversions inequalities. Limit amount.
+        # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
-            rhsopt = options['maxRothConversion']*units
-            u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
-            for i in range(Ni):
-                for n in range(Nn):
-                    row1 = np.zeros(self.nvars)
-                    row1[_q2(Cx, i, n, Ni, Nn)] = 1
-                    rhs1 = rhsopt
-                    Au.append(row1)
-                    uvec.append(rhs1)
+            if options['maxRothConversion'] == 'file':
+                u.vprint('Fixing Roth conversions to those from file %s.'%self.timeListsFileName)
+                for i in range(Ni):
+                    for n in range(Nn):
+                        row = np.zeros(self.nvars)
+                        row[_q2(Cx, i, n, Ni, Nn)] = 1
+                        rhs = self.myRothX_in[i][n]
+                        Ae.append(row)
+                        vvec.append(rhs)
+            else:
+                rhsopt = options['maxRothConversion']
+                assert isinstance(rhsopt, (int, float)) == True, 'Specified maxConversion is not a number.'
+                rhsopt *= units
+                u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
+                for i in range(Ni):
+                    for n in range(Nn):
+                        row = np.zeros(self.nvars)
+                        row[_q2(Cx, i, n, Ni, Nn)] = 1
+                        rhs = rhsopt
+                        Au.append(row)
+                        uvec.append(rhs)
 
         ###################################################################
-        # Equality constraint matrix and vector.
-        Ae = []
-        vvec = []
+        # Equalities.
 
         if objective == 'maxIncome':
             if 'netIncome' in options:
-                u.vprint('Ignoring netIncome option.')
+                u.vprint('Ignoring netIncome option provided.')
             # Deposits should be set to zero in that case.
             for i in range(Ni):
                 for n in range(Nn):
@@ -725,16 +740,15 @@ class Owl:
                     vvec.append(rhs)
             # Impose requested constraint on estate, if any.
             if 'estate' in options:
+                assert len(options['estate']) == Ni, 'Estate values must have %d entries.'%Ni
                 estate = np.array(options['estate'], dtype=float)
-                assert len(estate) == Ni, 'Estate values must have %d lists.'%Ni
                 u.rescale(estate, units)
             else:
                 # If not specified, default to $1 per individual.
                 estate = np.array([1. for i in Ni])
 
-            u.vprint('Adding estate constraint of:', [u.d(estate[i]) for i in range(Ni)])
             for i in range(Ni):
-                assert isinstance(estate[i], (int, float)) == True, 'Estate constraint not a number.'
+                assert isinstance(estate[i], (int, float)) == True, 'Desired estate provided not a number.'
                 rhs = estate[i]
                 row = np.zeros(self.nvars)
                 row[_q3(Cb, i, 0, Nn, Ni, Nj, Nn+1)] = 1
@@ -742,12 +756,14 @@ class Owl:
                 row[_q3(Cb, i, 2, Nn, Ni, Nj, Nn+1)] = 1
                 Ae.append(row)
                 vvec.append(rhs)
-
+            u.vprint('Adding estate constraint of:', *[u.d(estate[i]) for i in range(Ni)])
         elif objective == 'maxBequest': 
             if 'estate' in options:
-                u.vprint('Ignoring estate option.')
-            rhs = options['netIncome']*units
-            u.vprint('Maximizing bequest with net income of:', u.d(rhs))
+                u.vprint('Ignoring estate option provided.')
+            rhs = options['netIncome']
+            assert isinstance(rhs, (int, float)) == True, 'Desired income provided not a number.'
+            rhs *= units
+            u.vprint('Maximizing bequest with desired net income of:', u.d(rhs))
             row = np.zeros(self.nvars)
             row[_q1(Cg, 0)] = 1
             Ae.append(row)
@@ -766,7 +782,7 @@ class Owl:
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer.
-        # Using hybrid approach with 'if' statements and Kronecker deltas.
+        # Using hybrid approach with 'if' statement and Kronecker deltas.
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
@@ -825,8 +841,8 @@ class Owl:
             rhs = -self.sigmaBar_n[n]
             for i in range(Ni):
                 rhs += (self.omega_in[i, n] + 0.85*self.zetaBar_in[i, n] + self.pi_in[i, n])
-                row[_q2(Cx, i, n, Ni, Nn)] = -1
                 row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
+                row[_q2(Cx, i, n, Ni, Nn)] = -1
                 for k in range(1, Nk):
                     fak = self.tau_kn[k, n]*self.alpha_ijkn[i, 0, k, n]
                     rhs += 0.5*fak*self.kappa_ijn[i, 0, n]
@@ -912,11 +928,8 @@ class Owl:
         self.b_ijn = np.array(x[Cb:Cd])
         self.b_ijn = self.b_ijn.reshape((Ni, Nj, Nn + 1))
         self.b_ijkn = np.zeros((Ni, Nj, Nk, Nn+1))
-        for i in range(Ni):
-            for j in range(Ni):
-                for k in range(Ni):
-                    for n in range(Ni):
-                        self.b_ijkn[i, j, k, n] = self.b_ijn[i, j, n]*self.alpha_ijkn[i, j, k, n]
+        for k in range(Nk):
+            self.b_ijkn[:, :, k, :] = self.b_ijn[:, :, :]*self.alpha_ijkn[:, :, k, :]
 
         self.d_in = np.array(x[Cd:Cf])
         self.d_in = self.d_in.reshape((Ni, Nn))
@@ -933,12 +946,15 @@ class Owl:
         self.x_in = np.array(x[Cx:])
         self.x_in = self.x_in.reshape((Ni, Nn))
 
+        '''
         print('b:\n', self.b_ijn)
         print('d:\n', self.d_in)
         print('f:\n', self.f_tn)
         print('g:\n', self.g_n)
+        print('G:\n', np.sum(self.f_tn, axis=0))
         print('w:\n', self.w_ijn)
         print('x:\n', self.x_in)
+        '''
 
         # Make derivative variables.
         sourcetypes = [
@@ -953,7 +969,7 @@ class Owl:
             'wdrwl tax-free',
         ]
 
-        # Reroute (Roth conversions + tax-free withdrawals) to distributions.
+        # Reroute Roth conversions + tax-free withdrawals = distributions.
         new_x_in = self.x_in - self.w_ijn[:,2,:]
         new_x_in[new_x_in < 0] = 0
         delta = (self.x_in - new_x_in)
@@ -1127,10 +1143,10 @@ class Owl:
         A tag string can be set to add information to the title of the plot.
         '''
         count = self.N_i
-        if self.coordinatedAR == 'both':
+        if self.ARCoord == 'spouses':
             acList = ['coordinated']
             count = 1
-        elif self.coordinatedAR == 'individual':
+        elif self.ARCoord == 'individual':
             acList = ['coordinated']
         else:
             acList = ['taxable', 'tax-deferred', 'tax-free']
@@ -1144,16 +1160,13 @@ class Owl:
                     aname = key + ' / ' + acType
                     stackNames.append(aname)
                     y2stack[aname] = np.zeros((count, self.N_n))
-                    y2stack[aname][i][:] = self.y2assetRatios[acType].transpose(
-                        1, 2, 0
-                    )[i][assetDic[key]][:]
-                    y2stack[aname] = y2stack[aname].transpose()
+                    y2stack[aname][i][:] = self.alpha_ijkn[i, acList.index(acType), assetDic[key], :self.N_n]
 
                     title = self._name + '\nAssets Allocations (%) - ' + acType
-                    if self.coordinatedAR == 'both':
-                        title += ' both'
+                    if self.ARCoord == 'spouses':
+                        title += ' spouses'
                     else:
-                        title += ' ' + self.names[i]
+                        title += ' ' + self.inames[i]
 
                 if tag != '':
                     title += ' - ' + tag
@@ -1246,19 +1259,20 @@ class Owl:
         '''
         import matplotlib.pyplot as plt
 
-        title = self._name + '\nGross Income vs. Tax Brackets'
+        title = self._name + '\nTaxable Ordinary Income vs. Tax Brackets'
         if tag != '':
             title += ' - ' + tag
 
+        '''
         tmp1 = np.sum(self.omega_in + 0.85*self.zetaBar_in + self.pi_in, axis=0)
         tmp2 = np.sum(self.w_ijn[:, 1, :] + self.x_in, axis=0)
         tmp3 = np.sum(self.b_ijkn[:, 0, 1:, :-1] + 0.5*self.kappa_ijkn[:, 0, 1:, :], axis=0) * self.tau_kn[1:, :]
         tmp3 = np.sum(tmp3, axis=0)
         otherG_n = tmp1 + tmp2 + tmp3 - self.sigmaBar_n
-        G_tn = self.f_tn 
-        G_n = np.sum(G_tn, axis=0)
-        style = {'gross1': '-', 'gross2': ':'}
-        series = {'gross1': G_n, 'gross2': otherG_n}
+        '''
+        G_n = np.sum(self.f_tn, axis=0)
+        style = {'ordinary income': '-'}
+        series = {'ordinary income': G_n}
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title)
 

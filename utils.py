@@ -16,7 +16,7 @@ import sys
 verbose = False
 
 
-def setVerbose(val):
+def setVerbose(val, ret=False):
     '''
     Set verbose to True if you want the module to be chatty.
     '''
@@ -25,7 +25,10 @@ def setVerbose(val):
     verbose = val
     vprint("Setting verbose to", verbose)
 
-    return prevState
+    if ret:
+        return prevState
+
+    return
 
 
 def vprint(*args, **kwargs):
@@ -68,12 +71,15 @@ def pc(value, f=1, mul=100):
 
 def rescale(vals, fac):
     '''
-    Rescale elements of a list by factor fac.
+    Rescale elements of a list or array by factor fac.
     '''
-    for i in range(len(vals)):
-        vals[i] *= fac
+    if isinstance(vals, (float, int)) == True:
+        return vals*fac
+    else:
+        for i in range(len(vals)):
+            vals[i] *= fac
 
-    return
+    return vals
 
 
 def getUnits(units):
