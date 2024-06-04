@@ -62,15 +62,14 @@ def _xi_n(profile, frac, n_d, N_n, a=15, b=12):
         # Use a cosine +/- 15% combined with a gentle +12% linear increase.
         xi = xi + a * np.cos((2 * np.pi / (N_n - 1)) * x) + (b / (N_n-1)) * x
         # Normalize to be sum-neutral with respect to a flat profile.
-        neutralSum = N_n
+        neutralSum = N_n 
+        # Reduce income needs after passing of one spouse.
         if (n_d < N_n):
-            neutralSum -= (1-frac)*(N_n - n_d) # Account for spousal reduction.
-        xi = xi * (neutralSum / xi.sum())
+            neutralSum -= (1-frac)*(N_n - n_d) # Account for flat spousal reduction.
+            xi[n_d:] *= frac
+        xi *= (neutralSum / xi.sum())
     else:
         u.xprint('Unknown profile', profile)
-
-    # Reduce income needs after passing of one spouse.
-    xi[n_d:] *= frac
 
     return xi
 
@@ -189,7 +188,7 @@ class Owl:
         for i in range(self.N_i):
             u.vprint('%s: life horizon from %d -> %d.'%(self.inames[i], thisyear, thisyear+self.horizons[i]-1))
 
-        u.vprint('Names of individual(s) will be read with readContributions(file).')
+        u.vprint('Name of individual(s) will be read with readContributions(file).')
 
         # Prepare income tax time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
@@ -282,7 +281,7 @@ class Owl:
         u.rescale(amounts, fac)
 
         u.vprint('Setting pension of',
-                 *[u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
+                 [u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
 
         thisyear = date.today().year
         # Use zero array freshly initialized.
@@ -306,7 +305,7 @@ class Owl:
         u.rescale(amounts, fac)
 
         u.vprint('Setting social security benefits of', 
-                 *[u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
+                 [u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
 
         self.adjustedParameters = False
         thisyear = date.today().year
@@ -332,7 +331,7 @@ class Owl:
 
         u.vprint('Setting', profile, 'spending profile.')
         if self.N_i == 2:
-            u.vprint('\tUsing ', fraction, 'survivor fraction.')
+            u.vprint('Using ', fraction, 'survivor fraction.')
 
         self.xi_n = _xi_n(profile, fraction, self.n_d, self.N_n)
         self.spendingProfile = profile
@@ -492,12 +491,12 @@ class Owl:
             alpha[1] = np.array(taxDeferred)
             alpha[2] = np.array(taxFree)
             for i in range(self.N_i):
-                Nn = self.horizons[i]
+                Nin = self.horizons[i] + 1
                 for j in range(self.N_j):
                     for k in range(self.N_k):
                         start = alpha[j][i, 0, k]/100
                         end = alpha[j][i, 1, k]/100
-                        dat = self._interpolator(start, end, Nn+1)
+                        dat = self._interpolator(start, end, Nin)
                         self.alpha_ijkn[i, j, k, :] = dat[:]
 
         elif allocType == 'individual':
@@ -514,13 +513,13 @@ class Owl:
                 u.vprint('individual:', generic[i][0], '->', generic[i][1])
 
             for i in range(self.N_i):
-                Nn = self.horizons[i]
+                Nin = self.horizons[i] + 1
                 for k in range(self.N_k):
                     start = generic[i][0][k]/100
                     end = generic[i][1][k]/100
-                    dat = self._interpolator(start, end, Nn+1)
+                    dat = self._interpolator(start, end, Nin)
                     for j in range(self.N_j):
-                        self.alpha_ijkn[i, j, k, :] = dat[:]
+                        self.alpha_ijkn[i, j, k, :Nin] = dat[:]
 
         elif allocType == 'spouses':
             assert len(generic) == 2, 'generic must have 2 entries (initial and final).'
@@ -532,15 +531,15 @@ class Owl:
             u.vprint('spouses:', generic[0], '->', generic[1])
 
             # Use longest-lived spouse for both time scales.
-            Nn = max(self.horizons)
+            Nxn = max(self.horizons) + 1
 
             for k in range(self.N_k):
                 start = generic[0][k]/100
                 end = generic[1][k]/100
-                dat = self._interpolator(start, end, Nn+1)
+                dat = self._interpolator(start, end, Nxn)
                 for i in range(self.N_i):
                     for j in range(self.N_j):
-                        self.alpha_ijkn[i, j, k, :] = dat[:]
+                        self.alpha_ijkn[i, j, k, :Nxn] = dat[:]
 
         self.ARCoord = allocType
 
@@ -725,6 +724,19 @@ class Owl:
                         rhs = rhsopt
                         Au.append(row)
                         uvec.append(rhs)
+        
+        if Ni == 2:
+            # No Roth conversion, withdrawals or deposits for the deceased.
+            for n in range(n_d-1, Nn):
+                row = np.zeros(self.nvars)
+                row[_q2(Cx, i_d, n, Ni, Nn)] = 1
+                row[_q2(Cd, i_d, n, Ni, Nn)] = 1
+                for j in range(Nj):
+                    row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = 1
+                rhs = 0
+                Ae.append(row)
+                vvec.append(rhs)
+
 
         ###################################################################
         # Equalities.
@@ -742,23 +754,22 @@ class Owl:
                     vvec.append(rhs)
             # Impose requested constraint on estate, if any.
             if 'estate' in options:
-                assert len(options['estate']) == Ni, 'Estate values must have %d entries.'%Ni
-                estate = np.array(options['estate'], dtype=float)
-                u.rescale(estate, units)
+                estate = options['estate']
+                assert isinstance(estate, (int, float)) == True, 'Desired estate provided not a number.'
+                estate *= units
             else:
-                # If not specified, default to $1 per individual.
-                estate = np.array([1. for i in Ni])
+                # If not specified, default to $1.
+                estate = 1
 
+            rhs = estate
+            row = np.zeros(self.nvars)
             for i in range(Ni):
-                assert isinstance(estate[i], (int, float)) == True, 'Desired estate provided not a number.'
-                rhs = estate[i]
-                row = np.zeros(self.nvars)
                 row[_q3(Cb, i, 0, Nn, Ni, Nj, Nn+1)] = 1
                 row[_q3(Cb, i, 1, Nn, Ni, Nj, Nn+1)] = (1 - self.nu)
                 row[_q3(Cb, i, 2, Nn, Ni, Nj, Nn+1)] = 1
-                Ae.append(row)
-                vvec.append(rhs)
-            u.vprint('Adding estate constraint of:', *[u.d(estate[i]) for i in range(Ni)])
+            Ae.append(row)
+            vvec.append(rhs)
+            u.vprint('Adding estate constraint of:', u.d(estate))
         elif objective == 'maxBequest': 
             if 'estate' in options:
                 u.vprint('Ignoring estate option provided.')
@@ -802,7 +813,7 @@ class Owl:
                         fac2 = self.phi_j[j]
                         rhs += fac2*self.kappa_ijn[i_d, j, n] * Tauh_ijn[i, j, n]
                         row[_q3(Cb, i_d, j, n, Ni, Nj, Nn+1)] = -fac2*Tau1_ijn[i, j, n]
-                        row[_q2(Cx, i_d, i, n, Ni, Nn)] = -fac2*(u.krond(j, 2) - u.krond(j, 1))*Tau1_ijn[i, j, n]
+                        row[_q2(Cx, i_d, n, Ni, Nn)] = -fac2*(u.krond(j, 2) - u.krond(j, 1))*Tau1_ijn[i, j, n]
                         row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2
                         row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2*u.krond(j, 0)
                     Ae.append(row)
@@ -1025,6 +1036,7 @@ class Owl:
         print('Plan name:', self._name)
         print('Individuals:', *[self.inames[i] for i in range(self.N_i)])
         print('Contribution file:', self.timeListsFileName)
+        print('Return rates:', self.rateMethod)
         print('Optimized for:', self.objective)
         print('Solver options:', self.solverOptions)
         print('Spending profile:', self.spendingProfile)
