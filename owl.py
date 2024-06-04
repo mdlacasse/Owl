@@ -189,6 +189,8 @@ class Owl:
         for i in range(self.N_i):
             u.vprint('%s: life horizon from %d -> %d.'%(self.inames[i], thisyear, thisyear+self.horizons[i]-1))
 
+        u.vprint('Names of individual(s) will be read with readContributions(file).')
+
         # Prepare income tax time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
         self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(
@@ -484,17 +486,17 @@ class Owl:
                 u.vprint('taxDeferred:', taxDeferred[i][0], '->', taxDeferred[i][1])
                 u.vprint('    taxFree:', taxFree[i][0], '->', taxFree[i][1])
 
-            # Order now is j, i, 0/1, k.
+            # Order in alpha is j, i, 0/1, k.
             alpha = {}
-            alpha[0] = np.array(taxable) / 100
-            alpha[1] = np.array(taxDeferred) / 100
-            alpha[2] = np.array(taxFree) / 100
+            alpha[0] = np.array(taxable)
+            alpha[1] = np.array(taxDeferred)
+            alpha[2] = np.array(taxFree)
             for i in range(self.N_i):
                 Nn = self.horizons[i]
                 for j in range(self.N_j):
                     for k in range(self.N_k):
-                        start = alpha[j][i, 0, k]
-                        end = alpha[j][i, 1, k]
+                        start = alpha[j][i, 0, k]/100
+                        end = alpha[j][i, 1, k]/100
                         dat = self._interpolator(start, end, Nn+1)
                         self.alpha_ijkn[i, j, k, :] = dat[:]
 
@@ -514,8 +516,8 @@ class Owl:
             for i in range(self.N_i):
                 Nn = self.horizons[i]
                 for k in range(self.N_k):
-                    start = generic[i][0][k]
-                    end = generic[i][1][k]
+                    start = generic[i][0][k]/100
+                    end = generic[i][1][k]/100
                     dat = self._interpolator(start, end, Nn+1)
                     for j in range(self.N_j):
                         self.alpha_ijkn[i, j, k, :] = dat[:]
@@ -533,8 +535,8 @@ class Owl:
             Nn = max(self.horizons)
 
             for k in range(self.N_k):
-                start = generic[0][k]
-                end = generic[1][k]
+                start = generic[0][k]/100
+                end = generic[1][k]/100
                 dat = self._interpolator(start, end, Nn+1)
                 for i in range(self.N_i):
                     for j in range(self.N_j):
@@ -903,6 +905,8 @@ class Owl:
             u.xprint('WARNING: Optimization failed:', solution.message, solution.success)
                 
         self.aggregateResults(solution.x)
+        self.objective = objective
+        self.solverOptions = options
 
         return
 
@@ -1012,17 +1016,35 @@ class Owl:
 
         return
 
-    def totals(self):
+    def summary(self):
         '''
         Print summary of values.
         '''
-        estate = np.sum(self.b_ijn[:, :, self.N_n], axis=(0,1))
+        now = self.year_n[0]
+        print('SUMMARY ======================================================')
+        print('Plan name:', self._name)
+        print('Individuals:', *[self.inames[i] for i in range(self.N_i)])
+        print('Contribution file:', self.timeListsFileName)
+        print('Optimized for:', self.objective)
+        print('Solver options:', self.solverOptions)
+        print('Spending profile:', self.spendingProfile)
+        print('Net yearly income in %d$: %s'%(now, u.d(self.g_n[0])))
+        estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= (1 - self.nu)
-        totalEstate = np.sum(estate)/self.gamma_n(N_n-1)
-        print('Final estate in %d$: %d'%(self.year_n[0], u.d(totalEstate)))
+        print('Final account post-tax nominal values:', *[u.d(estate[j]) for j in range(self.N_j)])
+        print('Assumed heirs tax rate:', u.pc(self.nu, f=0))
+        totEstate = np.sum(estate)
+        totEstateNow = totEstate/self.gamma_n[self.N_n-1]
+        print('Final estate value in %d$: %s (%s nominal)'%(now, u.d(totEstateNow),u.d(totEstate)))
 
-        taxPaid = np.sum(self.f_tn*self.theta_tn)
-
+        taxPaid = np.sum(self.f_tn*self.theta_tn, axis=(0, 1))
+        taxPaidNow = np.sum(np.sum(self.f_tn*self.theta_tn, axis=0)/self.gamma_n, axis=0)
+        print('Total income tax paid in %d$: %s (%s nominal)'%(now, u.d(taxPaidNow), u.d(taxPaid)))
+    
+        totIncome = np.sum(self.g_n, axis=0)
+        totIncomeNow = np.sum(self.g_n/self.gamma_n, axis=0)
+        print('Total net income in %d$: %s (%s nominal)'%(now, u.d(totIncomeNow), u.d(totIncome)))
+        print('--------------------------------------------------------------')
 
         return
 
@@ -1271,8 +1293,8 @@ class Owl:
         otherG_n = tmp1 + tmp2 + tmp3 - self.sigmaBar_n
         '''
         G_n = np.sum(self.f_tn, axis=0)
-        style = {'ordinary income': '-'}
-        series = {'ordinary income': G_n}
+        style = {'taxable income': '-'}
+        series = {'taxable income': G_n}
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title)
 
