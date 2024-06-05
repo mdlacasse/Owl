@@ -196,9 +196,19 @@ class Plan:
             self.yobs, self.i_d, self.n_d, self.N_n
         )
 
-        self.adjustedParameters = False
+        self._adjustedParameters = False
+        self._isSolved = False
         self._buildOffsetMap()
         self.timeListsFileName = None
+
+        return
+
+    def _checkSolved(self):
+        '''
+        Check if problem was solved successfully.
+        '''
+        if self._isSolved == False:
+            u.xprint('Problem needs to be (re)solved first.')
 
         return
 
@@ -229,6 +239,7 @@ class Plan:
         mu /= 100
         u.vprint('Dividend return rate on equities set to', u.pc(mu, f=1))
         self.mu = mu
+        self._isSolved == False
 
         return
 
@@ -240,6 +251,7 @@ class Plan:
         psi /= 100
         u.vprint('Long-term income tax set to', u.pc(psi, f=0))
         self.psi = psi
+        self._isSolved == False
 
         return
 
@@ -253,6 +265,7 @@ class Plan:
 
         u.vprint('Beneficiary spousal beneficiary fractions set to', phi)
         self.phi_j = phi
+        self._isSolved == False
 
         return
 
@@ -266,6 +279,7 @@ class Plan:
             'Heirs tax rate on tax-deferred portion of estate set to', u.pc(nu, f=0)
         )
         self.nu = nu
+        self._isSolved == False
 
         return
 
@@ -291,6 +305,8 @@ class Plan:
             nd = self.horizons[i]
             self.pi_in[i, ns:nd] = amounts[i]
 
+        self._isSolved == False
+
         return
 
     def setSocialSecurity(self, amounts, ages, units='k'):
@@ -307,7 +323,7 @@ class Plan:
         u.vprint('Setting social security benefits of', 
                  [u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
 
-        self.adjustedParameters = False
+        self._adjustedParameters = False
         thisyear = date.today().year
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
@@ -318,6 +334,8 @@ class Plan:
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
             self.zeta_in[self.i_s, self.n_d:] = max(amounts[self.i_s], amounts[self.i_d]/2)
+
+        self._isSolved == False
 
         return
 
@@ -335,6 +353,7 @@ class Plan:
 
         self.xi_n = _xi_n(profile, self.chi, self.n_d, self.N_n)
         self.spendingProfile = profile
+        self._isSolved == False
 
         return
 
@@ -368,7 +387,8 @@ class Plan:
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = gamma_n(self.tau_kn, self.N_n)
-        self.adjustParameters = True
+        self._adjustedParameters = False
+        self._isSolved == False
 
         return
 
@@ -376,7 +396,7 @@ class Plan:
         '''
         Adjust parameters that follow inflation or allocations.
         '''
-        if self.adjustedParameters == False:
+        if self._adjustedParameters == False:
             u.vprint('Adjusting parameters for inflation.')
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n
             self.zetaBar_in = self.zeta_in * self.gamma_n
@@ -386,7 +406,7 @@ class Plan:
             for k in range(self.N_k):
                 self.kappa_ijkn[:, :, k, :] = self.kappa_ijn[:, :, :]*self.alpha_ijkn[:, :, k, :self.N_n]
 
-            self.adjustedParameters = True
+            self._adjustedParameters = True
 
         return
 
@@ -410,6 +430,7 @@ class Plan:
         self.b_ji[1][:] = taxDeferred
         self.b_ji[2][:] = taxFree
         self.beta_ij = self.b_ji.transpose()
+        self._isSolved == False
 
         u.vprint('Taxable balances:', *[u.d(taxable[i]) for i in range(self.N_i)])
         u.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
@@ -439,6 +460,7 @@ class Plan:
             u.xprint('Method', method, 'not supported.')
 
         self.interpMethod = method
+        self._isSolved == False
 
         u.vprint('Asset allocation interpolation method set to', method)
 
@@ -542,6 +564,7 @@ class Plan:
                         self.alpha_ijkn[i, j, k, :Nxn] = dat[:]
 
         self.ARCoord = allocType
+        self._isSolved == False
 
         u.vprint('Interpolating assets allocation ratios using',
                  self.interpMethod, 'method.')
@@ -616,6 +639,8 @@ class Plan:
             self.kappa_ijn[i, 1, :h] += self.timeLists[i]['ctrb IRA'][:h]
             self.kappa_ijn[i, 2, :h] = self.timeLists[i]['ctrb Roth 401k'][:h]
             self.kappa_ijn[i, 2, :h] += self.timeLists[i]['ctrb Roth IRA'][:h]
+
+        self._isSolved == False
 
         return
 
@@ -919,6 +944,7 @@ class Plan:
                                      method='highs-ds', options=lpOptions)
         if solution.success == True:
             u.vprint(solution.message)
+            self._isSolved = True
         else:
             u.xprint('WARNING: Optimization failed:', solution.message, solution.success)
                 
@@ -960,7 +986,7 @@ class Plan:
         self.f_tn = self.f_tn.reshape((Nt, Nn))
 
         self.g_n = np.array(x[Cg:Cw])
-        self.g_n = self.g_n.reshape((Nn))
+        # self.g_n = self.g_n.reshape((Nn))
 
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
@@ -999,9 +1025,22 @@ class Plan:
         self.w_ijn[:, 2, :] -= delta
         self.x_in = new_x_in
 
+        # Reroute degeneracy between tax-free and taxable account at N_n.
+        if Ni == 2:
+            wdrl = self.w_ijn[self.i_s, 2, -1]
+            dep = self.d_in[self.i_s, -1]
+            z = min(wdrl, dep)
+            self.b_ijn[self.i_s, 0, -1] -= z
+            self.b_ijn[self.i_s, 2, -1] += z
+            self.w_ijn[self.i_s, 2, -1] -= z
+            self.d_in[self.i_s, -1] -= z
+
         self.rmd_in = self.rho_in*self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:,1,:] - self.rmd_in
         self.dist_in[self.dist_in < 0] = 0
+        self.G_n = np.sum(self.f_tn, axis=0)
+        T_tn = self.f_tn * self.theta_tn
+        self.T_n = np.sum(T_tn, axis=0)
 
         # Putting it all together in a dictionary.
         sources = {}
@@ -1013,6 +1052,7 @@ class Plan:
         sources['dist'] = self.dist_in
         sources['RothX'] = self.x_in
         sources['wdrwl tax-free'] = self.w_ijn[:, 2, :]
+        sources['bti'] = self.Lambda_in
 
         savings = {}
         savings['taxable'] = self.b_ijn[:, 0, :]
@@ -1028,9 +1068,10 @@ class Plan:
         '''
         Return final account balances.
         '''
+        self._checkSolved()
         _estate = np.sum(self.b_ijn[:, :, :, self.N_n], axis=(0,2))
         _estate[1] *= (1 - self.nu)
-        u.vprint('Estate value of %s in year %s.'%(u.d(sum(_estate)), self.year_n[-1]))
+        u.vprint('Estate value of %s at the end of year %s.'%(u.d(sum(_estate)), self.year_n[-1]))
 
         return
 
@@ -1038,6 +1079,7 @@ class Plan:
         '''
         Print summary of values.
         '''
+        self._checkSolved()
         now = self.year_n[0]
         print('SUMMARY ======================================================')
         print('Plan name:', self._name)
@@ -1137,6 +1179,7 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
+        self._checkSolved()
         title = self._name + '\nNet Income'
         if tag != '':
             title += ' - ' + tag
@@ -1156,7 +1199,7 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
-
+        self._checkSolved()
         y2stack = {}
         jDic = {'taxable': 0, 'tax-deferred': 1, 'tax-free': 2}
         kDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
@@ -1229,6 +1272,7 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
+        self._checkSolved()
         title = self._name + '\nSavings Balance'
         if tag != '':
             title += ' - ' + tag
@@ -1246,6 +1290,7 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
+        self._checkSolved()
         title = self._name + '\nRaw Income Sources'
         if tag != '':
             title += ' - ' + tag
@@ -1260,6 +1305,7 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
+        self._checkSolved()
         title = self._name + '\nEff f '
         if tag != '':
             title += ' - ' + tag
@@ -1284,14 +1330,13 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
+        self._checkSolved()
         title = self._name + '\nIncome Tax'
         if tag != '':
             title += ' - ' + tag
 
-        T_tn = self.f_tn * self.theta_tn
-        T_n = np.sum(T_tn, axis=0)
         style = {'income taxes': '-'}
-        series = {'income taxes': T_n}
+        series = {'income taxes': self.T_n}
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title)
 
@@ -1303,6 +1348,7 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
+        self._checkSolved()
         import matplotlib.pyplot as plt
 
         title = self._name + '\nTaxable Ordinary Income vs. Tax Brackets'
@@ -1316,9 +1362,8 @@ class Plan:
         tmp3 = np.sum(tmp3, axis=0)
         otherG_n = tmp1 + tmp2 + tmp3 - self.sigmaBar_n
         '''
-        G_n = np.sum(self.f_tn, axis=0)
         style = {'taxable income': '-'}
-        series = {'taxable income': G_n}
+        series = {'taxable income': self.G_n}
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title)
 
@@ -1333,6 +1378,170 @@ class Plan:
 
         return
 
+    def saveInstance(self, basename, overwrite=False):
+        '''
+        Save instance in an Excel spreadsheet.
+        The first worksheet will contain income in the following
+        fields in columns:
+            - net income
+            - taxable income
+            - tax bill (federal only)
+        for all the years for the time span of the plan.
+
+        The second worksheet contains the rates
+        used for the plan as follows:
+            - S&P 500
+            - Corporate Baa bonds
+            - Treasury notes (10y)
+            - Inflation.
+
+        The subsequent worksheets has the sources for each
+        spouse as follows:
+            - taxable account withdrawals
+            - RMDs
+            - distributions
+            - Roth conversions
+            - tax-free withdrawals
+            - big-ticket items.
+
+        The subsequent worksheets contains the balances
+        and input/ouput to the savings accounts for each spouse:
+            - taxable savings account
+            - tax-deferred account
+            - tax-free account.
+
+        '''
+        import pandas as pd
+        from openpyxl import Workbook
+        from openpyxl.utils.dataframe import dataframe_to_rows
+
+        wb = Workbook()
+
+        ws = wb.active
+        ws.title = 'Income'
+
+        rawData = {}
+        rawData['year'] = self.year_n
+        rawData['net income'] = self.g_n
+        rawData['taxable income'] = self.G_n
+        rawData['tax bill'] = self.T_n
+
+        # We need to work by row.
+        df = pd.DataFrame(rawData)
+        for rows in dataframe_to_rows(df, index=False, header=True):
+            ws.append(rows)
+
+        _formatSpreadsheet(ws, 'currency')
+
+        # Save rates on a different sheet.
+        ws = wb.create_sheet('Rates')
+        rawData = {}
+        rawData['year'] = self.year_n
+        ratesDic = {'S&P 500': 0, 'Corporate Baa': 1, 'T Bonds': 2, 'inflation': 3}
+
+        for key in ratesDic:
+            rawData[key] = self.tau_kn[ratesDic[key]]
+
+        # We need to work by row.
+        df = pd.DataFrame(rawData)
+        for rows in dataframe_to_rows(df, index=False, header=True):
+            ws.append(rows)
+
+        _formatSpreadsheet(ws, 'percent2')
+
+        # Save sources.
+        srcDic = {
+            'wages': 'wages',
+            'social sec': 'ssec',
+            'pension': 'pension',
+            'txbl acc. wdrwl': 'wdrwl taxable',
+            'RMD': 'rmd',
+            'distribution': 'dist',
+            'Roth conversion': 'RothX',
+            'tax-free wdrwl': 'wdrwl tax-free',
+            'big-ticket items': 'bti',
+        }
+
+        for i in range(self.N_i):
+            sname = self.inames[i] + '\'s Sources'
+            ws = wb.create_sheet(sname)
+            rawData = {}
+            rawData['year'] = self.year_n
+            for key in srcDic:
+                rawData[self.inames[i] + ' ' + key] = self.sources_in[srcDic[key]][i]
+
+            df = pd.DataFrame(rawData)
+            for rows in dataframe_to_rows(df, index=False, header=True):
+                ws.append(rows)
+
+            _formatSpreadsheet(ws, 'currency')
+
+        # Save account balances.
+        accDic = {
+                'taxable': self.b_ijn[:, 0, :-1],
+                'deposits': self.d_in,
+                'wdrwl taxable': self.w_ijn[:, 0, :],
+                'tax-deferred': self.b_ijn[:, 1, :-1],
+                'wdrwl tax-deferred': self.w_ijn[:, 1, :],
+                'ctrb tax-deferred': self.kappa_ijn[:, 1, :],
+                'Roth conversion': self.x_in,
+                'tax-free': self.b_ijn[:, 2, :-1],
+                'wdrwl tax-free': self.w_ijn[:, 2, :],
+                'ctrb tax-free': self.kappa_ijn[:, 2, :],
+            }
+        for i in range(self.N_i):
+            sname = self.inames[i] + '\'s Accounts'
+            ws = wb.create_sheet(sname)
+            rawData = {}
+            # rawData['year'] = np.append(self.year_n, [self.year_n[-1]+1])
+            rawData['year'] = self.year_n
+            for key in accDic:
+                rawData[self.inames[i] + ' ' + key] = accDic[key][i]
+            df = pd.DataFrame(rawData)
+            for rows in dataframe_to_rows(df, index=False, header=True):
+                ws.append(rows)
+
+            _formatSpreadsheet(ws, 'currency')
+
+        _saveWorkbook(wb, basename, overwrite)
+
+        return
+
+    def saveInstanceCSV(self, basename):
+        import pandas as pd
+
+        planData = {}
+        # Start with single entries.
+        planData['year'] = self.year_n
+        planData['net income'] = self.g_n
+        planData['tax bill'] = self.T_n
+
+        for i in range(self.N_i):
+            planData[self.names[i] + ' txbl acc. wrdwl'] = self.w_ijn[i, 0, :]
+            planData[self.names[i] + ' RMD'] = self.rmd_in[i, :]
+            planData[self.names[i] + ' distribution'] = self.w_ijn[i, 1, :]
+            planData[self.names[i] + ' Roth conversion'] = self.x_in[i, :]
+            planData[self.names[i] + ' tax-free wdrwl'] = self.w_ijn[i, 2, :]
+            planData[self.names[i] + ' big-ticket items'] = self.Lambda_in[i, :]
+
+        df = pd.DataFrame(planData)
+
+        while True:
+            try:
+                fname = 'plan' + '_' + basename + '.csv'
+                df.to_csv(fname)
+                # Requires xlwt which is obsolete
+                # df.to_excel(fname)
+                break
+            except PermissionError:
+                print('Failed to save', fname, '. Permission denied.')
+                key = input('Close file and try again? [Yn] ')
+                if key == 'n':
+                    break
+            except Exception:
+                u.xprint('Unanticipated exception', Exception)
+
+        return
 
 def _lineIncomePlot(x, series, style, title, yformat='k$'):
     '''
@@ -1444,5 +1653,62 @@ def showRateDistributions(frm=rates.FROM, to=rates.TO):
     plt.show()
 
     # return fig, ax
+    return
+
+def _saveWorkbook(wb, basename, overwrite=False):
+    '''
+    Utility function to save XL workbook.
+    '''
+    import os.path as path
+
+    fname = 'instance' + '_' + basename + '.xlsx'
+
+    if overwrite is False and path.isfile(fname):
+        print('File ', fname, ' already exists.')
+        key = input('Overwrite? [Ny] ')
+        if key != 'y':
+            print('Skipping save and returning.')
+            return
+
+    while True:
+        try:
+            u.vprint('Saving plan as', fname)
+            wb.save(fname)
+            break
+        except PermissionError:
+            print('Failed to save', fname, '. Permission denied.')
+            key = input('Close file and try again? [Yn] ')
+            if key == 'n':
+                break
+        except Exception:
+            u.xprint('Unanticipated exception', Exception)
+
+    return
+
+
+def _formatSpreadsheet(ws, ftype):
+    '''
+    Utility function to beautify spreadsheet.
+    '''
+    if ftype == 'currency':
+        fstring = u'$#,##0_);[Red]($#,##0)'
+    elif ftype == 'percent2':
+        fstring = u'#.00%'
+    elif ftype == 'percent0':
+        fstring = u'#0%'
+    else:
+        u.xprint('Unknown format:', ftype)
+
+    for cell in ws[1] + ws['A']:
+        cell.style = 'Pandas'
+    for col in ws.columns:
+        column = col[0].column_letter
+        # col[0].style = 'Title'
+        width = len(str(col[0].value)) + 4
+        ws.column_dimensions[column].width = width
+        if column != 'A':
+            for cell in col:
+                cell.number_format = fstring
+
     return
 
