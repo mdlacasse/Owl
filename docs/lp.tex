@@ -6,6 +6,7 @@
 \usepackage{scrextend}
 \usepackage{geometry}
 \usepackage{fancyhdr}
+\usepackage{graphicx}
 \geometry{letterpaper}
 
 \begin{document}
@@ -48,6 +49,8 @@ and serve as a direct reference for better understanding the code implementation
 
 The indices used and their range are defined here, while we also
 introduce the characteristics and dimensions of the problem.
+Upper bounds on indices are indicated by the letter $N$, with the
+index name as a subscript, e.g., $N_i$ for index $i$.
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$i$]
 	Individual. $i$ runs from 0 to $N_i - 1$ where $N_i = 2$ for couples,
@@ -141,11 +144,18 @@ Parameter values are either set by the user, historical data, or by the tax code
 	The {\em smile} can be implemented using a cosine superimposed over a gentle linear increase
 	such as in
 	\begin{equation}
-		\xi_n = 1 + 0.15*cos(2n\pi/(N_n-1)) + 0.12n/(N_n-1),
+		\xi_n = 1 + a_1*cos(2n\pi/(N_n-1)) + a_2n/(N_n-1),
 	\end{equation}
 	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum-neutral with respect to a flat profile.
+	Values of $a_1 = 15\%$ and $a_2=12\%$ provide curves that are similar to realistic
+		spending profiles reported in the literature. See Fig.~\ref{Fig:profile} for an example.
 	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n \ge n_d$,
 	and the normalizing factor needs to be adjusted accordingly.
+		\begin{figure}[t]
+		\includegraphics{profile.png}
+		\caption{\small Example of a spending profile with 15\% cosine factor and a 12\% linear
+		profile. \label{Fig:profile}}
+		\end{figure}
 \item [$\chi$]
 	Factor to reduce spending profile after the passing of one spouse. It is typically
 	assumed to be 0.6.
@@ -154,20 +164,20 @@ Parameter values are either set by the user, historical data, or by the tax code
 	which are determined from IRS tables. Simple if spouses are less than 10 years apart,
 	a little more complex otherwise, as the age of both spouses need to be taken into account.
 	Current implementation only supports spouses being less that 10 years apart.
-\item [$\Gamma{tn}$]
-	Bound for Federal income tax bracket. Note that $\Gamma_{(-1)n} := 0$, and therefore
+\item [$\Gamma_{tn}$]
+	Bound for Federal income tax bracket. We define $\Gamma_{(-1)n} := 0$, so that
 	$\Gamma_{0n}$ is the upper bound for the 10\% tax bracket in year $n$. As the filing status
 	can change for couples, and so can the tax code, there will be changes over $n$.
 \item [$\Delta_{tn}$]
 	Difference between upper bound $\Gamma_t$ and lower bound $\Gamma_{t-1}$
-	of a federal income tax bracket.
+	of a federal income tax bracket,
 	\begin{equation}
 		\Delta_{tn} = \Gamma_{tn} - \Gamma_{(t-1)n}.
 	\end{equation}
 	Once adjusted for inflation,
 	the taxable income can be expressed as in Eq.~(\ref{Eq:Tx1}). These data are 7 time series.
 	The filing status will change after the death of one spouse ($n \ge n_d$) and so these
-	brackets would need to be adjusted accordingly.
+	brackets need to be adjusted accordingly.
 \item [$\theta_{tn}$]
 	Tax rate for tax bracket $t$ in year $n$. Using $N_t$ time series allows to adjust income
 	tax rates in foreseeable future.
@@ -312,14 +322,17 @@ All intermediate variables are in uppercase letters.
 		\label{Eq:Tax}
 		T_n = \sum_t f_{tn}\bar{\Delta}_{tn}\theta_{tn}.
 	\end{equation}
-	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that $f_{tn}$ have to
-	minimize $T_n$.
-
-	As the product $\bar{Delta}_{tn}\theta_{tn}$ does not garrantee that the tax brackets
+	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that optimal
+	values of $f_{tn}$ have to
+	minimize $T_n$ when either the bequest or the desired net income are maximized.
+	As the product $\bar{\Delta}_{tn}\theta_{tn}$ does not garrantee that the tax brackets
 	will be favored monotonically, a more natural choice is to use the combined variable
-	$F_{tn} = f_{tn}\bar{\Delta_{tn}}$ in the optimization. Given that the rates on
-	the tax brackets $\theta_{tn}$ are incressing monotonically, we are then naturally
-	optimizing to fill in the lower brackets first.
+	$\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn}$ in the optimization. Given that the rates on
+	tax brackets $\theta_{tn}$ are always increasing monotonically, we are then naturally
+	filling in the lower brackets first when optimizing. In that case
+		\begin{equation}
+			T_n = \sum_t \bar{F}_t \theta_{tn}.
+		\end{equation}
 \item [$U_n$]
 	Amount of income tax paid on long-term capital gains and qualified dividends in year $n$,
 	\begin{equation}
@@ -353,22 +366,23 @@ All intermediate variables are in uppercase letters.
 		G_n = \sum_t f_{tn}\bar{\Delta}_{tn} ,\nonumber\\
 		0 \leq f_{tn} \leq 1.
 	\end{eqnarray}
-	Because $\theta_{t} > \theta_{t'}$ when $t > t'$, we anticipate that the lower
-	tax brackets will get filled by the minimization algorithm.
-	However, all bracket fractions $f$ must be positive and smaller than or equal to 1,
-	imposing an upper bound on $f$. Since we will use the combined variable
+	Given this definition, all bracket fractions $f$ must be positive and smaller than or equal to 1,
+	imposing an upper bound on $f$.
+	Because $\theta_{t} > \theta_{t'}$ when $t > t'$, we can exploit
+	this monotonically increasing series to fill the lower
+	tax brackets using the minimization algorithm.
+	For that purpose, we need to introduce the combined variable
 	\begin{equation}
 		\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn},
 	\end{equation}
-	this will imply that
+	implying that
 	\begin{equation}
-		\bar{F}_{tn} \le \bar{\Delta}_{tn},
+		G_n = \sum_t \bar{F}_{tn},
 	\end{equation}
-	and that
+	with
 	\begin{equation}
-		G_n = \sum_t \bar{F}_{tn}.
+		\bar{F}_{tn} \le \bar{\Delta}_{tn}.
 	\end{equation}
-
 
 \paragraph*{Account balances}
 	Contributions are assumed to be made at half-year to better represent periodic contributions
@@ -411,10 +425,20 @@ All intermediate variables are in uppercase letters.
 		&=& \kappa_{ijkn} \left(1 + \tau_{kn}/2\right).
 	\end{eqnarray}
 
-	The initial balances are imposed as additional constraints as
+	For each year, there is a degeneracy between a withdrawal from a tax-deferred account and a
+	Roth conversion followed by a withdrawal from a tax-tree account. To resolve this degeneracy,
+	we re-characterize the latter as a distribution by defining the following variables
+	\begin{eqnarray}
+		x'_{in} &=& max(0, x_{in} - w_{i2n}), \nonumber \\
+		w'_{i1n} &=& w_{i1n} + x'_{in}, \nonumber \\
+		w'_{i2n} &=& w_{i2n} - x'_{in}.
+	\end{eqnarray}
+	We then use the primed variables for analyzing the final results of a scenario.
+
+	The initial savings account balances are imposed through additional constraints as
 	\begin{eqnarray}
 		\label{Eq:InitialBalance}
-		b_{ijk0} = \beta_{ij}\alpha_{ijk0},
+		b_{ijk0} = \alpha_{ijk0}\beta_{ij},
 	\end{eqnarray}
 	where we applied the initial allocation ratios $\alpha$ on the initial account balances $\beta_{ij}$.
 
@@ -452,38 +476,47 @@ All intermediate variables are in uppercase letters.
 		b_{ijkn} - b^-_{ijkn} \geq 0.
 	\end{equation}
 
-	The initial balances $b_{0}$ are one of the main inputs of this model. They are
+	The initial balances $\beta_{ij}$ are one of the main inputs of this model. They are
 	enforced as a constraint that depends on the asset allocation scheme chosen.
 	For {\em account} prescribed allocations,
 	\begin{equation}
 		\label{Eq:AccountCoord}
-		b_{ijk0} = b_0 \alpha_{ijk0},
+		b_{ijk0} =  \alpha_{ijk0}\beta_{ij},
 	\end{equation}
 	while for {\em individual} coordination between accounts,
 	\begin{equation}
-		\sum_j b_{ijk0} = b_0 \alpha_{ik0},
+		\sum_j b_{ijk0} = \alpha_{ik0}\beta_{ij},
 	\end{equation}
 	and finally, for {\em spouses} type of coordination,
 	\begin{equation}
 		\label{Eq:SpouseCoord}
-		\sum_{ij} b_{ijk0} = b_0 \alpha_{k0}.
+		\sum_{ij} b_{ijk0} = \alpha_{k0}\beta_{ij}.
 	\end{equation}
+
+	Maintaining the allocation is provided by the rebalancing variables $b^\pm$. After each
+	rebalancing activity,
+	\begin{equation}
+		\label{Eq:Rebalance}
+		(b_{ijkn} + b^+_{ijkn} - b^-_{ijkn}) = \alpha_{ijkn}\sum_{k'} b_{ijk'n},
+	\end{equation}
+	where we used Eq.~\ref{Eq:NoNewMoney}.
 
 \paragraph*{Roth Conversions}
 	Roth conversions cannot be larger than the balance in the account:
 	\begin{equation}
-		x_{ijn} \le b_i1kn.
+		x_{ijn} \le b_{i1kn}.
 	\end{equation}
-	Additional constraints $x_{max}$ can be put on conversions and then the previous equation
+	This constraint, however, is naturally satisfied when $b_{ijkn}$ is enforced.
+	Additional constraints $x_{max}$ can be imposed on conversions and then the previous equation
 	becomes
 	\begin{equation}
-		x_{ijn} \le \min(b_i1kn, x_{max}).
+		x_{ijn} \le \min(b_{i1kn}, x_{max}).
 	\end{equation}
 
 \paragraph*{Net income}
 	For calculating the net income $g$, we consider the cash flow of all withdrawals,
 	wages, social security and pension benefits, and big-ticket items. 
-	Then we subtract potential surplus deposits $d$ made to taxable savings account
+	Then we subtract potential surplus deposits $d$ made to the taxable savings account
 	and all taxes paid:
 	\begin{eqnarray}
 		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
@@ -508,16 +541,17 @@ All intermediate variables are in uppercase letters.
 	We also want the net income to be predictable and smooth. We will use
 \begin{equation}
 	\label{Eq:C5a}
-	g_{n} = g_0 \bar{\xi}_n,
+	g_{n}/\bar{\xi}_{n} = g_0/\bar{\xi}_0,
 \end{equation}
-where net income is adjusted for inflation and where we introduced parameter $\xi_n$ 
+where the net income is adjusted for inflation and where we introduced parameter $\xi_n$ 
 allowing for additional adjustments to the overall desired spending.
-This can be used to lower the desired income at the passing of one spouse and/or to 
-allow for more realistic spending profiles.
-Eq.~(\ref{Eq:C5a}) will naturally be rewritten as
+Note that $\bar{\xi}_0 = \xi_0$ as $\gamma_0=1$.
+This spending profile can also be used to lower the desired income at the passing
+of one spouse and/or to allow for more realistic spending profiles.
+Eq.~(\ref{Eq:C5a}) can be rewritten as
 \begin{equation}
 	\label{Eq:C5}
-	g_n - g_0 \bar{\xi}_n = 0,
+	g_n \xi_0 - g_0 \bar{\xi}_n = 0,
 \end{equation}
 for the constraints to be enforced. Once $g_0$ is determined, the whole time series of net income
 is determined.
@@ -958,18 +992,21 @@ by asset classes using $b_{ijkn}$. We can then prescribe how to rebalance the ac
 The values of $b^\pm$ can be governed by prescribed asset allocation ratios $\alpha$ defined as
 \begin{equation}
 	\label{Eq:Alloc1}
-	\alpha_{ijkn} = b_{ijkn}/\sum_{k'} b_{ijk'n},
+	\alpha_{ijkn} = (b_{ijkn} + b^+_{ijkn} - b^-_{ijkn})/\sum_{k'} b_{ijk'n},
 \end{equation}
 where $k'$ here is just a dummy index.
 These asset allocation ratios can then be imposed as an equality constraint as
 \begin{equation}
 	\label{Eq:Alloc2}
-	\sum_{k'} [(\delta(k, k') - \alpha_{ijkn}) b_{ijk'n}] = 0,
+	b_{ijkn} + b^+_{ijkn} - b^-_{ijkn} - \sum_{k'} \alpha_{ijkn} b_{ijk'n}] = 0,
 \end{equation}
 which can be written as
 \begin{eqnarray}
 	\label{Eq:Alloc3}
-	A[J_6(i, j, k, n), q_b(i, j, k', n)] &=& \delta(k, k') - \alpha_{ijkn}, \nonumber\\
+	A[J_6(i, j, k, n), q_b(i, j, k, n)] &=& 1, \nonumber\\
+	A[J_6(i, j, k, n), q_b^+(i, j, k, n)] &=& 1, \nonumber\\
+	A[J_6(i, j, k, n), q_b^-(i, j, k, n)] &=& -1, \nonumber\\
+	A[J_6(i, j, k, n), q_b(i, j, k', n)] &=& - \alpha_{ijkn}, \nonumber\\
 	v[J_6(i, j, k, n)] &=& 0, \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -1057,16 +1094,6 @@ but this can cause drawing an account empty while the other spousal account is n
 
 \section{Objective functions}
 The objective function is a simple scalar defined as $c\cdot y$ that will be minimized.
-\paragraph*{Generalities}
-To ensure that the tax brackets get filled from the bottom up, one can add the following to
-the objective function
-\begin{eqnarray}
-	c[q_f(t, n)] &=& 2^{t},\\
-	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
-	&&\qquad\forall n \in \{0,\ldots, N_n-1\}.\nonumber
-\end{eqnarray}
-The term chosen on the right-hand side can be any monotonically increasing function with
-respect to $t$.
 
 \paragraph*{Maximum net income}
 There are a few ways by which a retirement plan can be optimized. For maximizing the net income under
