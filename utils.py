@@ -86,7 +86,7 @@ def getUnits(units):
     '''
     Return proper factor for units.
     '''
-    if units is None or units == 1 or units =='1':
+    if units is None or units == 1 or units =='1' or units == 'one':
         fac = 1
     elif units in {'k', 'K'}:
         fac = 1000

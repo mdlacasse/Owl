@@ -109,7 +109,7 @@ def _q4(C, l1, l2, l3, l4, N1, N2, N3, N4):
 ############################################################################
 
 
-class Owl:
+class Plan:
     '''
     This is the main class of the Owl Project.
     '''
@@ -321,19 +321,19 @@ class Owl:
 
         return
 
-    def setSpendingProfile(self, profile, fraction=0.6):
+    def setSpendingProfile(self, profile, percent=60):
         '''
         Generate time series for spending profile.
         Surviving spouse fraction can be specified or
         previous value can be used.
         '''
-        self.chi = fraction
+        self.chi = percent/100
 
         u.vprint('Setting', profile, 'spending profile.')
         if self.N_i == 2:
-            u.vprint('Using ', fraction, 'survivor fraction.')
+            u.vprint('Using ', u.pc(self.chi, f=0), 'survivor fraction.')
 
-        self.xi_n = _xi_n(profile, fraction, self.n_d, self.N_n)
+        self.xi_n = _xi_n(profile, self.chi, self.n_d, self.N_n)
         self.spendingProfile = profile
 
         return
@@ -497,7 +497,7 @@ class Owl:
                         start = alpha[j][i, 0, k]/100
                         end = alpha[j][i, 1, k]/100
                         dat = self._interpolator(start, end, Nin)
-                        self.alpha_ijkn[i, j, k, :] = dat[:]
+                        self.alpha_ijkn[i, j, k, :Nin] = dat[:]
 
         elif allocType == 'individual':
             assert len(generic) == self.N_i, 'generic must have one list per individual.'
@@ -726,11 +726,18 @@ class Owl:
                         uvec.append(rhs)
         
         if Ni == 2:
-            # No Roth conversion, withdrawals or deposits for the deceased.
+            # RMD must still be perfomed during year of passing.
+            row = np.zeros(self.nvars)
+            row[_q3(Cw, i_d, 1, n_d-1, Ni, Nj, Nn)] = 1
+            row[_q3(Cb, i_d, 1, n_d-1, Ni, Nj, Nn+1)] = -self.rho_in[i_d, n_d-1]
+            rhs = 0
+            Ae.append(row)
+            vvec.append(rhs)
+            # But no activity after passing.
             for n in range(n_d-1, Nn):
                 row = np.zeros(self.nvars)
-                row[_q2(Cx, i_d, n, Ni, Nn)] = 1
                 row[_q2(Cd, i_d, n, Ni, Nn)] = 1
+                row[_q2(Cx, i_d, n, Ni, Nn)] = 1
                 for j in range(Nj):
                     row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = 1
                 rhs = 0
@@ -1041,21 +1048,24 @@ class Owl:
         print('Solver options:', self.solverOptions)
         print('Spending profile:', self.spendingProfile)
         print('Net yearly income in %d$: %s'%(now, u.d(self.g_n[0])))
-        estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
-        estate[1] *= (1 - self.nu)
-        print('Final account post-tax nominal values:', *[u.d(estate[j]) for j in range(self.N_j)])
-        print('Assumed heirs tax rate:', u.pc(self.nu, f=0))
-        totEstate = np.sum(estate)
-        totEstateNow = totEstate/self.gamma_n[self.N_n-1]
-        print('Final estate value in %d$: %s (%s nominal)'%(now, u.d(totEstateNow),u.d(totEstate)))
+
+        totIncome = np.sum(self.g_n, axis=0)
+        totIncomeNow = np.sum(self.g_n/self.gamma_n, axis=0)
+        print('Total net income in %d$: %s (%s nominal)'%(now, u.d(totIncomeNow), u.d(totIncome)))
 
         taxPaid = np.sum(self.f_tn*self.theta_tn, axis=(0, 1))
         taxPaidNow = np.sum(np.sum(self.f_tn*self.theta_tn, axis=0)/self.gamma_n, axis=0)
         print('Total income tax paid in %d$: %s (%s nominal)'%(now, u.d(taxPaidNow), u.d(taxPaid)))
     
-        totIncome = np.sum(self.g_n, axis=0)
-        totIncomeNow = np.sum(self.g_n/self.gamma_n, axis=0)
-        print('Total net income in %d$: %s (%s nominal)'%(now, u.d(totIncomeNow), u.d(totIncome)))
+        estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
+        estate[1] *= (1 - self.nu)
+        print('Assumed heirs tax rate:', u.pc(self.nu, f=0))
+        print('Final account post-tax nominal values:', *[u.d(estate[j]) for j in range(self.N_j)])
+
+        totEstate = np.sum(estate)
+        totEstateNow = totEstate/self.gamma_n[self.N_n-1]
+        print('Final estate value in %d$: %s (%s nominal)'%(now, u.d(totEstateNow),u.d(totEstate)))
+
         print('--------------------------------------------------------------')
 
         return
@@ -1178,12 +1188,14 @@ class Owl:
         '''
         count = self.N_i
         if self.ARCoord == 'spouses':
-            acList = ['coordinated']
+            acList = [self.ARCoord]
             count = 1
         elif self.ARCoord == 'individual':
-            acList = ['coordinated']
-        else:
+            acList = [self.ARCoord]
+        elif self.ARCoord == 'account':
             acList = ['taxable', 'tax-deferred', 'tax-free']
+        else:
+            u.xprint('Unknown coordination', self.ARCoord)
 
         assetDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
         for i in range(count):
@@ -1317,7 +1329,7 @@ class Owl:
             ax.plot(self.year_n, data_adj, label=key, ls=':')
 
         plt.grid(visible='both')
-        ax.legend(loc='upper right', reverse=True, fontsize=8, framealpha=0.3)
+        ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.3)
 
         return
 
@@ -1370,7 +1382,7 @@ def _stackPlot(x, inames, title, irange, series, snames, location, ytype='dollar
     plt.grid(visible='both')
 
     ax.stackplot(x, nonzeroSeries.values(), labels=nonzeroSeries.keys(), alpha=0.6)
-    ax.legend(loc=location, reverse=True, fontsize=8, ncol=2, framealpha=0.6)
+    ax.legend(loc=location, reverse=True, fontsize=8, ncol=2, framealpha=0.5)
     ax.set_title(title)
     ax.set_xlabel('year')
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
@@ -1388,4 +1400,49 @@ def _stackPlot(x, inames, title, irange, series, snames, location, ytype='dollar
         u.xprint('Unknown ytype:', ytype)
 
         return fig, ax
+
+def showRateDistributions(frm=rates.FROM, to=rates.TO):
+    '''
+    Plot histograms of the rates distributions.
+    '''
+    import matplotlib.pyplot as plt
+
+    title = 'Rates from ' + str(frm) + ' to ' + str(to)
+    # Bring year values to indices.
+    frm -= rates.FROM
+    to -= rates.FROM
+
+    nbins = int((to - frm) / 4)
+    fig, ax = plt.subplots(1, 4, sharey=True, sharex=True, tight_layout=True)
+
+    dat0 = np.array(rates.SP500[frm:to])
+    dat1 = np.array(rates.BondsBaa[frm:to])
+    dat2 = np.array(rates.TNotes[frm:to])
+    dat3 = np.array(rates.Inflation[frm:to])
+
+    fig.suptitle(title)
+    ax[0].set_title('S&P500')
+    label = '<>: ' + u.pc(np.mean(dat0), 2, 1)
+    ax[0].hist(dat0, bins=nbins, label=label)
+    ax[0].legend(loc='upper left', fontsize=8, framealpha=0.7)
+
+    ax[1].set_title('BondsBaa')
+    label = '<>: ' + u.pc(np.mean(dat1), 2, 1)
+    ax[1].hist(dat1, bins=nbins, label=label)
+    ax[1].legend(loc='upper left', fontsize=8, framealpha=0.7)
+
+    ax[2].set_title('TNotes')
+    label = '<>: ' + u.pc(np.mean(dat2), 2, 1)
+    ax[2].hist(dat1, bins=nbins, label=label)
+    ax[2].legend(loc='upper left', fontsize=8, framealpha=0.7)
+
+    ax[3].set_title('Inflation')
+    label = '<>: ' + u.pc(np.mean(dat3), 2, 1)
+    ax[3].hist(dat3, bins=nbins, label=label)
+    ax[3].legend(loc='upper left', fontsize=8, framealpha=0.7)
+
+    plt.show()
+
+    # return fig, ax
+    return
 
