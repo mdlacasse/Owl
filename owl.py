@@ -1017,7 +1017,7 @@ class Plan:
             'wdrwl tax-free',
         ]
 
-        # Reroute Roth conversions + tax-free withdrawals = distributions.
+        # Reroute (Roth conversions + tax-free withdrawals) == distributions.
         new_x_in = self.x_in - self.w_ijn[:,2,:]
         new_x_in[new_x_in < 0] = 0
         delta = (self.x_in - new_x_in)
@@ -1025,15 +1025,14 @@ class Plan:
         self.w_ijn[:, 2, :] -= delta
         self.x_in = new_x_in
 
-        # Reroute degeneracy between tax-free and taxable account at N_n.
-        if Ni == 2:
-            wdrl = self.w_ijn[self.i_s, 2, -1]
-            dep = self.d_in[self.i_s, -1]
-            z = min(wdrl, dep)
-            self.b_ijn[self.i_s, 0, -1] -= z
-            self.b_ijn[self.i_s, 2, -1] += z
-            self.w_ijn[self.i_s, 2, -1] -= z
-            self.d_in[self.i_s, -1] -= z
+        # Reroute (tax-free withdrawal + taxable deposit == 0) during last year.
+        wdrl = self.w_ijn[self.i_s, 2, -1]
+        dep = self.d_in[self.i_s, -1]
+        z = min(wdrl, dep)
+        self.b_ijn[self.i_s, 0, -1] -= z
+        self.b_ijn[self.i_s, 2, -1] += z
+        self.w_ijn[self.i_s, 2, -1] -= z
+        self.d_in[self.i_s, -1] -= z
 
         self.rmd_in = self.rho_in*self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:,1,:] - self.rmd_in
