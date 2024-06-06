@@ -34,7 +34,7 @@ By far, the easiest way to run a Jupiter notebook is to use Google Colab.
 - Step 4. Run the notebook (Runtime-> Run All)
 
 Alternatively, a better way is to perform an installation of Anaconda on your computer.
-THis will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
+This will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
 It can be found at [anaconda.com](https://anaconda.com).
 Follow the instructions in the Jupyter tutorial included (link below) for installing anaconda on your computer.
 The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
