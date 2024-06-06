@@ -74,7 +74,7 @@ def rescale(vals, fac):
     Rescale elements of a list or array by factor fac.
     '''
     if isinstance(vals, (float, int)) == True:
-        return vals*fac
+        return vals * fac
     else:
         for i in range(len(vals)):
             vals[i] *= fac
@@ -86,7 +86,7 @@ def getUnits(units):
     '''
     Return proper factor for units.
     '''
-    if units is None or units == 1 or units =='1' or units == 'one':
+    if units is None or units == 1 or units == '1' or units == 'one':
         fac = 1
     elif units in {'k', 'K'}:
         fac = 1000
@@ -96,6 +96,7 @@ def getUnits(units):
         xprint('Unknown units', units)
 
     return fac
+
 
 def krond(a, b):
     '''

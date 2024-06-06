@@ -803,8 +803,8 @@ class rates:
         else:
             # Then methods relying on historical data range.
             assert frm is not None, 'From year must be provided with the this option.'
-            assert FROM <= frm and frm <= TO, 'Lower range "frm=%d" out of bounds.'%frm
-            assert FROM <= to and to <= TO, 'Upper range "to=%d" out of bounds.'%to
+            assert FROM <= frm and frm <= TO, 'Lower range "frm=%d" out of bounds.' % frm
+            assert FROM <= to and to <= TO, 'Upper range "to=%d" out of bounds.' % to
             assert frm < to, 'Unacceptable range.'
             self.frm = frm
             self.to = to

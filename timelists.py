@@ -7,6 +7,7 @@ import pandas as pd
 
 import utils as u
 
+
 def read(filename, N_i, horizons):
     '''
     Read listed parameters from an excel spreadsheet through pandas.
@@ -49,7 +50,7 @@ def read(filename, N_i, horizons):
                 missing += 1
 
         if missing > 0:
-            u.vprint('\tAdding %d missing year for %s.'%(missing, name))
+            u.vprint('\tAdding %d missing year for %s.' % (missing, name))
 
         df.sort_values('year', inplace=True)
         # Replace empty (NaN) cells with 0 value.
@@ -82,7 +83,7 @@ def check(names, timeLists, horizons):
     thisyear = date.today().year
     for i in range(len(names)):
         yend = thisyear + horizons[i]
-        if timeLists[i]['year'][-1] < yend-1:
+        if timeLists[i]['year'][-1] < yend - 1:
             u.xprint(
                 'Time horizon for',
                 names[i],
@@ -107,7 +108,10 @@ def check(names, timeLists, horizons):
     for i in range(len(names)):
         for n in range(horizons[i]):
             for item in timeHorizonItems:
-                assert timeLists[i][item][n] >= 0, 'Item %s for %s in year %d is < 0.'%(item, names[i], n)
+                assert timeLists[i][item][n] >= 0, 'Item %s for %s in year %d is < 0.' % (
+                    item,
+                    names[i],
+                    n,
+                )
 
     return
-

@@ -11,8 +11,10 @@ rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 
 # Single [0] and married filing jointly [1].
 brackets_2024 = np.array(
-    [[11600, 47150, 100525, 191950, 243450, 609350, 9999999],
-     [23200, 94300, 201050, 383900, 487450, 731200, 9999999]]
+    [
+        [11600, 47150, 100525, 191950, 243450, 609350, 9999999],
+        [23200, 94300, 201050, 383900, 487450, 731200, 9999999],
+    ]
 )
 
 '''
@@ -24,8 +26,10 @@ brackets_2017 = np.array(
 
 # Adjusted from 2017 to 2024 with 27% increase.
 brackets_2026 = np.array(
-    [[11850, 48200, 116700, 243400, 529200, 531400, 9999999],
-     [23700, 96400, 194400, 296350, 529200, 596900, 9999999]]
+    [
+        [11850, 48200, 116700, 243400, 529200, 531400, 9999999],
+        [23700, 96400, 194400, 296350, 529200, 596900, 9999999],
+    ]
 )
 
 stdDeduction_2024 = np.array([14600, 29200])
@@ -34,6 +38,7 @@ extraDeduction_65 = np.array([1950, 1550])
 
 
 ##############################################################################
+
 
 def taxParams(yobs, i_d, n_d, N_n):
     '''
@@ -97,14 +102,14 @@ def taxBrackets(N_i, n_d, N_n):
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
     '''
-    assert 0 < N_i and N_i <= 2, 'Cannot process %d individuals.'%N_i
+    assert 0 < N_i and N_i <= 2, 'Cannot process %d individuals.' % N_i
     # This 2 is the number of years left in TCJA from 2024.
     ytc = 2
-    status = N_i-1
+    status = N_i - 1
     n_d = min(n_d, N_n)
 
     data = {}
-    for t in range(len(bracketNames)-1):
+    for t in range(len(bracketNames) - 1):
         array = np.zeros(N_n)
         array[0:ytc] = brackets_2024[status][t]
         array[ytc:n_d] = brackets_2026[status][t]
@@ -176,4 +181,3 @@ def rho_in(yobs, N_n):
                 rho[i][n] = 1.0 / rmdTable[yage - 72]
 
     return rho
-
