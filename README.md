@@ -22,10 +22,19 @@ Disclaimers: I am not a financial planner. You make your own decisions. This pro
 
 -------------------------------------------------------------------------------------
 ## Requirements
+
 It is assumed that you have some familiarity with using a jupyter notebook or jupyterLab, and some very basic programming skills in Python.
 If not, a simple tutorial can guide you to the basic skills needed.
 
-You will need an installation of Anaconda and be able to run Jupyter notebooks. 
+By far, the easiest way to run a Jupiter notebook is to use Google Colab.
+
+- Step 1. Go to [Google Colab](https://colab.research.google.com).
+- Step 2. Click on the File-> Open Notebook and drop the ipynb you would like to run.
+- Step 3. Then, upload (or drag and drop) all files in this repository (except the docs directory) from your computer to the Colab Notebooks Files panel on the left (opened though the folder icon). You will get a warning that all these files are deleted at the end of the session. This is true!
+- Step 4. Run the notebook (Runtime-> Run All)
+
+Alternatively, a better way is to perform an installation of Anaconda on your computer.
+THis will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
 It can be found at [anaconda.com](https://anaconda.com).
 Follow the instructions in the Jupyter tutorial included (link below) for installing anaconda on your computer.
 The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
