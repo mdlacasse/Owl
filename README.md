@@ -51,7 +51,7 @@ There are many tutorials on this topic and a summary including installation proc
 given [here](https://github.com/mdlacasse/ARP-Lab/blob/main/Jupyter_tutorial.md).
 
 For simulating your own realizations, use the files beginning with template.
-Make a copy and rename them keeping the same extension and give them your own names.
+Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
 
 ## Basic capabilities
@@ -61,7 +61,7 @@ and optimized under the assumption of a heirs marginal tax rate and subject to a
 conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 
-Current version has no optimization of the asset allocation ratios between savings accounts.
+Current version has no optimization of asset allocation ratios between savings accounts.
 If there is interest,
 that could be added in the future. Also, only US federal income tax is considered.
 
