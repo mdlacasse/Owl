@@ -66,9 +66,9 @@ plan.showAccounts()
 ```
 Typical plots look lile the following
 
-![Plot of Savings Balance](https://githib.com/mdlacasse/Owl/blob/main/docs/savingsPlot.png)
+![Plot of Savings Balance](https://github.com/mdlacasse/Owl/blob/main/docs/savingsPlot.png)
 
-![Plot of Sources](https://githib.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png)
+![Plot of Sources](https://github.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png)
 
 A short text summary can be displayed through
 ```python
@@ -96,7 +96,7 @@ And an Excel table can be saved with all the amounts over the year
 ```
 plan.saveInstance('jack+jill-1969', True)
 ```
-A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/tree/main/jack+jill.ipynb).
+A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/blob/main/jack+jill.ipynb).
 
 
 
