@@ -861,7 +861,7 @@ class Plan:
                         + self.pi_in[i, n] + self.Lambda_in[i, n]
                         - 0.5*self.psi*self.mu*self.kappa_ijkn[i, 0, 0, n])
                 row[_q3(Cb, i, 0, n, Ni, Nj, Nn+1)] = self.mu*self.psi*self.alpha_ijkn[i, 0, 0, n]
-                fac = self.psi*max(0, self.tau_kn[0, n])/(1 + max(0, self.tau_kn[0, n]))
+                fac = self.psi*max(0, self.tau_kn[0, n])
                 row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fac*self.alpha_ijkn[i, 0, 0, n]
                 row[_q2(Cd, i, n, Ni, Nn)] = 1
                 for j in range(Nj):

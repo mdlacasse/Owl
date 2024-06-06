@@ -218,6 +218,11 @@ or an s-curve as in
 	These interpolation functions allow the allocation ratios to gradually change
 	or {\em glide} during retirement.
 
+	\begin{figure}[t]
+	\includegraphics{allocations.png}
+		\caption{\small Example of an allocation portfolio with 60/40\% stocks/bonds 
+		transitioning to 70/30\%. \label{Fig:allocations}}
+	\end{figure}
 	It is also possible to have a coarser granularity on the portfolio by
 	having an asset allocation scheme
 	defined on a sum of accounts. For example, allocation can be coordinated between accounts
@@ -301,7 +306,7 @@ All intermediate variables are in uppercase letters.
 	\begin{equation}
 		\label{Eq:Qx2}
 		Q_n = \sum_{i} \left[(b_{i00n} + .5\kappa_{i00n})\mu +
-		(w_{i00n} + b^-_{i00n})\frac{\max(0, \tau_{0n})}{1 + \max(0, \tau_{0n})}\right].
+		(w_{i00n} + b^-_{i00n}){\max(0, \tau_{0n})}\right].
 	\end{equation}
 	A formulation where only a fraction of dividends are qualified can easily be
 	implemented with the addition of another parameter.
@@ -435,6 +440,9 @@ All intermediate variables are in uppercase letters.
 	\end{eqnarray}
 	We then use the primed variables for analyzing the final results of a scenario.
 
+	There is also another null space involving a tax-free withdrawal in the last year
+	followed by a deposit in the taxable account. This can also easily be removed.
+
 	The initial savings account balances are imposed through additional constraints as
 	\begin{eqnarray}
 		\label{Eq:InitialBalance}
@@ -531,7 +539,7 @@ All intermediate variables are in uppercase letters.
 		g_n - \sum_{ijk} w_{ijkn} + \sum_{ik}d_{ikn}
 		+ \sum_t \bar{\Delta}_{t n}\theta_{t n} f_{t n}&&\nonumber \\
 		+ \psi \sum_{i} \left[\mu b_{i00n} + (w_{i00n} + b^-_{i00n})
-		\frac{\max(0, \tau_{0n})}{1 + \max(0, \tau_{0n})}\right] 
+		\max(0, \tau_{0n})\right] 
 		&= & \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
 		&& + \sum_i [\Lambda_{in} - .5\mu\psi\kappa_{i00n}].
 	\end{eqnarray}
