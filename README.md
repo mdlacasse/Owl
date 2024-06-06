@@ -12,8 +12,9 @@ These decisions need to be guided with an understanding of the sensitivity of th
 This is exactly where this tool fits it. Given your savings and spending desires, it can generate different future realizations of
 your strategy under different market assumptions, helping to better understand your financial situation.
 
-The algorithm in Owl is the HIGHS linear programming solver. The formulation of the mathematical model can be found
-[here](https://github.com/mdlacasse/Owl/tree/main/docs/lp.pdf).
+The algorithm in Owl is using the open-source HIGHS linear programming solver. The complete formulation and
+detailed description of the undelying
+mathematical model can be found [here](https://github.com/mdlacasse/Owl/tree/main/docs/lp.pdf).
 
 Copyright - Martin-D. Lacasse (2024)
 
@@ -41,11 +42,15 @@ given [here](https://github.com/mdlacasse/ARP-Lab/blob/main/Jupyter_tutorial.md)
 For simulating your own realizations, use the files beginning with template.
 Make a copy and rename them keeping the same extension and give them your own names.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
+
 ## Basic capabilities
 Owl can optimize for either maximum net income under the constraint of a given bequest, or maximize the
-bequest under the constraint of a desired net income profile.
+bequest under the constraint of a desired net income profile. Roth conversions are also considered
+and optimized under the assumption of a heirs marginal tax rate and subject to an optional maximum
+conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
+or through historical values, as are all other rates used for the calculations.
 
-Current version has no optimization of the allocation ratio nbetween accounts. If there is interest,
+Current version has no optimization of the allocation ratio between accounts. If there is interest,
 that could be added in the future.
 
 ## Let's explore the functionality of the tool through a specific example.
