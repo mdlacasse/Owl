@@ -60,7 +60,7 @@ conversion amount. All calculations are indexed for inflation, which is provided
 or through historical values, as are all other rates used for the calculations.
 
 Current version has no optimization of the allocation ratio between accounts. If there is interest,
-that could be added in the future.
+that could be added in the future. Also, only US federal income tax is considered.
 
 ## Let's explore the functionality of the tool through a specific example.
 With less than 15 lines of code, one can generate a full case study.
@@ -80,6 +80,7 @@ plan.setRates('historical', 1969)
 options={'maxRothConversion': 100, 'estate': 500}
 plan.solve('maxIncome', options=options)
 ```
+Dollar amounts are in k\$ and ratios in percentage.
 The output can be seen using the following command that displays plot of the property in time.
 ```python
 plan.showNetIncome()
