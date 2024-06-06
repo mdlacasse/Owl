@@ -41,6 +41,12 @@ given [here](https://github.com/mdlacasse/ARP-Lab/blob/main/Jupyter_tutorial.md)
 For simulating your own realizations, use the files beginning with template.
 Make a copy and rename them keeping the same extension and give them your own names.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
+## Basic capabilities
+Owl can optimize for either maximum net income under the constraint of a given bequest, or maximize the
+bequest under the constraint of a desired net income profile.
+
+Current version has no optimization of the allocation ratio nbetween accounts. If there is interest,
+that could be added in the future.
 
 ## Let's explore the functionality of the tool through a specific example.
 With less than 15 lines of code, one can generate a full case study.
