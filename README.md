@@ -63,7 +63,7 @@ Current version has no optimization of the allocation ratio between accounts. If
 that could be added in the future. Also, only US federal income tax is considered.
 
 ## Let's explore the functionality of the tool through a specific example.
-With less than 15 lines of code, one can generate a full case study.
+With less 12 lines of code, one can generate a full case study.
 Here is a complete example without comments:
 ```python
 import owl
@@ -77,8 +77,7 @@ plan.setPension([0, 10], [65, 65])
 plan.setSocialSecurity([28, 25], [70, 70])
 plan.setSpendingProfile('smile')
 plan.setRates('historical', 1969)
-options={'maxRothConversion': 100, 'estate': 500}
-plan.solve('maxIncome', options=options)
+plan.solve('maxIncome', options={'maxRothConversion': 100, 'estate': 500})
 ```
 Dollar amounts are in k\$ and ratios in percentage.
 The output can be seen using the following commands that display plots of the various variables in time.
