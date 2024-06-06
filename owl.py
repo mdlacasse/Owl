@@ -905,7 +905,7 @@ class Plan:
         self.A_eq = np.array(Ae)
         self.b_eq = np.array(vvec)
         
-        # Now build objective vector.
+        # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
         c = np.zeros(self.nvars)
         if objective == 'maxIncome':
             c[_q1(Cg, 0, Nn)] = -1
@@ -913,7 +913,7 @@ class Plan:
             for i in range(Ni):
                 c[_q3(Cb, i, 0, Nn, Ni, Nj, Nn+1)] = -1
                 c[_q3(Cb, i, 1, Nn, Ni, Nj, Nn+1)] = -(1 - self.nu)
-                c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn+1)] = -1
+                c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn+1)] = -1.01
 
         return c
 
@@ -1018,21 +1018,20 @@ class Plan:
         ]
 
         # Reroute (Roth conversions + tax-free withdrawals) == distributions.
-        new_x_in = self.x_in - self.w_ijn[:,2,:]
-        new_x_in[new_x_in < 0] = 0
-        delta = (self.x_in - new_x_in)
-        self.w_ijn[:, 1, :] += delta
-        self.w_ijn[:, 2, :] -= delta
-        self.x_in = new_x_in
+        z = np.minimum(self.x_in, self.w_ijn[:,2,:])
+        self.w_ijn[:, 2, :] -= z
+        self.b_ijn[:, 2, :-1] += z
+        self.x_in -= z
+        self.w_ijn[:, 1, :] += z
 
-        # Reroute (tax-free withdrawal + taxable deposit == 0) during last year.
-        wdrl = self.w_ijn[self.i_s, 2, -1]
-        dep = self.d_in[self.i_s, -1]
-        z = min(wdrl, dep)
-        self.b_ijn[self.i_s, 0, -1] -= z
-        self.b_ijn[self.i_s, 2, -1] += z
-        self.w_ijn[self.i_s, 2, -1] -= z
-        self.d_in[self.i_s, -1] -= z
+        '''
+        # Reroute (tax-free withdrawal + taxable deposit == 0) during last years.
+        z = np.minimum(self.d_in[:, :-4], self.w_ijn[:, 2, :-4])
+        self.b_ijn[:, 0, :-5] -= z
+        self.d_in[:, :-4] -= z
+        self.w_ijn[:, 2, :-4] -= z
+        self.b_ijn[:, 2, :-5] += z
+        '''
 
         self.rmd_in = self.rho_in*self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:,1,:] - self.rmd_in
