@@ -61,7 +61,8 @@ and optimized under the assumption of a heirs marginal tax rate and subject to a
 conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 
-Current version has no optimization of the allocation ratio between accounts. If there is interest,
+Current version has no optimization of the asset allocation ratios between savings accounts.
+If there is interest,
 that could be added in the future. Also, only US federal income tax is considered.
 
 ## Let's explore the functionality of the tool through a specific example.
