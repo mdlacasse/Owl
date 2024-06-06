@@ -81,7 +81,7 @@ options={'maxRothConversion': 100, 'estate': 500}
 plan.solve('maxIncome', options=options)
 ```
 Dollar amounts are in k\$ and ratios in percentage.
-The output can be seen using the following command that displays plot of the property in time.
+The output can be seen using the following commands that display plots of the various variables in time.
 ```python
 plan.showNetIncome()
 plan.showGrossIncome()
@@ -89,11 +89,11 @@ plan.showTaxes()
 plan.showSources()
 plan.showAccounts()
 ```
-Typical plots look lile the following. This plot shows the account balances in all savings accounts owned by Jack and Jill.
+Typical plots look like the following. This plot shows the account balances in all savings accounts owned by Jack and Jill,
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/savingsPlot.png" width="800">
 
-And this plot shows the cash flow from all sources.
+while this plot shows the cash flow from all sources.
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png" width="800">
 
@@ -103,7 +103,7 @@ plan.showRates()
 ```
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/ratesPlot.png" width="800">
 
-A short text summary of the outcome at the end of the optimization can be displayed through using:
+A short text summary of the outcome of the optimization can be displayed through using:
 ```python
 plan.summary()
 ```
@@ -125,7 +125,7 @@ Final account post-tax nominal values: $0 $0 $500,000
 Final estate value in 2024$: $100,318 ($500,000 nominal)
 --------------------------------------------------------------
 ```
-And an Excel workbook can be saved with all the amounts over the years by using the following command
+And an Excel workbook can be saved with all the amounts over the years by using the following command:
 ```
 plan.saveInstance('jack+jill-1969', True)
 ```
