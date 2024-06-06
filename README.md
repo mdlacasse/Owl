@@ -1,4 +1,7 @@
-# Owl
+
+# Owl   
+<img align=right src="https://github.com/mdlacasse/Owl/blob/main/docs/owl.jpg" width="250">
+
 ## A retirement exploration tool based on linear programming
 
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
@@ -40,7 +43,8 @@ Make a copy and rename them keeping the same extension and give them your own na
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
 
 ## Let's explore the functionality of the tool through a specific example.
-With less than 15 lines of code, one can generate a full case study. Here is an example without comments:
+With less than 15 lines of code, one can generate a full case study.
+Here is a complete example without comments:
 ```python
 import owl
 owl.setVerbose(True)
@@ -56,7 +60,7 @@ plan.setRates('historical', 1969)
 options={'maxRothConversion': 100, 'estate': 500}
 plan.solve('maxIncome', options=options)
 ```
-The output can be seen using the following command that displays plot of the property in time
+The output can be seen using the following command that displays plot of the property in time.
 ```python
 plan.showNetIncome()
 plan.showGrossIncome()
@@ -64,13 +68,21 @@ plan.showTaxes()
 plan.showSources()
 plan.showAccounts()
 ```
-Typical plots look lile the following
+Typical plots look lile the following. This plot shows the account balances in all savings accounts owned by Jack and Jill.
 
-![Plot of Savings Balance](https://github.com/mdlacasse/Owl/blob/main/docs/savingsPlot.png)
+<img src="https://github.com/mdlacasse/Owl/blob/main/docs/savingsPlot.png" width="800">
 
-![Plot of Sources](https://github.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png)
+And this plot shows the cash flow from all sources.
 
-A short text summary can be displayed through
+<img src="https://github.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png" width="800">
+
+These plots are irregular because we used historical rates from 1969. These rates can be displayed by:
+```
+plan.showRates()
+```
+<img src="https://github.com/mdlacasse/Owl/blob/main/docs/ratesPlot.png" width="800">
+
+A short text summary of the outcome at the end of the optimization can be displayed through using:
 ```python
 plan.summary()
 ```
@@ -92,7 +104,7 @@ Final account post-tax nominal values: $0 $0 $500,000
 Final estate value in 2024$: $100,318 ($500,000 nominal)
 --------------------------------------------------------------
 ```
-And an Excel table can be saved with all the amounts over the year
+And an Excel workbook can be saved with all the amounts over the years by using the following command
 ```
 plan.saveInstance('jack+jill-1969', True)
 ```
