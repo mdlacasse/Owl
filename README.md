@@ -1,8 +1,10 @@
 
 # Owl   
-<img align=right src="https://github.com/mdlacasse/Owl/blob/main/docs/owl.jpg" width="250">
 
 ## A retirement exploration tool based on linear programming
+
+<img align=right src="https://github.com/mdlacasse/Owl/blob/main/docs/owl.jpg" width="250">
+
 
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring what if scenarios.
