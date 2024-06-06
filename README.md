@@ -66,9 +66,9 @@ plan.showAccounts()
 ```
 Typical plots look lile the following
 
-![Plot of Savings Balance](https://githib.com/mdlacasse/Owl/tree/main/docs/savingsPlot.png)
+![Plot of Savings Balance](https://githib.com/mdlacasse/Owl/blob/main/docs/savingsPlot.png)
 
-![Plot of Sources](https://githib.com/mdlacasse/Owl/tree/main/docs/sourcesPlot.png)
+![Plot of Sources](https://githib.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png)
 
 A short text summary can be displayed through
 ```python
