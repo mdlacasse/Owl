@@ -43,7 +43,7 @@ The Jupyter Notebook interface is a browser-based application for authoring docu
 Jupyter will run in your default web browser, from your computer to your browser, and therefore no data is ever transferred on the Internet
 (your computer, i.e., `localhost`, is the server).
 
-You will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative.
+You will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.
 
 The intent of using a notebook is that one can configure calculations that suit one's needs.
 Moreover, running calculations in *jupyter* is made to be relatively easy.
