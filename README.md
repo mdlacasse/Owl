@@ -65,8 +65,8 @@ Current version has no optimization of asset allocation ratios between savings a
 If there is interest,
 that could be added in the future. Also, only US federal income tax is considered.
 
-## Let's explore the functionality of the tool through a specific example.
-With less 12 lines of code, one can generate a full case study.
+## Let's explore the functionality of the tool through a specific example
+With about 10 lines of code, one can generate a full case study.
 Here is a complete example without comments:
 ```python
 import owl
