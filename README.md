@@ -34,7 +34,7 @@ By far, the easiest way to run a Jupiter notebook is to use Google Colab.
 - Step 4. Run the notebook (Runtime-> Run All)
 
 Alternatively, a better way is to perform an installation of Anaconda on your computer.
-THis will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
+This will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
 It can be found at [anaconda.com](https://anaconda.com).
 Follow the instructions in the Jupyter tutorial included (link below) for installing anaconda on your computer.
 The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
@@ -60,7 +60,7 @@ conversion amount. All calculations are indexed for inflation, which is provided
 or through historical values, as are all other rates used for the calculations.
 
 Current version has no optimization of the allocation ratio between accounts. If there is interest,
-that could be added in the future.
+that could be added in the future. Also, only US federal income tax is considered.
 
 ## Let's explore the functionality of the tool through a specific example.
 With less than 15 lines of code, one can generate a full case study.
@@ -80,7 +80,8 @@ plan.setRates('historical', 1969)
 options={'maxRothConversion': 100, 'estate': 500}
 plan.solve('maxIncome', options=options)
 ```
-The output can be seen using the following command that displays plot of the property in time.
+Dollar amounts are in k\$ and ratios in percentage.
+The output can be seen using the following commands that display plots of the various variables in time.
 ```python
 plan.showNetIncome()
 plan.showGrossIncome()
@@ -88,11 +89,11 @@ plan.showTaxes()
 plan.showSources()
 plan.showAccounts()
 ```
-Typical plots look lile the following. This plot shows the account balances in all savings accounts owned by Jack and Jill.
+Typical plots look like the following. This plot shows the account balances in all savings accounts owned by Jack and Jill,
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/savingsPlot.png" width="800">
 
-And this plot shows the cash flow from all sources.
+while this plot shows the cash flow from all sources.
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png" width="800">
 
@@ -102,7 +103,7 @@ plan.showRates()
 ```
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/ratesPlot.png" width="800">
 
-A short text summary of the outcome at the end of the optimization can be displayed through using:
+A short text summary of the outcome of the optimization can be displayed through using:
 ```python
 plan.summary()
 ```
@@ -124,7 +125,7 @@ Final account post-tax nominal values: $0 $0 $500,000
 Final estate value in 2024$: $100,318 ($500,000 nominal)
 --------------------------------------------------------------
 ```
-And an Excel workbook can be saved with all the amounts over the years by using the following command
+And an Excel workbook can be saved with all the amounts over the years by using the following command:
 ```
 plan.saveInstance('jack+jill-1969', True)
 ```
