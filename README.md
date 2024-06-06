@@ -12,8 +12,9 @@ These decisions need to be guided with an understanding of the sensitivity of th
 This is exactly where this tool fits it. Given your savings and spending desires, it can generate different future realizations of
 your strategy under different market assumptions, helping to better understand your financial situation.
 
-The algorithm in Owl is the HIGHS linear programming solver. The formulation of the mathematical model can be found
-[here](https://github.com/mdlacasse/Owl/tree/main/docs/lp.pdf).
+The algorithm in Owl is using the open-source HIGHS linear programming solver. The complete formulation and
+detailed description of the undelying
+mathematical model can be found [here](https://github.com/mdlacasse/Owl/tree/main/docs/lp.pdf).
 
 Copyright - Martin-D. Lacasse (2024)
 
@@ -21,10 +22,19 @@ Disclaimers: I am not a financial planner. You make your own decisions. This pro
 
 -------------------------------------------------------------------------------------
 ## Requirements
+
 It is assumed that you have some familiarity with using a jupyter notebook or jupyterLab, and some very basic programming skills in Python.
 If not, a simple tutorial can guide you to the basic skills needed.
 
-You will need an installation of Anaconda and be able to run Jupyter notebooks. 
+By far, the easiest way to run a Jupiter notebook is to use Google Colab.
+
+- Step 1. Go to [Google Colab](https://colab.research.google.com).
+- Step 2. Click on the File-> Open Notebook and drop the ipynb you would like to run.
+- Step 3. Then, upload (or drag and drop) all files in this repository (except the docs directory) from your computer to the Colab Notebooks Files panel on the left (opened though the folder icon). You will get a warning that all these files are deleted at the end of the session. This is true!
+- Step 4. Run the notebook (Runtime-> Run All)
+
+Alternatively, a better way is to perform an installation of Anaconda on your computer.
+THis will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
 It can be found at [anaconda.com](https://anaconda.com).
 Follow the instructions in the Jupyter tutorial included (link below) for installing anaconda on your computer.
 The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
@@ -41,6 +51,16 @@ given [here](https://github.com/mdlacasse/ARP-Lab/blob/main/Jupyter_tutorial.md)
 For simulating your own realizations, use the files beginning with template.
 Make a copy and rename them keeping the same extension and give them your own names.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
+
+## Basic capabilities
+Owl can optimize for either maximum net income under the constraint of a given bequest, or maximize the
+bequest under the constraint of a desired net income profile. Roth conversions are also considered
+and optimized under the assumption of a heirs marginal tax rate and subject to an optional maximum
+conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
+or through historical values, as are all other rates used for the calculations.
+
+Current version has no optimization of the allocation ratio between accounts. If there is interest,
+that could be added in the future.
 
 ## Let's explore the functionality of the tool through a specific example.
 With less than 15 lines of code, one can generate a full case study.
