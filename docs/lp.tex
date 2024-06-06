@@ -432,16 +432,22 @@ All intermediate variables are in uppercase letters.
 
 	For each year, there is a degeneracy between a withdrawal from a tax-deferred account and a
 	Roth conversion followed by a withdrawal from a tax-tree account. To resolve this degeneracy,
-	we re-characterize the latter as a distribution by defining the following variables
+	we re-characterize the latter as a distribution by defining the following variable
 	\begin{eqnarray}
-		x'_{in} &=& max(0, x_{in} - w_{i2n}), \nonumber \\
-		w'_{i1n} &=& w_{i1n} + x'_{in}, \nonumber \\
-		w'_{i2n} &=& w_{i2n} - x'_{in}.
+		z_{in} &=& min(x_{in}, w_{i2n}), \nonumber \\
+		b_{i1n} &=& b_{i2n} + z_{in}, \nonumber \\
+		b_{i2n} &=& b_{i2n} - z_{in}, \nonumber \\
+		x_{in} &=& x_{in} - z_{in}, \nonumber \\
+		w_{i1n} &=& w_{i2n} + z_{in}, \nonumber \\
+		w_{i2n} &=& w_{i2n} - z_{in}, 
 	\end{eqnarray}
-	We then use the primed variables for analyzing the final results of a scenario.
+	which entails voiding the Roth conversion and shifting the withdrawal from the
+	tax-free account to the tax-deferred account. This step is performed after the
+	optimization.
 
 	There is also another null space involving a tax-free withdrawal in the last year
-	followed by a deposit in the taxable account. This can also easily be removed.
+	followed by a deposit in the taxable account. This can also easily be removed
+	by giving a slightly higher weight to the tax-free balance in the objective function.
 
 	The initial savings account balances are imposed through additional constraints as
 	\begin{eqnarray}

@@ -1019,19 +1019,12 @@ class Plan:
 
         # Reroute (Roth conversions + tax-free withdrawals) == distributions.
         z = np.minimum(self.x_in, self.w_ijn[:,2,:])
-        self.w_ijn[:, 2, :] -= z
-        self.b_ijn[:, 2, :-1] += z
+        self.b_ijn[:, 1, :-1] += z
+        self.b_ijn[:, 2, :-1] -= z
         self.x_in -= z
         self.w_ijn[:, 1, :] += z
+        self.w_ijn[:, 2, :] -= z
 
-        '''
-        # Reroute (tax-free withdrawal + taxable deposit == 0) during last years.
-        z = np.minimum(self.d_in[:, :-4], self.w_ijn[:, 2, :-4])
-        self.b_ijn[:, 0, :-5] -= z
-        self.d_in[:, :-4] -= z
-        self.w_ijn[:, 2, :-4] -= z
-        self.b_ijn[:, 2, :-5] += z
-        '''
 
         self.rmd_in = self.rho_in*self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:,1,:] - self.rmd_in
