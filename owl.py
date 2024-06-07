@@ -1475,7 +1475,7 @@ class Plan:
 
         return
 
-    def saveInstance(self, basename, overwrite=False):
+    def saveWorkbook(self, basename, overwrite=False):
         '''
         Save instance in an Excel spreadsheet.
         The first worksheet will contain income in the following
@@ -1759,7 +1759,7 @@ def _saveWorkbook(wb, basename, overwrite=False):
     '''
     import os.path as path
 
-    fname = 'instance' + '_' + basename + '.xlsx'
+    fname = 'workbook' + '_' + basename + '.xlsx'
 
     if overwrite is False and path.isfile(fname):
         print('File ', fname, ' already exists.')
