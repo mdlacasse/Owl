@@ -84,6 +84,7 @@ Plan name: jack & jill - tutorial
 Individuals: Jack Jill
 Contribution file: jack+jill.xlsx
 Return rates: historical
+Rates used from 1969 to 2002
 Optimized for: maxIncome
 Solver options: {'maxRothConversion': 100, 'estate': 500}
 Spending profile: smile
