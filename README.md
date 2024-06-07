@@ -16,7 +16,7 @@ your strategy under different market assumptions, helping to better understand y
 
 The algorithm in Owl is using the open-source HiGHS linear programming solver. The complete formulation and
 detailed description of the undelying
-mathematical model can be found [here](https://github.com/mdlacasse/Owl/tree/main/docs/lp.pdf).
+mathematical model can be found [here](https://raw.githubusercontent.com/mdlacasse/Owl/main/docs/owl.pdf).
 
 Copyright - Martin-D. Lacasse (2024)
 
