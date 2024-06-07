@@ -768,6 +768,18 @@ class Plan:
                 Au.append(row)
                 uvec.append(rhs)
 
+        # Withdrawals inequalities - it ignores yearly gains.
+        # Obvious but required during wealth transfer between spouses.
+        for i in range(Ni):
+            for j in range(Nj):
+                for n in range(Nn):
+                    row = np.zeros(self.nvars)
+                    rhs = 0
+                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = 1
+                    row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -1
+                    Au.append(row)
+                    uvec.append(rhs)
+
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
             if options['maxRothConversion'] == 'file':
@@ -1085,6 +1097,7 @@ class Plan:
             'wdrwl tax-free',
         ]
 
+        '''
         # Reroute (Roth conversions + tax-free withdrawals) == distributions.
         z = np.minimum(self.x_in, self.w_ijn[:, 2, :])
         self.b_ijn[:, 1, :-1] += z
@@ -1092,6 +1105,7 @@ class Plan:
         self.x_in -= z
         self.w_ijn[:, 1, :] += z
         self.w_ijn[:, 2, :] -= z
+        '''
 
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
