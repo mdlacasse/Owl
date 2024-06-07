@@ -98,7 +98,7 @@ Final estate value in 2024$: $100,318 ($500,000 nominal)
 ```
 And an Excel workbook can be saved with all the amounts over the years by using the following command:
 ```
-plan.saveInstance('jack+jill-1969')
+plan.saveWorkbook('jack+jill-1969')
 ```
 
 ## Requirements
