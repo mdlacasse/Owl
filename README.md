@@ -39,7 +39,6 @@ With about 10 lines of code, one can generate a full case study.
 Here is a typical plan without comments:
 ```python
 import owl
-owl.setVerbose(True)
 plan = owl.Plan([1962, 1965], [89, 92], 'jack & jill - tutorial')
 plan.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150], taxFree=[50 + 20, 40])
 plan.readContributions('jack+jill.xlsx')
