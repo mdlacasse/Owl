@@ -593,13 +593,22 @@ is determined.
 	\end{eqnarray}
 
 \section{Mapping of indices}
+At this point, one can use one of the many algebraic modeling languages
+such as AMPL, GAMS, AIMMMS, and Gurobi, and code the equations above
+using that language, but of these applications are
+proprietary and require a license.
+These languages allow the problem to be stated at a high level and
+steps to cast the problem in a form suitable for solution are performed automatically.
+There are also object-oriented language extensions, such as Python's Pyomo
+and PuLP that ease the process of solving these problems.
+For completeness, however, we present here a simple
+index mapping approach that allow solving this problem using a generic
+linear programming solver.
+
 To cast the problem in a form suitable for a linear programming solver, we will use
 a single block vector represented by the array $y[q()]$ with index-mapping functions $q()$.
 While this process can be achieved using slicing and reshaping in some programming
-languages, we will present a generic approach suitable for all languages. Also,
-many domain specific languages allow the problem to be stated at a high level and
-the steps to cast the problem in a form suitable for solution are performed automatically.
-Here we use an approach suitable to leverage a general solver in Python.
+languages, we will present a generic approach suitable for most programming languages.
 
 The detailed approach presented here also allows us to determine the size of the problem to solve.
 We proceed alphabetically for all variables, and continue to use the convention of having
