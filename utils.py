@@ -13,7 +13,7 @@ import sys
 
 
 ######################################################################
-verbose = False
+verbose = True
 
 
 def setVerbose(val, ret=False):
