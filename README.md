@@ -16,7 +16,7 @@ your strategy under different market assumptions, helping to better understand y
 
 The algorithm in Owl is using the open-source HiGHS linear programming solver. The complete formulation and
 detailed description of the undelying
-mathematical model can be found [here](https://raw.githubusercontent.com/mdlacasse/Owl/main/docs/owl.pdf).
+mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
 Copyright - Martin-D. Lacasse (2024)
 
@@ -61,17 +61,22 @@ plan.showAccounts()
 ```
 Typical plots look like the following. This plot shows the account balances in all savings accounts owned by Jack and Jill,
 
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/savingsPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/savingsPlot.png" width="800">
 
-while this plot shows the cash flow from all sources.
+while this plot shows the cash flow from all sources,
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png" width="800">
+
+and this one shows the taxable ordinary income over the duration of the plan,
+along with extrapolated tax brackets.
+
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxIncomePlot.png" width="800">
 
 These plots are irregular because we used historical rates from 1969. These rates can be displayed by:
 ```
 plan.showRates()
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/ratesPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/ratesPlot.png" width="800">
 
 A short text summary of the outcome of the optimization can be displayed through using:
 ```python
