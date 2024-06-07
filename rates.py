@@ -779,19 +779,16 @@ class rates:
         # First process fixed methods relying on values.
         if method == 'default':
             # Convert decimal to percent for reporting.
-            # u.vprint('Using default fixed rates values: (%)\n', 100.0 * self._defRates)
+            values = self._defRates
+            # u.vprint('Using default fixed rates values: (%)\n', values)
             self._setFixedRates(self._defRates)
         elif method == 'realistic':
-            u.vprint(
-                'Using realistic fixed rates values: (%)\n',
-                100.0 * self._realisticRates,
-            )
+            values = self._defRates
+            u.vprint('Using realistic fixed rates values: (%)\n', values)
             self._setFixedRates(self._realisticRates)
         elif method == 'conservative':
-            u.vprint(
-                'Using conservative fixed rates values: (%)\n',
-                100.0 * self._conservRates,
-            )
+            values = self._conservRates
+            u.vprint('Using conservative fixed rates values: (%)\n', values)
             self._setFixedRates(self._conservRates)
         elif method == 'fixed':
             assert values is not None, 'Values must be provided with the fixed option.'
@@ -816,6 +813,7 @@ class rates:
                 u.vprint('Using', method, 'rates from', frm, 'to', to)
                 self.means, self.covar = getDistributions(frm, to)
                 self._setFixedRates(self.means)
+                values = self.means
             elif method == 'stochastic':
                 u.vprint('Using', method, 'rates from', frm, 'to', to)
                 self._rateMethod = self._stochRates
@@ -825,7 +823,7 @@ class rates:
 
         self.method = method
 
-        return
+        return values
 
     def _setFixedRates(self, rates):
         assert len(rates) == 4, 'Rate list provided must have 4 entries.'

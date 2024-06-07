@@ -386,11 +386,10 @@ class Plan:
             to = frm + self.N_n - 1  # 'to' is inclusive: subtract 1
 
         dr = rates.rates()
-        dr.setMethod(method, frm, to, values)
+        self.rateValues = dr.setMethod(method, frm, to, values)
         self.rateMethod = method
         self.rateFrm = frm
         self.rateTo = to
-        self.rateValues = values
         self.tau_kn = dr.genSeries(self.N_n).transpose()
         u.vprint(
             'Generating rate series of',
@@ -1147,6 +1146,8 @@ class Plan:
         print('Return rates:', self.rateMethod)
         if self.rateMethod in ['historical', 'average', 'stochastic']:
             print('Rates used: from', self.rateFrm, 'to', self.rateTo)
+        else:
+            print('Rates used:', *[u.pc(self.rateValues[k], f=1) for k in range(self.N_k)])
         print('Optimized for:', self.objective)
         print('Solver options:', self.solverOptions)
         print('Spending profile:', self.spendingProfile)
@@ -1604,7 +1605,7 @@ class Plan:
 
         return
 
-    def saveInstanceCSV(self, basename):
+    def saveWorkbookCSV(self, basename):
         import pandas as pd
 
         planData = {}
