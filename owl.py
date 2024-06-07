@@ -374,10 +374,10 @@ class Plan:
 
         The following methods are available:
         default, fixed, realistic, conservative, average, stochastic,
-        mean, and historical.
+        and historical.
 
         For 'fixed', values must be provided.
-        For 'average', 'mean', 'stochastic', and 'historical', a range of
+        For 'average', 'stochastic', and 'historical', a range of
         years can be provided.
         '''
         if frm == None:
@@ -1145,6 +1145,8 @@ class Plan:
         print('Individuals:', *[self.inames[i] for i in range(self.N_i)])
         print('Contribution file:', self.timeListsFileName)
         print('Return rates:', self.rateMethod)
+        if self.rateMethod in ['historical', 'average', 'stochastic']:
+            print('Rates used: from', self.rateFrm, 'to', self.rateTo)
         print('Optimized for:', self.objective)
         print('Solver options:', self.solverOptions)
         print('Spending profile:', self.spendingProfile)
