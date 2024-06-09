@@ -1590,16 +1590,17 @@ class Plan:
 
         # Save account balances.
         accDic = {
-            'taxable': self.b_ijn[:, 0, :-1],
-            'deposits': self.d_in,
-            'wdrwl taxable': self.w_ijn[:, 0, :],
-            'tax-deferred': self.b_ijn[:, 1, :-1],
-            'wdrwl tax-deferred': self.w_ijn[:, 1, :],
-            'ctrb tax-deferred': self.kappa_ijn[:, 1, :],
+            'taxable bal': self.b_ijn[:, 0, :-1],
+            'taxable dep': self.d_in,
+            'taxable wdrwl': self.w_ijn[:, 0, :],
+            'tax-deferred bal': self.b_ijn[:, 1, :-1],
+            'tax-deferred wdrwl': self.w_ijn[:, 1, :],
+            'tax-deferred (rmd)': self.rmd_in[:, :],
+            'tax-deferred ctrb': self.kappa_ijn[:, 1, :],
             'Roth conversion': self.x_in,
-            'tax-free': self.b_ijn[:, 2, :-1],
-            'wdrwl tax-free': self.w_ijn[:, 2, :],
-            'ctrb tax-free': self.kappa_ijn[:, 2, :],
+            'tax-free bal': self.b_ijn[:, 2, :-1],
+            'tax-free wdrwl': self.w_ijn[:, 2, :],
+            'tax-free ctrb': self.kappa_ijn[:, 2, :],
         }
         for i in range(self.N_i):
             sname = self.inames[i] + '\'s Accounts'
