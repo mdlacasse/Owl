@@ -1103,6 +1103,10 @@ class Plan:
         self.x_in -= z
         self.w_ijn[:, 1, :] += z
         self.w_ijn[:, 2, :] -= z
+        # Reroute degenerate taxable deposits and withdrawals.
+        z = np.minimum(self.d_in, self.w_ijn[:, 0, :])
+        self.d_in -= z
+        self.w_ijn[:, 0, :] -= z
 
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
@@ -1110,6 +1114,11 @@ class Plan:
         self.G_n = np.sum(self.f_tn, axis=0)
         T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(T_tn, axis=0)
+        tau_0 = self.tau_kn[0,:]
+        tau_0[tau_0 < 0] = 0
+        self.Q_n = np.sum(self.mu*(self.b_ijkn[:, 0, 0, :-1] + .5*self.kappa_ijkn[:, 0, 0, :])
+                          + tau_0*self.w_ijn[:, 0, :], axis=0)
+        self.U_n = self.psi*self.Q_n
 
         # Putting it all together in a dictionary.
         sources = {}
@@ -1493,7 +1502,8 @@ class Plan:
         The first worksheet will contain income in the following
         fields in columns:
             - net income
-            - taxable income
+            - taxable ordinary income
+            - taxable dividends
             - tax bill (federal only)
         for all the years for the time span of the plan.
 
@@ -1532,8 +1542,9 @@ class Plan:
         rawData = {}
         rawData['year'] = self.year_n
         rawData['net income'] = self.g_n
-        rawData['taxable income'] = self.G_n
-        rawData['tax bill'] = self.T_n
+        rawData['taxable ord. income'] = self.G_n
+        rawData['taxable dividends'] = self.Q_n
+        rawData['tax bill'] = self.T_n + self.U_n
 
         # We need to work by row.
         df = pd.DataFrame(rawData)
