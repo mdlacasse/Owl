@@ -435,15 +435,14 @@ All intermediate variables are in uppercase letters.
 	we re-characterize the latter as a distribution by defining the following variable
 	\begin{eqnarray}
 		z_{in} &=& min(x_{in}, w_{i2n}), \nonumber \\
-		b_{i1n} &=& b_{i2n} + z_{in}, \nonumber \\
-		b_{i2n} &=& b_{i2n} - z_{in}, \nonumber \\
 		x_{in} &=& x_{in} - z_{in}, \nonumber \\
 		w_{i1n} &=& w_{i2n} + z_{in}, \nonumber \\
 		w_{i2n} &=& w_{i2n} - z_{in}, 
 	\end{eqnarray}
 	which entails voiding the Roth conversion and shifting the withdrawal from the
 	tax-free account to the tax-deferred account. This step is performed after the
-	optimization.
+	optimization. This approach is perfectly valid as long as the asset allocation ratios are
+	the same in both accounts.
 
 	There is also another null space involving a tax-free withdrawal in the last year
 	followed by a deposit in the taxable account. This can also easily be removed
