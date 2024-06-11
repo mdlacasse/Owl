@@ -24,15 +24,28 @@ Disclaimers: I am not a financial planner. You make your own decisions. This pro
 
 -------------------------------------------------------------------------------------
 ## Basic capabilities
-Owl can optimize for either maximum net income under the constraint of a given bequest, or maximize the
-bequest under the constraint of a desired net income profile. Roth conversions are also considered
+Owl can optimize for either maximum net spending under the constraint of a given bequest, or maximize the
+bequest under the constraint of a desired net spending profile. Roth conversions are also considered
 and optimized under the assumption of a heirs marginal tax rate and subject to an optional maximum
 conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 
-Current version has no optimization of asset allocation ratios between savings accounts.
-If there is interest,
-that could be added in the future. Also, only US federal income tax is considered.
+Portfolios available for experimenting include assets from S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
+and Treasury Bills. Inflation is represented as Consumer Price Index. Available rates are from 1928
+to last year and can be used to test historical performance. Fixed rates can also be provided, as
+well as stochastic, generated from the statistical characteristics of a selected historical year range. 
+
+Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts.
+
+### Limitations
+Owl is work in progress. At the current time:
+- Only the US federal income tax is considered and minimized through the optimization algorithm.
+
+- Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not.
+
+- Social security rule for surviving spouse does not account for delayed benefits.
+- Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
+If there is interest, that could be added in the future. 
 
 ## An example of Owl's functionality
 With about 10 lines of code, one can generate a full case study.
