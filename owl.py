@@ -202,20 +202,22 @@ class Plan:
         )
 
         self._adjustedParameters = False
-        self._isSolved = False
+        self._caseStatus = 'unsolved'
         self._buildOffsetMap()
         self.timeListsFileName = None
 
         return
 
-    def _checkSolved(self):
+    def _checkSolverStatus(self, funcName):
         '''
         Check if problem was solved successfully.
         '''
-        if self._isSolved == False:
-            u.xprint('Problem needs to be (re)solved first.')
+        if self._caseStatus == 'solved':
+            return False
 
-        return
+        u.vprint('Preventing to run %s() while problem is %s.'%(funcName, self._caseStatus))
+
+        return True
 
     def setName(self, name):
         '''
@@ -244,7 +246,7 @@ class Plan:
         mu /= 100
         u.vprint('Dividend return rate on equities set to', u.pc(mu, f=1))
         self.mu = mu
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         return
 
@@ -256,7 +258,7 @@ class Plan:
         psi /= 100
         u.vprint('Long-term income tax set to', u.pc(psi, f=0))
         self.psi = psi
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         return
 
@@ -270,7 +272,7 @@ class Plan:
 
         u.vprint('Beneficiary spousal beneficiary fractions set to', phi)
         self.phi_j = phi
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         return
 
@@ -282,7 +284,7 @@ class Plan:
         nu /= 100
         u.vprint('Heirs tax rate on tax-deferred portion of estate set to', u.pc(nu, f=0))
         self.nu = nu
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         return
 
@@ -312,7 +314,7 @@ class Plan:
             nd = self.horizons[i]
             self.pi_in[i, ns:nd] = amounts[i]
 
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         return
 
@@ -346,7 +348,7 @@ class Plan:
             # Approximate calculation for spousal benefit (only valid at FRA).
             self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], amounts[self.i_d] / 2)
 
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         return
 
@@ -364,7 +366,7 @@ class Plan:
 
         self.xi_n = _xi_n(profile, self.chi, self.n_d, self.N_n)
         self.spendingProfile = profile
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         return
 
@@ -403,7 +405,7 @@ class Plan:
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = gamma_n(self.tau_kn, self.N_n)
         self._adjustedParameters = False
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         return
 
@@ -447,7 +449,7 @@ class Plan:
         self.b_ji[1][:] = taxDeferred
         self.b_ji[2][:] = taxFree
         self.beta_ij = self.b_ji.transpose()
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         u.vprint('Taxable balances:', *[u.d(taxable[i]) for i in range(self.N_i)])
         u.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
@@ -477,7 +479,7 @@ class Plan:
             u.xprint('Method', method, 'not supported.')
 
         self.interpMethod = method
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         u.vprint('Asset allocation interpolation method set to', method)
 
@@ -601,7 +603,7 @@ class Plan:
                         self.alpha_ijkn[i, j, k, :Nxn] = dat[:]
 
         self.ARCoord = allocType
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         u.vprint('Interpolating assets allocation ratios using', self.interpMethod, 'method.')
 
@@ -676,7 +678,7 @@ class Plan:
             self.kappa_ijn[i, 2, :h] = self.timeLists[i]['ctrb Roth 401k'][:h]
             self.kappa_ijn[i, 2, :h] += self.timeLists[i]['ctrb Roth IRA'][:h]
 
-        self._isSolved == False
+        self._caseStatus = 'modified'
 
         return
 
@@ -698,7 +700,7 @@ class Plan:
         u.vprint(
             'Problem has',
             len(C),
-            'distinct vectors forming',
+            'distinct unknowns forming',
             self.nvars,
             'decision variables.',
         )
@@ -709,6 +711,8 @@ class Plan:
         '''
         Refer to companion document for notation and detailed explanations.
         '''
+        # Test slack for minimization.
+        zero = 0
         # Simplified notation.
         Ni = self.N_i
         Nj = self.N_j
@@ -754,7 +758,7 @@ class Plan:
         for i in range(Ni):
             for n in range(Nn):
                 row = np.zeros(self.nvars)
-                rhs = 0
+                rhs = zero
                 row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
                 row[_q3(Cb, i, 1, n, Ni, Nj, Nn + 1)] = self.rho_in[i, n]
                 Au.append(row)
@@ -769,17 +773,19 @@ class Plan:
                 Au.append(row)
                 uvec.append(rhs)
 
-        # Withdrawals inequalities - it ignores yearly gains.
+        '''
+        # Withdrawals inequalities - it created deadlocks for 0 estate.
         # Obvious but required during wealth transfer between spouses.
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
                     row = np.zeros(self.nvars)
-                    rhs = 0
+                    rhs = zero
                     row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = 1
                     row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -1
                     Au.append(row)
                     uvec.append(rhs)
+        '''
 
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
@@ -798,6 +804,8 @@ class Plan:
                     isinstance(rhsopt, (int, float)) == True
                 ), 'Specified maxConversion is not a number.'
                 rhsopt *= units
+                if rhsopt == 0:
+                    rhsopt += 1e-3
                 u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                 for i in range(Ni):
                     for n in range(Nn):
@@ -812,7 +820,7 @@ class Plan:
             row = np.zeros(self.nvars)
             row[_q3(Cw, i_d, 1, n_d - 1, Ni, Nj, Nn)] = 1
             row[_q3(Cb, i_d, 1, n_d - 1, Ni, Nj, Nn + 1)] = -self.rho_in[i_d, n_d - 1]
-            rhs = 0
+            rhs = zero
             Ae.append(row)
             vvec.append(rhs)
             # But no activity after passing.
@@ -822,7 +830,7 @@ class Plan:
                 row[_q2(Cx, i_d, n, Ni, Nn)] = 1
                 for j in range(Nj):
                     row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = 1
-                rhs = 0
+                rhs = zero
                 Ae.append(row)
                 vvec.append(rhs)
 
@@ -836,10 +844,11 @@ class Plan:
             for i in range(Ni):
                 for n in range(Nn):
                     row = np.zeros(self.nvars)
-                    rhs = 0
+                    rhs = zero
                     row[_q2(Cd, i, n, Ni, Nn)] = 1
                     Ae.append(row)
                     vvec.append(rhs)
+
             # Impose requested constraint on estate, if any.
             if 'estate' in options:
                 estate = options['estate']
@@ -866,7 +875,7 @@ class Plan:
             rhs = options['netIncome']
             assert isinstance(rhs, (int, float)) == True, 'Desired income provided not a number.'
             rhs *= units
-            u.vprint('Maximizing bequest with desired net income of:', u.d(rhs))
+            u.vprint('Maximizing bequest with desired net spending of:', u.d(rhs))
             row = np.zeros(self.nvars)
             row[_q1(Cg, 0)] = 1
             Ae.append(row)
@@ -915,7 +924,7 @@ class Plan:
 
         # Net income equalities 1/2.
         for n in range(Nn):
-            rhs = 0
+            rhs = zero
             row = np.zeros(self.nvars)
             row[_q1(Cg, n, Nn)] = 1
             for i in range(Ni):
@@ -942,7 +951,7 @@ class Plan:
         # Impose income profile.
         for n in range(1, Nn):
             row = np.zeros(self.nvars)
-            rhs = 0
+            rhs = zero
             row[_q1(Cg, 0, Nn)] = -self.xiBar_n[n]
             row[_q1(Cg, n, Nn)] = self.xi_n[0]
             Ae.append(row)
@@ -1010,9 +1019,9 @@ class Plan:
 
         lpOptions = {
             'disp': True,
-            'ipm_optimality_tolerance': 1e-12,
-            'primal_feasibility_tolerance': 1e-10,
-            'dual_feasibility_tolerance': 1e-10,
+            'ipm_optimality_tolerance': 1e-10,
+            'primal_feasibility_tolerance': 1e-8,
+            'dual_feasibility_tolerance': 1e-8,
         }
         solution = optimize.linprog(
             c,
@@ -1025,17 +1034,18 @@ class Plan:
         )
         if solution.success == True:
             u.vprint(solution.message)
-            self._isSolved = True
+            self._aggregateResults(solution.x)
+            self._caseStatus = 'solved'
         else:
-            u.xprint('WARNING: Optimization failed:', solution.message, solution.success)
+            u.vprint('WARNING: Optimization failed:', solution.message, solution.success)
+            self._caseStatus = 'unsuccessful'
 
-        self.aggregateResults(solution.x)
         self.objective = objective
         self.solverOptions = options
 
         return
 
-    def aggregateResults(self, x):
+    def _aggregateResults(self, x):
         '''
         Process all results from solution vector.
         '''
@@ -1147,7 +1157,9 @@ class Plan:
         '''
         Return final account balances.
         '''
-        self._checkSolved()
+        if self._checkSolverStatus('estate'):
+            return
+
         _estate = np.sum(self.b_ijn[:, :, :, self.N_n], axis=(0, 2))
         _estate[1] *= 1 - self.nu
         u.vprint('Estate value of %s at the end of year %s.' % (u.d(sum(_estate)), self.year_n[-1]))
@@ -1158,12 +1170,14 @@ class Plan:
         '''
         Print summary of values.
         '''
-        self._checkSolved()
+        if self._checkSolverStatus('summary'):
+            return
+
         now = self.year_n[0]
         print('SUMMARY ======================================================')
         print('Plan name:', self._name)
         print('Individuals:', *[self.inames[i] for i in range(self.N_i)])
-        print('Contribution file:', self.timeListsFileName)
+        print('Contributions file:', self.timeListsFileName)
         print('Return rates:', self.rateMethod)
         if self.rateMethod in ['historical', 'average', 'stochastic']:
             print('Rates used: from', self.rateFrm, 'to', self.rateTo)
@@ -1175,11 +1189,11 @@ class Plan:
         if self.N_i == 2:
             print('Survivor percent income:', u.pc(self.chi, f=0))
 
-        print('Net yearly income in %d$: %s' % (now, u.d(self.g_n[0])))
+        print('Net yearly spending in %d$: %s' % (now, u.d(self.g_n[0])))
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n, axis=0)
-        print('Total net income in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
+        print('Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
 
         taxPaid = np.sum(self.f_tn * self.theta_tn, axis=(0, 1))
         taxPaidNow = np.sum(np.sum(self.f_tn * self.theta_tn, axis=0) / self.gamma_n, axis=0)
@@ -1264,14 +1278,16 @@ class Plan:
 
         return
 
-    def showNetIncome(self, tag=''):
+    def showNetSpending(self, tag=''):
         '''
-        Plot net income and target over time.
+        Plot net available spending and target over time.
 
         A tag string can be set to add information to the title of the plot.
         '''
-        self._checkSolved()
-        title = self._name + '\nNet Income'
+        if self._checkSolverStatus('showNetSpending'):
+            return
+
+        title = self._name + '\nNet Available Spending'
         if tag != '':
             title += ' - ' + tag
 
@@ -1290,7 +1306,6 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
-        self._checkSolved()
         y2stack = {}
         jDic = {'taxable': 0, 'tax-deferred': 1, 'tax-free': 2}
         kDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
@@ -1379,7 +1394,9 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
-        self._checkSolved()
+        if self._checkSolverStatus('showAccounts'):
+            return
+
         title = self._name + '\nSavings Balance'
         if tag != '':
             title += ' - ' + tag
@@ -1405,7 +1422,9 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
-        self._checkSolved()
+        if self._checkSolverStatus('showSources'):
+            return
+
         title = self._name + '\nRaw Income Sources'
         if tag != '':
             title += ' - ' + tag
@@ -1428,7 +1447,9 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
-        self._checkSolved()
+        if self._checkSolverStatus('showEff'):
+            return
+
         title = self._name + '\nEff f '
         if tag != '':
             title += ' - ' + tag
@@ -1453,7 +1474,9 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
-        self._checkSolved()
+        if self._checkSolverStatus('showTaxes'):
+            return
+
         title = self._name + '\nIncome Tax'
         if tag != '':
             title += ' - ' + tag
@@ -1471,7 +1494,9 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
-        self._checkSolved()
+        if self._checkSolverStatus('showGrossIncome'):
+            return
+
         import matplotlib.pyplot as plt
 
         title = self._name + '\nTaxable Ordinary Income vs. Tax Brackets'
@@ -1506,7 +1531,7 @@ class Plan:
         Save instance in an Excel spreadsheet.
         The first worksheet will contain income in the following
         fields in columns:
-            - net income
+            - net spending
             - taxable ordinary income
             - taxable dividends
             - tax bill (federal only)
@@ -1535,6 +1560,9 @@ class Plan:
             - tax-free account.
 
         '''
+        if self._checkSolverStatus('saveWorkbook'):
+            return
+
         import pandas as pd
         from openpyxl import Workbook
         from openpyxl.utils.dataframe import dataframe_to_rows
@@ -1546,7 +1574,7 @@ class Plan:
 
         rawData = {}
         rawData['year'] = self.year_n
-        rawData['net income'] = self.g_n
+        rawData['net spending'] = self.g_n
         rawData['taxable ord. income'] = self.G_n
         rawData['taxable dividends'] = self.Q_n
         rawData['tax bill'] = self.T_n + self.U_n
@@ -1639,7 +1667,7 @@ class Plan:
         planData = {}
         # Start with single entries.
         planData['year'] = self.year_n
-        planData['net income'] = self.g_n
+        planData['net spending'] = self.g_n
         planData['tax bill'] = self.T_n
 
         for i in range(self.N_i):
@@ -1656,11 +1684,9 @@ class Plan:
             try:
                 fname = 'plan' + '_' + basename + '.csv'
                 df.to_csv(fname)
-                # Requires xlwt which is obsolete
-                # df.to_excel(fname)
                 break
             except PermissionError:
-                print('Failed to save', fname, '. Permission denied.')
+                print('Failed to save "%s": %s.'%(fname, 'Permission denied'))
                 key = input('Close file and try again? [Yn] ')
                 if key == 'n':
                     break
@@ -1791,7 +1817,7 @@ def _saveWorkbook(wb, basename, overwrite=False):
     fname = 'workbook' + '_' + basename + '.xlsx'
 
     if overwrite is False and path.isfile(fname):
-        print('File ', fname, ' already exists.')
+        print('File "%s" already exists.'%fname)
         key = input('Overwrite? [Ny] ')
         if key != 'y':
             print('Skipping save and returning.')
@@ -1799,11 +1825,11 @@ def _saveWorkbook(wb, basename, overwrite=False):
 
     while True:
         try:
-            u.vprint('Saving plan as', fname)
+            u.vprint('Saving plan as "%s"'%fname)
             wb.save(fname)
             break
         except PermissionError:
-            print('Failed to save', fname, '. Permission denied.')
+            print('Failed to save "%s": %s.'%(fname, 'Permission denied'))
             key = input('Close file and try again? [Yn] ')
             if key == 'n':
                 break
