@@ -53,7 +53,7 @@ plan.solve('maxIncome', options={'maxRothConversion': 100, 'estate': 500})
 Dollar amounts are in k\$ and ratios in percentage.
 The output can be seen using the following commands that display various plots of the decision variables in time.
 ```python
-plan.showNetIncome()
+plan.showNetSpending()
 plan.showGrossIncome()
 plan.showTaxes()
 plan.showSources()
@@ -87,18 +87,20 @@ The output of the last command looks like:
 SUMMARY ======================================================
 Plan name: jack & jill - tutorial
 Individuals: Jack Jill
-Contribution file: jack+jill.xlsx
+Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
 Optimized for: maxIncome
-Solver options: {'maxRothConversion': 100, 'estate': 500}
+Solver options: {'maxRothConversion': 150, 'estate': 500}
 Spending profile: smile
-Net yearly income in 2024$: $99,687
-Total net income in 2024$: $2,879,706 ($8,127,728 nominal)
-Total income tax paid in 2024$: $300,653 ($476,166 nominal)
+Survivor percent income: 60%
+Net yearly spending in 2024$: $96,399
+Total net spending in 2024$: $2,784,727 ($7,859,658 nominal)
+Total income tax paid in 2024$: $295,939 ($464,799 nominal)
 Assumed heirs tax rate: 30%
-Final account post-tax nominal values: $0 $0 $500,000
-Final estate value in 2024$: $100,318 ($500,000 nominal)
+Final account post-tax nominal values: $0 $0 $2,492,067
+Final estate value in 2024$: $500,000 ($2,492,067 nominal)
+Final inflation factor: 498.4%
 --------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the amounts over the years by using the following command:
