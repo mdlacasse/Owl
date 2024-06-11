@@ -24,15 +24,28 @@ Disclaimers: I am not a financial planner. You make your own decisions. This pro
 
 -------------------------------------------------------------------------------------
 ## Basic capabilities
-Owl can optimize for either maximum net income under the constraint of a given bequest, or maximize the
-bequest under the constraint of a desired net income profile. Roth conversions are also considered
+Owl can optimize for either maximum net spending under the constraint of a given bequest, or maximize the
+bequest under the constraint of a desired net spending profile. Roth conversions are also considered
 and optimized under the assumption of a heirs marginal tax rate and subject to an optional maximum
 conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 
-Current version has no optimization of asset allocation ratios between savings accounts.
-If there is interest,
-that could be added in the future. Also, only US federal income tax is considered.
+Portfolios available for experimenting include assets from S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
+and Treasury Bills. Inflation is represented as Consumer Price Index. Available rates are from 1928
+to last year and can be used to test historical performance. Fixed rates can also be provided, as
+well as stochastic, generated from the statistical characteristics of a selected historical year range. 
+
+Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts.
+
+### Limitations
+Owl is work in progress. At the current time:
+- Only the US federal income tax is considered and minimized through the optimization algorithm.
+
+- Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not.
+
+- Social security rule for surviving spouse does not account for delayed benefits.
+- Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
+If there is interest, that could be added in the future. 
 
 ## An example of Owl's functionality
 With about 10 lines of code, one can generate a full case study.
@@ -53,7 +66,7 @@ plan.solve('maxIncome', options={'maxRothConversion': 100, 'estate': 500})
 Dollar amounts are in k\$ and ratios in percentage.
 The output can be seen using the following commands that display various plots of the decision variables in time.
 ```python
-plan.showNetIncome()
+plan.showNetSpending()
 plan.showGrossIncome()
 plan.showTaxes()
 plan.showSources()
@@ -87,18 +100,20 @@ The output of the last command looks like:
 SUMMARY ======================================================
 Plan name: jack & jill - tutorial
 Individuals: Jack Jill
-Contribution file: jack+jill.xlsx
+Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
 Optimized for: maxIncome
-Solver options: {'maxRothConversion': 100, 'estate': 500}
+Solver options: {'maxRothConversion': 150, 'estate': 500}
 Spending profile: smile
-Net yearly income in 2024$: $99,687
-Total net income in 2024$: $2,879,706 ($8,127,728 nominal)
-Total income tax paid in 2024$: $300,653 ($476,166 nominal)
+Survivor percent income: 60%
+Net yearly spending in 2024$: $96,399
+Total net spending in 2024$: $2,784,727 ($7,859,658 nominal)
+Total income tax paid in 2024$: $295,939 ($464,799 nominal)
 Assumed heirs tax rate: 30%
-Final account post-tax nominal values: $0 $0 $500,000
-Final estate value in 2024$: $100,318 ($500,000 nominal)
+Final account post-tax nominal values: $0 $0 $2,492,067
+Final estate value in 2024$: $500,000 ($2,492,067 nominal)
+Final inflation factor: 498.4%
 --------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the amounts over the years by using the following command:
