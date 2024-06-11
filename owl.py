@@ -54,7 +54,8 @@ def _xi_n(profile, frac, n_d, N_n, a=15, b=12):
     '''
     xi = np.ones(N_n)
     if profile == 'flat':
-        pass
+        if n_d < N_n:
+            xi[n_d:] *= frac
     elif profile == 'smile':
         x = np.linspace(0, N_n - 1, N_n)
         a /= 100
@@ -175,7 +176,7 @@ class Plan:
         self.pi_in = np.zeros((self.N_i, self.N_n))
         self.zeta_in = np.zeros((self.N_i, self.N_n))
 
-        # Other parameters.
+        # Parameters from timeLists.
         self.omega_in = np.zeros((self.N_i, self.N_n))
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
         self.myRothX_in = np.zeros((self.N_i, self.N_n))
@@ -194,7 +195,7 @@ class Plan:
 
         u.vprint('Name of individual(s) will be read with readContributions(file).')
 
-        # Prepare income tax time series.
+        # Prepare income tax and RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
         self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(
             self.yobs, self.i_d, self.n_d, self.N_n
@@ -359,7 +360,7 @@ class Plan:
 
         u.vprint('Setting', profile, 'spending profile.')
         if self.N_i == 2:
-            u.vprint('Using ', u.pc(self.chi, f=0), 'survivor fraction.')
+            u.vprint('Using ', u.pc(self.chi, f=0), 'income for survivor.')
 
         self.xi_n = _xi_n(profile, self.chi, self.n_d, self.N_n)
         self.spendingProfile = profile
@@ -845,7 +846,7 @@ class Plan:
                 assert (
                     isinstance(estate, (int, float)) == True
                 ), 'Desired estate provided not a number.'
-                estate *= units
+                estate *= units * self.gamma_n[-1]
             else:
                 # If not specified, default to $1.
                 estate = 1
@@ -1114,7 +1115,7 @@ class Plan:
         self.G_n = np.sum(self.f_tn, axis=0)
         T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(T_tn, axis=0)
-        tau_0 = self.tau_kn[0,:]
+        tau_0 = np.array(self.tau_kn[0,:])
         tau_0[tau_0 < 0] = 0
         self.Q_n = np.sum(self.mu*(self.b_ijkn[:, 0, 0, :-1] + .5*self.kappa_ijkn[:, 0, 0, :])
                           + tau_0*self.w_ijn[:, 0, :], axis=0)
@@ -1171,6 +1172,9 @@ class Plan:
         print('Optimized for:', self.objective)
         print('Solver options:', self.solverOptions)
         print('Spending profile:', self.spendingProfile)
+        if self.N_i == 2:
+            print('Survivor percent income:', u.pc(self.chi, f=0))
+
         print('Net yearly income in %d$: %s' % (now, u.d(self.g_n[0])))
 
         totIncome = np.sum(self.g_n, axis=0)
@@ -1193,6 +1197,7 @@ class Plan:
         print(
             'Final estate value in %d$: %s (%s nominal)' % (now, u.d(totEstateNow), u.d(totEstate))
         )
+        print('Final inflation factor:', u.pc(self.gamma_n[-1], f=1))
 
         print('--------------------------------------------------------------')
 
