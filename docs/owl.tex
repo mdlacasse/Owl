@@ -89,7 +89,7 @@ to take only positive values (positive inequality).
 	savings account $j$ across different classes of assets $k$. We use two variables
 	to rebalance in order to preserve positivity of the variables.
 \item [$d_{ikn}$]
-	Deposit of year-$n$ net income surplus in assets $k$ of taxable account of individual $i$.
+	Deposit of year-$n$ net spending surplus in assets $k$ of taxable account of individual $i$.
 	Deposit is made at the end of year $n$.
 \item [$f_{t n}$]
 	Fraction of tax bracket $t$ filled, so that taxable ordinary income $G_n$ can be expressed as
@@ -100,7 +100,7 @@ to take only positive values (positive inequality).
 	\end{eqnarray}
 	A definition of $\Delta$ can be found in the section describing the parameters below. 
 \item [$g_n$]
-	Net income in year $n$.
+	Net spending in year $n$.
 \item [$w_{ijkn}$]
 	Withdrawal from assets $k$ in account $j$ belonging to individual $i$ at the end of year $n$.
 	For the $(j=1)$ tax-deferred savings account, $w_{i1kn}$ is referred to as a distribution for
@@ -137,7 +137,8 @@ Parameter values are either set by the user, historical data, or by the tax code
 	which can include any foreseeable changes in the tax code, or change in filing status due to the
 	passing of one spouse for $n\ge n_d$.
 \item [$\xi_{n}$]
-	Spending profile. This is a time series that multiplies the desired net income. It is $\xi_n =1$ for
+	Spending profile. This is a time series that multiplies the desired net spending amount.
+	It is $\xi_n =1$ for
 	a flat profile, or can be a {\em smile} profile allowing for more money at the start
 	of retirement. Parameter
 	$\xi_n$ can also contain spending adjustments typically made at the passing of one spouse.
@@ -329,7 +330,7 @@ All intermediate variables are in uppercase letters.
 	\end{equation}
 	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that optimal
 	values of $f_{tn}$ have to
-	minimize $T_n$ when either the bequest or the desired net income are maximized.
+	minimize $T_n$ when either the bequest or the desired net spending are maximized.
 	As the product $\bar{\Delta}_{tn}\theta_{tn}$ does not garrantee that the tax brackets
 	will be favored monotonically, a more natural choice is to use the combined variable
 	$\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn}$ in the optimization. Given that the rates on
@@ -441,12 +442,12 @@ All intermediate variables are in uppercase letters.
 	\end{eqnarray}
 	which entails voiding the Roth conversion and shifting the withdrawal from the
 	tax-free account to the tax-deferred account. This step is performed after the
-	optimization. This approach is perfectly valid as long as the asset allocation ratios are
-	the same in both accounts.
+	optimization. This approach is perfectly valid as long as the asset allocation
+	ratios are the same in both accounts.
 
-	There is also another null space involving a tax-free withdrawal in the last year
-	followed by a deposit in the taxable account. This can also easily be removed
-	by giving a slightly higher weight to the tax-free balance in the objective function.
+	There is also another null space involving an overwithdrawal from the taxable
+	account immediately followed by a deposit in the same account. This can also easily
+	be removed by post-processing the data as accounts balances are not affected.
 
 	The initial savings account balances are imposed through additional constraints as
 	\begin{eqnarray}
@@ -526,8 +527,8 @@ All intermediate variables are in uppercase letters.
 		x_{ijn} \le \min(b_{i1kn}, x_{max}).
 	\end{equation}
 
-\paragraph*{Net income}
-	For calculating the net income $g$, we consider the cash flow of all withdrawals,
+\paragraph*{Net spending}
+	For calculating the net spending $g$, we consider the cash flow of all withdrawals,
 	wages, social security and pension benefits, and big-ticket items. 
 	Then we subtract potential surplus deposits $d$ made to the taxable savings account
 	and all taxes paid:
@@ -551,12 +552,12 @@ All intermediate variables are in uppercase letters.
 	Note that we do not consider market losses as we use $\max(0, \tau)$. Tax-loss
 	harvesting is beyond the scope of this model.
 
-	We also want the net income to be predictable and smooth. We will use
+	We also want the net spending to be predictable and smooth. We will use
 \begin{equation}
 	\label{Eq:C5a}
 	g_{n}/\bar{\xi}_{n} = g_0/\bar{\xi}_0,
 \end{equation}
-where the net income is adjusted for inflation and where we introduced parameter $\xi_n$ 
+where the net spending is adjusted for inflation and where we introduced parameter $\xi_n$ 
 allowing for additional adjustments to the overall desired spending.
 Note that $\bar{\xi}_0 = \xi_0$ as $\gamma_0=1$.
 This spending profile can also be used to lower the desired income at the passing
@@ -566,7 +567,7 @@ Eq.~(\ref{Eq:C5a}) can be rewritten as
 	\label{Eq:C5}
 	g_n \xi_0 - g_0 \bar{\xi}_n = 0,
 \end{equation}
-for the constraints to be enforced. Once $g_0$ is determined, the whole time series of net income
+for the constraints to be enforced. Once $g_0$ is determined, the whole time series of net spending
 is determined.
 
 \paragraph*{Taxable ordinary income}
@@ -693,8 +694,8 @@ with $q_f$ running from $C_f$ to $C_g - 1$, where
 	C_g = q_C(C_f, N_t, N_n, 1, 1) = [N_iN_jN_k(3N_n+1) + (N_iN_k + N_t) N_n].
 \]
 
-\paragraph*{Net income (\boldmath$g$)}
-For net income $g_{n}$ we will use
+\paragraph*{Net spending (\boldmath$g$)}
+For net spending $g_{n}$ we will use
 \begin{equation}
 	y[q_g(n)] = g_{n},
 \end{equation}
@@ -864,8 +865,8 @@ we add $N_iN_jN_n$ more rows to $A_ey = v$, as
 	&&\qquad\forall n \in \{0,\ldots. N_n-1\}. \nonumber
 \end{eqnarray}
 
-\paragraph*{Net income}
-For the equality constraint on net income expressed in Eq.~(\ref{Eq:C4}),
+\paragraph*{Net spending}
+For the equality constraint on net spending expressed in Eq.~(\ref{Eq:C4}),
 we add $N_n$ more rows to $A_ey = v$ as
 \begin{eqnarray}
 	A_e[J_3(n), q_g(n)] &=& 1, \nonumber \\
@@ -887,7 +888,7 @@ where $v$ is
 	+ \Lambda_{in} - .5\psi\mu\kappa_{i00n}].
 \end{equation}
 
-The condition of having a predictable net income expressed as an
+The condition of having a predictable net spending expressed as an
 equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
 \begin{eqnarray}
 	A_e[J_4(n), q_g(0)] &=& -\bar{\xi}_n, \nonumber \\
@@ -1117,8 +1118,8 @@ but this can cause drawing an account empty while the other spousal account is n
 \section{Objective functions}
 The objective function is a simple scalar defined as $c\cdot y$ that will be minimized.
 
-\paragraph*{Maximum net income}
-There are a few ways by which a retirement plan can be optimized. For maximizing the net income under
+\paragraph*{Maximum net spending}
+There are a few ways by which a retirement plan can be optimized. For maximizing the net spending under
 the constraint of a desired bequest, we introduce the following relation
 \begin{equation}
 	\label{Eq:Bequest}
@@ -1158,7 +1159,7 @@ which would add one more row to $A_ey = v$ as
 \end{eqnarray}
 where $I(0)$ is used only to provide the proper row offset $C_l$. See Eq.~(\ref{Eq:Offsets}).
 
-For maximizing the net income under the constraint of a fixed bequest, one has simply to
+For maximizing the net spending under the constraint of a fixed bequest, one has simply to
 minimize the inner product $c\cdot y$, where $c$ is
 \begin{eqnarray}
 	c[q_g(0)] &=& -1,
@@ -1166,7 +1167,7 @@ minimize the inner product $c\cdot y$, where $c$ is
 and 0 otherwise. See Eq.~\ref{Eq:C5}.
 
 \paragraph*{Maximum bequest}
-If, on the other hand, one would like to maximize the bequest under the constraint of a desired net income $g_o$,
+If, on the other hand, one would like to maximize the bequest under the constraint of a desired net spending $g_o$,
 one would add the following row to $A_ey = v$
 \begin{eqnarray}
 	\label{Eq:FixedIncome}
