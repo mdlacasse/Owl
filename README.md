@@ -75,7 +75,7 @@ Head of household filing status has not been added but can easily be.
 - Social security rule for surviving spouse does not account for delayed benefits.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
-- In the current implemntation, social securiy is always taxed at 85%.
+- In the current implementation, social securiy is always taxed at 85%.
 - There are no IRMAA calculations. However, this can be added by switching to a different solver (MILP).
 - Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
@@ -192,7 +192,7 @@ Moreover, running calculations in *jupyter* is made to be relatively easy.
 There are many tutorials on this topic and a summary including installation procedures is
 given [here](https://github.com/mdlacasse/ARP-Lab/blob/main/Jupyter_tutorial.md).
 
-For simulating your own realizations, use the files beginning with template.
+For simulating your own realizations, use the files beginning with the word *template*.
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
 A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/blob/main/jack+jill.ipynb).
