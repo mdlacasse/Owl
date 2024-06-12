@@ -33,7 +33,7 @@ Even better, contributors with front-end skills
 are more than welcome to join the project.
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one
-is interested in comparing different withdrawal strategies, [FICalc](ficalc.app) is a more appropriate and elegant
+is interested in comparing different withdrawal strategies, [FI Calc](ficalc.app) is a more appropriate and elegant
 application that addresses this need.
 
 --------------------------------------------------------------------------------------
