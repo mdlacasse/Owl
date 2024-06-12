@@ -92,7 +92,8 @@ plan.showSources()
 plan.showAccounts()
 ...
 ```
-Typical plots look like the following. The optimal spending profile looks like
+Typical plots look like the following. The optimal spending profile looks like this in nominal dollars. Notice
+the 40% drop (configurable) at the passing of the first spouse.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/spendingPlot.png" width="800">
 
@@ -100,7 +101,7 @@ The following plot shows the account balances in all savings accounts owned by J
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/savingsPlot.png" width="800">
 
-while this plot shows the cash flow from all sources,
+while this plot shows the complex cash flow from all sources,
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png" width="800">
 
