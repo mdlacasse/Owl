@@ -25,10 +25,9 @@ The algorithm in Owl is using the open-source HiGHS linear programming solver. T
 detailed description of the undelying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
-Owl is currently implemented through jupyter notebooks, but is can also easily serve as the back-end of a Web application for
-exploring optimality under a set of user-selected constraints.
-Even better, contributors with front-end skills
-are more than welcome to join the project.
+Owl is currently implemented through jupyter notebooks, but it can also easily serve as the back-end of a Web application
+facilitating its use by allowing easier input of user-selected constraints for exploring the optimality of different scenarios.
+Contributors with good front-end skills are therefore more than welcome to join the project.
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one
 is interested in comparing different withdrawal strategies, [FI Calc](ficalc.app) is a more appropriate and elegant
