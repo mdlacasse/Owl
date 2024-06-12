@@ -26,10 +26,15 @@ Disclaimers: I am not a financial planner. You make your own decisions. This pro
 ## Purpose and vision
 The goal of Owl is to create an open-source ecosystem that has cutting-edge optimization capabilities. There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
-collecting your data, or academic papers that share the results without really sharing the underlying mathematical models.
+collecting your data, or academic papers that share the results without really sharing the details of the underlying mathematical models.
 
-Owl can serve as the back-end of a Web application. Even better, contributors with front-end skills
-are welcome to join the project.
+Owl can serve as the back-end of a Web application for exploring optimality under a set of user-selected constraints.
+Even better, contributors with front-end skills
+are more than welcome to join the project.
+
+Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one
+is interested in comparing different withdrawal strategies, [FICalc](ficalc.app) is a more appropriate and elegant
+application that addresses this need.
 
 --------------------------------------------------------------------------------------
 ## Basic capabilities
