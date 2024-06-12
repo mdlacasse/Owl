@@ -90,8 +90,13 @@ plan.showGrossIncome()
 plan.showTaxes()
 plan.showSources()
 plan.showAccounts()
+...
 ```
-Typical plots look like the following. This plot shows the account balances in all savings accounts owned by Jack and Jill,
+Typical plots look like the following. The optimal spending profile looks like
+
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/spendingPlot.png" width="800">
+
+The following plot shows the account balances in all savings accounts owned by Jack and Jill,
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/savingsPlot.png" width="800">
 
@@ -104,7 +109,9 @@ along with extrapolated tax brackets.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxIncomePlot.png" width="800">
 
-These plots are irregular because we used historical rates from 1969. These rates can be displayed by:
+These plots are irregular because we used historical rates from 1969. The volatility of
+the rates offers Roth conversion benefits which are exploited by the optimizer.
+The rates used can be displayed by:
 ```
 plan.showRates()
 ```
@@ -126,9 +133,9 @@ Optimized for: maxSpending
 Solver options: {'maxRothConversion': 150, 'estate': 500}
 Spending profile: smile
 Survivor percent income: 60%
-Net yearly spending in 2024$: $96,399
-Total net spending in 2024$: $2,784,727 ($7,859,658 nominal)
-Total income tax paid in 2024$: $295,939 ($464,799 nominal)
+Net yearly spending in 2024$: $100,548
+Total net spending in 2024$: $2,904,559 ($8,197,874 nominal)
+Total income tax paid in 2024$: $226,470 ($492,602 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values: $0 $0 $2,492,067
 Final estate value in 2024$: $500,000 ($2,492,067 nominal)
