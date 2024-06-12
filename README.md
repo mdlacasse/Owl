@@ -23,6 +23,15 @@ Copyright - Martin-D. Lacasse (2024)
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
 
 -------------------------------------------------------------------------------------
+## Purpose and vision
+The goal of Owl is to create an open-source ecosystem that has cutting-edge optimization capabilities. There are and were
+good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
+collecting your data, or academic papers that share the results without really sharing the underlying mathematical models.
+
+Owl can serve as the back-end of a Web application. Even better, contributors with front-end skills
+are welcome to join the project.
+
+--------------------------------------------------------------------------------------
 ## Basic capabilities
 Owl can optimize for either maximum net spending under the constraint of a given bequest, or maximize the
 bequest under the constraint of a desired net spending profile. Roth conversions are also considered
@@ -61,11 +70,12 @@ Head of household filing status has not been added but can easily be.
 - Social security rule for surviving spouse does not account for delayed benefits.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
-- Social securiy is always taxed at 85%.
-- There are no IRMAA calculations. This can be added by switching to a different solver (MILP).
+- In the current implemntation, social securiy is always taxed at 85%.
+- There are no IRMAA calculations. However, this can be added by switching to a different solver (MILP).
 - Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
-Having a knob to adjust future rates might be an interesting feature for measuring the impact on Roth conversions.
+Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
+-----------------------------------------------------------------------
 ## An example of Owl's functionality
 With about 10 lines of code, one can generate a full case study.
 Here is a typical plan without comments:
@@ -106,7 +116,8 @@ while this plot shows the complex cash flow from all sources,
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png" width="800">
 
 and this one shows the taxable ordinary income over the duration of the plan,
-along with extrapolated tax brackets.
+along with extrapolated tax brackets. Notice how the optimized income is surfing
+the boundaries of tax brackets.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxIncomePlot.png" width="800">
 
@@ -147,7 +158,7 @@ And an Excel workbook can be saved with all the detailed amounts over the years 
 ```
 plan.saveWorkbook('jack+jill-1969')
 ```
-
+---------------------------------------------------------------
 ## Requirements
 
 It is assumed that you have some familiarity with using a jupyter notebook or jupyterLab, and some very basic programming skills in Python.
@@ -179,6 +190,10 @@ For simulating your own realizations, use the files beginning with template.
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
 A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/blob/main/jack+jill.ipynb).
-
+---------------------------------------------------------------------
+## Credits
+- Historical rates from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/)
+- Image from [freepik](freepik.com)
+- Optimization solver from [HiGHS](highs.dev)
 
 
