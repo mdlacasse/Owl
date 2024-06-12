@@ -1652,27 +1652,43 @@ class Plan:
         return
 
     def saveWorkbookCSV(self, basename):
+        '''
+        Function similar to saveWorkbook(), but saving information in csv format
+        instead of an Excel worksheet.
+        See saveWorkbook() sister function for more information.
+        '''
         import pandas as pd
 
         planData = {}
-        # Start with single entries.
         planData['year'] = self.year_n
         planData['net spending'] = self.g_n
+        planData['taxable ord. income'] = self.G_n
+        planData['taxable dividends'] = self.Q_n
         planData['tax bill'] = self.T_n
 
         for i in range(self.N_i):
-            planData[self.names[i] + ' txbl acc. wrdwl'] = self.w_ijn[i, 0, :]
-            planData[self.names[i] + ' RMD'] = self.rmd_in[i, :]
-            planData[self.names[i] + ' distribution'] = self.w_ijn[i, 1, :]
-            planData[self.names[i] + ' Roth conversion'] = self.x_in[i, :]
-            planData[self.names[i] + ' tax-free wdrwl'] = self.w_ijn[i, 2, :]
-            planData[self.names[i] + ' big-ticket items'] = self.Lambda_in[i, :]
+            planData[self.inames[i] + ' txbl bal'] = self.b_ijn[i, 0, :-1]
+            planData[self.inames[i] + ' txbl dep'] = self.d_in[i, :]
+            planData[self.inames[i] + ' txbl wrdwl'] = self.w_ijn[i, 0, :]
+            planData[self.inames[i] + ' tx-def bal'] = self.b_ijn[i, 1, :-1]
+            planData[self.inames[i] + ' tx-def ctrb'] = self.kappa_ijn[i, 1, :]
+            planData[self.inames[i] + ' tx-def wdrl'] = self.w_ijn[i, 1, :]
+            planData[self.inames[i] + ' (RMD)'] = self.rmd_in[i, :]
+            planData[self.inames[i] + ' Roth conversion'] = self.x_in[i, :]
+            planData[self.inames[i] + ' tx-free bal'] = self.b_ijn[i, 2, :-1]
+            planData[self.inames[i] + ' tx-free ctrb'] = self.kappa_ijn[i, 2, :]
+            planData[self.inames[i] + ' tax-free wdrwl'] = self.w_ijn[i, 2, :]
+            planData[self.inames[i] + ' big-ticket items'] = self.Lambda_in[i, :]
+
+        ratesDic = {'S&P 500': 0, 'Corporate Baa': 1, 'T Bonds': 2, 'inflation': 3}
+        for key in ratesDic:
+            planData[key] = self.tau_kn[ratesDic[key]]
 
         df = pd.DataFrame(planData)
 
         while True:
             try:
-                fname = 'plan' + '_' + basename + '.csv'
+                fname = 'worksheet' + '_' + basename + '.csv'
                 df.to_csv(fname)
                 break
             except PermissionError:
