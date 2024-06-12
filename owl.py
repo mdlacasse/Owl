@@ -215,7 +215,7 @@ class Plan:
         if self._caseStatus == 'solved':
             return False
 
-        u.vprint('Preventing to run %s() while problem is %s.'%(funcName, self._caseStatus))
+        u.vprint('Preventing to run %s() while problem is %s.' % (funcName, self._caseStatus))
 
         return True
 
@@ -1116,11 +1116,14 @@ class Plan:
         self.G_n = np.sum(self.f_tn, axis=0)
         T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(T_tn, axis=0)
-        tau_0 = np.array(self.tau_kn[0,:])
+        tau_0 = np.array(self.tau_kn[0, :])
         tau_0[tau_0 < 0] = 0
-        self.Q_n = np.sum(self.mu*(self.b_ijkn[:, 0, 0, :-1] + .5*self.kappa_ijkn[:, 0, 0, :])
-                          + tau_0*self.w_ijn[:, 0, :], axis=0)
-        self.U_n = self.psi*self.Q_n
+        self.Q_n = np.sum(
+            self.mu * (self.b_ijkn[:, 0, 0, :-1] + 0.5 * self.kappa_ijkn[:, 0, 0, :])
+            + tau_0 * self.w_ijn[:, 0, :],
+            axis=0,
+        )
+        self.U_n = self.psi * self.Q_n
 
         # Putting it all together in a dictionary.
         sources = {}
@@ -1184,7 +1187,9 @@ class Plan:
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n, axis=0)
-        print('Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
+        print(
+            'Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome))
+        )
 
         taxPaid = np.sum(self.f_tn * self.theta_tn, axis=(0, 1))
         taxPaidNow = np.sum(np.sum(self.f_tn * self.theta_tn, axis=0) / self.gamma_n, axis=0)
@@ -1678,7 +1683,7 @@ class Plan:
                 df.to_csv(fname)
                 break
             except PermissionError:
-                print('Failed to save "%s": %s.'%(fname, 'Permission denied'))
+                print('Failed to save "%s": %s.' % (fname, 'Permission denied'))
                 key = input('Close file and try again? [Yn] ')
                 if key == 'n':
                     break
@@ -1813,7 +1818,7 @@ def _saveWorkbook(wb, basename, overwrite=False):
         fname = basename
 
     if overwrite is False and isfile(fname):
-        print('File "%s" already exists.'%fname)
+        print('File "%s" already exists.' % fname)
         key = input('Overwrite? [Ny] ')
         if key != 'y':
             print('Skipping save and returning.')
@@ -1821,11 +1826,11 @@ def _saveWorkbook(wb, basename, overwrite=False):
 
     while True:
         try:
-            u.vprint('Saving plan as "%s"'%fname)
+            u.vprint('Saving plan as "%s"' % fname)
             wb.save(fname)
             break
         except PermissionError:
-            print('Failed to save "%s": %s.'%(fname, 'Permission denied'))
+            print('Failed to save "%s": %s.' % (fname, 'Permission denied'))
             key = input('Close file and try again? [Yn] ')
             if key == 'n':
                 break
