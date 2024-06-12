@@ -56,7 +56,8 @@ to last year and can be used to test historical performance. Fixed rates can als
 well as stochastic rates, which are generated using the statistical characteristics of
 a selected historical year range. Mean rates over a data period can also be chosen.
 
-Input parameters are given as function calls and through a spreadsheet than contains wages, contributions
+Basic input parameters are given through function calls while optional additional time series can be read from
+an Excel spreadsheet than contains wages, contributions
 to savings accounts, and planned *big ticket items* such as the purchase of a lake house or the sale of a boat.
 
 Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts.
@@ -79,8 +80,10 @@ Having a knob to adjust future rates might be an interesting feature to add for 
 
 -----------------------------------------------------------------------
 ## An example of Owl's functionality
-With about 10 lines of code, one can generate a full case study.
-Here is a typical plan without comments:
+With about 10 lines of Python code, one can generate a full case study.
+Here is a typical plan without comments.
+A plan starts with birth years and life expectancies.
+Dollar amounts are in k\$ and ratios in percentage.
 ```python
 import owl
 plan = owl.Plan([1962, 1965], [89, 92], 'jack & jill - tutorial')
@@ -94,7 +97,6 @@ plan.setSpendingProfile('smile')
 plan.setRates('historical', 1969)
 plan.solve('maxSpending', options={'maxRothConversion': 100, 'estate': 500})
 ```
-Dollar amounts are in k\$ and ratios in percentage.
 The output can be seen using the following commands that display various plots of the decision variables in time.
 ```python
 plan.showNetSpending()
