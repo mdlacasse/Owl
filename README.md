@@ -25,7 +25,8 @@ The algorithm in Owl is using the open-source HiGHS linear programming solver. T
 detailed description of the undelying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
-Owl can serve as the back-end of a Web application for exploring optimality under a set of user-selected constraints.
+Owl is currently implemented through jupyter notebooks, but is can also easily serve as the back-end of a Web application for
+exploring optimality under a set of user-selected constraints.
 Even better, contributors with front-end skills
 are more than welcome to join the project.
 
