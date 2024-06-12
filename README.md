@@ -50,8 +50,8 @@ Asset allocations are selected
 for the duration of the plan, and these can glide linearly or along a configurable s-curve from now
 to the last year of the plan.
 
-Spending profiles are adjusted for inflation, and so are all indexable quantities. Proflies can be
-flat or follow a *smile* curve which is adjustable.
+Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be
+flat or follow a *smile* curve which is also adjustable.
 
 Available rates are from 1928
 to last year and can be used to test historical performance. Fixed rates can also be provided, as
@@ -72,7 +72,7 @@ Owl is work in progress. At the current time:
 - Only the US federal income tax is considered (and minimized through the optimization algorithm).
 Head of household filing status has not been added but can easily be.
 - Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not.
-- Social security rule for surviving spouse does not account for delayed benefits.
+- Social security rule for surviving spouse assumes that benefits were taken at full retirement age.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
 - In the current implementation, social securiy is always taxed at 85%.
