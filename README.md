@@ -158,6 +158,7 @@ And an Excel workbook can be saved with all the detailed amounts over the years 
 ```
 plan.saveWorkbook('jack+jill-1969')
 ```
+
 ---------------------------------------------------------------
 ## Requirements
 
@@ -190,6 +191,7 @@ For simulating your own realizations, use the files beginning with template.
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
 A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/blob/main/jack+jill.ipynb).
+
 ---------------------------------------------------------------------
 ## Credits
 - Historical rates from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/)
