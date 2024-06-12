@@ -18,7 +18,7 @@ Disclaimers: I am not a financial planner. You make your own decisions. This pro
 
 -------------------------------------------------------------------------------------
 ## Purpose and vision
-The goal of Owl is to create an open-source ecosystem that has cutting-edge optimization capabilities. There are and were
+The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities. There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
 collecting your data, or academic papers that share the results without really sharing the details of the underlying mathematical models.
 The algorithm in Owl is using the open-source HiGHS linear programming solver. The complete formulation and
