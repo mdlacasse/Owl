@@ -804,11 +804,9 @@ class Plan:
                     isinstance(rhsopt, (int, float)) == True
                 ), 'Specified maxConversion is not a number.'
                 rhsopt *= units
-                if rhsopt == 0:
-                    rhsopt += 1e-3
                 u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                 for i in range(Ni):
-                    for n in range(Nn):
+                    for n in range(self.horizons[i]):
                         row = np.zeros(self.nvars)
                         row[_q2(Cx, i, n, Ni, Nn)] = 1
                         rhs = rhsopt
@@ -837,18 +835,9 @@ class Plan:
         ###################################################################
         # Equalities.
 
-        if objective == 'maxIncome':
-            if 'netIncome' in options:
-                u.vprint('Ignoring netIncome option provided.')
-            # Deposits should be set to zero in that case.
-            for i in range(Ni):
-                for n in range(Nn):
-                    row = np.zeros(self.nvars)
-                    rhs = zero
-                    row[_q2(Cd, i, n, Ni, Nn)] = 1
-                    Ae.append(row)
-                    vvec.append(rhs)
-
+        if objective == 'maxSpending':
+            if 'netSpending' in options:
+                u.vprint('Ignoring netSpending option provided.')
             # Impose requested constraint on estate, if any.
             if 'estate' in options:
                 estate = options['estate']
@@ -872,8 +861,8 @@ class Plan:
         elif objective == 'maxBequest':
             if 'estate' in options:
                 u.vprint('Ignoring estate option provided.')
-            rhs = options['netIncome']
-            assert isinstance(rhs, (int, float)) == True, 'Desired income provided not a number.'
+            rhs = options['netSpending']
+            assert isinstance(rhs, (int, float)) == True, 'Desired spending provided not a number.'
             rhs *= units
             u.vprint('Maximizing bequest with desired net spending of:', u.d(rhs))
             row = np.zeros(self.nvars)
@@ -989,13 +978,15 @@ class Plan:
 
         # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
         c = np.zeros(self.nvars)
-        if objective == 'maxIncome':
+        if objective == 'maxSpending':
             c[_q1(Cg, 0, Nn)] = -1
         elif objective == 'maxBequest':
             for i in range(Ni):
                 c[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = -1
                 c[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = -(1 - self.nu)
                 c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = -1.01
+        else:
+            u.xprint('Internal error in objective function.')
 
         return c
 
@@ -1004,15 +995,15 @@ class Plan:
         Refer to companion document for explanations.
         Units are in $k, unless specified otherwise.
         '''
-        knownOptions = ['units', 'maxRothConversion', 'netIncome', 'estate']
+        knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate']
         for opt in options:
             if opt not in knownOptions:
                 u.xprint('Option', opt, 'not one of', knownOptions)
-        knownObjectives = ['maxBequest', 'maxIncome']
+        knownObjectives = ['maxBequest', 'maxSpending']
         if objective not in knownObjectives:
             u.xprint('Objective', objective, 'not one of', knownObjectives)
-        if objective == 'maxBequest' and 'netIncome' not in options:
-            u.xprint('Objective', objective, 'needs netIncome option.')
+        if objective == 'maxBequest' and 'netSpending' not in options:
+            u.xprint('Objective', objective, 'needs netSpending option.')
 
         self._adjustParameters()
         c = self._buildConstraints(objective, options)
@@ -1461,6 +1452,7 @@ class Plan:
         for t in range(self.N_t):
             key = 'f ' + str(t)
             series[key] = self.f_tn[t] / self.DeltaBar_tn[t]
+            print(key, series[key])
             style[key] = various[q % len(various)]
             q += 1
 
@@ -1812,11 +1804,15 @@ def _saveWorkbook(wb, basename, overwrite=False):
     '''
     Utility function to save XL workbook.
     '''
-    import os.path as path
+    from os.path import isfile
+    from pathlib import Path
 
-    fname = 'workbook' + '_' + basename + '.xlsx'
+    if Path(basename).suffixes == []:
+        fname = 'workbook' + '_' + basename + '.xlsx'
+    else:
+        fname = basename
 
-    if overwrite is False and path.isfile(fname):
+    if overwrite is False and isfile(fname):
         print('File "%s" already exists.'%fname)
         key = input('Overwrite? [Ny] ')
         if key != 'y':
