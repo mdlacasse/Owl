@@ -14,12 +14,6 @@ These decisions need to be guided with an understanding of the sensitivity of th
 This is exactly where this tool fits it. Given your savings and spending desires, it can generate different future realizations of
 your strategy under different market assumptions, helping to better understand your financial situation.
 
-The algorithm in Owl is using the open-source HiGHS linear programming solver. The complete formulation and
-detailed description of the undelying
-mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
-
-Copyright - Martin-D. Lacasse (2024)
-
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
 
 -------------------------------------------------------------------------------------
@@ -27,6 +21,9 @@ Disclaimers: I am not a financial planner. You make your own decisions. This pro
 The goal of Owl is to create an open-source ecosystem that has cutting-edge optimization capabilities. There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
 collecting your data, or academic papers that share the results without really sharing the details of the underlying mathematical models.
+The algorithm in Owl is using the open-source HiGHS linear programming solver. The complete formulation and
+detailed description of the undelying
+mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
 Owl can serve as the back-end of a Web application for exploring optimality under a set of user-selected constraints.
 Even better, contributors with front-end skills
@@ -203,4 +200,11 @@ A notebook with detailed explanations on this case can be found [here](https://g
 - Image from [freepik](freepik.com)
 - Optimization solver from [HiGHS](highs.dev)
 
+---------------------------------------------------------------------
+
+Copyright - Martin-D. Lacasse (2024)
+
+Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
+
+--------------------------------------------------------
 
