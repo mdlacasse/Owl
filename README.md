@@ -63,6 +63,8 @@ Head of household filing status has not been added but can easily be.
 If there is interest, that could be added in the future.
 - Social securiy is always taxed at 85%.
 - There are no IRMAA calculations. This can be added by switching to a different solver (MILP).
+- Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
+Having a knob to adjust future rates might be an interesting feature for measuring the impact on Roth conversions.
 
 ## An example of Owl's functionality
 With about 10 lines of code, one can generate a full case study.
@@ -78,7 +80,7 @@ plan.setPension([0, 10], [65, 65])
 plan.setSocialSecurity([28, 25], [70, 70])
 plan.setSpendingProfile('smile')
 plan.setRates('historical', 1969)
-plan.solve('maxIncome', options={'maxRothConversion': 100, 'estate': 500})
+plan.solve('maxSpending', options={'maxRothConversion': 100, 'estate': 500})
 ```
 Dollar amounts are in k\$ and ratios in percentage.
 The output can be seen using the following commands that display various plots of the decision variables in time.
@@ -120,7 +122,7 @@ Individuals: Jack Jill
 Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
-Optimized for: maxIncome
+Optimized for: maxSpending
 Solver options: {'maxRothConversion': 150, 'estate': 500}
 Spending profile: smile
 Survivor percent income: 60%
@@ -133,7 +135,7 @@ Final estate value in 2024$: $500,000 ($2,492,067 nominal)
 Final inflation factor: 498.4%
 --------------------------------------------------------------
 ```
-And an Excel workbook can be saved with all the amounts over the years by using the following command:
+And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
 ```
 plan.saveWorkbook('jack+jill-1969')
 ```
