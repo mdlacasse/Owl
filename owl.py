@@ -751,6 +751,8 @@ class Plan:
                     Tauh_ijn[i, j, n] = np.sum(
                         self.alpha_ijkn[i, j, :, n] * (1 + self.tau_kn[:, n] / 2), axis=0
                     )
+        # Keep it for later.
+        self.Tau1_ijn = Tau1_ijn
 
         if 'units' in options:
             units = u.getUnits(options['units'])
@@ -767,7 +769,7 @@ class Plan:
 
         # RMDs inequalities.
         for i in range(Ni):
-            for n in range(Nn):
+            for n in range(self.horizons[i]):
                 row = np.zeros(self.nvars)
                 rhs = zero
                 row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
@@ -789,7 +791,7 @@ class Plan:
             if options['maxRothConversion'] == 'file':
                 u.vprint('Fixing Roth conversions to those from file %s.' % self.timeListsFileName)
                 for i in range(Ni):
-                    for n in range(Nn):
+                    for n in range(self.horizons[i]):
                         row = np.zeros(self.nvars)
                         row[_q2(Cx, i, n, Ni, Nn)] = 1
                         rhs = self.myRothX_in[i][n]
@@ -818,7 +820,7 @@ class Plan:
             rhs = zero
             Ae.append(row)
             vvec.append(rhs)
-            # But no activity after passing.
+            # But no activity for i_d on the year of passing and after.
             for n in range(n_d - 1, Nn):
                 row = np.zeros(self.nvars)
                 row[_q2(Cd, i_d, n, Ni, Nn)] = 1
@@ -898,10 +900,10 @@ class Plan:
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
-                        rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i, j, n]
-                        row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i, j, n]
+                        rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
+                        row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
                         row[_q2(Cx, i_d, n, Ni, Nn)] = (
-                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n]
+                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i_d, j, n]
                         )
                         row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2
                         row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
@@ -939,7 +941,7 @@ class Plan:
             row = np.zeros(self.nvars)
             rhs = zero
             row[_q1(Cg, 0, Nn)] = -self.xiBar_n[n]
-            row[_q1(Cg, n, Nn)] = self.xi_n[0]
+            row[_q1(Cg, n, Nn)] = self.xiBar_n[0]
             Ae.append(row)
             vvec.append(rhs)
 
@@ -1100,11 +1102,11 @@ class Plan:
         ]
 
         # Reroute (Roth conversions + tax-free withdrawals) == distributions.
-        # This does not honor RMDs.
         z = np.minimum(self.x_in, self.w_ijn[:, 2, :])
         self.x_in -= z
-        self.w_ijn[:, 1, :] += z
-        self.w_ijn[:, 2, :] -= z
+        self.w_ijn[:, 1, :] += z*self.Tau1_ijn[:, 1, :]
+        self.w_ijn[:, 2, :] -= z*self.Tau1_ijn[:, 2, :]
+
         # Reroute degenerate taxable deposits and withdrawals.
         z = np.minimum(self.d_in, self.w_ijn[:, 0, :])
         self.d_in -= z
