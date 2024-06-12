@@ -7,7 +7,7 @@
 
 
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
-Strictly speaking, it is not a planning tool, but more an environment for exploring what if scenarios.
+Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy. One can certainly have a savings plan, but due to the volatility of financial investments,
 it is impossible to have a certain asset earnings plan. This does not mean one cannot make decisions.
 These decisions need to be guided with an understanding of the sensitivity of the parameters.
@@ -30,22 +30,39 @@ and optimized under the assumption of a heirs marginal tax rate and subject to a
 conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 
-Portfolios available for experimenting include assets from S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
-and Treasury Bills. Inflation is represented as Consumer Price Index. Available rates are from 1928
+Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
+and Treasury Bills. Inflation is represented by the Consumer Price Index. Data used are from
+[Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) at the Sterm School of Business.
+Asset allocations are selected
+for the duration of the plan, and these can glide linearly or along a configurable s-curve from now
+to the last year of the plan.
+
+Spending profiles are adjusted for inflation, and so are all indexable quantities. Proflies can be
+flat or follow a *smile* curve which is adjustable.
+
+Available rates are from 1928
 to last year and can be used to test historical performance. Fixed rates can also be provided, as
-well as stochastic, generated from the statistical characteristics of a selected historical year range. 
+well as stochastic rates, which are generated using the statistical characteristics of
+a selected historical year range. Mean rates over a data period can also be chosen.
+
+Input parameters are given as function calls and through a spreadsheet than contains wages, contributions
+to savings accounts, and planned *big ticket items* such as the purchase of a lake house or the sale of a boat.
 
 Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts.
+Tax status covers married filing jointly and single, depending on the number of individuals reported.
+
+See one of the notebooks for a tutorial and representative user cases.
 
 ### Limitations
 Owl is work in progress. At the current time:
-- Only the US federal income tax is considered and minimized through the optimization algorithm.
-
+- Only the US federal income tax is considered (and minimized through the optimization algorithm).
+Head of household filing status has not been added but can easily be.
 - Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not.
-
 - Social security rule for surviving spouse does not account for delayed benefits.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
-If there is interest, that could be added in the future. 
+If there is interest, that could be added in the future.
+- Social securiy is always taxed at 85%.
+- There are no IRMAA calculations. This can be added by switching to a different solver (MILP).
 
 ## An example of Owl's functionality
 With about 10 lines of code, one can generate a full case study.
