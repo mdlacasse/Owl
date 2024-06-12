@@ -32,8 +32,9 @@ def setVerbose(self, state=True):
     return u.setVerbose(state)
 
 
-def gamma_n(tau, N_n):
+def _gamma_n(tau, N_n):
     '''
+    Utility function to generate inflation multiplier.
     Return time series of cumulative inflation multiplier
     at year n with respect to the current year.
     '''
@@ -47,6 +48,7 @@ def gamma_n(tau, N_n):
 
 def _xi_n(profile, frac, n_d, N_n, a=15, b=12):
     '''
+    Utility function to generate spending profile.
     Return time series of spending profile.
     Value is reduced by frac starting in year n_d,
     after the passing of shortest-lived spouse.
@@ -84,28 +86,28 @@ def _qC(C, N1, N2=1, N3=1, N4=1):
 
 def _q1(C, l1, N1=None):
     '''
-    Index mapping function.
+    Index mapping function. 1 argument.
     '''
     return C + l1
 
 
 def _q2(C, l1, l2, N1, N2):
     '''
-    Index mapping function.
+    Index mapping function. 2 arguments.
     '''
     return C + l1 * N2 + l2
 
 
 def _q3(C, l1, l2, l3, N1, N2, N3):
     '''
-    Index mapping function.
+    Index mapping function. 3 arguments.
     '''
     return C + l1 * N2 * N3 + l2 * N3 + l3
 
 
 def _q4(C, l1, l2, l3, l4, N1, N2, N3, N4):
     '''
-    Index mapping function.
+    Index mapping function. 4 arguments.
     '''
     return C + l1 * N2 * N3 * N4 + l2 * N3 * N4 + l3 * N4 + l4
 
@@ -231,6 +233,7 @@ class Plan:
     def setSpousalWithdrawalFraction(self, eta):
         '''
         Set spousal withdrawal fraction. Default 0.5.
+        Currently unused.
         '''
         assert 0 <= eta and eta <= 1, 'Fraction must be between 0 and 1.'
         u.vprint('Spousal withdrawal fraction set to', eta)
@@ -240,7 +243,7 @@ class Plan:
 
     def setDividendRate(self, mu):
         '''
-        Set dividend rate on equities. Default 2%.
+        Set dividend rate on equities. Rate is in percent. Default 2%.
         '''
         assert 0 <= mu and mu <= 100, 'Rate must be between 0 and 100.'
         mu /= 100
@@ -252,7 +255,7 @@ class Plan:
 
     def setLongTermIncomeTaxRate(self, psi):
         '''
-        Set long-term income tax rate. Default 15%.
+        Set long-term income tax rate. Rate is in percent. Default 15%.
         '''
         assert 0 <= psi and psi <= 100, 'Rate must be between 0 and 100.'
         psi /= 100
@@ -264,7 +267,8 @@ class Plan:
 
     def setBeneficiaryFraction(self, phi):
         '''
-        Set fractions of accounts that is left to surviving spouse.
+        Set fractions of savings accounts that is left to surviving spouse.
+        Default is [1, 1, 1] for taxable, tax-deferred, adn tax-exempt accounts.
         '''
         assert len(phi) == self.N_j, 'Fractions must have %d entries.' % self.N_j
         for j in range(self.N_j):
@@ -279,6 +283,7 @@ class Plan:
     def setHeirsTaxRate(self, nu):
         '''
         Set the heirs tax rate on the tax-deferred portion of the estate.
+        Rate is in percent. Default is 30%.
         '''
         assert 0 <= nu and nu <= 100, 'Rate must be between 0 and 100.'
         nu /= 100
@@ -310,9 +315,10 @@ class Plan:
         # Use zero array freshly initialized.
         self.pi_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
-            ns = max(0, self.yobs[i] + ages[i] - thisyear)
-            nd = self.horizons[i]
-            self.pi_in[i, ns:nd] = amounts[i]
+            if amounts[i] != 0:
+                ns = max(0, self.yobs[i] + ages[i] - thisyear)
+                nd = self.horizons[i]
+                self.pi_in[i, ns:nd] = amounts[i]
 
         self._caseStatus = 'modified'
 
@@ -355,8 +361,8 @@ class Plan:
     def setSpendingProfile(self, profile, percent=60):
         '''
         Generate time series for spending profile.
-        Surviving spouse fraction can be specified or
-        previous value can be used.
+        Surviving spouse fraction can be specified
+        as a second argument. Default value is 60%.
         '''
         self.chi = percent / 100
 
@@ -379,9 +385,11 @@ class Plan:
         default, fixed, realistic, conservative, average, stochastic,
         and historical.
 
-        For 'fixed', values must be provided.
-        For 'average', 'stochastic', and 'historical', a range of
-        years can be provided.
+        For 'fixed', rate values must be provided.
+        For 'average', 'stochastic', and 'historical', a starting year 
+        must be provided.
+
+        Valid year range is from 1928 to last year.
         '''
         if frm == None:
             to = None
@@ -403,7 +411,7 @@ class Plan:
         )
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
-        self.gamma_n = gamma_n(self.tau_kn, self.N_n)
+        self.gamma_n = _gamma_n(self.tau_kn, self.N_n)
         self._adjustedParameters = False
         self._caseStatus = 'modified'
 
@@ -464,8 +472,8 @@ class Plan:
 
         Two interpolation methods are supported: linear and s-curve.
         Linear is a straight line between now and the end of the simulation.
-        Hyperbolic tangent give a smooth "S" curve centered at point "c"
-        with a width "w". Center point defaults to 15 years and width to
+        Hyperbolic tangent give a smooth "S" curve centered at point "center"
+        with a width "width". Center point defaults to 15 years and width to
         5 years. This means that the transition from initial to final
         will start occuring in 10 years (15-5) and will end in 20 years (15+5).
         '''
@@ -660,6 +668,7 @@ class Plan:
                 'big ticket items'
 
         in any order. A template is provided as an example.
+        Missing rows (years) are populated with zero values.
         '''
         self.inames, self.timeLists = timelists.read(filename, self.N_i, self.horizons)
 
@@ -684,6 +693,7 @@ class Plan:
 
     def _buildOffsetMap(self):
         '''
+        Utility function to map variables to block vector.
         Refer to companion document for explanations.
         '''
         # Stack variables in block vector.
@@ -709,6 +719,7 @@ class Plan:
 
     def _buildConstraints(self, objective, options):
         '''
+        Utility function that builds constraint matrices and vectors.
         Refer to companion document for notation and detailed explanations.
         '''
         # Test slack for minimization.
@@ -772,20 +783,6 @@ class Plan:
                 row[_q2(Cf, t, n, Nt, Nn)] = 1
                 Au.append(row)
                 uvec.append(rhs)
-
-        '''
-        # Withdrawals inequalities - it created deadlocks for 0 estate.
-        # Obvious but required during wealth transfer between spouses.
-        for i in range(Ni):
-            for j in range(Nj):
-                for n in range(Nn):
-                    row = np.zeros(self.nvars)
-                    rhs = zero
-                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = 1
-                    row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -1
-                    Au.append(row)
-                    uvec.append(rhs)
-        '''
 
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
@@ -992,8 +989,20 @@ class Plan:
 
     def solve(self, objective, options={}):
         '''
-        Refer to companion document for explanations.
-        Units are in $k, unless specified otherwise.
+        This function builds the necessary constaints and
+        runs the optimizer.
+
+        - objective can be 'maxSpending' or 'maxBequest'.
+
+        - options is a dictionary which can include:
+            - maxRothConversion: Only allow conversion smaller than amount specified.
+            - netSpending: Desired spending amount when optimizing with maxBequest.
+            - estate: Value of bequest in today's $ when optimizing with maxSpending.
+            - units: Units to use for amounts (1, k, or M).
+
+        All units are in $k, unless specified otherwise.
+
+        Refer to companion document for implementation details.
         '''
         knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate']
         for opt in options:
@@ -1038,6 +1047,7 @@ class Plan:
 
     def _aggregateResults(self, x):
         '''
+        Utility function to aggregate results from solver. 
         Process all results from solution vector.
         '''
         # Define shortcuts.
@@ -1075,16 +1085,6 @@ class Plan:
 
         self.x_in = np.array(x[Cx:])
         self.x_in = self.x_in.reshape((Ni, Nn))
-
-        '''
-        print('b:\n', self.b_ijn)
-        print('d:\n', self.d_in)
-        print('f:\n', self.f_tn)
-        print('g:\n', self.g_n)
-        print('G:\n', np.sum(self.f_tn, axis=0))
-        print('w:\n', self.w_ijn)
-        print('x:\n', self.x_in)
-        '''
 
         # Make derivative variables.
         sourcetypes = [
@@ -1149,7 +1149,7 @@ class Plan:
 
     def estate(self):
         '''
-        Return final account balances.
+        Reports final account balances.
         '''
         if self._checkSolverStatus('estate'):
             return
@@ -1437,7 +1437,7 @@ class Plan:
 
         return
 
-    def showFeff(self, tag=''):
+    def _showFeff(self, tag=''):
         '''
         Plot income tax paid over time.
 
@@ -1500,13 +1500,6 @@ class Plan:
         if tag != '':
             title += ' - ' + tag
 
-        '''
-        tmp1 = np.sum(self.omega_in + 0.85*self.zetaBar_in + self.pi_in, axis=0)
-        tmp2 = np.sum(self.w_ijn[:, 1, :] + self.x_in, axis=0)
-        tmp3 = np.sum(self.b_ijkn[:, 0, 1:, :-1] + 0.5*self.kappa_ijkn[:, 0, 1:, :], axis=0) * self.tau_kn[1:, :]
-        tmp3 = np.sum(tmp3, axis=0)
-        otherG_n = tmp1 + tmp2 + tmp3 - self.sigmaBar_n
-        '''
         style = {'taxable income': '-'}
         series = {'taxable income': self.G_n}
 
