@@ -772,7 +772,7 @@ class rates:
         - conservative: conservative values.
         - fixed: user-selected fixed rates.
         - historical: historical rates from 1928 to last year.
-        - average: average over historical data.
+        - average or means: average over historical data.
         - stochastic: randomly generated from the statistical properties
           of a historical range.
         '''
@@ -809,7 +809,7 @@ class rates:
             if method == 'historical':
                 u.vprint('Using', method, 'rates representing data from', frm, 'to', to)
                 self._rateMethod = self._histRates
-            elif method == 'average':
+            elif method == 'average' or method == 'means':
                 u.vprint('Using', method, 'rates from', frm, 'to', to)
                 self.means, self.covar = getDistributions(frm, to)
                 self._setFixedRates(self.means)
@@ -823,7 +823,7 @@ class rates:
 
         self.method = method
 
-        return values
+        return np.array(values)
 
     def _setFixedRates(self, rates):
         assert len(rates) == 4, 'Rate list provided must have 4 entries.'

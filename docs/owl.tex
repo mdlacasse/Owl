@@ -431,21 +431,18 @@ All intermediate variables are in uppercase letters.
 		&=& \kappa_{ijkn} \left(1 + \tau_{kn}/2\right).
 	\end{eqnarray}
 
-	For each year, there is a degeneracy between a withdrawal from a tax-deferred account and a
-	Roth conversion followed by a withdrawal from a tax-tree account. To resolve this degeneracy,
-	we re-characterize the latter as a distribution by defining the following variable
-	\begin{eqnarray}
-		z_{in} &=& min(x_{in}, w_{i2n}), \nonumber \\
-		x_{in} &=& x_{in} - z_{in}, \nonumber \\
-		w_{i1n} &=& w_{i2n} + z_{in}, \nonumber \\
-		w_{i2n} &=& w_{i2n} - z_{in}, 
-	\end{eqnarray}
-	which entails voiding the Roth conversion and shifting the withdrawal from the
-	tax-free account to the tax-deferred account. This step is performed after the
-	optimization. This approach is perfectly valid as long as the asset allocation
-	ratios are the same in both accounts.
+	For each year, if the Roth conversions are at the beginning while all 
+	withdrawals are at the end of the year, there will be a tax advantage in performing a Roth
+	conversion followed by a tax-exempt distribution
+	at the end of the same year, when compared to a distribution from a tax-deferred
+	account. To remove this unnecessary bias, the withdrawals
+	from the tax-exempt accounts have to be synchronous with Roth conversions.
+	This could be achieved by moving the $w_i2kn$ to the beginning of the year simply
+	by multiplying with $(1 + \delta(j, 2)\tau_{kn})$. However, this creates
+	a condition in which the $w$ and $x$ variables are unbound. Solution might
+	be to move to an MILP solver and ensure that either $x=0$ or $w_{i2kn} = 0$.
 
-	There is also another null space involving an overwithdrawal from the taxable
+	There is also another equivalence involving an overwithdrawal from the taxable
 	account immediately followed by a deposit in the same account. This can also easily
 	be removed by post-processing the data as accounts balances are not affected.
 

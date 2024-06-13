@@ -376,7 +376,7 @@ class Plan:
 
         return
 
-    def setRates(self, method, frm=None, values=None):
+    def setRates(self, method, frm=None, to=None, values=None):
         '''
         Generate rates for return and inflation based on the method and
         years selected. Note that last bound is included.
@@ -391,9 +391,7 @@ class Plan:
 
         Valid year range is from 1928 to last year.
         '''
-        if frm == None:
-            to = None
-        else:
+        if frm != None and to == None:
             to = frm + self.N_n - 1  # 'to' is inclusive: subtract 1
 
         dr = rates.rates()
@@ -740,19 +738,16 @@ class Plan:
         Cg = self.C['g']
         Cw = self.C['w']
         Cx = self.C['x']
-        tau1_kn = 1 + self.tau_kn
-        Tau1_ijn = np.zeros((Ni, Nj, Nn))
-        Tauh_ijn = np.zeros((Ni, Nj, Nn))
 
+        tau_ijn = np.zeros((Ni, Nj, Nn))
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
-                    Tau1_ijn[i, j, n] = np.sum(self.alpha_ijkn[i, j, :, n] * tau1_kn[:, n], axis=0)
-                    Tauh_ijn[i, j, n] = np.sum(
-                        self.alpha_ijkn[i, j, :, n] * (1 + self.tau_kn[:, n] / 2), axis=0
-                    )
-        # Keep it for later.
-        self.Tau1_ijn = Tau1_ijn
+                    tau_ijn[i, j, n] = np.sum(self.alpha_ijkn[i, j, :, n] * self.tau_kn[:, n], axis=0)
+
+        # Weights are normalized on k. [alpha*(1 + tau) = 1 + alpha*tau)].
+        Tau1_ijn = 1 + tau_ijn
+        Tauh_ijn = 1 + tau_ijn/2
 
         if 'units' in options:
             units = u.getUnits(options['units'])
@@ -803,14 +798,17 @@ class Plan:
                     isinstance(rhsopt, (int, float)) == True
                 ), 'Specified maxConversion is not a number.'
                 rhsopt *= units
-                u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
-                for i in range(Ni):
-                    for n in range(self.horizons[i]):
-                        row = np.zeros(self.nvars)
-                        row[_q2(Cx, i, n, Ni, Nn)] = 1
-                        rhs = rhsopt
-                        Au.append(row)
-                        uvec.append(rhs)
+                if rhsopt < 0:
+                    u.vprint('Unlimited Roth conversions (<0)')
+                else:
+                    u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
+                    for i in range(Ni):
+                        for n in range(self.horizons[i]):
+                            row = np.zeros(self.nvars)
+                            row[_q2(Cx, i, n, Ni, Nn)] = 1
+                            rhs = rhsopt
+                            Au.append(row)
+                            uvec.append(rhs)
 
         if Ni == 2:
             # RMD must still be perfomed during year of passing.
@@ -1100,12 +1098,6 @@ class Plan:
             'wdrwl taxable',
             'wdrwl tax-free',
         ]
-
-        # Reroute (Roth conversions + tax-free withdrawals) == distributions.
-        z = np.minimum(self.x_in, self.w_ijn[:, 2, :])
-        self.x_in -= z
-        self.w_ijn[:, 1, :] += z*self.Tau1_ijn[:, 1, :]
-        self.w_ijn[:, 2, :] -= z*self.Tau1_ijn[:, 2, :]
 
         # Reroute degenerate taxable deposits and withdrawals.
         z = np.minimum(self.d_in, self.w_ijn[:, 0, :])
