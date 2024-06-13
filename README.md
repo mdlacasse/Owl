@@ -16,6 +16,8 @@ your strategy under different market assumptions, helping to better understand y
 
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
 
+NOTE: This code is still in active develpment. Use at your own risk.
+
 -------------------------------------------------------------------------------------
 ## Purpose and vision
 The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities. There are and were
