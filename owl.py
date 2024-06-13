@@ -727,7 +727,7 @@ class Plan:
         # Bounds values.
         zero = 0
         inf = np.inf
-        bigM = 1e12
+        bigM = 1e7
 
         # Simplified notation.
         Ni = self.N_i
@@ -996,7 +996,8 @@ class Plan:
                 lbvec.append(zero)
                 ubvec.append(bigM)
 
-        # Excluding simultaneous Roth conversion and tax-exempt withdrawals.
+        '''
+        # Excluding simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
             for n in range(Nn):
                 row = np.zeros(self.nvars)
@@ -1012,6 +1013,7 @@ class Plan:
                 Alu.append(row)
                 lbvec.append(zero)
                 ubvec.append(bigM)
+        '''
 
         u.vprint(
             'There are',
@@ -1147,10 +1149,12 @@ class Plan:
             'wdrwl tax-free',
         ]
 
+        '''
         # Reroute degenerate taxable deposits and withdrawals.
         z = np.minimum(self.d_in, self.w_ijn[:, 0, :])
         self.d_in -= z
         self.w_ijn[:, 0, :] -= z
+        '''
 
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
