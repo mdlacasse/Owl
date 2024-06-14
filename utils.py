@@ -51,7 +51,7 @@ def xprint(*args, **kwargs):
     sys.exit(-1)
 
 
-def d(value, f=0):
+def d(value, f=0) -> str:
     '''
     Return a string formatting number in $ currency.
     '''
@@ -60,7 +60,7 @@ def d(value, f=0):
     return mystr.format(value)
 
 
-def pc(value, f=1, mul=100):
+def pc(value, f=1, mul=100) -> str:
     '''
     Return a string formatting number in percent.
     '''
@@ -82,7 +82,7 @@ def rescale(vals, fac):
     return vals
 
 
-def getUnits(units):
+def getUnits(units) -> int:
     '''
     Return proper factor for units.
     '''
@@ -98,7 +98,7 @@ def getUnits(units):
     return fac
 
 
-def krond(a, b):
+def krond(a, b) -> int:
     '''
     Kronecker scalar delta function.
     '''
@@ -106,3 +106,11 @@ def krond(a, b):
         return 1
     else:
         return 0
+
+
+def getGitRevisionShortHash() -> str:
+    '''
+    Return git version.
+    '''
+    import subprocess
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
