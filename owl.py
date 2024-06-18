@@ -1041,6 +1041,7 @@ class Plan:
             self._caseStatus = 'unsuccessful'
 
         self.objective = objective
+        self.solver = 'linprog'
         self.solverOptions = options
 
         return
@@ -1173,6 +1174,7 @@ class Plan:
             print('Rates used:', *[u.pc(self.rateValues[k], f=1) for k in range(self.N_k)])
         print('Optimized for:', self.objective)
         print('Solver options:', self.solverOptions)
+        print('Solver used:', self.solver)
         print('Spending profile:', self.spendingProfile)
         if self.N_i == 2:
             print('Survivor percent income:', u.pc(self.chi, f=0))
