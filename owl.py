@@ -891,9 +891,9 @@ class Plan:
                     row[_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1)] = 1
                     row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -fac1 * Tau1_ijn[i, j, n]
                     row[_q2(Cx, i, n, Ni, Nn)] = (
-                        -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n]
+                        -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n]
                     )
-                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1
+                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
                     row[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0)
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
@@ -901,9 +901,9 @@ class Plan:
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
                         row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
                         row[_q2(Cx, i_d, n, Ni, Nn)] = (
-                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i_d, j, n]
+                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
                         )
-                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2
+                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i, j, n]
                         row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
                     Ae.append(row)
                     vvec.append(rhs)
