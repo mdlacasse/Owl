@@ -65,7 +65,9 @@ Basic input parameters are given through function calls while optional additiona
 an Excel spreadsheet than contains wages, contributions
 to savings accounts, and planned *big ticket items* such as the purchase of a lake house or the sale of a boat.
 
-Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts.
+Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts
+which are tracked separately for married individuals. Asset transition to the surviving spouse
+is done according to beneficiary fractions for each account type.
 Tax status covers married filing jointly and single, depending on the number of individuals reported.
 
 See one of the notebooks for a tutorial and representative user cases.
@@ -79,7 +81,7 @@ Head of household filing status has not been added but can easily be.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
 - In the current implementation, social securiy is always taxed at 85%.
-- There are no IRMAA calculations. However, this can be added by switching to a different solver (MILP).
+- There are no IRMAA calculations. However, this could probably be added in the future.
 - Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
