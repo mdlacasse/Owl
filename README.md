@@ -145,17 +145,19 @@ The output of the last command looks like:
 ```
 SUMMARY ======================================================
 Plan name: jack & jill - tutorial
-Individuals: Jack Jill
+        Jack: life horizon from 2024 -> 2051.
+        Jill: life horizon from 2024 -> 2057.
 Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
 Optimized for: maxSpending
 Solver options: {'maxRothConversion': 150, 'estate': 500}
+Solver used: milp
 Spending profile: smile
 Survivor percent income: 60%
-Net yearly spending in 2024$: $100,548
-Total net spending in 2024$: $2,904,559 ($8,197,874 nominal)
-Total income tax paid in 2024$: $226,470 ($492,602 nominal)
+Net yearly spending in 2024$: $101,493
+Total net spending in 2024$: $2,931,874 ($8,274,968 nominal)
+Total income tax paid in 2024$: $297,269 ($528,970 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values: $0 $0 $2,492,067
 Final estate value in 2024$: $500,000 ($2,492,067 nominal)
