@@ -1022,7 +1022,7 @@ class Plan:
 
         milpOptions = {
             'disp': True,
-            'mip_rel_gap': 1e-6
+            'mip_rel_gap': 1e-8
         }
         constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
         solution = optimize.milp(
