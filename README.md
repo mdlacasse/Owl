@@ -41,7 +41,8 @@ Owl can optimize for either maximum net spending under the constraint of a given
 bequest under the constraint of a desired net spending profile. Roth conversions are also considered
 and optimized under the assumption of a heirs marginal tax rate and subject to an optional maximum
 conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
-or through historical values, as are all other rates used for the calculations.
+or through historical values, as are all other rates used for the calculations. These historical, fixed,
+and stochastic rates can be used for backtesting different scenarios.
 
 Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
 and cash assets assumed to just follow inflation which is represented by the Consumer Price Index.
