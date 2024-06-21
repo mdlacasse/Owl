@@ -706,7 +706,8 @@ class Plan:
         C['w'] = _qC(C['g'], self.N_n)
         C['x'] = _qC(C['w'], self.N_i, self.N_j, self.N_n)
         C['z'] = _qC(C['x'], self.N_i, self.N_n)
-        self.nvars = _qC(C['z'], self.N_i, self.N_n, self.N_z)
+        C['Z'] = _qC(C['z'], self.N_i, self.N_n, self.N_z)
+        self.nvars = _qC(C['Z'], 1)
 
         self.C = C
         u.vprint(
@@ -747,6 +748,7 @@ class Plan:
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
+        CZ = self.C['Z']
 
         tau_ijn = np.zeros((Ni, Nj, Nn))
         for i in range(Ni):
@@ -896,9 +898,10 @@ class Plan:
                     row[_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1)] = 1
                     row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -fac1 * Tau1_ijn[i, j, n]
                     row[_q2(Cx, i, n, Ni, Nn)] = (
-                        -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n]
+                        -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n]
                     )
-                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1
+                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
+                    # if n != Nn - 1:
                     row[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0)
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
@@ -906,10 +909,10 @@ class Plan:
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
                         row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
                         row[_q2(Cx, i_d, n, Ni, Nn)] = (
-                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i_d, j, n]
+                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
                         )
-                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2
-                        row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
+                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i, j, n]
+                        # row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
                     Alu.append(row)
                     lbvec.append(rhs)
                     ubvec.append(rhs)
@@ -979,6 +982,13 @@ class Plan:
                     ubvec.append(1)
                     integrality[_q3(Cz, i, n, z, Ni, Nn, Nz)] = 1
 
+        row = np.zeros(self.nvars)
+        row[_q1(CZ, 0, 1)] = 1
+        Alu.append(row)
+        lbvec.append(0)
+        ubvec.append(1)
+        integrality[_q1(CZ, 0, 1)] = 1
+
         # Excluding simultaneous deposits and withdrawals in taxable account.
         for i in range(Ni):
             for n in range(Nn):
@@ -996,7 +1006,22 @@ class Plan:
                 lbvec.append(zero)
                 ubvec.append(bigM)
 
-        '''
+        row = np.zeros(self.nvars)
+        row[_q1(CZ, 0, 1)] = bigM
+        row[_q2(Cd, i_s, n_d-1, Ni, Nn)] = -1
+        Alu.append(row)
+        lbvec.append(zero)
+        ubvec.append(bigM)
+
+        row = np.zeros(self.nvars)
+        row[_q1(CZ, 0, 1)] = bigM
+        row[_q3(Cw, i_d, 0, n_d-1, Ni, Nj, Nn)] = 1
+        Alu.append(row)
+        lbvec.append(zero)
+        ubvec.append(bigM)
+
+
+        #'''
         # Excluding simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
             for n in range(Nn):
@@ -1013,7 +1038,7 @@ class Plan:
                 Alu.append(row)
                 lbvec.append(zero)
                 ubvec.append(bigM)
-        '''
+        #'''
 
         u.vprint(
             'There are',
@@ -1115,6 +1140,8 @@ class Plan:
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
+
+        x = u.roundCents(x)
 
         # Allocate, slice in, and reshape variables.
         self.b_ijn = np.array(x[Cb:Cd])

@@ -106,3 +106,9 @@ def krond(a, b):
         return 1
     else:
         return 0
+
+def roundCents(n, decimals=2):
+    import numpy as np
+    multiplier = 10**decimals
+
+    return np.floor(n * multiplier + 0.5) / multiplier
