@@ -134,8 +134,8 @@ class Plan:
         self.N_t = 7
         self.N_j = 3
         self.N_k = 4
-        # 2 binary variables.
-        self.N_z = 2
+        # 3 binary variables.
+        self.N_z = 3
 
         # Default interpolation parameters for allocation ratios.
         self.interpMethod = 'linear'
@@ -722,7 +722,7 @@ class Plan:
 
     def _buildConstraints(self, objective, options):
         '''
-        Utility function that builds constraint matrices and vectors.
+        Utility function that builds constraint matrix and vectors.
         Refer to companion document for notation and detailed explanations.
         '''
         # Bounds values.
@@ -769,7 +769,7 @@ class Plan:
         # Inequality constraint matrix with upper and lower bound vectors.
         A = ConstraintMatrix(self.nvars)
 
-        # All variables continuous by default.
+        # All variables are continuous by default.
         integrality = np.zeros(self.nvars)
 
         # RMDs inequalities.
@@ -779,7 +779,7 @@ class Plan:
                           _q3(Cb, i, 1, n, Ni, Nj, Nn + 1) : -self.rho_in[i, n]}
                 A.addNewRow(rowDic, zero, inf)
 
-        # Income tax bracket bounds inequalities.
+        # Income tax bracket range inequalities.
         for n in range(Nn):
             for t in range(Nt):
                 ub = self.DeltaBar_tn[t, n]
@@ -805,6 +805,7 @@ class Plan:
                     u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
+                            #  Adjust cap for inflation?
                             A.addNewRow({_q2(Cx, i, n, Ni, Nn): 1}, zero, rhsopt)
 
         if Ni == 2:
@@ -865,24 +866,25 @@ class Plan:
                     fac1 = 1 - u.krond(n, n_d - 1) * u.krond(i, i_d)
                     rhs = fac1 * self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
 
-                    rowDic = {_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1): 1}
-                    rowDic[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -fac1 * Tau1_ijn[i, j, n]
-                    rowDic[_q2(Cx, i, n, Ni, Nn)] = (
+                    row = A.newRow()
+                    row[_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1)] = 1
+                    row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -fac1 * Tau1_ijn[i, j, n]
+                    row[_q2(Cx, i, n, Ni, Nn)] = (
                         -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n]
                     )
-                    rowDic[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
-                    rowDic[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0)
+                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
+                    row[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0)
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
-                        rowDic[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
-                        rowDic[_q2(Cx, i_d, n, Ni, Nn)] = (
+                        row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
+                        row[_q2(Cx, i_d, n, Ni, Nn)] = (
                             -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
                         )
-                        rowDic[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i, j, n]
-                        # rowDic[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
-                    A.addNewRow(rowDic, rhs, rhs)
+                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i, j, n]
+                        # row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
+                    A.addRow(row, rhs, rhs)
 
         # Net income equalities 1/2.
         for n in range(Nn):
@@ -922,15 +924,14 @@ class Plan:
                 rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
                 row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
                 row[_q2(Cx, i, n, Ni, Nn)] = -1
-                for k in range(1, Nk):
-                    fak = self.tau_kn[k, n] * self.alpha_ijkn[i, 0, k, n]
-                    rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
-                    row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] += -fak
+                fak = np.sum(self.tau_kn[1:Nk, n] * self.alpha_ijkn[i, 0, 1:Nk, n], axis=0)
+                rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
+                row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] += -fak
             for t in range(Nt):
                 row[_q2(Cf, t, n, Nt, Nn)] = 1
             A.addRow(row, rhs, rhs)
 
-        # Configuring binary variables.
+        # Configure binary variables.
         for i in range(Ni):
             for n in range(Nn):
                 for z in range(Nz):
@@ -940,7 +941,7 @@ class Plan:
         A.addNewRow({_q1(CZ, 0, 1): 1}, 0, 1)
         integrality[_q1(CZ, 0, 1)] = 1
 
-        # Excluding simultaneous deposits and withdrawals in taxable account.
+        # Exclude simultaneous deposits and withdrawals in taxable account.
         for i in range(Ni):
             for n in range(Nn):
                 A.addNewRow({_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM,
@@ -949,23 +950,26 @@ class Plan:
                 A.addNewRow({_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM,
                              _q3(Cw, i, 0, n, Ni, Nj, Nn): 1}, zero, bigM)
 
+                A.addNewRow({_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM,
+                             _q2(Cd, i, n, Ni, Nn): -1}, zero, bigM)
+
+                A.addNewRow({_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM,
+                             _q3(Cw, i, 2, n, Ni, Nj, Nn): 1}, zero, bigM)
+
         A.addNewRow({_q1(CZ, 0, 1): bigM,
                      _q2(Cd, i_s, n_d-1, Ni, Nn): -1}, zero, bigM)
 
         A.addNewRow({_q1(CZ, 0, 1): bigM,
                      _q3(Cw, i_d, 0, n_d-1, Ni, Nj, Nn): 1}, zero, bigM)
 
-
-        #'''
-        # Excluding simultaneous Roth conversions and tax-exempt withdrawals.
+        # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
             for n in range(Nn):
-                A.addNewRow({_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM,
+                A.addNewRow({_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM,
                              _q2(Cx, i, n, Ni, Nn): -1}, zero, bigM)
 
-                A.addNewRow({_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM,
+                A.addNewRow({_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM,
                              _q3(Cw, i, 2, n, Ni, Nj, Nn): 1}, zero, bigM)
-        #'''
 
         self.Alu, self.lbvec, self.ubvec = A.finalize()
         self.integrality = integrality
@@ -1170,7 +1174,11 @@ class Plan:
         now = self.year_n[0]
         print('SUMMARY ======================================================')
         print('Plan name:', self._name)
-        print('Individuals:', *[self.inames[i] for i in range(self.N_i)])
+        for i in range(self.N_i):
+            u.vprint(
+                '%s: life horizon from %d -> %d.'
+                % (self.inames[i], now, now + self.horizons[i] - 1)
+            )
         print('Contributions file:', self.timeListsFileName)
         print('Return rates:', self.rateMethod)
         if self.rateMethod in ['historical', 'average', 'stochastic']:
