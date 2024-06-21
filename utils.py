@@ -107,7 +107,6 @@ def krond(a, b) -> int:
     else:
         return 0
 
-<<<<<<< HEAD
 
 def getGitRevisionShortHash() -> str:
     '''
@@ -115,10 +114,10 @@ def getGitRevisionShortHash() -> str:
     '''
     import subprocess
     return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
-=======
+
+
 def roundCents(n, decimals=2):
     import numpy as np
     multiplier = 10**decimals
 
     return np.floor(n * multiplier + 0.5) / multiplier
->>>>>>> milp
