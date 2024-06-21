@@ -808,7 +808,7 @@ class Plan:
                             A.addNewRow({_q2(Cx, i, n, Ni, Nn): 1}, zero, rhsopt)
 
         if Ni == 2:
-            # No activity for i_d on after year of passing.
+            # No activity for i_d after year of passing.
             for n in range(n_d, Nn):
                 A.addNewRow({_q2(Cd, i_d, n, Ni, Nn): 1}, zero, zero)
                 A.addNewRow({_q2(Cx, i_d, n, Ni, Nn): 1}, zero, zero)
