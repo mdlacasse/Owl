@@ -1,4 +1,4 @@
-\documentclass{article}[fleqn,12pt]
+\documentclass{report}[fleqn,12pt]
 \usepackage{amsmath}
 \usepackage{enumitem}
 \usepackage{bm}
@@ -10,13 +10,14 @@
 \geometry{letterpaper}
 
 \begin{document}
-\title{Formulation of the linear optimization model in Owl}
+\title{Formulation of the optimization model in Owl}
 \author{Martin-D. Lacasse}
 \maketitle
 \thispagestyle{fancy}
 \fancyfoot[R]{\copyright\ Martin-D. Lacasse - 2024}
 \fancyhead{}
 
+\chapter{Introduction}
 This document describes the mathematical model undelying
 the optimization algorithms implemented in
 Owl. This code is a Python application optimizing retirement
@@ -31,7 +32,8 @@ follows the structure and notation presented in this document.
 The goal of this document is to provide a guide to the Python code
 intended for any individual desiring to extend the model to other cases.
 
-In the first sections, the indices, variables, and parameters are
+\chapter{Indices, variables, and parameters}
+In the next sections, the indices, variables, and parameters are
 described in detail. Then the model constraints are introduced.
 For implementation in a linear programming solver, index mapping
 functions are proposed to map all variables into a single
@@ -81,13 +83,13 @@ to take only positive values (positive inequality).
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$b_{ijkn}$]
 	Balance for individual $i$ with asset class $k$ in savings account $j$ at the beginning of year $n$.
-\item [$b^+_{ijkn}$]
-	Amount to be added to savings account balance value $b$ in order to rebalance asset allocations of
-	savings account $j$ across different classes of assets $k$.
-\item [$b^-_{ijkn}$]
-	Amount to be subtracted from savings account balance value $b$ in order to rebalance asset allocations of
-	savings account $j$ across different classes of assets $k$. We use two variables
-	to rebalance in order to preserve positivity of the variables.
+	When we only consider the sum in the savings account, without considering the distribution
+	in each asset class $k$, the variable $b_{ijn}$ is used.
+\item [$b^\pm_{ijkn}$]
+	Amount to be added or subtracted to savings account balance value $b$ in order
+	to rebalance asset allocations of
+	savings account $j$ across different classes of assets $k$. We note
+		variables not bound by positivity $\ge 0)$ by the superscript $^\pm$.
 \item [$d_{ikn}$]
 	Deposit of year-$n$ net spending surplus in assets $k$ of taxable account of individual $i$.
 	Deposit is made at the end of year $n$.
@@ -102,12 +104,12 @@ to take only positive values (positive inequality).
 \item [$g_n$]
 	Net spending in year $n$.
 \item [$w_{ijkn}$]
-	Withdrawal from assets $k$ in account $j$ belonging to individual $i$ at the end of year $n$.
+	Withdrawal from assets $k$ in account $j$ belonging to individual $i$ at the beginning of year $n$.
 	For the $(j=1)$ tax-deferred savings account, $w_{i1kn}$ is referred to as a distribution for
-	tax purposes as it is a taxable withdrawal.
+	tax purposes as it is a taxable withdrawal, and will always satisfy required minimum distributions.
 \item [$x_{ikn}$]
 	Roth conversion performed by individual $i$ using asset class $k$ at the beginning of year $n$.
-	These events are taxable.
+	These events are taxable as ordinary income.
 \end{description}
 
 \section{Parameters}
@@ -187,9 +189,11 @@ Parameter values are either set by the user, historical data, or by the tax code
 	.10, .15, .25, .28, .33, .35, and .396. See Eq.~\ref{Eq:Tax} for its use.
 \item [$\alpha_{ijkn}$]
 	Desired asset allocation for savings account $j$ of individual $i$ in assets class $k$ during year $n$.
+	Allocation ratios come in many flavors as they could be specified globally between
+	individuals and accounts as $\alpha_{kn}$, for example.
 	When specified by the user, allocation ratios typically involve two values, one at the
 	beginning of the plan $\alpha_{ijk0}$ and the other at the end
-	$\alpha_{ijkN_n-1}$. Then, intermediate values are interpolated either using
+	$\alpha_{ijkN_{n-1}}$. Then, intermediate values are interpolated either using
 	a linear relation,
 \begin{equation}
 	\alpha_{ijkn} = a + \frac{n}{N_n - 1} (b - a),
@@ -236,11 +240,11 @@ or an s-curve as in
 	\end{eqnarray}
 	depending on the scheme selected.
 
-\item [$\Lambda_{in}$]
+\item [$\Lambda^\pm_{in}$]
 	Big-ticket item requested by individual $i$ in year $n$.
 	These are large expenses or influx of money
-	that can be planned. Therefore, $\Lambda$ can be positive (e.g., sell a house, inheritance)
-	or negative (e.g., buy a house, large gifts).
+	that can be planned. Therefore, $\Lambda^\pm$ can be positive
+	(e.g., sell a house, inheritance) or negative (e.g., buy a house, large gifts).
 \item [$\pi_{in}$]
 	Sum of pension benefits for individual $i$ in year $n$. These amounts are typically
 	specified along with the ages at which these benefits begin.
@@ -348,16 +352,47 @@ All intermediate variables are in uppercase letters.
 	capital gains are taxed at the same preferential rate $\psi$.
 \end{description}
 
+\chapter{Formulation with imposed asset allocation ratios}
+We first present the case where the sums of assets in each savings accounts $b_{ijn}$ are known
+over which we assume a prescribed asset allocation ratios.
+The amount in each asset class $k$ for $b_{ijkn}$ is simply obtained
+from $\alpha_{ijkn} b_{ijn}$ in this case.
+This formulation assumes that the accounts are always balanced. This is
+a reasonable assumption given the auto-balancing feature offered by many financial service
+providers.
+
+The benefit of this approach is that it has less variables and that only the sums of
+all asset classes in each savings account need to be known. The rate of return
+of the account is then simply the product of the account balance with the sum of
+the rates of return weighted according to the desired allocation ratio.
+This approach allows us to eliminate $k$ by summing over it and rewrite
+\begin{eqnarray}
+	\sum_k b_{ijkn+1} &=& \sum_k b_{ijkn} (1 + \tau_{kn}) + \ldots ,
+\end{eqnarray}
+for the annual evolution of account balances from year $n$ to year $n+1$
+as the simpler expression 
+\begin{eqnarray}
+	b_{ijn+1} &=& b_{ijn} \sum_k \alpha_{ijkn} (1 + \tau_{kn}) + \ldots ,\nonumber \\
+		  &=& b_{ijn} \mathcal{T}_{ijn} + \ldots ,
+\end{eqnarray}
+where
+\begin{eqnarray}
+	\label{Eq:Tau1}
+	\mathcal{T}_{ijn} &:=& 1 + \sum_k \alpha_{ijkn} \tau_{kn}.
+\end{eqnarray}
+The formulation below will therefore use $\matcal{T}_{ijn}$ to
+add the market return to the savings balances.
+
 \section{Constraints}
 \paragraph*{Required minimum distributions (RMDs)}
 	Withdrawals from the ($j=1$) tax-deferred savings accounts must be larger
-	or equal than the required minimum distributions, therefore
+	or equal than the required minimum distributions, and therefore
 	\begin{equation}
 		\label{Eq:C1}
-		\sum_k [w_{i1kn} -  \rho_{in}b_{i1kn}] \geq 0.
+		\sum_k [w_{i1n} -  \rho_{in}b_{i1n}] \geq 0.
 	\end{equation}
-	As $b_{ijkn}$ are the balances at the beginning of year $n$, they are also the balances
-	at December 31 of the previous year, which is the amount from which the IRS bases the RMD.
+	As $b_{ijn}$ are the balances at the beginning of year $n$, they are also the balances
+	at December 31 of the previous year, which is the amount from which the IRS bases the RMDs.
 	Eq.~\ref{Eq:C1} has to hold for each year $n$ and each individual $i$, and therefore, there
 	are $i\times N_n$ such equations (even when $\rho_{in} = 0$).
 	These constraints avoid paying the 50\% penalty
@@ -375,8 +410,8 @@ All intermediate variables are in uppercase letters.
 	Given this definition, all bracket fractions $f$ must be positive and smaller than or equal to 1,
 	imposing an upper bound on $f$.
 	Because $\theta_{t} > \theta_{t'}$ when $t > t'$, we can exploit
-	this monotonically increasing series to fill the lower
-	tax brackets using the minimization algorithm.
+	this monotonically increasing series of rates with $t$ to have the minimization
+	algorithm naturally fill the lower tax brackets.
 	For that purpose, we need to introduce the combined variable
 	\begin{equation}
 		\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn},
@@ -387,8 +422,9 @@ All intermediate variables are in uppercase letters.
 	\end{equation}
 	with
 	\begin{equation}
-		\bar{F}_{tn} \le \bar{\Delta}_{tn}.
+		\bar{\Delta}_{t-1,n} \le \bar{F}_{tn} \le \bar{\Delta}_{tn},
 	\end{equation}
+	where $\bar{\Delta}_{-1n} := 0$.
 
 \paragraph*{Account balances}
 	Contributions are assumed to be made at half-year to better represent periodic contributions
@@ -396,28 +432,59 @@ All intermediate variables are in uppercase letters.
 	the account balance at the end of a year is the same as the balance
 	at the beginning of the following year.
 	Changes include contributions $\kappa$, distributions and withdrawals $w$,
-	conversions $x$, and growth $\tau$.
-	We track each asset class $k$ in each savings account $j$ separately.
-	Roth conversions are assumed to be made at the beginning of the year, while withdrawals
-	and surplus deposits, if needed, are made at the end of the year.
-	Accounts are rebalanced using $b^{\pm}$ at the end of the year.
+	conversions $x$, and growth $\tau$ on the account through the year.
+	We track each savings account $j$ separately, and the tax-deferred account
+	is coupled to the tax-exempt account through Roth conversions.
+
+	The timing of Roth conversions, withdrawals, and deposits determines
+	the coupling between these variables, and is worth a detailed discussion.
+	First, the financial aspect, and then the algorithmic one.
+	For the former, some financial advisors would recommend making
+	conversions at the beginning of the year, while making withdrawals
+	at the end. Obvioulsy, simulators would always yield higher numbers
+	for this scenario, as the moneys needed to pay the regular bills 
+	stayed in the bank until the end of the year. More realistically,
+	however,
+	it would be more accurate to assume the withdrawals at mid-year,
+	to better represent evenly distributed withdrawals. So, financially,
+	conversions at the beginning of the year, and withdrawals at mid-year
+	make good sense.
+
+	From an optimization point of view, and in years of positive returns,
+	a direct withdrawal from the tax-deferred account will always
+	be unfavored against a Roth conversion taking place
+	at the beginning of the year, followed
+	by a tax-exempt withdrawal later in the year.
+	This is because the second
+	scenario involves gains which are tax-free over the year, while
+	the first one does not. Moving account withdrawals at the beginning
+	of the year, and the conversions in mid-year can solve this artificial bias.
+	Another option is the make the conversion and withdrawal events synchronous
+	but introduce binary variables $z_{in} \in \{0, 1\}$ with the following constraints:
+	\begin{eqnarray}
+		0 \le& z_{in}M - x_{in} &\le M, \nonumber \\
+		0 \le& z_{in}M + w_{i1j} &\le M.
+	\end{eqnarray}
+	Here, $M$ is a large number such as $10^7$, larger than what $x$ and $w$ can possibly be.
+
+	Roth conversions are assumed to be made at mid-year, while withdrawals
+	are made at the beginning of the year, and surplus deposits, if needed, are made at the end of the year.
 	Timing controls which terms get multiplied by the rate of return $(1 + \tau)$
 	of this particular asset.
 	Therefore,
 	\begin{eqnarray}
 		\label{Eq:C3a}
-		b_{ijk(n+1)} &=& [b_{ijkn} + (\delta(j, 2) - \delta(j, 1))x_{ikn} 
-		+ .5\kappa_{ijkn}](1 + \tau_{kn})
+		b_{ij(n+1)} &=& [b_{ijn} + .5\kappa_{ijn}](1 + \mathcal{T}_{ijn})
+		+ (\delta(j, 2) - \delta(j, 1))x_{in} (1 + \mathcal{T}_{ijn}/2)
 		\nonumber \\
 		&& 
-		+\ b^+_{ijkn} - b^-_{ijkn} 
-		+ .5 \kappa_{ijkn} - w_{ijkn} + \delta(j, 0)d_{ikn},
+		+ .5 \kappa_{ijn} 
+		- w_{ijn} (1 + \mathcal{T}_{ijn})
+		+ \delta(j, 0)d_{in},
 	\end{eqnarray}
 	where we use discrete Kronecker $\delta$ functions for selecting the specific accounts involved
-	in Roth conversions. These conversions leave the asset classes unchanged, which can lead to a
-	change in allocation ratios in the savings accounts involved. But these changes
-	can be corrected by rebalancing variables $b^\pm$ as
-	specific allocation ratios have been imposed.
+	in Roth conversions. These conversions are made such that asset allocation
+	ratios in the sending and receiving accounts are unchanged.
 
 	Bringing all variables
 	to the left-hand side, this gets rewritten as
@@ -589,7 +656,7 @@ is determined.
 		&& + .5\sum_{ik} [(1-\delta(k, 0))\tau_{kn}\kappa_{i0kn}].
 	\end{eqnarray}
 
-\section{Mapping of indices}
+\chapter{Mapping of decision variables}
 At this point, one can use one of the many algebraic modeling languages
 such as AMPL, GAMS, AIMMMS, and Gurobi, and code the equations above
 using that language, but of these applications are
@@ -755,7 +822,7 @@ While this holds for all cases presented in the previous section, this can be ea
 for cases having fewer active indices. However, some modern languages can accomplish this
 mapping rather easily by providing \texttt{reshape()} functions.
 
-\section{Building constraint matrices}
+\chapter{Building constraint matrices}
 Let's first define generic index-mapping functions $I$ and $J$ as
 \begin{eqnarray}
 	\label{Eq:Offsets}
@@ -802,7 +869,7 @@ setting an upper limit on fractions $f_{t n} \le 1$. Therefore,
 \end{eqnarray}
 and all other elements in the same rows of $A_u$ being $0$.
 
-\paragraph{Account rebalance}
+\paragraph*{Account rebalance}
 For Eq.~(\ref{Eq:EnoughMoney}), where we ensure that the
 rebalancing amounts do not overdraw, we add $N_iN_jN_kN_n$ rows to the upper-bound
 inequality matrix $A_uy\le u$,
@@ -1112,7 +1179,7 @@ A similar spousal ratio can be imposed on withdrawals from tax-deferred accounts
 \end{equation}
 but this can cause drawing an account empty while the other spousal account is not.
 
-\section{Objective functions}
+\chapter{Objective functions}
 The objective function is a simple scalar defined as $c\cdot y$ that will be minimized.
 
 \paragraph*{Maximum net spending}

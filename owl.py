@@ -16,6 +16,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 ###########################################################################
 import numpy as np
 from scipy import optimize
+from scipy.optimize import milp, LinearConstraint, Bounds
 from datetime import date
 
 import utils as u
@@ -129,10 +130,12 @@ class Plan:
         '''
         self._name = name
 
-        # 7 tax brackets, 3 types of accounts, 4 classes of assets
+        # 7 tax brackets, 3 types of accounts, 4 classes of assets.
         self.N_t = 7
         self.N_j = 3
         self.N_k = 4
+        # 2 binary variables.
+        self.N_z = 2
 
         # Default interpolation parameters for allocation ratios.
         self.interpMethod = 'linear'
@@ -702,7 +705,9 @@ class Plan:
         C['g'] = _qC(C['f'], self.N_t, self.N_n)
         C['w'] = _qC(C['g'], self.N_n)
         C['x'] = _qC(C['w'], self.N_i, self.N_j, self.N_n)
-        self.nvars = _qC(C['x'], self.N_i, self.N_n)
+        C['z'] = _qC(C['x'], self.N_i, self.N_n)
+        C['Z'] = _qC(C['z'], self.N_i, self.N_n, self.N_z)
+        self.nvars = _qC(C['Z'], 1)
 
         self.C = C
         u.vprint(
@@ -720,14 +725,18 @@ class Plan:
         Utility function that builds constraint matrices and vectors.
         Refer to companion document for notation and detailed explanations.
         '''
-        # Test slack for minimization.
+        # Bounds values.
         zero = 0
+        inf = np.inf
+        bigM = 1e7
+
         # Simplified notation.
         Ni = self.N_i
         Nj = self.N_j
         Nk = self.N_k
         Nn = self.N_n
         Nt = self.N_t
+        Nz = self.N_z
         i_d = self.i_d
         i_s = self.i_s
         n_d = self.n_d
@@ -738,6 +747,8 @@ class Plan:
         Cg = self.C['g']
         Cw = self.C['w']
         Cx = self.C['x']
+        Cz = self.C['z']
+        CZ = self.C['Z']
 
         tau_ijn = np.zeros((Ni, Nj, Nn))
         for i in range(Ni):
@@ -755,31 +766,24 @@ class Plan:
             units = 1000
 
         ###################################################################
-        # Inequality constraint matrix and vector.
-        Au = []
-        uvec = []
-        # Equality constraint matrix and vector.
-        Ae = []
-        vvec = []
+        # Inequality constraint matrix with upper and lower bound vectors.
+        A = ConstraintMatrix(self.nvars)
+
+        # All variables continuous by default.
+        integrality = np.zeros(self.nvars)
 
         # RMDs inequalities.
         for i in range(Ni):
             for n in range(self.horizons[i]):
-                row = np.zeros(self.nvars)
-                rhs = zero
-                row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
-                row[_q3(Cb, i, 1, n, Ni, Nj, Nn + 1)] = self.rho_in[i, n]
-                Au.append(row)
-                uvec.append(rhs)
+                rowDic = {_q3(Cw, i, 1, n, Ni, Nj, Nn) : 1,
+                          _q3(Cb, i, 1, n, Ni, Nj, Nn + 1) : -self.rho_in[i, n]}
+                A.addNewRow(rowDic, zero, inf)
 
         # Income tax bracket bounds inequalities.
-        for t in range(Nt):
-            for n in range(Nn):
-                row = np.zeros(self.nvars)
-                rhs = self.DeltaBar_tn[t, n]
-                row[_q2(Cf, t, n, Nt, Nn)] = 1
-                Au.append(row)
-                uvec.append(rhs)
+        for n in range(Nn):
+            for t in range(Nt):
+                ub = self.DeltaBar_tn[t, n]
+                A.addNewRow({_q2(Cf, t, n, Nt, Nn): 1}, zero, ub)
 
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
@@ -787,11 +791,8 @@ class Plan:
                 u.vprint('Fixing Roth conversions to those from file %s.' % self.timeListsFileName)
                 for i in range(Ni):
                     for n in range(self.horizons[i]):
-                        row = np.zeros(self.nvars)
-                        row[_q2(Cx, i, n, Ni, Nn)] = 1
                         rhs = self.myRothX_in[i][n]
-                        Ae.append(row)
-                        vvec.append(rhs)
+                        A.addNewRow({_q2(Cx, i, n, Ni, Nn): 1}, rhs, rhs)
             else:
                 rhsopt = options['maxRothConversion']
                 assert (
@@ -804,30 +805,15 @@ class Plan:
                     u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
-                            row = np.zeros(self.nvars)
-                            row[_q2(Cx, i, n, Ni, Nn)] = 1
-                            rhs = rhsopt
-                            Au.append(row)
-                            uvec.append(rhs)
+                            A.addNewRow({_q2(Cx, i, n, Ni, Nn): 1}, zero, rhsopt)
 
         if Ni == 2:
-            # RMD must still be perfomed during year of passing.
-            row = np.zeros(self.nvars)
-            row[_q3(Cw, i_d, 1, n_d - 1, Ni, Nj, Nn)] = 1
-            row[_q3(Cb, i_d, 1, n_d - 1, Ni, Nj, Nn + 1)] = -self.rho_in[i_d, n_d - 1]
-            rhs = zero
-            Ae.append(row)
-            vvec.append(rhs)
-            # But no activity for i_d on the year of passing and after.
-            for n in range(n_d - 1, Nn):
-                row = np.zeros(self.nvars)
-                row[_q2(Cd, i_d, n, Ni, Nn)] = 1
-                row[_q2(Cx, i_d, n, Ni, Nn)] = 1
+            # No activity for i_d after year of passing.
+            for n in range(n_d, Nn):
+                A.addNewRow({_q2(Cd, i_d, n, Ni, Nn): 1}, zero, zero)
+                A.addNewRow({_q2(Cx, i_d, n, Ni, Nn): 1}, zero, zero)
                 for j in range(Nj):
-                    row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = 1
-                rhs = zero
-                Ae.append(row)
-                vvec.append(rhs)
+                    A.addNewRow({_q3(Cw, i_d, j, n, Ni, Nj, Nn): 1}, zero, zero)
 
         ###################################################################
         # Equalities.
@@ -846,37 +832,29 @@ class Plan:
                 # If not specified, default to $1.
                 estate = 1
 
-            rhs = estate
-            row = np.zeros(self.nvars)
+            row = A.newRow()
             for i in range(Ni):
                 row[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = 1
                 row[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = 1 - self.nu
                 row[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = 1
-            Ae.append(row)
-            vvec.append(rhs)
+            A.addRow(row, estate, estate)
             u.vprint('Adding estate constraint of:', u.d(estate))
         elif objective == 'maxBequest':
             if 'estate' in options:
                 u.vprint('Ignoring estate option provided.')
-            rhs = options['netSpending']
-            assert isinstance(rhs, (int, float)) == True, 'Desired spending provided not a number.'
-            rhs *= units
-            u.vprint('Maximizing bequest with desired net spending of:', u.d(rhs))
-            row = np.zeros(self.nvars)
-            row[_q1(Cg, 0)] = 1
-            Ae.append(row)
-            vvec.append(rhs)
+            spending = options['netSpending']
+            assert isinstance(spending, (int, float)) == True, 'Desired spending provided not a number.'
+            spending *= units
+            u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
+            A.addNewRow({_q1(Cg, 0): 1}, spending, spending)
         else:
             u.xprint('Unknown objective function:', objective)
 
         # Set initial balances.
         for i in range(Ni):
             for j in range(Nj):
-                row = np.zeros(self.nvars)
-                row[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = 1
                 rhs = self.beta_ij[i, j]
-                Ae.append(row)
-                vvec.append(rhs)
+                A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer.
@@ -884,35 +862,32 @@ class Plan:
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
-                    row = np.zeros(self.nvars)
                     fac1 = 1 - u.krond(n, n_d - 1) * u.krond(i, i_d)
                     rhs = fac1 * self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
 
-                    row[_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1)] = 1
-                    row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -fac1 * Tau1_ijn[i, j, n]
-                    row[_q2(Cx, i, n, Ni, Nn)] = (
+                    rowDic = {_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1): 1}
+                    rowDic[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -fac1 * Tau1_ijn[i, j, n]
+                    rowDic[_q2(Cx, i, n, Ni, Nn)] = (
                         -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n]
                     )
-                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
-                    row[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0)
+                    rowDic[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
+                    rowDic[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0)
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
-                        row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
-                        row[_q2(Cx, i_d, n, Ni, Nn)] = (
+                        rowDic[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
+                        rowDic[_q2(Cx, i_d, n, Ni, Nn)] = (
                             -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
                         )
-                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i, j, n]
-                        row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
-                    Ae.append(row)
-                    vvec.append(rhs)
+                        rowDic[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i, j, n]
+                        # rowDic[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
+                    A.addNewRow(rowDic, rhs, rhs)
 
         # Net income equalities 1/2.
         for n in range(Nn):
-            rhs = zero
-            row = np.zeros(self.nvars)
-            row[_q1(Cg, n, Nn)] = 1
+            rhs = 0
+            row = A.newRow({_q1(Cg, n, Nn): 1})
             for i in range(Ni):
                 rhs += (
                     self.omega_in[i, n]
@@ -931,21 +906,17 @@ class Plan:
                     row[_q3(Cw, i, j, n, Ni, Nj, Nn)] += -1
             for t in range(Nt):
                 row[_q2(Cf, t, n, Nt, Nn)] = self.theta_tn[t, n]
-            Ae.append(row)
-            vvec.append(rhs)
+            A.addRow(row, rhs, rhs)
 
         # Impose income profile.
         for n in range(1, Nn):
-            row = np.zeros(self.nvars)
-            rhs = zero
-            row[_q1(Cg, 0, Nn)] = -self.xiBar_n[n]
-            row[_q1(Cg, n, Nn)] = self.xiBar_n[0]
-            Ae.append(row)
-            vvec.append(rhs)
+            rowDic = {_q1(Cg, 0, Nn): -self.xiBar_n[n],
+                      _q1(Cg, n, Nn): self.xiBar_n[0]}
+            A.addNewRow(rowDic, zero, zero)
 
         # Taxable ordinary income.
         for n in range(Nn):
-            row = np.zeros(self.nvars)
+            row = A.newRow()
             rhs = -self.sigmaBar_n[n]
             for i in range(Ni):
                 rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
@@ -957,21 +928,53 @@ class Plan:
                     row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] += -fak
             for t in range(Nt):
                 row[_q2(Cf, t, n, Nt, Nn)] = 1
-            Ae.append(row)
-            vvec.append(rhs)
+            A.addRow(row, rhs, rhs)
+
+        # Configuring binary variables.
+        for i in range(Ni):
+            for n in range(Nn):
+                for z in range(Nz):
+                    A.addNewRow({_q3(Cz, i, n, z, Ni, Nn, Nz) : 1}, 0, 1)
+                    integrality[_q3(Cz, i, n, z, Ni, Nn, Nz)] = 1
+
+        A.addNewRow({_q1(CZ, 0, 1): 1}, 0, 1)
+        integrality[_q1(CZ, 0, 1)] = 1
+
+        # Excluding simultaneous deposits and withdrawals in taxable account.
+        for i in range(Ni):
+            for n in range(Nn):
+                A.addNewRow({_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM,
+                             _q2(Cd, i, n, Ni, Nn): -1}, zero, bigM)
+
+                A.addNewRow({_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM,
+                             _q3(Cw, i, 0, n, Ni, Nj, Nn): 1}, zero, bigM)
+
+        A.addNewRow({_q1(CZ, 0, 1): bigM,
+                     _q2(Cd, i_s, n_d-1, Ni, Nn): -1}, zero, bigM)
+
+        A.addNewRow({_q1(CZ, 0, 1): bigM,
+                     _q3(Cw, i_d, 0, n_d-1, Ni, Nj, Nn): 1}, zero, bigM)
+
+
+        #'''
+        # Excluding simultaneous Roth conversions and tax-exempt withdrawals.
+        for i in range(Ni):
+            for n in range(Nn):
+                A.addNewRow({_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM,
+                             _q2(Cx, i, n, Ni, Nn): -1}, zero, bigM)
+
+                A.addNewRow({_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM,
+                             _q3(Cw, i, 2, n, Ni, Nj, Nn): 1}, zero, bigM)
+        #'''
+
+        self.Alu, self.lbvec, self.ubvec = A.finalize()
+        self.integrality = integrality
 
         u.vprint(
             'There are',
-            len(vvec),
-            'equality constraints and',
-            len(uvec),
+            len(self.ubvec),
             'inequality constraints.',
         )
-
-        self.A_ub = np.array(Au)
-        self.b_ub = np.array(uvec)
-        self.A_eq = np.array(Ae)
-        self.b_eq = np.array(vvec)
 
         # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
         c = np.zeros(self.nvars)
@@ -981,7 +984,7 @@ class Plan:
             for i in range(Ni):
                 c[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = -1
                 c[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = -(1 - self.nu)
-                c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = -1.01
+                c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = -1.02
         else:
             u.xprint('Internal error in objective function.')
 
@@ -1017,20 +1020,16 @@ class Plan:
         self._adjustParameters()
         c = self._buildConstraints(objective, options)
 
-        lpOptions = {
+        milpOptions = {
             'disp': True,
-            'ipm_optimality_tolerance': 1e-10,
-            'primal_feasibility_tolerance': 1e-8,
-            'dual_feasibility_tolerance': 1e-8,
+            'mip_rel_gap': 1e-8
         }
-        solution = optimize.linprog(
+        constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
+        solution = optimize.milp(
             c,
-            A_ub=self.A_ub,
-            b_ub=self.b_ub,
-            A_eq=self.A_eq,
-            b_eq=self.b_eq,
-            method='highs-ds',
-            options=lpOptions,
+            integrality = self.integrality,
+            constraints = constraint,
+            options = milpOptions
         )
         if solution.success == True:
             u.vprint(solution.message)
@@ -1041,7 +1040,7 @@ class Plan:
             self._caseStatus = 'unsuccessful'
 
         self.objective = objective
-        self.solver = 'linprog'
+        self.solver = 'milp'
         self.solverOptions = options
 
         return
@@ -1057,6 +1056,7 @@ class Plan:
         Nk = self.N_k
         Nn = self.N_n
         Nt = self.N_t
+        Nz = self.N_z
 
         Cb = self.C['b']
         Cd = self.C['d']
@@ -1064,6 +1064,9 @@ class Plan:
         Cg = self.C['g']
         Cw = self.C['w']
         Cx = self.C['x']
+        Cz = self.C['z']
+
+        x = u.roundCents(x)
 
         # Allocate, slice in, and reshape variables.
         self.b_ijn = np.array(x[Cb:Cd])
@@ -1084,7 +1087,7 @@ class Plan:
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
 
-        self.x_in = np.array(x[Cx:])
+        self.x_in = np.array(x[Cx:Cz])
         self.x_in = self.x_in.reshape((Ni, Nn))
 
         # Make derivative variables.
@@ -1100,10 +1103,12 @@ class Plan:
             'wdrwl tax-free',
         ]
 
+        '''
         # Reroute degenerate taxable deposits and withdrawals.
         z = np.minimum(self.d_in, self.w_ijn[:, 0, :])
         self.d_in -= z
         self.w_ijn[:, 0, :] -= z
+        '''
 
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
@@ -1870,3 +1875,29 @@ def _formatSpreadsheet(ws, ftype):
                 cell.number_format = fstring
 
     return
+
+class ConstraintMatrix:
+    def __init__(self, n):
+        self.n = n
+        self.Alu = []
+        self.lb = []
+        self.ub = []
+
+    def newRow(self, rowDic={}):
+        row = np.zeros(self.n)
+        for key in rowDic:
+            row[key] = rowDic[key]
+        return row
+
+    def addRow(self, row, lb, ub):
+        self.Alu.append(row)
+        self.lb.append(lb)
+        self.ub.append(ub)
+
+    def addNewRow(self, rowDic, lb, ub):
+        row = self.newRow(rowDic)
+        self.addRow(row, lb, ub)
+
+    def finalize(self):
+        return np.array(self.Alu), np.array(self.lb), np.array(self.ub)
+
