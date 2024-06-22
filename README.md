@@ -16,7 +16,7 @@ your strategy under different market assumptions, helping to better understand y
 
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
 
-NOTE: This code is still in active develpment. Use at your own risk.
+NOTE: This code is still in active development. Use at your own risk.
 
 -------------------------------------------------------------------------------------
 ## Purpose and vision
@@ -41,7 +41,8 @@ Owl can optimize for either maximum net spending under the constraint of a given
 bequest under the constraint of a desired net spending profile. Roth conversions are also considered
 and optimized under the assumption of a heirs marginal tax rate and subject to an optional maximum
 conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
-or through historical values, as are all other rates used for the calculations.
+or through historical values, as are all other rates used for the calculations. These historical, fixed,
+and stochastic rates can be used for backtesting different scenarios.
 
 Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
 and cash assets assumed to just follow inflation which is represented by the Consumer Price Index.
@@ -64,7 +65,9 @@ Basic input parameters are given through function calls while optional additiona
 an Excel spreadsheet than contains wages, contributions
 to savings accounts, and planned *big ticket items* such as the purchase of a lake house or the sale of a boat.
 
-Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts.
+Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts
+which are tracked separately for married individuals. Asset transition to the surviving spouse
+is done according to beneficiary fractions for each account type.
 Tax status covers married filing jointly and single, depending on the number of individuals reported.
 
 See one of the notebooks for a tutorial and representative user cases.
@@ -78,7 +81,7 @@ Head of household filing status has not been added but can easily be.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
 - In the current implementation, social securiy is always taxed at 85%.
-- There are no IRMAA calculations. However, this can be added by switching to a different solver (MILP).
+- There are no IRMAA calculations. However, this could probably be added in the future.
 - Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
@@ -145,17 +148,19 @@ The output of the last command looks like:
 ```
 SUMMARY ======================================================
 Plan name: jack & jill - tutorial
-Individuals: Jack Jill
+        Jack: life horizon from 2024 -> 2051.
+        Jill: life horizon from 2024 -> 2057.
 Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
 Optimized for: maxSpending
 Solver options: {'maxRothConversion': 150, 'estate': 500}
+Solver used: milp
 Spending profile: smile
 Survivor percent income: 60%
-Net yearly spending in 2024$: $100,548
-Total net spending in 2024$: $2,904,559 ($8,197,874 nominal)
-Total income tax paid in 2024$: $226,470 ($492,602 nominal)
+Net yearly spending in 2024$: $101,493
+Total net spending in 2024$: $2,931,874 ($8,274,968 nominal)
+Total income tax paid in 2024$: $297,269 ($528,970 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values: $0 $0 $2,492,067
 Final estate value in 2024$: $500,000 ($2,492,067 nominal)
