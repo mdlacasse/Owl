@@ -294,8 +294,8 @@ All intermediate variables are in uppercase letters.
 	\begin{eqnarray}
 		\label{Eq:Tx2}
 		G_n &=& \sum_{i} [\omega_{in} + .85\bar\zeta_{in} + \pi_{in}] \nonumber \\
-		&& + \sum_{ik} [w_{i1kn} + x_{ikn} +
-		(1-\delta(k, 0))(b_{i0kn} + .5\kappa_{i0kn})\tau_{kn}] - \bar{\sigma}_n.
+		&& + \sum_{ik} [w_{i1n} + x_{in} +
+		(1-\delta(k, 0))(b_{i0n} - w_{i0n} + .5\kappa_{i0n})\alpha_{ijkn}\tau_{kn}] - \bar{\sigma}_n.
 	\end{eqnarray}
 	Social security is indexed for inflation and is assumed to be taxed at 85\%.
 	We use a discrete Kronecker $\delta$ function for selecting gains from non-equity assets in
@@ -310,16 +310,16 @@ All intermediate variables are in uppercase letters.
 	that all dividends are qualified, resulting in
 	\begin{equation}
 		\label{Eq:Qx2}
-		Q_n = \sum_{i} \left[(b_{i00n} + .5\kappa_{i00n})\mu +
-		(w_{i00n} + b^-_{i00n}){\max(0, \tau_{0n})}\right].
+		Q_n = \sum_{i} \left[(b_{i0n} + .5\kappa_{i0n})\alpha_{i00n}\mu +
+		(w_{i0n}\alpha_{i00n}){\max(0, \tau_{0n})}\right].
 	\end{equation}
 	A formulation where only a fraction of dividends are qualified can easily be
 	implemented with the addition of another parameter.
 	The first terms on the right-hand side represent the amount of equities $(k=0)$ in the $(j=0)$
 	taxable savings account plus
 	half the yearly contributions. The last terms account for withdrawals $w$ of equities assumed
-	to have been purchased a year ago and others $b^-$ sold at the end
-	of the year as required for rebalancing the account. It does not account for losses, but a market drop
+	to have been purchased a year ago. 
+	It does not account for losses, but a market drop
 	would most likely result in stock purchase rather than sale (and therefore $b^- = 0$).
 	For withdrawals, we make the assumption of
 	selling the most recent stocks which would not be accurate in situations where
@@ -373,15 +373,16 @@ for the annual evolution of account balances from year $n$ to year $n+1$
 as the simpler expression 
 \begin{eqnarray}
 	b_{ijn+1} &=& b_{ijn} \sum_k \alpha_{ijkn} (1 + \tau_{kn}) + \ldots ,\nonumber \\
-		  &=& b_{ijn} \mathcal{T}_{ijn} + \ldots ,
+		  &=& b_{ijn} (1 + \mathcal{T}_{ijn}) + \ldots ,
 \end{eqnarray}
 where
 \begin{eqnarray}
 	\label{Eq:Tau1}
-	\mathcal{T}_{ijn} &:=& 1 + \sum_k \alpha_{ijkn} \tau_{kn}.
+	\mathcal{T}_{ijn} &:=& \sum_k \alpha_{ijkn} \tau_{kn}.
 \end{eqnarray}
-The formulation below will therefore use $\matcal{T}_{ijn}$ to
-add the market return to the savings balances.
+For a formulation where the $alpha_{ijkn}$ are prescribed,
+we will use $\matcal{T}_{ijn}$ to
+add the market returns to the savings balances.
 
 \section{Constraints}
 \paragraph*{Required minimum distributions (RMDs)}
@@ -450,27 +451,31 @@ add the market return to the savings balances.
 	conversions at the beginning of the year, and withdrawals at mid-year
 	make good sense.
 
-	From an optimization point of view, and in years of positive returns,
+	Now, let's look at the optimization side of these transactions.
+	During years of positive returns,
 	a direct withdrawal from the tax-deferred account will always
-	be unfavored against a Roth conversion taking place
+	be unfavorable when compared to a Roth conversion
 	at the beginning of the year, followed
 	by a tax-exempt withdrawal later in the year.
 	This is because the second
 	scenario involves gains which are tax-free over the year, while
 	the first one does not. Moving account withdrawals at the beginning
 	of the year, and the conversions in mid-year can solve this artificial bias.
-	Another option is the make the conversion and withdrawal events synchronous
-	but introduce binary variables $z_{in} \in \{0, 1\}$ with the following constraints:
+	To favor tax-deferred withdrawals when they make sense,
+	it is desirable to make conversion and withdrawal events exclusive 
+	by introducing binary variables $z_{in} \in \{0, 1\}$ with the following constraints:
 	\begin{eqnarray}
+		\label{Eq:Binary}
 		0 \le& z_{in}M - x_{in} &\le M, \nonumber \\
 		0 \le& z_{in}M + w_{i1j} &\le M.
 	\end{eqnarray}
 	Here, $M$ is a large number such as $10^7$, larger than what $x$ and $w$ can possibly be.
 
 	Roth conversions are assumed to be made at mid-year, while withdrawals
-	are made at the beginning of the year, and surplus deposits, if needed, are made at the end of the year.
+	are made at the beginning of the year, and surplus deposits,
+	if needed, are made at the end of the year.
 	Timing controls which terms get multiplied by the rate of return $(1 + \tau)$
-	of this particular asset.
+	for this particular asset.
 	Therefore,
 	\begin{eqnarray}
 		\label{Eq:C3a}
@@ -490,105 +495,37 @@ add the market return to the savings balances.
 	to the left-hand side, this gets rewritten as
 	\begin{eqnarray}
 		\label{Eq:C3}
-		b_{ijk(n+1)} - [b_{ijkn} + (\delta(j, 2) - \delta(j, 1))x_{ikn}](1 + \tau_{kn})
+		b_{ij(n+1)} - [b_{ijn} - w_{ijn}] (1 + \mathcal{T}_{ijn})
+		- (\delta(j, 2) - \delta(j, 1))x_{in}](1 + \mathcal{T}_{ijn}/2)
 		&& \nonumber \\
-		- \ b^+_{ijkn} + b^-_{ijkn} 
-		+ w_{ijkn}
-		- \delta(j, 0)d_{ikn} 
-		&=& \kappa_{ijkn} \left(1 + \tau_{kn}/2\right).
+		- \delta(j, 0)d_{in} 
+		&=& \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
 	\end{eqnarray}
-
-	For each year, if the Roth conversions are at the beginning while all 
-	withdrawals are at the end of the year, there will be a tax advantage in performing a Roth
-	conversion followed by a tax-exempt distribution
-	at the end of the same year, when compared to a distribution from a tax-deferred
-	account. To remove this unnecessary bias, the withdrawals
-	from the tax-exempt accounts have to be synchronous with Roth conversions.
-	This could be achieved by moving the $w_i2kn$ to the beginning of the year simply
-	by multiplying with $(1 + \delta(j, 2)\tau_{kn})$. However, this creates
-	a condition in which the $w$ and $x$ variables are unbound. Solution might
-	be to move to an MILP solver and ensure that either $x=0$ or $w_{i2kn} = 0$.
 
 	There is also another equivalence involving an overwithdrawal from the taxable
 	account immediately followed by a deposit in the same account. This can also easily
-	be removed by post-processing the data as accounts balances are not affected.
+	be removed by using another binary varlable and make these events exclusive.
+	See Eq.~(\ref{Eq:Binary}).
 
+	The initial balances $\beta_{ij}$ are one of the main inputs of this model.
 	The initial savings account balances are imposed through additional constraints as
 	\begin{eqnarray}
 		\label{Eq:InitialBalance}
-		b_{ijk0} = \alpha_{ijk0}\beta_{ij},
+		b_{ij0} = \beta_{ij}.
 	\end{eqnarray}
-	where we applied the initial allocation ratios $\alpha$ on the initial account balances $\beta_{ij}$.
-
-	It is also possible to eliminate the account balance variables $b$ through iterative
-	substitutions, leading to
-	\begin{eqnarray}
-		\label{Eq:C3c}
-		b_{ijkN} &=& b_{ijk0}\prod_{q=0}^{N-1} (1 + \tau_{kq})
-		+ (\delta(j, 2) - \delta(j, 1)) \sum_{n=0}^{N-1} 
-		x_{ikn} \prod_{q=n+1}^{N-1} (1 + \tau_{kq})
-		\nonumber \\
-		&&+ \sum_{n=0}^{N-1} \kappa_{ijkn}(1 + \tau_{kn}/2)\prod_{q=n+1}^{N-1} (1 + \tau_{kq})
-		\nonumber \\
-		&& + \sum_{n=0}^{N-1} [ b^+_{ijkn} - b^-_{ijkn} - w_{ijkn} + \delta(j, 0) d_{ikn}]
-		\prod_{q=n+1}^{N-1} (1 + \tau_{kq}),
-	\end{eqnarray}
-	where $b_{ijk0}$ are the initial balances in year 0, and $\prod_{N}^{N-1} := 1$. This form
-	highlights the fact that each amount, either withdrawn or deposited, can be accounted
-	for arithmetically when taking into account the compounding effects of annual rates.
-
-	The amounts $b^{\pm}$ used for rebalancing must preserve money in each account $j$, every year $n$,
-	and for each individual $i$, and therefore
-	\begin{equation}
-		\sum_k b^+_{ijkn} = \sum _k b^-_{ijkn},
-	\end{equation}
-	leading to the constraints
-	\begin{equation}
-		\label{Eq:NoNewMoney}
-		\sum_k [b^+_{ijkn} - b^-_{ijkn}] = 0.
-	\end{equation}
-	When rebalancing, accounts cannot be negative, so we enforce the additional, and maybe
-	unnecessary constraints that
-	\begin{equation}
-		\label{Eq:EnoughMoney}
-		b_{ijkn} - b^-_{ijkn} \geq 0.
-	\end{equation}
-
-	The initial balances $\beta_{ij}$ are one of the main inputs of this model. They are
-	enforced as a constraint that depends on the asset allocation scheme chosen.
-	For {\em account} prescribed allocations,
-	\begin{equation}
-		\label{Eq:AccountCoord}
-		b_{ijk0} =  \alpha_{ijk0}\beta_{ij},
-	\end{equation}
-	while for {\em individual} coordination between accounts,
-	\begin{equation}
-		\sum_j b_{ijk0} = \alpha_{ik0}\beta_{ij},
-	\end{equation}
-	and finally, for {\em spouses} type of coordination,
-	\begin{equation}
-		\label{Eq:SpouseCoord}
-		\sum_{ij} b_{ijk0} = \alpha_{k0}\beta_{ij}.
-	\end{equation}
-
-	Maintaining the allocation is provided by the rebalancing variables $b^\pm$. After each
-	rebalancing activity,
-	\begin{equation}
-		\label{Eq:Rebalance}
-		(b_{ijkn} + b^+_{ijkn} - b^-_{ijkn}) = \alpha_{ijkn}\sum_{k'} b_{ijk'n},
-	\end{equation}
-	where we used Eq.~\ref{Eq:NoNewMoney}.
+	At this point, we assume the the accounts are balanced according to the desired
+	allocation ratios $\alpha$.
 
 \paragraph*{Roth Conversions}
 	Roth conversions cannot be larger than the balance in the account:
 	\begin{equation}
-		x_{ijn} \le b_{i1kn}.
+		x_{ijn} \le b_{i1n}.
 	\end{equation}
-	This constraint, however, is naturally satisfied when $b_{ijkn}$ is enforced.
+	This constraint, however, is naturally satisfied when $b_{ijn}$ is enforced.
 	Additional constraints $x_{max}$ can be imposed on conversions and then the previous equation
 	becomes
 	\begin{equation}
-		x_{ijn} \le \min(b_{i1kn}, x_{max}).
+		x_{ijn} \le \min(b_{i1n}, x_{max}).
 	\end{equation}
 
 \paragraph*{Net spending}
@@ -598,17 +535,17 @@ add the market return to the savings balances.
 	and all taxes paid:
 	\begin{eqnarray}
 		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
-		+ \sum_{ijk} w_{ijkn} + \sum_i \Lambda_{in} - \sum_{ik}d_{ikn}
+		+ \sum_{ijk} w_{ijn} + \sum_i \Lambda^\pm_{in} - \sum_{ik}d_{in}
 		- T_n - U_n.
 	\end{eqnarray}
-	Note that big-ticket items $\Lambda$ can be negative or positive.
+	Note that big-ticket items $\Lambda^\pm$ can be negative or positive.
 
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
 		\label{Eq:C4}
-		g_n - \sum_{ijk} w_{ijkn} + \sum_{ik}d_{ikn}
+		g_n - \sum_{ij} w_{ijn} + \sum_{i}d_{in}
 		+ \sum_t \bar{\Delta}_{t n}\theta_{t n} f_{t n}&&\nonumber \\
-		+ \psi \sum_{i} \left[\mu b_{i00n} + (w_{i00n} + b^-_{i00n})
+		+ \psi \sum_{i} \left[\mu b_{i0n} + (w_{i00n})
 		\max(0, \tau_{0n})\right] 
 		&= & \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
 		&& + \sum_i [\Lambda_{in} - .5\mu\psi\kappa_{i00n}].
