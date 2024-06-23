@@ -158,9 +158,9 @@ Solver options: {'maxRothConversion': 150, 'estate': 500}
 Solver used: milp
 Spending profile: smile
 Survivor percent income: 60%
-Net yearly spending in 2024$: $101,493
-Total net spending in 2024$: $2,931,874 ($8,274,968 nominal)
-Total income tax paid in 2024$: $297,269 ($528,970 nominal)
+Net yearly spending in 2024$: $96,125
+Total net spending in 2024$: $2,776,795 ($7,837,271 nominal)
+Total income tax paid in 2024$: $250,894 ($585,018 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values: $0 $0 $2,492,067
 Final estate value in 2024$: $500,000 ($2,492,067 nominal)
