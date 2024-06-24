@@ -114,11 +114,7 @@ def getGitRevisionShortHash() -> str:
     '''
     import subprocess
 
-    return (
-        subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
-        .decode('ascii')
-        .strip()
-    )
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
 
 
 def roundCents(n, decimals=2):

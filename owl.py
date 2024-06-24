@@ -201,9 +201,7 @@ class Plan:
 
         # Prepare income tax and RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
-        self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(
-            self.yobs, self.i_d, self.n_d, self.N_n
-        )
+        self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d, self.N_n)
 
         self._adjustedParameters = False
         self._caseStatus = 'unsolved'
@@ -219,9 +217,7 @@ class Plan:
         if self._caseStatus == 'solved':
             return False
 
-        u.vprint(
-            'Preventing to run %s() while problem is %s.' % (funcName, self._caseStatus)
-        )
+        u.vprint('Preventing to run %s() while problem is %s.' % (funcName, self._caseStatus))
 
         return True
 
@@ -356,9 +352,7 @@ class Plan:
 
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
-            self.zeta_in[self.i_s, self.n_d :] = max(
-                amounts[self.i_s], amounts[self.i_d] / 2
-            )
+            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], amounts[self.i_d] / 2)
 
         self._caseStatus = 'modified'
 
@@ -443,9 +437,7 @@ class Plan:
         one entry. Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         '''
         assert len(taxable) == self.N_i, 'taxable must have %d entries.' % self.N_i
-        assert len(taxDeferred) == self.N_i, (
-            'taxDeferred must have %d entries.' % self.N_i
-        )
+        assert len(taxDeferred) == self.N_i, 'taxDeferred must have %d entries.' % self.N_i
         assert len(taxFree) == self.N_i, 'taxFree must have %d entries.' % self.N_i
 
         fac = u.getUnits(units)
@@ -461,9 +453,7 @@ class Plan:
         self._caseStatus = 'modified'
 
         u.vprint('Taxable balances:', *[u.d(taxable[i]) for i in range(self.N_i)])
-        u.vprint(
-            'Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)]
-        )
+        u.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
         u.vprint('Tax-free balances:', *[u.d(taxFree[i]) for i in range(self.N_i)])
 
         return
@@ -496,9 +486,7 @@ class Plan:
 
         return
 
-    def setAllocationRatios(
-        self, allocType, taxable=None, taxDeferred=None, taxFree=None, generic=None
-    ):
+    def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None, taxFree=None, generic=None):
         '''
         Single function for setting all types of asset allocations.
         Allocation types are 'account', 'individual', and 'spouses'.
@@ -527,24 +515,18 @@ class Plan:
                 assert len(item) == self.N_i, '%s must one entry per individual.' % (item)
                 for i in range(self.N_i):
                     # Initial and final.
-                    assert (
-                        len(item[i]) == 2
-                    ), '%s[%d] must have 2 lists (initial and final).' % (
+                    assert len(item[i]) == 2, '%s[%d] must have 2 lists (initial and final).' % (
                         item,
                         i,
                     )
                     for z in range(2):
-                        assert (
-                            len(item[i][z]) == self.N_k
-                        ), '%s[%d][%d] must have %d entries.' % (
+                        assert len(item[i][z]) == self.N_k, '%s[%d][%d] must have %d entries.' % (
                             item,
                             i,
                             z,
                             self.N_k,
                         )
-                        assert (
-                            abs(sum(item[i][z]) - 100) < 0.01
-                        ), 'Sum of percentages must add to 100.'
+                        assert abs(sum(item[i][z]) - 100) < 0.01, 'Sum of percentages must add to 100.'
 
             for i in range(self.N_i):
                 u.vprint(
@@ -574,16 +556,14 @@ class Plan:
             assert len(generic) == self.N_i, 'generic must have one list per individual.'
             for i in range(self.N_i):
                 # Initial and final.
-                assert len(generic[i]) == 2, (
-                    'generic[%d] must have 2 lists (initial and final).' % i
-                )
+                assert len(generic[i]) == 2, 'generic[%d] must have 2 lists (initial and final).' % i
                 for z in range(2):
-                    assert (
-                        len(generic[i][z]) == self.N_k
-                    ), 'generic[%d][%d] must have %d entries.' % (i, z, self.N_k)
-                    assert (
-                        abs(sum(generic[i][z]) - 100) < 0.01
-                    ), 'Sum of percentages must add to 100.'
+                    assert len(generic[i][z]) == self.N_k, 'generic[%d][%d] must have %d entries.' % (
+                        i,
+                        z,
+                        self.N_k,
+                    )
+                    assert abs(sum(generic[i][z]) - 100) < 0.01, 'Sum of percentages must add to 100.'
 
             for i in range(self.N_i):
                 u.vprint(
@@ -605,15 +585,11 @@ class Plan:
         elif allocType == 'spouses':
             assert len(generic) == 2, 'generic must have 2 entries (initial and final).'
             for z in range(2):
-                assert (
-                    len(generic[z]) == self.N_k
-                ), 'generic[%d] must have %d entries.' % (
+                assert len(generic[z]) == self.N_k, 'generic[%d] must have %d entries.' % (
                     z,
                     self.N_k,
                 )
-                assert (
-                    abs(sum(generic[z]) - 100) < 0.01
-                ), 'Sum of percentages must add to 100.'
+                assert abs(sum(generic[z]) - 100) < 0.01, 'Sum of percentages must add to 100.'
 
             u.vprint('Setting gliding allocation ratios (%) to', allocType)
             u.vprint('\t', generic[0], '->', generic[1])
@@ -632,9 +608,7 @@ class Plan:
         self.ARCoord = allocType
         self._caseStatus = 'modified'
 
-        u.vprint(
-            'Interpolating assets allocation ratios using', self.interpMethod, 'method.'
-        )
+        u.vprint('Interpolating assets allocation ratios using', self.interpMethod, 'method.')
 
         return
 
@@ -774,9 +748,7 @@ class Plan:
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
-                    tau_ijn[i, j, n] = np.sum(
-                        self.alpha_ijkn[i, j, :, n] * self.tau_kn[:, n], axis=0
-                    )
+                    tau_ijn[i, j, n] = np.sum(self.alpha_ijkn[i, j, :, n] * self.tau_kn[:, n], axis=0)
 
         # Weights are normalized on k. [alpha*(1 + tau) = 1 + alpha*tau)].
         Tau1_ijn = 1 + tau_ijn
@@ -791,7 +763,7 @@ class Plan:
         # Inequality constraint matrix with upper and lower bound vectors.
         A = ConstraintMatrix(self.nvars)
         Lb = np.zeros(self.nvars)
-        Ub = np.ones(self.nvars)*np.inf
+        Ub = np.ones(self.nvars) * np.inf
 
         # All variables are continuous by default.
         integrality = np.zeros(self.nvars)
@@ -813,10 +785,7 @@ class Plan:
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
             if options['maxRothConversion'] == 'file':
-                u.vprint(
-                    'Fixing Roth conversions to those from file %s.'
-                    % self.timeListsFileName
-                )
+                u.vprint('Fixing Roth conversions to those from file %s.' % self.timeListsFileName)
                 for i in range(Ni):
                     for n in range(self.horizons[i]):
                         rhs = self.myRothX_in[i][n]
@@ -824,9 +793,7 @@ class Plan:
                         Ub[_q2(Cx, i, n, Ni, Nn)] = rhs
             else:
                 rhsopt = options['maxRothConversion']
-                assert (
-                    isinstance(rhsopt, (int, float)) == True
-                ), 'Specified maxConversion is not a number.'
+                assert isinstance(rhsopt, (int, float)) == True, 'Specified maxConversion is not a number.'
                 rhsopt *= units
                 if rhsopt < 0:
                     u.vprint('Unlimited Roth conversions (<0)')
@@ -843,7 +810,7 @@ class Plan:
                 Ub[_q2(Cd, i_d, n, Ni, Nn)] = zero
                 Ub[_q2(Cx, i_d, n, Ni, Nn)] = zero
                 for j in range(Nj):
-                    Ub[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] =  zero
+                    Ub[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = zero
 
         ###################################################################
         # Equalities.
@@ -854,9 +821,7 @@ class Plan:
             # Impose requested constraint on estate, if any.
             if 'estate' in options:
                 estate = options['estate']
-                assert (
-                    isinstance(estate, (int, float)) == True
-                ), 'Desired estate provided not a number.'
+                assert isinstance(estate, (int, float)) == True, 'Desired estate provided not a number.'
                 estate *= units * self.gamma_n[-1]
             else:
                 # If not specified, default to $1.
@@ -873,9 +838,7 @@ class Plan:
             if 'estate' in options:
                 u.vprint('Ignoring estate option provided.')
             spending = options['netSpending']
-            assert (
-                isinstance(spending, (int, float)) == True
-            ), 'Desired spending provided not a number.'
+            assert isinstance(spending, (int, float)) == True, 'Desired spending provided not a number.'
             spending *= units
             u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
             A.addNewRow({_q1(Cg, 0): 1}, spending, spending)
@@ -901,18 +864,14 @@ class Plan:
                     row = A.newRow()
                     row[_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1)] = 1
                     row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -fac1 * Tau1_ijn[i, j, n]
-                    row[_q2(Cx, i, n, Ni, Nn)] = (
-                        -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n]
-                    )
+                    row[_q2(Cx, i, n, Ni, Nn)] = -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n]
                     row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
                     row[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0) * Tau1_ijn[i, j, n]
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
-                        row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = (
-                            -fac2 * Tau1_ijn[i_d, j, n]
-                        )
+                        row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
                         row[_q2(Cx, i_d, n, Ni, Nn)] = (
                             -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
                         )
@@ -931,7 +890,7 @@ class Plan:
                     + self.zetaBar_in[i, n]
                     + self.pi_in[i, n]
                     + self.Lambda_in[i, n]
-                    - 0.5 * fac * self.kappa_ijn[i, 0, n] 
+                    - 0.5 * fac * self.kappa_ijn[i, 0, n]
                 )
 
                 # Minus tax on dividends - \psi Qn
@@ -942,8 +901,8 @@ class Plan:
                 if n == 0:
                     fac = self.psi * max(0, self.tau_kn[0, 0]) * self.alpha_ijkn[i, 0, 0, 0]
                 else:
-                    fac = self.psi * max(0, self.tau_kn[0, n-1]) * self.alpha_ijkn[i, 0, 0, n-1]
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] += fac 
+                    fac = self.psi * max(0, self.tau_kn[0, n - 1]) * self.alpha_ijkn[i, 0, 0, n - 1]
+                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] += fac
 
                 # Minus surplus deposits.
                 row[_q2(Cd, i, n, Ni, Nn)] = 1
@@ -951,7 +910,7 @@ class Plan:
                 for j in range(Nj):
                     row[_q3(Cw, i, j, n, Ni, Nj, Nn)] += -1
 
-             # Minus tax on ordinary income. Tn
+            # Minus tax on ordinary income. Tn
             for t in range(Nt):
                 row[_q2(Cf, t, n, Nt, Nn)] = self.theta_tn[t, n]
             A.addRow(row, rhs, rhs)
@@ -965,7 +924,7 @@ class Plan:
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
-                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1, _q3(Cb, i, j, n, Ni, Nj, Nn+1): 1}
+                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1, _q3(Cb, i, j, n, Ni, Nj, Nn + 1): 1}
                     A.addNewRow(rowDic, zero, inf)
 
         # Taxable ordinary income.
@@ -973,20 +932,14 @@ class Plan:
             row = A.newRow()
             rhs = -self.sigmaBar_n[n]
             for i in range(Ni):
-                rhs += (
-                    self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
-                )
+                rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
                 row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
                 row[_q2(Cx, i, n, Ni, Nn)] = -1
                 # Securities in taxable account. Roll rates by one year.
                 if n == 0:
-                    fak = np.sum(
-                        self.tau_kn[1:Nk, Nn-1] * self.alpha_ijkn[i, 0, 1:Nk, 0], axis=0
-                    )
+                    fak = np.sum(self.tau_kn[1:Nk, Nn - 1] * self.alpha_ijkn[i, 0, 1:Nk, 0], axis=0)
                 else:
-                    fak = np.sum(
-                        self.tau_kn[1:Nk, n-1] * self.alpha_ijkn[i, 0, 1:Nk, n-1], axis=0
-                    )
+                    fak = np.sum(self.tau_kn[1:Nk, n - 1] * self.alpha_ijkn[i, 0, 1:Nk, n - 1], axis=0)
 
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
                 row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = -fak
@@ -1033,9 +986,7 @@ class Plan:
 
         A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
 
-        A.addNewRow(
-            {_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM
-        )
+        A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
 
         # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
@@ -1111,9 +1062,7 @@ class Plan:
         constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
         bounds = optimize.Bounds(self.Lb, self.Ub)
         solution = optimize.milp(
-            c, integrality=self.integrality,
-            constraints=constraint, bounds=bounds,
-            options=milpOptions
+            c, integrality=self.integrality, constraints=constraint, bounds=bounds, options=milpOptions
         )
         if solution.success == True:
             u.vprint(solution.message)
@@ -1199,8 +1148,9 @@ class Plan:
         # Last year's rates.
         tau_0 = np.roll(tau_0, 1)
         self.Q_n = np.sum(
-                self.mu * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :]
-                           + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :])*self.alpha_ijkn[:, 0, 0, :-1]
+            self.mu
+            * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :])
+            * self.alpha_ijkn[:, 0, 0, :-1]
             + tau_0 * self.w_ijn[:, 0, :],
             axis=0,
         )
@@ -1237,10 +1187,7 @@ class Plan:
 
         _estate = np.sum(self.b_ijn[:, :, :, self.N_n], axis=(0, 2))
         _estate[1] *= 1 - self.nu
-        u.vprint(
-            'Estate value of %s at the end of year %s.'
-            % (u.d(sum(_estate)), self.year_n[-1])
-        )
+        u.vprint('Estate value of %s at the end of year %s.' % (u.d(sum(_estate)), self.year_n[-1]))
 
         return
 
@@ -1255,18 +1202,13 @@ class Plan:
         print('SUMMARY ======================================================')
         print('Plan name:', self._name)
         for i in range(self.N_i):
-            u.vprint(
-                '%12s: life horizon from %d -> %d.'
-                % (self.inames[i], now, now + self.horizons[i] - 1)
-            )
+            u.vprint('%12s: life horizon from %d -> %d.' % (self.inames[i], now, now + self.horizons[i] - 1))
         print('Contributions file:', self.timeListsFileName)
         print('Return rates:', self.rateMethod)
         if self.rateMethod in ['historical', 'average', 'stochastic']:
             print('Rates used: from', self.rateFrm, 'to', self.rateTo)
         else:
-            print(
-                'Rates used:', *[u.pc(self.rateValues[k], f=1) for k in range(self.N_k)]
-            )
+            print('Rates used:', *[u.pc(self.rateValues[k], f=1) for k in range(self.N_k)])
         print('Optimized for:', self.objective)
         print('Solver options:', self.solverOptions)
         print('Solver used:', self.solver)
@@ -1278,34 +1220,20 @@ class Plan:
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n, axis=0)
-        print(
-            'Total net spending in %d$: %s (%s nominal)'
-            % (now, u.d(totIncomeNow), u.d(totIncome))
-        )
+        print('Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
 
         taxPaid = np.sum(self.f_tn * self.theta_tn, axis=(0, 1))
-        taxPaidNow = np.sum(
-            np.sum(self.f_tn * self.theta_tn, axis=0) / self.gamma_n, axis=0
-        )
-        print(
-            'Total income tax paid in %d$: %s (%s nominal)'
-            % (now, u.d(taxPaidNow), u.d(taxPaid))
-        )
+        taxPaidNow = np.sum(np.sum(self.f_tn * self.theta_tn, axis=0) / self.gamma_n, axis=0)
+        print('Total income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
         print('Assumed heirs tax rate:', u.pc(self.nu, f=0))
-        print(
-            'Final account post-tax nominal values:',
-            *[u.d(estate[j]) for j in range(self.N_j)]
-        )
+        print('Final account post-tax nominal values:', *[u.d(estate[j]) for j in range(self.N_j)])
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[self.N_n - 1]
-        print(
-            'Final estate value in %d$: %s (%s nominal)'
-            % (now, u.d(totEstateNow), u.d(totEstate))
-        )
+        print('Final estate value in %d$: %s (%s nominal)' % (now, u.d(totEstateNow), u.d(totEstate)))
         print('Final inflation factor:', u.pc(self.gamma_n[-1], f=1))
 
         print('--------------------------------------------------------------')
@@ -1457,9 +1385,7 @@ class Plan:
                     aname = key + ' / ' + acType
                     stackNames.append(aname)
                     y2stack[aname] = np.zeros((count, self.N_n))
-                    y2stack[aname][i][:] = self.alpha_ijkn[
-                        i, acList.index(acType), assetDic[key], : self.N_n
-                    ]
+                    y2stack[aname][i][:] = self.alpha_ijkn[i, acList.index(acType), assetDic[key], : self.N_n]
 
                     title = self._name + '\nAssets Allocations (%) - ' + acType
                     if self.ARCoord == 'spouses':
@@ -1820,9 +1746,7 @@ def _lineIncomePlot(x, series, style, title, yformat='k$'):
     ax.set_ylabel(yformat)
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
     if yformat == 'k$':
-        ax.get_yaxis().set_major_formatter(
-            tk.FuncFormatter(lambda x, p: format(int(x / 1000), ','))
-        )
+        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ',')))
 
     return fig, ax
 
@@ -1855,14 +1779,10 @@ def _stackPlot(x, inames, title, irange, series, snames, location, ytype='dollar
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
     if ytype == 'dollars':
         ax.set_ylabel('k$')
-        ax.get_yaxis().set_major_formatter(
-            tk.FuncFormatter(lambda x, p: format(int(x / 1000), ','))
-        )
+        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ',')))
     elif ytype == 'percent':
         ax.set_ylabel('%')
-        ax.get_yaxis().set_major_formatter(
-            tk.FuncFormatter(lambda x, p: format(int(100 * x), ','))
-        )
+        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(100 * x), ',')))
     else:
         u.xprint('Unknown ytype:', ytype)
 
