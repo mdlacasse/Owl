@@ -154,13 +154,13 @@ Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
 Optimized for: maxSpending
-Solver options: {'maxRothConversion': 150, 'estate': 500}
+Solver options: {'maxRothConversion': 100, 'estate': 500}
 Solver used: milp
 Spending profile: smile
 Survivor percent income: 60%
-Net yearly spending in 2024$: $96,125
-Total net spending in 2024$: $2,776,795 ($7,837,271 nominal)
-Total income tax paid in 2024$: $250,894 ($585,018 nominal)
+Net yearly spending in 2024$: $96,584
+Total net spending in 2024$: $2,790,055 ($7,874,697 nominal)
+Total income tax paid in 2024$: $259,763 ($610,434 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values: $0 $0 $2,492,067
 Final estate value in 2024$: $500,000 ($2,492,067 nominal)
