@@ -753,6 +753,7 @@ class Plan:
         # Weights are normalized on k. [alpha*(1 + tau) = 1 + alpha*tau)].
         Tau1_ijn = 1 + tau_ijn
         Tauh_ijn = 1 + tau_ijn / 2
+        tau0prev = np.roll(self.tau_kn[0, :], 1)
 
         if 'units' in options:
             units = u.getUnits(options['units'])
@@ -884,28 +885,21 @@ class Plan:
             rhs = 0
             row = A.newRow({_q1(Cg, n, Nn): 1})
             for i in range(Ni):
-                fac = self.psi * self.mu * self.alpha_ijkn[i, 0, 0, n]
+                fac = self.psi * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
                     self.omega_in[i, n]
                     + self.zetaBar_in[i, n]
                     + self.pi_in[i, n]
                     + self.Lambda_in[i, n]
-                    - 0.5 * fac * self.kappa_ijn[i, 0, n]
+                    - 0.5 * fac * self.mu * self.kappa_ijn[i, 0, n]
                 )
 
-                # Minus tax on dividends - \psi Qn
-                row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = fac
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = -fac
-                row[_q2(Cd, i, n, Ni, Nn)] = fac
-                # Minus capital gains on withdrawals.
-                if n == 0:
-                    fac = self.psi * max(0, self.tau_kn[0, 0]) * self.alpha_ijkn[i, 0, 0, 0]
-                else:
-                    fac = self.psi * max(0, self.tau_kn[0, n - 1]) * self.alpha_ijkn[i, 0, 0, n - 1]
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] += fac
+                row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = fac * self.mu
+                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = -fac * self.mu
+                row[_q2(Cd, i, n, Ni, Nn)] = 1 + fac * self.mu
+                # Minus capital gains on withdrawals using last year's rate.
+                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] += fac*(max(0, tau0prev[n]) - self.mu)
 
-                # Minus surplus deposits.
-                row[_q2(Cd, i, n, Ni, Nn)] = 1
                 # Plus all withdrawals.
                 for j in range(Nj):
                     row[_q3(Cw, i, j, n, Ni, Nj, Nn)] += -1
@@ -935,14 +929,14 @@ class Plan:
                 rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
                 row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
                 row[_q2(Cx, i, n, Ni, Nn)] = -1
-                # Securities in taxable account. Roll rates by one year.
-                if n == 0:
-                    fak = np.sum(self.tau_kn[1:Nk, Nn - 1] * self.alpha_ijkn[i, 0, 1:Nk, 0], axis=0)
-                else:
-                    fak = np.sum(self.tau_kn[1:Nk, n - 1] * self.alpha_ijkn[i, 0, 1:Nk, n - 1], axis=0)
 
+                # Returns on securities in taxable account.
+                fak = np.sum(self.tau_kn[1:Nk, n] * self.alpha_ijkn[i, 0, 1:Nk, n], axis=0)
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
                 row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = -fak
+                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fak
+                row[_q2(Cd, i, n, Ni, Nn)] = -fak
+
             for t in range(Nt):
                 row[_q2(Cf, t, n, Nt, Nn)] = 1
             A.addRow(row, rhs, rhs)
@@ -1212,6 +1206,8 @@ class Plan:
         print('Optimized for:', self.objective)
         print('Solver options:', self.solverOptions)
         print('Solver used:', self.solver)
+        print('Number of decision variables:', self.nvars)
+        print('Number of constraints:', len(self.ubvec))
         print('Spending profile:', self.spendingProfile)
         if self.N_i == 2:
             print('Survivor percent income:', u.pc(self.chi, f=0))
