@@ -186,7 +186,6 @@ class Plan:
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
         self.myRothX_in = np.zeros((self.N_i, self.N_n))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
-        self.kappa_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n))
 
         u.vprint(
             'Preparing scenario of %d years for %d individual%s.'
@@ -432,11 +431,6 @@ class Plan:
             self.zetaBar_in = self.zeta_in * self.gamma_n
             self.sigmaBar_n = self.sigma_n * self.gamma_n
             self.xiBar_n = self.xi_n * self.gamma_n
-
-            for k in range(self.N_k):
-                self.kappa_ijkn[:, :, k, :] = (
-                    self.kappa_ijn[:, :, :] * self.alpha_ijkn[:, :, k, : self.N_n]
-                )
 
             self._adjustedParameters = True
 
@@ -796,6 +790,8 @@ class Plan:
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
         A = ConstraintMatrix(self.nvars)
+        Lb = np.zeros(self.nvars)
+        Ub = np.ones(self.nvars)*np.inf
 
         # All variables are continuous by default.
         integrality = np.zeros(self.nvars)
@@ -812,8 +808,7 @@ class Plan:
         # Income tax bracket range inequalities.
         for n in range(Nn):
             for t in range(Nt):
-                ub = self.DeltaBar_tn[t, n]
-                A.addNewRow({_q2(Cf, t, n, Nt, Nn): 1}, zero, ub)
+                Ub[_q2(Cf, t, n, Nt, Nn)] = self.DeltaBar_tn[t, n]
 
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
@@ -825,7 +820,8 @@ class Plan:
                 for i in range(Ni):
                     for n in range(self.horizons[i]):
                         rhs = self.myRothX_in[i][n]
-                        A.addNewRow({_q2(Cx, i, n, Ni, Nn): 1}, rhs, rhs)
+                        Lb[_q2(Cx, i, n, Ni, Nn)] = rhs
+                        Ub[_q2(Cx, i, n, Ni, Nn)] = rhs
             else:
                 rhsopt = options['maxRothConversion']
                 assert (
@@ -839,15 +835,15 @@ class Plan:
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
                             #  Adjust cap for inflation?
-                            A.addNewRow({_q2(Cx, i, n, Ni, Nn): 1}, zero, rhsopt)
+                            Ub[_q2(Cx, i, n, Ni, Nn)] = rhsopt
 
         if Ni == 2:
             # No activity for i_d after year of passing.
             for n in range(n_d, Nn):
-                A.addNewRow({_q2(Cd, i_d, n, Ni, Nn): 1}, zero, zero)
-                A.addNewRow({_q2(Cx, i_d, n, Ni, Nn): 1}, zero, zero)
+                Ub[_q2(Cd, i_d, n, Ni, Nn)] = zero
+                Ub[_q2(Cx, i_d, n, Ni, Nn)] = zero
                 for j in range(Nj):
-                    A.addNewRow({_q3(Cw, i_d, j, n, Ni, Nj, Nn): 1}, zero, zero)
+                    Ub[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] =  zero
 
         ###################################################################
         # Equalities.
@@ -890,7 +886,8 @@ class Plan:
         for i in range(Ni):
             for j in range(Nj):
                 rhs = self.beta_ij[i, j]
-                A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
+                Lb[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
+                Ub[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer.
@@ -908,7 +905,7 @@ class Plan:
                         -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n]
                     )
                     row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
-                    row[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0)
+                    row[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0) * Tau1_ijn[i, j, n]
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
@@ -919,30 +916,42 @@ class Plan:
                         row[_q2(Cx, i_d, n, Ni, Nn)] = (
                             -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
                         )
-                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i, j, n]
+                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i_d, j, n]
                         # row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
                     A.addRow(row, rhs, rhs)
 
-        # Net income equalities 1/2.
+        # Net cash flow.
         for n in range(Nn):
             rhs = 0
             row = A.newRow({_q1(Cg, n, Nn): 1})
             for i in range(Ni):
+                fac = self.psi * self.mu * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
                     self.omega_in[i, n]
                     + self.zetaBar_in[i, n]
                     + self.pi_in[i, n]
                     + self.Lambda_in[i, n]
-                    - 0.5 * self.psi * self.mu * self.kappa_ijkn[i, 0, 0, n]
+                    - 0.5 * fac * self.kappa_ijn[i, 0, n] 
                 )
-                row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = (
-                    self.mu * self.psi * self.alpha_ijkn[i, 0, 0, n]
-                )
-                fac = self.psi * max(0, self.tau_kn[0, n])
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fac * self.alpha_ijkn[i, 0, 0, n]
+
+                # Minus tax on dividends - \psi Qn
+                row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = fac
+                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = -fac
+                row[_q2(Cd, i, n, Ni, Nn)] = fac
+                # Minus capital gains on withdrawals.
+                if n == 0:
+                    fac = self.psi * max(0, self.tau_kn[0, 0]) * self.alpha_ijkn[i, 0, 0, 0]
+                else:
+                    fac = self.psi * max(0, self.tau_kn[0, n-1]) * self.alpha_ijkn[i, 0, 0, n-1]
+                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] += fac 
+
+                # Minus surplus deposits.
                 row[_q2(Cd, i, n, Ni, Nn)] = 1
+                # Plus all withdrawals.
                 for j in range(Nj):
                     row[_q3(Cw, i, j, n, Ni, Nj, Nn)] += -1
+
+             # Minus tax on ordinary income. Tn
             for t in range(Nt):
                 row[_q2(Cf, t, n, Nt, Nn)] = self.theta_tn[t, n]
             A.addRow(row, rhs, rhs)
@@ -951,6 +960,13 @@ class Plan:
         for n in range(1, Nn):
             rowDic = {_q1(Cg, 0, Nn): -self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
             A.addNewRow(rowDic, zero, zero)
+
+        # Impose max on all withdrawals. This helps convergence speed significantly.
+        for i in range(Ni):
+            for j in range(Nj):
+                for n in range(Nn):
+                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1, _q3(Cb, i, j, n, Ni, Nj, Nn+1): 1}
+                    A.addNewRow(rowDic, zero, inf)
 
         # Taxable ordinary income.
         for n in range(Nn):
@@ -962,12 +978,18 @@ class Plan:
                 )
                 row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
                 row[_q2(Cx, i, n, Ni, Nn)] = -1
-                fak = np.sum(
-                    self.tau_kn[1:Nk, n] * self.alpha_ijkn[i, 0, 1:Nk, n], axis=0
-                )
+                # Securities in taxable account. Roll rates by one year.
+                if n == 0:
+                    fak = np.sum(
+                        self.tau_kn[1:Nk, Nn-1] * self.alpha_ijkn[i, 0, 1:Nk, 0], axis=0
+                    )
+                else:
+                    fak = np.sum(
+                        self.tau_kn[1:Nk, n-1] * self.alpha_ijkn[i, 0, 1:Nk, n-1], axis=0
+                    )
+
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
                 row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = -fak
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fak
             for t in range(Nt):
                 row[_q2(Cf, t, n, Nt, Nn)] = 1
             A.addRow(row, rhs, rhs)
@@ -976,10 +998,10 @@ class Plan:
         for i in range(Ni):
             for n in range(Nn):
                 for z in range(Nz):
-                    A.addNewRow({_q3(Cz, i, n, z, Ni, Nn, Nz): 1}, 0, 1)
+                    Ub[_q3(Cz, i, n, z, Ni, Nn, Nz)] = 1
                     integrality[_q3(Cz, i, n, z, Ni, Nn, Nz)] = 1
 
-        A.addNewRow({_q1(CZ, 0, 1): 1}, 0, 1)
+        Ub[_q1(CZ, 0, 1)] = 1
         integrality[_q1(CZ, 0, 1)] = 1
 
         # Exclude simultaneous deposits and withdrawals in taxable account.
@@ -1030,7 +1052,9 @@ class Plan:
                     bigM,
                 )
 
-        self.Alu, self.lbvec, self.ubvec = A.finalize()
+        self.Alu, self.lbvec, self.ubvec = A.arrays()
+        self.Ub = Ub
+        self.Lb = Lb
         self.integrality = integrality
 
         u.vprint(
@@ -1083,10 +1107,13 @@ class Plan:
         self._adjustParameters()
         c = self._buildConstraints(objective, options)
 
-        milpOptions = {'disp': True, 'mip_rel_gap': 1e-8}
+        milpOptions = {'disp': True, 'mip_rel_gap': 1e-9}
         constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
+        bounds = optimize.Bounds(self.Lb, self.Ub)
         solution = optimize.milp(
-            c, integrality=self.integrality, constraints=constraint, options=milpOptions
+            c, integrality=self.integrality,
+            constraints=constraint, bounds=bounds,
+            options=milpOptions
         )
         if solution.success == True:
             u.vprint(solution.message)
@@ -1160,23 +1187,20 @@ class Plan:
             'wdrwl tax-free',
         ]
 
-        '''
-        # Reroute degenerate taxable deposits and withdrawals.
-        z = np.minimum(self.d_in, self.w_ijn[:, 0, :])
-        self.d_in -= z
-        self.w_ijn[:, 0, :] -= z
-        '''
-
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
         self.dist_in[self.dist_in < 0] = 0
         self.G_n = np.sum(self.f_tn, axis=0)
         T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(T_tn, axis=0)
+
         tau_0 = np.array(self.tau_kn[0, :])
         tau_0[tau_0 < 0] = 0
+        # Last year's rates.
+        tau_0 = np.roll(tau_0, 1)
         self.Q_n = np.sum(
-            self.mu * (self.b_ijkn[:, 0, 0, :-1] + 0.5 * self.kappa_ijkn[:, 0, 0, :])
+                self.mu * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :]
+                           + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :])*self.alpha_ijkn[:, 0, 0, :-1]
             + tau_0 * self.w_ijn[:, 0, :],
             axis=0,
         )
@@ -1975,5 +1999,5 @@ class ConstraintMatrix:
         row = self.newRow(rowDic)
         self.addRow(row, lb, ub)
 
-    def finalize(self):
+    def arrays(self):
         return np.array(self.Alu), np.array(self.lb), np.array(self.ub)

@@ -9,6 +9,24 @@
 \usepackage{graphicx}
 \geometry{letterpaper}
 
+\makeatletter
+\def\@makechapterhead#1{%
+  \vspace*{50\p@}%
+  {\parindent \z@ \raggedright \normalfont
+    \interlinepenalty\@M
+    \Huge \bfseries #1\par\nobreak
+    \vskip 40\p@
+  }}
+\def\@makeschapterhead#1{%
+  \vspace*{50\p@}%
+  {\parindent \z@ \raggedright
+    \normalfont
+    \interlinepenalty\@M
+    \Huge \bfseries  #1\par\nobreak
+    \vskip 40\p@
+  }}
+\makeatother
+
 \begin{document}
 \title{Formulation of the optimization model in Owl}
 \author{Martin-D. Lacasse}
@@ -29,7 +47,7 @@ and desired income amongst many other things.
 
 The approach is described here mathematically and the implementation
 follows the structure and notation presented in this document.
-The goal of this document is to provide a guide to the Python code
+The intent of this document is to provide a guide to the Python code
 intended for any individual desiring to extend the model to other cases.
 
 \chapter{Indices, variables, and parameters}
@@ -79,20 +97,20 @@ index name as a subscript, e.g., $N_i$ for index $i$.
 
 \section{Variables}
 We will use lowercase roman letters to represent variables. All variables are assumed
-to take only positive values (positive inequality).
+to take only non-negative values ($\ge 0$ inequality).
 \begin{description}[leftmargin=4em,style=multiline]
-\item [$b_{ijkn}$]
-	Balance for individual $i$ with asset class $k$ in savings account $j$ at the beginning of year $n$.
-	When we only consider the sum in the savings account, without considering the distribution
-	in each asset class $k$, the variable $b_{ijn}$ is used.
+\item [$b_{ijn}$]
+	Balance for individual $i$ in savings account $j$ at the beginning of year $n$.
+	When we consider each asset class $k$, the variable $b_{ijkn}$ is used instead.
 \item [$b^\pm_{ijkn}$]
 	Amount to be added or subtracted to savings account balance value $b$ in order
 	to rebalance asset allocations of
 	savings account $j$ across different classes of assets $k$. We note
-		variables not bound by positivity $\ge 0)$ by the superscript $^\pm$.
-\item [$d_{ikn}$]
-	Deposit of year-$n$ net spending surplus in assets $k$ of taxable account of individual $i$.
-	Deposit is made at the end of year $n$.
+	variables not bound by positivity $\ge 0)$ by the superscript $^\pm$.
+\item [$d_{in}$]
+	Deposit of year-$n$ net spending surplus in taxable account of individual $i$.
+	Ideally, deposits would be made at the end of year $n$, but this creates spurious
+	conditions that will be discussed below.
 \item [$f_{t n}$]
 	Fraction of tax bracket $t$ filled, so that taxable ordinary income $G_n$ can be expressed as
 	\begin{eqnarray}
@@ -103,12 +121,12 @@ to take only positive values (positive inequality).
 	A definition of $\Delta$ can be found in the section describing the parameters below. 
 \item [$g_n$]
 	Net spending in year $n$.
-\item [$w_{ijkn}$]
-	Withdrawal from assets $k$ in account $j$ belonging to individual $i$ at the beginning of year $n$.
+\item [$w_{ijn}$]
+	Withdrawal from account $j$ belonging to individual $i$ at the beginning of year $n$.
 	For the $(j=1)$ tax-deferred savings account, $w_{i1kn}$ is referred to as a distribution for
 	tax purposes as it is a taxable withdrawal, and will always satisfy required minimum distributions.
-\item [$x_{ikn}$]
-	Roth conversion performed by individual $i$ using asset class $k$ at the beginning of year $n$.
+\item [$x_{in}$]
+	Roth conversion performed by individual $i$ during year $n$.
 	These events are taxable as ordinary income.
 \end{description}
 
@@ -170,7 +188,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 \item [$\Gamma_{tn}$]
 	Bound for Federal income tax bracket. We define $\Gamma_{(-1)n} := 0$, so that
 	$\Gamma_{0n}$ is the upper bound for the 10\% tax bracket in year $n$. As the filing status
-	can change for couples, and so can the tax code, there will be changes over $n$.
+		can change for couples, and so can the tax code, $\Gamma_{tn}$ will be changing over $n$.
 \item [$\Delta_{tn}$]
 	Difference between upper bound $\Gamma_t$ and lower bound $\Gamma_{t-1}$
 	of a federal income tax bracket,
@@ -186,9 +204,10 @@ Parameter values are either set by the user, historical data, or by the tax code
 	tax rates in foreseeable future.
 	For example, in 2024 the rates (in decimal) are .10, .12, .22, .24, .32, .35, and .37.
 	It is speculated that the rates will revert back to 2017 rates in 2026 with
-	.10, .15, .25, .28, .33, .35, and .396. See Eq.~\ref{Eq:Tax} for its use.
+	.10, .15, .25, .28, .33, .35, and .396. See Eq.~(\ref{Eq:Tax}) for its use.
 \item [$\alpha_{ijkn}$]
-	Desired asset allocation for savings account $j$ of individual $i$ in assets class $k$ during year $n$.
+	Desired asset allocation for savings account $j$ of individual $i$ in
+	assets class $k$ during year $n$.
 	Allocation ratios come in many flavors as they could be specified globally between
 	individuals and accounts as $\alpha_{kn}$, for example.
 	When specified by the user, allocation ratios typically involve two values, one at the
@@ -215,8 +234,8 @@ or an s-curve as in
 	\end{eqnarray}
 	where
 	\begin{eqnarray}
-		k_{11} &=& \frac{1}{2}(1 - \tanh((0-n_1)/n_2)) \nonumber \\
-		k_{12} &=& \frac{1}{2}(1 + \tanh((0-n_1)/n_2)) \nonumber \\
+		k_{11} &=& \frac{1}{2}(1 + \tanh(n_1/n_2)) \nonumber \\
+		k_{12} &=& \frac{1}{2}(1 - \tanh(n_1/n_2)) \nonumber \\
 		k_{21} &=& \frac{1}{2}(1 - \tanh((N_n-1-n_1)/n_2)) \nonumber \\
 		k_{22} &=& \frac{1}{2}(1 + \tanh((N_n-1-n_1)/n_2)).
 	\end{eqnarray}
@@ -256,11 +275,12 @@ or an s-curve as in
 	Desired amount to leave as a bequest at the end of the final year of the plan, $N_n-1$,
 	which is the beginning of year $N_n$. This amount is the after-tax value of the estate
 	for the heirs. See parameter $\nu$.
-\item [$\kappa_{ijkn}$]
+\item [$\kappa_{ijn}$]
 	Sum of contributions to savings account $j$ made by individual $i$ during year $n$.
-	We assume that contributions are made at half-year to balance regular contributions,
-	and that individual selects asset class $k$ when depositing. In practice, a contribution
-	amount $\kappa_{ijn}$ is specified in which case 
+	We assume that contributions are made at half-year to balance regular contributions.
+	In practice, a contribution
+	amount $\kappa_{ijn}$ is specified in which case the contribution to each asset
+	class is
 	\begin{equation}
 		\kappa_{ijkn} = \alpha_{ijkn}\kappa_{ijn}.
 	\end{equation}
@@ -293,13 +313,18 @@ All intermediate variables are in uppercase letters.
 	in the ($j=0$) taxable account, including contributions $\kappa$, minus the standard deduction,
 	\begin{eqnarray}
 		\label{Eq:Tx2}
-		G_n &=& \sum_{i} [\omega_{in} + .85\bar\zeta_{in} + \pi_{in}] \nonumber \\
-		&& + \sum_{ik} [w_{i1n} + x_{in} +
-		(1-\delta(k, 0))(b_{i0n} - w_{i0n} + .5\kappa_{i0n})\alpha_{ijkn}\tau_{kn}] - \bar{\sigma}_n.
+		G_n &=& 
+		\sum_{i} [\omega_{in} + .85\bar\zeta_{in} + \pi_{in}]
+		- \bar{\sigma}_n +
+		\nonumber \\
+		&& \sum_{ik} [w_{i1n} + x_{in}
+		+ (1-\delta(k, 0))(b_{i0n} - w_{i0n} + .5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
 	\end{eqnarray}
 	Social security is indexed for inflation and is assumed to be taxed at 85\%.
 	We use a discrete Kronecker $\delta$ function for selecting gains from non-equity assets in
-	taxable accounts. These gains are taxed as ordinary income.
+	taxable accounts. These gains are all taxed as ordinary income. Here, we assumed that
+	deposits and withdrawals are taking place at the beginning of the year. 
+
 
 \item [$Q_n$]
 	Qualified dividends and long-term capital gains obtained in year $n$.
@@ -310,8 +335,8 @@ All intermediate variables are in uppercase letters.
 	that all dividends are qualified, resulting in
 	\begin{equation}
 		\label{Eq:Qx2}
-		Q_n = \sum_{i} \left[(b_{i0n} + .5\kappa_{i0n})\alpha_{i00n}\mu +
-		(w_{i0n}\alpha_{i00n}){\max(0, \tau_{0n})}\right].
+		Q_n = \sum_{i} \alpha_{i00n}\left[(b_{i0n} - w_{i0n} + .5\kappa_{i0n})\mu +
+		w_{i0n}{\max(0, \tau_{0n-1})}\right].
 	\end{equation}
 	A formulation where only a fraction of dividends are qualified can easily be
 	implemented with the addition of another parameter.
@@ -320,7 +345,7 @@ All intermediate variables are in uppercase letters.
 	half the yearly contributions. The last terms account for withdrawals $w$ of equities assumed
 	to have been purchased a year ago. 
 	It does not account for losses, but a market drop
-	would most likely result in stock purchase rather than sale (and therefore $b^- = 0$).
+	would most likely result in stock purchase rather than sale.
 	For withdrawals, we make the assumption of
 	selling the most recent stocks which would not be accurate in situations where
 	the taxable savings account is being depleted slowly.
@@ -335,8 +360,8 @@ All intermediate variables are in uppercase letters.
 	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that optimal
 	values of $f_{tn}$ have to
 	minimize $T_n$ when either the bequest or the desired net spending are maximized.
-	As the product $\bar{\Delta}_{tn}\theta_{tn}$ does not garrantee that the tax brackets
-	will be favored monotonically, a more natural choice is to use the combined variable
+	As the product $\bar{\Delta}_{tn}\theta_{tn}$ does not garrantee to
+	be ordered monotonically, a more practical choice is to use the combined variable
 	$\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn}$ in the optimization. Given that the rates on
 	tax brackets $\theta_{tn}$ are always increasing monotonically, we are then naturally
 	filling in the lower brackets first when optimizing. In that case
@@ -380,8 +405,8 @@ where
 	\label{Eq:Tau1}
 	\mathcal{T}_{ijn} &:=& \sum_k \alpha_{ijkn} \tau_{kn}.
 \end{eqnarray}
-For a formulation where the $alpha_{ijkn}$ are prescribed,
-we will use $\matcal{T}_{ijn}$ to
+In this formulation where the $\alpha_{ijkn}$ are prescribed,
+we will use $\mathcal{T}_{ijn}$ to
 add the market returns to the savings balances.
 
 \section{Constraints}
@@ -394,7 +419,7 @@ add the market returns to the savings balances.
 	\end{equation}
 	As $b_{ijn}$ are the balances at the beginning of year $n$, they are also the balances
 	at December 31 of the previous year, which is the amount from which the IRS bases the RMDs.
-	Eq.~\ref{Eq:C1} has to hold for each year $n$ and each individual $i$, and therefore, there
+	Eq.~(\ref{Eq:C1}) has to hold for each year $n$ and each individual $i$, and therefore, there
 	are $i\times N_n$ such equations (even when $\rho_{in} = 0$).
 	These constraints avoid paying the 50\% penalty
 	on amounts not withdrawn when RMDs are required.
@@ -423,9 +448,8 @@ add the market returns to the savings balances.
 	\end{equation}
 	with
 	\begin{equation}
-		\bar{\Delta}_{t-1,n} \le \bar{F}_{tn} \le \bar{\Delta}_{tn},
+		0 \le \bar{F}_{tn} \le \bar{\Delta}_{tn}.
 	\end{equation}
-	where $\bar{\Delta}_{-1n} := 0$.
 
 \paragraph*{Account balances}
 	Contributions are assumed to be made at half-year to better represent periodic contributions
@@ -449,7 +473,8 @@ add the market returns to the savings balances.
 	it would be more accurate to assume the withdrawals at mid-year,
 	to better represent evenly distributed withdrawals. So, financially,
 	conversions at the beginning of the year, and withdrawals at mid-year
-	make good sense.
+	make good sense. Conversions are also typically best if they are
+	timed with a market downturn in the year.
 
 	Now, let's look at the optimization side of these transactions.
 	During years of positive returns,
@@ -467,25 +492,25 @@ add the market returns to the savings balances.
 	\begin{eqnarray}
 		\label{Eq:Binary}
 		0 \le& z_{in}M - x_{in} &\le M, \nonumber \\
-		0 \le& z_{in}M + w_{i1j} &\le M.
+		0 \le& z_{in}M + w_{i1n} &\le M.
 	\end{eqnarray}
 	Here, $M$ is a large number such as $10^7$, larger than what $x$ and $w$ can possibly be.
 
 	Roth conversions are assumed to be made at mid-year, while withdrawals
 	are made at the beginning of the year, and surplus deposits,
-	if needed, are made at the end of the year.
-	Timing controls which terms get multiplied by the rate of return $(1 + \tau)$
-	for this particular asset.
-	Therefore,
+	if needed, could be made at the end of the year. Let's explore this approach
+	in more detail.
+
+	Timing controls which terms get multiplied by the rate of return $(1 + \tau_{kn})$
+	for this particular asset $k$.
+	Therefore, our current choice would yeild
 	\begin{eqnarray}
 		\label{Eq:C3a}
-		b_{ij(n+1)} &=& [b_{ijn} + .5\kappa_{ijn}](1 + \mathcal{T}_{ijn})
+		b_{ij(n+1)} &=& [b_{ijn} - w_{ijn} + .5\kappa_{ijn}](1 + \mathcal{T}_{ijn})
 		+ (\delta(j, 2) - \delta(j, 1))x_{in} (1 + \mathcal{T}_{ijn}/2)
 		\nonumber \\
 		&& 
-		+ .5 \kappa_{ijn} 
-		- w_{ijn} (1 + \mathcal{T}_{ijn})
-		+ \delta(j, 0)d_{in},
+		+ .5 \kappa_{ijn},
 	\end{eqnarray}
 	where we use discrete Kronecker $\delta$ functions for selecting the specific accounts involved
 	in Roth conversions. These conversions are made such that asset allocation
@@ -496,16 +521,27 @@ add the market returns to the savings balances.
 	\begin{eqnarray}
 		\label{Eq:C3}
 		b_{ij(n+1)} - [b_{ijn} - w_{ijn}] (1 + \mathcal{T}_{ijn})
+		&& \nonumber \\
 		- (\delta(j, 2) - \delta(j, 1))x_{in}](1 + \mathcal{T}_{ijn}/2)
 		&& \nonumber \\
-		- \delta(j, 0)d_{in} 
 		&=& \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
 	\end{eqnarray}
 
-	There is also another equivalence involving an overwithdrawal from the taxable
-	account immediately followed by a deposit in the same account. This can also easily
-	be removed by using another binary varlable and make these events exclusive.
-	See Eq.~(\ref{Eq:Binary}).
+	When $j=0$, this equation introduces
+	a path to shelter negative returns by performing an overwithdrawal from the taxable
+	account followed by a deposit in the same account at the end of the year. This can 
+	be removed by using another binary variable and make these events exclusive, using
+	the same strategy as Eq.~(\ref{Eq:Binary}). Another approach, while not so natural,
+	is to move all deposits at the beginning of the year so to be synchronous with withdrawals.
+	\begin{eqnarray}
+		\label{Eq:C3b}
+		b_{ij(n+1)} - [b_{ijn} - w_{ijn} + \delta(j, 0)d_{in} 
+		] (1 + \mathcal{T}_{ijn})
+		&& \nonumber \\
+		- (\delta(j, 2) - \delta(j, 1))x_{in}](1 + \mathcal{T}_{ijn}/2)
+		&=& \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
+	\end{eqnarray}
+	This is the current approach used in Owl.
 
 	The initial balances $\beta_{ij}$ are one of the main inputs of this model.
 	The initial savings account balances are imposed through additional constraints as
@@ -514,41 +550,47 @@ add the market returns to the savings balances.
 		b_{ij0} = \beta_{ij}.
 	\end{eqnarray}
 	At this point, we assume the the accounts are balanced according to the desired
-	allocation ratios $\alpha$.
+	allocation ratios $\alpha_{ijkn}$.
+
+	We also introduce another contraint that might look unnecessary, but helps
+	convergence significantly. As the withdrawals are at the beginning of the year
+	we impose that
+	\begin{eqnarray}
+		w_{ijn} \le b_{ijn}.
+	\end{eqnarray}
 
 \paragraph*{Roth Conversions}
 	Roth conversions cannot be larger than the balance in the account:
 	\begin{equation}
 		x_{ijn} \le b_{i1n}.
 	\end{equation}
-	This constraint, however, is naturally satisfied when $b_{ijn}$ is enforced.
+	This constraint, however, is naturally satisfied when $b_{ijn} \ge 0$ non-negativity is enforced.
 	Additional constraints $x_{max}$ can be imposed on conversions and then the previous equation
 	becomes
 	\begin{equation}
-		x_{ijn} \le \min(b_{i1n}, x_{max}).
+		x_{in} \le \min(b_{i1n}, x_{max}).
 	\end{equation}
 
 \paragraph*{Net spending}
-	For calculating the net spending $g$, we consider the cash flow of all withdrawals,
+	For calculating the net spending $g_n$, we consider the cash flow of all withdrawals,
 	wages, social security and pension benefits, and big-ticket items. 
-	Then we subtract potential surplus deposits $d$ made to the taxable savings account
+	Then we subtract potential surplus deposits $d_{in}$ made to the taxable savings account
 	and all taxes paid:
 	\begin{eqnarray}
 		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
-		+ \sum_{ijk} w_{ijn} + \sum_i \Lambda^\pm_{in} - \sum_{ik}d_{in}
+		+ \sum_{ij} w_{ijn} + \sum_i \Lambda^\pm_{in} - \sum_{i}d_{in}
 		- T_n - U_n.
 	\end{eqnarray}
-	Note that big-ticket items $\Lambda^\pm$ can be negative or positive.
-
+	Note how the big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
 		\label{Eq:C4}
 		g_n - \sum_{ij} w_{ijn} + \sum_{i}d_{in}
-		+ \sum_t \bar{\Delta}_{t n}\theta_{t n} f_{t n}&&\nonumber \\
-		+ \psi \sum_{i} \left[\mu b_{i0n} + (w_{i00n})
-		\max(0, \tau_{0n})\right] 
-		&= & \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
-		&& + \sum_i [\Lambda_{in} - .5\mu\psi\kappa_{i00n}].
+		+ \sum_t \bar{F}_{tn} \theta_{t n} &&\nonumber \\
+		- \psi\mu\alpha_{i00n} \sum_{i} \left[b_{i0n} - w_{i0n} + d_{in}
+		+ w_{i0n}\max(0, \tau_{0n-1})\right] 
+		&=& \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
+		&& + \sum_i [\Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}].
 	\end{eqnarray}
 	Note that we do not consider market losses as we use $\max(0, \tau)$. Tax-loss
 	harvesting is beyond the scope of this model.
