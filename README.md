@@ -164,9 +164,9 @@ Number of decision variables: 1027
 Number of constraints: 982
 Spending profile: smile
 Survivor percent income: 60%
-Net yearly spending in 2024$: $96,062
-Total net spending in 2024$: $2,774,982 ($7,832,155 nominal)
-Total income tax paid in 2024$: $251,039 ($580,157 nominal)
+Net yearly spending in 2024$: $96,005
+Total net spending in 2024$: $2,773,329 ($7,827,488 nominal)
+Total income tax paid in 2024$: $251,923 ($581,555 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values: $0 $0 $2,492,067
 Final estate value in 2024$: $500,000 ($2,492,067 nominal)
