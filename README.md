@@ -152,8 +152,8 @@ The output of the last command looks like:
 ```
 SUMMARY ======================================================
 Plan name: jack & jill - tutorial
-        Jack: life horizon from 2024 -> 2051.
-        Jill: life horizon from 2024 -> 2057.
+        Jack's life horizon: 2024 -> 2051
+        Jill's life horizon: 2024 -> 2057
 Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
@@ -166,10 +166,12 @@ Spending profile: smile
 Survivor percent income: 60%
 Net yearly spending in 2024$: $96,005
 Total net spending in 2024$: $2,773,329 ($7,827,488 nominal)
+Total Roth conversions in 2024$: $464,029 ($992,842 nominal)
 Total income tax paid in 2024$: $251,923 ($581,555 nominal)
 Assumed heirs tax rate: 30%
-Final account post-tax nominal values: $0 $0 $2,492,067
-Final estate value in 2024$: $500,000 ($2,492,067 nominal)
+Final account post-tax nominal values:
+    taxable: $0  tax-def: $0  tax-free: $2,492,067
+Total estate value in 2024$: $500,000 ($2,492,067 nominal)
 Final inflation factor: 498.4%
 --------------------------------------------------------------
 ```
