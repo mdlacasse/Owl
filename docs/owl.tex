@@ -924,18 +924,17 @@ tax-exempt accounts to a spouse who can then consider it as his/her own.
 Let $\phi_j$ be the fraction of the account $j$ that a spouse $i_d$ wishes
 to leave to his/her surviving spouse $i_s$
 in the year $n_d < N_n - 1$ of passing. 
-To account for that event in year $n_d$, Eq.~(\ref{Eq:C3a}) needs to be rewritten as
+To account for that event in year $n_d$, Eq.~(\ref{Eq:C3b}) needs to be rewritten as
 \begin{eqnarray}
 	b_{ij(n+1)} &=& (1 - \delta(n, n_d-1)\delta(i, i_d)) \nonumber \\
-	&&\times \Bigl\{\left[b_{ijn} + (\delta(j, 2) - \delta(j, 1))x_{in}
-	+ .5\kappa_{ijn}\right](1 + \tau_{kn}) 
-	\nonumber \\
-	&& + .5 \kappa_{ijn} - w_{ijn} + \delta(j, 0)d_{in} \Bigr\}
-	+ (\phi_j\delta(n, n_d-1)\delta(i, i_s)) \nonumber  \\
-	&& \times \Bigl\{\left[b_{i_djn} + (\delta(j, 2) - \delta(j, 1))x_{i_dn}
-	+ .5\kappa_{i_djkn}\right](1 + \tau_{kn}) 
-	\nonumber \\
-	&& + .5 \kappa_{i_djn} - w_{i_djn} + \delta(j, 0)d_{i_dn}\Bigr\} .
+	&&\times \Bigl\{\left[b_{ijn} - w_{ijn} + \delta(j, 0)d_{ij}\right](1 + \mathcal{T}_{ijn})
+	+ \left[(\delta(j, 2) - \delta(j, 1))x_{in} + \kappa_{ijn}\right](1 + \mathcal{T}_{ijn}/2) 
+	\Bigr\}\nonumber \\
+	&& + (\phi_j\delta(n, n_d-1)\delta(i, i_s)) \nonumber  \\
+	&& \times \Bigl\{\left[b_{i_djn} - w_{i_djn} + \delta(j, 0)d_{i_dn}\right](1 + \mathcal{T}_{i_djn})
+	\nonumber\\
+	&& + \left[(\delta(j, 2) - \delta(j, 1))x_{i_dn} + \kappa_{i_djkn}\right](1 + \mathcal{T}_{i_djn}/2) 
+	\Bigr\}.
 \end{eqnarray}
 The first multiplier $()$ on the right-hand side will always be one except for $i_d$ in
 year $n_d-1$ when it will be zero. This will result in emptying all accounts for $i_d$ for years
@@ -950,56 +949,53 @@ Rewriting the last equation as a constraint results in
 	&&b_{ij(n+1)} 
 	  \nonumber  \\
 	&& - (1 - \delta(n, n_d-1)\delta(i, i_d)) \nonumber\\
-	&& \times \Bigl\{ \left[b_{ijkn} + (\delta(j, 2) - \delta(j, 1))x_{ikn}\right](1 + \tau_{kn}) + b^+_{ijkn} - b^-_{ijkn} - w_{ijkn} + \delta(j, 0)d_{ikn} \Bigr\}
+	&& \times \Bigl\{ \left[b_{ijn} - w_{ijn} + \delta(j, 0)d_{in} \right](1 + \mathcal{T}_{ijn})
+	+ \left[(\delta(j, 2) - \delta(j, 1))x_{ikn}\right](1 + \mathcal{T}_{ijn}/2) \Bigr\}
 	\nonumber \\
 	&&- (\phi_j\delta(n, n_d-1)\delta(i, i_s)) \nonumber \\
-	&& \times \Bigl\{ \left[b_{i_djkn} + (\delta(j, 2) - \delta(j, 1))x_{i_dkn}\right](1 + \tau_{kn}) + b^+_{i_djkn} - b^-_{i_djkn} - w_{i_djkn} + \delta(j, 0)d_{i_dkn} \Bigr\}
+	&& \times \Bigl\{ \left[b_{i_djn} w_{ijn} + \delta(j, 0)d_{in}\right](1 + \mathcal{T}_{i_djn}) +
+	+ \left[(\delta(j, 2) - \delta(j, 1))x_{i_dkn}\right](1 + \mathcal{T}_{i_djn}/2) \Bigr\}
 	\nonumber \\
-	&&= \left[ (1 - \delta(n, n_d-1)\delta(i, i_d)) 
-	\kappa_{ijkn} + (\phi_j\delta(n, n_d-1)\delta(i, i_s))
-	\kappa_{i_djkn}\right](1 + \tau_{kn}/2). \nonumber  \\
+	&=& \left[(1 - \delta(n, n_d-1)\delta(i, i_d)) \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2) \right.
+	\nonumber\\
+	&& + \left.(\phi_j\delta(n, n_d-1)\delta(i, i_s))
+	\kappa_{i_djn}\right](1 + \mathcal{T}_{i_djn}/2).
 \end{eqnarray}
 We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
 \begin{eqnarray}
         \label{Eq:B2}
-        A_e[J_0(i, j, k, n), q_b(i, j, k, n+1)] &=& 1, \nonumber \\
-        A_e[J_0(i, j, k, n), q_b(i, j, k, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
-                (1 + \tau_{kn}), \nonumber \\
-        A_e[J_0(i, j, k, n), q_x(i, k, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
-                (\delta(j, 2) - \delta(j, 1))
-                (1 + \tau_{kn}), \nonumber \\
-        A_e[J_0(i, j, k, n), q_{b^+}(i, j, k, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d)),
-                \nonumber \\
-	A_e[J_0(i, j, k, n), q_{b^-}(i, j, k, n)] &=&  (1 - \delta(n, n_d-1)\delta(i, i_d)),
-                \nonumber \\
-        A_e[J_0(i, j, k, n), q_w(i, j, k, n)] &=& (1 - \delta(n, n_d-1)\delta(i, i_d)), \nonumber \\
-        A_e[J_0(i, j, k, n), q_d(i, j, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
-                \delta(j, 0), \nonumber \\
+        A_e[J_0(i, j, n), q_b(i, j, n+1)] &=& 1, \nonumber \\
+        A_e[J_0(i, j, n), q_b(i, j, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
+		(1 + \mathcal{T}{ijn}), \nonumber \\
+        A_e[J_0(i, j, n), q_w(i, j, n)] &=& (1 - \delta(n, n_d-1)\delta(i, i_d))
+	(1 + \mathcal{T}_{ijn}),\nonumber \\
+        A_e[J_0(i, j, n), q_d(i, j, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
+		\delta(j, 0) (1 + \mathcal{T}_{ijn}), \nonumber \\
+        A_e[J_0(i, j, n), q_x(i, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
+                (\delta(j, 2) - \delta(j, 1)),
+		(1 + \mathcal{T}_{ijn}/2), \nonumber \\
 		\text{when $N_i =2$ and $i = i_s$} && \nonumber\\
-        A_e[J_0(i, j, k, n), q_b(i_d, j, k, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
-                (1 + \tau_{kn}), \nonumber \\
-        A_e[J_0(i, j, k, n), q_x(i_d, k, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
+        A_e[J_0(i, j, n), q_b(i_d, j, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
+		(1 + \mathcal{T}_{ijn}), \nonumber \\
+        A_e[J_0(i, j, n), q_w(i_d, j, n)] &=& (\phi_j\delta(n, n_d-1)\delta(i, i_s))
+	(1 + \mathcal{T}_{ijn}), \nonumber\\
+        A_e[J_0(i, j, n), q_d(i_d, n)] &=&  -(\phi_j\delta(n, n_d-1)\delta(i, i_s))
+		\delta(j, 0)(1 + \mathcal{T}_{ijn}), \nonumber \\
+        A_e[J_0(i, j, n), q_x(i_d, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
                 (\delta(j, 2) - \delta(j, 1))
-                (1 + \tau_{kn}), \nonumber \\
-        A_e[J_0(i, j, k, n), q_{b^+}(i_d, j, k, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s)),
+		(1 + \mathcal{T}_{ijn}/2), \nonumber \\
                 \nonumber \\
-        A_e[J_0(i, j, k, n), q_{b^-}(i_d, j, k, n)] &=& (\phi_j\delta(n, n_d-1)\delta(i, i_s)),
-                \nonumber \\
-        A_e[J_0(i, j, k, n), q_w(i_d, j, k, n)] &=& (\phi_j\delta(n, n_d-1)\delta(i, i_s)),
-                \nonumber \\
-        A_e[J_0(i, j, k, n), q_d(i_d, j, n)] &=&  -(\phi_j\delta(n, n_d-1)\delta(i, i_s))
-                \delta(j, 0), \nonumber \\
         &&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
         &&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
-        &&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
         &&\qquad\forall n \in \{0,\ldots, N_n-1\}, \nonumber
 \end{eqnarray}
 where $v$ is
-\begin{equation}
+\begin{eqnarray}
 	v[I(i, j, k, n)] 
-	= [(1 - \delta(n, n_d)\delta(i, i_d))
-	\kappa_{ijkn} + (\phi_j\delta(n, n_d-1)\delta(i, i_s))\kappa_{i_djkn}](1 + \tau_{kn}/2). 
-\end{equation}
+	&=& (1 - \delta(n, n_d-1)\delta(i, i_d)) \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2)
+	\nonumber \\
+	&& + (\phi_j\delta(n, n_d-1)\delta(i, i_s))\kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2). 
+\end{eqnarray}
 While the last two equations may look cumbersome, their net effect is only to include
 a few more terms when $n=n_d-1$. 
 
