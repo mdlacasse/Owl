@@ -139,6 +139,16 @@ the boundaries of tax brackets.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxIncomePlot.png" width="800">
 
+The next three plots show the distribution of assets in each savings account obtained
+by
+```
+plan.showASsetDistribution()
+```
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxable.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxDef.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxFree.png" width="800">
+
+
 These plots are irregular because we used historical rates from 1969. The volatility of
 the rates offers Roth conversion benefits which are exploited by the optimizer.
 The rates used can be displayed by:
