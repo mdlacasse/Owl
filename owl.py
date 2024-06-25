@@ -753,7 +753,8 @@ class Plan:
         # Weights are normalized on k. [alpha*(1 + tau) = 1 + alpha*tau)].
         Tau1_ijn = 1 + tau_ijn
         Tauh_ijn = 1 + tau_ijn / 2
-        tau0prev = np.roll(self.tau_kn[0, :], 1)
+        tau_0prev = np.roll(self.tau_kn[0, :], 1)
+        tau_0prev[tau_0prev < 0] = 0
 
         if 'units' in options:
             units = u.getUnits(options['units'])
@@ -895,10 +896,9 @@ class Plan:
                 )
 
                 row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = fac * self.mu
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = -fac * self.mu
-                row[_q2(Cd, i, n, Ni, Nn)] = 1 + fac * self.mu
-                # Minus capital gains on withdrawals using last year's rate.
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] += fac*(max(0, tau0prev[n]) - self.mu)
+                row[_q2(Cd, i, n, Ni, Nn)] = fac * self.mu + 1
+                # Minus capital gains on withdrawals using last year's rate if >=0.
+                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fac*(tau_0prev[n] - self.mu)
 
                 # Plus all withdrawals.
                 for j in range(Nj):
@@ -914,7 +914,7 @@ class Plan:
             rowDic = {_q1(Cg, 0, Nn): -self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
             A.addNewRow(rowDic, zero, zero)
 
-        # Impose max on all withdrawals. This helps convergence speed significantly.
+        # Impose max on all withdrawals. This helps converging.
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
@@ -1140,14 +1140,13 @@ class Plan:
         tau_0 = np.array(self.tau_kn[0, :])
         tau_0[tau_0 < 0] = 0
         # Last year's rates.
-        tau_0 = np.roll(tau_0, 1)
+        tau_0prev = np.roll(tau_0, 1)
         self.Q_n = np.sum(
-            self.mu
-            * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :])
-            * self.alpha_ijkn[:, 0, 0, :-1]
-            + tau_0 * self.w_ijn[:, 0, :],
-            axis=0,
-        )
+            (self.mu * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :]
+                        + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :]) + 
+                        + tau_0prev * self.w_ijn[:, 0, :])
+            * self.alpha_ijkn[:, 0, 0, :-1], axis=0
+            )
         self.U_n = self.psi * self.Q_n
 
         # Putting it all together in a dictionary.
@@ -1570,6 +1569,8 @@ class Plan:
             - tax-deferred account
             - tax-free account.
 
+        Last worksheet contains cash flow.
+
         '''
         if self._checkSolverStatus('saveWorkbook'):
             return
@@ -1667,6 +1668,30 @@ class Plan:
                 ws.append(rows)
 
             _formatSpreadsheet(ws, 'currency')
+
+        # Save account balances.
+        cashFlowDic = {
+            'net': self.g_n,
+            'wages': np.sum(self.omega_in, axis=0),
+            'pensions': np.sum(self.pi_in, axis=0),
+            'soc sec': np.sum(self.zetaBar_in, axis=0),
+            'bti': np.sum(self.Lambda_in, axis=0),
+            'wdrwls': np.sum(self.w_ijn, axis=(0,1)),
+            'deposits': -np.sum(self.d_in, axis=0),
+            'ord taxes': -self.T_n,
+            'div taxes': -self.U_n
+        }
+        sname = 'Cash Flow'
+        ws = wb.create_sheet(sname)
+        rawData = {}
+        rawData['year'] = self.year_n
+        for key in cashFlowDic:
+            rawData[key] = cashFlowDic[key]
+        df = pd.DataFrame(rawData)
+        for rows in dataframe_to_rows(df, index=False, header=True):
+            ws.append(rows)
+
+        _formatSpreadsheet(ws, 'currency')
 
         _saveWorkbook(wb, basename, overwrite)
 
