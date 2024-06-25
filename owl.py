@@ -1329,6 +1329,8 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
+        years_n = np.array(self.year_n)
+        years_n = np.append(years_n, [years_n[-1]+1])
         y2stack = {}
         jDic = {'taxable': 0, 'tax-deferred': 1, 'tax-free': 2}
         kDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
@@ -1346,7 +1348,7 @@ class Plan:
                 title += ' - ' + tag
 
             _stackPlot(
-                self.year_n,
+                years_n,
                 self.inames,
                 title,
                 range(self.N_i),
