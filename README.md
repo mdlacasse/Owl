@@ -37,7 +37,7 @@ Contributors with good front-end skills are therefore more than welcome to join 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one
 is interested in comparing different withdrawal strategies, [FI Calc](ficalc.app) is a more appropriate and elegant
 application that addresses this need. If, however, you also want to optimize spending, bequest, or Roth conversions over the next few years,
-then Owl is definitely the tool you need.
+then Owl is definitely a tool that can help guide your decisions.
 
 --------------------------------------------------------------------------------------
 ## Basic capabilities
@@ -115,6 +115,7 @@ plan.showGrossIncome()
 plan.showTaxes()
 plan.showSources()
 plan.showAccounts()
+plan.showAssetDistribution()
 ...
 ```
 Typical plots look like the following. The optimal spending profile looks like this in nominal dollars. Notice
