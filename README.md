@@ -21,7 +21,7 @@ guarantee the accuracy of the results. Use at your own risk.
 
 -------------------------------------------------------------------------------------
 ## Purpose and vision
-The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilitiesi, allowing
+The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities, allowing
 for the next generation of Python-literate retirees to experiment with their financial future while providing a codebase
 where they can learn and contribute. There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
