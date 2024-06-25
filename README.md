@@ -41,7 +41,7 @@ then Owl is definitely a tool that can help guide your decisions.
 
 --------------------------------------------------------------------------------------
 ## Basic capabilities
-Owl can optimize for either maximum net spending under the constraint of a given bequest, or maximize the
+Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero), or maximize the
 bequest under the constraint of a desired net spending profile. Roth conversions are also considered
 and optimized under the assumption of a heirs marginal tax rate and subject to an optional maximum
 conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
