@@ -115,6 +115,7 @@ plan.showGrossIncome()
 plan.showTaxes()
 plan.showSources()
 plan.showAccounts()
+plan.showAssetDistribution()
 ...
 ```
 Typical plots look like the following. The optimal spending profile looks like this in nominal dollars. Notice
