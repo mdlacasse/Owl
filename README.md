@@ -16,11 +16,14 @@ your strategy under different market assumptions, helping to better understand y
 
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
 
-NOTE: This code is still in active development. Use at your own risk.
+More disclaimers: While some output of the code has been verified with other approaches, this code is still under development and I cannot
+guarantee the accuracy of the results. Use at your own risk.
 
 -------------------------------------------------------------------------------------
 ## Purpose and vision
-The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities. There are and were
+The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilitiesi, allowing
+for the next generation of Python-literate retirees to experiment with their financial future while providing a codebase
+where they can learn and contribute. There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
 collecting your data, or academic papers that share the results without really sharing the details of the underlying mathematical models.
 The algorithm in Owl is using the open-source HiGHS linear programming solver. The complete formulation and
@@ -33,7 +36,8 @@ Contributors with good front-end skills are therefore more than welcome to join 
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one
 is interested in comparing different withdrawal strategies, [FI Calc](ficalc.app) is a more appropriate and elegant
-application that addresses this need.
+application that addresses this need. If, however, you also want to optimize spending, bequest, or Roth conversions over the next few years,
+then Owl is definitely the tool you need.
 
 --------------------------------------------------------------------------------------
 ## Basic capabilities
