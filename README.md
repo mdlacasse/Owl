@@ -16,7 +16,8 @@ your strategy under different market assumptions, helping to better understand y
 
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
 
-NOTE: This code is still in active development. Use at your own risk.
+More disclaimers: While the some output of the code has been verified with other approaches, this code is still under development and I cannot
+garantee the accuracy of the results. Use at your own risk.
 
 -------------------------------------------------------------------------------------
 ## Purpose and vision
