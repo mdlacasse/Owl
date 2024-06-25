@@ -1195,7 +1195,7 @@ class Plan:
         print('SUMMARY ======================================================')
         print('Plan name:', self._name)
         for i in range(self.N_i):
-            u.vprint('%12s: life horizon from %d -> %d.' % (self.inames[i], now, now + self.horizons[i] - 1))
+            u.vprint('%12s\'s life horizon: %d -> %d' % (self.inames[i], now, now + self.horizons[i] - 1))
         print('Contributions file:', self.timeListsFileName)
         print('Return rates:', self.rateMethod)
         if self.rateMethod in ['historical', 'average', 'stochastic']:
@@ -1217,6 +1217,10 @@ class Plan:
         totIncomeNow = np.sum(self.g_n / self.gamma_n, axis=0)
         print('Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
 
+        totRoth = np.sum(self.x_in, axis=(0, 1))
+        totRothNow = np.sum(np.sum(self.x_in, axis=0)/self.gamma_n, axis=0)
+        print('Total Roth conversions in %d$: %s (%s nominal)'%(now, u.d(totRothNow), u.d(totRoth)))
+
         taxPaid = np.sum(self.f_tn * self.theta_tn, axis=(0, 1))
         taxPaidNow = np.sum(np.sum(self.f_tn * self.theta_tn, axis=0) / self.gamma_n, axis=0)
         print('Total income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
@@ -1224,11 +1228,12 @@ class Plan:
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
         print('Assumed heirs tax rate:', u.pc(self.nu, f=0))
-        print('Final account post-tax nominal values:', *[u.d(estate[j]) for j in range(self.N_j)])
+        print('Final account post-tax nominal values:')
+        print('    taxable: %s  tax-def: %s  tax-free: %s'%(u.d(estate[0]), u.d(estate[1]), u.d(estate[2])))
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[self.N_n - 1]
-        print('Final estate value in %d$: %s (%s nominal)' % (now, u.d(totEstateNow), u.d(totEstate)))
+        print('Total estate value in %d$: %s (%s nominal)' % (now, u.d(totEstateNow), u.d(totEstate)))
         print('Final inflation factor:', u.pc(self.gamma_n[-1], f=1))
 
         print('--------------------------------------------------------------')
