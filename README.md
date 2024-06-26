@@ -27,7 +27,7 @@ where they can learn and contribute. There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
 collecting your data, or academic papers that share the results without really sharing the details of the underlying mathematical models.
 The algorithm in Owl is using the open-source HiGHS linear programming solver. The complete formulation and
-detailed description of the undelying
+detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
 Owl is currently implemented through jupyter notebooks, but it can also easily serve as the back-end of a Web application
