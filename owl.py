@@ -134,8 +134,8 @@ class Plan:
         self.N_t = 7
         self.N_j = 3
         self.N_k = 4
-        # 3 binary variables.
-        self.N_z = 3
+        # 8 binary variables.
+        self.N_z = 8
 
         # Default interpolation parameters for allocation ratios.
         self.interpMethod = 'linear'
@@ -699,7 +699,8 @@ class Plan:
         C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n + 1)
         C['f'] = _qC(C['d'], self.N_i, self.N_n)
         C['g'] = _qC(C['f'], self.N_t, self.N_n)
-        C['w'] = _qC(C['g'], self.N_n)
+        C['I'] = _qC(C['g'], self.N_n)
+        C['w'] = _qC(C['I'], self.N_n)
         C['x'] = _qC(C['w'], self.N_i, self.N_j, self.N_n)
         C['z'] = _qC(C['x'], self.N_i, self.N_n)
         C['Z'] = _qC(C['z'], self.N_i, self.N_n, self.N_z)
@@ -725,6 +726,7 @@ class Plan:
         zero = 0
         inf = np.inf
         bigM = 1e7
+        medM = 2e6
 
         # Simplified notation.
         Ni = self.N_i
@@ -741,6 +743,7 @@ class Plan:
         Cd = self.C['d']
         Cf = self.C['f']
         Cg = self.C['g']
+        CI = self.C['I']
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
@@ -887,6 +890,7 @@ class Plan:
         for n in range(Nn):
             rhs = 0
             row = A.newRow({_q1(Cg, n, Nn): 1})
+            row[_q1(CI, n, Nn)] = 1
             for i in range(Ni):
                 fac = self.psi * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
@@ -943,7 +947,7 @@ class Plan:
                 row[_q2(Cf, t, n, Nt, Nn)] = 1
             A.addRow(row, rhs, rhs)
 
-        # Configure binary variables.
+        # Configure binary variables. Lb is already 0.
         for i in range(Ni):
             for n in range(Nn):
                 for z in range(Nz):
@@ -953,29 +957,72 @@ class Plan:
         Ub[_q1(CZ, 0, 1)] = 1
         integrality[_q1(CZ, 0, 1)] = 1
 
+        # Compute IRMAA binary variables.
+        for i in range(Ni):
+            for n in range(Nn):
+                # Look 2 years back only when we can.
+                offset = max(0, n-2)
+                for q in range(5):
+                    if n >= self.horizons[i] or self.year_n[n] - self.yobs[i] < 65:
+                        A.addNewRow({_q3(Cz, i, n, q, Ni, Nn, Nz): 1}, zero, zero)
+                    else:
+                        lt = tx.irmaaBrackets_2024[Ni-1][q]*self.gamma_n[n]
+                        row = A.newRow()
+                        row[_q3(Cz, i, n, q, Ni, Nn, Nz)] = medM
+                        for t in range(Nt):
+                            row[_q2(Cf, t, n-offset, Nt, Nn)] = -1
+
+                        sig = self.sigmaBar_n[n-offset]
+                        A.addRow(row, sig - lt, medM - lt + sig)
+
+        # Compute IRMAA fees from binary variables.
+        for n in range(Nn):
+            basis = tx.irmaaBasis_2024*self.gamma_n[n]
+            row = A.newRow({_q1(CI, n, Nn): 1})
+            for q in range(5):
+                fees = tx.irmaaFees_2024[q]*self.gamma_n[n]
+                for i in range(Ni):
+                    row[_q3(Cz, i, n, q, Ni, Nn, Nz)] = -fees
+            A.addRow(row, basis, basis)
+
         # Exclude simultaneous deposits and withdrawals in taxable account.
         for i in range(Ni):
             for n in range(Nn):
                 A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 5, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
                     zero,
                     bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q3(Cw, i, 0, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 5, Ni, Nn, Nz): bigM, _q3(Cw, i, 0, n, Ni, Nj, Nn): 1},
                     zero,
                     bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 6, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
                     zero,
                     bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 6, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    zero,
+                    bigM,
+                )
+
+        # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
+        for i in range(Ni):
+            for n in range(Nn):
+                A.addNewRow(
+                    {_q3(Cz, i, n, 7, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
+                    zero,
+                    bigM,
+                )
+
+                A.addNewRow(
+                    {_q3(Cz, i, n, 7, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
                     zero,
                     bigM,
                 )
@@ -983,21 +1030,6 @@ class Plan:
         A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
 
         A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
-
-        # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
-        for i in range(Ni):
-            for n in range(Nn):
-                A.addNewRow(
-                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
-                    zero,
-                    bigM,
-                )
-
-                A.addNewRow(
-                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
-                    zero,
-                    bigM,
-                )
 
         self.Alu, self.lbvec, self.ubvec = A.arrays()
         self.Ub = Ub
@@ -1087,9 +1119,11 @@ class Plan:
         Cd = self.C['d']
         Cf = self.C['f']
         Cg = self.C['g']
+        CI = self.C['I']
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
+        CZ = self.C['Z']
 
         x = u.roundCents(x)
 
@@ -1106,14 +1140,25 @@ class Plan:
         self.f_tn = np.array(x[Cf:Cg])
         self.f_tn = self.f_tn.reshape((Nt, Nn))
 
-        self.g_n = np.array(x[Cg:Cw])
+        self.g_n = np.array(x[Cg:CI])
         # self.g_n = self.g_n.reshape((Nn))
+
+        self.irmaa_n = np.array(x[CI:Cw])
 
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
 
         self.x_in = np.array(x[Cx:Cz])
         self.x_in = self.x_in.reshape((Ni, Nn))
+
+        '''
+        # Alternative route to irmaa.
+        irmaa = np.array(x[Cz:CZ])
+        irmaa = irmaa.reshape((Ni, Nn, Nz))
+        irmaa_in = np.sum(irmaa[:, :, 0:5] * tx.irmaaFees_2024, axis=2)
+        irmaa_n = np.sum(irmaa_in, axis=0) * self.gamma_n
+        print(irmaa_n - self.irmaa_n)
+        '''
 
         # Make derivative variables.
         sourcetypes = [
@@ -1327,6 +1372,9 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
+        if self._checkSolverStatus('showAssetDistribution'):
+            return
+
         years_n = np.array(self.year_n)
         years_n = np.append(years_n, [years_n[-1]+1])
         y2stack = {}
@@ -1549,7 +1597,7 @@ class Plan:
             - net spending
             - taxable ordinary income
             - taxable dividends
-            - tax bill (federal only)
+            - tax bills (federal only, including IRMAA)
         for all the years for the time span of the plan.
 
         The second worksheet contains the rates
@@ -1594,7 +1642,7 @@ class Plan:
         rawData['net spending'] = self.g_n
         rawData['taxable ord. income'] = self.G_n
         rawData['taxable dividends'] = self.Q_n
-        rawData['tax bill'] = self.T_n + self.U_n
+        rawData['all tax bills'] = self.T_n + self.U_n + self.irmaa_n
 
         # We need to work by row.
         df = pd.DataFrame(rawData)
@@ -1684,7 +1732,8 @@ class Plan:
             'all wdrwls': np.sum(self.w_ijn, axis=(0,1)),
             'all deposits': -np.sum(self.d_in, axis=0),
             'ord taxes': -self.T_n,
-            'div taxes': -self.U_n
+            'div taxes': -self.U_n,
+            'IRMAA': -self.irmaa_n
         }
         sname = 'Cash Flow'
         ws = wb.create_sheet(sname)
