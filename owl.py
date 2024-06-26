@@ -455,6 +455,8 @@ class Plan:
         u.vprint('Taxable balances:', *[u.d(taxable[i]) for i in range(self.N_i)])
         u.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
         u.vprint('Tax-free balances:', *[u.d(taxFree[i]) for i in range(self.N_i)])
+        u.vprint('Total post-tax wealth of approximately',
+                 u.d(np.sum(taxable) + 0.7*np.sum(taxDeferred) + np.sum(taxFree)))
 
         return
 
@@ -1002,11 +1004,7 @@ class Plan:
         self.Lb = Lb
         self.integrality = integrality
 
-        u.vprint(
-            'There are',
-            len(self.ubvec),
-            'constraints.',
-        )
+        u.vprint('Enforcing', len(self.ubvec), 'constraints.')
 
         # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
         c = np.zeros(self.nvars)
@@ -1678,13 +1676,13 @@ class Plan:
 
         # Save account balances.
         cashFlowDic = {
-            'net': self.g_n,
-            'wages': np.sum(self.omega_in, axis=0),
-            'pensions': np.sum(self.pi_in, axis=0),
-            'soc sec': np.sum(self.zetaBar_in, axis=0),
-            'bti': np.sum(self.Lambda_in, axis=0),
-            'wdrwls': np.sum(self.w_ijn, axis=(0,1)),
-            'deposits': -np.sum(self.d_in, axis=0),
+            'net spending': self.g_n,
+            'all wages': np.sum(self.omega_in, axis=0),
+            'all pensions': np.sum(self.pi_in, axis=0),
+            'all soc sec': np.sum(self.zetaBar_in, axis=0),
+            'all bti': np.sum(self.Lambda_in, axis=0),
+            'all wdrwls': np.sum(self.w_ijn, axis=(0,1)),
+            'all deposits': -np.sum(self.d_in, axis=0),
             'ord taxes': -self.T_n,
             'div taxes': -self.U_n
         }
