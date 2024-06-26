@@ -11,7 +11,7 @@ Strictly speaking, it is not a planning tool, but more an environment for explor
 It provides different realizations of a financial strategy. One can certainly have a savings plan, but due to the volatility of financial investments,
 it is impossible to have a certain asset earnings plan. This does not mean one cannot make decisions.
 These decisions need to be guided with an understanding of the sensitivity of the parameters.
-This is exactly where this tool fits it. Given your savings and spending desires, it can generate different future realizations of
+This is exactly where this tool fits it. Given your savings capabilities and spending desires, it can generate different future realizations of
 your strategy under different market assumptions, helping to better understand your financial situation.
 
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
@@ -21,7 +21,7 @@ guarantee the accuracy of the results. Use at your own risk.
 
 -------------------------------------------------------------------------------------
 ## Purpose and vision
-The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilitiesi, allowing
+The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities, allowing
 for the next generation of Python-literate retirees to experiment with their financial future while providing a codebase
 where they can learn and contribute. There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
@@ -41,7 +41,7 @@ then Owl is definitely a tool that can help guide your decisions.
 
 --------------------------------------------------------------------------------------
 ## Basic capabilities
-Owl can optimize for either maximum net spending under the constraint of a given bequest, or maximize the
+Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero), or maximize the
 bequest under the constraint of a desired net spending profile. Roth conversions are also considered
 and optimized under the assumption of a heirs marginal tax rate and subject to an optional maximum
 conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
@@ -68,7 +68,7 @@ a selected historical year range. Extending the capabilities to Monte Carlo simu
 be straightforward. Mean rates over a data period can also be chosen.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
-an Excel spreadsheet than contains wages, contributions
+an Excel spreadsheet than contains future wages, contributions
 to savings accounts, and planned *big ticket items* such as the purchase of a lake house or the sale of a boat.
 
 Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts
@@ -138,6 +138,16 @@ along with extrapolated tax brackets. Notice how the optimized income is surfing
 the boundaries of tax brackets.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxIncomePlot.png" width="800">
+
+The next three plots show the distribution of assets in each savings account obtained
+by
+```
+plan.showASsetDistribution()
+```
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxable.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxDef.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxFree.png" width="800">
+
 
 These plots are irregular because we used historical rates from 1969. The volatility of
 the rates offers Roth conversion benefits which are exploited by the optimizer.
