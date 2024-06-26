@@ -68,7 +68,7 @@ a selected historical year range. Extending the capabilities to Monte Carlo simu
 be straightforward. Mean rates over a data period can also be chosen.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
-an Excel spreadsheet than contains wages, contributions
+an Excel spreadsheet than contains future wages, contributions
 to savings accounts, and planned *big ticket items* such as the purchase of a lake house or the sale of a boat.
 
 Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts
