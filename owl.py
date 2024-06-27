@@ -724,7 +724,6 @@ class Plan:
         # Bounds values.
         zero = 0
         inf = np.inf
-        bigM = 1e7
 
         # Simplified notation.
         Ni = self.N_i
@@ -762,6 +761,10 @@ class Plan:
             units = u.getUnits(options['units'])
         else:
             units = 1000
+
+        bigMx = 1e7
+        if 'bigMx' in options:
+            bigMx = units*options['bigMx']
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
@@ -957,46 +960,46 @@ class Plan:
         for i in range(Ni):
             for n in range(Nn):
                 A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigMx, _q2(Cd, i, n, Ni, Nn): -1},
                     zero,
-                    bigM,
+                    bigMx,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q3(Cw, i, 0, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigMx, _q3(Cw, i, 0, n, Ni, Nj, Nn): 1},
                     zero,
-                    bigM,
+                    bigMx,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigMx, _q2(Cd, i, n, Ni, Nn): -1},
                     zero,
-                    bigM,
+                    bigMx,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigMx, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
                     zero,
-                    bigM,
+                    bigMx,
                 )
 
-        A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
+        A.addNewRow({_q1(CZ, 0, 1): bigMx, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigMx)
 
-        A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
+        A.addNewRow({_q1(CZ, 0, 1): bigMx, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigMx)
 
         # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
             for n in range(Nn):
                 A.addNewRow(
-                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigMx, _q2(Cx, i, n, Ni, Nn): -1},
                     zero,
-                    bigM,
+                    bigMx,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigMx, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
                     zero,
-                    bigM,
+                    bigMx,
                 )
 
         self.Alu, self.lbvec, self.ubvec = A.arrays()
@@ -1037,7 +1040,7 @@ class Plan:
 
         Refer to companion document for implementation details.
         '''
-        knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate']
+        knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate', 'bigMx', 'bigMG']
         for opt in options:
             if opt not in knownOptions:
                 u.xprint('Option', opt, 'not one of', knownOptions)
