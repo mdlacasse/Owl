@@ -725,8 +725,6 @@ class Plan:
         # Bounds values.
         zero = 0
         inf = np.inf
-        bigM = 1e7
-        medM = 2e6
 
         # Simplified notation.
         Ni = self.N_i
@@ -765,6 +763,14 @@ class Plan:
             units = u.getUnits(options['units'])
         else:
             units = 1000
+
+        bigMG = 1e6
+        if 'bigMG' in options:
+            bigMG = units*options['bigMG']
+
+        bigMb = 1e7
+        if 'bigMb' in options:
+            bigMb = units*options['bigMb']
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
@@ -960,20 +966,19 @@ class Plan:
         # Compute IRMAA binary variables.
         for i in range(Ni):
             for n in range(Nn):
-                # Look 2 years back only when we can.
                 offset = max(0, n-2)
                 for q in range(5):
-                    if n >= self.horizons[i] or self.year_n[n] - self.yobs[i] < 65:
+                    if n < 2 or n >= self.horizons[i] or self.year_n[n] - self.yobs[i] < 65:
                         A.addNewRow({_q3(Cz, i, n, q, Ni, Nn, Nz): 1}, zero, zero)
                     else:
                         lt = tx.irmaaBrackets_2024[Ni-1][q]*self.gamma_n[n]
                         row = A.newRow()
-                        row[_q3(Cz, i, n, q, Ni, Nn, Nz)] = medM
+                        row[_q3(Cz, i, n, q, Ni, Nn, Nz)] = bigMG
                         for t in range(Nt):
                             row[_q2(Cf, t, n-offset, Nt, Nn)] = -1
 
                         sig = self.sigmaBar_n[n-offset]
-                        A.addRow(row, sig - lt, medM - lt + sig)
+                        A.addRow(row, sig - lt, bigMG - lt + sig)
 
         # Compute IRMAA fees from binary variables.
         for n in range(Nn):
@@ -989,47 +994,47 @@ class Plan:
         for i in range(Ni):
             for n in range(Nn):
                 A.addNewRow(
-                    {_q3(Cz, i, n, 5, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 5, Ni, Nn, Nz): bigMb, _q2(Cd, i, n, Ni, Nn): -1},
                     zero,
-                    bigM,
+                    bigMb,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 5, Ni, Nn, Nz): bigM, _q3(Cw, i, 0, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 5, Ni, Nn, Nz): bigMb, _q3(Cw, i, 0, n, Ni, Nj, Nn): 1},
                     zero,
-                    bigM,
+                    bigMb,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 6, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 6, Ni, Nn, Nz): bigMb, _q2(Cd, i, n, Ni, Nn): -1},
                     zero,
-                    bigM,
+                    bigMb,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 6, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 6, Ni, Nn, Nz): bigMb, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
                     zero,
-                    bigM,
+                    bigMb,
                 )
 
         # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
             for n in range(Nn):
                 A.addNewRow(
-                    {_q3(Cz, i, n, 7, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 7, Ni, Nn, Nz): bigMb, _q2(Cx, i, n, Ni, Nn): -1},
                     zero,
-                    bigM,
+                    bigMb,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 7, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 7, Ni, Nn, Nz): bigMb, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
                     zero,
-                    bigM,
+                    bigMb,
                 )
 
-        A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
+        A.addNewRow({_q1(CZ, 0, 1): bigMb, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigMb)
 
-        A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
+        A.addNewRow({_q1(CZ, 0, 1): bigMb, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigMb)
 
         self.Alu, self.lbvec, self.ubvec = A.arrays()
         self.Ub = Ub
@@ -1069,7 +1074,7 @@ class Plan:
 
         Refer to companion document for implementation details.
         '''
-        knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate']
+        knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate', 'bigMG', 'bigMb']
         for opt in options:
             if opt not in knownOptions:
                 u.xprint('Option', opt, 'not one of', knownOptions)
@@ -1155,8 +1160,9 @@ class Plan:
         # Alternative route to irmaa.
         irmaa = np.array(x[Cz:CZ])
         irmaa = irmaa.reshape((Ni, Nn, Nz))
+        print('Binary IRMAA', irmaa)
         irmaa_in = np.sum(irmaa[:, :, 0:5] * tx.irmaaFees_2024, axis=2)
-        irmaa_n = np.sum(irmaa_in, axis=0) * self.gamma_n
+        irmaa_n = (tx.irmaaBasis_2024 + np.sum(irmaa_in, axis=0)) * self.gamma_n
         print(irmaa_n - self.irmaa_n)
         '''
 
@@ -1264,9 +1270,17 @@ class Plan:
         totRothNow = np.sum(np.sum(self.x_in, axis=0)/self.gamma_n, axis=0)
         print('Total Roth conversions in %d$: %s (%s nominal)'%(now, u.d(totRothNow), u.d(totRoth)))
 
-        taxPaid = np.sum(self.f_tn * self.theta_tn, axis=(0, 1))
-        taxPaidNow = np.sum(np.sum(self.f_tn * self.theta_tn, axis=0) / self.gamma_n, axis=0)
-        print('Total income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
+        taxPaid = np.sum(self.T_n, axis=0)
+        taxPaidNow = np.sum(self.T_n / self.gamma_n, axis=0)
+        print('Total ordinary income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
+
+        taxPaid = np.sum(self.U_n, axis=0)
+        taxPaidNow = np.sum(self.U_n / self.gamma_n, axis=0)
+        print('Total dividend tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
+
+        taxPaid = np.sum(self.irmaa_n, axis=0)
+        taxPaidNow = np.sum(self.irmaa_n / self.gamma_n, axis=0)
+        print('Total IRMAA paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
@@ -1551,8 +1565,8 @@ class Plan:
         if tag != '':
             title += ' - ' + tag
 
-        style = {'income taxes': '-'}
-        series = {'income taxes': self.T_n}
+        style = {'income taxes': '-', 'IRMAA': '-.'}
+        series = {'income taxes': self.T_n, 'IRMAA': self.irmaa_n}
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title)
 
