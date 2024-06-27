@@ -181,6 +181,7 @@ Net yearly spending in 2024$: $96,571
 Total net spending in 2024$: $2,789,690 ($7,873,665 nominal)
 Total Roth conversions in 2024$: $267,343 ($352,924 nominal)
 Total income tax paid in 2024$: $266,780 ($647,407 nominal)
+Total dividend tax paid in 2024$: $3,067 ($3,571 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values:
     taxable: $0  tax-def: $0  tax-free: $2,492,067
