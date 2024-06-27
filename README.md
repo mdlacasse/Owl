@@ -87,7 +87,7 @@ Head of household filing status has not been added but can easily be.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
 - In the current implementation, social securiy is always taxed at 85%.
-- There are no IRMAA calculations in the main branch. However, branch `irmaa` includes these calculations but optimization not as robust as bigM values need little tuning from user.
+- There are no IRMAA calculations in the `main` branch. However, branch `irmaa` includes these calculations but optimization is not as robust as bigM values need little tuning from user. Use the `irmaa` branch if you want IRMAA calculations.
 - Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
