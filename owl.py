@@ -754,8 +754,6 @@ class Plan:
         # Weights are normalized on k. [alpha*(1 + tau) = 1 + alpha*tau)].
         Tau1_ijn = 1 + tau_ijn
         Tauh_ijn = 1 + tau_ijn / 2
-        tau_0prev = np.roll(self.tau_kn[0, :], 1)
-        tau_0prev[tau_0prev < 0] = 0
 
         if 'units' in options:
             units = u.getUnits(options['units'])
@@ -792,7 +790,7 @@ class Plan:
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
             if options['maxRothConversion'] == 'file':
-                u.vprint('Fixing Roth conversions to those from file %s.' % self.timeListsFileName)
+                # u.vprint('Fixing Roth conversions to those from file %s.' % self.timeListsFileName)
                 for i in range(Ni):
                     for n in range(self.horizons[i]):
                         rhs = self.myRothX_in[i][n]
@@ -803,9 +801,10 @@ class Plan:
                 assert isinstance(rhsopt, (int, float)) == True, 'Specified maxConversion is not a number.'
                 rhsopt *= units
                 if rhsopt < 0:
-                    u.vprint('Unlimited Roth conversions (<0)')
+                    # u.vprint('Unlimited Roth conversions (<0)')
+                    pass
                 else:
-                    u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
+                    # u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
                             #  Adjust cap for inflation?
@@ -823,8 +822,8 @@ class Plan:
         # Equalities.
 
         if objective == 'maxSpending':
-            if 'netSpending' in options:
-                u.vprint('Ignoring netSpending option provided.')
+            # if 'netSpending' in options:
+            #   u.vprint('Ignoring netSpending option provided.')
             # Impose requested constraint on estate, if any.
             if 'estate' in options:
                 estate = options['estate']
@@ -840,24 +839,25 @@ class Plan:
                 row[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = 1 - self.nu
                 row[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = 1
             A.addRow(row, estate, estate)
-            u.vprint('Adding estate constraint of:', u.d(estate))
+            # u.vprint('Adding estate constraint of:', u.d(estate))
         elif objective == 'maxBequest':
-            if 'estate' in options:
-                u.vprint('Ignoring estate option provided.')
+            # if 'estate' in options:
+            #   u.vprint('Ignoring estate option provided.')
             spending = options['netSpending']
             assert isinstance(spending, (int, float)) == True, 'Desired spending provided not a number.'
             spending *= units
-            u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
+            # u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
             A.addNewRow({_q1(Cg, 0): 1}, spending, spending)
         else:
             u.xprint('Unknown objective function:', objective)
 
-        # Set initial balances.
+        # Set initial balances through bounds or constraints.
         for i in range(Ni):
             for j in range(Nj):
                 rhs = self.beta_ij[i, j]
-                Lb[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
-                Ub[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
+                A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
+                # Lb[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
+                # Ub[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer.
@@ -886,9 +886,13 @@ class Plan:
                         # row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
                     A.addRow(row, rhs, rhs)
 
+        # Do it first with basic Medicare.
+        tau_0prev = np.roll(self.tau_kn[0, :], 1)
+        tau_0prev[tau_0prev < 0] = 0
+
         # Net cash flow.
         for n in range(Nn):
-            rhs = 0
+            rhs = -self.M_n[n]
             row = A.newRow({_q1(Cg, n, Nn): 1})
             for i in range(Ni):
                 fac = self.psi * self.alpha_ijkn[i, 0, 0, n]
@@ -919,6 +923,12 @@ class Plan:
             rowDic = {_q1(Cg, 0, Nn): -self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
             A.addNewRow(rowDic, zero, zero)
 
+        # Balance deposits while both spouses are alive.
+        if Ni == 2:
+            for n in range(n_d - 1):
+                rowDic = {_q2(Cd, 0, n, Ni, Nn): 1, _q2(Cd, 1, n, Ni, Nn): -1}
+                A.addNewRow(rowDic, zero, zero)
+
         # Impose max on all withdrawals. This helps converging.
         for i in range(Ni):
             for j in range(Nj):
@@ -946,7 +956,7 @@ class Plan:
                 row[_q2(Cf, t, n, Nt, Nn)] = 1
             A.addRow(row, rhs, rhs)
 
-        # Configure binary variables.
+        # Configure all binary variables. Lb is already 0.
         for i in range(Ni):
             for n in range(Nn):
                 for z in range(Nz):
@@ -983,10 +993,6 @@ class Plan:
                     bigM
                 )
 
-        A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
-
-        A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
-
         # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
             for n in range(Nn):
@@ -1002,12 +1008,15 @@ class Plan:
                     bigM,
                 )
 
+        A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
+
+        A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
+
+
         self.Alu, self.lbvec, self.ubvec = A.arrays()
         self.Ub = Ub
         self.Lb = Lb
         self.integrality = integrality
-
-        u.vprint('Enforcing', len(self.ubvec), 'constraints.')
 
         # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
         c = np.zeros(self.nvars)
@@ -1051,15 +1060,32 @@ class Plan:
             u.xprint('Objective', objective, 'needs netSpending option.')
 
         self._adjustParameters()
-        c = self._buildConstraints(objective, options)
 
         milpOptions = {'disp': True, 'mip_rel_gap': 1e-9}
-        constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
-        bounds = optimize.Bounds(self.Lb, self.Ub)
-        solution = optimize.milp(
-            c, integrality=self.integrality, constraints=constraint, bounds=bounds, options=milpOptions
-        )
+
+        # 1$ tolerance over all values. 
+        it = 0
+        diff = np.inf
+        old_x = np.zeros(self.nvars)
+        self._estimateMedicare()
+        while diff > 1:
+            c = self._buildConstraints(objective, options)
+            bounds = optimize.Bounds(self.Lb, self.Ub)
+            constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
+            solution = optimize.milp(
+                c, integrality=self.integrality, constraints=constraint, bounds=bounds, options=milpOptions
+            )
+
+            if solution.success != True:
+                break
+
+            self._estimateMedicare(solution.x)
+            diff = np.sum(np.abs(solution.x - old_x), axis=0)
+            old_x = solution.x 
+            it += 1
+
         if solution.success == True:
+            u.vprint('Self-consistent Medicare loop returned after %d iterations.'%it)
             u.vprint(solution.message)
             self._aggregateResults(solution.x)
             self._caseStatus = 'solved'
@@ -1070,6 +1096,22 @@ class Plan:
         self.objective = objective
         self.solver = 'milp'
         self.solverOptions = options
+
+        return
+
+    def _estimateMedicare(self, x=None):
+        '''
+        Compute rough MAGI and Medicare costs.
+        '''
+        if x is None:
+            self.G_n = np.zeros(self.N_n)
+        else:
+            self.f_tn = np.array(x[self.C['f']:self.C['g']])
+            self.f_tn = self.f_tn.reshape((self.N_t, self.N_n))
+            self.G_n = np.sum(self.f_tn, axis=0)
+
+        self.M_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n,
+                                self.gamma_n, self.N_n)
 
         return
 
@@ -1093,6 +1135,7 @@ class Plan:
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
+        CZ = self.C['Z']
 
         x = u.roundCents(x)
 
@@ -1118,7 +1161,10 @@ class Plan:
         self.x_in = np.array(x[Cx:Cz])
         self.x_in = self.x_in.reshape((Ni, Nn))
 
-        # Make derivative variables.
+        #self.z_inz = np.array(x[Cz:CZ])
+        #self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
+        #print(self.z_inz)
+
         sourcetypes = [
             'wages',
             'ssec',
@@ -1150,6 +1196,10 @@ class Plan:
             )
         self.U_n = self.psi * self.Q_n
 
+        # Alternate route to IRMAA.
+        # self.M2_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n, self.gamma_n, self.N_n)
+
+        # Make derivative variables.
         # Putting it all together in a dictionary.
         sources = {}
         sources['wages'] = self.omega_in
@@ -1222,9 +1272,17 @@ class Plan:
         totRothNow = np.sum(np.sum(self.x_in, axis=0)/self.gamma_n, axis=0)
         print('Total Roth conversions in %d$: %s (%s nominal)'%(now, u.d(totRothNow), u.d(totRoth)))
 
-        taxPaid = np.sum(self.f_tn * self.theta_tn, axis=(0, 1))
-        taxPaidNow = np.sum(np.sum(self.f_tn * self.theta_tn, axis=0) / self.gamma_n, axis=0)
-        print('Total income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
+        taxPaid = np.sum(self.T_n, axis=0)
+        taxPaidNow = np.sum(self.T_n / self.gamma_n, axis=0)
+        print('Total ordinary income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
+
+        taxPaid = np.sum(self.U_n, axis=0)
+        taxPaidNow = np.sum(self.U_n / self.gamma_n, axis=0)
+        print('Total dividend tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
+
+        taxPaid = np.sum(self.M_n, axis=0)
+        taxPaidNow = np.sum(self.M_n / self.gamma_n, axis=0)
+        print('Total Medicare premiums paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n, axis=0)
@@ -1334,6 +1392,9 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         '''
+        if self._checkSolverStatus('showAssetDistribution'):
+            return
+
         years_n = np.array(self.year_n)
         years_n = np.append(years_n, [years_n[-1]+1])
         y2stack = {}
@@ -1510,8 +1571,8 @@ class Plan:
         if tag != '':
             title += ' - ' + tag
 
-        style = {'income taxes': '-'}
-        series = {'income taxes': self.T_n}
+        style = {'income taxes': '-', 'Medicare': '-.'}
+        series = {'income taxes': self.T_n, 'Medicare': self.M_n}
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title)
 
@@ -1556,7 +1617,7 @@ class Plan:
             - net spending
             - taxable ordinary income
             - taxable dividends
-            - tax bill (federal only)
+            - tax bills (federal only, including IRMAA)
         for all the years for the time span of the plan.
 
         The second worksheet contains the rates
@@ -1601,7 +1662,7 @@ class Plan:
         rawData['net spending'] = self.g_n
         rawData['taxable ord. income'] = self.G_n
         rawData['taxable dividends'] = self.Q_n
-        rawData['tax bill'] = self.T_n + self.U_n
+        rawData['all tax bills'] = self.T_n + self.U_n + self.M_n
 
         # We need to work by row.
         df = pd.DataFrame(rawData)
@@ -1691,7 +1752,8 @@ class Plan:
             'all wdrwls': np.sum(self.w_ijn, axis=(0,1)),
             'all deposits': -np.sum(self.d_in, axis=0),
             'ord taxes': -self.T_n,
-            'div taxes': -self.U_n
+            'div taxes': -self.U_n,
+            'Medicare': -self.M_n,
         }
         sname = 'Cash Flow'
         ws = wb.create_sheet(sname)
