@@ -858,12 +858,13 @@ class Plan:
         else:
             u.xprint('Unknown objective function:', objective)
 
-        # Set initial balances.
+        # Set initial balances through bounds or constraints.
         for i in range(Ni):
             for j in range(Nj):
                 rhs = self.beta_ij[i, j]
-                Lb[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
-                Ub[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
+                A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
+                # Lb[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
+                # Ub[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer.
@@ -926,6 +927,12 @@ class Plan:
             rowDic = {_q1(Cg, 0, Nn): -self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
             A.addNewRow(rowDic, zero, zero)
 
+        # Balance deposits while both spouses are alive.
+        if Ni == 2:
+            for n in range(n_d - 1):
+                rowDic = {_q2(Cd, 0, n, Ni, Nn): 1, _q2(Cd, 1, n, Ni, Nn): -1}
+                A.addNewRow(rowDic, zero, zero)
+
         # Impose max on all withdrawals. This helps converging.
         for i in range(Ni):
             for j in range(Nj):
@@ -953,7 +960,7 @@ class Plan:
                 row[_q2(Cf, t, n, Nt, Nn)] = 1
             A.addRow(row, rhs, rhs)
 
-        # Configure binary variables. Lb is already 0.
+        # Configure all binary variables. Lb is already 0.
         for i in range(Ni):
             for n in range(Nn):
                 for z in range(Nz):
@@ -982,7 +989,7 @@ class Plan:
                             sig = self.sigmaBar_n[n-2]
                             A.addRow(row, sig - lt, bigMG - lt + sig)
 
-        # Compute IRMAA fees from binary variables.
+        # Compute Medicare premiums from binary variables.
         for n in range(Nn):
             row = A.newRow({_q1(CM, n, Nn): 1})
             for q in range(6):
@@ -990,6 +997,11 @@ class Plan:
                 for i in range(Ni):
                     row[_q3(Cz, i, n, q, Ni, Nn, Nz)] = -fees
             A.addRow(row, zero, zero)
+
+        # Put max on Medicare premiums.
+        maxfees = np.sum(tx.irmaaFees_2024, axis=0)
+        for n in range(Nn):
+            Ub[_q1(CM, n, Nn)] = 2*maxfees*self.gamma_n[n]
 
         # Exclude simultaneous deposits and withdrawals in taxable account.
         for i in range(Ni):
