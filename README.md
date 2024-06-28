@@ -76,6 +76,9 @@ which are tracked separately for married individuals. Asset transition to the su
 is done according to beneficiary fractions for each account type.
 Tax status covers married filing jointly and single, depending on the number of individuals reported.
 
+Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints. Future
+values are simple projections of current values with the assumed inflation.
+
 See one of the notebooks for a tutorial and representative user cases.
 
 ### Limitations
@@ -87,7 +90,6 @@ Head of household filing status has not been added but can easily be.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
 - In the current implementation, social securiy is always taxed at 85%.
-- There are no IRMAA calculations in the `main` branch. However, branch `irmaa` includes these calculations but optimization is not as robust as bigM values need little tuning from user. Use the `irmaa` branch if you want IRMAA calculations.
 - Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
@@ -171,17 +173,19 @@ Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
 Optimized for: maxSpending
-Solver options: {'maxRothConversion': 100, 'estate': 500}
+Solver options: {'maxRothConversion': 100, 'estate': 500, 'bigM': 1000}
 Solver used: milp
 Number of decision variables: 1027
-Number of constraints: 982
+Number of constraints: 1015
 Spending profile: smile
 Survivor percent income: 60%
-Net yearly spending in 2024$: $96,571
-Total net spending in 2024$: $2,789,690 ($7,873,665 nominal)
-Total Roth conversions in 2024$: $267,343 ($352,924 nominal)
-Total income tax paid in 2024$: $266,780 ($647,407 nominal)
-Total dividend tax paid in 2024$: $3,067 ($3,571 nominal)
+Net yearly spending in 2024$: $92,733
+Total net spending in 2024$: $2,678,822 ($7,560,752 nominal)
+Total Roth conversions in 2024$: $320,568 ($487,210 nominal)
+Total ordinary income tax paid in 2024$: $245,975 ($542,277 nominal)
+Total dividend tax paid in 2024$: $3,304 ($3,745 nominal)
+Total Medicare premiums paid in 2024$: $111,109 ($338,528 nominal)
+Total dividend tax paid in 2024$: $3,304 ($3,745 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values:
     taxable: $0  tax-def: $0  tax-free: $2,492,067
