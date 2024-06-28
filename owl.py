@@ -134,8 +134,8 @@ class Plan:
         self.N_t = 7
         self.N_j = 3
         self.N_k = 4
-        # 9 binary variables.
-        self.N_z = 9
+        # 3 binary variables.
+        self.N_z = 3
 
         # Default interpolation parameters for allocation ratios.
         self.interpMethod = 'linear'
@@ -699,8 +699,7 @@ class Plan:
         C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n + 1)
         C['f'] = _qC(C['d'], self.N_i, self.N_n)
         C['g'] = _qC(C['f'], self.N_t, self.N_n)
-        C['M'] = _qC(C['g'], self.N_n)
-        C['w'] = _qC(C['M'], self.N_n)
+        C['w'] = _qC(C['g'], self.N_n)
         C['x'] = _qC(C['w'], self.N_i, self.N_j, self.N_n)
         C['z'] = _qC(C['x'], self.N_i, self.N_n)
         C['Z'] = _qC(C['z'], self.N_i, self.N_n, self.N_z)
@@ -741,7 +740,6 @@ class Plan:
         Cd = self.C['d']
         Cf = self.C['f']
         Cg = self.C['g']
-        CM = self.C['M']
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
@@ -756,21 +754,15 @@ class Plan:
         # Weights are normalized on k. [alpha*(1 + tau) = 1 + alpha*tau)].
         Tau1_ijn = 1 + tau_ijn
         Tauh_ijn = 1 + tau_ijn / 2
-        tau_0prev = np.roll(self.tau_kn[0, :], 1)
-        tau_0prev[tau_0prev < 0] = 0
 
         if 'units' in options:
             units = u.getUnits(options['units'])
         else:
             units = 1000
 
-        bigMG = 1e6
-        if 'bigMG' in options:
-            bigMG = units*options['bigMG']
-
-        bigMx = 1e7
-        if 'bigMx' in options:
-            bigMx = units*options['bigMx']
+        bigM = 1e7
+        if 'bigM' in options:
+            bigM = units*options['bigM']
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
@@ -893,11 +885,14 @@ class Plan:
                         # row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
                     A.addRow(row, rhs, rhs)
 
+        # Do it first with basic Medicare.
+        tau_0prev = np.roll(self.tau_kn[0, :], 1)
+        tau_0prev[tau_0prev < 0] = 0
+
         # Net cash flow.
         for n in range(Nn):
-            rhs = 0
+            rhs = -self.M_n[n]
             row = A.newRow({_q1(Cg, n, Nn): 1})
-            row[_q1(CM, n, Nn)] = 1
             for i in range(Ni):
                 fac = self.psi * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
@@ -970,84 +965,51 @@ class Plan:
         Ub[_q1(CZ, 0, 1)] = 1
         integrality[_q1(CZ, 0, 1)] = 1
 
-        # Compute IRMAA binary variables.
-        for i in range(Ni):
-            for n in range(Nn):
-                if n >= self.horizons[i] or self.year_n[n] - self.yobs[i] < 65:
-                    for q in range(6):
-                        A.addNewRow({_q3(Cz, i, n, q, Ni, Nn, Nz): 1}, zero, zero)
-                else:
-                    A.addNewRow({_q3(Cz, i, n, 0, Ni, Nn, Nz): 1}, 1, 1)
-                    if n >= 2:
-                        for q in range(1,6):
-                            lt = tx.irmaaBrackets_2024[Ni-1][q]*self.gamma_n[n]
-                            row = A.newRow()
-                            row[_q3(Cz, i, n, q, Ni, Nn, Nz)] = bigMG
-                            for t in range(Nt):
-                                row[_q2(Cf, t, n-2, Nt, Nn)] = -1
-
-                            sig = self.sigmaBar_n[n-2]
-                            A.addRow(row, sig - lt, bigMG - lt + sig)
-
-        # Compute Medicare premiums from binary variables.
-        for n in range(Nn):
-            row = A.newRow({_q1(CM, n, Nn): 1})
-            for q in range(6):
-                fees = tx.irmaaFees_2024[q]*self.gamma_n[n]
-                for i in range(Ni):
-                    row[_q3(Cz, i, n, q, Ni, Nn, Nz)] = -fees
-            A.addRow(row, zero, zero)
-
-        # Put max on Medicare premiums.
-        maxfees = np.sum(tx.irmaaFees_2024, axis=0)
-        for n in range(Nn):
-            Ub[_q1(CM, n, Nn)] = 2*maxfees*self.gamma_n[n]
-
         # Exclude simultaneous deposits and withdrawals in taxable account.
         for i in range(Ni):
             for n in range(Nn):
                 A.addNewRow(
-                    {_q3(Cz, i, n, 6, Ni, Nn, Nz): bigMx, _q2(Cd, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
                     zero,
-                    bigMx,
+                    bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 6, Ni, Nn, Nz): bigMx, _q3(Cw, i, 0, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q3(Cw, i, 0, n, Ni, Nj, Nn): 1},
                     zero,
-                    bigMx,
+                    bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 7, Ni, Nn, Nz): bigMx, _q2(Cd, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
                     zero,
-                    bigMx,
+                    bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 7, Ni, Nn, Nz): bigMx, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
                     zero,
-                    bigMx,
+                    bigM,
                 )
 
         # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
             for n in range(Nn):
                 A.addNewRow(
-                    {_q3(Cz, i, n, 8, Ni, Nn, Nz): bigMx, _q2(Cx, i, n, Ni, Nn): -1},
+                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
                     zero,
-                    bigMx,
+                    bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 8, Ni, Nn, Nz): bigMx, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
                     zero,
-                    bigMx,
+                    bigM,
                 )
 
-        A.addNewRow({_q1(CZ, 0, 1): bigMx, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigMx)
+        A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
 
-        A.addNewRow({_q1(CZ, 0, 1): bigMx, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigMx)
+        A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
 
 
         self.Alu, self.lbvec, self.ubvec = A.arrays()
@@ -1088,7 +1050,7 @@ class Plan:
 
         Refer to companion document for implementation details.
         '''
-        knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate', 'bigMG', 'bigMx']
+        knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate', 'bigM']
         for opt in options:
             if opt not in knownOptions:
                 u.xprint('Option', opt, 'not one of', knownOptions)
@@ -1099,14 +1061,28 @@ class Plan:
             u.xprint('Objective', objective, 'needs netSpending option.')
 
         self._adjustParameters()
+        self._estimateMedicare()
         c = self._buildConstraints(objective, options)
 
         milpOptions = {'disp': True, 'mip_rel_gap': 1e-9}
-        constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
         bounds = optimize.Bounds(self.Lb, self.Ub)
-        solution = optimize.milp(
-            c, integrality=self.integrality, constraints=constraint, bounds=bounds, options=milpOptions
-        )
+        constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
+
+        # 1$ tolerance over all values. 2 iterations are sufficient.
+        diff = np.inf
+        old_x = np.zeros(self.nvars)
+        while diff > 1:
+            solution = optimize.milp(
+                c, integrality=self.integrality, constraints=constraint, bounds=bounds, options=milpOptions
+            )
+
+            if solution.success != True:
+                break
+
+            self._estimateMedicare(solution.x)
+            diff = np.sum(np.abs(solution.x - old_x), axis=0)
+            old_x = solution.x 
+
         if solution.success == True:
             u.vprint(solution.message)
             self._aggregateResults(solution.x)
@@ -1118,6 +1094,22 @@ class Plan:
         self.objective = objective
         self.solver = 'milp'
         self.solverOptions = options
+
+        return
+
+    def _estimateMedicare(self, x=None):
+        '''
+        Compute rough MAGI and Medicare costs.
+        '''
+        if x is None:
+            self.G_n = np.zeros(self.N_n)
+        else:
+            self.f_tn = np.array(x[self.C['f']:self.C['g']])
+            self.f_tn = self.f_tn.reshape((self.N_t, self.N_n))
+            self.G_n = np.sum(self.f_tn, axis=0)
+
+        self.M_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n,
+                                self.gamma_n, self.N_n)
 
         return
 
@@ -1138,7 +1130,6 @@ class Plan:
         Cd = self.C['d']
         Cf = self.C['f']
         Cg = self.C['g']
-        CM = self.C['M']
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
@@ -1159,10 +1150,8 @@ class Plan:
         self.f_tn = np.array(x[Cf:Cg])
         self.f_tn = self.f_tn.reshape((Nt, Nn))
 
-        self.g_n = np.array(x[Cg:CM])
+        self.g_n = np.array(x[Cg:Cw])
         # self.g_n = self.g_n.reshape((Nn))
-
-        self.M_n = np.array(x[CM:Cw])
 
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
@@ -1205,10 +1194,8 @@ class Plan:
             )
         self.U_n = self.psi * self.Q_n
 
-        # '''
         # Alternate route to IRMAA.
-        self.M2_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n, self.gamma_n, self.N_n)
-        # '''
+        # self.M2_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n, self.gamma_n, self.N_n)
 
         # Make derivative variables.
         # Putting it all together in a dictionary.
@@ -1578,8 +1565,8 @@ class Plan:
         if tag != '':
             title += ' - ' + tag
 
-        style = {'income taxes': '-', 'Medicare': '-.', 'Medicare2': '--'}
-        series = {'income taxes': self.T_n, 'Medicare': self.M_n, 'Medicare2': self.M2_n}
+        style = {'income taxes': '-', 'Medicare': '-.'}
+        series = {'income taxes': self.T_n, 'Medicare': self.M_n}
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title)
 
@@ -1761,7 +1748,6 @@ class Plan:
             'ord taxes': -self.T_n,
             'div taxes': -self.U_n,
             'Medicare': -self.M_n,
-            'Medicare2': -self.M2_n
         }
         sname = 'Cash Flow'
         ws = wb.create_sheet(sname)
