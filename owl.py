@@ -790,7 +790,7 @@ class Plan:
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
             if options['maxRothConversion'] == 'file':
-                u.vprint('Fixing Roth conversions to those from file %s.' % self.timeListsFileName)
+                # u.vprint('Fixing Roth conversions to those from file %s.' % self.timeListsFileName)
                 for i in range(Ni):
                     for n in range(self.horizons[i]):
                         rhs = self.myRothX_in[i][n]
@@ -801,9 +801,10 @@ class Plan:
                 assert isinstance(rhsopt, (int, float)) == True, 'Specified maxConversion is not a number.'
                 rhsopt *= units
                 if rhsopt < 0:
-                    u.vprint('Unlimited Roth conversions (<0)')
+                    # u.vprint('Unlimited Roth conversions (<0)')
+                    pass
                 else:
-                    u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
+                    # u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
                             #  Adjust cap for inflation?
@@ -821,8 +822,8 @@ class Plan:
         # Equalities.
 
         if objective == 'maxSpending':
-            if 'netSpending' in options:
-                u.vprint('Ignoring netSpending option provided.')
+            # if 'netSpending' in options:
+            #   u.vprint('Ignoring netSpending option provided.')
             # Impose requested constraint on estate, if any.
             if 'estate' in options:
                 estate = options['estate']
@@ -838,14 +839,14 @@ class Plan:
                 row[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = 1 - self.nu
                 row[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = 1
             A.addRow(row, estate, estate)
-            u.vprint('Adding estate constraint of:', u.d(estate))
+            # u.vprint('Adding estate constraint of:', u.d(estate))
         elif objective == 'maxBequest':
-            if 'estate' in options:
-                u.vprint('Ignoring estate option provided.')
+            # if 'estate' in options:
+            #   u.vprint('Ignoring estate option provided.')
             spending = options['netSpending']
             assert isinstance(spending, (int, float)) == True, 'Desired spending provided not a number.'
             spending *= units
-            u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
+            # u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
             A.addNewRow({_q1(Cg, 0): 1}, spending, spending)
         else:
             u.xprint('Unknown objective function:', objective)
@@ -1017,8 +1018,6 @@ class Plan:
         self.Lb = Lb
         self.integrality = integrality
 
-        u.vprint('Enforcing', len(self.ubvec), 'constraints.')
-
         # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
         c = np.zeros(self.nvars)
         if objective == 'maxSpending':
@@ -1061,17 +1060,18 @@ class Plan:
             u.xprint('Objective', objective, 'needs netSpending option.')
 
         self._adjustParameters()
-        self._estimateMedicare()
-        c = self._buildConstraints(objective, options)
 
         milpOptions = {'disp': True, 'mip_rel_gap': 1e-9}
-        bounds = optimize.Bounds(self.Lb, self.Ub)
-        constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
 
-        # 1$ tolerance over all values. 2 iterations are sufficient.
+        # 1$ tolerance over all values. 
+        it = 0
         diff = np.inf
         old_x = np.zeros(self.nvars)
+        self._estimateMedicare()
         while diff > 1:
+            c = self._buildConstraints(objective, options)
+            bounds = optimize.Bounds(self.Lb, self.Ub)
+            constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
             solution = optimize.milp(
                 c, integrality=self.integrality, constraints=constraint, bounds=bounds, options=milpOptions
             )
@@ -1082,8 +1082,10 @@ class Plan:
             self._estimateMedicare(solution.x)
             diff = np.sum(np.abs(solution.x - old_x), axis=0)
             old_x = solution.x 
+            it += 1
 
         if solution.success == True:
+            u.vprint('Self-consistent Medicare loop returned after %d iterations.'%it)
             u.vprint(solution.message)
             self._aggregateResults(solution.x)
             self._caseStatus = 'solved'
