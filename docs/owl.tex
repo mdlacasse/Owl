@@ -376,16 +376,19 @@ All intermediate variables are in uppercase letters.
 	\end{equation}
 	Although it is not always the case, we assume that qualified dividends and long-term
 	capital gains are taxed at the same preferential rate $\psi$.
-\item [$I_n$]
-	Income Related Monthly Adjusted Adjustment for Medicare. As this additional adjustment
-	is a step function, it has to be computed using binary variables. The adjustment
+
+\item [$M_n$]
+	Medicare and Income Related Monthly Adjusted Adjustment for Medicare. As this additional adjustment
+	is a step function, it has to be computed using binary variables and mixed-integer linear
+	programming. The adjustment
 	is computed from the modified adjusted gross income (MAGI) from 2 years earlier. For the
 	MAGI, we will simply use $G_{n-2} + \bar{\sigma}_{n-2}$ and ignore the additional IRS
 	rules around tax-free interests.
 
 	There are $q=5$ levels
-	of step adjustments, $\bar{L}_{qn} = L_q\gamma_n$ and each of them introduce an annual additional medicare
-	cost of $\bar{C}_{qn} = C_q\gamma_n$.  Both levels and costs are adjusted for inflation.
+	of step adjustments, $\bar{L}_{qn} = L_q\gamma_n$ and each of them introduce
+	an annual additional medicare
+	cost of $\bar{C}_{qn} = C_q\gamma_n$. Both levels and costs are adjusted for inflation.
 	Using binary variables $z_{inq}$ and the following constraint
 	\begin{equation}
 		\bar{\sigma}_{n-2} -\bar{L}_{qn} \le z_{inq} M - G_{n-2} \le bigM - \bar{L}_{qn} + \bar{\sigma}_{n-2},
@@ -397,6 +400,14 @@ All intermediate variables are in uppercase letters.
 	\end{equation}
 	If the plan does not have data from 2 years ago as Medicare starts,
 	it will use last year's or this year's MAGI instead, in that order.
+
+	While this approach has been implemented and tested, the robustness of the {\em bigM} approach
+	is not guaranteed and an easier approach is to implement a self-consistent loop that
+	optimizes the spending or bequest, and updates the Medicare/IRMAA premiums accordingly.
+	Therefore, the value will be computed from the MAGI as $M_n^s(G_n + \bar{\sigma}_n)$,
+	where the value is at iteration $s$.
+	After only a few iterations, the solution is converging to within a dollar over the
+	sum of all variables in the plan. 
 \end{description}
 
 \chapter{Formulation with imposed asset allocation ratios}
@@ -603,24 +614,25 @@ add the market returns to the savings balances.
 	\begin{eqnarray}
 		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
 		+ \sum_{ij} w_{ijn} + \sum_i \Lambda^\pm_{in} - \sum_{i}d_{in}
-		- T_n - U_n - I_n.
+		- T_n - U_n - M_n.
 	\end{eqnarray}
 	Notice how the big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
 		\label{Eq:C4}
-		g_n + I_n - \sum_{ij} w_{ijn} + \sum_{i}d_{in}
+		g_n - \sum_{ij} w_{ijn} + \sum_{i}d_{in}
 		+ \sum_t \bar{F}_{tn} \theta_{t n} &&\nonumber \\
 		+ \psi\alpha_{i00n} \sum_{i} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0n-1})\right] 
 		&=& \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] + \nonumber\\
-		&& \sum_i [\Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}].
+		&& \sum_i [\Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - M_n^s.
 	\end{eqnarray}
 	Notice that we do not consider market losses as we use $\max(0, \tau)$, and that
 	rates from only the previous year are used. Tax-loss
 	harvesting is beyond the scope of this model.
-	For clarity, we did not expand $I_n$ in terms of the binary variables $z_{inq}$,
-	and will leave it to the solver.
+	For clarity, we did not express $M_n^s(G_n+\bar{sigma}_n)$ in terms of the modified
+	adjusted gross income (MAGI), but one to understand that there is a self-consistent
+	loop solving for it and we are at iteration $s$.
 
 	We also want the net spending to be predictable and smooth. We will use
 \begin{equation}
@@ -903,7 +915,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 where $v$ is
 \begin{equation}
 	v[J_2(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
-	+ \Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}].
+	+ \Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - M_n^s.
 \end{equation}
 
 The condition of having a predictable net spending expressed as an
