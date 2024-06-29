@@ -141,6 +141,9 @@ the boundaries of tax brackets.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxIncomePlot.png" width="800">
 
+For taxes, `plan.showTaxes()` will display Medicare (including IRMAA) and Federal income tax.
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxesPlot.png" width="800">
+
 The next three plots show the distribution of assets in each savings account obtained
 by
 ```
