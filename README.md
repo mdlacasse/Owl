@@ -142,7 +142,7 @@ the boundaries of tax brackets.
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxIncomePlot.png" width="800">
 
 For taxes,
-```
+```python
 plan.showTaxes()
 ```
  will display Medicare (including IRMAA) and Federal income tax.
@@ -150,7 +150,7 @@ plan.showTaxes()
 
 The next three plots show the distribution of assets in each savings account obtained
 by
-```
+```python
 plan.showASsetDistribution()
 ```
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxable.png" width="800">
@@ -161,7 +161,7 @@ plan.showASsetDistribution()
 These plots are irregular because we used historical rates from 1969. The volatility of
 the rates offers Roth conversion benefits which are exploited by the optimizer.
 The rates used can be displayed by:
-```
+```python
 plan.showRates()
 ```
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/ratesPlot.png" width="800">
@@ -201,7 +201,7 @@ Final inflation factor: 498.4%
 --------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
-```
+```python
 plan.saveWorkbook('jack+jill-1969')
 ```
 
