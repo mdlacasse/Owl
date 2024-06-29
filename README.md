@@ -36,8 +36,8 @@ Contributors with good front-end skills are therefore more than welcome to join 
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one
 is interested in comparing different withdrawal strategies, [FI Calc](ficalc.app) is a more appropriate and elegant
-application that addresses this need. If, however, you also want to optimize spending, bequest, or Roth conversions over the next few years,
-then Owl is definitely a tool that can help guide your decisions.
+application that addresses this need. If, however, you also want to optimize spending, bequest, and Roth conversions, with
+an approach also considering Medicare and Federal income tax over the next few years, then Owl is definitely a tool that can help guide your decisions.
 
 --------------------------------------------------------------------------------------
 ## Basic capabilities
@@ -141,12 +141,16 @@ the boundaries of tax brackets.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxIncomePlot.png" width="800">
 
-For taxes, `plan.showTaxes()` will display Medicare (including IRMAA) and Federal income tax.
+For taxes,
+```python
+plan.showTaxes()
+```
+ will display Medicare (including IRMAA) and Federal income tax.
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxesPlot.png" width="800">
 
 The next three plots show the distribution of assets in each savings account obtained
 by
-```
+```python
 plan.showASsetDistribution()
 ```
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxable.png" width="800">
@@ -157,7 +161,7 @@ plan.showASsetDistribution()
 These plots are irregular because we used historical rates from 1969. The volatility of
 the rates offers Roth conversion benefits which are exploited by the optimizer.
 The rates used can be displayed by:
-```
+```python
 plan.showRates()
 ```
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/ratesPlot.png" width="800">
@@ -197,7 +201,7 @@ Final inflation factor: 498.4%
 --------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
-```
+```python
 plan.saveWorkbook('jack+jill-1969')
 ```
 
