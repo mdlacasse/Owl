@@ -18,18 +18,13 @@ brackets_2024 = np.array(
 )
 
 irmaaBrackets_2024 = np.array(
-    [
-        [0, 103000, 129000, 161000, 193000, 500000],
-        [0, 206000, 258000, 322000, 386000, 750000]
-    ]
+    [[0, 103000, 129000, 161000, 193000, 500000], [0, 206000, 258000, 322000, 386000, 750000]]
 )
 
 # [174.70, 244.60, 349.40, 454.20, 559.00, 594.00]
-irmaaFees_2024 = 12*np.array(
-        [174.70, 69.90, 104.80, 104.80, 104.80, 35.00]
-)
+irmaaFees_2024 = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
 
-medicareBasis_2024 = 12*174.70
+medicareBasis_2024 = 12 * 174.70
 
 '''
 brackets_2017 = np.array(
@@ -56,7 +51,7 @@ extraDeduction_65 = np.array([1950, 1550])
 
 def mediCosts(yobs, horizons, magi, gamma_n, Nn):
     '''
-    Compute Medicare costs for comparison. 
+    Compute Medicare costs for comparison.
     '''
     thisyear = date.today().year
     Ni = len(yobs)
@@ -64,11 +59,11 @@ def mediCosts(yobs, horizons, magi, gamma_n, Nn):
     for n in range(Nn):
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
-                costs[n] += gamma_n[n]*irmaaFees_2024[0]
+                costs[n] += gamma_n[n] * irmaaFees_2024[0]
                 if n >= 2:
                     for q in range(1, 6):
-                        if magi[n-2] > gamma_n[n]*irmaaBrackets_2024[Ni-1][q]:
-                            costs[n] += gamma_n[n]*irmaaFees_2024[q]
+                        if magi[n - 2] > gamma_n[n] * irmaaBrackets_2024[Ni - 1][q]:
+                            costs[n] += gamma_n[n] * irmaaFees_2024[q]
 
     return costs
 

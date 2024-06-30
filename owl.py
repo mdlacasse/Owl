@@ -188,14 +188,10 @@ class Plan:
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
 
         u.vprint(
-            'Preparing scenario of %d years for %d individual%s.'
-            % (self.N_n - 1, self.N_i, ['', 's'][self.N_i - 1])
+            'Preparing scenario of %d years for %d individual%s.' % (self.N_n - 1, self.N_i, ['', 's'][self.N_i - 1])
         )
         for i in range(self.N_i):
-            u.vprint(
-                '%s: life horizon from %d -> %d.'
-                % (self.inames[i], thisyear, thisyear + self.horizons[i] - 1)
-            )
+            u.vprint('%s: life horizon from %d -> %d.' % (self.inames[i], thisyear, thisyear + self.horizons[i] - 1))
 
         u.vprint('Name of individual(s) will be read with readContributions(file).')
 
@@ -455,8 +451,10 @@ class Plan:
         u.vprint('Taxable balances:', *[u.d(taxable[i]) for i in range(self.N_i)])
         u.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
         u.vprint('Tax-free balances:', *[u.d(taxFree[i]) for i in range(self.N_i)])
-        u.vprint('Total post-tax wealth of approximately',
-                 u.d(np.sum(taxable) + 0.7*np.sum(taxDeferred) + np.sum(taxFree)))
+        u.vprint(
+            'Total post-tax wealth of approximately',
+            u.d(np.sum(taxable) + 0.7 * np.sum(taxDeferred) + np.sum(taxFree)),
+        )
 
         return
 
@@ -760,9 +758,9 @@ class Plan:
         else:
             units = 1000
 
-        bigM = 1e7
+        bigM = 5e6
         if 'bigM' in options:
-            bigM = units*options['bigM']
+            bigM = units * options['bigM']
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
@@ -879,9 +877,7 @@ class Plan:
                         fac2 = self.phi_j[j]
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
                         row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
-                        row[_q2(Cx, i_d, n, Ni, Nn)] = (
-                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
-                        )
+                        row[_q2(Cx, i_d, n, Ni, Nn)] = -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
                         row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i_d, j, n]
                         # row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
                     A.addRow(row, rhs, rhs)
@@ -907,7 +903,7 @@ class Plan:
                 row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = fac * self.mu
                 row[_q2(Cd, i, n, Ni, Nn)] = fac * self.mu + 1
                 # Minus capital gains on withdrawals using last year's rate if >=0.
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fac*(tau_0prev[n] - self.mu)
+                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fac * (tau_0prev[n] - self.mu)
 
                 # Plus all withdrawals.
                 for j in range(Nj):
@@ -1012,7 +1008,6 @@ class Plan:
 
         A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
 
-
         self.Alu, self.lbvec, self.ubvec = A.arrays()
         self.Ub = Ub
         self.Lb = Lb
@@ -1063,7 +1058,7 @@ class Plan:
 
         milpOptions = {'disp': True, 'mip_rel_gap': 1e-9}
 
-        # 1$ tolerance over all values. 
+        # 1$ tolerance over all values.
         it = 0
         diff = np.inf
         old_x = np.zeros(self.nvars)
@@ -1081,11 +1076,11 @@ class Plan:
 
             self._estimateMedicare(solution.x)
             diff = np.sum(np.abs(solution.x - old_x), axis=0)
-            old_x = solution.x 
+            old_x = solution.x
             it += 1
 
         if solution.success == True:
-            u.vprint('Self-consistent Medicare loop returned after %d iterations.'%it)
+            u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
             u.vprint(solution.message)
             self._aggregateResults(solution.x)
             self._caseStatus = 'solved'
@@ -1106,12 +1101,11 @@ class Plan:
         if x is None:
             self.G_n = np.zeros(self.N_n)
         else:
-            self.f_tn = np.array(x[self.C['f']:self.C['g']])
+            self.f_tn = np.array(x[self.C['f'] : self.C['g']])
             self.f_tn = self.f_tn.reshape((self.N_t, self.N_n))
             self.G_n = np.sum(self.f_tn, axis=0)
 
-        self.M_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n,
-                                self.gamma_n, self.N_n)
+        self.M_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n, self.gamma_n, self.N_n)
 
         return
 
@@ -1161,9 +1155,9 @@ class Plan:
         self.x_in = np.array(x[Cx:Cz])
         self.x_in = self.x_in.reshape((Ni, Nn))
 
-        #self.z_inz = np.array(x[Cz:CZ])
-        #self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
-        #print(self.z_inz)
+        # self.z_inz = np.array(x[Cz:CZ])
+        # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
+        # print(self.z_inz)
 
         sourcetypes = [
             'wages',
@@ -1189,11 +1183,14 @@ class Plan:
         # Last year's rates.
         tau_0prev = np.roll(tau_0, 1)
         self.Q_n = np.sum(
-            (self.mu * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :]
-                        + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :]) + 
-                        + tau_0prev * self.w_ijn[:, 0, :])
-            * self.alpha_ijkn[:, 0, 0, :-1], axis=0
+            (
+                self.mu
+                * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :])
+                + +tau_0prev * self.w_ijn[:, 0, :]
             )
+            * self.alpha_ijkn[:, 0, 0, :-1],
+            axis=0,
+        )
         self.U_n = self.psi * self.Q_n
 
         # Alternate route to IRMAA.
@@ -1269,8 +1266,8 @@ class Plan:
         print('Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
 
         totRoth = np.sum(self.x_in, axis=(0, 1))
-        totRothNow = np.sum(np.sum(self.x_in, axis=0)/self.gamma_n, axis=0)
-        print('Total Roth conversions in %d$: %s (%s nominal)'%(now, u.d(totRothNow), u.d(totRoth)))
+        totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n, axis=0)
+        print('Total Roth conversions in %d$: %s (%s nominal)' % (now, u.d(totRothNow), u.d(totRoth)))
 
         taxPaid = np.sum(self.T_n, axis=0)
         taxPaidNow = np.sum(self.T_n / self.gamma_n, axis=0)
@@ -1292,7 +1289,7 @@ class Plan:
         estate[1] *= 1 - self.nu
         print('Assumed heirs tax rate:', u.pc(self.nu, f=0))
         print('Final account post-tax nominal values:')
-        print('    taxable: %s  tax-def: %s  tax-free: %s'%(u.d(estate[0]), u.d(estate[1]), u.d(estate[2])))
+        print('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2])))
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[self.N_n - 1]
@@ -1396,7 +1393,7 @@ class Plan:
             return
 
         years_n = np.array(self.year_n)
-        years_n = np.append(years_n, [years_n[-1]+1])
+        years_n = np.append(years_n, [years_n[-1] + 1])
         y2stack = {}
         jDic = {'taxable': 0, 'tax-deferred': 1, 'tax-free': 2}
         kDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
@@ -1749,7 +1746,7 @@ class Plan:
             'all pensions': np.sum(self.pi_in, axis=0),
             'all soc sec': np.sum(self.zetaBar_in, axis=0),
             'all bti': np.sum(self.Lambda_in, axis=0),
-            'all wdrwls': np.sum(self.w_ijn, axis=(0,1)),
+            'all wdrwls': np.sum(self.w_ijn, axis=(0, 1)),
             'all deposits': -np.sum(self.d_in, axis=0),
             'ord taxes': -self.T_n,
             'div taxes': -self.U_n,

@@ -37,7 +37,7 @@ Contributors with good front-end skills are therefore more than welcome to join 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one
 is interested in comparing different withdrawal strategies, [FI Calc](ficalc.app) is a more appropriate and elegant
 application that addresses this need. If, however, you also want to optimize spending, bequest, and Roth conversions, with
-an approach also considering Medicare and Federal income tax over the next few years, then Owl is definitely a tool that can help guide your decisions.
+an approach also considering Medicare and federal income tax over the next few years, then Owl is definitely a tool that can help guide your decisions.
 
 --------------------------------------------------------------------------------------
 ## Basic capabilities
@@ -145,7 +145,7 @@ For taxes,
 ```python
 plan.showTaxes()
 ```
- will display Medicare (including IRMAA) and Federal income tax.
+ will display Medicare (including IRMAA) and federal income tax.
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxesPlot.png" width="800">
 
 The next three plots show the distribution of assets in each savings account obtained
