@@ -1061,6 +1061,7 @@ class Plan:
         # 1$ tolerance over all values.
         it = 0
         diff = np.inf
+        old_delta = 0
         old_x = np.zeros(self.nvars)
         self._estimateMedicare()
         while diff > 1:
@@ -1075,9 +1076,18 @@ class Plan:
                 break
 
             self._estimateMedicare(solution.x)
-            diff = np.sum(np.abs(solution.x - old_x), axis=0)
+            delta = solution.x - old_x
+            diff = np.sum(np.abs(delta), axis=0)
             old_x = solution.x
+            delta = np.sum(delta, axis=0)
+            if abs(delta + old_delta) < 1e-3 or it > 10:
+                print('Warning: Detected oscilating solution.')
+                print('    Try again with slightly different input parameters.')
+                break
             it += 1
+            old_delta = delta
+            # print('Iteration:', it, 'diff:', diff)
+            # print('delta:', np.sum(delta, axis=0))
 
         if solution.success == True:
             u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
