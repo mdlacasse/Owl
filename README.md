@@ -180,19 +180,18 @@ Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
 Optimized for: maxSpending
-Solver options: {'maxRothConversion': 100, 'estate': 500, 'bigM': 1000}
+Solver options: {'maxRothConversion': 150, 'estate': 500}
 Solver used: milp
 Number of decision variables: 1027
 Number of constraints: 1015
 Spending profile: smile
 Survivor percent income: 60%
-Net yearly spending in 2024$: $92,733
-Total net spending in 2024$: $2,678,822 ($7,560,752 nominal)
-Total Roth conversions in 2024$: $320,568 ($487,210 nominal)
-Total ordinary income tax paid in 2024$: $245,975 ($542,277 nominal)
-Total dividend tax paid in 2024$: $3,304 ($3,745 nominal)
+Net yearly spending basis in 2024$: $92,242
+Total net spending in 2024$: $2,664,616 ($7,520,657 nominal)
+Total Roth conversions in 2024$: $427,287 ($863,886 nominal)
+Total ordinary income tax paid in 2024$: $257,599 ($609,866 nominal)
+Total dividend tax paid in 2024$: $6,205 ($14,082 nominal)
 Total Medicare premiums paid in 2024$: $111,109 ($338,528 nominal)
-Total dividend tax paid in 2024$: $3,304 ($3,745 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values:
     taxable: $0  tax-def: $0  tax-free: $2,492,067
