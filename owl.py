@@ -1259,11 +1259,11 @@ class Plan:
         if self.N_i == 2:
             print('Survivor percent income:', u.pc(self.chi, f=0))
 
-        print('Net yearly spending in %d$: %s' % (now, u.d(self.g_n[0])))
+        print('Net yearly spending basis in %d$: %s' % (now, u.d(self.g_n[0])))
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n, axis=0)
-        print('Total net spending basis in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
+        print('Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
 
         totRoth = np.sum(self.x_in, axis=(0, 1))
         totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n, axis=0)
