@@ -707,7 +707,7 @@ class Plan:
         u.vprint(
             'Problem has',
             len(C),
-            'distinct unknowns forming',
+            'distinct time series forming',
             self.nvars,
             'decision variables.',
         )
@@ -1071,6 +1071,7 @@ class Plan:
             solution = optimize.milp(
                 c, integrality=self.integrality, constraints=constraint, bounds=bounds, options=milpOptions
             )
+            it += 1
 
             if solution.success != True:
                 break
@@ -1084,7 +1085,6 @@ class Plan:
                 print('Warning: Detected oscilating solution.')
                 print('    Try again with slightly different input parameters.')
                 break
-            it += 1
             old_delta = delta
             # print('Iteration:', it, 'diff:', diff)
             # print('delta:', np.sum(delta, axis=0))
