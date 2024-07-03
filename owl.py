@@ -1714,15 +1714,21 @@ class Plan:
 
         wb = Workbook()
 
+        # Income.
         ws = wb.active
         ws.title = 'Income'
 
+        incomeDic = {
+                'net spending': self.g_n,
+                'taxable ord. income': self.G_n,
+                'taxable dividends': self.Q_n,
+                'Tax bills + Med.': self.T_n + self.U_n + self.M_n
+        }
+
         rawData = {}
         rawData['year'] = self.year_n
-        rawData['net spending'] = self.g_n
-        rawData['taxable ord. income'] = self.G_n
-        rawData['taxable dividends'] = self.Q_n
-        rawData['all tax bills'] = self.T_n + self.U_n + self.M_n
+        for key in incomeDic:
+            rawData[key] = incomeDic[key]
 
         # We need to work by row.
         df = pd.DataFrame(rawData)
@@ -1731,78 +1737,7 @@ class Plan:
 
         _formatSpreadsheet(ws, 'currency')
 
-        # Save rates on a different sheet.
-        ws = wb.create_sheet('Rates')
-        rawData = {}
-        rawData['year'] = self.year_n
-        ratesDic = {'S&P 500': 0, 'Corporate Baa': 1, 'T Bonds': 2, 'inflation': 3}
-
-        for key in ratesDic:
-            rawData[key] = self.tau_kn[ratesDic[key]]
-
-        # We need to work by row.
-        df = pd.DataFrame(rawData)
-        for rows in dataframe_to_rows(df, index=False, header=True):
-            ws.append(rows)
-
-        _formatSpreadsheet(ws, 'percent2')
-
-        # Save sources.
-        srcDic = {
-            'wages': 'wages',
-            'social sec': 'ssec',
-            'pension': 'pension',
-            'txbl acc. wdrwl': 'wdrwl taxable',
-            'RMD': 'rmd',
-            'distribution': 'dist',
-            'Roth conversion': 'RothX',
-            'tax-free wdrwl': 'wdrwl tax-free',
-            'big-ticket items': 'bti',
-        }
-
-        for i in range(self.N_i):
-            sname = self.inames[i] + '\'s Sources'
-            ws = wb.create_sheet(sname)
-            rawData = {}
-            rawData['year'] = self.year_n
-            for key in srcDic:
-                rawData[self.inames[i] + ' ' + key] = self.sources_in[srcDic[key]][i]
-
-            df = pd.DataFrame(rawData)
-            for rows in dataframe_to_rows(df, index=False, header=True):
-                ws.append(rows)
-
-            _formatSpreadsheet(ws, 'currency')
-
-        # Save account balances.
-        accDic = {
-            'taxable bal': self.b_ijn[:, 0, :-1],
-            'taxable dep': self.d_in,
-            'taxable wdrwl': self.w_ijn[:, 0, :],
-            'tax-deferred bal': self.b_ijn[:, 1, :-1],
-            'tax-deferred ctrb': self.kappa_ijn[:, 1, :],
-            'tax-deferred wdrwl': self.w_ijn[:, 1, :],
-            'tax-deferred (rmd)': self.rmd_in[:, :],
-            'Roth conversion': self.x_in,
-            'tax-free bal': self.b_ijn[:, 2, :-1],
-            'tax-free ctrb': self.kappa_ijn[:, 2, :],
-            'tax-free wdrwl': self.w_ijn[:, 2, :],
-        }
-        for i in range(self.N_i):
-            sname = self.inames[i] + '\'s Accounts'
-            ws = wb.create_sheet(sname)
-            rawData = {}
-            # rawData['year'] = np.append(self.year_n, [self.year_n[-1]+1])
-            rawData['year'] = self.year_n
-            for key in accDic:
-                rawData[self.inames[i] + ' ' + key] = accDic[key][i]
-            df = pd.DataFrame(rawData)
-            for rows in dataframe_to_rows(df, index=False, header=True):
-                ws.append(rows)
-
-            _formatSpreadsheet(ws, 'currency')
-
-        # Save account balances.
+        # Cash flow.
         cashFlowDic = {
             'net spending': self.g_n,
             'all wages': np.sum(self.omega_in, axis=0),
@@ -1826,6 +1761,95 @@ class Plan:
             ws.append(rows)
 
         _formatSpreadsheet(ws, 'currency')
+
+        # Sources.
+        srcDic = {
+            'wages': 'wages',
+            'social sec': 'ssec',
+            'pension': 'pension',
+            'txbl acc. wdrwl': 'wdrwl taxable',
+            'RMDs': 'rmd',
+            'distribution': 'dist',
+            'Roth conversion': 'RothX',
+            'tax-free wdrwl': 'wdrwl tax-free',
+            'big-ticket items': 'bti',
+        }
+
+        for i in range(self.N_i):
+            sname = self.inames[i] + '\'s Sources'
+            ws = wb.create_sheet(sname)
+            rawData = {}
+            rawData['year'] = self.year_n
+            for key in srcDic:
+                rawData[key] = self.sources_in[srcDic[key]][i]
+
+            df = pd.DataFrame(rawData)
+            for rows in dataframe_to_rows(df, index=False, header=True):
+                ws.append(rows)
+
+            _formatSpreadsheet(ws, 'currency')
+
+        # Account balances except final year.
+        accDic = {
+            'taxable bal': self.b_ijn[:, 0, :-1],
+            'taxable dep': self.d_in,
+            'taxable wdrwl': self.w_ijn[:, 0, :],
+            'tax-deferred bal': self.b_ijn[:, 1, :-1],
+            'tax-deferred ctrb': self.kappa_ijn[:, 1, :],
+            'tax-deferred wdrwl': self.w_ijn[:, 1, :],
+            'tax-deferred (rmd)': self.rmd_in[:, :],
+            'Roth conversion': self.x_in,
+            'tax-free bal': self.b_ijn[:, 2, :-1],
+            'tax-free ctrb': self.kappa_ijn[:, 2, :],
+            'tax-free wdrwl': self.w_ijn[:, 2, :],
+        }
+        for i in range(self.N_i):
+            sname = self.inames[i] + '\'s Accounts'
+            ws = wb.create_sheet(sname)
+            rawData = {}
+            rawData['year'] = self.year_n
+            for key in accDic:
+                rawData[key] = accDic[key][i]
+            df = pd.DataFrame(rawData)
+            for rows in dataframe_to_rows(df, index=False, header=True):
+                ws.append(rows)
+
+            _formatSpreadsheet(ws, 'currency')
+
+        # Allocations.
+        jDic = {'taxable': 0, 'tax-deferred': 1, 'tax-free': 2}
+        kDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
+
+        # Add one year for estate.
+        year_n = np.append(self.year_n, [self.year_n[-1] + 1])
+        for i in range(self.N_i):
+            sname = self.inames[i] + '\'s Allocations'
+            ws = wb.create_sheet(sname)
+            rawData = {}
+            rawData['year'] = year_n
+            for jkey in jDic:
+                for kkey in kDic:
+                    rawData[jkey + '/' + kkey] = self.alpha_ijkn[i, jDic[jkey], kDic[kkey], :]
+            df = pd.DataFrame(rawData)
+            for rows in dataframe_to_rows(df, index=False, header=True):
+                ws.append(rows)
+
+            _formatSpreadsheet(ws, 'percent1')
+
+        # Rates on last sheet.
+        ws = wb.create_sheet('Rates')
+        rawData = {}
+        rawData['year'] = self.year_n
+        ratesDic = {'S&P 500': 0, 'Corporate Baa': 1, 'T Bonds': 2, 'inflation': 3}
+
+        for key in ratesDic:
+            rawData[key] = self.tau_kn[ratesDic[key]]
+
+        df = pd.DataFrame(rawData)
+        for rows in dataframe_to_rows(df, index=False, header=True):
+            ws.append(rows)
+
+        _formatSpreadsheet(ws, 'percent2')
 
         _saveWorkbook(wb, basename, overwrite)
 
@@ -2033,6 +2057,8 @@ def _formatSpreadsheet(ws, ftype):
         fstring = u'$#,##0_);[Red]($#,##0)'
     elif ftype == 'percent2':
         fstring = u'#.00%'
+    elif ftype == 'percent1':
+        fstring = u'#.0%'
     elif ftype == 'percent0':
         fstring = u'#0%'
     else:
@@ -2043,7 +2069,7 @@ def _formatSpreadsheet(ws, ftype):
     for col in ws.columns:
         column = col[0].column_letter
         # col[0].style = 'Title'
-        width = len(str(col[0].value)) + 4
+        width = max(len(str(col[0].value)) + 4, 10)
         ws.column_dimensions[column].width = width
         if column != 'A':
             for cell in col:
