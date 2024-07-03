@@ -36,7 +36,7 @@
 \fancyhead{}
 
 \chapter{Introduction}
-This document describes the mathematical model undelying
+This document describes the mathematical model underlying
 the optimization algorithms implemented in
 Owl. This code is a Python application optimizing retirement
 planning using linear programming. The goal of
@@ -57,7 +57,7 @@ For implementation in a linear programming solver, index mapping
 functions are proposed to map all variables into a single
 one-dimensional array that
 is optimized subject to inequality and equality constraints
-expressed in matrix form. Finally, the contraint matrices are built
+expressed in matrix form. Finally, the constraint matrices are built
 and so are some useful objective functions.
 
 \section{Indices}
@@ -361,7 +361,7 @@ All intermediate variables are in uppercase letters.
 	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that optimal
 	values of $f_{tn}$ have to
 	minimize $T_n$ when either the bequest or the desired net spending are maximized.
-	As the product $\bar{\Delta}_{tn}\theta_{tn}$ does not guarrantee to
+	As the product $\bar{\Delta}_{tn}\theta_{tn}$ does not guarantee to
 	be ordered monotonically, a more practical choice is to use the combined variable
 	$\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn}$ in the optimization. Given that the rates on
 	tax brackets $\theta_{tn}$ are always increasing monotonically, we are then naturally
@@ -387,13 +387,13 @@ All intermediate variables are in uppercase letters.
 
 	There are $q=5$ levels
 	of step adjustments, $\bar{L}_{qn} = L_q\gamma_n$ and each of them introduce
-	an annual additional medicare
+	an annual additional Medicare
 	cost of $\bar{C}_{qn} = C_q\gamma_n$. Both levels and costs are adjusted for inflation.
 	Using binary variables $z_{inq}$ and the following constraint
 	\begin{equation}
 		\bar{\sigma}_{n-2} -\bar{L}_{qn} \le z_{inq} M - G_{n-2} \le bigM - \bar{L}_{qn} + \bar{\sigma}_{n-2},
 	\end{equation}
-	the IRMAA adjustements can then computed as
+	the IRMAA adjustments can then computed as
 	\begin{equation}
 		\label{Eq:IRMAA}
 		I_n = \sum_{iq} z_{iqn} \bar{C}_{qn}.
@@ -407,7 +407,10 @@ All intermediate variables are in uppercase letters.
 	Therefore, the value will be computed from the MAGI as $M_n^s(G_n + \bar{\sigma}_n)$,
 	where the value is at iteration $s$.
 	After only a few iterations, the solution is converging to within a dollar over the
-	sum of all variables in the plan. 
+	sum of all variables in the plan. This approach, however, does not guarantee convergence
+	as there can be cases where the premiums affect the solution which can oscillate between
+	two solutions. Moreover, as the premiums are introduced as parameters in the constraints,
+	there is no optimization taking place on Medicare costs.
 \end{description}
 
 \chapter{Formulation with imposed asset allocation ratios}
@@ -499,7 +502,7 @@ add the market returns to the savings balances.
 	First, the financial aspect, and then the algorithmic one.
 	For the former, some financial advisors would recommend making
 	conversions at the beginning of the year, while making withdrawals
-	at the end. Obvioulsy, simulators would always yield higher numbers
+	at the end. Obviously, simulators would always yield higher numbers
 	for this scenario, as the moneys needed to pay the regular bills 
 	stayed in the bank until the end of the year. More realistically,
 	however,
@@ -562,7 +565,7 @@ add the market returns to the savings balances.
 	\end{eqnarray}
 
 	When $j=0$, this equation introduces
-	a path to shelter negative returns by performing an overwithdrawal from the taxable
+	a path to shelter negative returns by performing an over-withdrawal from the taxable
 	account at the beginning of the year followed by a deposit in the
 	same account at the end of the year. This can 
 	be removed by using another binary variable and make these events exclusive, using
@@ -587,7 +590,7 @@ add the market returns to the savings balances.
 	At this point, we assume the the accounts are balanced according to the desired
 	allocation ratios $\alpha_{ijkn}$.
 
-	We also introduce another contraint that might look unnecessary, but helps
+	We also introduce another constraint that might look unnecessary, but helps
 	convergence significantly. As the withdrawals are at the beginning of the year
 	we impose that
 	\begin{eqnarray}

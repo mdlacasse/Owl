@@ -33,15 +33,15 @@ def setVerbose(self, state=True):
     return u.setVerbose(state)
 
 
-def _gamma_n(tau, N_n):
+def _gamma_n(tau, Nn):
     '''
     Utility function to generate inflation multiplier.
     Return time series of cumulative inflation multiplier
     at year n with respect to the current year.
     '''
-    gamma = np.ones(N_n)
+    gamma = np.ones(Nn)
 
-    for n in range(1, N_n):
+    for n in range(1, Nn):
         gamma[n] = gamma[n - 1] * (1 + tau[3, n - 1])
 
     return gamma
@@ -142,6 +142,7 @@ class Plan:
         self._interpolator = self._linInterp
         self.interpCenter = 15
         self.interpWidth = 5
+        self.plotsTodayDollars = False
 
         self.N_i = len(yobs)
         assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
@@ -224,7 +225,7 @@ class Plan:
         '''
         self._name = name
 
-        return
+        return self
 
     def setSpousalWithdrawalFraction(self, eta):
         '''
@@ -235,7 +236,15 @@ class Plan:
         u.vprint('Spousal withdrawal fraction set to', eta)
         self.eta = eta
 
-        return
+        return self
+
+    def setPlotsTodayDollars(self, ptype: bool):
+        '''
+        Toggle between plots in nominal values or today's $.
+        '''
+        self.plotsTodayDollars = ptype
+
+        return self
 
     def setDividendRate(self, mu):
         '''
@@ -247,7 +256,7 @@ class Plan:
         self.mu = mu
         self._caseStatus = 'modified'
 
-        return
+        return self
 
     def setLongTermIncomeTaxRate(self, psi):
         '''
@@ -259,7 +268,7 @@ class Plan:
         self.psi = psi
         self._caseStatus = 'modified'
 
-        return
+        return self
 
     def setBeneficiaryFraction(self, phi):
         '''
@@ -274,7 +283,7 @@ class Plan:
         self.phi_j = phi
         self._caseStatus = 'modified'
 
-        return
+        return self
 
     def setHeirsTaxRate(self, nu):
         '''
@@ -287,7 +296,7 @@ class Plan:
         self.nu = nu
         self._caseStatus = 'modified'
 
-        return
+        return self
 
     def setPension(self, amounts, ages, units='k'):
         '''
@@ -318,7 +327,7 @@ class Plan:
 
         self._caseStatus = 'modified'
 
-        return
+        return self
 
     def setSocialSecurity(self, amounts, ages, units='k'):
         '''
@@ -352,7 +361,7 @@ class Plan:
 
         self._caseStatus = 'modified'
 
-        return
+        return self
 
     def setSpendingProfile(self, profile, percent=60):
         '''
@@ -370,7 +379,7 @@ class Plan:
         self.spendingProfile = profile
         self._caseStatus = 'modified'
 
-        return
+        return self
 
     def setRates(self, method, frm=None, to=None, values=None):
         '''
@@ -405,11 +414,11 @@ class Plan:
         )
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
-        self.gamma_n = _gamma_n(self.tau_kn, self.N_n)
+        self.gamma_n = _gamma_n(self.tau_kn, self.N_n+1)
         self._adjustedParameters = False
         self._caseStatus = 'modified'
 
-        return
+        return self
 
     def _adjustParameters(self):
         '''
@@ -417,10 +426,10 @@ class Plan:
         '''
         if self._adjustedParameters == False:
             u.vprint('Adjusting parameters for inflation.')
-            self.DeltaBar_tn = self.Delta_tn * self.gamma_n
-            self.zetaBar_in = self.zeta_in * self.gamma_n
-            self.sigmaBar_n = self.sigma_n * self.gamma_n
-            self.xiBar_n = self.xi_n * self.gamma_n
+            self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
+            self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
+            self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
+            self.xiBar_n = self.xi_n * self.gamma_n[:-1]
 
             self._adjustedParameters = True
 
@@ -1115,7 +1124,7 @@ class Plan:
             self.f_tn = self.f_tn.reshape((self.N_t, self.N_n))
             self.G_n = np.sum(self.f_tn, axis=0)
 
-        self.M_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n, self.gamma_n, self.N_n)
+        self.M_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n, self.gamma_n[:-1], self.N_n)
 
         return
 
@@ -1203,9 +1212,6 @@ class Plan:
         )
         self.U_n = self.psi * self.Q_n
 
-        # Alternate route to IRMAA.
-        # self.M2_n = tx.mediCosts(self.yobs, self.horizons, self.G_n + self.sigmaBar_n, self.gamma_n, self.N_n)
-
         # Make derivative variables.
         # Putting it all together in a dictionary.
         sources = {}
@@ -1272,23 +1278,23 @@ class Plan:
         print('Net yearly spending basis in %d$: %s' % (now, u.d(self.g_n[0])))
 
         totIncome = np.sum(self.g_n, axis=0)
-        totIncomeNow = np.sum(self.g_n / self.gamma_n, axis=0)
+        totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
         print('Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
 
         totRoth = np.sum(self.x_in, axis=(0, 1))
-        totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n, axis=0)
+        totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n[:-1], axis=0)
         print('Total Roth conversions in %d$: %s (%s nominal)' % (now, u.d(totRothNow), u.d(totRoth)))
 
         taxPaid = np.sum(self.T_n, axis=0)
-        taxPaidNow = np.sum(self.T_n / self.gamma_n, axis=0)
+        taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
         print('Total ordinary income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         taxPaid = np.sum(self.U_n, axis=0)
-        taxPaidNow = np.sum(self.U_n / self.gamma_n, axis=0)
+        taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
         print('Total dividend tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         taxPaid = np.sum(self.M_n, axis=0)
-        taxPaidNow = np.sum(self.M_n / self.gamma_n, axis=0)
+        taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
         print('Total Medicare premiums paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
@@ -1298,7 +1304,7 @@ class Plan:
         print('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2])))
 
         totEstate = np.sum(estate)
-        totEstateNow = totEstate / self.gamma_n[self.N_n - 1]
+        totEstateNow = totEstate / self.gamma_n[-1]
         print('Total estate value in %d$: %s (%s nominal)' % (now, u.d(totEstateNow), u.d(totEstate)))
         print('Final inflation factor:', u.pc(self.gamma_n[-1], f=1))
 
@@ -1381,8 +1387,14 @@ class Plan:
             title += ' - ' + tag
 
         style = {'net': '-', 'target': ':'}
-        series = {'net': self.g_n, 'target': (self.g_n[0] / self.xi_n[0]) * self.xiBar_n}
-        _lineIncomePlot(self.year_n, series, style, title)
+        if self.plotsTodayDollars:
+            series = {'net': self.g_n/self.gamma_n[:-1], 'target': (self.g_n[0] / self.xi_n[0]) * self.xi_n}
+            yformat = 'k$ ('+str(self.year_n[0])+')'
+        else:
+            series = {'net': self.g_n, 'target': (self.g_n[0] / self.xi_n[0]) * self.xiBar_n}
+            yformat = 'k$ (nominal)'
+
+        _lineIncomePlot(self.year_n, series, style, title, yformat)
 
         return
 
@@ -1398,6 +1410,13 @@ class Plan:
         if self._checkSolverStatus('showAssetDistribution'):
             return
 
+        if self.plotsTodayDollars:
+            yformat = 'k$ ('+str(self.year_n[0])+')'
+            infladjust = self.gamma_n
+        else:
+            yformat = 'k$ (nominal)'
+            infladjust = 1
+
         years_n = np.array(self.year_n)
         years_n = np.append(years_n, [years_n[-1] + 1])
         y2stack = {}
@@ -1410,7 +1429,7 @@ class Plan:
                 stackNames.append(name)
                 y2stack[name] = np.zeros((self.N_i, self.N_n + 1))
                 for i in range(self.N_i):
-                    y2stack[name][i][:] = self.b_ijkn[i][jDic[jkey]][kDic[kkey]][:]
+                    y2stack[name][i][:] = self.b_ijkn[i][jDic[jkey]][kDic[kkey]][:]/infladjust
 
             title = self._name + '\nAssets Distribution - ' + jkey
             if tag != '':
@@ -1424,6 +1443,7 @@ class Plan:
                 y2stack,
                 stackNames,
                 'upper left',
+                yformat
             )
 
         return
@@ -1492,18 +1512,29 @@ class Plan:
         title = self._name + '\nSavings Balance'
         if tag != '':
             title += ' - ' + tag
+
         stypes = self.savings_in.keys()
         # Add one year for estate.
         year_n = np.append(self.year_n, [self.year_n[-1] + 1])
+
+        if self.plotsTodayDollars:
+            yformat = 'k$ ('+str(self.year_n[0])+')'
+            savings_in = {}
+            for key in self.savings_in:
+                savings_in[key] = self.savings_in[key]/self.gamma_n
+        else:
+            yformat = 'k$ (nominal)'
+            savings_in = self.savings_in
 
         _stackPlot(
             year_n,
             self.inames,
             title,
             range(self.N_i),
-            self.savings_in,
+            savings_in,
             stypes,
             'upper left',
+            yformat
         )
 
         return
@@ -1518,17 +1549,29 @@ class Plan:
             return
 
         title = self._name + '\nRaw Income Sources'
+        stypes = self.sources_in.keys()
+
         if tag != '':
             title += ' - ' + tag
-        stypes = self.sources_in.keys()
+
+        if self.plotsTodayDollars:
+            yformat = 'k$ ('+str(self.year_n[0])+')'
+            sources_in = {}
+            for key in self.sources_in:
+                sources_in[key] = self.sources_in[key]/self.gamma_n[:-1]
+        else:
+            yformat = 'k$ (nominal)'
+            sources_in = self.sources_in
+
         _stackPlot(
             self.year_n,
             self.inames,
             title,
             range(self.N_i),
-            self.sources_in,
+            sources_in,
             stypes,
             'upper left',
+            yformat
         )
 
         return
@@ -1570,14 +1613,20 @@ class Plan:
         if self._checkSolverStatus('showTaxes'):
             return
 
+        style = {'income taxes': '-', 'Medicare': '-.'}
+
+        if self.plotsTodayDollars:
+            series = {'income taxes': self.T_n/self.gamma_n[:-1], 'Medicare': self.M_n/self.gamma_n[:-1]}
+            yformat = 'k$ ('+str(self.year_n[0])+')'
+        else:
+            series = {'income taxes': self.T_n, 'Medicare': self.M_n}
+            yformat = 'k$ (nominal)'
+
         title = self._name + '\nIncome Tax'
         if tag != '':
             title += ' - ' + tag
 
-        style = {'income taxes': '-', 'Medicare': '-.'}
-        series = {'income taxes': self.T_n, 'Medicare': self.M_n}
-
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title)
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
         return
 
@@ -1592,19 +1641,27 @@ class Plan:
 
         import matplotlib.pyplot as plt
 
+        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n)
+
+        style = {'taxable income': '-'}
+
+        if self.plotsTodayDollars:
+            series = {'taxable income': self.G_n/self.gamma_n[:-1]}
+            yformat = 'k$ ('+str(self.year_n[0])+')'
+            infladjust = 1
+        else:
+            series = {'taxable income': self.G_n}
+            yformat = 'k$ (nominal)'
+            infladjust = self.gamma_n[:-1]
+
         title = self._name + '\nTaxable Ordinary Income vs. Tax Brackets'
         if tag != '':
             title += ' - ' + tag
 
-        style = {'taxable income': '-'}
-        series = {'taxable income': self.G_n}
-
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title)
-
-        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n)
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
         for key in data:
-            data_adj = data[key] * self.gamma_n
+            data_adj = data[key] * infladjust
             ax.plot(self.year_n, data_adj, label=key, ls=':')
 
         plt.grid(visible='both')
@@ -1843,13 +1900,13 @@ def _lineIncomePlot(x, series, style, title, yformat='k$'):
     ax.set_xlabel('year')
     ax.set_ylabel(yformat)
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-    if yformat == 'k$':
+    if 'k$' in yformat:
         ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ',')))
 
     return fig, ax
 
 
-def _stackPlot(x, inames, title, irange, series, snames, location, ytype='dollars'):
+def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$'):
     '''
     Core function for stacked plots.
     '''
@@ -1875,14 +1932,14 @@ def _stackPlot(x, inames, title, irange, series, snames, location, ytype='dollar
     ax.set_title(title)
     ax.set_xlabel('year')
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-    if ytype == 'dollars':
-        ax.set_ylabel('k$')
+    if 'k$' in yformat:
+        ax.set_ylabel(yformat)
         ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ',')))
-    elif ytype == 'percent':
+    elif yformat == 'percent':
         ax.set_ylabel('%')
         ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(100 * x), ',')))
     else:
-        u.xprint('Unknown ytype:', ytype)
+        u.xprint('Unknown yformat:', yformat)
 
         return fig, ax
 
