@@ -77,7 +77,7 @@ is done according to beneficiary fractions for each account type.
 Tax status covers married filing jointly and single, depending on the number of individuals reported.
 
 Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints. Future
-values are simple projections of current values with the assumed inflation.
+values are simple projections of current values with the assumed inflation rates.
 
 See one of the notebooks for a tutorial and representative user cases.
 
@@ -122,7 +122,13 @@ plan.showAccounts()
 plan.showAssetDistribution()
 ...
 ```
-Typical plots look like the following. The optimal spending profile looks like this in nominal dollars. Notice
+By default, all these plots are in nominal dollars. To get values in today's $, a call to
+```python
+plan.setPlotsTodayDollars(True)
+```
+would change all graphs to report in today's dollars.
+
+Typical plots look like the following. The optimal spending profile looks like this (in nominal dollars). Notice
 the 40% drop (configurable) at the passing of the first spouse.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/spendingPlot.png" width="800">
