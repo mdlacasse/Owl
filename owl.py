@@ -142,7 +142,7 @@ class Plan:
         self._interpolator = self._linInterp
         self.interpCenter = 15
         self.interpWidth = 5
-        self.plotsTodayDollars = False
+        self.plotInTodaysDollars = False
 
         self.N_i = len(yobs)
         assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
@@ -225,7 +225,7 @@ class Plan:
         '''
         self._name = name
 
-        return self
+        return
 
     def setSpousalWithdrawalFraction(self, eta):
         '''
@@ -236,15 +236,15 @@ class Plan:
         u.vprint('Spousal withdrawal fraction set to', eta)
         self.eta = eta
 
-        return self
+        return
 
-    def setPlotsTodayDollars(self, ptype: bool):
+    def setPlotInTodaysDollars(self, ptype: bool):
         '''
         Toggle between plots in nominal values or today's $.
         '''
-        self.plotsTodayDollars = ptype
+        self.plotInTodaysDollars = ptype
 
-        return self
+        return
 
     def setDividendRate(self, mu):
         '''
@@ -256,7 +256,7 @@ class Plan:
         self.mu = mu
         self._caseStatus = 'modified'
 
-        return self
+        return
 
     def setLongTermIncomeTaxRate(self, psi):
         '''
@@ -268,7 +268,7 @@ class Plan:
         self.psi = psi
         self._caseStatus = 'modified'
 
-        return self
+        return
 
     def setBeneficiaryFraction(self, phi):
         '''
@@ -283,7 +283,7 @@ class Plan:
         self.phi_j = phi
         self._caseStatus = 'modified'
 
-        return self
+        return
 
     def setHeirsTaxRate(self, nu):
         '''
@@ -296,7 +296,7 @@ class Plan:
         self.nu = nu
         self._caseStatus = 'modified'
 
-        return self
+        return
 
     def setPension(self, amounts, ages, units='k'):
         '''
@@ -327,7 +327,7 @@ class Plan:
 
         self._caseStatus = 'modified'
 
-        return self
+        return
 
     def setSocialSecurity(self, amounts, ages, units='k'):
         '''
@@ -361,7 +361,7 @@ class Plan:
 
         self._caseStatus = 'modified'
 
-        return self
+        return
 
     def setSpendingProfile(self, profile, percent=60):
         '''
@@ -379,7 +379,7 @@ class Plan:
         self.spendingProfile = profile
         self._caseStatus = 'modified'
 
-        return self
+        return
 
     def setRates(self, method, frm=None, to=None, values=None):
         '''
@@ -418,7 +418,7 @@ class Plan:
         self._adjustedParameters = False
         self._caseStatus = 'modified'
 
-        return self
+        return
 
     def _adjustParameters(self):
         '''
@@ -1090,7 +1090,7 @@ class Plan:
             diff = np.sum(np.abs(delta), axis=0)
             old_x = solution.x
             delta = np.sum(delta, axis=0)
-            if abs(delta + old_delta) < 1e-3 or it > 10:
+            if abs(delta + old_delta) < 1e-3 or it > 12:
                 print('Warning: Detected oscilating solution.')
                 print('    Try again with slightly different input parameters.')
                 break
@@ -1387,7 +1387,7 @@ class Plan:
             title += ' - ' + tag
 
         style = {'net': '-', 'target': ':'}
-        if self.plotsTodayDollars:
+        if self.plotInTodaysDollars:
             series = {'net': self.g_n/self.gamma_n[:-1], 'target': (self.g_n[0] / self.xi_n[0]) * self.xi_n}
             yformat = 'k$ ('+str(self.year_n[0])+')'
         else:
@@ -1410,7 +1410,7 @@ class Plan:
         if self._checkSolverStatus('showAssetDistribution'):
             return
 
-        if self.plotsTodayDollars:
+        if self.plotInTodaysDollars:
             yformat = 'k$ ('+str(self.year_n[0])+')'
             infladjust = self.gamma_n
         else:
@@ -1517,7 +1517,7 @@ class Plan:
         # Add one year for estate.
         year_n = np.append(self.year_n, [self.year_n[-1] + 1])
 
-        if self.plotsTodayDollars:
+        if self.plotInTodaysDollars:
             yformat = 'k$ ('+str(self.year_n[0])+')'
             savings_in = {}
             for key in self.savings_in:
@@ -1554,7 +1554,7 @@ class Plan:
         if tag != '':
             title += ' - ' + tag
 
-        if self.plotsTodayDollars:
+        if self.plotInTodaysDollars:
             yformat = 'k$ ('+str(self.year_n[0])+')'
             sources_in = {}
             for key in self.sources_in:
@@ -1615,7 +1615,7 @@ class Plan:
 
         style = {'income taxes': '-', 'Medicare': '-.'}
 
-        if self.plotsTodayDollars:
+        if self.plotInTodaysDollars:
             series = {'income taxes': self.T_n/self.gamma_n[:-1], 'Medicare': self.M_n/self.gamma_n[:-1]}
             yformat = 'k$ ('+str(self.year_n[0])+')'
         else:
@@ -1645,7 +1645,7 @@ class Plan:
 
         style = {'taxable income': '-'}
 
-        if self.plotsTodayDollars:
+        if self.plotInTodaysDollars:
             series = {'taxable income': self.G_n/self.gamma_n[:-1]}
             yformat = 'k$ ('+str(self.year_n[0])+')'
             infladjust = 1
@@ -1926,6 +1926,9 @@ def _lineIncomePlot(x, series, style, title, yformat='k$'):
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
     if 'k$' in yformat:
         ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ',')))
+    ymin, ymax = ax.get_ylim()
+    if ymax - ymin < 5000:
+        ax.set_ylim((ymin-4000, ymax+4000))
 
     return fig, ax
 

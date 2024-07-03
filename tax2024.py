@@ -152,7 +152,9 @@ def rho_in(yobs, N_n):
     Return Required Minimum Distribution fractions for each individual.
     This implementation does not support spouses with more than
     10-year difference.
+    It starts at age 73 until it goes to 75 in 2033.
     '''
+    # Notice that table starts at age 72.
     rmdTable = [
         27.4,
         26.5,
