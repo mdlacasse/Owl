@@ -430,7 +430,7 @@ class Plan:
         )
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
-        self.gamma_n = _gamma_n(self.tau_kn, self.N_n+1)
+        self.gamma_n = _gamma_n(self.tau_kn, self.N_n + 1)
         self._adjustedParameters = False
         self._caseStatus = 'modified'
 
@@ -1008,11 +1008,7 @@ class Plan:
                     bigM,
                 )
 
-                A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
-                    zero,
-                    bigM
-                )
+                A.addNewRow({_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1}, zero, bigM)
 
         # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
@@ -1409,8 +1405,8 @@ class Plan:
             series = {'net': self.g_n, 'target': (self.g_n[0] / self.xi_n[0]) * self.xiBar_n}
             yformat = 'k$ (nominal)'
         else:
-            series = {'net': self.g_n/self.gamma_n[:-1], 'target': (self.g_n[0] / self.xi_n[0]) * self.xi_n}
-            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
+            series = {'net': self.g_n / self.gamma_n[:-1], 'target': (self.g_n[0] / self.xi_n[0]) * self.xi_n}
+            yformat = 'k$ (' + str(self.year_n[0]) + '\$)'
 
         _lineIncomePlot(self.year_n, series, style, title, yformat)
 
@@ -1434,7 +1430,7 @@ class Plan:
             yformat = 'k$ (nominal)'
             infladjust = 1
         else:
-            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
+            yformat = 'k$ (' + str(self.year_n[0]) + '\$)'
             infladjust = self.gamma_n
 
         years_n = np.array(self.year_n)
@@ -1449,22 +1445,13 @@ class Plan:
                 stackNames.append(name)
                 y2stack[name] = np.zeros((self.N_i, self.N_n + 1))
                 for i in range(self.N_i):
-                    y2stack[name][i][:] = self.b_ijkn[i][jDic[jkey]][kDic[kkey]][:]/infladjust
+                    y2stack[name][i][:] = self.b_ijkn[i][jDic[jkey]][kDic[kkey]][:] / infladjust
 
             title = self._name + '\nAssets Distribution - ' + jkey
             if tag != '':
                 title += ' - ' + tag
 
-            _stackPlot(
-                years_n,
-                self.inames,
-                title,
-                range(self.N_i),
-                y2stack,
-                stackNames,
-                'upper left',
-                yformat
-            )
+            _stackPlot(years_n, self.inames, title, range(self.N_i), y2stack, stackNames, 'upper left', yformat)
 
         return
 
@@ -1543,21 +1530,12 @@ class Plan:
             yformat = 'k$ (nominal)'
             savings_in = self.savings_in
         else:
-            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
+            yformat = 'k$ (' + str(self.year_n[0]) + '\$)'
             savings_in = {}
             for key in self.savings_in:
-                savings_in[key] = self.savings_in[key]/self.gamma_n
+                savings_in[key] = self.savings_in[key] / self.gamma_n
 
-        _stackPlot(
-            year_n,
-            self.inames,
-            title,
-            range(self.N_i),
-            savings_in,
-            stypes,
-            'upper left',
-            yformat
-        )
+        _stackPlot(year_n, self.inames, title, range(self.N_i), savings_in, stypes, 'upper left', yformat)
 
         return
 
@@ -1582,21 +1560,12 @@ class Plan:
             yformat = 'k$ (nominal)'
             sources_in = self.sources_in
         else:
-            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
+            yformat = 'k$ (' + str(self.year_n[0]) + '\$)'
             sources_in = {}
             for key in self.sources_in:
-                sources_in[key] = self.sources_in[key]/self.gamma_n[:-1]
+                sources_in[key] = self.sources_in[key] / self.gamma_n[:-1]
 
-        _stackPlot(
-            self.year_n,
-            self.inames,
-            title,
-            range(self.N_i),
-            sources_in,
-            stypes,
-            'upper left',
-            yformat
-        )
+        _stackPlot(self.year_n, self.inames, title, range(self.N_i), sources_in, stypes, 'upper left', yformat)
 
         return
 
@@ -1645,8 +1614,8 @@ class Plan:
             series = {'income taxes': self.T_n, 'Medicare': self.M_n}
             yformat = 'k$ (nominal)'
         else:
-            series = {'income taxes': self.T_n/self.gamma_n[:-1], 'Medicare': self.M_n/self.gamma_n[:-1]}
-            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
+            series = {'income taxes': self.T_n / self.gamma_n[:-1], 'Medicare': self.M_n / self.gamma_n[:-1]}
+            yformat = 'k$ (' + str(self.year_n[0]) + '\$)'
 
         title = self._name + '\nIncome Tax'
         if tag != '':
@@ -1676,8 +1645,8 @@ class Plan:
             yformat = 'k$ (nominal)'
             infladjust = self.gamma_n[:-1]
         else:
-            series = {'taxable income': self.G_n/self.gamma_n[:-1]}
-            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
+            series = {'taxable income': self.G_n / self.gamma_n[:-1]}
+            yformat = 'k$ (' + str(self.year_n[0]) + '\$)'
             infladjust = 1
 
         title = self._name + '\nTaxable Ordinary Income vs. Tax Brackets'
@@ -1746,10 +1715,10 @@ class Plan:
         ws.title = 'Income'
 
         incomeDic = {
-                'net spending': self.g_n,
-                'taxable ord. income': self.G_n,
-                'taxable dividends': self.Q_n,
-                'Tax bills + Med.': self.T_n + self.U_n + self.M_n
+            'net spending': self.g_n,
+            'taxable ord. income': self.G_n,
+            'taxable dividends': self.Q_n,
+            'Tax bills + Med.': self.T_n + self.U_n + self.M_n,
         }
 
         rawData = {}
@@ -1956,7 +1925,7 @@ def _lineIncomePlot(x, series, style, title, yformat='k$'):
     # Give range to y values in unindexed flat profiles.
     ymin, ymax = ax.get_ylim()
     if ymax - ymin < 5000:
-        ax.set_ylim((ymin-4000, ymax+4000))
+        ax.set_ylim((ymin - 4000, ymax + 4000))
 
     return fig, ax
 
