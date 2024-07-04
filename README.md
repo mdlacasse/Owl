@@ -5,10 +5,13 @@
 
 <img align=right src="https://github.com/mdlacasse/Owl/blob/main/docs/owl.jpg" width="250">
 
-
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
-It provides different realizations of a financial strategy. One can certainly have a savings plan, but due to the volatility of financial investments,
+It provides different realizations of a financial strategy through the rigorous
+mathematical optimization of relevant decision variables. Two major objective goals can be set: either
+maximize net spending, or after-tax bequest under various constraints. Look at *Basic capabilities* below for more detail.
+
+One can certainly have a savings plan, but due to the volatility of financial investments,
 it is impossible to have a certain asset earnings plan. This does not mean one cannot make decisions.
 These decisions need to be guided with an understanding of the sensitivity of the parameters.
 This is exactly where this tool fits it. Given your savings capabilities and spending desires, it can generate different future realizations of
@@ -22,7 +25,7 @@ guarantee the accuracy of the results. Use at your own risk.
 -------------------------------------------------------------------------------------
 ## Purpose and vision
 The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities, allowing
-for the next generation of Python-literate retirees to experiment with their financial future while providing a codebase
+for the next generation of Python-literate retirees to experiment with their own financial future while providing a codebase
 where they can learn and contribute. There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
 collecting your data, or academic papers that share the results without really sharing the details of the underlying mathematical models.
@@ -30,7 +33,8 @@ The algorithm in Owl is using the open-source HiGHS linear programming solver. T
 detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
-Owl is currently implemented through jupyter notebooks, but it can also easily serve as the back-end of a Web application
+Owl is currently implemented through a combination of Python modules and jupyter notebooks, but its simple API can also serve
+as the back-end of a Web application
 facilitating its use by allowing easier input of user-selected constraints for exploring the optimality of different scenarios.
 Contributors with good front-end skills are therefore more than welcome to join the project.
 
@@ -42,9 +46,10 @@ an approach also considering Medicare and federal income tax over the next few y
 --------------------------------------------------------------------------------------
 ## Basic capabilities
 Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero), or maximize the
-bequest under the constraint of a desired net spending profile. Roth conversions are also considered
-and optimized under the assumption of a heirs marginal tax rate and subject to an optional maximum
-conversion amount. All calculations are indexed for inflation, which is provided as a fixed rate,
+after-tax value of a bequest under the constraint of a desired net spending profile, and under the assumption of a heirs marginal tax rate.
+Roth conversions are also considered, subject to an optional maximum
+conversion amount,
+and optimized to suit the goals of the selected objective function. All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations. These historical, fixed,
 and stochastic rates can be used for backtesting different scenarios.
 
@@ -124,9 +129,13 @@ plan.showAssetDistribution()
 ```
 By default, all these plots are in nominal dollars. To get values in today's $, a call to
 ```python
-plan.setPlotsTodayDollars(True)
+plan.setDefaultPlots('today')
 ```
-would change all graphs to report in today's dollars.
+would change all graphs to report in today's dollars. Each plot can override the default by using the `value`
+parameters such as in
+```python
+plan.showGrossIncome(value='today')
+```
 
 Typical plots look like the following. The optimal spending profile looks like this (in nominal dollars). Notice
 the 40% drop (configurable) at the passing of the first spouse.
@@ -192,18 +201,17 @@ Number of decision variables: 1027
 Number of constraints: 1015
 Spending profile: smile
 Survivor percent income: 60%
-Net yearly spending in 2024$: $92,733
-Total net spending in 2024$: $2,678,822 ($7,560,752 nominal)
-Total Roth conversions in 2024$: $301,557 ($403,168 nominal)
-Total ordinary income tax paid in 2024$: $258,165 ($608,551 nominal)
-Total dividend tax paid in 2024$: $3,304 ($3,745 nominal)
+Net yearly spending basis in 2024$: $92,631
+Total net spending in 2024$: $2,675,863 ($7,552,400 nominal)
+Total Roth conversions in 2024$: $302,608 ($404,571 nominal)
+Total ordinary income tax paid in 2024$: $260,757 ($621,949 nominal)
+Total dividend tax paid in 2024$: $3,311 ($3,752 nominal)
 Total Medicare premiums paid in 2024$: $111,109 ($338,528 nominal)
-Total dividend tax paid in 2024$: $3,304 ($3,745 nominal)
 Assumed heirs tax rate: 30%
 Final account post-tax nominal values:
-    taxable: $0  tax-def: $0  tax-free: $2,492,067
-Total estate value in 2024$: $500,000 ($2,492,067 nominal)
-Final inflation factor: 498.4%
+    taxable: $0  tax-def: $0  tax-free: $2,553,871
+Total estate value in 2024$: $500,000 ($2,553,871 nominal)
+Final inflation factor: 510.8%
 --------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
