@@ -1390,6 +1390,9 @@ class Plan:
         Plot net available spending and target over time.
 
         A tag string can be set to add information to the title of the plot.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
         '''
         if self._checkSolverStatus('showNetSpending'):
             return
@@ -1420,6 +1423,9 @@ class Plan:
         and one for tax-free accounts.
 
         A tag string can be set to add information to the title of the plot.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
         '''
         if self._checkSolverStatus('showAssetDistribution'):
             return
@@ -1512,6 +1518,9 @@ class Plan:
         Plot values of savings accounts over time.
 
         A tag string can be set to add information to the title of the plot.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
         '''
         if self._checkSolverStatus('showAccounts'):
             return
@@ -1544,6 +1553,9 @@ class Plan:
         Plot income over time.
 
         A tag string can be set to add information to the title of the plot.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
         '''
         if self._checkSolverStatus('showSources'):
             return
@@ -1602,6 +1614,9 @@ class Plan:
         Plot income tax paid over time.
 
         A tag string can be set to add information to the title of the plot.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
         '''
         if self._checkSolverStatus('showTaxes'):
             return
@@ -1630,6 +1645,9 @@ class Plan:
         Plot income tax and taxable income over time horizon.
 
         A tag string can be set to add information to the title of the plot.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
         '''
         import matplotlib.pyplot as plt
 
