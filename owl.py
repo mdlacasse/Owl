@@ -245,11 +245,11 @@ class Plan:
         if value is None:
             return self.defaultPlots
 
-        opts = ['nomimal', 'today']
+        opts = ['nominal', 'today']
         if value in opts:
             return value
 
-        u.xprint('Value type must be one of', *opts)
+        u.xprint('Value type must be one of:', *opts)
 
         return
 
