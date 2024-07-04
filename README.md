@@ -163,10 +163,10 @@ plan.showTaxes()
  will display Medicare (including IRMAA) and federal income tax.
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxesPlot.png" width="800">
 
-The next three plots show the distribution of assets in each savings account obtained
-by
+The next three plots show the distribution of assets in today's $ for each savings account.
+It is obtained from
 ```python
-plan.showASsetDistribution()
+plan.showASsetDistribution(value='today')
 ```
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxable.png" width="800">
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxDef.png" width="800">
