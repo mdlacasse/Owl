@@ -142,7 +142,7 @@ class Plan:
         self._interpolator = self._linInterp
         self.interpCenter = 15
         self.interpWidth = 5
-        self.plotInTodaysDollars = False
+        self.defaultPlots = 'nominal'
 
         self.N_i = len(yobs)
         assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
@@ -238,11 +238,27 @@ class Plan:
 
         return
 
-    def setPlotInTodaysDollars(self, ptype: bool):
+    def _checkValue(self, value):
         '''
-        Toggle between plots in nominal values or today's $.
+        Short utility function to parse and check arguments for plotting.
         '''
-        self.plotInTodaysDollars = ptype
+        if value is None:
+            return self.defaultPlots
+
+        opts = ['nomimal', 'today']
+        if value in opts:
+            return value
+
+        u.xprint('Value type must be one of', *opts)
+
+        return
+
+    def setDefaultPlots(self, value):
+        '''
+        Set plots between nominal values or today's $.
+        '''
+
+        self.defaultPlots = self._checkValue(value)
 
         return
 
@@ -1373,7 +1389,7 @@ class Plan:
 
         return
 
-    def showNetSpending(self, tag=''):
+    def showNetSpending(self, tag='', value=None):
         '''
         Plot net available spending and target over time.
 
@@ -1382,23 +1398,25 @@ class Plan:
         if self._checkSolverStatus('showNetSpending'):
             return
 
+        value = self._checkValue(value)
+
         title = self._name + '\nNet Available Spending'
         if tag != '':
             title += ' - ' + tag
 
         style = {'net': '-', 'target': ':'}
-        if self.plotInTodaysDollars:
-            series = {'net': self.g_n/self.gamma_n[:-1], 'target': (self.g_n[0] / self.xi_n[0]) * self.xi_n}
-            yformat = 'k$ ('+str(self.year_n[0])+')'
-        else:
+        if value == 'nominal':
             series = {'net': self.g_n, 'target': (self.g_n[0] / self.xi_n[0]) * self.xiBar_n}
             yformat = 'k$ (nominal)'
+        else:
+            series = {'net': self.g_n/self.gamma_n[:-1], 'target': (self.g_n[0] / self.xi_n[0]) * self.xi_n}
+            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
 
         _lineIncomePlot(self.year_n, series, style, title, yformat)
 
         return
 
-    def showAssetDistribution(self, tag=''):
+    def showAssetDistribution(self, tag='', value=None):
         '''
         Plot the distribution of each savings account in thousands of dollars
         during the simulation time. This function will generate three
@@ -1410,12 +1428,14 @@ class Plan:
         if self._checkSolverStatus('showAssetDistribution'):
             return
 
-        if self.plotInTodaysDollars:
-            yformat = 'k$ ('+str(self.year_n[0])+')'
-            infladjust = self.gamma_n
-        else:
+        value = self._checkValue(value)
+
+        if value == 'nominal':
             yformat = 'k$ (nominal)'
             infladjust = 1
+        else:
+            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
+            infladjust = self.gamma_n
 
         years_n = np.array(self.year_n)
         years_n = np.append(years_n, [years_n[-1] + 1])
@@ -1500,7 +1520,7 @@ class Plan:
 
         return
 
-    def showAccounts(self, tag=''):
+    def showAccounts(self, tag='', value=None):
         '''
         Plot values of savings accounts over time.
 
@@ -1508,6 +1528,8 @@ class Plan:
         '''
         if self._checkSolverStatus('showAccounts'):
             return
+
+        value = self._checkValue(value)
 
         title = self._name + '\nSavings Balance'
         if tag != '':
@@ -1517,14 +1539,14 @@ class Plan:
         # Add one year for estate.
         year_n = np.append(self.year_n, [self.year_n[-1] + 1])
 
-        if self.plotInTodaysDollars:
-            yformat = 'k$ ('+str(self.year_n[0])+')'
+        if value == 'nominal':
+            yformat = 'k$ (nominal)'
+            savings_in = self.savings_in
+        else:
+            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
             savings_in = {}
             for key in self.savings_in:
                 savings_in[key] = self.savings_in[key]/self.gamma_n
-        else:
-            yformat = 'k$ (nominal)'
-            savings_in = self.savings_in
 
         _stackPlot(
             year_n,
@@ -1539,7 +1561,7 @@ class Plan:
 
         return
 
-    def showSources(self, tag=''):
+    def showSources(self, tag='', value=None):
         '''
         Plot income over time.
 
@@ -1548,20 +1570,22 @@ class Plan:
         if self._checkSolverStatus('showSources'):
             return
 
+        value = self._checkValue(value)
+
         title = self._name + '\nRaw Income Sources'
         stypes = self.sources_in.keys()
 
         if tag != '':
             title += ' - ' + tag
 
-        if self.plotInTodaysDollars:
-            yformat = 'k$ ('+str(self.year_n[0])+')'
+        if value == 'nominal':
+            yformat = 'k$ (nominal)'
+            sources_in = self.sources_in
+        else:
+            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
             sources_in = {}
             for key in self.sources_in:
                 sources_in[key] = self.sources_in[key]/self.gamma_n[:-1]
-        else:
-            yformat = 'k$ (nominal)'
-            sources_in = self.sources_in
 
         _stackPlot(
             self.year_n,
@@ -1604,7 +1628,7 @@ class Plan:
 
         return
 
-    def showTaxes(self, tag=''):
+    def showTaxes(self, tag='', value=None):
         '''
         Plot income tax paid over time.
 
@@ -1613,14 +1637,16 @@ class Plan:
         if self._checkSolverStatus('showTaxes'):
             return
 
+        value = self._checkValue(value)
+
         style = {'income taxes': '-', 'Medicare': '-.'}
 
-        if self.plotInTodaysDollars:
-            series = {'income taxes': self.T_n/self.gamma_n[:-1], 'Medicare': self.M_n/self.gamma_n[:-1]}
-            yformat = 'k$ ('+str(self.year_n[0])+')'
-        else:
+        if value == 'nominal':
             series = {'income taxes': self.T_n, 'Medicare': self.M_n}
             yformat = 'k$ (nominal)'
+        else:
+            series = {'income taxes': self.T_n/self.gamma_n[:-1], 'Medicare': self.M_n/self.gamma_n[:-1]}
+            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
 
         title = self._name + '\nIncome Tax'
         if tag != '':
@@ -1630,29 +1656,29 @@ class Plan:
 
         return
 
-    def showGrossIncome(self, tag=''):
+    def showGrossIncome(self, tag='', value=None):
         '''
         Plot income tax and taxable income over time horizon.
 
         A tag string can be set to add information to the title of the plot.
         '''
+        import matplotlib.pyplot as plt
+
         if self._checkSolverStatus('showGrossIncome'):
             return
 
-        import matplotlib.pyplot as plt
-
-        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n)
+        value = self._checkValue(value)
 
         style = {'taxable income': '-'}
 
-        if self.plotInTodaysDollars:
-            series = {'taxable income': self.G_n/self.gamma_n[:-1]}
-            yformat = 'k$ ('+str(self.year_n[0])+')'
-            infladjust = 1
-        else:
+        if value == 'nominal':
             series = {'taxable income': self.G_n}
             yformat = 'k$ (nominal)'
             infladjust = self.gamma_n[:-1]
+        else:
+            series = {'taxable income': self.G_n/self.gamma_n[:-1]}
+            yformat = 'k$ ('+str(self.year_n[0])+'\$)'
+            infladjust = 1
 
         title = self._name + '\nTaxable Ordinary Income vs. Tax Brackets'
         if tag != '':
@@ -1660,6 +1686,7 @@ class Plan:
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
+        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n)
         for key in data:
             data_adj = data[key] * infladjust
             ax.plot(self.year_n, data_adj, label=key, ls=':')
@@ -1926,6 +1953,7 @@ def _lineIncomePlot(x, series, style, title, yformat='k$'):
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
     if 'k$' in yformat:
         ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ',')))
+    # Give range to y values in unindexed flat profiles.
     ymin, ymax = ax.get_ylim()
     if ymax - ymin < 5000:
         ax.set_ylim((ymin-4000, ymax+4000))
