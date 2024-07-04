@@ -1922,10 +1922,10 @@ def _lineIncomePlot(x, series, style, title, yformat='k$'):
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
     if 'k$' in yformat:
         ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ',')))
-    # Give range to y values in unindexed flat profiles.
-    ymin, ymax = ax.get_ylim()
-    if ymax - ymin < 5000:
-        ax.set_ylim((ymin - 4000, ymax + 4000))
+        # Give range to y values in unindexed flat profiles.
+        ymin, ymax = ax.get_ylim()
+        if ymax - ymin < 5000:
+            ax.set_ylim((ymin*0.95 , ymax*1.05))
 
     return fig, ax
 
