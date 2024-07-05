@@ -860,6 +860,8 @@ class Plan:
             for i in range(Ni):
                 row[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = 1
                 row[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = 1 - self.nu
+                # Nudge could be added (e.g. 1.02) to artificially favor tax-exempt account
+                # as heirs's benefits of 10y tax-free is not weighted in.
                 row[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = 1
             A.addRow(row, estate, estate)
             # u.vprint('Adding estate constraint of:', u.d(estate))
@@ -1042,7 +1044,7 @@ class Plan:
             for i in range(Ni):
                 c[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = -1
                 c[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = -(1 - self.nu)
-                c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = -1.02
+                c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = -1
         else:
             u.xprint('Internal error in objective function.')
 
@@ -1077,7 +1079,7 @@ class Plan:
 
         self._adjustParameters()
 
-        milpOptions = {'disp': True, 'mip_rel_gap': 1e-9}
+        milpOptions = {'disp': True, 'mip_rel_gap': 1e-10}
 
         # 1$ tolerance over all values.
         it = 0
@@ -1099,20 +1101,21 @@ class Plan:
 
             self._estimateMedicare(solution.x)
             delta = solution.x - old_x
+            # u.vprint('Iteration:', it, 'delta:', np.sum(delta)/1000)
+
             diff = np.sum(np.abs(delta), axis=0)
             old_x = solution.x
             delta = np.sum(delta, axis=0)
-            if abs(delta + old_delta) < 1e-3 or it > 12:
-                print('Warning: Detected oscilating solution.')
+            if abs(delta + old_delta) < 1e-3 or it > 32:
+                print('WARNING: Detected oscilating solution.')
                 print('    Try again with slightly different input parameters.')
                 break
             old_delta = delta
-            # print('Iteration:', it, 'diff:', diff)
-            # print('delta:', np.sum(delta, axis=0))
 
         if solution.success == True:
             u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
             u.vprint(solution.message)
+            # u.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(solution.x)
             self._caseStatus = 'solved'
         else:
@@ -1746,8 +1749,8 @@ class Plan:
 
         # We need to work by row.
         df = pd.DataFrame(rawData)
-        for rows in dataframe_to_rows(df, index=False, header=True):
-            ws.append(rows)
+        for row in dataframe_to_rows(df, index=False, header=True):
+            ws.append(row)
 
         _formatSpreadsheet(ws, 'currency')
 
@@ -1771,8 +1774,8 @@ class Plan:
         for key in cashFlowDic:
             rawData[key] = cashFlowDic[key]
         df = pd.DataFrame(rawData)
-        for rows in dataframe_to_rows(df, index=False, header=True):
-            ws.append(rows)
+        for row in dataframe_to_rows(df, index=False, header=True):
+            ws.append(row)
 
         _formatSpreadsheet(ws, 'currency')
 
@@ -1798,8 +1801,8 @@ class Plan:
                 rawData[key] = self.sources_in[srcDic[key]][i]
 
             df = pd.DataFrame(rawData)
-            for rows in dataframe_to_rows(df, index=False, header=True):
-                ws.append(rows)
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
 
             _formatSpreadsheet(ws, 'currency')
 
@@ -1825,8 +1828,13 @@ class Plan:
             for key in accDic:
                 rawData[key] = accDic[key][i]
             df = pd.DataFrame(rawData)
-            for rows in dataframe_to_rows(df, index=False, header=True):
-                ws.append(rows)
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            lastRow = [self.year_n[-1]+1,
+                       self.b_ijn[i][0][-1], 0, 0,
+                       self.b_ijn[i][1][-1], 0, 0, 0, 0,
+                       self.b_ijn[i][2][-1], 0, 0]
+            ws.append(lastRow)
 
             _formatSpreadsheet(ws, 'currency')
 
@@ -1845,8 +1853,8 @@ class Plan:
                 for kkey in kDic:
                     rawData[jkey + '/' + kkey] = self.alpha_ijkn[i, jDic[jkey], kDic[kkey], :]
             df = pd.DataFrame(rawData)
-            for rows in dataframe_to_rows(df, index=False, header=True):
-                ws.append(rows)
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
 
             _formatSpreadsheet(ws, 'percent1')
 
@@ -1860,8 +1868,8 @@ class Plan:
             rawData[key] = self.tau_kn[ratesDic[key]]
 
         df = pd.DataFrame(rawData)
-        for rows in dataframe_to_rows(df, index=False, header=True):
-            ws.append(rows)
+        for row in dataframe_to_rows(df, index=False, header=True):
+            ws.append(row)
 
         _formatSpreadsheet(ws, 'percent2')
 
