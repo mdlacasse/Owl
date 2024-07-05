@@ -841,6 +841,10 @@ class Plan:
                 for j in range(Nj):
                     Ub[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = zero
 
+        # Deposits in taxable account during last year are a tax loophole.
+        for i in range(Ni):
+            Ub[_q2(Cd, i, Nn-1, Ni, Nn)] = zero
+
         ###################################################################
         # Equalities.
 
@@ -861,7 +865,7 @@ class Plan:
                 row[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = 1
                 row[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = 1 - self.nu
                 # Nudge could be added (e.g. 1.02) to artificially favor tax-exempt account
-                # as heirs's benefits of 10y tax-free is not weighted in.
+                # as heirs's benefits of 10y tax-free is not weighted in?
                 row[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = 1
             A.addRow(row, estate, estate)
             # u.vprint('Adding estate constraint of:', u.d(estate))
@@ -909,7 +913,6 @@ class Plan:
                         # row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
                     A.addRow(row, rhs, rhs)
 
-        # Do it first with basic Medicare.
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
         tau_0prev[tau_0prev < 0] = 0
 
@@ -1044,6 +1047,7 @@ class Plan:
             for i in range(Ni):
                 c[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = -1
                 c[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = -(1 - self.nu)
+                # Add nudge to tax-exempt account
                 c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = -1
         else:
             u.xprint('Internal error in objective function.')
