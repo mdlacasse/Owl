@@ -148,7 +148,7 @@ the 40% drop (configurable) at the passing of the first spouse.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/spendingPlot.png" width="800">
 
-The following plot shows the account balances in all savings accounts owned by Jack and Jill,
+The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill,
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/savingsPlot.png" width="800">
 
@@ -156,7 +156,7 @@ while this plot shows the complex cash flow from all sources,
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/sourcesPlot.png" width="800">
 
-and this one shows the taxable ordinary income over the duration of the plan,
+Next figure shows the taxable ordinary income over the duration of the plan,
 along with extrapolated tax brackets. Notice how the optimized income is surfing
 the boundaries of tax brackets.
 
@@ -170,8 +170,13 @@ plan.showTaxes()
  
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/taxesPlot.png" width="800">
 
-The next three plots show the distribution of assets in today's $ for each savings account.
-It is obtained from
+For the case at hand, recall that asset allocations were selected above through
+
+```python
+plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
+```
+gliding from a 60%/40% stocks/bonds portfolio to 70%/30% for Jack, and 50%/50% -> 70%/30% for Jill.
+Assets distribution in all accounts in today's $ over time can be displayed from
 ```python
 plan.showASsetDistribution(value='today')
 ```
