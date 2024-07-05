@@ -98,6 +98,12 @@ If there is interest, that could be added in the future.
 - Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
+The solution from an optimization algorithm has only two states: feasible and infeasible. Therefore, unlike event-driven
+simulators that can tell you that your distribution strategy runs out of money in year 20, an optimization-based
+solver can only tell you that a solution does not exist for the plan being considered. Examples of
+infeasible solutions include requesting an estate value too large for the savings assets to support, even with zero net spending basis,
+or maximizing the bequest subject to a net spending basis that is already too large for the savings assets to support, even with no estate being left.
+
 -----------------------------------------------------------------------
 ## An example of Owl's functionality
 With about 10 lines of Python code, one can generate a full case study.
@@ -131,7 +137,7 @@ By default, all these plots are in nominal dollars. To get values in today's $, 
 ```python
 plan.setDefaultPlots('today')
 ```
-would change all graphs to report in today's dollars. Each plot can override the default by using the `value`
+would change all graphs to report in today's dollars. Each plot can also override the default by using the `value`
 parameters such as in
 ```python
 plan.showGrossIncome(value='today')
@@ -160,7 +166,7 @@ For taxes,
 ```python
 plan.showTaxes()
 ```
- will display Medicare (including IRMAA) and federal income tax.
+ will display Medicare premiums (including IRMAA) and federal income tax.
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxesPlot.png" width="800">
 
 The next three plots show the distribution of assets in today's $ for each savings account.
