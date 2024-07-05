@@ -68,9 +68,9 @@ flat or follow a *smile* curve which is also adjustable.
 Available rates are from 1928
 to last year and can be used to test historical performance. Fixed rates can also be provided, as
 well as stochastic rates, which are generated using the statistical characteristics
-(mean and covariance matrix) of
+(means and covariance matrix) of
 a selected historical year range. Extending the capabilities to Monte Carlo simulations should therefore
-be straightforward. Mean rates over a data period can also be chosen.
+be straightforward. Average rates over a data period can also be chosen.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
 an Excel spreadsheet than contains future wages, contributions
@@ -185,6 +185,7 @@ The rates used can be displayed by:
 ```python
 plan.showRates()
 ```
+the values between brackets <> are the average values.
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/ratesPlot.png" width="800">
 
 A short text summary of the outcome of the optimization can be displayed through using:
