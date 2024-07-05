@@ -3,7 +3,7 @@
 
 ## A retirement exploration tool based on linear programming
 
-<img align=right src="https://github.com/mdlacasse/Owl/main/images/owl.jpg" width="250">
+<img align=right src="https://raw.github.com/mdlacasse/Owl/main/images/owl.jpg" width="250">
 
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
@@ -146,37 +146,38 @@ plan.showGrossIncome(value='today')
 Typical plots look like the following. The optimal spending profile looks like this (in nominal dollars). Notice
 the 40% drop (configurable) at the passing of the first spouse.
 
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/spendingPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/spendingPlot.png" width="800">
 
 The following plot shows the account balances in all savings accounts owned by Jack and Jill,
 
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/savingsPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/savingsPlot.png" width="800">
 
 while this plot shows the complex cash flow from all sources,
 
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/sourcesPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/sourcesPlot.png" width="800">
 
 and this one shows the taxable ordinary income over the duration of the plan,
 along with extrapolated tax brackets. Notice how the optimized income is surfing
 the boundaries of tax brackets.
 
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxIncomePlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/taxIncomePlot.png" width="800">
 
 For taxes,
 ```python
 plan.showTaxes()
 ```
  will display Medicare premiums (including IRMAA) and federal income tax.
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/taxesPlot.png" width="800">
+ 
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/taxesPlot.png" width="800">
 
 The next three plots show the distribution of assets in today's $ for each savings account.
 It is obtained from
 ```python
 plan.showASsetDistribution(value='today')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxable.png" width="800">
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxDef.png" width="800">
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/AD-taxFree.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/AD-taxable.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/AD-taxDef.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/AD-taxFree.png" width="800">
 
 
 These plots are irregular because we used historical rates from 1969. The volatility of
@@ -185,8 +186,9 @@ The rates used can be displayed by:
 ```python
 plan.showRates()
 ```
-Values between brackets <> are the average values.
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/ratesPlot.png" width="800">
+Values between brackets <> are the average values over the selected period.
+
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/ratesPlot.png" width="800">
 
 A short text summary of the outcome of the optimization can be displayed through using:
 ```python
