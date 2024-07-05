@@ -274,7 +274,7 @@ class Plan:
 
         return
 
-    def setLongTermIncomeTaxRate(self, psi):
+    def setLongTermCapitalTaxRate(self, psi):
         '''
         Set long-term income tax rate. Rate is in percent. Default 15%.
         '''
