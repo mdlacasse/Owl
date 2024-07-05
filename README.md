@@ -90,7 +90,7 @@ See one of the notebooks for a tutorial and representative user cases.
 Owl is work in progress. At the current time:
 - Only the US federal income tax is considered (and minimized through the optimization algorithm).
 Head of household filing status has not been added but can easily be.
-- Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not.
+- Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not included. An error message will be generated for these cases.
 - Social security rule for surviving spouse assumes that benefits were taken at full retirement age.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
