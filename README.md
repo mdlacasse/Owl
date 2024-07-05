@@ -254,7 +254,7 @@ You will also need the capability to read and edit Excel files. One can have an 
 The intent of using a notebook is that one can configure calculations that suit one's needs.
 Moreover, running calculations in *jupyter* is made to be relatively easy.
 There are many tutorials on this topic and a summary including installation procedures is
-given [here](https://github.com/mdlacasse/Owl/main/Jupyter_tutorial.md).
+given [here](https://github.com/mdlacasse/Owl/blob/main/Jupyter_tutorial.md).
 
 For simulating your own realizations, use the files beginning with the word *template*.
 Make a copy and rename them with your own names while keeping the same extension.
