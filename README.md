@@ -3,7 +3,7 @@
 
 ## A retirement exploration tool based on linear programming
 
-<img align=right src="https://github.com/mdlacasse/Owl/blob/main/docs/owl.jpg" width="250">
+<img align=right src="https://github.com/mdlacasse/Owl/main/images/owl.jpg" width="250">
 
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
@@ -154,7 +154,7 @@ The following plot shows the account balances in all savings accounts owned by J
 
 while this plot shows the complex cash flow from all sources,
 
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/sourcesPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/sourcesPlot.png" width="800">
 
 and this one shows the taxable ordinary income over the duration of the plan,
 along with extrapolated tax brackets. Notice how the optimized income is surfing
@@ -252,12 +252,12 @@ You will also need the capability to read and edit Excel files. One can have an 
 The intent of using a notebook is that one can configure calculations that suit one's needs.
 Moreover, running calculations in *jupyter* is made to be relatively easy.
 There are many tutorials on this topic and a summary including installation procedures is
-given [here](https://github.com/mdlacasse/Owl/blob/main/Jupyter_tutorial.md).
+given [here](https://github.com/mdlacasse/Owl/main/Jupyter_tutorial.md).
 
 For simulating your own realizations, use the files beginning with the word *template*.
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
-A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/blob/main/jack+jill.ipynb).
+A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/main/jack+jill.ipynb).
 
 ---------------------------------------------------------------------
 ## Credits
