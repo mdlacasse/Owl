@@ -185,7 +185,7 @@ The rates used can be displayed by:
 ```python
 plan.showRates()
 ```
-the values between brackets <> are the average values.
+Values between brackets <> are the average values.
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/ratesPlot.png" width="800">
 
 A short text summary of the outcome of the optimization can be displayed through using:
