@@ -210,7 +210,7 @@ Survivor percent income: 60%
 Net yearly spending basis in 2024$: $92,631
 Total net spending in 2024$: $2,675,863 ($7,552,400 nominal)
 Total Roth conversions in 2024$: $302,608 ($404,571 nominal)
-Total ordinary income tax paid in 2024$: $260,757 ($621,949 nominal)
+Total ordinary income tax paid in 2024$: $262,724 ($632,731 nominal)
 Total dividend tax paid in 2024$: $3,311 ($3,752 nominal)
 Total Medicare premiums paid in 2024$: $111,109 ($338,528 nominal)
 Assumed heirs tax rate: 30%
