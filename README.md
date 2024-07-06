@@ -119,7 +119,7 @@ plan.setInterpolationMethod('s-curve')
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
 plan.setPension([0, 10], [65, 65])
 plan.setSocialSecurity([28, 25], [70, 70])
-plan.setSpendingProfile('smile')
+plan.setSpendingProfile('smile', 60)
 plan.setRates('historical', 1969)
 plan.solve('maxSpending', options={'maxRothConversion': 100, 'estate': 500})
 ```
