@@ -2106,63 +2106,10 @@ def _formatSpreadsheet(ws, ftype):
 
     return
 
+
 class Row:
     '''
-    Dense implementation for Scipy/HiGHS.
-    '''
-    def __init__(self, nvars):
-        self.nvars = nvars
-        self.val = np.zeros(nvars)
-
-    def addElem(self, ind, val):
-        assert 0 <= ind and ind < self.nvars, 'Index out of range.'
-        self.val[ind] = val
-
-    def addElemList(self, indList, valList):
-        assert len(indList) == len(valList), 'Unequal lists in addElemList.'
-        for ii in range(len(indList)):
-            self.addElem(indList[ii], valList[ii])
-        return self
-
-    def addElemDic(self, rowDic={}):
-        for key in rowDic:
-            self.addElem(key, rowDic[key])
-        return self
-
-
-class ConstraintMatrix:
-    '''
-    Dense implementation for SciPy/HiGHS.
-    '''
-    def __init__(self, nvars):
-        self.ncons = 0
-        self.nvars = nvars
-        self.Alu = []
-        self.lb = []
-        self.ub = []
-
-    def newRow(self, rowDic={}):
-        row = Row(self.nvars)
-        row.addElemDic(rowDic)
-        return row
-
-    def addRow(self, row, lb, ub):
-        self.Alu.append(row.val)
-        self.lb.append(lb)
-        self.ub.append(ub)
-        self.ncons += 1
-
-    def addNewRow(self, rowDic, lb, ub):
-        row = self.newRow(rowDic)
-        self.addRow(row, lb, ub)
-
-    def arrays(self):
-        return np.array(self.Alu), np.array(self.lb), np.array(self.ub)
-
-
-class MosekRow:
-    '''
-    Sparse implementation for Mosek.
+    Sparse implementation to accomodate Mosek.
     '''
     def __init__(self, nvars):
         self.nvars = nvars
@@ -2186,9 +2133,9 @@ class MosekRow:
         return self
 
 
-class MosekConstraintMatrix:
+class ConstraintMatrix:
     '''
-    Sparse implementation for Mosek.
+    Sparse implementation to accomodate Mosek.
     '''
     def __init__(self, nvars):
         self.ncons = 0
@@ -2199,7 +2146,7 @@ class MosekConstraintMatrix:
         self.ub = []
 
     def newRow(self, rowDic={}):
-        row = MosekRow(self.nvars)
+        row = Row(self.nvars)
         row.addElemDic(rowDic)
         return row
 
@@ -2215,5 +2162,22 @@ class MosekConstraintMatrix:
         self.addRow(row, lb, ub)
 
     def lists(self):
+        '''
+        Sparse lists for Mosek.
+        '''
         return self.Aind, self.Aval, self.lb, self.ub
 
+    def arrays(self):
+        '''
+        Dense arrauys for Scipy/HiGHS.
+        '''
+        Alu = np.zeros((self.ncons, self.nvars))
+        lb = np.array(self.lb)
+        ub = np.array(self.ub)
+        for ii in range(self.ncons):
+            ind = self.Aind[ii]
+            val = self.Aval[ii]
+            for jj in range(len(ind)):
+                Alu[ii, ind[jj]] = val[jj]
+
+        return Alu, lb, ub
