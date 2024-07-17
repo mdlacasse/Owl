@@ -790,6 +790,7 @@ class Plan:
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
         A = ConstraintMatrix(self.nvars)
+        B = Bounds(self.nvars)
         Lb = np.zeros(self.nvars)
         Ub = np.ones(self.nvars) * np.inf
 
@@ -808,7 +809,7 @@ class Plan:
         # Income tax bracket range inequalities.
         for n in range(Nn):
             for t in range(Nt):
-                Ub[_q2(Cf, t, n, Nt, Nn)] = self.DeltaBar_tn[t, n]
+                B.set0_Ub(_q2(Cf, t, n, Nt, Nn), self.DeltaBar_tn[t, n])
 
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
@@ -817,8 +818,7 @@ class Plan:
                 for i in range(Ni):
                     for n in range(self.horizons[i]):
                         rhs = self.myRothX_in[i][n]
-                        Lb[_q2(Cx, i, n, Ni, Nn)] = rhs
-                        Ub[_q2(Cx, i, n, Ni, Nn)] = rhs
+                        B.setRange(_q2(Cx, i, n, Ni, Nn), rhs, rhs)
             else:
                 rhsopt = options['maxRothConversion']
                 assert isinstance(rhsopt, (int, float)) == True, 'Specified maxConversion is not a number.'
@@ -830,20 +830,19 @@ class Plan:
                     # u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
-                            #  Adjust cap for inflation?
-                            Ub[_q2(Cx, i, n, Ni, Nn)] = rhsopt
+                            #  Adjust cap with inflation?
+                            B.set0_Ub(_q2(Cx, i, n, Ni, Nn), rhsopt)
 
         if Ni == 2:
             # No activity for i_d after year of passing.
             for n in range(n_d, Nn):
-                Ub[_q2(Cd, i_d, n, Ni, Nn)] = zero
-                Ub[_q2(Cx, i_d, n, Ni, Nn)] = zero
+                B.set0_Ub(_q2(Cd, i_d, n, Ni, Nn), zero)
                 for j in range(Nj):
-                    Ub[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = zero
+                    B.set0_Ub(_q3(Cw, i_d, j, n, Ni, Nj, Nn), zero)
 
         # Deposits in taxable account during last year are a tax loophole.
         for i in range(Ni):
-            Ub[_q2(Cd, i, Nn-1, Ni, Nn)] = zero
+            B.set0_Ub(_q2(Cd, i, Nn-1, Ni, Nn), zero)
 
         ###################################################################
         # Equalities.
@@ -885,8 +884,6 @@ class Plan:
             for j in range(Nj):
                 rhs = self.beta_ij[i, j]
                 A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
-                # Lb[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
-                # Ub[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer.
@@ -981,14 +978,14 @@ class Plan:
                 row.addElem(_q2(Cf, t, n, Nt, Nn), 1)
             A.addRow(row, rhs, rhs)
 
-        # Configure all binary variables. Lb is already 0.
+        # Configure all binary variables.
         for i in range(Ni):
             for n in range(Nn):
                 for z in range(Nz):
-                    Ub[_q3(Cz, i, n, z, Ni, Nn, Nz)] = 1
+                    B.set0_Ub(_q3(Cz, i, n, z, Ni, Nn, Nz), 1)
                     integrality[_q3(Cz, i, n, z, Ni, Nn, Nz)] = 1
 
-        Ub[_q1(CZ, 0, 1)] = 1
+        B.set0_Ub(_q1(CZ, 0, 1), 1)
         integrality[_q1(CZ, 0, 1)] = 1
 
         # Exclude simultaneous deposits and withdrawals in taxable account.
@@ -1034,8 +1031,8 @@ class Plan:
         A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
 
         self.Alu, self.lbvec, self.ubvec = A.arrays()
-        self.Ub = Ub
-        self.Lb = Lb
+        self.Ub = B.ub
+        self.Lb = B.lb
         self.integrality = integrality
 
         # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
@@ -2163,13 +2160,13 @@ class ConstraintMatrix:
 
     def lists(self):
         '''
-        Sparse lists for Mosek.
+        Return lists for Mosek sparse representation.
         '''
         return self.Aind, self.Aval, self.lb, self.ub
 
     def arrays(self):
         '''
-        Dense arrauys for Scipy/HiGHS.
+        Return dense arrays for Scipy/HiGHS.
         '''
         Alu = np.zeros((self.ncons, self.nvars))
         lb = np.array(self.lb)
@@ -2181,3 +2178,33 @@ class ConstraintMatrix:
                 Alu[ii, ind[jj]] = val[jj]
 
         return Alu, lb, ub
+
+
+class Bounds:
+    '''
+    Solver-neutral API for bounds on variables.
+    '''
+    def __init__(self, nvars):
+        self.nvars = nvars
+        self.lb = np.zeros(nvars)
+        self.ub = np.ones(nvars)*np.inf
+        self.key = ['lb']*nvars
+
+    def setUb(self, ii, ub):
+        self.lb[ii] = -np.inf
+        self.ub[ii] = ub
+        self.key[ii] = 'ub'
+
+    def set0_Ub(self, ii, ub):
+        self.ub[ii] = ub
+        self.key[ii] = 'ra'
+
+    def setLb_Inf(self, ii, lb):
+        self.lb[ii] = lb
+        self.key[ii] = 'lb'
+
+    def setRange(self, ii, lb, ub):
+        self.lb[ii] = lb
+        self.ub[ii] = lb
+        self.key[ii] = 'ra'
+
