@@ -862,11 +862,11 @@ class Plan:
 
             row = A.newRow()
             for i in range(Ni):
-                row[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = 1
-                row[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = 1 - self.nu
+                row.addElem(_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1), 1)
+                row.addElem(_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1), 1 - self.nu)
                 # Nudge could be added (e.g. 1.02) to artificially favor tax-exempt account
                 # as heirs's benefits of 10y tax-free is not weighted in?
-                row[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = 1
+                row.addElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), 1)
             A.addRow(row, estate, estate)
             # u.vprint('Adding estate constraint of:', u.d(estate))
         elif objective == 'maxBequest':
@@ -898,19 +898,19 @@ class Plan:
                     rhs = fac1 * self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
 
                     row = A.newRow()
-                    row[_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1)] = 1
-                    row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -fac1 * Tau1_ijn[i, j, n]
-                    row[_q2(Cx, i, n, Ni, Nn)] = -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n]
-                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
-                    row[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0) * Tau1_ijn[i, j, n]
+                    row.addElem(_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1), 1)
+                    row.addElem(_q3(Cb, i, j, n, Ni, Nj, Nn + 1), -fac1 * Tau1_ijn[i, j, n])
+                    row.addElem(_q2(Cx, i, n, Ni, Nn), -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n])
+                    row.addElem(_q3(Cw, i, j, n, Ni, Nj, Nn), fac1 * Tau1_ijn[i, j, n])
+                    row.addElem(_q2(Cd, i, n, Ni, Nn), -fac1 * u.krond(j, 0) * Tau1_ijn[i, j, n])
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
-                        row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
-                        row[_q2(Cx, i_d, n, Ni, Nn)] = -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
-                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i_d, j, n]
-                        # row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
+                        row.addElem(_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1), -fac2 * Tau1_ijn[i_d, j, n])
+                        row.addElem(_q2(Cx, i_d, n, Ni, Nn), -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n])
+                        row.addElem(_q3(Cw, i_d, j, n, Ni, Nj, Nn), fac2 * Tau1_ijn[i_d, j, n])
+                        # row.addElem(_q2(Cd, i_d, n, Ni, Nn), -fac2 * u.krond(j, 0))
                     A.addRow(row, rhs, rhs)
 
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
@@ -930,18 +930,17 @@ class Plan:
                     - 0.5 * fac * self.mu * self.kappa_ijn[i, 0, n]
                 )
 
-                row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = fac * self.mu
-                row[_q2(Cd, i, n, Ni, Nn)] = fac * self.mu + 1
-                # Minus capital gains on withdrawals using last year's rate if >=0.
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fac * (tau_0prev[n] - self.mu)
-
-                # Plus all withdrawals.
-                for j in range(Nj):
-                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] += -1
+                row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), fac * self.mu)
+                row.addElem(_q2(Cd, i, n, Ni, Nn), fac * self.mu + 1)
+                # Minus capital gains on taxable withdrawals using last year's rate if >=0.
+                # Plus taxable account withdrawals, and all other withdrawals.
+                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fac * (tau_0prev[n] - self.mu) - 1)
+                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1)
+                row.addElem(_q3(Cw, i, 2, n, Ni, Nj, Nn), -1)
 
             # Minus tax on ordinary income. Tn
             for t in range(Nt):
-                row[_q2(Cf, t, n, Nt, Nn)] = self.theta_tn[t, n]
+                row.addElem(_q2(Cf, t, n, Nt, Nn), self.theta_tn[t, n])
             A.addRow(row, rhs, rhs)
 
         # Impose income profile.
@@ -968,18 +967,18 @@ class Plan:
             rhs = -self.sigmaBar_n[n]
             for i in range(Ni):
                 rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
-                row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
-                row[_q2(Cx, i, n, Ni, Nn)] = -1
+                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1)
+                row.addElem(_q2(Cx, i, n, Ni, Nn), -1)
 
                 # Returns on securities in taxable account.
                 fak = np.sum(self.tau_kn[1:Nk, n] * self.alpha_ijkn[i, 0, 1:Nk, n], axis=0)
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
-                row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = -fak
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fak
-                row[_q2(Cd, i, n, Ni, Nn)] = -fak
+                row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), -fak)
+                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fak)
+                row.addElem(_q2(Cd, i, n, Ni, Nn), -fak)
 
             for t in range(Nt):
-                row[_q2(Cf, t, n, Nt, Nn)] = 1
+                row.addElem(_q2(Cf, t, n, Nt, Nn), 1)
             A.addRow(row, rhs, rhs)
 
         # Configure all binary variables. Lb is already 0.
@@ -2107,22 +2106,48 @@ def _formatSpreadsheet(ws, ftype):
 
     return
 
+class Row:
+    '''
+    Dense implementation.
+    '''
+    def __init__(self, nvars):
+        self.nvars = nvars
+        self.val = np.zeros(nvars)
+
+    def addElem(self, ind, val):
+        self.val[ind] = val
+
+    def addElemList(self, indList, valList):
+        assert len(indList) == len(valList), 'Inequal lists in addElemList'
+        for ii in range(len(indList)):
+            self.addElem(indList[ii], valList[ii])
+        return self
+
+    def addElemDic(self, rowDic={}):
+        for key in rowDic:
+            self.addElem(key, rowDic[key])
+        return self
+
 
 class ConstraintMatrix:
-    def __init__(self, n):
-        self.n = n
+    '''
+    Dense implementation.
+    '''
+    def __init__(self, nvars):
+        self.ncons = 0
+        self.nvars = nvars
         self.Alu = []
         self.lb = []
         self.ub = []
 
     def newRow(self, rowDic={}):
-        row = np.zeros(self.n)
-        for key in rowDic:
-            row[key] = rowDic[key]
+        self.ncons += 1
+        row = Row(self.nvars)
+        row.addElemDic(rowDic)
         return row
 
     def addRow(self, row, lb, ub):
-        self.Alu.append(row)
+        self.Alu.append(row.val)
         self.lb.append(lb)
         self.ub.append(ub)
 
