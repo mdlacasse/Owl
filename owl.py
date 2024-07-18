@@ -15,8 +15,6 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 ###########################################################################
 import numpy as np
-from scipy import optimize
-from scipy.optimize import milp, LinearConstraint, Bounds
 from datetime import date
 
 import utils as u
@@ -142,7 +140,9 @@ class Plan:
         self._interpolator = self._linInterp
         self.interpCenter = 15
         self.interpWidth = 5
+
         self.defaultPlots = 'nominal'
+        self.solver = 'milp'
 
         self.N_i = len(yobs)
         assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
@@ -791,11 +791,6 @@ class Plan:
         # Inequality constraint matrix with upper and lower bound vectors.
         A = ConstraintMatrix(self.nvars)
         B = Bounds(self.nvars)
-        Lb = np.zeros(self.nvars)
-        Ub = np.ones(self.nvars) * np.inf
-
-        # All variables are continuous by default.
-        integrality = np.zeros(self.nvars)
 
         # RMDs inequalities.
         for i in range(Ni):
@@ -982,11 +977,9 @@ class Plan:
         for i in range(Ni):
             for n in range(Nn):
                 for z in range(Nz):
-                    B.set0_Ub(_q3(Cz, i, n, z, Ni, Nn, Nz), 1)
-                    integrality[_q3(Cz, i, n, z, Ni, Nn, Nz)] = 1
+                    B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
 
-        B.set0_Ub(_q1(CZ, 0, 1), 1)
-        integrality[_q1(CZ, 0, 1)] = 1
+        B.setBinary(_q1(CZ, 0, 1))
 
         # Exclude simultaneous deposits and withdrawals in taxable account.
         for i in range(Ni):
@@ -1030,25 +1023,24 @@ class Plan:
 
         A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
 
-        self.Alu, self.lbvec, self.ubvec = A.arrays()
-        self.Ub = B.ub
-        self.Lb = B.lb
-        self.integrality = integrality
-
         # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
-        c = np.zeros(self.nvars)
+        c = Objective(self.nvars)
         if objective == 'maxSpending':
-            c[_q1(Cg, 0, Nn)] = -1
+            c.setElem(_q1(Cg, 0, Nn), -1)
         elif objective == 'maxBequest':
             for i in range(Ni):
-                c[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = -1
-                c[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = -(1 - self.nu)
+                c.setElem(_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1), -1)
+                c.setElem(_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1), -(1 - self.nu))
                 # Add nudge to tax-exempt account
-                c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = -1
+                c.setElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), -1)
         else:
             u.xprint('Internal error in objective function.')
 
-        return c
+        self.A = A
+        self.B = B
+        self.c = c
+
+        return
 
     def solve(self, objective, options={}):
         '''
@@ -1079,6 +1071,21 @@ class Plan:
 
         self._adjustParameters()
 
+        if self.solver == 'milp':
+            self._milpSolve(objective, options)
+        elif self.solver == 'mosek':
+            self._mosekSolve(objective, options)
+        else:
+            u.xprint('Unknown solver %s.'%self.solver)
+
+        return
+
+    def _milpSolve(self, objective, options):
+        '''
+        Solve problem using scipy HiGHS solver
+        '''
+        from scipy import optimize
+        
         milpOptions = {'disp': True, 'mip_rel_gap': 1e-10}
 
         # 1$ tolerance over all values.
@@ -1088,11 +1095,16 @@ class Plan:
         old_x = np.zeros(self.nvars)
         self._estimateMedicare()
         while diff > 1:
-            c = self._buildConstraints(objective, options)
-            bounds = optimize.Bounds(self.Lb, self.Ub)
-            constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
+            self._buildConstraints(objective, options)
+            Alu, lbvec, ubvec = self.A.arrays()
+            Lb, Ub = self.B.arrays()
+            integrality = self.B.integralityArray()
+            c = self.c.arrays()
+
+            bounds = optimize.Bounds(Lb, Ub)
+            constraint = optimize.LinearConstraint(Alu, lbvec, ubvec)
             solution = optimize.milp(
-                c, integrality=self.integrality, constraints=constraint, bounds=bounds, options=milpOptions
+                c, integrality=integrality, constraints=constraint, bounds=bounds, options=milpOptions
             )
             it += 1
 
@@ -1123,7 +1135,93 @@ class Plan:
             self._caseStatus = 'unsuccessful'
 
         self.objective = objective
-        self.solver = 'milp'
+        self.solverOptions = options
+
+        return
+
+    def _mosekSolve(self, objective, options):
+        '''
+        Solve problem using Mosek solver
+        '''
+        import mosek
+
+        bdic = {'fx': mosek.boundkey.fx,
+                'fr': mosek.boundkey.fr,
+                'lo': mosek.boundkey.lo,
+                'ra': mosek.boundkey.ra,
+                'up': mosek.boundkey.up,
+               }
+
+        # 1$ tolerance over all values.
+        it = 0
+        diff = np.inf
+        old_delta = 0
+        old_x = np.zeros(self.nvars)
+        self._estimateMedicare()
+        while diff > 1:
+            self._buildConstraints(objective, options)
+            Aind, Aval, clb, cub = self.A.lists()
+            ckeys = self.A.keys()
+            vlb,  vub = self.B.arrays()
+            integrality = self.B.integralityList()
+            vkeys = self.B.keys()
+            cind, cval = self.c.lists()
+
+            with mosek.Task() as task:
+                task.set_Stream(mosek.streamtype.log, _streamPrinter)
+                task.appendcons(self.A.ncons)
+                task.appendvars(self.A.nvars)
+
+                for ii in range(len(cind)):
+                    task.putcj(cind[ii], cval[ii])
+
+                for ii in range(self.nvars):
+                    task.putvarbound(ii, vkeys[ii], vlb[ii], vub[ii])
+
+                for ii in range(len(integrality)):
+                    task.putvartype(integrality[ii], mosek.variabletype.type_int)
+
+                for ii in range(self.A.ncons):
+                    task.putarow(ii, Aind[ii], Aval[ii])
+                    task.putconbound(ii, bdic[ckeys[ii]], clb[ii], cub[ii])
+
+                task.putobjsense(mosek.objsense.minimize)
+                task.optimize()
+                task.solutionsummary(mosek.streamtype.msg)
+
+                solsta = task.getsolsta(mosek.soltype.itg) 
+                prosta = task.getprosta(mosek.soltype.itg) 
+                it += 1
+
+                if solsta != mosek.solsta.optimal:
+                    break
+
+                xx = task.getxx(mosek.soltype.itg) 
+
+            self._estimateMedicare(xx)
+            delta = xx - old_x
+            # u.vprint('Iteration:', it, 'delta:', np.sum(delta)/1000)
+
+            diff = np.sum(np.abs(delta), axis=0)
+            old_x = xx
+            delta = np.sum(delta, axis=0)
+            if abs(delta + old_delta) < 1e-3 or it > 32:
+                print('WARNING: Detected oscilating solution.')
+                print('    Try again with slightly different input parameters.')
+                break
+            old_delta = delta
+
+        if solution.success == True:
+            u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
+            u.vprint(solution.message)
+            # u.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
+            self._aggregateResults(solution.x)
+            self._caseStatus = 'solved'
+        else:
+            u.vprint('WARNING: Optimization failed:', solution.message, solution.success)
+            self._caseStatus = 'unsuccessful'
+
+        self.objective = objective
         self.solverOptions = options
 
         return
@@ -1284,8 +1382,8 @@ class Plan:
         print('Optimized for:', self.objective)
         print('Solver options:', self.solverOptions)
         print('Solver used:', self.solver)
-        print('Number of decision variables:', self.nvars)
-        print('Number of constraints:', len(self.ubvec))
+        print('Number of decision variables:', self.A.nvars)
+        print('Number of constraints:', self.A.ncons)
         print('Spending profile:', self.spendingProfile)
         if self.N_i == 2:
             print('Survivor percent income:', u.pc(self.chi, f=0))
@@ -2106,7 +2204,7 @@ def _formatSpreadsheet(ws, ftype):
 
 class Row:
     '''
-    Sparse implementation to accomodate Mosek.
+    Solver-neutral API to accomodate Mosek/HiGHS.
     '''
     def __init__(self, nvars):
         self.nvars = nvars
@@ -2114,7 +2212,7 @@ class Row:
         self.val = []
 
     def addElem(self, ind, val):
-        assert 0 <= ind and ind < self.nvars, 'Index out of range.'
+        assert 0 <= ind and ind < self.nvars, 'Index %d out of range.'%ind
         self.ind.append(ind)
         self.val.append(val)
 
@@ -2132,7 +2230,7 @@ class Row:
 
 class ConstraintMatrix:
     '''
-    Sparse implementation to accomodate Mosek.
+    Solver-neutral API for expressing constraints.
     '''
     def __init__(self, nvars):
         self.ncons = 0
@@ -2141,6 +2239,7 @@ class ConstraintMatrix:
         self.Aval = []
         self.lb = []
         self.ub = []
+        self.key = []
 
     def newRow(self, rowDic={}):
         row = Row(self.nvars)
@@ -2152,11 +2251,20 @@ class ConstraintMatrix:
         self.Aval.append(row.val)
         self.lb.append(lb)
         self.ub.append(ub)
+        if lb == ub:
+            self.key.append('fx')
+        elif ub == np.inf:
+            self.key.append('lb')
+        else:
+            self.key.append('ra')
         self.ncons += 1
 
     def addNewRow(self, rowDic, lb, ub):
         row = self.newRow(rowDic)
         self.addRow(row, lb, ub)
+
+    def keys(self):
+        return self.key
 
     def lists(self):
         '''
@@ -2186,25 +2294,105 @@ class Bounds:
     '''
     def __init__(self, nvars):
         self.nvars = nvars
-        self.lb = np.zeros(nvars)
-        self.ub = np.ones(nvars)*np.inf
-        self.key = ['lb']*nvars
+        self.ind = []
+        self.lb = []
+        self.ub = []
+        self.key = []
+        self.integrality = []
 
-    def setUb(self, ii, ub):
-        self.lb[ii] = -np.inf
-        self.ub[ii] = ub
-        self.key[ii] = 'ub'
+    def setBinary(self, ii):
+        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.'%ii
+        self.ind.append(ii)
+        self.lb.append(0)
+        self.ub.append(1)
+        self.key.append('ra')
+        self.integrality.append(ii)
 
     def set0_Ub(self, ii, ub):
-        self.ub[ii] = ub
-        self.key[ii] = 'ra'
+        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.'%ii
+        self.ind.append(ii)
+        self.lb.append(0)
+        self.ub.append(ub)
+        self.key.append('ra')
 
     def setLb_Inf(self, ii, lb):
-        self.lb[ii] = lb
-        self.key[ii] = 'lb'
+        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.'%ii
+        self.ind.append(ii)
+        self.lb.append(lb)
+        self.ub.append(np.inf)
+        self.key.append('lb')
 
     def setRange(self, ii, lb, ub):
-        self.lb[ii] = lb
-        self.ub[ii] = lb
-        self.key[ii] = 'ra'
+        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.'%ii
+        self.ind.append(ii)
+        self.lb.append(lb)
+        self.ub.append(ub)
+        if lb == ub:
+            self.key.append('fx')
+        else:
+            self.key.append('ra')
+
+    def keys(self):
+        keys = ['ra']*self.nvars
+        for ii in range(len(self.ind)):
+            keys[self.ind[ii]] = self.key[ii]
+
+        return keys
+
+    def arrays(self):
+        lb = np.zeros(self.nvars)
+        ub = np.ones(self.nvars)*np.inf
+        for ii in range(len(self.ind)):
+            lb[self.ind[ii]] = self.lb[ii]
+            ub[self.ind[ii]] = self.ub[ii]
+
+        return lb, ub
+
+    def integralityArray(self):
+        integrality = np.zeros(self.nvars, dtype=int)
+        for ii in range(len(self.integrality)):
+            integrality[self.integrality[ii]] = 1
+
+        return self.integrality
+
+    def integralityList(self):
+        return self.integrality
+
+class Objective:
+    '''
+    Solver-neutral objective function.
+    '''
+    def __init__(self, nvars):
+        self.nvars = nvars
+        self.ind = []
+        self.val = []
+
+    def setElem(self, ind, val):
+        assert 0 <= ind and ind < self.nvars, 'Index %d out of range.'%ind
+        self.ind.append(ind)
+        self.val.append(val)
+
+    def arrays(self):
+        '''
+        Return an array for scipy/HiGHS dense representation.
+        '''
+        c = np.zeros(self.nvars)
+        for ii in range(len(self.ind)):
+            c[self.ind[ii]] = self.val[ii]
+
+        return c
+
+    def lists(self):
+        '''
+        Return lists for Mosek sparse representation.
+        '''
+        return self.ind, self.val
+
+def _streamPrinter(text):
+    '''
+    Define a stream printer to grab output from MOSEK.
+    '''
+    import sys
+    sys.stdout.write(text)
+    sys.stdout.flush()
 
