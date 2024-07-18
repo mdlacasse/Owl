@@ -15,14 +15,13 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 ###########################################################################
 import numpy as np
-from scipy import optimize
-from scipy.optimize import milp, LinearConstraint, Bounds
 from datetime import date
 
 import utils as u
 import tax2024 as tx
 import rates
 import timelists
+import abcapi as abc
 
 
 def setVerbose(self, state=True):
@@ -142,7 +141,9 @@ class Plan:
         self._interpolator = self._linInterp
         self.interpCenter = 15
         self.interpWidth = 5
+
         self.defaultPlots = 'nominal'
+        self.solver = 'HiGHS'
 
         self.N_i = len(yobs)
         assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
@@ -206,6 +207,14 @@ class Plan:
         self.timeListsFileName = None
 
         return
+
+    def setSolver(self, solver):
+        '''
+        Select solver.
+        '''
+        solvers = ['HiGHS', 'MOSEK']
+        assert solver in solvers, 'Solver %s not supported.'%solver
+        self.solver = solver
 
     def _checkSolverStatus(self, funcName):
         '''
@@ -789,12 +798,8 @@ class Plan:
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
-        A = ConstraintMatrix(self.nvars)
-        Lb = np.zeros(self.nvars)
-        Ub = np.ones(self.nvars) * np.inf
-
-        # All variables are continuous by default.
-        integrality = np.zeros(self.nvars)
+        A = abc.ConstraintMatrix(self.nvars)
+        B = abc.Bounds(self.nvars)
 
         # RMDs inequalities.
         for i in range(Ni):
@@ -808,7 +813,7 @@ class Plan:
         # Income tax bracket range inequalities.
         for n in range(Nn):
             for t in range(Nt):
-                Ub[_q2(Cf, t, n, Nt, Nn)] = self.DeltaBar_tn[t, n]
+                B.set0_Ub(_q2(Cf, t, n, Nt, Nn), self.DeltaBar_tn[t, n])
 
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
@@ -817,8 +822,7 @@ class Plan:
                 for i in range(Ni):
                     for n in range(self.horizons[i]):
                         rhs = self.myRothX_in[i][n]
-                        Lb[_q2(Cx, i, n, Ni, Nn)] = rhs
-                        Ub[_q2(Cx, i, n, Ni, Nn)] = rhs
+                        B.setRange(_q2(Cx, i, n, Ni, Nn), rhs, rhs)
             else:
                 rhsopt = options['maxRothConversion']
                 assert isinstance(rhsopt, (int, float)) == True, 'Specified maxConversion is not a number.'
@@ -830,20 +834,19 @@ class Plan:
                     # u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
-                            #  Adjust cap for inflation?
-                            Ub[_q2(Cx, i, n, Ni, Nn)] = rhsopt
+                            #  Adjust cap with inflation?
+                            B.set0_Ub(_q2(Cx, i, n, Ni, Nn), rhsopt)
 
         if Ni == 2:
             # No activity for i_d after year of passing.
             for n in range(n_d, Nn):
-                Ub[_q2(Cd, i_d, n, Ni, Nn)] = zero
-                Ub[_q2(Cx, i_d, n, Ni, Nn)] = zero
+                B.set0_Ub(_q2(Cd, i_d, n, Ni, Nn), zero)
                 for j in range(Nj):
-                    Ub[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = zero
+                    B.set0_Ub(_q3(Cw, i_d, j, n, Ni, Nj, Nn), zero)
 
         # Deposits in taxable account during last year are a tax loophole.
         for i in range(Ni):
-            Ub[_q2(Cd, i, Nn-1, Ni, Nn)] = zero
+            B.set0_Ub(_q2(Cd, i, Nn-1, Ni, Nn), zero)
 
         ###################################################################
         # Equalities.
@@ -862,11 +865,11 @@ class Plan:
 
             row = A.newRow()
             for i in range(Ni):
-                row[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = 1
-                row[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = 1 - self.nu
+                row.addElem(_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1), 1)
+                row.addElem(_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1), 1 - self.nu)
                 # Nudge could be added (e.g. 1.02) to artificially favor tax-exempt account
                 # as heirs's benefits of 10y tax-free is not weighted in?
-                row[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = 1
+                row.addElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), 1)
             A.addRow(row, estate, estate)
             # u.vprint('Adding estate constraint of:', u.d(estate))
         elif objective == 'maxBequest':
@@ -885,8 +888,6 @@ class Plan:
             for j in range(Nj):
                 rhs = self.beta_ij[i, j]
                 A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
-                # Lb[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
-                # Ub[_q3(Cb, i, j, 0, Ni, Nj, Nn + 1)] = rhs
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer.
@@ -898,19 +899,19 @@ class Plan:
                     rhs = fac1 * self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
 
                     row = A.newRow()
-                    row[_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1)] = 1
-                    row[_q3(Cb, i, j, n, Ni, Nj, Nn + 1)] = -fac1 * Tau1_ijn[i, j, n]
-                    row[_q2(Cx, i, n, Ni, Nn)] = -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n]
-                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] = fac1 * Tau1_ijn[i, j, n]
-                    row[_q2(Cd, i, n, Ni, Nn)] = -fac1 * u.krond(j, 0) * Tau1_ijn[i, j, n]
+                    row.addElem(_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1), 1)
+                    row.addElem(_q3(Cb, i, j, n, Ni, Nj, Nn + 1), -fac1 * Tau1_ijn[i, j, n])
+                    row.addElem(_q2(Cx, i, n, Ni, Nn), -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n])
+                    row.addElem(_q3(Cw, i, j, n, Ni, Nj, Nn), fac1 * Tau1_ijn[i, j, n])
+                    row.addElem(_q2(Cd, i, n, Ni, Nn), -fac1 * u.krond(j, 0) * Tau1_ijn[i, j, n])
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
-                        row[_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1)] = -fac2 * Tau1_ijn[i_d, j, n]
-                        row[_q2(Cx, i_d, n, Ni, Nn)] = -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n]
-                        row[_q3(Cw, i_d, j, n, Ni, Nj, Nn)] = fac2 * Tau1_ijn[i_d, j, n]
-                        # row[_q2(Cd, i_d, n, Ni, Nn)] = -fac2 * u.krond(j, 0)
+                        row.addElem(_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1), -fac2 * Tau1_ijn[i_d, j, n])
+                        row.addElem(_q2(Cx, i_d, n, Ni, Nn), -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n])
+                        row.addElem(_q3(Cw, i_d, j, n, Ni, Nj, Nn), fac2 * Tau1_ijn[i_d, j, n])
+                        # row.addElem(_q2(Cd, i_d, n, Ni, Nn), -fac2 * u.krond(j, 0))
                     A.addRow(row, rhs, rhs)
 
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
@@ -930,18 +931,17 @@ class Plan:
                     - 0.5 * fac * self.mu * self.kappa_ijn[i, 0, n]
                 )
 
-                row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = fac * self.mu
-                row[_q2(Cd, i, n, Ni, Nn)] = fac * self.mu + 1
-                # Minus capital gains on withdrawals using last year's rate if >=0.
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fac * (tau_0prev[n] - self.mu)
-
-                # Plus all withdrawals.
-                for j in range(Nj):
-                    row[_q3(Cw, i, j, n, Ni, Nj, Nn)] += -1
+                row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), fac * self.mu)
+                row.addElem(_q2(Cd, i, n, Ni, Nn), fac * self.mu + 1)
+                # Minus capital gains on taxable withdrawals using last year's rate if >=0.
+                # Plus taxable account withdrawals, and all other withdrawals.
+                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fac * (tau_0prev[n] - self.mu) - 1)
+                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1)
+                row.addElem(_q3(Cw, i, 2, n, Ni, Nj, Nn), -1)
 
             # Minus tax on ordinary income. Tn
             for t in range(Nt):
-                row[_q2(Cf, t, n, Nt, Nn)] = self.theta_tn[t, n]
+                row.addElem(_q2(Cf, t, n, Nt, Nn), self.theta_tn[t, n])
             A.addRow(row, rhs, rhs)
 
         # Impose income profile.
@@ -968,29 +968,27 @@ class Plan:
             rhs = -self.sigmaBar_n[n]
             for i in range(Ni):
                 rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
-                row[_q3(Cw, i, 1, n, Ni, Nj, Nn)] = -1
-                row[_q2(Cx, i, n, Ni, Nn)] = -1
+                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1)
+                row.addElem(_q2(Cx, i, n, Ni, Nn), -1)
 
                 # Returns on securities in taxable account.
                 fak = np.sum(self.tau_kn[1:Nk, n] * self.alpha_ijkn[i, 0, 1:Nk, n], axis=0)
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
-                row[_q3(Cb, i, 0, n, Ni, Nj, Nn + 1)] = -fak
-                row[_q3(Cw, i, 0, n, Ni, Nj, Nn)] = fak
-                row[_q2(Cd, i, n, Ni, Nn)] = -fak
+                row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), -fak)
+                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fak)
+                row.addElem(_q2(Cd, i, n, Ni, Nn), -fak)
 
             for t in range(Nt):
-                row[_q2(Cf, t, n, Nt, Nn)] = 1
+                row.addElem(_q2(Cf, t, n, Nt, Nn), 1)
             A.addRow(row, rhs, rhs)
 
-        # Configure all binary variables. Lb is already 0.
+        # Configure all binary variables.
         for i in range(Ni):
             for n in range(Nn):
                 for z in range(Nz):
-                    Ub[_q3(Cz, i, n, z, Ni, Nn, Nz)] = 1
-                    integrality[_q3(Cz, i, n, z, Ni, Nn, Nz)] = 1
+                    B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
 
-        Ub[_q1(CZ, 0, 1)] = 1
-        integrality[_q1(CZ, 0, 1)] = 1
+        B.setBinary(_q1(CZ, 0, 1))
 
         # Exclude simultaneous deposits and withdrawals in taxable account.
         for i in range(Ni):
@@ -1034,25 +1032,24 @@ class Plan:
 
         A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
 
-        self.Alu, self.lbvec, self.ubvec = A.arrays()
-        self.Ub = Ub
-        self.Lb = Lb
-        self.integrality = integrality
-
         # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
-        c = np.zeros(self.nvars)
+        c = abc.Objective(self.nvars)
         if objective == 'maxSpending':
-            c[_q1(Cg, 0, Nn)] = -1
+            c.setElem(_q1(Cg, 0, Nn), -1)
         elif objective == 'maxBequest':
             for i in range(Ni):
-                c[_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1)] = -1
-                c[_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1)] = -(1 - self.nu)
+                c.setElem(_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1), -1)
+                c.setElem(_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1), -(1 - self.nu))
                 # Add nudge to tax-exempt account
-                c[_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1)] = -1
+                c.setElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), -1)
         else:
             u.xprint('Internal error in objective function.')
 
-        return c
+        self.A = A
+        self.B = B
+        self.c = c
+
+        return
 
     def solve(self, objective, options={}):
         '''
@@ -1083,6 +1080,21 @@ class Plan:
 
         self._adjustParameters()
 
+        if self.solver == 'HiGHS':
+            self._milpSolve(objective, options)
+        elif self.solver == 'MOSEK':
+            self._mosekSolve(objective, options)
+        else:
+            u.xprint('Unknown solver %s.'%self.solver)
+
+        return
+
+    def _milpSolve(self, objective, options):
+        '''
+        Solve problem using scipy HiGHS solver
+        '''
+        from scipy import optimize
+        
         milpOptions = {'disp': True, 'mip_rel_gap': 1e-10}
 
         # 1$ tolerance over all values.
@@ -1092,11 +1104,16 @@ class Plan:
         old_x = np.zeros(self.nvars)
         self._estimateMedicare()
         while diff > 1:
-            c = self._buildConstraints(objective, options)
-            bounds = optimize.Bounds(self.Lb, self.Ub)
-            constraint = optimize.LinearConstraint(self.Alu, self.lbvec, self.ubvec)
+            self._buildConstraints(objective, options)
+            Alu, lbvec, ubvec = self.A.arrays()
+            Lb, Ub = self.B.arrays()
+            integrality = self.B.integralityArray()
+            c = self.c.arrays()
+
+            bounds = optimize.Bounds(Lb, Ub)
+            constraint = optimize.LinearConstraint(Alu, lbvec, ubvec)
             solution = optimize.milp(
-                c, integrality=self.integrality, constraints=constraint, bounds=bounds, options=milpOptions
+                c, integrality=integrality, constraints=constraint, bounds=bounds, options=milpOptions
             )
             it += 1
 
@@ -1127,7 +1144,94 @@ class Plan:
             self._caseStatus = 'unsuccessful'
 
         self.objective = objective
-        self.solver = 'milp'
+        self.solverOptions = options
+
+        return
+
+    def _mosekSolve(self, objective, options):
+        '''
+        Solve problem using Mosek solver
+        '''
+        import mosek
+
+        bdic = {'fx': mosek.boundkey.fx,
+                'fr': mosek.boundkey.fr,
+                'lo': mosek.boundkey.lo,
+                'ra': mosek.boundkey.ra,
+                'up': mosek.boundkey.up,
+               }
+
+        # 1$ tolerance over all values.
+        it = 0
+        diff = np.inf
+        old_delta = 0
+        old_x = np.zeros(self.nvars)
+        self._estimateMedicare()
+        while diff > 1:
+            self._buildConstraints(objective, options)
+            Aind, Aval, clb, cub = self.A.lists()
+            ckeys = self.A.keys()
+            vlb,  vub = self.B.arrays()
+            integrality = self.B.integralityList()
+            vkeys = self.B.keys()
+            cind, cval = self.c.lists()
+
+            task = mosek.Task()
+            # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
+            task.appendcons(self.A.ncons)
+            task.appendvars(self.A.nvars)
+
+            for ii in range(len(cind)):
+                task.putcj(cind[ii], cval[ii])
+
+            for ii in range(self.nvars):
+                task.putvarbound(ii, bdic[vkeys[ii]], vlb[ii], vub[ii])
+
+            for ii in range(len(integrality)):
+                task.putvartype(integrality[ii], mosek.variabletype.type_int)
+
+            for ii in range(self.A.ncons):
+                task.putarow(ii, Aind[ii], Aval[ii])
+                task.putconbound(ii, bdic[ckeys[ii]], clb[ii], cub[ii])
+
+            task.putobjsense(mosek.objsense.minimize)
+            task.optimize()
+
+            solsta = task.getsolsta(mosek.soltype.itg) 
+            prosta = task.getprosta(mosek.soltype.itg) 
+            it += 1
+
+            if solsta != mosek.solsta.integer_optimal:
+                break
+
+            xx = np.array(task.getxx(mosek.soltype.itg))
+
+            self._estimateMedicare(xx)
+            delta = xx - old_x
+            # u.vprint('Iteration:', it, 'delta:', np.sum(delta)/1000)
+
+            diff = np.sum(np.abs(delta), axis=0)
+            old_x = xx
+            delta = np.sum(delta, axis=0)
+            if abs(delta + old_delta) < 1e-3 or it > 32:
+                print('WARNING: Detected oscilating solution.')
+                print('    Try again with slightly different input parameters.')
+                break
+            old_delta = delta
+
+        task.set_Stream(mosek.streamtype.msg, _streamPrinter)
+        if solsta == mosek.solsta.integer_optimal:
+            u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
+            task.solutionsummary(mosek.streamtype.msg)
+            # u.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
+            self._aggregateResults(xx)
+            self._caseStatus = 'solved'
+        else:
+            u.vprint('WARNING: Optimization failed:', 'Infeasible or unbounded')
+            task.solutionsummary(mosek.streamtype.msg)
+            self._caseStatus = 'unsuccessful'
+
+        self.objective = objective
         self.solverOptions = options
 
         return
@@ -1288,8 +1392,8 @@ class Plan:
         print('Optimized for:', self.objective)
         print('Solver options:', self.solverOptions)
         print('Solver used:', self.solver)
-        print('Number of decision variables:', self.nvars)
-        print('Number of constraints:', len(self.ubvec))
+        print('Number of decision variables:', self.A.nvars)
+        print('Number of constraints:', self.A.ncons)
         print('Spending profile:', self.spendingProfile)
         if self.N_i == 2:
             print('Survivor percent income:', u.pc(self.chi, f=0))
@@ -2108,27 +2212,11 @@ def _formatSpreadsheet(ws, ftype):
     return
 
 
-class ConstraintMatrix:
-    def __init__(self, n):
-        self.n = n
-        self.Alu = []
-        self.lb = []
-        self.ub = []
+def _streamPrinter(text):
+    '''
+    Define a stream printer to grab output from MOSEK.
+    '''
+    import sys
+    sys.stdout.write(text)
+    sys.stdout.flush()
 
-    def newRow(self, rowDic={}):
-        row = np.zeros(self.n)
-        for key in rowDic:
-            row[key] = rowDic[key]
-        return row
-
-    def addRow(self, row, lb, ub):
-        self.Alu.append(row)
-        self.lb.append(lb)
-        self.ub.append(ub)
-
-    def addNewRow(self, rowDic, lb, ub):
-        row = self.newRow(rowDic)
-        self.addRow(row, lb, ub)
-
-    def arrays(self):
-        return np.array(self.Alu), np.array(self.lb), np.array(self.ub)
