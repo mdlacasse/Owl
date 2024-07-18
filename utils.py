@@ -38,6 +38,7 @@ def vprint(*args, **kwargs):
     global verbose
     if verbose:
         print(*args)
+    sys.stdout.flush()
 
     return
 
@@ -48,6 +49,7 @@ def xprint(*args, **kwargs):
     '''
     print("ERROR:", *args, file=sys.stderr, **kwargs)
     print("Exiting...", file=sys.stderr)
+    sys.stderr.flush()
     sys.exit(-1)
 
 
