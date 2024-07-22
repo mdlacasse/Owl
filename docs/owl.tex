@@ -128,7 +128,8 @@ to take only non-negative values ($\ge 0$ inequality).
 \end{description}
 
 \section{Parameters}
-For more easily distinguishing parameters from variables, all parameters will be expressed in Greek letters.
+For more easily distinguishing parameters from variables, all parameters will be expressed either in Greek letters
+or using caligraphic fonts.
 Parameter values are either set by the user, historical data, or by the tax code.
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$\beta{ij}$]
@@ -137,7 +138,12 @@ Parameter values are either set by the user, historical data, or by the tax code
 	Annual rate of return for asset class $k$ in year $n$.
 	A time series of annual return rates for each class of asset.
 	Here, inflation and the rate of return of $(k=3)$ cash are assumed to be the same.
-		In other words, investing in cash yields constant dollars (just inflation).
+	In other words, investing in cash yields constant dollars (just inflation).
+\item[$\mathcal{T}_{ijn}$]
+	When the allocation ratios are fixed, it is more convenient to express return rates as
+	\begin{equation}
+		\mathcal{T}_{ijn} = \sum_k \alpha_{ijkn} \tau_{kn}.
+	\end{equation}
 \item [$\gamma_n$]
 	Cumulative inflation at the beginning of year $n$ computed as the product
 	\begin{equation}
@@ -299,6 +305,41 @@ or an s-curve as in
 	Income tax rate on long-term capital gain and qualified dividends, typically 15\%.
 \item [$\eta$]
 	Spousal ratio for withdrawals.
+\item [$\mathcal{M}_n$]
+	Medicare and Income Related Monthly Adjusted Adjustment for Medicare. As this additional adjustment
+	is a step function, it has to be computed using binary variables and mixed-integer linear
+	programming. In the current tax code, this adjustment
+	depends on the modified adjusted gross income (MAGI) from 2 years earlier. For the
+	MAGI, we simply use $G_{n-2} + \bar{\sigma}_{n-2}$ and ignore the additional IRS
+	rules around tax-free interests which are insignificant in most cases.
+
+	There are $q=5$ levels
+	of step adjustments, $\bar{L}_{qn} = L_q\gamma_n$ and each of them introduce
+	an annual additional Medicare
+	cost of $\bar{C}_{qn} = C_q\gamma_n$. Both levels and costs are adjusted for inflation.
+	One could use binary variables $z_{inq}$ and the following big M constraint
+	\begin{equation}
+		\bar{\sigma}_{n-2} -\bar{L}_{qn} \le z_{inq} bigM - G_{n-2} \le bigM - \bar{L}_{qn} + \bar{\sigma}_{n-2},
+	\end{equation}
+	so that the IRMAA adjustments can be computed as
+	\begin{equation}
+		\label{Eq:IRMAA}
+		\mathcal{M}_n = \sum_{iq} z_{iqn} \bar{C}_{qn}.
+	\end{equation}
+	If the plan does not have data from 2 years ago as Medicare starts,
+	it will use last year's or this year's MAGI instead, in that order.
+
+	While this approach has been implemented and tested, the robustness of the {\em bigM} approach
+	is not guaranteed and an easier approach is to implement a self-consistent loop that
+	optimizes the spending or bequest, and updates the Medicare/IRMAA premiums accordingly.
+	Therefore, the value will be computed from the MAGI as $\mathcal{M}_n^s(G_n + \bar{\sigma}_n)$,
+	where the value is at iteration $s$.
+	After only a few iterations, the solution is converging to within a dollar over the
+	sum of all variables in the plan. This approach, however, does not guarantee convergence
+	as there can be cases where the premiums affect the solution which can oscillate between
+	two solutions, but these cases are detected and a slight change in parameters
+	solves this issue. As these premiums are introduced as parameters in the constraints,
+	there is no optimization taking place on Medicare costs.
 \end{description}
 
 \section{Intermediate variables}
@@ -379,40 +420,6 @@ All intermediate variables are in uppercase letters.
 	Although it is not always the case, we assume that qualified dividends and long-term
 	capital gains are taxed at the same preferential rate $\psi$.
 
-\item [$M_n$]
-	Medicare and Income Related Monthly Adjusted Adjustment for Medicare. As this additional adjustment
-	is a step function, it has to be computed using binary variables and mixed-integer linear
-	programming. The adjustment
-	is computed from the modified adjusted gross income (MAGI) from 2 years earlier. For the
-	MAGI, we will simply use $G_{n-2} + \bar{\sigma}_{n-2}$ and ignore the additional IRS
-	rules around tax-free interests.
-
-	There are $q=5$ levels
-	of step adjustments, $\bar{L}_{qn} = L_q\gamma_n$ and each of them introduce
-	an annual additional Medicare
-	cost of $\bar{C}_{qn} = C_q\gamma_n$. Both levels and costs are adjusted for inflation.
-	Using binary variables $z_{inq}$ and the following constraint
-	\begin{equation}
-		\bar{\sigma}_{n-2} -\bar{L}_{qn} \le z_{inq} M - G_{n-2} \le bigM - \bar{L}_{qn} + \bar{\sigma}_{n-2},
-	\end{equation}
-	the IRMAA adjustments can then computed as
-	\begin{equation}
-		\label{Eq:IRMAA}
-		I_n = \sum_{iq} z_{iqn} \bar{C}_{qn}.
-	\end{equation}
-	If the plan does not have data from 2 years ago as Medicare starts,
-	it will use last year's or this year's MAGI instead, in that order.
-
-	While this approach has been implemented and tested, the robustness of the {\em bigM} approach
-	is not guaranteed and an easier approach is to implement a self-consistent loop that
-	optimizes the spending or bequest, and updates the Medicare/IRMAA premiums accordingly.
-	Therefore, the value will be computed from the MAGI as $M_n^s(G_n + \bar{\sigma}_n)$,
-	where the value is at iteration $s$.
-	After only a few iterations, the solution is converging to within a dollar over the
-	sum of all variables in the plan. This approach, however, does not guarantee convergence
-	as there can be cases where the premiums affect the solution which can oscillate between
-	two solutions. Moreover, as the premiums are introduced as parameters in the constraints,
-	there is no optimization taking place on Medicare costs.
 \end{description}
 
 \chapter{Formulation with imposed asset allocation ratios}
@@ -619,7 +626,7 @@ add the market returns to the savings balances.
 	\begin{eqnarray}
 		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
 		+ \sum_{ij} w_{ijn} + \sum_i \Lambda^\pm_{in} - \sum_{i}d_{in}
-		- T_n - U_n - M_n.
+		- T_n - U_n - \mathcal{M}_n.
 	\end{eqnarray}
 	Notice how the big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
@@ -630,12 +637,12 @@ add the market returns to the savings balances.
 		+ \psi\alpha_{i00n} \sum_{i} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0n-1})\right] 
 		&=& \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] + \nonumber\\
-		&& \sum_i [\Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - M_n^s.
+		&& \sum_i [\Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - \mathcal{M}_n^s.
 	\end{eqnarray}
 	Notice that we do not consider market losses as we use $\max(0, \tau)$, and that
 	rates from only the previous year are used. Tax-loss
 	harvesting is beyond the scope of this model.
-	For clarity, we did not express $M_n^s(G_n+\bar{sigma}_n)$ in terms of the modified
+	For clarity, we did not express $\mathcal{M}_n^s(G_n+\bar{sigma}_n)$ in terms of the modified
 	adjusted gross income (MAGI), but one to understand that there is a self-consistent
 	loop solving for it and we are at iteration $s$.
 
@@ -681,7 +688,7 @@ is determined.
 
 \chapter{Mapping of decision variables}
 At this point, one can use one of the many algebraic modeling languages
-such as AMPL, GAMS, Mosek, AIMMS, and Gurobi, and code the equations above
+such as AMPL, GAMS, MOSEK, AIMMS, and Gurobi, and code the equations above
 using that language, but most of these applications are
 proprietary and require a license and additional software installation.
 These languages allow the problem to be stated at a high level and
@@ -691,6 +698,10 @@ and PuLP that ease the process of solving these problems.
 For completeness, however, we present here a simple
 index mapping approach that allows solving this problem using a generic
 linear programming solver.
+
+Using a simple interface for mapping sparse objects to dense ones, the approach described here
+has been successfully tested with both the HiGHS open-source solver
+and the MOSEK proprietary solver.
 
 To cast the problem in a form suitable for a linear programming solver, we will use
 a single block vector represented by the array $y[q()]$ with index-mapping functions $q()$.
@@ -920,7 +931,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 where $v$ is
 \begin{equation}
 	v[J_2(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
-	+ \Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - M_n^s.
+	+ \Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - \mathcal{M}_n^s.
 \end{equation}
 
 The condition of having a predictable net spending expressed as an

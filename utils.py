@@ -10,6 +10,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 ######################################################################
 import sys
+import numpy as np
 
 
 ######################################################################
@@ -75,7 +76,7 @@ def rescale(vals, fac):
     '''
     Rescale elements of a list or array by factor fac.
     '''
-    if isinstance(vals, (float, int)) == True:
+    if isinstance(vals, (float, int)) or isinstance(vals, np.ndarray):
         return vals * fac
     else:
         for i in range(len(vals)):
@@ -120,8 +121,9 @@ def getGitRevisionShortHash() -> str:
 
 
 def roundCents(n, decimals=2):
-    import numpy as np
-
+    '''
+    Round values in numpy array down to second decimal.
+    '''
     multiplier = 10**decimals
 
     return np.floor(n * multiplier + 0.5) / multiplier

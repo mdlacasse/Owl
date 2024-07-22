@@ -990,7 +990,7 @@ class Plan:
 
         B.setBinary(_q1(CZ, 0, 1))
 
-        # Exclude simultaneous deposits and withdrawals in taxable account.
+        # Exclude simultaneous deposits and withdrawals from taxable or tax-free accounts.
         for i in range(Ni):
             for n in range(Nn):
                 A.addNewRow(
@@ -1011,7 +1011,11 @@ class Plan:
                     bigM,
                 )
 
-                A.addNewRow({_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1}, zero, bigM)
+                A.addNewRow(
+                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    zero,
+                    bigM
+                )
 
         # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
         for i in range(Ni):
@@ -1028,9 +1032,9 @@ class Plan:
                     bigM,
                 )
 
-        A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
-
-        A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
+        # Exclude taxable withdrawals from passing spouse to deposits in surviving.
+        # A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
+        # A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
 
         # Now build objective vector. Slight 1% favor to tax-free to avoid null space.
         c = abc.Objective(self.nvars)
@@ -1220,6 +1224,7 @@ class Plan:
             old_delta = delta
 
         task.set_Stream(mosek.streamtype.msg, _streamPrinter)
+        # task.writedata(self._name+'.ptf')
         if solsta == mosek.solsta.integer_optimal:
             u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
             task.solutionsummary(mosek.streamtype.msg)
