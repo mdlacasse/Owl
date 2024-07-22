@@ -51,7 +51,7 @@ extraDeduction_65 = np.array([1950, 1550])
 
 def mediCosts(yobs, horizons, magi, gamma_n, Nn):
     '''
-    Compute Medicare costs for comparison.
+    Compute Medicare costs directly.
     '''
     thisyear = date.today().year
     Ni = len(yobs)
@@ -60,10 +60,13 @@ def mediCosts(yobs, horizons, magi, gamma_n, Nn):
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
                 costs[n] += gamma_n[n] * irmaaFees_2024[0]
-                if n >= 2:
-                    for q in range(1, 6):
-                        if magi[n - 2] > gamma_n[n] * irmaaBrackets_2024[Ni - 1][q]:
-                            costs[n] += gamma_n[n] * irmaaFees_2024[q]
+                if n < 2:
+                    nn = n
+                else:
+                    nn = 2
+                for q in range(1, 6):
+                    if magi[n - nn] > gamma_n[n] * irmaaBrackets_2024[Ni - 1][q]:
+                        costs[n] += gamma_n[n] * irmaaFees_2024[q]
 
     return costs
 
