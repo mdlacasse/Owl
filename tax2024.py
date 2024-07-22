@@ -24,7 +24,7 @@ irmaaBrackets_2024 = np.array(
 # [174.70, 244.60, 349.40, 454.20, 559.00, 594.00]
 irmaaFees_2024 = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
 
-medicareBasis_2024 = 12 * 174.70
+# medicareBasis_2024 = 12 * 174.70
 
 '''
 brackets_2017 = np.array(
