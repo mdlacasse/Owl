@@ -137,10 +137,10 @@ By default, all these plots are in nominal dollars. To get values in today's $, 
 ```python
 plan.setDefaultPlots('today')
 ```
-would change all graphs to report in today's dollars. Each plot can also override the default by using the `value`
-parameters such as in
+would change all graphs to report in today's dollars. Each plot can also override the default by setting the `value`
+parameters to either *nominal* or *today*, such as in this example
 ```python
-plan.showGrossIncome(value='today')
+plan.showGrossIncome(value='nominal')
 ```
 
 Typical plots look like the following. The optimal spending profile looks like this (in nominal dollars). Notice
