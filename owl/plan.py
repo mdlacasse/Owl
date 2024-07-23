@@ -17,11 +17,11 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import numpy as np
 from datetime import date
 
-import utils as u
-import tax2024 as tx
-import rates
-import timelists
-import abcapi as abc
+from owl import utils as u
+from owl import tax2024 as tx
+from owl import rates
+from owl import timelists
+from owl import abcapi as abc
 
 
 def setVerbose(self, state=True):

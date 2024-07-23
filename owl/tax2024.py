@@ -1,3 +1,7 @@
+'''
+Module to handle all tax calculations.
+'''
+
 import numpy as np
 from datetime import date
 

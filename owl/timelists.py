@@ -5,7 +5,7 @@ Utility functions to read and check timelists.
 from datetime import date
 import pandas as pd
 
-import utils as u
+from owl import utils as u
 
 
 def read(filename, N_i, horizons):

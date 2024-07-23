@@ -21,7 +21,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 ###################################################################
 import numpy as np
-import utils as u
+from owl import utils as u
 
 # All data goes from 1928 to 2023. Update the TO value when data
 # becomes available for subsequent years.
