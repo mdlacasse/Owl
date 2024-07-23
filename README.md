@@ -63,7 +63,7 @@ for the duration of the plan, and these can glide linearly or along a configurab
 to the last year of the plan.
 
 Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be
-flat or follow a *smile* curve which is also adjustable.
+flat or follow a *smile* curve which is also adjustable through two simple parameters.
 
 Available rates are from 1928
 to last year and can be used to test historical performance. Fixed rates can also be provided, as
@@ -73,7 +73,7 @@ a selected historical year range. Extending the capabilities to Monte Carlo simu
 be straightforward. Average rates over a data period can also be chosen.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
-an Excel spreadsheet than contains future wages, contributions
+an Excel spreadsheet that contains future wages, contributions
 to savings accounts, and planned *big ticket items* such as the purchase of a lake house or the sale of a boat.
 
 Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts
@@ -108,8 +108,8 @@ or maximizing the bequest subject to a net spending basis that is already too la
 ## An example of Owl's functionality
 With about 10 lines of Python code, one can generate a full case study.
 Here is a typical plan without comments.
-A plan starts with birth years and life expectancies.
-Dollar amounts are in k\$ and ratios in percentage.
+A plan starts with birth years, life expectancies, and a name for the plan.
+Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 ```python
 import owl
 plan = owl.Plan([1962, 1965], [89, 92], 'jack & jill - tutorial')
