@@ -306,7 +306,8 @@ or an s-curve as in
 \item [$\eta$]
 	Spousal ratio for withdrawals.
 \item [$\mathcal{M}_n$]
-	Medicare and Income Related Monthly Adjusted Adjustment for Medicare. As this additional adjustment
+	Medicare and Income Related Monthly Adjusted Adjustment (IRMAA)
+	for Medicare. As this additional adjustment
 	is a step function, it has to be computed using binary variables and mixed-integer linear
 	programming. In the current tax code, this adjustment
 	depends on the modified adjusted gross income (MAGI) from 2 years earlier. For the
@@ -636,13 +637,14 @@ add the market returns to the savings balances.
 		+ \sum_t \bar{F}_{tn} \theta_{t n} &&\nonumber \\
 		+ \psi\alpha_{i00n} \sum_{i} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0n-1})\right] 
-		&=& \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] + \nonumber\\
-		&& \sum_i [\Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - \mathcal{M}_n^s.
+		&=& \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
+		&& + \sum_i [\Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] \nonumber\\
+		&& - \mathcal{M}_n^s.
 	\end{eqnarray}
 	Notice that we do not consider market losses as we use $\max(0, \tau)$, and that
 	rates from only the previous year are used. Tax-loss
 	harvesting is beyond the scope of this model.
-	For clarity, we did not express $\mathcal{M}_n^s(G_n+\bar{sigma}_n)$ in terms of the modified
+	For clarity, we did not express $\mathcal{M}_n^s(G_n+\bar{\sigma}_n)$ in terms of the modified
 	adjusted gross income (MAGI), but one to understand that there is a self-consistent
 	loop solving for it and we are at iteration $s$.
 

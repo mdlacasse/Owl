@@ -1154,7 +1154,7 @@ class Plan:
 
     def _mosekSolve(self, objective, options):
         '''
-        Solve problem using Mosek solver
+        Solve problem using MOSEK solver.
         '''
         import mosek
 
@@ -1232,7 +1232,7 @@ class Plan:
             self._aggregateResults(xx)
             self._caseStatus = 'solved'
         else:
-            u.vprint('WARNING: Optimization failed:', 'Infeasible or unbounded')
+            u.vprint('WARNING: Optimization failed:', 'Infeasible or unbounded.')
             task.solutionsummary(mosek.streamtype.msg)
             self._caseStatus = 'unsuccessful'
 
