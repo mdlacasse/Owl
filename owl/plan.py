@@ -1403,7 +1403,7 @@ class Plan:
         if self.N_i == 2:
             print('Survivor percent income:', u.pc(self.chi, f=0))
 
-        print('Net yearly spending basis in %d$: %s' % (now, u.d(self.g_n[0])))
+        print('Net yearly spending basis in %d$: %s' % (now, u.d(self.g_n[0]/self.xi_n[0])))
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
@@ -1470,7 +1470,7 @@ class Plan:
         ltype = ['-', '-.', ':', '--']
         for k in range(self.N_k):
             data = 100 * self.tau_kn[k]
-            label = rateName[k] + ' <' + '{:.2f}'.format(np.mean(data)) + '>'
+            label = rateName[k] + ' <' + '{:.2f}'.format(np.mean(data)) + '%>'
             ax.plot(self.year_n, data, label=label, ls=ltype[k % self.N_k])
 
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
