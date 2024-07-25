@@ -173,7 +173,7 @@ class Plan:
         self.chi = 0.6  # Survivor fraction
         self.mu = 0.02  # Dividend rate (decimal)
         self.nu = 0.30  # Heirs tax rate (decimal)
-        self.eta = 0.5  # Spousal withdrawal ratio
+        self.eta = 0    # Spousal deposit/withdrawal ratio
         self.phi_j = [1, 1, 1]  # Fraction left to other spouse at death
 
         # Placeholder for before reading contributions file.
@@ -236,14 +236,27 @@ class Plan:
 
         return
 
-    def setSpousalWithdrawalFraction(self, eta):
+    def setSpousalFraction(self, eta, bound='>'):
         '''
-        Set spousal withdrawal fraction. Default 0.5.
-        Currently unused.
+        Set spousal deposit and withdrawal fraction. Default 0.
+        A fraction x is given then
+            d0/(d0 + d1) >= x,
+        or
+            d0/(d0 + d1) <= x, 
+        depending on the bound '>' or '<' provided.
+        Here d0 is the deposit amount into the taxable account
+        of first spouse while d1 is for the second spouse.
+        If x is 1, and bound is '>', all surplus get deposited
+        into the taxable account of the first spouse. If x is 0, and bound is '<',
+        then all surplus get deposited into the taxable account of the second spouse.
         '''
         assert 0 <= eta and eta <= 1, 'Fraction must be between 0 and 1.'
-        u.vprint('Spousal withdrawal fraction set to', eta)
-        self.eta = eta
+        u.vprint('Setting spousal fraction to %.1f.'%eta)
+        assert bound in ['>', '<'], 'Bound must be one of "<" or ">".'
+        if bound == '>':
+            self.eta = eta
+        else:
+            self.eta = -eta
 
         return
 
@@ -317,7 +330,7 @@ class Plan:
         '''
         assert 0 <= nu and nu <= 100, 'Rate must be between 0 and 100.'
         nu /= 100
-        u.vprint('Heirs tax rate on tax-deferred portion of estate set to', u.pc(nu, f=0))
+        u.vprint('Heirs tax rate on tax-deferred portion of estate set to %s.'%u.pc(nu, f=0))
         self.nu = nu
         self._caseStatus = 'modified'
 
@@ -338,7 +351,7 @@ class Plan:
             'Setting pension of',
             [u.d(amounts[i]) for i in range(self.N_i)],
             'at age(s)',
-            ages,
+            ages
         )
 
         thisyear = date.today().year
@@ -949,13 +962,21 @@ class Plan:
             rowDic = {_q1(Cg, 0, Nn): -self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
             A.addNewRow(rowDic, zero, zero)
 
-        # Balance deposits while both spouses are alive.
+        # Balance deposits and withdrawals while both spouses are alive.
         if Ni == 2:
+            pm1 = np.sign(self.eta)
             for n in range(n_d - 1):
-                rowDic = {_q2(Cd, 0, n, Ni, Nn): 1, _q2(Cd, 1, n, Ni, Nn): -1}
-                A.addNewRow(rowDic, zero, zero)
+                rowDic = {_q2(Cd, 0, n, Ni, Nn): (pm1 - self.eta), _q2(Cd, 1, n, Ni, Nn): -self.eta}
+                A.addNewRow(rowDic, zero, inf)
+                '''
+                rowDic = {_q3(Cw, 0, 1, n, Ni, Nj, Nn): (pm1 - self.eta), 
+                          _q3(Cw, 1, 1, n, Ni, Nj, Nn): -self.eta
+                         }
+                rhs = self.rho_in[0, n]*(pm1 - self.eta) - self.rho_in[1, n]*self.eta
+                A.addNewRow(rowDic, rhs, inf)
+                '''
 
-        # Impose max on all withdrawals. This helps converging.
+        # Impose account balance max on all withdrawals. This helps converging.
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
