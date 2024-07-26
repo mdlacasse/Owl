@@ -74,7 +74,8 @@ be straightforward. Average rates over a data period can also be chosen.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
 an Excel spreadsheet that contains future wages, contributions
-to savings accounts, and planned *big ticket items* such as the purchase of a lake house or the sale of a boat.
+to savings accounts, and planned *big ticket items* such as the purchase of a lake house, the sale of a boat,
+large gifts, or inheritance.
 
 Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts
 which are tracked separately for married individuals. Asset transition to the surviving spouse
@@ -95,6 +96,7 @@ Head of household filing status has not been added but can easily be.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
 - In the current implementation, social securiy is always taxed at 85%.
+- Medicare calculations are done through a self-consistent loop. This means that the Medicare premiums are calculated after an initial solution is generated, and then a new solution is re-generated with these premiums as a constraint. When the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise. Owl will detect these cases and will inform the user with a warning message, instructing to slightly change the input parameters to remediate the situation.
 - Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
