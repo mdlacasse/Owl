@@ -411,7 +411,7 @@ class Plan:
 
         u.vprint('Setting', profile, 'spending profile.')
         if self.N_i == 2:
-            u.vprint('Using ', u.pc(self.chi, f=0), 'income for survivor.')
+            u.vprint('Using ', u.pc(self.chi, f=0), 'spending for surviving spouse.')
 
         self.xi_n = _xi_n(profile, self.chi, self.n_d, self.N_n)
         self.spendingProfile = profile
