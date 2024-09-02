@@ -1,6 +1,6 @@
 '''
 
-Owl 
+Owl/plan
 ---
 
 A retirement planner using linear programming optimization.
