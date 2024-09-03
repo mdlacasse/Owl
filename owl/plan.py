@@ -856,6 +856,17 @@ class Plan:
                 B.set0_Ub(_q2(Cd, i_d, n, Ni, Nn), zero)
                 for j in range(Nj):
                     B.set0_Ub(_q3(Cw, i_d, j, n, Ni, Nj, Nn), zero)
+            # Process noRothConversions option.
+            if 'noRothConversions' in options:
+                rhsopt = options['noRothConversions']
+                try:
+                    i_x = self.inames.index(rhsopt)
+                except ValueError:
+                    u.xprint('Unknown individual for noRothConversions:', rhsopt)
+
+                for n in range(Nn):
+                    B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
+
 
         # Deposits in taxable account during last year are a tax loophole.
         for i in range(Ni):
@@ -1093,7 +1104,7 @@ class Plan:
 
         Refer to companion document for implementation details.
         '''
-        knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate', 'bigM']
+        knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate', 'bigM', 'noRothConversions']
         for opt in options:
             if opt not in knownOptions:
                 u.xprint('Option', opt, 'not one of', knownOptions)
@@ -1422,7 +1433,7 @@ class Plan:
         print('Number of constraints:', self.A.ncons)
         print('Spending profile:', self.spendingProfile)
         if self.N_i == 2:
-            print('Survivor percent income:', u.pc(self.chi, f=0))
+            print('Surviving spouse percent income:', u.pc(self.chi, f=0))
 
         print('Net yearly spending basis in %d$: %s' % (now, u.d(self.g_n[0]/self.xi_n[0])))
 
