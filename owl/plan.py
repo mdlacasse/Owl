@@ -223,7 +223,7 @@ class Plan:
         if self._caseStatus == 'solved':
             return False
 
-        u.vprint('Preventing to run %s() while problem is %s.' % (funcName, self._caseStatus))
+        u.vprint('Preventing to run %s() while solution is %s.' % (funcName, self._caseStatus))
 
         return True
 
@@ -1104,6 +1104,9 @@ class Plan:
 
         Refer to companion document for implementation details.
         '''
+        # Assume unsuccessful until problem solved.
+        self._caseStatus = 'unsuccessful'
+
         knownOptions = ['units', 'maxRothConversion', 'netSpending', 'estate', 'bigM', 'noRothConversions']
         for opt in options:
             if opt not in knownOptions:

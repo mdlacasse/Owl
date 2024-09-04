@@ -47,6 +47,7 @@ def vprint(*args, **kwargs):
 def xprint(*args, **kwargs):
     '''
     Print and exit. Use to print error messages on stderr.
+    The exit() used throws an exception.
     '''
     print("ERROR:", *args, file=sys.stderr, **kwargs)
     print("Exiting...", file=sys.stderr)
