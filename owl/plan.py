@@ -1419,7 +1419,7 @@ class Plan:
             return
 
         now = self.year_n[0]
-        print('SUMMARY ======================================================')
+        print('SUMMARY ================================================================')
         print('Plan name:', self._name)
         for i in range(self.N_i):
             u.vprint('%12s\'s life horizon: %d -> %d' % (self.inames[i], now, now + self.horizons[i] - 1))
@@ -1471,7 +1471,7 @@ class Plan:
         print('Total estate value in %d$: %s (%s nominal)' % (now, u.d(totEstateNow), u.d(totEstate)))
         print('Final inflation factor:', u.pc(self.gamma_n[-1], f=1))
 
-        print('--------------------------------------------------------------')
+        print('------------------------------------------------------------------------')
 
         return
 
@@ -1908,7 +1908,7 @@ class Plan:
             'all wages': np.sum(self.omega_in, axis=0),
             'all pensions': np.sum(self.pi_in, axis=0),
             'all soc sec': np.sum(self.zetaBar_in, axis=0),
-            'all bti': np.sum(self.Lambda_in, axis=0),
+            'all bti\'s': np.sum(self.Lambda_in, axis=0),
             'all wdrwls': np.sum(self.w_ijn, axis=(0, 1)),
             'all deposits': -np.sum(self.d_in, axis=0),
             'ord taxes': -self.T_n,
