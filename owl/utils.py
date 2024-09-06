@@ -1,8 +1,16 @@
 '''
 
-Python file for handling error messages.
+Owl/utils
+---
 
-Copyright -- Martin-D. Lacasse (2023)
+A retirement planner using linear programming optimization.
+
+See companion document for a complete explanation and description
+of all variables and parameters.
+
+This file for handling error messages.
+
+Copyright -- Martin-D. Lacasse (2024)
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 

@@ -1,26 +1,42 @@
 '''
-This file contains basic functions to build
-a constraint matrix and objective function
-line by line. This is used to abstract the
-building of the constraint matrix in order
-to be able to use various solvers for comparison.
 
-This approach has been successful with the MOSEK and 
-the HiGHS solvers.
+Owl/abcapi
+---
+
+A retirement planner using linear programming optimization.
+
+See companion document for a complete explanation and description
+of all variables and parameters.
+
+This file contains basic functions to build a constraint matrix and
+objective function line by line. This is used to abstract the
+building of the constraint matrix in order to be able to use various
+solvers for comparison.
+
+This approach has been successful with the MOSEK and the HiGHS solvers.
+A for matrix, B for bounds, C for constraints.
+
+Copyright -- Martin-D. Lacasse (2024)
+
+Disclaimer: This program comes with no guarantee. Use at your own risk.
+
 '''
+
 import numpy as np
+
 
 class Row:
     '''
     Solver-neutral API to accomodate Mosek/HiGHS.
     '''
+
     def __init__(self, nvars):
         self.nvars = nvars
         self.ind = []
         self.val = []
 
     def addElem(self, ind, val):
-        assert 0 <= ind and ind < self.nvars, 'Index %d out of range.'%ind
+        assert 0 <= ind and ind < self.nvars, 'Index %d out of range.' % ind
         self.ind.append(ind)
         self.val.append(val)
 
@@ -40,6 +56,7 @@ class ConstraintMatrix:
     '''
     Solver-neutral API for expressing constraints.
     '''
+
     def __init__(self, nvars):
         self.ncons = 0
         self.nvars = nvars
@@ -100,6 +117,7 @@ class Bounds:
     '''
     Solver-neutral API for bounds on variables.
     '''
+
     def __init__(self, nvars):
         self.nvars = nvars
         self.ind = []
@@ -109,7 +127,7 @@ class Bounds:
         self.integrality = []
 
     def setBinary(self, ii):
-        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.'%ii
+        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.' % ii
         self.ind.append(ii)
         self.lb.append(0)
         self.ub.append(1)
@@ -117,21 +135,21 @@ class Bounds:
         self.integrality.append(ii)
 
     def set0_Ub(self, ii, ub):
-        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.'%ii
+        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.' % ii
         self.ind.append(ii)
         self.lb.append(0)
         self.ub.append(ub)
         self.key.append('ra')
 
     def setLb_Inf(self, ii, lb):
-        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.'%ii
+        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.' % ii
         self.ind.append(ii)
         self.lb.append(lb)
         self.ub.append(np.inf)
         self.key.append('lo')
 
     def setRange(self, ii, lb, ub):
-        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.'%ii
+        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.' % ii
         self.ind.append(ii)
         self.lb.append(lb)
         self.ub.append(ub)
@@ -141,7 +159,7 @@ class Bounds:
             self.key.append('ra')
 
     def keys(self):
-        keys = ['lo']*self.nvars
+        keys = ['lo'] * self.nvars
         for ii in range(len(self.ind)):
             keys[self.ind[ii]] = self.key[ii]
 
@@ -149,7 +167,7 @@ class Bounds:
 
     def arrays(self):
         lb = np.zeros(self.nvars)
-        ub = np.ones(self.nvars)*np.inf
+        ub = np.ones(self.nvars) * np.inf
         for ii in range(len(self.ind)):
             lb[self.ind[ii]] = self.lb[ii]
             ub[self.ind[ii]] = self.ub[ii]
@@ -171,13 +189,14 @@ class Objective:
     '''
     Solver-neutral objective function.
     '''
+
     def __init__(self, nvars):
         self.nvars = nvars
         self.ind = []
         self.val = []
 
     def setElem(self, ind, val):
-        assert 0 <= ind and ind < self.nvars, 'Index %d out of range.'%ind
+        assert 0 <= ind and ind < self.nvars, 'Index %d out of range.' % ind
         self.ind.append(ind)
         self.val.append(val)
 
@@ -196,5 +215,3 @@ class Objective:
         Return lists for Mosek sparse representation.
         '''
         return self.ind, self.val
-
-

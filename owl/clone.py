@@ -16,7 +16,8 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 from owl import plan
 
-def clone(plan, name=''):
+
+def clone(plan, name=None):
     '''
     Return an almost identical copy of plan.
     Only the name wiil be modified and appended '(copy)',
@@ -25,9 +26,9 @@ def clone(plan, name=''):
     import copy
 
     newplan = copy.deepcopy(plan)
-    if name != '':
-        newplan.setName(name)
+    if name is None:
+        newplan.rename(plan._name + ' (copy)')
     else:
-        newplan.setName(plan._name + ' (copy)')
+        newplan.rename(name)
 
     return newplan

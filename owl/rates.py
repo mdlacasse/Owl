@@ -1,4 +1,13 @@
 '''
+
+Owl/rates
+---
+
+A retirement planner using linear programming optimization.
+
+See companion document for a complete explanation and description
+of all variables and parameters.
+
 This class provides the historical annual rate of returns for different
 classes of assets: S&P500, Baa corporate bonds, Aaa corporate bonds,
 10-year Treasury notes, and inflation as measured by CPI all from
@@ -12,7 +21,7 @@ Rate lists will need to be updated with values for current year.
 When doing so, the TO bound defined below will need to be adjusted
 to the last current data year.
 
-Copyright -- Martin-D. Lacasse (2023)
+Copyright -- Martin-D. Lacasse (2023,2024)
 
 Last updated: May 2024
 
@@ -778,24 +787,23 @@ class rates:
         '''
         # First process fixed methods relying on values.
         if method == 'default':
-            # Convert decimal to percent for reporting.
             values = self._defRates
             # u.vprint('Using default fixed rates values: (%)\n', values)
             self._setFixedRates(self._defRates)
         elif method == 'realistic':
             values = self._defRates
-            u.vprint('Using realistic fixed rates values: (%)\n', values)
+            u.vprint('Using realistic fixed rates values: \n', [u.pc(k) for k in values])
             self._setFixedRates(self._realisticRates)
         elif method == 'conservative':
             values = self._conservRates
-            u.vprint('Using conservative fixed rates values: (%)\n', values)
+            u.vprint('Using conservative fixed rates values: \n', [u.pc(k) for k in values])
             self._setFixedRates(self._conservRates)
         elif method == 'fixed':
             assert values is not None, 'Values must be provided with the fixed option.'
             values = np.array(values, dtype=float)
-            u.vprint('Setting rates using fixed values: (%)\n', values)
             # Convert percent to decimal for storing.
             values /= 100.0
+            u.vprint('Setting rates using fixed values: \n', [u.pc(k) for k in values])
             self._setFixedRates(values)
         else:
             # Then methods relying on historical data range.

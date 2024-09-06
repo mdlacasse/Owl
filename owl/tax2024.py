@@ -1,5 +1,18 @@
 '''
+
+Owl/tax2024
+---
+
+A retirement planner using linear programming optimization.
+
+See companion document for a complete explanation and description
+of all variables and parameters.
+
 Module to handle all tax calculations.
+
+Copyright -- Martin-D. Lacasse (2024)
+
+Disclaimer: This program comes with no guarantee. Use at your own risk.
 '''
 
 import numpy as np
