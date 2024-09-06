@@ -77,9 +77,9 @@ def saveConfig(plan, basename):
     config['Asset allocations']['type'] = str(plan.ARCoord)
     if plan.ARCoord == 'account':
         for aType in accountTypes:
-            config['Asset allocations']['Ratios ' + aType] = str(plan.boundsAR[aType])
+            config['Asset allocations'][aType] = str(plan.boundsAR[aType])
     else:
-        config['Asset allocations']['Ratios ' + 'generic'] = str(plan.boundsAR['generic'])
+        config['Asset allocations']['generic'] = str(plan.boundsAR['generic'])
 
         # ', '.join(str(100 * k) for i,k in plan.boundsAR[aType][:][:])
 
@@ -191,7 +191,7 @@ def readConfig(basename):
     allocType = config['Asset allocations']['Type']
     if allocType == 'account':
         for aType in accountTypes:
-            boundsAR[aType] = ast.literal_eval(config['Asset allocations']['Ratios ' + aType])
+            boundsAR[aType] = ast.literal_eval(config['Asset allocations'][aType])
 
         p.setAllocationRatios(
             allocType,
@@ -200,7 +200,7 @@ def readConfig(basename):
             taxFree=boundsAR['tax-free'],
         )
     elif allocType == 'individual' or allocType == 'spouses':
-        boundsAR['generic'] = ast.literal_eval(config['Asset allocations']['Ratios ' + 'generic'])
+        boundsAR['generic'] = ast.literal_eval(config['Asset allocations']['generic'])
         p.setAllocationRatios(
             allocType,
             generic=boundsAR['generic'],
