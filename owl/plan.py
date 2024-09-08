@@ -890,13 +890,13 @@ class Plan:
             # if 'netSpending' in options:
             #   u.vprint('Ignoring netSpending option provided.')
             # Impose requested constraint on estate, if any.
-            if 'estate' in options:
-                estate = options['estate']
-                assert isinstance(estate, (int, float)) == True, 'Desired estate provided not a number.'
-                estate *= units * self.gamma_n[-1]
+            if 'bequest' in options:
+                bequest = options['bequest']
+                assert isinstance(bequest, (int, float)) == True, 'Desired bequest provided not a number.'
+                bequest *= units * self.gamma_n[-1]
             else:
                 # If not specified, default to $1.
-                estate = 1
+                bequest = 1
 
             row = A.newRow()
             for i in range(Ni):
@@ -905,11 +905,11 @@ class Plan:
                 # Nudge could be added (e.g. 1.02) to artificially favor tax-exempt account
                 # as heirs's benefits of 10y tax-free is not weighted in?
                 row.addElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), 1)
-            A.addRow(row, estate, estate)
-            # u.vprint('Adding estate constraint of:', u.d(estate))
+            A.addRow(row, bequest, bequest)
+            # u.vprint('Adding bequest constraint of:', u.d(bequest))
         elif objective == 'maxBequest':
-            # if 'estate' in options:
-            #   u.vprint('Ignoring estate option provided.')
+            # if 'bequest' in options:
+            #   u.vprint('Ignoring bequest option provided.')
             spending = options['netSpending']
             assert isinstance(spending, (int, float)) == True, 'Desired spending provided not a number.'
             spending *= units
@@ -1118,7 +1118,7 @@ class Plan:
         - options is a dictionary which can include:
             - maxRothConversion: Only allow conversion smaller than amount specified.
             - netSpending: Desired spending amount when optimizing with maxBequest.
-            - estate: Value of bequest in today's $ when optimizing with maxSpending.
+            - bequest: Value of bequest in today's $ when optimizing with maxSpending.
             - units: Units to use for amounts (1, k, or M).
 
         All units are in $k, unless specified otherwise.
@@ -1132,7 +1132,7 @@ class Plan:
             'units',
             'maxRothConversion',
             'netSpending',
-            'estate',
+            'bequest',
             'bigM',
             'noRothConversions',
         ]

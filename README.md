@@ -9,66 +9,72 @@ This package is a retirement modeling framework for exploring the sensitivity of
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy through the rigorous
 mathematical optimization of relevant decision variables. Two major objective goals can be set: either
-maximize net spending, or after-tax bequest under various constraints. Look at *Basic capabilities* below for more detail.
+maximize net spending, or after-tax bequest under various constraints.
+Look at *Basic capabilities* below for more detail.
 
 One can certainly have a savings plan, but due to the volatility of financial investments,
 it is impossible to have a certain asset earnings plan. This does not mean one cannot make decisions.
 These decisions need to be guided with an understanding of the sensitivity of the parameters.
-This is exactly where this tool fits it. Given your savings capabilities and spending desires, it can generate different future realizations of
+This is exactly where this tool fits it. Given your savings capabilities and spending desires,
+it can generate different future realizations of
 your strategy under different market assumptions, helping to better understand your financial situation.
 
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
 
-More disclaimers: While some output of the code has been verified with other approaches, this code is still under development and I cannot
-guarantee the accuracy of the results. Use at your own risk.
+More disclaimers: While some output of the code has been verified with other approaches,
+this code is still under development and I cannot guarantee the accuracy of the results.
+Use at your own risk.
 
 -------------------------------------------------------------------------------------
 ## Purpose and vision
-The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities, allowing
-for the next generation of Python-literate retirees to experiment with their own financial future while providing a codebase
-where they can learn and contribute. There are and were
+The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities,
+allowing for the next generation of Python-literate retirees to experiment with their own financial future
+while providing a codebase where they can learn and contribute. There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
-collecting your data, or academic papers that share the results without really sharing the details of the underlying mathematical models.
+collecting your data, or academic papers that share the results without really sharing the details of
+the underlying mathematical models.
 The algorithms in Owl rely on the open-source HiGHS linear programming solver. The complete formulation and
 detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
-Owl is currently implemented through a combination of Python modules and jupyter notebooks, but its simple API can also serve
-as the back-end of a Web application
-facilitating its use by allowing easier input of user-selected constraints for exploring the optimality of different scenarios.
+Owl is currently implemented through a combination of Python modules and jupyter notebooks,
+but its simple API can also serve as the back-end of a Web application
+facilitating its use by allowing easier input of user-selected constraints for exploring the optimality
+of different scenarios.
 Contributors with good front-end skills are therefore more than welcome to join the project.
 
-Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one
-is interested in comparing different withdrawal strategies, [FI Calc](ficalc.app) is a more appropriate and elegant
-application that addresses this need. If, however, you also want to optimize spending, bequest, and Roth conversions, with
-an approach also considering Medicare and federal income tax over the next few years, then Owl is definitely a tool that can help guide your decisions.
+Not every retirement decision strategy can be framed as an easy-to-solve optimization problem.
+In particular, if one is interested in comparing different withdrawal strategies,
+[FI Calc](ficalc.app) is a more appropriate and elegant application that addresses this need.
+If, however, you also want to optimize spending, bequest, and Roth conversions, with
+an approach also considering Medicare and federal income tax over the next few years,
+then Owl is definitely a tool that can help guide your decisions.
 
 --------------------------------------------------------------------------------------
 ## Basic capabilities
-Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero), or maximize the
-after-tax value of a bequest under the constraint of a desired net spending profile, and under the assumption of a heirs marginal tax rate.
-Roth conversions are also considered, subject to an optional maximum
-conversion amount,
-and optimized to suit the goals of the selected objective function. All calculations are indexed for inflation, which is provided as a fixed rate,
-or through historical values, as are all other rates used for the calculations. These historical, fixed,
-and stochastic rates can be used for backtesting different scenarios.
+Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero),
+or maximize the after-tax value of a bequest under the constraint of a desired net spending profile,
+and under the assumption of a heirs marginal tax rate.
+Roth conversions are also considered, subject to an optional maximum conversion amount,
+and optimized to suit the goals of the selected objective function.
+All calculations are indexed for inflation, which is provided as a fixed rate,
+or through historical values, as are all other rates used for the calculations.
+These historical, fixed, and stochastic rates can be used for backtesting different scenarios.
 
 Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
 and cash assets assumed to just follow inflation which is represented by the Consumer Price Index.
 Other asset classes can easily be added, but would add complexity while only providing diminishing insights.
 Data used are from
 [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) at the Sterm School of Business.
-Asset allocations are selected
-for the duration of the plan, and these can glide linearly or along a configurable s-curve from now
-to the last year of the plan.
+Asset allocations are selected for the duration of the plan, and these can glide linearly
+or along a configurable s-curve from now to the last year of the plan.
 
 Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be
 flat or follow a *smile* curve which is also adjustable through two simple parameters.
 
-Available rates are from 1928
-to last year and can be used to test historical performance. Fixed rates can also be provided, as
-well as stochastic rates, which are generated using the statistical characteristics
-(means and covariance matrix) of
+Available rates are from 1928 to last year and can be used to test historical performance.
+Fixed rates can also be provided, as well as stochastic rates, which are generated using
+the statistical characteristics (means and covariance matrix) of
 a selected historical year range. Extending the capabilities to Monte Carlo simulations should therefore
 be straightforward. Average rates over a data period can also be chosen.
 
@@ -96,15 +102,22 @@ Head of household filing status has not been added but can easily be.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
 - In the current implementation, social securiy is always taxed at 85%.
-- Medicare calculations are done through a self-consistent loop. This means that the Medicare premiums are calculated after an initial solution is generated, and then a new solution is re-generated with these premiums as a constraint. When the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise. Owl will detect these cases and will inform the user with a warning message, instructing to slightly change the input parameters to remediate the situation.
+- Medicare calculations are done through a self-consistent loop.
+This means that the Medicare premiums are calculated after an initial solution is generated,
+and then a new solution is re-generated with these premiums as a constraint.
+When the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise.
+Owl will detect these cases and will inform the user with a warning message,
+instructing to slightly change the input parameters to remediate the situation.
 - Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
-The solution from an optimization algorithm has only two states: feasible and infeasible. Therefore, unlike event-driven
-simulators that can tell you that your distribution strategy runs out of money in year 20, an optimization-based
-solver can only tell you that a solution does not exist for the plan being considered. Examples of
-infeasible solutions include requesting an estate value too large for the savings assets to support, even with zero net spending basis,
-or maximizing the bequest subject to a net spending basis that is already too large for the savings assets to support, even with no estate being left.
+The solution from an optimization algorithm has only two states: feasible and infeasible.
+Therefore, unlike event-driven simulators that can tell you that your distribution strategy runs
+out of money in year 20, an optimization-based solver can only tell you that a solution does not
+exist for the plan being considered. Examples of infeasible solutions include requesting a bequeathed
+estate value too large for the savings assets to support, even with zero net spending basis,
+or maximizing the bequest subject to a net spending basis that is already too large for the savings
+assets to support, even with no estate being left.
 
 -----------------------------------------------------------------------
 ## An example of Owl's functionality
@@ -123,7 +136,7 @@ plan.setPension([0, 10], [65, 65])
 plan.setSocialSecurity([28, 25], [70, 70])
 plan.setSpendingProfile('smile', 60)
 plan.setRates('historical', 1969)
-plan.solve('maxSpending', options={'maxRothConversion': 100, 'estate': 500})
+plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500})
 ```
 The output can be seen using the following commands that display various plots of the decision variables in time.
 ```python
@@ -211,7 +224,7 @@ Contributions file: jack+jill.xlsx
 Return rates: historical
 Rates used: from 1969 to 2002
 Optimized for: maxSpending
-Solver options: {'maxRothConversion': 100, 'estate': 500}
+Solver options: {'maxRothConversion': 100, 'bequest': 500}
 Solver used: HiGHS
 Number of decision variables: 1027
 Number of constraints: 1013
