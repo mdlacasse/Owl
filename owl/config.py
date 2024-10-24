@@ -16,6 +16,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 '''
 
 import configparser
+import numpy as np
 from owl import plan
 from owl import utils as u
 
@@ -68,8 +69,8 @@ def saveConfig(plan, basename):
         'Spousal deposit fraction': str(plan.eta),
         'Long-term capital gain tax rate': str(100 * plan.psi),
         'Dividend tax rate': str(100 * plan.mu),
-        'Beneficiary fraction': str(plan.phi_j),
-        'Time lists file name': str(plan.timeListsFileName),
+        'Beneficiary fractions': str(plan.phi_j),
+        'Contributions file name': str(plan.timeListsFileName),
     }
 
     # Asset allocations
@@ -89,7 +90,7 @@ def saveConfig(plan, basename):
         'To': str(plan.rateTo),
     }
     if plan.rateMethod == 'fixed':
-        config['Rates']['values'] = ', '.join(str(k) for k in plan.rateValues)
+        config['Rates']['values'] = ', '.join(str(100*k) for k in plan.rateValues)
 
     config['Solver']['Method'] = plan.solver
     config['Solver']['Options'] = str(plan.solverOptions)
@@ -108,7 +109,7 @@ def readConfig(basename):
     import configparser
     import ast
 
-    u.vprint('Reading plan configuration from', basename + '.cfg')
+    u.vprint('Reading plan configuration from file \'%s.cfg\'.' % basename)
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
@@ -117,11 +118,10 @@ def readConfig(basename):
     if ret == []:
         u.xprint('File not found:', basename + '.cfg')
 
-    print('ret = ', ret)
-
     icount = int(config['Who']['Count'])
     inames = config['Who']['Names'].split(',')
     name = config['Parameters']['Plan name']
+    u.vprint('Plan for %d individual%s: %s.' % (icount, ['', 's'][icount-1], inames))
 
     # Parameters getting one value for each spouse.
     yobs = []
@@ -153,8 +153,8 @@ def readConfig(basename):
     p.setDefaultPlots(config['Parameters']['Default plots'])
     p.setDividendRate(float(config['Parameters']['Dividend tax rate']))
     p.setLongTermCapitalTaxRate(float(config['Parameters']['Long-term capital gain tax rate']))
-    beneficiaryFraction = ast.literal_eval(config['Parameters']['Beneficiary fraction'])
-    p.setBeneficiaryFraction(beneficiaryFraction)
+    beneficiaryFractions = ast.literal_eval(config['Parameters']['Beneficiary fractions'])
+    p.setBeneficiaryFractions(beneficiaryFractions)
     p.setHeirsTaxRate(float(config['Parameters']['Heirs rate on tax-deferred estate']))
 
     p.setPension(pensionAmounts, pensionAges, units=1)
@@ -210,7 +210,7 @@ def readConfig(basename):
     p.solverOptions = ast.literal_eval(config['Solver']['Options'])
     p.objective = str(config['Solver']['Objective'])
 
-    timeListsFileName = config['Parameters']['Time lists file name']
+    timeListsFileName = config['Parameters']['Contributions file name']
     p.readContributions(timeListsFileName)
 
     return p

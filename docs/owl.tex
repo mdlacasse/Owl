@@ -504,13 +504,13 @@ add the market returns to the savings balances.
 	at the beginning of the following year.
 	Changes include contributions $\kappa$, distributions and withdrawals $w$,
 	conversions $x$, and growth $\tau$ on the account through the year.
-	We track each savings account $j$ separately, and the tax-deferred account
-	is coupled to the tax-exempt account through Roth conversions.
+	For each spouse $i$, we track each savings account $j$ separately, and tax-deferred accounts
+	are coupled to the corresponding tax-exempt account through Roth conversions.
 
-	The timing of Roth conversions, withdrawals, and deposits determines
-	the coupling between these variables, and is worth a detailed discussion.
-	First, the financial aspect, and then the algorithmic one.
-	For the former, some financial advisors would recommend making
+	The timing of Roth conversions, withdrawals, and deposits brings
+	additional coupling between these variables, and is worth a detailed discussion.
+	First, the financial aspects, and then the algorithmic ones.
+	For the former, some financial advisors would recommend making Roth
 	conversions at the beginning of the year, while making withdrawals
 	at the end. Obviously, simulators would always yield higher numbers
 	for this scenario, as the moneys needed to pay the regular bills 
@@ -533,7 +533,7 @@ add the market returns to the savings balances.
 	the first one does not. Moving account withdrawals at the beginning
 	of the year, and the conversions in mid-year can solve this artificial bias.
 	To favor tax-deferred withdrawals in most reasonable situations,
-	it is desirable to make conversion and withdrawal events exclusive 
+	it is desirable to make Roth conversions and tax-deferred distributions exclusive events
 	by introducing binary variables $z_{in} \in \{0, 1\}$ with the following constraints:
 	\begin{eqnarray}
 		\label{Eq:Binary}
@@ -545,11 +545,12 @@ add the market returns to the savings balances.
 
 	Roth conversions are assumed to be made at mid-year, while withdrawals
 	are made at the beginning of the year, and surplus deposits,
-	if needed, could be made at the end of the year. Let's explore this approach
-	in more detail.
+	if needed due to RMDs or receiving large sums of money,
+	could be made at the end of the year. Let's formulate this approach
+	in more detail and investigate for potential problems.
 
 	Timing controls which terms get multiplied by the rate of return $(1 + \tau_{kn})$
-	for this particular asset $k$.
+	for a particular asset $k$.
 	Therefore, our current choice would yield
 	\begin{eqnarray}
 		\label{Eq:C3a}
@@ -578,8 +579,8 @@ add the market returns to the savings balances.
 	a path to shelter negative returns by performing an over-withdrawal from the taxable
 	account at the beginning of the year followed by a deposit in the
 	same account at the end of the year. This can 
-	be removed by using another binary variable and make these events exclusive, using
-	the same strategy as Eq.~(\ref{Eq:Binary}). Another approach, while not so natural,
+	be removed by using another binary variable, thus making these events exclusive by using
+	the same strategy as Eq.~(\ref{Eq:Binary}). Another simpler approach, while not so natural,
 	is to move all deposits at the beginning of the year so to be synchronous with withdrawals.
 	\begin{eqnarray}
 		\label{Eq:C3b}
@@ -973,9 +974,10 @@ with
 Tax-exempt and tax-deferred accounts have special tax rules that allow giving part
 or the entire value of
 tax-exempt accounts to a spouse who can then consider it as his/her own.
+These accounts typically use percentages to designate beneficiaries.
 Let $\phi_j$ be the fraction of the account $j$ that a spouse $i_d$ wishes
 to leave to his/her surviving spouse $i_s$
-in the year $n_d < N_n - 1$ following the year of passing. 
+in the year $n_d  - 1 < N_n - 1$ following the year of passing. 
 To account for that event in year $n_d$, Eq.~(\ref{Eq:C3b}) needs to be rewritten as
 \begin{eqnarray}
 	b_{ij(n+1)} &=& (1 - \delta(n, n_d-1)\delta(i, i_d)) \nonumber \\
@@ -991,7 +993,7 @@ To account for that event in year $n_d$, Eq.~(\ref{Eq:C3b}) needs to be rewritte
 The first multiplier $()$ on the right-hand side will always be one except for $i_d$ in
 year $n_d-1$ when it will be zero. This will result in emptying all accounts for $i_d$ for years
 $n_d$ and beyond.
-The second special multiplier $()$ before the second set of brackets
+The second special multiplier $()$ before the second set of curly braces
 $\{\}$ will always be zero except for the surviving
 spouse $i_s$ in year $n_d-1$, who will then inherit a fraction $\phi_j$ of account $j$ that
 was scheduled to go into $i_d$'s $j$ account at the beginning of year $n_d$.
@@ -1005,10 +1007,10 @@ Rewriting the last equation as a constraint results in
 	+ \left[(\delta(j, 2) - \delta(j, 1))x_{ikn}\right](1 + \mathcal{T}_{ijn}/2) \Bigr\}
 	\nonumber \\
 	&&- (\phi_j\delta(n, n_d-1)\delta(i, i_s)) \nonumber \\
-	&& \times \Bigl\{ \left[b_{i_djn} w_{ijn} + \delta(j, 0)d_{in}\right](1 + \mathcal{T}_{i_djn}) +
+	&& \times \Bigl\{ \left[b_{i_djn} w_{ijn} + \delta(j, 0)d_{in}\right](1 + \mathcal{T}_{i_djn})
 	+ \left[(\delta(j, 2) - \delta(j, 1))x_{i_dkn}\right](1 + \mathcal{T}_{i_djn}/2) \Bigr\}
 	\nonumber \\
-	&=& \left[(1 - \delta(n, n_d-1)\delta(i, i_d)) \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2) \right.
+	&=& \left[(1 - \delta(n, n_d-1)\delta(i, i_d)) \kappa_{ijn} (1 + \mathcal{T}_{i_djn}/2) \right.
 	\nonumber\\
 	&& + \left.(\phi_j\delta(n, n_d-1)\delta(i, i_s))
 	\kappa_{i_djn}\right](1 + \mathcal{T}_{i_djn}/2).
@@ -1026,16 +1028,16 @@ We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
         A_e[J_0(i, j, n), q_x(i, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
                 (\delta(j, 2) - \delta(j, 1)),
 		(1 + \mathcal{T}_{ijn}/2), \nonumber \\
-		\text{when $N_i =2$ and $i = i_s$} && \nonumber\\
+		\text{when $N_i =2$ and $i = i_s$,} && \nonumber\\
         A_e[J_0(i, j, n), q_b(i_d, j, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
-		(1 + \mathcal{T}_{ijn}), \nonumber \\
+		(1 + \mathcal{T}_{i_djn}), \nonumber \\
         A_e[J_0(i, j, n), q_w(i_d, j, n)] &=& (\phi_j\delta(n, n_d-1)\delta(i, i_s))
-	(1 + \mathcal{T}_{ijn}), \nonumber\\
+	(1 + \mathcal{T}_{i_djn}), \nonumber\\
         A_e[J_0(i, j, n), q_d(i_d, n)] &=&  -(\phi_j\delta(n, n_d-1)\delta(i, i_s))
-		\delta(j, 0)(1 + \mathcal{T}_{ijn}), \nonumber \\
+		\delta(j, 0)(1 + \mathcal{T}_{i_djn}), \nonumber \\
         A_e[J_0(i, j, n), q_x(i_d, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
                 (\delta(j, 2) - \delta(j, 1))
-		(1 + \mathcal{T}_{ijn}/2), \nonumber \\
+		(1 + \mathcal{T}_{i_djn}/2), \nonumber \\
                 \nonumber \\
         &&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
         &&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
