@@ -25,7 +25,7 @@ def saveConfig(plan, basename):
     '''
     Save plan configuration parameters to a file.
     '''
-    u.vprint('Saving plan config as', basename + '.cfg')
+    u.vprint('Saving plan config as "%s.cfg".' % basename)
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 

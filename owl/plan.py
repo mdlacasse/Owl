@@ -92,21 +92,21 @@ def _q1(C, l1, N1=None):
     return C + l1
 
 
-def _q2(C, l1, l2, N1=None, N2):
+def _q2(C, l1, l2, N1, N2):
     '''
     Index mapping function. 2 arguments.
     '''
     return C + l1 * N2 + l2
 
 
-def _q3(C, l1, l2, l3, N1=None, N2, N3):
+def _q3(C, l1, l2, l3, N1, N2, N3):
     '''
     Index mapping function. 3 arguments.
     '''
     return C + l1 * N2 * N3 + l2 * N3 + l3
 
 
-def _q4(C, l1, l2, l3, l4, N1=None, N2, N3, N4):
+def _q4(C, l1, l2, l3, l4, N1, N2, N3, N4):
     '''
     Index mapping function. 4 arguments.
     '''
@@ -195,9 +195,10 @@ class Plan:
         self.myRothX_in = np.zeros((self.N_i, self.N_n))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
 
+        # Scenario start at the beginning of this year and ends at the end of last year.
         u.vprint(
             'Preparing scenario of %d years for %d individual%s.'
-            % (self.N_n - 1, self.N_i, ['', 's'][self.N_i - 1])
+            % (self.N_n, self.N_i, ['', 's'][self.N_i - 1])
         )
         for i in range(self.N_i):
             u.vprint(
@@ -251,7 +252,7 @@ class Plan:
         assert solver in solvers, 'Solver %s not supported.' % solver
         self.solver = solver
 
-	return None
+        return None
 
     def rename(self, name):
         '''
@@ -260,7 +261,7 @@ class Plan:
         '''
         self._name = name
 
-	return None
+        return None
 
     def setSpousalDepositFraction(self, eta):
         '''
@@ -297,7 +298,7 @@ class Plan:
         '''
         assert 0 <= mu and mu <= 100, 'Rate must be between 0 and 100.'
         mu /= 100
-        u.vprint('Dividend return rate on equities set to', u.pc(mu, f=1))
+        u.vprint('Dividend return rate on equities set to %s.' % u.pc(mu, f=1))
         self.mu = mu
         self._caseStatus = 'modified'
 
@@ -309,7 +310,7 @@ class Plan:
         '''
         assert 0 <= psi and psi <= 100, 'Rate must be between 0 and 100.'
         psi /= 100
-        u.vprint('Long-term capital gain income tax set to', u.pc(psi, f=0))
+        u.vprint('Long-term capital gain income tax set to %s.' % u.pc(psi, f=0))
         self.psi = psi
         self._caseStatus = 'modified'
 
@@ -417,7 +418,7 @@ class Plan:
 
         u.vprint('Setting', profile, 'spending profile.')
         if self.N_i == 2:
-            u.vprint('Using ', u.pc(self.chi, f=0), 'spending needs for surviving spouse.')
+            u.vprint('Securing', u.pc(self.chi, f=0), 'of spending amount for surviving spouse.')
 
         self.xi_n = _genXi_n(profile, self.chi, self.n_d, self.N_n)
         self.spendingProfile = profile
@@ -890,8 +891,8 @@ class Plan:
         # Equalities.
 
         if objective == 'maxSpending':
-            # if 'netSpending' in options:
-            #   u.vprint('Ignoring netSpending option provided.')
+            if 'netSpending' in options:
+                u.vprint('Ignoring netSpending option provided.')
             # Impose requested constraint on final bequest, if any.
             if 'bequest' in options:
                 bequest = options['bequest']
@@ -911,8 +912,8 @@ class Plan:
             A.addRow(row, bequest, bequest)
             # u.vprint('Adding bequest constraint of:', u.d(bequest))
         elif objective == 'maxBequest':
-            # if 'bequest' in options:
-            #   u.vprint('Ignoring bequest option provided.')
+            if 'bequest' in options:
+                u.vprint('Ignoring bequest option provided.')
             spending = options['netSpending']
             assert isinstance(spending, (int, float)) == True, 'Desired spending provided not a number.'
             spending *= units
@@ -1573,7 +1574,7 @@ class Plan:
             ax.plot(self.year_n, data, label=label, ls=ltype[k % self.N_k])
 
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-        ax.legend(loc='upper left', reverse=False, fontsize=8, framealpha=0.7)
+        ax.legend(loc='best', reverse=False, fontsize=8, framealpha=0.7)
         # ax.legend(loc='upper left')
         ax.set_title(title)
         ax.set_xlabel('year')
@@ -2337,7 +2338,7 @@ def _saveWorkbook(wb, basename, overwrite=False):
 
     while True:
         try:
-            u.vprint('Saving plan as "%s"' % fname)
+            u.vprint('Saving plan as "%s".' % fname)
             wb.save(fname)
             break
         except PermissionError:

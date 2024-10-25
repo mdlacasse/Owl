@@ -788,22 +788,22 @@ class rates:
         # First process fixed methods relying on values.
         if method == 'default':
             values = self._defRates
-            # u.vprint('Using default fixed rates values: (%)\n', values)
+            # u.vprint('Using default fixed rates values:', *[u.pc(k) for k in values])
             self._setFixedRates(self._defRates)
         elif method == 'realistic':
             values = self._defRates
-            u.vprint('Using realistic fixed rates values: \n', [u.pc(k) for k in values])
+            u.vprint('Using realistic fixed rates values:', *[u.pc(k) for k in values])
             self._setFixedRates(self._realisticRates)
         elif method == 'conservative':
             values = self._conservRates
-            u.vprint('Using conservative fixed rates values: \n', [u.pc(k) for k in values])
+            u.vprint('Using conservative fixed rates values:', *[u.pc(k) for k in values])
             self._setFixedRates(self._conservRates)
         elif method == 'fixed':
             assert values is not None, 'Values must be provided with the fixed option.'
             values = np.array(values, dtype=float)
             # Convert percent to decimal for storing.
             values /= 100.0
-            u.vprint('Setting rates using fixed values: \n', [u.pc(k) for k in values])
+            u.vprint('Setting rates using fixed values:', *[u.pc(k) for k in values])
             self._setFixedRates(values)
         else:
             # Then methods relying on historical data range.

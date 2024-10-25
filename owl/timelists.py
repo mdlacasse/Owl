@@ -48,7 +48,7 @@ def read(filename, N_i, horizons):
     dfDict = pd.read_excel(filename, sheet_name=None)
     i = 0
     for name in dfDict.keys():
-        u.vprint('Reading time horizon for', name, '...')
+        u.vprint('Reading wages, contributions, and BTI over time for', name, '...')
         names.append(name)
         endyear = thisyear + horizons[i]
         df = dfDict[name]
