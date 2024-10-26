@@ -80,7 +80,7 @@ be straightforward. Average rates over a data period can also be chosen.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
 an Excel spreadsheet that contains future wages, contributions
-to savings accounts, and planned *big ticket items* such as the purchase of a lake house, the sale of a boat,
+to savings accounts, and planned *big-ticket items* such as the purchase of a lake house, the sale of a boat,
 large gifts, or inheritance.
 
 Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt savings accounts

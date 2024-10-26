@@ -19,10 +19,10 @@ from datetime import date, datetime
 
 from owl import utils as u
 from owl import tax2024 as tx
+from owl import abcapi as abc
 from owl import rates
 from owl import config
 from owl import timelists
-from owl import abcapi as abc
 
 
 def setVerbose(self, state=True):
@@ -676,7 +676,7 @@ class Plan:
                 'ctrb IRA',
                 'ctrb Roth IRA',
                 'Roth X',
-                'big ticket items'
+                'big-ticket items'
 
         in any order. A template is provided as an example.
         Missing rows (years) are populated with zero values.
@@ -690,7 +690,7 @@ class Plan:
         for i in range(self.N_i):
             h = self.horizons[i]
             self.omega_in[i, :h] = self.timeLists[i]['anticipated wages'][:h]
-            self.Lambda_in[i, :h] = self.timeLists[i]['big ticket items'][:h]
+            self.Lambda_in[i, :h] = self.timeLists[i]['big-ticket items'][:h]
             self.myRothX_in[i, :h] = self.timeLists[i]['Roth X'][:h]
             self.kappa_ijn[i, 0, :h] = self.timeLists[i]['ctrb taxable'][:h]
             self.kappa_ijn[i, 1, :h] = self.timeLists[i]['ctrb 401k'][:h]
@@ -812,7 +812,7 @@ class Plan:
                 for n in range(Nn):
                     tau_ijn[i, j, n] = np.sum(self.alpha_ijkn[i, j, :, n] * self.tau_kn[:, n], axis=0)
 
-        # Weights are normalized on k. sum_k[alpha*(1 + tau)] = 1 + alpha*tau).
+        # Weights are normalized on k: sum_k[alpha*(1 + tau)] = 1 + sum_k(alpha*tau).
         Tau1_ijn = 1 + tau_ijn
         Tauh_ijn = 1 + tau_ijn / 2
 
@@ -891,8 +891,6 @@ class Plan:
         # Equalities.
 
         if objective == 'maxSpending':
-            if 'netSpending' in options:
-                u.vprint('Ignoring netSpending option provided.')
             # Impose requested constraint on final bequest, if any.
             if 'bequest' in options:
                 bequest = options['bequest']
@@ -912,8 +910,6 @@ class Plan:
             A.addRow(row, bequest, bequest)
             # u.vprint('Adding bequest constraint of:', u.d(bequest))
         elif objective == 'maxBequest':
-            if 'bequest' in options:
-                u.vprint('Ignoring bequest option provided.')
             spending = options['netSpending']
             assert isinstance(spending, (int, float)) == True, 'Desired spending provided not a number.'
             spending *= units
@@ -1146,6 +1142,12 @@ class Plan:
             u.xprint('Objective', objective, 'not one of', knownObjectives)
         if objective == 'maxBequest' and 'netSpending' not in options:
             u.xprint('Objective', objective, 'needs netSpending option.')
+        if objective == 'maxBequest' and 'bequest' in options:
+            u.vprint('Ignoring bequest option provided.')
+        if objective == 'maxSpending' and 'netSpending' in options:
+            u.vprint('Ignoring netSpending option provided.')
+        if objective == 'maxSpending' and 'bequest' not in options:
+            u.vprint('Using bequest of $1.')
 
         self._adjustParameters()
 
@@ -1495,7 +1497,8 @@ class Plan:
         if self.N_i == 2:
             lines.append('Surviving spouse spending needs: %s' % u.pc(self.chi, f=0))
 
-        lines.append('Net yearly spending basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
+        lines.append('Net yearly spending in year %d: %s' % (now, u.d(self.g_n[0])))
+        lines.append('Net yearly spending profile basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)

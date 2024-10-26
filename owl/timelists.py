@@ -38,7 +38,7 @@ def read(filename, N_i, horizons):
         'ctrb IRA',
         'ctrb Roth IRA',
         'Roth X',
-        'big ticket items',
+        'big-ticket items',
     ]
 
     timeLists = []
@@ -48,7 +48,7 @@ def read(filename, N_i, horizons):
     dfDict = pd.read_excel(filename, sheet_name=None)
     i = 0
     for name in dfDict.keys():
-        u.vprint('Reading wages, contributions, and BTI over time for', name, '...')
+        u.vprint('Reading wages, contributions, conversions, and big-ticket items over time for %s...' % name)
         names.append(name)
         endyear = thisyear + horizons[i]
         df = dfDict[name]
@@ -78,7 +78,7 @@ def read(filename, N_i, horizons):
         if i >= N_i:
             break
 
-    u.vprint('Successfully read time horizons from file', filename)
+    u.vprint('Successfully read time horizons from file "%s".' % filename)
 
     return names, timeLists
 
