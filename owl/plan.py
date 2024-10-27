@@ -155,7 +155,7 @@ class Plan:
         self.yobs = yobs
         self.expectancy = expectancy
 
-	# Reference time is the beginning of the year and all passings are assumed at the end.
+        # Reference time is the beginning of the year and all passings are assumed at the end.
         thisyear = date.today().year
         self.horizons = [yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)]
         self.N_n = max(self.horizons)
@@ -166,7 +166,7 @@ class Plan:
             self.i_d = self.horizons.index(self.n_d)
             self.i_s = (self.i_d + 1) % 2
         else:
-            self.n_d = self.N_n + 2  # Push beyond upper bound.
+            self.n_d = self.N_n + 1  # Push at upper bound.
             self.i_d = 0
             self.i_s = -1
 
@@ -278,6 +278,10 @@ class Plan:
         then all surplus get deposited into the taxable account of the second spouse.
         '''
         assert -1 <= eta and eta <= 1, 'Fraction must be between -1 and 1.'
+        if self.N_i != 2:
+            u.vprint('Deposit fraction can only be 0 for single individuals.')
+            eta = 0
+
         u.vprint('Setting spousal surplus deposit fraction to %.1f.' % eta)
         self.eta = eta
 
@@ -751,17 +755,18 @@ class Plan:
 
     def _buildOffsetMap(self):
         '''
-        Utility function to map variables to block vector.
+        Utility function to map variables to a block vector.
         Refer to companion document for explanations.
         '''
-        # Stack variables in block vector.
+        # Stack all variables in a single block vector.
         C = {}
         C['b'] = 0
-        C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n + 1)
+        C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n)
         C['f'] = _qC(C['d'], self.N_i, self.N_n)
         C['g'] = _qC(C['f'], self.N_t, self.N_n)
-        C['w'] = _qC(C['g'], self.N_n)
-        C['x'] = _qC(C['w'], self.N_i, self.N_j, self.N_n)
+        C['s'] = _qC(C['g'], self.N_i, self.N_j, self.N_n)
+        C['w'] = _qC(C['s'], self.N_n)
+        C['x'] = _qC(C['w'], self.N_n)
         C['z'] = _qC(C['x'], self.N_i, self.N_n)
         C['Z'] = _qC(C['z'], self.N_i, self.N_n, self.N_z)
         self.nvars = _qC(C['Z'], 1)
@@ -801,6 +806,7 @@ class Plan:
         Cd = self.C['d']
         Cf = self.C['f']
         Cg = self.C['g']
+        Cs = self.C['s']
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
@@ -863,11 +869,12 @@ class Plan:
                     # u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
-                            #  Adjust cap with inflation?
+                            #  Should we adjust Roth conversion cap with inflation?
                             B.set0_Ub(_q2(Cx, i, n, Ni, Nn), rhsopt)
 
         if Ni == 2:
-            # No activity for i_d after year of passing.
+            # No deposits or withdrawals for i_d after year of passing.
+            # Implicit n_d < N_n imposed by for loop.
             for n in range(n_d, Nn):
                 B.set0_Ub(_q2(Cd, i_d, n, Ni, Nn), zero)
                 for j in range(Nj):
@@ -883,9 +890,8 @@ class Plan:
                 for n in range(Nn):
                     B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
 
-        # Deposits in taxable account during last year are a tax loophole.
-        for i in range(Ni):
-            B.set0_Ub(_q2(Cd, i, Nn - 1, Ni, Nn), zero)
+        # No deposits in taxable account during last year as a tax loophole.
+        B.set0_Ub(_q1(Cs, Nn - 1, Nn), zero)
 
         ###################################################################
         # Equalities.
@@ -894,10 +900,10 @@ class Plan:
             # Impose requested constraint on final bequest, if any.
             if 'bequest' in options:
                 bequest = options['bequest']
-                assert isinstance(bequest, (int, float)) == True, 'Desired bequest provided not a number.'
+                assert isinstance(bequest, (int, float)) == True, 'Desired bequest is not a number.'
                 bequest *= units * self.gamma_n[-1]
             else:
-                # If not specified, default to $1.
+                # If not specified, defaults to $1.
                 bequest = 1
 
             row = A.newRow()
@@ -911,7 +917,7 @@ class Plan:
             # u.vprint('Adding bequest constraint of:', u.d(bequest))
         elif objective == 'maxBequest':
             spending = options['netSpending']
-            assert isinstance(spending, (int, float)) == True, 'Desired spending provided not a number.'
+            assert isinstance(spending, (int, float)) == True, 'Desired spending provided is not a number.'
             spending *= units
             # u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
             A.addNewRow({_q1(Cg, 0): 1}, spending, spending)
@@ -921,6 +927,17 @@ class Plan:
             for j in range(Nj):
                 rhs = self.beta_ij[i, j]
                 A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
+
+        # Link surplus and deposits.
+        for i in range(Ni):
+            for n in range(n_d):
+                rowDic = {_q2(Cd, i, n, Ni, Nn): 1,
+                          _q1(Cs, n, Nn): -(u.krond(i, 0)*(1-self.eta) + u.krond(i, 1)*self.eta)}
+                A.addNewRow(rowDic, zero, zero)
+            for n in range(n_d, Nn):
+                rowDic = {_q2(Cd, i, n, Ni, Nn): 1,
+                          _q1(Cs, n, Nn): -u.krond(i, self.i_s)}
+                A.addNewRow(rowDic, zero, zero)
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer.
@@ -988,21 +1005,7 @@ class Plan:
             rowDic = {_q1(Cg, 0, Nn): -self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
             A.addNewRow(rowDic, zero, zero)
 
-        # Balance deposits and withdrawals while both spouses are alive.
-        if Ni == 2:
-            pm1 = np.sign(self.eta)
-            for n in range(n_d - 1):
-                rowDic = {_q2(Cd, 0, n, Ni, Nn): (pm1 - self.eta), _q2(Cd, 1, n, Ni, Nn): -self.eta}
-                A.addNewRow(rowDic, zero, inf)
-                '''
-                rowDic = {_q3(Cw, 0, 1, n, Ni, Nj, Nn): (pm1 - self.eta), 
-                          _q3(Cw, 1, 1, n, Ni, Nj, Nn): -self.eta
-                         }
-                rhs = self.rho_in[0, n]*(pm1 - self.eta) - self.rho_in[1, n]*self.eta
-                A.addNewRow(rowDic, rhs, inf)
-                '''
-
-        # Impose account balance max on all withdrawals. This helps converging.
+        # Impose max on all withdrawals.
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
@@ -1346,6 +1349,7 @@ class Plan:
         Cd = self.C['d']
         Cf = self.C['f']
         Cg = self.C['g']
+        Cs = self.C['s']
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
@@ -1366,8 +1370,11 @@ class Plan:
         self.f_tn = np.array(x[Cf:Cg])
         self.f_tn = self.f_tn.reshape((Nt, Nn))
 
-        self.g_n = np.array(x[Cg:Cw])
+        self.g_n = np.array(x[Cg:Cs])
         # self.g_n = self.g_n.reshape((Nn))
+
+        self.s_n = np.array(x[Cs:Cw])
+        # self.s_n = self.s_n.reshape((Nn))
 
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
