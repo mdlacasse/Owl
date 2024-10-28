@@ -206,7 +206,7 @@ def readConfig(basename):
             generic=boundsAR['generic'],
         )
 
-    p.setSolver(str(config['Solver']['Method']))
+    p.solver = str(config['Solver']['Method'])
     p.solverOptions = ast.literal_eval(config['Solver']['Options'])
     p.objective = str(config['Solver']['Objective'])
 

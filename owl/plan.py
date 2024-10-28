@@ -144,7 +144,7 @@ class Plan:
         self.interpWidth = 5
 
         self.defaultPlots = 'nominal'
-        self.solver = 'HiGHS'
+        self.defaultSolver = 'HiGHS'
 
         self.N_i = len(yobs)
         assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
@@ -171,12 +171,12 @@ class Plan:
             self.i_s = -1
 
         # Default parameters:
-        self.psi = 0.15         # Long-term income tax rate (decimal)
-        self.chi = 0.6          # Survivor fraction
-        self.mu = 0.02          # Dividend rate (decimal)
-        self.nu = 0.30          # Heirs tax rate (decimal)
-        self.eta = 0            # Spousal deposit/withdrawal ratio
-        self.phi_j = [1, 1, 1]  # Fractions left to other spouse at death
+        self.psi = 0.15         	# Long-term income tax rate (decimal)
+        self.chi = 0.6          	# Survivor fraction
+        self.mu = 0.02          	# Dividend rate (decimal)
+        self.nu = 0.30          	# Heirs tax rate (decimal)
+        self.eta = (self.N_i - 1)/2   	# Spousal deposit/withdrawal ratio (0 or .5)
+        self.phi_j = [1, 1, 1]  	# Fractions left to other spouse at death
 
         # Placeholder for before reading contributions file.
         self.inames = ['Individual 1', 'Individual 2']
@@ -195,7 +195,7 @@ class Plan:
         self.myRothX_in = np.zeros((self.N_i, self.N_n))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
 
-        # Scenario start at the beginning of this year and ends at the end of last year.
+        # Scenario start at the beginning of this year and ends at the end of the last year.
         u.vprint(
             'Preparing scenario of %d years for %d individual%s.'
             % (self.N_n, self.N_i, ['', 's'][self.N_i - 1])
@@ -244,20 +244,11 @@ class Plan:
 
         return None
 
-    def setSolver(self, solver):
-        '''
-        Select solver.
-        '''
-        solvers = ['HiGHS', 'MOSEK']
-        assert solver in solvers, 'Solver %s not supported.' % solver
-        self.solver = solver
-
-        return None
-
     def rename(self, name):
         '''
         Override name of the plan. Name is used
-        to distinguish graph outputs and as base name for I/O.
+        to distinguish graph outputs and as base name for
+        saving configurations and workbooks.
         '''
         self._name = name
 
@@ -265,19 +256,15 @@ class Plan:
 
     def setSpousalDepositFraction(self, eta):
         '''
-        Set spousal deposit and withdrawal fraction. Default 0.
-        A fraction eta is given then
-            d0/(d0 + d1) >= eta,
-        or
-            d0/(d0 + d1) <= eta,
-        depending on the sign provided.
-        Here d0 is the deposit amount into the taxable account
-        of first spouse while d1 is for the second spouse.
-        If x is 1, and positive, all surplus get deposited
-        into the taxable account of the first spouse. If x is small (-1e-9) and negative,
-        then all surplus get deposited into the taxable account of the second spouse.
+        Set spousal deposit and withdrawal fraction. Default 0.5.
+        Fraction eta is use to split surplus deposits between spouses as
+            d_0n = (1 - eta)*s_n,
+        and
+            d_1n = eta*s_n,
+        where s_n is the surplus amount. Here d_0n is the taxable account
+        deposit for the first spouse while d_1n is for the second spouse.
         '''
-        assert -1 <= eta and eta <= 1, 'Fraction must be between -1 and 1.'
+        assert 0 <= eta and eta <= 1, 'Fraction must be between 0 and 1.'
         if self.N_i != 2:
             u.vprint('Deposit fraction can only be 0 for single individuals.')
             eta = 0
@@ -761,7 +748,7 @@ class Plan:
         # Stack all variables in a single block vector.
         C = {}
         C['b'] = 0
-        C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n)
+        C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n + 1)
         C['f'] = _qC(C['d'], self.N_i, self.N_n)
         C['g'] = _qC(C['f'], self.N_t, self.N_n)
         C['s'] = _qC(C['g'], self.N_i, self.N_j, self.N_n)
@@ -1137,6 +1124,7 @@ class Plan:
             'bequest',
             'bigM',
             'noRothConversions',
+            'solver',
         ]
         for opt in options:
             if opt not in knownOptions:
@@ -1153,6 +1141,11 @@ class Plan:
             u.vprint('Using bequest of $1.')
 
         self._adjustParameters()
+
+        if 'solver' in options:
+           self.solver = options['solver']
+        else:
+           self.solver = self.defaultSolver
 
         if self.solver == 'HiGHS':
             self._milpSolve(objective, options)
