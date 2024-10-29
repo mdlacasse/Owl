@@ -268,9 +268,10 @@ class Plan:
         if self.N_i != 2:
             u.vprint('Deposit fraction can only be 0 for single individuals.')
             eta = 0
-
-        u.vprint('Setting spousal surplus deposit fraction to %.1f.' % eta)
-        self.eta = eta
+        else:
+            u.vprint('Setting spousal surplus deposit fraction to %.1f.' % eta)
+            u.vprint('\t%s: %.1f, %s: %.1f' % (self.inames[0], (1-eta), self.inames[1], eta))
+            self.eta = eta
 
         return None
 
@@ -319,6 +320,8 @@ class Plan:
         u.vprint('Spousal beneficiary fractions set to', phi)
         self.phi_j = np.array(phi)
         self._caseStatus = 'modified'
+        u.vprint('Consider changing spousal deposit fraction for better convergence.')
+        u.vprint('\tSee setSpousalDepositFraction() for details.')
 
         return None
 
@@ -512,7 +515,7 @@ class Plan:
         self.interpMethod = method
         self._caseStatus = 'modified'
 
-        u.vprint('Asset allocation interpolation method set to', method)
+        u.vprint('Asset allocation interpolation method set to %s.' % method)
 
         return None
 
@@ -812,7 +815,7 @@ class Plan:
         else:
             units = 1000
 
-        bigM = 1e6
+        bigM = 5e6
         if 'bigM' in options:
             # No units for bigM.
             bigM = options['bigM']
@@ -869,17 +872,20 @@ class Plan:
             for n in range(Nn):
                 B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
 
-        # Impose account balance limit on all withdrawals.
+        # Impose withdrawal limits on taxable and tax-exempt accounts.
         for i in range(Ni):
-            for j in range(Nj):
+            for j in [0, 2]:
                 for n in range(Nn):
-                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1, _q3(Cb, i, j, n, Ni, Nj, Nn + 1): 1}
+                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1,
+                              _q3(Cb, i, j, n, Ni, Nj, Nn + 1): 1}
                     A.addNewRow(rowDic, zero, inf)
 
-        # Impose tax-deferred account balance limit on Roth conversions.
+        # Impose withdrawals and conversion limits on tax-deferred account.
         for i in range(Ni):
             for n in range(Nn):
-                rowDic = {_q2(Cx, i, n, Ni, Nn): -1, _q3(Cb, i, 1, n, Ni, Nj, Nn + 1): 1}
+                rowDic = {_q2(Cx, i, n, Ni, Nn): -1,
+                          _q3(Cw, i, 1, n, Ni, Nj, Nn): -1,
+                          _q3(Cb, i, 1, n, Ni, Nj, Nn + 1): 1}
                 A.addNewRow(rowDic, zero, inf)
 
         # Constraints depending on objective function.
@@ -930,10 +936,15 @@ class Plan:
         B.set0_Ub(_q1(Cs, Nn - 1, Nn), zero)
 
         if Ni == 2:
+            # No conversion during last year.
+            # B.set0_Ub(_q2(Cx, i_d, n_d-1, Ni, Nn), zero)
+            # B.set0_Ub(_q2(Cx, i_s, Nn-1, Ni, Nn), zero)
+
             # No withdrawals or deposits for any i_d-owned accounts after year of passing.
             # Implicit n_d < Nn imposed by for loop.
             for n in range(n_d, Nn):
                 B.set0_Ub(_q2(Cd, i_d, n, Ni, Nn), zero)
+                B.set0_Ub(_q2(Cx, i_d, n, Ni, Nn), zero)
                 for j in range(Nj):
                     B.set0_Ub(_q3(Cw, i_d, j, n, Ni, Nj, Nn), zero)
 
@@ -1194,7 +1205,7 @@ class Plan:
             diff = np.sum(np.abs(delta), axis=0)
             old_x = solution.x
             delta = np.sum(delta, axis=0)
-            if abs(delta + old_delta) < 1e-3 or it > 32:
+            if abs(delta + old_delta) < 1e-3 or it > 29:
                 print('WARNING: Detected oscilating solution.')
                 print('    Try again with slightly different input parameters.')
                 break
@@ -1279,7 +1290,7 @@ class Plan:
             diff = np.sum(np.abs(delta), axis=0)
             old_x = xx
             delta = np.sum(delta, axis=0)
-            if abs(delta + old_delta) < 1e-3 or it > 32:
+            if abs(delta + old_delta) < 1e-3 or it > 29:
                 print('WARNING: Detected oscilating solution.')
                 print('    Try again with slightly different input parameters.')
                 break
@@ -1385,7 +1396,6 @@ class Plan:
                               self.x_in[i_d, nx] * (u.krond(j, 2) - u.krond(j, 1)))
                               )
 
-        print('part_j:', self.part_j)
         self.part_j *= 1 - self.phi_j
 
         sourcetypes = [
@@ -1534,16 +1544,20 @@ class Plan:
         lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
 
         lines.append('Spousal beneficiary fractions: %s' % self.phi_j.tolist())
-        p_j = self.part_j/self.gamma_n[self.n_d-1]
+        p_j = np.array(self.part_j)
         p_j[1] *= 1 - self.nu
-        lines.append('Partial post-tax bequest distribution in year %d in %d$:' % (self.year_n[self.n_d - 1], now))
+        totPart = np.sum(p_j)
+        totPartNow = totPart/self.gamma_n[self.n_d-1]
+        lines.append('Post-tax partial nominal distributions in year %d:' % self.year_n[self.n_d - 1])
         lines.append(
             '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
         )
+        lines.append('Post-tax non-spousal bequest in year %d in %d$: %s (%s nominal)'
+             % (self.year_n[self.n_d - 1], now, u.d(totPartNow), u.d(totPart)))
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
-        lines.append('Final account post-tax nominal values in year %d:' % self.year_n[-1])
+        lines.append('Post-tax final account nominal values in year %d:' % self.year_n[-1])
         lines.append(
             '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2]))
         )
@@ -2057,9 +2071,9 @@ class Plan:
             'wages': 'wages',
             'social sec': 'ssec',
             'pension': 'pension',
-            'txbl acc. wdrwl': 'wdrwl taxable',
+            'txbl acc wdrwl': 'wdrwl taxable',
             'RMDs': 'rmd',
-            'distribution': 'dist',
+            '+distributions': 'dist',
             'Roth conversion': 'RothX',
             'tax-free wdrwl': 'wdrwl tax-free',
             'big-ticket items': 'bti',
@@ -2159,7 +2173,7 @@ class Plan:
         # Summary on last sheet.
         ws = wb.create_sheet('Summary')
         rawData = {}
-        rawData['SUMMARY ====================================================================='] = (
+        rawData['SUMMARY ==========================================================================='] = (
             self._summaryList()[1:-1]
         )
 
@@ -2386,7 +2400,7 @@ def _formatSpreadsheet(ws, ftype):
     elif ftype == 'summary':
         for col in ws.columns:
             column = col[0].column_letter
-            width = max(len(str(col[0].value)) + 4, 10)
+            width = max(len(str(col[0].value)) + 20, 40)
             ws.column_dimensions[column].width = width
             return None
     else:

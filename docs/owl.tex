@@ -323,6 +323,10 @@ or an s-curve as in
 	This choice is such that we can set a value depending on the surviving
 	individual $\eta = \delta(1, i_s)$ for $n \ge n_d$, after the passing of $i_d$.
 	Default value is $(N_i - 1)/2$, i.e., $0.5$ for couples and $0$ for single individuals.
+	When the beneficiary of the savings accounts is not the other spouse, i.e., 
+	when $\phi_j \neq 1, \forall j$, it is recommended that $\eta$ be set to $\delta(1, i_d)$ so that
+	all surplus get deposited to $i_d$'s accounts,
+	thus avoid loopholes when optimizing for the final bequest.
 \item [$\mathcal{M}_n$]
 	Costs of Medicare and its Income Related Monthly Adjusted Adjustment (IRMAA).
 	As this additional adjustment
@@ -645,10 +649,11 @@ add the market returns to the savings balances.
 	allocation ratios $\alpha_{ijkn}$.
 
 	We also introduce another constraint that might look unnecessary, but helps
-	convergence. As the withdrawals are at the beginning of the year 
+	convergence, and prevents overdrafts during the year of passing of the first spouse.
+	As withdrawals and conversions are at the beginning of the year 
 	we impose that
 	\begin{eqnarray}
-		w_{ijn} \le b_{ijn}.
+		w_{ijn} + \delta(j, 1)x_{in} \le b_{ijn}.
 	\end{eqnarray}
 
 \paragraph*{Roth Conversions}
