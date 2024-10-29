@@ -110,14 +110,13 @@ def getUnits(units) -> int:
     return fac
 
 
+# Could be a one-line lambda function:
+# krond = lambda a, b: 1 if a == b else 0
 def krond(a, b) -> int:
     '''
     Kronecker scalar delta function.
     '''
-    if a == b:
-        return 1
-    else:
-        return 0
+    return (1 if a == b else 0)
 
 
 def getGitRevisionShortHash() -> str:

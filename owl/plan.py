@@ -1,7 +1,7 @@
 '''
 
 Owl/plan
----
+--------
 
 A retirement planner using linear programming optimization.
 
@@ -134,8 +134,8 @@ class Plan:
         self.N_t = 7
         self.N_j = 3
         self.N_k = 4
-        # 3 binary variables.
-        self.N_z = 3
+        # 2 binary variables.
+        self.N_z = 2
 
         # Default interpolation parameters for allocation ratios.
         self.interpMethod = 'linear'
@@ -144,7 +144,7 @@ class Plan:
         self.interpWidth = 5
 
         self.defaultPlots = 'nominal'
-        self.solver = 'HiGHS'
+        self.defaultSolver = 'HiGHS'
 
         self.N_i = len(yobs)
         assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
@@ -155,7 +155,7 @@ class Plan:
         self.yobs = yobs
         self.expectancy = expectancy
 
-	# Reference time is the beginning of the year and all passings are assumed at the end.
+        # Reference time is the beginning of the year and all passings are assumed at the end.
         thisyear = date.today().year
         self.horizons = [yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)]
         self.N_n = max(self.horizons)
@@ -166,17 +166,17 @@ class Plan:
             self.i_d = self.horizons.index(self.n_d)
             self.i_s = (self.i_d + 1) % 2
         else:
-            self.n_d = self.N_n + 2  # Push beyond upper bound.
+            self.n_d = self.N_n + 1  # Push at upper bound.
             self.i_d = 0
             self.i_s = -1
 
         # Default parameters:
-        self.psi = 0.15         # Long-term income tax rate (decimal)
-        self.chi = 0.6          # Survivor fraction
-        self.mu = 0.02          # Dividend rate (decimal)
-        self.nu = 0.30          # Heirs tax rate (decimal)
-        self.eta = 0            # Spousal deposit/withdrawal ratio
-        self.phi_j = [1, 1, 1]  # Fractions left to other spouse at death
+        self.psi = 0.15                  # Long-term income tax rate on capital gains (decimal)
+        self.chi = 0.6                   # Survivor fraction
+        self.mu = 0.02                   # Dividend rate (decimal)
+        self.nu = 0.30                   # Heirs tax rate (decimal)
+        self.eta = (self.N_i - 1)/2      # Spousal deposit/withdrawal ratio (0 or .5)
+        self.phi_j = np.array([1, 1, 1]) # Fractions left to other spouse at death
 
         # Placeholder for before reading contributions file.
         self.inames = ['Individual 1', 'Individual 2']
@@ -195,7 +195,7 @@ class Plan:
         self.myRothX_in = np.zeros((self.N_i, self.N_n))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
 
-        # Scenario start at the beginning of this year and ends at the end of last year.
+        # Scenario starts at the beginning of this year and ends at the end of the last year.
         u.vprint(
             'Preparing scenario of %d years for %d individual%s.'
             % (self.N_n, self.N_i, ['', 's'][self.N_i - 1])
@@ -244,20 +244,11 @@ class Plan:
 
         return None
 
-    def setSolver(self, solver):
-        '''
-        Select solver.
-        '''
-        solvers = ['HiGHS', 'MOSEK']
-        assert solver in solvers, 'Solver %s not supported.' % solver
-        self.solver = solver
-
-        return None
-
     def rename(self, name):
         '''
         Override name of the plan. Name is used
-        to distinguish graph outputs and as base name for I/O.
+        to distinguish graph outputs and as base name for
+        saving configurations and workbooks.
         '''
         self._name = name
 
@@ -265,21 +256,22 @@ class Plan:
 
     def setSpousalDepositFraction(self, eta):
         '''
-        Set spousal deposit and withdrawal fraction. Default 0.
-        A fraction eta is given then
-            d0/(d0 + d1) >= eta,
-        or
-            d0/(d0 + d1) <= eta,
-        depending on the sign provided.
-        Here d0 is the deposit amount into the taxable account
-        of first spouse while d1 is for the second spouse.
-        If x is 1, and positive, all surplus get deposited
-        into the taxable account of the first spouse. If x is small (-1e-9) and negative,
-        then all surplus get deposited into the taxable account of the second spouse.
+        Set spousal deposit and withdrawal fraction. Default 0.5.
+        Fraction eta is use to split surplus deposits between spouses as
+            d_0n = (1 - eta)*s_n,
+        and
+            d_1n = eta*s_n,
+        where s_n is the surplus amount. Here d_0n is the taxable account
+        deposit for the first spouse while d_1n is for the second spouse.
         '''
-        assert -1 <= eta and eta <= 1, 'Fraction must be between -1 and 1.'
-        u.vprint('Setting spousal surplus deposit fraction to %.1f.' % eta)
-        self.eta = eta
+        assert 0 <= eta and eta <= 1, 'Fraction must be between 0 and 1.'
+        if self.N_i != 2:
+            u.vprint('Deposit fraction can only be 0 for single individuals.')
+            eta = 0
+        else:
+            u.vprint('Setting spousal surplus deposit fraction to %.1f.' % eta)
+            u.vprint('\t%s: %.1f, %s: %.1f' % (self.inames[0], (1-eta), self.inames[1], eta))
+            self.eta = eta
 
         return None
 
@@ -326,8 +318,10 @@ class Plan:
             assert 0 <= phi[j] <= 1, 'Fractions must be between 0 and 1.'
 
         u.vprint('Spousal beneficiary fractions set to', phi)
-        self.phi_j = phi
+        self.phi_j = np.array(phi)
         self._caseStatus = 'modified'
+        u.vprint('Consider changing spousal deposit fraction for better convergence.')
+        u.vprint('\tSee setSpousalDepositFraction() for details.')
 
         return None
 
@@ -521,7 +515,7 @@ class Plan:
         self.interpMethod = method
         self._caseStatus = 'modified'
 
-        u.vprint('Asset allocation interpolation method set to', method)
+        u.vprint('Asset allocation interpolation method set to %s.' % method)
 
         return None
 
@@ -751,20 +745,20 @@ class Plan:
 
     def _buildOffsetMap(self):
         '''
-        Utility function to map variables to block vector.
+        Utility function to map variables to a block vector.
         Refer to companion document for explanations.
         '''
-        # Stack variables in block vector.
+        # Stack all variables in a single block vector.
         C = {}
         C['b'] = 0
         C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n + 1)
-        C['f'] = _qC(C['d'], self.N_i, self.N_n)
-        C['g'] = _qC(C['f'], self.N_t, self.N_n)
-        C['w'] = _qC(C['g'], self.N_n)
+        C['F'] = _qC(C['d'], self.N_i, self.N_n)
+        C['g'] = _qC(C['F'], self.N_t, self.N_n)
+        C['s'] = _qC(C['g'], self.N_n)
+        C['w'] = _qC(C['s'], self.N_n)
         C['x'] = _qC(C['w'], self.N_i, self.N_j, self.N_n)
         C['z'] = _qC(C['x'], self.N_i, self.N_n)
-        C['Z'] = _qC(C['z'], self.N_i, self.N_n, self.N_z)
-        self.nvars = _qC(C['Z'], 1)
+        self.nvars = _qC(C['z'], self.N_i, self.N_n, self.N_z)
 
         self.C = C
         u.vprint(
@@ -799,12 +793,12 @@ class Plan:
 
         Cb = self.C['b']
         Cd = self.C['d']
-        Cf = self.C['f']
+        CF = self.C['F']
         Cg = self.C['g']
+        Cs = self.C['s']
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
-        CZ = self.C['Z']
 
         tau_ijn = np.zeros((Ni, Nj, Nn))
         for i in range(Ni):
@@ -823,7 +817,8 @@ class Plan:
 
         bigM = 5e6
         if 'bigM' in options:
-            bigM = units * options['bigM']
+            # No units for bigM.
+            bigM = options['bigM']
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
@@ -840,9 +835,9 @@ class Plan:
                 A.addNewRow(rowDic, zero, inf)
 
         # Income tax bracket range inequalities.
-        for n in range(Nn):
-            for t in range(Nt):
-                B.set0_Ub(_q2(Cf, t, n, Nt, Nn), self.DeltaBar_tn[t, n])
+        for t in range(Nt):
+            for n in range(Nn):
+                B.set0_Ub(_q2(CF, t, n, Nt, Nn), self.DeltaBar_tn[t, n])
 
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
@@ -863,41 +858,45 @@ class Plan:
                     # u.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
-                            #  Adjust cap with inflation?
+                            #  Should we adjust Roth conversion cap with inflation?
                             B.set0_Ub(_q2(Cx, i, n, Ni, Nn), rhsopt)
 
-        if Ni == 2:
-            # No activity for i_d after year of passing.
-            for n in range(n_d, Nn):
-                B.set0_Ub(_q2(Cd, i_d, n, Ni, Nn), zero)
-                for j in range(Nj):
-                    B.set0_Ub(_q3(Cw, i_d, j, n, Ni, Nj, Nn), zero)
-            # Process noRothConversions option.
-            if 'noRothConversions' in options:
-                rhsopt = options['noRothConversions']
-                try:
-                    i_x = self.inames.index(rhsopt)
-                except ValueError:
-                    u.xprint('Unknown individual for noRothConversions:', rhsopt)
+        # Process noRothConversions option. Also valid when N_i == 1, why not?
+        if 'noRothConversions' in options:
+            rhsopt = options['noRothConversions']
+            try:
+                i_x = self.inames.index(rhsopt)
+            except ValueError:
+                u.xprint('Unknown individual for noRothConversions:', rhsopt)
 
-                for n in range(Nn):
-                    B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
+            for n in range(Nn):
+                B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
 
-        # Deposits in taxable account during last year are a tax loophole.
+        # Impose withdrawal limits on taxable and tax-exempt accounts.
         for i in range(Ni):
-            B.set0_Ub(_q2(Cd, i, Nn - 1, Ni, Nn), zero)
+            for j in [0, 2]:
+                for n in range(Nn):
+                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1,
+                              _q3(Cb, i, j, n, Ni, Nj, Nn + 1): 1}
+                    A.addNewRow(rowDic, zero, inf)
 
-        ###################################################################
-        # Equalities.
+        # Impose withdrawals and conversion limits on tax-deferred account.
+        for i in range(Ni):
+            for n in range(Nn):
+                rowDic = {_q2(Cx, i, n, Ni, Nn): -1,
+                          _q3(Cw, i, 1, n, Ni, Nj, Nn): -1,
+                          _q3(Cb, i, 1, n, Ni, Nj, Nn + 1): 1}
+                A.addNewRow(rowDic, zero, inf)
 
+        # Constraints depending on objective function.
         if objective == 'maxSpending':
-            # Impose requested constraint on final bequest, if any.
+            # Impose optional constraint on final bequest requested in today's $.
             if 'bequest' in options:
                 bequest = options['bequest']
-                assert isinstance(bequest, (int, float)) == True, 'Desired bequest provided not a number.'
+                assert isinstance(bequest, (int, float)) == True, 'Desired bequest is not a number.'
                 bequest *= units * self.gamma_n[-1]
             else:
-                # If not specified, default to $1.
+                # If not specified, defaults to $1 (nominal $).
                 bequest = 1
 
             row = A.newRow()
@@ -911,19 +910,46 @@ class Plan:
             # u.vprint('Adding bequest constraint of:', u.d(bequest))
         elif objective == 'maxBequest':
             spending = options['netSpending']
-            assert isinstance(spending, (int, float)) == True, 'Desired spending provided not a number.'
+            assert isinstance(spending, (int, float)) == True, 'Desired spending provided is not a number.'
             spending *= units
             # u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
             A.addNewRow({_q1(Cg, 0): 1}, spending, spending)
 
-        # Set initial balances through bounds or constraints.
+        # Set initial balances through constraints.
         for i in range(Ni):
             for j in range(Nj):
                 rhs = self.beta_ij[i, j]
                 A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
 
+        # Link surplus and taxable account deposits regardless of Ni.
+        for i in range(Ni):
+            fac1 = u.krond(i, 0)*(1 - self.eta) + u.krond(i, 1)*self.eta
+            fac2 = u.krond(self.i_s, 1)
+            for n in range(n_d):
+                rowDic = {_q2(Cd, i, n, Ni, Nn): 1, _q1(Cs, n, Nn): -fac1}
+                A.addNewRow(rowDic, zero, zero)
+            for n in range(n_d, Nn):
+                rowDic = {_q2(Cd, i, n, Ni, Nn): 1, _q1(Cs, n, Nn): -fac2}
+                A.addNewRow(rowDic, zero, zero)
+
+        # No surplus allowed during the last year to be used as a tax loophole.
+        B.set0_Ub(_q1(Cs, Nn - 1, Nn), zero)
+
+        if Ni == 2:
+            # No conversion during last year.
+            # B.set0_Ub(_q2(Cx, i_d, n_d-1, Ni, Nn), zero)
+            # B.set0_Ub(_q2(Cx, i_s, Nn-1, Ni, Nn), zero)
+
+            # No withdrawals or deposits for any i_d-owned accounts after year of passing.
+            # Implicit n_d < Nn imposed by for loop.
+            for n in range(n_d, Nn):
+                B.set0_Ub(_q2(Cd, i_d, n, Ni, Nn), zero)
+                B.set0_Ub(_q2(Cx, i_d, n, Ni, Nn), zero)
+                for j in range(Nj):
+                    B.set0_Ub(_q3(Cw, i_d, j, n, Ni, Nj, Nn), zero)
+
         # Account balances carried from year to year.
-        # Considering spousal asset transfer.
+        # Considering spousal asset transfer at passing of a spouse.
         # Using hybrid approach with 'if' statement and Kronecker deltas.
         for i in range(Ni):
             for j in range(Nj):
@@ -938,7 +964,7 @@ class Plan:
                     row.addElem(_q2(Cd, i, n, Ni, Nn), -fac1 * u.krond(j, 0) * Tau1_ijn[i, 0, n])
                     row.addElem(
                         _q2(Cx, i, n, Ni, Nn),
-                        -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i, j, n],
+                        -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n],
                     )
 
                     if Ni == 2 and i == i_s and n == n_d - 1:
@@ -946,10 +972,10 @@ class Plan:
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
                         row.addElem(_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1), -fac2 * Tau1_ijn[i_d, j, n])
                         row.addElem(_q3(Cw, i_d, j, n, Ni, Nj, Nn), fac2 * Tau1_ijn[i_d, j, n])
-                        row.addElem(_q2(Cd, i_d, n, Ni, Nn), -u.krond(j, 0) * Tauh_ijn[i_d, 0, n])
+                        row.addElem(_q2(Cd, i_d, n, Ni, Nn), -fac2 * u.krond(j, 0) * Tau1_ijn[i_d, 0, n])
                         row.addElem(
                             _q2(Cx, i_d, n, Ni, Nn),
-                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tauh_ijn[i_d, j, n],
+                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i_d, j, n],
                         )
                     A.addRow(row, rhs, rhs)
 
@@ -960,6 +986,7 @@ class Plan:
         for n in range(Nn):
             rhs = -self.M_n[n]
             row = A.newRow({_q1(Cg, n, Nn): 1})
+            row.addElem(_q1(Cs, n, Nn), 1)
             for i in range(Ni):
                 fac = self.psi * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
@@ -971,16 +998,17 @@ class Plan:
                 )
 
                 row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), fac * self.mu)
-                row.addElem(_q2(Cd, i, n, Ni, Nn), fac * self.mu + 1)
                 # Minus capital gains on taxable withdrawals using last year's rate if >=0.
                 # Plus taxable account withdrawals, and all other withdrawals.
                 row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fac * (tau_0prev[n] - self.mu) - 1)
                 row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1)
                 row.addElem(_q3(Cw, i, 2, n, Ni, Nj, Nn), -1)
+                row.addElem(_q2(Cd, i, n, Ni, Nn), fac * self.mu)
 
-            # Minus tax on ordinary income. Tn
+            # Minus tax on ordinary income, T_n.
             for t in range(Nt):
-                row.addElem(_q2(Cf, t, n, Nt, Nn), self.theta_tn[t, n])
+                row.addElem(_q2(CF, t, n, Nt, Nn), self.theta_tn[t, n])
+
             A.addRow(row, rhs, rhs)
 
         # Impose income profile.
@@ -988,37 +1016,17 @@ class Plan:
             rowDic = {_q1(Cg, 0, Nn): -self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
             A.addNewRow(rowDic, zero, zero)
 
-        # Balance deposits and withdrawals while both spouses are alive.
-        if Ni == 2:
-            pm1 = np.sign(self.eta)
-            for n in range(n_d - 1):
-                rowDic = {_q2(Cd, 0, n, Ni, Nn): (pm1 - self.eta), _q2(Cd, 1, n, Ni, Nn): -self.eta}
-                A.addNewRow(rowDic, zero, inf)
-                '''
-                rowDic = {_q3(Cw, 0, 1, n, Ni, Nj, Nn): (pm1 - self.eta), 
-                          _q3(Cw, 1, 1, n, Ni, Nj, Nn): -self.eta
-                         }
-                rhs = self.rho_in[0, n]*(pm1 - self.eta) - self.rho_in[1, n]*self.eta
-                A.addNewRow(rowDic, rhs, inf)
-                '''
-
-        # Impose account balance max on all withdrawals. This helps converging.
-        for i in range(Ni):
-            for j in range(Nj):
-                for n in range(Nn):
-                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1, _q3(Cb, i, j, n, Ni, Nj, Nn + 1): 1}
-                    A.addNewRow(rowDic, zero, inf)
-
         # Taxable ordinary income.
         for n in range(Nn):
             row = A.newRow()
             rhs = -self.sigmaBar_n[n]
             for i in range(Ni):
                 rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
+                # Taxable income from tax-deferred withdrawals.
                 row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1)
                 row.addElem(_q2(Cx, i, n, Ni, Nn), -1)
 
-                # Returns on securities in taxable account.
+                # Taxable returns on securities in taxable account.
                 fak = np.sum(self.tau_kn[1:Nk, n] * self.alpha_ijkn[i, 0, 1:Nk, n], axis=0)
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
                 row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), -fak)
@@ -1026,58 +1034,41 @@ class Plan:
                 row.addElem(_q2(Cd, i, n, Ni, Nn), -fak)
 
             for t in range(Nt):
-                row.addElem(_q2(Cf, t, n, Nt, Nn), 1)
+                row.addElem(_q2(CF, t, n, Nt, Nn), 1)
+
             A.addRow(row, rhs, rhs)
 
-        # Configure all binary variables.
+        # Configure binary variables.
         for i in range(Ni):
-            for n in range(Nn):
+            for n in range(self.horizons[i]):
                 for z in range(Nz):
                     B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
 
-        B.setBinary(_q1(CZ, 0, 1))
-
-        # Exclude simultaneous deposits and withdrawals from taxable or tax-free accounts.
-        for i in range(Ni):
-            for n in range(Nn):
+                # '''
+                # Exclude simultaneous deposits and withdrawals from taxable or tax-free accounts.
                 A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
-                    zero,
-                    bigM,
+                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q1(Cs, n, Nn): -1},
+                    zero, bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q3(Cw, i, 0, n, Ni, Nj, Nn): 1},
-                    zero,
-                    bigM,
+                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, 
+                     _q3(Cw, i, 0, n, Ni, Nj, Nn): 1,
+                     _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                     zero, bigM,
+                )
+                # '''
+
+                # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
+                A.addNewRow(
+                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
+                    zero, bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cd, i, n, Ni, Nn): -1},
-                    zero,
-                    bigM,
+                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    zero, bigM,
                 )
-
-                A.addNewRow({_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1}, zero, bigM)
-
-        # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
-        for i in range(Ni):
-            for n in range(Nn):
-                A.addNewRow(
-                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
-                    zero,
-                    bigM,
-                )
-
-                A.addNewRow(
-                    {_q3(Cz, i, n, 2, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
-                    zero,
-                    bigM,
-                )
-
-        # Exclude taxable withdrawals from passing spouse to deposits in surviving.
-        # A.addNewRow({_q1(CZ, 0, 1): bigM, _q2(Cd, i_s, n_d - 1, Ni, Nn): -1}, zero, bigM)
-        # A.addNewRow({_q1(CZ, 0, 1): bigM, _q3(Cw, i_d, 0, n_d - 1, Ni, Nj, Nn): 1}, zero, bigM)
 
         # Now build a solver-neutral objective vector.
         c = abc.Objective(self.nvars)
@@ -1127,6 +1118,7 @@ class Plan:
 
         # Check objective and required options.
         knownObjectives = ['maxBequest', 'maxSpending']
+        knownSolvers = ['HiGHS', 'MOSEK']
         knownOptions = [
             'units',
             'maxRothConversion',
@@ -1134,6 +1126,7 @@ class Plan:
             'bequest',
             'bigM',
             'noRothConversions',
+            'solver',
         ]
         for opt in options:
             if opt not in knownOptions:
@@ -1144,19 +1137,26 @@ class Plan:
             u.xprint('Objective', objective, 'needs netSpending option.')
         if objective == 'maxBequest' and 'bequest' in options:
             u.vprint('Ignoring bequest option provided.')
+            options.pop('bequest')
         if objective == 'maxSpending' and 'netSpending' in options:
             u.vprint('Ignoring netSpending option provided.')
+            options.pop('netSpending')
         if objective == 'maxSpending' and 'bequest' not in options:
             u.vprint('Using bequest of $1.')
 
         self._adjustParameters()
 
-        if self.solver == 'HiGHS':
-            self._milpSolve(objective, options)
-        elif self.solver == 'MOSEK':
-            self._mosekSolve(objective, options)
+        if 'solver' in options:
+            solver = options['solver']
+            if solver not in knownSolvers:
+                u.xprint('Unknown solver %s.' % solver)
         else:
-            u.xprint('Unknown solver %s.' % self.solver)
+           solver = self.defaultSolver
+
+        if solver == 'HiGHS':
+            self._milpSolve(objective, options)
+        elif solver == 'MOSEK':
+            self._mosekSolve(objective, options)
 
         self.objective = objective
         self.solverOptions = options
@@ -1205,7 +1205,7 @@ class Plan:
             diff = np.sum(np.abs(delta), axis=0)
             old_x = solution.x
             delta = np.sum(delta, axis=0)
-            if abs(delta + old_delta) < 1e-3 or it > 32:
+            if abs(delta + old_delta) < 1e-3 or it > 29:
                 print('WARNING: Detected oscilating solution.')
                 print('    Try again with slightly different input parameters.')
                 break
@@ -1290,7 +1290,7 @@ class Plan:
             diff = np.sum(np.abs(delta), axis=0)
             old_x = xx
             delta = np.sum(delta, axis=0)
-            if abs(delta + old_delta) < 1e-3 or it > 32:
+            if abs(delta + old_delta) < 1e-3 or it > 29:
                 print('WARNING: Detected oscilating solution.')
                 print('    Try again with slightly different input parameters.')
                 break
@@ -1319,9 +1319,9 @@ class Plan:
         if x is None:
             self.G_n = np.zeros(self.N_n)
         else:
-            self.f_tn = np.array(x[self.C['f'] : self.C['g']])
-            self.f_tn = self.f_tn.reshape((self.N_t, self.N_n))
-            self.G_n = np.sum(self.f_tn, axis=0)
+            self.F_tn = np.array(x[self.C['F'] : self.C['g']])
+            self.F_tn = self.F_tn.reshape((self.N_t, self.N_n))
+            self.G_n = np.sum(self.F_tn, axis=0)
 
         self.M_n = tx.mediCosts(
             self.yobs, self.horizons, self.G_n + self.sigmaBar_n, self.gamma_n[:-1], self.N_n
@@ -1344,12 +1344,12 @@ class Plan:
 
         Cb = self.C['b']
         Cd = self.C['d']
-        Cf = self.C['f']
+        CF = self.C['F']
         Cg = self.C['g']
+        Cs = self.C['s']
         Cw = self.C['w']
         Cx = self.C['x']
         Cz = self.C['z']
-        CZ = self.C['Z']
 
         x = u.roundCents(x)
 
@@ -1360,14 +1360,17 @@ class Plan:
         for k in range(Nk):
             self.b_ijkn[:, :, k, :] = self.b_ijn[:, :, :] * self.alpha_ijkn[:, :, k, :]
 
-        self.d_in = np.array(x[Cd:Cf])
+        self.d_in = np.array(x[Cd:CF])
         self.d_in = self.d_in.reshape((Ni, Nn))
 
-        self.f_tn = np.array(x[Cf:Cg])
-        self.f_tn = self.f_tn.reshape((Nt, Nn))
+        self.F_tn = np.array(x[CF:Cg])
+        self.F_tn = self.F_tn.reshape((Nt, Nn))
 
-        self.g_n = np.array(x[Cg:Cw])
+        self.g_n = np.array(x[Cg:Cs])
         # self.g_n = self.g_n.reshape((Nn))
+
+        self.s_n = np.array(x[Cs:Cw])
+        # self.s_n = self.s_n.reshape((Nn))
 
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
@@ -1375,9 +1378,25 @@ class Plan:
         self.x_in = np.array(x[Cx:Cz])
         self.x_in = self.x_in.reshape((Ni, Nn))
 
-        # self.z_inz = np.array(x[Cz:CZ])
+        # self.z_inz = np.array(x[Cz:])
         # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
         # print(self.z_inz)
+
+        self.part_j = np.zeros(3)
+        nx = self.n_d - 1
+        i_d = self.i_d
+        for j in range(Nj):
+            ksumj = np.sum(self.alpha_ijkn[i_d, j, :, nx] * self.tau_kn[:, nx], axis=0)
+            Tauh = 1 + 0.5*ksumj
+            Tau1 = 1 + ksumj
+            self.part_j[j] = (Tauh * self.kappa_ijn[i_d, j, nx] +
+                              Tau1 * (self.b_ijn[i_d, j, nx] -
+                              self.w_ijn[i_d, j, nx] +
+                              self.d_in[i_d, nx] * u.krond(j, 0) +
+                              self.x_in[i_d, nx] * (u.krond(j, 2) - u.krond(j, 1)))
+                              )
+
+        self.part_j *= 1 - self.phi_j
 
         sourcetypes = [
             'wages',
@@ -1394,8 +1413,8 @@ class Plan:
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
         self.dist_in[self.dist_in < 0] = 0
-        self.G_n = np.sum(self.f_tn, axis=0)
-        T_tn = self.f_tn * self.theta_tn
+        self.G_n = np.sum(self.F_tn, axis=0)
+        T_tn = self.F_tn * self.theta_tn
         self.T_n = np.sum(T_tn, axis=0)
 
         tau_0 = np.array(self.tau_kn[0, :])
@@ -1411,7 +1430,7 @@ class Plan:
                     + self.d_in[:, :]
                     + 0.5 * self.kappa_ijn[:, 0, :]
                 )
-                + +tau_0prev * self.w_ijn[:, 0, :]
+                + tau_0prev * self.w_ijn[:, 0, :]
             )
             * self.alpha_ijkn[:, 0, 0, :-1],
             axis=0,
@@ -1482,7 +1501,6 @@ class Plan:
         for i in range(self.N_i):
             lines.append('%12s\'s accounts: %s' % (self.inames[i], [u.d(self.beta_ij[i][j]) for j in range(self.N_j)]))
 
-        # lines.append('Beneficiary fractions: %s' % self.phi_j)
         lines.append('Return rates: %s' % self.rateMethod)
         if self.rateMethod in ['historical', 'average', 'stochastic']:
             lines.append('Rates used: from %d to %d' % (self.rateFrm, self.rateTo))
@@ -1490,7 +1508,6 @@ class Plan:
             lines.append('Rates used (%%): %s' % (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
         lines.append('Optimized for: %s' % self.objective)
         lines.append('Solver options: %s' % self.solverOptions)
-        lines.append('Solver used: %s' % self.solver)
         lines.append('Number of decision variables: %d' % self.A.nvars)
         lines.append('Number of constraints: %d' % self.A.ncons)
         lines.append('Spending profile: %s' % self.spendingProfile)
@@ -1524,17 +1541,30 @@ class Plan:
             'Total Medicare premiums paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid))
         )
 
+        lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
+
+        lines.append('Spousal beneficiary fractions: %s' % self.phi_j.tolist())
+        p_j = np.array(self.part_j)
+        p_j[1] *= 1 - self.nu
+        totPart = np.sum(p_j)
+        totPartNow = totPart/self.gamma_n[self.n_d-1]
+        lines.append('Post-tax partial nominal distributions in year %d:' % self.year_n[self.n_d - 1])
+        lines.append(
+            '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
+        )
+        lines.append('Post-tax non-spousal bequest in year %d in %d$: %s (%s nominal)'
+             % (self.year_n[self.n_d - 1], now, u.d(totPartNow), u.d(totPart)))
+
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
-        lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
-        lines.append('Final account post-tax nominal values:')
+        lines.append('Post-tax final account nominal values in year %d:' % self.year_n[-1])
         lines.append(
             '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2]))
         )
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[-1]
-        lines.append('Total estate value at year %d in %d$: %s (%s nominal)' \
+        lines.append('Total estate value in year %d in %d$: %s (%s nominal)' \
                 % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
         lines.append('Final inflation factor: %s' % u.pc(self.gamma_n[-1], f=1))
 
@@ -1840,7 +1870,7 @@ class Plan:
         q = 0
         for t in range(self.N_t):
             key = 'f ' + str(t)
-            series[key] = self.f_tn[t] / self.DeltaBar_tn[t]
+            series[key] = self.F_tn[t] / self.DeltaBar_tn[t]
             print(key, series[key])
             style[key] = various[q % len(various)]
             q += 1
@@ -2041,9 +2071,9 @@ class Plan:
             'wages': 'wages',
             'social sec': 'ssec',
             'pension': 'pension',
-            'txbl acc. wdrwl': 'wdrwl taxable',
+            'txbl acc wdrwl': 'wdrwl taxable',
             'RMDs': 'rmd',
-            'distribution': 'dist',
+            '+distributions': 'dist',
             'Roth conversion': 'RothX',
             'tax-free wdrwl': 'wdrwl tax-free',
             'big-ticket items': 'bti',
@@ -2143,7 +2173,7 @@ class Plan:
         # Summary on last sheet.
         ws = wb.create_sheet('Summary')
         rawData = {}
-        rawData['SUMMARY ====================================================================='] = (
+        rawData['SUMMARY ==========================================================================='] = (
             self._summaryList()[1:-1]
         )
 
@@ -2370,7 +2400,7 @@ def _formatSpreadsheet(ws, ftype):
     elif ftype == 'summary':
         for col in ws.columns:
             column = col[0].column_letter
-            width = max(len(str(col[0].value)) + 4, 10)
+            width = max(len(str(col[0].value)) + 20, 40)
             ws.column_dimensions[column].width = width
             return None
     else:
