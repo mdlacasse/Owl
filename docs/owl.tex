@@ -47,16 +47,16 @@ of retirement planning, considering the types of savings accounts,
 income tax, contributions, return rates, Roth conversions,
 and desired income amongst many other things.
 
-The approach is described here mathematically and the implementation
+The approach is described here mathematically and the Python implementation
 follows the structure and notation presented in this document.
-The intent of this document is to provide a guide to the Python code
+The intent of this document is to provide a guide to the source code
 for any individual desiring to extend the model to other cases.
 
 \chapter{Indices, variables, and parameters}
 In the next sections, the indices, variables, and parameters are
 described in detail. Then the model constraints are introduced.
 For implementation in a linear programming solver, index mapping
-functions are proposed to map all variables into a single
+functions are introduced to map all variables into a single
 one-dimensional array that
 is optimized subject to inequality and equality constraints
 expressed in matrix form. Finally, the constraint matrices are built
@@ -107,8 +107,8 @@ to take only non-negative values ($\ge 0$ inequality).
 	When we consider each asset class $k$, the variable $b_{ijkn}$ is used instead.
 \item [$d_{in}$]
 	Deposit of year-$n$ net spending surplus in taxable account of individual $i$.
-	These deposits are coming from the surplus $s_n$, distributed to each spousal account
-	depending on parameter $\eta$.
+	These deposits are coming from the surplus $s_n$, distributed to
+	spousal taxable accounts depending on parameter $\eta$.
 \item [$f_{t n}$]
 	Fraction of tax bracket $t$ filled, so that taxable ordinary income $G_n$ can be expressed as
 	\begin{eqnarray}
@@ -120,8 +120,8 @@ to take only non-negative values ($\ge 0$ inequality).
 \item [$g_n$]
 	Net spending in year $n$.
 \item [$s_{n}$]
-	Surplus of funds during year $n$, most likely caused by RMDs or influx of money from
-	big-ticket items (inheritance, gifts, sale of a house, etc.).
+	Surplus of funds during year $n$, most likely caused by required minimum distributions (RMDs)
+	or influx of money from big-ticket items (inheritance, gifts, sale of a house, etc.).
 \item [$w_{ijn}$]
 	Withdrawal from account $j$ belonging to individual $i$ at the beginning of year $n$.
 	For the $(j=1)$ tax-deferred savings account, $w_{i1n}$ is referred to as a distribution for
@@ -144,7 +144,8 @@ Parameter values are either set by the user, historical data, or by the tax code
 	Here, inflation and the rate of return of $(k=3)$ cash are assumed to be the same.
 	In other words, investing in cash yields constant dollars (just inflation).
 \item[$\mathcal{T}_{ijn}$]
-	When the allocation ratios are fixed, it is more convenient to express return rates as
+	When the allocation ratios $\alpha_{ijkn}$ are prescribed,
+	it is more convenient to express the return rates as
 	\begin{equation}
 		\mathcal{T}_{ijn} = \sum_k \alpha_{ijkn} \tau_{kn}.
 	\end{equation}
@@ -160,7 +161,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 	\begin{equation}
 		\bar\sigma_n = \sigma_n \gamma_n,
 	\end{equation}
-	and can be modified for additional age exemptions after 65 of age, for example.
+	and can be modified for additional exemptions after 65 of age, for example.
 	It is a simple time series
 	which can include any foreseeable changes in the tax code, or change in filing status due to the
 	passing of one spouse for $n\ge n_d$.
@@ -190,8 +191,8 @@ Parameter values are either set by the user, historical data, or by the tax code
 	assumed to be 0.6.
 \item [$\rho_{in}$]
 	Required minimum distribution for individual $i$ in year $n$. Expressed in fractions
-	which are determined from IRS tables. Simple if spouses are less than 10 years apart,
-	a little more complex otherwise, as the age of both spouses need to be taken into account.
+	which are determined from IRS tables. These tables are simple if spouses are less than 10 years apart,
+	but a little more complex otherwise, as the age of both spouses need to be taken into account.
 	Current implementation only supports spouses being less that 10 years apart.
 	An error message is generated in these cases and the calculation is aborted.
 \item [$\Gamma_{tn}$]
@@ -206,7 +207,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 	\end{equation}
 	Once adjusted for inflation,
 	the taxable income can be expressed as in Eq.~(\ref{Eq:Tx1}). These data are 7 time series.
-	The filing status changes after the passing of one spouse ($n \ge n_d$) and and these
+	The filing status changes after the passing of one spouse ($n \ge n_d$) and these
 	brackets are adjusted accordingly.
 \item [$\theta_{tn}$]
 	Tax rate for tax bracket $t$ in year $n$. Using $N_t$ time series allows to adjust income
@@ -232,11 +233,13 @@ or an s-curve as in
 	(\tanh((n-n_1)/n_2) + 1),
 \end{equation}
 	where $n_1$ is the number of years ahead when inflection point will occur, and $n_2$ is the
-	width (in years) of the transition. Constants $n_1$ and $n_2$ are selected by the user.
+	width (in years) of the transition. Constants $n_1$ and $n_2$ can be adjusted by the user.
+	Default values are $n_1 = 15$, and $n_2 = 5$, meaning that the transition center will occur
+	in 15 years, taking place from $15-5$ years to $15+5$ years from now.
 	Using $a = \alpha_{ijk0}$ and $b = \alpha_{ijkN_n-1}$ is an approximation as values of $\pm 1$
-	are only reached at $\pm \infty$.
-	More precise bounds $a'$ and $b'$ can be determined by solving a $2\times 2$ system
-	of equations leading to
+	are only reached at $\pm \infty$ for a hyperbolic tangent.
+	More precise bounds $a'$ and $b'$ for matching the desired start and end values
+	can be determined by solving a $2\times 2$ system of equations leading to
 	\begin{eqnarray}
 		a' &=& (a - k_{12}b')/k_{11} \nonumber \\
 		b' &=& ((b - (k_{21}/k_{11})a)/(k_{22} - (k_{21}/k_{11})k_{12}),
@@ -276,7 +279,8 @@ or an s-curve as in
 	(e.g., sell a house, inheritance) or negative (e.g., buy a house, large gifts).
 \item [$\pi_{in}$]
 	Sum of pension benefits for individual $i$ in year $n$. These amounts are typically
-	specified along with the ages at which these benefits begin.
+	specified along with the ages at which these benefits begin. Owl currently assumes
+	that pensions are not indexed for inflation, but that functionality can easily be added.
 \item [$\zeta_{in}$]
 	Social security benefits for individual $i$ in year $n$. Starting age and the passing
 	of one individual for spouses will determine the time series. $\bar{\zeta}_{in}$ is
@@ -284,7 +288,7 @@ or an s-curve as in
 \item [$\epsilon_{N_n}$]
 	Desired amount to leave as a bequest at the end of the final year of the plan, $N_n-1$,
 	which is the beginning of year $N_n$. This amount is the after-tax value of the estate
-	for the heirs. See parameter $\nu$.
+	for the heirs expressed in today's dollars. See parameter $\nu$ for the heirs tax rate.
 \item [$\kappa_{ijn}$]
 	Sum of contributions to savings account $j$ made by individual $i$ during year $n$.
 	We assume that contributions are made at half-year to balance regular contributions.
@@ -309,18 +313,20 @@ or an s-curve as in
 	Income tax rate on long-term capital gain and qualified dividends, typically 15\%.
 \item [$\eta$]
 	Spousal ratio for surplus deposits, which goes from 0 to 1, as the fraction
-	that goes to the $i = 1$ second spouse's account. Therefore,
+	that goes to the $i = 1$ second spouse's account. Therefore, a surplus $s_n$ in year $n$
+	will result in a deposit $d$ in the taxable account of individual $i$ as
 	\begin{eqnarray}
 		\label{Eq:eta}
 		d_{0n} & = & (1 - \eta) s_n \nonumber\\
 		d_{1n} & = & \eta s_n.
 	\end{eqnarray}
-	This choice is such that we can set a value depending on individual $\eta_i = \delta(i, i_s)$
-	for $n \ge n_d$, after the passing of $i_d$.
+	This choice is such that we can set a value depending on the surviving
+	individual $\eta = \delta(1, i_s)$ for $n \ge n_d$, after the passing of $i_d$.
+	Default value is $(N_i - 1)/2$, i.e., $0.5$ for couples and $0$ for single individuals.
 \item [$\mathcal{M}_n$]
-	Medicare and Income Related Monthly Adjusted Adjustment (IRMAA)
-	for Medicare. As this additional adjustment
-	is a step function, it has to be computed using binary variables and mixed-integer linear
+	Costs of Medicare and its Income Related Monthly Adjusted Adjustment (IRMAA).
+	As this additional adjustment
+	is a step function, it would have to be computed using binary variables and mixed-integer linear
 	programming. In the current tax code, this adjustment
 	depends on the modified adjusted gross income (MAGI) from 2 years earlier. For the
 	MAGI, we simply use $G_{n-2} + \bar{\sigma}_{n-2}$ (i.e., gross taxable income
@@ -328,9 +334,10 @@ or an s-curve as in
 	rules around tax-free interests which are insignificant in most cases.
 
 	There are $q=5$ levels
-	of step adjustments, $\bar{L}_{qn} = L_q\gamma_n$ and each of them introduce
+	of step adjustments adjusted for inflation,
+	$\bar{L}_{qn} = L_q\gamma_n$ and each of them introduce
 	an annual additional Medicare
-	cost of $\bar{C}_{qn} = C_q\gamma_n$. Both levels and costs are adjusted for inflation.
+	cost of $\bar{C}_{qn} = C_q\gamma_n$, also adjusted for inflation.
 	One could use binary variables $z_{inq}$ and the following {\em big M} constraint
 	\begin{equation}
 		\bar{\sigma}_{n-2} -\bar{L}_{qn} \le z_{inq} M - G_{n-2}
@@ -354,7 +361,7 @@ or an s-curve as in
 	as there can be cases where the premiums affect the solution which can oscillate between
 	two solutions, but these cases are detected and a slight change in parameters
 	solves this issue. As these premiums are introduced as parameters in the constraints,
-	there is no optimization taking place on Medicare costs.
+	there is no direct optimization being performed on Medicare costs.
 \end{description}
 
 \section{Intermediate variables}
@@ -407,7 +414,9 @@ All intermediate variables are in uppercase letters.
 	would most likely result in stock purchase rather than sale.
 	For withdrawals, we make the assumption of
 	selling the most recent stocks which would not be accurate in situations where
-	the taxable savings account is being depleted slowly.
+	the taxable savings account is being depleted slowly. An implementation keeping track
+	of stock purchases and sales is beyond the goal of providing a guide for retirement decisions.
+
 \item [$T_n$]
 	Amount of income tax paid on taxable ordinary income $G_n$ in year $n$.
 	This is the taxes paid on ordinary income expressed as the sum of the amounts
@@ -477,7 +486,7 @@ add the market returns to the savings balances.
 \section{Constraints}
 \paragraph*{Required minimum distributions (RMDs)}
 	Withdrawals from the ($j=1$) tax-deferred savings accounts must be larger
-	or equal than the required minimum distributions, and therefore, $\forall i$,
+	or equal than the required minimum distributions, and therefore,
 	\begin{equation}
 		\label{Eq:C1}
 		w_{i1n} -  \rho_{in}b_{i1n} \geq 0.
@@ -555,20 +564,23 @@ add the market returns to the savings balances.
 	scenario involves gains which are tax-free over the half-year, while
 	the first one does not. Moving account withdrawals at the beginning
 	of the year, and the conversions in mid-year can solve this artificial bias.
+
 	To solve these spurious scenarios, it would be desirable to make the following exclusions
-	between surplus, withdrawals, and conversions:
+	between surplus $s_n$, withdrawals $w_{ijn}$, and conversions $x_{in}$:
 	\begin{eqnarray*}
-		s_n &\texttt{XOR} & w_{ijn}, \\
-		x_{in} &\texttt{XOR} & w_{i2n}.
+		s_n &\texttt{XOR} & w_{i0n}, \\
+		s_n &\texttt{XOR} & w_{i2n}, \\
+		x_{in} &\texttt{XOR} & w_{i2n},
 	\end{eqnarray*}
+	for $j \neq 1$, i.e., for all withdrawals except those from tax-deferred accounts.
 	For example, to favor tax-deferred withdrawals in most reasonable situations,
 	it is desirable to make Roth conversions and tax-exempt distributions exclusive events
 	by introducing binary variables $z_{in} \in \{0, 1\}$ with the following constraints:
-	\begin{align}
+	\begin{alignat}{2}
 		\label{Eq:Binary}
-		0 &\le z_{in}M - x_{in} &\le M, \nonumber \\
-		0 &\le z_{in}M + w_{i2n} &\le M.
-	\end{align}
+		0 & \le \; z_{in}M - x_{in} &\le M, \nonumber \\
+		0 & \le \; z_{in}M + w_{i2n} &\le M.
+	\end{alignat}
 	Here, $M$ is a large number such as $10^7$, just slightly
 	larger than what $x$ and $w$ can possibly be.
 
@@ -577,7 +589,6 @@ add the market returns to the savings balances.
 	if needed due to RMDs or receiving large sums of money,
 	could be made at the end of the year. Let's formulate this approach
 	in more detail and investigate for potential problems.
-
 	Timing controls which terms get multiplied by the rate of return $(1 + \tau_{kn})$
 	for a particular asset $k$.
 	Therefore, our current choice would yield
@@ -612,7 +623,7 @@ add the market returns to the savings balances.
 	the same strategy as Eq.~(\ref{Eq:Binary}).
 
 	A much simpler approach, while not so natural,
-	is to move all transactions to be synchronous at the beginning or the end of the year
+	is to move all transactions to be synchronous at the beginning or at the end of the year
 	thus avoiding undesirable movements of funds.
 	If we select the beginning of the year, this leads to
 	\begin{eqnarray}
@@ -630,7 +641,7 @@ add the market returns to the savings balances.
 		\label{Eq:InitialBalance}
 		b_{ij0} = \beta_{ij}.
 	\end{eqnarray}
-	At this point, we assume that the accounts are balanced according to the desired
+	At this point, we assume that all accounts are balanced according to the desired
 	allocation ratios $\alpha_{ijkn}$.
 
 	We also introduce another constraint that might look unnecessary, but helps
@@ -655,20 +666,21 @@ add the market returns to the savings balances.
 \paragraph*{Net spending}
 	For calculating the net spending $g_n$, we consider the cash flow of all withdrawals,
 	wages, social security and pension benefits, and big-ticket items. 
-	Then we subtract potential surplus $s_{n}$ and all taxes paid:
+	Then we subtract potential surplus $s_{n}$ and all taxes and Medicare premiums paid:
 	\begin{eqnarray}
 		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
 		+ \sum_{ij} w_{ijn} + \sum_i \Lambda^\pm_{in} - s_{n}
-		- T_n - U_n - \mathcal{M}_n.
+		- T_n - U_n - \mathcal{M}^\ell_n.
 	\end{eqnarray}
-	For spouses, the surplus $s_n$ get deposited to the taxable accounts
+	When both spouses are alive, surplus $s_n$ gets deposited in the taxable accounts
 	according to variable $\eta$ as described in Eq.~(\ref{Eq:eta}),
 	\begin{equation}
 		\label{Eq:eta2}
 		d_{in} = [\delta(i, 0)(1 - \eta) + \delta(i, 1)\eta] s_n .
 	\end{equation}
+	Otherwise, for $n \ge n_d$, variable $\eta$ gets redefined as $\eta = \delta(1, i_s)$.
 
-	Notice how the big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
+	Notice how big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
 		\label{Eq:C4}
@@ -677,26 +689,28 @@ add the market returns to the savings balances.
 		+ \psi\alpha_{i00n} \sum_{i} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0n-1})\right] 
 		&=& \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
-		&& + \sum_i [\Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] \nonumber\\
-		&& - \mathcal{M}_n^s.
+		&& + \sum_i [\Lambda^\pm_{in} - .5\psi\alpha_{i00n}\mu\kappa_{i0n}] \nonumber\\
+		&& - \mathcal{M}_n^\ell.
 	\end{eqnarray}
 	Notice that we do not consider market losses as we use $\max(0, \tau)$, and that
 	rates from only the previous year are used. Tax-loss
-	harvesting is beyond the scope of this model.
-	For clarity, we did not express $\mathcal{M}_n^s(G_n+\bar{\sigma}_n)$ in terms of the modified
-	adjusted gross income (MAGI), but one to understand that there is a self-consistent
-	loop solving for it and we are at iteration $s$.
+	harvesting is beyond the scope of this model, as is the tracking of stocks
+	purchased over the years.
+	For clarity, we did not express $\mathcal{M}_n^\ell(G_n+\bar{\sigma}_n)$ in terms of the modified
+	adjusted gross income (MAGI), but this term is there to indicate that there is a self-consistent
+	loop solving for it and that we are at iteration $\ell$.
 
-	We also want the net spending to be predictable and smooth. We will use
+	We want the net spending to be predictable and smooth. We use
 \begin{equation}
 	\label{Eq:C5a}
 	g_{n}/\bar{\xi}_{n} = g_0/\bar{\xi}_0,
 \end{equation}
-where the net spending is adjusted for inflation and where we introduced parameter $\xi_n$ 
+where the net spending is adjusted for inflation and where we use the time series of parameter $\xi_n$ 
 allowing for additional adjustments to the overall desired spending.
 Note that $\bar{\xi}_0 = \xi_0$ as $\gamma_0=1$.
-This spending profile can also be used to lower the desired income at the passing
-of one spouse and/or to allow for more realistic spending profiles.
+This spending profile is used to lower the desired income by a reduction factor $\chi$
+after the passing of one spouse and/or to allow for more realistic spending profiles, such as
+the {\em smile} profile described above.
 Eq.~(\ref{Eq:C5a}) can be rewritten as
 \begin{equation}
 	\label{Eq:C5}
@@ -735,7 +749,7 @@ proprietary and require a license and additional software installation.
 These languages allow the problem to be stated at a high level and
 steps to cast the problem in a form suitable for solution are performed automatically.
 There are also object-oriented language extensions, such as Python's Pyomo
-and PuLP that ease the process of solving these problems.
+and PuLP that can ease the process of solving these problems.
 For completeness, however, we present here a simple
 index mapping approach that allows solving this problem using a generic
 linear programming solver.
@@ -743,12 +757,10 @@ linear programming solver.
 Using a simple interface for mapping sparse objects to dense ones, the approach described here
 has been successfully tested with both the HiGHS open-source solver
 and the MOSEK proprietary solver.
-
 To cast the problem in a form suitable for a linear programming solver, we will use
 a single block vector represented by the array $y[q()]$ with index-mapping functions $q()$.
 While this process can be achieved using slicing and reshaping in some programming
 languages, we will present a generic approach suitable for most programming languages.
-
 The detailed approach presented here also allows us to determine the size of the problem to solve.
 We proceed alphabetically for all variables, and continue to use the convention of having
 index 0 for representing the first element.
@@ -972,7 +984,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 where $v$ is
 \begin{equation}
 	v[J_2(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
-	+ \Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - \mathcal{M}_n^s.
+	+ \Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - \mathcal{M}_n^\ell.
 \end{equation}
 
 The condition of having a predictable net spending expressed as an

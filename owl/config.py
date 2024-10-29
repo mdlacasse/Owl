@@ -69,7 +69,7 @@ def saveConfig(plan, basename):
         'Spousal deposit fraction': str(plan.eta),
         'Long-term capital gain tax rate': str(100 * plan.psi),
         'Dividend tax rate': str(100 * plan.mu),
-        'Beneficiary fractions': str(plan.phi_j),
+        'Beneficiary fractions': str(plan.phi_j.tolist()),
         'Contributions file name': str(plan.timeListsFileName),
     }
 
@@ -92,7 +92,6 @@ def saveConfig(plan, basename):
     if plan.rateMethod == 'fixed':
         config['Rates']['values'] = ', '.join(str(100*k) for k in plan.rateValues)
 
-    config['Solver']['Method'] = plan.solver
     config['Solver']['Options'] = str(plan.solverOptions)
     config['Solver']['Objective'] = plan.objective
 
@@ -148,6 +147,7 @@ def readConfig(basename):
             balances[aType].append(float(config['Asset balances'][aType + ' ' + inames[i]]))
 
     p = plan.Plan(yobs, expectancy, name)
+    p.inames = inames
 
     p.setSpousalDepositFraction(float(config['Parameters']['Spousal deposit fraction']))
     p.setDefaultPlots(config['Parameters']['Default plots'])
@@ -206,7 +206,6 @@ def readConfig(basename):
             generic=boundsAR['generic'],
         )
 
-    p.solver = str(config['Solver']['Method'])
     p.solverOptions = ast.literal_eval(config['Solver']['Options'])
     p.objective = str(config['Solver']['Objective'])
 
