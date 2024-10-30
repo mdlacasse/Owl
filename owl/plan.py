@@ -924,10 +924,10 @@ class Plan:
         # Link surplus and taxable account deposits regardless of Ni.
         for i in range(Ni):
             fac1 = u.krond(i, 0)*(1 - self.eta) + u.krond(i, 1)*self.eta
-            fac2 = u.krond(self.i_s, i)
             for n in range(n_d):
                 rowDic = {_q2(Cd, i, n, Ni, Nn): 1, _q1(Cs, n, Nn): -fac1}
                 A.addNewRow(rowDic, zero, zero)
+            fac2 = u.krond(self.i_s, i)
             for n in range(n_d, Nn):
                 rowDic = {_q2(Cd, i, n, Ni, Nn): 1, _q1(Cs, n, Nn): -fac2}
                 A.addNewRow(rowDic, zero, zero)
