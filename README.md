@@ -65,7 +65,7 @@ Portfolios available for experimenting include assets from the S&P 500, Corporat
 and cash assets assumed to just follow inflation which is represented by the Consumer Price Index.
 Other asset classes can easily be added, but would add complexity while only providing diminishing insights.
 Data used are from
-[Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) at the Sterm School of Business.
+[Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) at the Stern School of Business.
 Asset allocations are selected for the duration of the plan, and these can glide linearly
 or along a configurable s-curve from now to the last year of the plan.
 
