@@ -216,32 +216,40 @@ plan.summary()
 ```
 The output of the last command looks like:
 ```
-SUMMARY ======================================================
+SUMMARY ================================================================
 Plan name: jack & jill - tutorial
         Jack's life horizon: 2024 -> 2051
         Jill's life horizon: 2024 -> 2057
 Contributions file: jack+jill.xlsx
+Initial balances [taxable, tax-deferred, tax-free]:
+        Jack's accounts: ['$90,000', '$600,000', '$70,000']
+        Jill's accounts: ['$60,000', '$150,000', '$40,000']
 Return rates: historical
 Rates used: from 1969 to 2002
 Optimized for: maxSpending
 Solver options: {'maxRothConversion': 100, 'bequest': 500}
-Solver used: HiGHS
-Number of decision variables: 1027
-Number of constraints: 1013
+Number of decision variables: 992
+Number of constraints: 894
 Spending profile: smile
-Survivor percent income: 60%
-Net yearly spending basis in 2024$: $84,757
-Total net spending in 2024$: $2,678,336 ($7,559,378 nominal)
-Total Roth conversions in 2024$: $270,982 ($358,999 nominal)
-Total ordinary income tax paid in 2024$: $267,956 ($648,377 nominal)
-Total dividend tax paid in 2024$: $3,590 ($4,377 nominal)
+Surviving spouse spending needs: 60%
+Net yearly spending in year 2024: $92,606
+Net yearly spending profile basis in 2024$: $84,656
+Total net spending in 2024$: $2,675,143 ($7,550,367 nominal)
+Total Roth conversions in 2024$: $442,310 ($619,528 nominal)
+Total ordinary income tax paid in 2024$: $231,925 ($463,097 nominal)
+Total dividend tax paid in 2024$: $3,513 ($3,985 nominal)
 Total Medicare premiums paid in 2024$: $111,109 ($338,528 nominal)
 Assumed heirs tax rate: 30%
-Final account post-tax nominal values:
+Spousal beneficiary fractions: [1, 1, 1]
+Post-tax partial nominal distributions in year 2051:
+    taxable: $0  tax-def: $0  tax-free: $0
+Post-tax non-spousal bequest in year 2051 in 2024$: $0 ($0 nominal)
+Post-tax final account nominal values in year 2057:
     taxable: $0  tax-def: $0  tax-free: $2,553,871
-Total estate value in 2024$: $500,000 ($2,553,871 nominal)
+Total estate value in year 2057 in 2024$: $500,000 ($2,553,871 nominal)
 Final inflation factor: 510.8%
---------------------------------------------------------------
+Case executed on: 2024-10-30 at 10:15:00
+------------------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
 ```python
