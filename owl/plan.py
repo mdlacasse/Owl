@@ -166,7 +166,7 @@ class Plan:
             self.i_d = self.horizons.index(self.n_d)
             self.i_s = (self.i_d + 1) % 2
         else:
-            self.n_d = self.N_n + 1  # Push at upper bound.
+            self.n_d = self.N_n + 1 # Push at upper bound.
             self.i_d = 0
             self.i_s = -1
 
@@ -1383,7 +1383,7 @@ class Plan:
         # print(self.z_inz)
 
         self.part_j = np.zeros(3)
-        nx = self.n_d - 1
+        nx = min(self.N_n, self.n_d) - 1
         i_d = self.i_d
         for j in range(Nj):
             ksumj = np.sum(self.alpha_ijkn[i_d, j, :, nx] * self.tau_kn[:, nx], axis=0)
@@ -1547,8 +1547,9 @@ class Plan:
         p_j = np.array(self.part_j)
         p_j[1] *= 1 - self.nu
         totPart = np.sum(p_j)
-        totPartNow = totPart/self.gamma_n[self.n_d-1]
-        lines.append('Post-tax partial nominal distributions in year %d:' % self.year_n[self.n_d - 1])
+        nx = min(self.N_n, self.n_d) - 1
+        totPartNow = totPart/self.gamma_n[nx]
+        lines.append('Post-tax partial nominal distributions in year %d:' % self.year_n[nx])
         lines.append(
             '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
         )
