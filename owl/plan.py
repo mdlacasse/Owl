@@ -175,7 +175,7 @@ class Plan:
         self.chi = 0.6                   # Survivor fraction
         self.mu = 0.02                   # Dividend rate (decimal)
         self.nu = 0.30                   # Heirs tax rate (decimal)
-        self.eta = (self.N_i - 1)/2      # Spousal deposit/withdrawal ratio (0 or .5)
+        self.eta = (self.N_i - 1)/2      # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1]) # Fractions left to other spouse at death
 
         # Placeholder for before reading contributions file.
@@ -1543,6 +1543,7 @@ class Plan:
 
         lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
 
+        lines.append('Spousal surplus deposit fraction: %s' % self.eta)
         lines.append('Spousal beneficiary fractions: %s' % self.phi_j.tolist())
         p_j = np.array(self.part_j)
         p_j[1] *= 1 - self.nu
@@ -2102,7 +2103,7 @@ class Plan:
             'tax-deferred bal': self.b_ijn[:, 1, :-1],
             'tax-deferred ctrb': self.kappa_ijn[:, 1, :],
             'tax-deferred wdrwl': self.w_ijn[:, 1, :],
-            'tax-deferred (rmd)': self.rmd_in[:, :],
+            '(included RMDs)': self.rmd_in[:, :],
             'Roth conversion': self.x_in,
             'tax-free bal': self.b_ijn[:, 2, :-1],
             'tax-free ctrb': self.kappa_ijn[:, 2, :],

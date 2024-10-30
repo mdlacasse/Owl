@@ -66,7 +66,7 @@ def saveConfig(plan, basename):
         'Interpolation width': str(plan.interpWidth),
         'Default plots': str(plan.defaultPlots),
         'Heirs rate on tax-deferred estate': str(100 * plan.nu),
-        'Spousal deposit fraction': str(plan.eta),
+        'Spousal surplus deposit fraction': str(plan.eta),
         'Long-term capital gain tax rate': str(100 * plan.psi),
         'Dividend tax rate': str(100 * plan.mu),
         'Beneficiary fractions': str(plan.phi_j.tolist()),
@@ -149,7 +149,7 @@ def readConfig(basename):
     p = plan.Plan(yobs, expectancy, name)
     p.inames = inames
 
-    p.setSpousalDepositFraction(float(config['Parameters']['Spousal deposit fraction']))
+    p.setSpousalDepositFraction(float(config['Parameters']['Spousal surplus deposit fraction']))
     p.setDefaultPlots(config['Parameters']['Default plots'])
     p.setDividendRate(float(config['Parameters']['Dividend tax rate']))
     p.setLongTermCapitalTaxRate(float(config['Parameters']['Long-term capital gain tax rate']))
