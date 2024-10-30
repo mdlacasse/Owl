@@ -839,9 +839,25 @@ where
 \begin{equation}
 	q_g(n) = q_*(C_g, n, 0, 0; N_n, 1, 1) = C_g + n,
 \end{equation}
-with $q_g$ running from $C_g$ to $C_w - 1$, where
+with $q_g$ running from $C_g$ to $C_s - 1$, where
 \[
-	C_w = q_C(C_g, N_n, 1, 1) = [N_i(N_j(N_n+1) + N_n) + (N_t + 1) N_n].
+	C_s = q_C(C_g, N_n, 1, 1) = [N_i(N_j(N_n+1) + N_n) + (N_t + 1) N_n].
+\]
+
+\paragraph*{Surplus (\boldmath$s$)}
+Surplus can be generated if big-ticket items are received (inheritance, sale of a house, etc.)
+or due to RMDs. Surplus $s$ is then deposited to taxable savings accounts according
+to variable $\eta$. We will use
+\begin{equation}
+	y[q_s(n)] = s_{n},
+\end{equation}
+where
+\begin{equation}
+	q_s(n) = q_*(C_s, n, 0, 0; N_n, 1, 1) = C_s + n,
+\end{equation}
+with $q_s$ running from $C_s$ to $C_w - 1$, where
+\[
+	C_w = q_C(C_s, N_n, 1, 1) = [N_i(N_j(N_n+1) + N_n) + (N_t + 2) N_n].
 \]
 
 \paragraph*{Withdrawals (\boldmath$w$)}
@@ -855,7 +871,7 @@ where
 \end{equation}
 with $q_w$ running from $C_w$ to $C_x - 1$, where
 \[
-	C_x = q_C(C_w, N_i, N_j, N_n) = [N_i(N_j(2N_n + 1) + (N_t + 1) N_n].
+	C_x = q_C(C_w, N_i, N_j, N_n) = [N_i(N_j(2N_n + 1) + (N_t + 2) N_n].
 \]
 
 \paragraph*{Roth conversions (\boldmath$x$)}
@@ -869,13 +885,13 @@ where
 \end{equation}
 with $q_x$ running from $C_x$ to $C_* - 1$, where
 \[
-	C_* = q_C(C_x, Ni, N_n, 1) = [N_i(N_j(2N_n + 1) + (N_t + N_i + 1) N_n].
+	C_* = q_C(C_x, Ni, N_n, 1) = [N_i(N_j(2N_n + 1) + (N_t + N_i + 2) N_n].
 \]
 
-Adding binary variables $z_{in}$ adds $N_iN_n$ more decision variables.
-With $N_i = 2, N_j = 3, N_k = 4, N_t = 7$ we have $24 N_n + 6$ variables. For
-a 30-year plan, this results in 726 variables. If the time resolution is increased to
-months, that would result in 7,992 variables which is still solvable by today's standards.
+Adding $N_z=2$ binary variables $z_{inz}$ adds $N_zN_iN_n$ more decision variables.
+With $N_i = 2, N_j = 3, N_k = 4, N_t = 7$ we have $27 N_n + 6$ variables. For
+a 30-year plan, this results in 816 decision variables. If the time resolution is increased to
+months, that would result in 9,726 variables which is still solvable by today's standards.
 
 \section{Reverse mapping of indices}
 The inverse functions for the index-mapping functions will be derived for the
