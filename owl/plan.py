@@ -954,8 +954,9 @@ class Plan:
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
-                    if Ni == 2 and n_d < Nn:
-                        fac1 = 1 - (u.krond(n, n_d - 1) * u.krond(i, i_d))
+                    if Ni == 2 and n_d < Nn and i == i_d and n == n_d - 1:
+                        # fac1 = 1 - (u.krond(n, n_d - 1) * u.krond(i, i_d))
+                        fac1 = 0
                     else:
                         fac1 = 1
 
