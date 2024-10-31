@@ -166,7 +166,7 @@ class Plan:
             self.i_d = self.horizons.index(self.n_d)
             self.i_s = (self.i_d + 1) % 2
         else:
-            self.n_d = self.N_n + 1 # Push at upper bound.
+            self.n_d = self.N_n  # Push at upper bound and check for n_d < Nn.
             self.i_d = 0
             self.i_s = -1
 
@@ -937,7 +937,7 @@ class Plan:
 
         if Ni == 2:
             # No conversion during last year.
-            # B.set0_Ub(_q2(Cx, i_d, n_d-1, Ni, Nn), zero)
+            # B.set0_Ub(_q2(Cx, i_d, nd-1, Ni, Nn), zero)
             # B.set0_Ub(_q2(Cx, i_s, Nn-1, Ni, Nn), zero)
 
             # No withdrawals or deposits for any i_d-owned accounts after year of passing.
@@ -954,7 +954,11 @@ class Plan:
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
-                    fac1 = 1 - (u.krond(n, n_d - 1) * u.krond(i, i_d))
+                    if Ni == 2 and n_d < Nn:
+                        fac1 = 1 - (u.krond(n, n_d - 1) * u.krond(i, i_d))
+                    else:
+                        fac1 = 1
+
                     rhs = fac1 * self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
 
                     row = A.newRow()
@@ -967,7 +971,7 @@ class Plan:
                         -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n],
                     )
 
-                    if Ni == 2 and i == i_s and n == n_d - 1:
+                    if Ni == 2 and n_d < Nn and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
                         rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
                         row.addElem(_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1), -fac2 * Tau1_ijn[i_d, j, n])
@@ -1341,6 +1345,7 @@ class Plan:
         Nn = self.N_n
         Nt = self.N_t
         Nz = self.N_z
+        n_d = self.n_d
 
         Cb = self.C['b']
         Cd = self.C['d']
@@ -1382,21 +1387,23 @@ class Plan:
         # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
         # print(self.z_inz)
 
+        # Partial distribution at the passing of first spouse.
         self.part_j = np.zeros(3)
-        nx = min(self.N_n, self.n_d) - 1
-        i_d = self.i_d
-        for j in range(Nj):
-            ksumj = np.sum(self.alpha_ijkn[i_d, j, :, nx] * self.tau_kn[:, nx], axis=0)
-            Tauh = 1 + 0.5*ksumj
-            Tau1 = 1 + ksumj
-            self.part_j[j] = (Tauh * self.kappa_ijn[i_d, j, nx] +
-                              Tau1 * (self.b_ijn[i_d, j, nx] -
-                              self.w_ijn[i_d, j, nx] +
-                              self.d_in[i_d, nx] * u.krond(j, 0) +
-                              self.x_in[i_d, nx] * (u.krond(j, 2) - u.krond(j, 1)))
-                              )
+        if Ni == 2 and n_d < Nn:
+            nx = n_d - 1
+            i_d = self.i_d
+            for j in range(Nj):
+                ksumj = np.sum(self.alpha_ijkn[i_d, j, :, nx] * self.tau_kn[:, nx], axis=0)
+                Tauh = 1 + 0.5*ksumj
+                Tau1 = 1 + ksumj
+                self.part_j[j] = (Tauh * self.kappa_ijn[i_d, j, nx] +
+                                  Tau1 * (self.b_ijn[i_d, j, nx] -
+                                  self.w_ijn[i_d, j, nx] +
+                                  self.d_in[i_d, nx] * u.krond(j, 0) +
+                                  self.x_in[i_d, nx] * (u.krond(j, 2) - u.krond(j, 1)))
+                                  )
 
-        self.part_j *= 1 - self.phi_j
+            self.part_j *= 1 - self.phi_j
 
         sourcetypes = [
             'wages',
@@ -1544,18 +1551,19 @@ class Plan:
         lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
 
         lines.append('Spousal surplus deposit fraction: %s' % self.eta)
-        lines.append('Spousal beneficiary fractions: %s' % self.phi_j.tolist())
-        p_j = np.array(self.part_j)
-        p_j[1] *= 1 - self.nu
-        totPart = np.sum(p_j)
-        nx = min(self.N_n, self.n_d) - 1
-        totPartNow = totPart/self.gamma_n[nx]
-        lines.append('Post-tax partial nominal distributions in year %d:' % self.year_n[nx])
-        lines.append(
-            '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
-        )
-        lines.append('Post-tax non-spousal bequest in year %d in %d$: %s (%s nominal)'
-             % (self.year_n[self.n_d - 1], now, u.d(totPartNow), u.d(totPart)))
+        if self.N_i == 2 and self.n_d < self.N_n:
+            lines.append('Spousal beneficiary fractions: %s' % self.phi_j.tolist())
+            p_j = np.array(self.part_j)
+            p_j[1] *= 1 - self.nu
+            totPart = np.sum(p_j)
+            nx = self.n_d - 1
+            totPartNow = totPart/self.gamma_n[nx]
+            lines.append('Post-tax partial nominal distributions in year %d:' % self.year_n[nx])
+            lines.append(
+                '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
+            )
+            lines.append('Post-tax non-spousal bequest in year %d in %d$: %s (%s nominal)'
+                 % (self.year_n[nx], now, u.d(totPartNow), u.d(totPart)))
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
