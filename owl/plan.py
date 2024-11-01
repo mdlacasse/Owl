@@ -320,8 +320,10 @@ class Plan:
         u.vprint('Spousal beneficiary fractions set to', phi)
         self.phi_j = np.array(phi)
         self._caseStatus = 'modified'
-        u.vprint('Consider changing spousal deposit fraction for better convergence.')
-        u.vprint('\tRecommended: setSpousalDepositFraction(%d)'%self.i_d)
+
+        if np.any(self.phi_j != 1):
+            u.vprint('Consider changing spousal deposit fraction for better convergence.')
+            u.vprint('\tRecommended: setSpousalDepositFraction(%d)'%self.i_d)
 
         return None
 
