@@ -1389,22 +1389,25 @@ class Plan:
         # print(self.z_inz)
 
         # Partial distribution at the passing of first spouse.
-        self.part_j = np.zeros(3)
+        self.spousalBen_j = np.zeros(3)
+        self.othersBen_j = np.zeros(3)
         if Ni == 2 and n_d < Nn:
             nx = n_d - 1
             i_d = self.i_d
+            part_j = np.zeros(3)
             for j in range(Nj):
                 ksumj = np.sum(self.alpha_ijkn[i_d, j, :, nx] * self.tau_kn[:, nx], axis=0)
                 Tauh = 1 + 0.5*ksumj
                 Tau1 = 1 + ksumj
-                self.part_j[j] = (Tauh * self.kappa_ijn[i_d, j, nx] +
-                                  Tau1 * (self.b_ijn[i_d, j, nx] -
-                                  self.w_ijn[i_d, j, nx] +
-                                  self.d_in[i_d, nx] * u.krond(j, 0) +
-                                  self.x_in[i_d, nx] * (u.krond(j, 2) - u.krond(j, 1)))
-                                  )
+                part_j[j] = (Tauh * self.kappa_ijn[i_d, j, nx] +
+                             Tau1 * (self.b_ijn[i_d, j, nx] -
+                             self.w_ijn[i_d, j, nx] +
+                             self.d_in[i_d, nx] * u.krond(j, 0) +
+                             self.x_in[i_d, nx] * (u.krond(j, 2) - u.krond(j, 1)))
+                             )
 
-            self.part_j *= 1 - self.phi_j
+            self.spousalBen_j = u.roundCents(part_j * self.phi_j)
+            self.othersBen_j = u.roundCents(part_j*(1 - self.phi_j))
 
         sourcetypes = [
             'wages',
@@ -1554,17 +1557,26 @@ class Plan:
         lines.append('Spousal surplus deposit fraction: %s' % self.eta)
         if self.N_i == 2 and self.n_d < self.N_n:
             lines.append('Spousal beneficiary fractions: %s' % self.phi_j.tolist())
-            p_j = np.array(self.part_j)
+            p_j = np.array(self.othersBen_j)
             p_j[1] *= 1 - self.nu
-            totPart = np.sum(p_j)
             nx = self.n_d - 1
-            totPartNow = totPart/self.gamma_n[nx]
-            lines.append('Post-tax partial nominal distributions in year %d:' % self.year_n[nx])
+            totOthers = np.sum(p_j)
+            totOthersNow = totOthers/self.gamma_n[nx]
+            q_j = np.array(self.spousalBen_j)
+            totSpousal = np.sum(q_j)
+            totSpousalNow = totSpousal/self.gamma_n[nx]
+            lines.append('Spousal wealth transfer in year %d (nominal):' % self.year_n[nx])
+            lines.append(
+                '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
+            )
+            lines.append('Total spousal bequest in year %d in %d$: %s (%s nominal)'
+                 % (self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal)))
+            lines.append('Post-tax non-spousal bequest in year %d (nominal):' % self.year_n[nx])
             lines.append(
                 '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
             )
-            lines.append('Post-tax non-spousal bequest in year %d in %d$: %s (%s nominal)'
-                 % (self.year_n[nx], now, u.d(totPartNow), u.d(totPart)))
+            lines.append('Total post-tax non-spousal bequest in year %d in %d$: %s (%s nominal)'
+                 % (self.year_n[nx], now, u.d(totOthersNow), u.d(totOthers)))
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu

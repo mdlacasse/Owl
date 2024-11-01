@@ -131,7 +131,12 @@ def getGitRevisionShortHash() -> str:
 def roundCents(n, decimals=2):
     '''
     Round values in numpy array down to second decimal.
+    Using fix which is floor towards zero.
     '''
     multiplier = 10**decimals
 
-    return np.floor(n * multiplier + 0.5) / multiplier
+    arr = np.fix(n * multiplier + 0.5) / multiplier
+    # Remove negative zero like values.
+    arr = np.where((-.009 < arr) & (arr <= 0), 0, arr)
+
+    return arr
