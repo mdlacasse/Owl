@@ -1530,6 +1530,35 @@ class Plan:
         lines.append('Net yearly spending in year %d: %s' % (now, u.d(self.g_n[0])))
         lines.append('Net yearly spending profile basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
 
+        lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
+
+        lines.append('Spousal surplus deposit fraction: %s' % self.eta)
+        if self.N_i == 2 and self.n_d < self.N_n:
+            lines.append('Spousal beneficiary fractions to %s: %s'
+                         % (self.inames[self.i_s], self.phi_j.tolist()))
+            p_j = np.array(self.othersBen_j)
+            p_j[1] *= 1 - self.nu
+            nx = self.n_d - 1
+            totOthers = np.sum(p_j)
+            totOthersNow = totOthers/self.gamma_n[nx]
+            q_j = np.array(self.spousalBen_j)
+            totSpousal = np.sum(q_j)
+            totSpousalNow = totSpousal/self.gamma_n[nx]
+            lines.append('Spousal wealth transfer to %s in year %d (nominal):'
+                         % (self.inames[self.i_s], self.year_n[nx]))
+            lines.append(
+                '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
+            )
+            lines.append('Sum of spousal bequests to %s in year %d in %d$: %s (%s nominal)'
+                 % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal)))
+            lines.append('Post-tax non-spousal bequests from %s in year %d (nominal):'
+                 % (self.inames[self.i_d], self.year_n[nx]))
+            lines.append(
+                '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
+            )
+            lines.append('Sum of post-tax non-spousal bequests from %s in year %d in %d$: %s (%s nominal)'
+                 % (self.inames[self.i_d], self.year_n[nx], now, u.d(totOthersNow), u.d(totOthers)))
+
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
         lines.append('Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
@@ -1554,47 +1583,18 @@ class Plan:
             'Total Medicare premiums paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid))
         )
 
-        lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
-
-        lines.append('Spousal surplus deposit fraction: %s' % self.eta)
-        if self.N_i == 2 and self.n_d < self.N_n:
-            lines.append('Spousal beneficiary fractions to %s: %s'
-                         % (self.inames[self.i_s], self.phi_j.tolist()))
-            p_j = np.array(self.othersBen_j)
-            p_j[1] *= 1 - self.nu
-            nx = self.n_d - 1
-            totOthers = np.sum(p_j)
-            totOthersNow = totOthers/self.gamma_n[nx]
-            q_j = np.array(self.spousalBen_j)
-            totSpousal = np.sum(q_j)
-            totSpousalNow = totSpousal/self.gamma_n[nx]
-            lines.append('Spousal wealth transfer to %s in year %d (nominal):'
-                         % (self.inames[self.i_s], self.year_n[nx]))
-            lines.append(
-                '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
-            )
-            lines.append('Total bequest to %s in year %d in %d$: %s (%s nominal)'
-                 % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal)))
-            lines.append('Post-tax non-spousal bequest from %s in year %d (nominal):'
-                 % (self.inames[self.i_d], self.year_n[nx]))
-            lines.append(
-                '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
-            )
-            lines.append('Total post-tax non-spousal bequest from %s in year %d in %d$: %s (%s nominal)'
-                 % (self.inames[self.i_d], self.year_n[nx], now, u.d(totOthersNow), u.d(totOthers)))
-
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
-        lines.append('Post-tax final account nominal values in year %d:' % self.year_n[-1])
+        lines.append('Post-tax account values in final plan year %d: (nominal)' % self.year_n[-1])
         lines.append(
             '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2]))
         )
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[-1]
-        lines.append('Total estate value in year %d in %d$: %s (%s nominal)' \
+        lines.append('Total estate value in final plan year %d in %d$: %s (%s nominal)' \
                 % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
-        lines.append('Final inflation factor: %s' % u.pc(self.gamma_n[-1], f=1))
+        lines.append('Final inflation factor to final plan year: %s' % u.pc(self.gamma_n[-1], f=1))
 
         lines.append('Case executed on: %s' % self._timestamp)
         lines.append('------------------------------------------------------------------------')
