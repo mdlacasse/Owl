@@ -1558,7 +1558,8 @@ class Plan:
 
         lines.append('Spousal surplus deposit fraction: %s' % self.eta)
         if self.N_i == 2 and self.n_d < self.N_n:
-            lines.append('Spousal beneficiary fractions: %s' % self.phi_j.tolist())
+            lines.append('Spousal beneficiary fractions to %s: %s'
+                         % (self.inames[self.i_s], self.phi_j.tolist()))
             p_j = np.array(self.othersBen_j)
             p_j[1] *= 1 - self.nu
             nx = self.n_d - 1
@@ -1567,18 +1568,20 @@ class Plan:
             q_j = np.array(self.spousalBen_j)
             totSpousal = np.sum(q_j)
             totSpousalNow = totSpousal/self.gamma_n[nx]
-            lines.append('Spousal wealth transfer in year %d (nominal):' % self.year_n[nx])
+            lines.append('Spousal wealth transfer to %s in year %d (nominal):'
+                         % (self.inames[self.i_s], self.year_n[nx]))
             lines.append(
                 '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
             )
-            lines.append('Total spousal bequest in year %d in %d$: %s (%s nominal)'
-                 % (self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal)))
-            lines.append('Post-tax non-spousal bequest in year %d (nominal):' % self.year_n[nx])
+            lines.append('Total bequest to %s in year %d in %d$: %s (%s nominal)'
+                 % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal)))
+            lines.append('Post-tax non-spousal bequest from %s in year %d (nominal):'
+                 % (self.inames[self.i_d], self.year_n[nx]))
             lines.append(
                 '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
             )
-            lines.append('Total post-tax non-spousal bequest in year %d in %d$: %s (%s nominal)'
-                 % (self.year_n[nx], now, u.d(totOthersNow), u.d(totOthers)))
+            lines.append('Total post-tax non-spousal bequest from %s in year %d in %d$: %s (%s nominal)'
+                 % (self.inames[self.i_d], self.year_n[nx], now, u.d(totOthersNow), u.d(totOthers)))
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
