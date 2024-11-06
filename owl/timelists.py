@@ -49,7 +49,7 @@ def read(filename, inames, horizons):
         u.vprint('Reading wages, contributions, conversions, and big-ticket items over time for %s...' % iname)
         endyear = thisyear + horizons[i]
         if iname not in dfDict:
-            u.xprint('Could not find a sheet for %s.'%iname)
+            u.xprint('Could not find a sheet for %s in file %s.'%(iname, filename))
 
         df = dfDict[iname]
         # Only consider lines in proper year range.
