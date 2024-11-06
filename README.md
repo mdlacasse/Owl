@@ -234,21 +234,25 @@ Spending profile: smile
 Surviving spouse spending needs: 60%
 Net yearly spending in year 2024: $92,606
 Net yearly spending profile basis in 2024$: $84,656
+Assumed heirs tax rate: 30%
+Spousal surplus deposit fraction: 0.5
+Spousal beneficiary fractions to Jill: [1, 1, 1]
+Spousal wealth transfer to Jill in year 2051 (nominal):
+    taxable: $0  tax-def: $0  tax-free: $2,489,566
+Sum of spousal bequests to Jill in year 2051 in 2024$: $575,832 ($2,489,566 nominal)
+Post-tax non-spousal bequests from Jack in year 2051 (nominal):
+    taxable: $0  tax-def: $0  tax-free: $0
+Sum of post-tax non-spousal bequests from Jack in year 2051 in 2024$: $0 ($0 nominal)
 Total net spending in 2024$: $2,675,143 ($7,550,367 nominal)
 Total Roth conversions in 2024$: $442,310 ($619,528 nominal)
-Total ordinary income tax paid in 2024$: $231,925 ($463,097 nominal)
+Total ordinary income tax paid in 2024$: $230,244 ($454,196 nominal)
 Total dividend tax paid in 2024$: $3,513 ($3,985 nominal)
 Total Medicare premiums paid in 2024$: $111,109 ($338,528 nominal)
-Assumed heirs tax rate: 30%
-Spousal beneficiary fractions: [1, 1, 1]
-Post-tax partial nominal distributions in year 2051:
-    taxable: $0  tax-def: $0  tax-free: $0
-Post-tax non-spousal bequest in year 2051 in 2024$: $0 ($0 nominal)
-Post-tax final account nominal values in year 2057:
+Post-tax account values in final plan year 2057: (nominal)
     taxable: $0  tax-def: $0  tax-free: $2,553,871
-Total estate value in year 2057 in 2024$: $500,000 ($2,553,871 nominal)
-Final inflation factor: 510.8%
-Case executed on: 2024-10-30 at 10:15:00
+Total estate value in final plan year 2057 in 2024$: $500,000 ($2,553,871 nominal)
+Final inflation factor to final plan year: 510.8%
+Case executed on: 2024-11-06 at 00:58:42
 ------------------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
