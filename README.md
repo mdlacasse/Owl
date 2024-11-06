@@ -123,7 +123,7 @@ assets to support, even with no estate being left.
 ## An example of Owl's functionality
 With about 10 lines of Python code, one can generate a full case study.
 Here is a typical plan without comments.
-A plan starts with birth years, life expectancies, and a name for the plan.
+A plan starts with the names of the individuals, their birth years and life expectancies, and a name for the plan.
 Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 ```python
 import owl
