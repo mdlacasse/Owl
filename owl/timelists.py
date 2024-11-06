@@ -21,9 +21,9 @@ import pandas as pd
 from owl import utils as u
 
 
-def read(filename, N_i, horizons):
+def read(filename, inames, horizons):
     '''
-    Read listed parameters from an excel spreadsheet through pandas.
+    Read listed parameters from an excel spreadsheet through Pandas.
     Use one sheet for each individual with the following columns.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     '''
@@ -42,16 +42,16 @@ def read(filename, N_i, horizons):
     ]
 
     timeLists = []
-    names = []
     thisyear = date.today().year
     # Read all worksheets in memory but only process first n.
     dfDict = pd.read_excel(filename, sheet_name=None)
-    i = 0
-    for name in dfDict.keys():
-        u.vprint('Reading wages, contributions, conversions, and big-ticket items over time for %s...' % name)
-        names.append(name)
+    for i, iname in enumerate(inames):
+        u.vprint('Reading wages, contributions, conversions, and big-ticket items over time for %s...' % iname)
         endyear = thisyear + horizons[i]
-        df = dfDict[name]
+        if iname not in dfDict:
+            u.xprint('Could not find a sheet for %s.'%iname)
+
+        df = dfDict[iname]
         # Only consider lines in proper year range.
         df = df[df['year'] >= thisyear]
         df = df[df['year'] < endyear]
@@ -63,7 +63,7 @@ def read(filename, N_i, horizons):
                 missing += 1
 
         if missing > 0:
-            u.vprint('\tAdding %d missing year for %s.' % (missing, name))
+            u.vprint('\tAdding %d missing year for %s.' % (missing, iname))
 
         df.sort_values('year', inplace=True)
         # Replace empty (NaN) cells with 0 value.
@@ -74,32 +74,28 @@ def read(filename, N_i, horizons):
         for item in timeHorizonItems:
             timeLists[i][item] = df[item].tolist()
 
-        i += 1
-        if i >= N_i:
-            break
-
     u.vprint('Successfully read time horizons from file "%s".' % filename)
 
-    return names, timeLists
+    return timeLists
 
 
-def check(names, timeLists, horizons):
+def check(inames, timeLists, horizons):
     '''
     Make sure that time horizons contain all years up to life expectancy.
     '''
-    if len(names) == 2:
+    if len(inames) == 2:
         # Verify that both sheets start on the same year.
         if timeLists[0]['year'][0] != timeLists[1]['year'][0]:
             u.xprint('Time horizons not starting on same year.')
 
     # Verify that year range covers life expectancy for each individual
     thisyear = date.today().year
-    for i in range(len(names)):
+    for i, iname in enumerate(inames):
         yend = thisyear + horizons[i]
         if timeLists[i]['year'][-1] < yend - 1:
             u.xprint(
                 'Time horizon for',
-                names[i],
+                iname,
                 'is too short.\n\tIt should end in',
                 yend,
                 'but ends in',
@@ -118,12 +114,12 @@ def check(names, timeLists, horizons):
     ]
 
     # Verify that all numbers except bti are positive.
-    for i in range(len(names)):
+    for i, name in enumerate(inames):
         for n in range(horizons[i]):
             for item in timeHorizonItems:
                 assert timeLists[i][item][n] >= 0, 'Item %s for %s in year %d is < 0.' % (
                     item,
-                    names[i],
+                    iname,
                     n,
                 )
 

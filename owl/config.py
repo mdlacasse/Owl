@@ -146,8 +146,7 @@ def readConfig(basename):
         for aType in accountTypes:
             balances[aType].append(float(config['Asset balances'][aType + ' ' + inames[i]]))
 
-    p = plan.Plan(yobs, expectancy, name)
-    p.inames = inames
+    p = plan.Plan(inames, yobs, expectancy, name)
 
     p.setSpousalDepositFraction(float(config['Parameters']['Spousal surplus deposit fraction']))
     p.setDefaultPlots(config['Parameters']['Default plots'])

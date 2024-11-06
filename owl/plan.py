@@ -121,7 +121,7 @@ class Plan:
     This is the main class of the Owl Project.
     '''
 
-    def __init__(self, yobs, expectancy, name):
+    def __init__(self, inames, yobs, expectancy, name):
         '''
         Constructor requires two lists: the first one is
         the year of birth of each spouse, and the second
@@ -149,9 +149,11 @@ class Plan:
         self.N_i = len(yobs)
         assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
         assert self.N_i == len(expectancy), 'Expectancy must have %d entries.' % self.N_i
+        assert self.N_i == len(inames), "Names for individuals must have %d entries." % self.N_i
 
         self.filingStatus = ['single', 'married'][self.N_i - 1]
 
+        self.inames = inames
         self.yobs = yobs
         self.expectancy = expectancy
 
@@ -178,9 +180,6 @@ class Plan:
         self.eta = (self.N_i - 1)/2      # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1]) # Fractions left to other spouse at death
 
-        # Placeholder for before reading contributions file.
-        self.inames = ['Individual 1', 'Individual 2']
-
         # Default to zero pension and social security.
         self.pi_in = np.zeros((self.N_i, self.N_n))
         self.zeta_in = np.zeros((self.N_i, self.N_n))
@@ -202,10 +201,8 @@ class Plan:
         )
         for i in range(self.N_i):
             u.vprint(
-                '%s: life horizon from %d -> %d.' % (self.inames[i], thisyear, thisyear + self.horizons[i] - 1)
+                '%14s: life horizon from %d -> %d.' % (self.inames[i], thisyear, thisyear + self.horizons[i] - 1)
             )
-
-        u.vprint('Name of individual(s) will be read with readContributions(file).')
 
         # Prepare income tax and RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
@@ -487,7 +484,11 @@ class Plan:
         u.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
         u.vprint('Tax-free balances:', *[u.d(taxFree[i]) for i in range(self.N_i)])
         u.vprint(
-            'Total post-tax wealth of approximately',
+            'Sum of all savings accounts:',
+            u.d(np.sum(taxable) + np.sum(taxDeferred) + np.sum(taxFree))
+        )
+        u.vprint(
+            'Post-tax total wealth of approximately',
             u.d(np.sum(taxable) + 0.7 * np.sum(taxDeferred) + np.sum(taxFree)),
         )
 
@@ -677,7 +678,7 @@ class Plan:
         in any order. A template is provided as an example.
         Missing rows (years) are populated with zero values.
         '''
-        self.inames, self.timeLists = timelists.read(filename, self.N_i, self.horizons)
+        self.timeLists = timelists.read(filename, self.inames, self.horizons)
 
         timelists.check(self.inames, self.timeLists, self.horizons)
         self.timeListsFileName = filename
