@@ -287,7 +287,7 @@ given [here](https://github.com/mdlacasse/Owl/blob/main/Jupyter_tutorial.md).
 For simulating your own realizations, use the files beginning with the word *template*.
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
-A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/main/jack+jill.ipynb).
+A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/blob/main/jack+jill.ipynb).
 
 ---------------------------------------------------------------------
 ## Credits
