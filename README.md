@@ -127,7 +127,7 @@ A plan starts with birth years, life expectancies, and a name for the plan.
 Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 ```python
 import owl
-plan = owl.Plan([1962, 1965], [89, 92], 'jack & jill - tutorial')
+plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial')
 plan.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150], taxFree=[50 + 20, 40])
 plan.readContributions('jack+jill.xlsx')
 plan.setInterpolationMethod('s-curve')
