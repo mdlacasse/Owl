@@ -1603,7 +1603,7 @@ class Plan:
 
         return lines
 
-    def showRatesCorrelations(self, tag=''):
+    def showRatesCorrelations(self, tag='', shareRange=False):
         '''
         Plot correlations between various rates.
 
@@ -1629,11 +1629,24 @@ class Plan:
             data = 100 * self.tau_kn[k]
             df[name] = data
 
-        g = sbn.PairGrid(df, diag_sharey=False, height=1.9)
+        g = sbn.PairGrid(df, diag_sharey=False, height=1.8, aspect=1)
+        if shareRange:
+            minval = df.min().min() - 5
+            maxval = df.max().max() + 5
+            g.set(xlim=(minval, maxval), ylim=(minval, maxval))
         g.map_upper(sbn.scatterplot)
         g.map_lower(sbn.kdeplot)
         #g.map_diag(sbn.kdeplot)
         g.map_diag(sbn.histplot, color='orange')
+
+        # Put axes on off diagonal plots.
+        for i, ax in enumerate(g.axes.flat):
+            ax.axvline(x=0, color='grey', linewidth=1, linestyle=':')
+            if i%5 != 0:
+                ax.axhline(y=0, color='grey', linewidth=1, linestyle=':')
+        #    ax.tick_params(axis='both', labelleft=True, labelbottom=True)
+    
+        # plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
         title = self._name + '\nRates Correlations (' + str(self.rateMethod)
         if self.rateMethod in ['historical', 'stochastic']:
