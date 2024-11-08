@@ -1544,7 +1544,7 @@ class Plan:
 
         lines.append('Net yearly spending in year %d: %s' %
                      (now, u.d(self.g_n[0]/u.yearRemainingFraction())))
-        lines.append('Net yearly spending remaining in year %d: %s' % (now, u.d(self.g_n[0])))
+        lines.append('Net spending remaining in year %d: %s' % (now, u.d(self.g_n[0])))
         lines.append('Net yearly spending profile basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
 
         lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
@@ -1611,7 +1611,7 @@ class Plan:
         totEstateNow = totEstate / self.gamma_n[-1]
         lines.append('Total estate value in final plan year %d in %d$: %s (%s nominal)' \
                 % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
-        lines.append('Final inflation factor to final plan year: %s' % u.pc(self.gamma_n[-1], f=1))
+        lines.append('Inflation factor from now to the end of final plan year: %s' % u.pc(self.gamma_n[-1], f=1))
 
         lines.append('Case executed on: %s' % self._timestamp)
         lines.append('------------------------------------------------------------------------')
