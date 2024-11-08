@@ -76,6 +76,9 @@ def _genXi_n(profile, frac, n_d, N_n, a=15, b=12):
     else:
         u.xprint('Unknown profile', profile)
 
+    # Account for time elapsed in the current year.
+    xi[0] *= u.yearRemainingFraction()
+
     return xi
 
 
@@ -359,6 +362,9 @@ class Plan:
                 ns = max(0, self.yobs[i] + ages[i] - thisyear)
                 nd = self.horizons[i]
                 self.pi_in[i, ns:nd] = amounts[i]
+                # Only include future part of current year.
+                if ns == 0:
+                    self.pi_in[i, 0] *= u.yearRemainingFraction()
 
         self.pensionAmounts = amounts
         self.pensionAges = ages
@@ -384,13 +390,15 @@ class Plan:
             ages,
         )
 
-        self._adjustedParameters = False
         thisyear = date.today().year
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
             ns = max(0, self.yobs[i] + ages[i] - thisyear)
             nd = self.horizons[i]
             self.zeta_in[i, ns:nd] = amounts[i]
+            # Only include future part of current year.
+            if ns == 0:
+                self.zeta_in[i, 0] *= u.yearRemainingFraction()
 
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
@@ -399,6 +407,7 @@ class Plan:
         self.ssecAmounts = amounts
         self.ssecAges = ages
         self._caseStatus = 'modified'
+        self._adjustedParameters = False
 
         return None
 
@@ -453,9 +462,7 @@ class Plan:
         )
 
         # Account for how late we are now in the first year and reduce rate accordingly.
-        today = datetime.now()
-        yearFraction = 1 - today.timetuple().tm_yday/365
-        self.tau_kn[:, 0] *= yearFraction
+        self.tau_kn[:, 0] *= u.yearRemainingFraction()
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = _genGamma_n(self.tau_kn, self.N_n + 1)
@@ -739,7 +746,7 @@ class Plan:
 
     def _adjustParameters(self):
         '''
-        Adjust parameters that follow inflation or allocations.
+        Adjust parameters that follow inflation.
         '''
         if self._adjustedParameters == False:
             u.vprint('Adjusting parameters for inflation.')
@@ -920,7 +927,8 @@ class Plan:
         elif objective == 'maxBequest':
             spending = options['netSpending']
             assert isinstance(spending, (int, float)) == True, 'Desired spending provided is not a number.'
-            spending *= units
+            # Account for time elapsed in the current year.
+            spending *= units * u.yearRemainingFraction()
             # u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
             A.addNewRow({_q1(Cg, 0): 1}, spending, spending)
 
@@ -1534,7 +1542,9 @@ class Plan:
         if self.N_i == 2:
             lines.append('Surviving spouse spending needs: %s' % u.pc(self.chi, f=0))
 
-        lines.append('Net yearly spending in year %d: %s' % (now, u.d(self.g_n[0])))
+        lines.append('Net yearly spending year %d: %s' %
+                     (now, u.d(self.g_n[0]/u.yearRemainingFraction())))
+        lines.append('Net yearly spending remaining in year %d: %s' % (now, u.d(self.g_n[0])))
         lines.append('Net yearly spending profile basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
 
         lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))

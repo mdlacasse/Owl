@@ -19,6 +19,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 ######################################################################
 import sys
 import numpy as np
+from datetime import datetime
 
 
 ######################################################################
@@ -117,6 +118,16 @@ def krond(a, b) -> int:
     Kronecker scalar delta function.
     '''
     return (1 if a == b else 0)
+
+
+def yearRemainingFraction():
+    '''
+    Return the fraction of the year left forward.
+    '''
+    today = datetime.now()
+    day_of_year = today.timetuple().tm_yday
+
+    return 1 - day_of_year/365
 
 
 def getGitRevisionShortHash() -> str:
