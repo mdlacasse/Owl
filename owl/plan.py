@@ -1613,7 +1613,7 @@ class Plan:
         import matplotlib.pyplot as plt
         import matplotlib.ticker as tk
 
-        if self.rateMethod == 'fixed':
+        if self.rateMethod in ['fixed', 'average', 'conservative']:
             u.vprint('Warning: Cannot plot correlations for fixed rates.')
             return None
 
@@ -1629,14 +1629,14 @@ class Plan:
             data = 100 * self.tau_kn[k]
             df[name] = data
 
-        g = sbn.PairGrid(df, diag_sharey=False, height=2)
+        g = sbn.PairGrid(df, diag_sharey=False, height=1.9)
         g.map_upper(sbn.scatterplot)
         g.map_lower(sbn.kdeplot)
         #g.map_diag(sbn.kdeplot)
-        g.map_diag(sbn.histplot, color='green')
+        g.map_diag(sbn.histplot, color='orange')
 
         title = self._name + '\nRates Correlations (' + str(self.rateMethod)
-        if self.rateMethod in ['historical', 'stochastic', 'average']:
+        if self.rateMethod in ['historical', 'stochastic']:
             title += ' ' + str(self.rateFrm) + '-' + str(self.rateTo)
         title += ')'
 
