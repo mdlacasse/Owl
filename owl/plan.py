@@ -452,6 +452,11 @@ class Plan:
             'method.',
         )
 
+        # Account for how late we are now in the first year and reduce rate accordingly.
+        today = datetime.now()
+        yearFraction = 1 - today.timetuple().tm_yday/365
+        self.tau_kn[:, 0] *= yearFraction
+
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = _genGamma_n(self.tau_kn, self.N_n + 1)
         self._adjustedParameters = False
