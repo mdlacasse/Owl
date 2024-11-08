@@ -15,6 +15,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 ###########################################################################
 import numpy as np
+import pandas as pd
 from datetime import date, datetime
 
 from owl import utils as u
@@ -1602,6 +1603,50 @@ class Plan:
 
         return lines
 
+    def showRatesCorrelations(self, tag=''):
+        '''
+        Plot correlations between various rates.
+
+        A tag string can be set to add information to the title of the plot.
+        '''
+        import seaborn as sbn
+        import matplotlib.pyplot as plt
+        import matplotlib.ticker as tk
+
+        if self.rateMethod == 'fixed':
+            u.vprint('Warning: Cannot plot correlations for fixed rates.')
+            return None
+
+        rateNames = [
+            'S&P500 (incl. div.)',
+            'Baa Corp. Bonds',
+            '10-y T-Notes',
+            'Inflation',
+        ]
+
+        df = pd.DataFrame()
+        for k, name in enumerate(rateNames):
+            data = 100 * self.tau_kn[k]
+            df[name] = data
+
+        g = sbn.PairGrid(df, diag_sharey=False, height=2)
+        g.map_upper(sbn.scatterplot)
+        g.map_lower(sbn.kdeplot)
+        #g.map_diag(sbn.kdeplot)
+        g.map_diag(sbn.histplot, color='green')
+
+        title = self._name + '\nRates Correlations (' + str(self.rateMethod)
+        if self.rateMethod in ['historical', 'stochastic', 'average']:
+            title += ' ' + str(self.rateFrm) + '-' + str(self.rateTo)
+        title += ')'
+
+        if tag != '':
+            title += ' - ' + tag
+
+        g.fig.suptitle(title, y=1.08)
+
+        return None
+
     def showRates(self, tag=''):
         '''
         Plot rate values used over the time horizon.
@@ -1613,20 +1658,18 @@ class Plan:
 
         fig, ax = plt.subplots(figsize=(6, 4))
         plt.grid(visible='both')
-        title = self._name + '\nReturn & Inflation Rates (' + str(self.rateMethod)
+        title = self._name + '\nReturn & Inflation Rates (' + str(self.rateMethod) 
         if self.rateMethod in ['historical', 'stochastic', 'average']:
             title += ' ' + str(self.rateFrm) + '-' + str(self.rateTo)
-        elif self.rateMethod == 'fixed':
-            title += str(self.rateMethod)
         title += ')'
 
         if tag != '':
             title += ' - ' + tag
 
         rateName = [
-            'S&P500 including dividends',
-            'Baa Corporate bonds',
-            '10-y Treasury notes',
+            'S&P500 (incl. div.)',
+            'Baa Corp. Bonds',
+            '10-y T-Notes',
             'Inflation',
         ]
         ltype = ['-', '-.', ':', '--']
@@ -2038,7 +2081,6 @@ class Plan:
         if self._checkCaseStatus('saveWorkbook'):
             return None
 
-        import pandas as pd
         from openpyxl import Workbook
         from openpyxl.utils.dataframe import dataframe_to_rows
 
@@ -2222,7 +2264,6 @@ class Plan:
         instead of an Excel worksheet.
         See saveWorkbook() sister function for more information.
         '''
-        import pandas as pd
 
         planData = {}
         planData['year'] = self.year_n
