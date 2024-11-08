@@ -1542,7 +1542,7 @@ class Plan:
         if self.N_i == 2:
             lines.append('Surviving spouse spending needs: %s' % u.pc(self.chi, f=0))
 
-        lines.append('Net yearly spending year %d: %s' %
+        lines.append('Net yearly spending in year %d: %s' %
                      (now, u.d(self.g_n[0]/u.yearRemainingFraction())))
         lines.append('Net yearly spending remaining in year %d: %s' % (now, u.d(self.g_n[0])))
         lines.append('Net yearly spending profile basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
