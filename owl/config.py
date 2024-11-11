@@ -89,8 +89,12 @@ def saveConfig(plan, basename):
         'From': str(plan.rateFrm),
         'To': str(plan.rateTo),
     }
-    if plan.rateMethod == 'fixed':
+    if plan.rateMethod in ['fixed', 'stochastic']:
         config['Rates']['values'] = ', '.join(str(100*k) for k in plan.rateValues)
+    if plan.rateMethod in ['stochastic']:
+        config['Rates']['standard deviations'] = ', '.join(str(100*k) for k in plan.stdev)
+        flat_corr = plan.corr.flatten()
+        config['Rates']['correlations'] = ', '.join(str(k) for k in flat_corr)
 
     config['Solver']['Options'] = str(plan.solverOptions)
     config['Solver']['Objective'] = plan.objective
@@ -168,14 +172,22 @@ def readConfig(basename):
     frm = None
     to = None
     values = None
-    if rateMethod == 'fixed':
+    stdev = None
+    corr = None
+    if rateMethod in ['fixed', 'stochastic']:
         values = config['Rates']['values'].split(',')
-        values = np.array([float(j) for j in values])
-    elif rateMethod in ['historical', 'means', 'average', 'stochastic']:
+        values = np.array([float(k) for k in values])
+        if rateMethod in ['stochastic']:
+            stdev = config['Rates']['standard deviations'].split(',')
+            stdev = np.array([float(k) for k in stdev])
+            flat_corr = config['Rates']['correlations'].split(',')
+            flat_corr = np.array([float(k) for k in flat_corr])
+            corr = flat_corr.reshape((p.N_k, p.N_k))
+    if rateMethod in ['historical', 'means', 'average', 'histochastic']:
         frm = int(config['Rates']['From'])
         to = int(config['Rates']['To'])
 
-    p.setRates(rateMethod, frm, to, values)
+    p.setRates(rateMethod, frm, to, values, stdev, corr)
 
     p.setAccountBalances(
         taxable=balances['taxable'], taxDeferred=balances['tax-deferred'], taxFree=balances['tax-free'], units=1

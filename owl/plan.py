@@ -429,26 +429,27 @@ class Plan:
 
         return None
 
-    def setRates(self, method, frm=None, to=None, values=None):
+    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None):
         '''
         Generate rates for return and inflation based on the method and
         years selected. Note that last bound is included.
 
         The following methods are available:
         default, fixed, realistic, conservative, average, stochastic,
-        and historical.
+        histochastic, and historical.
 
-        For 'fixed', rate values must be provided.
-        For 'average', 'stochastic', and 'historical', a starting year
-        must be provided.
+        - For 'fixed', rate values must be provided.
+        - For 'stochastic', means, stdev, and optional correlation matrix must be provided.
+        - For 'average', 'histochastic', and 'historical', a starting year
+          must be provided, and optioally a last year.
 
         Valid year range is from 1928 to last year.
         '''
         if frm != None and to == None:
-            to = frm + self.N_n - 1  # 'to' is inclusive: subtract 1
+            to = frm + self.N_n - 1  # 'to' is inclusive.
 
-        dr = rates.rates()
-        self.rateValues = dr.setMethod(method, frm, to, values)
+        dr = rates.Rates()
+        self.rateValues, self.stdev, self.corr = dr.setMethod(method, frm, to, values, stdev, corr)
         self.rateMethod = method
         self.rateFrm = frm
         self.rateTo = to
@@ -1530,8 +1531,15 @@ class Plan:
             lines.append('%12s\'s accounts: %s' % (self.inames[i], [u.d(self.beta_ij[i][j]) for j in range(self.N_j)]))
 
         lines.append('Return rates: %s' % self.rateMethod)
-        if self.rateMethod in ['historical', 'average', 'stochastic']:
+        if self.rateMethod in ['historical', 'average', 'histochastic']:
             lines.append('Rates used: from %d to %d' % (self.rateFrm, self.rateTo))
+        elif self.rateMethod == 'stochastic':
+            lines.append('Mean rates used (%%): %s' %
+                         (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
+            lines.append('Standard deviation used (%%): %s' %
+                         (['{:.1f}'.format(100*self.stdev[k]) for k in range(self.N_k)]))
+            lines.append('Correlation matrix used:')
+            lines.append('\t\t' + str(self.corr).replace('\n', '\n\t\t'))
         else:
             lines.append('Rates used (%%): %s' % (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
         lines.append('Optimized for: %s' % self.objective)
@@ -1602,14 +1610,14 @@ class Plan:
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
-        lines.append('Post-tax account values in final plan year %d: (nominal)' % self.year_n[-1])
+        lines.append('Post-tax account values at the end of final plan year %d: (nominal)' % self.year_n[-1])
         lines.append(
             '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2]))
         )
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[-1]
-        lines.append('Total estate value in final plan year %d in %d$: %s (%s nominal)' \
+        lines.append('Total estate value at the end of final plan year %d in %d$: %s (%s nominal)' \
                 % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
         lines.append('Inflation factor from now to the end of final plan year: %s' % u.pc(self.gamma_n[-1], f=1))
 
@@ -1664,7 +1672,7 @@ class Plan:
         # plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
         title = self._name + '\nRates Correlations (' + str(self.rateMethod)
-        if self.rateMethod in ['historical', 'stochastic']:
+        if self.rateMethod in ['historical', 'histochastic']:
             title += ' ' + str(self.rateFrm) + '-' + str(self.rateTo)
         title += ')'
 
@@ -1687,7 +1695,7 @@ class Plan:
         fig, ax = plt.subplots(figsize=(6, 4))
         plt.grid(visible='both')
         title = self._name + '\nReturn & Inflation Rates (' + str(self.rateMethod) 
-        if self.rateMethod in ['historical', 'stochastic', 'average']:
+        if self.rateMethod in ['historical', 'histochastic', 'average']:
             title += ' ' + str(self.rateFrm) + '-' + str(self.rateTo)
         title += ')'
 

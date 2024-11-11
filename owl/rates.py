@@ -711,9 +711,9 @@ def getDistributions(frm, to):
     # Convert years to index and check range.
     frm -= FROM
     to -= FROM
-    assert 0 <= frm and frm <= len(SP500), 'Range from out of bounds.'
-    assert 0 <= to and to <= len(SP500), 'Range to out of bounds.'
-    assert frm <= to
+    assert 0 <= frm and frm <= len(SP500), 'Range "from" out of bounds.'
+    assert 0 <= to and to <= len(SP500), 'Range "to" out of bounds.'
+    assert frm <= to, '"from" must be smaller than "to".'
 
     series = {
         'SP500': SP500,
@@ -726,26 +726,32 @@ def getDistributions(frm, to):
     df = df.truncate(before=frm, after=to)
 
     means = df.mean()
+    stdev = df.std()
     covar = df.cov()
 
     u.vprint('means: (%)\n', means)
-    u.vprint('covariance: (%^2)\n', covar)
+    u.vprint('standard deviation: (%)\n', stdev)
 
-    # Convert from percent to decimal.
-    means /= 100.0
-    covar /= 10000.0
+    # Convert to NumPy array and from percent to decimal.
+    means = np.array(means)/100.0
+    stdev = np.array(stdev)/100.0
+    covar = np.array(covar)/10000.0
+    # Build correlation matrix by dividing by the stdev for each column and row.
+    corr = covar/stdev[:, None]
+    corr = corr.T/stdev[:, None]
+    u.vprint('correlation matrix: \n\t\t%s' % str(corr).replace('\n', '\n\t\t'))
 
-    return means, covar
+    return means, stdev, corr, covar
 
 
-class rates:
+class Rates:
     '''
     Rates are stored in a 4-array in the following order:
     Stocks, Bonds, Fixed assets, and Inflation.
     Rate are stored in decimal, but the API is in percent.
 
     To use this class first build an object:
-    r = rates()
+    r = Rates()
     then r.setMethod(...)
     then mySeries = r.genSeries()
     '''
@@ -762,17 +768,21 @@ class rates:
         self._realisticRates = np.array([0.086, 0.049, 0.033, 0.025])
 
         # Conservative rates.
-        self._conservRates = np.array([0.06, 0.04, 0.035, 0.028])
+        self._conservRates = np.array([0.06, 0.04, 0.033, 0.028])
+
+        self.means = np.zeros((4))
+        self.stdev = np.zeros((4))
+        self.corr = np.zeros((4, 4))
+        self.covar = np.zeros((4, 4))
+
+        self.frm = FROM
+        self.to = TO
 
         # Default values for rates.
         self.setMethod('default')
 
-        self.means = np.zeros((4))
-        self.covar = np.zeros((4, 4))
-        self.frm = FROM
-        self.to = TO
 
-    def setMethod(self, method, frm=None, to=TO, values=None):
+    def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None):
         '''
         Select the method to generate the annual rates of return
         for the different classes of assets.  Different methods include:
@@ -782,29 +792,72 @@ class rates:
         - fixed: user-selected fixed rates.
         - historical: historical rates from 1928 to last year.
         - average or means: average over historical data.
-        - stochastic: randomly generated from the statistical properties
+        - histochastic: randomly generated from the statistical properties
           of a historical range.
+        - stochastic: randomly generated from mean and covariance provided
         '''
+        Nk = len(self._defRates)
         # First process fixed methods relying on values.
         if method == 'default':
-            values = self._defRates
+            self.means = self._defRates
             # u.vprint('Using default fixed rates values:', *[u.pc(k) for k in values])
             self._setFixedRates(self._defRates)
         elif method == 'realistic':
-            values = self._defRates
-            u.vprint('Using realistic fixed rates values:', *[u.pc(k) for k in values])
+            self.means = self._defRates
+            u.vprint('Using realistic fixed rates values:', *[u.pc(k) for k in self.means])
             self._setFixedRates(self._realisticRates)
         elif method == 'conservative':
-            values = self._conservRates
-            u.vprint('Using conservative fixed rates values:', *[u.pc(k) for k in values])
+            self.means = self._conservRates
+            u.vprint('Using conservative fixed rates values:', *[u.pc(k) for k in self.means])
             self._setFixedRates(self._conservRates)
         elif method == 'fixed':
             assert values is not None, 'Values must be provided with the fixed option.'
-            values = np.array(values, dtype=float)
+            assert len(values) == Nk, 'values must have %d items.'%Nk
+            self.means = np.array(values, dtype=float)
             # Convert percent to decimal for storing.
-            values /= 100.0
-            u.vprint('Setting rates using fixed values:', *[u.pc(k) for k in values])
-            self._setFixedRates(values)
+            self.means /= 100.0
+            u.vprint('Setting rates using fixed values:', *[u.pc(k) for k in self.means])
+            self._setFixedRates(self.means)
+        elif method == 'stochastic':
+            assert values is not None, 'Mean values must be provided with the stochastic option.'
+            assert stdev is not None, 'Standard deviatinos must be provided with the stochastic option.'
+            assert len(values) == Nk, 'values must have %d items.'%Nk
+            assert len(stdev) == Nk, 'stdev must have %d items.'%Nk
+            self.means = np.array(values, dtype=float)
+            self.stdev = np.array(stdev, dtype=float)
+            # Convert percent to decimal for storing.
+            self.means /= 100.0
+            self.stdev /= 100.0
+            # Build covariance matrix from standard deviation and correlation matrix.
+            if corr is None:
+                corrarr = np.identity(Nk)
+            else:
+                corrarr = np.array(corr)
+                # Full correlation matrix was provided.
+                if corrarr.shape == (Nk, Nk):
+                    pass
+                # Only off-diagonal elements were provided: build full matrix.
+                elif corrarr.shape == ((Nk*Nk - Nk)/2,):
+                    newcorr = np.identity(Nk)
+                    x = 0
+                    for i in range(Nk):
+                        for j in range(i+1, Nk):
+                            newcorr[i, j] = corrarr[x]
+                            newcorr[j, i] = corrarr[x]
+                            x += 1
+                    corrarr = newcorr
+                else:
+                    u.xprint('Unable to process correlation shape of %s.'%corrarr.shape)
+
+            self.corr = corrarr
+            assert np.array_equal(self.corr, self.corr.T), 'Correlation matrix must be symmetric.'
+            # Now build covariance matrix from stdev and correlation matrix.
+            covar = self.corr*self.stdev[:, None]
+            self.covar = covar.T*self.stdev[:, None]
+            self._rateMethod = self._stochRates
+            u.vprint('Setting rates using stochastic method with means:', *[u.pc(k) for k in self.means])
+            u.vprint('\t standard deviations:', *[u.pc(k) for k in self.stdev])
+            u.vprint('\t and correlation matrix:\n\t\t', str(self.corr).replace('\n', '\n\t\t'))
         else:
             # Then methods relying on historical data range.
             assert frm is not None, 'From year must be provided with the this option.'
@@ -819,22 +872,22 @@ class rates:
                 self._rateMethod = self._histRates
             elif method == 'average' or method == 'means':
                 u.vprint('Using', method, 'rates from', frm, 'to', to)
-                self.means, self.covar = getDistributions(frm, to)
+                self.means, self.stdev, self.corr, self.covar = getDistributions(frm, to)
                 self._setFixedRates(self.means)
-                values = self.means
-            elif method == 'stochastic':
+            elif method == 'histochastic':
                 u.vprint('Using', method, 'rates from', frm, 'to', to)
                 self._rateMethod = self._stochRates
-                self.means, self.covar = getDistributions(frm, to)
+                self.means, self.stdev, self.corr, self.covar = getDistributions(frm, to)
             else:
                 u.xprint('Method not supported:', method)
 
         self.method = method
 
-        return np.array(values)
+        return self.means, self.stdev, self.corr
 
     def _setFixedRates(self, rates):
-        assert len(rates) == 4, 'Rate list provided must have 4 entries.'
+        Nk = len(self._defRates)
+        assert len(rates) == Nk, 'Rate list provided must have %d entries.'%Nk
         self._myRates = np.array(rates)
         self._rateMethod = self._fixedRates
 
