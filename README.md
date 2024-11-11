@@ -59,7 +59,7 @@ Roth conversions are also considered, subject to an optional maximum conversion 
 and optimized to suit the goals of the selected objective function.
 All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
-These historical, fixed, and stochastic rates can be used for backtesting different scenarios.
+These historical, mean, or *histochastic* rates can be used for backtesting different scenarios.
 
 Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
 and cash assets assumed to just follow inflation which is represented by the Consumer Price Index.
@@ -73,9 +73,11 @@ Spending profiles are adjusted for inflation, and so are all other indexable qua
 flat or follow a *smile* curve which is also adjustable through two simple parameters.
 
 Available rates are from 1928 to last year and can be used to test historical performance.
-Fixed rates can also be provided, as well as stochastic rates, which are generated using
+Fixed rates can also be provided, as well as histochastic rates, which are generated using
 the statistical characteristics (means and covariance matrix) of
-a selected historical year range. Extending the capabilities to Monte Carlo simulations should therefore
+a selected historical year range. Pure stochastic rates can also be generated
+if the user provides means, volatility, and optionally covariance of the return rates.
+Extending the capabilities to Monte Carlo simulations should therefore
 be straightforward. Average rates over a data period can also be chosen.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
