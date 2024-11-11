@@ -238,27 +238,28 @@ Number of decision variables: 992
 Number of constraints: 894
 Spending profile: smile
 Surviving spouse spending needs: 60%
-Net yearly spending in year 2024: $98,054
-Net yearly spending profile basis in 2024$: $89,637
+Net yearly spending in year 2024: $95,268
+Net spending remaining in year 2024: $13,572
+Net yearly spending profile basis in 2024$: $87,090
 Assumed heirs tax rate: 30%
 Spousal surplus deposit fraction: 0.5
 Spousal beneficiary fractions to Jill: [1, 1, 1]
 Spousal wealth transfer to Jill in year 2051 (nominal):
-    taxable: $0  tax-def: $0  tax-free: $2,434,382
-Sum of spousal bequests to Jill in year 2051 in 2024$: $591,319 ($2,434,382 nominal)
+    taxable: $0  tax-def: $0  tax-free: $2,400,908
+Sum of spousal bequests to Jill in year 2051 in 2024$: $583,188 ($2,400,908 nominal)
 Post-tax non-spousal bequests from Jack in year 2051 (nominal):
     taxable: $0  tax-def: $0  tax-free: $0
 Sum of post-tax non-spousal bequests from Jack in year 2051 in 2024$: $0 ($0 nominal)
-Total net spending in 2024$: $2,832,534 ($7,617,326 nominal)
-Total Roth conversions in 2024$: $459,723 ($614,669 nominal)
-Total ordinary income tax paid in 2024$: $248,816 ($476,872 nominal)
-Total dividend tax paid in 2024$: $3,675 ($3,990 nominal)
+Total net spending in 2024$: $2,670,353 ($7,319,187 nominal)
+Total Roth conversions in 2024$: $496,529 ($676,838 nominal)
+Total ordinary income tax paid in 2024$: $216,214 ($429,976 nominal)
+Total dividend tax paid in 2024$: $3,161 ($3,440 nominal)
 Total Medicare premiums paid in 2024$: $111,109 ($322,354 nominal)
-Post-tax account values in final plan year 2057: (nominal)
+Post-tax account values at the end of final plan year 2057: (nominal)
     taxable: $0  tax-def: $0  tax-free: $2,431,858
-Total estate value in final plan year 2057 in 2024$: $500,000 ($2,431,858 nominal)
-Final inflation factor to final plan year: 486.4%
-Case executed on: 2024-11-08 at 11:15:50
+Total estate value at the end of final plan year 2057 in 2024$: $500,000 ($2,431,858 nominal)
+Inflation factor from now to the end of final plan year: 486.4%
+Case executed on: 2024-11-08 at 17:00:36
 ------------------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
