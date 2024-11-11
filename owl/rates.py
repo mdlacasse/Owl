@@ -794,7 +794,12 @@ class Rates:
         - average or means: average over historical data.
         - histochastic: randomly generated from the statistical properties
           of a historical range.
-        - stochastic: randomly generated from mean and covariance provided
+        - stochastic: randomly generated from means, standard deviation and
+          optionally a correlation matrix.
+          The correlation matrix can be provided as a full matrix or
+          by only specifying the off-diagonal elements as a simple list
+          of (Nk*Nk - Nk)/2 values for Nk assets.
+          For 4 assets, this represents a list of 6 off-diagonal values.
         '''
         Nk = len(self._defRates)
         # First process fixed methods relying on values.
