@@ -25,7 +25,7 @@ import numpy as np
 verbose = True
 
 
-def setVerbose(val, ret=False):
+def _setVerbose(val, ret=False):
     '''
     Set verbose to True if you want the module to be chatty.
     '''

@@ -26,13 +26,13 @@ from owl import config
 from owl import timelists
 
 
-def setVerbose(self, state=True):
+def setVerbose(state=True):
     '''
     Control verbosity of calculations. True or False for now.
     Return previous state of verbosity.
     -``state``: Boolean selecting verbosity level.
     '''
-    return u.setVerbose(state)
+    return u._setVerbose(state)
 
 
 def _genGamma_n(tau):
@@ -1704,10 +1704,11 @@ class Plan:
         #g.map_diag(sbn.kdeplot)
         g.map_diag(sbn.histplot, color='orange')
 
-        # Put axes on off diagonal plots.
+        # Put zero axes on off-diagonal plots.
+        imod = len(rateNames) + 1
         for i, ax in enumerate(g.axes.flat):
             ax.axvline(x=0, color='grey', linewidth=1, linestyle=':')
-            if i%5 != 0:
+            if i%imod != 0:
                 ax.axhline(y=0, color='grey', linewidth=1, linestyle=':')
         #    ax.tick_params(axis='both', labelleft=True, labelbottom=True)
     
@@ -2572,6 +2573,9 @@ def _streamPrinter(text):
     Define a stream printer to grab output from MOSEK.
     '''
     import sys
+
+    if u.verbose == False:
+        return
 
     sys.stdout.write(text)
     sys.stdout.flush()
