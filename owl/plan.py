@@ -2452,7 +2452,7 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$')
         return fig, ax
 
 
-def showRateDistributions(frm=rates.FROM, to=rates.TO):
+def showRatesDistributions(frm=rates.FROM, to=rates.TO):
     '''
     Plot histograms of the rates distributions.
     '''
