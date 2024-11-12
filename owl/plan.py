@@ -5,8 +5,8 @@ Owl/plan
 
 A retirement planner using linear programming optimization.
 
-See companion document for a complete explanation and description
-of all variables and parameters.
+See companion PDF document for an explanation of the underlying
+mathematical model and a description of all variables and parameters.
 
 Copyright -- Martin-D. Lacasse (2024)
 
@@ -29,21 +29,28 @@ from owl import timelists
 def setVerbose(self, state=True):
     '''
     Control verbosity of calculations. True or False for now.
-    Return previous state.
+    Return previous state of verbosity.
+    -``state``: Boolean selecting verbosity level.
     '''
     return u.setVerbose(state)
 
 
-def _genGamma_n(tau, Nn):
+def _genGamma_n(tau):
     '''
-    Utility function to generate inflation multiplier.
+    Utility function to generate a cumulative inflation multiplier
+    at the beginning of a year.
     Return time series of cumulative inflation multiplier
-    at year n with respect to the current year.
+    at year n with respect to the current time reference.
+    -``tau``: Time series containing annual rates, the last of which is inflation.
+    If there are Nn years in time series, the series will generate Nn + 1,
+    as the last year will compound for an extra data point at the beginning of the
+    following year.
     '''
-    gamma = np.ones(Nn)
+    N = len(tau[-1]) + 1
+    gamma = np.ones(N)
 
-    for n in range(1, Nn):
-        gamma[n] = gamma[n - 1] * (1 + tau[3, n - 1])
+    for n in range(1, N):
+        gamma[n] = gamma[n - 1] * (1 + tau[-1, n - 1])
 
     return gamma
 
@@ -115,6 +122,23 @@ def _q4(C, l1, l2, l3, l4, N1, N2, N3, N4):
     Index mapping function. 4 arguments.
     '''
     return C + l1 * N2 * N3 * N4 + l2 * N3 * N4 + l3 * N4 + l4
+
+
+def clone(plan, name=None):
+    '''
+    Return an almost identical copy of plan: only the name of the plan
+    has been modified and appended the string '(copy)',
+    unless a new name is provided as an argument.
+    '''
+    import copy
+
+    newplan = copy.deepcopy(plan)
+    if name is None:
+        newplan.rename(plan._name + ' (copy)')
+    else:
+        newplan.rename(name)
+
+    return newplan
 
 
 ############################################################################
@@ -259,9 +283,9 @@ class Plan:
         '''
         Set spousal deposit and withdrawal fraction. Default 0.5.
         Fraction eta is use to split surplus deposits between spouses as
-            d_0n = (1 - eta)*s_n,
+        d_0n = (1 - eta)*s_n,
         and
-            d_1n = eta*s_n,
+        d_1n = eta*s_n,
         where s_n is the surplus amount. Here d_0n is the taxable account
         deposit for the first spouse while d_1n is for the second spouse.
         '''
@@ -441,7 +465,7 @@ class Plan:
         - For 'fixed', rate values must be provided.
         - For 'stochastic', means, stdev, and optional correlation matrix must be provided.
         - For 'average', 'histochastic', and 'historical', a starting year
-          must be provided, and optioally a last year.
+          must be provided, and optionally an ending year.
 
         Valid year range is from 1928 to last year.
         '''
@@ -466,7 +490,7 @@ class Plan:
         self.tau_kn[:, 0] *= u.yearRemainingFraction()
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
-        self.gamma_n = _genGamma_n(self.tau_kn, self.N_n + 1)
+        self.gamma_n = _genGamma_n(self.tau_kn)
         self._adjustedParameters = False
         self._caseStatus = 'modified'
 
@@ -544,7 +568,7 @@ class Plan:
         For 'account' the three different account types taxable, taxDeferred,
         qand taxFree need to be set to a list. For spouses,
         taxable = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]],
-                   [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]]
+        [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]]
         where ko is the initial allocation while kf is the final.
         The order of [initial, final] pairs is the same as for the birth
         years and longevity provided. Single only provide one pair for each
@@ -553,7 +577,7 @@ class Plan:
         For the 'individual' allocation type, only one generic list needs
         to be provided:
         generic = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]],
-                  [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]].
+        [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]].
         while for 'spouses' only one pair needs to be given as follows:
         generic = [[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]]
         as assets are coordinated between accounts and spouses.
@@ -1565,10 +1589,10 @@ class Plan:
             p_j[1] *= 1 - self.nu
             nx = self.n_d - 1
             totOthers = np.sum(p_j)
-            totOthersNow = totOthers/self.gamma_n[nx]
+            totOthersNow = totOthers/self.gamma_n[nx+1]
             q_j = np.array(self.spousalBen_j)
             totSpousal = np.sum(q_j)
-            totSpousalNow = totSpousal/self.gamma_n[nx]
+            totSpousalNow = totSpousal/self.gamma_n[nx+1]
             lines.append('Spousal wealth transfer to %s in year %d (nominal):'
                          % (self.inames[self.i_s], self.year_n[nx]))
             lines.append(
@@ -2083,36 +2107,35 @@ class Plan:
         Save instance in an Excel spreadsheet.
         The first worksheet will contain income in the following
         fields in columns:
-            - net spending
-            - taxable ordinary income
-            - taxable dividends
-            - tax bills (federal only, including IRMAA)
+        - net spending
+        - taxable ordinary income
+        - taxable dividends
+        - tax bills (federal only, including IRMAA)
         for all the years for the time span of the plan.
 
         The second worksheet contains the rates
         used for the plan as follows:
-            - S&P 500
-            - Corporate Baa bonds
-            - Treasury notes (10y)
-            - Inflation.
+        - S&P 500
+        - Corporate Baa bonds
+        - Treasury notes (10y)
+        - Inflation.
 
         The subsequent worksheets has the sources for each
         spouse as follows:
-            - taxable account withdrawals
-            - RMDs
-            - distributions
-            - Roth conversions
-            - tax-free withdrawals
-            - big-ticket items.
+        - taxable account withdrawals
+        - RMDs
+        - distributions
+        - Roth conversions
+        - tax-free withdrawals
+        - big-ticket items.
 
         The subsequent worksheets contains the balances
         and input/ouput to the savings accounts for each spouse:
-            - taxable savings account
-            - tax-deferred account
-            - tax-free account.
+        - taxable savings account
+        - tax-deferred account
+        - tax-free account.
 
         Last worksheet contains cash flow.
-
         '''
         if self._checkCaseStatus('saveWorkbook'):
             return None

@@ -751,9 +751,9 @@ class Rates:
     Rate are stored in decimal, but the API is in percent.
 
     To use this class first build an object:
-    r = Rates()
-    then r.setMethod(...)
-    then mySeries = r.genSeries()
+    ``r = Rates()``
+    then ``r.setMethod(...)``
+    then ``mySeries = r.genSeries()``
     '''
 
     def __init__(self):
@@ -792,14 +792,12 @@ class Rates:
         - fixed: user-selected fixed rates.
         - historical: historical rates from 1928 to last year.
         - average or means: average over historical data.
-        - histochastic: randomly generated from the statistical properties
-          of a historical range.
-        - stochastic: randomly generated from means, standard deviation and
-          optionally a correlation matrix.
-          The correlation matrix can be provided as a full matrix or
-          by only specifying the off-diagonal elements as a simple list
-          of (Nk*Nk - Nk)/2 values for Nk assets.
-          For 4 assets, this represents a list of 6 off-diagonal values.
+        - histochastic: randomly generated from the statistical properties of a historical range.
+        - stochastic: randomly generated from means, standard deviation and optionally a correlation matrix.
+        The correlation matrix can be provided as a full matrix or
+        by only specifying the off-diagonal elements as a simple list
+        of (Nk*Nk - Nk)/2 values for Nk assets.
+        For 4 assets, this represents a list of 6 off-diagonal values.
         '''
         Nk = len(self._defRates)
         # First process fixed methods relying on values.

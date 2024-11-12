@@ -14,7 +14,7 @@ building of the constraint matrix in order to be able to use various
 solvers for comparison.
 
 This approach has been successful with the MOSEK and the HiGHS solvers.
-A for matrix, B for bounds, C for constraints.
+A for matrix, B for bounds, C for constraints. Thus the name ABCAPI.
 
 Copyright -- Martin-D. Lacasse (2024)
 
@@ -28,25 +28,29 @@ import numpy as np
 class Row:
     '''
     Solver-neutral API to accomodate Mosek/HiGHS.
+    A Row represent a row in matrix A.
     '''
 
     def __init__(self, nvars):
+        '''
+        Constructor requires the number of decision variables.
+        '''
         self.nvars = nvars
         self.ind = []
         self.val = []
 
     def addElem(self, ind, val):
+        '''
+        Add an element at index ``ind`` of value ``val`` to the row.
+        '''
         assert 0 <= ind and ind < self.nvars, 'Index %d out of range.' % ind
         self.ind.append(ind)
         self.val.append(val)
 
-    def addElemList(self, indList, valList):
-        assert len(indList) == len(valList), 'Unequal lists in addElemList.'
-        self.ind += indList
-        self.val += valList
-        return self
-
     def addElemDic(self, rowDic={}):
+        '''
+        Add elements at indices provided by a dictionary.
+        '''
         for key in rowDic:
             self.addElem(key, rowDic[key])
         return self
@@ -58,6 +62,9 @@ class ConstraintMatrix:
     '''
 
     def __init__(self, nvars):
+        '''
+        Constructor only requires the number of decision variables.
+        '''
         self.ncons = 0
         self.nvars = nvars
         self.Aind = []
@@ -67,11 +74,19 @@ class ConstraintMatrix:
         self.key = []
 
     def newRow(self, rowDic={}):
+        '''
+        Create a new row and populate its elements using the dictionary provided.
+        Return the row created.
+        '''
         row = Row(self.nvars)
         row.addElemDic(rowDic)
         return row
 
     def addRow(self, row, lb, ub):
+        '''
+        Add row ``row`` to the constraint matrix with the lower ``lb`` and
+        upper bound ``ub`` provided.
+        '''
         self.Aind.append(row.ind)
         self.Aval.append(row.val)
         self.lb.append(lb)
@@ -85,21 +100,29 @@ class ConstraintMatrix:
         self.ncons += 1
 
     def addNewRow(self, rowDic, lb, ub):
+        '''
+        Create and add a new row to the constraint matrix with the lower ``lb`` and
+        upper bound ``ub`` provided. Row's elements are populated from the provided
+        dictionary ``rowDic``.
+        '''
         row = self.newRow(rowDic)
         self.addRow(row, lb, ub)
 
     def keys(self):
+        '''
+        Return list of keys for each row used by MOSEK.
+        '''
         return self.key
 
     def lists(self):
         '''
-        Return lists for Mosek sparse representation.
+        Return lists of indices and values for MOSEK sparse representation.
         '''
         return self.Aind, self.Aval, self.lb, self.ub
 
     def arrays(self):
         '''
-        Return dense arrays for Scipy/HiGHS.
+        Return full arrays for Scipy/HiGHS.
         '''
         Alu = np.zeros((self.ncons, self.nvars))
         lb = np.array(self.lb)
