@@ -88,7 +88,7 @@ index name as a subscript, e.g., $N_i$ for index $i$.
 	the complexity of the problem while not generating much more insights.
 \item [$n$]
 	Year being modeled. Period being modeled runs from the beginning of year 0 to 
-	the end of year $N_n-1$, and therefore $N_n$ years are considered.
+	the end of year $N_n-1$, and therefore $N_n + 1$ years are considered.
 	Year $N_n$ is the first year following the passing of all
 	individuals in the plan. The time period for all decision variables is annual.
 	For spouses, the end of year $n_d-1$ is the year in which the first individual passes while
@@ -155,6 +155,8 @@ Parameter values are either set by the user, historical data, or by the tax code
 		\gamma_n = \prod_{n' = 0}^{n-1} (1 + \tau_{3n'}),
 	\end{equation}
 	with $\gamma_0 := 1$, and where $n'$ is a dummy index.
+	As the time span of interest goes from the first year to the end of the last year,
+        variable $\gamma_n$ will have $N_n + 1$ elements.
 	Parameters indexed for inflation will be indicated by a bar on top as in $\bar\sigma_n$.
 \item [$\sigma_n$]
 	Standard deduction. It can be adjusted for inflation as follows

@@ -19,7 +19,6 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 ######################################################################
 import sys
 import numpy as np
-from datetime import datetime
 
 
 ######################################################################
@@ -120,16 +119,6 @@ def krond(a, b) -> int:
     return (1 if a == b else 0)
 
 
-def yearRemainingFraction():
-    '''
-    Return the fraction of the year left forward.
-    '''
-    today = datetime.now()
-    day_of_year = today.timetuple().tm_yday
-
-    return 1 - day_of_year/365
-
-
 def getGitRevisionShortHash() -> str:
     '''
     Return git version.
@@ -141,13 +130,13 @@ def getGitRevisionShortHash() -> str:
 
 def roundCents(n, decimals=2):
     '''
-    Round values in numpy array down to second decimal.
+    Round values in NumPy array down to second decimal.
     Using fix which is floor towards zero.
     '''
     multiplier = 10**decimals
 
     arr = np.fix(n * multiplier + 0.5) / multiplier
-    # Remove negative zero like values.
+    # Remove negative zero-like values.
     arr = np.where((-.009 < arr) & (arr <= 0), 0, arr)
 
     return arr

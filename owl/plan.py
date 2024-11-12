@@ -83,9 +83,6 @@ def _genXi_n(profile, frac, n_d, N_n, a=15, b=12):
     else:
         u.xprint('Unknown profile', profile)
 
-    # Account for time elapsed in the current year.
-    xi[0] *= u.yearRemainingFraction()
-
     return xi
 
 
@@ -151,9 +148,10 @@ class Plan:
 
     def __init__(self, inames, yobs, expectancy, name):
         '''
-        Constructor requires two lists: the first one is
-        the year of birth of each spouse, and the second
-        the life expectancy. Last argument is a name for
+        Constructor requires three lists: the first
+        one contains the name(s) of the individual(s),
+        the second one is the year of birth of each individual,
+        and the third the life expectancy. Last argument is a name for
         the plan.
         '''
         self._name = name
@@ -240,6 +238,23 @@ class Plan:
         self._caseStatus = 'unsolved'
         self._buildOffsetMap()
         self.timeListsFileName = None
+
+        # Default to beginning of today's date as a reference point.
+        today = datetime.now()
+        self.yearFracLeft = 1 - (today.timetuple().tm_yday - 1)/365
+
+        return None
+
+    def setReferenceDate(self, month, day):
+        '''
+        Set the reference date in the current year.
+        This is for reproducibility purposes.
+        '''
+        thisyear = date.today().year
+        reftime = date(thisyear, month, day)
+        self.yearFracLeft = 1 - (reftime.timetuple().tm_yday - 1)/365
+
+        u.vprint('Setting reference date to %d-%02d-%02d.'%(thisyear, month, day))
 
         return None
 
@@ -388,7 +403,7 @@ class Plan:
                 self.pi_in[i, ns:nd] = amounts[i]
                 # Only include future part of current year.
                 if ns == 0:
-                    self.pi_in[i, 0] *= u.yearRemainingFraction()
+                    self.pi_in[i, 0] *= self.yearFracLeft
 
         self.pensionAmounts = amounts
         self.pensionAges = ages
@@ -422,7 +437,7 @@ class Plan:
             self.zeta_in[i, ns:nd] = amounts[i]
             # Only include future part of current year.
             if ns == 0:
-                self.zeta_in[i, 0] *= u.yearRemainingFraction()
+                self.zeta_in[i, 0] *= self.yearFracLeft
 
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
@@ -448,6 +463,9 @@ class Plan:
             u.vprint('Securing', u.pc(self.chi, f=0), 'of spending amount for surviving spouse.')
 
         self.xi_n = _genXi_n(profile, self.chi, self.n_d, self.N_n)
+        # Account for time elapsed in the current year.
+        self.xi_n[0] *= self.yearFracLeft
+
         self.spendingProfile = profile
         self._caseStatus = 'modified'
 
@@ -487,7 +505,7 @@ class Plan:
         )
 
         # Account for how late we are now in the first year and reduce rate accordingly.
-        self.tau_kn[:, 0] *= u.yearRemainingFraction()
+        self.tau_kn[:, 0] *= self.yearFracLeft
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = _genGamma_n(self.tau_kn)
@@ -953,7 +971,7 @@ class Plan:
             spending = options['netSpending']
             assert isinstance(spending, (int, float)) == True, 'Desired spending provided is not a number.'
             # Account for time elapsed in the current year.
-            spending *= units * u.yearRemainingFraction()
+            spending *= units * self.yearFracLeft
             # u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
             A.addNewRow({_q1(Cg, 0): 1}, spending, spending)
 
@@ -1575,7 +1593,7 @@ class Plan:
             lines.append('Surviving spouse spending needs: %s' % u.pc(self.chi, f=0))
 
         lines.append('Net yearly spending in year %d: %s' %
-                     (now, u.d(self.g_n[0]/u.yearRemainingFraction())))
+                     (now, u.d(self.g_n[0]/self.yearFracLeft)))
         lines.append('Net spending remaining in year %d: %s' % (now, u.d(self.g_n[0])))
         lines.append('Net yearly spending profile basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
 
