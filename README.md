@@ -275,6 +275,8 @@ plan.saveWorkbook('jack+jill-1969')
 It is assumed that you have some familiarity with using a jupyter notebook or jupyterLab, and some very basic programming skills in Python.
 If not, a simple tutorial can guide you to the basic skills needed.
 
+Owl relies on standard Python modules such as NumPy, Pandas, and SciPy. Package `odfpy` is required to read files created by LibreOffice.
+
 By far, the easiest way to run a Jupiter notebook is to use Google Colab.
 
 - Step 1. Go to [Google Colab](https://colab.research.google.com).
