@@ -1,14 +1,8 @@
 '''
 
 Owl/config
----
 
-A retirement planner using linear programming optimization.
-
-See companion document for a complete explanation and description
-of all variables and parameters.
-
-This file contains functionality to save configuration parameters.
+This file contains utility functions to save configuration parameters.
 
 Copyright -- Martin-D. Lacasse (2024)
 
@@ -23,7 +17,7 @@ from owl import utils as u
 
 def saveConfig(plan, basename):
     '''
-    Save plan configuration parameters to a file.
+    Save plan configuration parameters to a file named *basename*.cfg.
     '''
     u.vprint('Saving plan config as "%s.cfg".' % basename)
 
@@ -107,7 +101,8 @@ def saveConfig(plan, basename):
 
 def readConfig(basename):
     '''
-    Read plan configuration parameters from a file.
+    Read plan configuration parameters from file *basename*.cfg.
+    A new plan is created and returned.
     '''
     import configparser
     import ast

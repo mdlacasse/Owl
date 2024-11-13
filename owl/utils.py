@@ -1,14 +1,8 @@
 '''
 
 Owl/utils
----
 
-A retirement planner using linear programming optimization.
-
-See companion document for a complete explanation and description
-of all variables and parameters.
-
-This file for handling error messages.
+This file contains for handling error messages.
 
 Copyright -- Martin-D. Lacasse (2024)
 
@@ -27,7 +21,8 @@ verbose = True
 
 def _setVerbose(val, ret=False):
     '''
-    Set verbose to True if you want the module to be chatty.
+    Set verbose to True if you want the module to be chatty,
+    or False to make it silent.
     '''
     global verbose
     prevState = verbose
@@ -42,7 +37,8 @@ def _setVerbose(val, ret=False):
 
 def vprint(*args, **kwargs):
     '''
-    Conditional print depending on the value of the verbose variable.
+    Conditional printing depending on the value of the verbose variable
+    previously set.
     '''
     global verbose
     if verbose:
@@ -54,8 +50,8 @@ def vprint(*args, **kwargs):
 
 def xprint(*args, **kwargs):
     '''
-    Print and exit. Use to print error messages on stderr.
-    The exit() used throws an exception.
+    Print message and exit. Use to print error messages on stderr.
+    The exit() used throws an exception in an interactive environment.
     '''
     print("ERROR:", *args, file=sys.stderr, **kwargs)
     print("Exiting...", file=sys.stderr)
@@ -65,7 +61,8 @@ def xprint(*args, **kwargs):
 
 def d(value, f=0) -> str:
     '''
-    Return a string formatting number in $ currency.
+    Return a string formatting value in $ currency.
+    Number of decimals controlled by `f` which defaults to 0.
     '''
     mystr = '${:,.' + str(f) + 'f}'
 
@@ -74,7 +71,8 @@ def d(value, f=0) -> str:
 
 def pc(value, f=1, mul=100) -> str:
     '''
-    Return a string formatting number in percent.
+    Return a string formatting decimal value in percent.
+    Number of decimals of percent controlled by `f` which defaults to 1.
     '''
     mystr = '{:.' + str(f) + 'f}%'
 
@@ -83,7 +81,7 @@ def pc(value, f=1, mul=100) -> str:
 
 def rescale(vals, fac):
     '''
-    Rescale elements of a list or array by factor fac.
+    Rescale all elements of a list or a NumPy array by factor fac.
     '''
     if isinstance(vals, (float, int)) or isinstance(vals, np.ndarray):
         return vals * fac
@@ -96,7 +94,8 @@ def rescale(vals, fac):
 
 def getUnits(units) -> int:
     '''
-    Return proper factor for units.
+    Translate multiplication factor for units as expressed by an abbreviation
+    expressed in a string. Returns an integer.
     '''
     if units is None or units == 1 or units == '1' or units == 'one':
         fac = 1
@@ -114,7 +113,7 @@ def getUnits(units) -> int:
 # krond = lambda a, b: 1 if a == b else 0
 def krond(a, b) -> int:
     '''
-    Kronecker scalar delta function.
+    Kronecker integer delta function.
     '''
     return (1 if a == b else 0)
 
@@ -128,14 +127,15 @@ def getGitRevisionShortHash() -> str:
     return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
 
 
-def roundCents(n, decimals=2):
+def roundCents(values, decimals=2):
     '''
     Round values in NumPy array down to second decimal.
     Using fix which is floor towards zero.
+    Default is to round to cents (decimals = 2).
     '''
     multiplier = 10**decimals
 
-    arr = np.fix(n * multiplier + 0.5) / multiplier
+    arr = np.fix(values * multiplier + 0.5) / multiplier
     # Remove negative zero-like values.
     arr = np.where((-.009 < arr) & (arr <= 0), 0, arr)
 

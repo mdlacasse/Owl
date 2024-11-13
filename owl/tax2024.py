@@ -21,13 +21,13 @@ from datetime import date
 ##############################################################################
 # Prepare the data.
 
-bracketNames = ['10%', '12/15%', '22/25%', '24/28%', '32/33%', '35%', '37/40%']
+taxBracketNames = ['10%', '12/15%', '22/25%', '24/28%', '32/33%', '35%', '37/40%']
 
 rates_2024 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
 rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 
 # Single [0] and married filing jointly [1].
-brackets_2024 = np.array(
+taxBrackets_2024 = np.array(
     [
         [11600, 47150, 100525, 191950, 243450, 609350, 9999999],
         [23200, 94300, 201050, 383900, 487450, 731200, 9999999],
@@ -42,12 +42,12 @@ irmaaBrackets_2024 = np.array(
 # [174.70, 244.60, 349.40, 454.20, 559.00, 594.00]
 irmaaFees_2024 = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
 
-# brackets_2017 = np.array(
+# taxBrackets_2017 = np.array(
 #     [[9325, 37950, 91900, 191650, 416700, 418400, 9999999],
 #     [18650, 75900, 153100, 233350, 416700, 470000, 9999999]])
 
 # Adjusted from 2017 to 2024 with 27% increase.
-brackets_2026 = np.array(
+taxBrackets_2026 = np.array(
     [
         [11850, 48200, 116700, 243400, 529200, 531400, 9999999],
         [23700, 96400, 194400, 296350, 529200, 596900, 9999999],
@@ -94,8 +94,8 @@ def taxParams(yobs, i_d, n_d, N_n):
     Returned values are not indexed for inflation.
     '''
     # Compute the deltas in-place between brackets, starting from the end.
-    deltaBrackets_2024 = np.array(brackets_2024)
-    deltaBrackets_2026 = np.array(brackets_2026)
+    deltaBrackets_2024 = np.array(taxBrackets_2024)
+    deltaBrackets_2026 = np.array(taxBrackets_2026)
     for t in range(6, 0, -1):
         for i in range(2):
             deltaBrackets_2024[i, t] -= deltaBrackets_2024[i, t - 1]
@@ -153,12 +153,12 @@ def taxBrackets(N_i, n_d, N_n):
     n_d = min(n_d, N_n)
 
     data = {}
-    for t in range(len(bracketNames) - 1):
+    for t in range(len(taxBracketNames) - 1):
         array = np.zeros(N_n)
-        array[0:ytc] = brackets_2024[status][t]
-        array[ytc:n_d] = brackets_2026[status][t]
-        array[n_d:N_n] = brackets_2026[0][t]
-        data[bracketNames[t]] = array
+        array[0:ytc] = taxBrackets_2024[status][t]
+        array[ytc:n_d] = taxBrackets_2026[status][t]
+        array[n_d:N_n] = taxBrackets_2026[0][t]
+        data[taxBracketNames[t]] = array
 
     return data
 
