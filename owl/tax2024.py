@@ -34,13 +34,13 @@ taxBrackets_2024 = np.array(
     ]
 )
 
-irmaaBrackets_2024 = np.array(
+irmaaBrackets = np.array(
     [[0, 103000, 129000, 161000, 193000, 500000], [0, 206000, 258000, 322000, 386000, 750000]]
 )
 
 # medicareBasis_2024 = 12 * 174.70
 # [174.70, 244.60, 349.40, 454.20, 559.00, 594.00]
-irmaaFees_2024 = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
+irmaaFees = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
 
 # taxBrackets_2017 = np.array(
 #     [[9325, 37950, 91900, 191650, 416700, 418400, 9999999],
@@ -65,23 +65,29 @@ extraDeduction_65 = np.array([1950, 1550])
 def mediCosts(yobs, horizons, magi, gamma_n, Nn):
     '''
     Compute Medicare costs directly.
+    Birth years, life horizons, MAGI time series, inflation time series gamma_n,
+    and total number of years in the plan are provided.
     '''
     thisyear = date.today().year
     Ni = len(yobs)
-    costs = np.zeros(Nn)
+    medicosts = np.zeros(Nn)
     for n in range(Nn):
+        medicount = 0
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
-                costs[n] += gamma_n[n] * irmaaFees_2024[0]
-                if n < 2:
-                    nn = n
-                else:
-                    nn = 2
-                for q in range(1, 6):
-                    if magi[n - nn] > gamma_n[n] * irmaaBrackets_2024[Ni - 1][q]:
-                        costs[n] += gamma_n[n] * irmaaFees_2024[q]
+                medicount += 1
 
-    return costs
+        if medicount == 0:
+            continue
+
+        fac = medicount * gamma_n[n]
+        medicosts[n] += fac * irmaaFees[0]
+        nx = max(0, n-2)
+        for q in range(1, 6):
+            if magi[nx] > gamma_n[n] * irmaaBrackets[medicount - 1][q]:
+                medicosts[n] += fac * irmaaFees[q]
+
+    return medicosts
 
 
 def taxParams(yobs, i_d, n_d, N_n):
