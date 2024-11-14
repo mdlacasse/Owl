@@ -1597,6 +1597,7 @@ class Plan:
             lines.append('\t\t' + str(self.corr).replace('\n', '\n\t\t'))
         else:
             lines.append('Rates used (%%): %s' % (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
+        lines.append('Starting date : %s' % self.startDate)
         lines.append('Optimized for: %s' % self.objective)
         lines.append('Solver options: %s' % self.solverOptions)
         lines.append('Number of decision variables: %d' % self.A.nvars)
