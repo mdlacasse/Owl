@@ -59,12 +59,13 @@ Roth conversions are also considered, subject to an optional maximum conversion 
 and optimized to suit the goals of the selected objective function.
 All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
-These historical, mean, or *histochastic* rates can be used for backtesting different scenarios.
+These rates can be used for backtesting different scenarios by choosing
+*historical*, *average*, or *histochastic* rates derived from the historical rates included.
 
 Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
 and cash assets assumed to just follow inflation which is represented by the Consumer Price Index.
 Other asset classes can easily be added, but would add complexity while only providing diminishing insights.
-Data used are from
+Historical data used are from
 [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) at the Stern School of Business.
 Asset allocations are selected for the duration of the plan, and these can glide linearly
 or along a configurable s-curve from now to the last year of the plan.
