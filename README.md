@@ -134,6 +134,7 @@ Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 ```python
 import owl
 plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial')
+plan.setStartingDate('1/1')
 plan.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150], taxFree=[50 + 20, 40])
 plan.readContributions('jack+jill.xlsx')
 plan.setInterpolationMethod('s-curve')
@@ -238,34 +239,35 @@ Initial balances [taxable, tax-deferred, tax-free]:
         Jill's accounts: ['$60,000', '$150,000', '$40,000']
 Return rates: historical
 Rates used: from 1969 to 2002
+Starting date : 1/1
 Optimized for: maxSpending
 Solver options: {'maxRothConversion': 100, 'bequest': 500}
 Number of decision variables: 992
 Number of constraints: 894
 Spending profile: smile
 Surviving spouse spending needs: 60%
-Net yearly spending in year 2024: $95,268
-Net spending remaining in year 2024: $13,572
-Net yearly spending profile basis in 2024$: $87,090
+Net yearly spending in year 2024: $86,031
+Net spending remaining in year 2024: $86,031
+Net yearly spending profile basis in 2024$: $78,646
 Assumed heirs tax rate: 30%
 Spousal surplus deposit fraction: 0.5
 Spousal beneficiary fractions to Jill: [1, 1, 1]
 Spousal wealth transfer to Jill in year 2051 (nominal):
-    taxable: $0  tax-def: $0  tax-free: $2,400,908
-Sum of spousal bequests to Jill in year 2051 in 2024$: $583,188 ($2,400,908 nominal)
+    taxable: $0  tax-def: $0  tax-free: $2,406,611
+Sum of spousal bequests to Jill in year 2051 in 2024$: $538,445 ($2,406,611 nominal)
 Post-tax non-spousal bequests from Jack in year 2051 (nominal):
     taxable: $0  tax-def: $0  tax-free: $0
 Sum of post-tax non-spousal bequests from Jack in year 2051 in 2024$: $0 ($0 nominal)
-Total net spending in 2024$: $2,670,353 ($7,319,187 nominal)
-Total Roth conversions in 2024$: $496,529 ($676,838 nominal)
-Total ordinary income tax paid in 2024$: $216,214 ($429,976 nominal)
-Total dividend tax paid in 2024$: $3,161 ($3,440 nominal)
-Total Medicare premiums paid in 2024$: $111,109 ($322,354 nominal)
+Total net spending in 2024$: $2,485,218 ($7,014,319 nominal)
+Total Roth conversions in 2024$: $417,250 ($588,604 nominal)
+Total ordinary income tax paid in 2024$: $195,904 ($411,030 nominal)
+Total dividend tax paid in 2024$: $2,152 ($2,469 nominal)
+Total Medicare premiums paid in 2024$: $116,560 ($344,952 nominal)
 Post-tax account values at the end of final plan year 2057: (nominal)
-    taxable: $0  tax-def: $0  tax-free: $2,431,858
-Total estate value at the end of final plan year 2057 in 2024$: $500,000 ($2,431,858 nominal)
-Inflation factor from now to the end of final plan year: 486.4%
-Case executed on: 2024-11-08 at 17:00:36
+    taxable: $0  tax-def: $0  tax-free: $2,553,871
+Total estate value at the end of final plan year 2057 in 2024$: $500,000 ($2,553,871 nominal)
+Inflation factor from now to the end of final plan year: 510.8%
+Case executed on: 2024-11-14 at 00:00:59
 ------------------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
