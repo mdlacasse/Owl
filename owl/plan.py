@@ -1230,19 +1230,20 @@ class Plan:
 
     def _milpSolve(self, objective, options):
         '''
-        Solve problem using scipy HiGHS solver
+        Solve problem using scipy HiGHS solver.
         '''
         from scipy import optimize
 
-        milpOptions = {'disp': True, 'mip_rel_gap': 1e-10}
+        # mip_rel_gap smaller than 1e-6 can lead to oscilatory solutions.
+        milpOptions = {'disp': True, 'mip_rel_gap': 1e-6}
 
-        # 1$ tolerance over all values.
         it = 0
-        diff = np.inf
-        old_delta = 0
+        absdiff = np.inf
         old_x = np.zeros(self.nvars)
-        self._estimateMedicare()
-        while diff > 1:
+        old_deltaSums = []
+        self._estimateMedicare(None)
+        # 1$ tolerance over all values.
+        while absdiff > 1:
             self._buildConstraints(objective, options)
             Alu, lbvec, ubvec = self.A.arrays()
             Lb, Ub = self.B.arrays()
@@ -1265,16 +1266,17 @@ class Plan:
 
             self._estimateMedicare(solution.x)
             delta = solution.x - old_x
-            # u.vprint('Iteration:', it, 'delta:', np.sum(delta)/1000)
+            deltaSum = np.sum(delta)
+            # u.vprint('Iteration:', it, 'delta:', deltaSum)
 
-            diff = np.sum(np.abs(delta), axis=0)
+            absdiff = np.sum(np.abs(delta), axis=0)
             old_x = solution.x
-            delta = np.sum(delta, axis=0)
-            if abs(delta + old_delta) < 1e-3 or it > 29:
+            # Detect oscillatory solutions.
+            if deltaSum in old_deltaSums or it > 59:
                 print('WARNING: Detected oscilating solution.')
                 print('    Try again with slightly different input parameters.')
                 break
-            old_delta = delta
+            old_deltaSums.append(deltaSum)
 
         if solution.success == True:
             u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
@@ -1303,13 +1305,13 @@ class Plan:
             'up': mosek.boundkey.up,
         }
 
-        # 1$ tolerance over all values.
         it = 0
-        diff = np.inf
-        old_delta = 0
+        absdiff = np.inf
         old_x = np.zeros(self.nvars)
-        self._estimateMedicare()
-        while diff > 1:
+        old_deltaSums = []
+        self._estimateMedicare(None)
+        # 1$ tolerance over all values.
+        while absdiff > 1:
             self._buildConstraints(objective, options)
             Aind, Aval, clb, cub = self.A.lists()
             ckeys = self.A.keys()
@@ -1319,6 +1321,8 @@ class Plan:
             cind, cval = self.c.lists()
 
             task = mosek.Task()
+            # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-5)
+            # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 1e-4)
             # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
             task.appendcons(self.A.ncons)
             task.appendvars(self.A.nvars)
@@ -1350,16 +1354,17 @@ class Plan:
 
             self._estimateMedicare(xx)
             delta = xx - old_x
-            # u.vprint('Iteration:', it, 'delta:', np.sum(delta)/1000)
+            deltaSum = np.sum(delta)
+            # u.vprint('Iteration:', it, 'delta:', deltaSum)
 
-            diff = np.sum(np.abs(delta), axis=0)
+            absdiff = np.sum(np.abs(delta), axis=0)
             old_x = xx
-            delta = np.sum(delta, axis=0)
-            if abs(delta + old_delta) < 1e-3 or it > 29:
+            # Detect oscillatory solutions.
+            if deltaSum in old_deltaSums or it > 59:
                 print('WARNING: Detected oscilating solution.')
                 print('    Try again with slightly different input parameters.')
                 break
-            old_delta = delta
+            old_deltaSums.append(deltaSum)
 
         task.set_Stream(mosek.streamtype.msg, _streamPrinter)
         # task.writedata(self._name+'.ptf')
