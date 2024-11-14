@@ -74,10 +74,12 @@ Spending profiles are adjusted for inflation, and so are all other indexable qua
 flat or follow a *smile* curve which is also adjustable through two simple parameters.
 
 Available rates are from 1928 to last year and can be used to test historical performance.
-Fixed rates can also be provided, as well as histochastic rates, which are generated using
+Fixed rates can also be provided, as well as *histochastic* rates, which are generated using
 the statistical characteristics (means and covariance matrix) of
-a selected historical year range. Pure stochastic rates can also be generated
-if the user provides means, volatility, and optionally covariance of the return rates.
+a selected historical year range. Pure *stochastic* rates can also be generated
+if the user provides means, volatility (expressed as standard deviation), and optionally
+the correlations between the different assets return rates provided as a matrix, or a list of
+the off-diagonal elements (see the notebook tutorial for details).
 Extending the capabilities to Monte Carlo simulations should therefore
 be straightforward. Average rates over a data period can also be chosen.
 
@@ -108,15 +110,16 @@ If there is interest, that could be added in the future.
 - Medicare calculations are done through a self-consistent loop.
 This means that the Medicare premiums are calculated after an initial solution is generated,
 and then a new solution is re-generated with these premiums as a constraint.
-When the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise.
+In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise.
 Owl will detect these cases and will inform the user with a warning message,
-instructing to slightly change the input parameters to remediate the situation.
-- Future tax brackets are pure speculation derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
+instructing to slightly change the input parameters to remediate the situation. In these cases, the solutions
+generated are very close to one another.
+- Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
 The solution from an optimization algorithm has only two states: feasible and infeasible.
 Therefore, unlike event-driven simulators that can tell you that your distribution strategy runs
-out of money in year 20, an optimization-based solver can only tell you that a solution does not
+out of money in year 20, an optimization-based solver can only tell you that a solution does or does not
 exist for the plan being considered. Examples of infeasible solutions include requesting a bequeathed
 estate value too large for the savings assets to support, even with zero net spending basis,
 or maximizing the bequest subject to a net spending basis that is already too large for the savings
