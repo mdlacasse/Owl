@@ -53,6 +53,7 @@ def saveConfig(plan, basename):
     # Joint parameters.
     config['Parameters'] = {
         'Plan name': plan._name,
+        'Starting date': plan.startDate,
         'Spending profile': str(plan.spendingProfile),
         'Surviving spouse spending percent': str(100 * plan.chi),
         'Interpolation method': str(plan.interpMethod),
@@ -147,6 +148,7 @@ def readConfig(basename):
 
     p = plan.Plan(inames, yobs, expectancy, name)
 
+    p.setStartingDate(config['Parameters']['Starting date'])
     p.setSpousalDepositFraction(float(config['Parameters']['Spousal surplus deposit fraction']))
     p.setDefaultPlots(config['Parameters']['Default plots'])
     p.setDividendRate(float(config['Parameters']['Dividend tax rate']))

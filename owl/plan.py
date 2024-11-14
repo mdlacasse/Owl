@@ -183,7 +183,7 @@ class Plan:
         self.yobs = yobs
         self.expectancy = expectancy
 
-        # Reference time is the beginning of the year and all passings are assumed at the end.
+        # Reference time is starting date in the current year and all passings are assumed at the end.
         thisyear = date.today().year
         self.horizons = [yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)]
         self.N_n = max(self.horizons)
@@ -239,22 +239,30 @@ class Plan:
         self._buildOffsetMap()
         self.timeListsFileName = None
 
-        # Default to beginning of today's date as a reference point.
-        today = datetime.now()
-        self.yearFracLeft = 1 - (today.timetuple().tm_yday - 1)/365
+        # Default to begin plan on today's date.
+        self.setStartingDate(date.today().strftime('%m/%d'))
 
         return None
 
-    def setReferenceDate(self, month, day):
+    def setStartingDate(self, mydate):
         '''
-        Set the reference date in the current year.
+        Set the date when the plan starts in the current year.
         This is for reproducibility purposes.
+        String format of mydate is 'month/day'.
         '''
-        thisyear = date.today().year
-        reftime = date(thisyear, month, day)
-        self.yearFracLeft = 1 - (reftime.timetuple().tm_yday - 1)/365
+        import calendar
 
-        u.vprint('Setting reference date to %d-%02d-%02d.'%(thisyear, month, day))
+        mydatelist = mydate.split('/')
+        assert len(mydatelist) == 2, 'Date must be "month/day_of_the_month".'
+        self.startDate = mydate
+        thisyear = date.today().year
+        month = int(mydatelist[0])
+        day = int(mydatelist[1])
+        lp = calendar.isleap(thisyear)
+        refdate = date(thisyear, month, day)
+        self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1)/(365 + lp)
+
+        u.vprint('Setting plan starting date to %d-%02d-%02d.'%(thisyear, month, day))
 
         return None
 
@@ -1759,7 +1767,8 @@ class Plan:
         ltype = ['-', '-.', ':', '--']
         for k in range(self.N_k):
             data = 100 * self.tau_kn[k]
-            label = rateName[k] + ' <' + '{:.2f}'.format(np.mean(data)) + '%>'
+            label = rateName[k] + ' <' + '{:.1f}'.format(np.mean(data)) + \
+                    ' +/- {:.1f}'.format(np.std(data)) + '%>'
             ax.plot(self.year_n, data, label=label, ls=ltype[k % self.N_k])
 
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
