@@ -242,6 +242,8 @@ class Plan:
         # Default to begin plan on today's date.
         self.setStartingDate(date.today().strftime('%m/%d'))
 
+        self.rateMethod = None
+
         return None
 
     def setStartingDate(self, mydate):
@@ -759,6 +761,13 @@ class Plan:
             self.kappa_ijn[i, 2, :h] = self.timeLists[i]['ctrb Roth 401k'][:h]
             self.kappa_ijn[i, 2, :h] += self.timeLists[i]['ctrb Roth IRA'][:h]
 
+        #  In 1st year, reduce wages and contribution depending on starting date.
+        self.omega_in[:, 0] *= self.yearFracLeft
+        self.kappa_ijn[:, :, 0] *= self.yearFracLeft
+        if self.yearFracLeft != 1:
+            self.Lambda_in[:, 0] = 0
+            self.myRothX_in[:, 0] = 0
+
         self._caseStatus = 'modified'
 
         return None
@@ -1186,6 +1195,9 @@ class Plan:
 
         Refer to companion document for implementation details.
         '''
+        if self.rateMethod is None:
+            u.xprint('Rate method must be selected before solving.')
+
         # Assume unsuccessful until problem solved.
         self._caseStatus = 'unsuccessful'
 
@@ -1692,8 +1704,8 @@ class Plan:
         import matplotlib.pyplot as plt
         import matplotlib.ticker as tk
 
-        if self.rateMethod in ['fixed', 'average', 'conservative']:
-            u.vprint('Warning: Cannot plot correlations for fixed rates.')
+        if self.rateMethod in [None, 'fixed', 'average', 'conservative']:
+            u.vprint('Warning: Cannot plot correlations for %s rate method.'%self.rateMethod)
             return None
 
         rateNames = [
@@ -1748,6 +1760,10 @@ class Plan:
         '''
         import matplotlib.pyplot as plt
         import matplotlib.ticker as tk
+
+        if self.rateMethod is None:
+             u.vprint('Warning: Rate method must be selected before plotting.')
+             return None
 
         fig, ax = plt.subplots(figsize=(6, 4))
         plt.grid(visible='both')

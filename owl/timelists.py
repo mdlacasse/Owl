@@ -15,7 +15,7 @@ Copyright -- Martin-D. Lacasse (2024)
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 '''
 
-from datetime import date, datetime
+from datetime import date
 import pandas as pd
 
 from owl import utils as u
@@ -43,8 +43,6 @@ def read(filename, inames, horizons):
 
     timeLists = []
     thisyear = date.today().year
-    today = datetime.now()
-    yearFrac = 1 - today.timetuple().tm_yday/365
     # Read all worksheets in memory but only process first n.
     dfDict = pd.read_excel(filename, sheet_name=None)
     for i, iname in enumerate(inames):
@@ -71,13 +69,10 @@ def read(filename, inames, horizons):
         # Replace empty (NaN) cells with 0 value.
         df.fillna(0, inplace=True)
 
-
         timeLists.append({})
         # Transfer values from dataframe to lists.
         for item in timeHorizonItems:
             timeLists[i][item] = df[item].tolist()
-            # Account for time already elapsed in current (first) year.
-            timeLists[i][item][0] *= yearFrac
 
     u.vprint('Successfully read time horizons from file "%s".' % filename)
 
