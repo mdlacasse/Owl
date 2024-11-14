@@ -120,6 +120,7 @@ def readConfig(basename):
     icount = int(config['Who']['Count'])
     inames = config['Who']['Names'].split(',')
     name = config['Parameters']['Plan name']
+    startDate = config['Parameters']['Starting date']
     u.vprint('Plan for %d individual%s: %s.' % (icount, ['', 's'][icount-1], inames))
 
     # Parameters getting one value for each spouse.
@@ -146,9 +147,8 @@ def readConfig(basename):
         for aType in accountTypes:
             balances[aType].append(float(config['Asset balances'][aType + ' ' + inames[i]]))
 
-    p = plan.Plan(inames, yobs, expectancy, name)
+    p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate)
 
-    p.setStartingDate(config['Parameters']['Starting date'])
     p.setSpousalDepositFraction(float(config['Parameters']['Spousal surplus deposit fraction']))
     p.setDefaultPlots(config['Parameters']['Default plots'])
     p.setDividendRate(float(config['Parameters']['Dividend tax rate']))

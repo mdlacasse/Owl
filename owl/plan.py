@@ -146,7 +146,7 @@ class Plan:
     This is the main class of the Owl Project.
     '''
 
-    def __init__(self, inames, yobs, expectancy, name):
+    def __init__(self, inames, yobs, expectancy, name, startDate=None):
         '''
         Constructor requires three lists: the first
         one contains the name(s) of the individual(s),
@@ -240,13 +240,13 @@ class Plan:
         self.timeListsFileName = None
 
         # Default to begin plan on today's date.
-        self.setStartingDate(date.today().strftime('%m/%d'))
+        self._setStartingDate(startDate)
 
         self.rateMethod = None
 
         return None
 
-    def setStartingDate(self, mydate):
+    def _setStartingDate(self, mydate):
         '''
         Set the date when the plan starts in the current year.
         This is for reproducibility purposes.
@@ -254,17 +254,21 @@ class Plan:
         '''
         import calendar
 
-        mydatelist = mydate.split('/')
-        assert len(mydatelist) == 2, 'Date must be "month/day_of_the_month".'
-        self.startDate = mydate
         thisyear = date.today().year
-        month = int(mydatelist[0])
-        day = int(mydatelist[1])
+
+        if mydate is None:
+            refdate = date.today()
+            self.startDate = refdate.strftime('%m/%d')
+        else:
+            mydatelist = mydate.split('/')
+            assert len(mydatelist) == 2, 'Date must be "month/day_of_the_month".'
+            self.startDate = mydate
+            refdate = date(thisyear, int(mydatelist[0]), int(mydatelist[1]))
+
         lp = calendar.isleap(thisyear)
-        refdate = date(thisyear, month, day)
         self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1)/(365 + lp)
 
-        u.vprint('Setting plan starting date to %d-%02d-%02d.'%(thisyear, month, day))
+        u.vprint('Setting 1st-year starting date to %s.'%(self.startDate))
 
         return None
 
