@@ -1254,7 +1254,7 @@ class Plan:
         '''
         from scipy import optimize
 
-        # mip_rel_gap smaller than 1e-6 can lead to oscilatory solutions.
+        # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
         milpOptions = {'disp': True, 'mip_rel_gap': 1e-6}
 
         it = 0
@@ -1783,10 +1783,16 @@ class Plan:
         ]
         ltype = ['-', '-.', ':', '--']
         for k in range(self.N_k):
-            data = 100 * self.tau_kn[k]
+            if self.yearFracLeft == 1:
+                data = 100 * self.tau_kn[k]
+                years = self.year_n
+            else:
+                data = 100 * self.tau_kn[k, 1:]
+                years = self.year_n[1:]
+
             label = rateName[k] + ' <' + '{:.1f}'.format(np.mean(data)) + \
                     ' +/- {:.1f}'.format(np.std(data)) + '%>'
-            ax.plot(self.year_n, data, label=label, ls=ltype[k % self.N_k])
+            ax.plot(years, data, label=label, ls=ltype[k % self.N_k])
 
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
         ax.legend(loc='best', reverse=False, fontsize=8, framealpha=0.7)
