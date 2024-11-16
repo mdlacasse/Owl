@@ -1265,21 +1265,27 @@ class Plan:
             'bequest',
             'bigM',
             'noRothConversions',
+            'withMedicare',
             'solver',
         ]
         for opt in options:
             if opt not in knownOptions:
                 u.xprint('Option', opt, 'not one of', knownOptions)
+
         if objective not in knownObjectives:
             u.xprint('Objective', objective, 'not one of', knownObjectives)
+
         if objective == 'maxBequest' and 'netSpending' not in options:
             u.xprint('Objective', objective, 'needs netSpending option.')
+
         if objective == 'maxBequest' and 'bequest' in options:
             u.vprint('Ignoring bequest option provided.')
             options.pop('bequest')
+
         if objective == 'maxSpending' and 'netSpending' in options:
             u.vprint('Ignoring netSpending option provided.')
             options.pop('netSpending')
+
         if objective == 'maxSpending' and 'bequest' not in options:
             u.vprint('Using bequest of $1.')
 
@@ -1308,6 +1314,10 @@ class Plan:
         '''
         from scipy import optimize
 
+        withMedicare = True
+        if 'withMedicare' in options and options['withMedicare'] is False:
+            withMedicare = False
+
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
         milpOptions = {'disp': True, 'mip_rel_gap': 1e-6}
 
@@ -1315,7 +1325,7 @@ class Plan:
         absdiff = np.inf
         old_x = np.zeros(self.nvars)
         old_solutions = [np.inf]
-        self._estimateMedicare(None)
+        self._estimateMedicare(None, withMedicare)
         while True:
             self._buildConstraints(objective, options)
             Alu, lbvec, ubvec = self.A.arrays()
@@ -1335,6 +1345,9 @@ class Plan:
             it += 1
 
             if solution.success != True:
+                break
+
+            if withMedicare is False:
                 break
 
             self._estimateMedicare(solution.x)
@@ -1380,6 +1393,10 @@ class Plan:
         '''
         import mosek
 
+        withMedicare = True
+        if 'withMedicare' in options and options['withMedicare'] is False:
+            withMedicare = False
+
         bdic = {
             'fx': mosek.boundkey.fx,
             'fr': mosek.boundkey.fr,
@@ -1392,7 +1409,7 @@ class Plan:
         absdiff = np.inf
         old_x = np.zeros(self.nvars)
         old_solutions = [np.inf]
-        self._estimateMedicare(None)
+        self._estimateMedicare(None, withMedicare)
         while True:
             self._buildConstraints(objective, options)
             Aind, Aval, clb, cub = self.A.lists()
@@ -1435,6 +1452,9 @@ class Plan:
             xx = np.array(task.getxx(mosek.soltype.itg))
             solution = task.getprimalobj(mosek.soltype.itg)
 
+            if withMedicare is False:
+                break
+
             self._estimateMedicare(xx)
 
             u.vprint('Iteration:', it, 'objective:', u.d(-solution/self.xi_n[0], f=2))
@@ -1474,10 +1494,14 @@ class Plan:
 
         return None
 
-    def _estimateMedicare(self, x=None):
+    def _estimateMedicare(self, x=None, withMedicare=True):
         '''
         Compute rough MAGI and Medicare costs.
         '''
+        if withMedicare is False:
+            self.M_n = np.zeros(self.N_n)
+            return
+
         if x is None:
             self.G_n = np.zeros(self.N_n)
         else:
