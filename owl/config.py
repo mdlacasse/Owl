@@ -87,8 +87,8 @@ def saveConfig(plan, basename):
     if plan.rateMethod in ['fixed', 'stochastic']:
         config['Rates']['values'] = ', '.join(str(100*k) for k in plan.rateValues)
     if plan.rateMethod in ['stochastic']:
-        config['Rates']['standard deviations'] = ', '.join(str(100*k) for k in plan.stdev)
-        flat_corr = plan.corr.flatten()
+        config['Rates']['standard deviations'] = ', '.join(str(100*k) for k in plan.rateStdev)
+        flat_corr = plan.rateCorr.flatten()
         config['Rates']['correlations'] = ', '.join(str(k) for k in flat_corr)
 
     config['Solver']['Options'] = str(plan.solverOptions)

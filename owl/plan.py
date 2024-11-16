@@ -235,9 +235,9 @@ class Plan:
         self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d, self.N_n)
 
         self._adjustedParameters = False
-        self._caseStatus = 'unsolved'
         self._buildOffsetMap()
         self.timeListsFileName = None
+        self.caseStatus = 'unsolved'
 
         # Default to begin plan on today's date.
         self._setStartingDate(startDate)
@@ -276,10 +276,10 @@ class Plan:
         '''
         Check if problem was solved successfully.
         '''
-        if self._caseStatus == 'solved':
+        if self.caseStatus == 'solved':
             return False
 
-        u.vprint('Preventing to run %s() while case is %s.' % (funcName, self._caseStatus))
+        u.vprint('Preventing to run %s() while case is %s.' % (funcName, self.caseStatus))
 
         return True
 
@@ -346,7 +346,7 @@ class Plan:
         mu /= 100
         u.vprint('Dividend return rate on equities set to %s.' % u.pc(mu, f=1))
         self.mu = mu
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         return None
 
@@ -358,7 +358,7 @@ class Plan:
         psi /= 100
         u.vprint('Long-term capital gain income tax set to %s.' % u.pc(psi, f=0))
         self.psi = psi
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         return None
 
@@ -373,7 +373,7 @@ class Plan:
 
         u.vprint('Spousal beneficiary fractions set to', phi)
         self.phi_j = np.array(phi)
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         if np.any(self.phi_j != 1):
             u.vprint('Consider changing spousal deposit fraction for better convergence.')
@@ -390,7 +390,7 @@ class Plan:
         nu /= 100
         u.vprint('Heirs tax rate on tax-deferred portion of estate set to %s.' % u.pc(nu, f=0))
         self.nu = nu
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         return None
 
@@ -421,7 +421,7 @@ class Plan:
 
         self.pensionAmounts = amounts
         self.pensionAges = ages
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         return None
 
@@ -459,7 +459,7 @@ class Plan:
 
         self.ssecAmounts = amounts
         self.ssecAges = ages
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
         self._adjustedParameters = False
 
         return None
@@ -481,7 +481,7 @@ class Plan:
         self.xi_n[0] *= self.yearFracLeft
 
         self.spendingProfile = profile
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         return None
 
@@ -505,7 +505,7 @@ class Plan:
             to = frm + self.N_n - 1  # 'to' is inclusive.
 
         dr = rates.Rates()
-        self.rateValues, self.stdev, self.corr = dr.setMethod(method, frm, to, values, stdev, corr)
+        self.rateValues, self.rateStdev, self.rateCorr = dr.setMethod(method, frm, to, values, stdev, corr)
         self.rateMethod = method
         self.rateFrm = frm
         self.rateTo = to
@@ -524,7 +524,17 @@ class Plan:
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = _genGamma_n(self.tau_kn)
         self._adjustedParameters = False
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
+
+        return None
+
+    def regenRates(self):
+        '''
+        Regenerate the rates using the arguments specified during last setRates() call.
+        This method is used to regenerate stochastic time series.
+        '''
+        self.setRates(self.rateMethod, frm=self.rateFrm, to=self.rateTo,
+                      values=100*self.rateValues, stdev=100*self.rateStdev, corr=self.rateCorr)
 
         return None
 
@@ -548,7 +558,7 @@ class Plan:
         self.b_ji[1][:] = taxDeferred
         self.b_ji[2][:] = taxFree
         self.beta_ij = self.b_ji.transpose()
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         u.vprint('Taxable balances:', *[u.d(taxable[i]) for i in range(self.N_i)])
         u.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
@@ -586,7 +596,7 @@ class Plan:
             u.xprint('Method', method, 'not supported.')
 
         self.interpMethod = method
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         u.vprint('Asset allocation interpolation method set to %s.' % method)
 
@@ -721,7 +731,7 @@ class Plan:
             self.boundsAR['generic'] = generic
 
         self.ARCoord = allocType
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         u.vprint('Interpolating assets allocation ratios using', self.interpMethod, 'method.')
 
@@ -772,7 +782,7 @@ class Plan:
             self.Lambda_in[:, 0] = 0
             self.myRothX_in[:, 0] = 0
 
-        self._caseStatus = 'modified'
+        self.caseStatus = 'modified'
 
         return None
 
@@ -1174,6 +1184,46 @@ class Plan:
 
         return None
 
+    def runMC(self, objective, options, N, verbose=False):
+        '''
+        Run Monte Carlo simulations on plan.
+        '''
+        import pandas as pd
+        import seaborn as sbn
+
+        if self.rateMethod not in ['stochastic', 'histochastic']:
+            print('It is pointless to run Monte Carlo simulations with fixed rates.')
+            return
+    
+        values = []
+        nsuccess = 0
+        old_status = setVerbose(verbose)
+    
+        for n in range(N):
+            self.regenRates()
+            self.solve(objective, options)
+            #if (n+1)%10 == 0:
+                #print('.', end='')
+            if self.caseStatus == 'solved':
+                nsuccess += 1
+                if objective == 'maxSpending':
+                    values.append(self.basis) 
+                elif objective == 'maxBequest':
+                    self.apppend(self.bequest) 
+    
+        setVerbose(old_status)
+
+        df = pd.DataFrame()
+        df[objective] = values
+        print('Success rate: %s'%u.pc(nsuccess/N))
+        print('Median: %s'%u.d(df[objective].median()))
+        print('Mean: %s'%u.d(df[objective].mean()))
+
+        sbn.histplot(df)
+
+    
+        return nsuccess, values
+
     def resolve(self):
         '''
         Solve a plan using saved options.
@@ -1203,7 +1253,7 @@ class Plan:
             u.xprint('Rate method must be selected before solving.')
 
         # Assume unsuccessful until problem solved.
-        self._caseStatus = 'unsuccessful'
+        self.caseStatus = 'unsuccessful'
 
         # Check objective and required options.
         knownObjectives = ['maxBequest', 'maxSpending']
@@ -1264,10 +1314,9 @@ class Plan:
         it = 0
         absdiff = np.inf
         old_x = np.zeros(self.nvars)
-        old_deltaSums = []
+        old_solutions = [np.inf]
         self._estimateMedicare(None)
-        # 1$ tolerance over all values.
-        while absdiff > 1:
+        while True:
             self._buildConstraints(objective, options)
             Alu, lbvec, ubvec = self.A.arrays()
             Lb, Ub = self.B.arrays()
@@ -1289,29 +1338,39 @@ class Plan:
                 break
 
             self._estimateMedicare(solution.x)
-            delta = solution.x - old_x
-            deltaSum = np.sum(delta)
-            # u.vprint('Iteration:', it, 'delta:', deltaSum)
 
+            u.vprint('Iteration:', it, 'objective:', u.d(-solution.fun/self.xi_n[0], f=2))
+
+            delta = solution.x - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
-            old_x = solution.x
-            # Detect oscillatory solutions.
-            if deltaSum in old_deltaSums or it > 59:
-                print('WARNING: Detected oscilating solution.')
-                print('    Try again with slightly different input parameters.')
+            if absdiff < 1:
+                u.vprint('Converged on full solution.')
                 break
-            old_deltaSums.append(deltaSum)
+
+            # Avoid oscillatory solutions. Look only at most recent solutions.
+            isclosenough = abs(-solution.fun - min(old_solutions[int(it/2):])) < self.xi_n[0]
+            if isclosenough:
+                u.vprint('Converged through selecting minimum oscillating objective.')
+                break
+
+            if it > 59:
+                u.vprint('WARNING: Exiting loop on maximum iterations.')
+                break
+
+            old_solutions.append(-solution.fun)
+            old_x = solution.x
 
         if solution.success == True:
             u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
             u.vprint(solution.message)
+            u.vprint('Objective:', u.d(-solution.fun/self.xi_n[0]))
             # u.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(solution.x)
-            self._caseStatus = 'solved'
             self._timestamp = datetime.now().strftime('%Y-%m-%d at %H:%M:%S')
+            self.caseStatus = 'solved'
         else:
             u.vprint('WARNING: Optimization failed:', solution.message, solution.success)
-            self._caseStatus = 'unsuccessful'
+            self.caseStatus = 'unsuccessful'
 
         return None
 
@@ -1332,10 +1391,9 @@ class Plan:
         it = 0
         absdiff = np.inf
         old_x = np.zeros(self.nvars)
-        old_deltaSums = []
+        old_solutions = [np.inf]
         self._estimateMedicare(None)
-        # 1$ tolerance over all values.
-        while absdiff > 1:
+        while True:
             self._buildConstraints(objective, options)
             Aind, Aval, clb, cub = self.A.lists()
             ckeys = self.A.keys()
@@ -1375,34 +1433,44 @@ class Plan:
                 break
 
             xx = np.array(task.getxx(mosek.soltype.itg))
+            solution = task.getprimalobj(mosek.soltype.itg)
 
             self._estimateMedicare(xx)
-            delta = xx - old_x
-            deltaSum = np.sum(delta)
-            # u.vprint('Iteration:', it, 'delta:', deltaSum)
 
+            u.vprint('Iteration:', it, 'objective:', u.d(-solution/self.xi_n[0], f=2))
+
+            delta = xx - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
-            old_x = xx
-            # Detect oscillatory solutions.
-            if deltaSum in old_deltaSums or it > 59:
-                print('WARNING: Detected oscilating solution.')
-                print('    Try again with slightly different input parameters.')
+            if absdiff < 1:
+                u.vprint('Converged on full solution.')
                 break
-            old_deltaSums.append(deltaSum)
+
+            # Avoid oscillatory solutions. Look only at most recent solutions.
+            isclosenough = abs(-solution - min(old_solutions[int(it/2):])) < self.xi_n[0]
+            if isclosenough:
+                u.vprint('Converged through selecting minimum oscillating objective.')
+                break
+
+            if it > 59:
+                u.vprint('WARNING: Exiting loop on maximum iterations.')
+                break
+
+            old_solutions.append(-solution)
+            old_x = xx
 
         task.set_Stream(mosek.streamtype.msg, _streamPrinter)
         # task.writedata(self._name+'.ptf')
         if solsta == mosek.solsta.integer_optimal:
             u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
             task.solutionsummary(mosek.streamtype.msg)
+            self.caseStatus = 'solved'
             # u.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(xx)
-            self._caseStatus = 'solved'
             self._timestamp = datetime.now().strftime('%Y/%m/%d %H:%M:%S')
         else:
             u.vprint('WARNING: Optimization failed:', 'Infeasible or unbounded.')
             task.solutionsummary(mosek.streamtype.msg)
-            self._caseStatus = 'unsuccessful'
+            self.caseStatus = 'unsuccessful'
 
         return None
 
@@ -1558,6 +1626,12 @@ class Plan:
         self.sources_in = sources
         self.savings_in = savings
 
+        estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
+        estate[1] *= 1 - self.nu
+        self.bequest = np.sum(estate) / self.gamma_n[-1]
+
+        self.basis = self.g_n[0]/self.xi_n[0]
+
         return None
 
     def estate(self):
@@ -1608,9 +1682,9 @@ class Plan:
             lines.append('Mean rates used (%%): %s' %
                          (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
             lines.append('Standard deviation used (%%): %s' %
-                         (['{:.1f}'.format(100*self.stdev[k]) for k in range(self.N_k)]))
+                         (['{:.1f}'.format(100*self.rateStdev[k]) for k in range(self.N_k)]))
             lines.append('Correlation matrix used:')
-            lines.append('\t\t' + str(self.corr).replace('\n', '\n\t\t'))
+            lines.append('\t\t' + str(self.rateCorr).replace('\n', '\n\t\t'))
         else:
             lines.append('Rates used (%%): %s' % (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
         lines.append('Starting date : %s' % self.startDate)
