@@ -60,7 +60,8 @@ and optimized to suit the goals of the selected objective function.
 All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 These rates can be used for backtesting different scenarios by choosing
-*historical*, *average*, or *histochastic* rates derived from the historical rates included.
+*historical* rates, or by choosing *average* or *histochastic* rates derived using
+the statistics of the historical rates included.
 
 Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
 and cash assets assumed to just follow inflation which is represented by the Consumer Price Index.
@@ -80,8 +81,12 @@ a selected historical year range. Pure *stochastic* rates can also be generated
 if the user provides means, volatility (expressed as standard deviation), and optionally
 the correlations between the different assets return rates provided as a matrix, or a list of
 the off-diagonal elements (see the notebook tutorial for details).
-Extending the capabilities to Monte Carlo simulations should therefore
-be straightforward. Average rates over a data period can also be chosen.
+Average rates over a data period can also be chosen.
+
+Monte Carlo simulations capabilities are included  and prodide a success rate and a histogram of
+the outcome. These simulations can be used for either determining the maximum net spending amount under
+the constraint of a desired bequest, or the maximum
+bequest under the constraint of a desired net spending amount.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
 an Excel spreadsheet that contains future wages, contributions
@@ -111,9 +116,9 @@ If there is interest, that could be added in the future.
 This means that the Medicare premiums are calculated after an initial solution is generated,
 and then a new solution is re-generated with these premiums as a constraint.
 In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise.
-Owl will detect these cases and will inform the user with a warning message,
-instructing to slightly change the input parameters to remediate the situation. In these cases, the solutions
-generated are very close to one another.
+Owl will detect these cases and inform the user.
+While the solutions generated are very close to one another, Owl will pick the smallest one
+for being conservative.
 - Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
