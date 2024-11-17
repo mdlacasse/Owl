@@ -83,9 +83,10 @@ the correlations between the different assets return rates provided as a matrix,
 the off-diagonal elements (see the notebook tutorial for details).
 Average rates calculated over a historical data period can also be chosen.
 
-Monte Carlo simulations capabilities are included  and prodide a success rate and a histogram of
-the outcome. These simulations can be used for either determining the maximum net spending amount under
-the constraint of a desired bequest, or the maximum
+Monte Carlo simulations capabilities are included  and provide a success rate and a histogram of
+the outcome. These simulations can be used for either determining the distribution of the
+maximum net spending amount under
+the constraint of a desired bequest, or the distribution of the maximum
 bequest under the constraint of a desired net spending amount.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
