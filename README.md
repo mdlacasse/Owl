@@ -81,7 +81,7 @@ a selected historical year range. Pure *stochastic* rates can also be generated
 if the user provides means, volatility (expressed as standard deviation), and optionally
 the correlations between the different assets return rates provided as a matrix, or a list of
 the off-diagonal elements (see the notebook tutorial for details).
-Average rates over a data period can also be chosen.
+Average rates calculated over a historical data period can also be chosen.
 
 Monte Carlo simulations capabilities are included  and prodide a success rate and a histogram of
 the outcome. These simulations can be used for either determining the maximum net spending amount under
