@@ -358,7 +358,12 @@ or an s-curve as in
 	it will use last year's or this year's MAGI instead, in that order.
 
 	While this approach has been implemented and tested, the robustness of the {\em big M} approach
-	is not guaranteed and an easier approach is to implement a self-consistent loop that
+	is not guaranteed. Moreover, the introduction of a large number ($5\times N_i\times N_m$,
+        where $N_m$ is the number of years eligible for Medicare) of integer variables with
+        disjonctive constraints makes the
+	convergence to a solution very slow in most situations.
+
+        A more practical approach is to implement a self-consistent loop that
 	optimizes the spending or bequest, and updates the Medicare/IRMAA premiums accordingly.
 	Therefore, the value will be computed from the MAGI
 	as $\mathcal{M}_n^\ell(G_{n-2} + \bar{\sigma}_{n-2})$, where the value is at iteration $\ell$.

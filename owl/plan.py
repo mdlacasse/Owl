@@ -1190,6 +1190,7 @@ class Plan:
         '''
         import pandas as pd
         import seaborn as sbn
+        import matplotlib.pyplot as plt
 
         if self.rateMethod not in ['stochastic', 'histochastic']:
             print('It is pointless to run Monte Carlo simulations with fixed rates.')
@@ -1199,30 +1200,36 @@ class Plan:
         nsuccess = 0
         old_status = setVerbose(verbose)
     
+        print('|--- progress ---|')
         for n in range(N):
             self.regenRates()
             self.solve(objective, options)
-            #if (n+1)%10 == 0:
-                #print('.', end='')
+            print('\r\t%s'%u.pc((n+1)/N, f=0), end='')
             if self.caseStatus == 'solved':
                 nsuccess += 1
                 if objective == 'maxSpending':
                     values.append(self.basis) 
                 elif objective == 'maxBequest':
-                    self.apppend(self.bequest) 
+                    values.append(self.bequest) 
     
+        print()
         setVerbose(old_status)
 
-        df = pd.DataFrame()
-        df[objective] = values
-        print('Success rate: %s'%u.pc(nsuccess/N))
-        print('Median: %s'%u.d(df[objective].median()))
-        print('Mean: %s'%u.d(df[objective].mean()))
+        print('Success rate: %s on %d samples.'%(u.pc(nsuccess/N), N))
+        if nsuccess:
+            df = pd.DataFrame()
+            df[objective] = values
+            df[objective] /= 1000
+            print('Median (%d k$): %s'%(self.year_n[0], u.d(df[objective].median())))
+            print('Mean (%d k$): %s'%(self.year_n[0], u.d(df[objective].mean())))
+        else:
+            print('Median (%d k$): %s'%(self.year_n[0], u.d(0)))
+            print('Mean (%d k$): %s'%(self.year_n[0], u.d(0)))
 
         sbn.histplot(df)
-
+        plt.xlabel('%d k$'%self.year_n[0])
     
-        return nsuccess, values
+        return nsuccess, df
 
     def resolve(self):
         '''
