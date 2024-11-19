@@ -59,12 +59,15 @@ def xprint(*args, **kwargs):
     sys.exit(-1)
 
 
-def d(value, f=0) -> str:
+def d(value, f=0, latex=False) -> str:
     '''
     Return a string formatting value in $ currency.
     Number of decimals controlled by `f` which defaults to 0.
     '''
-    mystr = '${:,.' + str(f) + 'f}'
+    if latex:
+        mystr = '\${:,.' + str(f) + 'f}'
+    else:
+        mystr = '${:,.' + str(f) + 'f}'
 
     return mystr.format(value)
 

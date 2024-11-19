@@ -1267,14 +1267,21 @@ class Plan:
         if len(values) > 0:
             df = pd.DataFrame()
             df[objective] = values
-            print('Median (%d $): %s'%(self.year_n[0], u.d(df[objective].median())))
-            print('  Mean (%d $): %s'%(self.year_n[0], u.d(df[objective].mean())))
+            mean = df[objective].mean()
+            median = df[objective].median()
             df[objective] /= 1000
-            sbn.histplot(df)
+            sbn.histplot(df, kde=True)
             plt.xlabel('%d k$'%self.year_n[0])
+            plt.suptitle('N = %d, P = %s'%(N, u.pc(len(values)/N)))
+            plt.title('median: %s,  mean: %s'
+                      %(u.d(median, latex=True),
+                        u.d(mean, latex=True)))
         else:
-            print('Median (%d $): %s'%(self.year_n[0], u.d(0)))
-            print('  Mean (%d $): %s'%(self.year_n[0], u.d(0)))
+            mean = 0
+            median = 0
+
+        print('Median (%d $): %s'%(self.year_n[0], u.d(median)))
+        print('  Mean (%d $): %s'%(self.year_n[0], u.d(mean)))
 
         return None
 

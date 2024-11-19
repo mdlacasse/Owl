@@ -287,9 +287,16 @@ For Monte Carlo simulations, the mean return rates, their volatility and covaria
 and used to generate random scenarios. A histogram of outcomes is generated such as this one for Jack and Jill, which was generated
 using
 ```
-plan.runMC(...)
+plan.runMC('maxSpending', ...)
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/MC-tutorial2.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/MC-tutorial2a.png" width="800">
+
+Similarly, the next one was generated using
+```
+plan.runMC('maxBequest', ...)
+```
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/MC-tutorial2b.png" width="800">
+
 
 See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/tutorial_1.ipynb)
 and [2](https://github.com/mdlacasse/Owl/blob/main/tutorial_2.ipynb) for more info.
