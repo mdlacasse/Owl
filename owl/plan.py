@@ -1775,7 +1775,7 @@ class Plan:
             lines.append('\t\t' + str(self.rateCorr).replace('\n', '\n\t\t'))
         else:
             lines.append('Rates used (%%): %s' % (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
-        lines.append('Starting date : %s' % self.startDate)
+        lines.append('This year\'s starting date : %s' % self.startDate)
         lines.append('Optimized for: %s' % self.objective)
         lines.append('Solver options: %s' % self.solverOptions)
         lines.append('Number of decision variables: %d' % self.A.nvars)
@@ -1853,7 +1853,8 @@ class Plan:
         totEstateNow = totEstate / self.gamma_n[-1]
         lines.append('Total estate value at the end of final plan year %d in %d$: %s (%s nominal)' \
                 % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
-        lines.append('Inflation factor from now to the end of final plan year: %s' % u.pc(self.gamma_n[-1], f=1))
+        lines.append('Inflation factor from this year\'s start date to the end of plan final year: %s'
+                % u.pc(self.gamma_n[-1], f=1))
 
         lines.append('Case executed on: %s' % self._timestamp)
         lines.append('------------------------------------------------------------------------')
