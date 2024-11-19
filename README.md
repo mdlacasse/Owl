@@ -312,9 +312,11 @@ given [here](https://github.com/mdlacasse/Owl/blob/main/Jupyter_tutorial.md).
 For simulating your own realizations, use the files beginning with the word *template*.
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
-A notebook with detailed explanations on this case can be found [here](https://github.com/mdlacasse/Owl/blob/main/jack+jill.ipynb).
+Notebooks with detailed explanations on this case can be found in [tutorial_1](https://github.com/mdlacasse/Owl/blob/main/tutorial_1.ipynb), and
+in [tutorial_2](https://github.com/mdlacasse/Owl/blob/main/tutorial_2.ipynb).
 
 ---------------------------------------------------------------------
+
 ## Credits
 - Historical rates from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/)
 - Image from [freepik](freepik.com)

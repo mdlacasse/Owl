@@ -210,9 +210,9 @@ class Plan:
         self.pi_in = np.zeros((self.N_i, self.N_n))
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         self.pensionAmounts = np.zeros(self.N_i)
-        self.pensionAges = np.zeros(self.N_i, dtype=int)
+        self.pensionAges = 65*np.ones(self.N_i, dtype=int)
         self.ssecAmounts = np.zeros(self.N_i)
-        self.ssecAges = np.zeros(self.N_i, dtype=int)
+        self.ssecAges = 67*np.ones(self.N_i, dtype=int)
 
         # Parameters from timeLists.
         self.omega_in = np.zeros((self.N_i, self.N_n))
@@ -1184,29 +1184,26 @@ class Plan:
 
         return None
 
-    def runMC(self, objective, options, N, verbose=False):
+    def runHistoricalRange(self, objective, options, ystart, yend, verbose=False):
         '''
-        Run Monte Carlo simulations on plan.
+        Run historical scenarios on plan over a range of years.
         '''
-        import pandas as pd
-        import seaborn as sbn
-        import matplotlib.pyplot as plt
-
-        if self.rateMethod not in ['stochastic', 'histochastic']:
-            print('It is pointless to run Monte Carlo simulations with fixed rates.')
-            return
-    
         values = []
-        nsuccess = 0
+        N = yend - ystart + 1
+        if yend + self.N_n > self.year_n[0]:
+            yend = self.year_n[0] - self.N_n
+            print('Warning: Upper bound for year range re-adjusted to %d.'%yend)
         old_status = setVerbose(verbose)
     
-        print('|--- progress ---|')
-        for n in range(N):
-            self.regenRates()
+        if verbose is False:
+            print('|--- progress ---|')
+
+        for year in range(ystart, yend+1):
+            self.setRates('historical', year)
             self.solve(objective, options)
-            print('\r\t%s'%u.pc((n+1)/N, f=0), end='')
+            if verbose is False:
+                print('\r\t%s'%u.pc((year-ystart+1)/N, f=0), end='')
             if self.caseStatus == 'solved':
-                nsuccess += 1
                 if objective == 'maxSpending':
                     values.append(self.basis) 
                 elif objective == 'maxBequest':
@@ -1215,21 +1212,71 @@ class Plan:
         print()
         setVerbose(old_status)
 
-        print('Success rate: %s on %d samples.'%(u.pc(nsuccess/N), N))
-        if nsuccess:
+        self._showResults(objective, values, N)
+
+        return N, np.array(values)
+
+    def runMC(self, objective, options, N, verbose=False):
+        '''
+        Run Monte Carlo simulations on plan.
+        '''
+        if self.rateMethod not in ['stochastic', 'histochastic']:
+            print('It is pointless to run Monte Carlo simulations with fixed rates.')
+            return
+
+        # Turn off Medicare by default, unless specified in options.
+        if 'withMedicare' not in myoptions:
+            myoptions = dict(options)
+            myoptions['withMedicare'] = False
+        else:
+            myoptions = options
+    
+        values = []
+        old_status = setVerbose(verbose)
+    
+        if verbose is False:
+            print('|--- progress ---|')
+
+        for n in range(N):
+            self.regenRates()
+            self.solve(objective, myoptions)
+            if verbose is False:
+                print('\r\t%s'%u.pc((n+1)/N, f=0), end='')
+            if self.caseStatus == 'solved':
+                if objective == 'maxSpending':
+                    values.append(self.basis) 
+                elif objective == 'maxBequest':
+                    values.append(self.bequest) 
+    
+        print()
+        setVerbose(old_status)
+
+        self._showResults(objective, values, N)
+
+        return N, np.array(values)
+
+    def _showResults(self, objective, values, N):
+        '''
+        Show a histogram of values for runMC() and runRange().
+        '''
+        import pandas as pd
+        import seaborn as sbn
+        import matplotlib.pyplot as plt
+
+        print('Success rate: %s on %d samples.'%(u.pc(len(values)/N), N))
+        if len(values) > 0:
             df = pd.DataFrame()
             df[objective] = values
+            print('Median (%d $): %s'%(self.year_n[0], u.d(df[objective].median())))
+            print('  Mean (%d $): %s'%(self.year_n[0], u.d(df[objective].mean())))
             df[objective] /= 1000
-            print('Median (%d k$): %s'%(self.year_n[0], u.d(df[objective].median())))
-            print('Mean (%d k$): %s'%(self.year_n[0], u.d(df[objective].mean())))
+            sbn.histplot(df)
+            plt.xlabel('%d k$'%self.year_n[0])
         else:
-            print('Median (%d k$): %s'%(self.year_n[0], u.d(0)))
-            print('Mean (%d k$): %s'%(self.year_n[0], u.d(0)))
+            print('Median (%d $): %s'%(self.year_n[0], u.d(0)))
+            print('  Mean (%d $): %s'%(self.year_n[0], u.d(0)))
 
-        sbn.histplot(df)
-        plt.xlabel('%d k$'%self.year_n[0])
-    
-        return nsuccess, df
+        return None
 
     def resolve(self):
         '''
@@ -1275,43 +1322,46 @@ class Plan:
             'withMedicare',
             'solver',
         ]
-        for opt in options:
+        # We will modify options if required.
+        myoptions = dict(options)
+
+        for opt in myoptions:
             if opt not in knownOptions:
                 u.xprint('Option', opt, 'not one of', knownOptions)
 
         if objective not in knownObjectives:
             u.xprint('Objective', objective, 'not one of', knownObjectives)
 
-        if objective == 'maxBequest' and 'netSpending' not in options:
+        if objective == 'maxBequest' and 'netSpending' not in myoptions:
             u.xprint('Objective', objective, 'needs netSpending option.')
 
-        if objective == 'maxBequest' and 'bequest' in options:
+        if objective == 'maxBequest' and 'bequest' in myoptions:
             u.vprint('Ignoring bequest option provided.')
-            options.pop('bequest')
+            myoptions.pop('bequest')
 
-        if objective == 'maxSpending' and 'netSpending' in options:
+        if objective == 'maxSpending' and 'netSpending' in myoptions:
             u.vprint('Ignoring netSpending option provided.')
-            options.pop('netSpending')
+            myoptions.pop('netSpending')
 
-        if objective == 'maxSpending' and 'bequest' not in options:
+        if objective == 'maxSpending' and 'bequest' not in myoptions:
             u.vprint('Using bequest of $1.')
 
         self._adjustParameters()
 
         if 'solver' in options:
-            solver = options['solver']
+            solver = myoptions['solver']
             if solver not in knownSolvers:
                 u.xprint('Unknown solver %s.' % solver)
         else:
            solver = self.defaultSolver
 
         if solver == 'HiGHS':
-            self._milpSolve(objective, options)
+            self._milpSolve(objective, myoptions)
         elif solver == 'MOSEK':
-            self._mosekSolve(objective, options)
+            self._mosekSolve(objective, myoptions)
 
         self.objective = objective
-        self.solverOptions = options
+        self.solverOptions = myoptions
 
         return None
 
@@ -1849,10 +1899,10 @@ class Plan:
     
         # plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
-        title = self._name + '\nRates Correlations (' + str(self.rateMethod)
+        title = self._name + '\n'
+        title += 'Rates Correlations (N=%d) %s'%(self.N_n, self.rateMethod)
         if self.rateMethod in ['historical', 'histochastic']:
-            title += ' ' + str(self.rateFrm) + '-' + str(self.rateTo)
-        title += ')'
+            title += ' (' + str(self.rateFrm) + '-' + str(self.rateTo) + ')'
 
         if tag != '':
             title += ' - ' + tag
