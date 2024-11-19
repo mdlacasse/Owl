@@ -283,6 +283,15 @@ And an Excel workbook can be saved with all the detailed amounts over the years 
 ```python
 plan.saveWorkbook('jack+jill-1969')
 ```
+For Monte Carlo simulations, the mean return rates, their volatility and covariance are specified
+and used to generate random scenarios. A hitogram of outcome is generated such as this one for Jack and Jill, which was generated
+using
+```
+plan.runMC(...)
+```
+See tutorial 2 for more info.
+
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/MC-tutorial2.png" width="800">
 
 ---------------------------------------------------------------
 ## Requirements
