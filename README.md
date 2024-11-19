@@ -84,13 +84,13 @@ the off-diagonal elements (see the notebook tutorial for details).
 Average rates calculated over a historical data period can also be chosen.
 
 Monte Carlo simulations capabilities are included  and provide a probability of success and a histogram of
-the outcome. These simulations can be used for either determining the distribution of the
+outcomes. These simulations can be used for either determining the probability distribution of the
 maximum net spending amount under
-the constraint of a desired bequest, or the distribution of the maximum
+the constraint of a desired bequest, or the probability distribution of the maximum
 bequest under the constraint of a desired net spending amount. Unlike discrete-event
 simulators, Owl uses an optimization algorithm for every new scenario, which results in more
 calculations being performed. As a result, the number of cases to be considered should be kept
-to a reasonable number. For a few thousands cases, a few minutes of calculations can provide very good estimates
+to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates
 and reliable probability distributions.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
