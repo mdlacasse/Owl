@@ -1225,7 +1225,7 @@ class Plan:
             return
 
         # Turn off Medicare by default, unless specified in options.
-        if 'withMedicare' not in myoptions:
+        if 'withMedicare' not in options:
             myoptions = dict(options)
             myoptions['withMedicare'] = False
         else:
