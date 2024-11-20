@@ -281,7 +281,7 @@ Case executed on: 2024-11-14 at 00:00:59
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
 ```python
-plan.saveWorkbook('jack+jill-1969')
+plan.saveWorkbook(overwrite=True)
 ```
 For Monte Carlo simulations, the mean return rates, their volatility and covariance are specified
 and used to generate random scenarios. A histogram of outcomes is generated such as this one for Jack and Jill, which was generated
