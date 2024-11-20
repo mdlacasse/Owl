@@ -37,7 +37,7 @@ The algorithms in Owl rely on the open-source HiGHS linear programming solver. T
 detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
-Owl is currently implemented through a combination of Python modules and jupyter notebooks,
+Owl is currently implemented through a combination of Python modules and Jupyter notebooks,
 but its simple API can also serve as the back-end of a Web application
 facilitating its use by allowing easier input of user-selected constraints for exploring the optimality
 of different scenarios.
@@ -305,7 +305,7 @@ and [2](https://github.com/mdlacasse/Owl/blob/main/tutorial_2.ipynb) for more in
 ---------------------------------------------------------------
 ## Requirements
 
-It is assumed that you have some familiarity with using a jupyter notebook or jupyterLab, and some very basic programming skills in Python.
+It is assumed that you have some familiarity with using a Jupyter notebook or JupyterLab, and some very basic programming skills in Python.
 If not, a simple tutorial can guide you to the basic skills needed.
 
 Owl relies on standard Python modules such as NumPy, Pandas, and SciPy. Package `odfpy` is required to read files created by LibreOffice.
@@ -328,7 +328,7 @@ Jupyter will run in your default web browser, from your computer to your browser
 You will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.
 
 The intent of using a notebook is that one can configure calculations that suit one's needs.
-Moreover, running calculations in *jupyter* is made to be relatively easy.
+Moreover, running calculations in *Jupyter* is made to be relatively easy.
 There are many tutorials on this topic and a summary including installation procedures is
 given [here](https://github.com/mdlacasse/Owl/blob/main/Jupyter_tutorial.md).
 
