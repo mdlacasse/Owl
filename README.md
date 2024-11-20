@@ -197,7 +197,7 @@ For taxes,
 ```python
 plan.showTaxes()
 ```
- will display Medicare premiums (including IRMAA) and federal income tax.
+will display Medicare premiums (including IRMAA) and federal income tax.
  
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/taxesPlot.png" width="800">
 
@@ -224,7 +224,7 @@ plan.showRates()
 ```
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/ratesPlot.png" width="800">
 
-Values between brackets <> are the average values over the selected period. 
+Values between brackets <> are the average values and volatility over the selected period. 
 
 For the statisticians, rates distributions and correlations between them can be shown using:
 ```python
