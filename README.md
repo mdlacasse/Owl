@@ -139,20 +139,33 @@ assets to support, even with no estate being left.
 -----------------------------------------------------------------------
 ## An example of Owl's functionality
 With about 10 lines of Python code, one can generate a full case study.
-Here is a typical plan without comments.
+Here is a typical plan with some comments.
 A plan starts with the names of the individuals, their birth years and life expectancies, and a name for the plan.
 Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 ```python
 import owl
+# Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to 92 yo.
+# Plan starts on Jan 1st of this year.
 plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='1/1')
+# Jack has $90k in a taxable investment account, $600k in a tax-deferred account and $70k in tax-exempt accounts.
+# Jill has $60k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
 plan.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150], taxFree=[50 + 20, 40])
+# An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
 plan.readContributions('jack+jill.xlsx')
+# Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
+# Jill will do the same thing but is more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
 plan.setInterpolationMethod('s-curve')
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
+# Jack has no pension, but Jill will received $10k per year at 65 y.o.
 plan.setPension([0, 10], [65, 65])
+# Jack anticipates receiving social security of $28k at age 70, and Jill $25k at age 70 as well.
 plan.setSocialSecurity([28, 25], [70, 70])
+# We use a smile speding profile, with 60% needs for the survivor.
 plan.setSpendingProfile('smile', 60)
+# We will reproduce the historical sequence of returns starting in year 1969.
 plan.setRates('historical', 1969)
+# We impose a constraint of leaving a bequest of $500k, and limit Roth conversions to $100k per year.
+# We solve for the maximum net spending profile under these constraints.
 plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500})
 ```
 The output can be seen using the following commands that display various plots of the decision variables in time.
