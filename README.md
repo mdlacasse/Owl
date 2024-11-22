@@ -156,7 +156,7 @@ plan.readContributions('jack+jill.xlsx')
 # Jill will do the same thing but is more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
 plan.setInterpolationMethod('s-curve')
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
-# Jack has no pension, but Jill will received $10k per year at 65 y.o.
+# Jack has no pension, but Jill will received $10k per year at 65 yo.
 plan.setPension([0, 10], [65, 65])
 # Jack anticipates receiving social security of $28k at age 70, and Jill $25k at age 70 as well.
 plan.setSocialSecurity([28, 25], [70, 70])
@@ -223,7 +223,7 @@ plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]
 gliding from a 60%/40% stocks/bonds portfolio to 70%/30% for Jack, and 50%/50% -> 70%/30% for Jill.
 Assets distribution in all accounts in today's $ over time can be displayed from
 ```python
-plan.showASsetDistribution(value='today')
+plan.showAssetDistribution(value='today')
 ```
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/AD-taxable.png" width="800">
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/AD-taxDef.png" width="800">
