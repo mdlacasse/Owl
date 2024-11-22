@@ -1775,7 +1775,7 @@ class Plan:
             lines.append('\t\t' + str(self.rateCorr).replace('\n', '\n\t\t'))
         else:
             lines.append('Rates used (%%): %s' % (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
-        lines.append('This year\'s starting date : %s' % self.startDate)
+        lines.append('This year\'s starting date: %s' % self.startDate)
         lines.append('Optimized for: %s' % self.objective)
         lines.append('Solver options: %s' % self.solverOptions)
         lines.append('Number of decision variables: %d' % self.A.nvars)
@@ -1803,8 +1803,8 @@ class Plan:
             q_j = np.array(self.spousalBen_j)
             totSpousal = np.sum(q_j)
             totSpousalNow = totSpousal/self.gamma_n[nx+1]
-            lines.append('Spousal wealth transfer to %s in year %d (nominal):'
-                         % (self.inames[self.i_s], self.year_n[nx]))
+            lines.append('Spousal wealth transfer from %s to %s in year %d (nominal):'
+                         % (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx]))
             lines.append(
                 '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
             )
