@@ -60,8 +60,9 @@ and optimized to suit the goals of the selected objective function.
 All calculations are indexed for inflation, which is provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 These rates can be used for backtesting different scenarios by choosing
-*historical* rates, or by choosing *average* or *histochastic* rates derived using
-the statistics of the historical rates included.
+*historical* rates, or by choosing *average* rates over a historical year range,
+or what I coined "*histochastic*" rates which are
+generated using the statistical distribution of observed historical rates.
 
 Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
 and cash assets assumed to just follow inflation which is represented by the Consumer Price Index.
