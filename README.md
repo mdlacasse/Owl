@@ -147,7 +147,7 @@ import owl
 # Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to 92 yo.
 # Plan starts on Jan 1st of this year.
 plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='1/1')
-# Jack has $90k in a taxable investment account, $600k in a tax-deferred account and $70k in tax-exempt accounts.
+# Jack has $90k in a taxable investment account, $600k in a tax-deferred account and $70k from 2 tax-exempt accounts.
 # Jill has $60k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
 plan.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150], taxFree=[50 + 20, 40])
 # An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
@@ -160,7 +160,7 @@ plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]
 plan.setPension([0, 10], [65, 65])
 # Jack anticipates receiving social security of $28k at age 70, and Jill $25k at age 70 as well.
 plan.setSocialSecurity([28, 25], [70, 70])
-# We use a smile speding profile, with 60% needs for the survivor.
+# We use a smile spending profile, with 60% needs for the survivor.
 plan.setSpendingProfile('smile', 60)
 # We will reproduce the historical sequence of returns starting in year 1969.
 plan.setRates('historical', 1969)
