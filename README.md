@@ -147,9 +147,9 @@ import owl
 # Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to 92 yo.
 # Plan starts on Jan 1st of this year.
 plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='1/1')
-# Jack has $90k in a taxable investment account, $600k in a tax-deferred account and $70k from 2 tax-exempt accounts.
-# Jill has $60k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
-plan.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150], taxFree=[50 + 20, 40])
+# Jack has $90.5k in a taxable investment account, $600.5k in a tax-deferred account and $70k from 2 tax-exempt accounts.
+# Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
+plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50 + 20, 40])
 # An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
 plan.readContributions('jack+jill.xlsx')
 # Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
@@ -158,15 +158,16 @@ plan.setInterpolationMethod('s-curve')
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
 # Jack has no pension, but Jill will received $10k per year at 65 yo.
 plan.setPension([0, 10], [65, 65])
-# Jack anticipates receiving social security of $28k at age 70, and Jill $25k at age 70 as well.
-plan.setSocialSecurity([28, 25], [70, 70])
+# Jack anticipates receiving social security of $28.4k at age 70, and Jill $19.7k at age 62.
+plan.setSocialSecurity([28.4, 19.7], [70, 62])
 # We use a smile spending profile, with 60% needs for the survivor.
 plan.setSpendingProfile('smile', 60)
 # We will reproduce the historical sequence of returns starting in year 1969.
 plan.setRates('historical', 1969)
 # We impose a constraint of leaving a bequest of $500k, and limit Roth conversions to $100k per year.
+# Jill's 403b plan does not support in-plan Roth conversions.
 # We solve for the maximum net spending profile under these constraints.
-plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500})
+plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500, 'noRothConversions': 'Jill'})
 ```
 The output can be seen using the following commands that display various plots of the decision variables in time.
 ```python
@@ -250,7 +251,8 @@ A short text summary of the outcome of the optimization can be displayed through
 ```python
 plan.summary()
 ```
-The output of the last command looks like:
+The output of the last command reports that Jack and Jill can afford a $89k annual spending starting this year.
+It also contains many more details:
 ```
 SUMMARY ================================================================
 Plan name: jack & jill - tutorial
@@ -258,39 +260,40 @@ Plan name: jack & jill - tutorial
         Jill's life horizon: 2024 -> 2057
 Contributions file: jack+jill.xlsx
 Initial balances [taxable, tax-deferred, tax-free]:
-        Jack's accounts: ['$90,000', '$600,000', '$70,000']
-        Jill's accounts: ['$60,000', '$150,000', '$40,000']
+        Jack's accounts: ['$90,500', '$600,500', '$70,000']
+        Jill's accounts: ['$60,200', '$150,000', '$40,000']
 Return rates: historical
 Rates used: from 1969 to 2002
 This year's starting date: 01/01
 Optimized for: maxSpending
-Solver options: {'maxRothConversion': 100, 'bequest': 500}
+Solver options: {'maxRothConversion': 100, 'bequest': 500, 'noRothConversions': 'Jill'}
 Number of decision variables: 992
 Number of constraints: 894
 Spending profile: smile
 Surviving spouse spending needs: 60%
-Net yearly spending in year 2024: $92,304
-Net spending remaining in year 2024: $92,304
-Net yearly spending profile basis in 2024$: $84,380
+Net yearly spending in year 2024: $97,098
+Net spending remaining in year 2024: $97,098
+Net yearly spending profile basis in 2024$: $88,763
 Assumed heirs tax rate: 30%
 Spousal surplus deposit fraction: 0.5
 Spousal beneficiary fractions to Jill: [1, 1, 1]
 Spousal wealth transfer from Jack to Jill in year 2051 (nominal):
-    taxable: $0  tax-def: $0  tax-free: $2,485,751
-Sum of spousal bequests to Jill in year 2051 in 2024$: $556,152 ($2,485,751 nominal)
+    taxable: $0  tax-def: $63,134  tax-free: $2,583,303
+Sum of spousal bequests to Jill in year 2051 in 2024$: $592,103 ($2,646,437 nominal)
 Post-tax non-spousal bequests from Jack in year 2051 (nominal):
     taxable: $0  tax-def: $0  tax-free: $0
 Sum of post-tax non-spousal bequests from Jack in year 2051 in 2024$: $0 ($0 nominal)
-Total net spending in 2024$: $2,666,410 ($7,525,719 nominal)
-Total Roth conversions in 2024$: $461,445 ($649,379 nominal)
-Total ordinary income tax paid in 2024$: $227,601 ($440,711 nominal)
-Total dividend tax paid in 2024$: $3,546 ($4,023 nominal)
+Total net spending in 2024$: $2,804,910 ($7,916,623 nominal)
+Total Roth conversions in 2024$: $311,760 ($443,005 nominal)
+Total ordinary income tax paid in 2024$: $240,389 ($477,589 nominal)
+Total dividend tax paid in 2024$: $3,437 ($3,902 nominal)
 Total Medicare premiums paid in 2024$: $117,817 ($346,404 nominal)
 Post-tax account values at the end of final plan year 2057: (nominal)
     taxable: $0  tax-def: $0  tax-free: $2,553,871
 Total estate value at the end of final plan year 2057 in 2024$: $500,000 ($2,553,871 nominal)
 Inflation factor from this year's start date to the end of plan final year: 510.8%
-Case executed on: 2024-11-21 at 22:15:18
+Case executed on: 2024-11-24 at 11:15:50
+------------------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
 ```python
