@@ -34,32 +34,25 @@ taxBrackets_2025 = np.array(
     ]
 )
 
-# irmaaBrackets_2024 = np.array(
-#    [
-#	[0, 103000, 129000, 161000, 193000, 500000],
-#     	[0, 206000, 258000, 322000, 386000, 750000],
-#    ]
-#)
-
-irmaaBrackets_2026 = np.array(
+irmaaBrackets_2025 = np.array(
     [
-	[0, 103000, 129000, 161000, 193000, 500000],
-     	[0, 206000, 258000, 322000, 386000, 750000],
+	    [0, 106000, 133000, 167000, 200000, 500000],
+        [0, 212000, 266000, 334000, 400000, 750000],
     ]
 )
 
+# Use index [0] to store the standard Medicare part B premium.
+# Following values are incremental IRMAA part B monthly fees.
 # 2024 total monthly fees: [174.70, 244.60, 349.40, 454.20, 559.00, 594.00]
 # irmaaFees_2024 = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
-irmaaFees_2026 = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
+irmaaFees_2025 = 12 * np.array([185.00, 74.00, 111.00, 110.90, 111.00, 37.00])
 
-# medicareBasis_2024 = 12 * 174.70
-
+# Compute 2026 from 2017 with 27% increase.
 # taxBrackets_2017 = np.array(
 #    [ [9325, 37950, 91900, 191650, 416700, 418400, 9999999],
 #      [18650, 75900, 153100, 233350, 416700, 470000, 9999999],
 #    ])
 
-# Adjusted from 2017 to 2024 with 27% increase.
 taxBrackets_2026 = np.array(
     [
         [11850, 48200, 116700, 243400, 529200, 531400, 9999999],
@@ -67,10 +60,8 @@ taxBrackets_2026 = np.array(
     ]
 )
 
-# stdDeduction_2024 = np.array([14600, 29200])
 stdDeduction_2025 = np.array([15000, 30000])
 stdDeduction_2026 = np.array([8300, 16600])
-# extra65Deduction_2024 = np.array([1950, 1550])
 extra65Deduction_2025 = np.array([2000, 1600])
 
 
@@ -87,6 +78,7 @@ def mediCosts(yobs, horizons, magi, gamma_n, Nn):
     for n in range(Nn):
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
+                # The standard Medicare part B premium
                 costs[n] += gamma_n[n] * irmaaFees_2025[0]
                 if n < 2:
                     nn = n
