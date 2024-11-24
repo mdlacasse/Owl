@@ -193,6 +193,7 @@ along with inflation-adjusted extrapolated tax brackets. Notice how the optimize
 the boundaries of tax brackets.
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/taxIncomePlot.png" width="800">
+
 Typical plots look like the following. The optimal spending profile looks like this (in today's dollars). Notice
 the 40% drop (configurable) at the passing of the first spouse.
 ```python
