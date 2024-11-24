@@ -188,8 +188,12 @@ parameters to either *nominal* or *today*, such as in this example
 ```python
 plan.showGrossIncome(value='nominal')
 ```
+which shows the taxable ordinary income over the duration of the plan,
+along with inflation-adjusted extrapolated tax brackets. Notice how the optimized income is surfing
+the boundaries of tax brackets.
 
-Typical plots look like the following. The optimal spending profile looks like this (in nominal dollars). Notice
+<img src="https://raw.github.com/mdlacasse/Owl/main/images/taxIncomePlot.png" width="800">
+Typical plots look like the following. The optimal spending profile looks like this (in today's dollars). Notice
 the 40% drop (configurable) at the passing of the first spouse.
 ```python
 plan.showProfile('today')
@@ -205,17 +209,11 @@ while this plot shows the complex cash flow from all sources,
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/sourcesPlot.png" width="800">
 
-Next figure shows the taxable ordinary income over the duration of the plan,
-along with extrapolated tax brackets. Notice how the optimized income is surfing
-the boundaries of tax brackets.
-
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/taxIncomePlot.png" width="800">
-
 For taxes,
 ```python
 plan.showTaxes()
 ```
-will display Medicare premiums (including IRMAA) and federal income tax.
+will display Medicare premiums (including Part B IRMAA) and federal income tax.
  
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/taxesPlot.png" width="800">
 
