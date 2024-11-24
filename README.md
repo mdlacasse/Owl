@@ -191,6 +191,9 @@ plan.showGrossIncome(value='nominal')
 
 Typical plots look like the following. The optimal spending profile looks like this (in nominal dollars). Notice
 the 40% drop (configurable) at the passing of the first spouse.
+```python
+plan.showProfile('today')
+```
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/spendingPlot.png" width="800">
 
@@ -251,7 +254,7 @@ A short text summary of the outcome of the optimization can be displayed through
 ```python
 plan.summary()
 ```
-The output of the last command reports that Jack and Jill can afford a $89k annual spending starting this year.
+The output of the last command reports that Jack and Jill can afford a $97k annual spending starting this year.
 It also contains many more details:
 ```
 SUMMARY ================================================================
