@@ -184,18 +184,17 @@ By default, all these plots are in nominal dollars. To get values in today's $, 
 plan.setDefaultPlots('today')
 ```
 would change all graphs to report in today's dollars. Each plot can also override the default by setting the `value`
-parameters to either *nominal* or *today*, such as in this example
+parameters to either *nominal* or *today*, such as in the following example, which shows the taxable ordinary
+income over the duration of the plan,
+along with inflation-adjusted extrapolated tax brackets. Notice how the optimized income is surfing
+the boundaries of tax brackets.
 ```python
 plan.showGrossIncome(value='nominal')
 ```
-which shows the taxable ordinary income over the duration of the plan,
-along with inflation-adjusted extrapolated tax brackets. Notice how the optimized income is surfing
-the boundaries of tax brackets.
-
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/taxIncomePlot.png" width="800">
 
-Typical plots look like the following. The optimal spending profile looks like this (in today's dollars). Notice
-the 40% drop (configurable) at the passing of the first spouse.
+Typical plots look like the following. The optimal spending profile looks like this (in today's dollars). Notice drop
+(we selected 60% survivor needs) at the passing of the first spouse.
 ```python
 plan.showProfile('today')
 ```
@@ -203,19 +202,22 @@ plan.showProfile('today')
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/spendingPlot.png" width="800">
 
 The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill,
-
+gnerated using
+```python
+plan.showAccounts(value='nominal')
+```
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/savingsPlot.png" width="800">
 
-while this plot shows the complex cash flow from all sources,
-
+while this plot shows the complex cash flow from all sources, which was generated with
+```python
+plan.showSources(value='nominal')
+```
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/sourcesPlot.png" width="800">
 
-For taxes,
+For taxes, the following call will display Medicare premiums (including Part B IRMAA fees) and federal income tax
 ```python
-plan.showTaxes()
+plan.showTaxes(value='nominal')
 ```
-will display Medicare premiums (including Part B IRMAA) and federal income tax.
- 
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/taxesPlot.png" width="800">
 
 For the case at hand, recall that asset allocations were selected above through
