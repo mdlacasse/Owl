@@ -92,9 +92,9 @@ bequest under the constraint of a desired net spending amount. Unlike discrete-e
 simulators, Owl uses an optimization algorithm for every new scenario, which results in more
 calculations being performed. As a result, the number of cases to be considered should be kept
 to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates
-and reliable probability distributions. Optimizing each solution is more realistic in the sense that optimal solutions
-will adjust to the rate scenarios being considered. This is more realistic as retirees would ceratinly re-evaluate
-their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulations
+and reliable probability distributions. Optimizing each solution is more representative in the sense that optimal solutions
+will naturally adjust to the return scenarios being considered. This is more realistic as retirees would certainly re-evaluate
+their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulations,
 which maintain a distribution strategy either fixed, or within guardrails for capturing the retirees' reactions to the market.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
@@ -157,10 +157,10 @@ plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=
 # An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
 plan.readContributions('jack+jill.xlsx')
 # Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
-# Jill will do the same thing but is more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
+# Jill will do the same thing but is a bit more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
 plan.setInterpolationMethod('s-curve')
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
-# Jack has no pension, but Jill will received $10k per year at 65 yo.
+# Jack has no pension, but Jill will receive $10k per year at 65 yo.
 plan.setPension([0, 10], [65, 65])
 # Jack anticipates receiving social security of $28.4k at age 70, and Jill $19.7k at age 62. All values are in today's $.
 plan.setSocialSecurity([28.4, 19.7], [70, 62])
