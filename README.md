@@ -92,9 +92,9 @@ bequest under the constraint of a desired net spending amount. Unlike discrete-e
 simulators, Owl uses an optimization algorithm for every new scenario, which results in more
 calculations being performed. As a result, the number of cases to be considered should be kept
 to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates
-and reliable probability distributions. Optimizing each solution is more realistic in the sense that optimal solutions
-will adjust to the rate scenarios being considered. This is more realistic as retirees would ceratinly re-evaluate
-their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulations
+and reliable probability distributions. Optimizing each solution is more representative in the sense that optimal solutions
+will naturally adjust to the return scenarios being considered. This is more realistic as retirees would certainly re-evaluate
+their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulations,
 which maintain a distribution strategy either fixed, or within guardrails for capturing the retirees' reactions to the market.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
