@@ -205,8 +205,8 @@ plan.showProfile('today')
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/spendingPlot.png" width="800">
 
-The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill,
-generated using
+The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill.
+It was generated using
 ```python
 plan.showAccounts(value='nominal')
 ```
