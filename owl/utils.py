@@ -64,6 +64,9 @@ def d(value, f=0, latex=False) -> str:
     Return a string formatting value in $ currency.
     Number of decimals controlled by `f` which defaults to 0.
     '''
+    if np.isnan(value):
+        return 'NaN'
+
     if latex:
         mystr = '\${:,.' + str(f) + 'f}'
     else:

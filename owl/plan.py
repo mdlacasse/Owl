@@ -1194,7 +1194,15 @@ class Plan:
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n
             print('Warning: Upper bound for year range re-adjusted to %d.'%yend)
+
         old_status = setVerbose(verbose)
+
+        if objective == 'maxSpending':
+            columns = [objective]
+        elif objective == 'maxBequest':
+            columns = ['partial', 'final']
+
+        df = pd.DataFrame(columns=columns)
     
         if verbose is False:
             print('|--- progress ---|')
@@ -1206,16 +1214,15 @@ class Plan:
                 print('\r\t%s'%u.pc((year-ystart+1)/N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
-                    values.append(self.basis) 
+                    df.loc[len(df)] = [self.basis]
                 elif objective == 'maxBequest':
-                    values.append(self.bequest) 
+                    df.loc[len(df)] = [self.partialBequest, self.bequest]
     
         print()
         setVerbose(old_status)
+        self._showResults(objective, df, N)
 
-        self._showResults(objective, values, N)
-
-        return N, np.array(values)
+        return N, df
 
     def runMC(self, objective, options, N, verbose=False):
         '''
@@ -1225,6 +1232,8 @@ class Plan:
             print('It is pointless to run Monte Carlo simulations with fixed rates.')
             return
 
+        old_status = setVerbose(verbose)
+
         # Turn off Medicare by default, unless specified in options.
         if 'withMedicare' not in options:
             myoptions = dict(options)
@@ -1232,8 +1241,12 @@ class Plan:
         else:
             myoptions = options
     
-        values = []
-        old_status = setVerbose(verbose)
+        if objective == 'maxSpending':
+            columns = [objective]
+        elif objective == 'maxBequest':
+            columns = ['final', 'partial']
+
+        df = pd.DataFrame(columns=columns)
     
         if verbose is False:
             print('|--- progress ---|')
@@ -1247,49 +1260,59 @@ class Plan:
                 print('\r\t%s'%u.pc((n+1)/N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
-                    values.append(self.basis) 
+                    df.loc[len(df)] = [self.basis]
                 elif objective == 'maxBequest':
-                    values.append(self.bequest) 
+                    df.loc[len(df)] = [self.bequest, self.partialBequest]
     
         pt = time.process_time() - pt0
         rt = time.time() - rt0
         print()
         print("CPU time used: %dm%.1fs, elapsed time: %dm%.1fs."
               %(int(pt/60), pt%60, int(rt/60), rt%60))
+
         setVerbose(old_status)
+        self._showResults(objective, df, N)
 
-        self._showResults(objective, values, N)
+        return N, df
 
-        return N, np.array(values)
-
-    def _showResults(self, objective, values, N):
+    def _showResults(self, objective, df, N):
         '''
         Show a histogram of values for runMC() and runRange().
         '''
-        import pandas as pd
         import seaborn as sbn
         import matplotlib.pyplot as plt
 
-        print('Success rate: %s on %d samples.'%(u.pc(len(values)/N), N))
-        if len(values) > 0:
-            df = pd.DataFrame()
-            df[objective] = values
-            mean = df[objective].mean()
-            median = df[objective].median()
-            df[objective] /= 1000
-            sbn.histplot(df, kde=True)
-            plt.xlabel('%d k$'%self.year_n[0])
-            plt.suptitle('N = %d, P = %s'%(N, u.pc(len(values)/N)))
-            plt.title('median: %s,  mean: %s'
-                      %(u.d(median, latex=True),
-                        u.d(mean, latex=True)))
-            plt.show()
-        else:
-            mean = 0
-            median = 0
+        # Don't show partial if spouse is full beneficiary.
+        if objective == 'maxBequest' and np.all(self.phi_j == 1):
+            df.drop('partial', axis=1, inplace=True)
 
-        print('Median (%d $): %s'%(self.year_n[0], u.d(median)))
-        print('  Mean (%d $): %s'%(self.year_n[0], u.d(mean)))
+        my = 2*[self.year_n[-1]]
+        if self.N_i == 2 and self.n_d < self.N_n:
+            my[1] = self.year_n[self.n_d]
+
+        print('Success rate: %s on %d samples.'%(u.pc(len(df)/N), N))
+        means = df.mean()
+        medians = df.median()
+        df /= 1000
+        if len(df) > 0:
+            sbn.histplot(df, multiple='dodge', kde=True)
+            plt.xlabel('%d k$'%self.year_n[0])
+            plt.suptitle(objective)
+            plt.title('$N$ = %d, $P$ = %s'%(N, u.pc(len(df)/N)))
+            legend = []
+            if objective == 'maxSpending':
+                legend.append('$M$: %s, $\\bar{x}$: %s'%
+                         (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))
+            else:
+                for q in range(len(means)):
+                    legend.append('%d: $M$: %s, $\\bar{x}$: %s'%
+                             (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
+            plt.legend(legend, shadow=True)
+            plt.show()
+
+        for q in range(len(means)):
+            print('%d: Median (%d $): %s'%(my[q], self.year_n[0], u.d(medians.iloc[q])))
+            print('%d:   Mean (%d $): %s'%(my[q], self.year_n[0], u.d(means.iloc[q])))
 
         return None
 
@@ -1390,6 +1413,11 @@ class Plan:
         if 'withMedicare' in options and options['withMedicare'] is False:
             withMedicare = False
 
+        if objective == 'maxSpending':
+            objFac = -1/self.xi_n[0]
+        else:
+            objFac = -1/self.gamma_n[-1]
+
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
         milpOptions = {'disp': False, 'mip_rel_gap': 1e-6}
 
@@ -1424,7 +1452,7 @@ class Plan:
 
             self._estimateMedicare(solution.x)
 
-            u.vprint('Iteration:', it, 'objective:', u.d(-solution.fun/self.xi_n[0], f=2))
+            u.vprint('Iteration:', it, 'objective:', u.d(solution.fun * objFac, f=2))
 
             delta = solution.x - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
@@ -1448,7 +1476,7 @@ class Plan:
         if solution.success == True:
             u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
             u.vprint(solution.message)
-            u.vprint('Objective:', u.d(-solution.fun/self.xi_n[0]))
+            u.vprint('Objective:', u.d(solution.fun * objFac))
             # u.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(solution.x)
             self._timestamp = datetime.now().strftime('%Y-%m-%d at %H:%M:%S')
@@ -1468,6 +1496,13 @@ class Plan:
         withMedicare = True
         if 'withMedicare' in options and options['withMedicare'] is False:
             withMedicare = False
+
+        if objective == 'maxSpending':
+            objFac = -1/self.xi_n[0]
+        else:
+            objFac = -1/self.gamma_n[-1]
+
+        # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
 
         bdic = {
             'fx': mosek.boundkey.fx,
@@ -1529,7 +1564,7 @@ class Plan:
 
             self._estimateMedicare(xx)
 
-            u.vprint('Iteration:', it, 'objective:', u.d(-solution/self.xi_n[0], f=2))
+            u.vprint('Iteration:', it, 'objective:', u.d(solution * objFac, f=2))
 
             delta = xx - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
@@ -1555,6 +1590,7 @@ class Plan:
         if solsta == mosek.solsta.integer_optimal:
             u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
             task.solutionsummary(mosek.streamtype.msg)
+            u.vprint('Objective:', u.d(solution * objFac))
             self.caseStatus = 'solved'
             # u.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(xx)
@@ -1642,8 +1678,6 @@ class Plan:
         # print(self.z_inz)
 
         # Partial distribution at the passing of first spouse.
-        self.spousalBen_j = np.zeros(3)
-        self.othersBen_j = np.zeros(3)
         if Ni == 2 and n_d < Nn:
             nx = n_d - 1
             i_d = self.i_d
@@ -1659,8 +1693,10 @@ class Plan:
                              self.x_in[i_d, nx] * (u.krond(j, 2) - u.krond(j, 1)))
                              )
 
-            self.spousalBen_j = u.roundCents(part_j * self.phi_j)
-            self.othersBen_j = u.roundCents(part_j*(1 - self.phi_j))
+            self.partialEstate_j = part_j
+            partialBequest_j = part_j * (1 - self.phi_j)
+            partialBequest_j[1] *= 1 - self.nu
+            self.partialBequest = np.sum(partialBequest_j) / self.gamma_n[n_d]
 
         sourcetypes = [
             'wages',
@@ -1722,11 +1758,11 @@ class Plan:
         self.sources_in = sources
         self.savings_in = savings
 
-        estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
-        estate[1] *= 1 - self.nu
-        self.bequest = np.sum(estate) / self.gamma_n[-1]
+        estate_j = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
+        estate_j[1] *= 1 - self.nu
+        self.bequest = np.sum(estate_j) / self.gamma_n[-1]
 
-        self.basis = self.g_n[0]/self.xi_n[0]
+        self.basis = self.g_n[0] / self.xi_n[0]
 
         return None
 
@@ -1803,12 +1839,12 @@ class Plan:
         if self.N_i == 2 and self.n_d < self.N_n:
             lines.append('Spousal beneficiary fractions to %s: %s'
                          % (self.inames[self.i_s], self.phi_j.tolist()))
-            p_j = np.array(self.othersBen_j)
+            p_j = self.partialEstate_j * (1 - self.phi_j)
             p_j[1] *= 1 - self.nu
             nx = self.n_d - 1
             totOthers = np.sum(p_j)
             totOthersNow = totOthers/self.gamma_n[nx+1]
-            q_j = np.array(self.spousalBen_j)
+            q_j = self.partialEstate_j * self.phi_j
             totSpousal = np.sum(q_j)
             totSpousalNow = totSpousal/self.gamma_n[nx+1]
             lines.append('Spousal wealth transfer from %s to %s in year %d (nominal):'
