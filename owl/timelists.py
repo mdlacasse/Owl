@@ -45,8 +45,9 @@ def read(filename, inames, horizons):
     thisyear = date.today().year
     # Read all worksheets in memory but only process first n.
     dfDict = pd.read_excel(filename, sheet_name=None)
+    u.vprint('Reading wages, contributions, conversions, and big-ticket items over time...')
     for i, iname in enumerate(inames):
-        u.vprint('Reading wages, contributions, conversions, and big-ticket items over time for %s...' % iname)
+        u.vprint('\tfor %s...' % iname)
         endyear = thisyear + horizons[i]
         if iname not in dfDict:
             u.xprint('Could not find a sheet for %s in file %s.'%(iname, filename))

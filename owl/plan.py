@@ -17,6 +17,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import numpy as np
 import pandas as pd
 from datetime import date, datetime
+import time
 
 from owl import utils as u
 from owl import tax2024 as tx
@@ -1237,6 +1238,8 @@ class Plan:
         if verbose is False:
             print('|--- progress ---|')
 
+        pt0 = time.process_time()
+        rt0 = time.time()
         for n in range(N):
             self.regenRates()
             self.solve(objective, myoptions)
@@ -1248,7 +1251,11 @@ class Plan:
                 elif objective == 'maxBequest':
                     values.append(self.bequest) 
     
+        pt = time.process_time() - pt0
+        rt = time.time() - rt0
         print()
+        print("CPU time used: %dm%.1fs, elapsed time: %dm%.1fs."
+              %(int(pt/60), pt%60, int(rt/60), rt%60))
         setVerbose(old_status)
 
         self._showResults(objective, values, N)
@@ -1276,6 +1283,7 @@ class Plan:
             plt.title('median: %s,  mean: %s'
                       %(u.d(median, latex=True),
                         u.d(mean, latex=True)))
+            plt.show()
         else:
             mean = 0
             median = 0
@@ -1383,7 +1391,7 @@ class Plan:
             withMedicare = False
 
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
-        milpOptions = {'disp': True, 'mip_rel_gap': 1e-6}
+        milpOptions = {'disp': False, 'mip_rel_gap': 1e-6}
 
         it = 0
         absdiff = np.inf
@@ -1916,6 +1924,7 @@ class Plan:
             title += ' - ' + tag
 
         g.fig.suptitle(title, y=1.08)
+        plt.show()
 
         return None
 
@@ -1968,7 +1977,7 @@ class Plan:
         ax.set_xlabel('year')
         ax.set_ylabel('%')
 
-        # plt.show()
+        plt.show()
         # return fig, ax
         return None
 
@@ -1985,7 +1994,7 @@ class Plan:
         # style = {'net': '-', 'target': ':'}
         style = {'profile': '-'}
         series = {'profile': self.xi_n}
-        _lineIncomePlot(self.year_n, series, style, title, yformat='xi')
+        _lineIncomePlot(self.year_n, series, style, title, yformat='xi', show=True)
 
         return None
 
@@ -2018,7 +2027,7 @@ class Plan:
             }
             yformat = 'k\\$ (' + str(self.year_n[0]) + '\\$)'
 
-        _lineIncomePlot(self.year_n, series, style, title, yformat)
+        _lineIncomePlot(self.year_n, series, style, title, yformat, show=True)
 
         return None
 
@@ -2230,7 +2239,7 @@ class Plan:
             style[key] = various[q % len(various)]
             q += 1
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat='')
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat='', show=True)
 
         return None
 
@@ -2264,7 +2273,7 @@ class Plan:
         if tag != '':
             title += ' - ' + tag
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat, show=True)
 
         return None
 
@@ -2308,6 +2317,7 @@ class Plan:
 
         plt.grid(visible='both')
         ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.3)
+        plt.show()
 
         return None
 
@@ -2590,7 +2600,7 @@ class Plan:
         return None
 
 
-def _lineIncomePlot(x, series, style, title, yformat='k\\$'):
+def _lineIncomePlot(x, series, style, title, yformat='k\\$', show=False):
     '''
     Core line plotter function.
     '''
@@ -2614,6 +2624,9 @@ def _lineIncomePlot(x, series, style, title, yformat='k\\$'):
         ymin, ymax = ax.get_ylim()
         if ymax - ymin < 5000:
             ax.set_ylim((ymin * 0.95, ymax * 1.05))
+
+    if show:
+        plt.show()
 
     return fig, ax
 
@@ -2653,7 +2666,9 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$')
     else:
         u.xprint('Unknown yformat:', yformat)
 
-        return fig, ax
+    plt.show()
+
+    return fig, ax
 
 
 def showRatesDistributions(frm=rates.FROM, to=rates.TO):
