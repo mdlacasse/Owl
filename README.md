@@ -197,8 +197,8 @@ plan.showGrossIncome(value='nominal')
 ```
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/taxIncomePlot.png" width="800">
 
-The optimal spending profile is show in the next plot (in today's dollars). Notice the drop
-(we selected 60% survivor needs) at the passing of the first spouse.
+The optimal spending profile is shown in the next plot (in today's dollars). Notice the drop
+(recall we selected 60% survivor needs) at the passing of the first spouse.
 ```python
 plan.showProfile('today')
 ```
