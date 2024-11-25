@@ -144,7 +144,7 @@ A plan starts with the names of the individuals, their birth years and life expe
 Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 ```python
 import owl
-# Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to 92 yo.
+# Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to age 92.
 # Plan starts on Jan 1st of this year.
 plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='1/1')
 # Jack has $90.5k in a taxable investment account, $600.5k in a tax-deferred account and $70k from 2 tax-exempt accounts.
@@ -158,13 +158,13 @@ plan.setInterpolationMethod('s-curve')
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
 # Jack has no pension, but Jill will received $10k per year at 65 yo.
 plan.setPension([0, 10], [65, 65])
-# Jack anticipates receiving social security of $28.4k at age 70, and Jill $19.7k at age 62.
+# Jack anticipates receiving social security of $28.4k at age 70, and Jill $19.7k at age 62. All values are in today's $.
 plan.setSocialSecurity([28.4, 19.7], [70, 62])
-# We use a smile spending profile, with 60% needs for the survivor.
+# Instead of a 'flat' profile, we select a 'smile' spending profile, with 60% needs for the survivor.
 plan.setSpendingProfile('smile', 60)
 # We will reproduce the historical sequence of returns starting in year 1969.
 plan.setRates('historical', 1969)
-# We impose a constraint of leaving a bequest of $500k, and limit Roth conversions to $100k per year.
+# Jack and Jill want to leave a bequest of $500k, and limit Roth conversions to $100k per year.
 # Jill's 403b plan does not support in-plan Roth conversions.
 # We solve for the maximum net spending profile under these constraints.
 plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500, 'noRothConversions': 'Jill'})
@@ -193,7 +193,7 @@ plan.showGrossIncome(value='nominal')
 ```
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/taxIncomePlot.png" width="800">
 
-Typical plots look like the following. The optimal spending profile looks like this (in today's dollars). Notice drop
+The optimal spending profile is show in the next plot (in today's dollars). Notice the drop
 (we selected 60% survivor needs) at the passing of the first spouse.
 ```python
 plan.showProfile('today')
