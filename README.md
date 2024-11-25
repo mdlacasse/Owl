@@ -92,7 +92,10 @@ bequest under the constraint of a desired net spending amount. Unlike discrete-e
 simulators, Owl uses an optimization algorithm for every new scenario, which results in more
 calculations being performed. As a result, the number of cases to be considered should be kept
 to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates
-and reliable probability distributions.
+and reliable probability distributions. Optimizing each solution is more realistic in the sense that optimal solutions
+will adjust to the rate scenarios being considered. This is more realistic as retirees would ceratinly re-evaluate
+their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulations
+which maintain a distribution strategy either fixed, or within guardrails for capturing the retirees' reactions to the market.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
 an Excel spreadsheet that contains future wages, contributions
@@ -125,6 +128,7 @@ In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory
 Owl will detect these cases and inform the user.
 While the solutions generated are very close to one another, Owl will pick the smallest one
 for being conservative.
+- Part D is not included in the IRMAA calculations. Being considerably more, only Part B is taken into account. 
 - Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
 
@@ -202,7 +206,7 @@ plan.showProfile('today')
 <img src="https://raw.github.com/mdlacasse/Owl/main/images/spendingPlot.png" width="800">
 
 The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill,
-gnerated using
+generated using
 ```python
 plan.showAccounts(value='nominal')
 ```
