@@ -1292,9 +1292,10 @@ class Plan:
 
         print('Success rate: %s on %d samples.'%(u.pc(len(df)/N), N))
         title = ('$N$ = %d, $P$ = %s'%(N, u.pc(len(df)/N)))
-        means = df.mean()
-        medians = df.median()
+        means = df.mean(axis=0, numeric_only=True)
+        medians = df.median(axis=0, numeric_only=True)
         df /= 1000
+        # print(df)
         if len(df) > 0:
             if objective == 'maxBequest':
                 # Show both partial and final bequests on the same histogram.
