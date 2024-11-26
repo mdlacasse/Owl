@@ -1198,7 +1198,7 @@ class Plan:
         old_status = setVerbose(verbose)
 
         if objective == 'maxSpending':
-            columns = [objective]
+            columns = ['partial', objective]
         elif objective == 'maxBequest':
             columns = ['partial', 'final']
 
@@ -1214,7 +1214,7 @@ class Plan:
                 print('\r\t%s'%u.pc((year-ystart+1)/N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
-                    df.loc[len(df)] = [self.basis]
+                    df.loc[len(df)] = [self.partialBequest, self.basis]
                 elif objective == 'maxBequest':
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
     
@@ -1242,9 +1242,9 @@ class Plan:
             myoptions = options
     
         if objective == 'maxSpending':
-            columns = [objective]
+            columns = ['partial', objective]
         elif objective == 'maxBequest':
-            columns = ['final', 'partial']
+            columns = ['partial', 'final']
 
         df = pd.DataFrame(columns=columns)
     
@@ -1260,9 +1260,9 @@ class Plan:
                 print('\r\t%s'%u.pc((n+1)/N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
-                    df.loc[len(df)] = [self.basis]
+                    df.loc[len(df)] = [self.partialBequest, self.basis]
                 elif objective == 'maxBequest':
-                    df.loc[len(df)] = [self.bequest, self.partialBequest]
+                    df.loc[len(df)] = [self.partialBequest, self.bequest]
     
         pt = time.process_time() - pt0
         rt = time.time() - rt0
@@ -1277,37 +1277,57 @@ class Plan:
 
     def _showResults(self, objective, df, N):
         '''
-        Show a histogram of values for runMC() and runRange().
+        Show a histogram of values from runMC() and runRange().
         '''
         import seaborn as sbn
         import matplotlib.pyplot as plt
 
-        # Don't show partial if spouse is full beneficiary.
-        if objective == 'maxBequest' and np.all(self.phi_j == 1):
+        # Don't show partial bequest of zero if spouse is full beneficiary.
+        if np.all(self.phi_j == 1):
             df.drop('partial', axis=1, inplace=True)
 
         my = 2*[self.year_n[-1]]
         if self.N_i == 2 and self.n_d < self.N_n:
-            my[1] = self.year_n[self.n_d]
+            my[0] = self.year_n[self.n_d]
 
         print('Success rate: %s on %d samples.'%(u.pc(len(df)/N), N))
+        title = ('$N$ = %d, $P$ = %s'%(N, u.pc(len(df)/N)))
         means = df.mean()
         medians = df.median()
         df /= 1000
         if len(df) > 0:
-            sbn.histplot(df, multiple='dodge', kde=True)
-            plt.xlabel('%d k$'%self.year_n[0])
-            plt.suptitle(objective)
-            plt.title('$N$ = %d, $P$ = %s'%(N, u.pc(len(df)/N)))
-            legend = []
-            if objective == 'maxSpending':
-                legend.append('$M$: %s, $\\bar{x}$: %s'%
-                         (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))
-            else:
+            if objective == 'maxBequest':
+                # Show both partial and final bequests on the same histogram.
+                sbn.histplot(df, multiple='dodge', kde=True)
+                legend = []
                 for q in range(len(means)):
                     legend.append('%d: $M$: %s, $\\bar{x}$: %s'%
                              (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
-            plt.legend(legend, shadow=True)
+                plt.legend(legend, shadow=True)
+                plt.xlabel('%d k$'%self.year_n[0])
+                plt.title(objective) 
+            elif len(means) == 2:
+                # Show partial bequest and net spending as two separate histograms.
+                fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+                cols = ['partial', objective]
+                for q in range(len(means)):
+                    sbn.histplot(df[cols[q]], kde=True, ax=axes[q])
+                    legend = [('$M$: %s, $\\bar{x}$: %s'%
+                         (u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))]
+                    axes[q].set_label(legend)
+                    axes[q].legend(labels=legend)
+                    axes[q].set_title(cols[q])
+                    axes[q].set_xlabel('%d k$'%self.year_n[0])
+            else:
+                # Show net spending as single histogram.
+                sbn.histplot(df[objective], kde=True)
+                legend = [('$M$: %s, $\\bar{x}$: %s'%
+                         (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))]
+                plt.legend(legend, shadow=True)
+                plt.xlabel('%d k$'%self.year_n[0])
+                plt.title(objective) 
+
+            plt.suptitle(title)
             plt.show()
 
         for q in range(len(means)):
