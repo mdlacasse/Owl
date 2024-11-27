@@ -1282,20 +1282,25 @@ class Plan:
         import seaborn as sbn
         import matplotlib.pyplot as plt
 
-        # Don't show partial bequest of zero if spouse is full beneficiary.
-        if np.all(self.phi_j == 1):
-            df.drop('partial', axis=1, inplace=True)
+        print('Success rate: %s on %d samples.'%(u.pc(len(df)/N), N))
+        title = ('$N$ = %d, $P$ = %s'%(N, u.pc(len(df)/N)))
+        means = df.mean(axis=0, numeric_only=True)
+        medians = df.median(axis=0, numeric_only=True)
 
         my = 2*[self.year_n[-1]]
         if self.N_i == 2 and self.n_d < self.N_n:
             my[0] = self.year_n[self.n_d]
 
-        print('Success rate: %s on %d samples.'%(u.pc(len(df)/N), N))
-        title = ('$N$ = %d, $P$ = %s'%(N, u.pc(len(df)/N)))
-        means = df.mean(axis=0, numeric_only=True)
-        medians = df.median(axis=0, numeric_only=True)
+            # Don't show partial bequest of zero if spouse is full beneficiary,
+            # or if solution led to empty accounts at the end of first spouse's life.
+            if np.all(self.phi_j == 1) or medians.iloc[0] < 1:
+                if medians.iloc[0] < 1:
+                    print('Optimized solutions all have null partial bequest in year %d.'%my[0])
+                df.drop('partial', axis=1, inplace=True)
+                means = df.mean(axis=0, numeric_only=True)
+                medians = df.median(axis=0, numeric_only=True)
+
         df /= 1000
-        # print(df)
         if len(df) > 0:
             if objective == 'maxBequest':
                 # Show both partial and final bequests on the same histogram.
@@ -1307,17 +1312,21 @@ class Plan:
                 plt.legend(legend, shadow=True)
                 plt.xlabel('%d k$'%self.year_n[0])
                 plt.title(objective) 
+                leads = ['partial %d'%my[0],
+                         '  final %d'%my[1]] 
             elif len(means) == 2:
                 # Show partial bequest and net spending as two separate histograms.
                 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
                 cols = ['partial', objective]
-                for q in range(len(means)):
+                leads = ['partial %d'%my[0], objective] 
+                deco = [' '+str(my[0]), '']
+                for q in range(2):
                     sbn.histplot(df[cols[q]], kde=True, ax=axes[q])
                     legend = [('$M$: %s, $\\bar{x}$: %s'%
                          (u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))]
                     axes[q].set_label(legend)
                     axes[q].legend(labels=legend)
-                    axes[q].set_title(cols[q])
+                    axes[q].set_title(leads[q])
                     axes[q].set_xlabel('%d k$'%self.year_n[0])
             else:
                 # Show net spending as single histogram.
@@ -1327,13 +1336,17 @@ class Plan:
                 plt.legend(legend, shadow=True)
                 plt.xlabel('%d k$'%self.year_n[0])
                 plt.title(objective) 
+                leads = [objective]
 
             plt.suptitle(title)
             plt.show()
 
         for q in range(len(means)):
-            print('%d: Median (%d $): %s'%(my[q], self.year_n[0], u.d(medians.iloc[q])))
-            print('%d:   Mean (%d $): %s'%(my[q], self.year_n[0], u.d(means.iloc[q])))
+            print('%12s: Median (%d $): %s'%(leads[q], self.year_n[0], u.d(medians.iloc[q])))
+            print('%12s:   Mean (%d $): %s'%(leads[q], self.year_n[0], u.d(means.iloc[q])))
+            print('%12s:           Range: %s - %s'%(leads[q], u.d(1000*df.iloc[:, q].min()), u.d(1000*df.iloc[:, q].max())))
+            nzeros = len(df.iloc[:, q][df.iloc[:, q] < 1])
+            print('%12s:  N zero solns: %d'%(leads[q], nzeros))
 
         return None
 
