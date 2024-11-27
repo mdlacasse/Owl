@@ -1289,7 +1289,7 @@ class Plan:
 
         my = 2*[self.year_n[-1]]
         if self.N_i == 2 and self.n_d < self.N_n:
-            my[0] = self.year_n[self.n_d]
+            my[0] = self.year_n[self.n_d-1]
 
             # Don't show partial bequest of zero if spouse is full beneficiary,
             # or if solution led to empty accounts at the end of first spouse's life.
