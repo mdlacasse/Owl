@@ -115,13 +115,13 @@ def check(inames, timeLists, horizons):
     ]
 
     # Verify that all numbers except bti are positive.
-    for i, name in enumerate(inames):
-        for n in range(horizons[i]):
-            for item in timeHorizonItems:
+    for i, iname in enumerate(inames):
+        for item in timeHorizonItems:
+            for n in range(horizons[i]):
                 assert timeLists[i][item][n] >= 0, 'Item %s for %s in year %d is < 0.' % (
                     item,
                     iname,
-                    n,
+                    timeLists[i]['year'][n],
                 )
 
     return
