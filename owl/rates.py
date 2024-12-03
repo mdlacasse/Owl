@@ -30,6 +30,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 ###################################################################
 import numpy as np
+from datetime import date
 from owl import utils as u
 
 # All data goes from 1928 to 2023. Update the TO value when data
@@ -742,6 +743,24 @@ def getDistributions(frm, to):
     u.vprint('correlation matrix: \n\t\t%s' % str(corr).replace('\n', '\n\t\t'))
 
     return means, stdev, corr, covar
+
+
+def historicalValue(amount, year):
+    '''
+    Return the deflated value of amount given in this year's dollars as
+    valued at the beginning of the year specified.
+    '''
+    thisyear = date.today().year
+    assert TO == thisyear - 1, 'Rates file needs to be updated to be current to %d.'%thisyear
+    assert year >= FROM, 'Only data from %d is available.'%FROM
+    assert year <= thisyear, 'Year must be < %d for historical data.'%thisyear
+
+    span = thisyear - year 
+    ub = len(Inflation)
+    for n in range(ub - span, ub):
+        amount /= (1 + Inflation[n]/100)
+
+    return amount
 
 
 class Rates:

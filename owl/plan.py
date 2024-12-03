@@ -235,14 +235,15 @@ class Plan:
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
         self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d, self.N_n)
 
-        self._adjustedParameters = False
-        self._buildOffsetMap()
-        self.timeListsFileName = None
-        self.caseStatus = 'unsolved'
-
-        # Default to begin plan on today's date.
+        # If none was given, default is to begin plan on today's date.
         self._setStartingDate(startDate)
 
+        self._buildOffsetMap()
+
+	# Initialize guardrails to ensure proper configuration.
+        self._adjustedParameters = False
+        self.timeListsFileName = None
+        self.caseStatus = 'unsolved'
         self.rateMethod = None
 
         return None
@@ -301,7 +302,7 @@ class Plan:
 
     def rename(self, name):
         '''
-        Override name of the plan. Name is used
+        Override name of the plan. Plan name is used
         to distinguish graph outputs and as base name for
         saving configurations and workbooks.
         '''
@@ -538,6 +539,37 @@ class Plan:
                       values=100*self.rateValues, stdev=100*self.rateStdev, corr=self.rateCorr)
 
         return None
+
+    def value(self, amount, year):
+        '''
+        Return value of amount deflated or inflated at the beginning
+        of the year specified.
+        If year is in the past, value is made at the beginning of this year.
+        If year is in the future, amount is adjusted from a reference time
+        aligned with the beginning of the plan to the beginning of the
+        year specified.
+        '''
+        thisyear = date.today().year
+        if year <= thisyear:
+            return rates.historicalValue(amount, year)
+        else:
+            return self.forwardValue(amount, year)
+
+    def forwardValue(self, amount, year):
+        '''
+        Return the value of amount inflated from beginning of plan
+        to the beginning of the year provided.
+        '''
+        if self.rateMethod is None:
+            u.xprint('A rate method needs to be first selected using setRates(...).')
+
+        thisyear = date.today().year
+        assert year > thisyear, 'Internal error in forwardValue().'
+        span = year - thisyear
+        for n in range(span):
+            amount *= (1 + self.tau_kn[3, n])
+
+        return amount
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, units='k'):
         '''
@@ -823,6 +855,9 @@ class Plan:
         '''
         Adjust parameters that follow inflation.
         '''
+        if self.rateMethod is None:
+            u.xprint('A rate method needs to be first selected using setRates(...).')
+
         if self._adjustedParameters == False:
             u.vprint('Adjusting parameters for inflation.')
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
