@@ -56,18 +56,18 @@ def _genGamma_n(tau):
     return gamma
 
 
-def _genXi_n(profile, frac, n_d, N_n, a=15, b=12):
+def _genXi_n(profile, fraction, n_d, N_n, a=15, b=12):
     '''
     Utility function to generate spending profile.
     Return time series of spending profile.
-    Value is reduced by frac starting in year n_d,
+    Value is reduced to fraction starting in year n_d,
     after the passing of shortest-lived spouse.
     Series is unadjusted for inflation.
     '''
     xi = np.ones(N_n)
     if profile == 'flat':
         if n_d < N_n:
-            xi[n_d:] *= frac
+            xi[n_d:] *= fraction
     elif profile == 'smile':
         x = np.linspace(0, N_n - 1, N_n)
         a /= 100
@@ -78,8 +78,8 @@ def _genXi_n(profile, frac, n_d, N_n, a=15, b=12):
         neutralSum = N_n
         # Reduce income needs after passing of one spouse.
         if n_d < N_n:
-            neutralSum -= (1 - frac) * (N_n - n_d)  # Account for flat spousal reduction.
-            xi[n_d:] *= frac
+            neutralSum -= (1 - fraction) * (N_n - n_d)  # Account for flat spousal reduction.
+            xi[n_d:] *= fraction
         xi *= neutralSum / xi.sum()
     else:
         u.xprint('Unknown profile', profile)
@@ -566,10 +566,8 @@ class Plan:
         thisyear = date.today().year
         assert year > thisyear, 'Internal error in forwardValue().'
         span = year - thisyear
-        for n in range(span):
-            amount *= (1 + self.tau_kn[3, n])
 
-        return amount
+        return amount * self.gamma_n[span]
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, units='k'):
         '''
@@ -1302,7 +1300,7 @@ class Plan:
         pt = time.process_time() - pt0
         rt = time.time() - rt0
         print()
-        print("CPU time used: %dm%.1fs, elapsed time: %dm%.1fs."
+        print("CPU time used: %dm%.1fs, Wall time: %dm%.1fs."
               %(int(pt/60), pt%60, int(rt/60), rt%60))
 
         setVerbose(old_status)
@@ -1341,7 +1339,8 @@ class Plan:
                 # Show both partial and final bequests on the same histogram.
                 sbn.histplot(df, multiple='dodge', kde=True)
                 legend = []
-                for q in range(len(means)):
+                # Don't know why but legend is reversed from df.
+                for q in range(len(means) - 1, -1, -1):
                     legend.append('%d: $M$: %s, $\\bar{x}$: %s'%
                              (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
                 plt.legend(legend, shadow=True)

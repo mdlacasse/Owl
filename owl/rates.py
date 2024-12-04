@@ -874,8 +874,9 @@ class Rates:
             self.corr = corrarr
             assert np.array_equal(self.corr, self.corr.T), 'Correlation matrix must be symmetric.'
             # Now build covariance matrix from stdev and correlation matrix.
-            covar = self.corr*self.stdev[:, None]
-            self.covar = covar.T*self.stdev[:, None]
+            # Multiply each row by a vector element-wise. Then columns.
+            covar = self.corr * self.stdev
+            self.covar = covar.T * self.stdev
             self._rateMethod = self._stochRates
             u.vprint('Setting rates using stochastic method with means:', *[u.pc(k) for k in self.means])
             u.vprint('\t standard deviations:', *[u.pc(k) for k in self.stdev])
