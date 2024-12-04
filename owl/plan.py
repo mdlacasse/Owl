@@ -1379,7 +1379,7 @@ class Plan:
             print('%12s: Median (%d $): %s'%(leads[q], self.year_n[0], u.d(medians.iloc[q])))
             print('%12s:   Mean (%d $): %s'%(leads[q], self.year_n[0], u.d(means.iloc[q])))
             print('%12s:           Range: %s - %s'%(leads[q], u.d(1000*df.iloc[:, q].min()), u.d(1000*df.iloc[:, q].max())))
-            nzeros = len(df.iloc[:, q][df.iloc[:, q] < 1])
+            nzeros = len(df.iloc[:, q][df.iloc[:, q] < .001])
             print('%12s:  N zero solns: %d'%(leads[q], nzeros))
 
         return None
