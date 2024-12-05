@@ -17,6 +17,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import numpy as np
 import pandas as pd
 from datetime import date, datetime
+from functools import wraps
 import time
 
 from owl import utils as u
@@ -146,6 +147,7 @@ def checkCaseStatus(func):
     Decorator to check if problem was solved successfully and
     prevent method from running if not.
     '''
+    @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.caseStatus != 'solved':
             u.vprint('Preventing to run method %s() while case is %s.' % (func.__name__, self.caseStatus))
@@ -158,6 +160,7 @@ def timer(func):
     '''
     Decorator to report CPU and Wall time.
     '''
+    @wraps(func)
     def wrapper(self, *args, **kwargs):
         pt0 = time.process_time()
         rt0 = time.time()
