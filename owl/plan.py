@@ -141,6 +141,35 @@ def clone(plan, name=None):
 
 ############################################################################
 
+def checkCaseStatus(func):
+    '''
+    Decorator to check if problem was solved successfully and
+    prevent method from running if not.
+    '''
+    def wrapper(self, *args, **kwargs):
+        if self.caseStatus != 'solved':
+            u.vprint('Preventing to run method %s() while case is %s.' % (func.__name__, self.caseStatus))
+            return None
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+def timer(func):
+    '''
+    Decorator to report CPU and Wall time.
+    '''
+    def wrapper(self, *args, **kwargs):
+        pt0 = time.process_time()
+        rt0 = time.time()
+        result = func(self, *args, **kwargs)
+        pt = time.process_time() - pt0
+        rt = time.time() - rt0
+        print("CPU time used: %dm%.1fs, Wall time: %dm%.1fs."
+              %(int(pt/60), pt%60, int(rt/60), rt%60))
+        return result
+
+    return wrapper
+
 
 class Plan:
     '''
@@ -273,17 +302,6 @@ class Plan:
         u.vprint('Setting 1st-year starting date to %s.'%(self.startDate))
 
         return None
-
-    def _checkCaseStatus(self, funcName):
-        '''
-        Check if problem was solved successfully.
-        '''
-        if self.caseStatus == 'solved':
-            return False
-
-        u.vprint('Preventing to run %s() while case is %s.' % (funcName, self.caseStatus))
-
-        return True
 
     def _checkValue(self, value):
         '''
@@ -1218,6 +1236,7 @@ class Plan:
 
         return None
 
+    @timer
     def runHistoricalRange(self, objective, options, ystart, yend, verbose=False):
         '''
         Run historical scenarios on plan over a range of years.
@@ -1257,6 +1276,7 @@ class Plan:
 
         return N, df
 
+    @timer
     def runMC(self, objective, options, N, verbose=False):
         '''
         Run Monte Carlo simulations on plan.
@@ -1284,8 +1304,6 @@ class Plan:
         if verbose is False:
             print('|--- progress ---|')
 
-        pt0 = time.process_time()
-        rt0 = time.time()
         for n in range(N):
             self.regenRates()
             self.solve(objective, myoptions)
@@ -1297,12 +1315,7 @@ class Plan:
                 elif objective == 'maxBequest':
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
     
-        pt = time.process_time() - pt0
-        rt = time.time() - rt0
         print()
-        print("CPU time used: %dm%.1fs, Wall time: %dm%.1fs."
-              %(int(pt/60), pt%60, int(rt/60), rt%60))
-
         setVerbose(old_status)
         self._showResults(objective, df, N)
 
@@ -1834,26 +1847,22 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def estate(self):
         '''
         Reports final account balances.
         '''
-        if self._checkCaseStatus('estate'):
-            return None
-
         _estate = np.sum(self.b_ijn[:, :, :, self.N_n], axis=(0, 2))
         _estate[1] *= 1 - self.nu
         u.vprint('Estate value of %s at the end of year %s.' % (u.d(sum(_estate)), self.year_n[-1]))
 
         return None
 
+    @checkCaseStatus
     def summary(self):
         '''
         Print summary of values.
         '''
-        if self._checkCaseStatus('summary'):
-            return None
-
         lines = self._summaryList()
         for line in lines:
             print(line)
@@ -2102,6 +2111,7 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def showNetSpending(self, tag='', value=None):
         '''
         Plot net available spending and target over time.
@@ -2111,9 +2121,6 @@ class Plan:
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         '''
-        if self._checkCaseStatus('showNetSpending'):
-            return None
-
         value = self._checkValue(value)
 
         title = self._name + '\nNet Available Spending'
@@ -2135,6 +2142,7 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def showAssetDistribution(self, tag='', value=None):
         '''
         Plot the distribution of each savings account in thousands of dollars
@@ -2147,9 +2155,6 @@ class Plan:
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         '''
-        if self._checkCaseStatus('showAssetDistribution'):
-            return None
-
         value = self._checkValue(value)
 
         if value == 'nominal':
@@ -2242,6 +2247,7 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def showAccounts(self, tag='', value=None):
         '''
         Plot values of savings accounts over time.
@@ -2251,9 +2257,6 @@ class Plan:
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         '''
-        if self._checkCaseStatus('showAccounts'):
-            return None
-
         value = self._checkValue(value)
 
         title = self._name + '\nSavings Balance'
@@ -2277,6 +2280,7 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def showSources(self, tag='', value=None):
         '''
         Plot income over time.
@@ -2286,9 +2290,6 @@ class Plan:
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         '''
-        if self._checkCaseStatus('showSources'):
-            return None
-
         value = self._checkValue(value)
 
         title = self._name + '\nRaw Income Sources'
@@ -2319,15 +2320,13 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def _showFeff(self, tag=''):
         '''
         Plot income tax paid over time.
 
         A tag string can be set to add information to the title of the plot.
         '''
-        if self._checkCaseStatus('showEff'):
-            return None
-
         title = self._name + '\nEff f '
         if tag != '':
             title += ' - ' + tag
@@ -2347,6 +2346,7 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def showTaxes(self, tag='', value=None):
         '''
         Plot income tax paid over time.
@@ -2356,9 +2356,6 @@ class Plan:
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         '''
-        if self._checkCaseStatus('showTaxes'):
-            return None
-
         value = self._checkValue(value)
 
         style = {'income taxes': '-', 'Medicare': '-.'}
@@ -2381,6 +2378,7 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def showGrossIncome(self, tag='', value=None):
         '''
         Plot income tax and taxable income over time horizon.
@@ -2391,9 +2389,6 @@ class Plan:
         the default behavior of setDefaultPlots().
         '''
         import matplotlib.pyplot as plt
-
-        if self._checkCaseStatus('showGrossIncome'):
-            return None
 
         value = self._checkValue(value)
 
@@ -2425,13 +2420,11 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def saveConfig(self, basename=None):
         '''
         Save parameters in a configuration file.
         '''
-        if self._checkCaseStatus('saveConfig'):
-            return None
-
         if basename is None:
             basename = self._name
 
@@ -2439,6 +2432,7 @@ class Plan:
 
         return None
 
+    @checkCaseStatus
     def saveWorkbook(self, overwrite=False, basename=None):
         '''
         Save instance in an Excel spreadsheet.
@@ -2474,8 +2468,6 @@ class Plan:
 
         Last worksheet contains cash flow.
         '''
-        if self._checkCaseStatus('saveWorkbook'):
-            return None
 
         from openpyxl import Workbook
         from openpyxl.utils.dataframe import dataframe_to_rows
