@@ -332,22 +332,20 @@ See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/examples/t
 ---------------------------------------------------------------
 ## Requirements
 
-It is assumed that you have some familiarity with using a Jupyter notebook or JupyterLab, and some very basic programming skills in Python.
+It is assumed that you have some familiarity with using a Jupyter notebook or JupyterLab,
+and some very basic programming skills in Python.
 If not, a simple tutorial can guide you to the basic skills needed.
 
-Owl relies on standard Python modules such as NumPy, Pandas, and SciPy. Package `odfpy` is required to read files created by LibreOffice.
+Owl relies on standard Python modules such as NumPy, Pandas, and SciPy.
+Package `odfpy` is required to read files created by LibreOffice.
 
-By far, the easiest way to run a Jupiter notebook is to use Google Colab.
+Owl can be installed as a package using:
+python -m build
+pip install .
 
-- Step 1. Go to [Google Colab](https://colab.research.google.com).
-- Step 2. Click on the File-> Open Notebook and drop the ipynb you would like to run.
-- Step 3. Then, upload (or drag and drop) all files in this repository (except the docs directory) from your computer to the Colab Notebooks Files panel on the left (opened though the folder icon). You will get a warning that all these files are deleted at the end of the session. This is true!
-- Step 4. Run the notebook (Runtime-> Run All).
-
-Alternatively, a better way is to perform an installation of Anaconda on your computer.
+Alternatively, a easier way is for some might be to perform an installation of Anaconda on your computer.
 This will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
 It can be found at [anaconda.com](https://anaconda.com).
-Follow the instructions in the Jupyter tutorial included (link below) for installing anaconda on your computer.
 The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
 Jupyter will run in your default web browser, from your computer to your browser, and therefore no data is ever transferred on the Internet
 (your computer, i.e., `localhost`, is the server).
@@ -356,14 +354,15 @@ You will also need the capability to read and edit Excel files. One can have an 
 
 The intent of using a notebook is that one can configure calculations that suit one's needs.
 Moreover, running calculations in *Jupyter* is made to be relatively easy.
-There are many tutorials on this topic and a summary including installation procedures is
-given [here](https://github.com/mdlacasse/Owl/blob/main/Jupyter_tutorial.md).
+There are many tutorials on this topic available on the internet.
 
 For simulating your own realizations, use the files beginning with the word *template*.
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
-Notebooks with detailed explanations on this case can be found in [tutorial_1](https://github.com/mdlacasse/Owl/blob/main/tutorial_1.ipynb), and
-in [tutorial_2](https://github.com/mdlacasse/Owl/blob/main/tutorial_2.ipynb).
+Notebooks with detailed explanations on this case can be found in
+[tutorial_1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
+[tutorial_2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb), and
+[tutorial_3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb).
 
 ---------------------------------------------------------------------
 
