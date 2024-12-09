@@ -42,11 +42,29 @@ def test_withdrawal1():
     name = 'withdrawal_1'
     p = owl.Plan(inames, yobs, expectancy, name, startDate='1/1')
     p.setSpendingProfile('flat')
-    threshold = 37.5
-    p.setAccountBalances(taxable=[0], taxDeferred=[threshold], taxFree=[0])
+    amount = 37.5
+    p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
     p.setRates('fixed', values=[0, 0, 0, 0])
     options = {'maxRothConversion': 0, 'solver': solver}
     p.solve('maxSpending', options=options)
-    assert p.basis == pytest.approx(1000*threshold/3, 0.01)
+    assert p.basis == pytest.approx(1000*amount/3, 0.01)
+
+def test_withdrawal2():
+    thisyear = date.today().year
+    inames = ['Joe']
+    yobs = [1964]
+    # This makes three years to fund.
+    expectancy = [thisyear - 1964 + 2]
+    name = 'withdrawal_2'
+    p = owl.Plan(inames, yobs, expectancy, name, startDate='1/1')
+    p.setSpendingProfile('flat')
+    # Small amount creates an income smaller than standard deduction.
+    amount = 12
+    p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0])
+    p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
+    p.setRates('fixed', values=[0, 0, 0, 0])
+    options = {'maxRothConversion': 0, 'solver': solver}
+    p.solve('maxSpending', options=options)
+    assert p.basis == pytest.approx(1000*amount/3, 0.01)
 

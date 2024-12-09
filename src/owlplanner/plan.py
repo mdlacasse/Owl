@@ -920,7 +920,8 @@ class Plan:
         C = {}
         C['b'] = 0
         C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n + 1)
-        C['F'] = _qC(C['d'], self.N_i, self.N_n)
+        C['e'] = _qC(C['d'], self.N_n)
+        C['F'] = _qC(C['e'], self.N_i, self.N_n)
         C['g'] = _qC(C['F'], self.N_t, self.N_n)
         C['s'] = _qC(C['g'], self.N_n)
         C['w'] = _qC(C['s'], self.N_n)
@@ -961,6 +962,7 @@ class Plan:
 
         Cb = self.C['b']
         Cd = self.C['d']
+        Ce = self.C['e']
         CF = self.C['F']
         Cg = self.C['g']
         Cs = self.C['s']
@@ -1007,6 +1009,10 @@ class Plan:
         for t in range(Nt):
             for n in range(Nn):
                 B.set0_Ub(_q2(CF, t, n, Nt, Nn), self.DeltaBar_tn[t, n])
+
+        # Standard exemption range inequalities.
+        for n in range(Nn):
+            B.set0_Ub(_q1(Ce, n, Nn), self.sigmaBar_n[n])
 
         # Roth conversions equalities/inequalities.
         if 'maxRothConversion' in options:
@@ -1193,8 +1199,9 @@ class Plan:
 
         # Taxable ordinary income.
         for n in range(Nn):
+            rhs = 0
             row = A.newRow()
-            rhs = -self.sigmaBar_n[n]
+            row.addElem(_q1(Ce, n, Nn), 1)
             for i in range(Ni):
                 rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
                 # Taxable income from tax-deferred withdrawals.
@@ -1720,14 +1727,14 @@ class Plan:
             return
 
         if x is None:
-            self.G_n = np.zeros(self.N_n)
+            MAGI_n = np.zeros(self.N_n)
         else:
             self.F_tn = np.array(x[self.C['F'] : self.C['g']])
             self.F_tn = self.F_tn.reshape((self.N_t, self.N_n))
-            self.G_n = np.sum(self.F_tn, axis=0)
+            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C['e'] : self.C['F']])
 
         self.M_n = tx.mediCosts(
-            self.yobs, self.horizons, self.G_n + self.sigmaBar_n, self.gamma_n[:-1], self.N_n
+            self.yobs, self.horizons, MAGI_n, self.gamma_n[:-1], self.N_n
         )
 
         return None
@@ -1748,6 +1755,7 @@ class Plan:
 
         Cb = self.C['b']
         Cd = self.C['d']
+        Ce = self.C['e']
         CF = self.C['F']
         Cg = self.C['g']
         Cs = self.C['s']
@@ -1764,17 +1772,17 @@ class Plan:
         for k in range(Nk):
             self.b_ijkn[:, :, k, :] = self.b_ijn[:, :, :] * self.alpha_ijkn[:, :, k, :]
 
-        self.d_in = np.array(x[Cd:CF])
+        self.d_in = np.array(x[Cd:Ce])
         self.d_in = self.d_in.reshape((Ni, Nn))
+
+        self.e_n = np.array(x[Ce:CF])
 
         self.F_tn = np.array(x[CF:Cg])
         self.F_tn = self.F_tn.reshape((Nt, Nn))
 
         self.g_n = np.array(x[Cg:Cs])
-        # self.g_n = self.g_n.reshape((Nn))
 
         self.s_n = np.array(x[Cs:Cw])
-        # self.s_n = self.s_n.reshape((Nn))
 
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))

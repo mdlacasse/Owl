@@ -109,6 +109,11 @@ to take only non-negative values ($\ge 0$ inequality).
 	Deposit of year-$n$ net spending surplus in taxable account of individual $i$.
 	These deposits are coming from the surplus $s_n$, distributed to
 	spousal taxable accounts depending on parameter $\eta$.
+\item [$e_{n}$]
+	Standard exemption for year $n$. This is a variable as the taxable income can
+        sometimes be less that the standard exemption $\bar{\sigma}_n$, leading to a
+	negative taxable income if the inflation adjusted standard deviation is simply subtracted
+	from gross taxable income $G_n$.
 \item [$f_{t n}$]
 	Fraction of tax bracket $t$ filled, so that taxable ordinary income $G_n$ can be expressed as
 	\begin{eqnarray}
@@ -166,7 +171,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 	and can be modified for additional exemptions after 65 of age, for example.
 	It is a simple time series
 	which can include any foreseeable changes in the tax code, or change in filing status due to the
-	passing of one spouse for $n\ge n_d$.
+	passing of one spouse for $n\ge n_d$.  The value of $\bar{\sigma}_n$ is an upper bound for $e_n$.
 \item [$\xi_{n}$]
 	Spending profile. This is a time series that multiplies the desired net spending amount.
 	It is $\xi_n =1$ for
@@ -335,8 +340,8 @@ or an s-curve as in
 	is a step function, it would have to be computed using binary variables and mixed-integer linear
 	programming. In the current tax code, this adjustment
 	depends on the modified adjusted gross income (MAGI) from 2 years earlier. For the
-	MAGI, we simply use $G_{n-2} + \bar{\sigma}_{n-2}$ (i.e., gross taxable income
-	plus standard deduction from 2 years ago) and ignore the additional IRS
+	MAGI, we simply use $G_{n-2} + e_{n-2}$ (i.e., gross taxable income
+	plus standard deduction (exemption) from 2 years ago) and ignore the additional IRS
 	rules around tax-free interests which are insignificant in most cases.
 
 	There are $q=5$ levels
@@ -346,8 +351,8 @@ or an s-curve as in
 	cost of $\bar{C}_{qn} = C_q\gamma_n$, also adjusted for inflation.
 	One could use binary variables $z_{inq}$ and the following {\em big M} constraint
 	\begin{equation}
-		\bar{\sigma}_{n-2} -\bar{L}_{qn} \le z_{inq} M - G_{n-2}
-		 \le M - \bar{L}_{qn} + \bar{\sigma}_{n-2},
+		e_{n-2} -\bar{L}_{qn} \le z_{inq} M - G_{n-2}
+		 \le M - \bar{L}_{qn} + e_{n-2},
 	\end{equation}
 	so that the IRMAA adjustments can be computed as
 	\begin{equation}
@@ -366,7 +371,7 @@ or an s-curve as in
         A more practical approach is to implement a self-consistent loop that
 	optimizes the spending or bequest, and updates the Medicare/IRMAA premiums accordingly.
 	Therefore, the value will be computed from the MAGI
-	as $\mathcal{M}_n^\ell(G_{n-2} + \bar{\sigma}_{n-2})$, where the value is at iteration $\ell$.
+	as $\mathcal{M}_n^\ell(G_{n-2} + e_{n-2})$, where the value is at iteration $\ell$.
 	After only a few iterations, the solution is converging to within a dollar over the
 	sum of all variables in the plan. This approach, however, does not guarantee convergence
 	as there can be cases where the premiums affect the solution which can oscillate between
@@ -389,7 +394,7 @@ All intermediate variables are in uppercase letters.
 		\label{Eq:Tx2}
 		G_n &=& 
 		\sum_{i} [\omega_{in} + .85\bar\zeta_{in} + \pi_{in}]
-		- \bar{\sigma}_n +
+		- e_n +
 		\nonumber \\
 		&& \sum_{i} [w_{i1n} + x_{in}] +
 		\nonumber \\
@@ -708,7 +713,7 @@ add the market returns to the savings balances.
 	rates from only the previous year are used. Tax-loss
 	harvesting is beyond the scope of this model, as is the tracking of stocks
 	purchased over the years.
-	For clarity, we did not express $\mathcal{M}_n^\ell(G_n+\bar{\sigma}_n)$ in terms of the modified
+	For clarity, we did not express $\mathcal{M}_n^\ell(G_n+e_n)$ in terms of the modified
 	adjusted gross income (MAGI), but this term is there to indicate that there is a self-consistent
 	loop solving for it and that we are at iteration $\ell$.
 
@@ -738,20 +743,24 @@ is determined.
 		\sum_i [\omega_{in} + .85\bar\zeta_{in} + \pi_{in}]  \nonumber \\
 		&& + \sum_{i} [w_{i1n} + x_{in} ]
 		\nonumber\\
-		&& + \sum_{ik} [(1 - \delta(k, 0))(b_{i0n} - w_{i0n} + d_{in} + .5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}] - \bar{\sigma}_n,
+		&& + \sum_{ik} [(1 - \delta(k, 0))(b_{i0n} - w_{i0n} + d_{in} + .5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}] - e_n,
 	\end{eqnarray}
 	and re-arrange to move variables to the LHS as follows
 	\begin{eqnarray}
 		\label{Eq:C6}
-		\sum_t \bar{\Delta}_{t n} f_{t n}
+		e_n + \sum_t \bar{\Delta}_{t n} f_{t n}
 		- \sum_{i} [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{ik} [(1 - \delta(k, 0))(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
 		\sum_i [\omega_{in} + .85\bar\zeta_{in} + \pi_{in} ] 
-		- \bar{\sigma}_n
 		\nonumber \\
 		&& + .5\sum_{ik} [(1-\delta(k, 0))\alpha_{i0kn}\tau_{kn}\kappa_{i0n}].
 	\end{eqnarray}
+
+	The standard exemption is constrained by
+	\begin{equation}
+		0 \le e_n \le \bar{\sigma}_n.
+	\end{equation}
 
 \chapter{Mapping of decision variables}
 At this point, one can use one of the many algebraic modeling languages
