@@ -3,7 +3,7 @@
 
 ## A retirement exploration tool based on linear programming
 
-<img align=right src="https://raw.github.com/mdlacasse/Owl/main/images/owl.jpg" width="250">
+<img align=right src="https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.jpg" width="250">
 
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
@@ -195,7 +195,7 @@ the boundaries of tax brackets.
 ```python
 plan.showGrossIncome(value='nominal')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/taxIncomePlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxIncomePlot.png" width="800">
 
 The optimal spending profile is shown in the next plot (in today's dollars). Notice the drop
 (recall we selected 60% survivor needs) at the passing of the first spouse.
@@ -203,26 +203,26 @@ The optimal spending profile is shown in the next plot (in today's dollars). Not
 plan.showProfile('today')
 ```
 
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/spendingPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/spendingPlot.png" width="800">
 
 The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill.
 It was generated using
 ```python
 plan.showAccounts(value='nominal')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/savingsPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/savingsPlot.png" width="800">
 
 while this plot shows the complex cash flow from all sources, which was generated with
 ```python
 plan.showSources(value='nominal')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/sourcesPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/sourcesPlot.png" width="800">
 
 For taxes, the following call will display Medicare premiums (including Part B IRMAA fees) and federal income tax
 ```python
 plan.showTaxes(value='nominal')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/taxesPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxesPlot.png" width="800">
 
 For the case at hand, recall that asset allocations were selected above through
 
@@ -234,9 +234,9 @@ Assets distribution in all accounts in today's $ over time can be displayed from
 ```python
 plan.showAssetDistribution(value='today')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/AD-taxable.png" width="800">
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/AD-taxDef.png" width="800">
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/AD-taxFree.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxable.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxDef.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxFree.png" width="800">
 
 
 These plots are irregular because we used historical rates from 1969. The volatility of
@@ -245,7 +245,7 @@ The rates used can be displayed by:
 ```python
 plan.showRates()
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/ratesPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesPlot.png" width="800">
 
 Values between brackets <> are the average values and volatility over the selected period. 
 
@@ -253,7 +253,7 @@ For the statisticians, rates distributions and correlations between them can be 
 ```python
 plan.showRatesCorrelations()
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/ratesCorrelations.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesCorrelations.png" width="800">
 
 A short text summary of the outcome of the optimization can be displayed through using:
 ```python
@@ -315,17 +315,18 @@ by selecting *stochastic* rates and using
 ```
 plan.runMC('maxSpending', ...)
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/MC-tutorial2a.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2a.png" width="800">
 
 Similarly, the next one was generated using
 ```
 plan.runMC('maxBequest', ...)
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/images/MC-tutorial2b.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2b.png" width="800">
 
 
-See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/tutorial_1.ipynb)
-and [2](https://github.com/mdlacasse/Owl/blob/main/tutorial_2.ipynb) for more info.
+See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
+[2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb), and
+[3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_3.ipynb) for more info.
 
 
 ---------------------------------------------------------------
