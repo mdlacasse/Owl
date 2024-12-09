@@ -21,7 +21,7 @@ Rate lists will need to be updated with values for current year.
 When doing so, the TO bound defined below will need to be adjusted
 to the last current data year.
 
-Copyright -- Martin-D. Lacasse (2023,2024)
+Copyright (C) 2024 -- Martin-D. Lacasse
 
 Last updated: May 2024
 
@@ -31,7 +31,8 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 ###################################################################
 import numpy as np
 from datetime import date
-from owl import utils as u
+
+from owlplanner import utils as u
 
 # All data goes from 1928 to 2023. Update the TO value when data
 # becomes available for subsequent years.
@@ -818,6 +819,10 @@ class Rates:
         of (Nk*Nk - Nk)/2 values for Nk assets.
         For 4 assets, this represents a list of 6 off-diagonal values.
         '''
+        if method not in ['default', 'realistic', 'conservative', 'fixed', 'historical',
+                          'average', 'mean', 'stochastic', 'histochastic']:
+            u.xprint('Unknown method %s.'%method)
+
         Nk = len(self._defRates)
         # First process fixed methods relying on values.
         if method == 'default':
@@ -883,7 +888,7 @@ class Rates:
             u.vprint('\t and correlation matrix:\n\t\t', str(self.corr).replace('\n', '\n\t\t'))
         else:
             # Then methods relying on historical data range.
-            assert frm is not None, 'From year must be provided with the this option.'
+            assert frm is not None, 'From year must be provided with this option.'
             assert FROM <= frm and frm <= TO, 'Lower range "frm=%d" out of bounds.' % frm
             assert FROM <= to and to <= TO, 'Upper range "to=%d" out of bounds.' % to
             assert frm < to, 'Unacceptable range.'

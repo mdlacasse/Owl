@@ -1,6 +1,6 @@
 '''
 
-Owl/tax2024
+Owl/tax2025
 ---
 
 A retirement planner using linear programming optimization.
@@ -10,7 +10,7 @@ of all variables and parameters.
 
 Module to handle all tax calculations.
 
-Copyright -- Martin-D. Lacasse (2024)
+Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 '''
@@ -23,30 +23,36 @@ from datetime import date
 
 taxBracketNames = ['10%', '12/15%', '22/25%', '24/28%', '32/33%', '35%', '37/40%']
 
-rates_2024 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
+rates_2025 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
 rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 
 # Single [0] and married filing jointly [1].
-taxBrackets_2024 = np.array(
+taxBrackets_2025 = np.array(
     [
-        [11600, 47150, 100525, 191950, 243450, 609350, 9999999],
-        [23200, 94300, 201050, 383900, 487450, 731200, 9999999],
+        [11925, 48475, 103350, 197300, 250525, 626350, 9999999],
+        [23850, 96950, 206700, 394600, 501050, 751700, 9999999],
     ]
 )
 
-irmaaBrackets = np.array(
-    [[0, 103000, 129000, 161000, 193000, 500000], [0, 206000, 258000, 322000, 386000, 750000]]
+irmaaBrackets_2025 = np.array(
+    [
+	    [0, 106000, 133000, 167000, 200000, 500000],
+        [0, 212000, 266000, 334000, 400000, 750000],
+    ]
 )
 
-# medicareBasis_2024 = 12 * 174.70
-# [174.70, 244.60, 349.40, 454.20, 559.00, 594.00]
-irmaaFees = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
+# Use index [0] to store the standard Medicare part B premium.
+# Following values are incremental IRMAA part B monthly fees.
+# 2024 total monthly fees: [174.70, 244.60, 349.40, 454.20, 559.00, 594.00]
+# irmaaFees_2024 = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
+irmaaFees_2025 = 12 * np.array([185.00, 74.00, 111.00, 110.90, 111.00, 37.00])
 
+# Compute 2026 from 2017 with 27% increase.
 # taxBrackets_2017 = np.array(
-#     [[9325, 37950, 91900, 191650, 416700, 418400, 9999999],
-#     [18650, 75900, 153100, 233350, 416700, 470000, 9999999]])
+#    [ [9325, 37950, 91900, 191650, 416700, 418400, 9999999],
+#      [18650, 75900, 153100, 233350, 416700, 470000, 9999999],
+#    ])
 
-# Adjusted from 2017 to 2024 with 27% increase.
 taxBrackets_2026 = np.array(
     [
         [11850, 48200, 116700, 243400, 529200, 531400, 9999999],
@@ -54,9 +60,9 @@ taxBrackets_2026 = np.array(
     ]
 )
 
-stdDeduction_2024 = np.array([14600, 29200])
+stdDeduction_2025 = np.array([15000, 30000])
 stdDeduction_2026 = np.array([8300, 16600])
-extraDeduction_65 = np.array([1950, 1550])
+extra65Deduction_2025 = np.array([2000, 1600])
 
 
 ##############################################################################
@@ -65,29 +71,24 @@ extraDeduction_65 = np.array([1950, 1550])
 def mediCosts(yobs, horizons, magi, gamma_n, Nn):
     '''
     Compute Medicare costs directly.
-    Birth years, life horizons, MAGI time series, inflation time series gamma_n,
-    and total number of years in the plan are provided.
     '''
     thisyear = date.today().year
     Ni = len(yobs)
-    medicosts = np.zeros(Nn)
+    costs = np.zeros(Nn)
     for n in range(Nn):
-        medicount = 0
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
-                medicount += 1
+                # The standard Medicare part B premium
+                costs[n] += gamma_n[n] * irmaaFees_2025[0]
+                if n < 2:
+                    nn = n
+                else:
+                    nn = 2
+                for q in range(1, 6):
+                    if magi[n - nn] > gamma_n[n] * irmaaBrackets_2025[Ni - 1][q]:
+                        costs[n] += gamma_n[n] * irmaaFees_2025[q]
 
-        if medicount == 0:
-            continue
-
-        fac = medicount * gamma_n[n]
-        medicosts[n] += fac * irmaaFees[0]
-        nx = max(0, n-2)
-        for q in range(1, 6):
-            if magi[nx] > gamma_n[n] * irmaaBrackets[medicount - 1][q]:
-                medicosts[n] += fac * irmaaFees[q]
-
-    return medicosts
+    return costs
 
 
 def taxParams(yobs, i_d, n_d, N_n):
@@ -100,11 +101,11 @@ def taxParams(yobs, i_d, n_d, N_n):
     Returned values are not indexed for inflation.
     '''
     # Compute the deltas in-place between brackets, starting from the end.
-    deltaBrackets_2024 = np.array(taxBrackets_2024)
+    deltaBrackets_2025 = np.array(taxBrackets_2025)
     deltaBrackets_2026 = np.array(taxBrackets_2026)
     for t in range(6, 0, -1):
         for i in range(2):
-            deltaBrackets_2024[i, t] -= deltaBrackets_2024[i, t - 1]
+            deltaBrackets_2025[i, t] -= deltaBrackets_2025[i, t - 1]
             deltaBrackets_2026[i, t] -= deltaBrackets_2026[i, t - 1]
 
     # Prepare the 3 arrays to return - use transpose for easy slicing.
@@ -123,8 +124,8 @@ def taxParams(yobs, i_d, n_d, N_n):
             filingStatus -= 1
 
         if thisyear + n < 2026:
-            sigma[n] = stdDeduction_2024[filingStatus]
-            Delta[n, :] = deltaBrackets_2024[filingStatus, :]
+            sigma[n] = stdDeduction_2025[filingStatus]
+            Delta[n, :] = deltaBrackets_2025[filingStatus, :]
         else:
             sigma[n] = stdDeduction_2026[filingStatus]
             Delta[n, :] = deltaBrackets_2026[filingStatus, :]
@@ -132,11 +133,11 @@ def taxParams(yobs, i_d, n_d, N_n):
         # Add 65+ additional exemption(s).
         for i in souls:
             if thisyear + n - yobs[i] >= 65:
-                sigma[n] += extraDeduction_65[filingStatus]
+                sigma[n] += extra65Deduction_2025[filingStatus]
 
         # Fill in future tax rates for year n.
         if thisyear + n < 2026:
-            theta[n, :] = rates_2024[:]
+            theta[n, :] = rates_2025[:]
         else:
             theta[n, :] = rates_2026[:]
 
@@ -153,15 +154,15 @@ def taxBrackets(N_i, n_d, N_n):
     unadjusted for inflation for plotting.
     '''
     assert 0 < N_i and N_i <= 2, 'Cannot process %d individuals.' % N_i
-    # This 2 is the number of years left in TCJA from 2024.
-    ytc = 2
+    # This 1 is the number of years left in TCJA from 2025.
+    ytc = 1
     status = N_i - 1
     n_d = min(n_d, N_n)
 
     data = {}
     for t in range(len(taxBracketNames) - 1):
         array = np.zeros(N_n)
-        array[0:ytc] = taxBrackets_2024[status][t]
+        array[0:ytc] = taxBrackets_2025[status][t]
         array[ytc:n_d] = taxBrackets_2026[status][t]
         array[n_d:N_n] = taxBrackets_2026[0][t]
         data[taxBracketNames[t]] = array

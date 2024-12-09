@@ -10,7 +10,7 @@ of all variables and parameters.
 
 Utility functions to read and check timelists.
 
-Copyright -- Martin-D. Lacasse (2024)
+Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 '''
@@ -18,7 +18,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 from datetime import date
 import pandas as pd
 
-from owl import utils as u
+from owlplanner import utils as u
 
 
 def read(filename, inames, horizons):

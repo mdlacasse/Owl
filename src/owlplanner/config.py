@@ -4,15 +4,15 @@ Owl/config
 
 This file contains utility functions to save configuration parameters.
 
-Copyright -- Martin-D. Lacasse (2024)
+Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 '''
 
 import configparser
 import numpy as np
-from owl import plan
-from owl import utils as u
+from owlplanner import plan
+from owlplanner import utils as u
 
 
 def saveConfig(plan, basename):

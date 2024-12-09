@@ -8,7 +8,7 @@ A retirement planner using linear programming optimization.
 See companion PDF document for an explanation of the underlying
 mathematical model and a description of all variables and parameters.
 
-Copyright -- Martin-D. Lacasse (2024)
+Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 '''
@@ -20,12 +20,12 @@ from datetime import date, datetime
 from functools import wraps
 import time
 
-from owl import utils as u
-from owl import tax2024 as tx
-from owl import abcapi as abc
-from owl import rates
-from owl import config
-from owl import timelists
+from owlplanner import utils as u
+from owlplanner import tax2024 as tx
+from owlplanner import abcapi as abc
+from owlplanner import rates
+from owlplanner import config
+from owlplanner import timelists
 
 
 def setVerbose(state=True):
@@ -156,6 +156,25 @@ def checkCaseStatus(func):
 
     return wrapper
 
+def checkConfiguration(func):
+    '''
+    Decorator to check if problem was configured successfully and
+    prevent method from running if not.
+    '''
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.xi_n is None:
+            msg = 'You must define a spending profile before calling %s().' % func.__name__
+            u.vprint(msg)
+            raise RuntimeError(msg)
+        if self.alpha_ijkn is None:
+            msg = 'You must define an allocation profile before calling %s().' % func.__name__
+            u.vprint(msg)
+            raise RuntimeError(msg)
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
 def timer(func):
     '''
     Decorator to report CPU and Wall time.
@@ -277,6 +296,10 @@ class Plan:
         self.timeListsFileName = None
         self.caseStatus = 'unsolved'
         self.rateMethod = None
+
+        # Placeholders to check if properly configured.
+        self.xi_n = None
+        self.alpha_ijkn = None
 
         return None
 
@@ -970,14 +993,15 @@ class Plan:
         A = abc.ConstraintMatrix(self.nvars)
         B = abc.Bounds(self.nvars)
 
-        # RMDs inequalities.
+        # RMDs inequalities, only if there is an initial balance in tax-deferred account.
         for i in range(Ni):
-            for n in range(self.horizons[i]):
-                rowDic = {
-                    _q3(Cw, i, 1, n, Ni, Nj, Nn): 1,
-                    _q3(Cb, i, 1, n, Ni, Nj, Nn + 1): -self.rho_in[i, n],
-                }
-                A.addNewRow(rowDic, zero, inf)
+            if self.beta_ij[i, 1] > 0:
+                for n in range(self.horizons[i]):
+                    rowDic = {
+                        _q3(Cw, i, 1, n, Ni, Nj, Nn): 1,
+                        _q3(Cb, i, 1, n, Ni, Nj, Nn + 1): -self.rho_in[i, n],
+                    }
+                    A.addNewRow(rowDic, zero, inf)
 
         # Income tax bracket range inequalities.
         for t in range(Nt):
@@ -1408,6 +1432,7 @@ class Plan:
 
         return None
 
+    @checkConfiguration
     def solve(self, objective, options={}):
         '''
         This function builds the necessary constaints and
@@ -1977,8 +2002,8 @@ class Plan:
         totEstateNow = totEstate / self.gamma_n[-1]
         lines.append('Total estate value at the end of final plan year %d in %d$: %s (%s nominal)' \
                 % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
-        lines.append('Inflation factor from this year\'s start date to the end of plan final year: %s'
-                % u.pc(self.gamma_n[-1], f=1))
+        lines.append('Inflation factor from this year\'s start date to the end of plan final year: %.2f'
+                % self.gamma_n[-1])
 
         lines.append('Case executed on: %s' % self._timestamp)
         lines.append('------------------------------------------------------------------------')

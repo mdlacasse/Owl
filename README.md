@@ -147,7 +147,7 @@ Here is a typical plan with some comments.
 A plan starts with the names of the individuals, their birth years and life expectancies, and a name for the plan.
 Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 ```python
-import owl
+import owlplanner as owl
 # Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to age 92.
 # Plan starts on Jan 1st of this year.
 plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='1/1')

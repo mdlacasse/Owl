@@ -4,7 +4,7 @@ Owl/utils
 
 This file contains for handling error messages.
 
-Copyright -- Martin-D. Lacasse (2024)
+Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 
@@ -68,7 +68,7 @@ def d(value, f=0, latex=False) -> str:
         return 'NaN'
 
     if latex:
-        mystr = '\${:,.' + str(f) + 'f}'
+        mystr = '\\${:,.' + str(f) + 'f}'
     else:
         mystr = '${:,.' + str(f) + 'f}'
 
@@ -122,15 +122,6 @@ def krond(a, b) -> int:
     Kronecker integer delta function.
     '''
     return (1 if a == b else 0)
-
-
-def getGitRevisionShortHash() -> str:
-    '''
-    Return git version.
-    '''
-    import subprocess
-
-    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
 
 
 def roundCents(values, decimals=2):

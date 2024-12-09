@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "owlplanner"
+version = "2024.12"
+authors = [
+  { name="Martin-D. Lacasse", email="martin.d.lacasse@gmailcom" },
+]
+maintainers = [
+  { name="Martin-D. Lacasse", email="martin.d.lacasse@gmailcom" },
+]
+description = "Owl: Retirement planner with great wisdom"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "seaborn",
+    "openpyxl",
+    "scipy",
+]
+license = {file = "LICENSE"}
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "src"
+]
+
+[project.urls]
+HomePage = "https://github.com/mdlacasse/owl"
+Repository = "https://github.com/mdlacasse/owl"
+Issues = "https://github.com/mdlacasse/owl/issues"
+Documentation = "https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf"
+DOWNLOAD = "https://github.com/mdlacasse/Owl/archive/refs/heads/main.zip"
