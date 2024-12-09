@@ -601,7 +601,7 @@ class Plan:
 
     def forwardValue(self, amount, year):
         '''
-        Return the value of amount inflated from beginning of plan
+        Return the value of amount inflated from beginning of the plan
         to the beginning of the year provided.
         '''
         if self.rateMethod is None:
@@ -619,9 +619,10 @@ class Plan:
         each spouse.  For single individuals, these lists will contain only
         one entry. Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         '''
-        assert len(taxable) == self.N_i, 'taxable must have %d entries.' % self.N_i
-        assert len(taxDeferred) == self.N_i, 'taxDeferred must have %d entries.' % self.N_i
-        assert len(taxFree) == self.N_i, 'taxFree must have %d entries.' % self.N_i
+        plurals = ['', 'y', 'ies']
+        assert len(taxable) == self.N_i, 'taxable must have %d entr%s.' % (self.N_i, plurals[self.N_i])
+        assert len(taxDeferred) == self.N_i, 'taxDeferred must have %d entr%s.' % (self.N_i, plurals[self.N_i])
+        assert len(taxFree) == self.N_i, 'taxFree must have %d entr%s.' % (self.N_i, plurals[self.N_i])
 
         fac = u.getUnits(units)
         u.rescale(taxable, fac)
@@ -920,8 +921,8 @@ class Plan:
         C = {}
         C['b'] = 0
         C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n + 1)
-        C['e'] = _qC(C['d'], self.N_n)
-        C['F'] = _qC(C['e'], self.N_i, self.N_n)
+        C['e'] = _qC(C['d'], self.N_i, self.N_n)
+        C['F'] = _qC(C['e'], self.N_n)
         C['g'] = _qC(C['F'], self.N_t, self.N_n)
         C['s'] = _qC(C['g'], self.N_n)
         C['w'] = _qC(C['s'], self.N_n)
