@@ -373,7 +373,7 @@ in [tutorial_2](https://github.com/mdlacasse/Owl/blob/main/tutorial_2.ipynb).
 
 ---------------------------------------------------------------------
 
-Copyright - Martin-D. Lacasse (2024)
+Copyright (C) 2024 - Martin-D. Lacasse
 
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
 
