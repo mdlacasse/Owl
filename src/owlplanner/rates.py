@@ -702,7 +702,7 @@ Inflation = [
 ]
 
 
-def getDistributions(frm, to):
+def getRatesDistributions(frm, to):
     '''
     Pre-compute normal distribution parameters for the series above.
     This calculation takes into account the correlations between
@@ -899,12 +899,12 @@ class Rates:
                 self._rateMethod = self._histRates
             elif method == 'average' or method == 'means':
                 u.vprint('Using average of rates from %d to %d.' % (frm, to))
-                self.means, self.stdev, self.corr, self.covar = getDistributions(frm, to)
+                self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to)
                 self._setFixedRates(self.means)
             elif method == 'histochastic':
                 u.vprint('Using histochastic rates derived from years %d to %d.' % (frm, to))
                 self._rateMethod = self._stochRates
-                self.means, self.stdev, self.corr, self.covar = getDistributions(frm, to)
+                self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to)
             else:
                 u.xprint('Method not supported:', method)
 
@@ -978,3 +978,50 @@ class Rates:
         srates = np.random.multivariate_normal(self.means, self.covar)
 
         return srates
+ 
+
+def showRatesDistributions(frm=FROM, to=TO):
+    '''
+    Plot histograms of the rates distributions.
+    '''
+    import matplotlib.pyplot as plt
+
+    title = 'Rates from ' + str(frm) + ' to ' + str(to)
+    # Bring year values to indices.
+    frm -= FROM
+    to -= FROM
+
+    nbins = int((to - frm) / 4)
+    fig, ax = plt.subplots(1, 4, sharey=True, sharex=True, tight_layout=True)
+
+    dat0 = np.array(SP500[frm:to])
+    dat1 = np.array(BondsBaa[frm:to])
+    dat2 = np.array(TNotes[frm:to])
+    dat3 = np.array(Inflation[frm:to])
+
+    fig.suptitle(title)
+    ax[0].set_title('S&P500')
+    label = '<>: ' + u.pc(np.mean(dat0), 2, 1)
+    ax[0].hist(dat0, bins=nbins, label=label)
+    ax[0].legend(loc='upper left', fontsize=8, framealpha=0.7)
+
+    ax[1].set_title('BondsBaa')
+    label = '<>: ' + u.pc(np.mean(dat1), 2, 1)
+    ax[1].hist(dat1, bins=nbins, label=label)
+    ax[1].legend(loc='upper left', fontsize=8, framealpha=0.7)
+
+    ax[2].set_title('TNotes')
+    label = '<>: ' + u.pc(np.mean(dat2), 2, 1)
+    ax[2].hist(dat1, bins=nbins, label=label)
+    ax[2].legend(loc='upper left', fontsize=8, framealpha=0.7)
+
+    ax[3].set_title('Inflation')
+    label = '<>: ' + u.pc(np.mean(dat3), 2, 1)
+    ax[3].hist(dat3, bins=nbins, label=label)
+    ax[3].legend(loc='upper left', fontsize=8, framealpha=0.7)
+
+    plt.show()
+
+    # return fig, ax
+    return None
+

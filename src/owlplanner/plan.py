@@ -142,7 +142,7 @@ def clone(plan, name=None):
 
 ############################################################################
 
-def checkCaseStatus(func):
+def _checkCaseStatus(func):
     '''
     Decorator to check if problem was solved successfully and
     prevent method from running if not.
@@ -157,7 +157,7 @@ def checkCaseStatus(func):
     return wrapper
 
 
-def checkConfiguration(func):
+def _checkConfiguration(func):
     '''
     Decorator to check if problem was configured successfully and
     prevent method from running if not.
@@ -177,7 +177,7 @@ def checkConfiguration(func):
     return wrapper
 
 
-def timer(func):
+def _timer(func):
     '''
     Decorator to report CPU and Wall time.
     '''
@@ -1271,7 +1271,7 @@ class Plan:
 
         return None
 
-    @timer
+    @_timer
     def runHistoricalRange(self, objective, options, ystart, yend, verbose=False):
         '''
         Run historical scenarios on plan over a range of years.
@@ -1310,7 +1310,7 @@ class Plan:
 
         return N, df
 
-    @timer
+    @_timer
     def runMC(self, objective, options, N, verbose=False):
         '''
         Run Monte Carlo simulations on plan.
@@ -1415,7 +1415,7 @@ class Plan:
                          (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))]
                 plt.legend(legend, shadow=True)
                 plt.xlabel('%d k$' % self.year_n[0])
-                plt.title(objective) 
+                plt.title(objective)
                 leads = [objective]
 
             plt.suptitle(title)
@@ -1439,7 +1439,7 @@ class Plan:
 
         return None
 
-    @checkConfiguration
+    @_checkConfiguration
     def solve(self, objective, options={}):
         '''
         This function builds the necessary constaints and
@@ -1884,7 +1884,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def estate(self):
         '''
         Reports final account balances.
@@ -1895,7 +1895,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def summary(self):
         '''
         Print summary of values.
@@ -2058,10 +2058,10 @@ class Plan:
         imod = len(rateNames) + 1
         for i, ax in enumerate(g.axes.flat):
             ax.axvline(x=0, color='grey', linewidth=1, linestyle=':')
-            if i%imod != 0:
+            if i % imod != 0:
                 ax.axhline(y=0, color='grey', linewidth=1, linestyle=':')
         #    ax.tick_params(axis='both', labelleft=True, labelbottom=True)
-    
+
         # plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
         title = self._name + '\n'
@@ -2147,7 +2147,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def showNetSpending(self, tag='', value=None):
         '''
         Plot net available spending and target over time.
@@ -2178,7 +2178,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def showAssetDistribution(self, tag='', value=None):
         '''
         Plot the distribution of each savings account in thousands of dollars
@@ -2283,7 +2283,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def showAccounts(self, tag='', value=None):
         '''
         Plot values of savings accounts over time.
@@ -2316,7 +2316,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def showSources(self, tag='', value=None):
         '''
         Plot income over time.
@@ -2356,7 +2356,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def _showFeff(self, tag=''):
         '''
         Plot income tax paid over time.
@@ -2382,7 +2382,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def showTaxes(self, tag='', value=None):
         '''
         Plot income tax paid over time.
@@ -2414,7 +2414,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def showGrossIncome(self, tag='', value=None):
         '''
         Plot income tax and taxable income over time horizon.
@@ -2456,7 +2456,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def saveConfig(self, basename=None):
         '''
         Save parameters in a configuration file.
@@ -2468,7 +2468,7 @@ class Plan:
 
         return None
 
-    @checkCaseStatus
+    @_checkCaseStatus
     def saveWorkbook(self, overwrite=False, basename=None):
         '''
         Save instance in an Excel spreadsheet.
@@ -2801,52 +2801,6 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$')
     plt.show()
 
     return fig, ax
-
-
-def showRatesDistributions(frm=rates.FROM, to=rates.TO):
-    '''
-    Plot histograms of the rates distributions.
-    '''
-    import matplotlib.pyplot as plt
-
-    title = 'Rates from ' + str(frm) + ' to ' + str(to)
-    # Bring year values to indices.
-    frm -= rates.FROM
-    to -= rates.FROM
-
-    nbins = int((to - frm) / 4)
-    fig, ax = plt.subplots(1, 4, sharey=True, sharex=True, tight_layout=True)
-
-    dat0 = np.array(rates.SP500[frm:to])
-    dat1 = np.array(rates.BondsBaa[frm:to])
-    dat2 = np.array(rates.TNotes[frm:to])
-    dat3 = np.array(rates.Inflation[frm:to])
-
-    fig.suptitle(title)
-    ax[0].set_title('S&P500')
-    label = '<>: ' + u.pc(np.mean(dat0), 2, 1)
-    ax[0].hist(dat0, bins=nbins, label=label)
-    ax[0].legend(loc='upper left', fontsize=8, framealpha=0.7)
-
-    ax[1].set_title('BondsBaa')
-    label = '<>: ' + u.pc(np.mean(dat1), 2, 1)
-    ax[1].hist(dat1, bins=nbins, label=label)
-    ax[1].legend(loc='upper left', fontsize=8, framealpha=0.7)
-
-    ax[2].set_title('TNotes')
-    label = '<>: ' + u.pc(np.mean(dat2), 2, 1)
-    ax[2].hist(dat1, bins=nbins, label=label)
-    ax[2].legend(loc='upper left', fontsize=8, framealpha=0.7)
-
-    ax[3].set_title('Inflation')
-    label = '<>: ' + u.pc(np.mean(dat3), 2, 1)
-    ax[3].hist(dat3, bins=nbins, label=label)
-    ax[3].legend(loc='upper left', fontsize=8, framealpha=0.7)
-
-    plt.show()
-
-    # return fig, ax
-    return None
 
 
 def _saveWorkbook(wb, basename, overwrite=False):
