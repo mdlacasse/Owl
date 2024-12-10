@@ -373,7 +373,7 @@ Notebooks with detailed explanations on this case can be found in
 
 ---------------------------------------------------------------------
 
-Copyright (C) 2024 - Martin-D. Lacasse
+Copyright &copy; 2024 - Martin-D. Lacasse
 
 Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
 

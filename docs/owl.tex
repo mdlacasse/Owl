@@ -34,7 +34,7 @@
 \author{Martin-D. Lacasse}
 \maketitle
 \thispagestyle{fancy}
-\fancyfoot[R]{\copyright\ Martin-D. Lacasse - 2024}
+\fancyfoot[R]{\copyright\ 2024 - Martin-D. Lacasse}
 \fancyhead{}
 
 \chapter{Introduction}
@@ -162,7 +162,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 	with $\gamma_0 := 1$, and where $n'$ is a dummy index.
 	As the time span of interest goes from the first year to the end of the last year,
         variable $\gamma_n$ will have $N_n + 1$ elements.
-	Parameters indexed for inflation will be indicated by a bar on top as in $\bar\sigma_n$.
+	Parameters indexed for inflation will be indicated by a bar on top as in $\bar{\sigma}_n$.
 \item [$\sigma_n$]
 	Standard deduction. It can be adjusted for inflation as follows
 	\begin{equation}
@@ -1037,6 +1037,7 @@ equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
 Finally, for the equality constraint in Eq.~(\ref{Eq:C6}) establishing taxable
 ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 \begin{eqnarray}
+	A_e[J_4(n), q_e(n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_F(t, n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_w(i, 1, n)] &=& -1, \nonumber \\
 	A_e[J_4(n), q_b(i, 0, n)] &=&  (1 - \delta(k, 0))\alpha_{i0kn}\tau_{kn}, \\
@@ -1052,8 +1053,7 @@ with
 \begin{eqnarray}
 	v[J_4(n)] &=& 
 	\sum_i [\omega_{in} + .85\bar\zeta_{in}  + \pi_{in}]
-	+ .5\sum_{ik} [(1-\delta(k, 0))\alpha_{i0kn}\tau_{kn}\kappa_{i0n}]
-	- \bar{\sigma}_n.
+	+ .5\sum_{ik} [(1-\delta(k, 0))\alpha_{i0kn}\tau_{kn}\kappa_{i0n}].
 \end{eqnarray}
 
 \section{Other considerations}
