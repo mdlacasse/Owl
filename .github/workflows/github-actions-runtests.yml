@@ -3,15 +3,10 @@
 
 name: Python package
 
-on:
-  push:
-    branches: [ $default-branch ]
-  pull_request:
-    branches: [ $default-branch ]
-
+run-name: ${{ github.actor }} running tests
+on: [push]
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
