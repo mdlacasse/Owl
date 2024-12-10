@@ -238,7 +238,6 @@ plan.showAssetDistribution(value='today')
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxDef.png" width="800">
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxFree.png" width="800">
 
-
 These plots are irregular because we used historical rates from 1969. The volatility of
 the rates offers Roth conversion benefits which are exploited by the optimizer.
 The rates used can be displayed by:
@@ -301,7 +300,7 @@ Total Medicare premiums paid in 2024$: $117,817 ($346,404 nominal)
 Post-tax account values at the end of final plan year 2057: (nominal)
     taxable: $0  tax-def: $0  tax-free: $2,553,871
 Total estate value at the end of final plan year 2057 in 2024$: $500,000 ($2,553,871 nominal)
-Inflation factor from this year's start date to the end of plan final year: 510.8%
+Inflation factor from this year's start date to the end of the plan final year: 5.11
 Case executed on: 2024-11-24 at 11:15:50
 ------------------------------------------------------------------------
 ```
@@ -336,30 +335,34 @@ It is assumed that you have some familiarity with using a Jupyter notebook or Ju
 and some very basic programming skills in Python.
 If not, a simple tutorial can guide you to the basic skills needed.
 
-Owl relies on standard Python modules such as NumPy, Pandas, and SciPy.
-Package `odfpy` is required to read files created by LibreOffice.
+Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
+Package `odfpy` might be required if one read files created by LibreOffice.
 
 Owl can be installed as a package using:
+```shell
 python -m build
 pip install .
+```
+This will install all the required dependencies, but Jupyter will not be installed.
 
-Alternatively, a easier way is for some might be to perform an installation of Anaconda on your computer.
+Alternatively, another way for some might might be to perform an installation of Anaconda on your computer.
 This will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
-It can be found at [anaconda.com](https://anaconda.com).
+It can be found at [anaconda.com](https://anaconda.com). Jupyter can also be installed through `pip`.
+
 The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
 Jupyter will run in your default web browser, from your computer to your browser, and therefore no data is ever transferred on the Internet
 (your computer, i.e., `localhost`, is the server).
 
 You will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.
 
-The intent of using a notebook is that one can configure calculations that suit one's needs.
+The intent behind using notebooks is that one can configure calculations that suit one's needs, while being able to save the visualization.
 Moreover, running calculations in *Jupyter* is made to be relatively easy.
 There are many tutorials on this topic available on the internet.
 
 For simulating your own realizations, use the files beginning with the word *template*.
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
-Notebooks with detailed explanations on this case can be found in
+Notebooks with detailed explanations can be found in
 [tutorial_1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
 [tutorial_2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb), and
 [tutorial_3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb).
