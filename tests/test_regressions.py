@@ -124,8 +124,22 @@ def test_taxfreegrowth2():
 
 
 def test_taxfreegrowth3():
-    n = 16
+    n = 15
     p = createPlan(1, 'taxfreegrowth3', n)
+    amount = 120
+    p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
+    p.setAllocationRatios('individual', generic=[[[50, 50, 0, 0], [50, 50, 0, 0]]])
+    rate = 4
+    p.setRates('fixed', values=[rate, rate, 0, 0])
+    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
+    p.solve('maxBequest', options=options)
+    assert p.basis == pytest.approx(0, abs=0.01)
+    assert p.bequest == pytest.approx(1000*amount*(1+rate/100)**n, abs=0.5)
+
+
+def test_taxfreegrowth4():
+    n = 16
+    p = createPlan(1, 'taxfreegrowth4', n)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 50, 50, 0], [0, 50, 50, 0]]])
@@ -138,9 +152,9 @@ def test_taxfreegrowth3():
     assert p.bequest == pytest.approx(1000*amount*(1+rate/200)**n, abs=0.5)
 
 
-def test_taxfreegrowth4():
+def test_taxfreegrowth5():
     n = 15
-    p = createPlan(1, 'taxfreegrowth4', n)
+    p = createPlan(1, 'taxfreegrowth5', n)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
@@ -152,9 +166,9 @@ def test_taxfreegrowth4():
     assert p.bequest == pytest.approx(1000*amount, abs=0.5)
 
 
-def test_taxfreegrowth5():
+def test_taxfreegrowth6():
     n = 15
-    p = createPlan(1, 'taxfreegrowth5', n)
+    p = createPlan(1, 'taxfreegrowth6', n)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
@@ -166,9 +180,9 @@ def test_taxfreegrowth5():
     assert p.bequest == pytest.approx(1000*amount, abs=0.5)
 
 
-def test_taxfreegrowth6():
+def test_taxfreegrowth7():
     n = 15
-    p = createPlan(1, 'taxfreegrowth6', n)
+    p = createPlan(1, 'taxfreegrowth7', n)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 100, 0, 0], [0, 100, 0, 0]]])
@@ -180,9 +194,9 @@ def test_taxfreegrowth6():
     assert p.bequest == pytest.approx(1000*amount, abs=0.5)
 
 
-def test_taxfreegrowth7():
+def test_taxfreegrowth8():
     n = 15
-    p = createPlan(1, 'taxfreegrowth7', n)
+    p = createPlan(1, 'taxfreegrowth8', n)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[100, 0, 0, 0], [100, 0, 0, 0]]])
