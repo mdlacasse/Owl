@@ -1,4 +1,4 @@
-'''
+"""
 
 Owl/timelists
 ---
@@ -13,7 +13,7 @@ Utility functions to read and check timelists.
 Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
-'''
+"""
 
 from datetime import date
 import pandas as pd
@@ -22,11 +22,11 @@ from owlplanner import utils as u
 
 
 def read(filename, inames, horizons):
-    '''
+    """
     Read listed parameters from an excel spreadsheet through Pandas.
     Use one sheet for each individual with the following columns.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
-    '''
+    """
 
     # Expected headers in each excel sheet, one per individual.
     timeHorizonItems = [
@@ -81,9 +81,9 @@ def read(filename, inames, horizons):
 
 
 def check(inames, timeLists, horizons):
-    '''
+    """
     Make sure that time horizons contain all years up to life expectancy.
-    '''
+    """
     if len(inames) == 2:
         # Verify that both sheets start on the same year.
         if timeLists[0]['year'][0] != timeLists[1]['year'][0]:

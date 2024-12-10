@@ -46,7 +46,7 @@ Documentation = "https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf"
 DOWNLOAD = "https://github.com/mdlacasse/Owl/archive/refs/heads/main.zip"
 
 [tool.ruff]
-line-length = 127
+line-length = 120
 indent-width = 4
 exclude = [
     "build",

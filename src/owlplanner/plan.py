@@ -1,4 +1,4 @@
-'''
+"""
 
 Owl/plan
 --------
@@ -11,7 +11,7 @@ mathematical model and a description of all variables and parameters.
 Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
-'''
+"""
 
 ###########################################################################
 import numpy as np
@@ -29,16 +29,16 @@ from owlplanner import timelists
 
 
 def setVerbose(state=True):
-    '''
+    """
     Control verbosity of calculations. True or False for now.
     Return previous state of verbosity.
     -``state``: Boolean selecting verbosity level.
-    '''
+    """
     return u._setVerbose(state)
 
 
 def _genGamma_n(tau):
-    '''
+    """
     Utility function to generate a cumulative inflation multiplier
     at the beginning of a year.
     Return time series of cumulative inflation multiplier
@@ -47,7 +47,7 @@ def _genGamma_n(tau):
     If there are Nn years in time series, the series will generate Nn + 1,
     as the last year will compound for an extra data point at the beginning of the
     following year.
-    '''
+    """
     N = len(tau[-1]) + 1
     gamma = np.ones(N)
 
@@ -58,13 +58,13 @@ def _genGamma_n(tau):
 
 
 def _genXi_n(profile, fraction, n_d, N_n, a=15, b=12):
-    '''
+    """
     Utility function to generate spending profile.
     Return time series of spending profile.
     Value is reduced to fraction starting in year n_d,
     after the passing of shortest-lived spouse.
     Series is unadjusted for inflation.
-    '''
+    """
     xi = np.ones(N_n)
     if profile == 'flat':
         if n_d < N_n:
@@ -89,46 +89,46 @@ def _genXi_n(profile, fraction, n_d, N_n, a=15, b=12):
 
 
 def _qC(C, N1, N2=1, N3=1, N4=1):
-    '''
+    """
     Index range accumulator.
-    '''
+    """
     return C + N1 * N2 * N3 * N4
 
 
 def _q1(C, l1, N1=None):
-    '''
+    """
     Index mapping function. 1 argument.
-    '''
+    """
     return C + l1
 
 
 def _q2(C, l1, l2, N1, N2):
-    '''
+    """
     Index mapping function. 2 arguments.
-    '''
+    """
     return C + l1 * N2 + l2
 
 
 def _q3(C, l1, l2, l3, N1, N2, N3):
-    '''
+    """
     Index mapping function. 3 arguments.
-    '''
+    """
     return C + l1 * N2 * N3 + l2 * N3 + l3
 
 
 def _q4(C, l1, l2, l3, l4, N1, N2, N3, N4):
-    '''
+    """
     Index mapping function. 4 arguments.
-    '''
+    """
     return C + l1 * N2 * N3 * N4 + l2 * N3 * N4 + l3 * N4 + l4
 
 
 def clone(plan, name=None):
-    '''
+    """
     Return an almost identical copy of plan: only the name of the plan
     has been modified and appended the string '(copy)',
     unless a new name is provided as an argument.
-    '''
+    """
     import copy
 
     newplan = copy.deepcopy(plan)
@@ -142,11 +142,13 @@ def clone(plan, name=None):
 
 ############################################################################
 
+
 def _checkCaseStatus(func):
-    '''
+    """
     Decorator to check if problem was solved successfully and
     prevent method from running if not.
-    '''
+    """
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.caseStatus != 'solved':
@@ -158,10 +160,11 @@ def _checkCaseStatus(func):
 
 
 def _checkConfiguration(func):
-    '''
+    """
     Decorator to check if problem was configured successfully and
     prevent method from running if not.
-    '''
+    """
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.xi_n is None:
@@ -178,9 +181,10 @@ def _checkConfiguration(func):
 
 
 def _timer(func):
-    '''
+    """
     Decorator to report CPU and Wall time.
-    '''
+    """
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         pt0 = time.process_time()
@@ -188,26 +192,25 @@ def _timer(func):
         result = func(self, *args, **kwargs)
         pt = time.process_time() - pt0
         rt = time.time() - rt0
-        print("CPU time used: %dm%.1fs, Wall time: %dm%.1fs."
-              % (int(pt/60), pt % 60, int(rt/60), rt % 60))
+        print('CPU time used: %dm%.1fs, Wall time: %dm%.1fs.' % (int(pt / 60), pt % 60, int(rt / 60), rt % 60))
         return result
 
     return wrapper
 
 
 class Plan:
-    '''
+    """
     This is the main class of the Owl Project.
-    '''
+    """
 
     def __init__(self, inames, yobs, expectancy, name, startDate=None):
-        '''
+        """
         Constructor requires three lists: the first
         one contains the name(s) of the individual(s),
         the second one is the year of birth of each individual,
         and the third the life expectancy. Last argument is a name for
         the plan.
-        '''
+        """
         self._name = name
 
         # 7 tax brackets, 3 types of accounts, 4 classes of assets.
@@ -229,7 +232,7 @@ class Plan:
         self.N_i = len(yobs)
         assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
         assert self.N_i == len(expectancy), 'Expectancy must have %d entries.' % self.N_i
-        assert self.N_i == len(inames), "Names for individuals must have %d entries." % self.N_i
+        assert self.N_i == len(inames), 'Names for individuals must have %d entries.' % self.N_i
 
         self.filingStatus = ['single', 'married'][self.N_i - 1]
 
@@ -253,20 +256,20 @@ class Plan:
             self.i_s = -1
 
         # Default parameters:
-        self.psi = 0.15                   # Long-term income tax rate on capital gains (decimal)
-        self.chi = 0.6                    # Survivor fraction
-        self.mu = 0.02                    # Dividend rate (decimal)
-        self.nu = 0.30                    # Heirs tax rate (decimal)
-        self.eta = (self.N_i - 1)/2       # Spousal deposit ratio (0 or .5)
+        self.psi = 0.15  # Long-term income tax rate on capital gains (decimal)
+        self.chi = 0.6  # Survivor fraction
+        self.mu = 0.02  # Dividend rate (decimal)
+        self.nu = 0.30  # Heirs tax rate (decimal)
+        self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1])  # Fractions left to other spouse at death
 
         # Default to zero pension and social security.
         self.pi_in = np.zeros((self.N_i, self.N_n))
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         self.pensionAmounts = np.zeros(self.N_i)
-        self.pensionAges = 65*np.ones(self.N_i, dtype=int)
+        self.pensionAges = 65 * np.ones(self.N_i, dtype=int)
         self.ssecAmounts = np.zeros(self.N_i)
-        self.ssecAges = 67*np.ones(self.N_i, dtype=int)
+        self.ssecAges = 67 * np.ones(self.N_i, dtype=int)
 
         # Parameters from timeLists.
         self.omega_in = np.zeros((self.N_i, self.N_n))
@@ -275,14 +278,9 @@ class Plan:
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
 
         # Scenario starts at the beginning of this year and ends at the end of the last year.
-        u.vprint(
-            'Preparing scenario of %d years for %d individual%s.'
-            % (self.N_n, self.N_i, ['', 's'][self.N_i - 1])
-        )
+        u.vprint('Preparing scenario of %d years for %d individual%s.' % (self.N_n, self.N_i, ['', 's'][self.N_i - 1]))
         for i in range(self.N_i):
-            u.vprint(
-                '%14s: life horizon from %d -> %d.' % (self.inames[i], thisyear, thisyear + self.horizons[i] - 1)
-            )
+            u.vprint('%14s: life horizon from %d -> %d.' % (self.inames[i], thisyear, thisyear + self.horizons[i] - 1))
 
         # Prepare income tax and RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
@@ -306,11 +304,11 @@ class Plan:
         return None
 
     def _setStartingDate(self, mydate):
-        '''
+        """
         Set the date when the plan starts in the current year.
         This is for reproducibility purposes.
         String format of mydate is 'month/day'.
-        '''
+        """
         import calendar
 
         thisyear = date.today().year
@@ -325,16 +323,16 @@ class Plan:
             refdate = date(thisyear, int(mydatelist[0]), int(mydatelist[1]))
 
         lp = calendar.isleap(thisyear)
-        self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1)/(365 + lp)
+        self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1) / (365 + lp)
 
         u.vprint('Setting 1st-year starting date to %s.' % (self.startDate))
 
         return None
 
     def _checkValue(self, value):
-        '''
+        """
         Short utility function to parse and check arguments for plotting.
-        '''
+        """
         if value is None:
             return self.defaultPlots
 
@@ -347,17 +345,17 @@ class Plan:
         return None
 
     def rename(self, name):
-        '''
+        """
         Override name of the plan. Plan name is used
         to distinguish graph outputs and as base name for
         saving configurations and workbooks.
-        '''
+        """
         self._name = name
 
         return None
 
     def setSpousalDepositFraction(self, eta):
-        '''
+        """
         Set spousal deposit and withdrawal fraction. Default 0.5.
         Fraction eta is use to split surplus deposits between spouses as
         d_0n = (1 - eta)*s_n,
@@ -365,31 +363,31 @@ class Plan:
         d_1n = eta*s_n,
         where s_n is the surplus amount. Here d_0n is the taxable account
         deposit for the first spouse while d_1n is for the second spouse.
-        '''
+        """
         assert 0 <= eta and eta <= 1, 'Fraction must be between 0 and 1.'
         if self.N_i != 2:
             u.vprint('Deposit fraction can only be 0 for single individuals.')
             eta = 0
         else:
             u.vprint('Setting spousal surplus deposit fraction to %.1f.' % eta)
-            u.vprint('\t%s: %.1f, %s: %.1f' % (self.inames[0], (1-eta), self.inames[1], eta))
+            u.vprint('\t%s: %.1f, %s: %.1f' % (self.inames[0], (1 - eta), self.inames[1], eta))
             self.eta = eta
 
         return None
 
     def setDefaultPlots(self, value):
-        '''
+        """
         Set plots between nominal values or today's $.
-        '''
+        """
 
         self.defaultPlots = self._checkValue(value)
 
         return None
 
     def setDividendRate(self, mu):
-        '''
+        """
         Set dividend rate on equities. Rate is in percent. Default 2%.
-        '''
+        """
         assert 0 <= mu and mu <= 100, 'Rate must be between 0 and 100.'
         mu /= 100
         u.vprint('Dividend return rate on equities set to %s.' % u.pc(mu, f=1))
@@ -399,9 +397,9 @@ class Plan:
         return None
 
     def setLongTermCapitalTaxRate(self, psi):
-        '''
+        """
         Set long-term income tax rate. Rate is in percent. Default 15%.
-        '''
+        """
         assert 0 <= psi and psi <= 100, 'Rate must be between 0 and 100.'
         psi /= 100
         u.vprint('Long-term capital gain income tax set to %s.' % u.pc(psi, f=0))
@@ -411,10 +409,10 @@ class Plan:
         return None
 
     def setBeneficiaryFractions(self, phi):
-        '''
+        """
         Set fractions of savings accounts that is left to surviving spouse.
         Default is [1, 1, 1] for taxable, tax-deferred, adn tax-exempt accounts.
-        '''
+        """
         assert len(phi) == self.N_j, 'Fractions must have %d entries.' % self.N_j
         for j in range(self.N_j):
             assert 0 <= phi[j] <= 1, 'Fractions must be between 0 and 1.'
@@ -430,10 +428,10 @@ class Plan:
         return None
 
     def setHeirsTaxRate(self, nu):
-        '''
+        """
         Set the heirs tax rate on the tax-deferred portion of the estate.
         Rate is in percent. Default is 30%.
-        '''
+        """
         assert 0 <= nu and nu <= 100, 'Rate must be between 0 and 100.'
         nu /= 100
         u.vprint('Heirs tax rate on tax-deferred portion of estate set to %s.' % u.pc(nu, f=0))
@@ -443,10 +441,10 @@ class Plan:
         return None
 
     def setPension(self, amounts, ages, units='k'):
-        '''
+        """
         Set value of pension for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
-        '''
+        """
         assert len(amounts) == self.N_i, 'Amounts must have %d entries.' % self.N_i
         assert len(ages) == self.N_i, 'Ages must have %d entries.' % self.N_i
 
@@ -474,10 +472,10 @@ class Plan:
         return None
 
     def setSocialSecurity(self, amounts, ages, units='k'):
-        '''
+        """
         Set value of social security for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
-        '''
+        """
         assert len(amounts) == self.N_i, 'Amounts must have %d entries.' % self.N_i
         assert len(ages) == self.N_i, 'Ages must have %d entries.' % self.N_i
 
@@ -503,7 +501,7 @@ class Plan:
 
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
-            self.zeta_in[self.i_s, self.n_d:] = max(amounts[self.i_s], amounts[self.i_d] / 2)
+            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], amounts[self.i_d] / 2)
 
         self.ssecAmounts = amounts
         self.ssecAges = ages
@@ -513,11 +511,11 @@ class Plan:
         return None
 
     def setSpendingProfile(self, profile, percent=60):
-        '''
+        """
         Generate time series for spending profile.
         Surviving spouse fraction can be specified
         as a second argument. Default value is 60%.
-        '''
+        """
         self.chi = percent / 100
 
         u.vprint('Setting', profile, 'spending profile.')
@@ -534,7 +532,7 @@ class Plan:
         return None
 
     def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None):
-        '''
+        """
         Generate rates for return and inflation based on the method and
         years selected. Note that last bound is included.
 
@@ -548,7 +546,7 @@ class Plan:
           must be provided, and optionally an ending year.
 
         Valid year range is from 1928 to last year.
-        '''
+        """
         if frm is not None and to is None:
             to = frm + self.N_n - 1  # 'to' is inclusive.
 
@@ -577,24 +575,30 @@ class Plan:
         return None
 
     def regenRates(self):
-        '''
+        """
         Regenerate the rates using the arguments specified during last setRates() call.
         This method is used to regenerate stochastic time series.
-        '''
-        self.setRates(self.rateMethod, frm=self.rateFrm, to=self.rateTo,
-                      values=100*self.rateValues, stdev=100*self.rateStdev, corr=self.rateCorr)
+        """
+        self.setRates(
+            self.rateMethod,
+            frm=self.rateFrm,
+            to=self.rateTo,
+            values=100 * self.rateValues,
+            stdev=100 * self.rateStdev,
+            corr=self.rateCorr,
+        )
 
         return None
 
     def value(self, amount, year):
-        '''
+        """
         Return value of amount deflated or inflated at the beginning
         of the year specified.
         If year is in the past, value is made at the beginning of this year.
         If year is in the future, amount is adjusted from a reference time
         aligned with the beginning of the plan to the beginning of the
         year specified.
-        '''
+        """
         thisyear = date.today().year
         if year <= thisyear:
             return rates.historicalValue(amount, year)
@@ -602,10 +606,10 @@ class Plan:
             return self.forwardValue(amount, year)
 
     def forwardValue(self, amount, year):
-        '''
+        """
         Return the value of amount inflated from beginning of the plan
         to the beginning of the year provided.
-        '''
+        """
         if self.rateMethod is None:
             u.xprint('A rate method needs to be first selected using setRates(...).')
 
@@ -616,11 +620,11 @@ class Plan:
         return amount * self.gamma_n[span]
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, units='k'):
-        '''
+        """
         Three lists containing the balance of all assets in each category for
         each spouse.  For single individuals, these lists will contain only
         one entry. Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
-        '''
+        """
         plurals = ['', 'y', 'ies']
         assert len(taxable) == self.N_i, 'taxable must have %d entr%s.' % (self.N_i, plurals[self.N_i])
         assert len(taxDeferred) == self.N_i, 'taxDeferred must have %d entr%s.' % (self.N_i, plurals[self.N_i])
@@ -641,10 +645,7 @@ class Plan:
         u.vprint('Taxable balances:', *[u.d(taxable[i]) for i in range(self.N_i)])
         u.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
         u.vprint('Tax-free balances:', *[u.d(taxFree[i]) for i in range(self.N_i)])
-        u.vprint(
-            'Sum of all savings accounts:',
-            u.d(np.sum(taxable) + np.sum(taxDeferred) + np.sum(taxFree))
-        )
+        u.vprint('Sum of all savings accounts:', u.d(np.sum(taxable) + np.sum(taxDeferred) + np.sum(taxFree)))
         u.vprint(
             'Post-tax total wealth of approximately',
             u.d(np.sum(taxable) + 0.7 * np.sum(taxDeferred) + np.sum(taxFree)),
@@ -653,7 +654,7 @@ class Plan:
         return None
 
     def setInterpolationMethod(self, method, center=15, width=5):
-        '''
+        """
         Interpolate assets allocation ratios from initial value (today) to
         final value (at the end of horizon).
 
@@ -663,7 +664,7 @@ class Plan:
         with a width "width". Center point defaults to 15 years and width to
         5 years. This means that the transition from initial to final
         will start occuring in 10 years (15-5) and will end in 20 years (15+5).
-        '''
+        """
         if method == 'linear':
             self._interpolator = self._linInterp
         elif method == 's-curve':
@@ -681,7 +682,7 @@ class Plan:
         return None
 
     def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None, taxFree=None, generic=None):
-        '''
+        """
         Single function for setting all types of asset allocations.
         Allocation types are 'account', 'individual', and 'spouses'.
 
@@ -701,7 +702,7 @@ class Plan:
         while for 'spouses' only one pair needs to be given as follows:
         generic = [[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]]
         as assets are coordinated between accounts and spouses.
-        '''
+        """
         self.boundsAR = {}
         self.alpha_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n + 1))
         if allocType == 'account':
@@ -816,7 +817,7 @@ class Plan:
         return None
 
     def readContributions(self, filename):
-        '''
+        """
         Provide the name of the file containing the financial events
         over the anticipated life span determined by the
         assumed longevity. File can be an excel, or odt file with one
@@ -835,7 +836,7 @@ class Plan:
 
         in any order. A template is provided as an example.
         Missing rows (years) are populated with zero values.
-        '''
+        """
         self.timeLists = timelists.read(filename, self.inames, self.horizons)
 
         timelists.check(self.inames, self.timeLists, self.horizons)
@@ -865,21 +866,21 @@ class Plan:
         return None
 
     def _linInterp(self, a, b, numPoints):
-        '''
+        """
         Utility function to interpolate allocations using
         a linear interpolation.
-        '''
+        """
         # num goes one more year as endpoint=True.
         dat = np.linspace(a, b, numPoints)
 
         return dat
 
     def _tanhInterp(self, a, b, numPoints):
-        '''
+        """
         Utility function to interpolate allocations using a hyperbolic
         tangent interpolation. "c" is the year where the inflection point
         is happening, and "w" is the width of the transition.
-        '''
+        """
         c = self.interpCenter
         w = self.interpWidth
         t = np.linspace(0, numPoints, numPoints)
@@ -897,9 +898,9 @@ class Plan:
         return dat
 
     def _adjustParameters(self):
-        '''
+        """
         Adjust parameters that follow inflation.
-        '''
+        """
         if self.rateMethod is None:
             u.xprint('A rate method needs to be first selected using setRates(...).')
 
@@ -915,10 +916,10 @@ class Plan:
         return None
 
     def _buildOffsetMap(self):
-        '''
+        """
         Utility function to map variables to a block vector.
         Refer to companion document for explanations.
-        '''
+        """
         # Stack all variables in a single block vector.
         C = {}
         C['b'] = 0
@@ -944,10 +945,10 @@ class Plan:
         return None
 
     def _buildConstraints(self, objective, options):
-        '''
+        """
         Utility function that builds constraint matrix and vectors.
         Refer to companion document for notation and detailed explanations.
-        '''
+        """
         # Bounds values.
         zero = 0
         inf = np.inf
@@ -1054,16 +1055,17 @@ class Plan:
         for i in range(Ni):
             for j in [0, 2]:
                 for n in range(Nn):
-                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1,
-                              _q3(Cb, i, j, n, Ni, Nj, Nn + 1): 1}
+                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1, _q3(Cb, i, j, n, Ni, Nj, Nn + 1): 1}
                     A.addNewRow(rowDic, zero, inf)
 
         # Impose withdrawals and conversion limits on tax-deferred account.
         for i in range(Ni):
             for n in range(Nn):
-                rowDic = {_q2(Cx, i, n, Ni, Nn): -1,
-                          _q3(Cw, i, 1, n, Ni, Nj, Nn): -1,
-                          _q3(Cb, i, 1, n, Ni, Nj, Nn + 1): 1}
+                rowDic = {
+                    _q2(Cx, i, n, Ni, Nn): -1,
+                    _q3(Cw, i, 1, n, Ni, Nj, Nn): -1,
+                    _q3(Cb, i, 1, n, Ni, Nj, Nn + 1): 1,
+                }
                 A.addNewRow(rowDic, zero, inf)
 
         # Constraints depending on objective function.
@@ -1102,7 +1104,7 @@ class Plan:
 
         # Link surplus and taxable account deposits regardless of Ni.
         for i in range(Ni):
-            fac1 = u.krond(i, 0)*(1 - self.eta) + u.krond(i, 1)*self.eta
+            fac1 = u.krond(i, 0) * (1 - self.eta) + u.krond(i, 1) * self.eta
             for n in range(n_d):
                 rowDic = {_q2(Cd, i, n, Ni, Nn): 1, _q1(Cs, n, Nn): -fac1}
                 A.addNewRow(rowDic, zero, zero)
@@ -1230,26 +1232,33 @@ class Plan:
                     B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
 
                 # Exclude simultaneous deposits and withdrawals from taxable or tax-free accounts.
-                A.addNewRow({_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q1(Cs, n, Nn): -1},
-                            zero, bigM,
+                A.addNewRow(
+                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q1(Cs, n, Nn): -1},
+                    zero,
+                    bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM,
-                     _q3(Cw, i, 0, n, Ni, Nj, Nn): 1,
-                     _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
-                     zero, bigM,
+                    {
+                        _q3(Cz, i, n, 0, Ni, Nn, Nz): bigM,
+                        _q3(Cw, i, 0, n, Ni, Nj, Nn): 1,
+                        _q3(Cw, i, 2, n, Ni, Nj, Nn): 1,
+                    },
+                    zero,
+                    bigM,
                 )
 
                 # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
                 A.addNewRow(
                     {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
-                     zero, bigM,
+                    zero,
+                    bigM,
                 )
 
                 A.addNewRow(
                     {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
-                     zero, bigM,
+                    zero,
+                    bigM,
                 )
 
         # Now build a solver-neutral objective vector.
@@ -1272,9 +1281,9 @@ class Plan:
 
     @_timer
     def runHistoricalRange(self, objective, options, ystart, yend, verbose=False):
-        '''
+        """
         Run historical scenarios on plan over a range of years.
-        '''
+        """
         N = yend - ystart + 1
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n
@@ -1292,11 +1301,11 @@ class Plan:
         if not verbose:
             print('|--- progress ---|')
 
-        for year in range(ystart, yend+1):
+        for year in range(ystart, yend + 1):
             self.setRates('historical', year)
             self.solve(objective, options)
             if not verbose:
-                print('\r\t%s' % u.pc((year-ystart+1)/N, f=0), end='')
+                print('\r\t%s' % u.pc((year - ystart + 1) / N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
                     df.loc[len(df)] = [self.partialBequest, self.basis]
@@ -1311,9 +1320,9 @@ class Plan:
 
     @_timer
     def runMC(self, objective, options, N, verbose=False):
-        '''
+        """
         Run Monte Carlo simulations on plan.
-        '''
+        """
         if self.rateMethod not in ['stochastic', 'histochastic']:
             print('It is pointless to run Monte Carlo simulations with fixed rates.')
             return
@@ -1341,7 +1350,7 @@ class Plan:
             self.regenRates()
             self.solve(objective, myoptions)
             if not verbose:
-                print('\r\t%s' % u.pc((n+1)/N, f=0), end='')
+                print('\r\t%s' % u.pc((n + 1) / N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
                     df.loc[len(df)] = [self.partialBequest, self.basis]
@@ -1355,20 +1364,20 @@ class Plan:
         return N, df
 
     def _showResults(self, objective, df, N):
-        '''
+        """
         Show a histogram of values from runMC() and runRange().
-        '''
+        """
         import seaborn as sbn
         import matplotlib.pyplot as plt
 
-        print('Success rate: %s on %d samples.' % (u.pc(len(df)/N), N))
-        title = ('$N$ = %d, $P$ = %s' % (N, u.pc(len(df)/N)))
+        print('Success rate: %s on %d samples.' % (u.pc(len(df) / N), N))
+        title = '$N$ = %d, $P$ = %s' % (N, u.pc(len(df) / N))
         means = df.mean(axis=0, numeric_only=True)
         medians = df.median(axis=0, numeric_only=True)
 
-        my = 2*[self.year_n[-1]]
+        my = 2 * [self.year_n[-1]]
         if self.N_i == 2 and self.n_d < self.N_n:
-            my[0] = self.year_n[self.n_d-1]
+            my[0] = self.year_n[self.n_d - 1]
 
             # Don't show partial bequest of zero if spouse is full beneficiary,
             # or if solution led to empty accounts at the end of first spouse's life.
@@ -1387,13 +1396,14 @@ class Plan:
                 legend = []
                 # Don't know why but legend is reversed from df.
                 for q in range(len(means) - 1, -1, -1):
-                    legend.append('%d: $M$: %s, $\\bar{x}$: %s' %
-                             (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
+                    legend.append(
+                        '%d: $M$: %s, $\\bar{x}$: %s'
+                        % (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True))
+                    )
                 plt.legend(legend, shadow=True)
                 plt.xlabel('%d k$' % self.year_n[0])
                 plt.title(objective)
-                leads = ['partial %d' % my[0],
-                         '  final %d' % my[1]]
+                leads = ['partial %d' % my[0], '  final %d' % my[1]]
             elif len(means) == 2:
                 # Show partial bequest and net spending as two separate histograms.
                 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
@@ -1401,8 +1411,9 @@ class Plan:
                 leads = ['partial %d' % my[0], objective]
                 for q in range(2):
                     sbn.histplot(df[cols[q]], kde=True, ax=axes[q])
-                    legend = [('$M$: %s, $\\bar{x}$: %s' %
-                         (u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))]
+                    legend = [
+                        ('$M$: %s, $\\bar{x}$: %s' % (u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
+                    ]
                     axes[q].set_label(legend)
                     axes[q].legend(labels=legend)
                     axes[q].set_title(leads[q])
@@ -1410,8 +1421,9 @@ class Plan:
             else:
                 # Show net spending as single histogram.
                 sbn.histplot(df[objective], kde=True)
-                legend = [('$M$: %s, $\\bar{x}$: %s' %
-                         (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))]
+                legend = [
+                    ('$M$: %s, $\\bar{x}$: %s' % (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))
+                ]
                 plt.legend(legend, shadow=True)
                 plt.xlabel('%d k$' % self.year_n[0])
                 plt.title(objective)
@@ -1423,24 +1435,26 @@ class Plan:
         for q in range(len(means)):
             print('%12s: Median (%d $): %s' % (leads[q], self.year_n[0], u.d(medians.iloc[q])))
             print('%12s:   Mean (%d $): %s' % (leads[q], self.year_n[0], u.d(means.iloc[q])))
-            print('%12s:           Range: %s - %s' %
-                     (leads[q], u.d(1000*df.iloc[:, q].min()), u.d(1000*df.iloc[:, q].max())))
-            nzeros = len(df.iloc[:, q][df.iloc[:, q] < .001])
+            print(
+                '%12s:           Range: %s - %s'
+                % (leads[q], u.d(1000 * df.iloc[:, q].min()), u.d(1000 * df.iloc[:, q].max()))
+            )
+            nzeros = len(df.iloc[:, q][df.iloc[:, q] < 0.001])
             print('%12s:  N zero solns: %d' % (leads[q], nzeros))
 
         return None
 
     def resolve(self):
-        '''
+        """
         Solve a plan using saved options.
-        '''
+        """
         self.solve(self.objective, self.solverOptions)
 
         return None
 
     @_checkConfiguration
     def solve(self, objective, options=None):
-        '''
+        """
         This function builds the necessary constaints and
         runs the optimizer.
 
@@ -1455,7 +1469,7 @@ class Plan:
         All units are in $k, unless specified otherwise.
 
         Refer to companion document for implementation details.
-        '''
+        """
         if self.rateMethod is None:
             u.xprint('Rate method must be selected before solving.')
 
@@ -1522,9 +1536,9 @@ class Plan:
         return None
 
     def _milpSolve(self, objective, options):
-        '''
+        """
         Solve problem using scipy HiGHS solver.
-        '''
+        """
         from scipy import optimize
 
         withMedicare = True
@@ -1532,9 +1546,9 @@ class Plan:
             withMedicare = False
 
         if objective == 'maxSpending':
-            objFac = -1/self.xi_n[0]
+            objFac = -1 / self.xi_n[0]
         else:
-            objFac = -1/self.gamma_n[-1]
+            objFac = -1 / self.gamma_n[-1]
 
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
         milpOptions = {'disp': False, 'mip_rel_gap': 1e-6}
@@ -1579,7 +1593,7 @@ class Plan:
                 break
 
             # Avoid oscillatory solutions. Look only at most recent solutions.
-            isclosenough = abs(-solution.fun - min(old_solutions[int(it/2):])) < self.xi_n[0]
+            isclosenough = abs(-solution.fun - min(old_solutions[int(it / 2) :])) < self.xi_n[0]
             if isclosenough:
                 u.vprint('Converged through selecting minimum oscillating objective.')
                 break
@@ -1606,9 +1620,9 @@ class Plan:
         return None
 
     def _mosekSolve(self, objective, options):
-        '''
+        """
         Solve problem using MOSEK solver.
-        '''
+        """
         import mosek
 
         withMedicare = True
@@ -1616,9 +1630,9 @@ class Plan:
             withMedicare = False
 
         if objective == 'maxSpending':
-            objFac = -1/self.xi_n[0]
+            objFac = -1 / self.xi_n[0]
         else:
-            objFac = -1/self.gamma_n[-1]
+            objFac = -1 / self.gamma_n[-1]
 
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
 
@@ -1691,7 +1705,7 @@ class Plan:
                 break
 
             # Avoid oscillatory solutions. Look only at most recent solutions.
-            isclosenough = abs(-solution - min(old_solutions[int(it/2):])) < self.xi_n[0]
+            isclosenough = abs(-solution - min(old_solutions[int(it / 2) :])) < self.xi_n[0]
             if isclosenough:
                 u.vprint('Converged through selecting minimum oscillating objective.')
                 break
@@ -1721,9 +1735,9 @@ class Plan:
         return None
 
     def _estimateMedicare(self, x=None, withMedicare=True):
-        '''
+        """
         Compute rough MAGI and Medicare costs.
-        '''
+        """
         if withMedicare is False:
             self.M_n = np.zeros(self.N_n)
             return
@@ -1731,21 +1745,19 @@ class Plan:
         if x is None:
             MAGI_n = np.zeros(self.N_n)
         else:
-            self.F_tn = np.array(x[self.C['F']:self.C['g']])
+            self.F_tn = np.array(x[self.C['F'] : self.C['g']])
             self.F_tn = self.F_tn.reshape((self.N_t, self.N_n))
-            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C['e']:self.C['F']])
+            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C['e'] : self.C['F']])
 
-        self.M_n = tx.mediCosts(
-            self.yobs, self.horizons, MAGI_n, self.gamma_n[:-1], self.N_n
-        )
+        self.M_n = tx.mediCosts(self.yobs, self.horizons, MAGI_n, self.gamma_n[:-1], self.N_n)
 
         return None
 
     def _aggregateResults(self, x):
-        '''
+        """
         Utility function to aggregate results from solver.
         Process all results from solution vector.
-        '''
+        """
         # Define shortcuts.
         Ni = self.N_i
         Nj = self.N_j
@@ -1803,14 +1815,14 @@ class Plan:
             part_j = np.zeros(3)
             for j in range(Nj):
                 ksumj = np.sum(self.alpha_ijkn[i_d, j, :, nx] * self.tau_kn[:, nx], axis=0)
-                Tauh = 1 + 0.5*ksumj
+                Tauh = 1 + 0.5 * ksumj
                 Tau1 = 1 + ksumj
-                part_j[j] = (Tauh * self.kappa_ijn[i_d, j, nx] +
-                             Tau1 * (self.b_ijn[i_d, j, nx] -
-                             self.w_ijn[i_d, j, nx] +
-                             self.d_in[i_d, nx] * u.krond(j, 0) +
-                             self.x_in[i_d, nx] * (u.krond(j, 2) - u.krond(j, 1)))
-                             )
+                part_j[j] = Tauh * self.kappa_ijn[i_d, j, nx] + Tau1 * (
+                    self.b_ijn[i_d, j, nx]
+                    - self.w_ijn[i_d, j, nx]
+                    + self.d_in[i_d, nx] * u.krond(j, 0)
+                    + self.x_in[i_d, nx] * (u.krond(j, 2) - u.krond(j, 1))
+                )
 
             self.partialEstate_j = part_j
             partialBequest_j = part_j * (1 - self.phi_j)
@@ -1831,12 +1843,7 @@ class Plan:
         self.Q_n = np.sum(
             (
                 self.mu
-                * (
-                    self.b_ijn[:, 0, :-1]
-                    - self.w_ijn[:, 0, :]
-                    + self.d_in[:, :]
-                    + 0.5 * self.kappa_ijn[:, 0, :]
-                )
+                * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :])
                 + tau_0prev * self.w_ijn[:, 0, :]
             )
             * self.alpha_ijkn[:, 0, 0, :-1],
@@ -1846,7 +1853,7 @@ class Plan:
 
         # Make derivative variables.
         # Putting it all together in a dictionary.
-        '''
+        """
         sourcetypes = [
             'wages',
             'ssec',
@@ -1858,7 +1865,7 @@ class Plan:
             'wdrwl taxable',
             'wdrwl tax-free',
         ]
-        '''
+        """
         sources = {}
         sources['wages'] = self.omega_in
         sources['ssec'] = self.zetaBar_in
@@ -1888,9 +1895,9 @@ class Plan:
 
     @_checkCaseStatus
     def estate(self):
-        '''
+        """
         Reports final account balances.
-        '''
+        """
         _estate = np.sum(self.b_ijn[:, :, :, self.N_n], axis=(0, 2))
         _estate[1] *= 1 - self.nu
         u.vprint('Estate value of %s at the end of year %s.' % (u.d(sum(_estate)), self.year_n[-1]))
@@ -1899,9 +1906,9 @@ class Plan:
 
     @_checkCaseStatus
     def summary(self):
-        '''
+        """
         Print summary of values.
-        '''
+        """
         lines = self._summaryList()
         for line in lines:
             print(line)
@@ -1909,33 +1916,36 @@ class Plan:
         return None
 
     def _summaryList(self):
-        '''
+        """
         Return string with summary of values.
-        '''
+        """
         now = self.year_n[0]
         lines = []
         lines.append('SUMMARY ================================================================')
         lines.append('Plan name: %s' % self._name)
         for i in range(self.N_i):
-            lines.append('%12s\'s life horizon: %d -> %d' % (self.inames[i], now, now + self.horizons[i] - 1))
+            lines.append("%12s's life horizon: %d -> %d" % (self.inames[i], now, now + self.horizons[i] - 1))
         lines.append('Contributions file: %s' % self.timeListsFileName)
         lines.append('Initial balances [taxable, tax-deferred, tax-free]:')
         for i in range(self.N_i):
-            lines.append('%12s\'s accounts: %s' % (self.inames[i], [u.d(self.beta_ij[i][j]) for j in range(self.N_j)]))
+            lines.append("%12s's accounts: %s" % (self.inames[i], [u.d(self.beta_ij[i][j]) for j in range(self.N_j)]))
 
         lines.append('Return rates: %s' % self.rateMethod)
         if self.rateMethod in ['historical', 'average', 'histochastic']:
             lines.append('Rates used: from %d to %d' % (self.rateFrm, self.rateTo))
         elif self.rateMethod == 'stochastic':
-            lines.append('Mean rates used (%%): %s' %
-                         (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
-            lines.append('Standard deviation used (%%): %s' %
-                         (['{:.1f}'.format(100*self.rateStdev[k]) for k in range(self.N_k)]))
+            lines.append(
+                'Mean rates used (%%): %s' % (['{:.1f}'.format(100 * self.rateValues[k]) for k in range(self.N_k)])
+            )
+            lines.append(
+                'Standard deviation used (%%): %s'
+                % (['{:.1f}'.format(100 * self.rateStdev[k]) for k in range(self.N_k)])
+            )
             lines.append('Correlation matrix used:')
             lines.append('\t\t' + str(self.rateCorr).replace('\n', '\n\t\t'))
         else:
-            lines.append('Rates used (%%): %s' % (['{:.1f}'.format(100*self.rateValues[k]) for k in range(self.N_k)]))
-        lines.append('This year\'s starting date: %s' % self.startDate)
+            lines.append('Rates used (%%): %s' % (['{:.1f}'.format(100 * self.rateValues[k]) for k in range(self.N_k)]))
+        lines.append("This year's starting date: %s" % self.startDate)
         lines.append('Optimized for: %s' % self.objective)
         lines.append('Solver options: %s' % self.solverOptions)
         lines.append('Number of decision variables: %d' % self.A.nvars)
@@ -1944,8 +1954,7 @@ class Plan:
         if self.N_i == 2:
             lines.append('Surviving spouse spending needs: %s' % u.pc(self.chi, f=0))
 
-        lines.append('Net yearly spending in year %d: %s' %
-                     (now, u.d(self.g_n[0]/self.yearFracLeft)))
+        lines.append('Net yearly spending in year %d: %s' % (now, u.d(self.g_n[0] / self.yearFracLeft)))
         lines.append('Net spending remaining in year %d: %s' % (now, u.d(self.g_n[0])))
         lines.append('Net yearly spending profile basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
 
@@ -1953,30 +1962,32 @@ class Plan:
 
         lines.append('Spousal surplus deposit fraction: %s' % self.eta)
         if self.N_i == 2 and self.n_d < self.N_n:
-            lines.append('Spousal beneficiary fractions to %s: %s'
-                         % (self.inames[self.i_s], self.phi_j.tolist()))
+            lines.append('Spousal beneficiary fractions to %s: %s' % (self.inames[self.i_s], self.phi_j.tolist()))
             p_j = self.partialEstate_j * (1 - self.phi_j)
             p_j[1] *= 1 - self.nu
             nx = self.n_d - 1
             totOthers = np.sum(p_j)
-            totOthersNow = totOthers/self.gamma_n[nx+1]
+            totOthersNow = totOthers / self.gamma_n[nx + 1]
             q_j = self.partialEstate_j * self.phi_j
             totSpousal = np.sum(q_j)
-            totSpousalNow = totSpousal/self.gamma_n[nx+1]
-            lines.append('Spousal wealth transfer from %s to %s in year %d (nominal):'
-                         % (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx]))
+            totSpousalNow = totSpousal / self.gamma_n[nx + 1]
             lines.append(
-                '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
+                'Spousal wealth transfer from %s to %s in year %d (nominal):'
+                % (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx])
             )
-            lines.append('Sum of spousal bequests to %s in year %d in %d$: %s (%s nominal)'
-                 % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal)))
-            lines.append('Post-tax non-spousal bequests from %s in year %d (nominal):'
-                 % (self.inames[self.i_d], self.year_n[nx]))
+            lines.append('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2])))
             lines.append(
-                '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
+                'Sum of spousal bequests to %s in year %d in %d$: %s (%s nominal)'
+                % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal))
             )
-            lines.append('Sum of post-tax non-spousal bequests from %s in year %d in %d$: %s (%s nominal)'
-                 % (self.inames[self.i_d], self.year_n[nx], now, u.d(totOthersNow), u.d(totOthers)))
+            lines.append(
+                'Post-tax non-spousal bequests from %s in year %d (nominal):' % (self.inames[self.i_d], self.year_n[nx])
+            )
+            lines.append('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2])))
+            lines.append(
+                'Sum of post-tax non-spousal bequests from %s in year %d in %d$: %s (%s nominal)'
+                % (self.inames[self.i_d], self.year_n[nx], now, u.d(totOthersNow), u.d(totOthers))
+            )
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
@@ -1988,9 +1999,7 @@ class Plan:
 
         taxPaid = np.sum(self.T_n, axis=0)
         taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
-        lines.append(
-            'Total ordinary income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid))
-        )
+        lines.append('Total ordinary income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
@@ -1998,22 +2007,22 @@ class Plan:
 
         taxPaid = np.sum(self.M_n, axis=0)
         taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
-        lines.append(
-            'Total Medicare premiums paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid))
-        )
+        lines.append('Total Medicare premiums paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
         lines.append('Post-tax account values at the end of final plan year %d: (nominal)' % self.year_n[-1])
-        lines.append('    taxable: %s  tax-def: %s  tax-free: %s'
-                     % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2])))
+        lines.append('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2])))
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[-1]
-        lines.append('Total estate value at the end of final plan year %d in %d$: %s (%s nominal)'
-                     % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
-        lines.append('Inflation factor from this year\'s start date to the end of plan final year: %.2f'
-                     % self.gamma_n[-1])
+        lines.append(
+            'Total estate value at the end of final plan year %d in %d$: %s (%s nominal)'
+            % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate))
+        )
+        lines.append(
+            "Inflation factor from this year's start date to the end of plan final year: %.2f" % self.gamma_n[-1]
+        )
 
         lines.append('Case executed on: %s' % self._timestamp)
         lines.append('------------------------------------------------------------------------')
@@ -2021,11 +2030,11 @@ class Plan:
         return lines
 
     def showRatesCorrelations(self, tag='', shareRange=False):
-        '''
+        """
         Plot correlations between various rates.
 
         A tag string can be set to add information to the title of the plot.
-        '''
+        """
         import seaborn as sbn
         import matplotlib.pyplot as plt
 
@@ -2079,11 +2088,11 @@ class Plan:
         return None
 
     def showRates(self, tag=''):
-        '''
+        """
         Plot rate values used over the time horizon.
 
         A tag string can be set to add information to the title of the plot.
-        '''
+        """
         import matplotlib.pyplot as plt
         import matplotlib.ticker as tk
 
@@ -2116,8 +2125,7 @@ class Plan:
                 data = 100 * self.tau_kn[k, 1:]
                 years = self.year_n[1:]
 
-            label = rateName[k] + ' <' + '{:.1f}'.format(np.mean(data)) + \
-                    ' +/- {:.1f}'.format(np.std(data)) + '%>'
+            label = rateName[k] + ' <' + '{:.1f}'.format(np.mean(data)) + ' +/- {:.1f}'.format(np.std(data)) + '%>'
             ax.plot(years, data, label=label, ls=ltype[k % self.N_k])
 
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
@@ -2132,11 +2140,11 @@ class Plan:
         return None
 
     def showProfile(self, tag=''):
-        '''
+        """
         Plot income profile over time.
 
         A tag string can be set to add information to the title of the plot.
-        '''
+        """
         title = self._name + '\nIncome Profile'
         if tag != '':
             title += ' - ' + tag
@@ -2150,14 +2158,14 @@ class Plan:
 
     @_checkCaseStatus
     def showNetSpending(self, tag='', value=None):
-        '''
+        """
         Plot net available spending and target over time.
 
         A tag string can be set to add information to the title of the plot.
 
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
-        '''
+        """
         value = self._checkValue(value)
 
         title = self._name + '\nNet Available Spending'
@@ -2181,7 +2189,7 @@ class Plan:
 
     @_checkCaseStatus
     def showAssetDistribution(self, tag='', value=None):
-        '''
+        """
         Plot the distribution of each savings account in thousands of dollars
         during the simulation time. This function will generate three
         graphs, one for taxable accounts, one the tax-deferred accounts,
@@ -2191,7 +2199,7 @@ class Plan:
 
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
-        '''
+        """
         value = self._checkValue(value)
 
         if value == 'nominal':
@@ -2233,13 +2241,13 @@ class Plan:
         return None
 
     def showAllocations(self, tag=''):
-        '''
+        """
         Plot desired allocation of savings accounts in percentage
         over simulation time and interpolated by the selected method
         through the interpolateAR() method.
 
         A tag string can be set to add information to the title of the plot.
-        '''
+        """
         count = self.N_i
         if self.ARCoord == 'spouses':
             acList = [self.ARCoord]
@@ -2286,14 +2294,14 @@ class Plan:
 
     @_checkCaseStatus
     def showAccounts(self, tag='', value=None):
-        '''
+        """
         Plot values of savings accounts over time.
 
         A tag string can be set to add information to the title of the plot.
 
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
-        '''
+        """
         value = self._checkValue(value)
 
         title = self._name + '\nSavings Balance'
@@ -2319,14 +2327,14 @@ class Plan:
 
     @_checkCaseStatus
     def showSources(self, tag='', value=None):
-        '''
+        """
         Plot income over time.
 
         A tag string can be set to add information to the title of the plot.
 
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
-        '''
+        """
         value = self._checkValue(value)
 
         title = self._name + '\nRaw Income Sources'
@@ -2359,11 +2367,11 @@ class Plan:
 
     @_checkCaseStatus
     def _showFeff(self, tag=''):
-        '''
+        """
         Plot income tax paid over time.
 
         A tag string can be set to add information to the title of the plot.
-        '''
+        """
         title = self._name + '\nEff f '
         if tag != '':
             title += ' - ' + tag
@@ -2385,14 +2393,14 @@ class Plan:
 
     @_checkCaseStatus
     def showTaxes(self, tag='', value=None):
-        '''
+        """
         Plot income tax paid over time.
 
         A tag string can be set to add information to the title of the plot.
 
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
-        '''
+        """
         value = self._checkValue(value)
 
         style = {'income taxes': '-', 'Medicare': '-.'}
@@ -2417,14 +2425,14 @@ class Plan:
 
     @_checkCaseStatus
     def showGrossIncome(self, tag='', value=None):
-        '''
+        """
         Plot income tax and taxable income over time horizon.
 
         A tag string can be set to add information to the title of the plot.
 
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
-        '''
+        """
         import matplotlib.pyplot as plt
 
         value = self._checkValue(value)
@@ -2459,9 +2467,9 @@ class Plan:
 
     @_checkCaseStatus
     def saveConfig(self, basename=None):
-        '''
+        """
         Save parameters in a configuration file.
-        '''
+        """
         if basename is None:
             basename = self._name
 
@@ -2471,7 +2479,7 @@ class Plan:
 
     @_checkCaseStatus
     def saveWorkbook(self, overwrite=False, basename=None):
-        '''
+        """
         Save instance in an Excel spreadsheet.
         The first worksheet will contain income in the following
         fields in columns:
@@ -2504,7 +2512,7 @@ class Plan:
         - tax-free account.
 
         Last worksheet contains cash flow.
-        '''
+        """
 
         from openpyxl import Workbook
         from openpyxl.utils.dataframe import dataframe_to_rows
@@ -2543,7 +2551,7 @@ class Plan:
             'all wages': np.sum(self.omega_in, axis=0),
             'all pensions': np.sum(self.pi_in, axis=0),
             'all soc sec': np.sum(self.zetaBar_in, axis=0),
-            'all bti\'s': np.sum(self.Lambda_in, axis=0),
+            "all bti's": np.sum(self.Lambda_in, axis=0),
             'all wdrwls': np.sum(self.w_ijn, axis=(0, 1)),
             'all deposits': -np.sum(self.d_in, axis=0),
             'ord taxes': -self.T_n,
@@ -2576,7 +2584,7 @@ class Plan:
         }
 
         for i in range(self.N_i):
-            sname = self.inames[i] + '\'s Sources'
+            sname = self.inames[i] + "'s Sources"
             ws = wb.create_sheet(sname)
             rawData = {}
             rawData['year'] = self.year_n
@@ -2604,7 +2612,7 @@ class Plan:
             'tax-free wdrwl': self.w_ijn[:, 2, :],
         }
         for i in range(self.N_i):
-            sname = self.inames[i] + '\'s Accounts'
+            sname = self.inames[i] + "'s Accounts"
             ws = wb.create_sheet(sname)
             rawData = {}
             rawData['year'] = self.year_n
@@ -2638,7 +2646,7 @@ class Plan:
         # Add one year for estate.
         year_n = np.append(self.year_n, [self.year_n[-1] + 1])
         for i in range(self.N_i):
-            sname = self.inames[i] + '\'s Allocations'
+            sname = self.inames[i] + "'s Allocations"
             ws = wb.create_sheet(sname)
             rawData = {}
             rawData['year'] = year_n
@@ -2684,11 +2692,11 @@ class Plan:
         return None
 
     def saveWorkbookCSV(self, basename):
-        '''
+        """
         Function similar to saveWorkbook(), but saving information in csv format
         instead of an Excel worksheet.
         See saveWorkbook() sister function for more information.
-        '''
+        """
 
         planData = {}
         planData['year'] = self.year_n
@@ -2734,9 +2742,9 @@ class Plan:
 
 
 def _lineIncomePlot(x, series, style, title, yformat='k\\$', show=False):
-    '''
+    """
     Core line plotter function.
-    '''
+    """
     import matplotlib.pyplot as plt
     import matplotlib.ticker as tk
 
@@ -2765,9 +2773,9 @@ def _lineIncomePlot(x, series, style, title, yformat='k\\$', show=False):
 
 
 def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$'):
-    '''
+    """
     Core function for stacked plots.
-    '''
+    """
     import matplotlib.pyplot as plt
     import matplotlib.ticker as tk
 
@@ -2805,9 +2813,9 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$')
 
 
 def _saveWorkbook(wb, basename, overwrite=False):
-    '''
+    """
     Utility function to save XL workbook.
-    '''
+    """
     from os.path import isfile
     from pathlib import Path
 
@@ -2840,17 +2848,17 @@ def _saveWorkbook(wb, basename, overwrite=False):
 
 
 def _formatSpreadsheet(ws, ftype):
-    '''
+    """
     Utility function to beautify spreadsheet.
-    '''
+    """
     if ftype == 'currency':
-        fstring = u'$#,##0_);[Red]($#,##0)'
+        fstring = '$#,##0_);[Red]($#,##0)'
     elif ftype == 'percent2':
-        fstring = u'#.00%'
+        fstring = '#.00%'
     elif ftype == 'percent1':
-        fstring = u'#.0%'
+        fstring = '#.0%'
     elif ftype == 'percent0':
-        fstring = u'#0%'
+        fstring = '#0%'
     elif ftype == 'summary':
         for col in ws.columns:
             column = col[0].column_letter
@@ -2875,9 +2883,9 @@ def _formatSpreadsheet(ws, ftype):
 
 
 def _streamPrinter(text):
-    '''
+    """
     Define a stream printer to grab output from MOSEK.
-    '''
+    """
     import sys
 
     if not u.verbose:

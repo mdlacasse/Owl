@@ -1,4 +1,4 @@
-'''
+"""
 
 Owl/tax2024
 ---
@@ -13,7 +13,7 @@ Module to handle all tax calculations.
 Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
-'''
+"""
 
 import numpy as np
 from datetime import date
@@ -36,9 +36,7 @@ taxBrackets_2024 = np.array(
     ]
 )
 
-irmaaBrackets = np.array(
-    [[0, 103000, 129000, 161000, 193000, 500000], [0, 206000, 258000, 322000, 386000, 750000]]
-)
+irmaaBrackets = np.array([[0, 103000, 129000, 161000, 193000, 500000], [0, 206000, 258000, 322000, 386000, 750000]])
 
 # medicareBasis_2024 = 12 * 174.70
 # [174.70, 244.60, 349.40, 454.20, 559.00, 594.00]
@@ -65,11 +63,11 @@ extraDeduction_65 = np.array([1950, 1550])
 
 
 def mediCosts(yobs, horizons, magi, gamma_n, Nn):
-    '''
+    """
     Compute Medicare costs directly.
     Birth years, life horizons, MAGI time series, inflation time series gamma_n,
     and total number of years in the plan are provided.
-    '''
+    """
     thisyear = date.today().year
     Ni = len(yobs)
     medicosts = np.zeros(Nn)
@@ -84,7 +82,7 @@ def mediCosts(yobs, horizons, magi, gamma_n, Nn):
 
         fac = medicount * gamma_n[n]
         medicosts[n] += fac * irmaaFees[0]
-        nx = max(0, n-2)
+        nx = max(0, n - 2)
         for q in range(1, 6):
             if magi[nx] > gamma_n[n] * irmaaBrackets[medicount - 1][q]:
                 medicosts[n] += fac * irmaaFees[q]
@@ -93,14 +91,14 @@ def mediCosts(yobs, horizons, magi, gamma_n, Nn):
 
 
 def taxParams(yobs, i_d, n_d, N_n):
-    '''
+    """
     Return 3 time series:
     1) Standard deductions at year n (sigma_n).
     2) Tax rate in year n (theta_tn)
     3) Delta from top to bottom of tax brackets (Delta_tn)
     This is pure speculation on future values.
     Returned values are not indexed for inflation.
-    '''
+    """
     # Compute the deltas in-place between brackets, starting from the end.
     deltaBrackets_2024 = np.array(taxBrackets_2024)
     deltaBrackets_2026 = np.array(taxBrackets_2026)
@@ -150,10 +148,10 @@ def taxParams(yobs, i_d, n_d, N_n):
 
 
 def taxBrackets(N_i, n_d, N_n):
-    '''
+    """
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
-    '''
+    """
     assert 0 < N_i and N_i <= 2, 'Cannot process %d individuals.' % N_i
     # This 2 is the number of years left in TCJA from 2024.
     ytc = 2
@@ -172,12 +170,12 @@ def taxBrackets(N_i, n_d, N_n):
 
 
 def rho_in(yobs, N_n):
-    '''
+    """
     Return Required Minimum Distribution fractions for each individual.
     This implementation does not support spouses with more than
     10-year difference.
     It starts at age 73 until it goes to 75 in 2033.
-    '''
+    """
     # Notice that table starts at age 72.
     rmdTable = [
         27.4,

@@ -1,4 +1,4 @@
-'''
+"""
 
 Owl/config
 
@@ -7,7 +7,7 @@ This file contains utility functions to save configuration parameters.
 Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
-'''
+"""
 
 import configparser
 import numpy as np
@@ -16,9 +16,9 @@ from owlplanner import utils as u
 
 
 def saveConfig(plan, basename):
-    '''
+    """
     Save plan configuration parameters to a file named *basename*.cfg.
-    '''
+    """
     u.vprint('Saving plan config as "%s.cfg".' % basename)
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
@@ -85,9 +85,9 @@ def saveConfig(plan, basename):
         'To': str(plan.rateTo),
     }
     if plan.rateMethod in ['fixed', 'stochastic']:
-        config['Rates']['values'] = ', '.join(str(100*k) for k in plan.rateValues)
+        config['Rates']['values'] = ', '.join(str(100 * k) for k in plan.rateValues)
     if plan.rateMethod in ['stochastic']:
-        config['Rates']['standard deviations'] = ', '.join(str(100*k) for k in plan.rateStdev)
+        config['Rates']['standard deviations'] = ', '.join(str(100 * k) for k in plan.rateStdev)
         flat_corr = plan.rateCorr.flatten()
         config['Rates']['correlations'] = ', '.join(str(k) for k in flat_corr)
 
@@ -101,14 +101,14 @@ def saveConfig(plan, basename):
 
 
 def readConfig(basename):
-    '''
+    """
     Read plan configuration parameters from file *basename*.cfg.
     A new plan is created and returned.
-    '''
+    """
     import configparser
     import ast
 
-    u.vprint('Reading plan configuration from file \'%s.cfg\'.' % basename)
+    u.vprint("Reading plan configuration from file '%s.cfg'." % basename)
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
@@ -121,7 +121,7 @@ def readConfig(basename):
     inames = config['Who']['Names'].split(',')
     name = config['Parameters']['Plan name']
     startDate = config['Parameters']['Starting date']
-    u.vprint('Plan for %d individual%s: %s.' % (icount, ['', 's'][icount-1], inames))
+    u.vprint('Plan for %d individual%s: %s.' % (icount, ['', 's'][icount - 1], inames))
 
     # Parameters getting one value for each spouse.
     yobs = []

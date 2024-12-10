@@ -1,4 +1,4 @@
-'''
+"""
 
 Owl/abcapi
 ---
@@ -20,37 +20,37 @@ Copyright (C) 2024 -- Martin-D. Lacasse
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 
-'''
+"""
 
 import numpy as np
 
 
 class Row:
-    '''
+    """
     Solver-neutral API to accomodate Mosek/HiGHS.
     A Row represent a row in matrix A.
-    '''
+    """
 
     def __init__(self, nvars):
-        '''
+        """
         Constructor requires the number of decision variables.
-        '''
+        """
         self.nvars = nvars
         self.ind = []
         self.val = []
 
     def addElem(self, ind, val):
-        '''
+        """
         Add an element at index ``ind`` of value ``val`` to the row.
-        '''
+        """
         assert 0 <= ind and ind < self.nvars, 'Index %d out of range.' % ind
         self.ind.append(ind)
         self.val.append(val)
 
     def addElemDic(self, rowDic=None):
-        '''
+        """
         Add elements at indices provided by a dictionary.
-        '''
+        """
         if rowDic is None:
             rowDic = {}
         for key in rowDic:
@@ -59,14 +59,14 @@ class Row:
 
 
 class ConstraintMatrix:
-    '''
+    """
     Solver-neutral API for expressing constraints.
-    '''
+    """
 
     def __init__(self, nvars):
-        '''
+        """
         Constructor only requires the number of decision variables.
-        '''
+        """
         self.ncons = 0
         self.nvars = nvars
         self.Aind = []
@@ -76,10 +76,10 @@ class ConstraintMatrix:
         self.key = []
 
     def newRow(self, rowDic=None):
-        '''
+        """
         Create a new row and populate its elements using the dictionary provided.
         Return the row created.
-        '''
+        """
         if rowDic is None:
             rowDic = {}
         row = Row(self.nvars)
@@ -87,10 +87,10 @@ class ConstraintMatrix:
         return row
 
     def addRow(self, row, lb, ub):
-        '''
+        """
         Add row ``row`` to the constraint matrix with the lower ``lb`` and
         upper bound ``ub`` provided.
-        '''
+        """
         self.Aind.append(row.ind)
         self.Aval.append(row.val)
         self.lb.append(lb)
@@ -104,30 +104,30 @@ class ConstraintMatrix:
         self.ncons += 1
 
     def addNewRow(self, rowDic, lb, ub):
-        '''
+        """
         Create and add a new row to the constraint matrix with the lower ``lb`` and
         upper bound ``ub`` provided. Row's elements are populated from the provided
         dictionary ``rowDic``.
-        '''
+        """
         row = self.newRow(rowDic)
         self.addRow(row, lb, ub)
 
     def keys(self):
-        '''
+        """
         Return list of keys for each row used by MOSEK.
-        '''
+        """
         return self.key
 
     def lists(self):
-        '''
+        """
         Return lists of indices and values for MOSEK sparse representation.
-        '''
+        """
         return self.Aind, self.Aval, self.lb, self.ub
 
     def arrays(self):
-        '''
+        """
         Return full arrays for Scipy/HiGHS.
-        '''
+        """
         Alu = np.zeros((self.ncons, self.nvars))
         lb = np.array(self.lb)
         ub = np.array(self.ub)
@@ -141,9 +141,9 @@ class ConstraintMatrix:
 
 
 class Bounds:
-    '''
+    """
     Solver-neutral API for bounds on variables.
-    '''
+    """
 
     def __init__(self, nvars):
         self.nvars = nvars
@@ -213,9 +213,9 @@ class Bounds:
 
 
 class Objective:
-    '''
+    """
     Solver-neutral objective function.
-    '''
+    """
 
     def __init__(self, nvars):
         self.nvars = nvars
@@ -228,9 +228,9 @@ class Objective:
         self.val.append(val)
 
     def arrays(self):
-        '''
+        """
         Return an array for scipy/HiGHS dense representation.
-        '''
+        """
         c = np.zeros(self.nvars)
         for ii in range(len(self.ind)):
             c[self.ind[ii]] = self.val[ii]
@@ -238,7 +238,7 @@ class Objective:
         return c
 
     def lists(self):
-        '''
+        """
         Return lists for Mosek sparse representation.
-        '''
+        """
         return self.ind, self.val

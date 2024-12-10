@@ -1,4 +1,4 @@
-'''
+"""
 
 Owl/rates
 ---
@@ -26,7 +26,7 @@ Copyright (C) 2024 -- Martin-D. Lacasse
 Last updated: May 2024
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
-'''
+"""
 
 ###################################################################
 import numpy as np
@@ -703,11 +703,11 @@ Inflation = [
 
 
 def getRatesDistributions(frm, to):
-    '''
+    """
     Pre-compute normal distribution parameters for the series above.
     This calculation takes into account the correlations between
     the different rates. Function returns means and covariance matrix.
-    '''
+    """
     import pandas as pd
 
     # Convert years to index and check range.
@@ -735,22 +735,22 @@ def getRatesDistributions(frm, to):
     u.vprint('standard deviation: (%)\n', stdev)
 
     # Convert to NumPy array and from percent to decimal.
-    means = np.array(means)/100.0
-    stdev = np.array(stdev)/100.0
-    covar = np.array(covar)/10000.0
+    means = np.array(means) / 100.0
+    stdev = np.array(stdev) / 100.0
+    covar = np.array(covar) / 10000.0
     # Build correlation matrix by dividing by the stdev for each column and row.
-    corr = covar/stdev[:, None]
-    corr = corr.T/stdev[:, None]
+    corr = covar / stdev[:, None]
+    corr = corr.T / stdev[:, None]
     u.vprint('correlation matrix: \n\t\t%s' % str(corr).replace('\n', '\n\t\t'))
 
     return means, stdev, corr, covar
 
 
 def historicalValue(amount, year):
-    '''
+    """
     Return the deflated value of amount given in this year's dollars as
     valued at the beginning of the year specified.
-    '''
+    """
     thisyear = date.today().year
     assert TO == thisyear - 1, 'Rates file needs to be updated to be current to %d.' % thisyear
     assert year >= FROM, 'Only data from %d is available.' % FROM
@@ -759,13 +759,13 @@ def historicalValue(amount, year):
     span = thisyear - year
     ub = len(Inflation)
     for n in range(ub - span, ub):
-        amount /= (1 + Inflation[n]/100)
+        amount /= 1 + Inflation[n] / 100
 
     return amount
 
 
 class Rates:
-    '''
+    """
     Rates are stored in a 4-array in the following order:
     Stocks, Bonds, Fixed assets, and Inflation.
     Rate are stored in decimal, but the API is in percent.
@@ -774,12 +774,12 @@ class Rates:
     ``r = Rates()``
     then ``r.setMethod(...)``
     then ``mySeries = r.genSeries()``
-    '''
+    """
 
     def __init__(self):
-        '''
+        """
         Default constructor.
-        '''
+        """
         # Default rates are average over last 30 years.
         self._defRates = np.array([0.1101, 0.0736, 0.0503, 0.0251])
 
@@ -802,7 +802,7 @@ class Rates:
         self.setMethod('default')
 
     def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None):
-        '''
+        """
         Select the method to generate the annual rates of return
         for the different classes of assets.  Different methods include:
         - default:  average over last 30 years.
@@ -817,9 +817,18 @@ class Rates:
         by only specifying the off-diagonal elements as a simple list
         of (Nk*Nk - Nk)/2 values for Nk assets.
         For 4 assets, this represents a list of 6 off-diagonal values.
-        '''
-        if method not in ['default', 'realistic', 'conservative', 'fixed', 'historical',
-                          'average', 'mean', 'stochastic', 'histochastic']:
+        """
+        if method not in [
+            'default',
+            'realistic',
+            'conservative',
+            'fixed',
+            'historical',
+            'average',
+            'mean',
+            'stochastic',
+            'histochastic',
+        ]:
             u.xprint('Unknown method %s.' % method)
 
         Nk = len(self._defRates)
@@ -863,11 +872,11 @@ class Rates:
                 if corrarr.shape == (Nk, Nk):
                     pass
                 # Only off-diagonal elements were provided: build full matrix.
-                elif corrarr.shape == ((Nk*Nk - Nk)/2,):
+                elif corrarr.shape == ((Nk * Nk - Nk) / 2,):
                     newcorr = np.identity(Nk)
                     x = 0
                     for i in range(Nk):
-                        for j in range(i+1, Nk):
+                        for j in range(i + 1, Nk):
                             newcorr[i, j] = corrarr[x]
                             newcorr[j, i] = corrarr[x]
                             x += 1
@@ -921,13 +930,13 @@ class Rates:
         return
 
     def genSeries(self, N):
-        '''
+        """
         Generate a series of Nx4 entries of rates representing S&P500,
         corporate Baa bonds, 10-y treasury notes, and inflation,
         respectively. If there are less than 'N' entries
         in sub-series selected by 'setMethod()', values will be repeated
         modulo the length of the sub-series.
-        '''
+        """
         rateSeries = np.zeros((N, 4))
 
         # Convert years to indices.
@@ -944,27 +953,27 @@ class Rates:
         return rateSeries
 
     def _fixedRates(self, n):
-        '''
+        """
         Return rates provided.
         For fixed rates, values are time-independent, and therefore
         the 'n' argument is ignored.
-        '''
+        """
         # Fixed rates are stored in decimal.
         return self._myRates
 
     def _histRates(self, n):
-        '''
+        """
         Return a list of 4 values representing the historical rates
         of stock, Corporate Baa bonds, Treasury notes, and inflation,
         respectively.
-        '''
+        """
         hrates = np.array([SP500[n], BondsBaa[n], TNotes[n], Inflation[n]])
 
         # Convert from percent to decimal.
         return hrates / 100
 
     def _stochRates(self, n):
-        '''
+        """
         Return a list of 4 values representing the historical rates
         of stock, Corporate Baa bonds, Treasury notes, and inflation,
         respectively. Values are pulled from normal distributions
@@ -974,16 +983,16 @@ class Rates:
         But these variables need to be looked at together
         through multivariate analysis. Code below accounts for
         covariance between stocks, bonds, and inflation.
-        '''
+        """
         srates = np.random.multivariate_normal(self.means, self.covar)
 
         return srates
 
 
 def showRatesDistributions(frm=FROM, to=TO):
-    '''
+    """
     Plot histograms of the rates distributions.
-    '''
+    """
     import matplotlib.pyplot as plt
 
     title = 'Rates from ' + str(frm) + ' to ' + str(to)
