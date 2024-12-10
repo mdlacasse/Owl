@@ -260,8 +260,8 @@ plan.summary()
 ```
 The output of the last command reports that if future rates are exactly like those observed
 starting from 1969 and the following years, Jack and Jill could afford an annual spending of $97k starting this year
-(with a basis of $88.7k - the basis multiples the profile which can vary over the course of the plan).
-It also contains many more details:
+(with a basis of $88.8k - the basis multiplies the profile which can vary over the course of the plan).
+The summary also contains many more details:
 ```
 SUMMARY ================================================================
 Plan name: jack & jill - tutorial
@@ -338,11 +338,12 @@ If not, a simple tutorial can guide you to the basic skills needed.
 Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
 Package `odfpy` might be required if one read files created by LibreOffice.
 
-Owl can be installed as a package using:
+If you have Python already installed on your computer, Owl can be installed as a package using the following commands:
 ```shell
 python -m build
 pip install .
 ```
+There commands need to run from the Owl directory downloaded from GitHub.
 This will install all the required dependencies, but Jupyter will not be installed.
 
 Alternatively, another way for some might might be to perform an installation of Anaconda on your computer.
