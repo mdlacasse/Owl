@@ -18,6 +18,8 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import numpy as np
 from datetime import date
 
+from owlplanner import utils as u
+
 ##############################################################################
 # Prepare the data.
 
