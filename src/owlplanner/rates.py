@@ -847,7 +847,7 @@ class Rates:
             self._setFixedRates(self.means)
         elif method == 'stochastic':
             assert values is not None, 'Mean values must be provided with the stochastic option.'
-            assert stdev is not None, 'Standard deviatinos must be provided with the stochastic option.'
+            assert stdev is not None, 'Standard deviations must be provided with the stochastic option.'
             assert len(values) == Nk, 'values must have %d items.'%Nk
             assert len(stdev) == Nk, 'stdev must have %d items.'%Nk
             self.means = np.array(values, dtype=float)
