@@ -267,16 +267,16 @@ SUMMARY ================================================================
 Plan name: jack & jill - tutorial
         Jack's life horizon: 2024 -> 2051
         Jill's life horizon: 2024 -> 2057
-Contributions file: jack+jill.xlsx
+Contributions file: examples/jack+jill.xlsx
 Initial balances [taxable, tax-deferred, tax-free]:
         Jack's accounts: ['$90,500', '$600,500', '$70,000']
         Jill's accounts: ['$60,200', '$150,000', '$40,000']
 Return rates: historical
 Rates used: from 1969 to 2002
-This year's starting date: 01/01
+This year's starting date: 1/1
 Optimized for: maxSpending
 Solver options: {'maxRothConversion': 100, 'bequest': 500, 'noRothConversions': 'Jill'}
-Number of decision variables: 992
+Number of decision variables: 1026
 Number of constraints: 894
 Spending profile: smile
 Surviving spouse spending needs: 60%
@@ -294,14 +294,14 @@ Post-tax non-spousal bequests from Jack in year 2051 (nominal):
 Sum of post-tax non-spousal bequests from Jack in year 2051 in 2024$: $0 ($0 nominal)
 Total net spending in 2024$: $2,804,910 ($7,916,623 nominal)
 Total Roth conversions in 2024$: $311,760 ($443,005 nominal)
-Total ordinary income tax paid in 2024$: $240,389 ($477,589 nominal)
+Total ordinary income tax paid in 2024$: $236,710 ($457,922 nominal)
 Total dividend tax paid in 2024$: $3,437 ($3,902 nominal)
 Total Medicare premiums paid in 2024$: $117,817 ($346,404 nominal)
 Post-tax account values at the end of final plan year 2057: (nominal)
     taxable: $0  tax-def: $0  tax-free: $2,553,871
 Total estate value at the end of final plan year 2057 in 2024$: $500,000 ($2,553,871 nominal)
-Inflation factor from this year's start date to the end of the plan final year: 5.11
-Case executed on: 2024-11-24 at 11:15:50
+Inflation factor from this year's start date to the end of plan final year: 5.11
+Case executed on: 2024-12-09 at 22:11:57
 ------------------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
