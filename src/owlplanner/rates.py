@@ -978,7 +978,7 @@ class Rates:
         srates = np.random.multivariate_normal(self.means, self.covar)
 
         return srates
- 
+
 
 def showRatesDistributions(frm=FROM, to=TO):
     '''
@@ -1024,4 +1024,3 @@ def showRatesDistributions(frm=FROM, to=TO):
 
     # return fig, ax
     return None
-

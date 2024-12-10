@@ -1230,9 +1230,8 @@ class Plan:
                     B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
 
                 # Exclude simultaneous deposits and withdrawals from taxable or tax-free accounts.
-                A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q1(Cs, n, Nn): -1},
-                     zero, bigM,
+                A.addNewRow({_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q1(Cs, n, Nn): -1},
+                            zero, bigM,
                 )
 
                 A.addNewRow(
@@ -1440,7 +1439,7 @@ class Plan:
         return None
 
     @_checkConfiguration
-    def solve(self, objective, options={}):
+    def solve(self, objective, options=None):
         '''
         This function builds the necessary constaints and
         runs the optimizer.
@@ -1477,7 +1476,10 @@ class Plan:
             'solver',
         ]
         # We will modify options if required.
-        myoptions = dict(options)
+        if options is None:
+            myoptions = {}
+        else:
+            myoptions = dict(options)
 
         for opt in myoptions:
             if opt not in knownOptions:
@@ -2003,16 +2005,15 @@ class Plan:
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
         lines.append('Post-tax account values at the end of final plan year %d: (nominal)' % self.year_n[-1])
-        lines.append(
-            '    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2]))
-        )
+        lines.append('    taxable: %s  tax-def: %s  tax-free: %s'
+                     % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2])))
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[-1]
         lines.append('Total estate value at the end of final plan year %d in %d$: %s (%s nominal)'
-                % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
+                     % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
         lines.append('Inflation factor from this year\'s start date to the end of plan final year: %.2f'
-                % self.gamma_n[-1])
+                     % self.gamma_n[-1])
 
         lines.append('Case executed on: %s' % self._timestamp)
         lines.append('------------------------------------------------------------------------')
