@@ -1,6 +1,5 @@
 
 import pytest
-import sys
 from datetime import date
 
 import owlplanner as owl
@@ -8,6 +7,7 @@ import owlplanner as owl
 owl.setVerbose(False)
 # solver = 'MOSEK'
 solver = 'HiGHS'
+
 
 def test_constructor1():
     inames = ['Joe']
@@ -18,7 +18,7 @@ def test_constructor1():
     assert p.inames == inames
     assert p.yobs == yobs
     assert p.expectancy == expectancy
-    assert p.N_i == 1 
+    assert p.N_i == 1
     assert p._name == name
 
 
@@ -31,7 +31,7 @@ def test_constructor2():
     assert p.inames == inames
     assert p.yobs == yobs
     assert p.expectancy == expectancy
-    assert p.N_i == 2 
+    assert p.N_i == 2
     assert p._name == name
 
 
@@ -43,7 +43,7 @@ def createPlan(ni, name, ny):
         inames = ['Joe']
         yobs = [1964]
         expectancy = [thisyear - 1964 + ny]
-    else: 
+    else:
         inames = ['Joe', 'Jane']
         yobs = [1960, 1961]
         expectancy = [thisyear - 1960 + ny, thisyear - 1961 + ny]
@@ -260,4 +260,3 @@ def test_annuity3():
     annuity = 1000*amount*rate/((1 - (1 + rate)**-n)*(1 + rate))
     assert p.basis == pytest.approx(annuity, abs=0.5)
     assert p.bequest == pytest.approx(0, abs=0.5)
-

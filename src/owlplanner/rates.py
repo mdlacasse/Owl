@@ -752,11 +752,11 @@ def historicalValue(amount, year):
     valued at the beginning of the year specified.
     '''
     thisyear = date.today().year
-    assert TO == thisyear - 1, 'Rates file needs to be updated to be current to %d.'%thisyear
-    assert year >= FROM, 'Only data from %d is available.'%FROM
-    assert year <= thisyear, 'Year must be < %d for historical data.'%thisyear
+    assert TO == thisyear - 1, 'Rates file needs to be updated to be current to %d.' % thisyear
+    assert year >= FROM, 'Only data from %d is available.' % FROM
+    assert year <= thisyear, 'Year must be < %d for historical data.' % thisyear
 
-    span = thisyear - year 
+    span = thisyear - year
     ub = len(Inflation)
     for n in range(ub - span, ub):
         amount /= (1 + Inflation[n]/100)
@@ -801,7 +801,6 @@ class Rates:
         # Default values for rates.
         self.setMethod('default')
 
-
     def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None):
         '''
         Select the method to generate the annual rates of return
@@ -839,7 +838,7 @@ class Rates:
             self._setFixedRates(self._conservRates)
         elif method == 'fixed':
             assert values is not None, 'Values must be provided with the fixed option.'
-            assert len(values) == Nk, 'values must have %d items.'%Nk
+            assert len(values) == Nk, 'values must have %d items.' % Nk
             self.means = np.array(values, dtype=float)
             # Convert percent to decimal for storing.
             self.means /= 100.0
@@ -848,8 +847,8 @@ class Rates:
         elif method == 'stochastic':
             assert values is not None, 'Mean values must be provided with the stochastic option.'
             assert stdev is not None, 'Standard deviations must be provided with the stochastic option.'
-            assert len(values) == Nk, 'values must have %d items.'%Nk
-            assert len(stdev) == Nk, 'stdev must have %d items.'%Nk
+            assert len(values) == Nk, 'values must have %d items.' % Nk
+            assert len(stdev) == Nk, 'stdev must have %d items.' % Nk
             self.means = np.array(values, dtype=float)
             self.stdev = np.array(stdev, dtype=float)
             # Convert percent to decimal for storing.
@@ -874,7 +873,7 @@ class Rates:
                             x += 1
                     corrarr = newcorr
                 else:
-                    u.xprint('Unable to process correlation shape of %s.'%corrarr.shape)
+                    u.xprint('Unable to process correlation shape of %s.' % corrarr.shape)
 
             self.corr = corrarr
             assert np.array_equal(self.corr, self.corr.T), 'Correlation matrix must be symmetric.'
@@ -896,14 +895,14 @@ class Rates:
             self.to = to
 
             if method == 'historical':
-                u.vprint('Using', method, 'rates representing data from', frm, 'to', to)
+                u.vprint('Using historical rates representing data from %d to %d.' % (frm, to))
                 self._rateMethod = self._histRates
             elif method == 'average' or method == 'means':
-                u.vprint('Using', method, 'rates from', frm, 'to', to)
+                u.vprint('Using average of rates from %d to %d.' %(frm, to))
                 self.means, self.stdev, self.corr, self.covar = getDistributions(frm, to)
                 self._setFixedRates(self.means)
             elif method == 'histochastic':
-                u.vprint('Using', method, 'rates from', frm, 'to', to)
+                u.vprint('Using histochastic rates derived from years %d to %d.' %(frm, to))
                 self._rateMethod = self._stochRates
                 self.means, self.stdev, self.corr, self.covar = getDistributions(frm, to)
             else:
@@ -915,7 +914,7 @@ class Rates:
 
     def _setFixedRates(self, rates):
         Nk = len(self._defRates)
-        assert len(rates) == Nk, 'Rate list provided must have %d entries.'%Nk
+        assert len(rates) == Nk, 'Rate list provided must have %d entries.' % Nk
         self._myRates = np.array(rates)
         self._rateMethod = self._fixedRates
 

@@ -126,7 +126,6 @@ def readConfig(basename):
     # Parameters getting one value for each spouse.
     yobs = []
     expectancy = []
-    beneficiary = []
     pensionAmounts = []
     pensionAges = []
     ssecAmounts = []

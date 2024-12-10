@@ -1,15 +1,16 @@
 
 import pytest
-import sys
 import os
 from datetime import date
 
 import owlplanner as owl
 
+
 owl.setVerbose(False)
 # solver = 'MOSEK'
 solver = 'HiGHS'
 thisyear = date.today().year
+
 
 def createJackAndJillPlan(name):
     inames = ['Jack', 'Jill']

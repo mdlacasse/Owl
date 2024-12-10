@@ -156,6 +156,7 @@ def checkCaseStatus(func):
 
     return wrapper
 
+
 def checkConfiguration(func):
     '''
     Decorator to check if problem was configured successfully and
@@ -175,6 +176,7 @@ def checkConfiguration(func):
 
     return wrapper
 
+
 def timer(func):
     '''
     Decorator to report CPU and Wall time.
@@ -187,7 +189,7 @@ def timer(func):
         pt = time.process_time() - pt0
         rt = time.time() - rt0
         print("CPU time used: %dm%.1fs, Wall time: %dm%.1fs."
-              %(int(pt/60), pt%60, int(rt/60), rt%60))
+              %(int(pt/60), pt % 60, int(rt/60), rt % 60))
         return result
 
     return wrapper
@@ -251,12 +253,12 @@ class Plan:
             self.i_s = -1
 
         # Default parameters:
-        self.psi = 0.15                  # Long-term income tax rate on capital gains (decimal)
-        self.chi = 0.6                   # Survivor fraction
-        self.mu = 0.02                   # Dividend rate (decimal)
-        self.nu = 0.30                   # Heirs tax rate (decimal)
-        self.eta = (self.N_i - 1)/2      # Spousal deposit ratio (0 or .5)
-        self.phi_j = np.array([1, 1, 1]) # Fractions left to other spouse at death
+        self.psi = 0.15                   # Long-term income tax rate on capital gains (decimal)
+        self.chi = 0.6                    # Survivor fraction
+        self.mu = 0.02                    # Dividend rate (decimal)
+        self.nu = 0.30                    # Heirs tax rate (decimal)
+        self.eta = (self.N_i - 1)/2       # Spousal deposit ratio (0 or .5)
+        self.phi_j = np.array([1, 1, 1])  # Fractions left to other spouse at death
 
         # Default to zero pension and social security.
         self.pi_in = np.zeros((self.N_i, self.N_n))
@@ -291,7 +293,7 @@ class Plan:
 
         self._buildOffsetMap()
 
-	# Initialize guardrails to ensure proper configuration.
+        # Initialize guardrails to ensure proper configuration.
         self._adjustedParameters = False
         self.timeListsFileName = None
         self.caseStatus = 'unsolved'
@@ -325,7 +327,7 @@ class Plan:
         lp = calendar.isleap(thisyear)
         self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1)/(365 + lp)
 
-        u.vprint('Setting 1st-year starting date to %s.'%(self.startDate))
+        u.vprint('Setting 1st-year starting date to %s.' % (self.startDate))
 
         return None
 
@@ -423,7 +425,7 @@ class Plan:
 
         if np.any(self.phi_j != 1):
             u.vprint('Consider changing spousal deposit fraction for better convergence.')
-            u.vprint('\tRecommended: setSpousalDepositFraction(%d)'%self.i_d)
+            u.vprint('\tRecommended: setSpousalDepositFraction(%d)' % self.i_d)
 
         return None
 
@@ -501,7 +503,7 @@ class Plan:
 
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
-            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], amounts[self.i_d] / 2)
+            self.zeta_in[self.i_s, self.n_d:] = max(amounts[self.i_s], amounts[self.i_d] / 2)
 
         self.ssecAmounts = amounts
         self.ssecAges = ages
@@ -547,7 +549,7 @@ class Plan:
 
         Valid year range is from 1928 to last year.
         '''
-        if frm != None and to == None:
+        if frm is not None and to is None:
             to = frm + self.N_n - 1  # 'to' is inclusive.
 
         dr = rates.Rates()
@@ -901,7 +903,7 @@ class Plan:
         if self.rateMethod is None:
             u.xprint('A rate method needs to be first selected using setRates(...).')
 
-        if self._adjustedParameters == False:
+        if not self._adjustedParameters:
             u.vprint('Adjusting parameters for inflation.')
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
@@ -1025,7 +1027,7 @@ class Plan:
                         B.setRange(_q2(Cx, i, n, Ni, Nn), rhs, rhs)
             else:
                 rhsopt = options['maxRothConversion']
-                assert isinstance(rhsopt, (int, float)) == True, 'Specified maxConversion is not a number.'
+                assert isinstance(rhsopt, (int, float)), 'Specified maxConversion is not a number.'
                 rhsopt *= units
                 if rhsopt < 0:
                     # u.vprint('Unlimited Roth conversions (<0)')
@@ -1069,7 +1071,7 @@ class Plan:
             # Impose optional constraint on final bequest requested in today's $.
             if 'bequest' in options:
                 bequest = options['bequest']
-                assert isinstance(bequest, (int, float)) == True, 'Desired bequest is not a number.'
+                assert isinstance(bequest, (int, float)), 'Desired bequest is not a number.'
                 bequest *= units * self.gamma_n[-1]
             else:
                 # If not specified, defaults to $1 (nominal $).
@@ -1086,7 +1088,7 @@ class Plan:
             # u.vprint('Adding bequest constraint of:', u.d(bequest))
         elif objective == 'maxBequest':
             spending = options['netSpending']
-            assert isinstance(spending, (int, float)) == True, 'Desired spending provided is not a number.'
+            assert isinstance(spending, (int, float)), 'Desired spending provided is not a number.'
             # Account for time elapsed in the current year.
             spending *= units * self.yearFracLeft
             # u.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
@@ -1227,30 +1229,28 @@ class Plan:
                 for z in range(Nz):
                     B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
 
-                # '''
                 # Exclude simultaneous deposits and withdrawals from taxable or tax-free accounts.
                 A.addNewRow(
                     {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q1(Cs, n, Nn): -1},
-                    zero, bigM,
+                     zero, bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, 
+                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM,
                      _q3(Cw, i, 0, n, Ni, Nj, Nn): 1,
                      _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
                      zero, bigM,
                 )
-                # '''
 
                 # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
                 A.addNewRow(
                     {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
-                    zero, bigM,
+                     zero, bigM,
                 )
 
                 A.addNewRow(
                     {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
-                    zero, bigM,
+                     zero, bigM,
                 )
 
         # Now build a solver-neutral objective vector.
@@ -1276,11 +1276,10 @@ class Plan:
         '''
         Run historical scenarios on plan over a range of years.
         '''
-        values = []
         N = yend - ystart + 1
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n
-            print('Warning: Upper bound for year range re-adjusted to %d.'%yend)
+            print('Warning: Upper bound for year range re-adjusted to %d.' % yend)
 
         old_status = setVerbose(verbose)
 
@@ -1290,21 +1289,21 @@ class Plan:
             columns = ['partial', 'final']
 
         df = pd.DataFrame(columns=columns)
-    
-        if verbose is False:
+
+        if not verbose:
             print('|--- progress ---|')
 
         for year in range(ystart, yend+1):
             self.setRates('historical', year)
             self.solve(objective, options)
-            if verbose is False:
-                print('\r\t%s'%u.pc((year-ystart+1)/N, f=0), end='')
+            if not verbose:
+                print('\r\t%s' % u.pc((year-ystart+1)/N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
                     df.loc[len(df)] = [self.partialBequest, self.basis]
                 elif objective == 'maxBequest':
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
-    
+
         print()
         setVerbose(old_status)
         self._showResults(objective, df, N)
@@ -1328,28 +1327,28 @@ class Plan:
             myoptions['withMedicare'] = False
         else:
             myoptions = options
-    
+
         if objective == 'maxSpending':
             columns = ['partial', objective]
         elif objective == 'maxBequest':
             columns = ['partial', 'final']
 
         df = pd.DataFrame(columns=columns)
-    
-        if verbose is False:
+
+        if not verbose:
             print('|--- progress ---|')
 
         for n in range(N):
             self.regenRates()
             self.solve(objective, myoptions)
-            if verbose is False:
-                print('\r\t%s'%u.pc((n+1)/N, f=0), end='')
+            if not verbose:
+                print('\r\t%s' % u.pc((n+1)/N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
                     df.loc[len(df)] = [self.partialBequest, self.basis]
                 elif objective == 'maxBequest':
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
-    
+
         print()
         setVerbose(old_status)
         self._showResults(objective, df, N)
@@ -1363,8 +1362,8 @@ class Plan:
         import seaborn as sbn
         import matplotlib.pyplot as plt
 
-        print('Success rate: %s on %d samples.'%(u.pc(len(df)/N), N))
-        title = ('$N$ = %d, $P$ = %s'%(N, u.pc(len(df)/N)))
+        print('Success rate: %s on %d samples.' % (u.pc(len(df)/N), N))
+        title = ('$N$ = %d, $P$ = %s' % (N, u.pc(len(df)/N)))
         means = df.mean(axis=0, numeric_only=True)
         medians = df.median(axis=0, numeric_only=True)
 
@@ -1389,34 +1388,34 @@ class Plan:
                 legend = []
                 # Don't know why but legend is reversed from df.
                 for q in range(len(means) - 1, -1, -1):
-                    legend.append('%d: $M$: %s, $\\bar{x}$: %s'%
+                    legend.append('%d: $M$: %s, $\\bar{x}$: %s' %
                              (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
                 plt.legend(legend, shadow=True)
-                plt.xlabel('%d k$'%self.year_n[0])
+                plt.xlabel('%d k$' % self.year_n[0])
                 plt.title(objective) 
-                leads = ['partial %d'%my[0],
-                         '  final %d'%my[1]] 
+                leads = ['partial %d' % my[0],
+                         '  final %d' % my[1]] 
             elif len(means) == 2:
                 # Show partial bequest and net spending as two separate histograms.
                 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
                 cols = ['partial', objective]
-                leads = ['partial %d'%my[0], objective] 
+                leads = ['partial %d' % my[0], objective] 
                 deco = [' '+str(my[0]), '']
                 for q in range(2):
                     sbn.histplot(df[cols[q]], kde=True, ax=axes[q])
-                    legend = [('$M$: %s, $\\bar{x}$: %s'%
+                    legend = [('$M$: %s, $\\bar{x}$: %s' %
                          (u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))]
                     axes[q].set_label(legend)
                     axes[q].legend(labels=legend)
                     axes[q].set_title(leads[q])
-                    axes[q].set_xlabel('%d k$'%self.year_n[0])
+                    axes[q].set_xlabel('%d k$' % self.year_n[0])
             else:
                 # Show net spending as single histogram.
                 sbn.histplot(df[objective], kde=True)
-                legend = [('$M$: %s, $\\bar{x}$: %s'%
+                legend = [('$M$: %s, $\\bar{x}$: %s' %
                          (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))]
                 plt.legend(legend, shadow=True)
-                plt.xlabel('%d k$'%self.year_n[0])
+                plt.xlabel('%d k$' % self.year_n[0])
                 plt.title(objective) 
                 leads = [objective]
 
@@ -1424,11 +1423,12 @@ class Plan:
             plt.show()
 
         for q in range(len(means)):
-            print('%12s: Median (%d $): %s'%(leads[q], self.year_n[0], u.d(medians.iloc[q])))
-            print('%12s:   Mean (%d $): %s'%(leads[q], self.year_n[0], u.d(means.iloc[q])))
-            print('%12s:           Range: %s - %s'%(leads[q], u.d(1000*df.iloc[:, q].min()), u.d(1000*df.iloc[:, q].max())))
+            print('%12s: Median (%d $): %s' % (leads[q], self.year_n[0], u.d(medians.iloc[q])))
+            print('%12s:   Mean (%d $): %s' % (leads[q], self.year_n[0], u.d(means.iloc[q])))
+            print('%12s:           Range: %s - %s' %
+                     (leads[q], u.d(1000*df.iloc[:, q].min()), u.d(1000*df.iloc[:, q].max())))
             nzeros = len(df.iloc[:, q][df.iloc[:, q] < .001])
-            print('%12s:  N zero solns: %d'%(leads[q], nzeros))
+            print('%12s:  N zero solns: %d' % (leads[q], nzeros))
 
         return None
 
@@ -1508,7 +1508,7 @@ class Plan:
             if solver not in knownSolvers:
                 u.xprint('Unknown solver %s.' % solver)
         else:
-           solver = self.defaultSolver
+            solver = self.defaultSolver
 
         if solver == 'HiGHS':
             self._milpSolve(objective, myoptions)
@@ -1561,10 +1561,10 @@ class Plan:
             )
             it += 1
 
-            if solution.success != True:
+            if not solution.success:
                 break
 
-            if withMedicare is False:
+            if not withMedicare:
                 break
 
             self._estimateMedicare(solution.x)
@@ -1590,7 +1590,7 @@ class Plan:
             old_solutions.append(-solution.fun)
             old_x = solution.x
 
-        if solution.success == True:
+        if solution.success:
             u.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
             u.vprint(solution.message)
             u.vprint('Objective:', u.d(solution.fun * objFac))
@@ -1730,9 +1730,9 @@ class Plan:
         if x is None:
             MAGI_n = np.zeros(self.N_n)
         else:
-            self.F_tn = np.array(x[self.C['F'] : self.C['g']])
+            self.F_tn = np.array(x[self.C['F']:self.C['g']])
             self.F_tn = self.F_tn.reshape((self.N_t, self.N_n))
-            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C['e'] : self.C['F']])
+            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C['e']:self.C['F']])
 
         self.M_n = tx.mediCosts(
             self.yobs, self.horizons, MAGI_n, self.gamma_n[:-1], self.N_n
@@ -1751,7 +1751,7 @@ class Plan:
         Nk = self.N_k
         Nn = self.N_n
         Nt = self.N_t
-        Nz = self.N_z
+        # Nz = self.N_z
         n_d = self.n_d
 
         Cb = self.C['b']
@@ -1816,18 +1816,6 @@ class Plan:
             partialBequest_j[1] *= 1 - self.nu
             self.partialBequest = np.sum(partialBequest_j) / self.gamma_n[n_d]
 
-        sourcetypes = [
-            'wages',
-            'ssec',
-            'pension',
-            'dist',
-            'rmd',
-            'RothX',
-            'div',
-            'wdrwl taxable',
-            'wdrwl tax-free',
-        ]
-
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
         self.dist_in[self.dist_in < 0] = 0
@@ -1857,6 +1845,19 @@ class Plan:
 
         # Make derivative variables.
         # Putting it all together in a dictionary.
+        '''
+        sourcetypes = [
+            'wages',
+            'ssec',
+            'pension',
+            'dist',
+            'rmd',
+            'RothX',
+            'div',
+            'wdrwl taxable',
+            'wdrwl tax-free',
+        ]
+        '''
         sources = {}
         sources['wages'] = self.omega_in
         sources['ssec'] = self.zetaBar_in
@@ -2009,7 +2010,7 @@ class Plan:
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[-1]
-        lines.append('Total estate value at the end of final plan year %d in %d$: %s (%s nominal)' \
+        lines.append('Total estate value at the end of final plan year %d in %d$: %s (%s nominal)'
                 % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate)))
         lines.append('Inflation factor from this year\'s start date to the end of plan final year: %.2f'
                 % self.gamma_n[-1])
@@ -2027,10 +2028,9 @@ class Plan:
         '''
         import seaborn as sbn
         import matplotlib.pyplot as plt
-        import matplotlib.ticker as tk
 
         if self.rateMethod in [None, 'fixed', 'average', 'conservative']:
-            u.vprint('Warning: Cannot plot correlations for %s rate method.'%self.rateMethod)
+            u.vprint('Warning: Cannot plot correlations for %s rate method.' % self.rateMethod)
             return None
 
         rateNames = [
@@ -2066,7 +2066,7 @@ class Plan:
         # plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
         title = self._name + '\n'
-        title += 'Rates Correlations (N=%d) %s'%(self.N_n, self.rateMethod)
+        title += 'Rates Correlations (N=%d) %s' % (self.N_n, self.rateMethod)
         if self.rateMethod in ['historical', 'histochastic']:
             title += ' (' + str(self.rateFrm) + '-' + str(self.rateTo) + ')'
 
@@ -2088,12 +2088,12 @@ class Plan:
         import matplotlib.ticker as tk
 
         if self.rateMethod is None:
-             u.vprint('Warning: Rate method must be selected before plotting.')
-             return None
+            u.vprint('Warning: Rate method must be selected before plotting.')
+            return None
 
         fig, ax = plt.subplots(figsize=(6, 4))
         plt.grid(visible='both')
-        title = self._name + '\nReturn & Inflation Rates (' + str(self.rateMethod) 
+        title = self._name + '\nReturn & Inflation Rates (' + str(self.rateMethod)
         if self.rateMethod in ['historical', 'histochastic', 'average']:
             title += ' ' + str(self.rateFrm) + '-' + str(self.rateTo)
         title += ')'
@@ -2926,7 +2926,7 @@ def _streamPrinter(text):
     '''
     import sys
 
-    if u.verbose == False:
+    if not u.verbose:
         return
 
     sys.stdout.write(text)
