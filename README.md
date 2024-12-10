@@ -338,11 +338,12 @@ If not, a simple tutorial can guide you to the basic skills needed.
 Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
 Package `odfpy` might be required if one read files created by LibreOffice.
 
-Owl can be installed as a package using:
+If you have Python already installed on your computer, Owl can be installed as a package using the following commands:
 ```shell
 python -m build
 pip install .
 ```
+There commands need to run from the Owl directory downloaded from GitHub.
 This will install all the required dependencies, but Jupyter will not be installed.
 
 Alternatively, another way for some might might be to perform an installation of Anaconda on your computer.
