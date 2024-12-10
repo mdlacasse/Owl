@@ -28,6 +28,7 @@ def createJackAndJillPlan(name):
 
     return p
 
+
 def test_case1():
     p = createJackAndJillPlan('case1')
     p.setRates('historical', 1969)

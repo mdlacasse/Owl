@@ -189,7 +189,7 @@ def timer(func):
         pt = time.process_time() - pt0
         rt = time.time() - rt0
         print("CPU time used: %dm%.1fs, Wall time: %dm%.1fs."
-              %(int(pt/60), pt % 60, int(rt/60), rt % 60))
+              % (int(pt/60), pt % 60, int(rt/60), rt % 60))
         return result
 
     return wrapper
@@ -1375,7 +1375,7 @@ class Plan:
             # or if solution led to empty accounts at the end of first spouse's life.
             if np.all(self.phi_j == 1) or medians.iloc[0] < 1:
                 if medians.iloc[0] < 1:
-                    print('Optimized solutions all have null partial bequest in year %d.'%my[0])
+                    print('Optimized solutions all have null partial bequest in year %d.' % my[0])
                 df.drop('partial', axis=1, inplace=True)
                 means = df.mean(axis=0, numeric_only=True)
                 medians = df.median(axis=0, numeric_only=True)
@@ -1392,15 +1392,14 @@ class Plan:
                              (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
                 plt.legend(legend, shadow=True)
                 plt.xlabel('%d k$' % self.year_n[0])
-                plt.title(objective) 
+                plt.title(objective)
                 leads = ['partial %d' % my[0],
-                         '  final %d' % my[1]] 
+                         '  final %d' % my[1]]
             elif len(means) == 2:
                 # Show partial bequest and net spending as two separate histograms.
                 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
                 cols = ['partial', objective]
-                leads = ['partial %d' % my[0], objective] 
-                deco = [' '+str(my[0]), '']
+                leads = ['partial %d' % my[0], objective]
                 for q in range(2):
                     sbn.histplot(df[cols[q]], kde=True, ax=axes[q])
                     legend = [('$M$: %s, $\\bar{x}$: %s' %
@@ -1667,7 +1666,7 @@ class Plan:
             task.optimize()
 
             solsta = task.getsolsta(mosek.soltype.itg)
-            prosta = task.getprosta(mosek.soltype.itg)
+            # prosta = task.getprosta(mosek.soltype.itg)
             it += 1
 
             if solsta != mosek.solsta.integer_optimal:
@@ -2052,7 +2051,7 @@ class Plan:
             g.set(xlim=(minval, maxval), ylim=(minval, maxval))
         g.map_upper(sbn.scatterplot)
         g.map_lower(sbn.kdeplot)
-        #g.map_diag(sbn.kdeplot)
+        # g.map_diag(sbn.kdeplot)
         g.map_diag(sbn.histplot, color='orange')
 
         # Put zero axes on off-diagonal plots.

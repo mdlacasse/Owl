@@ -820,7 +820,7 @@ class Rates:
         '''
         if method not in ['default', 'realistic', 'conservative', 'fixed', 'historical',
                           'average', 'mean', 'stochastic', 'histochastic']:
-            u.xprint('Unknown method %s.'%method)
+            u.xprint('Unknown method %s.' % method)
 
         Nk = len(self._defRates)
         # First process fixed methods relying on values.
@@ -898,11 +898,11 @@ class Rates:
                 u.vprint('Using historical rates representing data from %d to %d.' % (frm, to))
                 self._rateMethod = self._histRates
             elif method == 'average' or method == 'means':
-                u.vprint('Using average of rates from %d to %d.' %(frm, to))
+                u.vprint('Using average of rates from %d to %d.' % (frm, to))
                 self.means, self.stdev, self.corr, self.covar = getDistributions(frm, to)
                 self._setFixedRates(self.means)
             elif method == 'histochastic':
-                u.vprint('Using histochastic rates derived from years %d to %d.' %(frm, to))
+                u.vprint('Using histochastic rates derived from years %d to %d.' % (frm, to))
                 self._rateMethod = self._stochRates
                 self.means, self.stdev, self.corr, self.covar = getDistributions(frm, to)
             else:
