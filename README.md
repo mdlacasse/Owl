@@ -260,8 +260,8 @@ plan.summary()
 ```
 The output of the last command reports that if future rates are exactly like those observed
 starting from 1969 and the following years, Jack and Jill could afford an annual spending of $97k starting this year
-(with a basis of $88.7k - the basis multiples the profile which can vary over the course of the plan).
-It also contains many more details:
+(with a basis of $88.8k - the basis multiplies the profile which can vary over the course of the plan).
+The summary also contains many more details:
 ```
 SUMMARY ================================================================
 Plan name: jack & jill - tutorial
