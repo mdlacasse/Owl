@@ -65,6 +65,7 @@ def test_withdrawal1():
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
+    assert p.bequest == pytest.approx(0, abs=0.5)
 
 
 def test_withdrawal2():
@@ -78,6 +79,7 @@ def test_withdrawal2():
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
+    assert p.bequest == pytest.approx(0, abs=0.5)
 
 
 def test_withdrawal3():
@@ -90,6 +92,7 @@ def test_withdrawal3():
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
+    assert p.bequest == pytest.approx(0, abs=0.5)
 
 
 def test_taxfreegrowth1():
