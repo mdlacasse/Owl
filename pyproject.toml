@@ -52,7 +52,9 @@ exclude = [
     "build",
     "dist",
     "examples",
+    "*.ipynb",
 ]
+extend-exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
 # 1. Enable flake8-bugbear (`B`) rules, in addition to the defaults.

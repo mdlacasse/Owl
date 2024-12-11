@@ -60,3 +60,31 @@ def test_config():
     assert p2.basis == pytest.approx(80000, abs=0.5)
     assert p2.bequest == pytest.approx(606235, abs=0.5)
     os.remove(filename)
+
+
+def test_clone1():
+    name = 'testclone1'
+    p = createJackAndJillPlan(name)
+    p.setRates('historical', 1969)
+    p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
+    assert p.basis == pytest.approx(80000, abs=0.5)
+    assert p.bequest == pytest.approx(606235, abs=0.5)
+    name2= 'testclone2'
+    p2 = owl.clone(p, name2)
+    p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
+    assert p2.basis == pytest.approx(80000, abs=0.5)
+    assert p2.bequest == pytest.approx(606235, abs=0.5)
+
+
+def test_clone2():
+    name = 'testclone1'
+    p = createJackAndJillPlan(name)
+    p.setRates('historical', 1969)
+    p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 0})
+    assert p.basis == pytest.approx(92543, abs=0.5)
+    assert p.bequest == pytest.approx(0, abs=0.5)
+    name2= 'testclone2'
+    p2 = owl.clone(p, name2)
+    p2.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 0})
+    assert p2.basis == pytest.approx(92543, abs=0.5)
+    assert p2.bequest == pytest.approx(0, abs=0.5)
