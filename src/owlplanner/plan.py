@@ -501,7 +501,7 @@ class Plan:
 
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
-            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], amounts[self.i_d] / 2)
+            self.zeta_in[self.i_s, self.n_d:] = max(amounts[self.i_s], amounts[self.i_d] / 2)
 
         self.ssecAmounts = amounts
         self.ssecAges = ages
@@ -1593,7 +1593,7 @@ class Plan:
                 break
 
             # Avoid oscillatory solutions. Look only at most recent solutions.
-            isclosenough = abs(-solution.fun - min(old_solutions[int(it / 2) :])) < self.xi_n[0]
+            isclosenough = abs(-solution.fun - min(old_solutions[int(it / 2):])) < self.xi_n[0]
             if isclosenough:
                 u.vprint('Converged through selecting minimum oscillating objective.')
                 break
@@ -1705,7 +1705,7 @@ class Plan:
                 break
 
             # Avoid oscillatory solutions. Look only at most recent solutions.
-            isclosenough = abs(-solution - min(old_solutions[int(it / 2) :])) < self.xi_n[0]
+            isclosenough = abs(-solution - min(old_solutions[int(it / 2):])) < self.xi_n[0]
             if isclosenough:
                 u.vprint('Converged through selecting minimum oscillating objective.')
                 break
@@ -1745,9 +1745,9 @@ class Plan:
         if x is None:
             MAGI_n = np.zeros(self.N_n)
         else:
-            self.F_tn = np.array(x[self.C['F'] : self.C['g']])
+            self.F_tn = np.array(x[self.C['F']:self.C['g']])
             self.F_tn = self.F_tn.reshape((self.N_t, self.N_n))
-            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C['e'] : self.C['F']])
+            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C['e']:self.C['F']])
 
         self.M_n = tx.mediCosts(self.yobs, self.horizons, MAGI_n, self.gamma_n[:-1], self.N_n)
 
