@@ -1,24 +1,23 @@
 import streamlit as st
 
 def dump():
-    pass
-    # print('Dump:', st.session_state)
+    print('Dump:', st.session_state)
 
 def push(key):
     # print('pushing', key, 'as', st.session_state['_'+key])
     st.session_state[key] = st.session_state['_'+key]
-    dump()
+    # dump()
 
 def store(key, val):
     # print('storing', key, 'as', val)
     st.session_state[key] = val
-    dump()
+    # dump()
 
 def init(key, val):
     if key not in st.session_state:
         # print('init', key, 'as', val)
         st.session_state[key] = val
-        dump()
+        # dump()
 
 def getNum(text, nkey, disabled=False, callback=push):
     return st.number_input(text, 

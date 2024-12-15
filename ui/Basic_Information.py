@@ -5,16 +5,6 @@ import key as k
 import owlplanner as owl
 
 
-def checkStartDate(key):
-    mydate = st.session_state['_'+key]
-    mydatelist = mydate.split('/')
-    if (len(mydatelist) != 2 or mydatelist[0] > 12 or mydatelist[1] > 31):
-        st.info('Invalid date.')
-        return False
-    k.push(key)
-    return True
-
-    
 def checkAllOK():
     ss = st.session_state
     return (ss.name == '' or ss.iname0 == '' 
@@ -34,8 +24,8 @@ def genPlan():
     try: 
         print(inames, yobs, life, ss.name, ss.startDate)
         plan = owl.Plan(inames, yobs, life, ss.name, ss.startDate)
-    except:
-        st.info('Failed plan creation.')
+    except Exception as e:
+        st.info('Failed plan creation %s.' % e)
         return
     ss.plan = plan
 
@@ -62,10 +52,12 @@ with col1:
     ret = k.getNum("%s's expected longevity"%iname0, 'life0')
 
     today = date.today()
-    todaysDate = '%d/%d' % (today.month, today.day)
-    k.init('startDate', todaysDate)
-    ret = k.getText("Plan's starting date on first year (MM/DD)", 'startDate',
-                    callback=checkStartDate)
+    thisyear = today.year
+    k.init('startDate', today)
+    ret = st.date_input("Plan's starting date on first year",
+                        min_value=date(thisyear, 1, 1), max_value=date(thisyear, 12, 31),
+                        value=st.session_state['startDate'], key='_startDate', args=['startDate'],
+                        on_change=k.push)
 
     k.init('name', '')
     if st.session_state.name == '':

@@ -16,7 +16,7 @@ def createJackAndJillPlan(name):
     inames = ['Jack', 'Jill']
     yobs = [1962, 1965]
     expectancy = [thisyear - 1962 + 20, thisyear - 1965 + 20]
-    p = owl.Plan(inames, yobs, expectancy, name, startDate='1/1')
+    p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
     p.setSpendingProfile('flat', 60)
 
     p.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150], taxFree=[50 + 20, 40])

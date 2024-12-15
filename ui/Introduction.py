@@ -1,4 +1,11 @@
+import streamlit as st
 
+col1, col2, col3, col4 = st.columns(4)
+with col4:
+    st.image("../docs/images/owl.jpg")
+
+st.write('## Owl Retirement Planner')
+st.markdown('''
 # Owl   
 
 ## A retirement exploration tool based on linear programming
@@ -383,3 +390,5 @@ Disclaimers: I am not a financial planner. You make your own decisions. This pro
 
 --------------------------------------------------------
 
+'''
+)

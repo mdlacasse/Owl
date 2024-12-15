@@ -83,7 +83,7 @@ def _genXi_n(profile, fraction, n_d, N_n, a=15, b=12):
             xi[n_d:] *= fraction
         xi *= neutralSum / xi.sum()
     else:
-        u.xprint('Unknown profile', profile)
+        raise ValueError('Unknown profile type %s.' % profile)
 
     return xi
 
@@ -313,14 +313,18 @@ class Plan:
 
         thisyear = date.today().year
 
+        if isinstance(mydate, date):
+            mydate = mydate.strftime('%Y-%m-%d')
         if mydate is None:
             refdate = date.today()
-            self.startDate = refdate.strftime('%m/%d')
+            self.startDate = refdate.strftime('%m-%d')
         else:
-            mydatelist = mydate.split('/')
-            assert len(mydatelist) == 2, 'Date must be "month/day_of_the_month".'
-            self.startDate = mydate
-            refdate = date(thisyear, int(mydatelist[0]), int(mydatelist[1]))
+            mydatelist = mydate.split('-')
+            if len(mydatelist) == 2 or len(mydatelist) == 3:
+                self.startDate = mydate
+                refdate = date(thisyear, int(mydatelist[-2]), int(mydatelist[-1]))
+            else:
+                raise ValueError('Date must be "MM-DD or YYYY-MM-DD".')
 
         lp = calendar.isleap(thisyear)
         self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1) / (365 + lp)
@@ -340,7 +344,7 @@ class Plan:
         if value in opts:
             return value
 
-        u.xprint('Value type must be one of:', *opts)
+        raise ValueError('Value type must be one of: %r' % opts)
 
         return None
 
@@ -611,7 +615,7 @@ class Plan:
         to the beginning of the year provided.
         """
         if self.rateMethod is None:
-            u.xprint('A rate method needs to be first selected using setRates(...).')
+            raise RuntimeError('A rate method needs to be first selected using setRates(...).')
 
         thisyear = date.today().year
         assert year > thisyear, 'Internal error in forwardValue().'
@@ -672,7 +676,7 @@ class Plan:
             self.interpCenter = center
             self.interpWidth = width
         else:
-            u.xprint('Method', method, 'not supported.')
+            raise ValueError('Method %s not supported.' % method)
 
         self.interpMethod = method
         self.caseStatus = 'modified'
@@ -902,7 +906,7 @@ class Plan:
         Adjust parameters that follow inflation.
         """
         if self.rateMethod is None:
-            u.xprint('A rate method needs to be first selected using setRates(...).')
+            raise RuntimeError('A rate method needs to be first selected using setRates(...).')
 
         if not self._adjustedParameters:
             u.vprint('Adjusting parameters for inflation.')
@@ -1046,7 +1050,7 @@ class Plan:
             try:
                 i_x = self.inames.index(rhsopt)
             except ValueError:
-                u.xprint('Unknown individual for noRothConversions:', rhsopt)
+                raise ValueError('Unknown individual %s for noRothConversions:' % rhsopt)
 
             for n in range(Nn):
                 B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
@@ -1271,7 +1275,7 @@ class Plan:
                 c.setElem(_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1), -(1 - self.nu))
                 c.setElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), -1)
         else:
-            u.xprint('Internal error in objective function.')
+            raise RuntimeError('Internal error in objective function.')
 
         self.A = A
         self.B = B
@@ -1471,7 +1475,7 @@ class Plan:
         Refer to companion document for implementation details.
         """
         if self.rateMethod is None:
-            u.xprint('Rate method must be selected before solving.')
+            raise RuntimeError('Rate method must be selected before solving.')
 
         # Assume unsuccessful until problem solved.
         self.caseStatus = 'unsuccessful'
@@ -1497,13 +1501,13 @@ class Plan:
 
         for opt in myoptions:
             if opt not in knownOptions:
-                u.xprint('Option', opt, 'not one of', knownOptions)
+                raise ValueError('Option %s is not one of %r.' % (opt, knownOptions))
 
         if objective not in knownObjectives:
-            u.xprint('Objective', objective, 'not one of', knownObjectives)
+            raise ValueError('Objective %s is not one of %r.' % (objective, knownObjectives))
 
         if objective == 'maxBequest' and 'netSpending' not in myoptions:
-            u.xprint('Objective', objective, 'needs netSpending option.')
+            raise RuntimeError('Objective %s needs netSpending option.' % objective)
 
         if objective == 'maxBequest' and 'bequest' in myoptions:
             u.vprint('Ignoring bequest option provided.')
@@ -1521,7 +1525,7 @@ class Plan:
         if 'solver' in options:
             solver = myoptions['solver']
             if solver not in knownSolvers:
-                u.xprint('Unknown solver %s.' % solver)
+                raise ValueError('Unknown solver %s.' % solver)
         else:
             solver = self.defaultSolver
 
@@ -2257,7 +2261,7 @@ class Plan:
         elif self.ARCoord == 'account':
             acList = ['taxable', 'tax-deferred', 'tax-free']
         else:
-            u.xprint('Unknown coordination', self.ARCoord)
+            raise ValueError('Unknown coordination %s' % self.ARCoord)
 
         assetDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
         for i in range(count):
@@ -2805,7 +2809,7 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$')
         ax.set_ylabel('%')
         ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(100 * x), ',')))
     else:
-        u.xprint('Unknown yformat:', yformat)
+        raise RuntimeError('Unknown yformat: %s.' % yformat)
 
     plt.show()
 
@@ -2866,7 +2870,7 @@ def _formatSpreadsheet(ws, ftype):
             ws.column_dimensions[column].width = width
             return None
     else:
-        u.xprint('Unknown format:', ftype)
+        raise RuntimeError('Unknown format: %s.' % ftype)
 
     for cell in ws[1] + ws['A']:
         cell.style = 'Pandas'

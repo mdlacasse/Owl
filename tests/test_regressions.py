@@ -14,12 +14,13 @@ def test_constructor1():
     yobs = [1960]
     expectancy = [80]
     name = 'test_1'
-    p = owl.Plan(inames, yobs, expectancy, name, startDate='1/1')
+    p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
     assert p.inames == inames
     assert p.yobs == yobs
     assert p.expectancy == expectancy
     assert p.N_i == 1
     assert p._name == name
+    assert p.startDate == '1-1'
 
 
 def test_constructor2():
@@ -27,7 +28,36 @@ def test_constructor2():
     yobs = [1960, 1961]
     expectancy = [80, 82]
     name = 'test_2'
-    p = owl.Plan(inames, yobs, expectancy, name, startDate='1/1')
+    p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
+    assert p.inames == inames
+    assert p.yobs == yobs
+    assert p.expectancy == expectancy
+    assert p.N_i == 2
+    assert p._name == name
+    assert p.startDate == '1-1'
+
+
+def test_date_1():
+    inames = ['Joe', 'Jane']
+    yobs = [1960, 1961]
+    expectancy = [80, 82]
+    name = 'test_3'
+    p = owl.Plan(inames, yobs, expectancy, name, startDate='2024-1-1')
+    assert p.inames == inames
+    assert p.yobs == yobs
+    assert p.expectancy == expectancy
+    assert p.N_i == 2
+    assert p._name == name
+    assert p.startDate == '2024-1-1'
+
+
+def test_date_2():
+    inames = ['Joe', 'Jane']
+    yobs = [1960, 1961]
+    expectancy = [80, 82]
+    name = 'test_3'
+    startDate = date.today()
+    p = owl.Plan(inames, yobs, expectancy, name, startDate=startDate)
     assert p.inames == inames
     assert p.yobs == yobs
     assert p.expectancy == expectancy
@@ -48,7 +78,7 @@ def createPlan(ni, name, ny):
         yobs = [1960, 1961]
         expectancy = [thisyear - 1960 + ny, thisyear - 1961 + ny]
 
-    p = owl.Plan(inames, yobs, expectancy, name, startDate='1/1')
+    p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
     # Use a flat profile for simplicity.
     p.setSpendingProfile('flat', 100)
 
