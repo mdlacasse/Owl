@@ -1,20 +1,20 @@
 import streamlit as st
+
 import key as k
 
 
 st.write('# Optimization Parameters')
-
-col1, col2 = st.columns(2, gap='small', vertical_alignment='top')#, border=False)
+col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
 with col1:
     iname = st.session_state.iname0
     k.init('maxX0', 1000)
-    ret =  k.getNum("%s's maximum Roth Conversion ($k)"%iname, 'maxX0')
+    ret = k.getNum("%s's maximum Roth Conversion ($k)" % iname, 'maxX0')
 
 with col2:
     if st.session_state.status == 'married':
         iname = st.session_state.iname1
         k.init('maxX1', 1000)
-        ret =  k.getNum("%s's maximum Roth Conversion ($k)"%iname, 'maxX1')
+        ret = k.getNum("%s's maximum Roth Conversion ($k)" % iname, 'maxX1')
 
 k.init('med', True)
 ret = k.getToggle('Medicare and IRMAA calculations', 'med')

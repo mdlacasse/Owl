@@ -22,7 +22,7 @@ def test_constructor1():
     assert p.startDate == '1-1'
 
 
-def test_constructor2():
+def test_constructor1_2():
     inames = ['Joe', 'Jane']
     yobs = [1960, 1961]
     expectancy = [80, 82]
@@ -62,6 +62,7 @@ def test_date_2():
     assert p.expectancy == expectancy
     assert p.N_i == 2
     assert p._name == name
+    assert p.startDate == date.today().strftime('%Y-%m-%d')
 
 
 def createPlan(ni, name, ny):

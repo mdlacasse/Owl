@@ -34,20 +34,19 @@ if st.session_state.rateType == 'fixed':
         rates = FXRATES[ret]
         k.init('fxRate'+str(j), rates[j])
 
-    ro = ret  != 'user'
+    ro = (ret != 'user')
     col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
     with col1:
         ret = k.getNum('S&P 500', 'fxRate0', ro)
-    
+
     with col2:
         ret = k.getNum('Corporate Bonds Baa', 'fxRate1', ro)
-    
+
     with col3:
         ret = k.getNum('10-y Treasury Notes', 'fxRate2', ro)
-    
+
     with col4:
         ret = k.getNum('Common Assets / Inflation', 'fxRate3', ro)
-    
 
 elif st.session_state.rateType == 'varying':
     choices3 = ['historical', 'histochastic', 'stochastic']

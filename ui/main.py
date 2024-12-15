@@ -17,5 +17,5 @@ pg = st.navigation([st.Page('Introduction.py'),
                     st.Page('Monte_Carlo.py'),
                     st.Page('Summary.py'),
                     st.Page('Logs.py'),
-                   ])
+                    ])
 pg.run()

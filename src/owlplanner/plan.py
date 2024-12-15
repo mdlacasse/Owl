@@ -317,7 +317,7 @@ class Plan:
             mydate = mydate.strftime('%Y-%m-%d')
         if mydate is None:
             refdate = date.today()
-            self.startDate = refdate.strftime('%m-%d')
+            self.startDate = refdate.strftime('%Y-%m-%d')
         else:
             mydatelist = mydate.split('-')
             if len(mydatelist) == 2 or len(mydatelist) == 3:
