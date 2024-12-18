@@ -44,13 +44,17 @@ def read(filename, inames, horizons):
     timeLists = []
     thisyear = date.today().year
     # Read all worksheets in memory but only process first n.
-    dfDict = pd.read_excel(filename, sheet_name=None)
+    try:
+        dfDict = pd.read_excel(filename, sheet_name=None)
+    except Exception as e:
+        raise Exception('Could not read file %r: %s.' % (filename, e))
+
     u.vprint('Reading wages, contributions, conversions, and big-ticket items over time...')
     for i, iname in enumerate(inames):
         u.vprint('\tfor %s...' % iname)
         endyear = thisyear + horizons[i]
         if iname not in dfDict:
-            u.xprint('Could not find a sheet for %s in file %s.' % (iname, filename))
+            raise RuntimeError('Could not find a sheet for %s in file %s.' % (iname, filename))
 
         df = dfDict[iname]
         # Only consider lines in proper year range.
@@ -87,14 +91,14 @@ def check(inames, timeLists, horizons):
     if len(inames) == 2:
         # Verify that both sheets start on the same year.
         if timeLists[0]['year'][0] != timeLists[1]['year'][0]:
-            u.xprint('Time horizons not starting on same year.')
+            raise RuntimeError('Time horizons not starting on same year.')
 
     # Verify that year range covers life expectancy for each individual
     thisyear = date.today().year
     for i, iname in enumerate(inames):
         yend = thisyear + horizons[i]
         if timeLists[i]['year'][-1] < yend - 1:
-            u.xprint(
+            raise RuntimeError(
                 'Time horizon for',
                 iname,
                 'is too short.\n\tIt should end in',

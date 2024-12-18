@@ -11,8 +11,8 @@ FXRATES = {
 
 def update_rates(key):
     # print('updating rates', key)
-    k.push(key)
-    fxType = st.session_state[key]
+    k.pull(key)
+    fxType = k.getKey(key)
     rates = FXRATES[fxType]
     for j in range(4):
         k.store('fxRate'+str(j), rates[j])
@@ -24,7 +24,7 @@ choices1 = ['fixed', 'varying']
 k.init('rateType', choices1[0])
 ret = k.getRadio('## Rate type', choices1, 'rateType')
 
-if st.session_state.rateType == 'fixed':
+if k.getKey('rateType') == 'fixed':
     choices2 = ['conservative', 'realistic', 'historical average', 'user']
     k.init('fixedType', choices2[0])
     ret = k.getRadio('Select fixed rates', choices2, 'fixedType', update_rates)
@@ -48,7 +48,7 @@ if st.session_state.rateType == 'fixed':
     with col4:
         ret = k.getNum('Common Assets / Inflation', 'fxRate3', ro)
 
-elif st.session_state.rateType == 'varying':
+elif k.getKey('rateType') == 'varying':
     choices3 = ['historical', 'histochastic', 'stochastic']
     k.init('varyingType', choices3[0])
     ret = k.getRadio('Select varying rates', choices3, 'varyingType')
@@ -56,23 +56,23 @@ elif st.session_state.rateType == 'varying':
 else:
     st.info('Logic error')
 
-if ((st.session_state.rateType == 'fixed' and 'hist' in st.session_state.fixedType)
-   or (st.session_state.rateType == 'varying' and 'hist' in st.session_state.varyingType)):
+if ((k.getKey('rateType') == 'fixed' and 'hist' in k.getKey('fixedType'))
+   or (k.getKey('rateType') == 'varying' and 'hist' in k.getKey('varyingType'))):
     k.init('yfrm', 1922)
     k.init('yto', 2023)
 
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
     with col1:
         ret = st.number_input('Starting year', min_value=1922,
-                              max_value=st.session_state['yto'],
-                              value=st.session_state['yfrm'],
-                              on_change=k.push, args=['yfrm'], key='_yfrm')
+                              max_value=k.getKey('yto'),
+                              value=k.getKey('yfrm'),
+                              on_change=k.pull, args=['yfrm'], key='_yfrm')
 
     with col2:
         ret = st.number_input('Ending year', max_value=2023,
-                              min_value=st.session_state['yfrm'],
-                              value=st.session_state['yto'],
-                              on_change=k.push, args=['yto'], key='_yto')
+                              min_value=k.getKey('yfrm'),
+                              value=k.getKey('yto'),
+                              on_change=k.pull, args=['yto'], key='_yto')
 
 st.write('### Other rates')
 

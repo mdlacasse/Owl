@@ -5,4 +5,4 @@ st.write('# Summary')
 
 k.init('summary', '')
 
-st.write(st.session_state.summary)
+st.write(k.getKey('summary')

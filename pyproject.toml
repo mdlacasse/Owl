@@ -30,6 +30,7 @@ dependencies = [
     "seaborn",
     "openpyxl",
     "scipy",
+    "logger",
 ]
 license = {file = "LICENSE"}
 

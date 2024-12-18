@@ -115,7 +115,7 @@ def readConfig(basename):
     config = configparser.ConfigParser()
     ret = config.read(basename + '.cfg')
     if ret == []:
-        u.xprint('File not found:', basename + '.cfg')
+        raise FileNotFoundError('File %s not found.' % (basename + '.cfg'))
 
     icount = int(config['Who']['Count'])
     inames = config['Who']['Names'].split(',')

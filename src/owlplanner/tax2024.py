@@ -216,7 +216,7 @@ def rho_in(yobs, N_n):
 
     N_i = len(yobs)
     if N_i == 2 and abs(yobs[0] - yobs[1]) > 10:
-        u.xprint('RMD: Unsupported age difference of more than 10 years.')
+        raise RuntimeError('RMD: Unsupported age difference of more than 10 years.')
 
     rho = np.zeros((N_i, N_n))
     thisyear = date.today().year

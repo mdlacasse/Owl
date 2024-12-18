@@ -1,9 +1,4 @@
 import streamlit as st
-import key as k
-
-k.init('iname0', '')
-k.init('iname1', '')
-k.init('status', 'single')
 
 pg = st.navigation([st.Page('Introduction.py'),
                     st.Page('Basic_Information.py'),

@@ -6,13 +6,13 @@ import key as k
 st.write('# Optimization Parameters')
 col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
 with col1:
-    iname = st.session_state.iname0
+    iname = k.getKey('iname0')
     k.init('maxX0', 1000)
     ret = k.getNum("%s's maximum Roth Conversion ($k)" % iname, 'maxX0')
 
 with col2:
-    if st.session_state.status == 'married':
-        iname = st.session_state.iname1
+    if k.getKey('status') == 'married':
+        iname = k.getKey('iname1')
         k.init('maxX1', 1000)
         ret = k.getNum("%s's maximum Roth Conversion ($k)" % iname, 'maxX1')
 
@@ -27,7 +27,7 @@ choices = ['Net spending', 'Bequest']
 k.init('objective', choices[0])
 ret = k.getRadio("Maximize", choices, 'objective')
 
-if st.session_state.objective == 'Net spending':
+if k.getKey('objective') == 'Net spending':
     k.init('bequest', 0)
     ret = k.getNum("Desire bequest ($k)", 'bequest')
 

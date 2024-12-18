@@ -829,7 +829,7 @@ class Rates:
             'stochastic',
             'histochastic',
         ]:
-            u.xprint('Unknown method %s.' % method)
+            raise ValueError('Unknown rate selection method %s.' % method)
 
         Nk = len(self._defRates)
         # First process fixed methods relying on values.
@@ -882,7 +882,7 @@ class Rates:
                             x += 1
                     corrarr = newcorr
                 else:
-                    u.xprint('Unable to process correlation shape of %s.' % corrarr.shape)
+                    raise RuntimeError('Unable to process correlation shape of %s.' % corrarr.shape)
 
             self.corr = corrarr
             assert np.array_equal(self.corr, self.corr.T), 'Correlation matrix must be symmetric.'
@@ -915,7 +915,7 @@ class Rates:
                 self._rateMethod = self._stochRates
                 self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to)
             else:
-                u.xprint('Method not supported:', method)
+                raise ValueError('Method $s not supported.' % method)
 
         self.method = method
 

@@ -324,7 +324,7 @@ class Plan:
                 self.startDate = mydate
                 refdate = date(thisyear, int(mydatelist[-2]), int(mydatelist[-1]))
             else:
-                raise ValueError('Date must be "MM-DD or YYYY-MM-DD".')
+                raise ValueError('Date must be "MM-DD" or "YYYY-MM-DD".')
 
         lp = calendar.isleap(thisyear)
         self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1) / (365 + lp)
@@ -2739,8 +2739,8 @@ class Plan:
                 key = input('Close file and try again? [Yn] ')
                 if key == 'n':
                     break
-            except Exception:
-                u.xprint('Unanticipated exception', Exception)
+            except Exception as e:
+                raise Exception('Unanticipated exception %r.' % e)
 
         return None
 
@@ -2845,8 +2845,8 @@ def _saveWorkbook(wb, basename, overwrite=False):
             key = input('Close file and try again? [Yn] ')
             if key == 'n':
                 break
-        except Exception:
-            u.xprint('Unanticipated exception', Exception)
+        except Exception as e:
+            raise Exception('Unanticipated exception %r.' % e)
 
     return None
 

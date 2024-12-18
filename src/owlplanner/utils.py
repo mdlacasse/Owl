@@ -12,12 +12,14 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 ######################################################################
 import sys
+import logger
 import numpy as np
 
 
 ######################################################################
 verbose = True
 
+# logger = logging
 
 def _setVerbose(val, ret=False):
     """
@@ -110,7 +112,7 @@ def getUnits(units) -> int:
     elif units in {'m', 'M'}:
         fac = 1000000
     else:
-        xprint('Unknown units', units)
+        raise ValueError('Unknown units %.' % units)
 
     return fac
 
