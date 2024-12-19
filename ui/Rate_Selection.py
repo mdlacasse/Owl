@@ -18,73 +18,76 @@ def update_rates(key):
         k.store('fxRate'+str(j), rates[j])
 
 
-st.write('# Rate Selection')
+ret = k.titleBar('rates')
+st.divider()
+st.write('## Rate Selection')
 
-choices1 = ['fixed', 'varying']
-k.init('rateType', choices1[0])
-ret = k.getRadio('## Rate type', choices1, 'rateType')
-
-if k.getKey('rateType') == 'fixed':
-    choices2 = ['conservative', 'realistic', 'historical average', 'user']
-    k.init('fixedType', choices2[0])
-    ret = k.getRadio('Select fixed rates', choices2, 'fixedType', update_rates)
-
-    st.write('#### Fixed rate values (%)')
-    for j in range(4):
-        rates = FXRATES[ret]
-        k.init('fxRate'+str(j), rates[j])
-
-    ro = (ret != 'user')
-    col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
-    with col1:
-        ret = k.getNum('S&P 500', 'fxRate0', ro)
-
-    with col2:
-        ret = k.getNum('Corporate Bonds Baa', 'fxRate1', ro)
-
-    with col3:
-        ret = k.getNum('10-y Treasury Notes', 'fxRate2', ro)
-
-    with col4:
-        ret = k.getNum('Common Assets / Inflation', 'fxRate3', ro)
-
-elif k.getKey('rateType') == 'varying':
-    choices3 = ['historical', 'histochastic', 'stochastic']
-    k.init('varyingType', choices3[0])
-    ret = k.getRadio('Select varying rates', choices3, 'varyingType')
-
+if ret is None:
+    st.info('Case(s) must be first created before running this page.')
 else:
-    st.info('Logic error')
+    choices1 = ['fixed', 'varying']
+    k.init('rateType', choices1[0])
+    ret = k.getRadio('## Rate type', choices1, 'rateType')
 
-if ((k.getKey('rateType') == 'fixed' and 'hist' in k.getKey('fixedType'))
-   or (k.getKey('rateType') == 'varying' and 'hist' in k.getKey('varyingType'))):
-    k.init('yfrm', 1922)
-    k.init('yto', 2023)
+    if k.getKey('rateType') == 'fixed':
+        choices2 = ['conservative', 'realistic', 'historical average', 'user']
+        k.init('fixedType', choices2[0])
+        ret = k.getRadio('Select fixed rates', choices2, 'fixedType', update_rates)
 
-    col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
-    with col1:
-        ret = st.number_input('Starting year', min_value=1922,
-                              max_value=k.getKey('yto'),
-                              value=k.getKey('yfrm'),
-                              on_change=k.pull, args=['yfrm'], key='_yfrm')
+        st.write('#### Fixed rate values (%)')
+        for j in range(4):
+            rates = FXRATES[ret]
+            k.init('fxRate'+str(j), rates[j])
 
-    with col2:
-        ret = st.number_input('Ending year', max_value=2023,
-                              min_value=k.getKey('yfrm'),
-                              value=k.getKey('yto'),
-                              on_change=k.pull, args=['yto'], key='_yto')
+        ro = (ret != 'user')
+        col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
+        with col1:
+            ret = k.getNum('S&P 500', 'fxRate0', ro)
 
-st.write('### Other rates')
+        with col2:
+            ret = k.getNum('Corporate Bonds Baa', 'fxRate1', ro)
 
-k.init('divRate', 2)
-ret = k.getNum('Dividends return rate (%)', 'divRate')
+        with col3:
+            ret = k.getNum('10-y Treasury Notes', 'fxRate2', ro)
 
-st.write('### Income taxes')
+        with col4:
+            ret = k.getNum('Common Assets / Inflation', 'fxRate3', ro)
 
-k.init('gainTx', 15)
-ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx')
+    elif k.getKey('rateType') == 'varying':
+        choices3 = ['historical', 'histochastic', 'stochastic']
+        k.init('varyingType', choices3[0])
+        ret = k.getRadio('Select varying rates', choices3, 'varyingType')
 
-k.init('heirsTx', 30)
-ret = k.getNum('Heirs income tax rate (%)', 'heirsTx')
+    else:
+        st.info('Logic error')
+
+    if ((k.getKey('rateType') == 'fixed' and 'hist' in k.getKey('fixedType'))
+       or (k.getKey('rateType') == 'varying' and 'hist' in k.getKey('varyingType'))):
+        k.init('yfrm', 1922)
+        k.init('yto', 2023)
+
+        col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
+        with col1:
+            ret = st.number_input('Starting year', min_value=1922,
+                                  max_value=k.getKey('yto'),
+                                  value=k.getKey('yfrm'),
+                                  on_change=k.pull, args=['yfrm'], key='_yfrm')
+
+        with col2:
+            ret = st.number_input('Ending year', max_value=2023,
+                                  min_value=k.getKey('yfrm'),
+                                  value=k.getKey('yto'),
+                                  on_change=k.pull, args=['yto'], key='_yto')
+
+    st.write('### Other rates')
+    k.init('divRate', 2)
+    ret = k.getNum('Dividends return rate (%)', 'divRate')
+    
+    st.write('### Income taxes')
+    k.init('gainTx', 15)
+    ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx')
+
+    k.init('heirsTx', 30)
+    ret = k.getNum('Heirs income tax rate (%)', 'heirsTx')
 
 

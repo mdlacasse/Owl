@@ -8,28 +8,50 @@ ss = st.session_state
 # Dictionary of dictionaries for each case.
 if 'cases' not in ss:
     # print('init cases')
-    ss.cases = {'New case': {'iname0': '', 'status': 'unkown'}}
+    ss.cases = {'New case': {'iname0': '', 'status': 'unkown', 'summary': ''}}
 
 # Variable for storing name of current case.
 if 'currentCase' not in ss:
     ss.currentCase = 'New case'
 
 
-def allCaseNames():
+def allCaseNames() -> list:
     # print('all case names')
     return list(ss.cases)
 
 
-def currentCaseName():
+def onlyCaseNames() -> list:
+    caseList = list(ss.cases)
+    caseList.remove('New case')
+    return caseList
+
+
+def getIndex(item, choices):
+    try:
+        i = choices.index(item)
+    except ValueError:
+        return None
+
+    return i
+
+
+def currentCaseName() -> str:
     return ss.currentCase
 
 
-def currentCaseDic():
+def switchToCase(key):
+    ss.currentCase = ss['_'+key]
+
+
+def titleBar(nkey):
+    choices = onlyCaseNames()
+    return st.selectbox('Select case', choices,
+                        index=getIndex(currentCaseName(), choices), key='_'+nkey,
+                        on_change=switchToCase, args=[nkey])
+
+
+def currentCaseDic() -> dict:
     return ss.cases[ss.currentCase]
-
-
-def switchToCase():
-    ss.currentCase = ss._case
 
 
 def setCurrentCase(case):
@@ -40,7 +62,7 @@ def setCurrentCase(case):
 
 def createCase():
     if ss._newcase != '' and ss._newcase not in ss.cases:
-        ss.cases[ss._newcase] = {'name': ss._newcase}
+        ss.cases[ss._newcase] = {'name': ss._newcase, 'summary': ''}
 
     if len(ss.cases) > 2:
         othercase = list(ss.cases)[-2]

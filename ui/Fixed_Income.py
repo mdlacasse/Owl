@@ -12,12 +12,13 @@ def getInput(i, key, text, defval=0):
                           on_change=k.pull, args=[nkey], key='_'+nkey)
 
 
-st.write('# Fixed Income')
+ret = k.titleBar('fixed')
+st.divider()
+st.write('## Fixed Income')
 
-if k.getKey('iname0') == '':
-    st.info('Basic information must be filled before filling this page.')
+if ret is None:
+    st.info('Case(s) must be first created before running this page.')
 else:
-
     st.write('### Social Security')
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
     with col1:

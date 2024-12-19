@@ -30,21 +30,22 @@ def genPlan():
     k.store('plan', plan)
 
 
-st.write('## Basic Information')
+choices = k.allCaseNames()
+nkey = 'case'
+ret = st.selectbox('Select case', choices,
+                    index=k.getIndex(k.currentCaseName(), choices), key='_'+nkey,
+                    on_change=k.switchToCase, args=[nkey])
 
-caseChoices = k.allCaseNames()
-ret = st.selectbox('Select case', caseChoices,
-                   index=caseChoices.index(k.currentCaseName()), key='_case',
-                   on_change=k.switchToCase)
+# ret = k.titleBar('case')
+st.divider()
+st.write('## Case Setup')
 
 if ret == 'New case':
     st.info('A name for the scenario must be provided.')
-    st.text_input("Case name", value='', key='_newcase', on_change=k.createCase)
-
+    st.text_input("Enter case name", value='', key='_newcase', on_change=k.createCase)
+    # k.switchToCase(ret)
 else:
-    k.setCurrentCase(ret)
-
-    diz = len(caseChoices) > 2
+    diz = len(k.allCaseNames()) > 2
     choices = ['single', 'married']
     k.init('status', choices[0])
     st.radio('Marital status', choices, disabled=diz,
