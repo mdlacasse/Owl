@@ -14,16 +14,16 @@ import sys
 
 
 class Logger:
-    def __init__(self, verbose=True, loggers=[]):
+    def __init__(self, verbose=True, logstreams=[]):
         self._verbose = True
-        if loggers == [] or loggers is None or len(loggers) > 2:
-            self._loggers = [sys.stdout, sys.stderr]
-        elif len(loggers) == 2:
-            self._loggers = loggers
-        elif len(loggers) == 1:
-            self._loggers = 2*loggers
+        if logstreams == [] or logstreams is None or len(logstreams) > 2:
+            self._logstreams = [sys.stdout, sys.stderr]
+        elif len(logstreams) == 2:
+            self._logstreams = logstreams
+        elif len(logstreams) == 1:
+            self._logstreams = 2*logstreams
         else:
-            raise ValueError('Loggers %r must be a list.' % loggers)
+            raise ValueError('Log streams %r must be a list.' % logstreams)
 
     def setVerbose(self, verbose=True):
         """
@@ -44,11 +44,11 @@ class Logger:
 
     def print(self, *args, **kwargs):
         """
-        Unconditional printing depending on the value of the verbose variable
+        Unconditional printing regardless of the value of the verbose variable
         previously set.
         """
         if 'file' not in kwargs:
-            file = self._loggers[0]
+            file = self._logstreams[0]
             kwargs['file'] = file
 
         print(*args, **kwargs)
@@ -68,7 +68,7 @@ class Logger:
         The exit() used throws an exception in an interactive environment.
         """
         if 'file' not in kwargs:
-            file = self._loggers[1]
+            file = self._logstreams[1]
             kwargs['file'] = file
 
         if self._verbose:
@@ -76,5 +76,5 @@ class Logger:
             print('Exiting...')
             file.flush()
 
-        raise Exception('Fatal error')
+        raise Exception('Fatal error.')
         # sys.exit(-1)

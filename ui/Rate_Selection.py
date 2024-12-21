@@ -1,7 +1,7 @@
 import streamlit as st
 
-import key as k
-import owlAPI as api
+import sskeys as k
+import owlbridge as owb
 
 
 FXRATES = {
@@ -83,19 +83,17 @@ else:
                                   on_change=k.pull, args=['yto'], key='_yto')
 
     st.text(' ')
-    api.setRates()
-    api.showRates()
+    owb.setRates()
+    owb.showRates()
 
     st.divider()
     st.write('### Other rates')
     k.init('divRate', 2)
     ret = k.getNum('Dividends return rate (%)', 'divRate')
-    
+
     st.write('#### Income taxes')
     k.init('gainTx', 15)
     ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx')
 
     k.init('heirsTx', 30)
     ret = k.getNum('Heirs income tax rate (%)', 'heirsTx')
-
-

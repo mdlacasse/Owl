@@ -1,7 +1,7 @@
 import streamlit as st
 
-import key as k
-import owlAPI as api
+import sskeys as k
+import owlbridge as owb
 
 
 ret = k.titleBar('opto')
@@ -13,19 +13,20 @@ if ret is None:
 else:
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
     with col1:
-        iname = k.getKey('iname0')
-        k.init('maxX0', 50)
-        ret = k.getNum("%s's maximum Roth conversion ($k)" % iname, 'maxX0')
+        iname0 = k.getKey('iname0')
+        k.init('maxRothConversion', 50)
+        ret = k.getNum("Maximum Roth conversion ($k)", 'maxRothConversion')
 
     with col2:
         if k.getKey('status') == 'married':
-            iname = k.getKey('iname1')
-            k.init('maxX1', 50)
-            ret = k.getNum("%s's maximum Roth conversion ($k)" % iname, 'maxX1')
+            iname1 = k.getKey('iname1')
+            choices = ['None', iname0, iname1]
+            k.init('noRothConversions', choices[0])
+            ret = k.getRadio("Exclude Roth conversions for...", choices, 'noRothConversions')
 
     st.divider()
-    k.init('med', True)
-    ret = k.getToggle('Medicare and IRMAA calculations', 'med')
+    k.init('withMedicare', True)
+    ret = k.getToggle('Medicare and IRMAA calculations', 'withMedicare')
 
     st.divider()
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
@@ -39,7 +40,7 @@ else:
         ret = k.getIntNum("Survivor's spending (%)", 'survivor')
 
     st.divider()
-    api.showProfile()
+    owb.showProfile()
 
     st.divider()
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
@@ -51,9 +52,8 @@ else:
     with col2:
         if k.getKey('objective') == 'Net spending':
             k.init('bequest', 0)
-            ret = k.getNum("Desire bequest ($k)", 'bequest')
+            ret = k.getNum("Desired bequest ($k)", 'bequest')
 
         else:
-            k.init('spending', 0)
-            ret = k.getNum("Desired annual net spending ($k)", 'spending')
-
+            k.init('netSpending', 0)
+            ret = k.getNum("Desired annual net spending ($k)", 'netSpending')

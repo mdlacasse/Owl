@@ -1,6 +1,6 @@
 import streamlit as st
 
-import key as k
+import sskeys as k
 
 ret = k.titleBar('assets')
 st.divider()

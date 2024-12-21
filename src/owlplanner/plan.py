@@ -16,6 +16,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 ###########################################################################
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from datetime import date, datetime
 from functools import wraps
 import time
@@ -273,7 +274,7 @@ class Plan:
         self.ssecAmounts = np.zeros(self.N_i)
         self.ssecAges = 67 * np.ones(self.N_i, dtype=int)
 
-        # Parameters from timeLists.
+        # Parameters from timeLists initialized to zero.
         self.omega_in = np.zeros((self.N_i, self.N_n))
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
         self.myRothX_in = np.zeros((self.N_i, self.N_n))
@@ -1063,7 +1064,7 @@ class Plan:
                             B.set0_Ub(_q2(Cx, i, n, Ni, Nn), rhsopt)
 
         # Process noRothConversions option. Also valid when N_i == 1, why not?
-        if 'noRothConversions' in options:
+        if 'noRothConversions' in options and options['noRothConversions'] != 'None':
             rhsopt = options['noRothConversions']
             try:
                 i_x = self.inames.index(rhsopt)
@@ -1390,7 +1391,6 @@ class Plan:
         Show a histogram of values from runMC() and runRange().
         """
         import seaborn as sbn
-        import matplotlib.pyplot as plt
 
         self.mylog.print('Success rate: %s on %d samples.' % (u.pc(len(df) / N), N))
         title = '$N$ = %d, $P$ = %s' % (N, u.pc(len(df) / N))
@@ -1931,19 +1931,31 @@ class Plan:
         """
         Print summary of values.
         """
-        lines = self._summaryList()
+        self.mylog.print('SUMMARY ================================================================')
+        lines = self.summaryList()
         for line in lines:
             self.mylog.print(line)
+        self.mylog.print('------------------------------------------------------------------------')
 
         return None
 
-    def _summaryList(self):
+    def summaryString(self):
+        """
+        Print summary of values in a string.
+        """
+        string = ''
+        lines = self.summaryList()
+        for line in lines:
+            string += line + '\n'
+
+        return string
+
+    def summaryList(self):
         """
         Return string with summary of values.
         """
         now = self.year_n[0]
         lines = []
-        lines.append('SUMMARY ================================================================')
         lines.append('Plan name: %s' % self._name)
         for i in range(self.N_i):
             lines.append("%12s's life horizon: %d -> %d" % (self.inames[i], now, now + self.horizons[i] - 1))
@@ -2047,7 +2059,6 @@ class Plan:
         )
 
         lines.append('Case executed on: %s' % self._timestamp)
-        lines.append('------------------------------------------------------------------------')
 
         return lines
 
@@ -2058,7 +2069,6 @@ class Plan:
         A tag string can be set to add information to the title of the plot.
         """
         import seaborn as sbn
-        import matplotlib.pyplot as plt
 
         if self.rateMethod in [None, 'fixed', 'average', 'conservative']:
             self.mylog.vprint('Warning: Cannot plot correlations for %s rate method.' % self.rateMethod)
@@ -2115,7 +2125,6 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         """
-        import matplotlib.pyplot as plt
         import matplotlib.ticker as tk
 
         if self.rateMethod is None:
@@ -2176,7 +2185,7 @@ class Plan:
         # style = {'net': '-', 'target': ':'}
         style = {'profile': '-'}
         series = {'profile': self.xi_n}
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat='xi', show=True)
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat='xi')
 
         if figure:
             return fig
@@ -2211,11 +2220,12 @@ class Plan:
             }
             yformat = 'k\\$ (' + str(self.year_n[0]) + '\\$)'
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat, show=True)
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
         if figure:
             return fig
 
+        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2266,6 +2276,7 @@ class Plan:
         if figure:
             return figures
 
+        plt.show()
         return None
 
     def showAllocations(self, tag='', figure=False):
@@ -2315,6 +2326,7 @@ class Plan:
         if figure:
             return figures
 
+        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2352,10 +2364,11 @@ class Plan:
         if figure:
             return fig
 
+        plt.show()
         return None
 
     @_checkCaseStatus
-    def showSources(self, tag='', value=None):
+    def showSources(self, tag='', value=None, figure=False):
         """
         Plot income over time.
 
@@ -2387,6 +2400,7 @@ class Plan:
         if figure:
             return fig
 
+        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2411,8 +2425,9 @@ class Plan:
             style[key] = various[q % len(various)]
             q += 1
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat='', show=True)
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat='')
 
+        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2443,11 +2458,12 @@ class Plan:
         if tag != '':
             title += ' - ' + tag
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat, show=True)
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
         if figure:
             return fig
 
+        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2460,8 +2476,6 @@ class Plan:
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         """
-        import matplotlib.pyplot as plt
-
         value = self._checkValue(value)
 
         style = {'taxable income': '-'}
@@ -2488,11 +2502,11 @@ class Plan:
 
         plt.grid(visible='both')
         ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.3)
-        plt.show()
 
         if figure:
             return fig
 
+        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2708,7 +2722,7 @@ class Plan:
         ws = wb.create_sheet('Summary')
         rawData = {}
         rawData['SUMMARY ==========================================================================='] = (
-            self._summaryList()[1:-1]
+            self.summaryList()
         )
 
         df = pd.DataFrame(rawData)
@@ -2771,11 +2785,10 @@ class Plan:
         return None
 
 
-def _lineIncomePlot(x, series, style, title, yformat='k\\$', show=False):
+def _lineIncomePlot(x, series, style, title, yformat='k\\$'):
     """
     Core line plotter function.
     """
-    import matplotlib.pyplot as plt
     import matplotlib.ticker as tk
 
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -2796,9 +2809,6 @@ def _lineIncomePlot(x, series, style, title, yformat='k\\$', show=False):
         if ymax - ymin < 5000:
             ax.set_ylim((ymin * 0.95, ymax * 1.05))
 
-    if show:
-        plt.show()
-
     return fig, ax
 
 
@@ -2806,7 +2816,6 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$')
     """
     Core function for stacked plots.
     """
-    import matplotlib.pyplot as plt
     import matplotlib.ticker as tk
 
     nonzeroSeries = {}
@@ -2836,8 +2845,6 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$')
         ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(100 * x), ',')))
     else:
         raise RuntimeError('Unknown yformat: %s.' % yformat)
-
-    plt.show()
 
     return fig, ax
 

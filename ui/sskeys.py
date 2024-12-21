@@ -141,11 +141,12 @@ def getNum(text, nkey, disabled=False, callback=pull, step=10.):
                            on_change=callback, args=[nkey], key='_'+nkey)
 
 
-def getText(text, nkey, disabled=False, callback=pull):
+def getText(text, nkey, disabled=False, callback=pull, placeholder=None):
     return st.text_input(text,
                          value=getKey(nkey),
                          disabled=disabled,
-                         on_change=callback, args=[nkey], key='_'+nkey)
+                         on_change=callback, args=[nkey], key='_'+nkey,
+                         placeholder=placeholder)
 
 
 def getRadio(text, choices, nkey, callback=pull):

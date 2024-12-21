@@ -1,15 +1,16 @@
 import streamlit as st
 
-import key as k
-import owlAPI as api
+import sskeys as k
+import owlbridge as owb
 
 
 def getIntInput(i, key, text, defval=0):
     nkey = key+str(i)
     k.init(nkey, defval)
-    ret = st.number_input(text, min_value=0,
-                          value=k.getKey(nkey),
-                          on_change=k.pull, args=[nkey], key='_'+nkey)
+    st.number_input(text, min_value=0,
+                    value=k.getKey(nkey),
+                    on_change=k.pull, args=[nkey], key='_'+nkey)
+
 
 def getAllocs(i, title, deco):
     tags = ['S&P500', 'Baa', 'T-Notes', 'Cash']
@@ -24,11 +25,31 @@ def getAllocs(i, title, deco):
         getIntInput(i, deco+tags[2], 'T-Notes', 10)
     with col4:
         getIntInput(i, deco+tags[3], 'Cash Assets', 10)
+    checkAllocs(i, deco)
+
+
+def checkAllocs(i, deco):
+    tags = ['S&P500', 'Baa', 'T-Notes', 'Cash']
     tot = 0
     for tg in tags:
         tot += int(k.getKey(deco+tg+str(i)))
     if abs(100-tot) > 0:
         st.info('Percentages must add to 100%.')
+        return False
+    return True
+
+
+def checkAllAllocs():
+    decos = ['init%', 'fin%']
+    Ni = 1
+    if k.getKey('status') == 'married':
+        Ni += 1
+    result = True
+    for i in range(Ni):
+        for deco in decos:
+            result = result and checkAllocs(i, deco)
+    return result
+
 
 ret = k.titleBar('allocs')
 st.divider()
@@ -53,9 +74,7 @@ else:
 
     st.text(' ')
     plan = k.getKey('plan')
-    if plan is not None:
-        api.setInterpolationMethod()
-        api.setAllocationRatios()
-        st.pyplot(api.showAllocations())
-
-    
+    if plan is not None and checkAllAllocs():
+        owb.setInterpolationMethod()
+        owb.setAllocationRatios()
+        owb.showAllocations()

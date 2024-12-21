@@ -1,7 +1,8 @@
 import streamlit as st
 
-import key as k
-import owlAPI as api
+import sskeys as k
+import owlbridge as owb
+
 
 def isIncomplete():
     return k.getKey('plan') is None
@@ -14,7 +15,6 @@ st.write("## Single Case")
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    pass
-    # st.button('Run plan', on_click=genPlan, disabled=isIncomplete())
+    st.button('Run plan', on_click=owb.runPlan, disabled=isIncomplete())
 
-
+    owb.plotSingleResults()

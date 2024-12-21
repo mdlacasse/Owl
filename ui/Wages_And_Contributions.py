@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 
-import key as k
-import owlAPI as api
+import sskeys as k
+import owlbridge as owb
 
 
 def resetList():
@@ -24,7 +24,7 @@ else:
     if k.getKey('timeList') is None:
         timeList = st.file_uploader('Upload contribution file')
         k.store('timeList', timeList)
-        api.readContributions(timeList)
+        owb.readContributions(timeList)
 
     if k.getKey('timeList') is not None:
         k.init('timeList0', None)
@@ -49,4 +49,3 @@ else:
 
     cantdel = (k.getKey('timeList') is None)
     st.button('Reset', on_click=resetList, disabled=cantdel)
-

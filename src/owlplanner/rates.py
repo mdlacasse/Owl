@@ -30,6 +30,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 ###################################################################
 import numpy as np
+import pandas as pd
 from datetime import date
 
 from owlplanner import logging
@@ -703,13 +704,14 @@ Inflation = [
 ]
 
 
-def getRatesDistributions(frm, to):
+def getRatesDistributions(frm, to, mylog=None):
     """
     Pre-compute normal distribution parameters for the series above.
     This calculation takes into account the correlations between
     the different rates. Function returns means and covariance matrix.
     """
-    import pandas as pd
+    if mylog is None:
+        mylog = logging.Logger()
 
     # Convert years to index and check range.
     frm -= FROM
@@ -732,8 +734,8 @@ def getRatesDistributions(frm, to):
     stdev = df.std()
     covar = df.cov()
 
-    vprint('means: (%)\n', means)
-    vprint('standard deviation: (%)\n', stdev)
+    mylog.print('means: (%)\n', means)
+    mylog.print('standard deviation: (%)\n', stdev)
 
     # Convert to NumPy array and from percent to decimal.
     means = np.array(means) / 100.0
@@ -742,7 +744,7 @@ def getRatesDistributions(frm, to):
     # Build correlation matrix by dividing by the stdev for each column and row.
     corr = covar / stdev[:, None]
     corr = corr.T / stdev[:, None]
-    vprint('correlation matrix: \n\t\t%s' % str(corr).replace('\n', '\n\t\t'))
+    mylog.print('correlation matrix: \n\t\t%s' % str(corr).replace('\n', '\n\t\t'))
 
     return means, stdev, corr, covar
 

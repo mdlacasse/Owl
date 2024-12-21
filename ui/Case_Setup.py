@@ -1,9 +1,8 @@
 from datetime import date
 import streamlit as st
 
-import key as k
-import owlplanner as owl
-import owlAPI as api
+import sskeys as k
+import owlbridge as owb
 
 
 choices = k.allCaseNames()
@@ -15,11 +14,12 @@ st.write('## Case Setup')
 
 if ret == 'New case':
     st.info('A name for the scenario must be provided.')
-    st.text_input("Enter case name", value='', key='_newcase', on_change=k.createCase)
+    st.text_input("Case name", value='', key='_newcase',
+                  on_change=k.createCase, placeholder='Enter a name...')
     # k.switchToCase(ret)
 else:
-    diz1 = k.getKey('plan') is not None 
-    diz2 = diz1 or len(k.allCaseNames()) > 2
+    diz1 = (k.getKey('plan') is not None)
+    diz2 = (diz1 or len(k.allCaseNames()) > 2)
     choices = ['single', 'married']
     k.init('status', choices[0])
     st.radio('Marital status', choices, disabled=diz2,
@@ -32,7 +32,7 @@ else:
         if k.getKey('iname0') == '':
             st.info('First name must be provided.')
 
-        iname0 = k.getText('Your first name', 'iname0', disabled=diz2)
+        iname0 = k.getText('Your first name', 'iname0', disabled=diz2, placeholder='Enter name...')
 
         k.init('yob0', 1965)
         ret = k.getIntNum("%s's birth year" % iname0, 'yob0', disabled=diz2)
@@ -54,7 +54,7 @@ else:
             if k.getKey('iname1') == '':
                 st.info('First name must be provided.')
 
-            iname1 = k.getText("Your spouse's first name", 'iname1', disabled=diz2)
+            iname1 = k.getText("Your spouse's first name", 'iname1', disabled=diz2, placeholder='Enter a name...')
 
             k.init('yob1', 1965)
             ret = k.getIntNum("%s's birth year" % iname1, 'yob1', disabled=diz2)
@@ -65,13 +65,11 @@ else:
     st.divider()
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
     with col1:
-        cantcreate = api.isIncomplete() or diz1
-        st.button('Create case', on_click=api.createPlan, disabled=cantcreate)
+        cantcreate = owb.isIncomplete() or diz1
+        st.button('Create case', on_click=owb.createPlan, disabled=cantcreate)
     with col2:
         cantdel = (k.currentCaseName() == 'New case')
         st.button('Delete case', on_click=k.deleteCurrentCase, disabled=cantdel)
         # st.error("Do you really, really, wanna do this?")
         # if st.button("Yes"):
         # run_expensive_function()
-
-

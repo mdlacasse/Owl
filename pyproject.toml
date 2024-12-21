@@ -6,10 +6,10 @@ build-backend = "hatchling.build"
 name = "owlplanner"
 version = "2024.12"
 authors = [
-  { name="Martin-D. Lacasse", email="martin.d.lacasse@gmailcom" },
+  { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
 maintainers = [
-  { name="Martin-D. Lacasse", email="martin.d.lacasse@gmailcom" },
+  { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
 description = "Owl: Retirement planner with great wisdom"
 readme = "README.md"

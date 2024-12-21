@@ -1,7 +1,6 @@
 import streamlit as st
-import io
 
-import key as k
+import sskeys as k
 
 
 ret = k.titleBar('logs')
@@ -15,4 +14,3 @@ else:
     if strio is not None:
         logmsg = strio.getvalue()
         st.text(logmsg)
-

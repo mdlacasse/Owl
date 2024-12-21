@@ -1,10 +1,10 @@
 import streamlit as st
-import pandas as pd
 from io import StringIO
 from functools import wraps
 
 import owlplanner as owl
-import key as k
+import sskeys as k
+
 
 def isIncomplete():
     return (k.currentCaseName() == '' or k.getKey('iname0') == ''
@@ -28,7 +28,7 @@ def createPlan():
         # print(inames, yobs, life, name, startDate)
         plan = owl.Plan(inames, yobs, life, name, startDate=startDate, verbose=True, logstreams=[strio, strio])
     except Exception as e:
-        st.info('Failed plan creation %s.' % e)
+        st.error('Failed plan creation: %s' % e)
         return
     k.store('plan', plan)
 
@@ -41,7 +41,7 @@ def _checkPlan(func):
     def wrapper(*args, **kwargs):
         plan = k.getKey('plan')
         if plan is None:
-            st.error('Preventing to running method %s().' % (func.__name__))
+            st.error('Preventing to execute method %s().' % (func.__name__))
             return None
         return func(plan, *args, **kwargs)
 
@@ -49,11 +49,54 @@ def _checkPlan(func):
 
 
 @_checkPlan
+def runPlan(plan):
+    maximize = k.getKey('objective')
+    if 'spending' in maximize:
+        objective = 'maxSpending'
+    else:
+        objective = 'maxBequest'
+
+    ni = 1
+    if k.getKey('status') == 'married':
+        ni += 1
+
+    bal = [[], [], []]
+    accounts = ['txbl', 'txDef', 'txFree']
+    for j, acc in enumerate(accounts):
+        for i in range(ni):
+            bal[j].append(k.getKey(acc+str(i)))
+
+    try:
+        plan.setAccountBalances(taxable=bal[0], taxDeferred=bal[1], taxFree=bal[2])
+    except Exception as e:
+        st.error('Account balance failed: %s' % e)
+        return
+
+    options = {}
+    optList = ['netSpending', 'maxRothConversion', 'noRothConversions', 'withMedicare', 'bequest', 'solver']
+    for opt in optList:
+        val = k.getKey(opt)
+        if val:
+            options[opt] = val
+
+    try:
+        plan.solve(objective, options=options)
+    except Exception as e:
+        st.error('Solution failed: %s' % e)
+        k.store('summary', '')
+        return
+
+    k.init('caseStatus', 'unknown')
+    k.store('caseStatus', plan.caseStatus)
+    k.store('summary', plan.summaryString())
+
+
+@_checkPlan
 def setRates(plan):
     if k.getKey('rateType') == 'fixed':
-        plan.setRates('fixed', values=[float(k.getKey('fxRate0')), 
-                                       float(k.getKey('fxRate1')), 
-                                       float(k.getKey('fxRate2')), 
+        plan.setRates('fixed', values=[float(k.getKey('fxRate0')),
+                                       float(k.getKey('fxRate1')),
+                                       float(k.getKey('fxRate2')),
                                        float(k.getKey('fxRate3')), ])
     elif k.getKey('varyingType') == 'historical':
         yfrm = k.getKey('yfrm')
@@ -67,8 +110,8 @@ def setRates(plan):
 def showAllocations(plan):
     figures = plan.showAllocations(figure=True)
     # print('figures', figures)
-    # for fig in figures:
-    st.pyplot(figures[0])
+    for fig in figures:
+        st.pyplot(fig)
 
 
 @_checkPlan
@@ -114,7 +157,7 @@ def readContributions(plan, file):
 @_checkPlan
 def setAllocationRatios(plan):
     tags = ['S&P500', 'Baa', 'T-Notes', 'Cash']
-    
+
     generic = []
     initial = []
     final = []
@@ -136,3 +179,29 @@ def setAllocationRatios(plan):
     return plan.setAllocationRatios('individual', generic=generic)
 
 
+@_checkPlan
+def plotSingleResults(plan):
+    fig = plan.showNetSpending(figure=True)
+    if fig:
+        st.write('## Net Spending')
+        st.pyplot(fig)
+
+    fig = plan.showSources(figure=True)
+    if fig:
+        st.write('## Sources')
+        st.pyplot(fig)
+
+    fig = plan.showAccounts(figure=True)
+    if fig:
+        st.write('## Account Balances')
+        st.pyplot(fig)
+
+    fig = plan.showGrossIncome(figure=True)
+    if fig:
+        st.write('## Gross Income')
+        st.pyplot(fig)
+
+    fig = plan.showTaxes(figure=True)
+    if fig:
+        st.write('## Income Taxes & Medicare')
+        st.pyplot(fig)
