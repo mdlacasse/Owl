@@ -18,10 +18,10 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 from datetime import date
 import pandas as pd
 
-from owlplanner import utils as u
+# from owlplanner import logging
 
 
-def read(filename, inames, horizons):
+def read(filename, inames, horizons, mylog):
     """
     Read listed parameters from an excel spreadsheet through Pandas.
     Use one sheet for each individual with the following columns.
@@ -49,9 +49,9 @@ def read(filename, inames, horizons):
     except Exception as e:
         raise Exception('Could not read file %r: %s.' % (filename, e))
 
-    u.vprint('Reading wages, contributions, conversions, and big-ticket items over time...')
+    mylog.vprint('Reading wages, contributions, conversions, and big-ticket items over time...')
     for i, iname in enumerate(inames):
-        u.vprint('\tfor %s...' % iname)
+        mylog.vprint('\tfor %s...' % iname)
         endyear = thisyear + horizons[i]
         if iname not in dfDict:
             raise RuntimeError('Could not find a sheet for %s in file %s.' % (iname, filename))
@@ -68,7 +68,7 @@ def read(filename, inames, horizons):
                 missing += 1
 
         if missing > 0:
-            u.vprint('\tAdding %d missing year for %s.' % (missing, iname))
+            mylog.vprint('\tAdding %d missing year for %s.' % (missing, iname))
 
         df.sort_values('year', inplace=True)
         # Replace empty (NaN) cells with 0 value.
@@ -79,7 +79,7 @@ def read(filename, inames, horizons):
         for item in timeHorizonItems:
             timeLists[i][item] = df[item].tolist()
 
-    u.vprint('Successfully read time horizons from file "%s".' % filename)
+    mylog.vprint('Successfully read time horizons from file "%s".' % filename)
 
     return timeLists
 

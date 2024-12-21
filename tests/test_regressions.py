@@ -3,7 +3,6 @@ from datetime import date
 
 import owlplanner as owl
 
-owl.setVerbose(False)
 # solver = 'MOSEK'
 solver = 'HiGHS'
 

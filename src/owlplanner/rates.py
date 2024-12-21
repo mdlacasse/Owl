@@ -32,6 +32,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import numpy as np
 from datetime import date
 
+from owlplanner import logging
 from owlplanner import utils as u
 
 # All data goes from 1928 to 2023. Update the TO value when data
@@ -731,8 +732,8 @@ def getRatesDistributions(frm, to):
     stdev = df.std()
     covar = df.cov()
 
-    u.vprint('means: (%)\n', means)
-    u.vprint('standard deviation: (%)\n', stdev)
+    vprint('means: (%)\n', means)
+    vprint('standard deviation: (%)\n', stdev)
 
     # Convert to NumPy array and from percent to decimal.
     means = np.array(means) / 100.0
@@ -741,7 +742,7 @@ def getRatesDistributions(frm, to):
     # Build correlation matrix by dividing by the stdev for each column and row.
     corr = covar / stdev[:, None]
     corr = corr.T / stdev[:, None]
-    u.vprint('correlation matrix: \n\t\t%s' % str(corr).replace('\n', '\n\t\t'))
+    vprint('correlation matrix: \n\t\t%s' % str(corr).replace('\n', '\n\t\t'))
 
     return means, stdev, corr, covar
 
@@ -776,10 +777,12 @@ class Rates:
     then ``mySeries = r.genSeries()``
     """
 
-    def __init__(self):
+    def __init__(self, mylog):
         """
         Default constructor.
         """
+        self.mylog = mylog
+
         # Default rates are average over last 30 years.
         self._defRates = np.array([0.1101, 0.0736, 0.0503, 0.0251])
 
@@ -835,15 +838,15 @@ class Rates:
         # First process fixed methods relying on values.
         if method == 'default':
             self.means = self._defRates
-            # u.vprint('Using default fixed rates values:', *[u.pc(k) for k in values])
+            # self.mylog.vprint('Using default fixed rates values:', *[u.pc(k) for k in values])
             self._setFixedRates(self._defRates)
         elif method == 'realistic':
             self.means = self._defRates
-            u.vprint('Using realistic fixed rates values:', *[u.pc(k) for k in self.means])
+            self.mylog.vprint('Using realistic fixed rates values:', *[u.pc(k) for k in self.means])
             self._setFixedRates(self._realisticRates)
         elif method == 'conservative':
             self.means = self._conservRates
-            u.vprint('Using conservative fixed rates values:', *[u.pc(k) for k in self.means])
+            self.mylog.vprint('Using conservative fixed rates values:', *[u.pc(k) for k in self.means])
             self._setFixedRates(self._conservRates)
         elif method == 'fixed':
             assert values is not None, 'Values must be provided with the fixed option.'
@@ -851,7 +854,7 @@ class Rates:
             self.means = np.array(values, dtype=float)
             # Convert percent to decimal for storing.
             self.means /= 100.0
-            u.vprint('Setting rates using fixed values:', *[u.pc(k) for k in self.means])
+            self.mylog.vprint('Setting rates using fixed values:', *[u.pc(k) for k in self.means])
             self._setFixedRates(self.means)
         elif method == 'stochastic':
             assert values is not None, 'Mean values must be provided with the stochastic option.'
@@ -891,9 +894,9 @@ class Rates:
             covar = self.corr * self.stdev
             self.covar = covar.T * self.stdev
             self._rateMethod = self._stochRates
-            u.vprint('Setting rates using stochastic method with means:', *[u.pc(k) for k in self.means])
-            u.vprint('\t standard deviations:', *[u.pc(k) for k in self.stdev])
-            u.vprint('\t and correlation matrix:\n\t\t', str(self.corr).replace('\n', '\n\t\t'))
+            self.mylog.vprint('Setting rates using stochastic method with means:', *[u.pc(k) for k in self.means])
+            self.mylog.vprint('\t standard deviations:', *[u.pc(k) for k in self.stdev])
+            self.mylog.vprint('\t and correlation matrix:\n\t\t', str(self.corr).replace('\n', '\n\t\t'))
         else:
             # Then methods relying on historical data range.
             assert frm is not None, 'From year must be provided with this option.'
@@ -904,14 +907,14 @@ class Rates:
             self.to = to
 
             if method == 'historical':
-                u.vprint('Using historical rates representing data from %d to %d.' % (frm, to))
+                self.mylog.vprint('Using historical rates representing data from %d to %d.' % (frm, to))
                 self._rateMethod = self._histRates
             elif method == 'average' or method == 'means':
-                u.vprint('Using average of rates from %d to %d.' % (frm, to))
+                self.mylog.vprint('Using average of rates from %d to %d.' % (frm, to))
                 self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to)
                 self._setFixedRates(self.means)
             elif method == 'histochastic':
-                u.vprint('Using histochastic rates derived from years %d to %d.' % (frm, to))
+                self.mylog.vprint('Using histochastic rates derived from years %d to %d.' % (frm, to))
                 self._rateMethod = self._stochRates
                 self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to)
             else:

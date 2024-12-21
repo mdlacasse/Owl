@@ -3,38 +3,11 @@ import streamlit as st
 
 import key as k
 import owlplanner as owl
-
-
-def isIncomplete():
-    return (k.currentCaseName() == '' or k.getKey('iname0') == ''
-            or (k.getKey('status') == 'married' and k.getKey('iname1') == ''))
-
-
-def genPlan():
-    name = k.currentCaseName()
-    inames = [k.getKey('iname0')]
-    yobs = [k.getKey('yob0')]
-    life = [k.getKey('life0')]
-    startDate = k.getKey('startDate')
-    if k.getKey('status') == 'married':
-        inames.append(k.getKey('iname1'))
-        yobs.append(k.getKey('yob1'))
-        life.append(k.getKey('life1'))
-
-    try:
-        print(inames, yobs, life, name, startDate)
-        plan = owl.Plan(inames, yobs, life, name, startDate)
-    except Exception as e:
-        st.info('Failed plan creation %s.' % e)
-        return
-    k.store('plan', plan)
+import owlAPI as api
 
 
 choices = k.allCaseNames()
-nkey = 'case'
-ret = st.selectbox('Select case', choices,
-                    index=k.getIndex(k.currentCaseName(), choices), key='_'+nkey,
-                    on_change=k.switchToCase, args=[nkey])
+ret = k.titleBar('case', choices)
 
 # ret = k.titleBar('case')
 st.divider()
@@ -45,10 +18,11 @@ if ret == 'New case':
     st.text_input("Enter case name", value='', key='_newcase', on_change=k.createCase)
     # k.switchToCase(ret)
 else:
-    diz = len(k.allCaseNames()) > 2
+    diz1 = k.getKey('plan') is not None 
+    diz2 = diz1 or len(k.allCaseNames()) > 2
     choices = ['single', 'married']
     k.init('status', choices[0])
-    st.radio('Marital status', choices, disabled=diz,
+    st.radio('Marital status', choices, disabled=diz2,
              index=choices.index(k.getKey('status')), key='_status',
              on_change=k.pull, args=['status'], horizontal=True)
 
@@ -58,13 +32,13 @@ else:
         if k.getKey('iname0') == '':
             st.info('First name must be provided.')
 
-        iname0 = k.getText('Your first name', 'iname0', disabled=diz)
+        iname0 = k.getText('Your first name', 'iname0', disabled=diz2)
 
         k.init('yob0', 1965)
-        ret = k.getNum("%s's birth year" % iname0, 'yob0', disabled=diz)
+        ret = k.getIntNum("%s's birth year" % iname0, 'yob0', disabled=diz2)
 
         k.init('life0', 80)
-        ret = k.getNum("%s's expected longevity" % iname0, 'life0')
+        ret = k.getIntNum("%s's expected longevity" % iname0, 'life0', disabled=diz1)
 
         today = date.today()
         thisyear = today.year
@@ -72,10 +46,7 @@ else:
         ret = st.date_input("Plan's starting date on first year",
                             min_value=date(thisyear, 1, 1), max_value=date(thisyear, 12, 31),
                             value=k.getKey('startDate'), key='_startDate', args=['startDate'],
-                            on_change=k.pull)
-
-    cantdel = (k.currentCaseName() == 'New case')
-    st.button('Delete case', on_click=k.deleteCurrentCase, disabled=cantdel)
+                            on_change=k.pull, disabled=diz2)
 
     with col2:
         if k.getKey('status') == 'married':
@@ -83,13 +54,24 @@ else:
             if k.getKey('iname1') == '':
                 st.info('First name must be provided.')
 
-            iname1 = k.getText("Your spouse's first name", 'iname1', disabled=diz)
+            iname1 = k.getText("Your spouse's first name", 'iname1', disabled=diz2)
 
             k.init('yob1', 1965)
-            ret = k.getNum("%s's birth year" % iname1, 'yob1', disabled=diz)
+            ret = k.getIntNum("%s's birth year" % iname1, 'yob1', disabled=diz2)
 
             k.init('life1', 80)
-            ret = k.getNum("%s's expected longevity" % iname1, 'life1')
+            ret = k.getIntNum("%s's expected longevity" % iname1, 'life1', disabled=diz1)
 
-    st.button('Initialize plan', on_click=genPlan, disabled=isIncomplete())
+    st.divider()
+    col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
+    with col1:
+        cantcreate = api.isIncomplete() or diz1
+        st.button('Create case', on_click=api.createPlan, disabled=cantcreate)
+    with col2:
+        cantdel = (k.currentCaseName() == 'New case')
+        st.button('Delete case', on_click=k.deleteCurrentCase, disabled=cantdel)
+        # st.error("Do you really, really, wanna do this?")
+        # if st.button("Yes"):
+        # run_expensive_function()
+
 

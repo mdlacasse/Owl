@@ -1,5 +1,8 @@
 import streamlit as st
+
 import key as k
+import owlAPI as api
+
 
 FXRATES = {
     'conservative': [8, 5, 4, 3],
@@ -42,16 +45,16 @@ else:
         ro = (ret != 'user')
         col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
         with col1:
-            ret = k.getNum('S&P 500', 'fxRate0', ro)
+            ret = k.getNum('S&P 500', 'fxRate0', ro, step=1.)
 
         with col2:
-            ret = k.getNum('Corporate Bonds Baa', 'fxRate1', ro)
+            ret = k.getNum('Corporate Bonds Baa', 'fxRate1', ro, step=1.)
 
         with col3:
-            ret = k.getNum('10-y Treasury Notes', 'fxRate2', ro)
+            ret = k.getNum('10-y Treasury Notes', 'fxRate2', ro, step=1.)
 
         with col4:
-            ret = k.getNum('Common Assets / Inflation', 'fxRate3', ro)
+            ret = k.getNum('Common Assets / Inflation', 'fxRate3', ro, step=1.)
 
     elif k.getKey('rateType') == 'varying':
         choices3 = ['historical', 'histochastic', 'stochastic']
@@ -63,12 +66,12 @@ else:
 
     if ((k.getKey('rateType') == 'fixed' and 'hist' in k.getKey('fixedType'))
        or (k.getKey('rateType') == 'varying' and 'hist' in k.getKey('varyingType'))):
-        k.init('yfrm', 1922)
+        k.init('yfrm', 1928)
         k.init('yto', 2023)
 
         col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
         with col1:
-            ret = st.number_input('Starting year', min_value=1922,
+            ret = st.number_input('Starting year', min_value=1928,
                                   max_value=k.getKey('yto'),
                                   value=k.getKey('yfrm'),
                                   on_change=k.pull, args=['yfrm'], key='_yfrm')
@@ -79,11 +82,16 @@ else:
                                   value=k.getKey('yto'),
                                   on_change=k.pull, args=['yto'], key='_yto')
 
+    st.text(' ')
+    api.setRates()
+    api.showRates()
+
+    st.divider()
     st.write('### Other rates')
     k.init('divRate', 2)
     ret = k.getNum('Dividends return rate (%)', 'divRate')
     
-    st.write('### Income taxes')
+    st.write('#### Income taxes')
     k.init('gainTx', 15)
     ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx')
 

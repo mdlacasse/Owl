@@ -43,8 +43,9 @@ def switchToCase(key):
     ss.currentCase = ss['_'+key]
 
 
-def titleBar(nkey):
-    choices = onlyCaseNames()
+def titleBar(nkey, choices=None):
+    if choices is None:
+        choices = onlyCaseNames()
     return st.selectbox('Select case', choices,
                         index=getIndex(currentCaseName(), choices), key='_'+nkey,
                         on_change=switchToCase, args=[nkey])
@@ -62,7 +63,7 @@ def setCurrentCase(case):
 
 def createCase():
     if ss._newcase != '' and ss._newcase not in ss.cases:
-        ss.cases[ss._newcase] = {'name': ss._newcase, 'summary': ''}
+        ss.cases[ss._newcase] = {'name': ss._newcase, 'summary': '', 'logs': None}
 
     if len(ss.cases) > 2:
         othercase = list(ss.cases)[-2]
@@ -111,17 +112,32 @@ def init(key, val):
 
 
 def getKey(key):
-    return ss.cases[ss.currentCase][key]
+    if key in ss.cases[ss.currentCase]:
+        return ss.cases[ss.currentCase][key]
+    else:
+        return None
 
 
 def getDict(key=ss.currentCase):
     return ss.cases[key]
 
 
-def getNum(text, nkey, disabled=False, callback=pull):
+def getIntNum(text, nkey, disabled=False, callback=pull):
     return st.number_input(text,
-                           value=getKey(nkey),
+                           value=int(getKey(nkey)),
                            disabled=disabled,
+                           min_value=0,
+                           step=1,
+                           on_change=callback, args=[nkey], key='_'+nkey)
+
+
+def getNum(text, nkey, disabled=False, callback=pull, step=10.):
+    return st.number_input(text,
+                           value=float(getKey(nkey)),
+                           disabled=disabled,
+                           step=step,
+                           min_value=0.,
+                           format='%.1f',
                            on_change=callback, args=[nkey], key='_'+nkey)
 
 

@@ -12,14 +12,14 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import configparser
 import numpy as np
 from owlplanner import plan
-from owlplanner import utils as u
+from owlplanner import logging
 
 
-def saveConfig(plan, basename):
+def saveConfig(plan, basename, mylog):
     """
     Save plan configuration parameters to a file named *basename*.cfg.
     """
-    u.vprint('Saving plan config as "%s.cfg".' % basename)
+    mylog.vprint('Saving plan config as "%s.cfg".' % basename)
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
@@ -100,7 +100,7 @@ def saveConfig(plan, basename):
     return
 
 
-def readConfig(basename):
+def readConfig(basename, mylog=None):
     """
     Read plan configuration parameters from file *basename*.cfg.
     A new plan is created and returned.
@@ -108,7 +108,10 @@ def readConfig(basename):
     import configparser
     import ast
 
-    u.vprint("Reading plan configuration from file '%s.cfg'." % basename)
+    if mylog is None:
+        mylog = logging.Logger()
+
+    mylog.vprint("Reading plan configuration from file '%s.cfg'." % basename)
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
@@ -121,7 +124,7 @@ def readConfig(basename):
     inames = config['Who']['Names'].split(',')
     name = config['Parameters']['Plan name']
     startDate = config['Parameters']['Starting date']
-    u.vprint('Plan for %d individual%s: %s.' % (icount, ['', 's'][icount - 1], inames))
+    mylog.vprint('Plan for %d individual%s: %s.' % (icount, ['', 's'][icount - 1], inames))
 
     # Parameters getting one value for each spouse.
     yobs = []

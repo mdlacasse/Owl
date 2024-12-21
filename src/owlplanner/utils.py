@@ -2,7 +2,7 @@
 
 Owl/utils
 
-This file contains for handling error messages.
+This file contains functions for handling data.
 
 Copyright (C) 2024 -- Martin-D. Lacasse
 
@@ -11,54 +11,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 """
 
 ######################################################################
-import sys
-import logger
 import numpy as np
-
-
-######################################################################
-verbose = True
-
-# logger = logging
-
-def _setVerbose(val, ret=False):
-    """
-    Set verbose to True if you want the module to be chatty,
-    or False to make it silent.
-    """
-    global verbose
-    prevState = verbose
-    verbose = val
-    vprint('Setting verbose to', verbose)
-
-    if ret:
-        return prevState
-
-    return
-
-
-def vprint(*args, **kwargs):
-    """
-    Conditional printing depending on the value of the verbose variable
-    previously set.
-    """
-    global verbose
-    if verbose:
-        print(*args)
-    sys.stdout.flush()
-
-    return
-
-
-def xprint(*args, **kwargs):
-    """
-    Print message and exit. Use to print error messages on stderr.
-    The exit() used throws an exception in an interactive environment.
-    """
-    print('ERROR:', *args, file=sys.stderr, **kwargs)
-    print('Exiting...', file=sys.stderr)
-    sys.stderr.flush()
-    sys.exit(-1)
 
 
 def d(value, f=0, latex=False) -> str:
@@ -112,7 +65,7 @@ def getUnits(units) -> int:
     elif units in {'m', 'M'}:
         fac = 1000000
     else:
-        raise ValueError('Unknown units %.' % units)
+        raise ValueError('Unknown units %r.' % units)
 
     return fac
 
