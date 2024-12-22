@@ -89,26 +89,24 @@ def deleteCurrentCase():
 
 
 def dump():
-    print('Dump:', ss)
+    print('State Dump:', ss)
 
 
 def pull(key):
     # print('pulling', key, 'from', '_'+key, 'as', ss['_'+key])
-    store(key, ss['_'+key])
-    # dump()
+    return setKey(key, ss['_'+key])
 
 
-def store(key, val):
+def setKey(key, val):
     # print('storing', key, 'as', val)
     ss.cases[ss.currentCase][key] = val
-    # dump()
+    return val
 
 
 def init(key, val):
     if key not in ss.cases[ss.currentCase]:
         # print('init', key, 'as', val)
         ss.cases[ss.currentCase][key] = val
-        # dump()
 
 
 def getKey(key):

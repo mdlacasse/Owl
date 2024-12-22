@@ -12,14 +12,26 @@ FXRATES = {
 }
 
 
-def update_rates(key):
-    # print('updating rates', key)
-    k.pull(key)
-    fxType = k.getKey(key)
+def updateFixedRates(key):
+    fxType = k.pull(key)
     rates = FXRATES[fxType]
     for j in range(4):
-        k.store('fxRate'+str(j), rates[j])
+        k.setKey('fxRate'+str(j), rates[j])
+    owb.setRates()
 
+
+def updateRates(key):
+    k.pull(key)
+    owb.setRates()
+
+
+rateChoices = ['fixed', 'varying']
+fixedChoices = list(FXRATES)
+varyingChoices = ['historical', 'histochastic', 'stochastic']
+
+k.init('rateType', rateChoices[0])
+k.init('fixedType', fixedChoices[0])
+k.init('varyingType', varyingChoices[0])
 
 ret = k.titleBar('rates')
 st.divider()
@@ -28,72 +40,120 @@ st.write('## Rate Selection')
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    choices1 = ['fixed', 'varying']
-    k.init('rateType', choices1[0])
-    ret = k.getRadio('## Rate type', choices1, 'rateType')
+    k.init('yfrm', 1928)
+    k.init('yto', 2023)
+
+    k.getRadio('## Rate type', rateChoices, 'rateType', updateRates)
 
     if k.getKey('rateType') == 'fixed':
-        choices2 = ['conservative', 'realistic', 'historical average', 'user']
-        k.init('fixedType', choices2[0])
-        ret = k.getRadio('Select fixed rates', choices2, 'fixedType', update_rates)
+        fxType = k.getRadio('Select fixed rates', fixedChoices, 'fixedType', updateFixedRates)
 
         st.write('#### Fixed rate values (%)')
         for j in range(4):
-            rates = FXRATES[ret]
+            rates = FXRATES[fxType]
             k.init('fxRate'+str(j), rates[j])
 
-        ro = (ret != 'user')
+        ro = (fxType != 'user')
         col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
         with col1:
-            ret = k.getNum('S&P 500', 'fxRate0', ro, step=1.)
+            k.getNum('S&P 500', 'fxRate0', ro, step=1.,
+                     callback=updateRates)
 
         with col2:
-            ret = k.getNum('Corporate Bonds Baa', 'fxRate1', ro, step=1.)
+            k.getNum('Corporate Bonds Baa', 'fxRate1', ro, step=1.,
+                     callback=updateRates)
 
         with col3:
-            ret = k.getNum('10-y Treasury Notes', 'fxRate2', ro, step=1.)
+            k.getNum('10-y Treasury Notes', 'fxRate2', ro, step=1.,
+                     callback=updateRates)
 
         with col4:
-            ret = k.getNum('Common Assets / Inflation', 'fxRate3', ro, step=1.)
+            k.getNum('Common Assets / Inflation', 'fxRate3', ro, step=1.,
+                     callback=updateRates)
 
     elif k.getKey('rateType') == 'varying':
-        choices3 = ['historical', 'histochastic', 'stochastic']
-        k.init('varyingType', choices3[0])
-        ret = k.getRadio('Select varying rates', choices3, 'varyingType')
+        k.getRadio('Select varying rates', varyingChoices, 'varyingType', callback=updateRates)
 
     else:
-        st.info('Logic error')
+        st.error('Logic error')
 
     if ((k.getKey('rateType') == 'fixed' and 'hist' in k.getKey('fixedType'))
        or (k.getKey('rateType') == 'varying' and 'hist' in k.getKey('varyingType'))):
-        k.init('yfrm', 1928)
-        k.init('yto', 2023)
 
         col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
         with col1:
-            ret = st.number_input('Starting year', min_value=1928,
-                                  max_value=k.getKey('yto'),
-                                  value=k.getKey('yfrm'),
-                                  on_change=k.pull, args=['yfrm'], key='_yfrm')
+            st.number_input('Starting year', min_value=1928,
+                            max_value=k.getKey('yto'),
+                            value=k.getKey('yfrm'),
+                            on_change=updateRates, args=['yfrm'], key='_yfrm')
 
         with col2:
-            ret = st.number_input('Ending year', max_value=2023,
-                                  min_value=k.getKey('yfrm'),
-                                  value=k.getKey('yto'),
-                                  on_change=k.pull, args=['yto'], key='_yto')
+            st.number_input('Ending year', max_value=2023,
+                            min_value=k.getKey('yfrm'),
+                            value=k.getKey('yto'),
+                            on_change=updateRates, args=['yto'], key='_yto')
+
+    if k.getKey('rateType') == 'varying':
+        st.write('#### Stochastic parameters')
+        ro = k.getKey('varyingType') != 'stochastic'
+        st.write('##### Means')
+        col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
+        with col1:
+            k.init('mean0', 0)
+            k.getNum('S&P 500', 'mean0', ro, step=1.,
+                     callback=updateRates)
+
+        with col2:
+            k.init('mean1', 0)
+            k.getNum('Corporate Bonds Baa', 'mean1', ro, step=1.,
+                     callback=updateRates)
+
+        with col3:
+            k.init('mean2', 0)
+            k.getNum('10-y Treasury Notes', 'mean2', ro, step=1.,
+                     callback=updateRates)
+
+        with col4:
+            k.init('mean3', 0)
+            k.getNum('Common Assets / Inflation', 'mean3', ro, step=1.,
+                     callback=updateRates)
+
+        st.write('##### Volatility')
+        col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
+        with col1:
+            k.init('sdev0', 0)
+            k.getNum('S&P 500', 'sdev0', ro, step=1.,
+                     callback=updateRates)
+
+        with col2:
+            k.init('sdev1', 0)
+            k.getNum('Corporate Bonds Baa', 'sdev1', ro, step=1.,
+                     callback=updateRates)
+
+        with col3:
+            k.init('sdev2', 0)
+            k.getNum('10-y Treasury Notes', 'sdev2', ro, step=1.,
+                     callback=updateRates)
+
+        with col4:
+            k.init('sdev3', 0)
+            k.getNum('Common Assets / Inflation', 'sdev3', ro, step=1.,
+                     callback=updateRates)
 
     st.text(' ')
-    owb.setRates()
     owb.showRates()
 
     st.divider()
     st.write('### Other rates')
     k.init('divRate', 2)
-    ret = k.getNum('Dividends return rate (%)', 'divRate')
+    ret = k.getNum('Dividends return rate (%)', 'divRate',
+                   callback=owb.setDividendRate, step=1.)
 
     st.write('#### Income taxes')
     k.init('gainTx', 15)
-    ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx')
+    ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx',
+                   callback=owb.setLongTermCapitalTaxRate, step=1.)
 
     k.init('heirsTx', 30)
-    ret = k.getNum('Heirs income tax rate (%)', 'heirsTx')
+    ret = k.getNum('Heirs income tax rate (%)', 'heirsTx',
+                   callback=owb.setHeirsTaxRate, step=1.)

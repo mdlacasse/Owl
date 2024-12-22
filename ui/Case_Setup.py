@@ -6,7 +6,7 @@ import owlbridge as owb
 
 
 choices = k.allCaseNames()
-ret = k.titleBar('case', choices)
+ret = k.titleBar('setup', choices)
 
 # ret = k.titleBar('case')
 st.divider()
@@ -63,9 +63,12 @@ else:
             ret = k.getIntNum("%s's expected longevity" % iname1, 'life1', disabled=diz1)
 
     st.divider()
+    cantcreate = owb.isIncomplete() or diz1
+    if not cantcreate and k.getKey('plan') is None:
+        st.info('Plan needs to be created when all information has been entered.')
+
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
     with col1:
-        cantcreate = owb.isIncomplete() or diz1
         st.button('Create case', on_click=owb.createPlan, disabled=cantcreate)
     with col2:
         cantdel = (k.currentCaseName() == 'New case')

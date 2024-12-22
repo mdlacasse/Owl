@@ -6,13 +6,13 @@ import owlbridge as owb
 
 
 def resetList():
-    k.store('timeList', None)
-    k.store('timeList0', None)
+    k.setKey('timeList', None)
+    k.setKey('timeList0', None)
     if k.getKey('status') == 'married':
-        k.store('timeList1', None)
+        k.setKey('timeList1', None)
 
 
-ret = k.titleBar('fixed')
+ret = k.titleBar('wages')
 st.divider()
 st.write('## Wages and Contributions')
 
@@ -23,7 +23,7 @@ else:
     k.init('timeList', None)
     if k.getKey('timeList') is None:
         timeList = st.file_uploader('Upload contribution file')
-        k.store('timeList', timeList)
+        k.setKey('timeList', timeList)
         owb.readContributions(timeList)
 
     if k.getKey('timeList') is not None:
@@ -32,7 +32,7 @@ else:
             df0 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname0'))
             df0 = df0.fillna(0)
             # print('df0', df0)
-            k.store('timeList0', df0)
+            k.setKey('timeList0', df0)
 
         st.write(k.getKey('iname0'))
         st.dataframe(k.getKey('timeList0'))
@@ -42,7 +42,7 @@ else:
             if k.getKey('timeList1') is None:
                 df1 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname1'))
                 df1 = df1.fillna(0)
-                k.store('timeList1', df1)
+                k.setKey('timeList1', df1)
 
             st.write(k.getKey('iname1'))
             st.dataframe(k.getKey('timeList1'))

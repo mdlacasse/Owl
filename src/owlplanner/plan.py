@@ -404,6 +404,7 @@ class Plan:
         """
 
         self.defaultPlots = self._checkValue(value)
+        self.mylog.vprint('Setting plots default value to %s.' % value)
 
         return None
 
