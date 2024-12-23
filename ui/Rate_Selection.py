@@ -12,16 +12,15 @@ FXRATES = {
 }
 
 
-def updateFixedRates(key):
-    fxType = k.pull(key)
+def updateFixedRates(key, pull=True):
+    if pull:
+        fxType = k.pull(key)
+    else:
+        fxType = key
+
     rates = FXRATES[fxType]
     for j in range(4):
         k.setKey('fxRate'+str(j), rates[j])
-    owb.setRates()
-
-
-def updateRates(key):
-    k.pull(key)
     owb.setRates()
 
 
@@ -32,6 +31,18 @@ varyingChoices = ['historical', 'histochastic', 'stochastic']
 k.init('rateType', rateChoices[0])
 k.init('fixedType', fixedChoices[0])
 k.init('varyingType', varyingChoices[0])
+
+
+def updateRates(key):
+    k.pull(key)
+    owb.setRates()
+
+
+def initRates():
+    updateFixedRates(fixedChoices[0], False)
+
+
+k.once(initRates)
 
 ret = k.titleBar('rates')
 st.divider()
@@ -139,6 +150,9 @@ else:
             k.init('sdev3', 0)
             k.getNum('Common Assets / Inflation', 'sdev3', ro, step=1.,
                      callback=updateRates)
+
+        st.text(' ')
+        owb.showRatesCorrelations()
 
     st.text(' ')
     owb.showRates()

@@ -2063,7 +2063,7 @@ class Plan:
 
         return lines
 
-    def showRatesCorrelations(self, tag='', shareRange=False):
+    def showRatesCorrelations(self, tag='', shareRange=False, figure=False):
         """
         Plot correlations between various rates.
 
@@ -2116,8 +2116,11 @@ class Plan:
             title += ' - ' + tag
 
         g.fig.suptitle(title, y=1.08)
-        plt.show()
 
+        if figure:
+             return g.fig
+
+        plt.show()
         return None
 
     def showRates(self, tag='', figure=False):
@@ -2523,7 +2526,7 @@ class Plan:
         return None
 
     @_checkCaseStatus
-    def saveWorkbook(self, overwrite=False, basename=None):
+    def saveWorkbook(self, overwrite=False, basename=None, saveToFile=True):
         """
         Save instance in an Excel spreadsheet.
         The first worksheet will contain income in the following
@@ -2561,9 +2564,6 @@ class Plan:
 
         from openpyxl import Workbook
         from openpyxl.utils.dataframe import dataframe_to_rows
-
-        if basename is None:
-            basename = self._name
 
         wb = Workbook()
 
@@ -2732,9 +2732,14 @@ class Plan:
 
         _formatSpreadsheet(ws, 'summary')
 
-        _saveWorkbook(wb, basename, overwrite, self.mylog)
+        if saveToFile:
+            if basename is None:
+                basename = self._name
 
-        return None
+            _saveWorkbook(wb, basename, overwrite, self.mylog)
+            return None
+
+        return wb
 
     def saveWorkbookCSV(self, basename):
         """

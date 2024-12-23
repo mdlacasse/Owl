@@ -31,13 +31,13 @@ else:
     st.write('### Social Security')
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
     with col1:
-        getIntInput(0, 'ssAge', 'social security age', 67)
         getFloatInput(0, 'ssAmt', 'social security annual amount (k$)')
+        getIntInput(0, 'ssAge', 'social security age', 67)
 
     with col2:
         if k.getKey('status') == 'married':
-            getIntInput(1, 'ssAge', 'social security age', 67)
             getFloatInput(1, 'ssAmt', 'social security annual amount (k$)')
+            getIntInput(1, 'ssAge', 'social security age', 67)
 
     st.write('### Pension')
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')

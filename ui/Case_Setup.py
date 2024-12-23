@@ -5,25 +5,27 @@ import sskeys as k
 import owlbridge as owb
 
 
-choices = k.allCaseNames()
-ret = k.titleBar('setup', choices)
+caseChoices = k.allCaseNames()
+ret = k.titleBar('setup', caseChoices)
 
 # ret = k.titleBar('case')
 st.divider()
 st.write('## Case Setup')
 
-if ret == 'New case':
+if ret == k.newCase:
     st.info('A name for the scenario must be provided.')
     st.text_input("Case name", value='', key='_newcase',
                   on_change=k.createCase, placeholder='Enter a name...')
-    # k.switchToCase(ret)
+elif ret == k.loadConfig:
+    st.info('A config file must be uploaded.')
+    config = st.file_uploader('Upload configuration file...')
 else:
     diz1 = (k.getKey('plan') is not None)
-    diz2 = (diz1 or len(k.allCaseNames()) > 2)
-    choices = ['single', 'married']
-    k.init('status', choices[0])
-    st.radio('Marital status', choices, disabled=diz2,
-             index=choices.index(k.getKey('status')), key='_status',
+    diz2 = (diz1 or len(k.allCaseNames()) > 3)
+    statusChoices = ['single', 'married']
+    k.init('status', statusChoices[0])
+    st.radio('Marital status', statusChoices, disabled=diz2,
+             index=statusChoices.index(k.getKey('status')), key='_status',
              on_change=k.pull, args=['status'], horizontal=True)
 
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
@@ -71,7 +73,7 @@ else:
     with col1:
         st.button('Create case', on_click=owb.createPlan, disabled=cantcreate)
     with col2:
-        cantdel = (k.currentCaseName() == 'New case')
+        cantdel = (k.currentCaseName() == k.newCase)
         st.button('Delete case', on_click=k.deleteCurrentCase, disabled=cantdel)
         # st.error("Do you really, really, wanna do this?")
         # if st.button("Yes"):

@@ -1,14 +1,15 @@
 import streamlit as st
-from io import StringIO
+from io import StringIO, BytesIO
 from functools import wraps
+import pandas as pd
 
 import owlplanner as owl
 import sskeys as k
 
 
 def isIncomplete():
-    return (k.currentCaseName() == '' or k.getKey('iname0') == ''
-            or (k.getKey('status') == 'married' and k.getKey('iname1') == ''))
+    return (k.currentCaseName() == '' or k.getKey('iname0') in [None, ''] 
+            or (k.getKey('status') == 'married' and k.getKey('iname1') in [None, ''] ))
 
 
 def createPlan():
@@ -134,11 +135,9 @@ def setRates(plan):
     if k.getKey('rateType') == 'fixed':
         if k.getKey('fixedType') == 'historical average':
             plan.setRates('average', yfrm, yto)
-            # Need to set fxRates to computed values.
-            k.setKey('fxRate0', 100*plan.tau_kn[0, -1])
-            k.setKey('fxRate1', 100*plan.tau_kn[1, -1])
-            k.setKey('fxRate2', 100*plan.tau_kn[2, -1])
-            k.setKey('fxRate3', 100*plan.tau_kn[3, -1])
+            # Set fxRates back to computed values.
+            for j in range(4):
+                k.setKey('fxRate'+str(j), 100*plan.tau_kn[j, -1])
         else:
             plan.setRates('fixed', values=[float(k.getKey('fxRate0')),
                                            float(k.getKey('fxRate1')),
@@ -148,8 +147,13 @@ def setRates(plan):
         varyingType = k.getKey('varyingType')
         if 'histo' in varyingType:
             plan.setRates(varyingType, yfrm, yto)
+            mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto)
+            for j in range(4):
+                k.setKey('mean'+str(j), 100*mean[j])
+                k.setKey('sdev'+str(j), 100*stdev[j])
         elif varyingType == 'stochastic':
             pass
+            # plan.setRates(
         else:
             raise RuntimeError('Logic error in setRates()')
 
@@ -173,6 +177,12 @@ def showProfile(plan):
 @_checkPlan
 def showRates(plan):
     fig = plan.showRates(figure=True)
+    st.pyplot(fig)
+
+
+@_checkPlan
+def showRatesCorrelations(plan):
+    fig = plan.showRatesCorrelations(figure=True)
     st.pyplot(fig)
 
 
@@ -255,8 +265,9 @@ def plotSingleResults(plan):
 
 
 @_checkPlan
-def setProfile(plan, key):
-    k.pull(key)
+def setProfile(plan, key, pull=True):
+    if pull:
+        k.pull(key)
     profile = k.getKey('profile')
     survivor = k.getKey('survivor')
     plan.setSpendingProfile(profile, survivor)
@@ -284,3 +295,27 @@ def setDividendRate(plan, key):
 def setDefaultPlots(plan, key):
     val = k.pull(key)
     plan.setDefaultPlots(val)
+
+
+@_checkPlan
+def showWorkbook(plan):
+    wb = plan.saveWorkbook(saveToFile=False)
+    for name in wb.sheetnames:
+        if name == 'Summary':
+            continue
+        ws  = wb[name]
+        df = pd.DataFrame(ws.values)
+        st.write('#### '+name)
+        st.write(df)
+
+
+@_checkPlan
+def saveWorkbook(plan):
+    wb = plan.saveWorkbook(saveToFile=False)
+    buffer = BytesIO()
+    try:
+        wb.save(buffer)
+    except Exception as e:
+        raise Exception('Unanticipated exception %r.' % e)
+
+    return buffer

@@ -3,16 +3,19 @@ Module for storing keys in Streamlit session state.
 '''
 import streamlit as st
 
-ss = st.session_state
+ss = st.session_state 
+newCase = 'New case...'
+loadConfig = 'Load config...'
 
 # Dictionary of dictionaries for each case.
 if 'cases' not in ss:
     # print('init cases')
-    ss.cases = {'New case': {'iname0': '', 'status': 'unkown', 'summary': ''}}
+    ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'summary': ''},
+                loadConfig: {'iname0': '', 'status': 'unkown', 'summary': ''}}
 
 # Variable for storing name of current case.
 if 'currentCase' not in ss:
-    ss.currentCase = 'New case'
+    ss.currentCase = newCase
 
 
 def allCaseNames() -> list:
@@ -22,8 +25,16 @@ def allCaseNames() -> list:
 
 def onlyCaseNames() -> list:
     caseList = list(ss.cases)
-    caseList.remove('New case')
+    caseList.remove(newCase)
+    caseList.remove(loadConfig)
     return caseList
+
+
+def once(func):
+    key = func.__name__
+    if getKey(key) is None:
+        func()
+    init(key, 1)
 
 
 def getIndex(item, choices):
@@ -65,7 +76,7 @@ def createCase():
     if ss._newcase != '' and ss._newcase not in ss.cases:
         ss.cases[ss._newcase] = {'name': ss._newcase, 'summary': '', 'logs': None}
 
-    if len(ss.cases) > 2:
+    if len(ss.cases) > 3:
         othercase = list(ss.cases)[-2]
         for key in ['iname0', 'status', 'yob0', 'life0']:
             ss.cases[ss._newcase][key] = ss.cases[othercase][key]
@@ -83,9 +94,9 @@ def renameCase(oldcase, newcase):
 
 
 def deleteCurrentCase():
-    if ss.currentCase != 'New case':
+    if ss.currentCase != newCase:
         del ss.cases[ss.currentCase]
-    setCurrentCase('New case')
+    setCurrentCase(newCase)
 
 
 def dump():

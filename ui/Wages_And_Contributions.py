@@ -22,7 +22,7 @@ else:
 
     k.init('timeList', None)
     if k.getKey('timeList') is None:
-        timeList = st.file_uploader('Upload contribution file')
+        timeList = st.file_uploader('Upload contribution file...')
         k.setKey('timeList', timeList)
         owb.readContributions(timeList)
 

@@ -4,6 +4,17 @@ import sskeys as k
 import owlbridge as owb
 
 
+profileChoices = ['smile', 'flat']
+k.init('profile', profileChoices[0])
+k.init('survivor', 60)
+
+
+def initProfile():
+    owb.setProfile(profileChoices[0], False)
+
+
+k.once(initProfile)
+
 ret = k.titleBar('opto')
 st.divider()
 st.write('## Optimization Parameters')
@@ -47,12 +58,9 @@ else:
     st.divider()
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
     with col1:
-        choices = ['flat', 'smile']
-        k.init('profile', choices[1])
-        ret = k.getRadio("Spending profile", choices, 'profile', callback=owb.setProfile)
+        ret = k.getRadio("Spending profile", profileChoices, 'profile', callback=owb.setProfile)
 
     with col2:
-        k.init('survivor', 60)
         ret = k.getIntNum("Survivor's spending (%)", 'survivor', callback=owb.setProfile)
 
     st.divider()
