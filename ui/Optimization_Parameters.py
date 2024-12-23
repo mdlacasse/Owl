@@ -61,7 +61,8 @@ else:
         ret = k.getRadio("Spending profile", profileChoices, 'profile', callback=owb.setProfile)
 
     with col2:
-        ret = k.getIntNum("Survivor's spending (%)", 'survivor', callback=owb.setProfile)
+        if k.getKey('status') == 'married':
+            ret = k.getIntNum("Survivor's spending (%)", 'survivor', callback=owb.setProfile)
 
     st.divider()
     owb.showProfile()

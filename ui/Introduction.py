@@ -1,16 +1,13 @@
 import streamlit as st
 
+
 col1, col2, col3, col4 = st.columns(4)
 with col4:
     st.image("../docs/images/owl.jpg")
 
 st.write('## Owl Retirement Planner')
 st.markdown('''
-# Owl   
-
-## A retirement exploration tool based on linear programming
-
-<img align=right src="https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.jpg" width="250">
+#### A retirement exploration tool based on linear programming
 
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
@@ -32,33 +29,8 @@ More disclaimers: While some output of the code has been verified with other app
 this code is still under development and I cannot guarantee the accuracy of the results.
 Use at your own risk.
 
--------------------------------------------------------------------------------------
-## Purpose and vision
-The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities,
-allowing for the next generation of Python-literate retirees to experiment with their own financial future
-while providing a codebase where they can learn and contribute. There are and were
-good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
-collecting your data, or academic papers that share the results without really sharing the details of
-the underlying mathematical models.
-The algorithms in Owl rely on the open-source HiGHS linear programming solver. The complete formulation and
-detailed description of the underlying
-mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
-
-Owl is currently implemented through a combination of Python modules and Jupyter notebooks,
-but its simple API can also serve as the back-end of a Web application
-facilitating its use by allowing easier input of user-selected constraints for exploring the optimality
-of different scenarios.
-Contributors with good front-end skills are therefore more than welcome to join the project.
-
-Not every retirement decision strategy can be framed as an easy-to-solve optimization problem.
-In particular, if one is interested in comparing different withdrawal strategies,
-[FI Calc](ficalc.app) is a more appropriate and elegant application that addresses this need.
-If, however, you also want to optimize spending, bequest, and Roth conversions, with
-an approach also considering Medicare and federal income tax over the next few years,
-then Owl is definitely a tool that can help guide your decisions.
-
 --------------------------------------------------------------------------------------
-## Basic capabilities
+#### Basic capabilities
 Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero),
 or maximize the after-tax value of a bequest under the constraint of a desired net spending profile,
 and under the assumption of a heirs marginal tax rate.
@@ -98,11 +70,15 @@ the constraint of a desired bequest, or the probability distribution of the maxi
 bequest under the constraint of a desired net spending amount. Unlike discrete-event
 simulators, Owl uses an optimization algorithm for every new scenario, which results in more
 calculations being performed. As a result, the number of cases to be considered should be kept
-to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates
-and reliable probability distributions. Optimizing each solution is more representative in the sense that optimal solutions
-will naturally adjust to the return scenarios being considered. This is more realistic as retirees would certainly re-evaluate
-their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulations,
-which maintain a distribution strategy either fixed, or within guardrails for capturing the retirees' reactions to the market.
+to a reasonable number. For a few hundred cases, a few minutes of calculations
+can provide very good estimates and reliable probability distributions.
+Optimizing each solution is more representative in the sense that optimal solutions
+will naturally adjust to the return scenarios being considered.
+This is more realistic as retirees would certainly re-evaluate
+their expectations under severe market drops or gains.
+This optimal approach provides a net benefit over event-based simulations,
+which maintain a distribution strategy either fixed,
+or within guardrails for capturing the retirees' reactions to the market.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
 an Excel spreadsheet that contains future wages, contributions
@@ -119,7 +95,7 @@ values are simple projections of current values with the assumed inflation rates
 
 See one of the notebooks for a tutorial and representative user cases.
 
-### Limitations
+#### Limitations
 Owl is work in progress. At the current time:
 - Only the US federal income tax is considered (and minimized through the optimization algorithm).
 Head of household filing status has not been added but can easily be.
@@ -147,225 +123,11 @@ estate value too large for the savings assets to support, even with zero net spe
 or maximizing the bequest subject to a net spending basis that is already too large for the savings
 assets to support, even with no estate being left.
 
------------------------------------------------------------------------
-## An example of Owl's functionality
-With about 10 lines of Python code, one can generate a full case study.
-Here is a typical plan with some comments.
-A plan starts with the names of the individuals, their birth years and life expectancies, and a name for the plan.
-Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
-```python
-import owlplanner as owl
-# Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to age 92.
-# Plan starts on Jan 1st of this year.
-plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='01-01')
-# Jack has $90.5k in a taxable investment account, $600.5k in a tax-deferred account and $70k from 2 tax-exempt accounts.
-# Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
-plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50 + 20, 40])
-# An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
-plan.readContributions('jack+jill.xlsx')
-# Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
-# Jill will do the same thing but is a bit more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
-plan.setInterpolationMethod('s-curve')
-plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
-# Jack has no pension, but Jill will receive $10k per year at 65 yo.
-plan.setPension([0, 10], [65, 65])
-# Jack anticipates receiving social security of $28.4k at age 70, and Jill $19.7k at age 62. All values are in today's $.
-plan.setSocialSecurity([28.4, 19.7], [70, 62])
-# Instead of a 'flat' profile, we select a 'smile' spending profile, with 60% needs for the survivor.
-plan.setSpendingProfile('smile', 60)
-# We will reproduce the historical sequence of returns starting in year 1969.
-plan.setRates('historical', 1969)
-# Jack and Jill want to leave a bequest of $500k, and limit Roth conversions to $100k per year.
-# Jill's 403b plan does not support in-plan Roth conversions.
-# We solve for the maximum net spending profile under these constraints.
-plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500, 'noRothConversions': 'Jill'})
-```
-The output can be seen using the following commands that display various plots of the decision variables in time.
-```python
-plan.showNetSpending()
-plan.showGrossIncome()
-plan.showTaxes()
-plan.showSources()
-plan.showAccounts()
-plan.showAssetDistribution()
-...
-```
-By default, all these plots are in nominal dollars. To get values in today's $, a call to
-```python
-plan.setDefaultPlots('today')
-```
-would change all graphs to report in today's dollars. Each plot can also override the default by setting the `value`
-parameters to either *nominal* or *today*, such as in the following example, which shows the taxable ordinary
-income over the duration of the plan,
-along with inflation-adjusted extrapolated tax brackets. Notice how the optimized income is surfing
-the boundaries of tax brackets.
-```python
-plan.showGrossIncome(value='nominal')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxIncomePlot.png" width="800">
-
-The optimal spending profile is shown in the next plot (in today's dollars). Notice the drop
-(recall we selected 60% survivor needs) at the passing of the first spouse.
-```python
-plan.showProfile('today')
-```
-
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/spendingPlot.png" width="800">
-
-The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill.
-It was generated using
-```python
-plan.showAccounts(value='nominal')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/savingsPlot.png" width="800">
-
-while this plot shows the complex cash flow from all sources, which was generated with
-```python
-plan.showSources(value='nominal')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/sourcesPlot.png" width="800">
-
-For taxes, the following call will display Medicare premiums (including Part B IRMAA fees) and federal income tax
-```python
-plan.showTaxes(value='nominal')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxesPlot.png" width="800">
-
-For the case at hand, recall that asset allocations were selected above through
-
-```python
-plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
-```
-gliding from a 60%/40% stocks/bonds portfolio to 70%/30% for Jack, and 50%/50% -> 70%/30% for Jill.
-Assets distribution in all accounts in today's $ over time can be displayed from
-```python
-plan.showAssetDistribution(value='today')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxable.png" width="800">
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxDef.png" width="800">
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxFree.png" width="800">
-
-These plots are irregular because we used historical rates from 1969. The volatility of
-the rates offers Roth conversion benefits which are exploited by the optimizer.
-The rates used can be displayed by:
-```python
-plan.showRates()
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesPlot.png" width="800">
-
-Values between brackets <> are the average values and volatility over the selected period. 
-
-For the statisticians, rates distributions and correlations between them can be shown using:
-```python
-plan.showRatesCorrelations()
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesCorrelations.png" width="800">
-
-A short text summary of the outcome of the optimization can be displayed through using:
-```python
-plan.summary()
-```
-The output of the last command reports that if future rates are exactly like those observed
-starting from 1969 and the following years, Jack and Jill could afford an annual spending of $97k starting this year
-(with a basis of $88.8k - the basis multiplies the profile which can vary over the course of the plan).
-The summary also contains many more details:
-```
-SUMMARY ================================================================
-Plan name: jack & jill - tutorial
-        Jack's life horizon: 2024 -> 2051
-        Jill's life horizon: 2024 -> 2057
-Contributions file: examples/jack+jill.xlsx
-Initial balances [taxable, tax-deferred, tax-free]:
-        Jack's accounts: ['$90,500', '$600,500', '$70,000']
-        Jill's accounts: ['$60,200', '$150,000', '$40,000']
-Return rates: historical
-Rates used: from 1969 to 2002
-This year's starting date: 01-01
-Optimized for: maxSpending
-Solver options: {'maxRothConversion': 100, 'bequest': 500, 'noRothConversions': 'Jill'}
-Number of decision variables: 1026
-Number of constraints: 894
-Spending profile: smile
-Surviving spouse spending needs: 60%
-Net yearly spending in year 2024: $97,098
-Net spending remaining in year 2024: $97,098
-Net yearly spending profile basis in 2024$: $88,763
-Assumed heirs tax rate: 30%
-Spousal surplus deposit fraction: 0.5
-Spousal beneficiary fractions to Jill: [1, 1, 1]
-Spousal wealth transfer from Jack to Jill in year 2051 (nominal):
-    taxable: $0  tax-def: $63,134  tax-free: $2,583,303
-Sum of spousal bequests to Jill in year 2051 in 2024$: $592,103 ($2,646,437 nominal)
-Post-tax non-spousal bequests from Jack in year 2051 (nominal):
-    taxable: $0  tax-def: $0  tax-free: $0
-Sum of post-tax non-spousal bequests from Jack in year 2051 in 2024$: $0 ($0 nominal)
-Total net spending in 2024$: $2,804,910 ($7,916,623 nominal)
-Total Roth conversions in 2024$: $311,760 ($443,005 nominal)
-Total ordinary income tax paid in 2024$: $236,710 ($457,922 nominal)
-Total dividend tax paid in 2024$: $3,437 ($3,902 nominal)
-Total Medicare premiums paid in 2024$: $117,817 ($346,404 nominal)
-Post-tax account values at the end of final plan year 2057: (nominal)
-    taxable: $0  tax-def: $0  tax-free: $2,553,871
-Total estate value at the end of final plan year 2057 in 2024$: $500,000 ($2,553,871 nominal)
-Inflation factor from this year's start date to the end of plan final year: 5.11
-Case executed on: 2024-12-09 at 22:11:57
-------------------------------------------------------------------------
-```
-And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
-```python
-plan.saveWorkbook(overwrite=True)
-```
-For Monte Carlo simulations, the mean return rates, their volatility and covariance are specified
-and used to generate random scenarios. A histogram of outcomes is generated such as this one for Jack and Jill, which was generated
-by selecting *stochastic* rates and using
-```
-plan.runMC('maxSpending', ...)
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2a.png" width="800">
-
-Similarly, the next one was generated using
-```
-plan.runMC('maxBequest', ...)
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2b.png" width="800">
-
 
 See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
 [2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb), and
 [3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_3.ipynb) for more info.
 
-
----------------------------------------------------------------
-## Requirements
-
-It is assumed that you have some familiarity with using a Jupyter notebook or JupyterLab,
-and some very basic programming skills in Python.
-If not, a simple tutorial can guide you to the basic skills needed.
-
-Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
-Package `odfpy` might be required if one read files created by LibreOffice.
-
-If you have Python already installed on your computer, Owl can be installed as a package using the following commands:
-```shell
-python -m build
-pip install .
-```
-There commands need to run from the Owl directory downloaded from GitHub.
-This will install all the required dependencies, but Jupyter will not be installed.
-
-Alternatively, another way for some might might be to perform an installation of Anaconda on your computer.
-This will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
-It can be found at [anaconda.com](https://anaconda.com). Jupyter can also be installed through `pip`.
-
-The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
-Jupyter will run in your default web browser, from your computer to your browser, and therefore no data is ever transferred on the Internet
-(your computer, i.e., `localhost`, is the server).
-
-You will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.
-
-The intent behind using notebooks is that one can configure calculations that suit one's needs, while being able to save the visualization.
-Moreover, running calculations in *Jupyter* is made to be relatively easy.
-There are many tutorials on this topic available on the internet.
 
 For simulating your own realizations, use the files beginning with the word *template*.
 Make a copy and rename them with your own names while keeping the same extension.
@@ -377,7 +139,7 @@ Notebooks with detailed explanations can be found in
 
 ---------------------------------------------------------------------
 
-## Credits
+#### Credits
 - Historical rates from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/)
 - Image from [freepik](freepik.com)
 - Optimization solver from [HiGHS](highs.dev)
@@ -386,9 +148,10 @@ Notebooks with detailed explanations can be found in
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
+Disclaimers: I am not a financial planner. You make your own decisions.
+This program comes with no guarantee. Use at your own risk.
 
---------------------------------------------------------
+---------------------------------------------------------------------
 
 '''
 )

@@ -58,13 +58,13 @@ st.write('## Asset Allocations')
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    getAllocs(0, 'Initial', 'init%')
-    getAllocs(0, 'Final', 'fin%')
+    getAllocs(0, 'initial', 'init%')
+    getAllocs(0, 'final', 'fin%')
 
     if k.getKey('status') == 'married':
         st.divider()
-        getAllocs(1, 'Initial', 'init%')
-        getAllocs(1, 'Final', 'fin%')
+        getAllocs(1, 'initial', 'init%')
+        getAllocs(1, 'final', 'fin%')
 
     st.divider()
     choices = ['linear', 's-curve']

@@ -1,5 +1,7 @@
 import streamlit as st
 
+st.set_page_config(layout='wide')
+
 pg = st.navigation([st.Page('Introduction.py'),
                     st.Page('Case_Setup.py'),
                     st.Page('Assets.py'),
@@ -11,6 +13,7 @@ pg = st.navigation([st.Page('Introduction.py'),
                     st.Page('Case_Results.py'),
                     st.Page('Case_Worksheets.py'),
                     st.Page('Case_Summary.py'),
+                    st.Page('Historical_Range.py'),
                     st.Page('Monte_Carlo.py'),
                     st.Page('Logs.py'),
                     ])

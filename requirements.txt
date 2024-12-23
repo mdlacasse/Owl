@@ -4,4 +4,4 @@ seaborn
 pandas
 openpyxl
 scipy
-logger
+streamlit

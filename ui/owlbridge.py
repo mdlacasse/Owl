@@ -146,8 +146,11 @@ def setRates(plan):
     else:
         varyingType = k.getKey('varyingType')
         if 'histo' in varyingType:
+            if varyingType == 'historical':
+                yto = min(2023, yfrm+plan.N_n-1)
+                k.setKey('yto', yto)
             plan.setRates(varyingType, yfrm, yto)
-            mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto)
+            mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
                 k.setKey('mean'+str(j), 100*mean[j])
                 k.setKey('sdev'+str(j), 100*stdev[j])
@@ -306,7 +309,7 @@ def showWorkbook(plan):
         ws  = wb[name]
         df = pd.DataFrame(ws.values)
         st.write('#### '+name)
-        st.write(df)
+        st.dataframe(df)
 
 
 @_checkPlan

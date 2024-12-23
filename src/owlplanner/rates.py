@@ -918,7 +918,7 @@ class Rates:
             elif method == 'histochastic':
                 self.mylog.vprint('Using histochastic rates derived from years %d to %d.' % (frm, to))
                 self._rateMethod = self._stochRates
-                self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to)
+                self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to, self.mylog)
             else:
                 raise ValueError('Method $s not supported.' % method)
 
