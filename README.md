@@ -38,7 +38,7 @@ detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
 Owl is currently implemented through a combination of Python modules and Jupyter notebooks,
-but its simple API also serves as a back-end for a Web application being being developed with Streamlit.
+but its simple API also serves as a back-end for a Web application being developed using Streamlit.
 The `ui` directory implements some of the basic functionality, and final implementation should be completed
 shortly.
 
