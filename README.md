@@ -38,10 +38,9 @@ detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
 Owl is currently implemented through a combination of Python modules and Jupyter notebooks,
-but its simple API can also serve as the back-end of a Web application
-facilitating its use by allowing easier input of user-selected constraints for exploring the optimality
-of different scenarios.
-Contributors with good front-end skills are therefore more than welcome to join the project.
+but its simple API also serves as a back-end for a Web application being being developed with Streamlit.
+The `ui` directory implements some of the basic functionality, and final implementation should be completed
+shortly.
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem.
 In particular, if one is interested in comparing different withdrawal strategies,
