@@ -116,7 +116,7 @@ def _q4(C, l1, l2, l3, l4, N1, N2, N3, N4):
     return C + l1 * N2 * N3 * N4 + l2 * N3 * N4 + l3 * N4 + l4
 
 
-def clone(plan, name=None):
+def clone(plan, newname=None, *, verbose=True, logstreams=None):
     """
     Return an almost identical copy of plan: only the name of the plan
     has been modified and appended the string '(copy)',
@@ -128,12 +128,18 @@ def clone(plan, name=None):
     mylogger = plan.logger()
     plan.setLogger(None)
     newplan = copy.deepcopy(plan)
-    newplan.setLogger(mylogger)
+    plan.setLogger(mylogger)
 
-    if name is None:
+    if logstreams is None:
+        newplan.setLogger(mylogger)
+    else:
+        newplan.setLogstreams(verbose, logstreams)
+
+    if newname is None:
         newplan.rename(plan._name + ' (copy)')
     else:
-        newplan.rename(name)
+        newplan.rename(newname)
+
 
     return newplan
 
@@ -201,7 +207,7 @@ class Plan:
     This is the main class of the Owl Project.
     """
 
-    def __init__(self, inames, yobs, expectancy, name, startDate=None, verbose=False, logstreams=[]):
+    def __init__(self, inames, yobs, expectancy, name, *, startDate=None, verbose=False, logstreams=None):
         """
         Constructor requires three lists: the first
         one contains the name(s) of the individual(s),
@@ -213,7 +219,7 @@ class Plan:
             raise ValueError('Plan must have a name')
 
         self._name = name
-        self.mylog = logging.Logger(verbose, logstreams)
+        self.setLogstreams(verbose, logstreams)
 
         # 7 tax brackets, 3 types of accounts, 4 classes of assets.
         self.N_t = 7
@@ -310,6 +316,9 @@ class Plan:
 
     def setLogger(self, logger):
         self.mylog = logger
+
+    def setLogstreams(self, verbose=True, logstreams=None):
+        self.mylog = logging.Logger(verbose, logstreams)
 
     def logger(self):
         return self.mylog
@@ -561,10 +570,10 @@ class Plan:
         years selected. Note that last bound is included.
 
         The following methods are available:
-        default, fixed, realistic, conservative, average, stochastic,
+        default, user, realistic, conservative, average, stochastic,
         histochastic, and historical.
 
-        - For 'fixed', rate values must be provided.
+        - For 'user', fixed rate values must be provided.
         - For 'stochastic', means, stdev, and optional correlation matrix must be provided.
         - For 'average', 'histochastic', and 'historical', a starting year
           must be provided, and optionally an ending year.
@@ -1304,7 +1313,7 @@ class Plan:
         return None
 
     @_timer
-    def runHistoricalRange(self, objective, options, ystart, yend, verbose=False):
+    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False):
         """
         Run historical scenarios on plan over a range of years.
         """
@@ -1338,12 +1347,15 @@ class Plan:
 
         self.mylog.print()
         self.mylog.resetVerbose()
-        self._showResults(objective, df, N)
+        fig = self._showResults(objective, df, N, figure)
+
+        if figure:
+            return fig
 
         return N, df
 
     @_timer
-    def runMC(self, objective, options, N, verbose=False):
+    def runMC(self, objective, options, N, verbose=False, figure=False):
         """
         Run Monte Carlo simulations on plan.
         """
@@ -1383,13 +1395,16 @@ class Plan:
 
         self.mylog.print()
         self.mylog.resetVerbose()
-        self._showResults(objective, df, N)
+        fig = self._showResults(objective, df, N, figure)
+
+        if figure:
+            return fig
 
         return N, df
 
-    def _showResults(self, objective, df, N):
+    def _showResults(self, objective, df, N, figure):
         """
-        Show a histogram of values from runMC() and runRange().
+        Show a histogram of values from runMC() and runHistoricalRange().
         """
         import seaborn as sbn
 
@@ -1402,20 +1417,21 @@ class Plan:
         if self.N_i == 2 and self.n_d < self.N_n:
             my[0] = self.year_n[self.n_d - 1]
 
-            # Don't show partial bequest of zero if spouse is full beneficiary,
-            # or if solution led to empty accounts at the end of first spouse's life.
-            if np.all(self.phi_j == 1) or medians.iloc[0] < 1:
-                if medians.iloc[0] < 1:
-                    self.mylog.print('Optimized solutions all have null partial bequest in year %d.' % my[0])
-                df.drop('partial', axis=1, inplace=True)
-                means = df.mean(axis=0, numeric_only=True)
-                medians = df.median(axis=0, numeric_only=True)
+        # Don't show partial bequest of zero if spouse is full beneficiary,
+        # or if solution led to empty accounts at the end of first spouse's life.
+        if np.all(self.phi_j == 1) or medians.iloc[0] < 1:
+            if medians.iloc[0] < 1:
+                self.mylog.print('Optimized solutions all have null partial bequest in year %d.' % my[0])
+            df.drop('partial', axis=1, inplace=True)
+            means = df.mean(axis=0, numeric_only=True)
+            medians = df.median(axis=0, numeric_only=True)
 
         df /= 1000
         if len(df) > 0:
             if objective == 'maxBequest':
-                # Show both partial and final bequests on the same histogram.
-                sbn.histplot(df, multiple='dodge', kde=True)
+                fig, axes = plt.subplots()
+                # Show both partial and final bequests in the same histogram.
+                sbn.histplot(df, multiple='dodge', kde=True, ax=axes)
                 legend = []
                 # Don't know why but legend is reversed from df.
                 for q in range(len(means) - 1, -1, -1):
@@ -1443,7 +1459,8 @@ class Plan:
                     axes[q].set_xlabel('%d k$' % self.year_n[0])
             else:
                 # Show net spending as single histogram.
-                sbn.histplot(df[objective], kde=True)
+                fig, axes = plt.subplots()
+                sbn.histplot(df[objective], kde=True, ax=axes)
                 legend = [
                     ('$M$: %s, $\\bar{x}$: %s' % (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))
                 ]
@@ -1453,7 +1470,7 @@ class Plan:
                 leads = [objective]
 
             plt.suptitle(title)
-            plt.show()
+            # plt.show()
 
         for q in range(len(means)):
             self.mylog.print('%12s: Median (%d $): %s' % (leads[q], self.year_n[0], u.d(medians.iloc[q])))
@@ -1465,7 +1482,7 @@ class Plan:
             nzeros = len(df.iloc[:, q][df.iloc[:, q] < 0.001])
             self.mylog.print('%12s:  N zero solns: %d' % (leads[q], nzeros))
 
-        return None
+        return fig
 
     def resolve(self):
         """
@@ -1740,7 +1757,7 @@ class Plan:
             old_solutions.append(-solution)
             old_x = xx
 
-        task.set_Stream(mosek.streamtype.msg, _streamPrinter)
+        task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
         # task.writedata(self._name+'.ptf')
         if solsta == mosek.solsta.integer_optimal:
             self.mylog.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
@@ -1851,6 +1868,8 @@ class Plan:
             partialBequest_j = part_j * (1 - self.phi_j)
             partialBequest_j[1] *= 1 - self.nu
             self.partialBequest = np.sum(partialBequest_j) / self.gamma_n[n_d]
+        else:
+            self.partialBequest = 0
 
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
@@ -2071,7 +2090,7 @@ class Plan:
         """
         import seaborn as sbn
 
-        if self.rateMethod in [None, 'fixed', 'average', 'conservative']:
+        if self.rateMethod in [None, 'user', 'average', 'conservative']:
             self.mylog.vprint('Warning: Cannot plot correlations for %s rate method.' % self.rateMethod)
             return None
 
@@ -2118,7 +2137,7 @@ class Plan:
         g.fig.suptitle(title, y=1.08)
 
         if figure:
-             return g.fig
+            return g.fig
 
         plt.show()
         return None
@@ -2526,7 +2545,7 @@ class Plan:
         return None
 
     @_checkCaseStatus
-    def saveWorkbook(self, overwrite=False, basename=None, saveToFile=True):
+    def saveWorkbook(self, *, overwrite=False, basename=None, saveToFile=True):
         """
         Save instance in an Excel spreadsheet.
         The first worksheet will contain income in the following
@@ -2930,9 +2949,6 @@ def _streamPrinter(text):
     Define a stream printer to grab output from MOSEK.
     """
     import sys
-
-    if not u.verbose:
-        return
 
     sys.stdout.write(text)
     sys.stdout.flush()

@@ -19,12 +19,13 @@ st.write('## Wages and Contributions')
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-
     k.init('timeList', None)
     if k.getKey('timeList') is None:
-        timeList = st.file_uploader('Upload optional contribution file...')
+        timeList = st.file_uploader('Upload optional contribution file...', key='_timelist',
+                                     type=['xlsx'])
         k.setKey('timeList', timeList)
-        owb.readContributions(timeList)
+        if timeList is not None:
+            owb.readContributions(timeList)
 
     if k.getKey('timeList') is not None:
         k.init('timeList0', None)

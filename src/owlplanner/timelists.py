@@ -18,8 +18,6 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 from datetime import date
 import pandas as pd
 
-# from owlplanner import logging
-
 
 def read(filename, inames, horizons, mylog):
     """

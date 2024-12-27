@@ -15,10 +15,13 @@ st.write('## Case Setup')
 if ret == k.newCase:
     st.info('A name for the scenario must be provided.')
     st.text_input("Case name", value='', key='_newcase',
-                  on_change=k.createCase, placeholder='Enter a name...')
+                  on_change=k.createCase, args=['newcase'], placeholder='Enter a name...')
 elif ret == k.loadConfig:
     st.info('A config file must be uploaded.')
-    config = st.file_uploader('Upload configuration file...')
+    confile = st.file_uploader('Upload configuration file...', key='_confile', type=['ini'])
+    if confile is not None:
+        if k.createCaseFromConfig(confile):
+            st.rerun()
 else:
     diz1 = (k.getKey('plan') is not None)
     diz2 = (diz1 or len(k.allCaseNames()) > 3)
@@ -65,16 +68,18 @@ else:
             ret = k.getIntNum("%s's expected longevity" % iname1, 'life1', disabled=diz1)
 
     st.divider()
-    cantcreate = owb.isIncomplete() or diz1
+    cantcreate = k.isIncomplete() or diz1
     if not cantcreate and k.getKey('plan') is None:
         st.info('Plan needs to be created when all information has been entered.')
 
-    col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
+    cantmodify = (k.currentCaseName() == k.newCase or k.currentCaseName() == k.loadConfig)
+    col1, col2, col3 = st.columns(3, gap='small', vertical_alignment='top')
     with col1:
         st.button('Create case', on_click=owb.createPlan, disabled=cantcreate)
     with col2:
-        cantdel = (k.currentCaseName() == k.newCase)
-        st.button('Delete case', on_click=k.deleteCurrentCase, disabled=cantdel)
+        st.button('Duplicate case', on_click=k.duplicateCase, disabled=cantmodify)
+    with col3:
+        st.button('Delete case', on_click=k.deleteCurrentCase, disabled=cantmodify)
         # st.error("Do you really, really, wanna do this?")
         # if st.button("Yes"):
         # run_expensive_function()

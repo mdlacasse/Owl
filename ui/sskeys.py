@@ -2,14 +2,15 @@
 Module for storing keys in Streamlit session state.
 '''
 import streamlit as st
+from io import StringIO
 
-ss = st.session_state 
+
+ss = st.session_state
 newCase = 'New case...'
 loadConfig = 'Load config...'
 
 # Dictionary of dictionaries for each case.
 if 'cases' not in ss:
-    # print('init cases')
     ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'summary': ''},
                 loadConfig: {'iname0': '', 'status': 'unkown', 'summary': ''}}
 
@@ -19,7 +20,6 @@ if 'currentCase' not in ss:
 
 
 def allCaseNames() -> list:
-    # print('all case names')
     return list(ss.cases)
 
 
@@ -30,7 +30,7 @@ def onlyCaseNames() -> list:
     return caseList
 
 
-def once(func):
+def runOnce(func):
     key = func.__name__
     if getKey(key) is None:
         func()
@@ -54,6 +54,15 @@ def switchToCase(key):
     ss.currentCase = ss['_'+key]
 
 
+def isIncomplete():
+    return (currentCaseName() == '' or getKey('iname0') in [None, '']
+            or (getKey('status') == 'married' and getKey('iname1') in [None, '']))
+
+
+def caseHasNoPlan():
+    return getKey('plan') is None
+
+
 def titleBar(nkey, choices=None):
     if choices is None:
         choices = onlyCaseNames()
@@ -68,34 +77,84 @@ def currentCaseDic() -> dict:
 
 def setCurrentCase(case):
     if case not in ss.cases:
-        raise RuntimeError('Case %s not found in dictionary.' % case)
+        raise RuntimeError('Case %s not found in dictionary' % case)
     ss.currentCase = case
 
 
-def createCase():
-    if ss._newcase != '' and ss._newcase not in ss.cases:
-        ss.cases[ss._newcase] = {'name': ss._newcase, 'summary': '', 'logs': None}
+def duplicateCase():
+    import owlbridge as owb
 
-    if len(ss.cases) > 3:
-        othercase = list(ss.cases)[-2]
-        for key in ['iname0', 'status', 'yob0', 'life0']:
-            ss.cases[ss._newcase][key] = ss.cases[othercase][key]
-        if ss.cases[othercase]['status'] == 'married':
-            for key in ['iname1', 'yob1', 'life1']:
-                ss.cases[ss._newcase][key] = ss.cases[othercase][key]
+    for i in range(1, 10):
+        dupname = ss.currentCase + '(%d)' % i
+        if dupname not in ss.cases:
+            break
+    else:
+        raise RuntimeError('Exhausted number of duplicates')
 
+    iostring = StringIO()
+    newplan = owb.clone(getKey('plan'), dupname, logstreams=[iostring])
+    ss.cases[dupname] = ss.cases[ss.currentCase].copy()
+    ss.cases[dupname]['name'] = dupname
+    ss.cases[dupname]['plan'] = newplan
+    ss.cases[dupname]['summary'] = ''
+    ss.cases[dupname]['logs'] = iostring
+    ss.currentCase = dupname
+
+
+"""
+def ss2config(casename):
+    keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
+                'timeList', 'plots',
+                'objective', 'withMedicare', 'bequest', 'netSpending',
+                'noRothConversions', 'maxRothConversion',
+                'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
+                'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor', ]
+    keynamesJ = ['fxRate', 'mean', 'sdev', ]
+    keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
+                 'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
+                 'init%0_', 'init%1_', 'init%2_', 'init%3_',
+                 'fin%0_', 'fin%1_', 'fin%2_', 'fin%3_', ]
+"""
+
+
+def createCaseFromConfig(confile):
+    import owlbridge as owb
+    name, dic = owb.createCaseFromConfig(confile)
+    if name == '':
+        return False
+    elif name in ss.cases:
+        st.error("Case name '%s' already exists." % name)
+        return False
+
+    ss.cases[name] = dic
+    setCurrentCase(name)
+    return True
+
+
+def createCase(case):
+    if case == 'newcase':
+        # Widget stored case name in _newname.
+        casename = ss._newcase
+
+    if casename == '' or casename in ss.cases:
+        return
+
+    ss.cases[casename] = {'name': casename, 'summary': '', 'logs': None}
     setCurrentCase(ss._newcase)
 
 
-def renameCase(oldcase, newcase):
-    if oldcase not in ss.cases:
-        raise RuntimeError('Case %s not found in dictionary.' % oldcase)
-    ss.cases[newcase] = ss.cases.pop(oldcase)
+def renameCase(newname):
+    if ss.currentCase == newCase or ss.currentCase == loadConfig:
+        return
+    ss.cases[newname] = ss.cases.pop(ss.currentCase)
+    ss.cases[newname]['name'] = newname
+    setCurrentCase(newname)
 
 
 def deleteCurrentCase():
-    if ss.currentCase != newCase:
-        del ss.cases[ss.currentCase]
+    if ss.currentCase == newCase or ss.currentCase == loadConfig:
+        return
+    del ss.cases[ss.currentCase]
     setCurrentCase(newCase)
 
 

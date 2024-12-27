@@ -2,6 +2,7 @@
 import pytest
 import os
 from datetime import date
+from io import StringIO
 
 import owlplanner as owl
 
@@ -44,7 +45,7 @@ def test_case2():
     assert p.bequest == pytest.approx(606235, abs=0.5)
 
 
-def test_config():
+def test_config1():
     name = 'testconfig'
     p = createJackAndJillPlan(name)
     p.setRates('historical', 1969)
@@ -52,13 +53,29 @@ def test_config():
     assert p.basis == pytest.approx(80000, abs=0.5)
     assert p.bequest == pytest.approx(606235, abs=0.5)
     p.saveConfig()
-    filename = name + '.cfg'
+    filename = name + '.ini'
     assert os.path.isfile(filename)
     p2 = owl.readConfig(name)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p2.basis == pytest.approx(80000, abs=0.5)
     assert p2.bequest == pytest.approx(606235, abs=0.5)
     os.remove(filename)
+
+
+def test_config2():
+    name = 'testconfig'
+    p = createJackAndJillPlan(name)
+    p.setRates('historical', 1969)
+    p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
+    assert p.basis == pytest.approx(80000, abs=0.5)
+    assert p.bequest == pytest.approx(606235, abs=0.5)
+    iostring = StringIO()
+    p.saveConfig(iostring)
+    # print('iostream:', iostream.getvalue())
+    p2 = owl.readConfig(iostring)
+    p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
+    assert p2.basis == pytest.approx(80000, abs=0.5)
+    assert p2.bequest == pytest.approx(606235, abs=0.5)
 
 
 def test_clone1():

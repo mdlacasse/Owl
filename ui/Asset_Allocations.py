@@ -4,35 +4,33 @@ import sskeys as k
 import owlbridge as owb
 
 
-def getIntInput(i, key, text, defval=0):
-    nkey = key+str(i)
+def getIntInput(i, j, keybase, text, defval=0):
+    nkey = keybase+str(j)+'_'+str(i)
     k.init(nkey, defval)
-    st.number_input(text, min_value=0,
+    st.number_input(text, min_value=0, step=1,
                     value=k.getKey(nkey),
                     on_change=k.pull, args=[nkey], key='_'+nkey)
 
 
 def getAllocs(i, title, deco):
-    tags = ['S&P500', 'Baa', 'T-Notes', 'Cash']
     iname = k.getKey('iname'+str(i))
     st.write("%s's %s allocations (%%)" % (iname, title))
     col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
     with col1:
-        getIntInput(i, deco+tags[0], 'S&P 500', 60)
+        getIntInput(i, 0, deco, 'S&P 500', 60)
     with col2:
-        getIntInput(i, deco+tags[1], 'Corp Bonds', 20)
+        getIntInput(i, 1, deco, 'Corp Bonds', 20)
     with col3:
-        getIntInput(i, deco+tags[2], 'T-Notes', 10)
+        getIntInput(i, 2, deco, 'T-Notes', 10)
     with col4:
-        getIntInput(i, deco+tags[3], 'Cash Assets', 10)
+        getIntInput(i, 3, deco, 'Cash Assets', 10)
     checkAllocs(i, deco)
 
 
 def checkAllocs(i, deco):
-    tags = ['S&P500', 'Baa', 'T-Notes', 'Cash']
     tot = 0
-    for tg in tags:
-        tot += int(k.getKey(deco+tg+str(i)))
+    for j in range(4):
+        tot += int(k.getKey(deco+str(j)+'_'+str(i)))
     if abs(100-tot) > 0:
         st.info('Percentages must add to 100%.')
         return False

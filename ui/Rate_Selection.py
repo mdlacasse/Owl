@@ -42,7 +42,7 @@ def initRates():
     updateFixedRates(fixedChoices[0], False)
 
 
-k.once(initRates)
+k.runOnce(initRates)
 
 ret = k.titleBar('rates')
 st.divider()

@@ -56,7 +56,7 @@ or maximize the after-tax value of a bequest under the constraint of a desired n
 and under the assumption of a heirs marginal tax rate.
 Roth conversions are also considered, subject to an optional maximum conversion amount,
 and optimized to suit the goals of the selected objective function.
-All calculations are indexed for inflation, which is provided as a fixed rate,
+All calculations are indexed for inflation, which is either provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 These rates can be used for backtesting different scenarios by choosing
 *historical* rates, or by choosing *average* rates over a historical year range,
@@ -94,7 +94,8 @@ to a reasonable number. For a few hundred cases, a few minutes of calculations c
 and reliable probability distributions. Optimizing each solution is more representative in the sense that optimal solutions
 will naturally adjust to the return scenarios being considered. This is more realistic as retirees would certainly re-evaluate
 their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulations,
-which maintain a distribution strategy either fixed, or within guardrails for capturing the retirees' reactions to the market.
+which maintain a distribution strategy either fixed, or within guardrails for capturing the
+ retirees' reactions to the market.
 
 Basic input parameters are given through function calls while optional additional time series can be read from
 an Excel spreadsheet that contains future wages, contributions

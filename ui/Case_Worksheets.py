@@ -19,3 +19,9 @@ else:
         mime='application/vnd.ms-excel'
     )
 
+    download3 = st.download_button(
+        label="Download configuration file...",
+        data=owb.saveConfig(),
+        file_name=k.getKey('name')+'.ini',
+        mime='txt/plain'
+    )

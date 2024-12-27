@@ -779,11 +779,14 @@ class Rates:
     then ``mySeries = r.genSeries()``
     """
 
-    def __init__(self, mylog):
+    def __init__(self, mylog=None):
         """
         Default constructor.
         """
-        self.mylog = mylog
+        if mylog is None:
+            self.mylog = logging.Logger()
+        else:
+            self.mylog = mylog
 
         # Default rates are average over last 30 years.
         self._defRates = np.array([0.1101, 0.0736, 0.0503, 0.0251])
@@ -813,7 +816,7 @@ class Rates:
         - default:  average over last 30 years.
         - realistic: predictions from various firms reported by MorningStar.
         - conservative: conservative values.
-        - fixed: user-selected fixed rates.
+        - user: user-selected fixed rates.
         - historical: historical rates from 1928 to last year.
         - average or means: average over historical data.
         - histochastic: randomly generated from the statistical properties of a historical range.
@@ -827,7 +830,7 @@ class Rates:
             'default',
             'realistic',
             'conservative',
-            'fixed',
+            'user',
             'historical',
             'average',
             'mean',
@@ -850,13 +853,13 @@ class Rates:
             self.means = self._conservRates
             self.mylog.vprint('Using conservative fixed rates values:', *[u.pc(k) for k in self.means])
             self._setFixedRates(self._conservRates)
-        elif method == 'fixed':
-            assert values is not None, 'Values must be provided with the fixed option.'
+        elif method == 'user':
+            assert values is not None, 'Fixed values must be provided with the user option.'
             assert len(values) == Nk, 'values must have %d items.' % Nk
             self.means = np.array(values, dtype=float)
             # Convert percent to decimal for storing.
             self.means /= 100.0
-            self.mylog.vprint('Setting rates using fixed values:', *[u.pc(k) for k in self.means])
+            self.mylog.vprint('Setting rates using fixed user values:', *[u.pc(k) for k in self.means])
             self._setFixedRates(self.means)
         elif method == 'stochastic':
             assert values is not None, 'Mean values must be provided with the stochastic option.'

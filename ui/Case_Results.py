@@ -4,10 +4,6 @@ import sskeys as k
 import owlbridge as owb
 
 
-def isIncomplete():
-    return k.getKey('plan') is None
-
-
 ret = k.titleBar('results')
 st.divider()
 st.write("## Case Results")
@@ -17,7 +13,7 @@ if ret is None:
 else:
     col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
     with col1:
-        st.button('Run plan', on_click=owb.runPlan, disabled=isIncomplete())
+        st.button('Run plan', on_click=owb.runPlan, disabled=k.caseHasNoPlan())
     with col2:
         choices = ['nominal', 'today']
         k.init('plots', choices[0])

@@ -14,9 +14,10 @@ import sys
 
 
 class Logger:
-    def __init__(self, verbose=True, logstreams=[]):
-        self._verbose = True
-        if logstreams == [] or logstreams is None or len(logstreams) > 2:
+    def __init__(self, verbose=True, logstreams=None):
+        self._verbose = verbose
+        self._prevState = self._verbose
+        if logstreams is None or logstreams == [] or len(logstreams) > 2:
             self._logstreams = [sys.stdout, sys.stderr]
         elif len(logstreams) == 2:
             self._logstreams = logstreams

@@ -11,16 +11,17 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 
 import configparser
 import numpy as np
+from io import StringIO, BytesIO
+
 from owlplanner import plan
 from owlplanner import logging
 
 
-def saveConfig(plan, basename, mylog):
+def saveConfig(plan, file, mylog):
     """
-    Save plan configuration parameters to a file named *basename*.cfg.
+    Save plan configuration parameters to a file named *basename*.ini.
+    Argument file can be a 'filename', or a 'stringio' object.
     """
-    mylog.vprint('Saving plan config as "%s.cfg".' % basename)
-
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
     config = configparser.ConfigParser()
@@ -84,7 +85,7 @@ def saveConfig(plan, basename, mylog):
         'From': str(plan.rateFrm),
         'To': str(plan.rateTo),
     }
-    if plan.rateMethod in ['fixed', 'stochastic']:
+    if plan.rateMethod in ['user', 'stochastic']:
         config['Rates']['values'] = ', '.join(str(100 * k) for k in plan.rateValues)
     if plan.rateMethod in ['stochastic']:
         config['Rates']['standard deviations'] = ', '.join(str(100 * k) for k in plan.rateStdev)
@@ -94,31 +95,63 @@ def saveConfig(plan, basename, mylog):
     config['Solver']['Options'] = str(plan.solverOptions)
     config['Solver']['Objective'] = plan.objective
 
-    with open(basename + '.cfg', 'w') as configfile:
-        config.write(configfile)
+    if isinstance(file, str):
+        if '.ini' in file:
+            filename = file
+        else:
+            filename = file + '.ini'
+        mylog.vprint("Saving plan configuration to '%s'." % filename)
+
+        with open(filename, 'w') as configfile:
+            config.write(configfile)
+    elif isinstance(file, StringIO):
+        try:
+            config.write(file)
+        except Exception as e:
+            raise RuntimeError('Failed to save config to stringio: %s', e)
+    else:
+        raise ValueError('Argument %s has unknown type' % type(file))
 
     return
 
 
-def readConfig(basename, mylog=None):
+def readConfig(file, *, logstreams=None):
     """
-    Read plan configuration parameters from file *basename*.cfg.
+    Read plan configuration parameters from file *basename*.ini.
     A new plan is created and returned.
+    readfrom can be 'filename', 'file', or 'stringIO', describing how
+    to treat argument file.
     """
     import configparser
     import ast
 
-    if mylog is None:
-        mylog = logging.Logger()
-
-    mylog.vprint("Reading plan configuration from file '%s.cfg'." % basename)
+    mylog = logging.Logger(logstreams=logstreams)
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
     config = configparser.ConfigParser()
-    ret = config.read(basename + '.cfg')
-    if ret == []:
-        raise FileNotFoundError('File %s not found.' % (basename + '.cfg'))
+
+    if isinstance(file, str):
+        if '.ini' in file:
+            filename = file
+        else:
+            filename = file + '.ini'
+        mylog.vprint("Reading plan configuration from '%s'." % filename)
+
+        ret = config.read(filename)
+        if ret == []:
+            raise FileNotFoundError('File %s not found.' % (filename))
+    elif isinstance(file, BytesIO):
+        filename = 'fp'
+        ret = config.read_file(file)
+        if ret == []:
+            raise RuntimeError('Cannot read from file.')
+    elif isinstance(file, StringIO):
+        ret = config.read_string(file.getvalue())
+        if ret == []:
+            raise RuntimeError('Cannot read from string.')
+    else:
+        raise ValueError('%s not a valid option' % readfrom)
 
     icount = int(config['Who']['Count'])
     inames = config['Who']['Names'].split(',')
@@ -149,7 +182,7 @@ def readConfig(basename, mylog=None):
         for aType in accountTypes:
             balances[aType].append(float(config['Asset balances'][aType + ' ' + inames[i]]))
 
-    p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate)
+    p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate, logstreams=logstreams)
 
     p.setSpousalDepositFraction(float(config['Parameters']['Spousal surplus deposit fraction']))
     p.setDefaultPlots(config['Parameters']['Default plots'])
@@ -173,7 +206,7 @@ def readConfig(basename, mylog=None):
     values = None
     stdev = None
     corr = None
-    if rateMethod in ['fixed', 'stochastic']:
+    if rateMethod in ['user', 'stochastic']:
         values = config['Rates']['values'].split(',')
         values = np.array([float(k) for k in values])
         if rateMethod in ['stochastic']:
@@ -220,6 +253,7 @@ def readConfig(basename, mylog=None):
     p.objective = str(config['Solver']['Objective'])
 
     timeListsFileName = config['Parameters']['Contributions file name']
-    p.readContributions(timeListsFileName)
+    if timeListsFileName != 'None':
+        p.readContributions(timeListsFileName)
 
     return p

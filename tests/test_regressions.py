@@ -92,7 +92,7 @@ def test_withdrawal1():
     amount = 37.5
     p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
-    p.setRates('fixed', values=[0, 0, 0, 0])
+    p.setRates('user', values=[0, 0, 0, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
@@ -106,7 +106,7 @@ def test_withdrawal2():
     amount = 12
     p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
-    p.setRates('fixed', values=[0, 0, 0, 0])
+    p.setRates('user', values=[0, 0, 0, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
@@ -119,7 +119,7 @@ def test_withdrawal2_2():
     amount = 12
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[amount/2, amount/2], taxFree=[0, 0])
     p.setAllocationRatios('spouses', generic=[[0, 0, 0, 100], [0, 0, 0, 100]])
-    p.setRates('fixed', values=[0, 0, 0, 0])
+    p.setRates('user', values=[0, 0, 0, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
@@ -132,7 +132,7 @@ def test_withdrawal3():
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
-    p.setRates('fixed', values=[0, 0, 0, 0])
+    p.setRates('user', values=[0, 0, 0, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
@@ -145,7 +145,7 @@ def test_withdrawal3_2():
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 0, 100], [0, 0, 0, 100]])
-    p.setRates('fixed', values=[0, 0, 0, 0])
+    p.setRates('user', values=[0, 0, 0, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
@@ -159,7 +159,7 @@ def test_taxfreegrowth1():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -173,7 +173,7 @@ def test_taxfreegrowth1_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -187,7 +187,7 @@ def test_taxfreegrowth2():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 50, 50, 0], [0, 50, 50, 0]]])
     rate = 4
-    p.setRates('fixed', values=[0, rate, rate, 0])
+    p.setRates('user', values=[0, rate, rate, 0])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -201,7 +201,7 @@ def test_taxfreegrowth2_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 50, 50, 0], [0, 50, 50, 0]])
     rate = 4
-    p.setRates('fixed', values=[0, rate, rate, 0])
+    p.setRates('user', values=[0, rate, rate, 0])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -215,7 +215,7 @@ def test_taxfreegrowth3():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[50, 50, 0, 0], [50, 50, 0, 0]]])
     rate = 4
-    p.setRates('fixed', values=[rate, rate, 0, 0])
+    p.setRates('user', values=[rate, rate, 0, 0])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -229,7 +229,7 @@ def test_taxfreegrowth3_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[50, 50, 0, 0], [50, 50, 0, 0]])
     rate = 4
-    p.setRates('fixed', values=[rate, rate, 0, 0])
+    p.setRates('user', values=[rate, rate, 0, 0])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -243,7 +243,7 @@ def test_taxfreegrowth4():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 50, 50, 0], [0, 50, 50, 0]]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -258,7 +258,7 @@ def test_taxfreegrowth4_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 50, 50, 0], [0, 50, 50, 0]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -273,7 +273,7 @@ def test_taxfreegrowth5():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
     # Inflation should cancel out growth, if both rates are equal.
-    p.setRates('fixed', values=[0, 0, 4, 4])
+    p.setRates('user', values=[0, 0, 4, 4])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -287,7 +287,7 @@ def test_taxfreegrowth5_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
     # Inflation should cancel out growth, if both rates are equal.
-    p.setRates('fixed', values=[0, 0, 4, 4])
+    p.setRates('user', values=[0, 0, 4, 4])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -301,7 +301,7 @@ def test_taxfreegrowth6():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
     # Inflation should cancel out growth.
-    p.setRates('fixed', values=[0, 0, 0, 4])
+    p.setRates('user', values=[0, 0, 0, 4])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -315,7 +315,7 @@ def test_taxfreegrowth6_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 0, 100], [0, 0, 0, 100]])
     # Inflation should cancel out growth.
-    p.setRates('fixed', values=[0, 0, 0, 4])
+    p.setRates('user', values=[0, 0, 0, 4])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -329,7 +329,7 @@ def test_taxfreegrowth7():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 100, 0, 0], [0, 100, 0, 0]]])
     # Inflation should cancel out growth.
-    p.setRates('fixed', values=[0, 4, 0, 4])
+    p.setRates('user', values=[0, 4, 0, 4])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -343,7 +343,7 @@ def test_taxfreegrowth7_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 100, 0, 0], [0, 100, 0, 0]])
     # Inflation should cancel out growth.
-    p.setRates('fixed', values=[0, 4, 0, 4])
+    p.setRates('user', values=[0, 4, 0, 4])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -357,7 +357,7 @@ def test_taxfreegrowth8():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[100, 0, 0, 0], [100, 0, 0, 0]]])
     # Inflation should cancel out growth.
-    p.setRates('fixed', values=[4, 0, 0, 4])
+    p.setRates('user', values=[4, 0, 0, 4])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -371,7 +371,7 @@ def test_taxfreegrowth8_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[100, 0, 0, 0], [100, 0, 0, 0]])
     # Inflation should cancel out growth.
-    p.setRates('fixed', values=[4, 0, 0, 4])
+    p.setRates('user', values=[4, 0, 0, 4])
     options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
@@ -385,7 +385,7 @@ def test_annuity1():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     rate /= 100
@@ -403,7 +403,7 @@ def test_annuity1_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     rate /= 100
@@ -421,7 +421,7 @@ def test_annuity2():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     rate /= 100
@@ -439,7 +439,7 @@ def test_annuity2_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     rate /= 100
@@ -457,7 +457,7 @@ def test_annuity3():
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     rate /= 100
@@ -475,7 +475,7 @@ def test_annuity3_2():
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
     rate = 4
-    p.setRates('fixed', values=[0, 0, rate, 0])
+    p.setRates('user', values=[0, 0, rate, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.solve('maxSpending', options=options)
     rate /= 100
@@ -484,3 +484,42 @@ def test_annuity3_2():
     annuity = 1000*amount*rate/((1 - (1 + rate)**-n)*(1 + rate))
     assert p.basis == pytest.approx(annuity, abs=0.5)
     assert p.bequest == pytest.approx(0, abs=0.5)
+
+
+def test_Historical1():
+    name = 'historical1'
+    inames = ['Joe']
+    yobs = [1962]
+    expectancy = [89]
+    p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
+    p.setSpendingProfile('smile', 60)
+
+    p.setAccountBalances(taxable=[90.5], taxDeferred=[600.2],
+                            taxFree=[50 + 20.6],)
+    p.setAllocationRatios('individual',
+                             generic=[ [[60, 40, 0, 0], [70, 30, 0, 0]] ])
+    p.setPension([0], [65])
+    options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
+    p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=True)
+
+
+def test_Historical2():
+    name = 'historical2'
+    inames = ['Jack', 'Jill']
+    yobs = [1962, 1965]
+    expectancy = [89, 92]
+    p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
+    p.setSpendingProfile('smile', 60)
+    p.setAccountBalances(taxable=[90.5, 60], taxDeferred=[600.2, 150],
+                         taxFree=[50 + 20.6, 40.8],)
+    p.setAllocationRatios('individual',
+                          generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[60, 40, 0, 0], [70, 30, 0, 0]]],)
+    p.setPension([0, 10], [65, 65])
+    p.setSocialSecurity([28, 25], [70, 70])
+    p.setHeirsTaxRate(33)
+    p.setLongTermCapitalTaxRate(15)
+
+    options = {'maxRothConversion': 100, 'noRothConversions': 'Jill', 'withMedicare': True}
+    p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=True)
+
+

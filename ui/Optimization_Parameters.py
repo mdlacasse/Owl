@@ -13,7 +13,7 @@ def initProfile():
     owb.setProfile(profileChoices[0], False)
 
 
-k.once(initProfile)
+k.runOnce(initProfile)
 
 ret = k.titleBar('opto')
 st.divider()

@@ -2,14 +2,10 @@ import streamlit as st
 from io import StringIO, BytesIO
 from functools import wraps
 import pandas as pd
+from datetime import datetime
 
 import owlplanner as owl
 import sskeys as k
-
-
-def isIncomplete():
-    return (k.currentCaseName() == '' or k.getKey('iname0') in [None, ''] 
-            or (k.getKey('status') == 'married' and k.getKey('iname1') in [None, ''] ))
 
 
 def createPlan():
@@ -27,7 +23,8 @@ def createPlan():
         strio = StringIO()
         k.setKey('logs', strio)
         # print(inames, yobs, life, name, startDate)
-        plan = owl.Plan(inames, yobs, life, name, startDate=startDate, verbose=True, logstreams=[strio, strio])
+        plan = owl.Plan(inames, yobs, life, name, startDate=startDate,
+                        verbose=True, logstreams=[strio, strio])
     except Exception as e:
         st.error('Failed plan creation: %s' % e)
         return
@@ -77,7 +74,8 @@ def getSolveParameters():
         objective = 'maxBequest'
 
     options = {}
-    optList = ['netSpending', 'maxRothConversion', 'noRothConversions', 'withMedicare', 'bequest', 'solver']
+    optList = ['netSpending', 'maxRothConversion', 'noRothConversions',
+               'withMedicare', 'bequest', 'solver']
     for opt in optList:
         val = k.getKey(opt)
         if val:
@@ -86,8 +84,7 @@ def getSolveParameters():
     return objective, options
 
 
-@_checkPlan
-def runPlan(plan):
+def prepareRun(plan):
     ni = 2 if k.getKey('status') == 'married' else 1
 
     bal = getAccountBalances(ni)
@@ -111,6 +108,11 @@ def runPlan(plan):
         st.error('Failed setting social security: %s' % e)
         return
 
+
+@_checkPlan
+def runPlan(plan):
+    prepareRun(plan)
+
     objective, options = getSolveParameters()
     try:
         plan.solve(objective, options=options)
@@ -128,6 +130,31 @@ def runPlan(plan):
 
 
 @_checkPlan
+def runHistorical(plan):
+    prepareRun(plan)
+
+    hyfrm = k.getKey('hyfrm')
+    hyto = k.getKey('hyto')
+
+    objective, options = getSolveParameters()
+    try:
+        fig = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True)
+    except Exception as e:
+        st.error('Solution failed: %s' % e)
+        k.setKey('summary', '')
+        return
+
+    k.init('caseStatus', 'unknown')
+    k.setKey('caseStatus', plan.caseStatus)
+    if plan.caseStatus == 'solved':
+        k.setKey('summary', plan.summaryString())
+    else:
+        k.setKey('summary', '')
+
+    st.pyplot(fig)
+
+
+@_checkPlan
 def setRates(plan):
     yfrm = k.getKey('yfrm')
     yto = k.getKey('yto')
@@ -139,10 +166,10 @@ def setRates(plan):
             for j in range(4):
                 k.setKey('fxRate'+str(j), 100*plan.tau_kn[j, -1])
         else:
-            plan.setRates('fixed', values=[float(k.getKey('fxRate0')),
-                                           float(k.getKey('fxRate1')),
-                                           float(k.getKey('fxRate2')),
-                                           float(k.getKey('fxRate3')), ])
+            plan.setRates('user', values=[float(k.getKey('fxRate0')),
+                                          float(k.getKey('fxRate1')),
+                                          float(k.getKey('fxRate2')),
+                                          float(k.getKey('fxRate3')), ])
     else:
         varyingType = k.getKey('varyingType')
         if 'histo' in varyingType:
@@ -156,7 +183,7 @@ def setRates(plan):
                 k.setKey('sdev'+str(j), 100*stdev[j])
         elif varyingType == 'stochastic':
             pass
-            # plan.setRates(
+            # plan.setRates(...)
         else:
             raise RuntimeError('Logic error in setRates()')
 
@@ -216,23 +243,21 @@ def readContributions(plan, file):
 
 @_checkPlan
 def setAllocationRatios(plan):
-    tags = ['S&P500', 'Baa', 'T-Notes', 'Cash']
-
     generic = []
     initial = []
     final = []
-    for tg in tags:
-        initial.append(float(k.getKey('init%'+tg+'0')))
-        final.append(float(k.getKey('fin%'+tg+'0')))
+    for j in range(4):
+        initial.append(int(k.getKey('init%'+str(j)+'_0')))
+        final.append(int(k.getKey('fin%'+str(j)+'_0')))
     gen0 = [initial, final]
     generic = [gen0]
 
     if k.getKey('status') == 'married':
         initial = []
         final = []
-        for tg in tags:
-            initial.append(float(k.getKey('init%'+tg+'1')))
-            final.append(float(k.getKey('fin%'+tg+'1')))
+        for j in range(4):
+            initial.append(int(k.getKey('init%'+str(j)+'_1')))
+            final.append(int(k.getKey('fin%'+str(j)+'_1')))
         gen1 = [initial, final]
         generic.append(gen1)
 
@@ -306,7 +331,7 @@ def showWorkbook(plan):
     for name in wb.sheetnames:
         if name == 'Summary':
             continue
-        ws  = wb[name]
+        ws = wb[name]
         df = pd.DataFrame(ws.values)
         st.write('#### '+name)
         st.dataframe(df)
@@ -322,3 +347,102 @@ def saveWorkbook(plan):
         raise Exception('Unanticipated exception %r.' % e)
 
     return buffer
+
+
+@_checkPlan
+def saveConfig(plan):
+    stringBuffer = StringIO()
+    plan.saveConfig(stringBuffer)
+    encoded_data = stringBuffer.getvalue().encode('utf-8')
+    bytesBuffer = BytesIO(encoded_data)
+
+    return bytesBuffer
+
+
+def createCaseFromConfig(file):
+    strio = StringIO()
+    try:
+        mystringio = StringIO(file.read().decode('utf-8'))
+        plan = owl.readConfig(mystringio, logstreams=[strio, strio])
+    except Exception as e:
+        raise RuntimeError('Failed to parse config file: %s' % (e))
+
+    name, mydic = genDic(plan)
+    mydic['logs'] = strio
+
+    return name, mydic
+
+
+def ss2config(casename):
+    keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
+                'timeList', 'plots', 'interp',
+                'objective', 'withMedicare', 'bequest', 'netSpending',
+                'noRothConversions', 'maxRothConversion',
+                'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
+                'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor']
+    keynamesJ = ['fxRate', 'mean', 'sdev']
+    keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
+                 'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
+                 'init%0_', 'init%1_', 'init%2_', 'init%3_',
+                 'fin%0_', 'fin%1_', 'fin%2_', 'fin%3_']
+
+
+# @_checkPlan
+def genDic(plan):
+    accName = ['txbl', 'txDef', 'txFree']
+    dic = {}
+    dic['plan'] = plan
+    dic['name'] = plan._name
+    dic['summary'] = ''
+    dic['status'] = ['unknown', 'single', 'married'][plan.N_i]
+    try:
+        startDate = datetime.strptime(plan.startDate, '%Y-%m-%d').date()
+    except Exception as e:
+        raise ValueError('Wrong date format %s: %s' % (stringDate, e))
+    dic['startDate'] = startDate
+    dic['interp'] = plan.interpMethod
+    dic['profile'] = plan.spendingProfile
+    dic['survivor'] = 100*plan.chi
+    dic['gainTx'] = 100*plan.psi
+    dic['divRate'] = 100*plan.mu
+    dic['heirsTx'] = 100*plan.nu
+    # self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
+    for j in range(plan.N_j):
+        dic['benf'+str(j)] = plan.phi_j[j]
+
+    for i in range(plan.N_i):
+        dic['iname'+str(i)] = plan.inames[i]
+        dic['yob'+str(i)] = plan.yobs[i]
+        dic['life'+str(i)] = plan.expectancy[i]
+        dic['ssAge'+str(i)] = plan.pensionAges[i]
+        dic['ssAmt'+str(i)] = plan.ssecAmounts[i]/1000
+        dic['pAge'+str(i)] = plan.pensionAges[i]
+        dic['pAmt'+str(i)] = plan.pensionAmounts[i]/1000
+        for j in range(plan.N_j):
+            dic[accName[j]+str(i)] = plan.beta_ij[i, j]/1000
+            dic['init%'+str(j)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][j])
+            dic['fin%'+str(j)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][j])
+
+    if plan.rateMethod in ['default', 'conservative', 'realistic', 'average', 'user']:
+        dic['rateType'] = 'fixed'
+        dic['fixedType'] = plan.rateMethod
+        for j in range(plan.N_j):
+            dic['fxRate'+str(j)] = 100*plan.rateValues[j]
+    elif plan.rateMethod in ['histochastic', 'historical', 'stochastic']:
+        dic['rateType'] = 'varying'
+        dic['varyingType'] = plan.rateMethod
+
+    if plan.rateMethod in ['average', 'histochastic', 'historical']:
+        dic['yfrm'] = plan.frm
+        dic['yto'] = plan.to
+
+    if plan.rateMethod in ['stochastic', 'histochastic']:
+        for j in range(plan.N_j):
+            dic['sdev'+str(j)] = 100*plan.stdev[j]
+            # dic['corr'+str(j)] = 100*plan.stdev[j]
+
+    return plan._name, dic
+
+
+def clone(plan, newname, logstreams=None):
+    return owl.clone(plan, newname, logstreams=logstreams)
