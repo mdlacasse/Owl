@@ -22,7 +22,7 @@ else:
     k.init('timeList', None)
     if k.getKey('timeList') is None:
         timeList = st.file_uploader('Upload optional contribution file...', key='_timelist',
-                                     type=['xlsx'])
+                                    type=['xlsx'])
         k.setKey('timeList', timeList)
         if timeList is not None:
             owb.readContributions(timeList)

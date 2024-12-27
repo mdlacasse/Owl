@@ -140,7 +140,6 @@ def clone(plan, newname=None, *, verbose=True, logstreams=None):
     else:
         newplan.rename(newname)
 
-
     return newplan
 
 
@@ -196,7 +195,8 @@ def _timer(func):
         result = func(self, *args, **kwargs)
         pt = time.process_time() - pt0
         rt = time.time() - rt0
-        self.mylog.print('CPU time used: %dm%.1fs, Wall time: %dm%.1fs.' % (int(pt / 60), pt % 60, int(rt / 60), rt % 60))
+        self.mylog.print('CPU time used: %dm%.1fs, Wall time: %dm%.1fs.'
+                         % (int(pt / 60), pt % 60, int(rt / 60), rt % 60))
         return result
 
     return wrapper

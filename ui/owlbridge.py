@@ -373,6 +373,7 @@ def createCaseFromConfig(file):
     return name, mydic
 
 
+"""
 def ss2config(casename):
     keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
                 'timeList', 'plots', 'interp',
@@ -385,6 +386,7 @@ def ss2config(casename):
                  'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
                  'init%0_', 'init%1_', 'init%2_', 'init%3_',
                  'fin%0_', 'fin%1_', 'fin%2_', 'fin%3_']
+"""
 
 
 # @_checkPlan
@@ -398,7 +400,7 @@ def genDic(plan):
     try:
         startDate = datetime.strptime(plan.startDate, '%Y-%m-%d').date()
     except Exception as e:
-        raise ValueError('Wrong date format %s: %s' % (stringDate, e))
+        raise ValueError('Wrong date format %s: %s' % (plan.startDate, e))
     dic['startDate'] = startDate
     dic['interp'] = plan.interpMethod
     dic['profile'] = plan.spendingProfile

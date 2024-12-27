@@ -119,8 +119,7 @@ def readConfig(file, *, logstreams=None):
     """
     Read plan configuration parameters from file *basename*.ini.
     A new plan is created and returned.
-    readfrom can be 'filename', 'file', or 'stringIO', describing how
-    to treat argument file.
+    file can be a 'filename', a 'file', or 'stringIO'.
     """
     import configparser
     import ast
@@ -151,7 +150,7 @@ def readConfig(file, *, logstreams=None):
         if ret == []:
             raise RuntimeError('Cannot read from string.')
     else:
-        raise ValueError('%s not a valid option' % readfrom)
+        raise ValueError('%s not a valid type' % type(file))
 
     icount = int(config['Who']['Count'])
     inames = config['Who']['Names'].split(',')
