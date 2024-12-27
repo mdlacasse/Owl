@@ -66,7 +66,17 @@ def caseHasNoPlan():
 def titleBar(nkey, choices=None):
     if choices is None:
         choices = onlyCaseNames()
+    return st.sidebar.selectbox('Select case', choices,
+                        help='Select an exising case, or create a new one from scratch, or from a config file.',
+                        index=getIndex(currentCaseName(), choices), key='_'+nkey,
+                        on_change=switchToCase, args=[nkey])
+
+
+def sideTitleBar(nkey, choices=None):
+    if choices is None:
+        choices = onlyCaseNames()
     return st.selectbox('Select case', choices,
+                        help='Select an exising case, or create a new one from scratch, or from a config file.',
                         index=getIndex(currentCaseName(), choices), key='_'+nkey,
                         on_change=switchToCase, args=[nkey])
 

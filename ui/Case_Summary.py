@@ -3,7 +3,7 @@ import streamlit as st
 import sskeys as k
 
 ret = k.titleBar('summary')
-st.divider()
+# st.divider()
 st.write('## Summary')
 
 if ret is None:
@@ -12,6 +12,7 @@ else:
     lines = k.getKey('summary')
     if lines != '':
         st.text(lines)
+        st.divider()
         st.download_button('Download Summary',
                            data=lines,
                            file_name='Summary_'+k.getKey('name')+'.txt',

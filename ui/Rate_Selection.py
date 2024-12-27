@@ -45,7 +45,7 @@ def initRates():
 k.runOnce(initRates)
 
 ret = k.titleBar('rates')
-st.divider()
+# st.divider()
 st.write('## Rate Selection')
 
 if ret is None:
@@ -65,7 +65,7 @@ else:
             k.init('fxRate'+str(j), rates[j])
 
         ro = (fxType != 'user')
-        col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
+        col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
             k.getNum('S&P 500', 'fxRate0', ro, step=1.,
                      callback=updateRates)
@@ -79,7 +79,7 @@ else:
                      callback=updateRates)
 
         with col4:
-            k.getNum('Common Assets / Inflation', 'fxRate3', ro, step=1.,
+            k.getNum('Cash Assets/Inflation', 'fxRate3', ro, step=1.,
                      callback=updateRates)
 
     elif k.getKey('rateType') == 'varying':
@@ -91,7 +91,7 @@ else:
     if ((k.getKey('rateType') == 'fixed' and 'hist' in k.getKey('fixedType'))
        or (k.getKey('rateType') == 'varying' and 'hist' in k.getKey('varyingType'))):
 
-        col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
+        col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
         with col1:
             st.number_input('Starting year', min_value=1928,
                             max_value=k.getKey('yto'),
@@ -108,7 +108,7 @@ else:
         st.write('#### Stochastic parameters')
         ro = k.getKey('varyingType') != 'stochastic'
         st.write('##### Means')
-        col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
+        col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
             k.init('mean0', 0)
             k.getNum('S&P 500', 'mean0', ro, step=1.,
@@ -126,11 +126,11 @@ else:
 
         with col4:
             k.init('mean3', 0)
-            k.getNum('Common Assets / Inflation', 'mean3', ro, step=1.,
+            k.getNum('Cash Assets/Inflation', 'mean3', ro, step=1.,
                      callback=updateRates)
 
         st.write('##### Volatility')
-        col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
+        col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
             k.init('sdev0', 0)
             k.getNum('S&P 500', 'sdev0', ro, step=1.,
@@ -148,7 +148,7 @@ else:
 
         with col4:
             k.init('sdev3', 0)
-            k.getNum('Common Assets / Inflation', 'sdev3', ro, step=1.,
+            k.getNum('Cash Assets/Inflation', 'sdev3', ro, step=1.,
                      callback=updateRates)
 
         st.text(' ')
@@ -164,10 +164,13 @@ else:
                    callback=owb.setDividendRate, step=1.)
 
     st.write('#### Income taxes')
-    k.init('gainTx', 15)
-    ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx',
-                   callback=owb.setLongTermCapitalTaxRate, step=1.)
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    with col1:
+        k.init('gainTx', 15)
+        ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx',
+                       callback=owb.setLongTermCapitalTaxRate, step=1.)
 
-    k.init('heirsTx', 30)
-    ret = k.getNum('Heirs income tax rate (%)', 'heirsTx',
-                   callback=owb.setHeirsTaxRate, step=1.)
+    with col2:
+        k.init('heirsTx', 30)
+        ret = k.getNum('Heirs income tax rate (%)', 'heirsTx',
+                       callback=owb.setHeirsTaxRate, step=1.)

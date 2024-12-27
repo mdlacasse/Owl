@@ -13,7 +13,7 @@ def resetList():
 
 
 ret = k.titleBar('wages')
-st.divider()
+# st.divider()
 st.write('## Wages and Contributions')
 
 if ret is None:

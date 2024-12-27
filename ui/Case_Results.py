@@ -5,15 +5,15 @@ import owlbridge as owb
 
 
 ret = k.titleBar('results')
-st.divider()
+# st.divider()
 st.write("## Case Results")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
-        st.button('Run plan', on_click=owb.runPlan, disabled=k.caseHasNoPlan())
+        st.button('Run single case', on_click=owb.runPlan, disabled=owb.caseIsNotRunReady())
     with col2:
         choices = ['nominal', 'today']
         k.init('plots', choices[0])

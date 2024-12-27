@@ -9,8 +9,8 @@ caseChoices = k.allCaseNames()
 ret = k.titleBar('setup', caseChoices)
 
 # ret = k.titleBar('case')
-st.divider()
-st.write('## Case Setup')
+# st.divider()
+st.write('## Basic Info')
 
 if ret == k.newCase:
     st.info('A name for the scenario must be provided.')
@@ -24,14 +24,15 @@ elif ret == k.loadConfig:
             st.rerun()
 else:
     diz1 = (k.getKey('plan') is not None)
-    diz2 = (diz1 or len(k.allCaseNames()) > 3)
+    diz2 = diz1
+    # diz2 = (diz1 or len(k.allCaseNames()) > 3)
     statusChoices = ['single', 'married']
     k.init('status', statusChoices[0])
     st.radio('Marital status', statusChoices, disabled=diz2,
              index=statusChoices.index(k.getKey('status')), key='_status',
              on_change=k.pull, args=['status'], horizontal=True)
 
-    col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         k.init('iname0', '')
         if k.getKey('iname0') == '':

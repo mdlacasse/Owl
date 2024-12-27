@@ -16,13 +16,13 @@ def initProfile():
 k.runOnce(initProfile)
 
 ret = k.titleBar('opto')
-st.divider()
+# st.divider()
 st.write('## Optimization Parameters')
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         choices = ['Net spending', 'Bequest']
         k.init('objective', choices[0])
@@ -38,7 +38,7 @@ else:
             ret = k.getNum("Desired annual net spending ($k)", 'netSpending')
 
     st.divider()
-    col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         iname0 = k.getKey('iname0')
         k.init('maxRothConversion', 50)
@@ -56,7 +56,7 @@ else:
     ret = k.getToggle('Medicare and IRMAA calculations', 'withMedicare')
 
     st.divider()
-    col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         ret = k.getRadio("Spending profile", profileChoices, 'profile', callback=owb.setProfile)
 

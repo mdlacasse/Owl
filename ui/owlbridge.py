@@ -129,6 +129,20 @@ def runPlan(plan):
         k.setKey('summary', '')
 
 
+def isCaseUnsolved():
+    if k.getKey('plan') == None:
+        return True
+    return k.getKey('caseStatus') != 'solved'
+
+
+def caseIsNotRunReady():
+    return (k.getKey('plan') is None or
+            k.getKey('objective') is None or
+            k.getKey('rateType') is None or
+            k.getKey('interp') is None or
+            k.getKey('profile') is None)
+
+
 @_checkPlan
 def runHistorical(plan):
     prepareRun(plan)
@@ -139,7 +153,9 @@ def runHistorical(plan):
     objective, options = getSolveParameters()
     try:
         fig = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True)
+        k.setKey('histoPlot', fig)
     except Exception as e:
+        k.setKey('histoPlot', None)
         st.error('Solution failed: %s' % e)
         k.setKey('summary', '')
         return
@@ -151,7 +167,7 @@ def runHistorical(plan):
     else:
         k.setKey('summary', '')
 
-    st.pyplot(fig)
+    # st.pyplot(fig)
 
 
 @_checkPlan
@@ -328,19 +344,23 @@ def setDefaultPlots(plan, key):
 @_checkPlan
 def showWorkbook(plan):
     wb = plan.saveWorkbook(saveToFile=False)
+    if wb is None:
+        return
     for name in wb.sheetnames:
         if name == 'Summary':
             continue
         ws = wb[name]
         df = pd.DataFrame(ws.values)
         st.write('#### '+name)
-        st.dataframe(df)
+        st.dataframe(df.astype(str))
 
 
 @_checkPlan
 def saveWorkbook(plan):
     wb = plan.saveWorkbook(saveToFile=False)
     buffer = BytesIO()
+    if wb is None:
+        return buffer
     try:
         wb.save(buffer)
     except Exception as e:

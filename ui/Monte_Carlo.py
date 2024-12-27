@@ -4,7 +4,7 @@ import sskeys as k
 
 
 ret = k.titleBar('MC')
-st.divider()
+# st.divider()
 st.write("## Monte Carlo")
 
 if ret is None:

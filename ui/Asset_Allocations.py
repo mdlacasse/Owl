@@ -15,7 +15,7 @@ def getIntInput(i, j, keybase, text, defval=0):
 def getAllocs(i, title, deco):
     iname = k.getKey('iname'+str(i))
     st.write("%s's %s allocations (%%)" % (iname, title))
-    col1, col2, col3, col4 = st.columns(4, gap='small', vertical_alignment='top')
+    col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
     with col1:
         getIntInput(i, 0, deco, 'S&P 500', 60)
     with col2:
@@ -50,7 +50,7 @@ def checkAllAllocs():
 
 
 ret = k.titleBar('allocs')
-st.divider()
+# st.divider()
 st.write('## Asset Allocations')
 
 if ret is None:
