@@ -24,17 +24,18 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         choices = ['Net spending', 'Bequest']
+        helpmsg = "Values are in today's $"
         k.init('objective', choices[0])
         ret = k.getRadio("Maximize", choices, 'objective')
 
     with col2:
         if k.getKey('objective') == 'Net spending':
             k.init('bequest', 0)
-            ret = k.getNum("Desired bequest ($k)", 'bequest')
+            ret = k.getNum("Desired bequest ($k)", 'bequest', help=helpmsg)
 
         else:
             k.init('netSpending', 0)
-            ret = k.getNum("Desired annual net spending ($k)", 'netSpending')
+            ret = k.getNum("Desired annual net spending ($k)", 'netSpending', help=helpmsg)
 
     st.divider()
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')

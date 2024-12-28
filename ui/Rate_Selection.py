@@ -6,7 +6,7 @@ import owlbridge as owb
 
 FXRATES = {
     'conservative': [8, 5, 4, 3],
-    'realistic': [11, 6, 5, 3],
+    'optimistic': [11, 6, 5, 3],
     'historical average': [0, 0, 0, 0],
     'user': [0, 0, 0, 0]
 }
@@ -66,20 +66,16 @@ else:
         ro = (fxType != 'user')
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
-            k.getNum('S&P 500', 'fxRate0', ro, step=1.,
-                     callback=updateRates)
+            k.getNum('S&P 500', 'fxRate0', ro, step=1., callback=updateRates)
 
         with col2:
-            k.getNum('Corporate Bonds Baa', 'fxRate1', ro, step=1.,
-                     callback=updateRates)
+            k.getNum('Corporate Bonds Baa', 'fxRate1', ro, step=1., callback=updateRates)
 
         with col3:
-            k.getNum('10-y Treasury Notes', 'fxRate2', ro, step=1.,
-                     callback=updateRates)
+            k.getNum('10-y Treasury Notes', 'fxRate2', ro, step=1., callback=updateRates)
 
         with col4:
-            k.getNum('Cash Assets/Inflation', 'fxRate3', ro, step=1.,
-                     callback=updateRates)
+            k.getNum('Cash Assets/Inflation', 'fxRate3', ro, step=1., callback=updateRates)
 
     elif k.getKey('rateType') == 'varying':
         k.getRadio('Select varying rates', varyingChoices, 'varyingType', callback=updateRates)

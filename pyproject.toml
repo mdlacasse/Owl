@@ -53,6 +53,7 @@ exclude = [
     "build",
     "dist",
     "examples",
+    "otherfiles",
     "*.ipynb",
 ]
 extend-exclude = ["*.ipynb"]

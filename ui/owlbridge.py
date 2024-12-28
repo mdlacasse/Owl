@@ -245,7 +245,8 @@ def setRates(plan):
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1+1, plan.N_k):
-                    k.setKey('corr'+str(q), plan.rateCorr[k1, k2])
+                    # k.setKey('corr'+str(q), plan.rateCorr[k1, k2])
+                    k.setKey('corr'+str(q), corr[k1, k2])
                     q += 1
 
         elif varyingType == 'stochastic':

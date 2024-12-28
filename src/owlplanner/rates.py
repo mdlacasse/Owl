@@ -793,7 +793,7 @@ class Rates:
 
         # Realistic rates are average predictions of major firms
         # as reported by MorningStar in 2023.
-        self._realisticRates = np.array([0.086, 0.049, 0.033, 0.025])
+        self._optimisticRates = np.array([0.086, 0.049, 0.033, 0.025])
 
         # Conservative rates.
         self._conservRates = np.array([0.06, 0.04, 0.033, 0.028])
@@ -814,7 +814,7 @@ class Rates:
         Select the method to generate the annual rates of return
         for the different classes of assets.  Different methods include:
         - default:  average over last 30 years.
-        - realistic: predictions from various firms reported by MorningStar.
+        - optimistic: predictions from various firms reported by MorningStar.
         - conservative: conservative values.
         - user: user-selected fixed rates.
         - historical: historical rates from 1928 to last year.
@@ -828,7 +828,7 @@ class Rates:
         """
         if method not in [
             'default',
-            'realistic',
+            'optimistic',
             'conservative',
             'user',
             'historical',
@@ -845,10 +845,10 @@ class Rates:
             self.means = self._defRates
             # self.mylog.vprint('Using default fixed rates values:', *[u.pc(k) for k in values])
             self._setFixedRates(self._defRates)
-        elif method == 'realistic':
+        elif method == 'optimistic':
             self.means = self._defRates
-            self.mylog.vprint('Using realistic fixed rates values:', *[u.pc(k) for k in self.means])
-            self._setFixedRates(self._realisticRates)
+            self.mylog.vprint('Using optimistic fixed rates values:', *[u.pc(k) for k in self.means])
+            self._setFixedRates(self._optimisticRates)
         elif method == 'conservative':
             self.means = self._conservRates
             self.mylog.vprint('Using conservative fixed rates values:', *[u.pc(k) for k in self.means])
@@ -916,7 +916,7 @@ class Rates:
                 self._rateMethod = self._histRates
             elif method == 'average' or method == 'means':
                 self.mylog.vprint('Using average of rates from %d to %d.' % (frm, to))
-                self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to)
+                self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to, self.mylog)
                 self._setFixedRates(self.means)
             elif method == 'histochastic':
                 self.mylog.vprint('Using histochastic rates derived from years %d to %d.' % (frm, to))
