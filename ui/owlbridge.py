@@ -137,6 +137,12 @@ def isCaseUnsolved():
     return k.getKey('caseStatus') != 'solved'
 
 
+def caseIsNotMCReady():
+    return (caseIsNotRunReady() or
+            k.getKey('rateType') != 'varying' or
+            'tochastic' not in k.getKey('varyingType'))
+
+
 def caseIsNotRunReady():
     return (k.getKey('plan') is None or
             k.getKey('objective') is None or

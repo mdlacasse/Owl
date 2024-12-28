@@ -18,7 +18,7 @@ else:
             k.init('MC_cases', 100)
             k.getIntNum('Number of random instances', 'MC_cases', step=10, max_value=10000)
         with col2:
-            st.button('Run Simulation', on_click=owb.runMC, disabled=owb.caseIsNotRunReady())
+            st.button('Run Simulation', on_click=owb.runMC, disabled=owb.caseIsNotMCReady())
 
     st.divider()
     fig = k.getKey('monteCarloPlot')
