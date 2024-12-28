@@ -40,10 +40,10 @@ Start with the `Select case` box and choose one of `New case...` or `Load config
 If `Load config...` is selected,
 a configuration file ending in `.ini` must be uploaded. An example is provided
 [here](https://raw.github.com/mdlacasse/Owl/main/examples/Jan%20plan.ini). Using a configuration file
-will populate all the fields required to run a scenario. Configuration files can be saved under the 
+will populate all the fields required to run a scenario. Configuration files can be saved under the
 [Case Worksheets](#case-worksheets) tab.
 
-When starting from `New case...`, 
+When starting from `New case...`,
 one must provide the year of birth of each spouse(s) and their expected lifespan(s).
 For selecting your own numbers, there are plenty of longevity predictors on the web. Pick your favorite:
 - [longevityillustrator](https://longevityillustrator.org),
@@ -67,8 +67,10 @@ how to deposit budget surplus money between the taxable accounts of spouses.
 
 #### Wages and Contributions
 This tab allows to enter an optional Excel file containing wages and contributions.
-This file contains columns as titled follows:
- 
+This file contains columns titled as follows:
+
+<span style="font-size: 10px;">
+
 |year|anticipated wages|ctrb taxable | ctrb 401k | ctrb Roth 401k | ctrb IRA | ctrb Roth IRA | Roth X | big-ticket items|
 |--|--|--|--|--|--|--|--|--|
 |2024 | | | | | | | | |
@@ -76,11 +78,13 @@ This file contains columns as titled follows:
 | ... | | | | | | | | |
 |20XX | | | | | | | | |
 
+</span>
+
 Here, 20XX is the last row which could be the last year based on the life expectancy values provided.
 Missing years will be filled with empty values. For the columns, *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment or other sources
 (not including dividends from your taxable investment accounts). Note that column names are case sensitive
-and all of these entries must be in lower case. Best way to start this process is to use the template
+and all entries must be in lower case. Best way to start this process is to use the template
 file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx).
 
 For the purpose of this exercise, there is no clear definition of retirement age. There will be a year,
@@ -89,7 +93,9 @@ work load. This transition can be gradual or sudden. Therefore there is no need 
 age for the sole purpose of quantifying your financial future.
 
 Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term which includes
-contributions to 403b as well. Contributions to your 401k/403b must also include your employer's
+contributions to 403b as well or any other tax-deferred account, with the exception
+of IRAs accounts which are treated separately. Contributions to your 401k/403b must
+also include your employer's
 contributions, if any. As this file is in Excel, one can use the native calculator to enter a percentage
 of the anticipated wages for contributions as this can sometimes be easier. Considering a specific example,
 assume that Jack earns 100k\\$ and contributes 5% to his 401k which his employer matches at up to 4%,
@@ -127,14 +133,14 @@ Amounts are in \\$k at the starting date.
 This is the most complex tab which allows you to select the return rates over the
 time span of the plan. There are two major types of rates:
 - *Fixed rates* - staying fixed from one year to another
-	- *conversative*
-	- *realistic*
-	- *historical average* over a past year range
-	- *user* provided
+    - *conversative*
+    - *realistic*
+    - *historical average* over a past year range
+    - *user* provided
 - *Varying rates* - varying from year to year
-	- *historical* - using a rate sequence which happened in the past
-	- *histochastic* - using stochastic rates derived from historical rates
-	- *stochastic* - using stochastic rates created from parameters specified by the user.
+    - *historical* - using a rate sequence which happened in the past
+    - *histochastic* - using stochastic rates derived from historical rates
+    - *stochastic* - using stochastic rates created from parameters specified by the user.
 
 These rates are the rates of return for the assets considered. These assets are described
 in the next section.
@@ -154,16 +160,19 @@ This tab allows you to select the optimization parameters.
 
 --------------------------------------------------------------------------------------
 ### Single Scenarios
-#### Case Results 
+#### Case Results
 Run a single scenario based on the selections made in the previous tabs.
 This is one instance of a series of rates, either fixed or varying.
 The outcome is optimized according to the chosen parameters: either maximize the
-net spending, of maximize the bequest under the constrait of a net spending amount. 
+net spending, of maximize the bequest under the constrait of a net spending amount.
 Roth conversions are optimized for reducing income taxes on the bequest.
-#### Case Worksheets 
+#### Case Worksheets
 This tab shows the various worksheets containing annual transactions.
 It can be downloaded as an Excel file which looks better than the web representation.
-#### Case Summary 
+
+Under this tab, users can also save the parameters used to generate this
+outcome in a configuration file that can be uploaded in the future.
+#### Case Summary
 This tab shows a summary of the scenario which was computed.
 It diplays informative sums of relevant income and spending values.
 
@@ -180,14 +189,16 @@ This tab runs a Monte Carlo simulation using sequences of return that were gener
 statistically using the parameters provided by the user. At the end of the run,
 a histogram is shown, with a probability of success.
 
+The average outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
+of cases $N$ and the probability of success $P$, which is the percentage of cases that succeeded.
+
 --------------------------------------------------------------------------------------
 ### Resources
 #### Documentation
 These pages...
 #### Logs
-The messages coming from the undelying Owl calculation engine. 
+The messages coming from the undelying Owl calculation engine.
 #### About Owl
 Credits and disclaimers.
 
-'''
-)
+''', unsafe_allow_html=True)

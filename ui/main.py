@@ -22,7 +22,6 @@ pages = {
           'Resources': [st.Page('Logs.py', icon=':material/error:'),
                         st.Page('Documentation.py', icon=':material/question_mark:'),
                         st.Page('About_Owl.py', icon=':material/nature:')],
-                        # st.Page('About_Owl.py', icon='🦉')],
            }
 
 pg = st.navigation(pages)

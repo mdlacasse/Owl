@@ -2604,7 +2604,7 @@ class Plan:
         rawData = {}
         rawData['year'] = self.year_n
         for key in incomeDic:
-            rawData[key] = incomeDic[key]
+            rawData[key] = u.roundCents(incomeDic[key])
 
         # We need to work by row.
         df = pd.DataFrame(rawData)
@@ -2631,7 +2631,7 @@ class Plan:
         rawData = {}
         rawData['year'] = self.year_n
         for key in cashFlowDic:
-            rawData[key] = cashFlowDic[key]
+            rawData[key] = u.roundCents(cashFlowDic[key])
         df = pd.DataFrame(rawData)
         for row in dataframe_to_rows(df, index=False, header=True):
             ws.append(row)
@@ -2657,7 +2657,7 @@ class Plan:
             rawData = {}
             rawData['year'] = self.year_n
             for key in srcDic:
-                rawData[key] = self.sources_in[srcDic[key]][i]
+                rawData[key] = u.roundCents(self.sources_in[srcDic[key]][i])
 
             df = pd.DataFrame(rawData)
             for row in dataframe_to_rows(df, index=False, header=True):
@@ -2685,7 +2685,7 @@ class Plan:
             rawData = {}
             rawData['year'] = self.year_n
             for key in accDic:
-                rawData[key] = accDic[key][i]
+                rawData[key] = u.roundCents(accDic[key][i])
             df = pd.DataFrame(rawData)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)

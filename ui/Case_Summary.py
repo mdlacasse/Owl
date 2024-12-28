@@ -10,7 +10,7 @@ if ret is None:
 else:
     lines = k.getKey('summary')
     if lines != '':
-        st.text(lines)
+        st.code(lines, language=None)
         st.divider()
         st.download_button('Download Summary',
                            data=lines,

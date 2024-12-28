@@ -20,11 +20,11 @@ elif ret == k.loadConfig:
         if k.createCaseFromConfig(confile):
             st.rerun()
 else:
-    # name = k.getText('Case name', 'casename', value=k.currentCaseName(), placeholder='Enter name...')
+    helpmsg = "Case name can be changed by editing it directly"
     name = st.text_input('Case name',
                          value=k.currentCaseName(),
                          on_change=k.renameCase, args=['caseNewName'], key='_caseNewName',
-                         placeholder='Enter a name')
+                         placeholder='Enter a name', help=helpmsg)
 
     diz1 = (k.getKey('plan') is not None)
     diz2 = diz1
@@ -79,9 +79,9 @@ else:
     cantmodify = (k.currentCaseName() == k.newCase or k.currentCaseName() == k.loadConfig)
     col1, col2, col3 = st.columns(3, gap='small', vertical_alignment='top')
     with col1:
-        st.button('Create case', on_click=owb.createPlan, disabled=cantcreate)
+        st.button('Create case :material/add:', on_click=owb.createPlan, disabled=cantcreate)
     with col2:
-        st.button('Duplicate case', on_click=k.duplicateCase, disabled=cantmodify)
+        st.button('Duplicate case :material/content_copy:', on_click=k.duplicateCase, disabled=cantmodify)
     with col3:
         st.button('Delete case :material/delete:', on_click=k.deleteCurrentCase, disabled=cantmodify)
         # st.error("Do you really, really, wanna do this?")

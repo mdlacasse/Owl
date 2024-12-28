@@ -66,19 +66,10 @@ def caseHasNoPlan():
 def titleBar(nkey, choices=None):
     if choices is None:
         choices = onlyCaseNames()
-    helpmsg = 'Select an exising case, or create a new one from scratch, or from a config file.'
+    helpmsg = 'Select an exising case, or create a new one from scratch, or from a config file'
     return st.sidebar.selectbox('Select case', choices, help=helpmsg,
                                 index=getIndex(currentCaseName(), choices), key='_'+nkey,
                                 on_change=switchToCase, args=[nkey])
-
-
-def sideTitleBar(nkey, choices=None):
-    if choices is None:
-        choices = onlyCaseNames()
-    helpmsg = 'Select an exising case, or create a new one from scratch, or from a config file.'
-    return st.selectbox('Select case', choices, help=helpmsg,
-                        index=getIndex(currentCaseName(), choices), key='_'+nkey,
-                        on_change=switchToCase, args=[nkey])
 
 
 def currentCaseDic() -> dict:

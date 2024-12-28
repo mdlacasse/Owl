@@ -46,11 +46,11 @@ else:
     with col2:
         if k.getKey('status') == 'married':
             iname1 = k.getKey('iname1')
-            choices = ['No exclusion', iname0, iname1]
+            choices = ['None', iname0, iname1]
             k.init('noRothConversions', choices[0])
-            helpmsg='Set `Maximum Roth conversion` to 0 to exclude both spouses'
+            helpmsg = "`None` means no exclusion. Set `Maximum Roth conversion` to 0 to exclude both spouses."
             ret = k.getRadio("Exclude Roth conversions for...", choices,
-                            'noRothConversions', help=helpmsg)
+                             "noRothConversions", help=helpmsg)
 
     st.divider()
     k.init('withMedicare', True)

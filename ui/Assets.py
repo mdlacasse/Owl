@@ -46,6 +46,6 @@ else:
 
         st.write('#### Surplus deposit fraction')
         k.init('surplusFraction', 0.5)
-        helpmsg="When beneficiary fractions are not all 1, set surplus deposits to go to survivor's account"  
+        helpmsg = "When beneficiary fractions are not all 1, set surplus deposits to go to survivor's account"
         ret = k.getNum("Fraction of surplus deposited in %s's taxable account" % iname1,
                        'surplusFraction', help=helpmsg)

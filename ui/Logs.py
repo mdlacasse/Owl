@@ -12,4 +12,4 @@ else:
     strio = k.getKey('logs')
     if strio is not None:
         logmsg = strio.getvalue()
-        st.text(logmsg)
+        st.code(logmsg, language=None)

@@ -123,7 +123,6 @@ def prepareRun(plan):
             st.error('Failed setting beneficiary fractions: %s' % e)
             return
 
-
     setRates()
 
 
