@@ -4,7 +4,6 @@ import sskeys as k
 
 
 ret = k.titleBar('logs')
-# st.divider()
 st.write('## Logs')
 
 if ret is None:

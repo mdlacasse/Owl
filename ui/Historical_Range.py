@@ -5,7 +5,6 @@ import owlbridge as owb
 
 
 ret = k.titleBar('historicalRange')
-# st.divider()
 st.write("## Historical Range")
 
 if ret is None:

@@ -3,7 +3,6 @@ import streamlit as st
 import sskeys as k
 
 ret = k.titleBar('assets')
-# st.divider()
 st.write('## Assets')
 
 if ret is None:

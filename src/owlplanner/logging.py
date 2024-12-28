@@ -19,10 +19,13 @@ class Logger:
         self._prevState = self._verbose
         if logstreams is None or logstreams == [] or len(logstreams) > 2:
             self._logstreams = [sys.stdout, sys.stderr]
+            self.vprint('Using stdout and stderr as stream loggers.')
         elif len(logstreams) == 2:
             self._logstreams = logstreams
+            self.vprint('Using logstreams as stream loggers.')
         elif len(logstreams) == 1:
             self._logstreams = 2*logstreams
+            self.vprint('Using logstream as stream logger.')
         else:
             raise ValueError('Log streams %r must be a list.' % logstreams)
 

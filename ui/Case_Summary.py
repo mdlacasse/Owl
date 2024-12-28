@@ -3,7 +3,6 @@ import streamlit as st
 import sskeys as k
 
 ret = k.titleBar('summary')
-# st.divider()
 st.write('## Summary')
 
 if ret is None:

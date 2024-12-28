@@ -66,17 +66,17 @@ def caseHasNoPlan():
 def titleBar(nkey, choices=None):
     if choices is None:
         choices = onlyCaseNames()
-    return st.sidebar.selectbox('Select case', choices,
-                        help='Select an exising case, or create a new one from scratch, or from a config file.',
-                        index=getIndex(currentCaseName(), choices), key='_'+nkey,
-                        on_change=switchToCase, args=[nkey])
+    helpmsg = 'Select an exising case, or create a new one from scratch, or from a config file.'
+    return st.sidebar.selectbox('Select case', choices, help=helpmsg,
+                                index=getIndex(currentCaseName(), choices), key='_'+nkey,
+                                on_change=switchToCase, args=[nkey])
 
 
 def sideTitleBar(nkey, choices=None):
     if choices is None:
         choices = onlyCaseNames()
-    return st.selectbox('Select case', choices,
-                        help='Select an exising case, or create a new one from scratch, or from a config file.',
+    helpmsg = 'Select an exising case, or create a new one from scratch, or from a config file.'
+    return st.selectbox('Select case', choices, help=helpmsg,
                         index=getIndex(currentCaseName(), choices), key='_'+nkey,
                         on_change=switchToCase, args=[nkey])
 
@@ -110,21 +110,17 @@ def duplicateCase():
     ss.cases[dupname]['logs'] = iostring
     ss.currentCase = dupname
 
-
-"""
-def ss2config(casename):
-    keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
-                'timeList', 'plots',
-                'objective', 'withMedicare', 'bequest', 'netSpending',
-                'noRothConversions', 'maxRothConversion',
-                'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
-                'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor', ]
-    keynamesJ = ['fxRate', 'mean', 'sdev', ]
-    keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
-                 'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
-                 'init%0_', 'init%1_', 'init%2_', 'init%3_',
-                 'fin%0_', 'fin%1_', 'fin%2_', 'fin%3_', ]
-"""
+    # keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
+    #            'timeList', 'plots',
+    #            'objective', 'withMedicare', 'bequest', 'netSpending',
+    #            'noRothConversions', 'maxRothConversion',
+    #            'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
+    #            'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor', ]
+    # keynamesJ = ['fxRate', 'mean', 'sdev', ]
+    # keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
+    #             'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
+    #             'init%0_', 'init%1_', 'init%2_', 'init%3_',
+    #             'fin%0_', 'fin%1_', 'fin%2_', 'fin%3_', ]
 
 
 def createCaseFromConfig(confile):
@@ -153,9 +149,13 @@ def createCase(case):
     setCurrentCase(ss._newcase)
 
 
-def renameCase(newname):
+def renameCase(key):
     if ss.currentCase == newCase or ss.currentCase == loadConfig:
         return
+    newname = ss['_'+key]
+    plan = getKey('plan')
+    if plan:
+        plan.rename(newname)
     ss.cases[newname] = ss.cases.pop(ss.currentCase)
     ss.cases[newname]['name'] = newname
     setCurrentCase(newname)
@@ -200,22 +200,24 @@ def getDict(key=ss.currentCase):
     return ss.cases[key]
 
 
-def getIntNum(text, nkey, disabled=False, callback=pull):
+def getIntNum(text, nkey, disabled=False, callback=pull, step=1, max_value=None):
     return st.number_input(text,
                            value=int(getKey(nkey)),
                            disabled=disabled,
                            min_value=0,
-                           step=1,
+                           max_value=max_value,
+                           step=step,
                            on_change=callback, args=[nkey], key='_'+nkey)
 
 
-def getNum(text, nkey, disabled=False, callback=pull, step=10.):
+def getNum(text, nkey, disabled=False, callback=pull, step=10., min_value=0., max_value=None, format='%.1f'):
     return st.number_input(text,
                            value=float(getKey(nkey)),
                            disabled=disabled,
                            step=step,
-                           min_value=0.,
-                           format='%.1f',
+                           min_value=min_value,
+                           max_value=max_value,
+                           format=format,
                            on_change=callback, args=[nkey], key='_'+nkey)
 
 

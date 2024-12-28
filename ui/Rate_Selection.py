@@ -45,7 +45,6 @@ def initRates():
 k.runOnce(initRates)
 
 ret = k.titleBar('rates')
-# st.divider()
 st.write('## Rate Selection')
 
 if ret is None:
@@ -111,45 +110,67 @@ else:
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
             k.init('mean0', 0)
-            k.getNum('S&P 500', 'mean0', ro, step=1.,
-                     callback=updateRates)
+            k.getNum('S&P 500', 'mean0', ro, step=1., callback=updateRates)
 
         with col2:
             k.init('mean1', 0)
-            k.getNum('Corporate Bonds Baa', 'mean1', ro, step=1.,
-                     callback=updateRates)
+            k.getNum('Corporate Bonds Baa', 'mean1', ro, step=1., callback=updateRates)
 
         with col3:
             k.init('mean2', 0)
-            k.getNum('10-y Treasury Notes', 'mean2', ro, step=1.,
-                     callback=updateRates)
+            k.getNum('10-y Treasury Notes', 'mean2', ro, step=1., callback=updateRates)
 
         with col4:
             k.init('mean3', 0)
-            k.getNum('Cash Assets/Inflation', 'mean3', ro, step=1.,
-                     callback=updateRates)
+            k.getNum('Cash Assets/Inflation', 'mean3', ro, step=1., callback=updateRates)
 
         st.write('##### Volatility')
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
-            k.init('sdev0', 0)
-            k.getNum('S&P 500', 'sdev0', ro, step=1.,
-                     callback=updateRates)
+            k.init('stdev0', 0)
+            k.getNum('S&P 500', 'stdev0', ro, step=1., callback=updateRates)
 
         with col2:
-            k.init('sdev1', 0)
-            k.getNum('Corporate Bonds Baa', 'sdev1', ro, step=1.,
-                     callback=updateRates)
+            k.init('stdev1', 0)
+            k.getNum('Corporate Bonds Baa', 'stdev1', ro, step=1., callback=updateRates)
 
         with col3:
-            k.init('sdev2', 0)
-            k.getNum('10-y Treasury Notes', 'sdev2', ro, step=1.,
-                     callback=updateRates)
+            k.init('stdev2', 0)
+            k.getNum('10-y Treasury Notes', 'stdev2', ro, step=1., callback=updateRates)
 
         with col4:
-            k.init('sdev3', 0)
-            k.getNum('Cash Assets/Inflation', 'sdev3', ro, step=1.,
-                     callback=updateRates)
+            k.init('stdev3', 0)
+            k.getNum('Cash Assets/Inflation', 'stdev3', ro, step=1., callback=updateRates)
+
+        st.write('##### Correlation Matrix')
+        col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
+        with col1:
+            k.init('diag1', 1)
+            k.getNum('S&P 500', 'diag1', True, format='%.2f', callback=None)
+
+        with col2:
+            k.init('corr1', 0.)
+            k.getNum('', 'corr1', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.init('diag2', 1.)
+            k.getNum('Corporate Bonds Baa', 'diag2', True, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+
+        with col3:
+            k.init('corr2', 0.)
+            k.getNum('', 'corr2', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.init('corr4', 0.)
+            k.getNum('', 'corr4', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.init('diag3', 1.)
+            k.getNum('10-y Treasury Notes', 'diag3', True, format='%.2f', min_value=-1., max_value=1., callback=None)
+
+        with col4:
+            k.init('corr3', 0.)
+            k.getNum('', 'corr3', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.init('corr5', 0.)
+            k.getNum('', 'corr5', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.init('corr6', 0.)
+            k.getNum('', 'corr6', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.init('diag4', 1.)
+            k.getNum('Cash Assets/Inflation', 'diag4', True, format='%.2f', min_value=-1., max_value=1., callback=None)
 
         st.text(' ')
         owb.showRatesCorrelations()

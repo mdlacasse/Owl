@@ -16,7 +16,6 @@ def initProfile():
 k.runOnce(initProfile)
 
 ret = k.titleBar('opto')
-# st.divider()
 st.write('## Optimization Parameters')
 
 if ret is None:

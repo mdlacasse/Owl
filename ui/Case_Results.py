@@ -5,7 +5,6 @@ import owlbridge as owb
 
 
 ret = k.titleBar('results')
-# st.divider()
 st.write("## Case Results")
 
 if ret is None:

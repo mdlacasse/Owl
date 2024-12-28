@@ -50,7 +50,6 @@ def checkAllAllocs():
 
 
 ret = k.titleBar('allocs')
-# st.divider()
 st.write('## Asset Allocations')
 
 if ret is None:

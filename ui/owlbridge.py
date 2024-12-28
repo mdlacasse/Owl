@@ -108,6 +108,8 @@ def prepareRun(plan):
         st.error('Failed setting social security: %s' % e)
         return
 
+    setRates()
+
 
 @_checkPlan
 def runPlan(plan):
@@ -130,7 +132,7 @@ def runPlan(plan):
 
 
 def isCaseUnsolved():
-    if k.getKey('plan') == None:
+    if k.getKey('plan') is None:
         return True
     return k.getKey('caseStatus') != 'solved'
 
@@ -167,7 +169,29 @@ def runHistorical(plan):
     else:
         k.setKey('summary', '')
 
-    # st.pyplot(fig)
+
+@_checkPlan
+def runMC(plan):
+    prepareRun(plan)
+
+    N = k.getKey('MC_cases')
+
+    objective, options = getSolveParameters()
+    try:
+        fig = plan.runMC(objective, options, N, figure=True)
+        k.setKey('monteCarloPlot', fig)
+    except Exception as e:
+        k.setKey('monteCarloPlot', None)
+        st.error('Solution failed: %s' % e)
+        k.setKey('summary', '')
+        return
+
+    k.init('caseStatus', 'unknown')
+    k.setKey('caseStatus', plan.caseStatus)
+    if plan.caseStatus == 'solved':
+        k.setKey('summary', plan.summaryString())
+    else:
+        k.setKey('summary', '')
 
 
 @_checkPlan
@@ -196,10 +220,23 @@ def setRates(plan):
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
                 k.setKey('mean'+str(j), 100*mean[j])
-                k.setKey('sdev'+str(j), 100*stdev[j])
+                k.setKey('stdev'+str(j), 100*stdev[j])
+            q = 1
+            for k1 in range(plan.N_k):
+                for k2 in range(k1+1, plan.N_k):
+                    k.setKey('corr'+str(q), plan.rateCorr[k1, k2])
+                    q += 1
+
         elif varyingType == 'stochastic':
-            pass
-            # plan.setRates(...)
+            means = []
+            stdev = []
+            corr = []
+            for kk in range(plan.N_k):
+                means.append(k.getKey('mean'+str(kk)))
+                stdev.append(k.getKey('stdev'+str(kk)))
+            for q in range(1, 7):
+                corr.append(k.getKey('corr'+str(q)))
+            plan.setRates(varyingType, values=means, stdev=stdev, corr=corr)
         else:
             raise RuntimeError('Logic error in setRates()')
 
@@ -352,7 +389,7 @@ def showWorkbook(plan):
         ws = wb[name]
         df = pd.DataFrame(ws.values)
         st.write('#### '+name)
-        st.dataframe(df.astype(str))
+        st.dataframe(df.astype(str), use_container_width=True)
 
 
 @_checkPlan
@@ -383,7 +420,7 @@ def createCaseFromConfig(file):
     strio = StringIO()
     try:
         mystringio = StringIO(file.read().decode('utf-8'))
-        plan = owl.readConfig(mystringio, logstreams=[strio, strio])
+        plan = owl.readConfig(mystringio, logstreams=[strio])
     except Exception as e:
         raise RuntimeError('Failed to parse config file: %s' % (e))
 
@@ -392,21 +429,18 @@ def createCaseFromConfig(file):
 
     return name, mydic
 
-
-"""
-def ss2config(casename):
-    keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
-                'timeList', 'plots', 'interp',
-                'objective', 'withMedicare', 'bequest', 'netSpending',
-                'noRothConversions', 'maxRothConversion',
-                'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
-                'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor']
-    keynamesJ = ['fxRate', 'mean', 'sdev']
-    keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
-                 'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
-                 'init%0_', 'init%1_', 'init%2_', 'init%3_',
-                 'fin%0_', 'fin%1_', 'fin%2_', 'fin%3_']
-"""
+    # keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
+    #            'timeList', 'plots', 'interp',
+    #            'objective', 'withMedicare', 'bequest', 'netSpending',
+    #            'noRothConversions', 'maxRothConversion',
+    #            'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
+    #            'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor']
+    # keynamesJ = ['fxRate', 'mean', 'stdev']
+    # keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
+    #             'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
+    #             'init%0_', 'init%1_', 'init%2_', 'init%3_',
+    #             'fin%0_', 'fin%1_', 'fin%2_', 'fin%3_']
+    # keynames6 = ['corr']
 
 
 # @_checkPlan
@@ -448,8 +482,8 @@ def genDic(plan):
     if plan.rateMethod in ['default', 'conservative', 'realistic', 'average', 'user']:
         dic['rateType'] = 'fixed'
         dic['fixedType'] = plan.rateMethod
-        for j in range(plan.N_j):
-            dic['fxRate'+str(j)] = 100*plan.rateValues[j]
+        for kk in range(plan.N_k):
+            dic['fxRate'+str(kk)] = 100*plan.rateValues[kk]
     elif plan.rateMethod in ['histochastic', 'historical', 'stochastic']:
         dic['rateType'] = 'varying'
         dic['varyingType'] = plan.rateMethod
@@ -459,10 +493,12 @@ def genDic(plan):
         dic['yto'] = plan.to
 
     if plan.rateMethod in ['stochastic', 'histochastic']:
-        for j in range(plan.N_j):
-            dic['sdev'+str(j)] = 100*plan.stdev[j]
+        for kk in range(plan.N_k):
+            dic['stdev'+str(kk)] = 100*plan.stdev[kk]
             # dic['corr'+str(j)] = 100*plan.stdev[j]
 
+    # print('Name:', plan._name)
+    # print('Dic:', dic)
     return plan._name, dic
 
 

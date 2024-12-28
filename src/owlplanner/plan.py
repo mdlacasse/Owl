@@ -317,8 +317,9 @@ class Plan:
     def setLogger(self, logger):
         self.mylog = logger
 
-    def setLogstreams(self, verbose=True, logstreams=None):
+    def setLogstreams(self, verbose, logstreams):
         self.mylog = logging.Logger(verbose, logstreams)
+        self.mylog.vprint("Setting logstreams to %r." % logstreams)
 
     def logger(self):
         return self.mylog
@@ -376,13 +377,14 @@ class Plan:
 
         return None
 
-    def rename(self, name):
+    def rename(self, newname):
         """
         Override name of the plan. Plan name is used
         to distinguish graph outputs and as base name for
         saving configurations and workbooks.
         """
-        self._name = name
+        self.mylog.vprint('Renaming plan %s -> %s.' % (self._name, newname))
+        self._name = newname
 
         return None
 
@@ -2179,7 +2181,9 @@ class Plan:
                 data = 100 * self.tau_kn[k, 1:]
                 years = self.year_n[1:]
 
-            label = rateName[k] + ' <' + '{:.1f}'.format(np.mean(data)) + ' +/- {:.1f}'.format(np.std(data)) + '%>'
+            # Use ddof=1 to match pandas.
+            label = (rateName[k] + ' <' + '{:.1f}'.format(np.mean(data)) +
+                     ' +/- {:.1f}'.format(np.std(data, ddof=1)) + '%>')
             ax.plot(years, data, label=label, ls=ltype[k % self.N_k])
 
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))

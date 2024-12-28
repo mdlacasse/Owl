@@ -115,16 +115,16 @@ def saveConfig(plan, file, mylog):
     return
 
 
-def readConfig(file, *, logstreams=None):
+def readConfig(file, *, verbose=True, logstreams=None):
     """
     Read plan configuration parameters from file *basename*.ini.
     A new plan is created and returned.
-    file can be a 'filename', a 'file', or 'stringIO'.
+    Argument file can be a filename, a file, or a stringIO.
     """
     import configparser
     import ast
 
-    mylog = logging.Logger(logstreams=logstreams)
+    mylog = logging.Logger(verbose, logstreams)
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
@@ -180,8 +180,7 @@ def readConfig(file, *, logstreams=None):
         ssecAges.append(int(config['Social security ages'][inames[i]]))
         for aType in accountTypes:
             balances[aType].append(float(config['Asset balances'][aType + ' ' + inames[i]]))
-
-    p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate, logstreams=logstreams)
+    p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate, verbose=True, logstreams=logstreams)
 
     p.setSpousalDepositFraction(float(config['Parameters']['Spousal surplus deposit fraction']))
     p.setDefaultPlots(config['Parameters']['Default plots'])

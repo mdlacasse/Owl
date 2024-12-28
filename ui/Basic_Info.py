@@ -7,9 +7,6 @@ import owlbridge as owb
 
 caseChoices = k.allCaseNames()
 ret = k.titleBar('setup', caseChoices)
-
-# ret = k.titleBar('case')
-# st.divider()
 st.write('## Basic Info')
 
 if ret == k.newCase:
@@ -23,6 +20,12 @@ elif ret == k.loadConfig:
         if k.createCaseFromConfig(confile):
             st.rerun()
 else:
+    # name = k.getText('Case name', 'casename', value=k.currentCaseName(), placeholder='Enter name...')
+    name = st.text_input('Case name',
+                         value=k.currentCaseName(),
+                         on_change=k.renameCase, args=['caseNewName'], key='_caseNewName',
+                         placeholder='Enter a name')
+
     diz1 = (k.getKey('plan') is not None)
     diz2 = diz1
     # diz2 = (diz1 or len(k.allCaseNames()) > 3)
@@ -80,7 +83,7 @@ else:
     with col2:
         st.button('Duplicate case', on_click=k.duplicateCase, disabled=cantmodify)
     with col3:
-        st.button('Delete case', on_click=k.deleteCurrentCase, disabled=cantmodify)
+        st.button('Delete case :material/delete:', on_click=k.deleteCurrentCase, disabled=cantmodify)
         # st.error("Do you really, really, wanna do this?")
         # if st.button("Yes"):
         # run_expensive_function()

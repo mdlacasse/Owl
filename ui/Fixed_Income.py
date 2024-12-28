@@ -22,7 +22,6 @@ def getFloatInput(i, key, text, defval=0.):
 
 
 ret = k.titleBar('fixed')
-# st.divider()
 st.write('## Fixed Income')
 
 if ret is None:

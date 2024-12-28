@@ -1,7 +1,5 @@
 import streamlit as st
 
-import sskeys as k
-
 # Uncomment for wide graphs
 # st.set_page_config(layout='wide')
 
@@ -16,13 +14,13 @@ pages = {
                          st.Page('Rate_Selection.py', icon=':material/show_chart:'),
                          st.Page('Asset_Allocations.py', icon=':material/data_table:'),
                          st.Page('Optimization_Parameters.py', icon=':material/cycle:')],
-            'Single runs': [st.Page('Case_Results.py', icon=':material/ssid_chart:'),
-                            st.Page('Case_Worksheets.py', icon=':material/data_table:'),
-                            st.Page('Case_Summary.py', icon=':material/description:')],
-             'Multiple runs': [st.Page('Historical_Range.py', icon=':material/earthquake:'),
-                              st.Page('Monte_Carlo.py', icon=':material/stacked_bar_chart:')],
-             'Resources': [st.Page('Logs.py', icon=':material/error:'),
-                           st.Page('Documentation.py', icon=':material/question_mark:')],
+          'Single scenario': [st.Page('Case_Results.py', icon=':material/ssid_chart:'),
+                              st.Page('Case_Worksheets.py', icon=':material/data_table:'),
+                              st.Page('Case_Summary.py', icon=':material/description:')],
+          'Multiple scenarios': [st.Page('Historical_Range.py', icon=':material/earthquake:'),
+                                 st.Page('Monte_Carlo.py', icon=':material/stacked_bar_chart:')],
+          'Resources': [st.Page('Logs.py', icon=':material/error:'),
+                        st.Page('Documentation.py', icon=':material/question_mark:')],
            }
 
 pg = st.navigation(pages)
