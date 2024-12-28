@@ -23,12 +23,6 @@ This is exactly where this tool fits it. Given your savings capabilities and spe
 it can generate different future realizations of
 your strategy under different market assumptions, helping to better understand your financial situation.
 
-Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
-
-More disclaimers: While some output of the code has been verified with other approaches,
-this code is still under development and I cannot guarantee the accuracy of the results.
-Use at your own risk.
-
 --------------------------------------------------------------------------------------
 #### Basic capabilities
 Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero),
@@ -136,22 +130,6 @@ Notebooks with detailed explanations can be found in
 [tutorial_1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
 [tutorial_2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb), and
 [tutorial_3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb).
-
----------------------------------------------------------------------
-
-#### Credits
-- Historical rates from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/)
-- Image from [freepik](freepik.com)
-- Optimization solver from [HiGHS](highs.dev)
-
----------------------------------------------------------------------
-
-Copyright &copy; 2024 - Martin-D. Lacasse
-
-Disclaimers: I am not a financial planner. You make your own decisions.
-This program comes with no guarantee. Use at your own risk.
-
----------------------------------------------------------------------
 
 '''
 )
