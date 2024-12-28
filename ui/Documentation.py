@@ -39,7 +39,7 @@ Start with the `Select case` box and choose one of `New case...` or `Load config
 #### Assets
 This tab allows to enter account balances in all savings accounts and
 the spousal beneficiary fraction associated with these accounts.
-Notice that all amounts are entered in units of \$1,000, referred to as (\$k).
+Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
 Three types of saving accounts are considered and are tracked separately for spouses:
 - Taxable saving accounts
@@ -52,7 +52,7 @@ This file contains columns as titled follows:
 -  wages
 #### Fixed Income
 This tab is for entering anticipated fixed income from pensions and social security.
-Amounts are in \$k at the starting date.
+Amounts are in \\$k at the starting date.
 #### Rate Selection
 This is the most complex tab which allows you to select the return rates over the
 time span of the plan. There are two major types of rates:
