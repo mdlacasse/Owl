@@ -1333,13 +1333,13 @@ class Plan:
 
         df = pd.DataFrame(columns=columns)
 
-        if not verbose:
+        if not verbose and not figure:
             self.mylog.print('|--- progress ---|')
 
         for year in range(ystart, yend + 1):
             self.setRates('historical', year)
             self.solve(objective, options)
-            if not verbose:
+            if not verbose and not figure:
                 self.mylog.print('\r\t%s' % u.pc((year - ystart + 1) / N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
@@ -1381,13 +1381,13 @@ class Plan:
 
         df = pd.DataFrame(columns=columns)
 
-        if not verbose:
+        if not verbose and not figure:
             self.mylog.print('|--- progress ---|')
 
         for n in range(N):
             self.regenRates()
             self.solve(objective, myoptions)
-            if not verbose:
+            if not verbose and not figure:
                 self.mylog.print('\r\t%s' % u.pc((n + 1) / N, f=0), end='')
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
