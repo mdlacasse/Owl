@@ -20,7 +20,9 @@ pages = {
           'Multiple scenarios': [st.Page('Historical_Range.py', icon=':material/earthquake:'),
                                  st.Page('Monte_Carlo.py', icon=':material/stacked_bar_chart:')],
           'Resources': [st.Page('Logs.py', icon=':material/error:'),
-                        st.Page('Documentation.py', icon=':material/question_mark:')],
+                        st.Page('Documentation.py', icon=':material/question_mark:'),
+                        st.Page('About_Owl.py', icon=':material/nature:')],
+                        # st.Page('About_Owl.py', icon='🦉')],
            }
 
 pg = st.navigation(pages)
