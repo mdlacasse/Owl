@@ -210,11 +210,13 @@ def getIntNum(text, nkey, disabled=False, callback=pull, step=1, max_value=None)
                            on_change=callback, args=[nkey], key='_'+nkey)
 
 
-def getNum(text, nkey, disabled=False, callback=pull, step=10., min_value=0., max_value=None, format='%.1f'):
+def getNum(text, nkey, disabled=False, callback=pull, step=10.,
+           min_value=0., max_value=None, format='%.1f', help=None):
     return st.number_input(text,
                            value=float(getKey(nkey)),
                            disabled=disabled,
                            step=step,
+                           help=help,
                            min_value=min_value,
                            max_value=max_value,
                            format=format,
@@ -229,11 +231,11 @@ def getText(text, nkey, disabled=False, callback=pull, placeholder=None):
                          placeholder=placeholder)
 
 
-def getRadio(text, choices, nkey, callback=pull):
+def getRadio(text, choices, nkey, callback=pull, help=None):
     return st.radio(text, choices,
                     index=choices.index(getKey(nkey)),
                     on_change=callback, args=[nkey], key='_'+nkey,
-                    horizontal=True)
+                    horizontal=True, help=help)
 
 
 def getToggle(text, nkey, callback=pull):

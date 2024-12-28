@@ -27,7 +27,7 @@ else:
                 ret = k.getNum('%s %s account ($k)' % (iname1, accounts[key]), nkey)
 
     if k.getKey('status') == 'married':
-        st.write('### Beneficiary fractions')
+        st.write("#### Survivor's spousal beneficiary fractions")
         col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
         with col1:
             nkey = 'benf'+str(0)
@@ -43,3 +43,9 @@ else:
             nkey = 'benf'+str(2)
             k.init(nkey, 1)
             ret = k.getNum(accounts['txFree'].capitalize(), nkey)
+
+        st.write('#### Surplus deposit fraction')
+        k.init('surplusFraction', 0.5)
+        helpmsg="When beneficiary fractions are not all 1, set surplus deposits to go to survivor's account"  
+        ret = k.getNum("Fraction of surplus deposited in %s's taxable account" % iname1,
+                       'surplusFraction', help=helpmsg)

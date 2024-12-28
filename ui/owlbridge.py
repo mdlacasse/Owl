@@ -108,6 +108,22 @@ def prepareRun(plan):
         st.error('Failed setting social security: %s' % e)
         return
 
+    if ni == 2:
+        benfrac = [k.getKey('benf0'), k.getKey('benf1'), k.getKey('benf2')]
+        try:
+            plan.setBeneficiaryFractions(benfrac)
+        except Exception as e:
+            st.error('Failed setting beneficiary fractions: %s' % e)
+            return
+
+        surplusFrac = k.getKey('surplusFraction')
+        try:
+            plan.setSpousalDepositFraction(surplusFrac)
+        except Exception as e:
+            st.error('Failed setting beneficiary fractions: %s' % e)
+            return
+
+
     setRates()
 
 
@@ -440,8 +456,10 @@ def createCaseFromConfig(file):
     #            'objective', 'withMedicare', 'bequest', 'netSpending',
     #            'noRothConversions', 'maxRothConversion',
     #            'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
-    #            'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor']
-    # keynamesJ = ['fxRate', 'mean', 'stdev']
+    #            'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor',
+    #            'surplusFraction', ]
+    # keynamesJ = ['benf', ]
+    # keynamesK = ['fxRate', 'mean', 'stdev']
     # keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
     #             'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
     #             'init%0_', 'init%1_', 'init%2_', 'init%3_',
@@ -468,6 +486,7 @@ def genDic(plan):
     dic['gainTx'] = 100*plan.psi
     dic['divRate'] = 100*plan.mu
     dic['heirsTx'] = 100*plan.nu
+    dic['surplusFraction'] = plan.eta
     # self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
     for j in range(plan.N_j):
         dic['benf'+str(j)] = plan.phi_j[j]
