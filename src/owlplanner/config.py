@@ -115,7 +115,7 @@ def saveConfig(plan, file, mylog):
     return
 
 
-def readConfig(file, *, verbose=True, logstreams=None):
+def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     """
     Read plan configuration parameters from file *basename*.ini.
     A new plan is created and returned.
@@ -252,6 +252,9 @@ def readConfig(file, *, verbose=True, logstreams=None):
 
     timeListsFileName = config['Parameters']['Contributions file name']
     if timeListsFileName != 'None':
-        p.readContributions(timeListsFileName)
+        if readContributions:
+            p.readContributions(timeListsFileName)
+        else:
+            mylog.vprint('Ignoring to read contributions file %s.' % timeListsFileName)
 
     return p

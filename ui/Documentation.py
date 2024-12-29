@@ -155,8 +155,16 @@ This tab allows you to select how to partition your assets between 4 investment 
 Asset allocations are requested at the beginning and the end of a plan, and
 a gliding function (either linear or an s-curve) allows you to glide from the
 initial value to the final value.
+
 ### Optimization Parameters
 This tab allows you to select the optimization parameters.
+One can choose between maximizing the net spending amount, or maximizing a bequest.
+As one of the two is selected as the objective to optimize, the other becomes
+a constraint to obey.
+The net spending amount always follows a selected
+profile which is either flat or a follows a *smile* shape.
+Maximum amount for Roth conversions and who can execute them also needs to be
+specified. Calculations of Medicare and IRMAA can be turned on or off.
 
 --------------------------------------------------------------------------------------
 ### Single Scenarios

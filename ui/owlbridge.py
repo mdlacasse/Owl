@@ -78,7 +78,7 @@ def getSolveParameters():
                'withMedicare', 'bequest', 'solver']
     for opt in optList:
         val = k.getKey(opt)
-        if val:
+        if val is not None:
             options[opt] = val
 
     return objective, options
@@ -282,7 +282,8 @@ def showProfile(plan):
 @_checkPlan
 def showRates(plan):
     fig = plan.showRates(figure=True)
-    st.pyplot(fig)
+    if fig:
+       st.pyplot(fig)
 
 
 @_checkPlan
@@ -442,7 +443,7 @@ def createCaseFromConfig(file):
     strio = StringIO()
     try:
         mystringio = StringIO(file.read().decode('utf-8'))
-        plan = owl.readConfig(mystringio, logstreams=[strio])
+        plan = owl.readConfig(mystringio, logstreams=[strio], readContributions=False)
     except Exception as e:
         raise RuntimeError('Failed to parse config file: %s' % (e))
 
@@ -495,7 +496,7 @@ def genDic(plan):
         dic['iname'+str(i)] = plan.inames[i]
         dic['yob'+str(i)] = plan.yobs[i]
         dic['life'+str(i)] = plan.expectancy[i]
-        dic['ssAge'+str(i)] = plan.pensionAges[i]
+        dic['ssAge'+str(i)] = plan.ssecAges[i]
         dic['ssAmt'+str(i)] = plan.ssecAmounts[i]/1000
         dic['pAge'+str(i)] = plan.pensionAges[i]
         dic['pAmt'+str(i)] = plan.pensionAmounts[i]/1000
@@ -504,7 +505,17 @@ def genDic(plan):
             dic['init%'+str(j)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][j])
             dic['fin%'+str(j)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][j])
 
-    if plan.rateMethod in ['default', 'conservative', 'realistic', 'average', 'user']:
+    optionKeys = list(plan.solverOptions)
+    for key in ['maxRothConversion', 'noRothConversions', 'withMedicare', 'netSpending', 'bequest']:
+        if key in optionKeys:
+            dic[key] = plan.solverOptions[key]
+
+    if plan.objective == 'maxSpending':
+        dic['objective'] = 'Net spending'
+    else:
+        dic['objective'] = 'Bequest'
+    
+    if plan.rateMethod in ['default', 'conservative', 'optimistic', 'average', 'user']:
         dic['rateType'] = 'fixed'
         dic['fixedType'] = plan.rateMethod
         for kk in range(plan.N_k):
@@ -518,9 +529,13 @@ def genDic(plan):
         dic['yto'] = plan.to
 
     if plan.rateMethod in ['stochastic', 'histochastic']:
-        for kk in range(plan.N_k):
-            dic['stdev'+str(kk)] = 100*plan.stdev[kk]
-            # dic['corr'+str(j)] = 100*plan.stdev[j]
+        qq = 1
+        for k1 in range(plan.N_k):
+            dic['mean'+str(k1)] = 100*plan.rateValues[k1]
+            dic['stdev'+str(k1)] = 100*plan.rateStdev[k1]
+            for k2 in range(k1+1, plan.N_k):
+                dic['corr'+str(qq)] = plan.rateCorr[k1, k2]
+                qq += 1
 
     # print('Name:', plan._name)
     # print('Dic:', dic)

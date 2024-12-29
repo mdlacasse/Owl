@@ -10,8 +10,8 @@ st.write("## Monte Carlo")
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    if (k.getKey('rateType') != 'varying' and
-       (k.getKey('varyingType') is None or 'histo' not in k.getKey('varyingType'))):
+    if (k.getKey('rateType') != 'varying' or
+       (k.getKey('varyingType') is None and 'histo' not in k.getKey('varyingType'))):
         st.info('Plan must first be set with stochastic or histochastic rates.')
     else:
         col1, col2 = st.columns(2, gap='large', vertical_alignment='bottom')

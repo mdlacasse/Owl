@@ -16,7 +16,7 @@ if 'cases' not in ss:
 
 # Variable for storing name of current case.
 if 'currentCase' not in ss:
-    ss.currentCase = newCase
+    ss.currentCase = loadConfig
 
 
 def allCaseNames() -> list:
@@ -100,18 +100,6 @@ def duplicateCase():
     ss.cases[dupname]['summary'] = ''
     ss.cases[dupname]['logs'] = iostring
     ss.currentCase = dupname
-
-    # keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
-    #            'timeList', 'plots',
-    #            'objective', 'withMedicare', 'bequest', 'netSpending',
-    #            'noRothConversions', 'maxRothConversion',
-    #            'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
-    #            'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor', ]
-    # keynamesJ = ['fxRate', 'mean', 'sdev', ]
-    # keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
-    #             'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
-    #             'init%0_', 'init%1_', 'init%2_', 'init%3_',
-    #             'fin%0_', 'fin%1_', 'fin%2_', 'fin%3_', ]
 
 
 def createCaseFromConfig(confile):

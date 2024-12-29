@@ -2016,8 +2016,9 @@ class Plan:
 
         lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
 
-        lines.append('Spousal surplus deposit fraction: %s' % self.eta)
         if self.N_i == 2 and self.n_d < self.N_n:
+            lines.append("Spousal surplus deposit fraction in %s's taxable account: %s"
+                         % (self.inames[1], self.eta))
             lines.append('Spousal beneficiary fractions to %s: %s' % (self.inames[self.i_s], self.phi_j.tolist()))
             p_j = self.partialEstate_j * (1 - self.phi_j)
             p_j[1] *= 1 - self.nu
@@ -2027,14 +2028,11 @@ class Plan:
             q_j = self.partialEstate_j * self.phi_j
             totSpousal = np.sum(q_j)
             totSpousalNow = totSpousal / self.gamma_n[nx + 1]
-            lines.append(
-                'Spousal wealth transfer from %s to %s in year %d (nominal):'
-                % (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx])
-            )
+            lines.append('Spousal wealth transfer from %s to %s in year %d (nominal):'
+                         % (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx]))
             lines.append('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2])))
-            lines.append(
-                'Sum of spousal bequests to %s in year %d in %d$: %s (%s nominal)'
-                % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal))
+            lines.append('Sum of spousal bequests to %s in year %d in %d$: %s (%s nominal)'
+                         % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal))
             )
             lines.append(
                 'Post-tax non-spousal bequests from %s in year %d (nominal):' % (self.inames[self.i_d], self.year_n[nx])

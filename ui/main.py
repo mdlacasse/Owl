@@ -3,9 +3,6 @@ import streamlit as st
 # Uncomment for wide graphs
 # st.set_page_config(layout='wide')
 
-# ret = k.titleBar('main')
-# st.divider()
-
 pages = {
           'Case setup': [st.Page('Basic_Info.py', icon=':material/person_add:'),
                          st.Page('Assets.py', icon=':material/savings:'),
