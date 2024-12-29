@@ -10,6 +10,7 @@ def resetList():
     k.setKey('timeList0', None)
     if k.getKey('status') == 'married':
         k.setKey('timeList1', None)
+    owb.resetContributions()
 
 
 ret = k.titleBar('wages')

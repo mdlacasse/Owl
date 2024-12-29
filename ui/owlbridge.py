@@ -270,6 +270,7 @@ def showAllocations(plan):
     figures = plan.showAllocations(figure=True)
     # print('figures', figures)
     for fig in figures:
+        st.markdown('###')
         st.pyplot(fig)
 
 
@@ -283,7 +284,8 @@ def showProfile(plan):
 def showRates(plan):
     fig = plan.showRates(figure=True)
     if fig:
-       st.pyplot(fig)
+        st.markdown('###')
+        st.pyplot(fig)
 
 
 @_checkPlan
@@ -315,6 +317,11 @@ def readContributions(plan, file):
         return None
 
     return plan.readContributions(file)
+
+
+@_checkPlan
+def resetContributions(plan):
+    return plan.resetContributions()
 
 
 @_checkPlan
@@ -514,7 +521,7 @@ def genDic(plan):
         dic['objective'] = 'Net spending'
     else:
         dic['objective'] = 'Bequest'
-    
+
     if plan.rateMethod in ['default', 'conservative', 'optimistic', 'average', 'user']:
         dic['rateType'] = 'fixed'
         dic['fixedType'] = plan.rateMethod

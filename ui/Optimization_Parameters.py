@@ -24,7 +24,7 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         choices = ['Net spending', 'Bequest']
-        helpmsg = "Values are in today's $"
+        helpmsg = "Value is in today's $"
         k.init('objective', choices[0])
         ret = k.getRadio("Maximize", choices, 'objective')
 
@@ -41,8 +41,9 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         iname0 = k.getKey('iname0')
+        helpmsg = "Value is in nominal $"
         k.init('maxRothConversion', 50)
-        ret = k.getNum("Maximum Roth conversion ($k)", 'maxRothConversion')
+        ret = k.getNum("Maximum Roth conversion ($k)", 'maxRothConversion', help=helpmsg)
 
     with col2:
         if k.getKey('status') == 'married':

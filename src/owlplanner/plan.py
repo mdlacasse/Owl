@@ -900,6 +900,23 @@ class Plan:
 
         return None
 
+    def resetContributions(self):
+        """
+        Reset all contributions variables to zero.
+        """
+        self.mylog.vprint('Resetting all contributions to zero.')
+
+        # Now fill in parameters with zeros.
+        self.omega_in[:, :] = 0.
+        self.Lambda_in[:, :] = 0.
+        self.myRothX_in[:, :] = 0.
+        self.kappa_ijn[:, :, :] = 0.
+
+        self.timeListsFileName = 'None'
+        self.caseStatus = 'modified'
+
+        return None
+
     def _linInterp(self, a, b, numPoints):
         """
         Utility function to interpolate allocations using
@@ -2032,8 +2049,7 @@ class Plan:
                          % (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx]))
             lines.append('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2])))
             lines.append('Sum of spousal bequests to %s in year %d in %d$: %s (%s nominal)'
-                         % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal))
-            )
+                         % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal)))
             lines.append(
                 'Post-tax non-spousal bequests from %s in year %d (nominal):' % (self.inames[self.i_d], self.year_n[nx])
             )

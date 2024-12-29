@@ -1,7 +1,7 @@
-
 from io import StringIO
 
 from owlplanner import logging
+
 
 def test_logger1():
     strio = StringIO()

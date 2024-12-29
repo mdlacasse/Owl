@@ -7,6 +7,8 @@ with col4:
 
 st.write('## Owl Retirement Planner')
 st.markdown('''
+<div style="text-align: justify">
+
 #### A retirement exploration tool based on linear programming
 
 This tool is based on the Owl Python package aimed at providing a retirement modeling

@@ -112,6 +112,7 @@ def test_withdrawal2():
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
     assert p.bequest == pytest.approx(0, abs=0.5)
 
+
 def test_withdrawal2_2():
     n = 3
     p = createPlan(2, 'withdrawal2_2', n)
@@ -494,10 +495,8 @@ def test_Historical1():
     p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
     p.setSpendingProfile('smile', 60)
 
-    p.setAccountBalances(taxable=[90.5], taxDeferred=[600.2],
-                            taxFree=[50 + 20.6],)
-    p.setAllocationRatios('individual',
-                             generic=[ [[60, 40, 0, 0], [70, 30, 0, 0]] ])
+    p.setAccountBalances(taxable=[90.5], taxDeferred=[600.2], taxFree=[50 + 20.6])
+    p.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
     p.setPension([0], [65])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
     p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=True)
@@ -521,5 +520,3 @@ def test_Historical2():
 
     options = {'maxRothConversion': 100, 'noRothConversions': 'Jill', 'withMedicare': True}
     p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=True)
-
-
