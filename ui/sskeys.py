@@ -30,7 +30,7 @@ def onlyCaseNames() -> list:
     return caseList
 
 
-def runOnce(func):
+def runOncePerCase(func):
     key = func.__name__
     if getKey(key) is None:
         func()

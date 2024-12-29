@@ -13,7 +13,7 @@ def initProfile():
     owb.setProfile(profileChoices[0], False)
 
 
-k.runOnce(initProfile)
+k.runOncePerCase(initProfile)
 
 ret = k.titleBar('opto')
 st.write('## Optimization Parameters')

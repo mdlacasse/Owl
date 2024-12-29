@@ -11,6 +11,10 @@ FXRATES = {
     'user': [0, 0, 0, 0]
 }
 
+rateChoices = ['fixed', 'varying']
+fixedChoices = list(FXRATES)
+varyingChoices = ['historical', 'histochastic', 'stochastic']
+
 
 def updateFixedRates(key, pull=True):
     if pull:
@@ -24,25 +28,21 @@ def updateFixedRates(key, pull=True):
     owb.setRates()
 
 
-rateChoices = ['fixed', 'varying']
-fixedChoices = list(FXRATES)
-varyingChoices = ['historical', 'histochastic', 'stochastic']
-
-k.init('rateType', rateChoices[0])
-k.init('fixedType', fixedChoices[0])
-k.init('varyingType', varyingChoices[0])
-
-
 def updateRates(key):
     k.pull(key)
     owb.setRates()
 
 
 def initRates():
-    updateFixedRates(fixedChoices[0], False)
+    if k.getKey('rateType') == rateChoices[0] and k.getKey('fixedType') == fixedChoices[0]:
+        updateFixedRates(fixedChoices[0], False)
 
 
-# k.runOnce(initRates)
+k.init('rateType', rateChoices[0])
+k.init('fixedType', fixedChoices[0])
+k.init('varyingType', varyingChoices[0])
+
+k.runOncePerCase(initRates)
 
 ret = k.titleBar('rates')
 st.write('## Rate Selection')
