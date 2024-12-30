@@ -54,12 +54,12 @@ def saveConfig(plan, file, mylog):
                               }
 
     # Rate Selection.
-    diconf['Rate Selection'] = {'Heirs rate on tax-deferred estate': 100 * plan.nu,
-                                'Long-term capital gain tax rate': 100 * plan.psi,
-                                'Dividend tax rate': 100 * plan.mu,
+    diconf['Rate Selection'] = {'Heirs rate on tax-deferred estate': float(100 * plan.nu),
+                                'Long-term capital gain tax rate': float(100 * plan.psi),
+                                'Dividend tax rate': float(100 * plan.mu),
                                 'Method': plan.rateMethod,
-                                'From': plan.rateFrm,
-                                'To': plan.rateTo,
+                                'From': int(plan.rateFrm),
+                                'To': int(plan.rateTo),
                                 }
     if plan.rateMethod in ['user', 'stochastic']:
         diconf['Rate Selection']['Values'] = [100 * k for k in plan.rateValues]
@@ -205,10 +205,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     rateMethod = diconf['Rate Selection']['Method']
     if rateMethod in ['historical', 'histochastic']:
         frm = diconf['Rate Selection']['From']
-        if isinstance(frm, str):
+        if not isinstance(frm, int):
             frm = int(frm) 
         to = int(diconf['Rate Selection']['To'])
-        if isinstance(to, str):
+        if not isinstance(to, int):
             to = int(to) 
     if rateMethod in ['user', 'stochastic']:
         rateValues = np.array(diconf['Rate Selection']['Values'])

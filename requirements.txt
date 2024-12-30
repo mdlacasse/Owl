@@ -5,3 +5,4 @@ pandas
 openpyxl
 scipy
 streamlit
+toml
