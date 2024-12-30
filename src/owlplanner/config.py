@@ -204,8 +204,12 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     rateCorr = None
     rateMethod = diconf['Rate Selection']['Method']
     if rateMethod in ['historical', 'histochastic']:
-        frm = int(diconf['Rate Selection']['From'])
+        frm = diconf['Rate Selection']['From']
+        if isinstance(frm, str):
+            frm = int(frm) 
         to = int(diconf['Rate Selection']['To'])
+        if isinstance(to, str):
+            to = int(to) 
     if rateMethod in ['user', 'stochastic']:
         rateValues = np.array(diconf['Rate Selection']['Values'])
     if rateMethod in ['stochastic']:
