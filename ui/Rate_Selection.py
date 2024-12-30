@@ -146,17 +146,22 @@ else:
 
         with col2:
             k.init('corr1', 0.)
-            k.getNum('(1,2)', 'corr1', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.getNum('(1,2)', 'corr1', ro, step=.1, format='%.2f', min_value=-1., max_value=1.,
+                     callback=updateRates)
             k.init('diag2', 1.)
-            k.getNum('Corporate Bonds Baa', 'diag2', True, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.getNum('Corporate Bonds Baa', 'diag2', True, format='%.2f', min_value=-1., max_value=1.,
+                     callback=updateRates)
 
         with col3:
             k.init('corr2', 0.)
-            k.getNum('(1,3)', 'corr2', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.getNum('(1,3)', 'corr2', ro, step=.1, format='%.2f', min_value=-1., max_value=1.,
+                     callback=updateRates)
             k.init('corr4', 0.)
-            k.getNum('(2,3)', 'corr4', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.getNum('(2,3)', 'corr4', ro, step=.1, format='%.2f', min_value=-1., max_value=1.,
+                     callback=updateRates)
             k.init('diag3', 1.)
-            k.getNum('10-y Treasury Notes', 'diag3', True, format='%.2f', min_value=-1., max_value=1., callback=None)
+            k.getNum('10-y Treasury Notes', 'diag3', True, format='%.2f', min_value=-1., max_value=1.,
+                     callback=None)
 
         with col4:
             k.init('corr3', 0.)

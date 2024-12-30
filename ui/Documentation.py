@@ -110,7 +110,7 @@ from there.
 Roth conversion can be specified in the column marked *Roth X*. Roth conversion are typically performed
 in the years when the income is lower (and therefore lower tax rates), typically in the bridge years
 between having a full-time regular salary and collecting social security. This column is provided
-to override the Roth conversion optimization in Owl. When the option 
+to override the Roth conversion optimization in Owl. When the option
 `Convert as in contribution file` is toggled in the [Optimization Parameters](#optimization-parameters) tab,
 values from the contributions file will be used and no optimization over Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
