@@ -30,7 +30,7 @@ def saveConfig(plan, file, mylog):
     diconf['Basic Info'] = {'Status': ['unknown', 'single', 'married'][plan.N_i],
                             'Names': plan.inames,
                             'Birth year': plan.yobs.tolist(),
-                            'Life expectancy': plan.expectancy,
+                            'Life expectancy': plan.expectancy.tolist(),
                             'Start date': plan.startDate,
                             }
 
