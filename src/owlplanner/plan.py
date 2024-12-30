@@ -253,7 +253,7 @@ class Plan:
         thisyear = date.today().year
         self.horizons = [yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)]
         self.N_n = max(self.horizons)
-        self.year_n = np.linspace(thisyear, thisyear + self.N_n - 1, self.N_n, dtype=int)
+        self.year_n = np.linspace(thisyear, thisyear + self.N_n - 1, self.N_n, dtype=np.int64)
         # Handle passing of one spouse before the other.
         if self.N_i == 2 and min(self.horizons) != max(self.horizons):
             self.n_d = min(self.horizons)
@@ -276,9 +276,9 @@ class Plan:
         self.pi_in = np.zeros((self.N_i, self.N_n))
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         self.pensionAmounts = np.zeros(self.N_i)
-        self.pensionAges = 65 * np.ones(self.N_i, dtype=int)
+        self.pensionAges = 65 * np.ones(self.N_i, dtype=np.int64)
         self.ssecAmounts = np.zeros(self.N_i)
-        self.ssecAges = 67 * np.ones(self.N_i, dtype=int)
+        self.ssecAges = 67 * np.ones(self.N_i, dtype=np.int64)
 
         # Parameters from timeLists initialized to zero.
         self.omega_in = np.zeros((self.N_i, self.N_n))
@@ -501,7 +501,7 @@ class Plan:
                     self.pi_in[i, 0] *= self.yearFracLeft
 
         self.pensionAmounts = np.array(amounts)
-        self.pensionAges = np.array(ages, dtype=int)
+        self.pensionAges = np.array(ages, dtype=np.int64)
         self.caseStatus = 'modified'
 
         return None
@@ -539,7 +539,7 @@ class Plan:
             self.zeta_in[self.i_s, self.n_d:] = max(amounts[self.i_s], amounts[self.i_d] / 2)
 
         self.ssecAmounts = np.array(amounts)
-        self.ssecAges = np.array(ages, dtype=int)
+        self.ssecAges = np.array(ages, dtype=np.int64)
         self.caseStatus = 'modified'
         self._adjustedParameters = False
 

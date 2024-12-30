@@ -186,11 +186,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     # Fixed Income.
     ssecAmounts = np.array(diconf['Fixed Income']['Social security amounts'])
     values = diconf['Fixed Income']['Social security ages']
-    print(values)
-    ssecAges = np.array(values, dtype=int)
+    ssecAges = np.array(values, dtype=np.int64)
     p.setSocialSecurity(ssecAmounts, ssecAges)
     pensionAmounts = np.array(diconf['Fixed Income']['Pension amounts'])
-    pensionAges = np.array(diconf['Fixed Income']['Pension ages'], dtype=int)
+    pensionAges = np.array(diconf['Fixed Income']['Pension ages'], dtype=np.int64)
     p.setPension(pensionAmounts, pensionAges)
 
     # Rate Selection.
