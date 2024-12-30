@@ -29,7 +29,7 @@ def saveConfig(plan, file, mylog):
     # Basic Info.
     diconf['Basic Info'] = {'Status': ['unknown', 'single', 'married'][plan.N_i],
                             'Names': plan.inames,
-                            'Birth year': plan.yobs,
+                            'Birth year': plan.yobs.tolist(),
                             'Life expectancy': plan.expectancy,
                             'Start date': plan.startDate,
                             }
@@ -48,9 +48,9 @@ def saveConfig(plan, file, mylog):
 
     # Fixed Income.
     diconf['Fixed Income'] = {'Pension amounts': (plan.pensionAmounts/1000).tolist(),
-                              'Pension ages': plan.pensionAges,
+                              'Pension ages': plan.pensionAges.tolist(),
                               'Social security amounts': (plan.ssecAmounts/1000).tolist(),
-                              'Social security ages': plan.ssecAges,
+                              'Social security ages': plan.ssecAges.tolist(),
                               }
 
     # Rate Selection.
@@ -185,11 +185,11 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
 
     # Fixed Income.
     ssecAmounts = np.array(diconf['Fixed Income']['Social security amounts'])
-    values = diconf['Fixed Income']['Social security ages']
-    ssecAges = np.array(values, dtype=np.int64)
+    # values = diconf['Fixed Income']['Social security ages']
+    ssecAges = np.array(diconf['Fixed Income']['Social security ages'], dtype=np.int32)
     p.setSocialSecurity(ssecAmounts, ssecAges)
     pensionAmounts = np.array(diconf['Fixed Income']['Pension amounts'])
-    pensionAges = np.array(diconf['Fixed Income']['Pension ages'], dtype=np.int64)
+    pensionAges = np.array(diconf['Fixed Income']['Pension ages'], dtype=np.int32)
     p.setPension(pensionAmounts, pensionAges)
 
     # Rate Selection.
@@ -204,8 +204,8 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     rateCorr = None
     rateMethod = diconf['Rate Selection']['Method']
     if rateMethod in ['historical', 'histochastic']:
-        frm = diconf['Rate Selection']['From']
-        to = diconf['Rate Selection']['To']
+        frm = int(diconf['Rate Selection']['From'])
+        to = int(diconf['Rate Selection']['To'])
     if rateMethod in ['user', 'stochastic']:
         rateValues = np.array(diconf['Rate Selection']['Values'])
     if rateMethod in ['stochastic']:

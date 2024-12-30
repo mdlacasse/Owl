@@ -1,5 +1,6 @@
 import pytest
 from datetime import date
+import numpy as np
 
 import owlplanner as owl
 
@@ -14,8 +15,8 @@ def test_constructor1():
     name = 'test_1'
     p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
     assert p.inames == inames
-    assert p.yobs == yobs
-    assert p.expectancy == expectancy
+    assert np.array_equal(p.yobs, yobs)
+    assert np.array_equal(p.expectancy, expectancy)
     assert p.N_i == 1
     assert p._name == name
     assert p.startDate == '1-1'
@@ -28,8 +29,8 @@ def test_constructor1_2():
     name = 'test_2'
     p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
     assert p.inames == inames
-    assert p.yobs == yobs
-    assert p.expectancy == expectancy
+    assert np.array_equal(p.yobs, yobs)
+    assert np.array_equal(p.expectancy, expectancy)
     assert p.N_i == 2
     assert p._name == name
     assert p.startDate == '1-1'
@@ -42,8 +43,8 @@ def test_date_1():
     name = 'test_3'
     p = owl.Plan(inames, yobs, expectancy, name, startDate='2024-1-1')
     assert p.inames == inames
-    assert p.yobs == yobs
-    assert p.expectancy == expectancy
+    assert np.array_equal(p.yobs, yobs)
+    assert np.array_equal(p.expectancy, expectancy)
     assert p.N_i == 2
     assert p._name == name
     assert p.startDate == '2024-1-1'
@@ -57,8 +58,8 @@ def test_date_2():
     startDate = date.today()
     p = owl.Plan(inames, yobs, expectancy, name, startDate=startDate)
     assert p.inames == inames
-    assert p.yobs == yobs
-    assert p.expectancy == expectancy
+    assert np.array_equal(p.yobs, yobs)
+    assert np.array_equal(p.expectancy, expectancy)
     assert p.N_i == 2
     assert p._name == name
     assert p.startDate == date.today().strftime('%Y-%m-%d')
