@@ -144,7 +144,7 @@ def deleteCurrentCase():
     if ss.currentCase == newCase or ss.currentCase == loadConfig:
         return
     del ss.cases[ss.currentCase]
-    setCurrentCase(newCase)
+    setCurrentCase(loadConfig)
 
 
 def dump():

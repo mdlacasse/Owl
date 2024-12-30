@@ -53,7 +53,7 @@ def test_config1():
     assert p.basis == pytest.approx(80000, abs=0.5)
     assert p.bequest == pytest.approx(606235, abs=0.5)
     p.saveConfig()
-    filename = name + '.ini'
+    filename = name + '.toml'
     assert os.path.isfile(filename)
     p2 = owl.readConfig(name)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})

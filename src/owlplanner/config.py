@@ -1,6 +1,6 @@
 """
 
-Owl/config
+Owl/conftoml
 
 This file contains utility functions to save configuration parameters.
 
@@ -9,9 +9,9 @@ Copyright (C) 2024 -- Martin-D. Lacasse
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 """
 
-import configparser
-import numpy as np
+import toml as toml
 from io import StringIO, BytesIO
+import numpy as np
 
 from owlplanner import plan
 from owlplanner import logging
@@ -19,220 +19,210 @@ from owlplanner import logging
 
 def saveConfig(plan, file, mylog):
     """
-    Save plan configuration parameters to a file named *basename*.ini.
-    Argument file can be a 'filename', or a 'stringio' object.
+    Save config and return a dictionary containing configuration parameters.
     """
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
-    config = configparser.ConfigParser()
+    diconf = {}
+    diconf['Plan Name'] = plan._name
 
-    config['Who'] = {
-        'Count': str(plan.N_i),
-        'Names': ','.join(str(k) for k in plan.inames),
-    }
+    # Basic Info.
+    diconf['Basic Info'] = {'Status': ['unknown', 'single', 'married'][plan.N_i],
+                            'Names': plan.inames,
+                            'Birth year': plan.yobs,
+                            'Life expectancy': plan.expectancy,
+                            'Start date': plan.startDate,
+                            }
 
-    # Parameters getting one value for each spouse.
-    config['YOB'] = {}
-    config['Life expectancy'] = {}
-    config['Pension amounts'] = {}
-    config['Pension ages'] = {}
-    config['Social security amounts'] = {}
-    config['Social security ages'] = {}
-    config['Asset balances'] = {}
-    config['Solver'] = {}
+    # Assets.
+    diconf['Assets'] = {}
+    for j in range(plan.N_j):
+        amounts = plan.beta_ij[:, j] / 1000
+        diconf['Assets']['%s savings balances' % accountTypes[j]] = amounts.tolist()
+    if plan.N_i == 2:
+        diconf['Assets']['Beneficiary fractions'] = plan.phi_j.tolist()
+        diconf['Assets']['Spousal surplus deposit fraction'] = plan.eta
 
-    for i in range(plan.N_i):
-        config['YOB'][plan.inames[i]] = str(plan.yobs[i])
-        config['Life expectancy'][plan.inames[i]] = str(plan.expectancy[i])
-        config['Pension amounts'][plan.inames[i]] = str(plan.pensionAmounts[i])
-        config['Pension ages'][plan.inames[i]] = str(plan.pensionAges[i])
-        config['Social security amounts'][plan.inames[i]] = str(plan.ssecAmounts[i])
-        config['Social security ages'][plan.inames[i]] = str(plan.ssecAges[i])
-        for j in range(len(accountTypes)):
-            config['Asset balances'][accountTypes[j] + ' ' + plan.inames[i]] = str(plan.beta_ij[i][j])
+    # Wages and Contributions.
+    diconf['Wages and Contributions'] = {'Contributions file name': plan.timeListsFileName}
 
-    # Joint parameters.
-    config['Parameters'] = {
-        'Plan name': plan._name,
-        'Starting date': plan.startDate,
-        'Spending profile': str(plan.spendingProfile),
-        'Surviving spouse spending percent': str(100 * plan.chi),
-        'Interpolation method': str(plan.interpMethod),
-        'Interpolation center': str(plan.interpCenter),
-        'Interpolation width': str(plan.interpWidth),
-        'Default plots': str(plan.defaultPlots),
-        'Heirs rate on tax-deferred estate': str(100 * plan.nu),
-        'Spousal surplus deposit fraction': str(plan.eta),
-        'Long-term capital gain tax rate': str(100 * plan.psi),
-        'Dividend tax rate': str(100 * plan.mu),
-        'Beneficiary fractions': str(plan.phi_j.tolist()),
-        'Contributions file name': str(plan.timeListsFileName),
-    }
+    # Fixed Income.
+    diconf['Fixed Income'] = {'Pension amounts': (plan.pensionAmounts/1000).tolist(),
+                              'Pension ages': plan.pensionAges,
+                              'Social security amounts': (plan.ssecAmounts/1000).tolist(),
+                              'Social security ages': plan.ssecAges,
+                              }
 
-    # Asset allocations
-    config['Asset allocations'] = {}
-    config['Asset allocations']['type'] = str(plan.ARCoord)
-    if plan.ARCoord == 'account':
-        for aType in accountTypes:
-            config['Asset allocations'][aType] = str(plan.boundsAR[aType])
-    else:
-        config['Asset allocations']['generic'] = str(plan.boundsAR['generic'])
-
-        # ', '.join(str(100 * k) for i,k in plan.boundsAR[aType][:][:])
-
-    config['Rates'] = {
-        'Method': str(plan.rateMethod),
-        'From': str(plan.rateFrm),
-        'To': str(plan.rateTo),
-    }
+    # Rate Selection.
+    diconf['Rate Selection'] = {'Heirs rate on tax-deferred estate': 100 * plan.nu,
+                                'Long-term capital gain tax rate': 100 * plan.psi,
+                                'Dividend tax rate': 100 * plan.mu,
+                                'Method': plan.rateMethod,
+                                'From': plan.rateFrm,
+                                'To': plan.rateTo,
+                                }
     if plan.rateMethod in ['user', 'stochastic']:
-        config['Rates']['values'] = ', '.join(str(100 * k) for k in plan.rateValues)
+        diconf['Rate Selection']['Values'] = [100 * k for k in plan.rateValues]
     if plan.rateMethod in ['stochastic']:
-        config['Rates']['standard deviations'] = ', '.join(str(100 * k) for k in plan.rateStdev)
-        flat_corr = plan.rateCorr.flatten()
-        config['Rates']['correlations'] = ', '.join(str(k) for k in flat_corr)
+        diconf['Rate Selection']['Standard deviations'] = [100 * k for k in plan.rateStdev]
+        diconf['Rate Selection']['Correlations'] = plan.rateCorr
 
-    config['Solver']['Options'] = str(plan.solverOptions)
-    config['Solver']['Objective'] = plan.objective
+    # Asset Allocations.
+    diconf['Asset Allocations'] = {'Interpolation method': plan.interpMethod,
+                                   'Interpolation center': plan.interpCenter,
+                                   'Interpolation width': plan.interpWidth,
+                                   'Type': plan.ARCoord,
+                                   }
+    if plan.ARCoord == 'account':
+        for accType in accountTypes:
+            diconf['Asset Allocations'][accType] = plan.boundsAR[accType]
+    else:
+        diconf['Asset Allocations']['generic'] = plan.boundsAR['generic']
+
+    # Optimization Parameters.
+    diconf['Optimization Parameters'] = {
+                                         'Spending profile': plan.spendingProfile,
+                                         'Surviving spouse spending percent': float(100 * plan.chi),
+                                         'Objective': plan.objective,
+                                        }
+
+    diconf['Solver Options'] = plan.solverOptions
+
+    # Results.
+    diconf['Results'] = {'Default plots': plan.defaultPlots}
 
     if isinstance(file, str):
-        if '.ini' in file:
-            filename = file
-        else:
-            filename = file + '.ini'
+        if '.toml' not in file:
+            filename = file + '.toml'
         mylog.vprint("Saving plan configuration to '%s'." % filename)
 
-        with open(filename, 'w') as configfile:
-            config.write(configfile)
+        try:
+            with open(filename, 'w') as configfile:
+                toml.dump(diconf, configfile)
+        except Exception as e:
+            raise RuntimeError('Failed to save config file %s: %s' % (filename, e))
     elif isinstance(file, StringIO):
         try:
-            config.write(file)
+            string = toml.dumps(diconf)
+            file.write(string)
         except Exception as e:
             raise RuntimeError('Failed to save config to stringio: %s', e)
+    elif file is None:
+        pass
     else:
         raise ValueError('Argument %s has unknown type' % type(file))
 
-    return
+    return diconf
 
 
 def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     """
-    Read plan configuration parameters from file *basename*.ini.
+    Read plan configuration parameters from file *basename*.toml.
     A new plan is created and returned.
     Argument file can be a filename, a file, or a stringIO.
     """
-    import configparser
-    import ast
-
     mylog = logging.Logger(verbose, logstreams)
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
-    config = configparser.ConfigParser()
-
     if isinstance(file, str):
-        if '.ini' in file:
-            filename = file
-        else:
-            filename = file + '.ini'
+        if '.toml' not in file:
+            filename = file + '.toml'
+
         mylog.vprint("Reading plan configuration from '%s'." % filename)
 
-        ret = config.read(filename)
-        if ret == []:
-            raise FileNotFoundError('File %s not found.' % (filename))
+        try:
+            with open(filename, 'r') as f:
+                diconf = toml.load(f)
+        except Exception as e:
+            raise FileNotFoundError('File %s not found: %s' % (filename, e))
     elif isinstance(file, BytesIO):
-        filename = 'fp'
-        ret = config.read_file(file)
-        if ret == []:
-            raise RuntimeError('Cannot read from file.')
+        try:
+            string = file.getvalue().decode('utf-8')
+            diconf = toml.loads(string)
+        except Exception as e:
+            raise RuntimeError('Cannot read from BytesIO: %s' % e)
     elif isinstance(file, StringIO):
-        ret = config.read_string(file.getvalue())
-        if ret == []:
-            raise RuntimeError('Cannot read from string.')
+        try:
+            string = file.getvalue()
+            diconf = toml.loads(string)
+        except Exception as e:
+            raise RuntimeError('Cannot read from StringIO: %s' % e)
     else:
         raise ValueError('%s not a valid type' % type(file))
 
-    icount = int(config['Who']['Count'])
-    inames = config['Who']['Names'].split(',')
-    name = config['Parameters']['Plan name']
-    startDate = config['Parameters']['Starting date']
+    # Basic Info.
+    name = diconf['Plan Name']
+    inames = diconf['Basic Info']['Names']
+    # status = diconf['Basic Info']['Status']
+    yobs = diconf['Basic Info']['Birth year']
+    expectancy = diconf['Basic Info']['Life expectancy']
+    startDate = diconf['Basic Info']['Start date']
+    icount = len(yobs)
+
     mylog.vprint('Plan for %d individual%s: %s.' % (icount, ['', 's'][icount - 1], inames))
-
-    # Parameters getting one value for each spouse.
-    yobs = []
-    expectancy = []
-    pensionAmounts = []
-    pensionAges = []
-    ssecAmounts = []
-    ssecAges = []
-    boundsAR = {}
-    balances = {}
-
-    for aType in accountTypes:
-        balances[aType] = []
-
-    for i in range(icount):
-        yobs.append(int(config['YOB'][inames[i]]))
-        expectancy.append(int(config['Life expectancy'][inames[i]]))
-        pensionAmounts.append(float(config['Pension amounts'][inames[i]]))
-        pensionAges.append(int(config['Pension ages'][inames[i]]))
-        ssecAmounts.append(float(config['Social security amounts'][inames[i]]))
-        ssecAges.append(int(config['Social security ages'][inames[i]]))
-        for aType in accountTypes:
-            balances[aType].append(float(config['Asset balances'][aType + ' ' + inames[i]]))
     p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate, verbose=True, logstreams=logstreams)
 
-    p.setSpousalDepositFraction(float(config['Parameters']['Spousal surplus deposit fraction']))
-    p.setDefaultPlots(config['Parameters']['Default plots'])
-    p.setDividendRate(float(config['Parameters']['Dividend tax rate']))
-    p.setLongTermCapitalTaxRate(float(config['Parameters']['Long-term capital gain tax rate']))
-    beneficiaryFractions = ast.literal_eval(config['Parameters']['Beneficiary fractions'])
-    p.setBeneficiaryFractions(beneficiaryFractions)
-    p.setHeirsTaxRate(float(config['Parameters']['Heirs rate on tax-deferred estate']))
+    # Assets.
+    balances = {}
+    for acc in accountTypes:
+        balances[acc] = diconf['Assets']['%s savings balances' % acc]
+    p.setAccountBalances(taxable=balances['taxable'], taxDeferred=balances['tax-deferred'],
+                         taxFree=balances['tax-free'])
+    if icount == 2:
+        phi_j = diconf['Assets']['Beneficiary fractions']
+        p.setBeneficiaryFractions(phi_j)
+        eta = diconf['Assets']['Spousal surplus deposit fraction']
+        p.setSpousalDepositFraction(eta)
 
-    p.setPension(pensionAmounts, pensionAges, units=1)
-    p.setSocialSecurity(ssecAmounts, ssecAges, units=1)
+    # Wages and Contributions.
+    timeListsFileName = diconf['Wages and Contributions']['Contributions file name']
+    if timeListsFileName != 'None':
+        if readContributions:
+            p.readContributions(timeListsFileName)
+        else:
+            mylog.vprint('Ignoring to read contributions file %s.' % timeListsFileName)
 
-    p.setSpendingProfile(
-        config['Parameters']['Spending profile'],
-        float(config['Parameters']['Surviving spouse spending percent']),
-    )
+    # Fixed Income.
+    ssecAmounts = np.array(diconf['Fixed Income']['Social security amounts'])
+    ssecAges = np.array(diconf['Fixed Income']['Social security ages'], dtype=int)
+    p.setSocialSecurity(ssecAmounts, ssecAges)
+    pensionAmounts = np.array(diconf['Fixed Income']['Pension amounts'])
+    pensionAges = np.array(diconf['Fixed Income']['Pension ages'], dtype=int)
+    p.setPension(pensionAmounts, pensionAges)
 
-    rateMethod = config['Rates']['Method']
+    # Rate Selection.
+    p.setDividendRate(diconf['Rate Selection']['Dividend tax rate'])
+    p.setLongTermCapitalTaxRate(diconf['Rate Selection']['Long-term capital gain tax rate'])
+    p.setHeirsTaxRate(diconf['Rate Selection']['Heirs rate on tax-deferred estate'])
+
     frm = None
     to = None
-    values = None
+    rateValues = None
     stdev = None
-    corr = None
+    rateCorr = None
+    rateMethod = diconf['Rate Selection']['Method']
+    if rateMethod in ['historical', 'histochastic']:
+        frm = diconf['Rate Selection']['From']
+        to = diconf['Rate Selection']['To']
     if rateMethod in ['user', 'stochastic']:
-        values = config['Rates']['values'].split(',')
-        values = np.array([float(k) for k in values])
-        if rateMethod in ['stochastic']:
-            stdev = config['Rates']['standard deviations'].split(',')
-            stdev = np.array([float(k) for k in stdev])
-            flat_corr = config['Rates']['correlations'].split(',')
-            flat_corr = np.array([float(k) for k in flat_corr])
-            corr = flat_corr.reshape((p.N_k, p.N_k))
-    if rateMethod in ['historical', 'means', 'average', 'histochastic']:
-        frm = int(config['Rates']['From'])
-        to = int(config['Rates']['To'])
+        rateValues = np.array(diconf['Rate Selection']['Values'])
+    if rateMethod in ['stochastic']:
+        stdev = np.array(diconf['Rate Selection']['Standard deviations'], dtype='float64')
+        rateCorr = np.array(diconf['Rate Selection']['Correlations'], dtype='float64')
+    p.setRates(rateMethod, frm, to, rateValues, stdev, rateCorr)
 
-    p.setRates(rateMethod, frm, to, values, stdev, corr)
-
-    p.setAccountBalances(
-        taxable=balances['taxable'], taxDeferred=balances['tax-deferred'], taxFree=balances['tax-free'], units=1
-    )
-
+    # Asset Allocation.
+    boundsAR = {}
     p.setInterpolationMethod(
-        config['Parameters']['Interpolation method'],
-        float(config['Parameters']['Interpolation center']),
-        float(config['Parameters']['Interpolation width']),
+        diconf['Asset Allocations']['Interpolation method'],
+        float(diconf['Asset Allocations']['Interpolation center']),
+        float(diconf['Asset Allocations']['Interpolation width']),
     )
-
-    allocType = config['Asset allocations']['Type']
+    allocType = diconf['Asset Allocations']['Type']
     if allocType == 'account':
         for aType in accountTypes:
-            boundsAR[aType] = ast.literal_eval(config['Asset allocations'][aType])
+            boundsAR[aType] = np.array(diconf['Asset allocations'][aType])
 
         p.setAllocationRatios(
             allocType,
@@ -241,20 +231,25 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             taxFree=boundsAR['tax-free'],
         )
     elif allocType == 'individual' or allocType == 'spouses':
-        boundsAR['generic'] = ast.literal_eval(config['Asset allocations']['generic'])
+        boundsAR['generic'] = np.array(diconf['Asset Allocations']['generic'])
         p.setAllocationRatios(
             allocType,
             generic=boundsAR['generic'],
         )
+    else:
+        raise ValueError('Unknown asset allocation type %s.' % allocType)
 
-    p.solverOptions = ast.literal_eval(config['Solver']['Options'])
-    p.objective = str(config['Solver']['Objective'])
+    # Optimization Parameters.
+    p.objective = diconf['Optimization Parameters']['Objective']
+    p.setSpendingProfile(
+        diconf['Optimization Parameters']['Spending profile'],
+        float(diconf['Optimization Parameters']['Surviving spouse spending percent'])
+    )
 
-    timeListsFileName = config['Parameters']['Contributions file name']
-    if timeListsFileName != 'None':
-        if readContributions:
-            p.readContributions(timeListsFileName)
-        else:
-            mylog.vprint('Ignoring to read contributions file %s.' % timeListsFileName)
+    # Solver Options.
+    p.solverOptions = diconf['Solver Options']
+
+    # Results.
+    p.setDefaultPlots(diconf['Results']['Default plots'])
 
     return p

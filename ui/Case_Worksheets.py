@@ -27,6 +27,6 @@ else:
         download3 = st.download_button(
             label="Download configuration file...",
             data=owb.saveConfig(),
-            file_name=k.getKey('name')+'.ini',
+            file_name=k.getKey('name')+'.toml',
             mime='txt/plain'
         )

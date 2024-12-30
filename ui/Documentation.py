@@ -26,7 +26,7 @@ See the full description of the package on [github](github.com/mdlacasse/owl) fo
 ## Getting started with the user interface
 The function of each tab is described below.
 Typically, tabs would be run in order, starting from the top.
-### Case Setup
+### :orange[Case Setup]
 This section contains all the steps for creating and running case scenarios.
 #### Basic Info
 This tab controls the creation of scenarios.
@@ -110,9 +110,10 @@ from there.
 Roth conversion can be specified in the column marked *Roth X*. Roth conversion are typically performed
 in the years when the income is lower (and therefore lower tax rates), typically in the bridge years
 between having a full-time regular salary and collecting social security. This column is provided
-to override the Roth conversion optimization in Owl. When the solver is given the option
-`maxConversion='file'`, then these values will be used and no optimization over Roth conversions
-will be performed. This column is provided for flexibility and allowing comparisons
+to override the Roth conversion optimization in Owl. When the option 
+`Convert as in contribution file` is toggled in the [Optimization Parameters](#optimization-parameters) tab,
+values from the contributions file will be used and no optimization over Roth conversions
+will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guess.
 
 Finally, *big-ticket items* are used for accounting for the sale or purchase of a house, or any
@@ -166,10 +167,14 @@ a constraint to obey.
 The net spending amount always follows a selected
 profile which is either flat or a follows a *smile* shape.
 Maximum amount for Roth conversions and who can execute them also needs to be
-specified. Calculations of Medicare and IRMAA can be turned on or off.
+specified. If `Convert from contributions file` is toggled, Roth
+conversions will not be optimized, but will be performed according to the column `RothX` in the
+[Wages and Contributions](#wages-and-contributions) file.
+Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
+the calculations by a factor of 2 to 3.
 
 --------------------------------------------------------------------------------------
-### Single Scenarios
+### :orange[Single Scenarios]
 #### Case Results
 Run a single scenario based on the selections made in the previous tabs.
 This is one instance of a series of rates, either fixed or varying.
@@ -187,7 +192,7 @@ This tab shows a summary of the scenario which was computed.
 It diplays informative sums of relevant income and spending values.
 
 --------------------------------------------------------------------------------------
-### Multiple Scenarios
+### :orange[Multiple Scenarios]
 #### Historical Range
 This tab allows the user to run multiple similations over a range of historical time spans.
 Each simulation assumes that the rates followed a sequence which happened in the past,
@@ -203,7 +208,7 @@ The average outcome $\\bar{x}$ and the median $M$ are provided in the graph, as 
 of cases $N$ and the probability of success $P$, which is the percentage of cases that succeeded.
 
 --------------------------------------------------------------------------------------
-### Resources
+### :orange[Resources]
 #### Documentation
 These pages...
 #### Logs

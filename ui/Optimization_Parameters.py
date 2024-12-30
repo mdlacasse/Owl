@@ -42,8 +42,11 @@ else:
     with col1:
         iname0 = k.getKey('iname0')
         helpmsg = "Value is in nominal $"
+        k.init('readRothX', False)
+        fromFile = k.getKey('readRothX')
         k.init('maxRothConversion', 50)
-        ret = k.getNum("Maximum Roth conversion ($k)", 'maxRothConversion', help=helpmsg)
+        ret = k.getNum("Maximum Roth conversion ($k)", 'maxRothConversion', disabled=fromFile, help=helpmsg)
+        ret = k.getToggle('Convert as in contributions file', 'readRothX')
 
     with col2:
         if k.getKey('status') == 'married':

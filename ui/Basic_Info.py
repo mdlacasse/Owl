@@ -15,7 +15,7 @@ if ret == k.newCase:
                   on_change=k.createCase, args=['newcase'], placeholder='Enter a name...')
 elif ret == k.loadConfig:
     st.info('A config file must be uploaded.')
-    confile = st.file_uploader('Upload configuration file...', key='_confile', type=['ini'])
+    confile = st.file_uploader('Upload configuration file...', key='_confile', type=['toml'])
     if confile is not None:
         if k.createCaseFromConfig(confile):
             st.rerun()

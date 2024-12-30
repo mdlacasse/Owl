@@ -32,6 +32,7 @@ else:
         if k.getKey('timeList0') is None:
             df0 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname0'))
             df0 = df0.fillna(0)
+            df0 = df0.iloc[:, range(9)]
             # print('df0', df0)
             k.setKey('timeList0', df0)
 
@@ -43,6 +44,7 @@ else:
             if k.getKey('timeList1') is None:
                 df1 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname1'))
                 df1 = df1.fillna(0)
+                df1 = df1.iloc[:, range(9)]
                 k.setKey('timeList1', df1)
 
             st.write(k.getKey('iname1'))

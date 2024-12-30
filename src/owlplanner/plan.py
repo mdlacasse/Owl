@@ -304,7 +304,7 @@ class Plan:
 
         # Initialize guardrails to ensure proper configuration.
         self._adjustedParameters = False
-        self.timeListsFileName = None
+        self.timeListsFileName = "None"
         self.caseStatus = 'unsolved'
         self.rateMethod = None
 
@@ -500,8 +500,8 @@ class Plan:
                 if ns == 0:
                     self.pi_in[i, 0] *= self.yearFracLeft
 
-        self.pensionAmounts = amounts
-        self.pensionAges = ages
+        self.pensionAmounts = np.array(amounts)
+        self.pensionAges = np.array(ages, dtype=int)
         self.caseStatus = 'modified'
 
         return None
@@ -538,8 +538,8 @@ class Plan:
             # Approximate calculation for spousal benefit (only valid at FRA).
             self.zeta_in[self.i_s, self.n_d:] = max(amounts[self.i_s], amounts[self.i_d] / 2)
 
-        self.ssecAmounts = amounts
-        self.ssecAges = ages
+        self.ssecAmounts = np.array(amounts)
+        self.ssecAges = np.array(ages, dtype=int)
         self.caseStatus = 'modified'
         self._adjustedParameters = False
 
@@ -2563,7 +2563,7 @@ class Plan:
         return None
 
     @_checkCaseStatus
-    def saveWorkbook(self, *, overwrite=False, basename=None, saveToFile=True):
+    def saveWorkbook(self, overwrite=False, *, basename=None, saveToFile=True):
         """
         Save instance in an Excel spreadsheet.
         The first worksheet will contain income in the following

@@ -2,7 +2,7 @@ import streamlit as st
 from io import StringIO, BytesIO
 from functools import wraps
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 
 import owlplanner as owl
 import sskeys as k
@@ -80,6 +80,9 @@ def getSolveParameters():
         val = k.getKey(opt)
         if val is not None:
             options[opt] = val
+
+    if k.getKey('readRothX'):
+        options['maxRothConversion'] = 'file'
 
     return objective, options
 
@@ -483,8 +486,16 @@ def genDic(plan):
     dic['name'] = plan._name
     dic['summary'] = ''
     dic['status'] = ['unknown', 'single', 'married'][plan.N_i]
+    # Prepend year if not there.
+    tdate = plan.startDate.split('-')
+    if len(tdate) == 2:
+        mystartDate = str(date.today().year)+'-'+plan.startDate
+    elif len(tdate) == 3:
+        mystartDate = str(date.today().year)+'-'+tdate[-2]+'-'+tdate[-1]
+    else:
+        raise ValueError('Wrong date format %s.' % (plan.startDate))
     try:
-        startDate = datetime.strptime(plan.startDate, '%Y-%m-%d').date()
+        startDate = datetime.strptime(mystartDate, '%Y-%m-%d').date()
     except Exception as e:
         raise ValueError('Wrong date format %s: %s' % (plan.startDate, e))
     dic['startDate'] = startDate
@@ -495,6 +506,7 @@ def genDic(plan):
     dic['divRate'] = 100*plan.mu
     dic['heirsTx'] = 100*plan.nu
     dic['surplusFraction'] = plan.eta
+    dic['plots'] = plan.defaultPlots
     # self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
     for j in range(plan.N_j):
         dic['benf'+str(j)] = plan.phi_j[j]
@@ -509,8 +521,9 @@ def genDic(plan):
         dic['pAmt'+str(i)] = plan.pensionAmounts[i]/1000
         for j in range(plan.N_j):
             dic[accName[j]+str(i)] = plan.beta_ij[i, j]/1000
-            dic['init%'+str(j)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][j])
-            dic['fin%'+str(j)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][j])
+        for k1 in range(plan.N_k):
+            dic['init%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][k1])
+            dic['fin%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][k1])
 
     optionKeys = list(plan.solverOptions)
     for key in ['maxRothConversion', 'noRothConversions', 'withMedicare', 'netSpending', 'bequest']:
