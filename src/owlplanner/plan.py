@@ -484,7 +484,7 @@ class Plan:
         assert len(ages) == self.N_i, 'Ages must have %d entries.' % self.N_i
 
         fac = u.getUnits(units)
-        u.rescale(amounts, fac)
+        amounts = u.rescale(amounts, fac)
 
         self.mylog.vprint('Setting pension of', [u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
 
@@ -515,7 +515,7 @@ class Plan:
         assert len(ages) == self.N_i, 'Ages must have %d entries.' % self.N_i
 
         fac = u.getUnits(units)
-        u.rescale(amounts, fac)
+        amounts = u.rescale(amounts, fac)
 
         self.mylog.vprint(
             'Setting social security benefits of',
@@ -666,9 +666,9 @@ class Plan:
         assert len(taxFree) == self.N_i, 'taxFree must have %d entr%s.' % (self.N_i, plurals[self.N_i])
 
         fac = u.getUnits(units)
-        u.rescale(taxable, fac)
-        u.rescale(taxDeferred, fac)
-        u.rescale(taxFree, fac)
+        taxable = u.rescale(taxable, fac)
+        taxDeferred = u.rescale(taxDeferred, fac)
+        taxFree = u.rescale(taxFree, fac)
 
         self.b_ji = np.zeros((self.N_j, self.N_i))
         self.b_ji[0][:] = taxable
