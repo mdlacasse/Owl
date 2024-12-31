@@ -6,6 +6,7 @@ from datetime import datetime, date
 
 import owlplanner as owl
 import sskeys as k
+import progress 
 
 
 def createPlan():
@@ -178,7 +179,8 @@ def runHistorical(plan):
 
     objective, options = getSolveParameters()
     try:
-        fig = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True)
+        mybar = progress.Progress(None)
+        fig = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, barcall=mybar)
         k.setKey('histoPlot', fig)
     except Exception as e:
         k.setKey('histoPlot', None)
@@ -202,7 +204,8 @@ def runMC(plan):
 
     objective, options = getSolveParameters()
     try:
-        fig = plan.runMC(objective, options, N, figure=True)
+        mybar = progress.Progress(None)
+        fig = plan.runMC(objective, options, N, figure=True, barcall=mybar)
         k.setKey('monteCarloPlot', fig)
     except Exception as e:
         k.setKey('monteCarloPlot', None)

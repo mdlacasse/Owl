@@ -12,6 +12,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import toml as toml
 from io import StringIO, BytesIO
 import numpy as np
+from datetime import date
 
 from owlplanner import plan
 from owlplanner import logging
@@ -58,14 +59,18 @@ def saveConfig(plan, file, mylog):
                                 'Long-term capital gain tax rate': float(100 * plan.psi),
                                 'Dividend tax rate': float(100 * plan.mu),
                                 'Method': plan.rateMethod,
-                                'From': int(plan.rateFrm),
-                                'To': int(plan.rateTo),
                                 }
     if plan.rateMethod in ['user', 'stochastic']:
         diconf['Rate Selection']['Values'] = [100 * k for k in plan.rateValues]
     if plan.rateMethod in ['stochastic']:
         diconf['Rate Selection']['Standard deviations'] = [100 * k for k in plan.rateStdev]
         diconf['Rate Selection']['Correlations'] = plan.rateCorr
+    if 'histo' in plan.rateMethod:
+        diconf['Rate Selection']['From'] = int(plan.rateFrm)
+        diconf['Rate Selection']['To'] = int(plan.rateTo)
+    else:
+        diconf['Rate Selection']['From'] = int(1922)
+        diconf['Rate Selection']['To'] = int(date.today().year - 1)
 
     # Asset Allocations.
     diconf['Asset Allocations'] = {'Interpolation method': plan.interpMethod,

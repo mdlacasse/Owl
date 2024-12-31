@@ -28,6 +28,7 @@ from owlplanner import rates
 from owlplanner import config
 from owlplanner import timelists
 from owlplanner import logging
+from owlplanner import progress
 
 
 def _genGamma_n(tau):
@@ -1333,14 +1334,14 @@ class Plan:
         return None
 
     @_timer
-    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False):
+    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False, barcall=None):
         """
         Run historical scenarios on plan over a range of years.
         """
-        N = yend - ystart + 1
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n
             self.mylog.vprint('Warning: Upper bound for year range re-adjusted to %d.' % yend)
+        N = yend - ystart + 1
 
         self.mylog.setVerbose(verbose)
 
@@ -1351,21 +1352,24 @@ class Plan:
 
         df = pd.DataFrame(columns=columns)
 
-        if not verbose and not figure:
-            self.mylog.print('|--- progress ---|')
+        if barcall is None:
+            barcall = progress.Progress(self.mylog)
+
+        if not verbose:
+            barcall.start()
 
         for year in range(ystart, yend + 1):
             self.setRates('historical', year)
             self.solve(objective, options)
-            if not verbose and not figure:
-                self.mylog.print('\r\t%s' % u.pc((year - ystart + 1) / N, f=0), end='')
+            if not verbose:
+                barcall.show((year - ystart + 1)/N)
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
                     df.loc[len(df)] = [self.partialBequest, self.basis]
                 elif objective == 'maxBequest':
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
 
-        self.mylog.print()
+        barcall.finish()
         self.mylog.resetVerbose()
         fig = self._showResults(objective, df, N, figure)
 
@@ -1375,7 +1379,7 @@ class Plan:
         return N, df
 
     @_timer
-    def runMC(self, objective, options, N, verbose=False, figure=False):
+    def runMC(self, objective, options, N, verbose=False, figure=False, barcall=None):
         """
         Run Monte Carlo simulations on plan.
         """
@@ -1399,21 +1403,24 @@ class Plan:
 
         df = pd.DataFrame(columns=columns)
 
-        if not verbose and not figure:
-            self.mylog.print('|--- progress ---|')
+        if barcall is None:
+            barcall = progress.Progress(self.mylog)
+
+        if not verbose:
+            barcall.start()
 
         for n in range(N):
             self.regenRates()
             self.solve(objective, myoptions)
-            if not verbose and not figure:
-                self.mylog.print('\r\t%s' % u.pc((n + 1) / N, f=0), end='')
+            if not verbose:
+                barcall.show((n+1)/N)
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
                     df.loc[len(df)] = [self.partialBequest, self.basis]
                 elif objective == 'maxBequest':
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
 
-        self.mylog.print()
+        barcall.finish()
         self.mylog.resetVerbose()
         fig = self._showResults(objective, df, N, figure)
 
