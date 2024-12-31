@@ -530,9 +530,12 @@ def genDic(plan):
         dic['pAmt'+str(i)] = plan.pensionAmounts[i]/1000
         for j in range(plan.N_j):
             dic[accName[j]+str(i)] = plan.beta_ij[i, j]/1000
-        for k1 in range(plan.N_k):
-            dic['init%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][k1])
-            dic['fin%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][k1])
+        if plan.ARCoord == 'individual':
+            for k1 in range(plan.N_k):
+                dic['init%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][k1])
+                dic['fin%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][k1])
+        else:
+            raise ValueError("Only 'individual' asset allocation currently supported")
 
     optionKeys = list(plan.solverOptions)
     for key in ['maxRothConversion', 'noRothConversions', 'withMedicare', 'netSpending', 'bequest']:
@@ -556,8 +559,8 @@ def genDic(plan):
         dic['fxRate'+str(kk)] = 100*plan.rateValues[kk]
 
     if plan.rateMethod in ['average', 'histochastic', 'historical']:
-        dic['yfrm'] = plan.frm
-        dic['yto'] = plan.to
+        dic['yfrm'] = plan.rateFrm
+        dic['yto'] = plan.rateTo
     else:
         dic['yfrm'] = 1928
         dic['yto'] = date.today().year - 1
