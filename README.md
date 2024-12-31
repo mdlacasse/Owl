@@ -344,7 +344,7 @@ Package `odfpy` might be required if one read files created by LibreOffice. Agai
 will be installed by pip.
 
 The simplest way to get started with Owl is to use the web-based user interface that is started by the `owlplanner.cmd` script.
-This will start a user interface from you own browser. This is a screenshot of one of the multiple tabs of the interface:
+This will start a user interface from your own browser. This is a screenshot of one of the multiple tabs of the interface:
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/OwlUI.png" width="100%">
 
