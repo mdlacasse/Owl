@@ -18,5 +18,3 @@ class Progress:
 
     def finish(self):
         self.mylog.print()
-
-

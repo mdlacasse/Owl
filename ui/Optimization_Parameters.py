@@ -59,7 +59,14 @@ else:
 
     st.divider()
     k.init('withMedicare', True)
-    ret = k.getToggle('Medicare and IRMAA calculations', 'withMedicare')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    with col1:
+        ret = k.getToggle('Medicare and IRMAA calculations', 'withMedicare')
+    with col2:
+        if owb.hasMOSEK():
+            choices = ['HiGHS', 'MOSEK']
+            k.init('solver', choices[0])
+            ret = k.getRadio('Solver', choices, 'solver')
 
     st.divider()
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')

@@ -19,5 +19,3 @@ class Progress:
 
     def finish(self):
         self.bar.empty()
-
-

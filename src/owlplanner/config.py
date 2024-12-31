@@ -211,10 +211,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     if rateMethod in ['historical', 'histochastic']:
         frm = diconf['Rate Selection']['From']
         if not isinstance(frm, int):
-            frm = int(frm) 
+            frm = int(frm)
         to = int(diconf['Rate Selection']['To'])
         if not isinstance(to, int):
-            to = int(to) 
+            to = int(to)
     if rateMethod in ['user', 'stochastic']:
         rateValues = np.array(diconf['Rate Selection']['Values'])
     if rateMethod in ['stochastic']:
@@ -232,7 +232,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     allocType = diconf['Asset Allocations']['Type']
     if allocType == 'account':
         for aType in accountTypes:
-            boundsAR[aType] = np.array(diconf['Asset allocations'][aType])
+            boundsAR[aType] = np.array(diconf['Asset Allocations'][aType])
 
         p.setAllocationRatios(
             allocType,

@@ -3,10 +3,16 @@ from io import StringIO, BytesIO
 from functools import wraps
 import pandas as pd
 from datetime import datetime, date
+import importlib
 
 import owlplanner as owl
 import sskeys as k
-import progress 
+import progress
+
+
+def hasMOSEK():
+    spec = importlib.util.find_spec('mosek')
+    return spec is not None
 
 
 def createPlan():
@@ -553,7 +559,7 @@ def genDic(plan):
         dic['yfrm'] = plan.frm
         dic['yto'] = plan.to
     else:
-        dic['yfrm'] = 1922
+        dic['yfrm'] = 1928
         dic['yto'] = date.today().year - 1
 
     if plan.rateMethod in ['stochastic', 'histochastic']:
