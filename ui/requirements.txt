@@ -1,0 +1,11 @@
+numpy
+matplotlib
+seaborn
+pandas
+openpyxl
+scipy
+streamlit
+toml
+-i https://test.pypi.org/simple
+--extra-index-url https://test.pypi.org/simple
+owlplanner

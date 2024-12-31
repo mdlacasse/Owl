@@ -344,8 +344,9 @@ Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, an
 Package `odfpy` might be required if one read files created by LibreOffice. Again, these dependencies
 will be installed by pip.
 
-The simplest way to get started with Owl is to use the web-based user interface that is started by the `owlplanner.cmd` script.
-This will start a user interface from your own browser. This is a screenshot of one of the multiple tabs of the interface:
+The simplest way to get started with Owl is to use the `streamlit` browser-based user interface
+that is started by the `owlplanner.cmd` script, which  will start a user interface on your own browser.
+Here is a screenshot of one of the multiple tabs of the interface:
 
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/OwlUI.png" width="100%">
 
@@ -362,7 +363,7 @@ Notebooks with detailed explanations can be found in
 [tutorial_2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb), and
 [tutorial_3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb).
 
-Fianlly, you will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.
+Finally, you will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.
 
 ---------------------------------------------------------------------
 
