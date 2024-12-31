@@ -1,4 +1,4 @@
-"Plan Name" = "jack+jill"
+"Plan Name" = "case_jack+jill"
 
 ["Basic Info"]
 Status = "married"
@@ -8,7 +8,7 @@ Names = [ "Jack", "Jill",]
 "Start date" = "01-01"
 
 [Assets]
-"taxable savings balances" = [ 90.5, 60.0,]
+"taxable savings balances" = [ 90.5, 60.2,]
 "tax-deferred savings balances" = [ 600.2, 150.0,]
 "tax-free savings balances" = [ 70.6, 40.8,]
 "Beneficiary fractions" = [ 1, 1, 1,]
@@ -18,10 +18,10 @@ Names = [ "Jack", "Jill",]
 "Contributions file name" = "jack+jill.xlsx"
 
 ["Fixed Income"]
-"Pension amounts" = [ 0.0, 10.0,]
+"Pension amounts" = [ 0.0, 10.5,]
 "Pension ages" = [ 65, 65,]
-"Social security amounts" = [ 28.0, 25.0,]
-"Social security ages" = [ 70, 70,]
+"Social security amounts" = [ 28.4, 19.7,]
+"Social security ages" = [ 70, 62,]
 
 ["Rate Selection"]
 "Heirs rate on tax-deferred estate" = 30.0
@@ -44,7 +44,7 @@ generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 60, 40, 0, 0,], [ 80, 20
 Objective = "maxSpending"
 
 ["Solver Options"]
-maxRothConversion = 150
+maxRothConversion = 100
 bequest = 500
 noRothConversions = "Jill"
 

@@ -936,7 +936,7 @@ class Plan:
         is happening, and "w" is the width of the transition.
         """
         c = self.interpCenter
-        w = self.interpWidth
+        w = self.interpWidth + 0.0001    # Avoid division by zero.
         t = np.linspace(0, numPoints, numPoints)
         # Solve 2x2 system to match end points exactly.
         th0 = np.tanh((t[0] - c) / w)
@@ -2558,7 +2558,7 @@ class Plan:
         plt.show()
         return None
 
-    @_checkCaseStatus
+    # @_checkCaseStatus
     def saveConfig(self, basename=None):
         """
         Save parameters in a configuration file.

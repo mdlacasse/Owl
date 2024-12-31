@@ -320,7 +320,7 @@ def showSources(plan):
 
 @_checkPlan
 def setInterpolationMethod(plan):
-    plan.setInterpolationMethod(k.getKey('interp'))
+    plan.setInterpolationMethod(k.getKey('interp'), k.getKey('center'), k.getKey('width'))
 
 
 @_checkPlan
@@ -450,6 +450,8 @@ def saveWorkbook(plan):
 
 @_checkPlan
 def saveConfig(plan):
+    prepareRun(plan)
+    getSolveParameters()
     stringBuffer = StringIO()
     plan.saveConfig(stringBuffer)
     encoded_data = stringBuffer.getvalue().encode('utf-8')
@@ -509,6 +511,8 @@ def genDic(plan):
         raise ValueError('Wrong date format %s: %s' % (plan.startDate, e))
     dic['startDate'] = startDate
     dic['interp'] = plan.interpMethod
+    dic['center'] = plan.interpCenter
+    dic['width'] = plan.interpWidth
     dic['profile'] = plan.spendingProfile
     dic['survivor'] = 100*plan.chi
     dic['gainTx'] = 100*plan.psi

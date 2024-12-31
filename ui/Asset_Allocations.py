@@ -69,9 +69,19 @@ else:
     k.init(key, choices[0])
     k.getRadio('Gliding interpolation method', choices, key)
 
-    st.text(' ')
-    plan = k.getKey('plan')
-    if plan is not None and checkAllAllocs():
+    if k.getKey(key) == choices[1]:
+        col1, col2 = st.columns(2, gap='large')
+        with col1:
+            key = 'center'
+            k.init('center', 15.)
+            ret = k.getNum('Center', key, step=1., max_value=30., format='%.0f')
+        with col2:
+            key = 'width'
+            k.init('width', 5.)
+            ret = k.getNum('Width', key, step=1., max_value=15., format='%.0f')
+
+    # st.write('####')
+    if checkAllAllocs():
         owb.setInterpolationMethod()
         owb.setAllocationRatios()
         owb.showAllocations()

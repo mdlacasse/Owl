@@ -1,0 +1,51 @@
+"Plan Name" = "case_kim+sam-bequest"
+
+["Basic Info"]
+Status = "married"
+Names = [ "Kim", "Sam",]
+"Birth year" = [ 1966, 1967,]
+"Life expectancy" = [ 86, 89,]
+"Start date" = "2024-12-31"
+
+[Assets]
+"taxable savings balances" = [ 1000.0, 0.0,]
+"tax-deferred savings balances" = [ 2000.0, 800.0,]
+"tax-free savings balances" = [ 500.0, 25.0,]
+"Beneficiary fractions" = [ 1, 1, 1,]
+"Spousal surplus deposit fraction" = 0.5
+
+["Wages and Contributions"]
+"Contributions file name" = "template.xlsx"
+
+["Fixed Income"]
+"Pension amounts" = [ 0.0, 0.0,]
+"Pension ages" = [ 65, 65,]
+"Social security amounts" = [ 45.0, 25.0,]
+"Social security ages" = [ 70, 68,]
+
+["Rate Selection"]
+"Heirs rate on tax-deferred estate" = 33.0
+"Long-term capital gain tax rate" = 15.0
+"Dividend tax rate" = 2.0
+Method = "conservative"
+From = 1922
+To = 2023
+
+["Asset Allocations"]
+"Interpolation method" = "s-curve"
+"Interpolation center" = 15
+"Interpolation width" = 5
+Type = "individual"
+generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],],]
+
+["Optimization Parameters"]
+"Spending profile" = "smile"
+"Surviving spouse spending percent" = 60.0
+Objective = "maxBequest"
+
+["Solver Options"]
+maxRothConversion = 300
+netSpending = 180
+
+[Results]
+"Default plots" = "today"
