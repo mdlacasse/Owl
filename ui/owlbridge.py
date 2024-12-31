@@ -538,15 +538,20 @@ def genDic(plan):
     if plan.rateMethod in ['default', 'conservative', 'optimistic', 'average', 'user']:
         dic['rateType'] = 'fixed'
         dic['fixedType'] = plan.rateMethod
-        for kk in range(plan.N_k):
-            dic['fxRate'+str(kk)] = 100*plan.rateValues[kk]
     elif plan.rateMethod in ['histochastic', 'historical', 'stochastic']:
         dic['rateType'] = 'varying'
         dic['varyingType'] = plan.rateMethod
 
+    # Initialize in both cases.
+    for kk in range(plan.N_k):
+        dic['fxRate'+str(kk)] = 100*plan.rateValues[kk]
+
     if plan.rateMethod in ['average', 'histochastic', 'historical']:
         dic['yfrm'] = plan.frm
         dic['yto'] = plan.to
+    else:
+        dic['yfrm'] = 1922
+        dic['yto'] = date.today().year - 1
 
     if plan.rateMethod in ['stochastic', 'histochastic']:
         qq = 1
