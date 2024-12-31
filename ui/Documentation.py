@@ -232,7 +232,7 @@ This tab runs a Monte Carlo simulation using sequences of return that were gener
 statistically using the parameters provided by the user. At the end of the run,
 a histogram is shown, with a probability of success.
 
-The average outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
+The mean outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
 of cases $N$ and the probability of success $P$, which is the percentage of cases that succeeded.
 
 --------------------------------------------------------------------------------------

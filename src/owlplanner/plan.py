@@ -574,12 +574,12 @@ class Plan:
         years selected. Note that last bound is included.
 
         The following methods are available:
-        default, user, realistic, conservative, average, stochastic,
+        default, user, realistic, conservative, historical average, stochastic,
         histochastic, and historical.
 
         - For 'user', fixed rate values must be provided.
         - For 'stochastic', means, stdev, and optional correlation matrix must be provided.
-        - For 'average', 'histochastic', and 'historical', a starting year
+        - For 'historical average', 'histochastic', and 'historical', a starting year
           must be provided, and optionally an ending year.
 
         Valid year range is from 1928 to last year.
@@ -2012,7 +2012,7 @@ class Plan:
             lines.append("%12s's accounts: %s" % (self.inames[i], [u.d(self.beta_ij[i][j]) for j in range(self.N_j)]))
 
         lines.append('Return rates: %s' % self.rateMethod)
-        if self.rateMethod in ['historical', 'average', 'histochastic']:
+        if self.rateMethod in ['historical', 'historical average', 'histochastic']:
             lines.append('Rates used: from %d to %d' % (self.rateFrm, self.rateTo))
         elif self.rateMethod == 'stochastic':
             lines.append(
@@ -2114,7 +2114,7 @@ class Plan:
         """
         import seaborn as sbn
 
-        if self.rateMethod in [None, 'user', 'average', 'conservative']:
+        if self.rateMethod in [None, 'user', 'historical average', 'conservative']:
             self.mylog.vprint('Warning: Cannot plot correlations for %s rate method.' % self.rateMethod)
             return None
 
@@ -2181,7 +2181,7 @@ class Plan:
         fig, ax = plt.subplots(figsize=(6, 4))
         plt.grid(visible='both')
         title = self._name + '\nReturn & Inflation Rates (' + str(self.rateMethod)
-        if self.rateMethod in ['historical', 'histochastic', 'average']:
+        if self.rateMethod in ['historical', 'histochastic', 'historical average']:
             title += ' ' + str(self.rateFrm) + '-' + str(self.rateTo)
         title += ')'
 

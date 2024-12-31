@@ -818,7 +818,7 @@ class Rates:
         - conservative: conservative values.
         - user: user-selected fixed rates.
         - historical: historical rates from 1928 to last year.
-        - average or means: average over historical data.
+        - historical average or means: average over historical data.
         - histochastic: randomly generated from the statistical properties of a historical range.
         - stochastic: randomly generated from means, standard deviation and optionally a correlation matrix.
         The correlation matrix can be provided as a full matrix or
@@ -832,7 +832,7 @@ class Rates:
             'conservative',
             'user',
             'historical',
-            'average',
+            'historical average',
             'mean',
             'stochastic',
             'histochastic',
@@ -914,7 +914,7 @@ class Rates:
             if method == 'historical':
                 self.mylog.vprint('Using historical rates representing data from %d to %d.' % (frm, to))
                 self._rateMethod = self._histRates
-            elif method == 'average' or method == 'means':
+            elif method == 'historical average' or method == 'means':
                 self.mylog.vprint('Using average of rates from %d to %d.' % (frm, to))
                 self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to, self.mylog)
                 self._setFixedRates(self.means)

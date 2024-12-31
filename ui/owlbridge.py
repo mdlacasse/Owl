@@ -234,7 +234,7 @@ def setRates(plan):
 
     if k.getKey('rateType') == 'fixed':
         if k.getKey('fixedType') == 'historical average':
-            plan.setRates('average', yfrm, yto)
+            plan.setRates('historical average', yfrm, yto)
             # Set fxRates back to computed values.
             for j in range(4):
                 k.setKey('fxRate'+str(j), 100*plan.tau_kn[j, -1])
@@ -557,7 +557,7 @@ def genDic(plan):
     else:
         dic['objective'] = 'Bequest'
 
-    if plan.rateMethod in ['default', 'conservative', 'optimistic', 'average', 'user']:
+    if plan.rateMethod in ['default', 'conservative', 'optimistic', 'historical average', 'user']:
         dic['rateType'] = 'fixed'
         dic['fixedType'] = plan.rateMethod
     elif plan.rateMethod in ['histochastic', 'historical', 'stochastic']:
@@ -568,7 +568,7 @@ def genDic(plan):
     for kk in range(plan.N_k):
         dic['fxRate'+str(kk)] = 100*plan.rateValues[kk]
 
-    if plan.rateMethod in ['average', 'histochastic', 'historical']:
+    if plan.rateMethod in ['historical average', 'histochastic', 'historical']:
         dic['yfrm'] = plan.rateFrm
         dic['yto'] = plan.rateTo
     else:

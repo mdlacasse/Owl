@@ -66,7 +66,7 @@ def saveConfig(plan, file, mylog):
     if plan.rateMethod in ['stochastic']:
         diconf['Rate Selection']['Standard deviations'] = [100 * k for k in plan.rateStdev]
         diconf['Rate Selection']['Correlations'] = plan.rateCorr
-    if plan.rateMethod in ['average', 'historical', 'histochastic']:
+    if plan.rateMethod in ['historical average', 'historical', 'histochastic']:
         diconf['Rate Selection']['From'] = int(plan.rateFrm)
         diconf['Rate Selection']['To'] = int(plan.rateTo)
     else:
@@ -217,7 +217,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     stdev = None
     rateCorr = None
     rateMethod = diconf['Rate Selection']['Method']
-    if rateMethod in ['average', 'historical', 'histochastic']:
+    if rateMethod in ['historical average', 'historical', 'histochastic']:
         frm = diconf['Rate Selection']['From']
         if not isinstance(frm, int):
             frm = int(frm)
