@@ -37,10 +37,10 @@ The algorithms in Owl rely on the open-source HiGHS linear programming solver. T
 detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
-Owl is currently implemented through a combination of Python modules and Jupyter notebooks,
-but its simple API also serves as a back-end for a Web application being developed using Streamlit.
+While Owl can be used through a Jupyter notebooks,
+its simple API also serves as a back-end for a Web application using Streamlit.
 The `ui` directory implements all of Owl's functionality through a web brower interface.
-To run, simply click on `owlplanned.cmd` once all dependencies hae been installed.
+To run, simply run `owlplanned.cmd` once all dependencies have been installed.
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem.
 In particular, if one is interested in comparing different withdrawal strategies,
@@ -195,7 +195,7 @@ the boundaries of tax brackets.
 ```python
 plan.showGrossIncome(value='nominal')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxIncomePlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxIncomePlot.png" width="75%">
 
 The optimal spending profile is shown in the next plot (in today's dollars). Notice the drop
 (recall we selected 60% survivor needs) at the passing of the first spouse.
@@ -203,26 +203,26 @@ The optimal spending profile is shown in the next plot (in today's dollars). Not
 plan.showProfile('today')
 ```
 
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/spendingPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/spendingPlot.png" width="75%">
 
 The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill.
 It was generated using
 ```python
 plan.showAccounts(value='nominal')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/savingsPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/savingsPlot.png" width="75%">
 
 while this plot shows the complex cash flow from all sources, which was generated with
 ```python
 plan.showSources(value='nominal')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/sourcesPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/sourcesPlot.png" width="75%">
 
 For taxes, the following call will display Medicare premiums (including Part B IRMAA fees) and federal income tax
 ```python
 plan.showTaxes(value='nominal')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxesPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxesPlot.png" width="75%">
 
 For the case at hand, recall that asset allocations were selected above through
 
@@ -234,9 +234,9 @@ Assets distribution in all accounts in today's $ over time can be displayed from
 ```python
 plan.showAssetDistribution(value='today')
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxable.png" width="800">
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxDef.png" width="800">
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxFree.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxable.png" width="75%">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxDef.png" width="75%">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxFree.png" width="75%">
 
 These plots are irregular because we used historical rates from 1969. The volatility of
 the rates offers Roth conversion benefits which are exploited by the optimizer.
@@ -244,7 +244,7 @@ The rates used can be displayed by:
 ```python
 plan.showRates()
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesPlot.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesPlot.png" width="75%">
 
 Values between brackets <> are the average values and volatility over the selected period. 
 
@@ -252,7 +252,7 @@ For the statisticians, rates distributions and correlations between them can be 
 ```python
 plan.showRatesCorrelations()
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesCorrelations.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesCorrelations.png" width="75%">
 
 A short text summary of the outcome of the optimization can be displayed through using:
 ```python
@@ -314,13 +314,13 @@ by selecting *stochastic* rates and using
 ```
 plan.runMC('maxSpending', ...)
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2a.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2a.png" width="75%">
 
 Similarly, the next one was generated using
 ```
 plan.runMC('maxBequest', ...)
 ```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2b.png" width="800">
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2b.png" width="75%">
 
 
 See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
@@ -331,34 +331,27 @@ See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/examples/t
 ---------------------------------------------------------------
 ## Requirements
 
-It is assumed that you have some familiarity with using a Jupyter notebook or JupyterLab,
-and some very basic programming skills in Python.
-If not, a simple tutorial can guide you to the basic skills needed.
-
-Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
-Package `odfpy` might be required if one read files created by LibreOffice.
-
 If you have Python already installed on your computer, Owl can be installed as a package using the following commands:
 ```shell
 python -m build
 pip install .
 ```
-There commands need to run from the Owl directory downloaded from GitHub.
-This will install all the required dependencies, but Jupyter will not be installed.
+These commands need to run from the Owl directory where you downloaded Owl from GitHub either through git or a zip file.
+Pip will install all the required dependencies.
 
-Alternatively, another way for some might might be to perform an installation of Anaconda on your computer.
-This will allow you to run Jupyter notebooks directly on your computer, and save all outputs and modifications to the notebooks. 
-It can be found at [anaconda.com](https://anaconda.com). Jupyter can also be installed through `pip`.
+Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
+Package `odfpy` might be required if one read files created by LibreOffice. Again, these dependencies
+will be installed by pip.
 
-The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
+The simplest way to get started with Owl is to use the web-based user interface that is started by the `owlplanner.cmd` script.
+This will start a user interface from you own browser. This is a screenshot of one of the multiple tabs of the interface:
+
+<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/OwlUI.png" width="100%">
+
+Alternatively, one can prefer using Owl from Jupyter notebooks. For that purpose, the `examples` directory
+contains many files as a tutorial. The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
 Jupyter will run in your default web browser, from your computer to your browser, and therefore no data is ever transferred on the Internet
 (your computer, i.e., `localhost`, is the server).
-
-You will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.
-
-The intent behind using notebooks is that one can configure calculations that suit one's needs, while being able to save the visualization.
-Moreover, running calculations in *Jupyter* is made to be relatively easy.
-There are many tutorials on this topic available on the internet.
 
 For simulating your own realizations, use the files beginning with the word *template*.
 Make a copy and rename them with your own names while keeping the same extension.
@@ -367,6 +360,8 @@ Notebooks with detailed explanations can be found in
 [tutorial_1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
 [tutorial_2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb), and
 [tutorial_3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb).
+
+Fianlly, you will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.
 
 ---------------------------------------------------------------------
 
