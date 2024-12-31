@@ -12,6 +12,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import toml as toml
 from io import StringIO, BytesIO
 import numpy as np
+import os
 from datetime import date
 
 from owlplanner import plan
@@ -130,7 +131,9 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
 
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
+    dirname = ''
     if isinstance(file, str):
+        dirname = os.path.dirname(file)
         if '.toml' not in file:
             filename = file + '.toml'
 
@@ -184,7 +187,13 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     timeListsFileName = diconf['Wages and Contributions']['Contributions file name']
     if timeListsFileName != 'None':
         if readContributions:
-            p.readContributions(timeListsFileName)
+            if os.path.exists(timeListsFileName):
+                myfile = timeListsFileName
+            elif dirname != '' and os.path.exists(dirname + '/' + timeListsFileName):
+                myfile = dirname + '/' + timeListsFileName
+            else:
+                raise FileNotFoundError("File '%s' not found." % timeListsFileName)
+            p.readContributions(myfile)
         else:
             mylog.vprint('Ignoring to read contributions file %s.' % timeListsFileName)
 

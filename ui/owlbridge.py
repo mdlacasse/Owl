@@ -376,6 +376,12 @@ def plotSingleResults(plan):
         st.write('#### Account Balances')
         st.pyplot(fig)
 
+    figs = plan.showAssetDistribution(figure=True)
+    if figs:
+        st.write('#### Assets Distribution')
+        for fig in figs:
+            st.pyplot(fig)
+
     fig = plan.showGrossIncome(figure=True)
     if fig:
         st.write('#### Taxable Ordinary Income')
