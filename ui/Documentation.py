@@ -3,7 +3,7 @@ import streamlit as st
 
 col1, col2, col3, col4 = st.columns(4)
 with col4:
-    st.image("../docs/images/owl.jpg")
+    st.image("http://raw.github.com/mdlacasse/owl/main/docs/images/owl.jpg")
 
 st.write('## Owl Retirement Planner')
 st.markdown('''
