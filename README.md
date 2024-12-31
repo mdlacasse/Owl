@@ -153,7 +153,7 @@ import owlplanner as owl
 plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='01-01')
 # Jack has $90.5k in a taxable investment account, $600.5k in a tax-deferred account and $70k from 2 tax-exempt accounts.
 # Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
-plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50 + 20, 40])
+plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50.6 + 20, 40.8])
 # An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
 plan.readContributions('jack+jill.xlsx')
 # Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
@@ -161,7 +161,7 @@ plan.readContributions('jack+jill.xlsx')
 plan.setInterpolationMethod('s-curve')
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
 # Jack has no pension, but Jill will receive $10k per year at 65 yo.
-plan.setPension([0, 10], [65, 65])
+plan.setPension([0, 10.5], [65, 65])
 # Jack anticipates receiving social security of $28.4k at age 70, and Jill $19.7k at age 62. All values are in today's $.
 plan.setSocialSecurity([28.4, 19.7], [70, 62])
 # Instead of a 'flat' profile, we select a 'smile' spending profile, with 60% needs for the survivor.
