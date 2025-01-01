@@ -9,14 +9,25 @@ ss = st.session_state
 newCase = 'New case...'
 loadConfig = 'Load config...'
 
-# Dictionary of dictionaries for each case.
-if 'cases' not in ss:
-    ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'summary': ''},
-                loadConfig: {'iname0': '', 'status': 'unkown', 'summary': ''}}
 
-# Variable for storing name of current case.
-if 'currentCase' not in ss:
-    ss.currentCase = loadConfig
+def init():
+    '''
+    Reinitialize through a function as it will only happen once through module.
+    '''
+    # Dictionary of dictionaries for each case.
+    global ss
+    ss = st.session_state
+    if 'cases' not in ss:
+        # print('Initializing keyholder')
+        ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'summary': ''},
+                    loadConfig: {'iname0': '', 'status': 'unkown', 'summary': ''}}
+
+    # Variable for storing name of current case.
+    if 'currentCase' not in ss:
+        ss.currentCase = loadConfig
+
+
+init()
 
 
 def allCaseNames() -> list:
@@ -34,7 +45,7 @@ def runOncePerCase(func):
     key = func.__name__
     if getKey(key) is None:
         func()
-    init(key, 1)
+    initKey(key, 1)
 
 
 def getIndex(item, choices):
@@ -162,7 +173,7 @@ def setKey(key, val):
     return val
 
 
-def init(key, val):
+def initKey(key, val):
     if key not in ss.cases[ss.currentCase]:
         # print('init', key, 'as', val)
         ss.cases[ss.currentCase][key] = val

@@ -1,7 +1,11 @@
 import streamlit as st
 
+import sskeys as k
+
 # Uncomment for wide graphs
 # st.set_page_config(layout='wide')
+
+k.init()
 
 pages = {
           'Case setup': [st.Page('Basic_Info.py', icon=':material/person_add:'),

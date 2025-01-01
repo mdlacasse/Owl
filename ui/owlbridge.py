@@ -148,7 +148,7 @@ def runPlan(plan):
         k.setKey('summary', '')
         return
 
-    k.init('caseStatus', 'unknown')
+    k.initKey('caseStatus', 'unknown')
     k.setKey('caseStatus', plan.caseStatus)
     if plan.caseStatus == 'solved':
         k.setKey('summary', plan.summaryString())
@@ -194,7 +194,7 @@ def runHistorical(plan):
         k.setKey('summary', '')
         return
 
-    k.init('caseStatus', 'unknown')
+    k.initKey('caseStatus', 'unknown')
     k.setKey('caseStatus', plan.caseStatus)
     if plan.caseStatus == 'solved':
         k.setKey('summary', plan.summaryString())
@@ -219,7 +219,7 @@ def runMC(plan):
         k.setKey('summary', '')
         return
 
-    k.init('caseStatus', 'unknown')
+    k.initKey('caseStatus', 'unknown')
     k.setKey('caseStatus', plan.caseStatus)
     if plan.caseStatus == 'solved':
         k.setKey('summary', plan.summaryString())

@@ -16,7 +16,7 @@ else:
     else:
         col1, col2 = st.columns(2, gap='large', vertical_alignment='bottom')
         with col1:
-            k.init('MC_cases', 100)
+            k.initKey('MC_cases', 100)
             k.getIntNum('Number of random instances', 'MC_cases', step=10, max_value=10000)
         with col2:
             st.button('Run Simulation', on_click=owb.runMC, disabled=owb.caseIsNotMCReady())

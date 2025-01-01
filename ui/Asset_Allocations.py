@@ -6,7 +6,7 @@ import owlbridge as owb
 
 def getIntInput(i, j, keybase, text, defval=0):
     nkey = keybase+str(j)+'_'+str(i)
-    k.init(nkey, defval)
+    k.initKey(nkey, defval)
     st.number_input(text, min_value=0, step=1,
                     value=k.getKey(nkey),
                     on_change=k.pull, args=[nkey], key='_'+nkey)
@@ -66,18 +66,18 @@ else:
     st.divider()
     choices = ['linear', 's-curve']
     key = 'interp'
-    k.init(key, choices[0])
+    k.initKey(key, choices[0])
     k.getRadio('Gliding interpolation method', choices, key)
 
     if k.getKey(key) == choices[1]:
         col1, col2 = st.columns(2, gap='large')
         with col1:
             key = 'center'
-            k.init('center', 15.)
+            k.initKey('center', 15.)
             ret = k.getNum('Center', key, step=1., max_value=30., format='%.0f')
         with col2:
             key = 'width'
-            k.init('width', 5.)
+            k.initKey('width', 5.)
             ret = k.getNum('Width', key, step=1., max_value=15., format='%.0f')
 
     # st.write('####')

@@ -5,7 +5,7 @@ import sskeys as k
 
 def getIntInput(i, key, text, defval=0):
     nkey = key+str(i)
-    k.init(nkey, defval)
+    k.initKey(nkey, defval)
     inamex = k.getKey('iname'+str(i))
     st.number_input("%s's %s" % (inamex, text), min_value=0,
                     value=k.getKey(nkey),
@@ -14,7 +14,7 @@ def getIntInput(i, key, text, defval=0):
 
 def getFloatInput(i, key, text, defval=0.):
     nkey = key+str(i)
-    k.init(nkey, defval)
+    k.initKey(nkey, defval)
     inamex = k.getKey('iname'+str(i))
     st.number_input("%s's %s" % (inamex, text), min_value=0.,
                     value=float(k.getKey(nkey)), format='%.1f', step=10.,

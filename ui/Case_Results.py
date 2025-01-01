@@ -15,7 +15,7 @@ else:
         st.button('Run single case', on_click=owb.runPlan, disabled=owb.caseIsNotRunReady())
     with col2:
         choices = ['nominal', 'today']
-        k.init('plots', choices[0])
+        k.initKey('plots', choices[0])
         ret = k.getRadio("Dollar amounts in plots", choices, 'plots',
                          callback=owb.setDefaultPlots)
 

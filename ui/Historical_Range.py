@@ -10,9 +10,9 @@ st.write("## Historical Range")
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    k.init('hyfrm', 1928)
-    k.init('hyto', 2023)
-    k.init('histoplot', None)
+    k.initKey('hyfrm', 1928)
+    k.initKey('hyto', 2023)
+    k.initKey('histoplot', None)
 
     col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='bottom')
     with col1:

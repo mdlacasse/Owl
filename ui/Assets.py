@@ -15,7 +15,7 @@ else:
         iname0 = k.getKey('iname0')
         for key in accounts:
             nkey = key+str(0)
-            k.init(nkey, 0)
+            k.initKey(nkey, 0)
             ret = k.getNum('%s %s account ($k)' % (iname0, accounts[key]), nkey)
 
     with col2:
@@ -23,7 +23,7 @@ else:
             iname1 = k.getKey('iname1')
             for key in accounts:
                 nkey = key+str(1)
-                k.init(nkey, 0)
+                k.initKey(nkey, 0)
                 ret = k.getNum('%s %s account ($k)' % (iname1, accounts[key]), nkey)
 
     if k.getKey('status') == 'married':
@@ -31,21 +31,21 @@ else:
         col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
         with col1:
             nkey = 'benf'+str(0)
-            k.init(nkey, 1)
+            k.initKey(nkey, 1)
             ret = k.getNum(accounts['txbl'].capitalize(), nkey, format='%.2f')
 
         with col2:
             nkey = 'benf'+str(1)
-            k.init(nkey, 1)
+            k.initKey(nkey, 1)
             ret = k.getNum(accounts['txDef'].capitalize(), nkey, format='%.2f')
 
         with col3:
             nkey = 'benf'+str(2)
-            k.init(nkey, 1)
+            k.initKey(nkey, 1)
             ret = k.getNum(accounts['txFree'].capitalize(), nkey, format='%.2f')
 
         st.write('#### Surplus deposit fraction')
-        k.init('surplusFraction', 0.5)
+        k.initKey('surplusFraction', 0.5)
         helpmsg = "When beneficiary fractions are not all 1, set surplus deposits to go to survivor's account"
         ret = k.getNum("Fraction of surplus deposited in %s's taxable account" % iname1,
                        'surplusFraction', format='%.2f', help=helpmsg)

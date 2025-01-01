@@ -19,7 +19,7 @@ st.write('## Wages and Contributions')
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    k.init('timeList', None)
+    k.initKey('timeList', None)
     if k.getKey('timeList') is None:
         timeList = st.file_uploader('Upload optional contribution file...', key='_timelist',
                                     type=['xlsx'])
@@ -28,7 +28,7 @@ else:
             owb.readContributions(timeList)
 
     if k.getKey('timeList') is not None:
-        k.init('timeList0', None)
+        k.initKey('timeList0', None)
         if k.getKey('timeList0') is None:
             df0 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname0'))
             df0 = df0.fillna(0)
@@ -40,7 +40,7 @@ else:
         st.dataframe(k.getKey('timeList0'))
 
         if k.getKey('status') == 'married':
-            k.init('timeList1', None)
+            k.initKey('timeList1', None)
             if k.getKey('timeList1') is None:
                 df1 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname1'))
                 df1 = df1.fillna(0)

@@ -30,28 +30,28 @@ else:
     diz2 = diz1
     # diz2 = (diz1 or len(k.allCaseNames()) > 3)
     statusChoices = ['single', 'married']
-    k.init('status', statusChoices[0])
+    k.initKey('status', statusChoices[0])
     st.radio('Marital status', statusChoices, disabled=diz2,
              index=statusChoices.index(k.getKey('status')), key='_status',
              on_change=k.pull, args=['status'], horizontal=True)
 
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
-        k.init('iname0', '')
+        k.initKey('iname0', '')
         if k.getKey('iname0') == '':
             st.info('First name must be provided.')
 
         iname0 = k.getText('Your first name', 'iname0', disabled=diz2, placeholder='Enter name...')
 
-        k.init('yob0', 1965)
+        k.initKey('yob0', 1965)
         ret = k.getIntNum("%s's birth year" % iname0, 'yob0', disabled=diz2)
 
-        k.init('life0', 80)
+        k.initKey('life0', 80)
         ret = k.getIntNum("%s's expected longevity" % iname0, 'life0', disabled=diz1)
 
         today = date.today()
         thisyear = today.year
-        k.init('startDate', today)
+        k.initKey('startDate', today)
         ret = st.date_input("Plan's starting date on first year",
                             min_value=date(thisyear, 1, 1), max_value=date(thisyear, 12, 31),
                             value=k.getKey('startDate'), key='_startDate', args=['startDate'],
@@ -59,16 +59,16 @@ else:
 
     with col2:
         if k.getKey('status') == 'married':
-            k.init('iname1', '')
+            k.initKey('iname1', '')
             if k.getKey('iname1') == '':
                 st.info('First name must be provided.')
 
             iname1 = k.getText("Your spouse's first name", 'iname1', disabled=diz2, placeholder='Enter a name...')
 
-            k.init('yob1', 1965)
+            k.initKey('yob1', 1965)
             ret = k.getIntNum("%s's birth year" % iname1, 'yob1', disabled=diz2)
 
-            k.init('life1', 80)
+            k.initKey('life1', 80)
             ret = k.getIntNum("%s's expected longevity" % iname1, 'life1', disabled=diz1)
 
     st.divider()
