@@ -77,11 +77,12 @@ else:
         st.info('Plan needs to be created when all information has been entered.')
 
     cantmodify = (k.currentCaseName() == k.newCase or k.currentCaseName() == k.loadConfig)
+    cantcopy = cantmodify or k.caseHasNoPlan()
     col1, col2, col3 = st.columns(3, gap='small', vertical_alignment='top')
     with col1:
         st.button('Create case :material/add:', on_click=owb.createPlan, disabled=cantcreate)
     with col2:
-        st.button('Duplicate case :material/content_copy:', on_click=k.duplicateCase, disabled=cantmodify)
+        st.button('Duplicate case :material/content_copy:', on_click=k.duplicateCase, disabled=cantcopy)
     with col3:
         st.button('Delete case :material/delete:', on_click=k.deleteCurrentCase, disabled=cantmodify)
         # st.error("Do you really, really, wanna do this?")

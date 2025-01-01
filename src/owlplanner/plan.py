@@ -498,7 +498,7 @@ class Plan:
                 ns = max(0, self.yobs[i] + ages[i] - thisyear)
                 nd = self.horizons[i]
                 self.pi_in[i, ns:nd] = amounts[i]
-                # Only include future part of current year.
+                # Only include remaining part of current year.
                 if ns == 0:
                     self.pi_in[i, 0] *= self.yearFracLeft
 
@@ -532,7 +532,7 @@ class Plan:
             ns = max(0, self.yobs[i] + ages[i] - thisyear)
             nd = self.horizons[i]
             self.zeta_in[i, ns:nd] = amounts[i]
-            # Only include future part of current year.
+            # Only include remaining part of current year.
             if ns == 0:
                 self.zeta_in[i, 0] *= self.yearFracLeft
 

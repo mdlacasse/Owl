@@ -103,13 +103,11 @@ def duplicateCase():
     else:
         raise RuntimeError('Exhausted number of duplicates')
 
-    iostring = StringIO()
-    newplan = owb.clone(getKey('plan'), dupname, logstreams=[iostring])
+    # Use copy and create approach instead of cloning.
     ss.cases[dupname] = ss.cases[ss.currentCase].copy()
+    ss.cases[dupname]['plan'] = None
     ss.cases[dupname]['name'] = dupname
-    ss.cases[dupname]['plan'] = newplan
     ss.cases[dupname]['summary'] = ''
-    ss.cases[dupname]['logs'] = iostring
     ss.currentCase = dupname
 
 
