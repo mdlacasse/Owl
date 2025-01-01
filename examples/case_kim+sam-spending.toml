@@ -5,7 +5,7 @@ Status = "married"
 Names = [ "Kim", "Sam",]
 "Birth year" = [ 1966, 1967,]
 "Life expectancy" = [ 86, 89,]
-"Start date" = "2024-12-31"
+"Start date" = "01-01"
 
 [Assets]
 "taxable savings balances" = [ 1000.0, 0.0,]
