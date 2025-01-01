@@ -1,0 +1,49 @@
+"Plan Name" = "case_joe"
+
+["Basic Info"]
+Status = "single"
+Names = [ "Joe",]
+"Birth year" = [ 1966,]
+"Life expectancy" = [ 89,]
+"Start date" = "01-01"
+
+[Assets]
+"taxable savings balances" = [ 338.5,]
+"tax-deferred savings balances" = [ 650.2,]
+"tax-free savings balances" = [ 60.6,]
+
+["Wages and Contributions"]
+"Contributions file name" = "joe.xlsx"
+
+["Fixed Income"]
+"Pension amounts" = [ 18.0,]
+"Pension ages" = [ 65,]
+"Social security amounts" = [ 28.4,]
+"Social security ages" = [ 67,]
+
+["Rate Selection"]
+"Heirs rate on tax-deferred estate" = 30.0
+"Long-term capital gain tax rate" = 15.0
+"Dividend tax rate" = 2.0
+Method = "historical average"
+From = 1969
+To = 2002
+
+["Asset Allocations"]
+"Interpolation method" = "s-curve"
+"Interpolation center" = 15
+"Interpolation width" = 5
+Type = "individual"
+generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],],]
+
+["Optimization Parameters"]
+"Spending profile" = "smile"
+"Surviving spouse spending percent" = 60.0
+Objective = "maxSpending"
+
+["Solver Options"]
+maxRothConversion = 50
+bequest = 300
+
+[Results]
+"Default plots" = "nominal"

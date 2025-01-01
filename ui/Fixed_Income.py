@@ -41,10 +41,10 @@ else:
     st.write('### Pension')
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
-        getIntInput(0, 'pAge', 'pension age', 65)
         getFloatInput(0, 'pAmt', 'pension annual amount (k$)')
+        getIntInput(0, 'pAge', 'pension age', 65)
 
     with col2:
         if k.getKey('status') == 'married':
-            getIntInput(1, 'pAge', 'pension age', 65)
             getFloatInput(1, 'pAmt', 'pension annual amount (k$)')
+            getIntInput(1, 'pAge', 'pension age', 65)
