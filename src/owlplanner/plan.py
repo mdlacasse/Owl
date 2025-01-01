@@ -1339,7 +1339,7 @@ class Plan:
         Run historical scenarios on plan over a range of years.
         """
         if yend + self.N_n > self.year_n[0]:
-            yend = self.year_n[0] - self.N_n
+            yend = self.year_n[0] - self.N_n - 1
             self.mylog.vprint('Warning: Upper bound for year range re-adjusted to %d.' % yend)
         N = yend - ystart + 1
 
