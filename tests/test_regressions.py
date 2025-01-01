@@ -10,7 +10,7 @@ solver = 'HiGHS'
 
 def test_constructor1():
     inames = ['Joe']
-    yobs = [1960]
+    yobs = [1961]
     expectancy = [80]
     name = 'test_1'
     p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
@@ -24,7 +24,7 @@ def test_constructor1():
 
 def test_constructor1_2():
     inames = ['Joe', 'Jane']
-    yobs = [1960, 1961]
+    yobs = [1961, 1962]
     expectancy = [80, 82]
     name = 'test_2'
     p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
@@ -38,21 +38,21 @@ def test_constructor1_2():
 
 def test_date_1():
     inames = ['Joe', 'Jane']
-    yobs = [1960, 1961]
+    yobs = [1961, 1962]
     expectancy = [80, 82]
     name = 'test_3'
-    p = owl.Plan(inames, yobs, expectancy, name, startDate='2024-1-1')
+    p = owl.Plan(inames, yobs, expectancy, name, startDate='2025-1-1')
     assert p.inames == inames
     assert np.array_equal(p.yobs, yobs)
     assert np.array_equal(p.expectancy, expectancy)
     assert p.N_i == 2
     assert p._name == name
-    assert p.startDate == '2024-1-1'
+    assert p.startDate == '2025-1-1'
 
 
 def test_date_2():
     inames = ['Joe', 'Jane']
-    yobs = [1960, 1961]
+    yobs = [1961, 1962]
     expectancy = [80, 82]
     name = 'test_3'
     startDate = date.today()
@@ -71,14 +71,14 @@ def createPlan(ni, name, ny):
     ny -= 1
     if ni == 1:
         inames = ['Joe']
-        yobs = [1964]
-        expectancy = [thisyear - 1964 + ny]
+        yobs = [1965]
+        expectancy = [thisyear - 1965 + ny]
     else:
         inames = ['Joe', 'Jane']
-        yobs = [1960, 1961]
+        yobs = [1961, 1962]
         # Make Jane pass 2 years before Joe.
         assert ny >= 2
-        expectancy = [thisyear - 1960 + ny, thisyear - 1961 + ny - 2]
+        expectancy = [thisyear - 1961 + ny, thisyear - 1962 + ny - 2]
 
     p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
     # Use a flat profile for simplicity.
@@ -90,7 +90,7 @@ def createPlan(ni, name, ny):
 def test_withdrawal1():
     n = 3
     p = createPlan(1, 'withdrawal1', n)
-    amount = 37.5
+    amount = 3.0
     p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
     p.setRates('user', values=[0, 0, 0, 0])
@@ -104,7 +104,7 @@ def test_withdrawal2():
     n = 3
     p = createPlan(1, 'withdrawal2', n)
     # Small taxable income creates an income smaller than standard deduction. Testing e_n.
-    amount = 12
+    amount = 12.0
     p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
     p.setRates('user', values=[0, 0, 0, 0])
@@ -131,7 +131,7 @@ def test_withdrawal2_2():
 def test_withdrawal3():
     n = 6
     p = createPlan(1, 'withdrawal3', n)
-    amount = 120
+    amount = 60
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
     p.setRates('user', values=[0, 0, 0, 0])
@@ -144,7 +144,7 @@ def test_withdrawal3():
 def test_withdrawal3_2():
     n = 6
     p = createPlan(2, 'withdrawal3', n)
-    amount = 120
+    amount = 60
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 0, 100], [0, 0, 0, 100]])
     p.setRates('user', values=[0, 0, 0, 0])

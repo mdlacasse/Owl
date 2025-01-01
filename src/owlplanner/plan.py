@@ -22,7 +22,7 @@ from functools import wraps
 import time
 
 from owlplanner import utils as u
-from owlplanner import tax2024 as tx
+from owlplanner import tax2025 as tx
 from owlplanner import abcapi as abc
 from owlplanner import rates
 from owlplanner import config
