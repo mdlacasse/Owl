@@ -10,11 +10,11 @@ ret = k.titleBar('setup', caseChoices)
 st.write('## Basic Info')
 
 if ret == k.newCase:
-    st.info('A name for the scenario must be provided.')
+    st.info('Starting a new case from scratch.\n\nA name for the scenario must first be provided.')
     st.text_input("Case name", value='', key='_newcase',
                   on_change=k.createCase, args=['newcase'], placeholder='Enter a name...')
 elif ret == k.loadConfig:
-    st.info('A config file must be uploaded.\n\nLook at the :material/help: Documentation for where to find examples.')
+    st.info('Starting a case from a config file.\n\nLook at the :material/help: Documentation for where to find examples.')
     confile = st.file_uploader('Upload configuration file...', key='_confile', type=['toml'])
     if confile is not None:
         if k.createCaseFromConfig(confile):
