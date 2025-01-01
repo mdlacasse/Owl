@@ -39,8 +39,9 @@ mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main
 
 While Owl can be used through a Jupyter notebooks,
 its simple API also serves as a back-end for a Web application using Streamlit.
-The `ui` directory implements all of Owl's functionality through a web brower interface.
-To run, simply run `owlplanned.cmd` once all dependencies have been installed.
+A hosted version of the app can be found at [owlplanner.streamlit.app](https://owlplanner.streamlit.app)
+Alternatively, the application can also be run locally by simply running the script
+`owlplanned.cmd` once all the dependencies have been installed.
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem.
 In particular, if one is interested in comparing different withdrawal strategies,
