@@ -42,10 +42,16 @@ def onlyCaseNames() -> list:
 
 
 def runOncePerCase(func):
-    key = func.__name__
+    key = 'oNcE_' + func.__name__
     if getKey(key) is None:
         func()
     initKey(key, 1)
+
+
+def refreshCase(adic):
+    for key in list(adic.keys()):
+        if key.startswith('oNcE_'):
+            del adic[key]
 
 
 def getIndex(item, choices):
@@ -108,6 +114,7 @@ def duplicateCase():
     ss.cases[dupname]['plan'] = None
     ss.cases[dupname]['name'] = dupname
     ss.cases[dupname]['summary'] = ''
+    refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
 
 

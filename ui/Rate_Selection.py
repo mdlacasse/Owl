@@ -36,6 +36,8 @@ def updateRates(key):
 def initRates():
     if k.getKey('rateType') == rateChoices[0] and k.getKey('fixedType') == fixedChoices[0]:
         updateFixedRates(fixedChoices[0], False)
+    else:
+        owb.setRates()
 
 
 k.initKey('rateType', rateChoices[0])

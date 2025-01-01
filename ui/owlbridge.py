@@ -245,7 +245,7 @@ def setRates(plan):
                                           float(k.getKey('fxRate3')), ])
     else:
         varyingType = k.getKey('varyingType')
-        if 'histo' in varyingType:
+        if varyingType.startswith('histo'):
             if varyingType == 'historical':
                 yto = min(2023, yfrm+plan.N_n-1)
                 k.setKey('yto', yto)
@@ -289,7 +289,8 @@ def showAllocations(plan):
 @_checkPlan
 def showProfile(plan):
     fig = plan.showProfile(figure=True)
-    st.pyplot(fig)
+    if fig:
+        st.pyplot(fig)
 
 
 @_checkPlan
@@ -303,19 +304,22 @@ def showRates(plan):
 @_checkPlan
 def showRatesCorrelations(plan):
     fig = plan.showRatesCorrelations(figure=True)
-    st.pyplot(fig)
+    if fig:
+        st.pyplot(fig)
 
 
 @_checkPlan
 def showIncome(plan):
     fig = plan.showIncome(figure=True)
-    st.pyplot(fig)
+    if fig:
+        st.pyplot(fig)
 
 
 @_checkPlan
 def showSources(plan):
     fig = plan.showSources(figure=True)
-    st.pyplot(fig)
+    if fig:
+        st.pyplot(fig)
 
 
 @_checkPlan
