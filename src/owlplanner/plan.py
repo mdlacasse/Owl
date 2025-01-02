@@ -310,6 +310,9 @@ class Plan:
         self.caseStatus = 'unsolved'
         self.rateMethod = None
 
+        self.ARCoord = None
+        self.objective = 'unknown'
+
         # Placeholders to check if properly configured.
         self.xi_n = None
         self.alpha_ijkn = None

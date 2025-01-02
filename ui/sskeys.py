@@ -7,7 +7,7 @@ from io import StringIO
 
 ss = st.session_state
 newCase = 'New case...'
-loadConfig = 'Load config...'
+loadCaseFile = 'Load case file...'
 
 
 def init():
@@ -20,11 +20,12 @@ def init():
     if 'cases' not in ss:
         # print('Initializing keyholder')
         ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'summary': ''},
-                    loadConfig: {'iname0': '', 'status': 'unkown', 'summary': ''}}
+                    loadCaseFile: {'iname0': '', 'status': 'unkown', 'summary': ''}}
 
     # Variable for storing name of current case.
     if 'currentCase' not in ss:
-        ss.currentCase = loadConfig
+        # ss.currentCase = loadCaseFile
+        ss.currentCase = newCase
 
 
 init()
@@ -37,7 +38,7 @@ def allCaseNames() -> list:
 def onlyCaseNames() -> list:
     caseList = list(ss.cases)
     caseList.remove(newCase)
-    caseList.remove(loadConfig)
+    caseList.remove(loadCaseFile)
     return caseList
 
 
@@ -80,10 +81,14 @@ def caseHasNoPlan():
     return getKey('plan') is None
 
 
+def caseHasNotCompletedRun():
+    return getKey('summary') == ''
+
+
 def titleBar(nkey, choices=None):
     if choices is None:
         choices = onlyCaseNames()
-    helpmsg = 'Select an exising case, or create a new one from scratch, or from a config file'
+    helpmsg = 'Select an exising case, or create a new one from scratch, or from a case file'
     return st.sidebar.selectbox('Select case', choices, help=helpmsg,
                                 index=getIndex(currentCaseName(), choices), key='_'+nkey,
                                 on_change=switchToCase, args=[nkey])
@@ -118,9 +123,9 @@ def duplicateCase():
     ss.currentCase = dupname
 
 
-def createCaseFromConfig(confile):
+def createCaseFromFile(confile):
     import owlbridge as owb
-    name, dic = owb.createCaseFromConfig(confile)
+    name, dic = owb.createCaseFromFile(confile)
     if name == '':
         return False
     elif name in ss.cases:
@@ -145,7 +150,7 @@ def createCase(case):
 
 
 def renameCase(key):
-    if ss.currentCase == newCase or ss.currentCase == loadConfig:
+    if ss.currentCase == newCase or ss.currentCase == loadCaseFile:
         return
     newname = ss['_'+key]
     plan = getKey('plan')
@@ -157,10 +162,10 @@ def renameCase(key):
 
 
 def deleteCurrentCase():
-    if ss.currentCase == newCase or ss.currentCase == loadConfig:
+    if ss.currentCase == newCase or ss.currentCase == loadCaseFile:
         return
     del ss.cases[ss.currentCase]
-    setCurrentCase(loadConfig)
+    setCurrentCase(loadCaseFile)
 
 
 def dump():

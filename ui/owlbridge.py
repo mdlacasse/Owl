@@ -75,6 +75,8 @@ def getAccountBalances(ni):
 
 def getSolveParameters():
     maximize = k.getKey('objective')
+    if maximize is None:
+        return None
     if 'spending' in maximize:
         objective = 'maxSpending'
     else:
@@ -101,7 +103,7 @@ def prepareRun(plan):
     try:
         plan.setAccountBalances(taxable=bal[0], taxDeferred=bal[1], taxFree=bal[2])
     except Exception as e:
-        st.error('Account balance failed: %s' % e)
+        st.error('Setting account balances failed: %s' % e)
         return
 
     amounts, ages = getFixedIncome(ni, 'p')
@@ -134,6 +136,16 @@ def prepareRun(plan):
             return
 
     setRates()
+
+
+@_checkPlan
+def caseHasFailed(plan):
+    return plan.caseStatus != 'solved'
+
+
+@_checkPlan
+def caseStatus(plan):
+    return plan.caseStatus
 
 
 @_checkPlan
@@ -459,10 +471,11 @@ def saveWorkbook(plan):
 
 
 @_checkPlan
-def saveConfig(plan):
-    prepareRun(plan)
-    getSolveParameters()
+def saveCaseFile(plan):
     stringBuffer = StringIO()
+    prepareRun(plan)
+    if getSolveParameters() is None:
+        return ''
     plan.saveConfig(stringBuffer)
     encoded_data = stringBuffer.getvalue().encode('utf-8')
     bytesBuffer = BytesIO(encoded_data)
@@ -470,13 +483,13 @@ def saveConfig(plan):
     return bytesBuffer
 
 
-def createCaseFromConfig(file):
+def createCaseFromFile(file):
     strio = StringIO()
     try:
         mystringio = StringIO(file.read().decode('utf-8'))
         plan = owl.readConfig(mystringio, logstreams=[strio], readContributions=False)
     except Exception as e:
-        raise RuntimeError('Failed to parse config file: %s' % (e))
+        raise RuntimeError('Failed to parse case file: %s' % (e))
 
     name, mydic = genDic(plan)
     mydic['logs'] = strio

@@ -31,7 +31,7 @@ Typically, tabs would be run in order, starting from the top.
 This section contains all the steps for creating and running case scenarios.
 #### Basic Info
 This tab controls the creation of scenarios.
-In this tab, you can either create a scenario from scratch, load a configuration file
+In this tab, you can either create a scenario from scratch, load a *case* file
 that contains the desired parameters, duplicate and/or rename a scenario, or delete scenarios.
 For creating a scenario, the (first) name(s), marital status, birth year(s),
 and life expectancies are required. A starting date for the plan determines when the plan
@@ -39,15 +39,16 @@ starts in the first year. Plan still ends at the end of the year when all indivi
 have passed according to the specified life expectancies.
 
 ##### Initializing the life parameters for the realization
-Start with the `Select case` box and choose one of `New case...` or `Load config...`.
-If `Load config...` is selected,
-a configuration file ending in `.toml` must be uploaded. An example is provided
+Start with the `Select case` box and choose one of `New case...` or `Load case file...`.
+
+If `Load case file...` is selected,
+a *case* file ending in `.toml` must be uploaded. An example is provided
 [here](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml) and more
-in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
-. Using a configuration file
-will populate all the fields required to run a scenario. A configuration file for the case being developed
+in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/). Using a *case* file
+will populate all the fields required to run a scenario. A *case* file for the case being developed
 can be saved under the [Case Worksheets](#case-worksheets) tab and made available to reload a later time.
-Configuration files can have any name but bear the name of the case when saving them from the interface.
+Case files can have any name but typically start with *case_* followed with the case name 
+when saving them from the interface.
 
 When starting from `New case...`,
 one must provide the year of birth of each spouse(s) and their expected lifespan(s).
@@ -210,7 +211,8 @@ This tab shows the various worksheets containing annual transactions.
 It can be downloaded as an Excel file which looks better than the web representation.
 
 Under this tab, users can also save the parameters used to generate this
-outcome in a configuration file that can be uploaded in the future.
+outcome in a case file that can be uploaded in the future.
+
 #### Case Summary
 This tab shows a summary of the scenario which was computed.
 It diplays informative sums of relevant income and spending values.

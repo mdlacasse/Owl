@@ -20,4 +20,7 @@ else:
                          callback=owb.setDefaultPlots)
 
     st.divider()
-    owb.plotSingleResults()
+    if owb.caseHasFailed():
+        st.info("Case status is currently '%s'." % owb.caseStatus())
+    else:
+        owb.plotSingleResults()

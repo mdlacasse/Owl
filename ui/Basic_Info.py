@@ -13,11 +13,11 @@ if ret == k.newCase:
     st.info('Starting a new case from scratch.\n\nA name for the scenario must first be provided.')
     st.text_input("Case name", value='', key='_newcase',
                   on_change=k.createCase, args=['newcase'], placeholder='Enter a name...')
-elif ret == k.loadConfig:
-    st.info('Starting a case from a config file.\n\nLook at the :material/help: Documentation for where to find examples.')
-    confile = st.file_uploader('Upload configuration file...', key='_confile', type=['toml'])
+elif ret == k.loadCaseFile:
+    st.info('Starting a case from a *case* file.\n\nLook at the :material/help: Documentation for where to find examples.')
+    confile = st.file_uploader('Upload case file...', key='_confile', type=['toml'])
     if confile is not None:
-        if k.createCaseFromConfig(confile):
+        if k.createCaseFromFile(confile):
             st.rerun()
 else:
     helpmsg = "Case name can be changed by editing it directly"
@@ -76,7 +76,7 @@ else:
     if not cantcreate and k.getKey('plan') is None:
         st.info('Plan needs to be created when all information has been entered.')
 
-    cantmodify = (k.currentCaseName() == k.newCase or k.currentCaseName() == k.loadConfig)
+    cantmodify = (k.currentCaseName() == k.newCase or k.currentCaseName() == k.loadCaseFile)
     cantcopy = cantmodify or k.caseHasNoPlan()
     col1, col2, col3 = st.columns(3, gap='small', vertical_alignment='top')
     with col1:

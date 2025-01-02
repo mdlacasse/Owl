@@ -25,8 +25,9 @@ else:
 
     with col2:
         download3 = st.download_button(
-            label="Download configuration file...",
-            data=owb.saveConfig(),
-            file_name=k.getKey('name')+'.toml',
+            label="Download case file...",
+            data=owb.saveCaseFile(),
+            file_name = 'case_' + k.getKey('name')+'.toml',
+            disabled=k.caseHasNotCompletedRun(),
             mime='txt/plain'
         )
