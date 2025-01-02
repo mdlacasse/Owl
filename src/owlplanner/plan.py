@@ -2567,7 +2567,7 @@ class Plan:
         Save parameters in a configuration file.
         """
         if basename is None:
-            basename = self._name
+            basename = 'case_' + self._name
 
         config.saveConfig(self, basename, self.mylog)
 
