@@ -74,7 +74,7 @@ else:
     st.divider()
     cantcreate = k.isIncomplete() or diz1
     if not cantcreate and k.getKey('plan') is None:
-        st.info('Plan needs to be created when all information has been entered.')
+        st.info('Plan needs to be created once all the information needed has been entered.')
 
     cantmodify = (k.currentCaseName() == k.newCase or k.currentCaseName() == k.loadCaseFile)
     cantcopy = cantmodify or k.caseHasNoPlan()

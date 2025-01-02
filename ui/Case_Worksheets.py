@@ -22,12 +22,3 @@ else:
             mime='application/vnd.ms-excel',
             disabled=owb.isCaseUnsolved()
         )
-
-    with col2:
-        download3 = st.download_button(
-            label="Download case file...",
-            data=owb.saveCaseFile(),
-            file_name = 'case_' + k.getKey('name')+'.toml',
-            disabled=k.caseHasNotCompletedRun(),
-            mime='txt/plain'
-        )

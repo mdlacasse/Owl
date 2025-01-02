@@ -139,6 +139,11 @@ def prepareRun(plan):
 
 
 @_checkPlan
+def caseIsSolved(plan):
+    return plan.caseStatus == 'solved'
+
+
+@_checkPlan
 def caseHasFailed(plan):
     return plan.caseStatus != 'solved'
 
@@ -473,7 +478,7 @@ def saveWorkbook(plan):
 @_checkPlan
 def saveCaseFile(plan):
     stringBuffer = StringIO()
-    prepareRun(plan)
+    # prepareRun(plan)
     if getSolveParameters() is None:
         return ''
     plan.saveConfig(stringBuffer)
