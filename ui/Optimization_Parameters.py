@@ -7,6 +7,8 @@ import owlbridge as owb
 profileChoices = ['smile', 'flat']
 k.initKey('profile', profileChoices[0])
 k.initKey('survivor', 60)
+k.initKey('smileDip', 15)
+k.initKey('smileIncrease', 12)
 
 
 def initProfile():
@@ -69,13 +71,18 @@ else:
             ret = k.getRadio('Solver', choices, 'solver')
 
     st.divider()
-    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    col1, col2, col3, col4 = st.columns(4, gap='medium', vertical_alignment='top')
     with col1:
         ret = k.getRadio("Spending profile", profileChoices, 'profile', callback=owb.setProfile)
-
     with col2:
         if k.getKey('status') == 'married':
-            ret = k.getIntNum("Survivor's spending (%)", 'survivor', callback=owb.setProfile)
+            ret = k.getIntNum("Survivor's spending (%)", 'survivor', max_value=100, callback=owb.setProfile)
+    with col3:
+        if k.getKey('profile') == 'smile':
+            ret = k.getIntNum("Smile dip (%)", 'smileDip', max_value=100, callback=owb.setProfile)
+    with col4:
+        if k.getKey('profile') == 'smile':
+            ret = k.getIntNum("Smile increase (%)", 'smileIncrease', max_value=100, callback=owb.setProfile)
 
     st.divider()
     owb.showProfile()

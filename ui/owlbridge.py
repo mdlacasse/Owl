@@ -290,7 +290,6 @@ def showProfile(plan):
 def showRates(plan):
     fig = plan.showRates(figure=True)
     if fig:
-        st.markdown('###')
         st.pyplot(fig)
 
 
@@ -396,7 +395,9 @@ def setProfile(plan, key, pull=True):
         k.setpull(key)
     profile = k.getKey('profile')
     survivor = k.getKey('survivor')
-    plan.setSpendingProfile(profile, survivor)
+    smileDip = k.getKey('smileDip')
+    smileIncrease = k.getKey('smileIncrease')
+    plan.setSpendingProfile(profile, survivor, smileDip, smileIncrease)
 
 
 @_checkPlan

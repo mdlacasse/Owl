@@ -190,8 +190,13 @@ Calculations of Medicare and IRMAA can be turned on or off. This will typically 
 the calculations by a factor of 2 to 3.
 
 The net spending amount always follows a selected
-profile which is either flat or a follows a *smile* shape. For married couples, a survivor's
-net spending percentage is configurable. The selected profile curve multiplies
+profile which is either flat or a follows a *smile* shape.
+The smile shape has two configurable parameters: a dip percentage
+and a linear increase over the years, in addition to inflation.
+Values default to 15% and 12% respectively, but they are available
+for experimentation.  For married couples, a survivor's
+net spending percentage is configurable. A value of 60% is typically used.
+The selected profile curve multiplies
 the net spending *basis* which sets the resulting spending amounts.
 
 --------------------------------------------------------------------------------------

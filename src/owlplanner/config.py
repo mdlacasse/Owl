@@ -88,10 +88,13 @@ def saveConfig(plan, file, mylog):
     # Optimization Parameters.
     diconf['Optimization Parameters'] = {
                                          'Spending profile': plan.spendingProfile,
-                                         'Surviving spouse spending percent': float(100 * plan.chi),
-                                         'Objective': plan.objective,
+                                         'Surviving spouse spending percent': int(100 * plan.chi),
                                         }
+    if plan.spendingProfile == 'smile':
+        diconf['Optimization Parameters']['Smile dip'] = plan.smileDip
+        diconf['Optimization Parameters']['Smile increase'] = plan.smileIncrease
 
+    diconf['Optimization Parameters']['Objective'] = plan.objective
     diconf['Solver Options'] = plan.solverOptions
 
     # Results.
@@ -203,7 +206,6 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
 
     # Fixed Income.
     ssecAmounts = np.array(diconf['Fixed Income']['Social security amounts'])
-    # values = diconf['Fixed Income']['Social security ages']
     ssecAges = np.array(diconf['Fixed Income']['Social security ages'], dtype=np.int32)
     p.setSocialSecurity(ssecAmounts, ssecAges)
     pensionAmounts = np.array(diconf['Fixed Income']['Pension amounts'])
@@ -264,10 +266,17 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
 
     # Optimization Parameters.
     p.objective = diconf['Optimization Parameters']['Objective']
-    p.setSpendingProfile(
-        diconf['Optimization Parameters']['Spending profile'],
-        float(diconf['Optimization Parameters']['Surviving spouse spending percent'])
-    )
+
+    profile = diconf['Optimization Parameters']['Spending profile']
+    survivor = int(diconf['Optimization Parameters']['Surviving spouse spending percent'])
+    if profile == 'smile':
+        dip = int(diconf['Optimization Parameters']['Smile dip'])
+        increase = int(diconf['Optimization Parameters']['Smile increase'])
+    else:
+        dip = 15
+        increase = 12
+
+    p.setSpendingProfile(profile, survivor, dip, increase)
 
     # Solver Options.
     p.solverOptions = diconf['Solver Options']

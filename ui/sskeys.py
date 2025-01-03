@@ -52,7 +52,7 @@ def refreshCase(adic):
     """
     When a case is duplicated, reset all the runOnce functions.
     """
-    for key in adic:
+    for key in list(adic):
         if key.startswith('oNcE_'):
             del adic[key]
 
@@ -135,7 +135,7 @@ def duplicateCase():
     else:
         raise RuntimeError('Exhausted number of duplicates')
 
-    # Use copy and create approach instead of cloning.
+    # Use copy + create approach instead of cloning.
     ss.cases[dupname] = ss.cases[ss.currentCase].copy()
     ss.cases[dupname]['plan'] = None
     ss.cases[dupname]['name'] = dupname

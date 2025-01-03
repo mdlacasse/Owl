@@ -40,7 +40,7 @@ generic = [ [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],], [ [ 60, 40, 0, 0,], [ 60, 40
 
 ["Optimization Parameters"]
 "Spending profile" = "flat"
-"Surviving spouse spending percent" = 60.0
+"Surviving spouse spending percent" = 60
 Objective = "maxBequest"
 
 ["Solver Options"]

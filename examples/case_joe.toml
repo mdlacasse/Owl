@@ -38,7 +38,9 @@ generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],],]
 
 ["Optimization Parameters"]
 "Spending profile" = "smile"
-"Surviving spouse spending percent" = 60.0
+"Smile dip" = 15
+"Smile increase" = 12
+"Surviving spouse spending percent" = 60
 Objective = "maxSpending"
 
 ["Solver Options"]

@@ -179,10 +179,10 @@ else:
             k.getNum('Cash Assets/Inflation', 'diag4', True, format='%.2f', min_value=-1., max_value=1.,
                      callback=None)
 
-        st.write('####')
+        st.write('#### Correlations between return rates')
         owb.showRatesCorrelations()
 
-    # st.write('####')
+    st.write('#### Selected rates over time horizon')
     owb.showRates()
 
     st.divider()

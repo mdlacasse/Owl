@@ -51,7 +51,7 @@ def _genGamma_n(tau):
     return gamma
 
 
-def _genXi_n(profile, fraction, n_d, N_n, a=15, b=12):
+def _genXi_n(profile, fraction, n_d, N_n, a, b):
     """
     Utility function to generate spending profile.
     Return time series of spending profile.
@@ -273,6 +273,8 @@ class Plan:
         self.nu = 0.30  # Heirs tax rate (decimal)
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1])  # Fractions left to other spouse at death
+        self.smileDip = 15  # Percent to reduce smile profile
+        self.smileIncrease = 12  # Percent to increse profile over time span
 
         # Default to zero pension and social security.
         self.pi_in = np.zeros((self.N_i, self.N_n))
@@ -550,11 +552,11 @@ class Plan:
 
         return None
 
-    def setSpendingProfile(self, profile, percent=60):
+    def setSpendingProfile(self, profile, percent=60, dip=15, increase=12):
         """
-        Generate time series for spending profile.
-        Surviving spouse fraction can be specified
+        Generate time series for spending profile. Surviving spouse fraction can be specified
         as a second argument. Default value is 60%.
+        Dip and increase are percent changes in the smile profile.
         """
         self.chi = percent / 100
 
@@ -562,11 +564,13 @@ class Plan:
         if self.N_i == 2:
             self.mylog.vprint('Securing', u.pc(self.chi, f=0), 'of spending amount for surviving spouse.')
 
-        self.xi_n = _genXi_n(profile, self.chi, self.n_d, self.N_n)
+        self.xi_n = _genXi_n(profile, self.chi, self.n_d, self.N_n, dip, increase)
         # Account for time elapsed in the current year.
         self.xi_n[0] *= self.yearFracLeft
 
         self.spendingProfile = profile
+        self.smileDip = dip
+        self.smileIncrease = increase
         self.caseStatus = 'modified'
 
         return None
