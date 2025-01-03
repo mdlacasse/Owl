@@ -2,7 +2,6 @@
 Module for storing keys in Streamlit session state.
 '''
 import streamlit as st
-from io import StringIO
 
 
 ss = st.session_state
@@ -129,8 +128,6 @@ def setCurrentCase(case):
 
 
 def duplicateCase():
-    import owlbridge as owb
-
     for i in range(1, 10):
         dupname = ss.currentCase + '(%d)' % i
         if dupname not in ss.cases:

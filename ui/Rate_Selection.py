@@ -152,7 +152,7 @@ else:
                      callback=updateRates)
             k.initKey('diag2', 1.)
             k.getNum('Corporate Bonds Baa', 'diag2', True, format='%.2f', min_value=-1., max_value=1.,
-                     callback=updateRates)
+                     callback=None)
 
         with col3:
             k.initKey('corr2', 0.)
@@ -167,34 +167,38 @@ else:
 
         with col4:
             k.initKey('corr3', 0.)
-            k.getNum('(1,4)', 'corr3', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.getNum('(1,4)', 'corr3', ro, step=.1, format='%.2f', min_value=-1., max_value=1.,
+                     callback=updateRates)
             k.initKey('corr5', 0.)
-            k.getNum('(2,4)', 'corr5', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.getNum('(2,4)', 'corr5', ro, step=.1, format='%.2f', min_value=-1., max_value=1.,
+                     callback=updateRates)
             k.initKey('corr6', 0.)
-            k.getNum('(3,4)', 'corr6', ro, step=.1, format='%.2f', min_value=-1., max_value=1., callback=updateRates)
+            k.getNum('(3,4)', 'corr6', ro, step=.1, format='%.2f', min_value=-1., max_value=1.,
+                     callback=updateRates)
             k.initKey('diag4', 1.)
-            k.getNum('Cash Assets/Inflation', 'diag4', True, format='%.2f', min_value=-1., max_value=1., callback=None)
+            k.getNum('Cash Assets/Inflation', 'diag4', True, format='%.2f', min_value=-1., max_value=1.,
+                     callback=None)
 
-        st.text(' ')
+        st.write('####')
         owb.showRatesCorrelations()
 
-    st.text(' ')
+    # st.write('####')
     owb.showRates()
 
     st.divider()
     st.write('### Other rates')
     k.initKey('divRate', 2)
-    ret = k.getNum('Dividends return rate (%)', 'divRate',
+    ret = k.getNum('Dividends return rate (%)', 'divRate', max_value=100., format='%.2f',
                    callback=owb.setDividendRate, step=1.)
 
     st.write('#### Income taxes')
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         k.initKey('gainTx', 15)
-        ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx',
+        ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx', max_value=100.,
                        callback=owb.setLongTermCapitalTaxRate, step=1.)
 
     with col2:
         k.initKey('heirsTx', 30)
-        ret = k.getNum('Heirs income tax rate (%)', 'heirsTx',
+        ret = k.getNum('Heirs income tax rate (%)', 'heirsTx', max_value=100.,
                        callback=owb.setHeirsTaxRate, step=1.)

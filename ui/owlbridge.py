@@ -419,7 +419,7 @@ def setDividendRate(plan, key):
 
 @_checkPlan
 def setDefaultPlots(plan, key):
-    val = k.setpull(key)
+    val = k.storepull(key)
     plan.setDefaultPlots(val)
 
 
