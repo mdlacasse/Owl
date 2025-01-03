@@ -32,20 +32,20 @@ else:
         with col1:
             nkey = 'benf'+str(0)
             k.initKey(nkey, 1)
-            ret = k.getNum(accounts['txbl'].capitalize(), nkey, format='%.2f')
+            ret = k.getNum(accounts['txbl'].capitalize(), nkey, format='%.2f', max_value=1., step=0.05)
 
         with col2:
             nkey = 'benf'+str(1)
             k.initKey(nkey, 1)
-            ret = k.getNum(accounts['txDef'].capitalize(), nkey, format='%.2f')
+            ret = k.getNum(accounts['txDef'].capitalize(), nkey, format='%.2f', max_value=1., step=0.05)
 
         with col3:
             nkey = 'benf'+str(2)
             k.initKey(nkey, 1)
-            ret = k.getNum(accounts['txFree'].capitalize(), nkey, format='%.2f')
+            ret = k.getNum(accounts['txFree'].capitalize(), nkey, format='%.2f', max_value=1., step=0.05)
 
         st.write('#### Surplus deposit fraction')
         k.initKey('surplusFraction', 0.5)
         helpmsg = "When beneficiary fractions are not all 1, set surplus deposits to go to survivor's account"
         ret = k.getNum("Fraction of surplus deposited in %s's taxable account" % iname1,
-                       'surplusFraction', format='%.2f', help=helpmsg)
+                       'surplusFraction', format='%.2f', help=helpmsg, max_value=1.0, step=0.05)

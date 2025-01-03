@@ -2,7 +2,7 @@ import streamlit as st
 
 st.write("## About Owl 🦉")
 
-st.write('This version of Owl was released in December 2024.')
+st.write('This version of Owl was released in January 2025.')
 st.write('Running on Streamlit %s.' % st.__version__)
 
 st.write('''

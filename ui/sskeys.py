@@ -12,15 +12,15 @@ loadCaseFile = 'Load case file...'
 
 def init():
     '''
-    Reinitialize through a function as it will only happen once through module.
+    Initialize variables through a function as it will only happen once through module.
     '''
     # Dictionary of dictionaries for each case.
     global ss
     ss = st.session_state
     if 'cases' not in ss:
         # print('Initializing keyholder')
-        ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'summary': ''},
-                    loadCaseFile: {'iname0': '', 'status': 'unkown', 'summary': ''}}
+        ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'caseStatus': '', 'summary': ''},
+                    loadCaseFile: {'iname0': '', 'status': 'unkown', 'caseStatus': '', 'summary': ''}}
 
     # Variable for storing name of current case.
     if 'currentCase' not in ss:
@@ -50,7 +50,10 @@ def runOncePerCase(func):
 
 
 def refreshCase(adic):
-    for key in list(adic.keys()):
+    """
+    When a case is duplicated, reset all the runOnce functions.
+    """
+    for key in adic:
         if key.startswith('oNcE_'):
             del adic[key]
 
@@ -82,7 +85,28 @@ def caseHasNoPlan():
 
 
 def caseHasNotCompletedRun():
-    return getKey('summary') == ''
+    return not caseHasCompletedRun()
+
+
+def caseHasCompletedRun():
+    return getKey('caseStatus') == 'solved'
+
+
+def caseIsNotRunReady():
+    return (getKey('plan') is None or
+            getKey('objective') is None or
+            getKey('rateType') is None or
+            getKey('interp') is None or
+            getKey('profile') is None)
+
+
+def caseIsNotMCReady():
+    """
+    Check that rates are  set to some stochastic method before MC run.
+    """
+    return (caseIsNotRunReady() or
+            getKey('rateType') != 'varying' or
+            'tochastic' not in getKey('varyingType'))
 
 
 def titleBar(nkey, choices=None):
@@ -172,20 +196,32 @@ def dump():
     print('State Dump:', ss)
 
 
-def pull(key):
-    # print('pulling', key, 'from', '_'+key, 'as', ss['_'+key])
+def setpull(key):
+    # print('pulling key', key, 'from', '_'+key, 'as', ss['_'+key])
     return setKey(key, ss['_'+key])
 
 
+def storepull(key):
+    # print('pulling key', key, 'from', '_'+key, 'as', ss['_'+key])
+    return storeKey(key, ss['_'+key])
+
+
 def setKey(key, val):
-    # print('storing', key, 'as', val)
+    # print('setting key', key, 'as', val)
+    ss.cases[ss.currentCase][key] = val
+    ss.cases[ss.currentCase]['caseStatus'] = 'modified'
+    return val
+
+
+def storeKey(key, val):
+    # print('setting key', key, 'as', val)
     ss.cases[ss.currentCase][key] = val
     return val
 
 
 def initKey(key, val):
     if key not in ss.cases[ss.currentCase]:
-        # print('init', key, 'as', val)
+        # print('init key', key, 'as', val)
         ss.cases[ss.currentCase][key] = val
 
 
@@ -200,7 +236,7 @@ def getDict(key=ss.currentCase):
     return ss.cases[key]
 
 
-def getIntNum(text, nkey, disabled=False, callback=pull, step=1, max_value=None):
+def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, max_value=None):
     return st.number_input(text,
                            value=int(getKey(nkey)),
                            disabled=disabled,
@@ -210,7 +246,7 @@ def getIntNum(text, nkey, disabled=False, callback=pull, step=1, max_value=None)
                            on_change=callback, args=[nkey], key='_'+nkey)
 
 
-def getNum(text, nkey, disabled=False, callback=pull, step=10.,
+def getNum(text, nkey, disabled=False, callback=setpull, step=10.,
            min_value=0., max_value=None, format='%.1f', help=None):
     return st.number_input(text,
                            value=float(getKey(nkey)),
@@ -223,7 +259,7 @@ def getNum(text, nkey, disabled=False, callback=pull, step=10.,
                            on_change=callback, args=[nkey], key='_'+nkey)
 
 
-def getText(text, nkey, disabled=False, callback=pull, placeholder=None):
+def getText(text, nkey, disabled=False, callback=setpull, placeholder=None):
     return st.text_input(text,
                          value=getKey(nkey),
                          disabled=disabled,
@@ -231,13 +267,13 @@ def getText(text, nkey, disabled=False, callback=pull, placeholder=None):
                          placeholder=placeholder)
 
 
-def getRadio(text, choices, nkey, callback=pull, help=None):
+def getRadio(text, choices, nkey, callback=setpull, help=None):
     return st.radio(text, choices,
                     index=choices.index(getKey(nkey)),
                     on_change=callback, args=[nkey], key='_'+nkey,
                     horizontal=True, help=help)
 
 
-def getToggle(text, nkey, callback=pull):
+def getToggle(text, nkey, callback=setpull):
     return st.toggle(text, value=getKey(nkey),
                      on_change=callback, args=[nkey], key='_'+nkey)

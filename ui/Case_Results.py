@@ -12,9 +12,9 @@ if ret is None:
 else:
     col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
-        st.button('Run single case', on_click=owb.runPlan, disabled=owb.caseIsNotRunReady())
+        st.button('Run single case', on_click=owb.runPlan, disabled=k.caseIsNotRunReady())
     with col2:
-        if owb.caseIsSolved():
+        if k.caseHasCompletedRun():
             download3 = st.download_button(
                 label="Download case file...",
                 data=owb.saveCaseFile(),
@@ -29,7 +29,7 @@ else:
                          callback=owb.setDefaultPlots)
 
     st.divider()
-    if owb.caseHasFailed():
-        st.info("Case status is currently '%s'." % owb.caseStatus())
-    else:
+    if k.caseHasCompletedRun():
         owb.plotSingleResults()
+    else:
+        st.info("Case status is currently '%s'." % k.getKey('caseStatus'))

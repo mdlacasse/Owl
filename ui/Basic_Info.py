@@ -33,7 +33,7 @@ else:
     k.initKey('status', statusChoices[0])
     st.radio('Marital status', statusChoices, disabled=diz2,
              index=statusChoices.index(k.getKey('status')), key='_status',
-             on_change=k.pull, args=['status'], horizontal=True)
+             on_change=k.setpull, args=['status'], horizontal=True)
 
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
@@ -55,7 +55,7 @@ else:
         ret = st.date_input("Plan's starting date on first year",
                             min_value=date(thisyear, 1, 1), max_value=date(thisyear, 12, 31),
                             value=k.getKey('startDate'), key='_startDate', args=['startDate'],
-                            on_change=k.pull, disabled=diz2)
+                            on_change=k.setpull, disabled=diz2)
 
     with col2:
         if k.getKey('status') == 'married':

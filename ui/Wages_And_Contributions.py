@@ -23,18 +23,18 @@ else:
     if k.getKey('timeList') is None:
         timeList = st.file_uploader('Upload optional contribution file...', key='_timelist',
                                     type=['xlsx'])
-        k.setKey('timeList', timeList)
         if timeList is not None:
+            k.setKey('timeList', timeList)
             owb.readContributions(timeList)
 
     if k.getKey('timeList') is not None:
         k.initKey('timeList0', None)
-        if k.getKey('timeList0') is None:
+        if k.storeKey('timeList0') is None:
             df0 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname0'))
             df0 = df0.fillna(0)
             df0 = df0.iloc[:, range(9)]
             # print('df0', df0)
-            k.setKey('timeList0', df0)
+            k.storeKey('timeList0', df0)
 
         st.write(k.getKey('iname0'))
         st.dataframe(k.getKey('timeList0'))
@@ -45,7 +45,7 @@ else:
                 df1 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname1'))
                 df1 = df1.fillna(0)
                 df1 = df1.iloc[:, range(9)]
-                k.setKey('timeList1', df1)
+                k.storeKey('timeList1', df1)
 
             st.write(k.getKey('iname1'))
             st.dataframe(k.getKey('timeList1'))

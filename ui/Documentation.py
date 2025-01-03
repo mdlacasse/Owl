@@ -46,7 +46,7 @@ a *case* file ending in `.toml` must be uploaded. An example is provided
 [here](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml) and more
 in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/). Using a *case* file
 will populate all the fields required to run a scenario. A *case* file for the case being developed
-can be saved under the [Case Worksheets](#case-worksheets) tab and made available to reload a later time.
+can be saved under the [Case Results](#case-results) tab and made available to reload a later time.
 Case files can have any name but typically start with *case_* followed with the case name 
 when saving them from the interface.
 

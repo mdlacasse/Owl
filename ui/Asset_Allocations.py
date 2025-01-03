@@ -7,9 +7,9 @@ import owlbridge as owb
 def getIntInput(i, j, keybase, text, defval=0):
     nkey = keybase+str(j)+'_'+str(i)
     k.initKey(nkey, defval)
-    st.number_input(text, min_value=0, step=1,
+    st.number_input(text, min_value=0, step=1, max_value=100,
                     value=k.getKey(nkey),
-                    on_change=k.pull, args=[nkey], key='_'+nkey)
+                    on_change=k.setpull, args=[nkey], key='_'+nkey)
 
 
 def getAllocs(i, title, deco):
@@ -82,6 +82,7 @@ else:
 
     # st.write('####')
     if checkAllAllocs():
-        owb.setInterpolationMethod()
-        owb.setAllocationRatios()
+        if k.getKey('caseStatus') != 'solved':
+            owb.setInterpolationMethod()
+            owb.setAllocationRatios()
         owb.showAllocations()

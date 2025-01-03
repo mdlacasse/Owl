@@ -18,7 +18,7 @@ varyingChoices = ['historical', 'histochastic', 'stochastic']
 
 def updateFixedRates(key, pull=True):
     if pull:
-        fxType = k.pull(key)
+        fxType = k.setpull(key)
     else:
         fxType = key
 
@@ -29,7 +29,7 @@ def updateFixedRates(key, pull=True):
 
 
 def updateRates(key):
-    k.pull(key)
+    k.setpull(key)
     owb.setRates()
 
 

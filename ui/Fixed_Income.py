@@ -9,7 +9,7 @@ def getIntInput(i, key, text, defval=0):
     inamex = k.getKey('iname'+str(i))
     st.number_input("%s's %s" % (inamex, text), min_value=0,
                     value=k.getKey(nkey),
-                    on_change=k.pull, args=[nkey], key='_'+nkey)
+                    on_change=k.setpull, args=[nkey], key='_'+nkey)
 
 
 def getFloatInput(i, key, text, defval=0.):
@@ -18,7 +18,7 @@ def getFloatInput(i, key, text, defval=0.):
     inamex = k.getKey('iname'+str(i))
     st.number_input("%s's %s" % (inamex, text), min_value=0.,
                     value=float(k.getKey(nkey)), format='%.1f', step=10.,
-                    on_change=k.pull, args=[nkey], key='_'+nkey)
+                    on_change=k.setpull, args=[nkey], key='_'+nkey)
 
 
 ret = k.titleBar('fixed')

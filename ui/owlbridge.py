@@ -1,7 +1,7 @@
 import streamlit as st
+import pandas as pd
 from io import StringIO, BytesIO
 from functools import wraps
-import pandas as pd
 from datetime import datetime, date
 import importlib
 
@@ -28,12 +28,12 @@ def createPlan():
 
     try:
         strio = StringIO()
-        k.setKey('logs', strio)
+        k.storeKey('logs', strio)
         # print(inames, yobs, life, name, startDate)
         plan = owl.Plan(inames, yobs, life, name, startDate=startDate,
                         verbose=True, logstreams=[strio, strio])
     except Exception as e:
-        st.error('Failed plan creation: %s' % e)
+        st.error("Failed creation of plan '%s': %s" % (name, e))
         return
     k.setKey('plan', plan)
 
@@ -138,14 +138,10 @@ def prepareRun(plan):
     setRates()
 
 
-@_checkPlan
-def caseIsSolved(plan):
-    return plan.caseStatus == 'solved'
-
-
-@_checkPlan
-def caseHasFailed(plan):
-    return plan.caseStatus != 'solved'
+def isCaseUnsolved():
+    if k.getKey('plan') is None:
+        return True
+    return k.getKey('caseStatus') != 'solved'
 
 
 @_checkPlan
@@ -162,35 +158,15 @@ def runPlan(plan):
         plan.solve(objective, options=options)
     except Exception as e:
         st.error('Solution failed: %s' % e)
-        k.setKey('summary', '')
+        k.storeKey('caseStatus', 'exception')
+        k.storeKey('summary', '')
         return
 
-    k.initKey('caseStatus', 'unknown')
-    k.setKey('caseStatus', plan.caseStatus)
+    k.storeKey('caseStatus', plan.caseStatus)
     if plan.caseStatus == 'solved':
-        k.setKey('summary', plan.summaryString())
+        k.storeKey('summary', plan.summaryString())
     else:
-        k.setKey('summary', '')
-
-
-def isCaseUnsolved():
-    if k.getKey('plan') is None:
-        return True
-    return k.getKey('caseStatus') != 'solved'
-
-
-def caseIsNotMCReady():
-    return (caseIsNotRunReady() or
-            k.getKey('rateType') != 'varying' or
-            'tochastic' not in k.getKey('varyingType'))
-
-
-def caseIsNotRunReady():
-    return (k.getKey('plan') is None or
-            k.getKey('objective') is None or
-            k.getKey('rateType') is None or
-            k.getKey('interp') is None or
-            k.getKey('profile') is None)
+        k.storeKey('summary', '')
 
 
 @_checkPlan
@@ -204,19 +180,19 @@ def runHistorical(plan):
     try:
         mybar = progress.Progress(None)
         fig = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, barcall=mybar)
-        k.setKey('histoPlot', fig)
+        k.storeKey('histoPlot', fig)
     except Exception as e:
-        k.setKey('histoPlot', None)
+        k.storeKey('histoPlot', None)
+        k.storeKey('caseStatus', 'exception')
         st.error('Solution failed: %s' % e)
-        k.setKey('summary', '')
+        k.storeKey('summary', '')
         return
 
-    k.initKey('caseStatus', 'unknown')
-    k.setKey('caseStatus', plan.caseStatus)
+    k.storeKey('caseStatus', plan.caseStatus)
     if plan.caseStatus == 'solved':
-        k.setKey('summary', plan.summaryString())
+        k.storeKey('summary', plan.summaryString())
     else:
-        k.setKey('summary', '')
+        k.storeKey('summary', '')
 
 
 @_checkPlan
@@ -229,19 +205,19 @@ def runMC(plan):
     try:
         mybar = progress.Progress(None)
         fig = plan.runMC(objective, options, N, figure=True, barcall=mybar)
-        k.setKey('monteCarloPlot', fig)
+        k.storeKey('monteCarloPlot', fig)
     except Exception as e:
-        k.setKey('monteCarloPlot', None)
+        k.storeKey('monteCarloPlot', None)
+        k.storeKey('caseStatus', 'exception')
         st.error('Solution failed: %s' % e)
-        k.setKey('summary', '')
+        k.storeKey('summary', '')
         return
 
-    k.initKey('caseStatus', 'unknown')
-    k.setKey('caseStatus', plan.caseStatus)
+    k.storeKey('caseStatus', plan.caseStatus)
     if plan.caseStatus == 'solved':
-        k.setKey('summary', plan.summaryString())
+        k.storeKey('summary', plan.summaryString())
     else:
-        k.setKey('summary', '')
+        k.storeKey('summary', '')
 
 
 @_checkPlan
@@ -254,7 +230,7 @@ def setRates(plan):
             plan.setRates('historical average', yfrm, yto)
             # Set fxRates back to computed values.
             for j in range(4):
-                k.setKey('fxRate'+str(j), 100*plan.tau_kn[j, -1])
+                k.storeKey('fxRate'+str(j), 100*plan.tau_kn[j, -1])
         else:
             plan.setRates('user', values=[float(k.getKey('fxRate0')),
                                           float(k.getKey('fxRate1')),
@@ -269,13 +245,13 @@ def setRates(plan):
             plan.setRates(varyingType, yfrm, yto)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
-                k.setKey('mean'+str(j), 100*mean[j])
-                k.setKey('stdev'+str(j), 100*stdev[j])
+                k.storeKey('mean'+str(j), 100*mean[j])
+                k.storeKey('stdev'+str(j), 100*stdev[j])
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1+1, plan.N_k):
                     # k.setKey('corr'+str(q), plan.rateCorr[k1, k2])
-                    k.setKey('corr'+str(q), corr[k1, k2])
+                    k.storeKey('corr'+str(q), corr[k1, k2])
                     q += 1
 
         elif varyingType == 'stochastic':
@@ -417,7 +393,7 @@ def plotSingleResults(plan):
 @_checkPlan
 def setProfile(plan, key, pull=True):
     if pull:
-        k.pull(key)
+        k.setpull(key)
     profile = k.getKey('profile')
     survivor = k.getKey('survivor')
     plan.setSpendingProfile(profile, survivor)
@@ -425,25 +401,25 @@ def setProfile(plan, key, pull=True):
 
 @_checkPlan
 def setHeirsTaxRate(plan, key):
-    val = k.pull(key)
+    val = k.setpull(key)
     plan.setHeirsTaxRate(val)
 
 
 @_checkPlan
 def setLongTermCapitalTaxRate(plan, key):
-    val = k.pull(key)
+    val = k.setpull(key)
     plan.setLongTermCapitalTaxRate(val)
 
 
 @_checkPlan
 def setDividendRate(plan, key):
-    val = k.pull(key)
+    val = k.setpull(key)
     plan.setDividendRate(val)
 
 
 @_checkPlan
 def setDefaultPlots(plan, key):
-    val = k.pull(key)
+    val = k.setpull(key)
     plan.setDefaultPlots(val)
 
 

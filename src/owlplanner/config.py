@@ -2,7 +2,7 @@
 
 Owl/conftoml
 
-This file contains utility functions to save configuration parameters.
+This file contains utility functions to save case parameters.
 
 Copyright (C) 2024 -- Martin-D. Lacasse
 
@@ -21,7 +21,7 @@ from owlplanner import logging
 
 def saveConfig(plan, file, mylog):
     """
-    Save config and return a dictionary containing configuration parameters.
+    Save case parameters and return a dictionary containing all parameters.
     """
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
@@ -98,21 +98,24 @@ def saveConfig(plan, file, mylog):
     diconf['Results'] = {'Default plots': plan.defaultPlots}
 
     if isinstance(file, str):
-        if '.toml' not in file:
-            filename = file + '.toml'
-        mylog.vprint("Saving plan configuration to '%s'." % filename)
+        filename = file
+        if not file.endswith('.toml'):
+            filename = filename + '.toml'
+        if not filename.startswith('case_'):
+            filename = 'case_' + filename
+        mylog.vprint("Saving plan case file as '%s'." % filename)
 
         try:
-            with open(filename, 'w') as configfile:
-                toml.dump(diconf, configfile)
+            with open(filename, 'w') as casefile:
+                toml.dump(diconf, casefile)
         except Exception as e:
-            raise RuntimeError('Failed to save config file %s: %s' % (filename, e))
+            raise RuntimeError('Failed to save case file %s: %s' % (filename, e))
     elif isinstance(file, StringIO):
         try:
             string = toml.dumps(diconf)
             file.write(string)
         except Exception as e:
-            raise RuntimeError('Failed to save config to stringio: %s', e)
+            raise RuntimeError('Failed to save case to StringIO: %s', e)
     elif file is None:
         pass
     else:
@@ -123,7 +126,7 @@ def saveConfig(plan, file, mylog):
 
 def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     """
-    Read plan configuration parameters from file *basename*.toml.
+    Read plan parameters from case file *basename*.toml.
     A new plan is created and returned.
     Argument file can be a filename, a file, or a stringIO.
     """
@@ -133,11 +136,12 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
 
     dirname = ''
     if isinstance(file, str):
-        dirname = os.path.dirname(file)
-        if '.toml' not in file:
-            filename = file + '.toml'
+        filename = file
+        dirname = os.path.dirname(filename)
+        if not filename.endswith('.toml'):
+            filename = filename + '.toml'
 
-        mylog.vprint("Reading plan configuration from '%s'." % filename)
+        mylog.vprint("Reading plan from case file '%s'." % filename)
 
         try:
             with open(filename, 'r') as f:

@@ -53,13 +53,18 @@ def test_config1():
     assert p.basis == pytest.approx(80000, abs=0.5)
     assert p.bequest == pytest.approx(597000, abs=0.5)
     p.saveConfig()
-    filename = name + '.toml'
-    assert os.path.isfile(filename)
-    p2 = owl.readConfig(name)
+    base_filename = 'case_' + name
+    full_filename = 'case_' + name + '.toml'
+    assert os.path.isfile(full_filename)
+    p2 = owl.readConfig(base_filename)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p2.basis == pytest.approx(80000, abs=0.5)
     assert p2.bequest == pytest.approx(597000, abs=0.5)
-    os.remove(filename)
+    p3 = owl.readConfig(full_filename)
+    p3.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
+    assert p3.basis == pytest.approx(80000, abs=0.5)
+    assert p3.bequest == pytest.approx(597000, abs=0.5)
+    os.remove(full_filename)
 
 
 def test_config2():
