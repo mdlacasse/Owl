@@ -271,6 +271,6 @@ def getRadio(text, choices, nkey, callback=setpull, help=None):
                     horizontal=True, help=help)
 
 
-def getToggle(text, nkey, callback=setpull):
-    return st.toggle(text, value=getKey(nkey),
-                     on_change=callback, args=[nkey], key='_'+nkey)
+def getToggle(text, nkey, callback=setpull, disabled=False):
+    return st.toggle(text, value=getKey(nkey), on_change=callback, args=[nkey],
+                     disabled=disabled, key='_'+nkey)
