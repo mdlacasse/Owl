@@ -5,7 +5,7 @@ import owlbridge as owb
 
 
 ret = k.titleBar('MC')
-st.write("## Monte Carlo")
+st.write("## Monte Carlo\n:orange[*%s*]" % k.currentCaseName())
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

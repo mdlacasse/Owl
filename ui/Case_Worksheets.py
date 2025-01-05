@@ -4,7 +4,7 @@ import sskeys as k
 import owlbridge as owb
 
 ret = k.titleBar('worksheets')
-st.write('## Case Worksheets')
+st.write("## Case Worksheets\n:orange[*%s*]" % k.currentCaseName())
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

@@ -5,7 +5,7 @@ import owlbridge as owb
 
 
 profileChoices = ['smile', 'flat']
-k.initKey('profile', profileChoices[0])
+k.initKey('spendingProfile', profileChoices[0])
 k.initKey('survivor', 60)
 k.initKey('smileDip', 15)
 k.initKey('smileIncrease', 12)
@@ -18,7 +18,7 @@ def initProfile():
 k.runOncePerCase(initProfile)
 
 ret = k.titleBar('opto')
-st.write('## Optimization Parameters')
+st.write("## Optimization Parameters\n:orange[*%s*]" % k.currentCaseName())
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
@@ -73,15 +73,15 @@ else:
     st.divider()
     col1, col2, col3, col4 = st.columns(4, gap='medium', vertical_alignment='top')
     with col1:
-        ret = k.getRadio("Spending profile", profileChoices, 'profile', callback=owb.setProfile)
+        ret = k.getRadio("Spending profile", profileChoices, 'spendingProfile', callback=owb.setProfile)
     with col2:
         if k.getKey('status') == 'married':
             ret = k.getIntNum("Survivor's spending (%)", 'survivor', max_value=100, callback=owb.setProfile)
     with col3:
-        if k.getKey('profile') == 'smile':
+        if k.getKey('spendingProfile') == 'smile':
             ret = k.getIntNum("Smile dip (%)", 'smileDip', max_value=100, callback=owb.setProfile)
     with col4:
-        if k.getKey('profile') == 'smile':
+        if k.getKey('spendingProfile') == 'smile':
             ret = k.getIntNum("Smile increase (%)", 'smileIncrease', max_value=100, callback=owb.setProfile)
 
     st.divider()

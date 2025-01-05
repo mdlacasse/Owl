@@ -24,15 +24,22 @@ See the full description of the package on [github](github.com/mdlacasse/owl) fo
 
 --------------------------------------------------------------------------------------
 ## Getting started with the user interface
-The function of each tab is described below.
-Typically, tabs would be run in order, starting from the top.
+The function of each tab is described in the same order below.
+Typically, tabs would be accessed in order, starting from the top.
+The `Select case` selection box allows to select an existing case
+or create a new one from scratch or from a *case* file, which
+contains all the values for the parameters.
 
 ### :orange[Case Setup]
-This section contains all the steps for creating and running case scenarios.
+This section contains the steps for creating and configuring case scenarios.
+
 #### Basic Info
-This tab controls the creation of scenarios.
-In this tab, you can either create a scenario from scratch, load a *case* file
-that contains the desired parameters, duplicate and/or rename a scenario, or delete scenarios.
+This tab controls the creation of scenarios as the `Select case` menu contains
+two additional items: one to create a new case, and the other to create a case from a *case* file,
+which contains all the parameters required to characterize a scenario.
+These files end with the *.toml* extension and are human readable (and therefore editable).
+This tab also allows you to duplicate and/or rename a scenario, and to delete scenarios.
+
 For creating a scenario, the (first) name(s), marital status, birth year(s),
 and life expectancies are required. A starting date for the plan determines when the plan
 starts in the first year. Plan still ends at the end of the year when all individuals
@@ -78,7 +85,7 @@ For married couples, a surplus deposit fraction can be adjusted. This controls
 how to deposit surplus budget moneys between the taxable accounts of spouses.
 When the beneficiary fractions are not all 1, it is recommended to deposit all
 surplus moneys in the taxable account of the first individual to pass. Otherwise,
-the optimizer will come with creative solutions that create surpluses in order
+the optimizer will find creative solutions that create surpluses in order
 to maximize the final bequest.
 
 #### Wages and Contributions
@@ -104,10 +111,10 @@ For the columns, *anticipated wages* is the annual amount
 and all entries must be in lower case. Best way to start this process is to use the template
 file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx).
 
-For the purpose of this exercise, there is no clear definition of retirement age. There will be a year,
+For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your
-work load. This transition can be gradual or sudden. Therefore there is no need to enter a retirement
-age for the sole purpose of quantifying your financial future.
+work load. This transition can be gradual or sudden, and can be explored through this wages
+and contributions file.
 
 Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term which includes
 contributions to 403b as well or any other tax-deferred account, with the exception
@@ -189,15 +196,20 @@ conversions will not be optimized, but will be performed according to the column
 Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
 the calculations by a factor of 2 to 3.
 
-The net spending amount always follows a selected
+The net spending amount follows a selected spending
 profile which is either flat or a follows a *smile* shape.
-The smile shape has two configurable parameters: a dip percentage
-and a linear increase over the years, in addition to inflation.
-Values default to 15% and 12% respectively, but they are available
-for experimentation.  For married couples, a survivor's
-net spending percentage is configurable. A value of 60% is typically used.
+The smile shape has two configurable parameters: a *dip* percentage
+and a linear *increase* over the years (apart from inflation).
+Values default to 15% and 12% respectively, but they are configurable
+for experimentation.
+For married couples, a survivor's
+net spending percentage is also configurable. A value of 60% is typically used.
 The selected profile curve multiplies
-the net spending *basis* which sets the resulting spending amounts.
+the net spending *basis* which sets the resulting spending
+amounts over the duration of the plan.
+Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
+for that reason they do not start at 1.
+
 
 --------------------------------------------------------------------------------------
 ### :orange[Single Scenarios]

@@ -3,7 +3,7 @@ import streamlit as st
 import sskeys as k
 
 ret = k.titleBar('summary')
-st.write('## Summary')
+st.write("## Case Summary\n:orange[*%s*]" % k.currentCaseName())
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

@@ -5,7 +5,7 @@ import owlbridge as owb
 
 
 ret = k.titleBar('results')
-st.write("## Case Results")
+st.write("## Case Results\n:orange[*%s*]" % k.currentCaseName())
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

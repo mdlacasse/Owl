@@ -2012,7 +2012,8 @@ class Plan:
         lines = []
         lines.append('Plan name: %s' % self._name)
         for i in range(self.N_i):
-            lines.append("%12s's life horizon: %d -> %d" % (self.inames[i], now, now + self.horizons[i] - 1))
+            lines.append("%12s's %02d-year life horizon: %d -> %d"
+                         % (self.inames[i], self.horizons[i], now, now + self.horizons[i] - 1))
         lines.append('Contributions file: %s' % self.timeListsFileName)
         lines.append('Initial balances [taxable, tax-deferred, tax-free]:')
         for i in range(self.N_i):

@@ -202,6 +202,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
                 raise FileNotFoundError("File '%s' not found." % timeListsFileName)
             p.readContributions(myfile)
         else:
+            p.timeListsFileName = timeListsFileName
             mylog.vprint('Ignoring to read contributions file %s.' % timeListsFileName)
 
     # Fixed Income.

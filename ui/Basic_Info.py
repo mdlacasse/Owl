@@ -7,7 +7,7 @@ import owlbridge as owb
 
 caseChoices = k.allCaseNames()
 ret = k.titleBar('setup', caseChoices)
-st.write('## Basic Info')
+st.write("## Basic Info\n:orange[*%s*]" % k.currentCaseName())
 
 if ret == k.newCase:
     st.info('Starting a new case from scratch.\n\nA name for the scenario must first be provided.')
@@ -15,7 +15,7 @@ if ret == k.newCase:
                   on_change=k.createCase, args=['newcase'], placeholder='Enter a name...')
 elif ret == k.loadCaseFile:
     st.info('Starting a case from a *case* file.\n\nLook at the :material/help: Documentation for where to find examples.')
-    confile = st.file_uploader('Upload case file...', key='_confile', type=['toml'])
+    confile = st.file_uploader('Upload *case* file...', key='_confile', type=['toml'])
     if confile is not None:
         if k.createCaseFromFile(confile):
             st.rerun()

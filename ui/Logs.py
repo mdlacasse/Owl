@@ -4,7 +4,7 @@ import sskeys as k
 
 
 ret = k.titleBar('logs')
-st.write('## Logs')
+st.write("## Logs\n:orange[*%s*]" % k.currentCaseName())
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

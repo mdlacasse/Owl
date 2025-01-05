@@ -6,7 +6,7 @@ import owlbridge as owb
 
 
 def resetList():
-    k.setKey('timeList', None)
+    k.setKey('stTimeLists', None)
     k.setKey('timeList0', None)
     if k.getKey('status') == 'married':
         k.setKey('timeList1', None)
@@ -14,23 +14,30 @@ def resetList():
 
 
 ret = k.titleBar('wages')
-st.write('## Wages and Contributions')
+st.write("## Wages and Contributions\n:orange[*%s*]" % k.currentCaseName())
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    k.initKey('timeList', None)
-    if k.getKey('timeList') is None:
-        timeList = st.file_uploader('Upload optional contribution file...', key='_timelist',
-                                    type=['xlsx'])
-        if timeList is not None:
-            k.setKey('timeList', timeList)
-            owb.readContributions(timeList)
+    if k.getKey('stTimeLists') is None:
+        original = k.getKey('timeListsFileName')
+        if original is None or original == 'None':
+            st.info("Case contains no contributions file.")
+        else:
+            st.info("Case contains contributions file '%s' not yet uploaded." % original)
 
-    if k.getKey('timeList') is not None:
+    k.initKey('stTimeLists', None)
+    if k.getKey('stTimeLists') is None:
+        stTimeLists = st.file_uploader('Upload optional contribution file...', key='_stTimeLists',
+                                       type=['xlsx'])
+        if stTimeLists is not None:
+            k.setKey('stTimeLists', stTimeLists)
+            owb.readContributions(stTimeLists)
+
+    if k.getKey('stTimeLists') is not None:
         k.initKey('timeList0', None)
-        if k.storeKey('timeList0') is None:
-            df0 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname0'))
+        if k.getKey('timeList0') is None:
+            df0 = pd.read_excel(k.getKey('stTimeLists'), sheet_name=k.getKey('iname0'))
             df0 = df0.fillna(0)
             df0 = df0.iloc[:, range(9)]
             # print('df0', df0)
@@ -42,7 +49,7 @@ else:
         if k.getKey('status') == 'married':
             k.initKey('timeList1', None)
             if k.getKey('timeList1') is None:
-                df1 = pd.read_excel(k.getKey('timeList'), sheet_name=k.getKey('iname1'))
+                df1 = pd.read_excel(k.getKey('stTimeLists'), sheet_name=k.getKey('iname1'))
                 df1 = df1.fillna(0)
                 df1 = df1.iloc[:, range(9)]
                 k.storeKey('timeList1', df1)
@@ -50,5 +57,5 @@ else:
             st.write(k.getKey('iname1'))
             st.dataframe(k.getKey('timeList1'))
 
-    cantdel = (k.getKey('timeList') is None)
+    cantdel = (k.getKey('stTimeLists') is None)
     st.button('Reset', on_click=resetList, disabled=cantdel)

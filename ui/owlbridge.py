@@ -316,15 +316,22 @@ def showSources(plan):
 
 @_checkPlan
 def setInterpolationMethod(plan):
-    plan.setInterpolationMethod(k.getKey('interp'), k.getKey('center'), k.getKey('width'))
+    plan.setInterpolationMethod(k.getKey('interpMethod'), k.getKey('interpCenter'), k.getKey('interpWidth'))
 
 
 @_checkPlan
-def readContributions(plan, file):
-    if file is None:
+def readContributions(plan, stFile):
+    if stFile is None:
         return None
 
-    return plan.readContributions(file)
+    try:
+        ret = plan.readContributions(stFile)
+        k.setKey('timeListsFileName', stFile.name)
+        plan.timeListsFileName = stFile.name
+    except Exception as e:
+        raise RuntimeError("Failed to parse contribution file '%s': %s" % e)
+
+    return ret
 
 
 @_checkPlan
@@ -334,25 +341,66 @@ def resetContributions(plan):
 
 @_checkPlan
 def setAllocationRatios(plan):
+    if k.getKey('allocType') == 'individual':
+        try:
+            generic = getIndividualAllocationRatios()
+            plan.setAllocationRatios('individual', generic=generic)
+        except Exception as e:
+            st.error('Setting asset allocations failed: %s' % e)
+            return
+    elif k.getKey('allocType') == 'account':
+        try:
+            acc = getAccountAllocationRatios()
+            plan.setAllocationRatios('account', taxable=acc[0], taxDeferred=acc[1], taxFree=acc[2])
+        except Exception as e:
+            st.error('Setting asset allocations failed: %s' % e)
+            return
+
+
+def getIndividualAllocationRatios():
     generic = []
     initial = []
     final = []
-    for j in range(4):
-        initial.append(int(k.getKey('init%'+str(j)+'_0')))
-        final.append(int(k.getKey('fin%'+str(j)+'_0')))
+    for k1 in range(4):
+        initial.append(int(k.getKey('j3_init%'+str(k1)+'_0')))
+        final.append(int(k.getKey('j3_fin%'+str(k1)+'_0')))
     gen0 = [initial, final]
     generic = [gen0]
 
     if k.getKey('status') == 'married':
         initial = []
         final = []
-        for j in range(4):
-            initial.append(int(k.getKey('init%'+str(j)+'_1')))
-            final.append(int(k.getKey('fin%'+str(j)+'_1')))
+        for k1 in range(4):
+            initial.append(int(k.getKey('j3_init%'+str(k1)+'_1')))
+            final.append(int(k.getKey('j3_fin%'+str(k1)+'_1')))
         gen1 = [initial, final]
         generic.append(gen1)
 
-    return plan.setAllocationRatios('individual', generic=generic)
+    return generic
+
+
+def getAccountAllocationRatios():
+    accounts = [[], [], []]
+    for j in range(3):
+        initial = []
+        final = []
+        for k1 in range(4):
+            initial.append(int(k.getKey(f'j{j}_init%'+str(k1)+'_0')))
+            final.append(int(k.getKey(f'j{j}_fin%'+str(k1)+'_0')))
+        tmp = [initial, final]
+        accounts[j].append(tmp)
+
+    if k.getKey('status') == 'married':
+        for j in range(3):
+            initial = []
+            final = []
+            for k1 in range(4):
+                initial.append(int(k.getKey(f'j{j}_init%'+str(k1)+'_1')))
+                final.append(int(k.getKey(f'j{j}_fin%'+str(k1)+'_1')))
+            tmp = [initial, final]
+            accounts[j].append(tmp)
+
+    return accounts
 
 
 @_checkPlan
@@ -393,7 +441,7 @@ def plotSingleResults(plan):
 def setProfile(plan, key, pull=True):
     if pull:
         k.setpull(key)
-    profile = k.getKey('profile')
+    profile = k.getKey('spendingProfile')
     survivor = k.getKey('survivor')
     smileDip = k.getKey('smileDip')
     smileIncrease = k.getKey('smileIncrease')
@@ -479,18 +527,18 @@ def createCaseFromFile(file):
     return name, mydic
 
     # keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
-    #            'timeList', 'plots', 'interp',
+    #            'timeList', 'plots', 'interpMethod', 'interpCenter', 'interpWidth',
     #            'objective', 'withMedicare', 'bequest', 'netSpending',
     #            'noRothConversions', 'maxRothConversion',
     #            'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
-    #            'divRate', 'heirsTx', 'gainTx', 'profile', 'survivor',
+    #            'divRate', 'heirsTx', 'gainTx', 'spendingProfile', 'survivor',
     #            'surplusFraction', ]
     # keynamesJ = ['benf', ]
     # keynamesK = ['fxRate', 'mean', 'stdev']
     # keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
     #             'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
-    #             'init%0_', 'init%1_', 'init%2_', 'init%3_',
-    #             'fin%0_', 'fin%1_', 'fin%2_', 'fin%3_']
+    #             'jX_init%0_', 'jX_init%1_', 'jX_init%2_', 'jX_init%3_',
+    #             'jX_fin%0_', 'jX_fin%1_', 'jX_fin%2_', 'jX_fin%3_']
     # keynames6 = ['corr']
 
 
@@ -501,6 +549,7 @@ def genDic(plan):
     dic['plan'] = plan
     dic['name'] = plan._name
     dic['summary'] = ''
+    dic['caseStatus'] = 'new'
     dic['status'] = ['unknown', 'single', 'married'][plan.N_i]
     # Prepend year if not there.
     tdate = plan.startDate.split('-')
@@ -515,17 +564,18 @@ def genDic(plan):
     except Exception as e:
         raise ValueError('Wrong date format %s: %s' % (plan.startDate, e))
     dic['startDate'] = startDate
-    dic['interp'] = plan.interpMethod
-    dic['center'] = plan.interpCenter
-    dic['width'] = plan.interpWidth
-    dic['profile'] = plan.spendingProfile
+    dic['interpMethod'] = plan.interpMethod
+    dic['interpCenter'] = plan.interpCenter
+    dic['interpWidth'] = plan.interpWidth
+    dic['spendingProfile'] = plan.spendingProfile
     dic['survivor'] = 100*plan.chi
     dic['gainTx'] = 100*plan.psi
     dic['divRate'] = 100*plan.mu
     dic['heirsTx'] = 100*plan.nu
     dic['surplusFraction'] = plan.eta
     dic['plots'] = plan.defaultPlots
-    # self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
+    dic['allocType'] = plan.ARCoord
+    dic['timeListsFileName'] = plan.timeListsFileName
     for j in range(plan.N_j):
         dic['benf'+str(j)] = plan.phi_j[j]
 
@@ -541,10 +591,16 @@ def genDic(plan):
             dic[accName[j]+str(i)] = plan.beta_ij[i, j]/1000
         if plan.ARCoord == 'individual':
             for k1 in range(plan.N_k):
-                dic['init%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][k1])
-                dic['fin%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][k1])
+                dic['j3_init%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][k1])
+                dic['j3_fin%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][k1])
+        elif plan.ARCoord == 'account':
+            accName = ['taxable', 'tax-deferred', 'tax-free']
+            for j in range(3):
+                for k1 in range(plan.N_k):
+                    dic[f'j{j}%d_init%'+str(k1)+'_'+str(i)] = int(plan.boundsAR[accName[j]][i][0][k1])
+                    dic[f'j{j}_fin%'+str(k1)+'_'+str(i)] = int(plan.boundsAR[accName[j]][i][1][k1])
         else:
-            raise ValueError("Only 'individual' asset allocation currently supported")
+            raise ValueError("Only 'individual' and 'account' asset allocations are currently supported")
 
     optionKeys = list(plan.solverOptions)
     for key in ['maxRothConversion', 'noRothConversions', 'withMedicare', 'netSpending', 'bequest']:

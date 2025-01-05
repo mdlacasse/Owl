@@ -5,8 +5,8 @@ import streamlit as st
 
 
 ss = st.session_state
-newCase = 'New case...'
-loadCaseFile = 'Load case file...'
+newCase = 'New Case...'
+loadCaseFile = 'Load Case File...'
 
 
 def init():
@@ -95,8 +95,8 @@ def caseIsNotRunReady():
     return (getKey('plan') is None or
             getKey('objective') is None or
             getKey('rateType') is None or
-            getKey('interp') is None or
-            getKey('profile') is None)
+            getKey('interpMethod') is None or
+            getKey('spendingProfile') is None)
 
 
 def caseIsNotMCReady():
@@ -111,7 +111,7 @@ def caseIsNotMCReady():
 def titleBar(nkey, choices=None):
     if choices is None:
         choices = onlyCaseNames()
-    helpmsg = 'Select an existing case, or create a new one from scratch, or from a case file'
+    helpmsg = 'Select an existing case, or create a new one from scratch, or from a *case* file'
     return st.sidebar.selectbox('Select case', choices, help=helpmsg,
                                 index=getIndex(currentCaseName(), choices), key='_'+nkey,
                                 on_change=switchToCase, args=[nkey])
