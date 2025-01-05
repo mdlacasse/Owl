@@ -44,6 +44,11 @@ and life expectancies are required. A starting date for the plan determines when
 starts in the first year. Plan still ends at the end of the year when all individuals
 have passed according to the specified life expectancies.
 
+When duplicating a scenario, all parameters will be copied, but each tab in
+the `Case setup` section will need to be revisited in order
+to refresh the case. This includes the wages and contributions file which will need to
+be uploaded.
+
 ##### Initializing the life parameters for the realization
 Start with the `Select case` box and choose one of `New case...` or `Load case file...`.
 

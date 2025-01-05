@@ -5,11 +5,8 @@ import sskeys as k
 import owlbridge as owb
 
 
-def resetList():
-    k.setKey('stTimeLists', None)
-    k.setKey('timeList0', None)
-    if k.getKey('status') == 'married':
-        k.setKey('timeList1', None)
+def resetTimeLists():
+    k.resetTimeLists()
     owb.resetContributions()
 
 
@@ -24,7 +21,7 @@ else:
         if original is None or original == 'None':
             st.info("Case contains no contributions file.")
         else:
-            st.info("Case contains contributions file '%s' not yet uploaded." % original)
+            st.info("Case contains contributions file *'%s'* not yet uploaded." % original)
 
     k.initKey('stTimeLists', None)
     if k.getKey('stTimeLists') is None:
@@ -33,6 +30,7 @@ else:
         if stTimeLists is not None:
             k.setKey('stTimeLists', stTimeLists)
             owb.readContributions(stTimeLists)
+            st.rerun()
 
     if k.getKey('stTimeLists') is not None:
         k.initKey('timeList0', None)
@@ -58,4 +56,4 @@ else:
             st.dataframe(k.getKey('timeList1'))
 
     cantdel = (k.getKey('stTimeLists') is None)
-    st.button('Reset', on_click=resetList, disabled=cantdel)
+    st.button('Reset', on_click=resetTimeLists, disabled=cantdel)

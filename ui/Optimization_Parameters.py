@@ -15,10 +15,6 @@ def initProfile():
     owb.setProfile(profileChoices[0], False)
 
 
-def caseHasNoContributions():
-    return k.getKey('stTimeLists') is None
-
-
 k.runOncePerCase(initProfile)
 
 ret = k.titleBar('opto')
@@ -52,7 +48,8 @@ else:
         fromFile = k.getKey('readRothX')
         k.initKey('maxRothConversion', 50)
         ret = k.getNum("Maximum Roth conversion ($k)", 'maxRothConversion', disabled=fromFile, help=helpmsg)
-        ret = k.getToggle('Convert as in contributions file', 'readRothX', disabled=caseHasNoContributions())
+        caseHasNoContributions = (k.getKey('stTimeLists') is None)
+        ret = k.getToggle('Convert as in contributions file', 'readRothX', disabled=caseHasNoContributions)
 
     with col2:
         if k.getKey('status') == 'married':

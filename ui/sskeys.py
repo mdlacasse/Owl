@@ -57,6 +57,13 @@ def refreshCase(adic):
             del adic[key]
 
 
+def resetTimeLists():
+    setKey('stTimeLists', None)
+    setKey('timeList0', None)
+    if getKey('status') == 'married':
+        setKey('timeList1', None)
+
+
 def getIndex(item, choices):
     try:
         i = choices.index(item)
@@ -142,6 +149,7 @@ def duplicateCase():
     ss.cases[dupname]['summary'] = ''
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
+    resetTimeLists()
 
 
 def createCaseFromFile(confile):
@@ -158,7 +166,7 @@ def createCaseFromFile(confile):
     return True
 
 
-def createCase(case):
+def createNewCase(case):
     if case == 'newcase':
         # Widget stored case name in _newname.
         casename = ss._newcase
@@ -166,7 +174,7 @@ def createCase(case):
     if casename == '' or casename in ss.cases:
         return
 
-    ss.cases[casename] = {'name': casename, 'summary': '', 'logs': None}
+    ss.cases[casename] = {'name': casename, 'caseStatus': '', 'summary': '', 'logs': None}
     setCurrentCase(ss._newcase)
 
 
@@ -194,31 +202,26 @@ def dump():
 
 
 def setpull(key):
-    # print('pulling key', key, 'from', '_'+key, 'as', ss['_'+key])
     return setKey(key, ss['_'+key])
 
 
 def storepull(key):
-    # print('pulling key', key, 'from', '_'+key, 'as', ss['_'+key])
     return storeKey(key, ss['_'+key])
 
 
 def setKey(key, val):
-    # print('setting key', key, 'as', val)
     ss.cases[ss.currentCase][key] = val
     ss.cases[ss.currentCase]['caseStatus'] = 'modified'
     return val
 
 
 def storeKey(key, val):
-    # print('setting key', key, 'as', val)
     ss.cases[ss.currentCase][key] = val
     return val
 
 
 def initKey(key, val):
     if key not in ss.cases[ss.currentCase]:
-        # print('init key', key, 'as', val)
         ss.cases[ss.currentCase][key] = val
 
 

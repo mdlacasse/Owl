@@ -35,7 +35,12 @@ def createPlan():
     except Exception as e:
         st.error("Failed creation of plan '%s': %s" % (name, e))
         return
+
     k.setKey('plan', plan)
+
+    val = k.getKey('plots')
+    if val is not None:
+        plan.setDefaultPlots(val)
 
 
 def _checkPlan(func):
@@ -628,7 +633,8 @@ def genDic(plan):
         dic['yto'] = plan.rateTo
     else:
         dic['yfrm'] = 1928
-        dic['yto'] = date.today().year - 1
+        # Rates avalability are trailing by 1 or 2 years.
+        dic['yto'] = date.today().year - 2
 
     if plan.rateMethod in ['stochastic', 'histochastic']:
         qq = 1

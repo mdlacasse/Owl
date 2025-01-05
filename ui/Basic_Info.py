@@ -12,7 +12,7 @@ st.write("## Basic Info\n:orange[*%s*]" % k.currentCaseName())
 if ret == k.newCase:
     st.info('Starting a new case from scratch.\n\nA name for the scenario must first be provided.')
     st.text_input("Case name", value='', key='_newcase',
-                  on_change=k.createCase, args=['newcase'], placeholder='Enter a name...')
+                  on_change=k.createNewCase, args=['newcase'], placeholder='Enter a name...')
 elif ret == k.loadCaseFile:
     st.info('Starting a case from a *case* file.\n\nLook at the :material/help: Documentation for where to find examples.')
     confile = st.file_uploader('Upload *case* file...', key='_confile', type=['toml'])
