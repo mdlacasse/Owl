@@ -162,7 +162,7 @@ If a file was originally associated with a *case* file, a message will remind th
 
 #### Fixed Income
 This tab is for entering anticipated fixed income from pensions and social security.
-Amounts are in \\$k at the starting date. In the current implementation, 
+Amounts are in \\$k at the starting date. In the current implementation,
 social security is adjusted for inflation while pension is not.
 
 #### Rate Selection
@@ -257,7 +257,7 @@ outcome in a *case* file that can be uploaded in the future.
 
 #### Case Worksheets
 This tab shows the various worksheets containing annual transactions.
-A workbook can be downloaded as an Excel file for future reference, and 
+A workbook can be downloaded as an Excel file for future reference, and
 is better viewed in Excel than through the browser's representation.
 
 #### Case Summary

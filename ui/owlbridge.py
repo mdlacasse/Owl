@@ -393,7 +393,7 @@ def getAccountAllocationRatios():
             initial.append(int(k.getKey(f'j{j1}_init%'+str(k1)+'_0')))
             final.append(int(k.getKey(f'j{j1}_fin%'+str(k1)+'_0')))
         tmp = [initial, final]
-        accounts[j].append(tmp)
+        accounts[j1].append(tmp)
 
     if k.getKey('status') == 'married':
         for j1 in range(3):
@@ -403,7 +403,7 @@ def getAccountAllocationRatios():
                 initial.append(int(k.getKey(f'j{j1}_init%'+str(k1)+'_1')))
                 final.append(int(k.getKey(f'j{j1}_fin%'+str(k1)+'_1')))
             tmp = [initial, final]
-            accounts[j].append(tmp)
+            accounts[j1].append(tmp)
 
     return accounts
 
