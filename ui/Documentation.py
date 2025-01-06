@@ -277,9 +277,9 @@ A histogram of results and a success rate is displayed at the end of the run.
 $N$ is the number of runs, $P$ the probability of success,
 $\\bar{x}$ is the resulting average, and $M$ is the median.
 
-If the `Beneficiary fractions` are not all unity, two histograms will be displayed
-when maximizing bequest: one for the partial bequest at the passing of the first spouse
-and the other for the value of the bequest at the end of the plan.
+If the `Beneficiary fractions` are not all unity, two histograms will be displayed:
+one for the partial bequest at the passing of the first spouse
+and the other for the distribution of values of the objective being optimized.
 
 #### Monte Carlo
 This tab runs a Monte Carlo simulation using time sequences of annual rates of return that are generated
@@ -289,9 +289,9 @@ a histogram is shown, with a probability of success.
 The mean outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
 of cases $N$ and the probability of success $P$, which is the percentage of cases that succeeded.
 
-If the `Beneficiary fractions` are not all unity, two histograms will be displayed
-when maximizing bequest: one for the partial bequest at the passing of the first spouse
-and the other for the value of the bequest at the end of the plan.
+If the `Beneficiary fractions` are not all unity, two histograms will be displayed:
+one for the partial bequest at the passing of the first spouse
+and the other for the distribution of values of the objective being optimized.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]

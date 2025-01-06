@@ -17,7 +17,7 @@ else:
         for key in accounts:
             nkey = key+str(0)
             k.initKey(nkey, 0)
-            ret = k.getNum("%s's %s account ($k)" % (iname0, accounts[key]), nkey)
+            ret = k.getNum("%s's %s account ($k)" % (iname0, accounts[key]), nkey, help=k.help1000)
 
     with col2:
         if k.getKey('status') == 'married':
@@ -25,7 +25,7 @@ else:
             for key in accounts:
                 nkey = key+str(1)
                 k.initKey(nkey, 0)
-                ret = k.getNum("%s's %s account ($k)" % (iname1, accounts[key]), nkey)
+                ret = k.getNum("%s's %s account ($k)" % (iname1, accounts[key]), nkey, help=k.help1000)
 
     if k.getKey('status') == 'married':
         st.write("#### Survivor's spousal beneficiary fractions")
@@ -33,17 +33,21 @@ else:
         with col1:
             nkey = 'benf'+str(0)
             k.initKey(nkey, 1)
-            ret = k.getNum(accounts['txbl'].capitalize(), nkey, format='%.2f', max_value=1., step=0.05)
+            helpmsg = 'Fraction of account left to surviving spouse.'
+            ret = k.getNum(accounts['txbl'].capitalize(), nkey, format='%.2f', max_value=1.,
+                           step=0.05, help=helpmsg)
 
         with col2:
             nkey = 'benf'+str(1)
             k.initKey(nkey, 1)
-            ret = k.getNum(accounts['txDef'].capitalize(), nkey, format='%.2f', max_value=1., step=0.05)
+            ret = k.getNum(accounts['txDef'].capitalize(), nkey, format='%.2f', max_value=1.,
+                           step=0.05, help=helpmsg)
 
         with col3:
             nkey = 'benf'+str(2)
             k.initKey(nkey, 1)
-            ret = k.getNum(accounts['txFree'].capitalize(), nkey, format='%.2f', max_value=1., step=0.05)
+            ret = k.getNum(accounts['txFree'].capitalize(), nkey, format='%.2f', max_value=1.,
+                           step=0.05, help=helpmsg)
 
         st.write('#### Surplus deposit fraction')
         k.initKey('surplusFraction', 0.5)

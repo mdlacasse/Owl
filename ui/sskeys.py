@@ -7,6 +7,7 @@ import streamlit as st
 ss = st.session_state
 newCase = 'New Case...'
 loadCaseFile = 'Load Case File...'
+help1000 = "Value is in \\$1,000 denoted \\$k."
 
 
 def init():

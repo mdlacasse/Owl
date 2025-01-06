@@ -16,7 +16,7 @@ def getFloatInput(i, key, text, defval=0.):
     nkey = key+str(i)
     k.initKey(nkey, defval)
     inamex = k.getKey('iname'+str(i))
-    st.number_input("%s's %s" % (inamex, text), min_value=0.,
+    st.number_input("%s's %s" % (inamex, text), min_value=0., help=k.help1000,
                     value=float(k.getKey(nkey)), format='%.1f', step=10.,
                     on_change=k.setpull, args=[nkey], key='_'+nkey)
 

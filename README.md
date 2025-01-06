@@ -37,7 +37,7 @@ The algorithms in Owl rely on the open-source HiGHS linear programming solver. T
 detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
-While Owl can be used through a Jupyter notebooks,
+While Owl can be used through Jupyter notebooks,
 its simple API also serves as a back-end for a Web application using Streamlit.
 A hosted version of the app can be found at [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
 Alternatively, the application can also be run locally by simply running the script
