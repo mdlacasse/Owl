@@ -20,7 +20,7 @@ elif ret == k.loadCaseFile:
         if k.createCaseFromFile(confile):
             st.rerun()
 else:
-    helpmsg = "Case name can be changed by editing it directly"
+    helpmsg = "Case name can be changed by editing it directly."
     name = st.text_input('Case name',
                          value=k.currentCaseName(),
                          on_change=k.renameCase, args=['caseNewName'], key='_caseNewName',
@@ -85,6 +85,3 @@ else:
         st.button('Duplicate case :material/content_copy:', on_click=k.duplicateCase, disabled=cantcopy)
     with col3:
         st.button('Delete case :material/delete:', on_click=k.deleteCurrentCase, disabled=cantmodify)
-        # st.error("Do you really, really, wanna do this?")
-        # if st.button("Yes"):
-        # run_expensive_function()

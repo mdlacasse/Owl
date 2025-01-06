@@ -15,10 +15,11 @@ else:
         st.button('Run single case', on_click=owb.runPlan, disabled=k.caseIsNotRunReady())
     with col2:
         if k.caseHasCompletedRun():
+            fileName = 'case_'+k.getKey('name')+'.toml'
             download3 = st.download_button(
                 label="Download case file...",
                 data=owb.saveCaseFile(),
-                file_name='case_'+k.getKey('name')+'.toml',
+                file_name=fileName,
                 disabled=k.caseHasNotCompletedRun(),
                 mime='txt/plain'
             )

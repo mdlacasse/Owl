@@ -26,7 +26,7 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         choices = ['Net spending', 'Bequest']
-        helpmsg = "Value is in today's $"
+        helpmsg = "Value is in today's $."
         k.initKey('objective', choices[0])
         ret = k.getRadio("Maximize", choices, 'objective')
 
@@ -43,7 +43,7 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         iname0 = k.getKey('iname0')
-        helpmsg = "Value is in nominal $"
+        helpmsg = "Value is in nominal $."
         k.initKey('readRothX', False)
         fromFile = k.getKey('readRothX')
         k.initKey('maxRothConversion', 50)

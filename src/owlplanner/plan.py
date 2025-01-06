@@ -365,8 +365,8 @@ class Plan:
                 raise ValueError('Date must be "MM-DD" or "YYYY-MM-DD".')
 
         lp = calendar.isleap(thisyear)
-        # Take noon as the reference.
-        self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - .5) / (365 + lp)
+        # Take midnight as the reference.
+        self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1) / (365 + lp)
 
         self.mylog.vprint('Setting 1st-year starting date to %s.' % (self.startDate))
 

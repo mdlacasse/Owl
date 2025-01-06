@@ -20,7 +20,7 @@ two major objective goals can be set: either
 maximize net spending, or after-tax bequest under various constraints.
 Roth conversions are optimized to reduce tax burden, while federal income tax and Medicare
 premiums (including IRMAA) are calculated.
-See the full description of the package on [github](github.com/mdlacasse/owl) for details.
+See the full description of the package on [github](https://github.com/mdlacasse/owl) for details.
 
 --------------------------------------------------------------------------------------
 ## Getting started with the user interface
@@ -191,12 +191,20 @@ This tab allows you to select how to partition your assets between 4 investment 
 - 10-year Treasury Notes
 - Cash assets assumed to follow inflation.
 
+Two choices of asset allocations are possible:
+*account* and *individual*. For *account* type, each type
+of savings account is associated with its own asset allocation ratios.
+For *individual*, it is assumed that all savings accounts of a given
+individual follow the same allocation ratios, which can vary over the
+duration of the plan. It is assumed that the accounts are regularly
+rebalanced to maintain the prescribed allocation ratios.
+
 Asset allocations are requested at the beginning and the end of a plan, and
 a gliding function (either linear or an s-curve) allows you to glide from the
 initial value to the final value as the plan progresses in time.
-
 When an *s-curve* is selected, two additional parameters controlling the curve
-will appear, one for the timing of the inflexion point, and the other for its width.
+will appear, one for the timing of the inflexion point measured in years from now,
+and the other for the width of the transition, measured in +/- years from the center.
 
 ### Optimization Parameters
 This tab allows you to select the optimization parameters.
@@ -213,7 +221,7 @@ the column `RothX` of the
 Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
 the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
 
-The time profile of the net spending amount 
+The time profile of the net spending amount
 can be selected to either be flat or follow a *smile* shape.
 The smile shape has two configurable parameters: a *dip* percentage
 and a linear *increase* over the years (apart from inflation).

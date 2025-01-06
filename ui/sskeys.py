@@ -118,7 +118,7 @@ def caseIsNotMCReady():
 def titleBar(nkey, choices=None):
     if choices is None:
         choices = onlyCaseNames()
-    helpmsg = 'Select an existing case, or create a new one from scratch, or from a *case* file'
+    helpmsg = 'Select an existing case, or create a new one from scratch, or from a *case* file.'
     return st.sidebar.selectbox('Select case', choices, help=helpmsg,
                                 index=getIndex(currentCaseName(), choices), key='_'+nkey,
                                 on_change=switchToCase, args=[nkey])

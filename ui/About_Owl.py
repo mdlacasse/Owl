@@ -4,10 +4,11 @@ st.write("## About Owl 🦉")
 
 st.write('This version of Owl was released in January 2025.')
 st.write('Running on Streamlit %s.' % st.__version__)
+st.snow()
 
 st.write('''
 - This code was released under GPL Licence through a publicly available
-repository on [github](github.com/mdlacasse/owl).
+repository on [github](https://github.com/mdlacasse/owl).
 
 - This code does not store or forward any information. It fully respects you privacy.
 All source code is provided and can be inspected in the repository.
@@ -19,11 +20,14 @@ Copyright &copy; 2024 - Martin-D. Lacasse
 
 ---------------------------------------------------------------------
 #### :orange[Credits]
-- Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/)
-- Owl image is from [freepik](freepik.com)
-- Optimization solver is from [HiGHS](highs.dev)
-- Owl relies on the following [Python](python.org) packages: [Numpy](numpy.org), [Matplotlib](matplotlib.org),
-  [Pandas](pandas.pydata.org), [Seaborn](seaborn.pydata.org), [Streamlit](streamlit.io).
+- Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
+- Owl image is from [freepik](https://freepik.com).
+- Optimization solver is from [HiGHS](https://highs.dev).
+- Owl relies on the following [Python](https://python.org) packages:
+        - [Numpy](https://numpy.org), [Matplotlib](https://matplotlib.org),
+          [Pandas](https://pandas.pydata.org),
+          [Seaborn](https://seaborn.pydata.org), [Streamlit](https://streamlit.io),
+ and [Owlplanner](https://github.com/mdlacasse/owl).
 
 
 #### :orange[Disclaimers]

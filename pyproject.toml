@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "owlplanner"
-version = "2025.01.7"
+version = "2025.01.8"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
@@ -54,6 +54,7 @@ exclude = [
     "dist",
     "examples",
     "otherfiles",
+    "myfiles",
     "*.ipynb",
 ]
 extend-exclude = ["*.ipynb"]

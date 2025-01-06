@@ -116,11 +116,11 @@ else:
         with col1:
             key = 'interpCenter'
             k.initKey('interpCenter', 15.)
-            ret = k.getNum('Center', key, step=1., max_value=30., format='%.0f')
+            ret = k.getNum('Center (in years from now)', key, step=1., max_value=30., format='%.0f')
         with col2:
             key = 'interpWidth'
             k.initKey('interpWidth', 5.)
-            ret = k.getNum('Width', key, step=1., max_value=15., format='%.0f')
+            ret = k.getNum('Width (in +/- years from center)', key, step=1., max_value=15., format='%.0f')
 
     # st.write('####')
     if checkAllAllocs():
