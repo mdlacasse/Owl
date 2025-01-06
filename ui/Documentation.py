@@ -17,20 +17,21 @@ Strictly speaking, Owl is not a planning tool, but more an environment for explo
 It provides different realizations of a financial strategy through the rigorous
 mathematical optimization of relevant decision variables. Using a linear programming approach,
 two major objective goals can be set: either
-maximize net spending, or after-tax bequest under various constraints.
-Roth conversions are optimized to reduce tax burden, while federal income tax and Medicare
+maximize the net spending amount, or maximize an after-tax bequest, each under various constraints.
+Roth conversions are optimized to reduce the tax burden, while federal income tax and Medicare
 premiums (including IRMAA) are calculated.
 See the full description of the package on [github](https://github.com/mdlacasse/owl) for details.
 
 --------------------------------------------------------------------------------------
-## Getting started with the user interface
-The function of each tab is described in the same order below.
+### Getting started with the user interface
+The functions of each tab are described below in the same order as they appear in the sidebar.
 Typically, tabs would be accessed in order, starting from the top.
 The `Select case` selection box at the bottom of the margin allows to select an existing case
 or create a new one from scratch or from a *case* file, which
 contains all the values for the parameters.
 This box is present in all relevant tabs and allows to compare different scenarios.
 
+-------------------------------------------------
 ### :orange[Case Setup]
 This section contains the steps for creating and configuring case scenarios.
 
@@ -47,7 +48,7 @@ have passed according to the specified life expectancies.
 When duplicating a scenario, all parameters will be copied, but each tab in
 the `Case setup` section will need to be revisited in order
 to refresh the case. This includes the wages and contributions file which will need to
-be uploaded.
+be uploaded, if any was present.
 
 ##### Initializing the life parameters for the realization
 Start with the `Select case` box and choose one of `New case...` or `Load case file...`.
@@ -76,7 +77,7 @@ or just Google *life expectancy calculator*.
 Finally, a start date for the first year or the plan must be provided.
 By default, it starts today, but any other date
 in the current year can be chosen. This is useful if your numbers are known for a fixed date, or
-for reproducibility purposes. This date does not affect when the plan will end, which is at the
+for reproducibility purposes. This date does not affect when the plan ends, which is at the
 end of the year when all inidivuals have passed according to the life parameters data provided.
 
 #### Assets
@@ -99,7 +100,7 @@ the optimizer will find creative solutions that can generate surpluses in order
 to maximize the final bequest.
 
 #### Wages and Contributions
-This tab allows to enter an optional Excel file containing wages and contributions.
+This tab allows to enter an optional Excel file containing future wages and contributions.
 This file must contains 9 columns titled as follows:
 
 <span style="font-size: 10px;">
@@ -132,20 +133,12 @@ contributions to 403b as well or any other tax-deferred account, with the except
 of IRAs accounts which are treated separately. Contributions to your 401k/403b must
 also include your employer's
 contributions, if any. As this file is in Excel, one can use the native calculator to enter a percentage
-of the anticipated wages for contributions as this can sometimes be easier. Considering a specific example,
-assume that Jack earns 100k\\$ and contributes 5% to his 401k which his employer matches at up to 4%,
-then Jack's anticipated wages will be (1-.05)*100000 = 95000 and his 401k contributions will be
-.09/(1 - .05) * 95000 = 9000. The reason for using 95000 in the last equation allows for making
-cross-reference between the cells, as the number 100k\\$ will not appear directly.
-Another approach could be to use an additional column with for the total salary and derive numbers
-from there. Additional columns on the right can be used for calculations and will be ignored
-when the file is read.
+of the anticipated wages for contributions as this can sometimes be easier. For this
+purpose, additional columns (on the right) can be used for storing the anticipated total salary and
+to derive relevant numbers from there. These columns will be ignored when the file is processed.
 
-Roth conversion can be specified in the column marked *Roth X*. Roth conversion can be advantageous
-when performed during the years when the income is lower (and therefore lower tax rates),
-typically in the bridge years
-between having a full-time regular salary and collecting social security. This column is provided
-to override the Roth conversion optimization in Owl. When the option
+Roth conversion can be specified in the column marked *Roth X*.
+This column is provided to override the Roth conversion optimization in Owl. When the option
 `Convert as in contribution file` is toggled in the [Optimization Parameters](#optimization-parameters) tab,
 values from the contributions file will be used and no optimization over Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
@@ -165,26 +158,28 @@ Therefore, when running your own case, you will need to rename the tabs in the t
 have the same names as those used to create the plan
 (i.e., *Jack* and *Jill* in the example files provided).
 
-If a file was associated with the *case* file, a message will remind the user to upload the file.
+If a file was originally associated with a *case* file, a message will remind the user to upload the file.
 
 #### Fixed Income
 This tab is for entering anticipated fixed income from pensions and social security.
-Amounts are in \\$k at the starting date.
+Amounts are in \\$k at the starting date. In the current implementation, 
+social security is adjusted for inflation while pension is not.
 
 #### Rate Selection
 This tab allows you to select the return rates over the
-time span of the plan. There are two major types of rates:
-- *Fixed rates* - staying fixed from one year to another
+time span of the plan. All rates are annual.
+There are two major types of rates:
+- *Fixed rates* - staying the same from one year to another
     - *conversative*
     - *optimistic*
     - *historical average* - i.e., average over a range of past years
     - *user* - rates are provided by the user
-- *Varying rates* - varying from year to year
+- *Varying rates* - changing from year to year
     - *historical* - using a rate sequence which happened in the past
     - *histochastic* - using stochastic rates derived from statistics of historical rates
     - *stochastic* - using stochastic rates created from statistical parameters specified by the user.
 
-These rates are the rates of return for the assets considered. The types of asset are described
+These rates are the annual rates of return for each of the assets considered. The types of asset are described
 in the next section.
 
 #### Asset Allocations
@@ -196,36 +191,40 @@ This tab allows you to select how to partition your assets between 4 investment 
 
 Two choices of asset allocations are possible:
 *account* and *individual*. For *account* type, each type
-of savings account is associated with its own asset allocation ratios.
+of individual savings account is associated with its own asset allocation ratios.
 For *individual*, it is assumed that all savings accounts of a given
-individual follow the same allocation ratios, which can vary over the
-duration of the plan. It is assumed that the accounts are regularly
+individual follow the same allocation ratios.
+Allocation ratios can vary over the duration of the plan, starting
+from an *initial* allocation ratio at the beginning of the plan
+to a *final* allocation ratio at the passing of the individual.
+It is assumed that the accounts are regularly
 rebalanced to maintain the prescribed allocation ratios.
 
-Asset allocations are requested at the beginning and the end of a plan, and
-a gliding function (either linear or an s-curve) allows you to glide from the
-initial value to the final value as the plan progresses in time.
-When an *s-curve* is selected, two additional parameters controlling the curve
+An gliding function (either *linear* or an *s-curve*) interpolates the values
+of the allocation ratios from the *initial* values to the *final* values as the plan progresses in time.
+When an *s-curve* is selected, two additional parameters controlling the shape of the transition
 will appear, one for the timing of the inflexion point measured in years from now,
 and the other for the width of the transition, measured in +/- years from the center.
 
 ### Optimization Parameters
-This tab allows you to select the optimization parameters.
-One can choose between maximizing the net spending amount, or maximizing a bequest.
-As one of the two choices is selected as the objective function to optimize, the other becomes
-a constraint to obey.
+This tab allows you to select the problem to optimize.
+One can choose between maximizing the net spending amount subject to a constraint
+of a desired bequest, or maximizing a bequest, subject to a constraint of providing
+a desired net spending amount.
+As one of the two choices (net spending or bequest) is selected as the value to maximize,
+the other becomes a constraint to obey.
 
-Maximum amount for Roth conversions and who can execute them also needs to be
+Maximum amount for Roth conversions and who can execute them need to be
 specified. If a contribution file has been uploaded and the `Convert from contributions file`
 is toggled, Roth conversions will not be optimized, but will rather be performed according to
-the column `RothX` of the
-[Wages and Contributions](#wages-and-contributions).
+the column `RothX` described in the
+[Wages and Contributions](#wages-and-contributions) tab.
 
 Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
 the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
 
 The time profile of the net spending amount
-can be selected to either be flat or follow a *smile* shape.
+can be selected to either be *flat* or follow a *smile* shape.
 The smile shape has two configurable parameters: a *dip* percentage
 and a linear *increase* over the years (apart from inflation).
 Values default to 15% and 12% respectively, but they are configurable
@@ -247,7 +246,7 @@ for that reason they do not start at 1.
 Run a single scenario based on the selections made in the [Case Setup](#case-setup) section.
 This simulation runs over a single instance of a series of rates, either fixed or varying.
 The outcome is optimized according to the chosen parameters: either maximize the
-net spending, of maximize the bequest under the constrait of a net spending amount.
+net spending, of maximize the bequest under the constraint of a net spending amount.
 If `Convert from contributions file` is not toggled on,
 Roth conversions are optimized for maximizing the selected objective function.
 Various plots show the results, which can be displayed in today's \\$ or
@@ -258,7 +257,8 @@ outcome in a *case* file that can be uploaded in the future.
 
 #### Case Worksheets
 This tab shows the various worksheets containing annual transactions.
-They can be downloaded as an Excel file which looks better than the web representation.
+A workbook can be downloaded as an Excel file for future reference, and 
+is better viewed in Excel than through the browser's representation.
 
 #### Case Summary
 This tab shows a summary of the scenario which was computed.
@@ -266,6 +266,8 @@ It diplays informative sums of relevant income and spending values.
 
 --------------------------------------------------------------------------------------
 ### :orange[Multiple Scenarios]
+There are two different ways to run multiple scenarios and generate a histogram
+of results.
 
 #### Historical Range
 This tab allows the user to run multiple similations over a range of historical time spans.
@@ -275,27 +277,32 @@ A histogram of results and a success rate is displayed at the end of the run.
 $N$ is the number of runs, $P$ the probability of success,
 $\\bar{x}$ is the resulting average, and $M$ is the median.
 
-If the `Beneficiary fractions` are not all unity, two histograms will be displayed.
+If the `Beneficiary fractions` are not all unity, two histograms will be displayed
+when maximizing bequest: one for the partial bequest at the passing of the first spouse
+and the other for the value of the bequest at the end of the plan.
 
 #### Monte Carlo
-This tab runs a Monte Carlo simulation using time sequences of return that are generated
-statistically using the parameters provided by the user. At the end of the run,
+This tab runs a Monte Carlo simulation using time sequences of annual rates of return that are generated
+using statistical methods. At the end of the run,
 a histogram is shown, with a probability of success.
 
 The mean outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
 of cases $N$ and the probability of success $P$, which is the percentage of cases that succeeded.
 
-If the `Beneficiary fractions` are not all unity, two histograms will be displayed.
+If the `Beneficiary fractions` are not all unity, two histograms will be displayed
+when maximizing bequest: one for the partial bequest at the passing of the first spouse
+and the other for the value of the bequest at the end of the plan.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
 #### Documentation
-These pages...
+These pages.
 
 #### Logs
-The messages coming from the undelying Owl calculation engine.
+Messages coming from the undelying Owl calculation engine are displayed under this tab.
 
 #### About Owl
 Credits and disclaimers.
 
+</div>
 ''', unsafe_allow_html=True)

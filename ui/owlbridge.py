@@ -386,22 +386,22 @@ def getIndividualAllocationRatios():
 
 def getAccountAllocationRatios():
     accounts = [[], [], []]
-    for j in range(3):
+    for j1 in range(3):
         initial = []
         final = []
         for k1 in range(4):
-            initial.append(int(k.getKey(f'j{j}_init%'+str(k1)+'_0')))
-            final.append(int(k.getKey(f'j{j}_fin%'+str(k1)+'_0')))
+            initial.append(int(k.getKey(f'j{j1}_init%'+str(k1)+'_0')))
+            final.append(int(k.getKey(f'j{j1}_fin%'+str(k1)+'_0')))
         tmp = [initial, final]
         accounts[j].append(tmp)
 
     if k.getKey('status') == 'married':
-        for j in range(3):
+        for j1 in range(3):
             initial = []
             final = []
             for k1 in range(4):
-                initial.append(int(k.getKey(f'j{j}_init%'+str(k1)+'_1')))
-                final.append(int(k.getKey(f'j{j}_fin%'+str(k1)+'_1')))
+                initial.append(int(k.getKey(f'j{j1}_init%'+str(k1)+'_1')))
+                final.append(int(k.getKey(f'j{j1}_fin%'+str(k1)+'_1')))
             tmp = [initial, final]
             accounts[j].append(tmp)
 
@@ -581,8 +581,8 @@ def genDic(plan):
     dic['plots'] = plan.defaultPlots
     dic['allocType'] = plan.ARCoord
     dic['timeListsFileName'] = plan.timeListsFileName
-    for j in range(plan.N_j):
-        dic['benf'+str(j)] = plan.phi_j[j]
+    for j1 in range(plan.N_j):
+        dic['benf'+str(j1)] = plan.phi_j[j1]
 
     for i in range(plan.N_i):
         dic['iname'+str(i)] = plan.inames[i]
@@ -592,18 +592,19 @@ def genDic(plan):
         dic['ssAmt'+str(i)] = plan.ssecAmounts[i]/1000
         dic['pAge'+str(i)] = plan.pensionAges[i]
         dic['pAmt'+str(i)] = plan.pensionAmounts[i]/1000
-        for j in range(plan.N_j):
-            dic[accName[j]+str(i)] = plan.beta_ij[i, j]/1000
+        for j1 in range(plan.N_j):
+            dic[accName[j1]+str(i)] = plan.beta_ij[i, j1]/1000
+
         if plan.ARCoord == 'individual':
             for k1 in range(plan.N_k):
                 dic['j3_init%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][k1])
                 dic['j3_fin%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][k1])
         elif plan.ARCoord == 'account':
-            accName = ['taxable', 'tax-deferred', 'tax-free']
-            for j in range(3):
-                for k1 in range(plan.N_k):
-                    dic[f'j{j}%d_init%'+str(k1)+'_'+str(i)] = int(plan.boundsAR[accName[j]][i][0][k1])
-                    dic[f'j{j}_fin%'+str(k1)+'_'+str(i)] = int(plan.boundsAR[accName[j]][i][1][k1])
+            longAccName = ['taxable', 'tax-deferred', 'tax-free']
+            for j2 in range(3):
+                for k2 in range(plan.N_k):
+                    dic[f'j{j2}%d_init%'+str(k2)+'_'+str(i)] = int(plan.boundsAR[longAccName[j2]][i][0][k2])
+                    dic[f'j{j2}_fin%'+str(k2)+'_'+str(i)] = int(plan.boundsAR[longAccName[j2]][i][1][k2])
         else:
             raise ValueError("Only 'individual' and 'account' asset allocations are currently supported")
 
@@ -625,8 +626,8 @@ def genDic(plan):
         dic['varyingType'] = plan.rateMethod
 
     # Initialize in both cases.
-    for kk in range(plan.N_k):
-        dic['fxRate'+str(kk)] = 100*plan.rateValues[kk]
+    for k1 in range(plan.N_k):
+        dic['fxRate'+str(k1)] = 100*plan.rateValues[k1]
 
     if plan.rateMethod in ['historical average', 'histochastic', 'historical']:
         dic['yfrm'] = plan.rateFrm

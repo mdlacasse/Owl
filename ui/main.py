@@ -11,7 +11,7 @@ k.init()
 pages = {
           'Case setup': [st.Page('Basic_Info.py', icon=':material/person_add:'),
                          st.Page('Assets.py', icon=':material/savings:'),
-                         st.Page('Wages_And_Contributions.py', icon=':material/event_list:'),
+                         st.Page('Wages_And_Contributions.py', icon=':material/work_history:'),
                          st.Page('Fixed_Income.py', icon=':material/currency_exchange:'),
                          st.Page('Rate_Selection.py', icon=':material/monitoring:'),
                          st.Page('Asset_Allocations.py', icon=':material/percent:'),

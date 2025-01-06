@@ -561,6 +561,10 @@ class Plan:
         as a second argument. Default value is 60%.
         Dip and increase are percent changes in the smile profile.
         """
+        assert 0 <= percent  and percent <= 100, 'Survivor value %r outside range.' % percent
+        assert 0 <= dip  and dip <= 100, 'Dip value %r outside range.' % dip
+        assert 0 <= increase  and increase <= 100, 'Increase value %r outside range.' % dip
+
         self.chi = percent / 100
 
         self.mylog.vprint('Setting', profile, 'spending profile.')
@@ -2238,6 +2242,10 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         """
+        if self.xi_n is None:
+            self.mylog.vprint('Warning: Profile must be selected before plotting.')
+            return None
+
         title = self._name + '\nIncome Profile'
         if tag != '':
             title += ' - ' + tag

@@ -17,7 +17,7 @@ else:
     with col1:
         # if not owb.isCaseUnsolved():
         download2 = st.download_button(
-            label="Download data as Excel workbook...",
+            label="Download data as an Excel workbook...",
             data=owb.saveWorkbook(),
             file_name='workbook_'+k.getKey('name')+'.xlsx',
             mime='application/vnd.ms-excel',

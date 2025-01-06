@@ -206,17 +206,17 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             mylog.vprint('Ignoring to read contributions file %s.' % timeListsFileName)
 
     # Fixed Income.
-    ssecAmounts = np.array(diconf['Fixed Income']['Social security amounts'])
+    ssecAmounts = np.array(diconf['Fixed Income']['Social security amounts'], dtype=np.float32)
     ssecAges = np.array(diconf['Fixed Income']['Social security ages'], dtype=np.int32)
     p.setSocialSecurity(ssecAmounts, ssecAges)
-    pensionAmounts = np.array(diconf['Fixed Income']['Pension amounts'])
+    pensionAmounts = np.array(diconf['Fixed Income']['Pension amounts'], dtype=np.float32)
     pensionAges = np.array(diconf['Fixed Income']['Pension ages'], dtype=np.int32)
     p.setPension(pensionAmounts, pensionAges)
 
     # Rate Selection.
-    p.setDividendRate(diconf['Rate Selection']['Dividend tax rate'])
-    p.setLongTermCapitalTaxRate(diconf['Rate Selection']['Long-term capital gain tax rate'])
-    p.setHeirsTaxRate(diconf['Rate Selection']['Heirs rate on tax-deferred estate'])
+    p.setDividendRate(float(diconf['Rate Selection']['Dividend tax rate']))
+    p.setLongTermCapitalTaxRate(float(diconf['Rate Selection']['Long-term capital gain tax rate']))
+    p.setHeirsTaxRate(float(diconf['Rate Selection']['Heirs rate on tax-deferred estate']))
 
     frm = None
     to = None
@@ -232,10 +232,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         if not isinstance(to, int):
             to = int(to)
     if rateMethod in ['user', 'stochastic']:
-        rateValues = np.array(diconf['Rate Selection']['Values'])
+        rateValues = np.array(diconf['Rate Selection']['Values'], dtype=np.float32)
     if rateMethod in ['stochastic']:
-        stdev = np.array(diconf['Rate Selection']['Standard deviations'], dtype='float64')
-        rateCorr = np.array(diconf['Rate Selection']['Correlations'], dtype='float64')
+        stdev = np.array(diconf['Rate Selection']['Standard deviations'], dtype=np.float32)
+        rateCorr = np.array(diconf['Rate Selection']['Correlations'], dtype=np.float32)
     p.setRates(rateMethod, frm, to, rateValues, stdev, rateCorr)
 
     # Asset Allocation.
@@ -248,7 +248,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     allocType = diconf['Asset Allocations']['Type']
     if allocType == 'account':
         for aType in accountTypes:
-            boundsAR[aType] = np.array(diconf['Asset Allocations'][aType])
+            boundsAR[aType] = np.array(diconf['Asset Allocations'][aType], dtype=np.float32)
 
         p.setAllocationRatios(
             allocType,
@@ -257,7 +257,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             taxFree=boundsAR['tax-free'],
         )
     elif allocType == 'individual' or allocType == 'spouses':
-        boundsAR['generic'] = np.array(diconf['Asset Allocations']['generic'])
+        boundsAR['generic'] = np.array(diconf['Asset Allocations']['generic'], dtype=np.float32)
         p.setAllocationRatios(
             allocType,
             generic=boundsAR['generic'],
