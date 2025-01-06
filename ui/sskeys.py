@@ -275,9 +275,9 @@ def getRadio(text, choices, nkey, callback=setpull, help=None):
                     horizontal=True, help=help)
 
 
-def getToggle(text, nkey, callback=setpull, disabled=False):
+def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
     return st.toggle(text, value=getKey(nkey), on_change=callback, args=[nkey],
-                     disabled=disabled, key='_'+nkey)
+                     disabled=disabled, key='_'+nkey, help=help)
 
 
 def orangeDivider():

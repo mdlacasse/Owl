@@ -27,28 +27,28 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         choices = ['Net spending', 'Bequest']
-        helpmsg = "Value is in today's $."
+        helpmsg = "Value is in today's \\$k."
         k.initKey('objective', choices[0])
         ret = k.getRadio("Maximize", choices, 'objective')
 
     with col2:
         if k.getKey('objective') == 'Net spending':
             k.initKey('bequest', 0)
-            ret = k.getNum("Desired bequest ($k)", 'bequest', help=helpmsg)
+            ret = k.getNum("Desired bequest (\\$k)", 'bequest', help=helpmsg)
 
         else:
             k.initKey('netSpending', 0)
-            ret = k.getNum("Desired annual net spending ($k)", 'netSpending', help=helpmsg)
+            ret = k.getNum("Desired annual net spending (\\$k)", 'netSpending', help=helpmsg)
 
     st.divider()
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         iname0 = k.getKey('iname0')
-        helpmsg = "Value is in nominal $."
+        helpmsg = "Value is in nominal \\$k."
         k.initKey('readRothX', False)
         fromFile = k.getKey('readRothX')
         k.initKey('maxRothConversion', 50)
-        ret = k.getNum("Maximum Roth conversion ($k)", 'maxRothConversion', disabled=fromFile, help=helpmsg)
+        ret = k.getNum("Maximum Roth conversion (\\$k)", 'maxRothConversion', disabled=fromFile, help=helpmsg)
         caseHasNoContributions = (k.getKey('stTimeLists') is None)
         ret = k.getToggle('Convert as in contributions file', 'readRothX', disabled=caseHasNoContributions)
 
@@ -65,7 +65,8 @@ else:
     k.initKey('withMedicare', True)
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
-        ret = k.getToggle('Medicare and IRMAA calculations', 'withMedicare')
+        helpmsg = "Do or do not perform additional Medicare and IRMAA calculations."
+        ret = k.getToggle('Medicare and IRMAA calculations', 'withMedicare', help=helpmsg)
     with col2:
         if owb.hasMOSEK():
             choices = ['HiGHS', 'MOSEK']

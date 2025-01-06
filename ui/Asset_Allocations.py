@@ -117,11 +117,15 @@ else:
         with col1:
             key = 'interpCenter'
             k.initKey('interpCenter', 15.)
-            ret = k.getNum('Center (in years from now)', key, step=1., max_value=30., format='%.0f')
+            helpmsg = "Time in future years to the transition's inflection point."
+            ret = k.getNum('Center (in years from now)', key, step=1.,
+                           help=helpmsg, max_value=30., format='%.0f')
         with col2:
             key = 'interpWidth'
             k.initKey('interpWidth', 5.)
-            ret = k.getNum('Width (in +/- years from center)', key, step=1., max_value=15., format='%.0f')
+            helpmsg = 'Half width in years over which the transition happens.'
+            ret = k.getNum('Width (in +/- years from center)', key, step=1.,
+                           help=helpmsg, max_value=15., format='%.0f')
 
     # st.write('####')
     if checkAllAllocs():

@@ -23,11 +23,10 @@ Copyright &copy; 2024 - Martin-D. Lacasse
 - Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
 - Owl image is from [freepik](https://freepik.com).
 - Optimization solver is from [HiGHS](https://highs.dev).
-- Owl relies on the following [Python](https://python.org) packages:
-        - [Numpy](https://numpy.org), [Matplotlib](https://matplotlib.org),
-          [Pandas](https://pandas.pydata.org),
-          [Seaborn](https://seaborn.pydata.org), [Streamlit](https://streamlit.io),
- and [Owlplanner](https://github.com/mdlacasse/owl).
+- Owl planner relies on the following [Python](https://python.org) packages:
+    - [Numpy](https://numpy.org), [Matplotlib](https://matplotlib.org),
+    [Pandas](https://pandas.pydata.org),
+    [Seaborn](https://seaborn.pydata.org), and [Streamlit](https://streamlit.io) for the front-end.
 
 
 #### :orange[Disclaimers]

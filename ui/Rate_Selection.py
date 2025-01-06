@@ -188,9 +188,12 @@ else:
 
     st.divider()
     st.write('### Other rates')
-    k.initKey('divRate', 2)
-    ret = k.getNum('Dividends return rate (%)', 'divRate', max_value=100., format='%.2f',
-                   callback=owb.setDividendRate, step=1.)
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    with col1:
+        k.initKey('divRate', 2)
+        helpmsg = 'Average dividend return on stock portfolio.'
+        ret = k.getNum('Dividends return rate (%)', 'divRate', max_value=100., format='%.2f',
+                       help=helpmsg, callback=owb.setDividendRate, step=1.)
 
     st.write('#### Income taxes')
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
@@ -201,5 +204,6 @@ else:
 
     with col2:
         k.initKey('heirsTx', 30)
-        ret = k.getNum('Heirs income tax rate (%)', 'heirsTx', max_value=100.,
+        helpmsg = 'Marginal tax rate that heirs would have to pay on inherited tax-deferred balance.'
+        ret = k.getNum('Heirs income tax rate (%)', 'heirsTx', max_value=100., help=helpmsg,
                        callback=owb.setHeirsTaxRate, step=1.)

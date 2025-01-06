@@ -342,6 +342,7 @@ These commands need to run from the Owl directory where you downloaded Owl from 
 Pip will install all the required dependencies.
 
 Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
+The user front-end was built on Streamlit.
 Package `odfpy` might be required if one read files created by LibreOffice. Again, these dependencies
 will be installed by pip.
 

@@ -50,7 +50,9 @@ else:
                            step=0.05, help=helpmsg)
 
         st.write('#### Surplus deposit fraction')
-        k.initKey('surplusFraction', 0.5)
-        helpmsg = "When beneficiary fractions are not all 1, set surplus deposits to go to survivor's account."
-        ret = k.getNum("Fraction of surplus deposited in %s's taxable account" % iname1,
-                       'surplusFraction', format='%.2f', help=helpmsg, max_value=1.0, step=0.05)
+        col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+        with col1:
+            k.initKey('surplusFraction', 0.5)
+            helpmsg = "When beneficiary fractions are not all 1, set surplus deposits to all go to survivor's account."
+            ret = k.getNum("Fraction deposited in %s's taxable account" % iname1,
+                           'surplusFraction', format='%.2f', help=helpmsg, max_value=1.0, step=0.05)

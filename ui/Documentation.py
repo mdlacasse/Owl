@@ -27,9 +27,10 @@ See the full description of the package on [github](https://github.com/mdlacasse
 The functions of each tab are described below in the same order as they appear in the sidebar.
 Typically, tabs would be accessed in order, starting from the top.
 The `Select case` selection box at the bottom of the margin allows to select an existing case
-or create a new one from scratch or from a *case* file, which
-contains all the values for the parameters.
+or create a new one from scratch, or from a *case* file, which
+would then populate all parameter values.
 This box is present in all relevant tabs and allows to compare different scenarios.
+However, two more choices are available when the [Basic Info](#basic-info) tab is selected.
 
 -------------------------------------------------
 ### :orange[Case Setup]
@@ -70,24 +71,23 @@ one must provide the year of birth of each spouse(s) and their expected lifespan
 For selecting your own numbers, there are plenty of longevity predictors on the web. Pick your favorite:
 - [longevityillustrator](https://longevityillustrator.org),
 - [livingto100](https://www.livingto100.com/calculator),
-- [sunlife](https://www.sunlife.ca/en/tools-and-resources/tools-and-calculators/life-expectancy-calculator/),
 
 or just Google *life expectancy calculator*.
 
-Finally, a start date for the first year or the plan must be provided.
+Finally, a starting date for the first year of the plan must be provided.
 By default, it starts today, but any other date
 in the current year can be chosen. This is useful if your numbers are known for a fixed date, or
 for reproducibility purposes. This date does not affect when the plan ends, which is at the
-end of the year when all inidivuals have passed according to the life parameters data provided.
+end of the year when all individuals have passed according to the life parameters data provided.
 
 #### Assets
 This tab allows to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
 Three types of saving accounts are considered and are tracked separately for spouses:
-- Taxable saving accounts
-- Tax-deferred saving accounts
-- Tax-exempt saving accounts
+- Taxable saving accounts,
+- Tax-deferred saving accounts,
+- Tax-exempt saving accounts.
 
 
 For married couples, the spousal `Beneficiary fractions` associated with these accounts
@@ -101,6 +101,7 @@ to maximize the final bequest.
 
 #### Wages and Contributions
 This tab allows to enter an optional Excel file containing future wages and contributions.
+The values in this spreadsheet are in \\$, not in thousands.
 This file must contains 9 columns titled as follows:
 
 <span style="font-size: 10px;">
@@ -170,7 +171,7 @@ This tab allows you to select the return rates over the
 time span of the plan. All rates are annual.
 There are two major types of rates:
 - *Fixed rates* - staying the same from one year to another
-    - *conversative*
+    - *conservative*
     - *optimistic*
     - *historical average* - i.e., average over a range of past years
     - *user* - rates are provided by the user
@@ -203,7 +204,7 @@ rebalanced to maintain the prescribed allocation ratios.
 An gliding function (either *linear* or an *s-curve*) interpolates the values
 of the allocation ratios from the *initial* values to the *final* values as the plan progresses in time.
 When an *s-curve* is selected, two additional parameters controlling the shape of the transition
-will appear, one for the timing of the inflexion point measured in years from now,
+will appear, one for the timing of the inflection point measured in years from now,
 and the other for the width of the transition, measured in +/- years from the center.
 
 ### Optimization Parameters
@@ -259,10 +260,11 @@ outcome in a *case* file that can be uploaded in the future.
 This tab shows the various worksheets containing annual transactions.
 A workbook can be downloaded as an Excel file for future reference, and
 is better viewed in Excel than through the browser's representation.
+All values here (worksheets and workbook) are in \\$, not in thousands.
 
 #### Case Summary
 This tab shows a summary of the scenario which was computed.
-It diplays informative sums of relevant income and spending values.
+It displays informative sums of relevant income and spending values.
 
 --------------------------------------------------------------------------------------
 ### :orange[Multiple Scenarios]
@@ -270,7 +272,7 @@ There are two different ways to run multiple scenarios and generate a histogram
 of results.
 
 #### Historical Range
-This tab allows the user to run multiple similations over a range of historical time spans.
+This tab allows the user to run multiple simulations over a range of historical time spans.
 Each simulation assumes that the rates followed a sequence which happened in the past,
 starting from each year in the past, and then offset by one year, and so on.
 A histogram of results and a success rate is displayed at the end of the run.
@@ -299,7 +301,7 @@ and the other for the distribution of values of the objective being optimized.
 These pages.
 
 #### Logs
-Messages coming from the undelying Owl calculation engine are displayed under this tab.
+Messages coming from the underlying Owl calculation engine are displayed under this tab.
 
 #### About Owl
 Credits and disclaimers.
