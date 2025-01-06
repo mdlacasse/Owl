@@ -16,7 +16,7 @@ else:
         for key in accounts:
             nkey = key+str(0)
             k.initKey(nkey, 0)
-            ret = k.getNum('%s %s account ($k)' % (iname0, accounts[key]), nkey)
+            ret = k.getNum("%s's %s account ($k)" % (iname0, accounts[key]), nkey)
 
     with col2:
         if k.getKey('status') == 'married':
@@ -24,7 +24,7 @@ else:
             for key in accounts:
                 nkey = key+str(1)
                 k.initKey(nkey, 0)
-                ret = k.getNum('%s %s account ($k)' % (iname1, accounts[key]), nkey)
+                ret = k.getNum("%s's %s account ($k)" % (iname1, accounts[key]), nkey)
 
     if k.getKey('status') == 'married':
         st.write("#### Survivor's spousal beneficiary fractions")

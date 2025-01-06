@@ -3,7 +3,7 @@ import streamlit as st
 
 col1, col2, col3, col4 = st.columns(4)
 with col4:
-    st.image("http://raw.github.com/mdlacasse/owl/main/docs/images/owl.jpg")
+    st.image("http://raw.github.com/mdlacasse/owl/main/docs/images/owl.png")
 
 st.write('## Owl Retirement Planner')
 st.markdown('''
@@ -114,7 +114,8 @@ This file must contains 9 columns titled as follows:
 </span>
 
 Here, 20XX is the last row which could be the last year based on the life expectancy values provided.
-Missing years or empty cells will be filled with zero values.
+Missing years or empty cells will be filled with zero values, while years outside the
+span of the plan will be ignored.
 For the columns, *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment or other sources
 (not including dividends from your taxable investment accounts). Note that column names are case sensitive
@@ -163,6 +164,8 @@ affecting the plan. There has to be one tab for each individual and bearing the 
 Therefore, when running your own case, you will need to rename the tabs in the template file to
 have the same names as those used to create the plan
 (i.e., *Jack* and *Jill* in the example files provided).
+
+If a file was associated with the *case* file, a message will remind the user to upload the file.
 
 #### Fixed Income
 This tab is for entering anticipated fixed income from pensions and social security.

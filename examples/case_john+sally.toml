@@ -48,4 +48,4 @@ maxRothConversion = 200
 netSpending = 100
 
 [Results]
-"Default plots" = "nominal"
+"Default plots" = "today"
