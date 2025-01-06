@@ -7,7 +7,8 @@ import owlbridge as owb
 
 caseChoices = k.allCaseNames()
 ret = k.titleBar('setup', caseChoices)
-st.write("## Basic Info\n:orange[*%s*]" % k.currentCaseName())
+k.caseHeader()
+st.write("## Basic Info")
 
 if ret == k.newCase:
     st.info('Starting a new case from scratch.\n\nA name for the scenario must first be provided.')

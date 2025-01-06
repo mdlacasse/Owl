@@ -75,7 +75,8 @@ def checkAllAllocs():
 
 
 ret = k.titleBar('allocs')
-st.write("## Asset Allocations\n:orange[*%s*]" % k.currentCaseName())
+k.caseHeader()
+st.write("## Asset Allocations")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

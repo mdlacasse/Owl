@@ -5,7 +5,8 @@ import owlbridge as owb
 
 
 ret = k.titleBar('historicalRange')
-st.write("## Historical Range\n:orange[*%s*]" % k.currentCaseName())
+k.caseHeader()
+st.write("## Historical Range")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

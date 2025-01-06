@@ -277,3 +277,11 @@ def getRadio(text, choices, nkey, callback=setpull, help=None):
 def getToggle(text, nkey, callback=setpull, disabled=False):
     return st.toggle(text, value=getKey(nkey), on_change=callback, args=[nkey],
                      disabled=disabled, key='_'+nkey)
+
+
+def orangeDivider():
+    st.html('<style> hr {border-color: orange;}</style><hr>')
+
+
+def caseHeader():
+    st.html('<div style="text-align: right;color: orange;font-style: italic;">%s</div>' % currentCaseName())

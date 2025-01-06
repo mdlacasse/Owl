@@ -3,7 +3,8 @@ import streamlit as st
 import sskeys as k
 
 ret = k.titleBar('assets')
-st.write("## Assets\n:orange[*%s*]" % k.currentCaseName())
+k.caseHeader()
+st.write("## Assets")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

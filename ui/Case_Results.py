@@ -5,14 +5,18 @@ import owlbridge as owb
 
 
 ret = k.titleBar('results')
-st.write("## Case Results\n:orange[*%s*]" % k.currentCaseName())
+k.caseHeader()
+st.write("## Case Results")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
     col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
-        st.button('Run single case', on_click=owb.runPlan, disabled=k.caseIsNotRunReady())
+        choices = ['nominal', 'today']
+        k.initKey('plots', choices[0])
+        ret = k.getRadio("Dollar amounts in plots", choices, 'plots',
+                         callback=owb.setDefaultPlots)
     with col2:
         if k.caseHasCompletedRun():
             fileName = 'case_'+k.getKey('name')+'.toml'
@@ -24,10 +28,7 @@ else:
                 mime='txt/plain'
             )
     with col3:
-        choices = ['nominal', 'today']
-        k.initKey('plots', choices[0])
-        ret = k.getRadio("Dollar amounts in plots", choices, 'plots',
-                         callback=owb.setDefaultPlots)
+        st.button('Run single case', on_click=owb.runPlan, disabled=k.caseIsNotRunReady())
 
     st.divider()
     if k.caseHasCompletedRun():

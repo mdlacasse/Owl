@@ -11,7 +11,8 @@ def resetTimeLists():
 
 
 ret = k.titleBar('wages')
-st.write("## Wages and Contributions\n:orange[*%s*]" % k.currentCaseName())
+k.caseHeader()
+st.write("## Wages and Contributions")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

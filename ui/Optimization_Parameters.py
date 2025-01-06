@@ -18,7 +18,8 @@ def initProfile():
 k.runOncePerCase(initProfile)
 
 ret = k.titleBar('opto')
-st.write("## Optimization Parameters\n:orange[*%s*]" % k.currentCaseName())
+k.caseHeader()
+st.write("## Optimization Parameters")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

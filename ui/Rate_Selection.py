@@ -47,7 +47,8 @@ k.initKey('varyingType', varyingChoices[0])
 k.runOncePerCase(initRates)
 
 ret = k.titleBar('rates')
-st.write("## Rates Selection\n:orange[*%s*]" % k.currentCaseName())
+k.caseHeader()
+st.write("## Rates Selection")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

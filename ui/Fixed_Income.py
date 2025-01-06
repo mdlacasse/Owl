@@ -22,8 +22,8 @@ def getFloatInput(i, key, text, defval=0.):
 
 
 ret = k.titleBar('fixed')
-# st.write("## :orange[Fixed Income for *%s*]" % k.currentCaseName())
-st.write("## Fixed Income\n:orange[*%s*]" % k.currentCaseName())
+k.caseHeader()
+st.write("## Fixed Income")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
