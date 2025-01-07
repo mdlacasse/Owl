@@ -191,6 +191,7 @@ def runHistorical(plan):
         k.storeKey('caseStatus', 'exception')
         st.error('Solution failed: %s' % e)
         k.storeKey('summary', '')
+        setRates(plan)
         return
 
     k.storeKey('caseStatus', plan.caseStatus)
@@ -198,6 +199,9 @@ def runHistorical(plan):
         k.storeKey('summary', plan.summaryString())
     else:
         k.storeKey('summary', '')
+
+    k.storeKey('caseStatus', 'ran historical')
+    setRates(plan)
 
 
 @_checkPlan
@@ -439,7 +443,7 @@ def plotSingleResults(plan):
 
     fig = plan.showTaxes(figure=True)
     if fig:
-        cols[c].write('#### Income Taxes and Medicare (including IRMAA)')
+        cols[c].write('#### Income Taxes and Medicare (incl. IRMAA)')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
