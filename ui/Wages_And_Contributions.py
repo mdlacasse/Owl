@@ -25,12 +25,15 @@ else:
 
     k.initKey('stTimeLists', None)
     if k.getKey('stTimeLists') is None:
-        stTimeLists = st.file_uploader('Upload optional contribution file...', key='_stTimeLists',
-                                       type=['xlsx'])
+        col1, col2 = st.columns(2, gap='large')
+        with col1:
+            stTimeLists = st.file_uploader('Upload optional contribution file...', key='_stTimeLists',
+                                           type=['xlsx'])
         if stTimeLists is not None:
             if owb.readContributions(stTimeLists):
                 k.setKey('stTimeLists', stTimeLists)
-            st.rerun()
+                st.rerun()
+            st.stop()
 
     if k.getKey('stTimeLists') is not None:
         k.initKey('timeList0', None)

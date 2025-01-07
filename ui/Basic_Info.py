@@ -10,15 +10,21 @@ ret = k.titleBar('setup', caseChoices)
 k.caseHeader("Basic Info")
 
 if ret == k.newCase:
-    st.info('Starting a new case from scratch.\n\nA name for the scenario must first be provided.')
-    st.text_input("Case name", value='', key='_newcase',
-                  on_change=k.createNewCase, args=['newcase'], placeholder='Enter a name...')
+    col1, col2 = st.columns(2, gap='large')
+    with col1:
+        st.info('Starting a new case from scratch.\n\n'
+                'A name for the scenario must first be provided.')
+        st.text_input("Case name", value='', key='_newcase',
+                      on_change=k.createNewCase, args=['newcase'], placeholder='Enter a name...')
 elif ret == k.loadCaseFile:
-    st.info('Starting a case from a *case* file.\n\nLook at the :material/help: Documentation for where to find examples.')
-    confile = st.file_uploader('Upload *case* file...', key='_confile', type=['toml'])
-    if confile is not None:
-        if k.createCaseFromFile(confile):
-            st.rerun()
+    col1, col2 = st.columns(2, gap='large')
+    with col1:
+        st.info('Starting a case from a *case* file.\n\n'
+                'Look at the :material/help: Documentation for where to find examples.')
+        confile = st.file_uploader('Upload *case* file...', key='_confile', type=['toml'])
+        if confile is not None:
+            if k.createCaseFromFile(confile):
+                st.rerun()
 else:
     helpmsg = "Case name can be changed by editing it directly."
     col1, col2 = st.columns(2, gap='large')
