@@ -7,8 +7,7 @@ import owlbridge as owb
 
 caseChoices = k.allCaseNames()
 ret = k.titleBar('setup', caseChoices)
-k.caseHeader()
-st.write("## Basic Info")
+k.caseHeader("Basic Info")
 
 if ret == k.newCase:
     st.info('Starting a new case from scratch.\n\nA name for the scenario must first be provided.')
@@ -22,10 +21,12 @@ elif ret == k.loadCaseFile:
             st.rerun()
 else:
     helpmsg = "Case name can be changed by editing it directly."
-    name = st.text_input('Case name',
-                         value=k.currentCaseName(),
-                         on_change=k.renameCase, args=['caseNewName'], key='_caseNewName',
-                         placeholder='Enter a name', help=helpmsg)
+    col1, col2 = st.columns(2, gap='large')
+    with col1:
+        name = st.text_input('Case name',
+                             value=k.currentCaseName(),
+                             on_change=k.renameCase, args=['caseNewName'], key='_caseNewName',
+                             placeholder='Enter a name', help=helpmsg)
 
     diz1 = (k.getKey('plan') is not None)
     diz2 = diz1
@@ -36,7 +37,7 @@ else:
              index=statusChoices.index(k.getKey('status')), key='_status',
              on_change=k.setpull, args=['status'], horizontal=True)
 
-    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
         k.initKey('iname0', '')
         if k.getKey('iname0') == '':

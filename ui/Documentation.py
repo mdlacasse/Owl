@@ -105,6 +105,7 @@ The values in this spreadsheet are in \\$, not in thousands.
 This file must contains 9 columns titled as follows:
 
 <span style="font-size: 10px;">
+</span>
 
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth X|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
@@ -113,7 +114,6 @@ This file must contains 9 columns titled as follows:
 | ... | | | | | | | | |
 |20XX | | | | | | | | |
 
-</span>
 
 Here, 20XX is the last row which could be the last year based on the life expectancy values provided.
 Missing years or empty cells will be filled with zero values, while years outside the

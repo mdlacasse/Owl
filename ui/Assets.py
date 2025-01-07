@@ -3,15 +3,14 @@ import streamlit as st
 import sskeys as k
 
 ret = k.titleBar('assets')
-k.caseHeader()
-st.write("## Assets")
+k.caseHeader("Assets")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    st.write('### Account Balances')
+    st.write('#### Savings Account Balances')
     accounts = {'txbl':  'taxable', 'txDef': 'tax-deferred', 'txFree': 'tax-exempt'}
-    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
         iname0 = k.getKey('iname0')
         for key in accounts:
@@ -28,7 +27,8 @@ else:
                 ret = k.getNum("%s's %s account ($k)" % (iname1, accounts[key]), nkey, help=k.help1000)
 
     if k.getKey('status') == 'married':
-        st.write("#### Survivor's spousal beneficiary fractions")
+        st.divider()
+        st.write("##### Survivor's spousal beneficiary fractions")
         col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
         with col1:
             nkey = 'benf'+str(0)
@@ -49,8 +49,8 @@ else:
             ret = k.getNum(accounts['txFree'].capitalize(), nkey, format='%.2f', max_value=1.,
                            step=0.05, help=helpmsg)
 
-        st.write('#### Surplus deposit fraction')
-        col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+        st.write('##### Surplus deposit fraction')
+        col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
         with col1:
             k.initKey('surplusFraction', 0.5)
             helpmsg = "When beneficiary fractions are not all 1, set surplus deposits to all go to survivor's account."

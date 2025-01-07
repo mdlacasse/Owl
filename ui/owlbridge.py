@@ -278,10 +278,14 @@ def setRates(plan):
 @_checkPlan
 def showAllocations(plan):
     figures = plan.showAllocations(figure=True)
-    # print('figures', figures)
+    st.divider()
+    st.markdown('#### Asset Allocation')
+    n = 3 if k.getKey('allocType') == 'account' else 2
+    c = 0
+    cols = st.columns(n, gap='small')
     for fig in figures:
-        st.markdown('###')
-        st.pyplot(fig)
+        cols[c].pyplot(fig)
+        c = (c + 1) % n
 
 
 @_checkPlan
@@ -292,17 +296,19 @@ def showProfile(plan):
 
 
 @_checkPlan
-def showRates(plan):
+def showRates(plan, col):
     fig = plan.showRates(figure=True)
     if fig:
-        st.pyplot(fig)
+        col.write('#### Selected rates over time horizon')
+        col.pyplot(fig)
 
 
 @_checkPlan
-def showRatesCorrelations(plan):
+def showRatesCorrelations(plan, col):
     fig = plan.showRatesCorrelations(figure=True)
     if fig:
-        st.pyplot(fig)
+        col.write('#### Correlations between return rates')
+        col.pyplot(fig)
 
 
 @_checkPlan
@@ -410,36 +416,47 @@ def getAccountAllocationRatios():
 
 @_checkPlan
 def plotSingleResults(plan):
+    c = 0
+    n = 2
+    cols = st.columns(n, gap='small')
     fig = plan.showNetSpending(figure=True)
     if fig:
-        st.write('#### Net Available Spending')
-        st.pyplot(fig)
-
-    fig = plan.showSources(figure=True)
-    if fig:
-        st.write('#### Raw Income Sources')
-        st.pyplot(fig)
-
-    fig = plan.showAccounts(figure=True)
-    if fig:
-        st.write('#### Account Balances')
-        st.pyplot(fig)
-
-    figs = plan.showAssetDistribution(figure=True)
-    if figs:
-        st.write('#### Assets Distribution')
-        for fig in figs:
-            st.pyplot(fig)
+        cols[c].write('#### Net Available Spending')
+        cols[c].pyplot(fig)
+        c = (c + 1) % n
 
     fig = plan.showGrossIncome(figure=True)
     if fig:
-        st.write('#### Taxable Ordinary Income')
-        st.pyplot(fig)
+        cols[c].write('#### Taxable Ordinary Income')
+        cols[c].pyplot(fig)
+        c = (c + 1) % n
+
+    fig = plan.showSources(figure=True)
+    if fig:
+        cols[c].write('#### Raw Income Sources')
+        cols[c].pyplot(fig)
+        c = (c + 1) % n
 
     fig = plan.showTaxes(figure=True)
     if fig:
-        st.write('#### Income Taxes and Medicare (including IRMAA)')
-        st.pyplot(fig)
+        cols[c].write('#### Income Taxes and Medicare (including IRMAA)')
+        cols[c].pyplot(fig)
+        c = (c + 1) % n
+
+    fig = plan.showAccounts(figure=True)
+    if fig:
+        cols[c].write('#### Savings Balance')
+        cols[c].pyplot(fig)
+        c = (c + 1) % n
+
+    c = 0
+    figs = plan.showAssetDistribution(figure=True)
+    if figs:
+        st.write('#### Assets Distribution')
+        morecols = st.columns(3, gap='small')
+        for fig in figs:
+            morecols[c].pyplot(fig)
+            c = (c + 1) % 3
 
 
 @_checkPlan

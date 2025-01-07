@@ -561,9 +561,9 @@ class Plan:
         as a second argument. Default value is 60%.
         Dip and increase are percent changes in the smile profile.
         """
-        assert 0 <= percent  and percent <= 100, 'Survivor value %r outside range.' % percent
-        assert 0 <= dip  and dip <= 100, 'Dip value %r outside range.' % dip
-        assert 0 <= increase  and increase <= 100, 'Increase value %r outside range.' % dip
+        assert 0 <= percent and percent <= 100, 'Survivor value %r outside range.' % percent
+        assert 0 <= dip and dip <= 100, 'Dip value %r outside range.' % dip
+        assert 0 <= increase and increase <= 100, 'Increase value %r outside range.' % dip
 
         self.chi = percent / 100
 
@@ -2378,7 +2378,7 @@ class Plan:
                     y2stack[aname] = np.zeros((count, self.N_n))
                     y2stack[aname][i][:] = self.alpha_ijkn[i, acList.index(acType), assetDic[key], : self.N_n]
 
-                    title = self._name + '\nAssets Allocations (%) - ' + acType
+                    title = self._name + '\nAsset Allocation (%) - ' + acType
                     if self.ARCoord == 'spouses':
                         title += ' spouses'
                     else:

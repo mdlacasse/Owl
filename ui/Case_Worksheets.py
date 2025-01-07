@@ -4,8 +4,7 @@ import sskeys as k
 import owlbridge as owb
 
 ret = k.titleBar('worksheets')
-k.caseHeader()
-st.write("## Case Worksheets")
+k.caseHeader("Case Worksheets")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
@@ -13,13 +12,11 @@ else:
     owb.showWorkbook()
 
     st.divider()
-    col1, col2 = st.columns(2, gap='small', vertical_alignment='top')
-    with col1:
-        # if not owb.isCaseUnsolved():
-        download2 = st.download_button(
-            label="Download data as an Excel workbook...",
-            data=owb.saveWorkbook(),
-            file_name='workbook_'+k.getKey('name')+'.xlsx',
-            mime='application/vnd.ms-excel',
-            disabled=owb.isCaseUnsolved()
-        )
+    # if not owb.isCaseUnsolved():
+    download2 = st.download_button(
+        label="Download data as an Excel workbook...",
+        data=owb.saveWorkbook(),
+        file_name='Workbook_'+k.getKey('name')+'.xlsx',
+        mime='application/vnd.ms-excel',
+        disabled=owb.isCaseUnsolved()
+    )

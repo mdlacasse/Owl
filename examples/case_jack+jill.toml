@@ -35,10 +35,8 @@ To = 2002
 "Interpolation method" = "s-curve"
 "Interpolation center" = 15
 "Interpolation width" = 5
-Type = "account"
-taxable = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 60, 40, 0, 0,], [ 80, 20, 0, 0,],],]
-tax-deferred = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],],]
-tax-free = [ [ [ 100, 0, 0, 0,], [ 100, 0, 0, 0,],], [ [ 50, 50, 0, 0,], [ 60, 40, 0, 0,],],]
+Type = "individual"
+generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 60, 40, 0, 0,], [ 80, 0, 10, 10,],],]
 
 ["Optimization Parameters"]
 "Spending profile" = "smile"
@@ -53,4 +51,4 @@ bequest = 500
 noRothConversions = "Jill"
 
 [Results]
-"Default plots" = "nominal"
+"Default plots" = "today"

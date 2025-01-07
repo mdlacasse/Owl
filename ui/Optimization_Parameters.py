@@ -18,13 +18,12 @@ def initProfile():
 k.runOncePerCase(initProfile)
 
 ret = k.titleBar('opto')
-k.caseHeader()
-st.write("## Optimization Parameters")
+k.caseHeader("Optimization Parameters")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
         choices = ['Net spending', 'Bequest']
         helpmsg = "Value is in today's \\$k."
@@ -41,7 +40,7 @@ else:
             ret = k.getNum("Desired annual net spending (\\$k)", 'netSpending', help=helpmsg)
 
     st.divider()
-    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
         iname0 = k.getKey('iname0')
         helpmsg = "Value is in nominal \\$k."
@@ -63,7 +62,7 @@ else:
 
     st.divider()
     k.initKey('withMedicare', True)
-    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
         helpmsg = "Do or do not perform additional Medicare and IRMAA calculations."
         ret = k.getToggle('Medicare and IRMAA calculations', 'withMedicare', help=helpmsg)
@@ -88,4 +87,7 @@ else:
             ret = k.getIntNum("Smile increase (%)", 'smileIncrease', max_value=100, callback=owb.setProfile)
 
     st.divider()
-    owb.showProfile()
+    col1, col2 = st.columns(2, gap='small')
+    with col1:
+        st.write('#### Income Profile')
+        owb.showProfile()

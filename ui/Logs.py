@@ -4,8 +4,7 @@ import sskeys as k
 
 
 ret = k.titleBar('logs')
-k.caseHeader()
-st.write("## Logs")
+k.caseHeader("Logs")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')

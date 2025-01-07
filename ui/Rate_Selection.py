@@ -47,8 +47,7 @@ k.initKey('varyingType', varyingChoices[0])
 k.runOncePerCase(initRates)
 
 ret = k.titleBar('rates')
-k.caseHeader()
-st.write("## Rates Selection")
+k.caseHeader("Rates Selection")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
@@ -89,7 +88,7 @@ else:
     if ((k.getKey('rateType') == 'fixed' and 'hist' in k.getKey('fixedType'))
        or (k.getKey('rateType') == 'varying' and 'hist' in k.getKey('varyingType'))):
 
-        col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+        col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
             st.number_input('Starting year', min_value=1928,
                             max_value=k.getKey('yto'),
@@ -180,11 +179,12 @@ else:
             k.getNum('Cash Assets/Inflation', 'diag4', True, format='%.2f', min_value=-1., max_value=1.,
                      callback=None)
 
-        st.write('#### Correlations between return rates')
-        owb.showRatesCorrelations()
+    st.divider()
+    col1, col2 = st.columns(2, gap='small')
+    if k.getKey('rateType') == 'varying':
+        owb.showRatesCorrelations(col2)
 
-    st.write('#### Selected rates over time horizon')
-    owb.showRates()
+    owb.showRates(col1)
 
     st.divider()
     st.write('### Other rates')

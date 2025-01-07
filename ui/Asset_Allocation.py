@@ -20,7 +20,7 @@ DEF = [60, 20, 10, 10]
 def getIndividualAllocs(i, title, deco):
     mydeco = 'j3_' + deco
     iname = k.getKey('iname'+str(i))
-    st.write("%s's %s allocations for all accounts (%%)" % (iname, title))
+    st.write("###### %s's %s allocation for all accounts (%%)" % (iname, title))
     cols = st.columns(4, gap='large', vertical_alignment='top')
     for k1 in range(4):
         with cols[k1]:
@@ -31,7 +31,7 @@ def getIndividualAllocs(i, title, deco):
 def getAccountAllocs(i, j, title, deco):
     iname = k.getKey('iname'+str(i))
     mydeco = f'j{j}_' + deco
-    st.write("%s's %s allocations for %s account (%%)" % (iname, title, ACC[j]))
+    st.write("###### %s's %s allocation for %s account (%%)" % (iname, title, ACC[j]))
     cols = st.columns(4, gap='large', vertical_alignment='top')
     for k1 in range(4):
         with cols[k1]:
@@ -75,8 +75,7 @@ def checkAllAllocs():
 
 
 ret = k.titleBar('allocs')
-k.caseHeader()
-st.write("## Asset Allocations")
+k.caseHeader("Asset Allocation")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
@@ -127,7 +126,6 @@ else:
             ret = k.getNum('Width (in +/- years from center)', key, step=1.,
                            help=helpmsg, max_value=15., format='%.0f')
 
-    # st.write('####')
     if checkAllAllocs():
         if k.getKey('caseStatus') != 'solved':
             owb.setInterpolationMethod()
