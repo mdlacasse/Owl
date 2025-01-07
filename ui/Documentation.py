@@ -52,9 +52,9 @@ to refresh the case. This includes the wages and contributions file which will n
 be uploaded, if any was present.
 
 ##### Initializing the life parameters for the realization
-Start with the `Select case` box and choose one of `New case...` or `Load case file...`.
+Start with the `Select case` box and choose one of `New case...` or `Upload case file...`.
 
-If `Load case file...` is selected, a *case* file must be uploaded.
+If `Upload case file...` is selected, a *case* file must be uploaded.
 These files end with the *.toml* extension, are human readable (and therefore editable),
 and contain all the parameters required to characterize a scenario.
 An example is provided

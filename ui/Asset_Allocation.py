@@ -112,7 +112,7 @@ else:
     k.getRadio('Gliding interpolation method', choices, key)
 
     if k.getKey(key) == choices[1]:
-        col1, col2 = st.columns(2, gap='large')
+        col1, col2, col3, col4 = st.columns(4, gap='large')
         with col1:
             key = 'interpCenter'
             k.initKey('interpCenter', 15.)

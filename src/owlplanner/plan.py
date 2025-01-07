@@ -1363,6 +1363,9 @@ class Plan:
             columns = ['partial', objective]
         elif objective == 'maxBequest':
             columns = ['partial', 'final']
+        else:
+            self.mylog.print('Invalid objective %s.' % objective)
+            return None
 
         df = pd.DataFrame(columns=columns)
 
@@ -1414,6 +1417,9 @@ class Plan:
             columns = ['partial', objective]
         elif objective == 'maxBequest':
             columns = ['partial', 'final']
+        else:
+            self.mylog.print('Invalid objective %s.' % objective)
+            return None
 
         df = pd.DataFrame(columns=columns)
 
