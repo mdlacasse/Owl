@@ -191,7 +191,7 @@ def runHistorical(plan):
         k.storeKey('caseStatus', 'exception')
         st.error('Solution failed: %s' % e)
         k.storeKey('summary', '')
-        setRates(plan)
+        setRates()
         return
 
     k.storeKey('caseStatus', plan.caseStatus)
@@ -201,7 +201,7 @@ def runHistorical(plan):
         k.storeKey('summary', '')
 
     k.storeKey('caseStatus', 'ran historical')
-    setRates(plan)
+    setRates()
 
 
 @_checkPlan
@@ -337,16 +337,17 @@ def setInterpolationMethod(plan):
 @_checkPlan
 def readContributions(plan, stFile):
     if stFile is None:
-        return None
+        return False
 
     try:
-        ret = plan.readContributions(stFile)
+        plan.readContributions(stFile)
         k.setKey('timeListsFileName', stFile.name)
         plan.timeListsFileName = stFile.name
     except Exception as e:
-        raise RuntimeError("Failed to parse contribution file '%s': %s" % e)
+        st.error("Failed to parse contribution file '%s': %s" % (stFile.name, e))
+        return False
 
-    return ret
+    return True
 
 
 @_checkPlan
@@ -545,7 +546,7 @@ def createCaseFromFile(file):
         mystringio = StringIO(file.read().decode('utf-8'))
         plan = owl.readConfig(mystringio, logstreams=[strio], readContributions=False)
     except Exception as e:
-        raise RuntimeError('Failed to parse case file: %s' % (e))
+        st.error('Failed to parse case file: %s' % (e))
 
     name, mydic = genDic(plan)
     mydic['logs'] = strio
@@ -627,7 +628,8 @@ def genDic(plan):
                     dic[f'j{j2}%d_init%'+str(k2)+'_'+str(i)] = int(plan.boundsAR[longAccName[j2]][i][0][k2])
                     dic[f'j{j2}_fin%'+str(k2)+'_'+str(i)] = int(plan.boundsAR[longAccName[j2]][i][1][k2])
         else:
-            raise ValueError("Only 'individual' and 'account' asset allocations are currently supported")
+            st.error("Only 'individual' and 'account' asset allocations are currently supported")
+            return None
 
     optionKeys = list(plan.solverOptions)
     for key in ['maxRothConversion', 'noRothConversions', 'withMedicare', 'netSpending', 'bequest']:

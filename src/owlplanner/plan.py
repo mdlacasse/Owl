@@ -888,7 +888,10 @@ class Plan:
         in any order. A template is provided as an example.
         Missing rows (years) are populated with zero values.
         """
-        self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
+        try:
+            self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
+        except Exception as e:
+            raise Exception('Unsuccessful read: %s' % e)
 
         timelists.check(self.inames, self.timeLists, self.horizons)
         self.timeListsFileName = filename
@@ -914,7 +917,7 @@ class Plan:
 
         self.caseStatus = 'modified'
 
-        return None
+        return True
 
     def resetContributions(self):
         """

@@ -28,8 +28,8 @@ else:
         stTimeLists = st.file_uploader('Upload optional contribution file...', key='_stTimeLists',
                                        type=['xlsx'])
         if stTimeLists is not None:
-            k.setKey('stTimeLists', stTimeLists)
-            owb.readContributions(stTimeLists)
+            if owb.readContributions(stTimeLists):
+                k.setKey('stTimeLists', stTimeLists)
             st.rerun()
 
     if k.getKey('stTimeLists') is not None:
