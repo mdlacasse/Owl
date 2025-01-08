@@ -1490,7 +1490,7 @@ class Plan:
                         % (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True))
                     )
                 plt.legend(legend, shadow=True)
-                plt.xlabel('%d k$' % self.year_n[0])
+                plt.xlabel('%d $k' % self.year_n[0])
                 plt.title(objective)
                 leads = ['partial %d' % my[0], '  final %d' % my[1]]
             elif len(means) == 2:
@@ -1506,7 +1506,7 @@ class Plan:
                     axes[q].set_label(legend)
                     axes[q].legend(labels=legend)
                     axes[q].set_title(leads[q])
-                    axes[q].set_xlabel('%d k$' % self.year_n[0])
+                    axes[q].set_xlabel('%d $k' % self.year_n[0])
             else:
                 # Show net spending as single histogram.
                 fig, axes = plt.subplots()
@@ -1515,7 +1515,7 @@ class Plan:
                     ('$M$: %s, $\\bar{x}$: %s' % (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))
                 ]
                 plt.legend(legend, shadow=True)
-                plt.xlabel('%d k$' % self.year_n[0])
+                plt.xlabel('%d $k' % self.year_n[0])
                 plt.title(objective)
                 leads = [objective]
 
@@ -2247,7 +2247,7 @@ class Plan:
 
     def showProfile(self, tag='', figure=False):
         """
-        Plot income profile over time.
+        Plot spending profile over time.
 
         A tag string can be set to add information to the title of the plot.
         """
@@ -2255,7 +2255,7 @@ class Plan:
             self.mylog.vprint('Warning: Profile must be selected before plotting.')
             return None
 
-        title = self._name + '\nIncome Profile'
+        title = self._name + '\nSpending Profile'
         if tag != '':
             title += ' - ' + tag
 
@@ -2289,13 +2289,13 @@ class Plan:
         style = {'net': '-', 'target': ':'}
         if value == 'nominal':
             series = {'net': self.g_n, 'target': (self.g_n[0] / self.xi_n[0]) * self.xiBar_n}
-            yformat = 'k\\$ (nominal)'
+            yformat = '\\$k (nominal)'
         else:
             series = {
                 'net': self.g_n / self.gamma_n[:-1],
                 'target': (self.g_n[0] / self.xi_n[0]) * self.xi_n,
             }
-            yformat = 'k\\$ (' + str(self.year_n[0]) + '\\$)'
+            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
@@ -2321,10 +2321,10 @@ class Plan:
         value = self._checkValue(value)
 
         if value == 'nominal':
-            yformat = 'k\\$ (nominal)'
+            yformat = '\\$k (nominal)'
             infladjust = 1
         else:
-            yformat = 'k\\$ (' + str(self.year_n[0]) + '\\$)'
+            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
             infladjust = self.gamma_n
 
         years_n = np.array(self.year_n)
@@ -2427,10 +2427,10 @@ class Plan:
         year_n = np.append(self.year_n, [self.year_n[-1] + 1])
 
         if value == 'nominal':
-            yformat = 'k\\$ (nominal)'
+            yformat = '\\$k (nominal)'
             savings_in = self.savings_in
         else:
-            yformat = 'k\\$ (' + str(self.year_n[0]) + '\\$)'
+            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
             savings_in = {}
             for key in self.savings_in:
                 savings_in[key] = self.savings_in[key] / self.gamma_n
@@ -2463,10 +2463,10 @@ class Plan:
             title += ' - ' + tag
 
         if value == 'nominal':
-            yformat = 'k\\$ (nominal)'
+            yformat = '\\$k (nominal)'
             sources_in = self.sources_in
         else:
-            yformat = 'k\\$ (' + str(self.year_n[0]) + '\\$)'
+            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
             sources_in = {}
             for key in self.sources_in:
                 sources_in[key] = self.sources_in[key] / self.gamma_n[:-1]
@@ -2523,13 +2523,13 @@ class Plan:
 
         if value == 'nominal':
             series = {'income taxes': self.T_n, 'Medicare': self.M_n}
-            yformat = 'k\\$ (nominal)'
+            yformat = '\\$k (nominal)'
         else:
             series = {
                 'income taxes': self.T_n / self.gamma_n[:-1],
                 'Medicare': self.M_n / self.gamma_n[:-1],
             }
-            yformat = 'k\\$ (' + str(self.year_n[0]) + '\\$)'
+            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
 
         title = self._name + '\nIncome Tax'
         if tag != '':
@@ -2559,11 +2559,11 @@ class Plan:
 
         if value == 'nominal':
             series = {'taxable income': self.G_n}
-            yformat = 'k\\$ (nominal)'
+            yformat = '\\$k (nominal)'
             infladjust = self.gamma_n[:-1]
         else:
             series = {'taxable income': self.G_n / self.gamma_n[:-1]}
-            yformat = 'k\\$ (' + str(self.year_n[0]) + '\\$)'
+            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
             infladjust = 1
 
         title = self._name + '\nTaxable Ordinary Income vs. Tax Brackets'
@@ -2864,7 +2864,7 @@ class Plan:
         return None
 
 
-def _lineIncomePlot(x, series, style, title, yformat='k\\$'):
+def _lineIncomePlot(x, series, style, title, yformat='\\$k'):
     """
     Core line plotter function.
     """
@@ -2891,7 +2891,7 @@ def _lineIncomePlot(x, series, style, title, yformat='k\\$'):
     return fig, ax
 
 
-def _stackPlot(x, inames, title, irange, series, snames, location, yformat='k$'):
+def _stackPlot(x, inames, title, irange, series, snames, location, yformat='\\$k'):
     """
     Core function for stacked plots.
     """

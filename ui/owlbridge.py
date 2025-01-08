@@ -10,6 +10,11 @@ import sskeys as k
 import progress
 
 
+# Historical rates available.
+FROM = 1928
+TO = 2024
+
+
 def hasMOSEK():
     spec = importlib.util.find_spec('mosek')
     return spec is not None
@@ -249,7 +254,7 @@ def setRates(plan):
         varyingType = k.getKey('varyingType')
         if varyingType.startswith('histo'):
             if varyingType == 'historical':
-                yto = min(2023, yfrm+plan.N_n-1)
+                yto = min(TO, yfrm+plan.N_n-1)
                 k.setKey('yto', yto)
             plan.setRates(varyingType, yfrm, yto)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
@@ -656,7 +661,7 @@ def genDic(plan):
         dic['yfrm'] = plan.rateFrm
         dic['yto'] = plan.rateTo
     else:
-        dic['yfrm'] = 1928
+        dic['yfrm'] = FROM
         # Rates avalability are trailing by 1 or 2 years.
         dic['yto'] = date.today().year - 2
 

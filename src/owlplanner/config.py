@@ -17,6 +17,7 @@ from datetime import date
 
 from owlplanner import plan
 from owlplanner import logging
+from owlplanner.rates import FROM
 
 
 def saveConfig(plan, file, mylog):
@@ -70,7 +71,7 @@ def saveConfig(plan, file, mylog):
         diconf['Rate Selection']['From'] = int(plan.rateFrm)
         diconf['Rate Selection']['To'] = int(plan.rateTo)
     else:
-        diconf['Rate Selection']['From'] = int(1928)
+        diconf['Rate Selection']['From'] = int(FROM)
         diconf['Rate Selection']['To'] = int(date.today().year - 1)
 
     # Asset Allocations.

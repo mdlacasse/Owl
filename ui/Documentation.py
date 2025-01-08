@@ -154,7 +154,7 @@ withdrawals and distributions from retirement accounts. This is the only column 
 negative numbers: all other column entries should be positive.
 
 The tab name for each spreadsheet represents the name of the spouse for reporting yearly transactions
-affecting the plan. There has to be one tab for each individual and bearing the same name.
+affecting the plan. For each individual in the plan, there has to be a tab with the same name.
 Therefore, when running your own case, you will need to rename the tabs in the template file to
 have the same names as those used to create the plan
 (i.e., *Jack* and *Jill* in the example files provided).
@@ -164,7 +164,9 @@ If a file was originally associated with a *case* file, a message will remind th
 #### Fixed Income
 This tab is for entering anticipated fixed income from pensions and social security.
 Amounts are in \\$k at the starting date. In the current implementation,
-social security is adjusted for inflation while pension is not.
+social security is adjusted for inflation while pension is not, and
+the income starts on the first day of the year selected, with the value provided.
+In other words, the values given are in future \\$, not in today's \\$.
 
 #### Rate Selection
 This tab allows you to select the return rates over the

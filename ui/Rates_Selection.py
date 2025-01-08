@@ -52,8 +52,8 @@ k.caseHeader("Rates Selection")
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    k.initKey('yfrm', 1928)
-    k.initKey('yto', 2023)
+    k.initKey('yfrm', owb.FROM)
+    k.initKey('yto', owb.TO)
 
     k.getRadio('## Rate type', rateChoices, 'rateType', updateRates)
 
@@ -90,13 +90,13 @@ else:
 
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
-            st.number_input('Starting year', min_value=1928,
+            st.number_input('Starting year', min_value=owb.FROM,
                             max_value=k.getKey('yto'),
                             value=k.getKey('yfrm'),
                             on_change=updateRates, args=['yfrm'], key='_yfrm')
 
         with col2:
-            st.number_input('Ending year', max_value=2023,
+            st.number_input('Ending year', max_value=owb.TO,
                             min_value=k.getKey('yfrm'),
                             value=k.getKey('yto'),
                             on_change=updateRates, args=['yto'], key='_yto')

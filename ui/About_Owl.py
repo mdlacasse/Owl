@@ -27,7 +27,7 @@ Copyright &copy; 2024 - Martin-D. Lacasse
     - [Numpy](https://numpy.org), [Matplotlib](https://matplotlib.org),
     [Pandas](https://pandas.pydata.org),
     [Seaborn](https://seaborn.pydata.org), and [Streamlit](https://streamlit.io) for the front-end.
-
+- The :streamlit: [Streamlit Community Cloud](https://streamlit.io/cloud) for hosting.
 
 #### :orange[Disclaimers]
 - I am not a financial planner.

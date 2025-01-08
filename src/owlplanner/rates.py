@@ -9,7 +9,7 @@ See companion document for a complete explanation and description
 of all variables and parameters.
 
 This class provides the historical annual rate of returns for different
-classes of assets: S&P500, Baa corporate bonds, Aaa corporate bonds,
+classes of assets: S&P500, Aaa and Baa corporate bonds, 3-mo T-Bills,
 10-year Treasury notes, and inflation as measured by CPI all from
 1928 until now.
 
@@ -23,7 +23,7 @@ to the last current data year.
 
 Copyright (C) 2024 -- Martin-D. Lacasse
 
-Last updated: May 2024
+Last updated: Jan 2025
 
 Disclaimer: This program comes with no guarantee. Use at your own risk.
 """
@@ -36,10 +36,10 @@ from datetime import date
 from owlplanner import logging
 from owlplanner import utils as u
 
-# All data goes from 1928 to 2023. Update the TO value when data
+# All data goes from 1928 to 2024. Update the TO value when data
 # becomes available for subsequent years.
 FROM = 1928
-TO = 2023
+TO = 2024
 
 # Annual rate of return (%) of S&P 500 since 1928, including dividends.
 SP500 = [
@@ -149,6 +149,7 @@ SP500 = [
     28.47,
     -18.04,
     26.06,
+    24.88,
 ]
 
 # Annual rate of return (%) of Baa Corporate Bonds since 1928.
@@ -259,6 +260,7 @@ BondsBaa = [
     0.93,
     -15.14,
     8.74,
+    1.74,
 ]
 
 # Annual rate of return (%) of Aaa Corporate Bonds since 1928.
@@ -369,6 +371,7 @@ BondsAaa = [
     -1.93,
     -12.88,
     5.09,
+    -1.03,
 ]
 
 # Annual rate of return (%) for 10-y Treasury notes since 1928.
@@ -479,6 +482,7 @@ TNotes = [
     -4.42,
     -17.83,
     3.88,
+    -1.64,
 ]
 
 # Annual rates of return for 3-month Treasury bills since 1928.
@@ -589,6 +593,7 @@ TBills = [
     0.05,
     2.02,
     5.07,
+    4.97,
 ]
 
 # Inflation rate as U.S. CPI index (%) since 1928 (1914).
@@ -617,90 +622,91 @@ Inflation = [
     2.25,
     18.13,
     8.84,
-    2.73,
-    -1.83,
+    2.99,
+    -2.07,
     # 1950
-    5.80,
-    5.96,
-    0.91,
-    0.60,
-    -0.37,
+    5.93,
+    6.00,
+    0.75,
+    0.75,
+    -0.74,
     0.37,
-    2.83,
-    3.04,
+    2.99,
+    2.90,
     1.76,
-    1.52,
+    1.73,
     # 1960
     1.36,
     0.67,
-    1.23,
-    1.65,
-    1.20,
+    1.33,
+    1.64,
+    0.97,
     1.92,
-    3.36,
-    3.28,
-    4.71,
-    5.90,
+    3.46,
+    3.04,
+    4.72,
+    6.20,
     # 1970
     5.57,
     3.27,
     3.41,
-    8.94,
-    12.10,
-    7.13,
-    5.04,
-    6.68,
-    8.99,
-    13.25,
+    8.71,
+    12.34,
+    6.94,
+    4.86,
+    6.70,
+    9.02,
+    13.29,
     # 1980
-    12.35,
-    8.91,
+    12.52,
+    8.92,
     3.83,
     3.79,
-    4.04,
-    3.79,
-    1.19,
-    4.33,
-    4.41,
-    4.64,
+    3.95,
+    3.80,
+    1.10,
+    4.43,
+    4.42,
+    4.65,
     # 1990
-    6.25,
-    2.98,
-    2.97,
-    2.81,
-    2.60,
-    2.53,
-    3.38,
+    6.11,
+    3.06,
+    2.90,
+    2.75,
+    2.67,
+    2.54,
+    3.32,
     1.70,
     1.61,
     2.68,
     # 2000
-    3.44,
-    1.60,
-    2.48,
-    2.04,
-    3.34,
-    3.34,
-    2.52,
-    4.11,
-    -0.02,
-    2.81,
+    3.39,
+    1.55,
+    2.38,
+    1.88,
+    3.26,
+    3.42,
+    2.54,
+    4.08,
+    0.09,
+    2.72,
     # 2010
-    1.44,
-    3.06,
-    1.76,
-    1.51,
-    0.65,
-    0.64,
-    2.05,
-    2.13,
-    2.00,
-    2.31,
+    1.50,
+    2.96,
+    1.74,
+    1.50,
+    0.76,
+    0.73,
+    2.07,
+    2.11,
+    1.91,
+    2.29,
     # 2020
-    1.32,
-    7.19,
-    6.44,
-    3.12,
+    1.36,
+    7.04,
+    6.45,
+    3.35,
+    2.75,
 ]
 
 

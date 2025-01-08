@@ -10,19 +10,19 @@ k.caseHeader("Historical Range")
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    k.initKey('hyfrm', 1928)
-    k.initKey('hyto', 2023)
+    k.initKey('hyfrm', owb.FROM)
+    k.initKey('hyto', owb.TO)
     k.initKey('histoplot', None)
 
     col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='bottom')
     with col1:
-        st.number_input('Starting year', min_value=1928,
+        st.number_input('Starting year', min_value=owb.FROM,
                         max_value=k.getKey('hyto'),
                         value=k.getKey('hyfrm'),
                         on_change=k.storepull, args=['hyfrm'], key='_hyfrm')
 
     with col2:
-        st.number_input('Ending year', max_value=2023,
+        st.number_input('Ending year', max_value=owb.TO,
                         min_value=k.getKey('hyfrm'),
                         value=k.getKey('hyto'),
                         on_change=k.storepull, args=['hyto'], key='_hyto')
