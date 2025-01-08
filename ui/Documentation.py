@@ -1,14 +1,18 @@
 import streamlit as st
 
 
-col1, col2, col3, col4 = st.columns(4)
-with col4:
+# col1, col2, col3, col4 = st.columns(4)
+# with col4:
+# st.image("http://raw.github.com/mdlacasse/owl/main/docs/images/owl.png")
+
+col1, col2, col3 = st.columns([0.65, 0.07, 0.28], gap='large')
+with col3:
     st.image("http://raw.github.com/mdlacasse/owl/main/docs/images/owl.png")
-
-st.write('## Owl Retirement Planner')
-st.markdown('''
-<div style="text-align: justify">
-
+    st.caption("Retirement planner with great wisdom")
+with col1:
+    st.write('## Owl Retirement Planner')
+# <div style="text-align: justify">
+    st.markdown('''
 #### A retirement exploration tool based on linear programming
 
 This tool is based on the Owl Python package aimed at providing a retirement modeling
@@ -24,12 +28,13 @@ See the full description of the package on [github](https://github.com/mdlacasse
 
 --------------------------------------------------------------------------------------
 ### Getting started with the user interface
-The functions of each tab are described below in the same order as they appear in the sidebar.
+Functions of each tab are described below in the same order as they appear in the sidebar.
 Typically, tabs would be accessed in order, starting from the top.
 The `Select case` selection box at the bottom of the margin allows to select an existing case
 or create a new one from scratch, or from a *case* file, which
 would then populate all parameter values.
-This box is present in all relevant tabs and allows to compare different scenarios.
+This box is present in all tabs except those in the `Resources` section,
+and allows to compare different scenarios.
 However, two more choices are available when the [Basic Info](#basic-info) tab is selected.
 
 -------------------------------------------------
@@ -103,18 +108,22 @@ to maximize the final bequest.
 This tab allows to enter an optional Excel file containing future wages and contributions.
 The values in this spreadsheet are in \\$, not in thousands.
 This file must contains 9 columns titled as follows:
+''', unsafe_allow_html=True)
 
-<span style="font-size: 10px;">
-</span>
-
+# <span style="font-size: 10px;"> </span>
+st.write('''
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth X|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
 |2025 | | | | | | | | |
 |2026 | | | | | | | | |
 | ... | | | | | | | | |
 |20XX | | | | | | | | |
+''')
 
-
+# <div style="text-align: justify">
+col1, col2 = st.columns([0.65, 0.35], gap='large')
+with col1:
+    st.write('''
 Here, 20XX is the last row which could be the last year based on the life expectancy values provided.
 Missing years or empty cells will be filled with zero values, while years outside the
 span of the plan will be ignored.
@@ -123,6 +132,7 @@ For the columns, *anticipated wages* is the annual amount
 (not including dividends from your taxable investment accounts). Note that column names are case sensitive
 and all entries must be in lower case. Best way to start this process is to use the template
 file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx).
+
 
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your
@@ -167,6 +177,9 @@ Amounts are in \\$k at the starting date. In the current implementation,
 social security is adjusted for inflation while pension is not, and
 the income starts on the first day of the year selected, with the value provided.
 In other words, the values given are in future \\$, not in today's \\$.
+A great site for deciding on when to take social security is
+[opensocialsecurity.com](https://opensocialsecurity.com).
+And obviously there is [ssa.gov](https://ssa.gov).
 
 #### Rate Selection
 This tab allows you to select the return rates over the
