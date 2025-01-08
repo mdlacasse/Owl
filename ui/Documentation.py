@@ -35,9 +35,11 @@ or create a new one from scratch, or from a *case* file, which
 would then populate all parameter values.
 This box is present in all pages except those in the `Resources` section,
 and allows to compare different scenarios.
-However, two more choices are available when the [Basic Info](#basic-info) page is selected.
+However, two more choices are available when the [Basic Info](#basic-info) page is selected,
+allowing to create new scenarios.
+
 There are four sections in the user interface:
-`Case setup`, 'Single scenarios`, 'Multiple scenarios`, and `Resources`.
+`Case setup`, `Single scenarios`, `Multiple scenarios`, and `Resources`.
 
 -------------------------------------------------
 ### :orange[Case Setup]
