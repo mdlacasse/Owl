@@ -28,30 +28,32 @@ See the full description of the package on [github](https://github.com/mdlacasse
 
 --------------------------------------------------------------------------------------
 ### Getting started with the user interface
-Functions of each tab are described below in the same order as they appear in the sidebar.
-Typically, tabs would be accessed in order, starting from the top.
+Functions of each page are described below in the same order as they appear in the sidebar.
+Typically, pages would be accessed in order, starting from the top.
 The `Select case` selection box at the bottom of the margin allows to select an existing case
 or create a new one from scratch, or from a *case* file, which
 would then populate all parameter values.
-This box is present in all tabs except those in the `Resources` section,
+This box is present in all pages except those in the `Resources` section,
 and allows to compare different scenarios.
-However, two more choices are available when the [Basic Info](#basic-info) tab is selected.
+However, two more choices are available when the [Basic Info](#basic-info) page is selected.
+There are four sections in the user interface:
+`Case setup`, 'Single scenarios`, 'Multiple scenarios`, and `Resources`.
 
 -------------------------------------------------
 ### :orange[Case Setup]
 This section contains the steps for creating and configuring case scenarios.
 
 #### Basic Info
-This tab controls the creation of scenarios as the `Select case` menu contains
+This page controls the creation of scenarios as the `Select case` menu contains
 two additional items: one to create a new case, and the other to create a case from a *case* file.
-This tab also allows you to duplicate and/or rename a scenario, and to delete scenarios.
+This page also allows you to duplicate and/or rename a scenario, and to delete scenarios.
 
 For creating a scenario, the (first) name(s), marital status, birth year(s),
 and life expectancies are required. A starting date for the plan determines when the plan
 starts in the first year. Plan still ends at the end of the year when all individuals
 have passed according to the specified life expectancies.
 
-When duplicating a scenario, all parameters will be copied, but each tab in
+When duplicating a scenario, all parameters will be copied, but each page in
 the `Case setup` section will need to be revisited in order
 to refresh the case. This includes the wages and contributions file which will need to
 be uploaded, if any was present.
@@ -67,7 +69,7 @@ An example is provided
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
 will populate all the fields required to run a scenario. A *case* file for the case being developed
-can be saved under the [Case Results](#case-results) tab and made available to reload at a later time.
+can be saved under the [Case Results](#case-results) page and made available to reload at a later time.
 Case files can have any name but when saving from the interface, their name will start with *case_*
 followed by the case name.
 
@@ -82,11 +84,10 @@ or just Google *life expectancy calculator*.
 Finally, a starting date for the first year of the plan must be provided.
 By default, it starts today, but any other date
 in the current year can be chosen. This is useful if your numbers are known for a fixed date, or
-for reproducibility purposes. This date does not affect when the plan ends, which is at the
-end of the year when all individuals have passed according to the life parameters data provided.
+for reproducibility purposes. This date does not affect when the plan ends.
 
 #### Assets
-This tab allows to enter account balances in all savings accounts.
+This page allows to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
 Three types of saving accounts are considered and are tracked separately for spouses:
@@ -105,9 +106,9 @@ the optimizer will find creative solutions that can generate surpluses in order
 to maximize the final bequest.
 
 #### Wages and Contributions
-This tab allows to enter an optional Excel file containing future wages and contributions.
+This page allows to enter an optional Excel file containing future wages and contributions.
 The values in this spreadsheet are in \\$, not in thousands.
-This file must contains 9 columns titled as follows:
+This file must contain 9 columns titled as follows:
 ''', unsafe_allow_html=True)
 
 # <span style="font-size: 10px;"> </span>
@@ -150,7 +151,7 @@ to derive relevant numbers from there. These columns will be ignored when the fi
 
 Roth conversion can be specified in the column marked *Roth X*.
 This column is provided to override the Roth conversion optimization in Owl. When the option
-`Convert as in contribution file` is toggled in the [Optimization Parameters](#optimization-parameters) tab,
+`Convert as in contribution file` is toggled in the [Optimization Parameters](#optimization-parameters) page,
 values from the contributions file will be used and no optimization over Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guesses.
@@ -163,16 +164,17 @@ deposited in the taxable savings accounts. Negative numbers will potentially gen
 withdrawals and distributions from retirement accounts. This is the only column that can contain
 negative numbers: all other column entries should be positive.
 
-The tab name for each spreadsheet represents the name of the spouse for reporting yearly transactions
-affecting the plan. For each individual in the plan, there has to be a tab with the same name.
-Therefore, when running your own case, you will need to rename the tabs in the template file to
-have the same names as those used to create the plan
+Each individual in the plan must have an associated spreadsheet for reporting
+yearly transations affecting the plan. The association is made by having
+the individual's name as the tab name of the spreadsheet.
+Therefore, when preparing your own case, you will need to rename the tabs in the template file to
+match the names used when creating the plan
 (i.e., *Jack* and *Jill* in the example files provided).
 
 If a file was originally associated with a *case* file, a message will remind the user to upload the file.
 
 #### Fixed Income
-This tab is for entering anticipated fixed income from pensions and social security.
+This page is for entering anticipated fixed income from pensions and social security.
 Amounts are in \\$k at the starting date. In the current implementation,
 social security is adjusted for inflation while pension is not, and
 the income starts on the first day of the year selected, with the value provided.
@@ -182,7 +184,7 @@ A great site for deciding on when to take social security is
 And obviously there is [ssa.gov](https://ssa.gov).
 
 #### Rate Selection
-This tab allows you to select the return rates over the
+This page allows you to select the return rates over the
 time span of the plan. All rates are annual.
 There are two major types of rates:
 - *Fixed rates* - staying the same from one year to another
@@ -199,7 +201,7 @@ These rates are the annual rates of return for each of the assets considered. Th
 in the next section.
 
 #### Asset Allocations
-This tab allows you to select how to partition your assets between 4 investment options:
+This page allows you to select how to partition your assets between 4 investment options:
 - S&P 500
 - Corporate Bonds Baa
 - 10-year Treasury Notes
@@ -220,12 +222,12 @@ An gliding function (either *linear* or an *s-curve*) interpolates the values
 of the allocation ratios from the *initial* values to the *final* values as the plan progresses in time.
 When an *s-curve* is selected, two additional parameters controlling the shape of the transition
 will appear, one for the timing of the inflection point measured in years from now,
-and the other for the width of the transition, measured in +/- years from the center.
+and the other for the width of the transition, measured in +/- years from the inflection point.
 
 ### Optimization Parameters
-This tab allows you to select the problem to optimize.
-One can choose between maximizing the net spending amount subject to a constraint
-of a desired bequest, or maximizing a bequest, subject to a constraint of providing
+This page allows you to select the problem to optimize.
+One can choose between maximizing the net spending amount subject to the constraint
+of a desired bequest, or maximizing a bequest, subject to the constraint of providing
 a desired net spending amount.
 As one of the two choices (net spending or bequest) is selected as the value to maximize,
 the other becomes a constraint to obey.
@@ -233,8 +235,8 @@ the other becomes a constraint to obey.
 Maximum amount for Roth conversions and who can execute them need to be
 specified. If a contribution file has been uploaded and the `Convert from contributions file`
 is toggled, Roth conversions will not be optimized, but will rather be performed according to
-the column `RothX` described in the
-[Wages and Contributions](#wages-and-contributions) tab.
+the column `RothX` found in the
+[Wages and Contributions](#wages-and-contributions) page.
 
 Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
 the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
@@ -244,7 +246,7 @@ can be selected to either be *flat* or follow a *smile* shape.
 The smile shape has two configurable parameters: a *dip* percentage
 and a linear *increase* over the years (apart from inflation).
 Values default to 15% and 12% respectively, but they are configurable
-for experimentation.
+for experimentation and to fit your lifestyle.
 
 For married couples, a survivor's
 net spending percentage is also configurable. A value of 60% is typically used.
@@ -259,8 +261,9 @@ for that reason they do not start at 1.
 ### :orange[Single Scenarios]
 
 #### Case Results
-Run a single scenario based on the selections made in the [Case Setup](#case-setup) section.
-This simulation runs over a single instance of a series of rates, either fixed or varying.
+This page allows to run a single scenario based on the selections made
+in the [Case Setup](#case-setup) section.
+This simulation uses a single instance of a series of rates, either fixed or varying.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, of maximize the bequest under the constraint of a net spending amount.
 If `Convert from contributions file` is not toggled on,
@@ -268,18 +271,19 @@ Roth conversions are optimized for maximizing the selected objective function.
 Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
-Under this tab, one can also save all the parameters used to generate the
-outcome in a *case* file that can be uploaded in the future.
+Under this page, one can also save all the parameters used to generate the
+outcome in a *case* file that can be uploaded in the future to run the same
+case again.
 
 #### Case Worksheets
-This tab shows the various worksheets containing annual transactions.
+This page shows the various worksheets containing annual transactions.
 A workbook can be downloaded as an Excel file for future reference, and
 is better viewed in Excel than through the browser's representation.
-All values here (worksheets and workbook) are in \\$, not in thousands.
+Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 
 #### Case Summary
-This tab shows a summary of the scenario which was computed.
-It displays informative sums of relevant income and spending values.
+This page shows a summary of the scenario which was computed.
+It displays informative sums of relevant income, bequest, and spending values.
 
 --------------------------------------------------------------------------------------
 ### :orange[Multiple Scenarios]
@@ -287,7 +291,7 @@ There are two different ways to run multiple scenarios and generate a histogram
 of results.
 
 #### Historical Range
-This tab allows the user to run multiple simulations over a range of historical time spans.
+This page allows the user to run multiple simulations over a range of historical time spans.
 Each simulation assumes that the rates followed a sequence which happened in the past,
 starting from each year in the past, and then offset by one year, and so on.
 A histogram of results and a success rate is displayed at the end of the run.
@@ -299,7 +303,7 @@ one for the partial bequest at the passing of the first spouse
 and the other for the distribution of values of the objective being optimized.
 
 #### Monte Carlo
-This tab runs a Monte Carlo simulation using time sequences of annual rates of return that are generated
+This page runs a Monte Carlo simulation using time sequences of annual rates of return that are generated
 using statistical methods. At the end of the run,
 a histogram is shown, with a probability of success.
 
@@ -316,7 +320,7 @@ and the other for the distribution of values of the objective being optimized.
 These pages.
 
 #### Logs
-Messages coming from the underlying Owl calculation engine are displayed under this tab.
+Messages coming from the underlying Owl calculation engine are displayed under this page.
 
 #### About Owl
 Credits and disclaimers.
