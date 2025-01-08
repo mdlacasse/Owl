@@ -462,8 +462,8 @@ class Plan:
         for j in range(self.N_j):
             assert 0 <= phi[j] <= 1, 'Fractions must be between 0 and 1.'
 
+        self.phi_j = np.array(phi, dtype=np.float32)
         self.mylog.vprint('Spousal beneficiary fractions set to', phi)
-        self.phi_j = np.array(phi)
         self.caseStatus = 'modified'
 
         if np.any(self.phi_j != 1):
@@ -1682,8 +1682,8 @@ class Plan:
                 self.mylog.vprint('Converged on full solution.')
                 break
 
-            # Avoid oscillatory solutions. Look only at most recent solutions.
-            isclosenough = abs(-solution.fun - min(old_solutions[int(it / 2):])) < self.xi_n[0]
+            # Avoid oscillatory solutions. Look only at most recent solutions. Within $10.
+            isclosenough = abs(-solution.fun - min(old_solutions[int(it / 2):])) < 10 * self.xi_n[0]
             if isclosenough:
                 self.mylog.vprint('Converged through selecting minimum oscillating objective.')
                 break
@@ -1794,8 +1794,8 @@ class Plan:
                 self.mylog.vprint('Converged on full solution.')
                 break
 
-            # Avoid oscillatory solutions. Look only at most recent solutions.
-            isclosenough = abs(-solution - min(old_solutions[int(it / 2):])) < self.xi_n[0]
+            # Avoid oscillatory solutions. Look only at most recent solutions. Within $10.
+            isclosenough = abs(-solution - min(old_solutions[int(it / 2):])) < 10 * self.xi_n[0]
             if isclosenough:
                 self.mylog.vprint('Converged through selecting minimum oscillating objective.')
                 break

@@ -58,7 +58,7 @@ have passed according to the specified life expectancies.
 When duplicating a scenario, all parameters will be copied, but each page in
 the `Case setup` section will need to be revisited in order
 to refresh the case. This includes the wages and contributions file which will need to
-be uploaded, if any was present.
+be uploaded, if any was present, or desired.
 
 ##### Initializing the life parameters for the realization
 Start with the `Select case` box and choose one of `New case...` or `Upload case file...`.
