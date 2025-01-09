@@ -325,9 +325,9 @@ plan.runMC('maxBequest', ...)
 <img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2b.png" width="75%">
 
 
-See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
-[2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb), and
-[3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_3.ipynb) for more info.
+See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_1.ipynb),
+[2](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_2.ipynb), and
+[3](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_3.ipynb) for more info.
 
 
 ---------------------------------------------------------------

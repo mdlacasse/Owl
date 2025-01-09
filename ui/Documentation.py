@@ -1,11 +1,7 @@
 import streamlit as st
 
 
-# col1, col2, col3, col4 = st.columns(4)
-# with col4:
-# st.image("http://raw.github.com/mdlacasse/owl/main/docs/images/owl.png")
-
-col1, col2, col3 = st.columns([0.65, 0.07, 0.28], gap='large')
+col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap='large')
 with col3:
     st.image("http://raw.github.com/mdlacasse/owl/main/docs/images/owl.png")
     st.caption("Retirement planner with great wisdom")
@@ -15,16 +11,38 @@ with col1:
     st.markdown('''
 #### A retirement exploration tool based on linear programming
 
-This tool is based on the Owl Python package aimed at providing a retirement modeling
-framework for exploring the sensitivity of retirement financial decisions.
+The goal of Owl is to provide a free and open-source ecosystem that has cutting-edge
+optimization capabilities, allowing for the new generation of computer-literate retirees
+to experiment with their own financial future while providing a codebase where they can learn and contribute.
 Strictly speaking, Owl is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy through the rigorous
 mathematical optimization of relevant decision variables. Using a linear programming approach,
-two major objective goals can be set: either
-maximize the net spending amount, or maximize an after-tax bequest, each under various constraints.
-Roth conversions are optimized to reduce the tax burden, while federal income tax and Medicare
-premiums (including IRMAA) are calculated.
-See the full description of the package on [github](https://github.com/mdlacasse/owl) for details.
+two different objectives can currently be optimized: either
+maximize the net spending amount under the constraint of a desired bequest,
+or maximize an after-tax bequest under the consraint of a desired net spending amount.
+In each case, Roth conversions are optimized to reduce the tax burden,
+while federal income tax and Medicare premiums (including IRMAA) are calculated.
+A full description of the package can be found on the [github](https://github.com/mdlacasse/owl)
+open repository.
+
+--------------------------------------------------------------------------------------
+### Quick Start
+Here's how you can run your first case in only a few steps:
+1) Download these two files provided as examples for the case of Jack and Jill:
+    - [case file](https://raw.github.com/mdlacasse/owl/main/examples/case_jack+jill.toml)
+named *case_jack+jill.toml* in *toml* format
+    - [contributions file](https://raw.github.com/mdlacasse/owl/main/examples/jack+jill.xlsx)
+named *jack+jill.xlsx* in Excel format
+1) While on the [Basic Info](#basic-info) page, select `Upload Case File...` in the `Select case` box
+1) Drag and drop the case file you downloaded called *case_jack+jill.toml*
+1) Change to the [Wages and Contributions](#wages-and-contributions) page
+1) Drag and drop the file you downloaded called *jack+jill.xlsx*
+1) Move to the [Case Results](#case-results) page and click `Run single case`
+
+Congratulations! You just ran your first case. You can now explore each page and
+experiment with different configurations.
+To create your own case, you can either start from the example files or start
+from `New Case...` while on the `Basic Info` page.
 
 --------------------------------------------------------------------------------------
 ### Getting started with the user interface
@@ -35,8 +53,6 @@ or create a new one from scratch, or from a *case* file, which
 would then populate all parameter values.
 This box is present in all pages except those in the `Resources` section,
 and allows to compare different scenarios.
-However, two more choices are available when the [Basic Info](#basic-info) page is selected,
-allowing to create new scenarios.
 
 There are four sections in the user interface:
 `Case setup`, `Single scenarios`, `Multiple scenarios`, and `Resources`.
@@ -47,7 +63,8 @@ This section contains the steps for creating and configuring case scenarios.
 
 #### Basic Info
 This page controls the creation of scenarios as the `Select case` menu contains
-two additional items: one to create a new case, and the other to create a case from a *case* file.
+two additional items when this page is open:
+one to create a new case, and the other to create a case from a *case* file.
 This page also allows you to duplicate and/or rename a scenario, and to delete scenarios.
 
 For creating a scenario, the (first) name(s), marital status, birth year(s),
