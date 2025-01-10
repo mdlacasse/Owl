@@ -46,6 +46,7 @@ def createPlan():
     val = k.getKey('plots')
     if val is not None:
         plan.setDefaultPlots(val)
+    st.toast("Created new case *'%s'*. You can now move to next page." % name)
 
 
 def _checkPlan(func):

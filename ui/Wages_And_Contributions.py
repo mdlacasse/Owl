@@ -20,14 +20,15 @@ else:
         original = k.getKey('timeListsFileName')
         if original is None or original == 'None':
             iname0 = k.getKey('iname0')
-            st.info("Case contains no contributions file.\n\n"
+            st.info("Case *'%s'* contains no contributions file.\n\n" % k.currentCaseName() +
                     "You can build your own contribution file by starting from this "
                     "[template](https://raw.github.com/mdlacasse/owl/main/examples/template.xlsx). "
                     "Enter your numbers and ensure that the final workbook contains a tab for each "
                     "individual in the plan, "
                     f"i.e., a tab named *{iname0}*, and another one named after the spouse if applicable.")
         else:
-            st.info("Case contains contributions file *'%s'* not yet uploaded." % original)
+            st.info("Case *'%s'* contains contributions file *'%s'* that has not yet been uploaded." %
+                    (ik.currentCaseName(), original))
 
     k.initKey('stTimeLists', None)
     if k.getKey('stTimeLists') is None:
