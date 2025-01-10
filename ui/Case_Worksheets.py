@@ -13,10 +13,11 @@ else:
 
     st.divider()
     # if not owb.isCaseUnsolved():
-    download2 = st.download_button(
-        label="Download data as an Excel workbook...",
-        data=owb.saveWorkbook(),
-        file_name='Workbook_'+k.getKey('name')+'.xlsx',
-        mime='application/vnd.ms-excel',
-        disabled=owb.isCaseUnsolved()
-    )
+    if k.caseHasPlan():
+        download2 = st.download_button(
+            label="Download data as an Excel workbook...",
+            data=owb.saveWorkbook(),
+            file_name='Workbook_'+k.getKey('name')+'.xlsx',
+            mime='application/vnd.ms-excel',
+            disabled=owb.isCaseUnsolved()
+        )

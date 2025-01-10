@@ -19,8 +19,8 @@ def init():
     ss = st.session_state
     if 'cases' not in ss:
         # print('Initializing keyholder')
-        ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'caseStatus': '', 'summary': ''},
-                    loadCaseFile: {'iname0': '', 'status': 'unkown', 'caseStatus': '', 'summary': ''}}
+        ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'caseStatus': 'new', 'summary': ''},
+                    loadCaseFile: {'iname0': '', 'status': 'unkown', 'caseStatus': 'new', 'summary': ''}}
 
     # Variable for storing name of current case.
     if 'currentCase' not in ss:
@@ -89,6 +89,10 @@ def isIncomplete():
 
 def caseHasNoPlan():
     return getKey('plan') is None
+
+
+def caseHasPlan():
+    return getKey('plan') is not None
 
 
 def caseHasNotCompletedRun():
