@@ -371,8 +371,9 @@ Finally, you will also need the capability to read and edit Excel files. One can
 
 ## Credits
 - Historical rates from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/)
-- Image from [freepik](freepik.com)
-- Optimization solver from [HiGHS](highs.dev)
+- Image from [freepik](https://freepik.com)
+- Optimization solver from [HiGHS](https://highs.dev)
+- Streamlit Community Cloud [Streamlit](https://streamlit.io)
 
 ---------------------------------------------------------------------
 

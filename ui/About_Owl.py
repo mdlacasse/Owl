@@ -10,7 +10,7 @@ st.write('''
 - This code was released under GPL Licence through a publicly available
 repository on [github](https://github.com/mdlacasse/owl).
 
-- This code does not store or forward any information. It fully respects you privacy.
+- This code does not store or forward any information. It fully respects privacy.
 All source code is provided and can be inspected in the repository.
 
 - Mathematical formulation of the linear optimization problem can be

@@ -51,7 +51,7 @@ Typically, pages would be accessed in order, starting from the top.
 The `Select case` selection box at the bottom of the margin allows to select an existing case
 or create a new one from scratch, or from a *case* file, which
 would then populate all parameter values.
-This box is present in all pages except those in the `Resources` section,
+This box is present in all pages except those in the `Resources` section
 and allows to compare different scenarios.
 
 There are four sections in the user interface:
