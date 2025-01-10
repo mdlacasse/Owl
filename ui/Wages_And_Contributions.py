@@ -25,10 +25,13 @@ else:
                     "[template](https://raw.github.com/mdlacasse/owl/main/examples/template.xlsx). "
                     "Enter your numbers and ensure that the final workbook contains a tab for each "
                     "individual in the plan, "
-                    f"i.e., a tab named *{iname0}*, and another one named after the spouse if applicable.")
+                    f"i.e., a tab named *{iname0}*, and another one named after the spouse if applicable. "
+                    "If no file is uploaded, zero will be used for all values "
+                    "(anticipated wages, contributions, and big-ticket items)."
+                    )
         else:
             st.info("Case *'%s'* contains contributions file *'%s'* that has not yet been uploaded." %
-                    (ik.currentCaseName(), original))
+                    (k.currentCaseName(), original))
 
     k.initKey('stTimeLists', None)
     if k.getKey('stTimeLists') is None:
