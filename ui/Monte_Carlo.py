@@ -12,7 +12,7 @@ if ret is None:
 else:
     if (k.getKey('rateType') != 'varying' or
        (k.getKey('varyingType') is None or 'stochastic' not in k.getKey('varyingType'))):
-        st.info('Plan must first be set with stochastic or histochastic rates.')
+        st.info('Plan must first be set with stochastic or histochastic rates to run Monte Carlo simulations.')
     else:
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='bottom')
         with col1:
