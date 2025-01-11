@@ -104,7 +104,7 @@ else:
     if k.getKey('rateType') == 'varying':
         st.write('#### Stochastic parameters')
         ro = k.getKey('varyingType') != 'stochastic'
-        st.write('##### Means')
+        st.write('##### Means (%)')
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
             k.initKey('mean0', 0)
@@ -122,7 +122,7 @@ else:
             k.initKey('mean3', 0)
             k.getNum('Cash Assets/Inflation', 'mean3', ro, step=1., callback=updateRates)
 
-        st.write('##### Volatility')
+        st.write('##### Volatility (%)')
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
             k.initKey('stdev0', 0)
@@ -199,11 +199,11 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         k.initKey('gainTx', 15)
-        ret = k.getNum('Long-term capital gain income tax rate (%)', 'gainTx', max_value=100.,
+        ret = k.getNum('Long-term capital gain tax rate (%)', 'gainTx', max_value=100.,
                        callback=owb.setLongTermCapitalTaxRate, step=1.)
 
     with col2:
         k.initKey('heirsTx', 30)
         helpmsg = 'Marginal tax rate that heirs would have to pay on inherited tax-deferred balance.'
-        ret = k.getNum('Heirs income tax rate (%)', 'heirsTx', max_value=100., help=helpmsg,
+        ret = k.getNum('Heirs marginal tax rate (%)', 'heirsTx', max_value=100., help=helpmsg,
                        callback=owb.setHeirsTaxRate, step=1.)
