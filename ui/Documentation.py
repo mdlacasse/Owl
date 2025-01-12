@@ -338,11 +338,14 @@ and the other for the distribution of values of the objective being optimized.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
-#### Documentation
-These pages.
-
 #### Logs
 Messages coming from the underlying Owl calculation engine are displayed under this page.
+
+#### Settings
+This page contains a global setting for choosing the color style for the graphs.
+
+#### Documentation
+These pages.
 
 #### About Owl
 Credits and disclaimers.
