@@ -449,12 +449,6 @@ def plotSingleResults(plan):
         c = (c + 1) % n
 
     cols = st.columns(n, gap='medium')
-    fig = plan.showTaxes(figure=True)
-    if fig:
-        cols[c].write('#### Taxes and Medicare (incl. IRMAA)')
-        cols[c].pyplot(fig)
-        c = (c + 1) % n
-
     fig = plan.showSources(figure=True)
     if fig:
         cols[c].write('#### Raw Income Sources')
@@ -464,6 +458,12 @@ def plotSingleResults(plan):
     fig = plan.showAccounts(figure=True)
     if fig:
         cols[c].write('#### Savings Balance')
+        cols[c].pyplot(fig)
+        c = (c + 1) % n
+
+    fig = plan.showTaxes(figure=True)
+    if fig:
+        cols[c].write('#### Taxes and Medicare (incl. IRMAA)')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
