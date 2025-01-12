@@ -428,11 +428,17 @@ def getAccountAllocationRatios():
 @_checkPlan
 def plotSingleResults(plan):
     c = 0
-    n = 2
-    cols = st.columns(n, gap='small')
+    n = 3
+    cols = st.columns(n, gap='medium')
     fig = plan.showNetSpending(figure=True)
     if fig:
         cols[c].write('#### Net Available Spending')
+        cols[c].pyplot(fig)
+        c = (c + 1) % n
+
+    fig = plan.showRates(figure=True)
+    if fig:
+        cols[c].write('#### Annual Rates')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
@@ -442,15 +448,16 @@ def plotSingleResults(plan):
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
-    fig = plan.showSources(figure=True)
+    cols = st.columns(n, gap='medium')
+    fig = plan.showTaxes(figure=True)
     if fig:
-        cols[c].write('#### Raw Income Sources')
+        cols[c].write('#### Taxes and Medicare (incl. IRMAA)')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
-    fig = plan.showTaxes(figure=True)
+    fig = plan.showSources(figure=True)
     if fig:
-        cols[c].write('#### Income Taxes and Medicare (incl. IRMAA)')
+        cols[c].write('#### Raw Income Sources')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
