@@ -8,7 +8,6 @@ def changeStyle(key):
     val = kz.getGlobalKey('_'+key)
     kz.setGlobalKey(key, val)
     plt.style.use(val)
-    print('SET', key, 'TO', val)
 
 
 styles = ['default']
