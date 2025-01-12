@@ -238,11 +238,8 @@ def initKey(key, val):
 
 
 def initGlobalKey(key, val):
-    print('BEFORE initialization:', ss)
     if key not in ss:
         ss[key] = val
-        print('initialized', key, 'to', val)
-        print('AFTER initialization:', ss)
 
 
 def getKey(key):
