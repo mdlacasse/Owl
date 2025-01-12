@@ -2063,7 +2063,7 @@ class Plan:
         lines.append('Net spending remaining in year %d: %s' % (now, u.d(self.g_n[0])))
         lines.append('Net yearly spending profile basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
 
-        lines.append('Assumed heirs tax rate: %s' % u.pc(self.nu, f=0))
+        lines.append('Assumed heirs marginal tax rate: %s' % u.pc(self.nu, f=0))
 
         if self.N_i == 2 and self.n_d < self.N_n:
             lines.append("Spousal surplus deposit fraction in %s's taxable account: %s"

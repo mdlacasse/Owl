@@ -42,6 +42,13 @@ def onlyCaseNames() -> list:
     return caseList
 
 
+def runOncePerSession(func):
+    key = 'oNcE_' + func.__name__
+    if getGlobalKey(key) is None:
+        func()
+    initGlobalKey(key, 1)
+
+
 def runOncePerCase(func):
     key = 'oNcE_' + func.__name__
     if getKey(key) is None:
@@ -230,9 +237,28 @@ def initKey(key, val):
         ss.cases[ss.currentCase][key] = val
 
 
+def initGlobalKey(key, val):
+    print('BEFORE initialization:', ss)
+    if key not in ss:
+        ss[key] = val
+        print('initialized', key, 'to', val)
+        print('AFTER initialization:', ss)
+
+
 def getKey(key):
     if key in ss.cases[ss.currentCase]:
         return ss.cases[ss.currentCase][key]
+    else:
+        return None
+
+
+def setGlobalKey(key, val):
+    ss[key] = val
+
+
+def getGlobalKey(key):
+    if key in ss:
+        return ss[key]
     else:
         return None
 

@@ -1,14 +1,14 @@
 import streamlit as st
 
-import sskeys as k
+import sskeys as kz
 
 # Pick one for narrow or wide graphs. That can be changed in upper-right settings menu.
 st.set_page_config(layout='wide')
 # st.set_page_config(layout='centered')
 
-k.init()
+kz.init()
 
-st.logo('https://raw.github.com/mdlacasse/owl/main/docs/images/owl.png', size='large')
+st.logo('https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png', size='large')
 
 pages = {
           'Case setup': [st.Page('Basic_Info.py', icon=':material/person_add:'),
@@ -24,6 +24,7 @@ pages = {
           'Multiple scenarios': [st.Page('Historical_Range.py', icon=':material/history:'),
                                  st.Page('Monte_Carlo.py', icon=':material/finance:')],
           'Resources': [st.Page('Logs.py', icon=':material/error:'),
+                        st.Page('Settings.py', icon=':material/settings:'),
                         st.Page('Documentation.py', icon=':material/help:'),
                         st.Page('About_Owl.py', icon=':material/info:')],
            }

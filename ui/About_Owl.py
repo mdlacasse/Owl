@@ -1,6 +1,10 @@
 import streamlit as st
 
+import sskeys as kz
+
+
 st.write("## About Owl 🦉")
+kz.orangeDivider()
 
 st.write('This version of Owl was released in January 2025.')
 st.write('Running on Streamlit %s.' % st.__version__)
@@ -14,7 +18,7 @@ repository on [github](https://github.com/mdlacasse/owl).
 All source code is provided and can be inspected in the repository.
 
 - Mathematical formulation of the linear optimization problem can be
-found in a PDF document [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
+found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 

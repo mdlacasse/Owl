@@ -1,13 +1,16 @@
 import streamlit as st
 
+import sskeys as kz
 
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap='large')
 with col3:
-    st.image("http://raw.github.com/mdlacasse/owl/main/docs/images/owl.png")
+    st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")
     st.caption("Retirement planner with great wisdom")
 with col1:
-    st.write('## Owl Retirement Planner')
+    st.write('## Documentation')
+    kz.orangeDivider()
 # <div style="text-align: justify">
+    st.write('## Owl Retirement Planner')
     st.markdown('''
 #### A retirement exploration tool based on linear programming
 
@@ -22,16 +25,16 @@ maximize the net spending amount under the constraint of a desired bequest,
 or maximize an after-tax bequest under the consraint of a desired net spending amount.
 In each case, Roth conversions are optimized to reduce the tax burden,
 while federal income tax and Medicare premiums (including IRMAA) are calculated.
-A full description of the package can be found on the [github](https://github.com/mdlacasse/owl)
+A full description of the package can be found on the [github](https://github.com/mdlacasse/Owl)
 open repository.
 
 --------------------------------------------------------------------------------------
 ### Quick Start
 Here's how you can run your first case in only a few steps:
 1) Download these two files provided as examples for the case of Jack and Jill:
-    - [case file](https://raw.github.com/mdlacasse/owl/main/examples/case_jack+jill.toml)
+    - [case file](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
 named *case_jack+jill.toml* in *toml* format
-    - [contributions file](https://raw.github.com/mdlacasse/owl/main/examples/jack+jill.xlsx)
+    - [contributions file](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
 named *jack+jill.xlsx* in Excel format
 1) While on the [Basic Info](#basic-info) page, select `Upload Case File...` in the `Select case` box
 1) Drag and drop the case file you downloaded called *case_jack+jill.toml*

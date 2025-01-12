@@ -1,28 +1,28 @@
 import streamlit as st
 
-import sskeys as k
+import sskeys as kz
 import owlbridge as owb
 
 
-ret = k.titleBar('MC')
-k.caseHeader("Monte Carlo")
+ret = kz.titleBar('MC')
+kz.caseHeader("Monte Carlo")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    if (k.getKey('rateType') != 'varying' or
-       (k.getKey('varyingType') is None or 'stochastic' not in k.getKey('varyingType'))):
+    if (kz.getKey('rateType') != 'varying' or
+       (kz.getKey('varyingType') is None or 'stochastic' not in kz.getKey('varyingType'))):
         st.info('Plan must first be set with stochastic or histochastic rates to run Monte Carlo simulations.')
     else:
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='bottom')
         with col1:
-            k.initKey('MC_cases', 100)
-            k.getIntNum('Number of random instances', 'MC_cases', step=10, max_value=10000)
+            kz.initKey('MC_cases', 100)
+            kz.getIntNum('Number of random instances', 'MC_cases', step=10, max_value=10000)
         with col4:
-            st.button('Run Simulation', on_click=owb.runMC, disabled=k.caseIsNotMCReady())
+            st.button('Run Simulation', on_click=owb.runMC, disabled=kz.caseIsNotMCReady())
 
     st.divider()
-    fig = k.getKey('monteCarloPlot')
+    fig = kz.getKey('monteCarloPlot')
     if fig is not None:
         col1, col2 = st.columns(2, gap='small')
         col1.pyplot(fig)

@@ -1,28 +1,28 @@
 import streamlit as st
 
-import sskeys as k
+import sskeys as kz
 
 
 def getIntInput(i, key, text, defval=0):
     nkey = key+str(i)
-    k.initKey(nkey, defval)
-    inamex = k.getKey('iname'+str(i))
+    kz.initKey(nkey, defval)
+    inamex = kz.getKey('iname'+str(i))
     st.number_input("%s's %s" % (inamex, text), min_value=0,
-                    value=k.getKey(nkey),
-                    on_change=k.setpull, args=[nkey], key='_'+nkey)
+                    value=kz.getKey(nkey),
+                    on_change=kz.setpull, args=[nkey], key='_'+nkey)
 
 
 def getFloatInput(i, key, text, defval=0.):
     nkey = key+str(i)
-    k.initKey(nkey, defval)
-    inamex = k.getKey('iname'+str(i))
-    st.number_input("%s's %s" % (inamex, text), min_value=0., help=k.help1000,
-                    value=float(k.getKey(nkey)), format='%.1f', step=10.,
-                    on_change=k.setpull, args=[nkey], key='_'+nkey)
+    kz.initKey(nkey, defval)
+    inamex = kz.getKey('iname'+str(i))
+    st.number_input("%s's %s" % (inamex, text), min_value=0., help=kz.help1000,
+                    value=float(kz.getKey(nkey)), format='%.1f', step=10.,
+                    on_change=kz.setpull, args=[nkey], key='_'+nkey)
 
 
-ret = k.titleBar('fixed')
-k.caseHeader("Fixed Income")
+ret = kz.titleBar('fixed')
+kz.caseHeader("Fixed Income")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
@@ -34,7 +34,7 @@ else:
         getIntInput(0, 'ssAge', 'social security age', 67)
 
     with col2:
-        if k.getKey('status') == 'married':
+        if kz.getKey('status') == 'married':
             getFloatInput(1, 'ssAmt', 'social security annual amount (\\$k)')
             getIntInput(1, 'ssAge', 'social security age', 67)
 
@@ -46,6 +46,6 @@ else:
         getIntInput(0, 'pAge', 'pension age', 65)
 
     with col2:
-        if k.getKey('status') == 'married':
+        if kz.getKey('status') == 'married':
             getFloatInput(1, 'pAmt', 'pension annual amount (\\$k)')
             getIntInput(1, 'pAge', 'pension age', 65)

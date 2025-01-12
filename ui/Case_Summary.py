@@ -1,18 +1,18 @@
 import streamlit as st
 
-import sskeys as k
+import sskeys as kz
 
-ret = k.titleBar('summary')
-k.caseHeader("Case Summary")
+ret = kz.titleBar('summary')
+kz.caseHeader("Case Summary")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
-    lines = k.getKey('summary')
+    lines = kz.getKey('summary')
     if lines != '':
         st.code(lines, language=None)
         st.divider()
         st.download_button('Download Summary',
                            data=lines,
-                           file_name='Summary_'+k.getKey('name')+'.txt',
+                           file_name='Summary_'+kz.getKey('name')+'.txt',
                            mime='text/plain;charset=UTF-8')
