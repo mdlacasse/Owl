@@ -67,7 +67,7 @@ def saveConfig(plan, file, mylog):
         diconf['Rate Selection']['Values'] = (100 * plan.rateValues).tolist()
     if plan.rateMethod in ['stochastic']:
         diconf['Rate Selection']['Standard deviations'] = (100 * plan.rateStdev).tolist()
-        diconf['Rate Selection']['Correlations'] = plan.rateCorr
+        diconf['Rate Selection']['Correlations'] = plan.rateCorr.tolist()
     if plan.rateMethod in ['historical average', 'historical', 'histochastic']:
         diconf['Rate Selection']['From'] = int(plan.rateFrm)
         diconf['Rate Selection']['To'] = int(plan.rateTo)
@@ -77,8 +77,8 @@ def saveConfig(plan, file, mylog):
 
     # Asset Allocations.
     diconf['Asset Allocations'] = {'Interpolation method': plan.interpMethod,
-                                   'Interpolation center': plan.interpCenter,
-                                   'Interpolation width': plan.interpWidth,
+                                   'Interpolation center': float(plan.interpCenter),
+                                   'Interpolation width': float(plan.interpWidth),
                                    'Type': plan.ARCoord,
                                    }
     if plan.ARCoord == 'account':

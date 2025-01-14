@@ -37,11 +37,12 @@ else:
     diz1 = (kz.getKey('plan') is not None)
     diz2 = diz1
     # diz2 = (diz1 or len(kz.allCaseNames()) > 3)
-    statusChoices = ['single', 'married']
-    kz.initKey('status', statusChoices[0])
-    st.radio('Marital status', statusChoices, disabled=diz2,
-             index=statusChoices.index(kz.getKey('status')), key='_status',
-             on_change=kz.setpull, args=['status'], horizontal=True)
+    with col2:
+        statusChoices = ['single', 'married']
+        kz.initKey('status', statusChoices[0])
+        st.radio('Marital status', statusChoices, disabled=diz2,
+                 index=statusChoices.index(kz.getKey('status')), key='_status',
+                 on_change=kz.setpull, args=['status'], horizontal=True)
 
     col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
