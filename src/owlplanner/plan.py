@@ -1953,7 +1953,6 @@ class Plan:
             'dist',
             'rmd',
             'RothX',
-            'div',
             'wdrwl taxable',
             'wdrwl tax-free',
         ]
@@ -2647,7 +2646,7 @@ class Plan:
         incomeDic = {
             'net spending': self.g_n,
             'taxable ord. income': self.G_n,
-            'taxable dividends': self.Q_n,
+            'taxable gains/divs': self.Q_n,
             'Tax bills + Med.': self.T_n + self.U_n + self.M_n,
         }
 
@@ -2825,7 +2824,7 @@ class Plan:
         planData['year'] = self.year_n
         planData['net spending'] = self.g_n
         planData['taxable ord. income'] = self.G_n
-        planData['taxable dividends'] = self.Q_n
+        planData['taxable gains/divs'] = self.Q_n
         planData['tax bill'] = self.T_n
 
         for i in range(self.N_i):

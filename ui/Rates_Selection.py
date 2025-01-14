@@ -200,7 +200,7 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         kz.initKey('gainTx', 15)
-        ret = kz.getNum('Long-term capital gain tax rate (%)', 'gainTx', max_value=100.,
+        ret = kz.getNum('Long-term capital gains tax rate (%)', 'gainTx', max_value=100.,
                         callback=owb.setLongTermCapitalTaxRate, step=1.)
 
     with col2:
