@@ -17,13 +17,14 @@ from datetime import date
 
 from owlplanner import plan
 from owlplanner import logging
-from owlplanner.rates import FROM
+from owlplanner.rates import FROM, TO
 
 
 def saveConfig(plan, file, mylog):
     """
     Save case parameters and return a dictionary containing all parameters.
     """
+    np.set_printoptions(legacy='1.21')
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
     diconf = {}
@@ -63,16 +64,16 @@ def saveConfig(plan, file, mylog):
                                 'Method': plan.rateMethod,
                                 }
     if plan.rateMethod in ['user', 'stochastic']:
-        diconf['Rate Selection']['Values'] = [100 * k for k in plan.rateValues]
+        diconf['Rate Selection']['Values'] = (100 * plan.rateValues).tolist()
     if plan.rateMethod in ['stochastic']:
-        diconf['Rate Selection']['Standard deviations'] = [100 * k for k in plan.rateStdev]
+        diconf['Rate Selection']['Standard deviations'] = (100 * plan.rateStdev).tolist()
         diconf['Rate Selection']['Correlations'] = plan.rateCorr
     if plan.rateMethod in ['historical average', 'historical', 'histochastic']:
         diconf['Rate Selection']['From'] = int(plan.rateFrm)
         diconf['Rate Selection']['To'] = int(plan.rateTo)
     else:
         diconf['Rate Selection']['From'] = int(FROM)
-        diconf['Rate Selection']['To'] = int(date.today().year - 1)
+        diconf['Rate Selection']['To'] = int(TO)
 
     # Asset Allocations.
     diconf['Asset Allocations'] = {'Interpolation method': plan.interpMethod,
@@ -92,8 +93,8 @@ def saveConfig(plan, file, mylog):
                                          'Surviving spouse spending percent': int(100 * plan.chi),
                                         }
     if plan.spendingProfile == 'smile':
-        diconf['Optimization Parameters']['Smile dip'] = plan.smileDip
-        diconf['Optimization Parameters']['Smile increase'] = plan.smileIncrease
+        diconf['Optimization Parameters']['Smile dip'] = float(plan.smileDip)
+        diconf['Optimization Parameters']['Smile increase'] = float(plan.smileIncrease)
 
     diconf['Optimization Parameters']['Objective'] = plan.objective
     diconf['Solver Options'] = plan.solverOptions

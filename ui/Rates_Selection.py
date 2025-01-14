@@ -5,8 +5,8 @@ import owlbridge as owb
 
 
 FXRATES = {
-    'conservative': [8, 5, 4, 3],
-    'optimistic': [11, 6, 5, 3],
+    'conservative': [7, 4, 3.3, 2.8],
+    'optimistic': [10, 6, 5, 3],
     'historical average': [0, 0, 0, 0],
     'user': [0, 0, 0, 0]
 }

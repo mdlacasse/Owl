@@ -560,6 +560,7 @@ def createCaseFromFile(file):
         plan = owl.readConfig(mystringio, logstreams=[strio], readContributions=False)
     except Exception as e:
         st.error('Failed to parse case file: %s' % (e))
+        return '', {}
 
     name, mydic = genDic(plan)
     mydic['logs'] = strio
