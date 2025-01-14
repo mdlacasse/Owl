@@ -24,7 +24,7 @@ def saveConfig(plan, file, mylog):
     """
     Save case parameters and return a dictionary containing all parameters.
     """
-    np.set_printoptions(legacy='1.21')
+    # np.set_printoptions(legacy='1.21')
     accountTypes = ['taxable', 'tax-deferred', 'tax-free']
 
     diconf = {}
@@ -112,12 +112,12 @@ def saveConfig(plan, file, mylog):
 
         try:
             with open(filename, 'w') as casefile:
-                toml.dump(diconf, casefile)
+                toml.dump(diconf, casefile, encoder=toml.TomlNumpyEncoder())
         except Exception as e:
             raise RuntimeError('Failed to save case file %s: %s' % (filename, e))
     elif isinstance(file, StringIO):
         try:
-            string = toml.dumps(diconf)
+            string = toml.dumps(diconf, encoder=toml.TomlNumpyEncoder())
             file.write(string)
         except Exception as e:
             raise RuntimeError('Failed to save case to StringIO: %s', e)
