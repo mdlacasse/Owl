@@ -2100,11 +2100,13 @@ class Plan:
 
         taxPaid = np.sum(self.T_n, axis=0)
         taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
-        lines.append('Total ordinary income tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
+        lines.append('Total income tax paid on ordinary income in %d$: %s (%s nominal)'
+                     % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
-        lines.append('Total dividend tax paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
+        lines.append('Total tax paid on gains and dividends in %d$: %s (%s nominal)'
+                     % (now, u.d(taxPaidNow), u.d(taxPaid)))
 
         taxPaid = np.sum(self.M_n, axis=0)
         taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)

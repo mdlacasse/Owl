@@ -13,7 +13,6 @@ import toml as toml
 from io import StringIO, BytesIO
 import numpy as np
 import os
-from datetime import date
 
 from owlplanner import plan
 from owlplanner import logging

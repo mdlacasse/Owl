@@ -342,7 +342,9 @@ and the other for the distribution of values of the objective being optimized.
 Messages coming from the underlying Owl calculation engine are displayed under this page.
 
 #### Settings
-This page contains a global setting for choosing the color style for the graphs.
+This page contains a global setting for choosing the display style used for the graphs. Some color
+schemes are best suited for colorblind individuals. The *classic* offers good contrast, while
+*petroff10* has more distinguishing colors.
 
 #### Documentation
 These pages.
