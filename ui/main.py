@@ -11,6 +11,7 @@ kz.init()
 st.logo('https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png', size='large')
 
 pages = {
+          '': [st.Page('Quick_Start.py', icon=':material/rocket_launch:')],
           'Case setup': [st.Page('Basic_Info.py', icon=':material/person_add:'),
                          st.Page('Assets.py', icon=':material/savings:'),
                          st.Page('Wages_And_Contributions.py', icon=':material/work_history:'),
