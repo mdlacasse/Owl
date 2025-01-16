@@ -327,7 +327,7 @@ class Plan:
 
     def setLogstreams(self, verbose, logstreams):
         self.mylog = logging.Logger(verbose, logstreams)
-        self.mylog.vprint("Setting logstreams to %r." % logstreams)
+        # self.mylog.vprint("Setting logstreams to %r." % logstreams)
 
     def logger(self):
         return self.mylog
@@ -1352,7 +1352,7 @@ class Plan:
         return None
 
     @_timer
-    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False, barcall=None):
+    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False, progcall=None):
         """
         Run historical scenarios on plan over a range of years.
         """
@@ -1373,24 +1373,24 @@ class Plan:
 
         df = pd.DataFrame(columns=columns)
 
-        if barcall is None:
-            barcall = progress.Progress(self.mylog)
+        if progcall is None:
+            progcall = progress.Progress(self.mylog)
 
         if not verbose:
-            barcall.start()
+            progcall.start()
 
         for year in range(ystart, yend + 1):
             self.setRates('historical', year)
             self.solve(objective, options)
             if not verbose:
-                barcall.show((year - ystart + 1)/N)
+                progcall.show((year - ystart + 1)/N)
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
                     df.loc[len(df)] = [self.partialBequest, self.basis]
                 elif objective == 'maxBequest':
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
 
-        barcall.finish()
+        progcall.finish()
         self.mylog.resetVerbose()
         fig, summary = self._showResults(objective, df, N, figure)
         self.mylog.print(summary.getvalue())
@@ -1401,7 +1401,7 @@ class Plan:
         return N, df
 
     @_timer
-    def runMC(self, objective, options, N, verbose=False, figure=False, barcall=None):
+    def runMC(self, objective, options, N, verbose=False, figure=False, progcall=None):
         """
         Run Monte Carlo simulations on plan.
         """
@@ -1428,24 +1428,24 @@ class Plan:
 
         df = pd.DataFrame(columns=columns)
 
-        if barcall is None:
-            barcall = progress.Progress(self.mylog)
+        if progcall is None:
+            progcall = progress.Progress(self.mylog)
 
         if not verbose:
-            barcall.start()
+            progcall.start()
 
         for n in range(N):
             self.regenRates()
             self.solve(objective, myoptions)
             if not verbose:
-                barcall.show((n+1)/N)
+                progcall.show((n+1)/N)
             if self.caseStatus == 'solved':
                 if objective == 'maxSpending':
                     df.loc[len(df)] = [self.partialBequest, self.basis]
                 elif objective == 'maxBequest':
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
 
-        barcall.finish()
+        progcall.finish()
         self.mylog.resetVerbose()
         fig, summary = self._showResults(objective, df, N, figure)
         self.mylog.print(summary.getvalue())
@@ -1548,6 +1548,7 @@ class Plan:
         return None
 
     @_checkConfiguration
+    @_timer
     def solve(self, objective, options=None):
         """
         This function builds the necessary constaints and

@@ -28,5 +28,4 @@ For creating your own case, you can either start from the example files or start
 from scratch by selecting `New Case...` while on the ***Basic Info*** page.
 
 More information can be found on the ***Documentation*** page located in the **Resources** section.
-'''
-    )
+''')
