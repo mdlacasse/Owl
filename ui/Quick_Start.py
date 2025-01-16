@@ -13,7 +13,7 @@ with col1:
 Here's how you can run your first case in only a few steps:
 1) Download these two files provided as examples for the case of Jack and Jill:
     - [case file](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
-named *case_jack+jill.toml* in *toml* format
+named *case_jack+jill.toml* in editable *toml* format
     - [contributions file](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
 named *jack+jill.xlsx* in Excel format
 1) While on the ***Basic Info*** page, select `Upload Case File...` in the `Select case` box at the bottom of the margin
@@ -26,7 +26,7 @@ Congratulations! You just ran your first case. You can now explore each page and
 experiment with different configurations.
 
 Alternatively, you can create your own case, you can either start from the example files or start
-from `New Case...` while on the ***Basic Info*** page.
+from scratch by selecting `New Case...` while on the ***Basic Info*** page.
 
 More information can be found on the ***Documentation*** page located in the **Resources** section.
 '''
