@@ -198,7 +198,7 @@ def runHistorical(plan):
         setRates()
         return
 
-    kz.storeKey('caseStatus', 'ran historical')
+    kz.storeKey('caseStatus', 'ran Historical Range')
     setRates()
 
 
