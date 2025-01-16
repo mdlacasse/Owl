@@ -8,7 +8,7 @@ FXRATES = {
     'conservative': [7, 4, 3.3, 2.8],
     'optimistic': [10, 6, 5, 3],
     'historical average': [0, 0, 0, 0],
-    'user': [0, 0, 0, 0]
+    'user': [7, 4, 3.3, 2.8]
 }
 
 rateChoices = ['fixed', 'varying']

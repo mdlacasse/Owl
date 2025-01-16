@@ -13,6 +13,7 @@ else:
     kz.initKey('hyfrm', owb.FROM)
     kz.initKey('hyto', owb.TO)
     kz.initKey('histoplot', None)
+    kz.initKey('histoSummary', None)
 
     col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='bottom')
     with col1:
@@ -37,3 +38,4 @@ else:
     if fig is not None:
         col1, col2 = st.columns(2, gap='small')
         col1.pyplot(fig)
+        col2.code(kz.getKey('histoSummary'), language=None)

@@ -187,21 +187,16 @@ def runHistorical(plan):
     objective, options = getSolveParameters()
     try:
         mybar = progress.Progress(None)
-        fig = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, barcall=mybar)
+        fig, summary = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, barcall=mybar)
         kz.storeKey('histoPlot', fig)
+        kz.storeKey('histoSummary', summary)
     except Exception as e:
         kz.storeKey('histoPlot', None)
+        kz.storeKey('histoSummary', None)
         kz.storeKey('caseStatus', 'exception')
         st.error('Solution failed: %s' % e)
-        kz.storeKey('summary', '')
         setRates()
         return
-
-    kz.storeKey('caseStatus', plan.caseStatus)
-    if plan.caseStatus == 'solved':
-        kz.storeKey('summary', plan.summaryString())
-    else:
-        kz.storeKey('summary', '')
 
     kz.storeKey('caseStatus', 'ran historical')
     setRates()
@@ -216,20 +211,17 @@ def runMC(plan):
     objective, options = getSolveParameters()
     try:
         mybar = progress.Progress(None)
-        fig = plan.runMC(objective, options, N, figure=True, barcall=mybar)
+        fig, summary = plan.runMC(objective, options, N, figure=True, barcall=mybar)
         kz.storeKey('monteCarloPlot', fig)
+        kz.storeKey('monteCarloSummary', summary)
     except Exception as e:
         kz.storeKey('monteCarloPlot', None)
+        kz.storeKey('monteCarloSummary', None)
         kz.storeKey('caseStatus', 'exception')
         st.error('Solution failed: %s' % e)
-        kz.storeKey('summary', '')
         return
 
-    kz.storeKey('caseStatus', plan.caseStatus)
-    if plan.caseStatus == 'solved':
-        kz.storeKey('summary', plan.summaryString())
-    else:
-        kz.storeKey('summary', '')
+    kz.storeKey('caseStatus', 'ran Monte Carlo')
 
 
 @_checkPlan

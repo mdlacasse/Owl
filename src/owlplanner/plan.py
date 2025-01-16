@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from datetime import date, datetime
 from functools import wraps
 import time
+import io
 
 from owlplanner import utils as u
 from owlplanner import tax2025 as tx
@@ -1391,10 +1392,11 @@ class Plan:
 
         barcall.finish()
         self.mylog.resetVerbose()
-        fig = self._showResults(objective, df, N, figure)
+        fig, summary = self._showResults(objective, df, N, figure)
+        self.mylog.print(summary.getvalue())
 
         if figure:
-            return fig
+            return fig, summary.getvalue()
 
         return N, df
 
@@ -1445,10 +1447,11 @@ class Plan:
 
         barcall.finish()
         self.mylog.resetVerbose()
-        fig = self._showResults(objective, df, N, figure)
+        fig, summary = self._showResults(objective, df, N, figure)
+        self.mylog.print(summary.getvalue())
 
         if figure:
-            return fig
+            return fig, summary.getvalue()
 
         return N, df
 
@@ -1458,7 +1461,9 @@ class Plan:
         """
         import seaborn as sbn
 
-        self.mylog.print('Success rate: %s on %d samples.' % (u.pc(len(df) / N), N))
+        summary = io.StringIO()
+
+        print('Success rate: %s on %d samples.' % (u.pc(len(df) / N), N), file=summary)
         title = '$N$ = %d, $P$ = %s' % (N, u.pc(len(df) / N))
         means = df.mean(axis=0, numeric_only=True)
         medians = df.median(axis=0, numeric_only=True)
@@ -1471,7 +1476,7 @@ class Plan:
         # or if solution led to empty accounts at the end of first spouse's life.
         if np.all(self.phi_j == 1) or medians.iloc[0] < 1:
             if medians.iloc[0] < 1:
-                self.mylog.print('Optimized solutions all have null partial bequest in year %d.' % my[0])
+                print('Optimized solutions all have null partial bequest in year %d.' % my[0], file=summary)
             df.drop('partial', axis=1, inplace=True)
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
@@ -1523,16 +1528,16 @@ class Plan:
             # plt.show()
 
         for q in range(len(means)):
-            self.mylog.print('%12s: Median (%d $): %s' % (leads[q], self.year_n[0], u.d(medians.iloc[q])))
-            self.mylog.print('%12s:   Mean (%d $): %s' % (leads[q], self.year_n[0], u.d(means.iloc[q])))
-            self.mylog.print(
+            print('%12s: Median (%d $): %s' % (leads[q], self.year_n[0], u.d(medians.iloc[q])), file=summary)
+            print('%12s:   Mean (%d $): %s' % (leads[q], self.year_n[0], u.d(means.iloc[q])), file=summary)
+            print(
                 '%12s:           Range: %s - %s'
-                % (leads[q], u.d(1000 * df.iloc[:, q].min()), u.d(1000 * df.iloc[:, q].max()))
-            )
+                % (leads[q], u.d(1000 * df.iloc[:, q].min()), u.d(1000 * df.iloc[:, q].max())),
+                file=summary)
             nzeros = len(df.iloc[:, q][df.iloc[:, q] < 0.001])
-            self.mylog.print('%12s:  N zero solns: %d' % (leads[q], nzeros))
+            print('%12s:  N zero solns: %d' % (leads[q], nzeros), file=summary)
 
-        return fig
+        return fig, summary
 
     def resolve(self):
         """

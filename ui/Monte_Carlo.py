@@ -26,3 +26,4 @@ else:
     if fig is not None:
         col1, col2 = st.columns(2, gap='small')
         col1.pyplot(fig)
+        col2.code(kz.getKey('monteCarloSummary'), language=None)
