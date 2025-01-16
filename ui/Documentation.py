@@ -44,7 +44,7 @@ named *jack+jill.xlsx* in Excel format
 
 Congratulations! You just ran your first case. You can now explore each page and
 experiment with different configurations.
-To create your own case, you can either start from the example files or start
+For creating your own case, you can either start from the example files or start
 from scratch by selecting `New Case...` while on the `Basic Info` page.
 
 --------------------------------------------------------------------------------------
