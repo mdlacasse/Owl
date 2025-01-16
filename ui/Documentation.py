@@ -58,7 +58,7 @@ This box is present in all pages except those in the `Resources` section
 and allows to compare different scenarios.
 
 There are four sections in the user interface:
-`Case setup`, `Single scenarios`, `Multiple scenarios`, and `Resources`.
+`Case setup`, `Single scenario`, `Multiple scenarios`, and `Resources`.
 
 -------------------------------------------------
 ### :orange[Case Setup]
@@ -153,7 +153,7 @@ span of the plan will be ignored.
 For the columns, *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment or other sources
 (not including dividends from your taxable investment accounts). Note that column names are case sensitive
-and all entries must be in lower case. Best way to start this process is to use the template
+and all entries must be in lower case. The easiest way to start this process is to use the template
 file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx).
 
 
@@ -280,7 +280,7 @@ for that reason they do not start at 1.
 
 
 --------------------------------------------------------------------------------------
-### :orange[Single Scenarios]
+### :orange[Single Scenario]
 
 #### Case Results
 This page allows to run a single scenario based on the selections made

@@ -91,14 +91,16 @@ else:
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
             st.number_input('Starting year', min_value=owb.FROM,
-                            max_value=kz.getKey('yto'),
+                            max_value=kz.getKey('yto') - 1,
                             value=kz.getKey('yfrm'),
                             on_change=updateRates, args=['yfrm'], key='_yfrm')
 
         with col2:
+            ishistorical = kz.getKey('rateType') == 'varying' and kz.getKey('varyingType') == 'historical'
             st.number_input('Ending year', max_value=owb.TO,
-                            min_value=kz.getKey('yfrm'),
+                            min_value=kz.getKey('yfrm') + 1,
                             value=kz.getKey('yto'),
+                            disabled=ishistorical,
                             on_change=updateRates, args=['yto'], key='_yto')
 
     if kz.getKey('rateType') == 'varying':

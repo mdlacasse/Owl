@@ -6,13 +6,10 @@ from datetime import datetime, date
 import importlib
 
 import owlplanner as owl
+from owlplanner.rates import FROM, TO
+
 import sskeys as kz
 import progress
-
-
-# Historical rates available.
-FROM = 1928
-TO = 2024
 
 
 def hasMOSEK():
@@ -255,8 +252,13 @@ def setRates(plan):
         varyingType = kz.getKey('varyingType')
         if varyingType.startswith('histo'):
             if varyingType == 'historical':
+                yfrm2 = min(yfrm, TO-plan.N_n+1)
+                kz.storeKey('yfrm', yfrm2)
+                if yfrm != yfrm2:
+                    yfrm = yfrm2
+                    st.warning('Using %d as Starting year.' % yfrm)
                 yto = min(TO, yfrm+plan.N_n-1)
-                kz.setKey('yto', yto)
+                kz.storeKey('yto', yto)
             plan.setRates(varyingType, yfrm, yto)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
@@ -265,7 +267,6 @@ def setRates(plan):
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1+1, plan.N_k):
-                    # kz.setKey('corr'+str(q), plan.rateCorr[k1, k2])
                     kz.storeKey('corr'+str(q), corr[k1, k2])
                     q += 1
 
