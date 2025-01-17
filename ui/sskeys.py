@@ -45,14 +45,14 @@ def runOncePerSession(func):
     key = 'oNcE_' + func.__name__
     if getGlobalKey(key) is None:
         func()
-    initGlobalKey(key, 1)
+        storeGlobalKey(key, 1)
 
 
 def runOncePerCase(func):
     key = 'oNcE_' + func.__name__
     if getKey(key) is None:
         func()
-    initKey(key, 1)
+        storeKey(key, 1)
 
 
 def refreshCase(adic):
@@ -250,8 +250,9 @@ def getKey(key):
         return None
 
 
-def setGlobalKey(key, val):
+def storeGlobalKey(key, val):
     ss[key] = val
+    return val
 
 
 def getGlobalKey(key):

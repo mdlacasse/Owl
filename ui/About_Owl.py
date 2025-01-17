@@ -31,6 +31,7 @@ Copyright &copy; 2024 - Martin-D. Lacasse
     - [Numpy](https://numpy.org), [Matplotlib](https://matplotlib.org),
     [Pandas](https://pandas.pydata.org),
     [Seaborn](https://seaborn.pydata.org),
+    [Scipy](https://scipy.org),
     [openpyxl](https://openpyxl.readthedocs.io),
     [toml](https://toml.io),
  and [Streamlit](https://streamlit.io) for the front-end.

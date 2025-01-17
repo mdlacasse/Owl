@@ -10,20 +10,31 @@ with col1:
     st.write('## Quick Start')
     kz.orangeDivider()
     st.markdown('''
-Here's how you can run your first case in only a few steps:
-1) Download these two files provided as examples for the case of Jack and Jill:
+Owl uses files to store the parameters of a case so that its state can be recalled in the future.
+The parameters of a scenario are stored in a *case* file
+which contains account balances, asset allocation, social security and pension, and
+other related parameters. This file is in *toml* format which is editable with a simple text editor.
+A time table for anticipated wages, future contributions
+to savings accounts, and anticipated big-ticket items (either expenses or income)
+is stored in a *wages and contributions* file in Excel (or LibreOffice) format,
+with one tab for each individual in the plan.
+
+With these files, a case can be run in only a few steps. We will use the case
+of Jack and Jill provided as an example:
+1) Download these two files from the repository:
     - [case file](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
-named *case_jack+jill.toml* in editable *toml* format
-    - [contributions file](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
-named *jack+jill.xlsx* in Excel format
-1) While on the ***Basic Info*** page, select `Upload Case File...` in the `Select case` box at the bottom of the margin
-1) Drag and drop the case file you downloaded called *case_jack+jill.toml*
-1) Change to the ***Wages and Contributions*** page
-1) Drag and drop the file you downloaded called *jack+jill.xlsx*
-1) Move to the ***Case Results*** page and click `Run single case`
+named *case_jack+jill.toml* in editable *toml* format.
+    - [wages and contributions file](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
+named *jack+jill.xlsx* in Excel format.
+1) Navigate to the ***Basic Info*** page and select `Upload Case File...` in the `Select case` box
+at the bottom of the margin.
+1) Drag and drop the case file you downloaded called *case_jack+jill.toml*.
+1) Navigate to the ***Wages and Contributions*** page and
+drag and drop the file you downloaded called *jack+jill.xlsx*.
+1) Move to the ***Case Results*** page and click `Run single case`.
 
 Congratulations! You just ran your first case. You can now explore each page and
-experiment with different configurations.
+experiment with different parameters.
 For creating your own case, you can either start from the example files or start
 from scratch by selecting `New Case...` while on the ***Basic Info*** page.
 Multiple cases can coexist and can be called back from the `Select case` box.
