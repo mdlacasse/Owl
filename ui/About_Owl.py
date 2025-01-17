@@ -30,7 +30,10 @@ Copyright &copy; 2024 - Martin-D. Lacasse
 - Owl planner relies on the following [Python](https://python.org) packages:
     - [Numpy](https://numpy.org), [Matplotlib](https://matplotlib.org),
     [Pandas](https://pandas.pydata.org),
-    [Seaborn](https://seaborn.pydata.org), and [Streamlit](https://streamlit.io) for the front-end.
+    [Seaborn](https://seaborn.pydata.org),
+    [openpyxl](https://openpyxl.readthedocs.io),
+    [toml](https://toml.io),
+ and [Streamlit](https://streamlit.io) for the front-end.
 - The :streamlit: [Streamlit Community Cloud](https://streamlit.io/cloud) for hosting.
 
 #### :orange[Disclaimers]

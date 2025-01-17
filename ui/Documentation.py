@@ -128,8 +128,11 @@ the optimizer will find creative solutions that can generate surpluses in order
 to maximize the final bequest.
 
 Setting a surplus fraction that deposits all surpluses in the survivor's account
-can lead to slow convergence. This is due to the triggering of binary variables which add
-considerable computing effort in solving. It is recommended to set surpluses to be
+can lead to slow convergence. This is especially noticeable when solving with
+varying rates, and not so common when using fixed rates.
+This is due to the triggering of binary variables which add
+considerable computing effort in solving the problem.
+When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
 
 #### Wages and Contributions

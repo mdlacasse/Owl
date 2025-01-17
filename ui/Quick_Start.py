@@ -26,6 +26,7 @@ Congratulations! You just ran your first case. You can now explore each page and
 experiment with different configurations.
 For creating your own case, you can either start from the example files or start
 from scratch by selecting `New Case...` while on the ***Basic Info*** page.
+Multiple cases can coexist and can be called back from the `Select case` box.
 
 More information can be found on the ***Documentation*** page located in the **Resources** section.
 ''')
