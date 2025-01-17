@@ -11,7 +11,7 @@ kz.init()
 st.logo('https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png', size='large')
 
 pages = {
-          '': [st.Page('Quick_Start.py', icon=':material/rocket_launch:')],
+          # '': [st.Page('Quick_Start.py', icon=':material/rocket_launch:')],
           'Case setup': [st.Page('Basic_Info.py', icon=':material/person_add:'),
                          st.Page('Assets.py', icon=':material/savings:'),
                          st.Page('Wages_And_Contributions.py', icon=':material/work_history:'),
@@ -26,6 +26,7 @@ pages = {
                                  st.Page('Monte_Carlo.py', icon=':material/finance:')],
           'Resources': [st.Page('Logs.py', icon=':material/error:'),
                         st.Page('Settings.py', icon=':material/settings:'),
+                        st.Page('Quick_Start.py', icon=':material/rocket_launch:', default=True),
                         st.Page('Documentation.py', icon=':material/help:'),
                         st.Page('About_Owl.py', icon=':material/info:')],
            }
