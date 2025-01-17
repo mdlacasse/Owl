@@ -127,6 +127,11 @@ surplus moneys in the taxable account of the first individual to pass. Otherwise
 the optimizer will find creative solutions that can generate surpluses in order
 to maximize the final bequest.
 
+Setting a surplus fraction that deposits all surpluses in the survivor's account
+can lead to slow convergence. This is due to the triggering of binary variables which add
+considerable computing effort in solving. It is recommended to set surpluses to be
+deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
+
 #### Wages and Contributions
 This page allows to enter an optional Excel file containing future wages and contributions.
 The values in this spreadsheet are in \\$, not in thousands.

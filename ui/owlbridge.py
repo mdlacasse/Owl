@@ -187,7 +187,7 @@ def runHistorical(plan):
     objective, options = getSolveParameters()
     try:
         mybar = progress.Progress(None)
-        fig, summary = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, barcall=mybar)
+        fig, summary = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, progcall=mybar)
         kz.storeKey('histoPlot', fig)
         kz.storeKey('histoSummary', summary)
     except Exception as e:
@@ -211,7 +211,7 @@ def runMC(plan):
     objective, options = getSolveParameters()
     try:
         mybar = progress.Progress(None)
-        fig, summary = plan.runMC(objective, options, N, figure=True, barcall=mybar)
+        fig, summary = plan.runMC(objective, options, N, figure=True, progcall=mybar)
         kz.storeKey('monteCarloPlot', fig)
         kz.storeKey('monteCarloSummary', summary)
     except Exception as e:

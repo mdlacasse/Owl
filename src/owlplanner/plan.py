@@ -197,8 +197,8 @@ def _timer(func):
         result = func(self, *args, **kwargs)
         pt = time.process_time() - pt0
         rt = time.time() - rt0
-        self.mylog.print('CPU time used: %dm%.1fs, Wall time: %dm%.1fs.'
-                         % (int(pt / 60), pt % 60, int(rt / 60), rt % 60))
+        self.mylog.vprint('CPU time used: %dm%.1fs, Wall time: %dm%.1fs.'
+                          % (int(pt / 60), pt % 60, int(rt / 60), rt % 60))
         return result
 
     return wrapper
@@ -1361,6 +1361,8 @@ class Plan:
             self.mylog.vprint('Warning: Upper bound for year range re-adjusted to %d.' % yend)
         N = yend - ystart + 1
 
+        self.mylog.vprint('Running historical range from %d to %d.' % (ystart, yend))
+
         self.mylog.setVerbose(verbose)
 
         if objective == 'maxSpending':
@@ -1409,6 +1411,7 @@ class Plan:
             self.mylog.print('It is pointless to run Monte Carlo simulations with fixed rates.')
             return
 
+        self.mylog.vprint('Running %d Monte Carlo simulations.' % N)
         self.mylog.setVerbose(verbose)
 
         # Turn off Medicare by default, unless specified in options.

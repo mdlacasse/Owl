@@ -12,7 +12,7 @@ Names = [ "Jack", "Jill",]
 "tax-deferred savings balances" = [ 600.2, 150.0,]
 "tax-free savings balances" = [ 70.6, 40.8,]
 "Beneficiary fractions" = [ 1, 1, 1,]
-"Spousal surplus deposit fraction" = 0.5
+"Spousal surplus deposit fraction" = 0.0
 
 ["Wages and Contributions"]
 "Contributions file name" = "jack+jill.xlsx"
