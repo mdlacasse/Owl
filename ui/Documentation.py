@@ -32,12 +32,12 @@ open repository.
 ### Quick Start
 Here's how you can run your first case in only a few steps:
 1) Download these two files provided as examples for the case of Jack and Jill:
-    - [case file](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
+    - [case parameter file](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
 named *case_jack+jill.toml* in editable *toml* format
     - [contributions file](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
 named *jack+jill.xlsx* in Excel format
 1) While on the [Basic Info](#basic-info) page, select `Upload Case File...` in the `Select case` box
-1) Drag and drop the case file you downloaded called *case_jack+jill.toml*
+1) Drag and drop the case parameter file you downloaded called *case_jack+jill.toml*
 1) Change to the [Wages and Contributions](#wages-and-contributions) page
 1) Drag and drop the file you downloaded called *jack+jill.xlsx*
 1) Move to the [Case Results](#case-results) page and click `Run single case`
