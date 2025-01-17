@@ -18,7 +18,6 @@ def init():
     global ss
     ss = st.session_state
     if 'cases' not in ss:
-        # print('Initializing keyholder')
         ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'caseStatus': 'new', 'summary': ''},
                     loadCaseFile: {'iname0': '', 'status': 'unkown', 'caseStatus': 'new', 'summary': ''}}
 
@@ -224,6 +223,7 @@ def storepull(key):
 def setKey(key, val):
     ss.cases[ss.currentCase][key] = val
     ss.cases[ss.currentCase]['caseStatus'] = 'modified'
+    # print('setKey', key, val)
     return val
 
 
@@ -235,6 +235,7 @@ def storeKey(key, val):
 def initKey(key, val):
     if key not in ss.cases[ss.currentCase]:
         ss.cases[ss.currentCase][key] = val
+        # print('initKey', key, val)
 
 
 def initGlobalKey(key, val):

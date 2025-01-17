@@ -30,7 +30,10 @@ def updateFixedRates(key, pull=True):
 
 def updateRates(key):
     kz.setpull(key)
-    owb.setRates()
+    if kz.getKey(key) == 'fixed':
+        updateFixedRates(kz.getKey('fixedType'), False)
+    else:
+        owb.setRates()
 
 
 def initRates():
@@ -61,8 +64,8 @@ else:
         fxType = kz.getRadio('Select fixed rates', fixedChoices, 'fixedType', updateFixedRates)
 
         st.write('#### Fixed rate values (%)')
+        rates = FXRATES[fxType]
         for j in range(4):
-            rates = FXRATES[fxType]
             kz.initKey('fxRate'+str(j), rates[j])
 
         ro = (fxType != 'user')

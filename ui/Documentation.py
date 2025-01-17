@@ -341,6 +341,11 @@ If the `Beneficiary fractions` are not all unity, two histograms will be display
 one for the partial bequest at the passing of the first spouse
 and the other for the distribution of values of the objective being optimized.
 
+Linear programming solutions are more expensive than event-driven forward simulators. Therefore,
+when considering Monte Carlo simulations, consider:
+- Turning off Medicare calculations
+- Installing Owl and running on your local computer as it can be more than 3 times faster than the Streamlit host
+
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
 #### Logs
