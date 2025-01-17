@@ -11,16 +11,17 @@ with col1:
     kz.orangeDivider()
     st.markdown('''
 Owl uses files to store the parameters of a case so that its state can be recalled in the future.
-The parameters of a scenario are stored in a *case* file
-which contains account balances, asset allocation, social security and pension, and
-other related parameters. This file is in *toml* format which is editable with a simple text editor.
+Parameters are stored in a *case* file
+which contains account balances, asset allocation, social security and pension, optimization
+parameter and other specifications.
+This file is in *toml* format which is editable with a simple text editor.
 A time table for anticipated wages, future contributions
 to savings accounts, and anticipated big-ticket items (either expenses or income)
 is stored in a *wages and contributions* file in Excel (or LibreOffice) format,
 with one tab for each individual in the plan.
 
 With these files, a case can be run in only a few steps. We will use the case
-of Jack and Jill provided as an example:
+of Jack and Jill provided here as an example:
 1) Download these two files from the repository:
     - [case file](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
 named *case_jack+jill.toml* in editable *toml* format.
@@ -35,6 +36,7 @@ drag and drop the file you downloaded called *jack+jill.xlsx*.
 
 Congratulations! You just ran your first case. You can now explore each page and
 experiment with different parameters.
+
 For creating your own case, you can either start from the example files or start
 from scratch by selecting `New Case...` while on the ***Basic Info*** page.
 Multiple cases can coexist and can be called back from the `Select case` box.
