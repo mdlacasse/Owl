@@ -178,11 +178,18 @@ def createCaseFromFile(confile):
 
 
 def createNewCase(case):
-    if case == 'newcase':
-        # Widget stored case name in _newname.
-        casename = ss._newcase
+    if case != 'newcase':
+        st.error("Expected 'newcase' but got '%s'." % case)
+        return
 
-    if casename == '' or casename in ss.cases:
+    # Widget stored case name in _newname.
+    casename = ss._newcase
+
+    if casename == '':
+        return
+
+    if casename in ss.cases:
+        st.error("Case name '%s' already exists." % casename)
         return
 
     ss.cases[casename] = {'name': casename, 'caseStatus': '', 'summary': '', 'logs': None}
@@ -266,13 +273,14 @@ def getDict(key=ss.currentCase):
     return ss.cases[key]
 
 
-def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, max_value=None):
+def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, max_value=None):
     return st.number_input(text,
                            value=int(getKey(nkey)),
                            disabled=disabled,
                            min_value=0,
                            max_value=max_value,
                            step=step,
+                           help=help,
                            on_change=callback, args=[nkey], key='_'+nkey)
 
 

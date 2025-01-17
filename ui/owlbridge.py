@@ -476,9 +476,10 @@ def setProfile(plan, key, pull=True):
         kz.setpull(key)
     profile = kz.getKey('spendingProfile')
     survivor = kz.getKey('survivor')
-    smileDip = kz.getKey('smileDip')
-    smileIncrease = kz.getKey('smileIncrease')
-    plan.setSpendingProfile(profile, survivor, smileDip, smileIncrease)
+    dip = kz.getKey('smileDip')
+    increase = kz.getKey('smileIncrease')
+    delay = kz.getKey('smileDelay')
+    plan.setSpendingProfile(profile, survivor, dip, increase, delay)
 
 
 @_checkPlan

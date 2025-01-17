@@ -40,6 +40,7 @@ generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],],]
 "Spending profile" = "smile"
 "Smile dip" = 15
 "Smile increase" = 12
+"Smile delay" = 0
 "Surviving spouse spending percent" = 60
 Objective = "maxSpending"
 

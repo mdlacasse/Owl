@@ -52,7 +52,7 @@ def _genGamma_n(tau):
     return gamma
 
 
-def _genXi_n(profile, fraction, n_d, N_n, a, b):
+def _genXi_n(profile, fraction, n_d, N_n, a, b, c=0):
     """
     Utility function to generate spending profile.
     Return time series of spending profile.
@@ -60,16 +60,20 @@ def _genXi_n(profile, fraction, n_d, N_n, a, b):
     after the passing of shortest-lived spouse.
     Series is unadjusted for inflation.
     """
+    assert 0 <= c and c < N_n - 2, 'Wrong value for parameter c: %d' % c
+
     xi = np.ones(N_n)
     if profile == 'flat':
         if n_d < N_n:
             xi[n_d:] *= fraction
     elif profile == 'smile':
-        x = np.linspace(0, N_n - 1, N_n)
+        span = N_n - 1 - c
+        x = np.linspace(0, span, N_n - c)
         a /= 100
         b /= 100
         # Use a cosine +/- 15% combined with a gentle +12% linear increase.
-        xi = xi + a * np.cos((2 * np.pi / (N_n - 1)) * x) + (b / (N_n - 1)) * x
+        xi[c:] = xi[c:] + a * np.cos((2 * np.pi / span) * x) + (b / (N_n - 1)) * x
+        xi[:c] = xi[c]
         # Normalize to be sum-neutral with respect to a flat profile.
         neutralSum = N_n
         # Reduce income needs after passing of one spouse.
@@ -556,7 +560,7 @@ class Plan:
 
         return None
 
-    def setSpendingProfile(self, profile, percent=60, dip=15, increase=12):
+    def setSpendingProfile(self, profile, percent=60, dip=15, increase=12, delay=0):
         """
         Generate time series for spending profile. Surviving spouse fraction can be specified
         as a second argument. Default value is 60%.
@@ -572,13 +576,14 @@ class Plan:
         if self.N_i == 2:
             self.mylog.vprint('Securing', u.pc(self.chi, f=0), 'of spending amount for surviving spouse.')
 
-        self.xi_n = _genXi_n(profile, self.chi, self.n_d, self.N_n, dip, increase)
+        self.xi_n = _genXi_n(profile, self.chi, self.n_d, self.N_n, dip, increase, delay)
         # Account for time elapsed in the current year.
         self.xi_n[0] *= self.yearFracLeft
 
         self.spendingProfile = profile
         self.smileDip = dip
         self.smileIncrease = increase
+        self.smileDelay = delay
         self.caseStatus = 'modified'
 
         return None

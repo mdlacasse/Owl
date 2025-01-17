@@ -92,8 +92,9 @@ def saveConfig(plan, file, mylog):
                                          'Surviving spouse spending percent': int(100 * plan.chi),
                                         }
     if plan.spendingProfile == 'smile':
-        diconf['Optimization Parameters']['Smile dip'] = float(plan.smileDip)
-        diconf['Optimization Parameters']['Smile increase'] = float(plan.smileIncrease)
+        diconf['Optimization Parameters']['Smile dip'] = int(plan.smileDip)
+        diconf['Optimization Parameters']['Smile increase'] = int(plan.smileIncrease)
+        diconf['Optimization Parameters']['Smile delay'] = int(plan.smileDelay)
 
     diconf['Optimization Parameters']['Objective'] = plan.objective
     diconf['Solver Options'] = plan.solverOptions
@@ -274,11 +275,13 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     if profile == 'smile':
         dip = int(diconf['Optimization Parameters']['Smile dip'])
         increase = int(diconf['Optimization Parameters']['Smile increase'])
+        delay = int(diconf['Optimization Parameters']['Smile delay'])
     else:
         dip = 15
         increase = 12
+        delay = 0
 
-    p.setSpendingProfile(profile, survivor, dip, increase)
+    p.setSpendingProfile(profile, survivor, dip, increase, delay)
 
     # Solver Options.
     p.solverOptions = diconf['Solver Options']
