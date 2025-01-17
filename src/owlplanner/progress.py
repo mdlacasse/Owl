@@ -6,7 +6,7 @@ A simple object to display progress.
 from owlplanner import utils as u
 
 
-class Progress:
+class Progress(object):
     def __init__(self, mylog):
         self.mylog = mylog
 

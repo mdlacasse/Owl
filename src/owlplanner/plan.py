@@ -208,7 +208,7 @@ def _timer(func):
     return wrapper
 
 
-class Plan:
+class Plan(object):
     """
     This is the main class of the Owl Project.
     """

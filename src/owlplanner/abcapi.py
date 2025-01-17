@@ -25,7 +25,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import numpy as np
 
 
-class Row:
+class Row(object):
     """
     Solver-neutral API to accomodate Mosek/HiGHS.
     A Row represent a row in matrix A.
@@ -58,7 +58,7 @@ class Row:
         return self
 
 
-class ConstraintMatrix:
+class ConstraintMatrix(object):
     """
     Solver-neutral API for expressing constraints.
     """
@@ -140,7 +140,7 @@ class ConstraintMatrix:
         return Alu, lb, ub
 
 
-class Bounds:
+class Bounds(object):
     """
     Solver-neutral API for bounds on variables.
     """
@@ -212,7 +212,7 @@ class Bounds:
         return self.integrality
 
 
-class Objective:
+class Objective(object):
     """
     Solver-neutral objective function.
     """

@@ -773,7 +773,7 @@ def historicalValue(amount, year):
     return amount
 
 
-class Rates:
+class Rates(object):
     """
     Rates are stored in a 4-array in the following order:
     Stocks, Bonds, Fixed assets, and Inflation.

@@ -603,6 +603,14 @@ def genDic(plan):
     dic['interpCenter'] = plan.interpCenter
     dic['interpWidth'] = plan.interpWidth
     dic['spendingProfile'] = plan.spendingProfile
+    if plan.spendingProfile == 'smile':
+        dic['smileDip'] = plan.smileDip
+        dic['smileIncrease'] = plan.smileIncrease
+        dic['smileDelay'] = plan.smileDelay
+    else:
+        dic['smileDip'] = 15
+        dic['smileIncrease'] = 12
+        dic['smileDelay'] = 0
     dic['survivor'] = 100*plan.chi
     dic['gainTx'] = 100*plan.psi
     dic['divRate'] = 100*plan.mu

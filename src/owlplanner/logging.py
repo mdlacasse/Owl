@@ -13,7 +13,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import sys
 
 
-class Logger:
+class Logger(object):
     def __init__(self, verbose=True, logstreams=None):
         self._verbose = verbose
         self._prevState = self._verbose
