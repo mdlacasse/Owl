@@ -23,8 +23,8 @@ def init():
 
     # Variable for storing name of current case.
     if 'currentCase' not in ss:
-        # ss.currentCase = loadCaseFile
-        ss.currentCase = newCase
+        ss.currentCase = loadCaseFile
+        # ss.currentCase = newCase
 
 
 init()

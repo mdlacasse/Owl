@@ -29,25 +29,6 @@ A full description of the package can be found on the [github](https://github.co
 open repository.
 
 --------------------------------------------------------------------------------------
-### Quick Start
-Here's how you can run your first case in only a few steps:
-1) Download these two files provided as examples for the case of Jack and Jill:
-    - [case parameter file](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
-named *case_jack+jill.toml* in editable *toml* format
-    - [contributions file](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
-named *jack+jill.xlsx* in Excel format
-1) While on the [Basic Info](#basic-info) page, select `Upload Case File...` in the `Select case` box
-1) Drag and drop the case parameter file you downloaded called *case_jack+jill.toml*
-1) Change to the [Wages and Contributions](#wages-and-contributions) page
-1) Drag and drop the file you downloaded called *jack+jill.xlsx*
-1) Move to the [Case Results](#case-results) page and click `Run single case`
-
-Congratulations! You just ran your first case. You can now explore each page and
-experiment with different configurations.
-For creating your own case, you can either start from the example files or start
-from scratch by selecting `New Case...` while on the `Basic Info` page.
-
---------------------------------------------------------------------------------------
 ### Getting started with the user interface
 Functions of each page are described below in the same order as they appear in the sidebar.
 Typically, pages would be accessed in order, starting from the top.

@@ -27,9 +27,8 @@ of Jack and Jill provided here as an example:
 named *case_jack+jill.toml* in editable *toml* format.
     - [wages and contributions file](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
 named *jack+jill.xlsx* in Excel format.
-1) Navigate to the ***Basic Info*** page and select `Upload Case File...` in the `Select case` box
-at the bottom of the margin.
-1) Drag and drop the case parameter file you downloaded called *case_jack+jill.toml*.
+1) Navigate to the ***Basic Info*** page and drag and drop the case parameter file
+you downloaded called *case_jack+jill.toml*.
 1) Navigate to the ***Wages and Contributions*** page and
 drag and drop the file you downloaded called *jack+jill.xlsx*.
 1) Move to the ***Case Results*** page and click `Run single case`.
@@ -39,7 +38,8 @@ experiment with different parameters.
 
 For creating your own case, you can either start from the example files or start
 from scratch by selecting `New Case...` while on the ***Basic Info*** page.
-Multiple cases can coexist and can be called back from the `Select case` box.
+Multiple cases can coexist and can be called back from the `Select case` box
+at the bottom of the margin.
 
 More information can be found on the :material/help: ***Documentation*** page located in the **Resources** section.
 ''')
