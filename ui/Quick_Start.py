@@ -10,15 +10,15 @@ with col1:
     st.write('## Quick Start')
     kz.orangeDivider()
     st.markdown('''
-Owl uses files to store the parameters of a case so that its state can be recalled in the future.
-Parameters are stored in a *case* parameter file
-which contains account balances, asset allocation, social security and pension, optimization
+Owl uses two files to store the specifications of a case so that its state can be recalled in the future.
+A *case* parameter file
+contains account balances, asset allocation, social security and pension, optimization
 parameter and other specifications.
 This file is in *toml* format which is editable with a simple text editor.
-A time table for anticipated wages, future contributions
-to savings accounts, and anticipated big-ticket items (either expenses or income)
-is stored in a *wages and contributions* file in Excel (or LibreOffice) format,
-with one tab for each individual in the plan.
+A *wages and contributions* file is a
+time table containing anticipated wages, future contributions
+to savings accounts, and anticipated big-ticket items, which can be either expenses or income.
+This file is in Excel or LibreOffice format, and contains one tab per individual in the plan.
 
 With these files, a case can be run in only a few steps. We will use the case
 of Jack and Jill provided here as an example:
