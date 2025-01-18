@@ -33,7 +33,7 @@ open repository.
 Functions of each page are described below in the same order as they appear in the sidebar.
 Typically, pages would be accessed in order, starting from the top.
 The `Select case` selection box at the bottom of the margin allows to select an existing case
-or create a new one from scratch, or from a *case* file, which
+or create a new one from scratch, or from a *case* parameter file, which
 would then populate all parameter values.
 This box is present in all pages except those in the `Resources` section
 and allows to compare different scenarios.
@@ -48,7 +48,7 @@ This section contains the steps for creating and configuring case scenarios.
 #### Basic Info
 This page controls the creation of scenarios as the `Select case` menu contains
 two additional items when this page is open:
-one to create a new case, and the other to create a case from a *case* file.
+one to create a new case, and the other to create a case from a *case* parameter file.
 This page also allows you to duplicate and/or rename a scenario, and to delete scenarios.
 
 For creating a scenario, the (first) name(s), marital status, birth year(s),
@@ -73,7 +73,7 @@ can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/exam
 Using a *case* file
 will populate all the fields required to run a scenario. A *case* file for the case being developed
 can be saved under the [Case Results](#case-results) page and made available to reload at a later time.
-Case files can have any name but when saving from the interface, their name will start with *case_*
+Case parameter files can have any name but when saving from the interface, their name will start with *case_*
 followed by the case name.
 
 When starting from `New case...`,
@@ -93,10 +93,10 @@ for reproducibility purposes. This date does not affect when the plan ends.
 This page allows to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
-Three types of saving accounts are considered and are tracked separately for spouses:
-- Taxable saving accounts,
-- Tax-deferred saving accounts,
-- Tax-exempt saving accounts.
+Three types of savings accounts are considered and are tracked separately for spouses:
+- Taxable savings accounts (e.g., investment accounts, CDs)
+- Tax-deferred savings accounts (e.g., 401k, 403b, IRA),
+- Tax-exempt savings accounts (e.g., Roth 401k, Roth IRA).
 
 
 For married couples, the spousal `Beneficiary fractions` associated with these accounts
