@@ -25,8 +25,10 @@ maximize the net spending amount under the constraint of a desired bequest,
 or maximize an after-tax bequest under the consraint of a desired net spending amount.
 In each case, Roth conversions are optimized to reduce the tax burden,
 while federal income tax and Medicare premiums (including IRMAA) are calculated.
-A full description of the package can be found on the [github](https://github.com/mdlacasse/Owl)
-open repository.
+A full description of the package can be found on the GitHub
+open [repository](https://github.com/mdlacasse/Owl), and the mathematical
+formulation of the optimization problem can be found
+[here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
 --------------------------------------------------------------------------------------
 ### Getting started with the user interface
