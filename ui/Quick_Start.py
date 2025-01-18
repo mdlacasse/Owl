@@ -12,15 +12,15 @@ with col1:
     st.markdown('''
 Owl uses two files to store the specifications of a case so that it can be recalled at a later time.
 - A *case* parameter file
-specifies account balances, asset allocation, social security and pension, optimization
-parameters and other specifications.
+specifies account balances, asset allocation, social security and pension, rates, 
+optimization parameters and related assumptions.
 This file is in *toml* format which is editable with a simple text editor.
 - A *wages and contributions* file contains a
 time table describing anticipated wages, future contributions
 to savings accounts, and anticipated big-ticket items, which can be either expenses or income.
 This file is in Excel or LibreOffice format, and has one tab per individual in the plan.
 
-With these two files, a case can be run in only a few steps. We will use the case
+With these two files, a scenario can be solved in only a few steps. We will use the case
 of Jack and Jill provided here as an example:
 1) Download these two files from the repository:
     - Case parameter file named
@@ -38,7 +38,8 @@ drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*)
 Congratulations! :balloon: You just ran your first case. You can now explore each page and
 experiment with different parameters.
 
-For creating your own case, you can either start from the example files or start
+For creating your own case, you can either duplicate one of the example cases and
+edit the values to fit your situation, or start
 from scratch by selecting `New Case...` while on the ***Basic Info*** page.
 Multiple cases can coexist and can be called back from the `Select case` box
 at the bottom of the margin.

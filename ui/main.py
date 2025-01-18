@@ -3,7 +3,8 @@ import streamlit as st
 import sskeys as kz
 
 # Pick one for narrow or wide graphs. That can be changed in upper-right settings menu.
-st.set_page_config(layout='wide')
+st.set_page_config(layout='wide', page_title="Owl Retirement Planner")
+
 # st.set_page_config(layout='centered')
 
 kz.init()
