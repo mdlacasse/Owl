@@ -10,17 +10,17 @@ with col1:
     st.write('## Quick Start')
     kz.orangeDivider()
     st.markdown('''
-Owl uses two files to store the specifications of a case so that its state can be recalled in the future.
-First, a *case* parameter file
+Owl uses two files to store the specifications of a case so that its state can be recalled at a later time.
+- A *case* parameter file
 contains account balances, asset allocation, social security and pension, optimization
-parameter and other specifications.
+parameters and other specifications.
 This file is in *toml* format which is editable with a simple text editor.
-Second, a *wages and contributions* file contains a
+- A *wages and contributions* file contains a
 time table containing anticipated wages, future contributions
 to savings accounts, and anticipated big-ticket items, which can be either expenses or income.
 This file is in Excel or LibreOffice format, and has one tab per individual in the plan.
 
-With these files, a case can be run in only a few steps. We will use the case
+With these two files, a case can be run in only a few steps. We will use the case
 of Jack and Jill provided here as an example:
 1) Download these two files from the repository:
     - Case parameter file named
@@ -30,10 +30,10 @@ of Jack and Jill provided here as an example:
     [jack+jill.xlsx](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
     in Excel format.
 1) Navigate to the ***Basic Info*** page and drag and drop the case parameter file
-you downloaded called *case_jack+jill.toml*.
+you just downloaded (*case_jack+jill.toml*).
 1) Navigate to the ***Wages and Contributions*** page and
-drag and drop the file you downloaded called *jack+jill.xlsx*.
-1) Move to the ***Case Results*** page and click `Run single case`.
+drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*).
+1) Move to the ***Case Results*** page and click on the `Run single case` button.
 
 Congratulations! :balloon: You just ran your first case. You can now explore each page and
 experiment with different parameters.

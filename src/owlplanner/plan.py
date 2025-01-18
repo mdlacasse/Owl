@@ -52,7 +52,7 @@ def _genGamma_n(tau):
     return gamma
 
 
-def _genXi_n(profile, fraction, n_d, N_n, a, b, c=0):
+def _genXi_n(profile, fraction, n_d, N_n, a, b, c):
     """
     Utility function to generate spending profile.
     Return time series of spending profile.
@@ -60,8 +60,6 @@ def _genXi_n(profile, fraction, n_d, N_n, a, b, c=0):
     after the passing of shortest-lived spouse.
     Series is unadjusted for inflation.
     """
-    assert 0 <= c and c < N_n - 2, 'Wrong value for parameter c: %d' % c
-
     xi = np.ones(N_n)
     if profile == 'flat':
         if n_d < N_n:
@@ -569,6 +567,7 @@ class Plan(object):
         assert 0 <= percent and percent <= 100, 'Survivor value %r outside range.' % percent
         assert 0 <= dip and dip <= 100, 'Dip value %r outside range.' % dip
         assert 0 <= increase and increase <= 100, 'Increase value %r outside range.' % dip
+        assert 0 <= delay and delay <= self.N_n - 2 , 'Delay value %r outside range.' % delay
 
         self.chi = percent / 100
 
@@ -2069,6 +2068,9 @@ class Plan(object):
         lines.append('Number of decision variables: %d' % self.A.nvars)
         lines.append('Number of constraints: %d' % self.A.ncons)
         lines.append('Spending profile: %s' % self.spendingProfile)
+        if self.spendingProfile == 'smile':
+            lines.append('\twith increase: %d%%, dip: %d%%, delay: %dy'
+                         % (self.smileIncrease, self.smileDip, self.smileDelay))
         if self.N_i == 2:
             lines.append('Surviving spouse spending needs: %s' % u.pc(self.chi, f=0))
 

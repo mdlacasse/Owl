@@ -84,7 +84,7 @@ else:
                                help=helpmsg, callback=owb.setProfile)
         if kz.getKey('spendingProfile') == 'smile':
             helpmsg = 'Time in year before the dip takes place.'
-            ret = kz.getIntNum("Smile delay (y)", 'smileDelay', max_value=30,
+            ret = kz.getIntNum("Smile delay (in years from now)", 'smileDelay', max_value=30,
                                help=helpmsg, callback=owb.setProfile)
             with col3:
                 helpmsg = 'Percentage to decrease during the slow-go years.'
