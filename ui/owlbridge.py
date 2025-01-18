@@ -692,3 +692,7 @@ def genDic(plan):
 
 def clone(plan, newname, logstreams=None):
     return owl.clone(plan, newname, logstreams=logstreams)
+
+
+def version():
+    return owl.__version__

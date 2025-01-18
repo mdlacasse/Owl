@@ -1,12 +1,13 @@
 import streamlit as st
 
 import sskeys as kz
+import owlbridge as owb
 
 
 st.write("## About Owl 🦉")
 kz.orangeDivider()
 
-st.write('This version of Owl was released in January 2025.')
+st.write('This version of Owl was released in January 2025 (version %s).' % owb.version())
 st.write('Running on Streamlit %s.' % st.__version__)
 st.snow()
 
