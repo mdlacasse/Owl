@@ -79,18 +79,18 @@ else:
         ret = kz.getRadio("Spending profile", profileChoices, 'spendingProfile', callback=owb.setProfile)
     with col2:
         if kz.getKey('status') == 'married':
-            helpmsg = 'Percentage to decrease spending at the passing of one spouse.'
+            helpmsg = 'Percentage of spending required for the surviving spouse.'
             ret = kz.getIntNum("Survivor's spending (%)", 'survivor', max_value=100,
                                help=helpmsg, callback=owb.setProfile)
         if kz.getKey('spendingProfile') == 'smile':
-            helpmsg = 'Time in year before the dip takes place.'
+            helpmsg = 'Time in year before spending starts decreasing.'
             ret = kz.getIntNum("Smile delay (in years from now)", 'smileDelay', max_value=30,
                                help=helpmsg, callback=owb.setProfile)
             with col3:
-                helpmsg = 'Percentage to decrease during the slow-go years.'
+                helpmsg = 'Percentage to decrease for the slow-go years.'
                 ret = kz.getIntNum("Smile dip (%)", 'smileDip', max_value=100,
                                    help=helpmsg, callback=owb.setProfile)
-                helpmsg = 'Percentage to increase over the time span.'
+                helpmsg = 'Percentage to increase over time period.'
                 ret = kz.getIntNum("Smile increase (%)", 'smileIncrease', max_value=100,
                                    help=helpmsg, callback=owb.setProfile)
 
