@@ -7,8 +7,9 @@ with col3:
     st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")
     st.caption("Retirement planner with great wisdom")
 with col1:
-    st.write('## Quick Start')
+    st.write('# Owl retirement planner\nA retirement exploration tool based on linear programming')
     kz.orangeDivider()
+    st.write('### Quick Start')
     st.markdown('''
 Owl uses two files to store the specifications of a case so that it can be recalled at a later time.
 - A *case* parameter file
