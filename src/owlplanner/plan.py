@@ -566,7 +566,7 @@ class Plan(object):
         """
         assert 0 <= percent and percent <= 100, 'Survivor value %r outside range.' % percent
         assert 0 <= dip and dip <= 100, 'Dip value %r outside range.' % dip
-        assert 0 <= increase and increase <= 100, 'Increase value %r outside range.' % dip
+        assert -100 <= increase and increase <= 100, 'Increase value %r outside range.' % dip
         assert 0 <= delay and delay <= self.N_n - 2 , 'Delay value %r outside range.' % delay
 
         self.chi = percent / 100

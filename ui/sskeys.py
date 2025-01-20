@@ -273,11 +273,11 @@ def getDict(key=ss.currentCase):
     return ss.cases[key]
 
 
-def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, max_value=None):
+def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, min_value=0, max_value=None):
     return st.number_input(text,
                            value=int(getKey(nkey)),
                            disabled=disabled,
-                           min_value=0,
+                           min_value=min_value,
                            max_value=max_value,
                            step=step,
                            help=help,

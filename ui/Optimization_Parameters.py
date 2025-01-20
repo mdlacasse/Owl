@@ -90,8 +90,8 @@ else:
                 helpmsg = 'Percentage to decrease for the slow-go years.'
                 ret = kz.getIntNum("Smile dip (%)", 'smileDip', max_value=100,
                                    help=helpmsg, callback=owb.setProfile)
-                helpmsg = 'Percentage to increase over time period.'
-                ret = kz.getIntNum("Smile increase (%)", 'smileIncrease', max_value=100,
+                helpmsg = 'Percentage to increase (or decrease) over time period.'
+                ret = kz.getIntNum("Smile increase (%)", 'smileIncrease', min_value=-100, max_value=100,
                                    help=helpmsg, callback=owb.setProfile)
 
     st.divider()

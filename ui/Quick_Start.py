@@ -13,7 +13,7 @@ with col1:
     st.markdown('''
 Owl uses two files to store the specifications of a case so that it can be recalled at a later time.
 - A *case* parameter file
-specifies account balances, asset allocation, social security and pension, rates, 
+specifies account balances, asset allocation, social security and pension, rates,
 optimization parameters and related assumptions.
 This file is in *toml* format which is editable with a simple text editor.
 - A *wages and contributions* file contains a

@@ -257,9 +257,9 @@ the calculations by a factor of 2 to 3, which can be useful when running Monte C
 The time profile of the net spending amount
 can be selected to either be *flat* or follow a *smile* shape.
 The smile shape has two configurable parameters: a *dip* percentage
-and a linear *increase* over the years (apart from inflation).
+and a linear *increase*, or *decrease if negative, over the time period (apart from inflation).
 Values default to 15% and 12% respectively, but they are configurable
-for experimentation and to fit your lifestyle.
+for experimentation and to fit your anticipated lifestyle.
 
 For married couples, a survivor's
 net spending percentage is also configurable. A value of 60% is typically used.
