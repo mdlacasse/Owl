@@ -456,7 +456,7 @@ def plotSingleResults(plan):
 
     fig = plan.showTaxes(figure=True)
     if fig:
-        cols[c].write('#### Taxes and Medicare (incl. IRMAA)')
+        cols[c].write('#### Taxes and Medicare (+IRMAA)')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
