@@ -41,7 +41,7 @@ This box is present in all pages except those in the `Resources` section
 and allows to compare different scenarios.
 
 There are four sections in the user interface:
-`Case setup`, `Single scenario`, `Multiple scenarios`, and `Resources`.
+`Case Setup`, `Single Scenario`, `Multiple Scenarios`, and `Resources`.
 
 -------------------------------------------------
 ### :orange[Case Setup]
@@ -59,7 +59,7 @@ starts in the first year. Plan still ends at the end of the year when all indivi
 have passed according to the specified life expectancies.
 
 When duplicating a scenario, all parameters will be copied, but each page in
-the `Case setup` section will need to be revisited in order
+the `Case Setup` section will need to be revisited in order
 to refresh the case. This includes the wages and contributions file which will need to
 be uploaded, if any was present, or desired.
 

@@ -12,7 +12,7 @@ st.write("This version of Owl was released in January 2025 (version %s). "
 st.snow()
 
 st.write('''
-- Owl was released under GPL Licence through a publicly available
+- Owl is released under GPL Licence through a publicly available
 repository on [github](https://github.com/mdlacasse/owl).
 
 - Mathematical formulation of the linear optimization problem can be
@@ -35,8 +35,9 @@ Copyright &copy; 2024 - Martin-D. Lacasse
 - The :streamlit: [Streamlit Community Cloud](https://streamlit.io/cloud) for hosting.
 
 #### :orange[Privacy]
-- This code does not store or forward any information. It fully respects privacy.
-All source code is provided and can be inspected in the repository.
+- This app does not store or forward any information. All data entered is lost
+after a session is closed.
+Source code is publicly available and can be inspected in the repository.
 
 #### :orange[Disclaimers]
 - I am not a financial planner. You make your own decisions.
