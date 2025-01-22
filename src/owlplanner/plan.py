@@ -19,6 +19,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import date, datetime
 from functools import wraps
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
 import time
 import io
 
@@ -312,6 +314,7 @@ class Plan(object):
         # Initialize guardrails to ensure proper configuration.
         self._adjustedParameters = False
         self.timeListsFileName = "None"
+        self.timeLists = None
         self.caseStatus = 'unsolved'
         self.rateMethod = None
 
@@ -894,24 +897,24 @@ class Plan(object):
         Missing rows (years) are populated with zero values.
         """
         try:
-            self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
+            filename, self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
         except Exception as e:
             raise Exception('Unsuccessful read: %s' % e)
 
         timelists.check(self.inames, self.timeLists, self.horizons)
         self.timeListsFileName = filename
 
-        # Now fill in parameters.
-        for i in range(self.N_i):
+        # Now fill in parameters which are in $.
+        for i, iname in enumerate(self.inames):
             h = self.horizons[i]
-            self.omega_in[i, :h] = self.timeLists[i]['anticipated wages'][:h]
-            self.Lambda_in[i, :h] = self.timeLists[i]['big-ticket items'][:h]
-            self.myRothX_in[i, :h] = self.timeLists[i]['Roth X'][:h]
-            self.kappa_ijn[i, 0, :h] = self.timeLists[i]['ctrb taxable'][:h]
-            self.kappa_ijn[i, 1, :h] = self.timeLists[i]['ctrb 401k'][:h]
-            self.kappa_ijn[i, 1, :h] += self.timeLists[i]['ctrb IRA'][:h]
-            self.kappa_ijn[i, 2, :h] = self.timeLists[i]['ctrb Roth 401k'][:h]
-            self.kappa_ijn[i, 2, :h] += self.timeLists[i]['ctrb Roth IRA'][:h]
+            self.omega_in[i, :h] = self.timeLists[iname]['anticipated wages'].iloc[:h]
+            self.Lambda_in[i, :h] = self.timeLists[iname]['big-ticket items'].iloc[:h]
+            self.myRothX_in[i, :h] = self.timeLists[iname]['Roth X'].iloc[:h]
+            self.kappa_ijn[i, 0, :h] = self.timeLists[iname]['ctrb taxable'].iloc[:h]
+            self.kappa_ijn[i, 1, :h] = self.timeLists[iname]['ctrb 401k'].iloc[:h]
+            self.kappa_ijn[i, 1, :h] += self.timeLists[iname]['ctrb IRA'].iloc[:h]
+            self.kappa_ijn[i, 2, :h] = self.timeLists[iname]['ctrb Roth 401k'].iloc[:h]
+            self.kappa_ijn[i, 2, :h] += self.timeLists[iname]['ctrb Roth IRA'].iloc[:h]
 
         #  In 1st year, reduce wages and contribution depending on starting date.
         self.omega_in[:, 0] *= self.yearFracLeft
@@ -923,6 +926,32 @@ class Plan(object):
         self.caseStatus = 'modified'
 
         return True
+
+    def saveContributions(self):
+        """
+        Return workbook on wages and contributions.
+        """
+        if self.timeLists is None:
+            return None
+
+        self.mylog.vprint('Saving wages and contributions.')
+
+        def fillsheet(sheet, i):
+            sheet.title = self.inames[i]
+            df = self.timeLists[self.inames[i]]
+            for row in dataframe_to_rows(df, index=False, header=True):
+                sheet.append(row)
+            _formatSpreadsheet(sheet, 'currency')
+
+        wb = Workbook()
+        ws = wb.active
+        fillsheet(ws, 0)
+
+        if self.N_i == 2:
+            ws = wb.create_sheet(self.inames[1])
+            fillsheet(ws, 1)
+
+        return wb
 
     def resetContributions(self):
         """
@@ -937,6 +966,7 @@ class Plan(object):
         self.kappa_ijn[:, :, :] = 0.
 
         self.timeListsFileName = 'None'
+        self.timeLists = None
         self.caseStatus = 'modified'
 
         return None
@@ -2649,11 +2679,24 @@ class Plan(object):
         - tax-deferred account
         - tax-free account.
 
-        Last worksheet contains cash flow.
+        Last worksheet contains summary.
         """
+        def fillsheet(sheet, dic, datatype):
+            rawData = {}
+            rawData['year'] = self.year_n
+            if datatype == 'currency':
+                for key in dic:
+                    rawData[key] = u.roundCents(dic[key])
+            else:
+                for key in dic:
+                    rawData[key] = dic[key]
 
-        from openpyxl import Workbook
-        from openpyxl.utils.dataframe import dataframe_to_rows
+            # We need to work by row.
+            df = pd.DataFrame(rawData)
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+
+            _formatSpreadsheet(ws, datatype)
 
         wb = Workbook()
 
@@ -2668,19 +2711,9 @@ class Plan(object):
             'Tax bills + Med.': self.T_n + self.U_n + self.M_n,
         }
 
-        rawData = {}
-        rawData['year'] = self.year_n
-        for key in incomeDic:
-            rawData[key] = u.roundCents(incomeDic[key])
+        fillsheet(ws, incomeDic, 'currency')
 
-        # We need to work by row.
-        df = pd.DataFrame(rawData)
-        for row in dataframe_to_rows(df, index=False, header=True):
-            ws.append(row)
-
-        _formatSpreadsheet(ws, 'currency')
-
-        # Cash flow.
+        # Cash flow - sum over both individuals for some.
         cashFlowDic = {
             'net spending': self.g_n,
             'all wages': np.sum(self.omega_in, axis=0),
@@ -2695,27 +2728,19 @@ class Plan(object):
         }
         sname = 'Cash Flow'
         ws = wb.create_sheet(sname)
-        rawData = {}
-        rawData['year'] = self.year_n
-        for key in cashFlowDic:
-            rawData[key] = u.roundCents(cashFlowDic[key])
-        df = pd.DataFrame(rawData)
-        for row in dataframe_to_rows(df, index=False, header=True):
-            ws.append(row)
+        fillsheet(ws, cashFlowDic, 'currency')
 
-        _formatSpreadsheet(ws, 'currency')
-
-        # Sources.
+        # Sources are handled separately.
         srcDic = {
-            'wages': 'wages',
-            'social sec': 'ssec',
-            'pension': 'pension',
-            'txbl acc wdrwl': 'wdrwl taxable',
-            'RMDs': 'rmd',
-            '+distributions': 'dist',
-            'Roth conversion': 'RothX',
-            'tax-free wdrwl': 'wdrwl tax-free',
-            'big-ticket items': 'bti',
+            'wages': self.sources_in['wages'],
+            'social sec': self.sources_in['ssec'],
+            'pension': self.sources_in['pension'],
+            'txbl acc wdrwl': self.sources_in['wdrwl taxable'],
+            'RMDs': self.sources_in['rmd'],
+            '+distributions': self.sources_in['dist'],
+            'Roth conversion': self.sources_in['RothX'],
+            'tax-free wdrwl': self.sources_in['wdrwl tax-free'],
+            'big-ticket items': self.sources_in['bti'],
         }
 
         for i in range(self.N_i):
@@ -2724,7 +2749,7 @@ class Plan(object):
             rawData = {}
             rawData['year'] = self.year_n
             for key in srcDic:
-                rawData[key] = u.roundCents(self.sources_in[srcDic[key]][i])
+                rawData[key] = u.roundCents(srcDic[key][i])
 
             df = pd.DataFrame(rawData)
             for row in dataframe_to_rows(df, index=False, header=True):
@@ -2756,6 +2781,7 @@ class Plan(object):
             df = pd.DataFrame(rawData)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
+            # Add final balances.
             lastRow = [
                 self.year_n[-1] + 1,
                 self.b_ijn[i][0][-1],
@@ -2795,19 +2821,12 @@ class Plan(object):
             _formatSpreadsheet(ws, 'percent1')
 
         # Rates on penultimate sheet.
+        ratesDic = {'S&P 500': self.tau_kn[0],
+                    'Corporate Baa': self.tau_kn[1],
+                    'T Bonds': self.tau_kn[2],
+                    'inflation': self.tau_kn[3]}
         ws = wb.create_sheet('Rates')
-        rawData = {}
-        rawData['year'] = self.year_n
-        ratesDic = {'S&P 500': 0, 'Corporate Baa': 1, 'T Bonds': 2, 'inflation': 3}
-
-        for key in ratesDic:
-            rawData[key] = self.tau_kn[ratesDic[key]]
-
-        df = pd.DataFrame(rawData)
-        for row in dataframe_to_rows(df, index=False, header=True):
-            ws.append(row)
-
-        _formatSpreadsheet(ws, 'percent2')
+        fillsheet(ws, ratesDic, 'percent2')
 
         # Summary on last sheet.
         ws = wb.create_sheet('Summary')

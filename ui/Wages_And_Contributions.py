@@ -51,11 +51,14 @@ else:
             df0 = pd.read_excel(kz.getKey('stTimeLists'), sheet_name=kz.getKey('iname0'))
             df0 = df0.fillna(0)
             df0 = df0.iloc[:, range(9)]
-            # print('df0', df0)
             kz.storeKey('timeList0', df0)
 
-        st.write(kz.getKey('iname0'))
-        st.dataframe(kz.getKey('timeList0'))
+        st.write('#### ' + kz.getKey('iname0') + "'s timetable")
+        # st.dataframe(kz.getKey('timeList0'))
+        newdf0 = st.data_editor(kz.getKey('timeList0'))
+        st.caption('Values are in $.')
+        # print('newdf0\n', newdf0)
+        kz.storeKey('_timeList0', newdf0)
 
         if kz.getKey('status') == 'married':
             kz.initKey('timeList1', None)
@@ -65,8 +68,21 @@ else:
                 df1 = df1.iloc[:, range(9)]
                 kz.storeKey('timeList1', df1)
 
-            st.write(kz.getKey('iname1'))
-            st.dataframe(kz.getKey('timeList1'))
+            st.write('#### ' + kz.getKey('iname1') + "'s timetable")
+            # st.dataframe(kz.getKey('timeList1'))
+            newdf1 = st.data_editor(kz.getKey('timeList1'))
+            st.caption('Values are in $.')
+            kz.storeKey('_timeList1', newdf1)
 
     cantdel = (kz.getKey('stTimeLists') is None)
-    st.button('Reset', on_click=resetTimeLists, disabled=cantdel)
+    col1, col2, col3 = st.columns(3, gap='large')
+    with col1:
+        download2 = st.download_button(
+            label="Download data as an Excel workbook...",
+            data=owb.saveContributions(),
+            file_name=kz.getKey('name')+'.xlsx',
+            mime='application/vnd.ms-excel',
+            disabled=cantdel
+        )
+    with col2:
+        st.button('Reset', on_click=resetTimeLists, disabled=cantdel)

@@ -334,6 +334,31 @@ def setInterpolationMethod(plan):
 
 
 @_checkPlan
+def updateContributions(plan):
+    noChange = ((kz.getKey('_timeList0') is None or
+                 kz.getKey('_timeList0').equals(kz.getKey('timeList0'))) and
+                (kz.getKey('_timeList1') is None or
+                 kz.getKey('_timeList1').equals(kz.getKey('timeList1'))))
+    if noChange:
+        return True
+
+    kz.setKey('timeList0', kz.getKey('_timeList0'))
+    kz.setKey('timeList1', kz.getKey('_timeList1'))
+
+    myDic = {kz.getKey('iname0'): kz.getKey('timeList0')}
+    if kz.getKey('status') == 'married':
+        myDic[kz.getKey('iname1')] = kz.getKey('timeList1')
+
+    try:
+        plan.readContributions(myDic)
+        kz.setKey('timeListsFileName', 'edited values')
+        plan.timeListsFileName = 'edited values'
+    except Exception as e:
+        st.error("Failed to parse contributions: %s" % (e))
+        return False
+
+
+@_checkPlan
 def readContributions(plan, stFile):
     if stFile is None:
         return False
@@ -516,13 +541,34 @@ def showWorkbook(plan):
             continue
         ws = wb[name]
         df = pd.DataFrame(ws.values)
-        st.write('#### '+name)
+        st.write('#### ' + name)
         st.dataframe(df.astype(str), use_container_width=True)
+        for word in ['Income', 'Cash Flow', 'Sources', 'Accounts']:
+            if word in name:
+                st.caption('Values are in $.')
+                break
+        else:
+            st.caption('Values are fractional.')
 
 
 @_checkPlan
 def saveWorkbook(plan):
     wb = plan.saveWorkbook(saveToFile=False)
+    buffer = BytesIO()
+    if wb is None:
+        return buffer
+    try:
+        wb.save(buffer)
+    except Exception as e:
+        raise Exception('Unanticipated exception %r.' % e)
+
+    return buffer
+
+
+@_checkPlan
+def saveContributions(plan):
+    updateContributions()
+    wb = plan.saveContributions()
     buffer = BytesIO()
     if wb is None:
         return buffer
