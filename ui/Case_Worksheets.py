@@ -9,6 +9,8 @@ kz.caseHeader("Case Worksheets")
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
+    owb.showWorkbook()
+    st.divider()
     # if not owb.isCaseUnsolved():
     if kz.caseHasPlan():
         download2 = st.download_button(
@@ -18,6 +20,3 @@ else:
             mime='application/vnd.ms-excel',
             disabled=owb.isCaseUnsolved()
         )
-
-    st.divider()
-    owb.showWorkbook()

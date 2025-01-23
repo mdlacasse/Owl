@@ -541,17 +541,43 @@ def showWorkbook(plan):
     wb = plan.saveWorkbook(saveToFile=False)
     if wb is None:
         return
+
+    currencySheets = ['Income', 'Cash Flow', 'Sources', 'Accounts']
     for name in wb.sheetnames:
         if name == 'Summary':
             continue
+
+        dollars = False
+        for word in currencySheets:
+            if word in name:
+                dollars = True
+                break
+
         ws = wb[name]
         df = pd.DataFrame(ws.values)
+        new_header = df.iloc[0]
+        df = df[1:]
+        df.columns = new_header
+        if dollars:
+            colfor = {}
+            for col in df.columns:
+                if col == 'year':
+                    colfor[col] = st.column_config.NumberColumn(None, format="%d", width='small')
+                else:
+                    colfor[col] = st.column_config.NumberColumn(None, format="$ %.0f")
+        else:
+            colfor = {}
+            for col in df.columns:
+                if col == 'year':
+                    colfor[col] = st.column_config.NumberColumn(None, format="%d", width='small')
+                else:
+                    colfor[col] = st.column_config.NumberColumn(None, format="%.3f")
+
         st.write('#### ' + name)
-        st.dataframe(df.astype(str), use_container_width=True, hide_index=True)
-        for word in ['Income', 'Cash Flow', 'Sources', 'Accounts']:
-            if word in name:
-                st.caption('Values are in $.')
-                break
+        st.dataframe(df.astype(str), use_container_width=True, column_config=colfor, hide_index=True)
+
+        if dollars:
+            st.caption('Values are in $.')
         else:
             st.caption('Values are fractional.')
 

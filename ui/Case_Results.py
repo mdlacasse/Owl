@@ -18,16 +18,19 @@ else:
         ret = kz.getRadio("Dollar amounts in plots", choices, 'plots',
                           callback=owb.setDefaultPlots)
     with col4:
-        if kz.caseHasCompletedRun():
+        # if kz.caseHasCompletedRun():
+        if True:
             download2 = st.download_button(
-                label="Download wages and contributions...",
+                label="Download wages and contributions file...",
                 help='Download Excel workbook.',
                 data=owb.saveContributions(),
                 file_name=kz.getKey('name')+'.xlsx',
+                disabled=kz.caseHasNotCompletedRun(),
                 mime='application/vnd.ms-excel'
             )
     with col3:
-        if kz.caseHasCompletedRun():
+        # if kz.caseHasCompletedRun():
+        if True:
             fileName = 'case_'+kz.getKey('name')+'.toml'
             download3 = st.download_button(
                 label="Download case file...",

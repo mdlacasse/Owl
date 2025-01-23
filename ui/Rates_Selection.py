@@ -58,7 +58,7 @@ else:
     kz.initKey('yfrm', owb.FROM)
     kz.initKey('yto', owb.TO)
 
-    kz.getRadio('## Rate type', rateChoices, 'rateType', updateRates)
+    kz.getRadio('## Annual rates type', rateChoices, 'rateType', updateRates)
 
     if kz.getKey('rateType') == 'fixed':
         fxType = kz.getRadio('Select fixed rates', fixedChoices, 'fixedType', updateFixedRates)
@@ -197,7 +197,7 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         kz.initKey('divRate', 2)
-        helpmsg = 'Average dividend return on stock portfolio.'
+        helpmsg = 'Average annual dividend return rate on stock portfolio.'
         ret = kz.getNum('Dividends return rate (%)', 'divRate', max_value=100., format='%.2f',
                         help=helpmsg, callback=owb.setDividendRate, step=1.)
 

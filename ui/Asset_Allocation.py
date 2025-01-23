@@ -83,7 +83,8 @@ else:
     choices = ['individual', 'account']
     key = 'allocType'
     kz.initKey(key, choices[0])
-    ret = kz.getRadio('Asset allocation method', choices, key)
+    helpmsg = 'Allocation ratios can be equal across all accounts or not.'
+    ret = kz.getRadio('Asset allocation method', choices, key, help=helpmsg)
     if ret == 'individual':
         st.divider()
         getIndividualAllocs(0, 'initial', 'init%')
