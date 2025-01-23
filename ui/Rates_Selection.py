@@ -47,14 +47,13 @@ kz.initKey('rateType', rateChoices[0])
 kz.initKey('fixedType', fixedChoices[0])
 kz.initKey('varyingType', varyingChoices[0])
 
-kz.runOncePerCase(initRates)
-
 ret = kz.titleBar('rates')
 kz.caseHeader("Rates Selection")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
+    kz.runOncePerCase(initRates)
     kz.initKey('yfrm', owb.FROM)
     kz.initKey('yto', owb.TO)
 

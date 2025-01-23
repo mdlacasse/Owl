@@ -16,14 +16,14 @@ def initProfile():
     owb.setProfile(profileChoices[0], False)
 
 
-kz.runOncePerCase(initProfile)
-
 ret = kz.titleBar('opto')
 kz.caseHeader("Optimization Parameters")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
+    kz.runOncePerCase(initProfile)
+
     col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
         choices = ['Net spending', 'Bequest']

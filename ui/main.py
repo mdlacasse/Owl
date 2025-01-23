@@ -35,7 +35,8 @@ kz.initKey('prevPageName', None)
 pg = st.navigation(pages)
 # Workaround resetting dataframes for data_editor wierd behavior.
 if pg.title != kz.getKey('prevPageName') and kz.getKey('prevPageName') == 'Wages And Contributions':
-    owb.updateContributions()
+    if kz.caseHasPlan():
+        owb.updateContributions()
 
 pg.run()
 kz.storeKey('prevPageName', pg.title)

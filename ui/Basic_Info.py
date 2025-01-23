@@ -10,22 +10,19 @@ ret = kz.titleBar('setup', caseChoices)
 kz.caseHeader("Basic Info")
 
 if ret == kz.newCase:
-    col1, col2 = st.columns(2, gap='large')
-    with col1:
-        st.info('#### Starting a new case from scratch.\n\n'
-                'A name for the scenario must first be provided.')
-        st.text_input("Case name", value='', key='_newcase',
-                      on_change=kz.createNewCase, args=['newcase'], placeholder='Enter a name...')
+    st.info('#### Starting a new case from scratch.\n\n'
+            'A name for the scenario must first be provided.')
+    st.text_input("Case name", value='', key='_newcase',
+                  on_change=kz.createNewCase, args=['newcase'], placeholder='Enter a name...')
 elif ret == kz.loadCaseFile:
-    col1, col2 = st.columns(2, gap='large')
-    with col1:
-        # "<a href='Documentation' target='_self'>Documentation</a>", unsafe_allow_html=True)
-        st.info('#### Starting a case from a *case* parameter file.\n\n'
-                'Look at the :material/help: Documentation for where to find examples.')
-        confile = st.file_uploader('Upload *case* parameter file...', key='_confile', type=['toml'])
-        if confile is not None:
-            if kz.createCaseFromFile(confile):
-                st.rerun()
+    # "<a href='Documentation' target='_self'>Documentation</a>", unsafe_allow_html=True)
+    st.info('#### Starting a case from a *case* parameter file.\n\n'
+            'Look at the :material/help: Documentation for where to find examples.\n\n'
+            'Alternatively, select `New Case...` to start a case from scratch.')
+    confile = st.file_uploader('Upload *case* parameter file...', key='_confile', type=['toml'])
+    if confile is not None:
+        if kz.createCaseFromFile(confile):
+            st.rerun()
 else:
     helpmsg = "Case name can be changed by editing it directly."
     col1, col2 = st.columns(2, gap='large')

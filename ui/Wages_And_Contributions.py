@@ -11,15 +11,14 @@ def resetTimeLists():
         kz.setKey('timeList'+str(i), tlists[iname])
 
 
-kz.runOncePerCase(resetTimeLists)
-kz.initKey('stTimeLists', None)
-
 ret = kz.titleBar('wages')
 kz.caseHeader("Wages and Contributions")
 
 if ret is None:
     st.info('Case(s) must be first created before running this page.')
 else:
+    kz.runOncePerCase(resetTimeLists)
+    kz.initKey('stTimeLists', None)
     n = 2 if kz.getKey('status') == 'married' else 1
 
     if kz.getKey('stTimeLists') is None:
