@@ -314,7 +314,8 @@ class Plan(object):
         # Initialize guardrails to ensure proper configuration.
         self._adjustedParameters = False
         self.timeListsFileName = "None"
-        self.timeLists = None
+        self.timeLists = {}
+        self.resetContributions()
         self.caseStatus = 'unsolved'
         self.rateMethod = None
 
@@ -908,13 +909,13 @@ class Plan(object):
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
             self.omega_in[i, :h] = self.timeLists[iname]['anticipated wages'].iloc[:h]
-            self.Lambda_in[i, :h] = self.timeLists[iname]['big-ticket items'].iloc[:h]
-            self.myRothX_in[i, :h] = self.timeLists[iname]['Roth X'].iloc[:h]
             self.kappa_ijn[i, 0, :h] = self.timeLists[iname]['ctrb taxable'].iloc[:h]
             self.kappa_ijn[i, 1, :h] = self.timeLists[iname]['ctrb 401k'].iloc[:h]
-            self.kappa_ijn[i, 1, :h] += self.timeLists[iname]['ctrb IRA'].iloc[:h]
             self.kappa_ijn[i, 2, :h] = self.timeLists[iname]['ctrb Roth 401k'].iloc[:h]
+            self.kappa_ijn[i, 1, :h] += self.timeLists[iname]['ctrb IRA'].iloc[:h]
             self.kappa_ijn[i, 2, :h] += self.timeLists[iname]['ctrb Roth IRA'].iloc[:h]
+            self.myRothX_in[i, :h] = self.timeLists[iname]['Roth X'].iloc[:h]
+            self.Lambda_in[i, :h] = self.timeLists[iname]['big-ticket items'].iloc[:h]
 
         #  In 1st year, reduce wages and contribution depending on starting date.
         self.omega_in[:, 0] *= self.yearFracLeft
@@ -934,7 +935,7 @@ class Plan(object):
         if self.timeLists is None:
             return None
 
-        self.mylog.vprint('Saving wages and contributions.')
+        self.mylog.vprint('Preparing wages and contributions workbook.')
 
         def fillsheet(sheet, i):
             sheet.title = self.inames[i]
@@ -957,19 +958,25 @@ class Plan(object):
         """
         Reset all contributions variables to zero.
         """
-        self.mylog.vprint('Resetting all contributions to zero.')
+        self.mylog.vprint('Resetting wages and contributions to zero.')
 
-        # Now fill in parameters with zeros.
+        # Reset parameters with zeros.
         self.omega_in[:, :] = 0.
         self.Lambda_in[:, :] = 0.
         self.myRothX_in[:, :] = 0.
         self.kappa_ijn[:, :, :] = 0.
 
-        self.timeListsFileName = 'None'
-        self.timeLists = None
+        cols = ['year', 'anticipated wages', 'ctrb taxable', 'ctrb 401k',
+                'ctrb Roth 401k', 'ctrb IRA', 'ctrb Roth IRA', 'Roth X', 'big-ticket items']
+        for i, iname in enumerate(self.inames):
+            h = self.horizons[i]
+            df = pd.DataFrame(0, index=np.arange(h), columns=cols)
+            df['year'] = self.year_n[:h]
+            self.timeLists[iname] = df
+
         self.caseStatus = 'modified'
 
-        return None
+        return self.timeLists
 
     def _linInterp(self, a, b, numPoints):
         """
@@ -2681,15 +2688,15 @@ class Plan(object):
 
         Last worksheet contains summary.
         """
-        def fillsheet(sheet, dic, datatype):
+        def fillsheet(sheet, dic, datatype, op=lambda x: x):
             rawData = {}
             rawData['year'] = self.year_n
             if datatype == 'currency':
                 for key in dic:
-                    rawData[key] = u.roundCents(dic[key])
+                    rawData[key] = u.roundCents(op(dic[key]))
             else:
                 for key in dic:
-                    rawData[key] = dic[key]
+                    rawData[key] = op(dic[key])
 
             # We need to work by row.
             df = pd.DataFrame(rawData)
@@ -2746,16 +2753,7 @@ class Plan(object):
         for i in range(self.N_i):
             sname = self.inames[i] + "'s Sources"
             ws = wb.create_sheet(sname)
-            rawData = {}
-            rawData['year'] = self.year_n
-            for key in srcDic:
-                rawData[key] = u.roundCents(srcDic[key][i])
-
-            df = pd.DataFrame(rawData)
-            for row in dataframe_to_rows(df, index=False, header=True):
-                ws.append(row)
-
-            _formatSpreadsheet(ws, 'currency')
+            fillsheet(ws, srcDic, 'currency', op=lambda x: x[i])
 
         # Account balances except final year.
         accDic = {
@@ -2774,13 +2772,7 @@ class Plan(object):
         for i in range(self.N_i):
             sname = self.inames[i] + "'s Accounts"
             ws = wb.create_sheet(sname)
-            rawData = {}
-            rawData['year'] = self.year_n
-            for key in accDic:
-                rawData[key] = u.roundCents(accDic[key][i])
-            df = pd.DataFrame(rawData)
-            for row in dataframe_to_rows(df, index=False, header=True):
-                ws.append(row)
+            fillsheet(ws, accDic, 'currency', op=lambda x: x[i])
             # Add final balances.
             lastRow = [
                 self.year_n[-1] + 1,
@@ -2797,7 +2789,6 @@ class Plan(object):
                 0,
             ]
             ws.append(lastRow)
-
             _formatSpreadsheet(ws, 'currency')
 
         # Allocations.

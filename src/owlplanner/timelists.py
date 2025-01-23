@@ -68,6 +68,11 @@ def read(finput, inames, horizons, mylog):
             if col not in df.columns:
                 raise ValueError('Missing column %s in dataframe for %s.' % (col, iname))
 
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+        for col in df.columns:
+            if col == '' or col not in timeHorizonItems:
+                df.drop(col, axis=1)
+
         # Only consider lines in proper year range.
         df = df[df['year'] >= thisyear]
         df = df[df['year'] < endyear]

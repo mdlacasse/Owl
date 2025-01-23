@@ -31,7 +31,6 @@ def createPlan():
     try:
         strio = StringIO()
         kz.storeKey('logs', strio)
-        # print(inames, yobs, life, name, startDate)
         plan = owl.Plan(inames, yobs, life, name, startDate=startDate,
                         verbose=True, logstreams=[strio, strio])
     except Exception as e:
@@ -345,12 +344,12 @@ def updateContributions(plan):
     kz.setKey('timeList0', kz.getKey('_timeList0'))
     kz.setKey('timeList1', kz.getKey('_timeList1'))
 
-    myDic = {kz.getKey('iname0'): kz.getKey('timeList0')}
+    dicDf = {kz.getKey('iname0'): kz.getKey('timeList0')}
     if kz.getKey('status') == 'married':
-        myDic[kz.getKey('iname1')] = kz.getKey('timeList1')
+        dicDf[kz.getKey('iname1')] = kz.getKey('timeList1')
 
     try:
-        plan.readContributions(myDic)
+        plan.readContributions(dicDf)
         kz.setKey('timeListsFileName', 'edited values')
         plan.timeListsFileName = 'edited values'
     except Exception as e:
@@ -366,6 +365,11 @@ def readContributions(plan, stFile):
     try:
         plan.readContributions(stFile)
         kz.setKey('timeListsFileName', stFile.name)
+        kz.setKey('timeList0', plan.timeLists[kz.getKey('iname0')])
+        kz.setKey('_timeList0', plan.timeLists[kz.getKey('iname0')])
+        if kz.getKey('status') == 'married':
+            kz.setKey('timeList1', plan.timeLists[kz.getKey('iname1')])
+            kz.setKey('_timeList1', plan.timeLists[kz.getKey('iname1')])
         plan.timeListsFileName = stFile.name
     except Exception as e:
         st.error("Failed to parse contribution file '%s': %s" % (stFile.name, e))
@@ -376,7 +380,8 @@ def readContributions(plan, stFile):
 
 @_checkPlan
 def resetContributions(plan):
-    return plan.resetContributions()
+    dicDf = plan.resetContributions()
+    return dicDf
 
 
 @_checkPlan
@@ -542,7 +547,7 @@ def showWorkbook(plan):
         ws = wb[name]
         df = pd.DataFrame(ws.values)
         st.write('#### ' + name)
-        st.dataframe(df.astype(str), use_container_width=True)
+        st.dataframe(df.astype(str), use_container_width=True, hide_index=True)
         for word in ['Income', 'Cash Flow', 'Sources', 'Accounts']:
             if word in name:
                 st.caption('Values are in $.')
@@ -567,7 +572,7 @@ def saveWorkbook(plan):
 
 @_checkPlan
 def saveContributions(plan):
-    updateContributions()
+    # updateContributions()
     wb = plan.saveContributions()
     buffer = BytesIO()
     if wb is None:
@@ -731,8 +736,6 @@ def genDic(plan):
                 dic['corr'+str(qq)] = plan.rateCorr[k1, k2]
                 qq += 1
 
-    # print('Name:', plan._name)
-    # print('Dic:', dic)
     return plan._name, dic
 
 
