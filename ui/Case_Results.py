@@ -29,8 +29,7 @@ else:
                 mime='application/vnd.ms-excel'
             )
     with col3:
-        # if kz.caseHasCompletedRun():
-        if True:
+        if kz.caseHasCompletedRun():
             fileName = 'case_'+kz.getKey('name')+'.toml'
             download3 = st.download_button(
                 label="Download case file...",
