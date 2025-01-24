@@ -47,7 +47,8 @@ else:
 
     for i in range(n):
         st.write('#### ' + kz.getKey('iname'+str(i)) + "'s timetable")
-        newdf = st.data_editor(kz.getKey('timeList'+str(i)), hide_index=True)
+        colfor = {'year': st.column_config.NumberColumn(None, format='%d')}
+        newdf = st.data_editor(kz.getKey('timeList'+str(i)), column_config=colfor, hide_index=True)
         st.caption('Values are in $.')
         kz.storeKey('_timeList'+str(i), newdf)
 

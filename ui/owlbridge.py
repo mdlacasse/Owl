@@ -564,7 +564,8 @@ def showWorkbook(plan):
                 if col == 'year':
                     colfor[col] = st.column_config.NumberColumn(None, format="%d", width='small')
                 else:
-                    colfor[col] = st.column_config.NumberColumn(None, format="$ %.0f")
+                    # colfor[col] = st.column_config.NumberColumn(None, format="$ %,.0f")
+                    colfor[col] = st.column_config.NumberColumn(None, step=1)
         else:
             colfor = {}
             for col in df.columns:
