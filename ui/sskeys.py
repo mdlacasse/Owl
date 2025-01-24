@@ -85,6 +85,10 @@ def currentCaseName() -> str:
 
 
 def switchToCase(key):
+    import owlbridge as owb
+    # Catch case where switch happens while editing W&W tables.
+    if getGlobalKey('currentPageName') == 'Wages And Contributions':
+        owb.updateContributions()
     ss.currentCase = ss['_'+key]
 
 

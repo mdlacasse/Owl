@@ -17,7 +17,6 @@ kz.caseHeader("Wages and Contributions")
 if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
-    print('ret is:', ret)
     kz.runOncePerCase(resetTimeLists)
     kz.initKey('stTimeLists', None)
     n = 2 if kz.getKey('status') == 'married' else 1
@@ -49,7 +48,8 @@ else:
     for i in range(n):
         st.write('#### ' + kz.getKey('iname'+str(i)) + "'s timetable")
         colfor = {'year': st.column_config.NumberColumn(None, format='%d')}
-        newdf = st.data_editor(kz.getKey('timeList'+str(i)), column_config=colfor, hide_index=True)
+        newdf = st.data_editor(kz.getKey('timeList'+str(i)), column_config=colfor,
+                               hide_index=True, key=kz.currentCaseName()+'_wages'+str(i))
         st.caption('Values are in $.')
         kz.storeKey('_timeList'+str(i), newdf)
 

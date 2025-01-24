@@ -31,12 +31,15 @@ pages = {
                         st.Page('About_Owl.py', icon=':material/info:')],
            }
 
-kz.initKey('prevPageName', None)
+kz.initGlobalKey('prevPageName', None)
+kz.initGlobalKey('currentPageName', None)
+
 pg = st.navigation(pages)
+kz.storeGlobalKey('currentPageName', pg.title)
 # Workaround resetting dataframes for data_editor wierd behavior.
-if pg.title != kz.getKey('prevPageName') and kz.getKey('prevPageName') == 'Wages And Contributions':
+if pg.title != kz.getGlobalKey('prevPageName') and kz.getGlobalKey('prevPageName') == 'Wages And Contributions':
     if kz.caseHasPlan():
         owb.updateContributions()
 
 pg.run()
-kz.storeKey('prevPageName', pg.title)
+kz.storeGlobalKey('prevPageName', pg.title)
