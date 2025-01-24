@@ -42,7 +42,7 @@ else:
                  index=statusChoices.index(kz.getKey('status')), key='_status',
                  on_change=kz.setpull, args=['status'], horizontal=True)
 
-    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         kz.initKey('iname0', '')
         if kz.getKey('iname0') == '':

@@ -5,7 +5,7 @@ import sskeys as kz
 ret = kz.titleBar('assets')
 kz.caseHeader("Assets")
 
-if ret is None:
+if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
     st.write('#### Savings Account Balances')

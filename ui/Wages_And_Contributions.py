@@ -14,9 +14,10 @@ def resetTimeLists():
 ret = kz.titleBar('wages')
 kz.caseHeader("Wages and Contributions")
 
-if ret is None:
+if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
+    print('ret is:', ret)
     kz.runOncePerCase(resetTimeLists)
     kz.initKey('stTimeLists', None)
     n = 2 if kz.getKey('status') == 'married' else 1

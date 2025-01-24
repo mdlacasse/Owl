@@ -50,7 +50,7 @@ kz.initKey('varyingType', varyingChoices[0])
 ret = kz.titleBar('rates')
 kz.caseHeader("Rates Selection")
 
-if ret is None:
+if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
     kz.runOncePerCase(initRates)

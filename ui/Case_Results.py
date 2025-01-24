@@ -7,7 +7,7 @@ import owlbridge as owb
 ret = kz.titleBar('results')
 kz.caseHeader("Case Results")
 
-if ret is None:
+if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
     st.write("Optimize a single scenario based on the parameters selected in the *Case setup* section.")

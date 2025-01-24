@@ -77,7 +77,7 @@ def checkAllAllocs():
 ret = kz.titleBar('allocs')
 kz.caseHeader("Asset Allocation")
 
-if ret is None:
+if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
     choices = ['individual', 'account']

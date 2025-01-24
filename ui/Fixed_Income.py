@@ -24,7 +24,7 @@ def getFloatInput(i, key, text, defval=0.):
 ret = kz.titleBar('fixed')
 kz.caseHeader("Fixed Income")
 
-if ret is None:
+if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
     st.write('### Social Security')

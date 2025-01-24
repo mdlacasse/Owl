@@ -6,7 +6,7 @@ import owlbridge as owb
 ret = kz.titleBar('worksheets')
 kz.caseHeader("Case Worksheets")
 
-if ret is None:
+if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
     owb.showWorkbook()

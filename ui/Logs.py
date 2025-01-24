@@ -6,7 +6,7 @@ import sskeys as kz
 ret = kz.titleBar('logs')
 kz.caseHeader("Logs")
 
-if ret is None:
+if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
     strio = kz.getKey('logs')
