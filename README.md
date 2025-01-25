@@ -5,6 +5,15 @@
 
 <img align=right src="https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png" width="250">
 
+-----
+
+### TLDR
+Owl is a retirement planning tool that uses an optimization algorithm to provide guidance.
+
+Go to [owlplanner.streamlit.app](https://owlplanner.streamlit.app) and explore the app to learn about its capabilities.
+
+-----
+
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy through the rigorous
