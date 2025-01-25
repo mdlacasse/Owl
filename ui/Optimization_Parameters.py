@@ -49,8 +49,8 @@ else:
         fromFile = kz.getKey('readRothX')
         kz.initKey('maxRothConversion', 50)
         ret = kz.getNum("Maximum Roth conversion (\\$k)", 'maxRothConversion', disabled=fromFile, help=helpmsg)
-        caseHasNoContributions = (kz.getKey('stTimeLists') is None)
-        ret = kz.getToggle('Convert as in contributions file', 'readRothX', disabled=caseHasNoContributions)
+        # caseHasNoContributions = (kz.getKey('stTimeLists') is None)
+        ret = kz.getToggle('Convert as in wages and contributions tables', 'readRothX')
 
     with col2:
         if kz.getKey('status') == 'married':
