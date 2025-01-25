@@ -24,7 +24,7 @@ if ret is None or kz.caseHasNoPlan():
 else:
     kz.runOncePerCase(initProfile)
 
-    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         choices = ['Net spending', 'Bequest']
         helpmsg = "Value is in today's \\$k."
@@ -41,7 +41,7 @@ else:
             ret = kz.getNum("Desired annual net spending (\\$k)", 'netSpending', help=helpmsg)
 
     st.divider()
-    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         iname0 = kz.getKey('iname0')
         helpmsg = "Value is in nominal \\$k."
@@ -63,7 +63,7 @@ else:
 
     st.divider()
     kz.initKey('withMedicare', True)
-    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         helpmsg = "Do or do not perform additional Medicare and IRMAA calculations."
         ret = kz.getToggle('Medicare and IRMAA calculations', 'withMedicare', help=helpmsg)
@@ -97,5 +97,5 @@ else:
     st.divider()
     col1, col2 = st.columns(2, gap='small')
     with col1:
-        st.write('#### Spending Profile')
+        st.write('##### Spending Profile')
         owb.showProfile()

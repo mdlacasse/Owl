@@ -11,25 +11,26 @@ if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
     st.write("Optimize a single scenario based on the parameters selected in the *Case setup* section.")
-    col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='bottom')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='bottom')
     with col1:
         choices = ['nominal', 'today']
         kz.initKey('plots', choices[0])
         ret = kz.getRadio("Dollar amounts in plots", choices, 'plots',
                           callback=owb.setDefaultPlots)
-    with col4:
-        # if kz.caseHasCompletedRun():
-        if True:
-            download2 = st.download_button(
-                label="Download wages and contributions file...",
-                help='Download Excel workbook.',
-                data=owb.saveContributions(),
-                file_name=kz.getKey('name')+'.xlsx',
-                disabled=kz.caseHasNotCompletedRun(),
-                mime='application/vnd.ms-excel'
-            )
-    with col3:
-        if kz.caseHasCompletedRun():
+
+    with col2:
+        st.button('Run single case', help='Optimize single scenario.',
+                  on_click=owb.runPlan, disabled=kz.caseIsNotRunReady())
+
+    st.divider()
+    if kz.caseHasNotCompletedRun():
+        st.info("Case status is currently '%s'." % kz.getKey('caseStatus'))
+    else:
+        owb.plotSingleResults()
+
+        st.divider()
+        col1, col2 = st.columns(2, gap='large', vertical_alignment='bottom')
+        with col1:
             fileName = 'case_'+kz.getKey('name')+'.toml'
             download3 = st.download_button(
                 label="Download case file...",
@@ -39,12 +40,13 @@ else:
                 disabled=kz.caseHasNotCompletedRun(),
                 mime='txt/plain'
             )
-    with col2:
-        st.button('Run single case', help='Optimize single scenario.',
-                  on_click=owb.runPlan, disabled=kz.caseIsNotRunReady())
+        with col2:
+            download2 = st.download_button(
+                label="Download wages and contributions file...",
+                help='Download Excel workbook.',
+                data=owb.saveContributions(),
+                file_name=kz.getKey('name')+'.xlsx',
+                disabled=kz.caseHasNotCompletedRun(),
+                mime='application/vnd.ms-excel'
+            )
 
-    st.divider()
-    if kz.caseHasCompletedRun():
-        owb.plotSingleResults()
-    else:
-        st.info("Case status is currently '%s'." % kz.getKey('caseStatus'))

@@ -110,17 +110,18 @@ else:
     choices = ['linear', 's-curve']
     key = 'interpMethod'
     kz.initKey(key, choices[0])
-    kz.getRadio('Gliding interpolation method', choices, key)
+    col1, col2, col3 = st.columns(3, gap='large')
+    with col1:
+        kz.getRadio('Gliding interpolation method', choices, key)
 
     if kz.getKey(key) == choices[1]:
-        col1, col2, col3, col4 = st.columns(4, gap='large')
-        with col1:
+        with col2:
             key = 'interpCenter'
             kz.initKey('interpCenter', 15.)
             helpmsg = "Time in future years to the transition's inflection point."
             ret = kz.getNum('Center (in years from now)', key, step=1.,
                             help=helpmsg, max_value=30., format='%.0f')
-        with col2:
+        with col3:
             key = 'interpWidth'
             kz.initKey('interpWidth', 5.)
             helpmsg = 'Half width in years over which the transition happens.'

@@ -46,7 +46,7 @@ else:
             st.rerun()
 
     for i in range(n):
-        st.write('#### ' + kz.getKey('iname'+str(i)) + "'s timetable")
+        st.write('##### ' + kz.getKey('iname'+str(i)) + "'s timetable")
         colfor = {'year': st.column_config.NumberColumn(None, format='%d')}
         newdf = st.data_editor(kz.getKey('timeList'+str(i)), column_config=colfor,
                                hide_index=True, key=kz.currentCaseName()+'_wages'+str(i))

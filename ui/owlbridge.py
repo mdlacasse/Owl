@@ -281,7 +281,7 @@ def setRates(plan):
 def showAllocations(plan):
     figures = plan.showAllocations(figure=True)
     st.divider()
-    st.markdown('#### Asset Allocation')
+    st.markdown('##### Asset Allocation')
     n = 3 if kz.getKey('allocType') == 'account' else 2
     c = 0
     cols = st.columns(n, gap='small')
@@ -301,7 +301,7 @@ def showProfile(plan):
 def showRates(plan, col):
     fig = plan.showRates(figure=True)
     if fig:
-        col.write('#### Selected rates over time horizon')
+        col.write('##### Selected rates over time horizon')
         col.pyplot(fig)
 
 
@@ -309,7 +309,7 @@ def showRates(plan, col):
 def showRatesCorrelations(plan, col):
     fig = plan.showRatesCorrelations(figure=True)
     if fig:
-        col.write('#### Correlations between return rates')
+        col.write('##### Correlations between return rates')
         col.pyplot(fig)
 
 
@@ -455,45 +455,45 @@ def plotSingleResults(plan):
     cols = st.columns(n, gap='medium')
     fig = plan.showRates(figure=True)
     if fig:
-        cols[c].write('#### Annual Rates')
+        cols[c].write('##### Annual Rates')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
     fig = plan.showNetSpending(figure=True)
     if fig:
-        cols[c].write('#### Net Available Spending')
+        cols[c].write('##### Net Available Spending')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
     fig = plan.showGrossIncome(figure=True)
     if fig:
-        cols[c].write('#### Taxable Ordinary Income')
+        cols[c].write('##### Taxable Ordinary Income')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
     cols = st.columns(n, gap='medium')
     fig = plan.showSources(figure=True)
     if fig:
-        cols[c].write('#### Raw Income Sources')
+        cols[c].write('##### Raw Income Sources')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
     fig = plan.showAccounts(figure=True)
     if fig:
-        cols[c].write('#### Savings Balance')
+        cols[c].write('##### Savings Balance')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
     fig = plan.showTaxes(figure=True)
     if fig:
-        cols[c].write('#### Taxes and Medicare (+IRMAA)')
+        cols[c].write('##### Taxes and Medicare (+IRMAA)')
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
     c = 0
     figs = plan.showAssetDistribution(figure=True)
     if figs:
-        st.write('#### Assets Distribution')
+        st.write('##### Assets Distribution')
         morecols = st.columns(3, gap='small')
         for fig in figs:
             morecols[c].pyplot(fig)
@@ -574,7 +574,7 @@ def showWorkbook(plan):
                 else:
                     colfor[col] = st.column_config.NumberColumn(None, format="%.3f")
 
-        st.write('#### ' + name)
+        st.write('##### ' + name)
         st.dataframe(df.astype(str), use_container_width=True, column_config=colfor, hide_index=True)
 
         if dollars:
