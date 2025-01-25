@@ -8,7 +8,7 @@
 -----
 
 ### TLDR
-Owl is a retirement planning tool that uses an optimization algorithm to provide guidance.
+Owl is a planning tool that uses a linear programming optimization algorithm to provide guidance on retirenment decisions.
 
 Go to [owlplanner.streamlit.app](https://owlplanner.streamlit.app) and explore the app to learn about its capabilities.
 
