@@ -578,7 +578,7 @@ def showWorkbook(plan):
         st.dataframe(df.astype(str), use_container_width=True, column_config=colfor, hide_index=True)
 
         if dollars:
-            st.caption('Values are in $.')
+            st.caption('Values are in nominal $.')
         else:
             st.caption('Values are fractional.')
 
