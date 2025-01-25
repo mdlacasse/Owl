@@ -25,8 +25,8 @@ else:
         original = kz.getKey('timeListsFileName')
         if original is None or original == 'None':
             st.info("Case *'%s'* makes no reference to a wages and contributions file.\n\n" % kz.currentCaseName() +
-                    "You can build your own file by directly filling the table(s) below."
-                    "Once a case has been successfully run, values can be saved on the `Case Results` page."
+                    "You can build your own file by directly filling the table(s) below. "
+                    "Once a case has been successfully run, values can be saved on the `Case Results` page. "
                     "Alternatively, you can start from this Excel "
                     "[template](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx) "
                     "and upload the file using the widget below."
