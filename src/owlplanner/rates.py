@@ -49,9 +49,7 @@ try:
     df = pd.read_csv(csvFile)
 except Exception as e:
     raise RuntimeError(f'Could not find rates data file: {e}')
-        
 
-print(df)
 
 # Annual rate of return (%) of S&P 500 since 1928, including dividends.
 SP500 = df['S&P 500']
@@ -68,7 +66,7 @@ TNotes = df['TNotes']
 # Annual rates of return for 3-month Treasury bills since 1928.
 TBills = df['TBills']
 
-# Inflation rate as U.S. CPI index (%) since 1928. 
+# Inflation rate as U.S. CPI index (%) since 1928.
 Inflation = df['Inflation']
 
 
