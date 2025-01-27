@@ -355,7 +355,6 @@ def readContributions(plan, stFile):
     """
     Set from file -> Plan -> UI.
     """
-    dicDf = {kz.getKey('iname0'): kz.getKey('timeList0')}
     if stFile is None:
         return False
 
@@ -373,11 +372,6 @@ def readContributions(plan, stFile):
         return False
 
     return True
-
-
-@_checkPlan
-def getContributions(plan):
-    return plan.timeLists
 
 
 @_checkPlan

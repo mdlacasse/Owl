@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "owlplanner"
-version = "2025.01.25"
+version = "2025.01.26"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
@@ -31,6 +31,7 @@ dependencies = [
     "openpyxl",
     "scipy",
     "streamlit",
+    "toml",
 ]
 license = {file = "LICENSE"}
 
