@@ -337,6 +337,9 @@ def setContributions(plan):
     """
     Set from UI -> Plan.
     """
+    if kz.getKey('timeList0') is None:
+        return
+
     dicDf = {kz.getKey('iname0'): kz.getKey('timeList0')}
     if kz.getKey('status') == 'married':
         dicDf[kz.getKey('iname1')] = kz.getKey('timeList1')
