@@ -31,8 +31,8 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 ###################################################################
 import numpy as np
 import pandas as pd
-import pkgutil
-import io
+import os
+import sys
 from datetime import date
 
 from owlplanner import logging
@@ -43,10 +43,10 @@ from owlplanner import utils as u
 FROM = 1928
 TO = 2024
 
+where = os.path.dirname(sys.modules['owlplanner'].__file__)
+file = os.path.join(where, 'data/rates.csv')
 try:
-    csvBytes = pkgutil.get_data('owlplanner', 'data/rates.csv')
-    csvFile = io.BytesIO(csvBytes)
-    df = pd.read_csv(csvFile)
+    df = pd.read_csv(file)
 except Exception as e:
     raise RuntimeError(f'Could not find rates data file: {e}')
 
