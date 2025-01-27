@@ -39,15 +39,15 @@ drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*)
 Congratulations! :balloon: You just ran your first case. You can now explore each page and
 experiment with different parameters.
 
-For creating your own case, you can duplicate one of the example cases using
-the `Duplicate case` button and edit the values to fit your situation.
-Once this new case has been fully parameterized and successfully optimized,
+For creating your own cases, you can start
+from scratch by selecting `New Case...` in the selection box while on the ***Basic Info*** page,
+and fill in the information needed on each page of the `Case Setup` section.
+Once a case has been fully parameterized and successfully optimized,
 it can then be saved as a parameter file
 by using the `Download case file...` button on the `Case Results` page.
 
-Alternatively, you can start
-from scratch by selecting `New Case...` in the selection box while on the ***Basic Info*** page,
-and fill in the information needed on each page of the `Case Setup` section.
+Alternatively, you can duplicate any existing case by using
+the `Duplicate case` button, and then edit its values to fit your situation.
 
 Multiple cases can coexist and can be called using the `Select case` box
 at the bottom of the margin.
