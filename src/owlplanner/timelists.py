@@ -19,59 +19,75 @@ from datetime import date
 import pandas as pd
 
 
+# Expected headers in each excel sheet, one per individual.
+timeHorizonItems = [
+    'year',
+    'anticipated wages',
+    'ctrb taxable',
+    'ctrb 401k',
+    'ctrb Roth 401k',
+    'ctrb IRA',
+    'ctrb Roth IRA',
+    'Roth X',
+    'big-ticket items',
+]
+
+
 def read(finput, inames, horizons, mylog):
     """
     Read listed parameters from an excel spreadsheet or through
     a dictionary of dataframes through Pandas.
-    Use one sheet for each individual with the following columns.
+    Use one sheet for each individual with the following 9 columns:
+    year, anticipated wages, ctrb taxable, ctrb 401k, ctrb Roth 401k,
+    ctrb IRA, ctrb Roth IRA, Roth X, and big-ticket items.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
-    Returs a list of dataframes.
+    Returs a dictionary of dataframes by individual's names.
     """
 
-    # Expected headers in each excel sheet, one per individual.
-    timeHorizonItems = [
-        'year',
-        'anticipated wages',
-        'ctrb taxable',
-        'ctrb 401k',
-        'ctrb Roth 401k',
-        'ctrb IRA',
-        'ctrb Roth IRA',
-        'Roth X',
-        'big-ticket items',
-    ]
+    mylog.vprint('Reading wages, contributions, conversions, and big-ticket items over time...')
 
-    timeLists = {}
-    thisyear = date.today().year
     if isinstance(finput, dict):
-        dfDict = finput
+        timeLists = finput
         finput = 'dictionary of DataFrames'
-        filename = 'dictionary of DataFrames'
+        streamName = 'dictionary of DataFrames'
     else:
         # Read all worksheets in memory but only process those with proper names.
         try:
             dfDict = pd.read_excel(finput, sheet_name=None)
         except Exception as e:
             raise Exception('Could not read file %r: %s.' % (finput, e))
-        filename = "file '%s'" % finput
+        streamName = "file '%s'" % finput
 
-    mylog.vprint('Reading wages, contributions, conversions, and big-ticket items over time...')
+        timeLists = condition(dfDict, inames, horizons, mylog)
+
+    mylog.vprint("Successfully read time horizons from %s." % streamName)
+
+    return finput, timeLists
+
+
+def condition(dfDict, inames, horizons, mylog):
+    """
+    Make sure that time horizons contain all years up to life expectancy,
+    and that values are positive (except big-ticket items).
+    """
+    timeLists = {}
+    thisyear = date.today().year
     for i, iname in enumerate(inames):
-        mylog.vprint('\tfor %s...' % iname)
         endyear = thisyear + horizons[i]
+
         if iname not in dfDict:
-            raise RuntimeError("Could not find a sheet for %s in %s." % (iname, filename))
+            raise ValueError(f"No sheet found for {iname}.")
 
         df = dfDict[iname]
-        # Check all columns.
-        for col in timeHorizonItems:
-            if col not in df.columns:
-                raise ValueError('Missing column %s in dataframe for %s.' % (col, iname))
 
         df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         for col in df.columns:
             if col == '' or col not in timeHorizonItems:
                 df.drop(col, axis=1)
+
+        for item in timeHorizonItems:
+            if item not in df.columns:
+                raise ValueError(f"Item {item} not found for {iname}.")
 
         # Only consider lines in proper year range.
         df = df[df['year'] >= thisyear]
@@ -82,9 +98,15 @@ def read(finput, inames, horizons, mylog):
             if not (df[df['year'] == year]).any(axis=None):
                 df.loc[len(df)] = [year, 0, 0, 0, 0, 0, 0, 0, 0]
                 missing.append(year)
+            else:
+                for item in timeHorizonItems:
+                    if item != 'big-ticket items' and df[item].iloc[n] < 0:
+                        raise ValueError('Item %s for %s in year %d is < 0.'
+                                         % (item, iname, df['year'].iloc[n])
+                                         )
 
         if len(missing) > 0:
-            mylog.vprint('\tAdding %d missing years for %s: %r.' % (len(missing), iname, missing))
+            mylog.vprint('Adding %d missing years for %s: %r.' % (len(missing), iname, missing))
 
         df.sort_values('year', inplace=True)
         # Replace empty (NaN) cells with 0 value.
@@ -92,53 +114,10 @@ def read(finput, inames, horizons, mylog):
 
         timeLists[iname] = df
 
-    mylog.vprint("Successfully read time horizons from %s." % filename)
+        if df['year'].iloc[-1] != endyear - 1:
+            raise ValueError('Time horizon for', iname,
+                             'is too short.\n\tIt should end in',
+                             endyear, 'but ends in', df['year'].iloc[-1]
+                             )
 
-    return finput, timeLists
-
-
-def check(inames, timeLists, horizons):
-    """
-    Make sure that time horizons contain all years up to life expectancy.
-    """
-    if len(inames) == 2:
-        # Verify that both sheets start on the same year.
-        if timeLists[inames[0]]['year'].iloc[0] != timeLists[inames[1]]['year'].iloc[0]:
-            raise RuntimeError('Time horizons not starting on same year.')
-
-    # Verify that year range covers life expectancy for each individual
-    thisyear = date.today().year
-    for i, iname in enumerate(inames):
-        yend = thisyear + horizons[i]
-        if timeLists[iname]['year'].iloc[-1] < yend - 1:
-            raise RuntimeError(
-                'Time horizon for',
-                iname,
-                'is too short.\n\tIt should end in',
-                yend,
-                'but ends in',
-                timeLists[iname]['year'].iloc[-1],
-            )
-
-    timeHorizonItems = [
-        'year',
-        'anticipated wages',
-        'ctrb taxable',
-        'ctrb 401k',
-        'ctrb Roth 401k',
-        'ctrb IRA',
-        'ctrb Roth IRA',
-        'Roth X',
-    ]
-
-    # Verify that all numbers except bti are positive.
-    for i, iname in enumerate(inames):
-        for item in timeHorizonItems:
-            for n in range(horizons[i]):
-                assert timeLists[iname][item].iloc[n] >= 0, 'Item %s for %s in year %d is < 0.' % (
-                    item,
-                    iname,
-                    timeLists[iname]['year'].iloc[n],
-                )
-
-    return
+    return timeLists

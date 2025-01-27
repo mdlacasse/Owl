@@ -315,7 +315,7 @@ class Plan(object):
         self._adjustedParameters = False
         self.timeListsFileName = "None"
         self.timeLists = {}
-        self.resetContributions()
+        self.zeroContributions()
         self.caseStatus = 'unsolved'
         self.rateMethod = None
 
@@ -900,10 +900,18 @@ class Plan(object):
         try:
             filename, self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
         except Exception as e:
-            raise Exception('Unsuccessful read: %s' % e)
+            raise Exception('Unsuccessful read of contributions: %s' % e)
+            return False
 
-        timelists.check(self.inames, self.timeLists, self.horizons)
         self.timeListsFileName = filename
+        self.setContributions()
+
+        return True
+
+    def setContributions(self, timeLists=None):
+        if timeLists is not None:
+            timelists.check(timeLists, self.inames, self.horizons)
+            self.timeLists = timeLists
 
         # Now fill in parameters which are in $.
         for i, iname in enumerate(self.inames):
@@ -926,7 +934,7 @@ class Plan(object):
 
         self.caseStatus = 'modified'
 
-        return True
+        return self.timeLists
 
     def saveContributions(self):
         """
@@ -954,7 +962,7 @@ class Plan(object):
 
         return wb
 
-    def resetContributions(self):
+    def zeroContributions(self):
         """
         Reset all contributions variables to zero.
         """

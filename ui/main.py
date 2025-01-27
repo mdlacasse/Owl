@@ -1,7 +1,6 @@
 import streamlit as st
 
 import sskeys as kz
-import owlbridge as owb
 
 # Pick one for narrow or wide graphs. That can be changed in upper-right settings menu.
 st.set_page_config(layout='wide', page_title="Owl Retirement Planner")
@@ -39,7 +38,7 @@ kz.storeGlobalKey('currentPageName', pg.title)
 # Workaround resetting dataframes for data_editor wierd behavior.
 if pg.title != kz.getGlobalKey('prevPageName') and kz.getGlobalKey('prevPageName') == 'Wages And Contributions':
     if kz.caseHasPlan():
-        owb.updateContributions()
+        kz.updateContributions()
 
 pg.run()
 kz.storeGlobalKey('prevPageName', pg.title)

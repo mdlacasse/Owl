@@ -9,7 +9,6 @@ with col3:
 with col1:
     st.write('## Documentation')
     kz.orangeDivider()
-# <div style="text-align: justify">
     st.write('## Owl Retirement Planner')
     st.markdown('''
 #### A retirement exploration tool based on linear programming
@@ -48,20 +47,19 @@ There are four sections in the user interface:
 This section contains the steps for creating and configuring case scenarios.
 
 #### Basic Info
-This page controls the creation of scenarios as the `Select case` menu contains
+This page is where every new scenario begins.
+It controls the creation of scenarios as the `Select case` drop-down menu contains
 two additional items when this page is open:
-one to create a new case, and the other to create a case from a *case* parameter file.
-This page also allows you to duplicate and/or rename a scenario, and to delete scenarios.
+one to create new cases, and the other to create cases from a *case* parameter file.
+This page also allows you to duplicate and/or rename scenarios, as well as deleting them.
 
-For creating a scenario, the (first) name(s), marital status, birth year(s),
+For creating a scenario from scratch, (first) name(s), marital status, birth year(s),
 and life expectancies are required. A starting date for the plan determines when the plan
 starts in the first year. Plan still ends at the end of the year when all individuals
 have passed according to the specified life expectancies.
 
-When duplicating a scenario, all parameters will be copied, but each page in
-the `Case Setup` section will need to be revisited in order
-to refresh the case. This includes the wages and contributions file which will need to
-be uploaded, if any was present, or desired.
+When duplicating a scenario, make sure to visit all pages in the `Case Setup` section
+and verify that all parameters are as intended.
 
 ##### Initializing the life parameters for the realization
 Start with the `Select case` box and choose one of `New case...` or `Upload case file...`.
@@ -100,7 +98,6 @@ Three types of savings accounts are considered and are tracked separately for sp
 - Tax-deferred savings accounts (e.g., 401k, 403b, IRA),
 - Tax-exempt savings accounts (e.g., Roth 401k, Roth IRA).
 
-
 For married couples, the spousal `Beneficiary fractions` associated with these accounts
 can be selected, as well as a surplus deposit fraction. The first one controls
 how much is left to the surviving spouse while the second determines
@@ -119,9 +116,10 @@ When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
 
 #### Wages and Contributions
-This page allows to enter an optional Excel file containing future wages and contributions.
-The values in this spreadsheet are in \\$, not in thousands.
-This file must contain 9 columns titled as follows:
+This page allows to enter an optional Excel file containing future wages and contributions,
+or to enter values directly into the corresponding tables.
+Values in these tables are all in nominal \\$, i.e., not in thousands.
+The wages and contributions data contains 9 columns titled as follows:
 ''', unsafe_allow_html=True)
 
 # <span style="font-size: 10px;"> </span>
@@ -134,19 +132,17 @@ st.write('''
 |20XX | | | | | | | | |
 ''')
 
-# <div style="text-align: justify">
 col1, col2 = st.columns([0.65, 0.35], gap='large')
 with col1:
     st.write('''
-Here, 20XX is the last row which could be the last year based on the life expectancy values provided.
-Missing years or empty cells will be filled with zero values, while years outside the
-span of the plan will be ignored.
+Here, 20XX represents the last row which could be the last year based on the life expectancy values provided.
+While loading an Excel workbook, missing years or empty cells will be filled with zero values,
+while years outside the time span of the plan will be ignored.
 For the columns, *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment or other sources
 (not including dividends from your taxable investment accounts). Note that column names are case sensitive
 and all entries must be in lower case. The easiest way to start this process is to use the template
 file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx).
-
 
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your
@@ -177,10 +173,10 @@ deposited in the taxable savings accounts. Negative numbers will potentially gen
 withdrawals and distributions from retirement accounts. This is the only column that can contain
 negative numbers: all other column entries should be positive.
 
-Each individual in the plan must have an associated spreadsheet for reporting
-yearly transations affecting the plan. The association is made by having
-the individual's name as the tab name of the spreadsheet.
-Therefore, when preparing your own case, you will need to rename the tabs in the template file to
+When loading an Excel workbook, each individual in the plan must have an associated sheet
+for reporting yearly transations affecting the plan. The association is made by having
+the individual's name as the sheet name in the workbook.
+Therefore, if preparing your own case using a template, you will need to rename the tabs in the file to
 match the names used when creating the plan
 (i.e., *Jack* and *Jill* in the example files provided).
 
@@ -256,9 +252,10 @@ the calculations by a factor of 2 to 3, which can be useful when running Monte C
 
 The time profile of the net spending amount
 can be selected to either be *flat* or follow a *smile* shape.
-The smile shape has two configurable parameters: a *dip* percentage
-and a linear *increase*, or *decrease if negative, over the time period (apart from inflation).
-Values default to 15% and 12% respectively, but they are configurable
+The smile shape has three configurable parameters: a *dip* percentage
+a linear *increase*, or *decrease if negative, over the time period (apart from inflation),
+and a time delay, in years from today, before the non-flat behavior starts to act.
+Values default to 15%, 12%, and 0 year respectively, but they are fully configurable
 for experimentation and to fit your anticipated lifestyle.
 
 For married couples, a survivor's
@@ -267,7 +264,8 @@ The selected profile curve multiplies
 the net spending *basis* which sets the resulting spending
 amounts over the duration of the plan.
 Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
-for that reason they do not start at 1.
+for that reason they do not start at 1. Moreover, if the plan starts later
+than on January 1$^{st}$, the value of the first year will be reduced accordingly.
 
 
 --------------------------------------------------------------------------------------
@@ -276,7 +274,8 @@ for that reason they do not start at 1.
 #### Case Results
 This page allows to run a single scenario based on the selections made
 in the [Case Setup](#case-setup) section.
-This simulation uses a single instance of a series of rates, either fixed or varying.
+This simulation uses a single instance of a series of rates, either fixed or varying,
+as previously selected.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, of maximize the bequest under the constraint of a net spending amount.
 If `Convert from contributions file` is not toggled on,
@@ -284,19 +283,29 @@ Roth conversions are optimized for maximizing the selected objective function.
 Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
-Under this page, one can also save all the parameters used to generate the
-outcome in a *case* file that can be uploaded in the future to run the same
-case again.
+When a case has run successfully, different graphs will show the time evolution
+of different quatities over the duration of the plan. Below
+these graphs, two additional buttons will appear. The
+`Download case file...` button allows to save all the parameters used to generate the
+outcome of this case to a *case* file.
+Another button called `Download wages and contributions file...` allows
+to save the contents of the tables on the corresponding page to an Excel workbook.
+With both these files, the same case can be reproduced at a later time by uploading
+them through the widgets on the `Basic Info` and `Wages and Contributions` pages.
 
 #### Case Worksheets
-This page shows the various worksheets containing annual transactions.
-A workbook can be downloaded as an Excel file for future reference, and
-is better viewed in Excel than through the browser's representation.
+This page shows the various worksheets containing annual transactions
+and savings account balances in nominal \\$.
+Each table can be downloaded separately in csv format, or all tables can be downloaded
+together as an Excel workbook by clicking the button at the bottom
+of the page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 
 #### Case Summary
 This page shows a summary of the scenario which was computed.
 It displays informative sums of relevant income, bequest, and spending values.
+The contents of this page can be downloaded as a plain text file by
+clicking the button at the bottom of the page.
 
 --------------------------------------------------------------------------------------
 ### :orange[Multiple Scenarios]

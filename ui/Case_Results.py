@@ -49,4 +49,3 @@ else:
                 disabled=kz.caseHasNotCompletedRun(),
                 mime='application/vnd.ms-excel'
             )
-

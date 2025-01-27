@@ -28,16 +28,15 @@ def createPlan():
         yobs.append(kz.getKey('yob1'))
         life.append(kz.getKey('life1'))
 
+    strio = StringIO()
+    kz.storeKey('logs', strio)
     try:
-        strio = StringIO()
-        kz.storeKey('logs', strio)
         plan = owl.Plan(inames, yobs, life, name, startDate=startDate,
                         verbose=True, logstreams=[strio, strio])
+        kz.setKey('plan', plan)
     except Exception as e:
         st.error("Failed creation of plan '%s': %s" % (name, e))
         return
-
-    kz.setKey('plan', plan)
 
     val = kz.getKey('plots')
     if val is not None:
@@ -143,6 +142,7 @@ def prepareRun(plan):
             return
 
     setRates()
+    setContributions()
 
 
 def isCaseUnsolved():
@@ -333,17 +333,10 @@ def setInterpolationMethod(plan):
 
 
 @_checkPlan
-def updateContributions(plan):
-    noChange = ((kz.getKey('_timeList0') is None or
-                 kz.getKey('_timeList0').equals(kz.getKey('timeList0'))) and
-                (kz.getKey('_timeList1') is None or
-                 kz.getKey('_timeList1').equals(kz.getKey('timeList1'))))
-    if noChange:
-        return True
-
-    kz.setKey('timeList0', kz.getKey('_timeList0'))
-    kz.setKey('timeList1', kz.getKey('_timeList1'))
-
+def setContributions(plan):
+    """
+    Set from UI -> Plan.
+    """
     dicDf = {kz.getKey('iname0'): kz.getKey('timeList0')}
     if kz.getKey('status') == 'married':
         dicDf[kz.getKey('iname1')] = kz.getKey('timeList1')
@@ -359,6 +352,10 @@ def updateContributions(plan):
 
 @_checkPlan
 def readContributions(plan, stFile):
+    """
+    Set from file -> Plan -> UI.
+    """
+    dicDf = {kz.getKey('iname0'): kz.getKey('timeList0')}
     if stFile is None:
         return False
 
@@ -379,9 +376,13 @@ def readContributions(plan, stFile):
 
 
 @_checkPlan
+def getContributions(plan):
+    return plan.timeLists
+
+
+@_checkPlan
 def resetContributions(plan):
-    dicDf = plan.resetContributions()
-    return dicDf
+    return plan.zeroContributions()
 
 
 @_checkPlan
@@ -599,7 +600,6 @@ def saveWorkbook(plan):
 
 @_checkPlan
 def saveContributions(plan):
-    # updateContributions()
     wb = plan.saveContributions()
     buffer = BytesIO()
     if wb is None:
@@ -615,7 +615,6 @@ def saveContributions(plan):
 @_checkPlan
 def saveCaseFile(plan):
     stringBuffer = StringIO()
-    # prepareRun(plan)
     if getSolveParameters() is None:
         return ''
     plan.saveConfig(stringBuffer)
