@@ -38,7 +38,7 @@ else:
                 data=owb.saveCaseFile(),
                 file_name=fileName,
                 disabled=kz.caseHasNotCompletedRun(),
-                mime='txt/plain'
+                mime='application/toml'
             )
         with col2:
             download2 = st.download_button(
