@@ -24,6 +24,7 @@ if ret is None or kz.caseHasNoPlan():
 else:
     kz.runOncePerCase(initProfile)
 
+    st.write('##### Objective')
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         choices = ['Net spending', 'Bequest']
@@ -41,6 +42,7 @@ else:
             ret = kz.getNum("Desired annual net spending (\\$k)", 'netSpending', help=helpmsg)
 
     st.divider()
+    st.write('##### Roth Conversions')
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         iname0 = kz.getKey('iname0')
@@ -62,6 +64,7 @@ else:
                               "noRothConversions", help=helpmsg)
 
     st.divider()
+    st.write('##### Medicare')
     kz.initKey('withMedicare', True)
     col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
@@ -82,9 +85,10 @@ else:
             ret = kz.getRadio('Solver', choices, 'solver')
 
     st.divider()
+    st.write('##### Spending Profile')
     col1, col2, col3 = st.columns(3, gap='medium', vertical_alignment='top')
     with col1:
-        ret = kz.getRadio("Spending profile", profileChoices, 'spendingProfile', callback=owb.setProfile)
+        ret = kz.getRadio("Type of profile", profileChoices, 'spendingProfile', callback=owb.setProfile)
     with col2:
         if kz.getKey('status') == 'married':
             helpmsg = 'Percentage of spending required for the surviving spouse.'
