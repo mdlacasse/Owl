@@ -454,6 +454,7 @@ def orangeDivider():
 
 
 def caseHeader(txt):
-    st.html('<div style="text-align: right;color: orange;font-style: italic;">%s</div>' % currentCaseName())
+    # st.html('<div style="text-align: right;color: orange;font-style: italic;">%s</div>' % currentCaseName())
+    st.html('<div style="text-align: left;color: orange;font-style: italic;">%s</div>' % currentCaseName())
     st.write('## ' + txt)
     orangeDivider()
