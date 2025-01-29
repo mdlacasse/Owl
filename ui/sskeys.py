@@ -98,16 +98,21 @@ def updateContributions():
 
 
 def switchToCase(key):
-    import owlbridge as owb
     # Catch case where switch happens while editing W&W tables.
     if getGlobalKey('currentPageName') == 'Wages And Contributions':
-        owb.updateContributions()
+        updateContributions()
     ss.currentCase = ss['_'+key]
 
 
 def isIncomplete():
     return (currentCaseName() == '' or getKey('iname0') in [None, '']
             or (getKey('status') == 'married' and getKey('iname1') in [None, '']))
+
+
+def isCaseUnsolved():
+    if caseHasNoPlan():
+        return True
+    return getKey('caseStatus') != 'solved'
 
 
 def caseHasNoPlan():
@@ -214,7 +219,7 @@ def createNewCase(case):
         st.error("Case name '%s' already exists." % casename)
         return
 
-    ss.cases[casename] = {'name': casename, 'caseStatus': '', 'summary': '', 'logs': None}
+    ss.cases[casename] = {'name': casename, 'caseStatus': 'unknown', 'summary': '', 'logs': None}
     setCurrentCase(ss._newcase)
 
 
@@ -299,6 +304,105 @@ def getGlobalKey(key):
 
 def getDict(key=ss.currentCase):
     return ss.cases[key]
+
+
+def getAccountBalances(ni):
+    bal = [[], [], []]
+    accounts = ['txbl', 'txDef', 'txFree']
+    for j, acc in enumerate(accounts):
+        for i in range(ni):
+            bal[j].append(getKey(acc+str(i)))
+
+    return bal
+
+
+def getSolveParameters():
+    maximize = getKey('objective')
+    if maximize is None:
+        return None
+    if 'spending' in maximize:
+        objective = 'maxSpending'
+    else:
+        objective = 'maxBequest'
+
+    options = {}
+    optList = ['netSpending', 'maxRothConversion', 'noRothConversions',
+               'withMedicare', 'bequest', 'solver']
+    for opt in optList:
+        val = getKey(opt)
+        if val is not None:
+            options[opt] = val
+
+    if getKey('readRothX'):
+        options['maxRothConversion'] = 'file'
+
+    return objective, options
+
+
+def getIndividualAllocationRatios():
+    generic = []
+    initial = []
+    final = []
+    for k1 in range(4):
+        initial.append(int(getKey('j3_init%'+str(k1)+'_0')))
+        final.append(int(getKey('j3_fin%'+str(k1)+'_0')))
+    gen0 = [initial, final]
+    generic = [gen0]
+
+    if getKey('status') == 'married':
+        initial = []
+        final = []
+        for k1 in range(4):
+            initial.append(int(getKey('j3_init%'+str(k1)+'_1')))
+            final.append(int(getKey('j3_fin%'+str(k1)+'_1')))
+        gen1 = [initial, final]
+        generic.append(gen1)
+
+    return generic
+
+
+def getAccountAllocationRatios():
+    accounts = [[], [], []]
+    for j1 in range(3):
+        initial = []
+        final = []
+        for k1 in range(4):
+            initial.append(int(getKey(f'j{j1}_init%'+str(k1)+'_0')))
+            final.append(int(getKey(f'j{j1}_fin%'+str(k1)+'_0')))
+        tmp = [initial, final]
+        accounts[j1].append(tmp)
+
+    if getKey('status') == 'married':
+        for j1 in range(3):
+            initial = []
+            final = []
+            for k1 in range(4):
+                initial.append(int(getKey(f'j{j1}_init%'+str(k1)+'_1')))
+                final.append(int(getKey(f'j{j1}_fin%'+str(k1)+'_1')))
+            tmp = [initial, final]
+            accounts[j1].append(tmp)
+
+    return accounts
+
+
+def getPreviousMAGI():
+    backMAGI = [0, 0]
+    for ii in range(2):
+        val = getKey('MAGI'+str(ii))
+        if val:
+            backMAGI[ii] = val
+
+    return backMAGI
+
+
+def getFixedIncome(ni, what):
+    amounts = []
+    ages = []
+    for i in range(ni):
+        amounts.append(getKey(what+'Amt'+str(i)))
+        ages.append(getKey(what+'Age'+str(i)))
+
+    return amounts, ages
 
 
 def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, min_value=0, max_value=None):

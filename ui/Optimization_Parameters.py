@@ -63,11 +63,19 @@ else:
 
     st.divider()
     kz.initKey('withMedicare', True)
-    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
+    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
     with col1:
         helpmsg = "Do or do not perform additional Medicare and IRMAA calculations."
         ret = kz.getToggle('Medicare and IRMAA calculations', 'withMedicare', help=helpmsg)
     with col2:
+        if kz.getKey('withMedicare'):
+            helpmsg = "MAGI in nominal $k for that previous year."
+            years = owb.backYearsMAGI()
+            for ii in range(2):
+                kz.initKey('MAGI'+str(ii), 0)
+                if years[ii] > 0:
+                    ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", 'MAGI'+str(ii), help=helpmsg)
+    with col3:
         if owb.hasMOSEK():
             choices = ['HiGHS', 'MOSEK']
             kz.initKey('solver', choices[0])

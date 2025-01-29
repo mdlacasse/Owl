@@ -59,72 +59,38 @@ def _checkPlan(func):
     return wrapper
 
 
-def getFixedIncome(ni, what):
-    amounts = []
-    ages = []
-    for i in range(ni):
-        amounts.append(kz.getKey(what+'Amt'+str(i)))
-        ages.append(kz.getKey(what+'Age'+str(i)))
-
-    return amounts, ages
-
-
-def getAccountBalances(ni):
-    bal = [[], [], []]
-    accounts = ['txbl', 'txDef', 'txFree']
-    for j, acc in enumerate(accounts):
-        for i in range(ni):
-            bal[j].append(kz.getKey(acc+str(i)))
-
-    return bal
-
-
-def getSolveParameters():
-    maximize = kz.getKey('objective')
-    if maximize is None:
-        return None
-    if 'spending' in maximize:
-        objective = 'maxSpending'
-    else:
-        objective = 'maxBequest'
-
-    options = {}
-    optList = ['netSpending', 'maxRothConversion', 'noRothConversions',
-               'withMedicare', 'bequest', 'solver']
-    for opt in optList:
-        val = kz.getKey(opt)
-        if val is not None:
-            options[opt] = val
-
-    if kz.getKey('readRothX'):
-        options['maxRothConversion'] = 'file'
-
-    return objective, options
-
-
+# _checkPlan
 def prepareRun(plan):
     ni = 2 if kz.getKey('status') == 'married' else 1
 
-    bal = getAccountBalances(ni)
+    bal = kz.getAccountBalances(ni)
     try:
         plan.setAccountBalances(taxable=bal[0], taxDeferred=bal[1], taxFree=bal[2])
     except Exception as e:
         st.error('Setting account balances failed: %s' % e)
         return
 
-    amounts, ages = getFixedIncome(ni, 'p')
+    amounts, ages = kz.getFixedIncome(ni, 'p')
     try:
         plan.setPension(amounts, ages)
     except Exception as e:
         st.error('Failed setting pensions: %s' % e)
         return
 
-    amounts, ages = getFixedIncome(ni, 'ss')
+    amounts, ages = kz.getFixedIncome(ni, 'ss')
     try:
         plan.setSocialSecurity(amounts, ages)
     except Exception as e:
         st.error('Failed setting social security: %s' % e)
         return
+
+    previousMAGI = kz.getPreviousMAGI()
+    if previousMAGI[0] > 0 or previousMAGI[1] > 0:
+        try:
+            plan.setPreviousMAGI(previousMAGI)
+        except Exception as e:
+            st.error('Failed setting previous MAGI: %s' % e)
+            return
 
     if ni == 2:
         benfrac = [kz.getKey('benf0'), kz.getKey('benf1'), kz.getKey('benf2')]
@@ -141,26 +107,19 @@ def prepareRun(plan):
             st.error('Failed setting beneficiary fractions: %s' % e)
             return
 
+    plan.setHeirsTaxRate(kz.getKey('heirsTx'))
+    plan.setLongTermCapitalTaxRate(kz.getKey('gainTx'))
+    plan.setDividendRate(kz.getKey('divRate'))
+
     setRates()
     setContributions()
-
-
-def isCaseUnsolved():
-    if kz.getKey('plan') is None:
-        return True
-    return kz.getKey('caseStatus') != 'solved'
-
-
-@_checkPlan
-def caseStatus(plan):
-    return plan.caseStatus
 
 
 @_checkPlan
 def runPlan(plan):
     prepareRun(plan)
 
-    objective, options = getSolveParameters()
+    objective, options = kz.getSolveParameters()
     try:
         plan.solve(objective, options=options)
     except Exception as e:
@@ -183,7 +142,7 @@ def runHistorical(plan):
     hyfrm = kz.getKey('hyfrm')
     hyto = kz.getKey('hyto')
 
-    objective, options = getSolveParameters()
+    objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress(None)
         fig, summary = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, progcall=mybar)
@@ -207,7 +166,7 @@ def runMC(plan):
 
     N = kz.getKey('MC_cases')
 
-    objective, options = getSolveParameters()
+    objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress(None)
         fig, summary = plan.runMC(objective, options, N, figure=True, progcall=mybar)
@@ -386,64 +345,18 @@ def resetContributions(plan):
 def setAllocationRatios(plan):
     if kz.getKey('allocType') == 'individual':
         try:
-            generic = getIndividualAllocationRatios()
+            generic = kz.getIndividualAllocationRatios()
             plan.setAllocationRatios('individual', generic=generic)
         except Exception as e:
             st.error('Setting asset allocations failed: %s' % e)
             return
     elif kz.getKey('allocType') == 'account':
         try:
-            acc = getAccountAllocationRatios()
+            acc = kz.getAccountAllocationRatios()
             plan.setAllocationRatios('account', taxable=acc[0], taxDeferred=acc[1], taxFree=acc[2])
         except Exception as e:
             st.error('Setting asset allocations failed: %s' % e)
             return
-
-
-def getIndividualAllocationRatios():
-    generic = []
-    initial = []
-    final = []
-    for k1 in range(4):
-        initial.append(int(kz.getKey('j3_init%'+str(k1)+'_0')))
-        final.append(int(kz.getKey('j3_fin%'+str(k1)+'_0')))
-    gen0 = [initial, final]
-    generic = [gen0]
-
-    if kz.getKey('status') == 'married':
-        initial = []
-        final = []
-        for k1 in range(4):
-            initial.append(int(kz.getKey('j3_init%'+str(k1)+'_1')))
-            final.append(int(kz.getKey('j3_fin%'+str(k1)+'_1')))
-        gen1 = [initial, final]
-        generic.append(gen1)
-
-    return generic
-
-
-def getAccountAllocationRatios():
-    accounts = [[], [], []]
-    for j1 in range(3):
-        initial = []
-        final = []
-        for k1 in range(4):
-            initial.append(int(kz.getKey(f'j{j1}_init%'+str(k1)+'_0')))
-            final.append(int(kz.getKey(f'j{j1}_fin%'+str(k1)+'_0')))
-        tmp = [initial, final]
-        accounts[j1].append(tmp)
-
-    if kz.getKey('status') == 'married':
-        for j1 in range(3):
-            initial = []
-            final = []
-            for k1 in range(4):
-                initial.append(int(kz.getKey(f'j{j1}_init%'+str(k1)+'_1')))
-                final.append(int(kz.getKey(f'j{j1}_fin%'+str(k1)+'_1')))
-            tmp = [initial, final]
-            accounts[j1].append(tmp)
-
-    return accounts
 
 
 @_checkPlan
@@ -508,24 +421,6 @@ def setProfile(plan, key, pull=True):
     increase = kz.getKey('smileIncrease')
     delay = kz.getKey('smileDelay')
     plan.setSpendingProfile(profile, survivor, dip, increase, delay)
-
-
-@_checkPlan
-def setHeirsTaxRate(plan, key):
-    val = kz.setpull(key)
-    plan.setHeirsTaxRate(val)
-
-
-@_checkPlan
-def setLongTermCapitalTaxRate(plan, key):
-    val = kz.setpull(key)
-    plan.setLongTermCapitalTaxRate(val)
-
-
-@_checkPlan
-def setDividendRate(plan, key):
-    val = kz.setpull(key)
-    plan.setDividendRate(val)
 
 
 @_checkPlan
@@ -612,7 +507,7 @@ def saveContributions(plan):
 @_checkPlan
 def saveCaseFile(plan):
     stringBuffer = StringIO()
-    if getSolveParameters() is None:
+    if kz.getSolveParameters() is None:
         return ''
     plan.saveConfig(stringBuffer)
     encoded_data = stringBuffer.getvalue().encode('utf-8')
@@ -635,23 +530,7 @@ def createCaseFromFile(file):
 
     return name, mydic
 
-    # keynames = ['name', 'status', 'plan', 'summary', 'logs', 'startDate',
-    #            'timeList', 'plots', 'interpMethod', 'interpCenter', 'interpWidth',
-    #            'objective', 'withMedicare', 'bequest', 'netSpending',
-    #            'noRothConversions', 'maxRothConversion',
-    #            'rateType', 'fixedType', 'varyingType', 'yfrm', 'yto',
-    #            'divRate', 'heirsTx', 'gainTx', 'spendingProfile', 'survivor',
-    #            'surplusFraction', ]
-    # keynamesJ = ['benf', ]
-    # keynamesK = ['fxRate', 'mean', 'stdev']
-    # keynamesI = ['iname', 'yob', 'life', 'txbl', 'txDef', 'txFree',
-    #             'ssAge', 'ssAmt', 'pAge', 'pAmt', 'df',
-    #             'jX_init%0_', 'jX_init%1_', 'jX_init%2_', 'jX_init%3_',
-    #             'jX_fin%0_', 'jX_fin%1_', 'jX_fin%2_', 'jX_fin%3_']
-    # keynames6 = ['corr']
 
-
-# @_checkPlan
 def genDic(plan):
     accName = ['txbl', 'txDef', 'txFree']
     dic = {}
@@ -747,8 +626,8 @@ def genDic(plan):
         dic['yto'] = plan.rateTo
     else:
         dic['yfrm'] = FROM
-        # Rates avalability are trailing by 1 or 2 years.
-        dic['yto'] = date.today().year - 2
+        # Rates availability are trailing by 1 year.
+        dic['yto'] = date.today().year - 1
 
     if plan.rateMethod in ['stochastic', 'histochastic']:
         qq = 1
@@ -762,8 +641,17 @@ def genDic(plan):
     return plan._name, dic
 
 
-def clone(plan, newname, logstreams=None):
-    return owl.clone(plan, newname, logstreams=logstreams)
+@_checkPlan
+def backYearsMAGI(plan):
+    thisyear = date.today().year
+    backyears = [0, 0]
+    for i in range(plan.N_i):
+        if thisyear - plan.yobs[i] >= 65:
+            backyears[0] = thisyear - 2
+        elif thisyear - plan.yobs[i] >= 64:
+            backyears[1] = thisyear - 1
+
+    return backyears
 
 
 def version():

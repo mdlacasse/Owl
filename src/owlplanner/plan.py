@@ -295,6 +295,9 @@ class Plan(object):
         self.myRothX_in = np.zeros((self.N_i, self.N_n))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
 
+        # Previous 2 years for Medicare.
+        self.prevMAGI = np.zeros((2))
+
         # Scenario starts at the beginning of this year and ends at the end of the last year.
         self.mylog.vprint('Preparing scenario of %d years for %d individual%s.'
                           % (self.N_n, self.N_i, ['', 's'][self.N_i - 1]))
@@ -394,6 +397,16 @@ class Plan(object):
 
         return None
 
+    def setPreviousMAGI(self, magi, units='k'):
+        """
+        Set MAGI for two previous years to the plan. Values are in nominal $k.
+        """
+        assert len(magi) == 2, "MAGI must have two values."
+        fac = u.getUnits(units)
+        u.rescale(magi, fac)
+        self.mylog.vprint('Setting previous years MAGI to:', [u.d(magi[i]) for i in range(2)])
+        self.prevMAGI = np.array(magi)
+
     def rename(self, newname):
         """
         Override name of the plan. Plan name is used
@@ -402,8 +415,6 @@ class Plan(object):
         """
         self.mylog.vprint('Renaming plan %s -> %s.' % (self._name, newname))
         self._name = newname
-
-        return None
 
     def setSpousalDepositFraction(self, eta):
         """
@@ -424,8 +435,6 @@ class Plan(object):
             self.mylog.vprint('\t%s: %.1f, %s: %.1f' % (self.inames[0], (1 - eta), self.inames[1], eta))
             self.eta = eta
 
-        return None
-
     def setDefaultPlots(self, value):
         """
         Set plots between nominal values or today's $.
@@ -433,8 +442,6 @@ class Plan(object):
 
         self.defaultPlots = self._checkValue(value)
         self.mylog.vprint('Setting plots default value to %s.' % value)
-
-        return None
 
     def setDividendRate(self, mu):
         """
@@ -446,8 +453,6 @@ class Plan(object):
         self.mu = mu
         self.caseStatus = 'modified'
 
-        return None
-
     def setLongTermCapitalTaxRate(self, psi):
         """
         Set long-term income tax rate. Rate is in percent. Default 15%.
@@ -457,8 +462,6 @@ class Plan(object):
         self.mylog.vprint('Long-term capital gain income tax set to %s.' % u.pc(psi, f=0))
         self.psi = psi
         self.caseStatus = 'modified'
-
-        return None
 
     def setBeneficiaryFractions(self, phi):
         """
@@ -477,8 +480,6 @@ class Plan(object):
             self.mylog.vprint('Consider changing spousal deposit fraction for better convergence.')
             self.mylog.vprint('\tRecommended: setSpousalDepositFraction(%d)' % self.i_d)
 
-        return None
-
     def setHeirsTaxRate(self, nu):
         """
         Set the heirs tax rate on the tax-deferred portion of the estate.
@@ -489,8 +490,6 @@ class Plan(object):
         self.mylog.vprint('Heirs tax rate on tax-deferred portion of estate set to %s.' % u.pc(nu, f=0))
         self.nu = nu
         self.caseStatus = 'modified'
-
-        return None
 
     def setPension(self, amounts, ages, units='k'):
         """
@@ -520,8 +519,6 @@ class Plan(object):
         self.pensionAmounts = np.array(amounts)
         self.pensionAges = np.array(ages, dtype=np.int32)
         self.caseStatus = 'modified'
-
-        return None
 
     def setSocialSecurity(self, amounts, ages, units='k'):
         """
@@ -560,8 +557,6 @@ class Plan(object):
         self.caseStatus = 'modified'
         self._adjustedParameters = False
 
-        return None
-
     def setSpendingProfile(self, profile, percent=60, dip=15, increase=12, delay=0):
         """
         Generate time series for spending profile. Surviving spouse fraction can be specified
@@ -588,8 +583,6 @@ class Plan(object):
         self.smileIncrease = increase
         self.smileDelay = delay
         self.caseStatus = 'modified'
-
-        return None
 
     def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None):
         """
@@ -632,8 +625,6 @@ class Plan(object):
         self._adjustedParameters = False
         self.caseStatus = 'modified'
 
-        return None
-
     def regenRates(self):
         """
         Regenerate the rates using the arguments specified during last setRates() call.
@@ -647,8 +638,6 @@ class Plan(object):
             stdev=100 * self.rateStdev,
             corr=self.rateCorr,
         )
-
-        return None
 
     def value(self, amount, year):
         """
@@ -711,8 +700,6 @@ class Plan(object):
             u.d(np.sum(taxable) + 0.7 * np.sum(taxDeferred) + np.sum(taxFree)),
         )
 
-        return None
-
     def setInterpolationMethod(self, method, center=15, width=5):
         """
         Interpolate assets allocation ratios from initial value (today) to
@@ -738,8 +725,6 @@ class Plan(object):
         self.caseStatus = 'modified'
 
         self.mylog.vprint('Asset allocation interpolation method set to %s.' % method)
-
-        return None
 
     def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None, taxFree=None, generic=None):
         """
@@ -873,8 +858,6 @@ class Plan(object):
         self.caseStatus = 'modified'
 
         self.mylog.vprint('Interpolating assets allocation ratios using', self.interpMethod, 'method.')
-
-        return None
 
     def readContributions(self, filename):
         """
@@ -1897,7 +1880,7 @@ class Plan(object):
             self.F_tn = self.F_tn.reshape((self.N_t, self.N_n))
             MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C['e']:self.C['F']])
 
-        self.M_n = tx.mediCosts(self.yobs, self.horizons, MAGI_n, self.gamma_n[:-1], self.N_n)
+        self.M_n = tx.mediCosts(self.yobs, self.horizons, MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
 
         return None
 

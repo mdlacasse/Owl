@@ -69,7 +69,7 @@ extra65Deduction_2025 = np.array([2000, 1600])
 ##############################################################################
 
 
-def mediCosts(yobs, horizons, magi, gamma_n, Nn):
+def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     """
     Compute Medicare costs directly.
     """
@@ -79,14 +79,14 @@ def mediCosts(yobs, horizons, magi, gamma_n, Nn):
     for n in range(Nn):
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
-                # The standard Medicare part B premium
+                # Start with the (indexed) basic Medicare part B premium.
                 costs[n] += gamma_n[n] * irmaaFees_2025[0]
                 if n < 2:
-                    nn = n
+                    mymagi = prevmagi[n]
                 else:
-                    nn = 2
+                    mymagi = magi[n - 2]
                 for q in range(1, 6):
-                    if magi[n - nn] > gamma_n[n] * irmaaBrackets_2025[Ni - 1][q]:
+                    if mymagi > gamma_n[n] * irmaaBrackets_2025[Ni - 1][q]:
                         costs[n] += gamma_n[n] * irmaaFees_2025[q]
 
     return costs
