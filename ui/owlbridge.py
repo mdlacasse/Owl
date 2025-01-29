@@ -103,6 +103,8 @@ def prepareRun(plan):
     plan.setLongTermCapitalTaxRate(kz.getKey('gainTx'))
     plan.setDividendRate(kz.getKey('divRate'))
 
+    setInterpolationMethod()
+    setAllocationRatios()
     setRates()
     setContributions()
 
