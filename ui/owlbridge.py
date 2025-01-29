@@ -84,14 +84,6 @@ def prepareRun(plan):
         st.error('Failed setting social security: %s' % e)
         return
 
-    previousMAGI = kz.getPreviousMAGI()
-    if previousMAGI[0] > 0 or previousMAGI[1] > 0:
-        try:
-            plan.setPreviousMAGI(previousMAGI)
-        except Exception as e:
-            st.error('Failed setting previous MAGI: %s' % e)
-            return
-
     if ni == 2:
         benfrac = [kz.getKey('benf0'), kz.getKey('benf1'), kz.getKey('benf2')]
         try:
@@ -605,6 +597,10 @@ def genDic(plan):
         if key in optionKeys:
             dic[key] = plan.solverOptions[key]
 
+    if 'previousMAGIs' in optionKeys:
+        dic['MAGI0'] = plan.solverOptions['previousMAGIs'][0]
+        dic['MAGI1'] = plan.solverOptions['previousMAGIs'][1]
+
     if plan.objective == 'maxSpending':
         dic['objective'] = 'Net spending'
     else:
@@ -619,7 +615,7 @@ def genDic(plan):
 
     # Initialize in both cases.
     for k1 in range(plan.N_k):
-        dic['fxRate'+str(k1)] = 100*plan.rateValues[k1]
+        dic['fxRate'+str(k1)] = 100 * plan.rateValues[k1]
 
     if plan.rateMethod in ['historical average', 'histochastic', 'historical']:
         dic['yfrm'] = plan.rateFrm
@@ -632,8 +628,8 @@ def genDic(plan):
     if plan.rateMethod in ['stochastic', 'histochastic']:
         qq = 1
         for k1 in range(plan.N_k):
-            dic['mean'+str(k1)] = 100*plan.rateValues[k1]
-            dic['stdev'+str(k1)] = 100*plan.rateStdev[k1]
+            dic['mean'+str(k1)] = 100 * plan.rateValues[k1]
+            dic['stdev'+str(k1)] = 100 * plan.rateStdev[k1]
             for k2 in range(k1+1, plan.N_k):
                 dic['corr'+str(qq)] = plan.rateCorr[k1, k2]
                 qq += 1

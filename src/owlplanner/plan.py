@@ -397,16 +397,6 @@ class Plan(object):
 
         return None
 
-    def setPreviousMAGI(self, magi, units='k'):
-        """
-        Set MAGI for two previous years to the plan. Values are in nominal $k.
-        """
-        assert len(magi) == 2, "MAGI must have two values."
-        fac = u.getUnits(units)
-        u.rescale(magi, fac)
-        self.mylog.vprint('Setting previous years MAGI to:', [u.d(magi[i]) for i in range(2)])
-        self.prevMAGI = np.array(magi)
-
     def rename(self, newname):
         """
         Override name of the plan. Plan name is used
@@ -1619,6 +1609,7 @@ class Plan(object):
             'noRothConversions',
             'withMedicare',
             'solver',
+            'previousMAGIs',
         ]
         # We will modify options if required.
         if options is None:
@@ -1646,6 +1637,17 @@ class Plan(object):
 
         if objective == 'maxSpending' and 'bequest' not in myoptions:
             self.mylog.vprint('Using bequest of $1.')
+
+        if 'previousMAGIs' in myoptions:
+            magi = myoptions['previousMAGIs']
+            if len(magi) != 2:
+                raise ValueError("previousMAGIs must have two values.")
+
+            if 'units' in options:
+                units = u.getUnits(options['units'])
+            else:
+                units = 1000
+            self.prevMAGI = units * np.array(magi)
 
         self._adjustParameters()
 

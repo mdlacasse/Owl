@@ -336,6 +336,10 @@ def getSolveParameters():
     if getKey('readRothX'):
         options['maxRothConversion'] = 'file'
 
+    previousMAGIs = getPreviousMAGIs()
+    if previousMAGIs[0] > 0 or previousMAGIs[1] > 0:
+        options['previousMAGIs'] = previousMAGIs
+
     return objective, options
 
 
@@ -385,14 +389,14 @@ def getAccountAllocationRatios():
     return accounts
 
 
-def getPreviousMAGI():
-    backMAGI = [0, 0]
+def getPreviousMAGIs():
+    backMAGIs = [0, 0]
     for ii in range(2):
         val = getKey('MAGI'+str(ii))
         if val:
-            backMAGI[ii] = val
+            backMAGIs[ii] = val
 
-    return backMAGI
+    return backMAGIs
 
 
 def getFixedIncome(ni, what):
@@ -437,11 +441,11 @@ def getText(text, nkey, disabled=False, callback=setpull, placeholder=None):
                          placeholder=placeholder)
 
 
-def getRadio(text, choices, nkey, callback=setpull, help=None):
+def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
     return st.radio(text, choices,
                     index=choices.index(getKey(nkey)),
                     on_change=callback, args=[nkey], key='_'+nkey,
-                    horizontal=True, help=help)
+                    disabled=disabled, horizontal=True, help=help)
 
 
 def getToggle(text, nkey, callback=setpull, disabled=False, help=None):

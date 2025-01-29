@@ -252,7 +252,6 @@ the calculations by a factor of 2 to 3, which can be useful when running Monte C
 If the age of individuals makes them eligible for Medicare within the next two years,
 additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for past years.
 These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
-Note that these values are not included in the *case* parameter file when saving.
 
 The time profile of the net spending amount
 can be selected to either be *flat* or follow a *smile* shape.

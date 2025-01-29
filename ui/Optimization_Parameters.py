@@ -51,7 +51,6 @@ else:
         fromFile = kz.getKey('readRothX')
         kz.initKey('maxRothConversion', 50)
         ret = kz.getNum("Maximum Roth conversion (\\$k)", 'maxRothConversion', disabled=fromFile, help=helpmsg)
-        # caseHasNoContributions = (kz.getKey('stTimeLists') is None)
         ret = kz.getToggle('Convert as in wages and contributions tables', 'readRothX')
 
     with col2:
@@ -66,7 +65,7 @@ else:
     st.divider()
     st.write('##### Medicare')
     kz.initKey('withMedicare', True)
-    col1, col2, col3 = st.columns(3, gap='large', vertical_alignment='top')
+    col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         helpmsg = "Do or do not perform additional Medicare and IRMAA calculations."
         ret = kz.getToggle('Medicare and IRMAA calculations', 'withMedicare', help=helpmsg)
@@ -78,11 +77,13 @@ else:
                 kz.initKey('MAGI'+str(ii), 0)
                 if years[ii] > 0:
                     ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", 'MAGI'+str(ii), help=helpmsg)
-    with col3:
-        if owb.hasMOSEK():
-            choices = ['HiGHS', 'MOSEK']
-            kz.initKey('solver', choices[0])
-            ret = kz.getRadio('Solver', choices, 'solver')
+
+    if owb.hasMOSEK():
+        st.divider()
+        st.write('##### Solver')
+        choices = ['HiGHS', 'MOSEK']
+        kz.initKey('solver', choices[0])
+        ret = kz.getRadio('Linear programming solver', choices, 'solver')
 
     st.divider()
     st.write('##### Spending Profile')
