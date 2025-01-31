@@ -2004,7 +2004,7 @@ class Plan(object):
         sources['wages'] = self.omega_in
         sources['ssec'] = self.zetaBar_in
         sources['pension'] = self.pi_in
-        sources['taxable wdrwl'] = self.w_ijn[:, 0, :]
+        sources['txbl acc wdrwl'] = self.w_ijn[:, 0, :]
         sources['RMD'] = self.rmd_in
         sources['+dist'] = self.dist_in
         sources['RothX'] = self.x_in
