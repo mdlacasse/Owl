@@ -186,8 +186,6 @@ def duplicateCase():
     ss.cases[dupname]['duplicate'] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
-    # resetTimeLists()
-    # print(dupname, '->', ss.cases[dupname])
 
 
 def createCaseFromFile(confile):

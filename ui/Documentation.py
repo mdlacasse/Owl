@@ -105,7 +105,11 @@ how to split potential surplus budget moneys between the taxable accounts of the
 When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
 surplus moneys in the taxable account of the first individual to pass. Otherwise,
 the optimizer will find creative solutions that can generate surpluses in order
-to maximize the final bequest.
+to maximize the final bequest. Finally, when fractions are not all equal,
+it can take longer to solve (minutes) as these cases trigger the use
+of binary variables which involve more complex algorithms.
+In some situations, transfers from tax-deferred savings accounts to taxable
+savings accounts, through surpluses and deposits, can be part of the optimal solution.
 
 Setting a surplus fraction that deposits all surpluses in the survivor's account
 can lead to slow convergence. This is especially noticeable when solving with
@@ -347,15 +351,16 @@ when considering Monte Carlo simulations, consider:
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
 #### Logs
-Messages coming from the underlying Owl calculation engine are displayed under this page.
+Messages coming from the underlying Owl calculation engine are displayed on this page.
 
 #### Settings
-This page contains a global setting for choosing the display style used for the graphs. Some color
+This page contains global settings. At the current time, there is only a single
+option for choosing the style used for the graphs. Some color
 schemes are best suited for colorblind individuals. The *classic* offers good contrast, while
-*petroff10* has more distinguishing colors.
+*petroff10* presents other distinguishing colors.
 
 #### Documentation
-These pages.
+These very pages.
 
 #### About Owl
 Credits and disclaimers.
