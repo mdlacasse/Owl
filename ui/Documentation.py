@@ -21,7 +21,7 @@ It provides different realizations of a financial strategy through the rigorous
 mathematical optimization of relevant decision variables. Using a linear programming approach,
 two different objectives can currently be optimized: either
 maximize the net spending amount under the constraint of a desired bequest,
-or maximize an after-tax bequest under the consraint of a desired net spending amount.
+or maximize an after-tax bequest under the constraint of a desired net spending amount.
 In each case, Roth conversions are optimized to reduce the tax burden,
 while federal income tax and Medicare premiums (including IRMAA) are calculated.
 A full description of the package can be found on the GitHub
@@ -36,11 +36,11 @@ Typically, pages would be accessed in order, starting from the top.
 The `Select case` selection box at the bottom of the margin allows to select an existing case
 or create a new one from scratch, or from a *case* parameter file, which
 would then populate all parameter values.
-This box is present in all pages except those in the `Resources` section
+This box is present in all pages except those in the **Resources** section
 and allows to compare different scenarios.
 
 There are four sections in the user interface:
-`Case Setup`, `Single Scenario`, `Multiple Scenarios`, and `Resources`.
+**Case Setup**, **Single Scenario**, **Multiple Scenarios**, and **Resources**.
 
 -------------------------------------------------
 ### :orange[Case Setup]
@@ -58,7 +58,7 @@ and life expectancies are required. A starting date for the plan determines when
 starts in the first year. Plan still ends at the end of the year when all individuals
 have passed according to the specified life expectancies.
 
-When duplicating a scenario, make sure to visit all pages in the `Case Setup` section
+When duplicating a scenario, make sure to visit all pages in the **Case Setup** section
 and verify that all parameters are as intended.
 
 ##### Initializing the life parameters for the realization
@@ -111,9 +111,9 @@ of binary variables which involve more complex algorithms.
 In some situations, transfers from tax-deferred savings accounts to taxable
 savings accounts, through surpluses and deposits, can be part of the optimal solution.
 
-Setting a surplus fraction that deposits all surpluses in the survivor's account
-can lead to slow convergence. This is especially noticeable when solving with
-varying rates, and not so common when using fixed rates.
+Setting a surplus fraction that deposits some or all surpluses in the survivor's account
+can sometimes lead to slow convergence. This is especially noticeable when solving with
+varying rates and not so common when using fixed rates.
 This is due to the triggering of binary variables which add
 considerable computing effort in solving the problem.
 When using varying rates, it is recommended to set surpluses to be
@@ -178,7 +178,7 @@ withdrawals and distributions from retirement accounts. This is the only column 
 negative numbers: all other column entries should be positive.
 
 When loading an Excel workbook, each individual in the plan must have an associated sheet
-for reporting yearly transations affecting the plan. The association is made by having
+for reporting yearly transactions affecting the plan. The association is made by having
 the individual's name as the sheet name in the workbook.
 Therefore, if preparing your own case using a template, you will need to rename the tabs in the file to
 match the names used when creating the plan
@@ -207,7 +207,7 @@ There are two major types of rates:
     - *user* - rates are provided by the user
 - *Varying rates* - changing from year to year
     - *historical* - using a rate sequence which happened in the past
-    - *histochastic* - using stochastic rates derived from statistics of historical rates
+    - *histochastic* - using stochastic rates derived from statistics over a time range of historical rates
     - *stochastic* - using stochastic rates created from statistical parameters specified by the user.
 
 These rates are the annual rates of return for each of the assets considered. The types of asset are described
@@ -231,24 +231,24 @@ to a *final* allocation ratio at the passing of the individual.
 It is assumed that the accounts are regularly
 rebalanced to maintain the prescribed allocation ratios.
 
-An gliding function (either *linear* or an *s-curve*) interpolates the values
+A gliding function (either *linear* or an *s-curve*) interpolates the values
 of the allocation ratios from the *initial* values to the *final* values as the plan progresses in time.
 When an *s-curve* is selected, two additional parameters controlling the shape of the transition
 will appear, one for the timing of the inflection point measured in years from now,
 and the other for the width of the transition, measured in +/- years from the inflection point.
 
 ### Optimization Parameters
-This page allows you to select the problem to optimize.
+This page allows you to select the objective to optimize.
 One can choose between maximizing the net spending amount subject to the constraint
 of a desired bequest, or maximizing a bequest, subject to the constraint of providing
 a desired net spending amount.
 As one of the two choices (net spending or bequest) is selected as the value to maximize,
 the other becomes a constraint to obey.
 
-Maximum amount for Roth conversions and who can execute them need to be
-specified. If a contribution file has been uploaded and the `Convert from contributions file`
-is toggled, Roth conversions will not be optimized, but will rather be performed according to
-the column `RothX` found in the
+The maximum amount for Roth conversions and who can execute them is configurable.
+If a *Wages and Contributions* file has been uploaded and the `Convert from contributions file`
+button is toggled, Roth conversions will not be optimized, but will rather be performed according to
+the `Roth conv` column on the
 [Wages and Contributions](#wages-and-contributions) page.
 
 Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
@@ -257,7 +257,7 @@ If the age of individuals makes them eligible for Medicare within the next two y
 additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for past years.
 These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
 
-The time profile of the net spending amount
+The time profile modulating the net spending amount
 can be selected to either be *flat* or follow a *smile* shape.
 The smile shape has three configurable parameters: a *dip* percentage
 a linear *increase*, or *decrease if negative, over the time period (apart from inflation),
@@ -265,9 +265,9 @@ and a time delay, in years from today, before the non-flat behavior starts to ac
 Values default to 15%, 12%, and 0 year respectively, but they are fully configurable
 for experimentation and to fit your anticipated lifestyle.
 
-For married couples, a survivor's
+For married couples, the survivor's
 net spending percentage is also configurable. A value of 60% is typically used.
-The selected profile curve multiplies
+The selected profile multiplies
 the net spending *basis* which sets the resulting spending
 amounts over the duration of the plan.
 Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
@@ -282,16 +282,16 @@ than on January 1$^{st}$, the value of the first year will be reduced accordingl
 This page allows to run a single scenario based on the selections made
 in the [Case Setup](#case-setup) section.
 This simulation uses a single instance of a series of rates, either fixed or varying,
-as previously selected.
+as selected in the **Case Setup** section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, of maximize the bequest under the constraint of a net spending amount.
 If `Convert from contributions file` is not toggled on,
-Roth conversions are optimized for maximizing the selected objective function.
+Roth conversions are optimized for reducing taxes and maximizing the selected objective function.
 Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
 When a case has run successfully, different graphs will show the time evolution
-of different quatities over the duration of the plan. Below
+of different quantities over the duration of the plan. Below
 these graphs, two additional buttons will appear. The
 `Download case file...` button allows to save all the parameters used to generate the
 outcome of this case to a *case* file.

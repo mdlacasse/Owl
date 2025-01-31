@@ -4,8 +4,8 @@ import sskeys as kz
 import owlbridge as owb
 
 
-profileChoices = ['smile', 'flat']
-kz.initKey('spendingProfile', profileChoices[0])
+profileChoices = ['flat', 'smile']
+kz.initKey('spendingProfile', profileChoices[1])
 kz.initKey('survivor', 60)
 kz.initKey('smileDip', 15)
 kz.initKey('smileIncrease', 12)
