@@ -36,7 +36,8 @@ Copyright &copy; 2024 - Martin-D. Lacasse
 
 #### :orange[Privacy]
 - This app does not store or forward any information. All data entered is lost
-after a session is closed.
+after a session is closed. However, you can choose to download selected data to your own
+computer before closing the session.
 Source code is publicly available and can be inspected in the repository.
 
 #### :orange[Disclaimers]
