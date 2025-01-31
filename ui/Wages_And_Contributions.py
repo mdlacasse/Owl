@@ -51,6 +51,7 @@ else:
         newdf = st.data_editor(kz.getKey('timeList'+str(i)), column_config=colfor,
                                hide_index=True, key=kz.currentCaseName()+'_wages'+str(i))
         st.caption('Values are in nominal $.')
+        newdf.fillna(0, inplace=True)
         kz.storeKey('_timeList'+str(i), newdf)
 
     st.button('Reset to zero', help='Reset all values to zero.', on_click=resetTimeLists)
