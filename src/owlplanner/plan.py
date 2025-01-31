@@ -859,12 +859,12 @@ class Plan(object):
 
                 'year',
                 'anticipated wages',
-                'ctrb taxable',
-                'ctrb 401k',
-                'ctrb Roth 401k',
-                'ctrb IRA',
-                'ctrb Roth IRA',
-                'Roth X',
+                'taxable ctrb',
+                '401k ctrb',
+                'Roth 401k ctrb',
+                'IRA ctrb',
+                'Roth IRA ctrb',
+                'Roth conv',
                 'big-ticket items'
 
         in any order. A template is provided as an example.
@@ -890,12 +890,12 @@ class Plan(object):
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
             self.omega_in[i, :h] = self.timeLists[iname]['anticipated wages'].iloc[:h]
-            self.kappa_ijn[i, 0, :h] = self.timeLists[iname]['ctrb taxable'].iloc[:h]
-            self.kappa_ijn[i, 1, :h] = self.timeLists[iname]['ctrb 401k'].iloc[:h]
-            self.kappa_ijn[i, 2, :h] = self.timeLists[iname]['ctrb Roth 401k'].iloc[:h]
-            self.kappa_ijn[i, 1, :h] += self.timeLists[iname]['ctrb IRA'].iloc[:h]
-            self.kappa_ijn[i, 2, :h] += self.timeLists[iname]['ctrb Roth IRA'].iloc[:h]
-            self.myRothX_in[i, :h] = self.timeLists[iname]['Roth X'].iloc[:h]
+            self.kappa_ijn[i, 0, :h] = self.timeLists[iname]['taxable ctrb'].iloc[:h]
+            self.kappa_ijn[i, 1, :h] = self.timeLists[iname]['401k ctrb'].iloc[:h]
+            self.kappa_ijn[i, 2, :h] = self.timeLists[iname]['Roth 401k ctrb'].iloc[:h]
+            self.kappa_ijn[i, 1, :h] += self.timeLists[iname]['IRA ctrb'].iloc[:h]
+            self.kappa_ijn[i, 2, :h] += self.timeLists[iname]['Roth IRA ctrb'].iloc[:h]
+            self.myRothX_in[i, :h] = self.timeLists[iname]['Roth conv'].iloc[:h]
             self.Lambda_in[i, :h] = self.timeLists[iname]['big-ticket items'].iloc[:h]
 
         #  In 1st year, reduce wages and contribution depending on starting date.
@@ -947,8 +947,8 @@ class Plan(object):
         self.myRothX_in[:, :] = 0.
         self.kappa_ijn[:, :, :] = 0.
 
-        cols = ['year', 'anticipated wages', 'ctrb taxable', 'ctrb 401k',
-                'ctrb Roth 401k', 'ctrb IRA', 'ctrb Roth IRA', 'Roth X', 'big-ticket items']
+        cols = ['year', 'anticipated wages', 'taxable ctrb', '401k ctrb',
+                'Roth 401k ctrb', 'IRA ctrb', 'Roth IRA ctrb', 'Roth conv', 'big-ticket items']
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
             df = pd.DataFrame(0, index=np.arange(h), columns=cols)
@@ -1993,8 +1993,8 @@ class Plan(object):
             'wages',
             'ssec',
             'pension',
-            'dist',
-            'rmd',
+            '+dist',
+            'RMD',
             'RothX',
             'wdrwl taxable',
             'wdrwl tax-free',
@@ -2004,12 +2004,12 @@ class Plan(object):
         sources['wages'] = self.omega_in
         sources['ssec'] = self.zetaBar_in
         sources['pension'] = self.pi_in
-        sources['wdrwl taxable'] = self.w_ijn[:, 0, :]
-        sources['rmd'] = self.rmd_in
-        sources['dist'] = self.dist_in
+        sources['taxable wdrwl'] = self.w_ijn[:, 0, :]
+        sources['RMD'] = self.rmd_in
+        sources['+dist'] = self.dist_in
         sources['RothX'] = self.x_in
-        sources['wdrwl tax-free'] = self.w_ijn[:, 2, :]
-        sources['bti'] = self.Lambda_in
+        sources['tax-free wdrwl'] = self.w_ijn[:, 2, :]
+        sources['BTI'] = self.Lambda_in
 
         savings = {}
         savings['taxable'] = self.b_ijn[:, 0, :]
@@ -2719,7 +2719,7 @@ class Plan(object):
             'all wages': np.sum(self.omega_in, axis=0),
             'all pensions': np.sum(self.pi_in, axis=0),
             'all soc sec': np.sum(self.zetaBar_in, axis=0),
-            "all bti's": np.sum(self.Lambda_in, axis=0),
+            "all BTI's": np.sum(self.Lambda_in, axis=0),
             'all wdrwls': np.sum(self.w_ijn, axis=(0, 1)),
             'all deposits': -np.sum(self.d_in, axis=0),
             'ord taxes': -self.T_n,
@@ -2735,12 +2735,12 @@ class Plan(object):
             'wages': self.sources_in['wages'],
             'social sec': self.sources_in['ssec'],
             'pension': self.sources_in['pension'],
-            'txbl acc wdrwl': self.sources_in['wdrwl taxable'],
-            'RMDs': self.sources_in['rmd'],
-            '+distributions': self.sources_in['dist'],
-            'Roth conversion': self.sources_in['RothX'],
-            'tax-free wdrwl': self.sources_in['wdrwl tax-free'],
-            'big-ticket items': self.sources_in['bti'],
+            'txbl acc wdrwl': self.sources_in['txbl acc wdrwl'],
+            'RMDs': self.sources_in['RMD'],
+            '+distributions': self.sources_in['+dist'],
+            'Roth conv': self.sources_in['RothX'],
+            'tax-free wdrwl': self.sources_in['tax-free wdrwl'],
+            'big-ticket items': self.sources_in['BTI'],
         }
 
         for i in range(self.N_i):
@@ -2751,13 +2751,14 @@ class Plan(object):
         # Account balances except final year.
         accDic = {
             'taxable bal': self.b_ijn[:, 0, :-1],
+            'taxable ctrb': self.kappa_ijn[:, 0, :],
             'taxable dep': self.d_in,
             'taxable wdrwl': self.w_ijn[:, 0, :],
             'tax-deferred bal': self.b_ijn[:, 1, :-1],
             'tax-deferred ctrb': self.kappa_ijn[:, 1, :],
             'tax-deferred wdrwl': self.w_ijn[:, 1, :],
             '(included RMDs)': self.rmd_in[:, :],
-            'Roth conversion': self.x_in,
+            'Roth conv': self.x_in,
             'tax-free bal': self.b_ijn[:, 2, :-1],
             'tax-free ctrb': self.kappa_ijn[:, 2, :],
             'tax-free wdrwl': self.w_ijn[:, 2, :],
@@ -2856,7 +2857,7 @@ class Plan(object):
             planData[self.inames[i] + ' tx-def ctrb'] = self.kappa_ijn[i, 1, :]
             planData[self.inames[i] + ' tx-def wdrl'] = self.w_ijn[i, 1, :]
             planData[self.inames[i] + ' (RMD)'] = self.rmd_in[i, :]
-            planData[self.inames[i] + ' Roth conversion'] = self.x_in[i, :]
+            planData[self.inames[i] + ' Roth conv'] = self.x_in[i, :]
             planData[self.inames[i] + ' tx-free bal'] = self.b_ijn[i, 2, :-1]
             planData[self.inames[i] + ' tx-free ctrb'] = self.kappa_ijn[i, 2, :]
             planData[self.inames[i] + ' tax-free wdrwl'] = self.w_ijn[i, 2, :]

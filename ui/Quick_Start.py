@@ -25,7 +25,7 @@ This file is in Excel or LibreOffice format, and has one tab per individual in t
 
 With these two files, a scenario can be created and solved in only a few steps. We will use the case
 of Jack and Jill provided here as an example:
-1) Download these two files from the repository:
+1) Download these two files from the GitHub repository:
     - Case parameter file named
     [case_jack+jill.toml](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
     in editable *toml* format.

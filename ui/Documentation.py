@@ -128,7 +128,7 @@ The wages and contributions data contains 9 columns titled as follows:
 
 # <span style="font-size: 10px;"> </span>
 st.write('''
-|year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth X|big-ticket items|
+|year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
 |2025 | | | | | | | | |
 |2026 | | | | | | | | |
@@ -162,7 +162,7 @@ of the anticipated wages for contributions as this can sometimes be easier. For 
 purpose, additional columns (on the right) can be used for storing the anticipated total salary and
 to derive relevant numbers from there. These columns will be ignored when the file is processed.
 
-Roth conversion can be specified in the column marked *Roth X*.
+Roth conversion can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in Owl. When the option
 `Convert as in contribution file` is toggled in the [Optimization Parameters](#optimization-parameters) page,
 values from the contributions file will be used and no optimization over Roth conversions
@@ -307,6 +307,8 @@ Each table can be downloaded separately in csv format, or all tables can be down
 together as an Excel workbook by clicking the button at the bottom
 of the page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
+The first line of the *Sources* worksheets are the most important
+as these lines are the only ones that are actionable.
 
 #### Case Summary
 This page shows a summary of the scenario which was computed.

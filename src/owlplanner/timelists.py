@@ -23,12 +23,12 @@ import pandas as pd
 timeHorizonItems = [
     'year',
     'anticipated wages',
-    'ctrb taxable',
-    'ctrb 401k',
-    'ctrb Roth 401k',
-    'ctrb IRA',
-    'ctrb Roth IRA',
-    'Roth X',
+    'taxable ctrb',
+    '401k ctrb',
+    'Roth 401k ctrb',
+    'IRA ctrb',
+    'Roth IRA ctrb',
+    'Roth conv',
     'big-ticket items',
 ]
 
@@ -38,8 +38,8 @@ def read(finput, inames, horizons, mylog):
     Read listed parameters from an excel spreadsheet or through
     a dictionary of dataframes through Pandas.
     Use one sheet for each individual with the following 9 columns:
-    year, anticipated wages, ctrb taxable, ctrb 401k, ctrb Roth 401k,
-    ctrb IRA, ctrb Roth IRA, Roth X, and big-ticket items.
+    year, anticipated wages, taxable ctrb, 401k ctrb, Roth 401k ctrb,
+    IRA ctrb, Roth IRA ctrb, Roth conv, and big-ticket items.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     Returs a dictionary of dataframes by individual's names.
     """

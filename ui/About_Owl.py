@@ -7,8 +7,7 @@ import owlbridge as owb
 st.write("## About Owl 🦉")
 kz.orangeDivider()
 
-st.write("This version of Owl was released in January 2025 (version %s). "
-         "Running on Streamlit %s." % (owb.version(), st.__version__))
+st.write("This is Owl version %s running on Streamlit %s." % (owb.version(), st.__version__))
 st.snow()
 
 st.write('''
