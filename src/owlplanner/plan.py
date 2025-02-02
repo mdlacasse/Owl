@@ -2781,6 +2781,7 @@ class Plan(object):
                 self.b_ijn[i][2][-1],
                 0,
                 0,
+                0,
             ]
             ws.append(lastRow)
             _formatSpreadsheet(ws, 'currency')
