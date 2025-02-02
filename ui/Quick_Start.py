@@ -24,7 +24,7 @@ to savings accounts, and anticipated big-ticket items, which can be either expen
 This file is in Excel or LibreOffice format, and has one tab per individual in the plan.
 
 With these two files, a scenario can be created and solved in only a few steps. We will use the case
-of Jack and Jill provided here as an example:
+of Jack and Jill provided here as an example (right-click on the link and select `Save link as...`):
 1) Download these two files from the GitHub repository:
     - Case parameter file named
     [case_jack+jill.toml](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
