@@ -898,12 +898,9 @@ class Plan(object):
             self.myRothX_in[i, :h] = self.timeLists[iname]['Roth conv'].iloc[:h]
             self.Lambda_in[i, :h] = self.timeLists[iname]['big-ticket items'].iloc[:h]
 
-        #  In 1st year, reduce wages and contribution depending on starting date.
+        #  In 1st year, reduce wages and contributions depending on starting date.
         self.omega_in[:, 0] *= self.yearFracLeft
         self.kappa_ijn[:, :, 0] *= self.yearFracLeft
-        if self.yearFracLeft != 1:
-            self.Lambda_in[:, 0] = 0
-            self.myRothX_in[:, 0] = 0
 
         self.caseStatus = 'modified'
 
