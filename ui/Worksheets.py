@@ -4,11 +4,14 @@ import sskeys as kz
 import owlbridge as owb
 
 ret = kz.titleBar('worksheets')
-kz.caseHeader("Case Worksheets")
+kz.caseHeader("Worksheets")
 
 if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
+    if kz.caseIsRunReady():
+        owb.runPlan()
+
     if kz.caseHasNotCompletedRun():
         st.info("Case status is currently '%s'." % kz.getKey('caseStatus'))
     else:

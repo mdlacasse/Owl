@@ -28,7 +28,8 @@ This is exactly where this tool fits it. Given your savings capabilities and spe
 it can generate different future realizations of
 your strategy under different market assumptions, helping to better understand your financial situation.
 
-Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
+Disclaimers: I am not a financial planner. You make your own decisions.
+This program comes with no guarantee. Use at your own risk.
 
 More disclaimers: While some output of the code has been verified with other approaches,
 this code is still under development and I cannot guarantee the accuracy of the results.
@@ -272,47 +273,31 @@ The output of the last command reports that if future rates are exactly like tho
 starting from 1969 and the following years, Jack and Jill could afford an annual spending of
  \\$97k starting this year
 (with a basis of \\$88.8k - the basis multiplies the profile which can vary over the course of the plan).
-The summary also contains many more details:
+The summary also contains some details:
 ```
 SUMMARY ================================================================
+Net yearly spending basis in 2025$: $91,812
+Net yearly spending for year 2025: $100,448
+Net spending remaining in year 2025: $100,448
+Total net spending in 2025$: $2,809,453 ($7,757,092 nominal)
+Total Roth conversions in 2025$: $320,639 ($456,454 nominal)
+Total income tax paid on ordinary income in 2025$: $247,788 ($469,522 nominal)
+Total tax paid on gains and dividends in 2025$: $3,313 ($3,768 nominal)
+Total Medicare premiums paid in 2025$: $117,660 ($343,388 nominal)
+Spousal wealth transfer from Jack to Jill in year 2051 (nominal): taxable: $0  tax-def: $57,224  tax-free: $2,102,173
+Sum of spousal bequests to Jill in year 2051 in 2025$: $499,341 ($2,159,397 nominal)
+Post-tax non-spousal bequests from Jack in year 2051 (nominal): taxable: $0  tax-def: $0  tax-free: $0
+Sum of post-tax non-spousal bequests from Jack in year 2051 in 2025$: $0 ($0 nominal)
+Post-tax account values at the end of final plan year 2057 (nominal): taxable: $0  tax-def: $0  tax-free: $2,488,808
+Total estate value at the end of final plan year 2057 in 2025$: $500,000 ($2,488,808 nominal)
+Plan starting date: 01-01
+Cumulative inflation factor from start date to end of plan: 4.98
+        Jack's 27-year life horizon: 2025 -> 2051
+        Jill's 33-year life horizon: 2025 -> 2057
 Plan name: jack & jill - tutorial
-        Jack's life horizon: 2024 -> 2051
-        Jill's life horizon: 2024 -> 2057
-Contributions file: examples/jack+jill.xlsx
-Initial balances [taxable, tax-deferred, tax-free]:
-        Jack's accounts: ['$90,500', '$600,500', '$70,000']
-        Jill's accounts: ['$60,200', '$150,000', '$40,000']
-Return rates: historical
-Rates used: from 1969 to 2002
-This year's starting date: 01-01
-Optimized for: maxSpending
-Solver options: {'maxRothConversion': 100, 'bequest': 500, 'noRothConversions': 'Jill'}
-Number of decision variables: 1026
-Number of constraints: 894
-Spending profile: smile
-Surviving spouse spending needs: 60%
-Net yearly spending in year 2024: $97,098
-Net spending remaining in year 2024: $97,098
-Net yearly spending profile basis in 2024$: $88,763
-Assumed heirs tax rate: 30%
-Spousal surplus deposit fraction: 0.5
-Spousal beneficiary fractions to Jill: [1, 1, 1]
-Spousal wealth transfer from Jack to Jill in year 2051 (nominal):
-    taxable: $0  tax-def: $63,134  tax-free: $2,583,303
-Sum of spousal bequests to Jill in year 2051 in 2024$: $592,103 ($2,646,437 nominal)
-Post-tax non-spousal bequests from Jack in year 2051 (nominal):
-    taxable: $0  tax-def: $0  tax-free: $0
-Sum of post-tax non-spousal bequests from Jack in year 2051 in 2024$: $0 ($0 nominal)
-Total net spending in 2024$: $2,804,910 ($7,916,623 nominal)
-Total Roth conversions in 2024$: $311,760 ($443,005 nominal)
-Total ordinary income tax paid in 2024$: $236,710 ($457,922 nominal)
-Total dividend tax paid in 2024$: $3,437 ($3,902 nominal)
-Total Medicare premiums paid in 2024$: $117,817 ($346,404 nominal)
-Post-tax account values at the end of final plan year 2057: (nominal)
-    taxable: $0  tax-def: $0  tax-free: $2,553,871
-Total estate value at the end of final plan year 2057 in 2024$: $500,000 ($2,553,871 nominal)
-Inflation factor from this year's start date to the end of plan final year: 5.11
-Case executed on: 2024-12-09 at 22:11:57
+Number of decision variables: 996
+Number of constraints: 867
+Case executed on: 2025-02-04 at 22:55:03
 ------------------------------------------------------------------------
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:

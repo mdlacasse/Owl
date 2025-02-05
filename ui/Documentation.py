@@ -72,7 +72,7 @@ An example is provided
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
 will populate all the fields required to run a scenario. A *case* file for the case being developed
-can be saved under the [Case Results](#case-results) page and made available to reload at a later time.
+can be saved under the [Case Summary](#case-summary) page and made available to reload at a later time.
 Case parameter files can have any name but when saving from the interface, their name will start with *case_*
 followed by the case name.
 
@@ -278,8 +278,8 @@ than on January 1$^{st}$, the value of the first year will be reduced accordingl
 --------------------------------------------------------------------------------------
 ### :orange[Single Scenario]
 
-#### Case Results
-This page allows to run a single scenario based on the selections made
+#### Graphs
+This page displays various plots from a single scenario based on the selections made
 in the [Case Setup](#case-setup) section.
 This simulation uses a single instance of a series of rates, either fixed or varying,
 as selected in the **Case Setup** section.
@@ -292,15 +292,9 @@ in nominal value.
 
 When a case has run successfully, different graphs will show the time evolution
 of different quantities over the duration of the plan. Below
-these graphs, two additional buttons will appear. The
-`Download case file...` button allows to save all the parameters used to generate the
-outcome of this case to a *case* file.
-Another button called `Download wages and contributions file...` allows
-to save the contents of the tables on the corresponding page to an Excel workbook.
-With both these files, the same case can be reproduced at a later time by uploading
-them through the widgets on the `Basic Info` and `Wages and Contributions` pages.
+these graphs, two additional buttons will appear.
 
-#### Case Worksheets
+#### Worksheets
 This page shows the various worksheets containing annual transactions
 and savings account balances in nominal \\$.
 Each table can be downloaded separately in csv format, or all tables can be downloaded
@@ -311,10 +305,19 @@ The first line of the *Sources* worksheets are the most important
 as these lines are the only ones that are actionable.
 
 #### Case Summary
-This page shows a summary of the scenario which was computed.
+This page shows a synopsis of the scenario which was computed.
 It displays informative sums of relevant income, bequest, and spending values.
 The contents of this page can be downloaded as a plain text file by
-clicking the button at the bottom of the page.
+clicking the button at the bottom of the section.
+
+Parameters used to generate the case are collected in *toml* format and displayed.
+The `Download case file...` button allows to save the parameters used to generate the
+outcome of this case to a *case* file.
+
+Finally, another button called `Download wages and contributions file...` allows
+to save the contents of the tables on the corresponding page to an Excel workbook.
+With both these files, the same case can be reproduced at a later time by uploading
+them through the widgets on the `Basic Info` and `Wages and Contributions` pages.
 
 --------------------------------------------------------------------------------------
 ### :orange[Multiple Scenarios]

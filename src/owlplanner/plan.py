@@ -1413,11 +1413,11 @@ class Plan(object):
 
         progcall.finish()
         self.mylog.resetVerbose()
-        fig, summary = self._showResults(objective, df, N, figure)
-        self.mylog.print(summary.getvalue())
+        fig, description = self._showResults(objective, df, N, figure)
+        self.mylog.print(description.getvalue())
 
         if figure:
-            return fig, summary.getvalue()
+            return fig, description.getvalue()
 
         return N, df
 
@@ -2063,10 +2063,11 @@ class Plan(object):
         """
         Return summary as a string.
         """
-        string = ''
+        string = 'Synopsis\n'
         dic = self.summaryDic()
         for key, value in dic.items():
-            string += f"{key}: {value}\n"
+            string += f"{key:>70}: {value}\n"
+            # string += "%60s: %s\n" % (key, value)
 
         return string
 
@@ -2076,91 +2077,10 @@ class Plan(object):
         """
         now = self.year_n[0]
         dic = {}
-        # Basic Info
-        dic["Plan name"] = self._name
-        for i in range(self.N_i):
-            dic["%12s's %02d-year life horizon" % (self.inames[i], self.horizons[i])] = (
-                "%d -> %d" % (now, now + self.horizons[i] - 1)
-            )
-        dic["This year's starting date"] = str(self.startDate)
-        dic["Number of decision variables"] = str(self.A.nvars)
-        dic["Number of constraints"] = str(self.A.ncons)
-        # Assets
-        for i in range(self.N_i):
-            dic["%s's initial balances [taxable, tax-deferred, tax-free]" % self.inames[i]] = (
-                "%s" % [u.d(self.beta_ij[i][j]) for j in range(self.N_j)]
-            )
-        if self.N_i == 2 and self.n_d < self.N_n:
-            dic["Spousal beneficiary fractions to %s" % self.inames[self.i_s]] = (
-                ["{:.2f}".format(self.phi_j[j]) for j in range(self.N_j)]
-            )
-            dic["Spousal surplus deposit fraction in %s's taxable account" % self.inames[1]] = self.eta
-        # Wages and Contributions
-        dic["Wages & Contributions file"] = self.timeListsFileName
-        # Fixed Income
-        dic["Social Security amounts"] = [u.d(self.ssecAmounts[i]) for i in range(self.N_i)]
-        dic["Social Security ages"] = [self.ssecAges[i] for i in range(self.N_i)]
-        dic["Pension amounts"] = [u.d(self.pensionAmounts[i]) for i in range(self.N_i)]
-        dic["Pension ages"] =  [self.pensionAges[i] for i in range(self.N_i)]
-        # Rates Selection
-        dic["Return rates method"] = self.rateMethod
-        if self.rateMethod in ['historical', 'historical average', 'histochastic']:
-            dic["Historical rates used"] = "from %d to %d" % (self.rateFrm, self.rateTo)
-        elif self.rateMethod == "stochastic":
-            dic["Mean rates used (%)"] = (["{:.1f}".format(100 * self.rateValues[k]) for k in range(self.N_k)])
-            dic["Standard deviation used (%)"] = (
-                ["{:.1f}".format(100 * self.rateStdev[k]) for k in range(self.N_k)]
-            )
-            dic["Correlation matrix used"] = ("\n\t\t" + str(self.rateCorr).replace("\n", "\n\t\t"))
-        else:
-            dic["Rates used (%)"] = str(["{:.1f}".format(100 * self.rateValues[k]) for k in range(self.N_k)])
-        dic["Heirs marginal tax rate"] = u.pc(self.nu, f=0)
-        dic["Dividend tax rate"] = u.pc(self.psi, f=0)
-        dic["Dividend return on equity"] = u.pc(self.mu, f=0)
-        # Asset Allocation
-        dic["Asset allocation method"] = self.ARCoord
-        # Optimization Parameters
-        dic["Optimized for"] = self.objective
-        dic["Solver options"] = str(self.solverOptions)
-        dic["Spending profile"] = self.spendingProfile
-        if self.spendingProfile == "smile":
-            dic["Smile parameters"] = (
-                "increase: %d%%, dip: %d%%, delay: %dy" % (self.smileIncrease, self.smileDip, self.smileDelay)
-            )
-        if self.N_i == 2:
-            dic["Surviving spouse spending needs"] = u.pc(self.chi, f=0)
-
         # Results
         dic[f"Net yearly spending basis in {now}$"] = (u.d(self.g_n[0] / self.xi_n[0]))
         dic[f"Net yearly spending for year {now}"] = (u.d(self.g_n[0] / self.yearFracLeft))
         dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0])
-
-        if self.N_i == 2 and self.n_d < self.N_n:
-            p_j = self.partialEstate_j * (1 - self.phi_j)
-            p_j[1] *= 1 - self.nu
-            nx = self.n_d - 1
-            totOthers = np.sum(p_j)
-            totOthersNow = totOthers / self.gamma_n[nx + 1]
-            q_j = self.partialEstate_j * self.phi_j
-            totSpousal = np.sum(q_j)
-            totSpousalNow = totSpousal / self.gamma_n[nx + 1]
-            dic["Spousal wealth transfer from %s to %s in year %d (nominal)" %
-                (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx])] = (
-                "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
-            )
-
-            dic["Sum of spousal bequests to %s in year %d in %d$" %
-                (self.inames[self.i_s], self.year_n[nx], now)] = (
-                "%s (%s nominal)" % (u.d(totSpousalNow), u.d(totSpousal))
-            )
-            dic["Post-tax non-spousal bequests from %s in year %d (nominal)" %
-                (self.inames[self.i_d], self.year_n[nx])] = (
-                "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
-            )
-            dic["Sum of post-tax non-spousal bequests from %s in year %d in %d$" %
-                (self.inames[self.i_d], self.year_n[nx], now)] = (
-               "%s (%s nominal)" % (u.d(totOthersNow), u.d(totOthers))
-            )
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
@@ -2192,6 +2112,33 @@ class Plan(object):
             "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
         )
 
+        if self.N_i == 2 and self.n_d < self.N_n:
+            p_j = self.partialEstate_j * (1 - self.phi_j)
+            p_j[1] *= 1 - self.nu
+            nx = self.n_d - 1
+            totOthers = np.sum(p_j)
+            totOthersNow = totOthers / self.gamma_n[nx + 1]
+            q_j = self.partialEstate_j * self.phi_j
+            totSpousal = np.sum(q_j)
+            totSpousalNow = totSpousal / self.gamma_n[nx + 1]
+            dic["Spousal wealth transfer from %s to %s in year %d (nominal)" %
+                (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx])] = (
+                "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
+            )
+
+            dic["Sum of spousal bequests to %s in year %d in %d$" %
+                (self.inames[self.i_s], self.year_n[nx], now)] = (
+                "%s (%s nominal)" % (u.d(totSpousalNow), u.d(totSpousal))
+            )
+            dic["Post-tax non-spousal bequests from %s in year %d (nominal)" %
+                (self.inames[self.i_d], self.year_n[nx])] = (
+                "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
+            )
+            dic["Sum of post-tax non-spousal bequests from %s in year %d in %d$" %
+                (self.inames[self.i_d], self.year_n[nx], now)] = (
+               "%s (%s nominal)" % (u.d(totOthersNow), u.d(totOthers))
+            )
+
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
         dic["Post-tax account values at the end of final plan year %d (nominal)" % self.year_n[-1]] = (
@@ -2203,10 +2150,18 @@ class Plan(object):
         dic["Total estate value at the end of final plan year %d in %d$" % (self.year_n[-1], now)] = (
             "%s (%s nominal)" % (u.d(totEstateNow), u.d(totEstate))
         )
-        dic["Cumulative inflation factor from this year's start date to the end of plan final year"] = (
+        dic["Plan starting date"] = str(self.startDate)
+        dic["Cumulative inflation factor from start date to end of plan"] = (
             "%.2f" % (self.gamma_n[-1])
         )
+        for i in range(self.N_i):
+            dic["%12s's %02d-year life horizon" % (self.inames[i], self.horizons[i])] = (
+                "%d -> %d" % (now, now + self.horizons[i] - 1)
+            )
 
+        dic["Plan name"] = self._name
+        dic["Number of decision variables"] = str(self.A.nvars)
+        dic["Number of constraints"] = str(self.A.ncons)
         dic["Case executed on"] = str(self._timestamp)
 
         return dic

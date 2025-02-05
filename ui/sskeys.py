@@ -131,6 +131,10 @@ def caseHasCompletedRun():
     return getKey('caseStatus') == 'solved'
 
 
+def caseIsRunReady():
+    return not caseIsNotRunReady() and getKey('caseStatus') in ['modified', 'new']
+
+
 def caseIsNotRunReady():
     return (getKey('plan') is None or
             getKey('objective') is None or

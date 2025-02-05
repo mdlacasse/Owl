@@ -125,13 +125,16 @@ def runPlan(plan):
     kz.storeKey('caseStatus', plan.caseStatus)
     if plan.caseStatus == 'solved':
         kz.storeKey('summary', plan.summaryString())
+        kz.storeKey('casetoml', getCaseString().getvalue())
     else:
         kz.storeKey('summary', '')
+        kz.storeKey('casetoml', '')
 
 
 @_checkPlan
 def runHistorical(plan):
-    prepareRun(plan)
+    plan1 = owl.clone(plan)
+    prepareRun(plan1)
 
     hyfrm = kz.getKey('hyfrm')
     hyto = kz.getKey('hyto')
@@ -139,41 +142,33 @@ def runHistorical(plan):
     objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress(None)
-        fig, summary = plan.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, progcall=mybar)
+        fig, summary = plan1.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, progcall=mybar)
         kz.storeKey('histoPlot', fig)
         kz.storeKey('histoSummary', summary)
     except Exception as e:
         kz.storeKey('histoPlot', None)
         kz.storeKey('histoSummary', None)
-        kz.storeKey('caseStatus', 'exception')
         st.error('Solution failed: %s' % e)
-        setRates()
         return
-
-    kz.storeKey('caseStatus', 'ran Historical Range')
-    setRates()
 
 
 @_checkPlan
 def runMC(plan):
-    prepareRun(plan)
+    plan1 = owl.clone(plan)
+    prepareRun(plan1)
 
     N = kz.getKey('MC_cases')
 
     objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress(None)
-        fig, summary = plan.runMC(objective, options, N, figure=True, progcall=mybar)
+        fig, summary = plan1.runMC(objective, options, N, figure=True, progcall=mybar)
         kz.storeKey('monteCarloPlot', fig)
         kz.storeKey('monteCarloSummary', summary)
     except Exception as e:
         kz.storeKey('monteCarloPlot', None)
         kz.storeKey('monteCarloSummary', None)
-        kz.storeKey('caseStatus', 'exception')
         st.error('Solution failed: %s' % e)
-        return
-
-    kz.storeKey('caseStatus', 'ran Monte Carlo')
 
 
 @_checkPlan
@@ -499,15 +494,21 @@ def saveContributions(plan):
 
 
 @_checkPlan
-def saveCaseFile(plan):
+def getCaseString(plan):
     stringBuffer = StringIO()
     if kz.getSolveParameters() is None:
         return ''
     plan.saveConfig(stringBuffer)
-    encoded_data = stringBuffer.getvalue().encode('utf-8')
-    bytesBuffer = BytesIO(encoded_data)
 
-    return bytesBuffer
+    return stringBuffer
+
+
+@_checkPlan
+def saveCaseFile(plan):
+    stringBuffer = getCaseString()
+    encoded_data = stringBuffer.getvalue().encode('utf-8')
+
+    return BytesIO(encoded_data)
 
 
 def createCaseFromFile(file):
@@ -531,6 +532,7 @@ def genDic(plan):
     dic['plan'] = plan
     dic['name'] = plan._name
     dic['summary'] = ''
+    dic['casetoml'] = ''
     dic['caseStatus'] = 'new'
     dic['status'] = ['unknown', 'single', 'married'][plan.N_i]
     # Prepend year if not there.

@@ -37,7 +37,7 @@ of Jack and Jill provided here as an example:
 you just downloaded (*case_jack+jill.toml*).
 1) Navigate to the **Wages and Contributions** page and
 drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*).
-1) Move to the **Case Results** page and click on the `Run single case` button.
+1) Move to the **Single Scenario** section to browse results.
 
 Congratulations! :balloon: You just ran your first case. You can now explore each page and
 experiment with different parameters.
