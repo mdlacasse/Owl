@@ -246,8 +246,10 @@ As one of the two choices (net spending or bequest) is selected as the value to 
 the other becomes a constraint to obey.
 
 The maximum amount for Roth conversions and who can execute them is configurable.
-If a *Wages and Contributions* file has been uploaded and the `Convert from contributions file`
-button is toggled, Roth conversions will not be optimized, but will rather be performed according to
+Roth conversions are optimized for reducing taxes and maximizing the selected objective function,
+unless the `Convert from contributions file`
+button is toggled, in which case Roth conversions will not be optimized,
+but will rather be performed according to
 the `Roth conv` column on the
 [Wages and Contributions](#wages-and-contributions) page.
 
@@ -285,8 +287,6 @@ This simulation uses a single instance of a series of rates, either fixed or var
 as selected in the **Case Setup** section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, of maximize the bequest under the constraint of a net spending amount.
-If `Convert from contributions file` is not toggled on,
-Roth conversions are optimized for reducing taxes and maximizing the selected objective function.
 Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
@@ -298,25 +298,28 @@ these graphs, two additional buttons will appear.
 This page shows the various worksheets containing annual transactions
 and savings account balances in nominal \\$.
 Each table can be downloaded separately in csv format, or all tables can be downloaded
-together as an Excel workbook by clicking the button at the bottom
-of the page.
+together as an Excel workbook by clicking the associated button on the
+[Output Files](#output-files) page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 The first line of the *Sources* worksheets are the most important
 as these lines are the only ones that are actionable.
 
 #### Output Files
-This page shows a synopsis of the scenario which was computed.
-It displays informative sums of relevant income, bequest, and spending values.
+This page allow to save many files for future use.
+First it shows a synopsis of the computed scenario by
+displaying sums of income, bequest, and spending values over the duration of the plan.
 The contents of this page can be downloaded as a plain text file by
 clicking the button at the bottom of the section.
 
-Parameters used to generate the case are collected in *toml* format and displayed.
+Finally, parameters used to generate the case are collected in *toml* format and displayed.
 The `Download case file...` button allows to save the parameters used to generate the
 outcome of this case to a *case* file.
 
-Finally, another button called `Download wages and contributions file...` allows
+Another section called `Excel workbooks` allows
 to save the contents of the tables on the corresponding page to an Excel workbook.
-With both these files, the same case can be reproduced at a later time by uploading
+
+With the case parameter and the wages and contributions files,
+the same case can be reproduced at a later time by uploading
 them through the widgets on the `Create Case` and `Wages and Contributions` pages.
 
 --------------------------------------------------------------------------------------
