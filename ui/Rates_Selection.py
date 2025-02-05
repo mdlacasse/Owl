@@ -113,19 +113,19 @@ else:
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
             kz.initKey('mean0', 0)
-            kz.getNum('S&P 500', 'mean0', ro, step=1., callback=updateRates)
+            kz.getNum('S&P 500', 'mean0', ro, step=1., min_value=-9., callback=updateRates)
 
         with col2:
             kz.initKey('mean1', 0)
-            kz.getNum('Corporate Bonds Baa', 'mean1', ro, step=1., callback=updateRates)
+            kz.getNum('Corporate Bonds Baa', 'mean1', ro, step=1., min_value=-9., callback=updateRates)
 
         with col3:
             kz.initKey('mean2', 0)
-            kz.getNum('10-y Treasury Notes', 'mean2', ro, step=1., callback=updateRates)
+            kz.getNum('10-y Treasury Notes', 'mean2', ro, step=1., min_value=-9., callback=updateRates)
 
         with col4:
             kz.initKey('mean3', 0)
-            kz.getNum('Cash Assets/Inflation', 'mean3', ro, step=1., callback=updateRates)
+            kz.getNum('Cash Assets/Inflation', 'mean3', ro, step=1., min_value=-9., callback=updateRates)
 
         st.write('##### Volatility (%)')
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')

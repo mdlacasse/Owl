@@ -1469,11 +1469,11 @@ class Plan(object):
 
         progcall.finish()
         self.mylog.resetVerbose()
-        fig, summary = self._showResults(objective, df, N, figure)
-        self.mylog.print(summary.getvalue())
+        fig, description = self._showResults(objective, df, N, figure)
+        self.mylog.print(description.getvalue())
 
         if figure:
-            return fig, summary.getvalue()
+            return fig, description.getvalue()
 
         return N, df
 
@@ -1483,9 +1483,9 @@ class Plan(object):
         """
         import seaborn as sbn
 
-        summary = io.StringIO()
+        description = io.StringIO()
 
-        print('Success rate: %s on %d samples.' % (u.pc(len(df) / N), N), file=summary)
+        print('Success rate: %s on %d samples.' % (u.pc(len(df) / N), N), file=description)
         title = '$N$ = %d, $P$ = %s' % (N, u.pc(len(df) / N))
         means = df.mean(axis=0, numeric_only=True)
         medians = df.median(axis=0, numeric_only=True)
@@ -1498,7 +1498,7 @@ class Plan(object):
         # or if solution led to empty accounts at the end of first spouse's life.
         if np.all(self.phi_j == 1) or medians.iloc[0] < 1:
             if medians.iloc[0] < 1:
-                print('Optimized solutions all have null partial bequest in year %d.' % my[0], file=summary)
+                print('Optimized solutions all have null partial bequest in year %d.' % my[0], file=description)
             df.drop('partial', axis=1, inplace=True)
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
@@ -1550,16 +1550,16 @@ class Plan(object):
             # plt.show()
 
         for q in range(len(means)):
-            print('%12s: Median (%d $): %s' % (leads[q], self.year_n[0], u.d(medians.iloc[q])), file=summary)
-            print('%12s:   Mean (%d $): %s' % (leads[q], self.year_n[0], u.d(means.iloc[q])), file=summary)
+            print('%12s: Median (%d $): %s' % (leads[q], self.year_n[0], u.d(medians.iloc[q])), file=description)
+            print('%12s:   Mean (%d $): %s' % (leads[q], self.year_n[0], u.d(means.iloc[q])), file=description)
             print(
                 '%12s:           Range: %s - %s'
                 % (leads[q], u.d(1000 * df.iloc[:, q].min()), u.d(1000 * df.iloc[:, q].max())),
-                file=summary)
+                file=description)
             nzeros = len(df.iloc[:, q][df.iloc[:, q] < 0.001])
-            print('%12s:  N zero solns: %d' % (leads[q], nzeros), file=summary)
+            print('%12s:  N zero solns: %d' % (leads[q], nzeros), file=description)
 
-        return fig, summary
+        return fig, description
 
     def resolve(self):
         """
@@ -2038,79 +2038,104 @@ class Plan(object):
     @_checkCaseStatus
     def summary(self):
         """
-        Print summary of values.
+        Print summary in logs.
         """
         self.mylog.print('SUMMARY ================================================================')
-        lines = self.summaryList()
-        for line in lines:
-            self.mylog.print(line)
+        dic = self.summaryDic()
+        for key, value in dic.items():
+            self.mylog.print(f"{key}: {value}")
         self.mylog.print('------------------------------------------------------------------------')
 
         return None
 
+    def summaryList(self):
+        """
+        Return summary as a list.
+        """
+        mylist = []
+        dic = self.summaryDic()
+        for key, value in dic.items():
+            mylist.append(f"{key}: {value}")
+
+        return mylist
+
     def summaryString(self):
         """
-        Print summary of values in a string.
+        Return summary as a string.
         """
         string = ''
-        lines = self.summaryList()
-        for line in lines:
-            string += line + '\n'
+        dic = self.summaryDic()
+        for key, value in dic.items():
+            string += f"{key}: {value}\n"
 
         return string
 
-    def summaryList(self):
+    def summaryDic(self):
         """
-        Return string with summary of values.
+        Return dictionary containing summary of values.
         """
         now = self.year_n[0]
-        lines = []
-        lines.append('Plan name: %s' % self._name)
+        dic = {}
+        # Basic Info
+        dic["Plan name"] = self._name
         for i in range(self.N_i):
-            lines.append("%12s's %02d-year life horizon: %d -> %d"
-                         % (self.inames[i], self.horizons[i], now, now + self.horizons[i] - 1))
-        lines.append('Contributions file: %s' % self.timeListsFileName)
-        lines.append('Initial balances [taxable, tax-deferred, tax-free]:')
+            dic["%12s's %02d-year life horizon" % (self.inames[i], self.horizons[i])] = (
+                "%d -> %d" % (now, now + self.horizons[i] - 1)
+            )
+        dic["This year's starting date"] = str(self.startDate)
+        dic["Number of decision variables"] = str(self.A.nvars)
+        dic["Number of constraints"] = str(self.A.ncons)
+        # Assets
         for i in range(self.N_i):
-            lines.append("%12s's accounts: %s" % (self.inames[i], [u.d(self.beta_ij[i][j]) for j in range(self.N_j)]))
-
-        lines.append('Return rates: %s' % self.rateMethod)
+            dic["%s's initial balances [taxable, tax-deferred, tax-free]" % self.inames[i]] = (
+                "%s" % [u.d(self.beta_ij[i][j]) for j in range(self.N_j)]
+            )
+        if self.N_i == 2 and self.n_d < self.N_n:
+            dic["Spousal beneficiary fractions to %s" % self.inames[self.i_s]] = (
+                ["{:.2f}".format(self.phi_j[j]) for j in range(self.N_j)]
+            )
+            dic["Spousal surplus deposit fraction in %s's taxable account" % self.inames[1]] = self.eta
+        # Wages and Contributions
+        dic["Wages & Contributions file"] = self.timeListsFileName
+        # Fixed Income
+        dic["Social Security amounts"] = [u.d(self.ssecAmounts[i]) for i in range(self.N_i)]
+        dic["Social Security ages"] = [self.ssecAges[i] for i in range(self.N_i)]
+        dic["Pension amounts"] = [u.d(self.pensionAmounts[i]) for i in range(self.N_i)]
+        dic["Pension ages"] =  [self.pensionAges[i] for i in range(self.N_i)]
+        # Rates Selection
+        dic["Return rates method"] = self.rateMethod
         if self.rateMethod in ['historical', 'historical average', 'histochastic']:
-            lines.append('Rates used: from %d to %d' % (self.rateFrm, self.rateTo))
-        elif self.rateMethod == 'stochastic':
-            lines.append(
-                'Mean rates used (%%): %s' % (['{:.1f}'.format(100 * self.rateValues[k]) for k in range(self.N_k)])
+            dic["Historical rates used"] = "from %d to %d" % (self.rateFrm, self.rateTo)
+        elif self.rateMethod == "stochastic":
+            dic["Mean rates used (%)"] = (["{:.1f}".format(100 * self.rateValues[k]) for k in range(self.N_k)])
+            dic["Standard deviation used (%)"] = (
+                ["{:.1f}".format(100 * self.rateStdev[k]) for k in range(self.N_k)]
             )
-            lines.append(
-                'Standard deviation used (%%): %s'
-                % (['{:.1f}'.format(100 * self.rateStdev[k]) for k in range(self.N_k)])
-            )
-            lines.append('Correlation matrix used:')
-            lines.append('\t\t' + str(self.rateCorr).replace('\n', '\n\t\t'))
+            dic["Correlation matrix used"] = ("\n\t\t" + str(self.rateCorr).replace("\n", "\n\t\t"))
         else:
-            lines.append('Rates used (%%): %s' % (['{:.1f}'.format(100 * self.rateValues[k]) for k in range(self.N_k)]))
-        lines.append("This year's starting date: %s" % self.startDate)
-        lines.append('Optimized for: %s' % self.objective)
-        lines.append('Solver options: %s' % self.solverOptions)
-        lines.append('Number of decision variables: %d' % self.A.nvars)
-        lines.append('Number of constraints: %d' % self.A.ncons)
-        lines.append('Spending profile: %s' % self.spendingProfile)
-        if self.spendingProfile == 'smile':
-            lines.append('\twith increase: %d%%, dip: %d%%, delay: %dy'
-                         % (self.smileIncrease, self.smileDip, self.smileDelay))
+            dic["Rates used (%)"] = str(["{:.1f}".format(100 * self.rateValues[k]) for k in range(self.N_k)])
+        dic["Heirs marginal tax rate"] = u.pc(self.nu, f=0)
+        dic["Dividend tax rate"] = u.pc(self.psi, f=0)
+        dic["Dividend return on equity"] = u.pc(self.mu, f=0)
+        # Asset Allocation
+        dic["Asset allocation method"] = self.ARCoord
+        # Optimization Parameters
+        dic["Optimized for"] = self.objective
+        dic["Solver options"] = str(self.solverOptions)
+        dic["Spending profile"] = self.spendingProfile
+        if self.spendingProfile == "smile":
+            dic["Smile parameters"] = (
+                "increase: %d%%, dip: %d%%, delay: %dy" % (self.smileIncrease, self.smileDip, self.smileDelay)
+            )
         if self.N_i == 2:
-            lines.append('Surviving spouse spending needs: %s' % u.pc(self.chi, f=0))
+            dic["Surviving spouse spending needs"] = u.pc(self.chi, f=0)
 
-        lines.append('Net yearly spending in year %d: %s' % (now, u.d(self.g_n[0] / self.yearFracLeft)))
-        lines.append('Net spending remaining in year %d: %s' % (now, u.d(self.g_n[0])))
-        lines.append('Net yearly spending profile basis in %d$: %s' % (now, u.d(self.g_n[0] / self.xi_n[0])))
-
-        lines.append('Assumed heirs marginal tax rate: %s' % u.pc(self.nu, f=0))
+        # Results
+        dic[f"Net yearly spending basis in {now}$"] = (u.d(self.g_n[0] / self.xi_n[0]))
+        dic[f"Net yearly spending for year {now}"] = (u.d(self.g_n[0] / self.yearFracLeft))
+        dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0])
 
         if self.N_i == 2 and self.n_d < self.N_n:
-            lines.append("Spousal surplus deposit fraction in %s's taxable account: %s"
-                         % (self.inames[1], self.eta))
-            lines.append('Spousal beneficiary fractions to %s: %s' % (self.inames[self.i_s], self.phi_j.tolist()))
             p_j = self.partialEstate_j * (1 - self.phi_j)
             p_j[1] *= 1 - self.nu
             nx = self.n_d - 1
@@ -2119,60 +2144,72 @@ class Plan(object):
             q_j = self.partialEstate_j * self.phi_j
             totSpousal = np.sum(q_j)
             totSpousalNow = totSpousal / self.gamma_n[nx + 1]
-            lines.append('Spousal wealth transfer from %s to %s in year %d (nominal):'
-                         % (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx]))
-            lines.append('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2])))
-            lines.append('Sum of spousal bequests to %s in year %d in %d$: %s (%s nominal)'
-                         % (self.inames[self.i_s], self.year_n[nx], now, u.d(totSpousalNow), u.d(totSpousal)))
-            lines.append(
-                'Post-tax non-spousal bequests from %s in year %d (nominal):' % (self.inames[self.i_d], self.year_n[nx])
+            dic["Spousal wealth transfer from %s to %s in year %d (nominal)" %
+                (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx])] = (
+                "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
             )
-            lines.append('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2])))
-            lines.append(
-                'Sum of post-tax non-spousal bequests from %s in year %d in %d$: %s (%s nominal)'
-                % (self.inames[self.i_d], self.year_n[nx], now, u.d(totOthersNow), u.d(totOthers))
+
+            dic["Sum of spousal bequests to %s in year %d in %d$" %
+                (self.inames[self.i_s], self.year_n[nx], now)] = (
+                "%s (%s nominal)" % (u.d(totSpousalNow), u.d(totSpousal))
+            )
+            dic["Post-tax non-spousal bequests from %s in year %d (nominal)" %
+                (self.inames[self.i_d], self.year_n[nx])] = (
+                "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
+            )
+            dic["Sum of post-tax non-spousal bequests from %s in year %d in %d$" %
+                (self.inames[self.i_d], self.year_n[nx], now)] = (
+               "%s (%s nominal)" % (u.d(totOthersNow), u.d(totOthers))
             )
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
-        lines.append('Total net spending in %d$: %s (%s nominal)' % (now, u.d(totIncomeNow), u.d(totIncome)))
+        dic[f"Total net spending in {now}$"] = (
+            "%s (%s nominal)" % (u.d(totIncomeNow), u.d(totIncome))
+        )
 
         totRoth = np.sum(self.x_in, axis=(0, 1))
         totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n[:-1], axis=0)
-        lines.append('Total Roth conversions in %d$: %s (%s nominal)' % (now, u.d(totRothNow), u.d(totRoth)))
+        dic[f"Total Roth conversions in {now}$"] = (
+            "%s (%s nominal)" % (u.d(totRothNow), u.d(totRoth))
+        )
 
         taxPaid = np.sum(self.T_n, axis=0)
         taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
-        lines.append('Total income tax paid on ordinary income in %d$: %s (%s nominal)'
-                     % (now, u.d(taxPaidNow), u.d(taxPaid)))
+        dic[f"Total income tax paid on ordinary income in {now}$"] = (
+            "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
+        )
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
-        lines.append('Total tax paid on gains and dividends in %d$: %s (%s nominal)'
-                     % (now, u.d(taxPaidNow), u.d(taxPaid)))
+        dic[f"Total tax paid on gains and dividends in {now}$"] = (
+            "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
+        )
 
         taxPaid = np.sum(self.M_n, axis=0)
         taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
-        lines.append('Total Medicare premiums paid in %d$: %s (%s nominal)' % (now, u.d(taxPaidNow), u.d(taxPaid)))
+        dic[f"Total Medicare premiums paid in {now}$"] = (
+            "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
+        )
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
-        lines.append('Post-tax account values at the end of final plan year %d: (nominal)' % self.year_n[-1])
-        lines.append('    taxable: %s  tax-def: %s  tax-free: %s' % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2])))
+        dic["Post-tax account values at the end of final plan year %d (nominal)" % self.year_n[-1]] = (
+            "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2]))
+        )
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[-1]
-        lines.append(
-            'Total estate value at the end of final plan year %d in %d$: %s (%s nominal)'
-            % (self.year_n[-1], now, u.d(totEstateNow), u.d(totEstate))
+        dic["Total estate value at the end of final plan year %d in %d$" % (self.year_n[-1], now)] = (
+            "%s (%s nominal)" % (u.d(totEstateNow), u.d(totEstate))
         )
-        lines.append(
-            "Inflation factor from this year's start date to the end of plan final year: %.2f" % self.gamma_n[-1]
+        dic["Cumulative inflation factor from this year's start date to the end of plan final year"] = (
+            "%.2f" % (self.gamma_n[-1])
         )
 
-        lines.append('Case executed on: %s' % self._timestamp)
+        dic["Case executed on"] = str(self._timestamp)
 
-        return lines
+        return dic
 
     def showRatesCorrelations(self, tag='', shareRange=False, figure=False):
         """

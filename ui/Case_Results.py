@@ -10,7 +10,7 @@ kz.caseHeader("Case Results")
 if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
 else:
-    st.write("Optimize a single scenario based on the parameters selected in the **Case setup** section.")
+    st.write("Optimize a single scenario based on the parameters selected in the **Case Setup** section.")
     col1, col2 = st.columns(2, gap='large', vertical_alignment='bottom')
     with col1:
         choices = ['nominal', 'today']
