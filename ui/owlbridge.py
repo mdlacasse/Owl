@@ -59,7 +59,6 @@ def _checkPlan(func):
     return wrapper
 
 
-# _checkPlan
 def prepareRun(plan):
     ni = 2 if kz.getKey('status') == 'married' else 1
 
@@ -103,10 +102,10 @@ def prepareRun(plan):
     plan.setLongTermCapitalTaxRate(kz.getKey('gainTx'))
     plan.setDividendRate(kz.getKey('divRate'))
 
-    setInterpolationMethod()
-    setAllocationRatios()
-    setRates()
-    setContributions()
+    _setInterpolationMethod(plan)
+    _setAllocationRatios(plan)
+    _setRates(plan)
+    _setContributions(plan, False)
 
 
 @_checkPlan
@@ -173,6 +172,10 @@ def runMC(plan):
 
 @_checkPlan
 def setRates(plan):
+    _setRates(plan)
+
+
+def _setRates(plan):
     yfrm = kz.getKey('yfrm')
     yto = kz.getKey('yto')
 
@@ -277,11 +280,19 @@ def showSources(plan):
 
 @_checkPlan
 def setInterpolationMethod(plan):
+    _setInterpolationMethod(plan)
+
+
+def _setInterpolationMethod(plan):
     plan.setInterpolationMethod(kz.getKey('interpMethod'), kz.getKey('interpCenter'), kz.getKey('interpWidth'))
 
 
 @_checkPlan
-def setContributions(plan):
+def setContributions(plan, reset=True):
+    _setContributions(plan, reset)
+
+
+def _setContributions(plan, reset):
     """
     Set from UI -> Plan.
     """
@@ -294,7 +305,10 @@ def setContributions(plan):
 
     try:
         plan.readContributions(dicDf)
-        kz.setKey('timeListsFileName', 'edited values')
+        if reset:
+            kz.setKey('timeListsFileName', 'edited values')
+        else:
+            kz.storeKey('timeListsFileName', 'edited values')
         plan.timeListsFileName = 'edited values'
     except Exception as e:
         st.error("Failed to parse contributions: %s" % (e))
@@ -332,6 +346,10 @@ def resetContributions(plan):
 
 @_checkPlan
 def setAllocationRatios(plan):
+    _setAllocationRatios(plan)
+
+
+def _setAllocationRatios(plan):
     if kz.getKey('allocType') == 'individual':
         try:
             generic = kz.getIndividualAllocationRatios()

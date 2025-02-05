@@ -7,7 +7,7 @@ import owlbridge as owb
 
 caseChoices = kz.allCaseNames()
 ret = kz.titleBar('setup', caseChoices)
-kz.caseHeader("Basic Info")
+kz.caseHeader("Create Case")
 
 if ret == kz.newCase:
     st.info('#### Starting a new case from scratch.\n\n'

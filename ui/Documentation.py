@@ -46,7 +46,7 @@ There are four sections in the user interface:
 ### :orange[Case Setup]
 This section contains the steps for creating and configuring case scenarios.
 
-#### Basic Info
+#### Create Case
 This page is where every new scenario begins.
 It controls the creation of scenarios as the `Select case` drop-down menu contains
 two additional items when this page is open:
@@ -72,7 +72,7 @@ An example is provided
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
 will populate all the fields required to run a scenario. A *case* file for the case being developed
-can be saved under the [Case Summary](#case-summary) page and made available to reload at a later time.
+can be saved under the [Output Files](#output-files) page and made available to reload at a later time.
 Case parameter files can have any name but when saving from the interface, their name will start with *case_*
 followed by the case name.
 
@@ -304,7 +304,7 @@ Note that all values here (worksheets and workbook) are in \\$, not in thousands
 The first line of the *Sources* worksheets are the most important
 as these lines are the only ones that are actionable.
 
-#### Case Summary
+#### Output Files
 This page shows a synopsis of the scenario which was computed.
 It displays informative sums of relevant income, bequest, and spending values.
 The contents of this page can be downloaded as a plain text file by
@@ -317,7 +317,7 @@ outcome of this case to a *case* file.
 Finally, another button called `Download wages and contributions file...` allows
 to save the contents of the tables on the corresponding page to an Excel workbook.
 With both these files, the same case can be reproduced at a later time by uploading
-them through the widgets on the `Basic Info` and `Wages and Contributions` pages.
+them through the widgets on the `Create Case` and `Wages and Contributions` pages.
 
 --------------------------------------------------------------------------------------
 ### :orange[Multiple Scenarios]

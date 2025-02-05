@@ -4,7 +4,7 @@ import sskeys as kz
 import owlbridge as owb
 
 ret = kz.titleBar('summary')
-kz.caseHeader("Case Summary")
+kz.caseHeader("Output Files")
 
 if ret is None or kz.caseHasNoPlan():
     st.info('Case(s) must be first created before running this page.')
@@ -12,7 +12,7 @@ else:
     if kz.caseIsRunReady():
         owb.runPlan()
 
-    if kz.caseHasNotCompletedRun():
+    if kz.isCaseUnsolved():
         st.info("Case status is currently '%s'." % kz.getKey('caseStatus'))
     else:
         lines = kz.getKey('summary')
@@ -23,6 +23,27 @@ else:
                                data=lines,
                                file_name='Synopsis_'+kz.getKey('name')+'.txt',
                                mime='text/plain;charset=UTF-8')
+
+        st.divider()
+        st.write("#### Excel workbooks")
+        col1, col2 = st.columns(2, gap='large')
+        with col1:
+            download2 = st.download_button(
+                label="Download wages and contributions file",
+                help='Download wages and contributions as an Excel workbook.',
+                data=owb.saveContributions(),
+                file_name=kz.getKey('name')+'.xlsx',
+                disabled=kz.isCaseUnsolved(),
+                mime='application/vnd.ms-excel')
+
+        with col2:
+            download2 = st.download_button(
+                label="Download worksheets",
+                help='Download worksheets as an Excel workbook.',
+                data=owb.saveWorkbook(),
+                file_name='Workbook_'+kz.getKey('name')+'.xlsx',
+                mime='application/vnd.ms-excel',
+                disabled=kz.isCaseUnsolved())
 
         lines = kz.getKey('casetoml')
         if lines != '':
@@ -35,12 +56,3 @@ else:
                                file_name='case_'+kz.getKey('name')+'.toml',
                                mime='application/toml')
 
-        st.divider()
-        st.write("#### Wages and contributions file")
-        download2 = st.download_button(
-            label="Download wages and contributions file",
-            help='Download Excel workbook.',
-            data=owb.saveContributions(),
-            file_name=kz.getKey('name')+'.xlsx',
-            disabled=kz.caseHasNotCompletedRun(),
-            mime='application/vnd.ms-excel')

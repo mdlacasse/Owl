@@ -26,7 +26,7 @@ else:
                   on_click=owb.runPlan, disabled=kz.caseIsNotRunReady())
 
     st.divider()
-    if kz.caseHasNotCompletedRun():
+    if kz.isCaseUnsolved():
         st.info("Case status is currently '%s'." % kz.getKey('caseStatus'))
     else:
         owb.plotSingleResults()

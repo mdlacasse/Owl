@@ -33,7 +33,7 @@ of Jack and Jill provided here as an example:
     - Wages and contributions file named
     [jack+jill.xlsx](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
     in Excel format.
-1) Navigate to the **Basic Info** page and drag and drop the case parameter file
+1) Navigate to the **Create Case** page and drag and drop the case parameter file
 you just downloaded (*case_jack+jill.toml*).
 1) Navigate to the **Wages and Contributions** page and
 drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*).
@@ -43,7 +43,7 @@ Congratulations! :balloon: You just ran your first case. You can now explore eac
 experiment with different parameters.
 
 For creating your own cases, you can start
-from scratch by selecting `New Case...` in the selection box while on the **Basic Info** page,
+from scratch by selecting `New Case...` in the selection box while on the **Create Case** page,
 and fill in the information needed on each page of the `Case Setup` section.
 Once a case has been fully parameterized and successfully optimized,
 it can then be saved as a parameter file

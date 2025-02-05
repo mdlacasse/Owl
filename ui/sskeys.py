@@ -123,14 +123,6 @@ def caseHasPlan():
     return getKey('plan') is not None
 
 
-def caseHasNotCompletedRun():
-    return not caseHasCompletedRun()
-
-
-def caseHasCompletedRun():
-    return getKey('caseStatus') == 'solved'
-
-
 def caseIsRunReady():
     return not caseIsNotRunReady() and getKey('caseStatus') in ['modified', 'new']
 

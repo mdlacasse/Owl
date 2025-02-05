@@ -12,16 +12,7 @@ else:
     if kz.caseIsRunReady():
         owb.runPlan()
 
-    if kz.caseHasNotCompletedRun():
+    if kz.isCaseUnsolved():
         st.info("Case status is currently '%s'." % kz.getKey('caseStatus'))
     else:
         owb.showWorkbook()
-        st.divider()
-        if kz.caseHasPlan():
-            download2 = st.download_button(
-                label="Download data as an Excel workbook...",
-                data=owb.saveWorkbook(),
-                file_name='Workbook_'+kz.getKey('name')+'.xlsx',
-                mime='application/vnd.ms-excel',
-                disabled=kz.isCaseUnsolved()
-            )
