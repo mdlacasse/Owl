@@ -12,7 +12,7 @@ st.snow()
 
 st.write('''
 - Owl is released under GPL Licence through a publicly available
-repository on [github](https://github.com/mdlacasse/owl).
+repository on [GitHub](https://github.com/mdlacasse/owl).
 
 - Mathematical formulation of the linear optimization problem can be
 found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).

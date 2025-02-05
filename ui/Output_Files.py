@@ -55,4 +55,3 @@ else:
                                data=lines,
                                file_name='case_'+kz.getKey('name')+'.toml',
                                mime='application/toml')
-
