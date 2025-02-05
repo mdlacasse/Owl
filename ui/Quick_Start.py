@@ -13,7 +13,8 @@ with col1:
     st.markdown('''
 Owl does not store any information related to a case:
 all is lost after a session is closed. For that reason,
-two files can be used to store the specifications of a case so that it can be recalled at a later time.
+two files can be used to store the specifications of a case so that it can be reproduced
+at a later time:
 - A *case* parameter file
 specifying account balances, asset allocation, social security and pension, rates,
 optimization parameters and related assumptions.
