@@ -5,7 +5,7 @@ import owlbridge as owb
 
 
 def getPercentInput(i, j, keybase, text, defval=0):
-    nkey = keybase+str(j)+'_'+str(i)
+    nkey = f"{keybase}{j}_{i}"
     kz.initKey(nkey, defval)
     st.number_input(text, min_value=0, step=1, max_value=100,
                     value=kz.getKey(nkey),
@@ -14,7 +14,7 @@ def getPercentInput(i, j, keybase, text, defval=0):
 
 ACC = ['taxable', 'tax-deferred', 'tax-free']
 ASSET = ['S&P 500', 'Corp Bonds Baa', 'T-Notes', 'Cash Assets']
-DEF = [60, 20, 10, 10]
+DEFALLOC = [60, 20, 10, 10]
 
 
 def getIndividualAllocs(i, title, deco):
@@ -24,25 +24,25 @@ def getIndividualAllocs(i, title, deco):
     cols = st.columns(4, gap='large', vertical_alignment='top')
     for k1 in range(4):
         with cols[k1]:
-            getPercentInput(i, k1, mydeco, ASSET[k1], DEF[k1])
+            getPercentInput(i, k1, mydeco, ASSET[k1], DEFALLOC[k1])
     checkIndividualAllocs(i, mydeco)
 
 
 def getAccountAllocs(i, j, title, deco):
     iname = kz.getKey('iname'+str(i))
-    mydeco = f'j{j}_' + deco
+    mydeco = f"j{j}_" + deco
     st.write("###### %s's %s allocation for %s account (%%)" % (iname, title, ACC[j]))
     cols = st.columns(4, gap='large', vertical_alignment='top')
     for k1 in range(4):
         with cols[k1]:
-            getPercentInput(i, k1, mydeco, ASSET[k1], DEF[k1])
+            getPercentInput(i, k1, mydeco, ASSET[k1], DEFALLOC[k1])
     checkAccountAllocs(i, mydeco)
 
 
 def checkAccountAllocs(i, deco):
     tot = 0
     for k1 in range(4):
-        tot += int(kz.getKey(deco+str(k1)+'_'+str(i)))
+        tot += int(kz.getKey(f"{deco}{k1}_{i}"))
     if abs(100-tot) > 0:
         st.error('Percentages must add to 100%.')
         return False
@@ -52,7 +52,7 @@ def checkAccountAllocs(i, deco):
 def checkIndividualAllocs(i, deco):
     tot = 0
     for k1 in range(4):
-        tot += int(kz.getKey(deco+str(k1)+'_'+str(i)))
+        tot += int(kz.getKey(f"{deco}{k1}_{i}"))
     if abs(100-tot) > 0:
         st.error('Percentages must add to 100%.')
         return False

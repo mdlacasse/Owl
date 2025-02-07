@@ -339,44 +339,29 @@ def getSolveParameters():
 
 def getIndividualAllocationRatios():
     generic = []
-    initial = []
-    final = []
-    for k1 in range(4):
-        initial.append(int(getKey('j3_init%'+str(k1)+'_0')))
-        final.append(int(getKey('j3_fin%'+str(k1)+'_0')))
-    gen0 = [initial, final]
-    generic = [gen0]
-
-    if getKey('status') == 'married':
+    ni = 2 if getKey('status') == 'married' else 1
+    for i in range(ni):
         initial = []
         final = []
         for k1 in range(4):
-            initial.append(int(getKey('j3_init%'+str(k1)+'_1')))
-            final.append(int(getKey('j3_fin%'+str(k1)+'_1')))
-        gen1 = [initial, final]
-        generic.append(gen1)
+            initial.append(int(getKey(f"j3_init%{k1}_{i}")))
+            final.append(int(getKey(f"j3_fin%{k1}_{i}")))
+        gen = [initial, final]
+        generic.append(gen)
 
     return generic
 
 
 def getAccountAllocationRatios():
     accounts = [[], [], []]
-    for j1 in range(3):
-        initial = []
-        final = []
-        for k1 in range(4):
-            initial.append(int(getKey(f'j{j1}_init%'+str(k1)+'_0')))
-            final.append(int(getKey(f'j{j1}_fin%'+str(k1)+'_0')))
-        tmp = [initial, final]
-        accounts[j1].append(tmp)
-
-    if getKey('status') == 'married':
+    ni = 2 if getKey('status') == 'married' else 1
+    for i in range(ni):
         for j1 in range(3):
             initial = []
             final = []
             for k1 in range(4):
-                initial.append(int(getKey(f'j{j1}_init%'+str(k1)+'_1')))
-                final.append(int(getKey(f'j{j1}_fin%'+str(k1)+'_1')))
+                initial.append(int(getKey(f"j{j1}_init%{k1}_{i}")))
+                final.append(int(getKey(f"j{j1}_fin%{k1}_{i}")))
             tmp = [initial, final]
             accounts[j1].append(tmp)
 

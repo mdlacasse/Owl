@@ -603,14 +603,14 @@ def genDic(plan):
 
         if plan.ARCoord == 'individual':
             for k1 in range(plan.N_k):
-                dic['j3_init%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][0][k1])
-                dic['j3_fin%'+str(k1)+'_'+str(i)] = int(plan.boundsAR['generic'][i][1][k1])
+                dic[f"j3_init%{k1}_{i}"] = int(plan.boundsAR['generic'][i][0][k1])
+                dic[f"j3_fin%{k1}_{i}"] = int(plan.boundsAR['generic'][i][1][k1])
         elif plan.ARCoord == 'account':
             longAccName = ['taxable', 'tax-deferred', 'tax-free']
             for j2 in range(3):
                 for k2 in range(plan.N_k):
-                    dic[f'j{j2}%d_init%'+str(k2)+'_'+str(i)] = int(plan.boundsAR[longAccName[j2]][i][0][k2])
-                    dic[f'j{j2}_fin%'+str(k2)+'_'+str(i)] = int(plan.boundsAR[longAccName[j2]][i][1][k2])
+                    dic[f"j{j2}_init%{k2}_{i}"] = int(plan.boundsAR[longAccName[j2]][i][0][k2])
+                    dic[f"j{j2}_fin%{k2}_{i}"] = int(plan.boundsAR[longAccName[j2]][i][1][k2])
         else:
             st.error("Only 'individual' and 'account' asset allocations are currently supported")
             return None
