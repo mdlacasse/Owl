@@ -38,7 +38,7 @@ of Jack and Jill provided here as an example:
 you just downloaded (*case_jack+jill.toml*).
 1) Navigate to the **Wages and Contributions** page and
 drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*).
-1) Move to the **Single Scenario** section to browse results.
+1) Move to the **Single Scenario** section to browse the simulation results.
 
 Congratulations! :balloon: You just ran your first case. You can now explore each page and
 experiment with different parameters.
@@ -52,7 +52,7 @@ its parameters can be saved by using the `Download case file...` button on the `
 Alternatively, you can duplicate any existing case by using
 the `Duplicate case` button, and then edit its values to fit your situation.
 
-Multiple cases can coexist and can be called using the `Select case` box
+Multiple cases can coexist and can be called and compared using the `Select case` box
 at the bottom of the margin.
 
 More information can be found on the :material/help: **Documentation** page located in the **Resources** section.
