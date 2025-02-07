@@ -188,9 +188,9 @@ If a file was originally associated with a *case* file, a message will remind th
 
 #### Fixed Income
 This page is for entering anticipated fixed income from pensions and social security.
-Amounts are in \\$k at the starting date. In the current implementation,
-social security is adjusted for inflation while pension is not, and
-the income starts on the first day of the year selected, with the value provided.
+Amounts are in \\$k at the starting date. While
+social security is always adjusted for inflation, pensions can optionally be.
+Income starts on the first day of the year selected, with the value provided.
 In other words, the values given are in future \\$, not in today's \\$.
 A great site for deciding on when to take social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
