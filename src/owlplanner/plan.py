@@ -286,6 +286,7 @@ class Plan(object):
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         self.pensionAmounts = np.zeros(self.N_i)
         self.pensionAges = 65 * np.ones(self.N_i, dtype=np.int32)
+        self.pensionIndexed = [False, False]
         self.ssecAmounts = np.zeros(self.N_i)
         self.ssecAges = 67 * np.ones(self.N_i, dtype=np.int32)
 
@@ -481,13 +482,14 @@ class Plan(object):
         self.nu = nu
         self.caseStatus = 'modified'
 
-    def setPension(self, amounts, ages, units='k'):
+    def setPension(self, amounts, ages, indexed=[False, False], units='k'):
         """
         Set value of pension for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
         assert len(amounts) == self.N_i, 'Amounts must have %d entries.' % self.N_i
         assert len(ages) == self.N_i, 'Ages must have %d entries.' % self.N_i
+        assert len(indexed) >= self.N_i, 'Indexed list must have at least %d entries.' % self.N_i
 
         fac = u.getUnits(units)
         amounts = u.rescale(amounts, fac)
@@ -508,7 +510,9 @@ class Plan(object):
 
         self.pensionAmounts = np.array(amounts)
         self.pensionAges = np.array(ages, dtype=np.int32)
+        self.pensionIndexed = indexed
         self.caseStatus = 'modified'
+        self._adjustedParameters = False
 
     def setSocialSecurity(self, amounts, ages, units='k'):
         """
@@ -1001,6 +1005,10 @@ class Plan(object):
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
             self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
             self.xiBar_n = self.xi_n * self.gamma_n[:-1]
+            self.piBar_in = self.pi_in
+            for i in range(self.N_i):
+                if self.pensionIndexed[i]:
+                    self.piBar_in[i] *= self.gamma_n[:-1]
 
             self._adjustedParameters = True
 
@@ -1269,7 +1277,7 @@ class Plan(object):
                 rhs += (
                     self.omega_in[i, n]
                     + self.zetaBar_in[i, n]
-                    + self.pi_in[i, n]
+                    + self.piBar_in[i, n]
                     + self.Lambda_in[i, n]
                     - 0.5 * fac * self.mu * self.kappa_ijn[i, 0, n]
                 )
@@ -1299,7 +1307,7 @@ class Plan(object):
             row = A.newRow()
             row.addElem(_q1(Ce, n, Nn), 1)
             for i in range(Ni):
-                rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.pi_in[i, n]
+                rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.piBar_in[i, n]
                 # Taxable income from tax-deferred withdrawals.
                 row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1)
                 row.addElem(_q2(Cx, i, n, Ni, Nn), -1)
@@ -2000,7 +2008,7 @@ class Plan(object):
         sources = {}
         sources['wages'] = self.omega_in
         sources['ssec'] = self.zetaBar_in
-        sources['pension'] = self.pi_in
+        sources['pension'] = self.piBar_in
         sources['txbl acc wdrwl'] = self.w_ijn[:, 0, :]
         sources['RMD'] = self.rmd_in
         sources['+dist'] = self.dist_in
@@ -2706,7 +2714,7 @@ class Plan(object):
         cashFlowDic = {
             'net spending': self.g_n,
             'all wages': np.sum(self.omega_in, axis=0),
-            'all pensions': np.sum(self.pi_in, axis=0),
+            'all pensions': np.sum(self.piBar_in, axis=0),
             'all soc sec': np.sum(self.zetaBar_in, axis=0),
             "all BTI's": np.sum(self.Lambda_in, axis=0),
             'all wdrwls': np.sum(self.w_ijn, axis=(0, 1)),

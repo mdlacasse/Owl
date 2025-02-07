@@ -69,14 +69,14 @@ def prepareRun(plan):
         st.error('Setting account balances failed: %s' % e)
         return
 
-    amounts, ages = kz.getFixedIncome(ni, 'p')
+    amounts, ages, indexed = kz.getFixedIncome(ni, 'p')
     try:
-        plan.setPension(amounts, ages)
+        plan.setPension(amounts, ages, indexed)
     except Exception as e:
         st.error('Failed setting pensions: %s' % e)
         return
 
-    amounts, ages = kz.getFixedIncome(ni, 'ss')
+    amounts, ages, indexed = kz.getFixedIncome(ni, 'ss')
     try:
         plan.setSocialSecurity(amounts, ages)
     except Exception as e:
@@ -597,6 +597,7 @@ def genDic(plan):
         dic['ssAmt'+str(i)] = plan.ssecAmounts[i]/1000
         dic['pAge'+str(i)] = plan.pensionAges[i]
         dic['pAmt'+str(i)] = plan.pensionAmounts[i]/1000
+        dic['pIdx'+str(i)] = plan.pensionIndexed[i]
         for j1 in range(plan.N_j):
             dic[accName[j1]+str(i)] = plan.beta_ij[i, j1]/1000
 

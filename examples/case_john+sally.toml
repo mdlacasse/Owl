@@ -20,6 +20,7 @@ Names = [ "John", "Sally",]
 ["Fixed Income"]
 "Pension amounts" = [ 0.0, 0.0,]
 "Pension ages" = [ 65, 65,]
+"Pension indexed" = [ false, false,]
 "Social security amounts" = [ 36.0, 21.6,]
 "Social security ages" = [ 67, 67,]
 

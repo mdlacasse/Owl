@@ -396,11 +396,14 @@ def getPreviousMAGIs():
 def getFixedIncome(ni, what):
     amounts = []
     ages = []
+    indexed = []
     for i in range(ni):
         amounts.append(getKey(what+'Amt'+str(i)))
         ages.append(getKey(what+'Age'+str(i)))
+        if what == 'p':
+            indexed.append(getKey(what+'Idx'+str(i)))
 
-    return amounts, ages
+    return amounts, ages, indexed
 
 
 def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, min_value=0, max_value=None):
