@@ -70,7 +70,8 @@ else:
         ro = (fxType != 'user')
         col1, col2, col3, col4 = st.columns(4, gap='large', vertical_alignment='top')
         with col1:
-            kz.getNum('S&P 500', 'fxRate0', ro, step=1., callback=updateRates)
+            helpmsg = "Rate includes dividends."
+            kz.getNum('S&P 500', 'fxRate0', ro, step=1., help=helpmsg, callback=updateRates)
 
         with col2:
             kz.getNum('Corporate Bonds Baa', 'fxRate1', ro, step=1., callback=updateRates)
@@ -196,8 +197,8 @@ else:
     col1, col2 = st.columns(2, gap='large', vertical_alignment='top')
     with col1:
         kz.initKey('divRate', 2)
-        helpmsg = 'Average annual dividend return rate on stock portfolio.'
-        ret = kz.getNum('Dividends return rate (%)', 'divRate', max_value=100., format='%.2f',
+        helpmsg = 'Average annual (qualified) dividend return rate on stock portfolio for income tax purposes.'
+        ret = kz.getNum('Dividend rate (%)', 'divRate', max_value=100., format='%.2f',
                         help=helpmsg, step=1.)
 
     st.write('#### Income taxes')
