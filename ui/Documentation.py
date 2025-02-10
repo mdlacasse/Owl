@@ -2,15 +2,16 @@ import streamlit as st
 
 import sskeys as kz
 
-col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap='large')
+col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col3:
     st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")
     st.caption("Retirement planner with great wisdom")
 with col1:
-    st.write('## Documentation')
+    st.write("## Documentation")
     kz.orangeDivider()
-    st.write('## Owl Retirement Planner')
-    st.markdown('''
+    st.write("## Owl Retirement Planner")
+    st.markdown(
+        """
 #### A retirement exploration tool based on linear programming
 
 The goal of Owl is to provide a free and open-source ecosystem that has cutting-edge
@@ -124,21 +125,26 @@ This page allows to enter an optional Excel file containing future wages and con
 or to enter values directly into the corresponding tables.
 Values in these tables are all in nominal \\$, i.e., not in thousands.
 The wages and contributions data contains 9 columns titled as follows:
-''', unsafe_allow_html=True)
+""",
+        unsafe_allow_html=True,
+    )
 
 # <span style="font-size: 10px;"> </span>
-st.write('''
+st.write(
+    """
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
 |2025 | | | | | | | | |
 |2026 | | | | | | | | |
 | ... | | | | | | | | |
 |20XX | | | | | | | | |
-''')
+"""
+)
 
-col1, col2 = st.columns([0.65, 0.35], gap='large')
+col1, col2 = st.columns([0.65, 0.35], gap="large")
 with col1:
-    st.write('''
+    st.write(
+        """
 Here, 20XX represents the last row which could be the last year based on the life expectancy values provided.
 While loading an Excel workbook, missing years or empty cells will be filled with zero values,
 while years outside the time span of the plan will be ignored.
@@ -374,4 +380,6 @@ These very pages.
 Credits and disclaimers.
 
 </div>
-''', unsafe_allow_html=True)
+""",
+        unsafe_allow_html=True,
+    )

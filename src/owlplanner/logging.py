@@ -19,15 +19,15 @@ class Logger(object):
         self._prevState = self._verbose
         if logstreams is None or logstreams == [] or len(logstreams) > 2:
             self._logstreams = [sys.stdout, sys.stderr]
-            self.vprint('Using stdout and stderr as stream loggers.')
+            self.vprint("Using stdout and stderr as stream loggers.")
         elif len(logstreams) == 2:
             self._logstreams = logstreams
-            self.vprint('Using logstreams as stream loggers.')
+            self.vprint("Using logstreams as stream loggers.")
         elif len(logstreams) == 1:
-            self._logstreams = 2*logstreams
-            self.vprint('Using logstream as stream logger.')
+            self._logstreams = 2 * logstreams
+            self.vprint("Using logstream as stream logger.")
         else:
-            raise ValueError('Log streams %r must be a list.' % logstreams)
+            raise ValueError("Log streams %r must be a list." % logstreams)
 
     def setVerbose(self, verbose=True):
         """
@@ -36,7 +36,7 @@ class Logger(object):
         """
         self._prevState = self._verbose
         self._verbose = verbose
-        self.vprint('Setting verbose to', verbose)
+        self.vprint("Setting verbose to", verbose)
 
         return self._prevState
 
@@ -51,9 +51,9 @@ class Logger(object):
         Unconditional printing regardless of the value of the verbose variable
         previously set.
         """
-        if 'file' not in kwargs:
+        if "file" not in kwargs:
             file = self._logstreams[0]
-            kwargs['file'] = file
+            kwargs["file"] = file
 
         print(*args, **kwargs)
         file.flush()
@@ -71,14 +71,14 @@ class Logger(object):
         Print message and exit. Use to print error messages on stderr.
         The exit() used throws an exception in an interactive environment.
         """
-        if 'file' not in kwargs:
+        if "file" not in kwargs:
             file = self._logstreams[1]
-            kwargs['file'] = file
+            kwargs["file"] = file
 
         if self._verbose:
-            print('ERROR:', *args, **kwargs)
-            print('Exiting...')
+            print("ERROR:", *args, **kwargs)
+            print("Exiting...")
             file.flush()
 
-        raise Exception('Fatal error.')
+        raise Exception("Fatal error.")
         # sys.exit(-1)

@@ -63,10 +63,10 @@ def _genXi_n(profile, fraction, n_d, N_n, a, b, c):
     Series is unadjusted for inflation.
     """
     xi = np.ones(N_n)
-    if profile == 'flat':
+    if profile == "flat":
         if n_d < N_n:
             xi[n_d:] *= fraction
-    elif profile == 'smile':
+    elif profile == "smile":
         span = N_n - 1 - c
         x = np.linspace(0, span, N_n - c)
         a /= 100
@@ -82,7 +82,7 @@ def _genXi_n(profile, fraction, n_d, N_n, a, b, c):
             xi[n_d:] *= fraction
         xi *= neutralSum / xi.sum()
     else:
-        raise ValueError('Unknown profile type %s.' % profile)
+        raise ValueError("Unknown profile type %s." % profile)
 
     return xi
 
@@ -142,7 +142,7 @@ def clone(plan, newname=None, *, verbose=True, logstreams=None):
         newplan.setLogstreams(verbose, logstreams)
 
     if newname is None:
-        newplan.rename(plan._name + ' (copy)')
+        newplan.rename(plan._name + " (copy)")
     else:
         newplan.rename(newname)
 
@@ -160,8 +160,8 @@ def _checkCaseStatus(func):
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        if self.caseStatus != 'solved':
-            self.mylog.vprint('Preventing to run method %s() while case is %s.' % (func.__name__, self.caseStatus))
+        if self.caseStatus != "solved":
+            self.mylog.vprint("Preventing to run method %s() while case is %s." % (func.__name__, self.caseStatus))
             return None
         return func(self, *args, **kwargs)
 
@@ -177,11 +177,11 @@ def _checkConfiguration(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.xi_n is None:
-            msg = 'You must define a spending profile before calling %s().' % func.__name__
+            msg = "You must define a spending profile before calling %s()." % func.__name__
             self.mylog.vprint(msg)
             raise RuntimeError(msg)
         if self.alpha_ijkn is None:
-            msg = 'You must define an allocation profile before calling %s().' % func.__name__
+            msg = "You must define an allocation profile before calling %s()." % func.__name__
             self.mylog.vprint(msg)
             raise RuntimeError(msg)
         return func(self, *args, **kwargs)
@@ -201,8 +201,9 @@ def _timer(func):
         result = func(self, *args, **kwargs)
         pt = time.process_time() - pt0
         rt = time.time() - rt0
-        self.mylog.vprint('CPU time used: %dm%.1fs, Wall time: %dm%.1fs.'
-                          % (int(pt / 60), pt % 60, int(rt / 60), rt % 60))
+        self.mylog.vprint(
+            "CPU time used: %dm%.1fs, Wall time: %dm%.1fs." % (int(pt / 60), pt % 60, int(rt / 60), rt % 60)
+        )
         return result
 
     return wrapper
@@ -221,8 +222,8 @@ class Plan(object):
         and the third the life expectancy. Last argument is a name for
         the plan.
         """
-        if name == '':
-            raise ValueError('Plan must have a name')
+        if name == "":
+            raise ValueError("Plan must have a name")
 
         self._name = name
         self.setLogstreams(verbose, logstreams)
@@ -235,21 +236,21 @@ class Plan(object):
         self.N_z = 2
 
         # Default interpolation parameters for allocation ratios.
-        self.interpMethod = 'linear'
+        self.interpMethod = "linear"
         self._interpolator = self._linInterp
         self.interpCenter = 15
         self.interpWidth = 5
 
-        self.defaultPlots = 'nominal'
-        self.defaultSolver = 'HiGHS'
+        self.defaultPlots = "nominal"
+        self.defaultSolver = "HiGHS"
 
         self.N_i = len(yobs)
-        assert 0 < self.N_i and self.N_i <= 2, 'Cannot support %d individuals.' % self.N_i
-        assert self.N_i == len(expectancy), 'Expectancy must have %d entries.' % self.N_i
-        assert self.N_i == len(inames), 'Names for individuals must have %d entries.' % self.N_i
-        assert inames[0] != '' or (self.N_i == 2 and inames[1] == ''), 'Name for each individual must be provided.'
+        assert 0 < self.N_i and self.N_i <= 2, "Cannot support %d individuals." % self.N_i
+        assert self.N_i == len(expectancy), "Expectancy must have %d entries." % self.N_i
+        assert self.N_i == len(inames), "Names for individuals must have %d entries." % self.N_i
+        assert inames[0] != "" or (self.N_i == 2 and inames[1] == ""), "Name for each individual must be provided."
 
-        self.filingStatus = ['single', 'married'][self.N_i - 1]
+        self.filingStatus = ["single", "married"][self.N_i - 1]
 
         self.inames = inames
         self.yobs = np.array(yobs, dtype=np.int32)
@@ -300,11 +301,13 @@ class Plan(object):
         self.prevMAGI = np.zeros((2))
 
         # Scenario starts at the beginning of this year and ends at the end of the last year.
-        self.mylog.vprint('Preparing scenario of %d years for %d individual%s.'
-                          % (self.N_n, self.N_i, ['', 's'][self.N_i - 1]))
+        self.mylog.vprint(
+            "Preparing scenario of %d years for %d individual%s." % (self.N_n, self.N_i, ["", "s"][self.N_i - 1])
+        )
         for i in range(self.N_i):
-            self.mylog.vprint('%14s: life horizon from %d -> %d.'
-                              % (self.inames[i], thisyear, thisyear + self.horizons[i] - 1))
+            self.mylog.vprint(
+                "%14s: life horizon from %d -> %d." % (self.inames[i], thisyear, thisyear + self.horizons[i] - 1)
+            )
 
         # Prepare income tax and RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
@@ -320,11 +323,11 @@ class Plan(object):
         self.timeListsFileName = "None"
         self.timeLists = {}
         self.zeroContributions()
-        self.caseStatus = 'unsolved'
+        self.caseStatus = "unsolved"
         self.rateMethod = None
 
         self.ARCoord = None
-        self.objective = 'unknown'
+        self.objective = "unknown"
 
         # Placeholders to check if properly configured.
         self.xi_n = None
@@ -361,13 +364,13 @@ class Plan(object):
         thisyear = date.today().year
 
         if isinstance(mydate, date):
-            mydate = mydate.strftime('%Y-%m-%d')
+            mydate = mydate.strftime("%Y-%m-%d")
 
-        if mydate is None or mydate == 'today':
+        if mydate is None or mydate == "today":
             refdate = date.today()
-            self.startDate = refdate.strftime('%Y-%m-%d')
+            self.startDate = refdate.strftime("%Y-%m-%d")
         else:
-            mydatelist = mydate.split('-')
+            mydatelist = mydate.split("-")
             if len(mydatelist) == 2 or len(mydatelist) == 3:
                 self.startDate = mydate
                 # Ignore the year provided.
@@ -379,7 +382,7 @@ class Plan(object):
         # Take midnight as the reference.
         self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1) / (365 + lp)
 
-        self.mylog.vprint('Setting 1st-year starting date to %s.' % (self.startDate))
+        self.mylog.vprint("Setting 1st-year starting date to %s." % (self.startDate))
 
         return None
 
@@ -390,11 +393,11 @@ class Plan(object):
         if value is None:
             return self.defaultPlots
 
-        opts = ['nominal', 'today']
+        opts = ["nominal", "today"]
         if value in opts:
             return value
 
-        raise ValueError('Value type must be one of: %r' % opts)
+        raise ValueError("Value type must be one of: %r" % opts)
 
         return None
 
@@ -404,7 +407,7 @@ class Plan(object):
         to distinguish graph outputs and as base name for
         saving configurations and workbooks.
         """
-        self.mylog.vprint('Renaming plan %s -> %s.' % (self._name, newname))
+        self.mylog.vprint("Renaming plan %s -> %s." % (self._name, newname))
         self._name = newname
 
     def setSpousalDepositFraction(self, eta):
@@ -417,13 +420,13 @@ class Plan(object):
         where s_n is the surplus amount. Here d_0n is the taxable account
         deposit for the first spouse while d_1n is for the second spouse.
         """
-        assert 0 <= eta and eta <= 1, 'Fraction must be between 0 and 1.'
+        assert 0 <= eta and eta <= 1, "Fraction must be between 0 and 1."
         if self.N_i != 2:
-            self.mylog.vprint('Deposit fraction can only be 0 for single individuals.')
+            self.mylog.vprint("Deposit fraction can only be 0 for single individuals.")
             eta = 0
         else:
-            self.mylog.vprint('Setting spousal surplus deposit fraction to %.1f.' % eta)
-            self.mylog.vprint('\t%s: %.1f, %s: %.1f' % (self.inames[0], (1 - eta), self.inames[1], eta))
+            self.mylog.vprint("Setting spousal surplus deposit fraction to %.1f." % eta)
+            self.mylog.vprint("\t%s: %.1f, %s: %.1f" % (self.inames[0], (1 - eta), self.inames[1], eta))
             self.eta = eta
 
     def setDefaultPlots(self, value):
@@ -432,69 +435,69 @@ class Plan(object):
         """
 
         self.defaultPlots = self._checkValue(value)
-        self.mylog.vprint('Setting plots default value to %s.' % value)
+        self.mylog.vprint("Setting plots default value to %s." % value)
 
     def setDividendRate(self, mu):
         """
         Set dividend rate on equities. Rate is in percent. Default 2%.
         """
-        assert 0 <= mu and mu <= 100, 'Rate must be between 0 and 100.'
+        assert 0 <= mu and mu <= 100, "Rate must be between 0 and 100."
         mu /= 100
-        self.mylog.vprint('Dividend return rate on equities set to %s.' % u.pc(mu, f=1))
+        self.mylog.vprint("Dividend return rate on equities set to %s." % u.pc(mu, f=1))
         self.mu = mu
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
     def setLongTermCapitalTaxRate(self, psi):
         """
         Set long-term income tax rate. Rate is in percent. Default 15%.
         """
-        assert 0 <= psi and psi <= 100, 'Rate must be between 0 and 100.'
+        assert 0 <= psi and psi <= 100, "Rate must be between 0 and 100."
         psi /= 100
-        self.mylog.vprint('Long-term capital gain income tax set to %s.' % u.pc(psi, f=0))
+        self.mylog.vprint("Long-term capital gain income tax set to %s." % u.pc(psi, f=0))
         self.psi = psi
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
     def setBeneficiaryFractions(self, phi):
         """
         Set fractions of savings accounts that is left to surviving spouse.
         Default is [1, 1, 1] for taxable, tax-deferred, adn tax-exempt accounts.
         """
-        assert len(phi) == self.N_j, 'Fractions must have %d entries.' % self.N_j
+        assert len(phi) == self.N_j, "Fractions must have %d entries." % self.N_j
         for j in range(self.N_j):
-            assert 0 <= phi[j] <= 1, 'Fractions must be between 0 and 1.'
+            assert 0 <= phi[j] <= 1, "Fractions must be between 0 and 1."
 
         self.phi_j = np.array(phi, dtype=np.float32)
-        self.mylog.vprint('Spousal beneficiary fractions set to', phi)
-        self.caseStatus = 'modified'
+        self.mylog.vprint("Spousal beneficiary fractions set to", phi)
+        self.caseStatus = "modified"
 
         if np.any(self.phi_j != 1):
-            self.mylog.vprint('Consider changing spousal deposit fraction for better convergence.')
-            self.mylog.vprint('\tRecommended: setSpousalDepositFraction(%d)' % self.i_d)
+            self.mylog.vprint("Consider changing spousal deposit fraction for better convergence.")
+            self.mylog.vprint("\tRecommended: setSpousalDepositFraction(%d)" % self.i_d)
 
     def setHeirsTaxRate(self, nu):
         """
         Set the heirs tax rate on the tax-deferred portion of the estate.
         Rate is in percent. Default is 30%.
         """
-        assert 0 <= nu and nu <= 100, 'Rate must be between 0 and 100.'
+        assert 0 <= nu and nu <= 100, "Rate must be between 0 and 100."
         nu /= 100
-        self.mylog.vprint('Heirs tax rate on tax-deferred portion of estate set to %s.' % u.pc(nu, f=0))
+        self.mylog.vprint("Heirs tax rate on tax-deferred portion of estate set to %s." % u.pc(nu, f=0))
         self.nu = nu
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
-    def setPension(self, amounts, ages, indexed=[False, False], units='k'):
+    def setPension(self, amounts, ages, indexed=[False, False], units="k"):
         """
         Set value of pension for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
-        assert len(amounts) == self.N_i, 'Amounts must have %d entries.' % self.N_i
-        assert len(ages) == self.N_i, 'Ages must have %d entries.' % self.N_i
-        assert len(indexed) >= self.N_i, 'Indexed list must have at least %d entries.' % self.N_i
+        assert len(amounts) == self.N_i, "Amounts must have %d entries." % self.N_i
+        assert len(ages) == self.N_i, "Ages must have %d entries." % self.N_i
+        assert len(indexed) >= self.N_i, "Indexed list must have at least %d entries." % self.N_i
 
         fac = u.getUnits(units)
         amounts = u.rescale(amounts, fac)
 
-        self.mylog.vprint('Setting pension of', [u.d(amounts[i]) for i in range(self.N_i)], 'at age(s)', ages)
+        self.mylog.vprint("Setting pension of", [u.d(amounts[i]) for i in range(self.N_i)], "at age(s)", ages)
 
         thisyear = date.today().year
         # Use zero array freshly initialized.
@@ -511,24 +514,24 @@ class Plan(object):
         self.pensionAmounts = np.array(amounts)
         self.pensionAges = np.array(ages, dtype=np.int32)
         self.pensionIndexed = indexed
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
         self._adjustedParameters = False
 
-    def setSocialSecurity(self, amounts, ages, units='k'):
+    def setSocialSecurity(self, amounts, ages, units="k"):
         """
         Set value of social security for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
-        assert len(amounts) == self.N_i, 'Amounts must have %d entries.' % self.N_i
-        assert len(ages) == self.N_i, 'Ages must have %d entries.' % self.N_i
+        assert len(amounts) == self.N_i, "Amounts must have %d entries." % self.N_i
+        assert len(ages) == self.N_i, "Ages must have %d entries." % self.N_i
 
         fac = u.getUnits(units)
         amounts = u.rescale(amounts, fac)
 
         self.mylog.vprint(
-            'Setting social security benefits of',
+            "Setting social security benefits of",
             [u.d(amounts[i]) for i in range(self.N_i)],
-            'at age(s)',
+            "at age(s)",
             ages,
         )
 
@@ -544,11 +547,11 @@ class Plan(object):
 
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
-            self.zeta_in[self.i_s, self.n_d:] = max(amounts[self.i_s], amounts[self.i_d])
+            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], amounts[self.i_d])
 
         self.ssecAmounts = np.array(amounts)
         self.ssecAges = np.array(ages, dtype=np.int32)
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
         self._adjustedParameters = False
 
     def setSpendingProfile(self, profile, percent=60, dip=15, increase=12, delay=0):
@@ -557,16 +560,16 @@ class Plan(object):
         as a second argument. Default value is 60%.
         Dip and increase are percent changes in the smile profile.
         """
-        assert 0 <= percent and percent <= 100, 'Survivor value %r outside range.' % percent
-        assert 0 <= dip and dip <= 100, 'Dip value %r outside range.' % dip
-        assert -100 <= increase and increase <= 100, 'Increase value %r outside range.' % dip
-        assert 0 <= delay and delay <= self.N_n - 2 , 'Delay value %r outside range.' % delay
+        assert 0 <= percent and percent <= 100, "Survivor value %r outside range." % percent
+        assert 0 <= dip and dip <= 100, "Dip value %r outside range." % dip
+        assert -100 <= increase and increase <= 100, "Increase value %r outside range." % dip
+        assert 0 <= delay and delay <= self.N_n - 2, "Delay value %r outside range." % delay
 
         self.chi = percent / 100
 
-        self.mylog.vprint('Setting', profile, 'spending profile.')
+        self.mylog.vprint("Setting", profile, "spending profile.")
         if self.N_i == 2:
-            self.mylog.vprint('Securing', u.pc(self.chi, f=0), 'of spending amount for surviving spouse.')
+            self.mylog.vprint("Securing", u.pc(self.chi, f=0), "of spending amount for surviving spouse.")
 
         self.xi_n = _genXi_n(profile, self.chi, self.n_d, self.N_n, dip, increase, delay)
         # Account for time elapsed in the current year.
@@ -576,7 +579,7 @@ class Plan(object):
         self.smileDip = dip
         self.smileIncrease = increase
         self.smileDelay = delay
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
     def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None):
         """
@@ -604,11 +607,11 @@ class Plan(object):
         self.rateTo = to
         self.tau_kn = dr.genSeries(self.N_n).transpose()
         self.mylog.vprint(
-            'Generating rate series of',
+            "Generating rate series of",
             len(self.tau_kn[0]),
-            'years using',
+            "years using",
             method,
-            'method.',
+            "method.",
         )
 
         # Account for how late we are now in the first year and reduce rate accordingly.
@@ -617,7 +620,7 @@ class Plan(object):
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = _genGamma_n(self.tau_kn)
         self._adjustedParameters = False
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
     def regenRates(self):
         """
@@ -654,24 +657,24 @@ class Plan(object):
         to the beginning of the year provided.
         """
         if self.rateMethod is None:
-            raise RuntimeError('A rate method needs to be first selected using setRates(...).')
+            raise RuntimeError("A rate method needs to be first selected using setRates(...).")
 
         thisyear = date.today().year
-        assert year > thisyear, 'Internal error in forwardValue().'
+        assert year > thisyear, "Internal error in forwardValue()."
         span = year - thisyear
 
         return amount * self.gamma_n[span]
 
-    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, units='k'):
+    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, units="k"):
         """
         Three lists containing the balance of all assets in each category for
         each spouse.  For single individuals, these lists will contain only
         one entry. Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
-        plurals = ['', 'y', 'ies']
-        assert len(taxable) == self.N_i, 'taxable must have %d entr%s.' % (self.N_i, plurals[self.N_i])
-        assert len(taxDeferred) == self.N_i, 'taxDeferred must have %d entr%s.' % (self.N_i, plurals[self.N_i])
-        assert len(taxFree) == self.N_i, 'taxFree must have %d entr%s.' % (self.N_i, plurals[self.N_i])
+        plurals = ["", "y", "ies"]
+        assert len(taxable) == self.N_i, "taxable must have %d entr%s." % (self.N_i, plurals[self.N_i])
+        assert len(taxDeferred) == self.N_i, "taxDeferred must have %d entr%s." % (self.N_i, plurals[self.N_i])
+        assert len(taxFree) == self.N_i, "taxFree must have %d entr%s." % (self.N_i, plurals[self.N_i])
 
         fac = u.getUnits(units)
         taxable = u.rescale(taxable, fac)
@@ -683,14 +686,14 @@ class Plan(object):
         self.b_ji[1][:] = taxDeferred
         self.b_ji[2][:] = taxFree
         self.beta_ij = self.b_ji.transpose()
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
-        self.mylog.vprint('Taxable balances:', *[u.d(taxable[i]) for i in range(self.N_i)])
-        self.mylog.vprint('Tax-deferred balances:', *[u.d(taxDeferred[i]) for i in range(self.N_i)])
-        self.mylog.vprint('Tax-free balances:', *[u.d(taxFree[i]) for i in range(self.N_i)])
-        self.mylog.vprint('Sum of all savings accounts:', u.d(np.sum(taxable) + np.sum(taxDeferred) + np.sum(taxFree)))
+        self.mylog.vprint("Taxable balances:", *[u.d(taxable[i]) for i in range(self.N_i)])
+        self.mylog.vprint("Tax-deferred balances:", *[u.d(taxDeferred[i]) for i in range(self.N_i)])
+        self.mylog.vprint("Tax-free balances:", *[u.d(taxFree[i]) for i in range(self.N_i)])
+        self.mylog.vprint("Sum of all savings accounts:", u.d(np.sum(taxable) + np.sum(taxDeferred) + np.sum(taxFree)))
         self.mylog.vprint(
-            'Post-tax total wealth of approximately',
+            "Post-tax total wealth of approximately",
             u.d(np.sum(taxable) + 0.7 * np.sum(taxDeferred) + np.sum(taxFree)),
         )
 
@@ -706,19 +709,19 @@ class Plan(object):
         5 years. This means that the transition from initial to final
         will start occuring in 10 years (15-5) and will end in 20 years (15+5).
         """
-        if method == 'linear':
+        if method == "linear":
             self._interpolator = self._linInterp
-        elif method == 's-curve':
+        elif method == "s-curve":
             self._interpolator = self._tanhInterp
             self.interpCenter = center
             self.interpWidth = width
         else:
-            raise ValueError('Method %s not supported.' % method)
+            raise ValueError("Method %s not supported." % method)
 
         self.interpMethod = method
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
-        self.mylog.vprint('Asset allocation interpolation method set to %s.' % method)
+        self.mylog.vprint("Asset allocation interpolation method set to %s." % method)
 
     def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None, taxFree=None, generic=None):
         """
@@ -744,34 +747,34 @@ class Plan(object):
         """
         self.boundsAR = {}
         self.alpha_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n + 1))
-        if allocType == 'account':
+        if allocType == "account":
             # Make sure we have proper input.
             for item in [taxable, taxDeferred, taxFree]:
-                assert len(item) == self.N_i, '%s must one entry per individual.' % (item)
+                assert len(item) == self.N_i, "%s must one entry per individual." % (item)
                 for i in range(self.N_i):
                     # Initial and final.
-                    assert len(item[i]) == 2, '%s[%d] must have 2 lists (initial and final).' % (
+                    assert len(item[i]) == 2, "%s[%d] must have 2 lists (initial and final)." % (
                         item,
                         i,
                     )
                     for z in range(2):
-                        assert len(item[i][z]) == self.N_k, '%s[%d][%d] must have %d entries.' % (
+                        assert len(item[i][z]) == self.N_k, "%s[%d][%d] must have %d entries." % (
                             item,
                             i,
                             z,
                             self.N_k,
                         )
-                        assert abs(sum(item[i][z]) - 100) < 0.01, 'Sum of percentages must add to 100.'
+                        assert abs(sum(item[i][z]) - 100) < 0.01, "Sum of percentages must add to 100."
 
             for i in range(self.N_i):
                 self.mylog.vprint(
                     self.inames[i],
-                    ': Setting gliding allocation ratios (%) to',
+                    ": Setting gliding allocation ratios (%) to",
                     allocType,
                 )
-                self.mylog.vprint('      taxable:', taxable[i][0], '->', taxable[i][1])
-                self.mylog.vprint('  taxDeferred:', taxDeferred[i][0], '->', taxDeferred[i][1])
-                self.mylog.vprint('      taxFree:', taxFree[i][0], '->', taxFree[i][1])
+                self.mylog.vprint("      taxable:", taxable[i][0], "->", taxable[i][1])
+                self.mylog.vprint("  taxDeferred:", taxDeferred[i][0], "->", taxDeferred[i][1])
+                self.mylog.vprint("      taxFree:", taxFree[i][0], "->", taxFree[i][1])
 
             # Order in alpha is j, i, 0/1, k.
             alpha = {}
@@ -787,30 +790,30 @@ class Plan(object):
                         dat = self._interpolator(start, end, Nin)
                         self.alpha_ijkn[i, j, k, :Nin] = dat[:]
 
-            self.boundsAR['taxable'] = taxable
-            self.boundsAR['tax-deferred'] = taxDeferred
-            self.boundsAR['tax-free'] = taxFree
+            self.boundsAR["taxable"] = taxable
+            self.boundsAR["tax-deferred"] = taxDeferred
+            self.boundsAR["tax-free"] = taxFree
 
-        elif allocType == 'individual':
-            assert len(generic) == self.N_i, 'generic must have one list per individual.'
+        elif allocType == "individual":
+            assert len(generic) == self.N_i, "generic must have one list per individual."
             for i in range(self.N_i):
                 # Initial and final.
-                assert len(generic[i]) == 2, 'generic[%d] must have 2 lists (initial and final).' % i
+                assert len(generic[i]) == 2, "generic[%d] must have 2 lists (initial and final)." % i
                 for z in range(2):
-                    assert len(generic[i][z]) == self.N_k, 'generic[%d][%d] must have %d entries.' % (
+                    assert len(generic[i][z]) == self.N_k, "generic[%d][%d] must have %d entries." % (
                         i,
                         z,
                         self.N_k,
                     )
-                    assert abs(sum(generic[i][z]) - 100) < 0.01, 'Sum of percentages must add to 100.'
+                    assert abs(sum(generic[i][z]) - 100) < 0.01, "Sum of percentages must add to 100."
 
             for i in range(self.N_i):
                 self.mylog.vprint(
                     self.inames[i],
-                    ': Setting gliding allocation ratios (%) to',
+                    ": Setting gliding allocation ratios (%) to",
                     allocType,
                 )
-                self.mylog.vprint('\t', generic[i][0], '->', generic[i][1])
+                self.mylog.vprint("\t", generic[i][0], "->", generic[i][1])
 
             for i in range(self.N_i):
                 Nin = self.horizons[i] + 1
@@ -821,19 +824,19 @@ class Plan(object):
                     for j in range(self.N_j):
                         self.alpha_ijkn[i, j, k, :Nin] = dat[:]
 
-            self.boundsAR['generic'] = generic
+            self.boundsAR["generic"] = generic
 
-        elif allocType == 'spouses':
-            assert len(generic) == 2, 'generic must have 2 entries (initial and final).'
+        elif allocType == "spouses":
+            assert len(generic) == 2, "generic must have 2 entries (initial and final)."
             for z in range(2):
-                assert len(generic[z]) == self.N_k, 'generic[%d] must have %d entries.' % (
+                assert len(generic[z]) == self.N_k, "generic[%d] must have %d entries." % (
                     z,
                     self.N_k,
                 )
-                assert abs(sum(generic[z]) - 100) < 0.01, 'Sum of percentages must add to 100.'
+                assert abs(sum(generic[z]) - 100) < 0.01, "Sum of percentages must add to 100."
 
-            self.mylog.vprint('Setting gliding allocation ratios (%) to', allocType)
-            self.mylog.vprint('\t', generic[0], '->', generic[1])
+            self.mylog.vprint("Setting gliding allocation ratios (%) to", allocType)
+            self.mylog.vprint("\t", generic[0], "->", generic[1])
 
             # Use longest-lived spouse for both time scales.
             Nxn = max(self.horizons) + 1
@@ -846,12 +849,12 @@ class Plan(object):
                     for j in range(self.N_j):
                         self.alpha_ijkn[i, j, k, :Nxn] = dat[:]
 
-            self.boundsAR['generic'] = generic
+            self.boundsAR["generic"] = generic
 
         self.ARCoord = allocType
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
-        self.mylog.vprint('Interpolating assets allocation ratios using', self.interpMethod, 'method.')
+        self.mylog.vprint("Interpolating assets allocation ratios using", self.interpMethod, "method.")
 
     def readContributions(self, filename):
         """
@@ -877,7 +880,7 @@ class Plan(object):
         try:
             filename, self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
         except Exception as e:
-            raise Exception('Unsuccessful read of contributions: %s' % e)
+            raise Exception("Unsuccessful read of contributions: %s" % e)
             return False
 
         self.timeListsFileName = filename
@@ -893,20 +896,20 @@ class Plan(object):
         # Now fill in parameters which are in $.
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
-            self.omega_in[i, :h] = self.timeLists[iname]['anticipated wages'].iloc[:h]
-            self.kappa_ijn[i, 0, :h] = self.timeLists[iname]['taxable ctrb'].iloc[:h]
-            self.kappa_ijn[i, 1, :h] = self.timeLists[iname]['401k ctrb'].iloc[:h]
-            self.kappa_ijn[i, 2, :h] = self.timeLists[iname]['Roth 401k ctrb'].iloc[:h]
-            self.kappa_ijn[i, 1, :h] += self.timeLists[iname]['IRA ctrb'].iloc[:h]
-            self.kappa_ijn[i, 2, :h] += self.timeLists[iname]['Roth IRA ctrb'].iloc[:h]
-            self.myRothX_in[i, :h] = self.timeLists[iname]['Roth conv'].iloc[:h]
-            self.Lambda_in[i, :h] = self.timeLists[iname]['big-ticket items'].iloc[:h]
+            self.omega_in[i, :h] = self.timeLists[iname]["anticipated wages"].iloc[:h]
+            self.kappa_ijn[i, 0, :h] = self.timeLists[iname]["taxable ctrb"].iloc[:h]
+            self.kappa_ijn[i, 1, :h] = self.timeLists[iname]["401k ctrb"].iloc[:h]
+            self.kappa_ijn[i, 2, :h] = self.timeLists[iname]["Roth 401k ctrb"].iloc[:h]
+            self.kappa_ijn[i, 1, :h] += self.timeLists[iname]["IRA ctrb"].iloc[:h]
+            self.kappa_ijn[i, 2, :h] += self.timeLists[iname]["Roth IRA ctrb"].iloc[:h]
+            self.myRothX_in[i, :h] = self.timeLists[iname]["Roth conv"].iloc[:h]
+            self.Lambda_in[i, :h] = self.timeLists[iname]["big-ticket items"].iloc[:h]
 
         #  In 1st year, reduce wages and contributions depending on starting date.
         self.omega_in[:, 0] *= self.yearFracLeft
         self.kappa_ijn[:, :, 0] *= self.yearFracLeft
 
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
         return self.timeLists
 
@@ -917,14 +920,14 @@ class Plan(object):
         if self.timeLists is None:
             return None
 
-        self.mylog.vprint('Preparing wages and contributions workbook.')
+        self.mylog.vprint("Preparing wages and contributions workbook.")
 
         def fillsheet(sheet, i):
             sheet.title = self.inames[i]
             df = self.timeLists[self.inames[i]]
             for row in dataframe_to_rows(df, index=False, header=True):
                 sheet.append(row)
-            _formatSpreadsheet(sheet, 'currency')
+            _formatSpreadsheet(sheet, "currency")
 
         wb = Workbook()
         ws = wb.active
@@ -940,23 +943,32 @@ class Plan(object):
         """
         Reset all contributions variables to zero.
         """
-        self.mylog.vprint('Resetting wages and contributions to zero.')
+        self.mylog.vprint("Resetting wages and contributions to zero.")
 
         # Reset parameters with zeros.
-        self.omega_in[:, :] = 0.
-        self.Lambda_in[:, :] = 0.
-        self.myRothX_in[:, :] = 0.
-        self.kappa_ijn[:, :, :] = 0.
+        self.omega_in[:, :] = 0.0
+        self.Lambda_in[:, :] = 0.0
+        self.myRothX_in[:, :] = 0.0
+        self.kappa_ijn[:, :, :] = 0.0
 
-        cols = ['year', 'anticipated wages', 'taxable ctrb', '401k ctrb',
-                'Roth 401k ctrb', 'IRA ctrb', 'Roth IRA ctrb', 'Roth conv', 'big-ticket items']
+        cols = [
+            "year",
+            "anticipated wages",
+            "taxable ctrb",
+            "401k ctrb",
+            "Roth 401k ctrb",
+            "IRA ctrb",
+            "Roth IRA ctrb",
+            "Roth conv",
+            "big-ticket items",
+        ]
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
             df = pd.DataFrame(0, index=np.arange(h), columns=cols)
-            df['year'] = self.year_n[:h]
+            df["year"] = self.year_n[:h]
             self.timeLists[iname] = df
 
-        self.caseStatus = 'modified'
+        self.caseStatus = "modified"
 
         return self.timeLists
 
@@ -977,7 +989,7 @@ class Plan(object):
         is happening, and "w" is the width of the transition.
         """
         c = self.interpCenter
-        w = self.interpWidth + 0.0001    # Avoid division by zero.
+        w = self.interpWidth + 0.0001  # Avoid division by zero.
         t = np.linspace(0, numPoints, numPoints)
         # Solve 2x2 system to match end points exactly.
         th0 = np.tanh((t[0] - c) / w)
@@ -997,10 +1009,10 @@ class Plan(object):
         Adjust parameters that follow inflation.
         """
         if self.rateMethod is None:
-            raise RuntimeError('A rate method needs to be first selected using setRates(...).')
+            raise RuntimeError("A rate method needs to be first selected using setRates(...).")
 
         if not self._adjustedParameters:
-            self.mylog.vprint('Adjusting parameters for inflation.')
+            self.mylog.vprint("Adjusting parameters for inflation.")
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
             self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
@@ -1021,24 +1033,24 @@ class Plan(object):
         """
         # Stack all variables in a single block vector.
         C = {}
-        C['b'] = 0
-        C['d'] = _qC(C['b'], self.N_i, self.N_j, self.N_n + 1)
-        C['e'] = _qC(C['d'], self.N_i, self.N_n)
-        C['F'] = _qC(C['e'], self.N_n)
-        C['g'] = _qC(C['F'], self.N_t, self.N_n)
-        C['s'] = _qC(C['g'], self.N_n)
-        C['w'] = _qC(C['s'], self.N_n)
-        C['x'] = _qC(C['w'], self.N_i, self.N_j, self.N_n)
-        C['z'] = _qC(C['x'], self.N_i, self.N_n)
-        self.nvars = _qC(C['z'], self.N_i, self.N_n, self.N_z)
+        C["b"] = 0
+        C["d"] = _qC(C["b"], self.N_i, self.N_j, self.N_n + 1)
+        C["e"] = _qC(C["d"], self.N_i, self.N_n)
+        C["F"] = _qC(C["e"], self.N_n)
+        C["g"] = _qC(C["F"], self.N_t, self.N_n)
+        C["s"] = _qC(C["g"], self.N_n)
+        C["w"] = _qC(C["s"], self.N_n)
+        C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
+        C["z"] = _qC(C["x"], self.N_i, self.N_n)
+        self.nvars = _qC(C["z"], self.N_i, self.N_n, self.N_z)
 
         self.C = C
         self.mylog.vprint(
-            'Problem has',
+            "Problem has",
             len(C),
-            'distinct time series forming',
+            "distinct time series forming",
             self.nvars,
-            'decision variables.',
+            "decision variables.",
         )
 
         return None
@@ -1063,15 +1075,15 @@ class Plan(object):
         i_s = self.i_s
         n_d = self.n_d
 
-        Cb = self.C['b']
-        Cd = self.C['d']
-        Ce = self.C['e']
-        CF = self.C['F']
-        Cg = self.C['g']
-        Cs = self.C['s']
-        Cw = self.C['w']
-        Cx = self.C['x']
-        Cz = self.C['z']
+        Cb = self.C["b"]
+        Cd = self.C["d"]
+        Ce = self.C["e"]
+        CF = self.C["F"]
+        Cg = self.C["g"]
+        Cs = self.C["s"]
+        Cw = self.C["w"]
+        Cx = self.C["x"]
+        Cz = self.C["z"]
 
         tau_ijn = np.zeros((Ni, Nj, Nn))
         for i in range(Ni):
@@ -1083,15 +1095,15 @@ class Plan(object):
         Tau1_ijn = 1 + tau_ijn
         Tauh_ijn = 1 + tau_ijn / 2
 
-        if 'units' in options:
-            units = u.getUnits(options['units'])
+        if "units" in options:
+            units = u.getUnits(options["units"])
         else:
             units = 1000
 
         bigM = 5e6
-        if 'bigM' in options:
+        if "bigM" in options:
             # No units for bigM.
-            bigM = options['bigM']
+            bigM = options["bigM"]
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
@@ -1118,16 +1130,16 @@ class Plan(object):
             B.set0_Ub(_q1(Ce, n, Nn), self.sigmaBar_n[n])
 
         # Roth conversions equalities/inequalities.
-        if 'maxRothConversion' in options:
-            if options['maxRothConversion'] == 'file':
+        if "maxRothConversion" in options:
+            if options["maxRothConversion"] == "file":
                 # self.mylog.vprint('Fixing Roth conversions to those from file %s.' % self.timeListsFileName)
                 for i in range(Ni):
                     for n in range(self.horizons[i]):
                         rhs = self.myRothX_in[i][n]
                         B.setRange(_q2(Cx, i, n, Ni, Nn), rhs, rhs)
             else:
-                rhsopt = options['maxRothConversion']
-                assert isinstance(rhsopt, (int, float)), 'Specified maxConversion is not a number.'
+                rhsopt = options["maxRothConversion"]
+                assert isinstance(rhsopt, (int, float)), "Specified maxConversion is not a number."
                 rhsopt *= units
                 if rhsopt < 0:
                     # self.mylog.vprint('Unlimited Roth conversions (<0)')
@@ -1140,12 +1152,12 @@ class Plan(object):
                             B.set0_Ub(_q2(Cx, i, n, Ni, Nn), rhsopt)
 
         # Process noRothConversions option. Also valid when N_i == 1, why not?
-        if 'noRothConversions' in options and options['noRothConversions'] != 'None':
-            rhsopt = options['noRothConversions']
+        if "noRothConversions" in options and options["noRothConversions"] != "None":
+            rhsopt = options["noRothConversions"]
             try:
                 i_x = self.inames.index(rhsopt)
             except ValueError:
-                raise ValueError('Unknown individual %s for noRothConversions:' % rhsopt)
+                raise ValueError("Unknown individual %s for noRothConversions:" % rhsopt)
 
             for n in range(Nn):
                 B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
@@ -1168,11 +1180,11 @@ class Plan(object):
                 A.addNewRow(rowDic, zero, inf)
 
         # Constraints depending on objective function.
-        if objective == 'maxSpending':
+        if objective == "maxSpending":
             # Impose optional constraint on final bequest requested in today's $.
-            if 'bequest' in options:
-                bequest = options['bequest']
-                assert isinstance(bequest, (int, float)), 'Desired bequest is not a number.'
+            if "bequest" in options:
+                bequest = options["bequest"]
+                assert isinstance(bequest, (int, float)), "Desired bequest is not a number."
                 bequest *= units * self.gamma_n[-1]
             else:
                 # If not specified, defaults to $1 (nominal $).
@@ -1187,9 +1199,9 @@ class Plan(object):
                 row.addElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), 1)
             A.addRow(row, bequest, bequest)
             # self.mylog.vprint('Adding bequest constraint of:', u.d(bequest))
-        elif objective == 'maxBequest':
-            spending = options['netSpending']
-            assert isinstance(spending, (int, float)), 'Desired spending provided is not a number.'
+        elif objective == "maxBequest":
+            spending = options["netSpending"]
+            assert isinstance(spending, (int, float)), "Desired spending provided is not a number."
             # Account for time elapsed in the current year.
             spending *= units * self.yearFracLeft
             # self.mylog.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
@@ -1362,15 +1374,15 @@ class Plan(object):
 
         # Now build a solver-neutral objective vector.
         c = abc.Objective(self.nvars)
-        if objective == 'maxSpending':
+        if objective == "maxSpending":
             c.setElem(_q1(Cg, 0, Nn), -1)
-        elif objective == 'maxBequest':
+        elif objective == "maxBequest":
             for i in range(Ni):
                 c.setElem(_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1), -1)
                 c.setElem(_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1), -(1 - self.nu))
                 c.setElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), -1)
         else:
-            raise RuntimeError('Internal error in objective function.')
+            raise RuntimeError("Internal error in objective function.")
 
         self.A = A
         self.B = B
@@ -1385,19 +1397,19 @@ class Plan(object):
         """
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n - 1
-            self.mylog.vprint('Warning: Upper bound for year range re-adjusted to %d.' % yend)
+            self.mylog.vprint("Warning: Upper bound for year range re-adjusted to %d." % yend)
         N = yend - ystart + 1
 
-        self.mylog.vprint('Running historical range from %d to %d.' % (ystart, yend))
+        self.mylog.vprint("Running historical range from %d to %d." % (ystart, yend))
 
         self.mylog.setVerbose(verbose)
 
-        if objective == 'maxSpending':
-            columns = ['partial', objective]
-        elif objective == 'maxBequest':
-            columns = ['partial', 'final']
+        if objective == "maxSpending":
+            columns = ["partial", objective]
+        elif objective == "maxBequest":
+            columns = ["partial", "final"]
         else:
-            self.mylog.print('Invalid objective %s.' % objective)
+            self.mylog.print("Invalid objective %s." % objective)
             return None
 
         df = pd.DataFrame(columns=columns)
@@ -1409,14 +1421,14 @@ class Plan(object):
             progcall.start()
 
         for year in range(ystart, yend + 1):
-            self.setRates('historical', year)
+            self.setRates("historical", year)
             self.solve(objective, options)
             if not verbose:
-                progcall.show((year - ystart + 1)/N)
-            if self.caseStatus == 'solved':
-                if objective == 'maxSpending':
+                progcall.show((year - ystart + 1) / N)
+            if self.caseStatus == "solved":
+                if objective == "maxSpending":
                     df.loc[len(df)] = [self.partialBequest, self.basis]
-                elif objective == 'maxBequest':
+                elif objective == "maxBequest":
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
 
         progcall.finish()
@@ -1434,26 +1446,26 @@ class Plan(object):
         """
         Run Monte Carlo simulations on plan.
         """
-        if self.rateMethod not in ['stochastic', 'histochastic']:
-            self.mylog.print('It is pointless to run Monte Carlo simulations with fixed rates.')
+        if self.rateMethod not in ["stochastic", "histochastic"]:
+            self.mylog.print("It is pointless to run Monte Carlo simulations with fixed rates.")
             return
 
-        self.mylog.vprint('Running %d Monte Carlo simulations.' % N)
+        self.mylog.vprint("Running %d Monte Carlo simulations." % N)
         self.mylog.setVerbose(verbose)
 
         # Turn off Medicare by default, unless specified in options.
-        if 'withMedicare' not in options:
+        if "withMedicare" not in options:
             myoptions = dict(options)
-            myoptions['withMedicare'] = False
+            myoptions["withMedicare"] = False
         else:
             myoptions = options
 
-        if objective == 'maxSpending':
-            columns = ['partial', objective]
-        elif objective == 'maxBequest':
-            columns = ['partial', 'final']
+        if objective == "maxSpending":
+            columns = ["partial", objective]
+        elif objective == "maxBequest":
+            columns = ["partial", "final"]
         else:
-            self.mylog.print('Invalid objective %s.' % objective)
+            self.mylog.print("Invalid objective %s." % objective)
             return None
 
         df = pd.DataFrame(columns=columns)
@@ -1468,11 +1480,11 @@ class Plan(object):
             self.regenRates()
             self.solve(objective, myoptions)
             if not verbose:
-                progcall.show((n+1)/N)
-            if self.caseStatus == 'solved':
-                if objective == 'maxSpending':
+                progcall.show((n + 1) / N)
+            if self.caseStatus == "solved":
+                if objective == "maxSpending":
                     df.loc[len(df)] = [self.partialBequest, self.basis]
-                elif objective == 'maxBequest':
+                elif objective == "maxBequest":
                     df.loc[len(df)] = [self.partialBequest, self.bequest]
 
         progcall.finish()
@@ -1493,8 +1505,8 @@ class Plan(object):
 
         description = io.StringIO()
 
-        print('Success rate: %s on %d samples.' % (u.pc(len(df) / N), N), file=description)
-        title = '$N$ = %d, $P$ = %s' % (N, u.pc(len(df) / N))
+        print("Success rate: %s on %d samples." % (u.pc(len(df) / N), N), file=description)
+        title = "$N$ = %d, $P$ = %s" % (N, u.pc(len(df) / N))
         means = df.mean(axis=0, numeric_only=True)
         medians = df.median(axis=0, numeric_only=True)
 
@@ -1506,51 +1518,51 @@ class Plan(object):
         # or if solution led to empty accounts at the end of first spouse's life.
         if np.all(self.phi_j == 1) or medians.iloc[0] < 1:
             if medians.iloc[0] < 1:
-                print('Optimized solutions all have null partial bequest in year %d.' % my[0], file=description)
-            df.drop('partial', axis=1, inplace=True)
+                print("Optimized solutions all have null partial bequest in year %d." % my[0], file=description)
+            df.drop("partial", axis=1, inplace=True)
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
 
         df /= 1000
         if len(df) > 0:
-            if objective == 'maxBequest':
+            if objective == "maxBequest":
                 fig, axes = plt.subplots()
                 # Show both partial and final bequests in the same histogram.
-                sbn.histplot(df, multiple='dodge', kde=True, ax=axes)
+                sbn.histplot(df, multiple="dodge", kde=True, ax=axes)
                 legend = []
                 # Don't know why but legend is reversed from df.
                 for q in range(len(means) - 1, -1, -1):
                     legend.append(
-                        '%d: $M$: %s, $\\bar{x}$: %s'
+                        "%d: $M$: %s, $\\bar{x}$: %s"
                         % (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True))
                     )
                 plt.legend(legend, shadow=True)
-                plt.xlabel('%d $k' % self.year_n[0])
+                plt.xlabel("%d $k" % self.year_n[0])
                 plt.title(objective)
-                leads = ['partial %d' % my[0], '  final %d' % my[1]]
+                leads = ["partial %d" % my[0], "  final %d" % my[1]]
             elif len(means) == 2:
                 # Show partial bequest and net spending as two separate histograms.
                 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-                cols = ['partial', objective]
-                leads = ['partial %d' % my[0], objective]
+                cols = ["partial", objective]
+                leads = ["partial %d" % my[0], objective]
                 for q in range(2):
                     sbn.histplot(df[cols[q]], kde=True, ax=axes[q])
                     legend = [
-                        ('$M$: %s, $\\bar{x}$: %s' % (u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
+                        ("$M$: %s, $\\bar{x}$: %s" % (u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
                     ]
                     axes[q].set_label(legend)
                     axes[q].legend(labels=legend)
                     axes[q].set_title(leads[q])
-                    axes[q].set_xlabel('%d $k' % self.year_n[0])
+                    axes[q].set_xlabel("%d $k" % self.year_n[0])
             else:
                 # Show net spending as single histogram.
                 fig, axes = plt.subplots()
                 sbn.histplot(df[objective], kde=True, ax=axes)
                 legend = [
-                    ('$M$: %s, $\\bar{x}$: %s' % (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))
+                    ("$M$: %s, $\\bar{x}$: %s" % (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))
                 ]
                 plt.legend(legend, shadow=True)
-                plt.xlabel('%d $k' % self.year_n[0])
+                plt.xlabel("%d $k" % self.year_n[0])
                 plt.title(objective)
                 leads = [objective]
 
@@ -1558,14 +1570,15 @@ class Plan(object):
             # plt.show()
 
         for q in range(len(means)):
-            print('%12s: Median (%d $): %s' % (leads[q], self.year_n[0], u.d(medians.iloc[q])), file=description)
-            print('%12s:   Mean (%d $): %s' % (leads[q], self.year_n[0], u.d(means.iloc[q])), file=description)
+            print("%12s: Median (%d $): %s" % (leads[q], self.year_n[0], u.d(medians.iloc[q])), file=description)
+            print("%12s:   Mean (%d $): %s" % (leads[q], self.year_n[0], u.d(means.iloc[q])), file=description)
             print(
-                '%12s:           Range: %s - %s'
+                "%12s:           Range: %s - %s"
                 % (leads[q], u.d(1000 * df.iloc[:, q].min()), u.d(1000 * df.iloc[:, q].max())),
-                file=description)
+                file=description,
+            )
             nzeros = len(df.iloc[:, q][df.iloc[:, q] < 0.001])
-            print('%12s:  N zero solns: %d' % (leads[q], nzeros), file=description)
+            print("%12s:  N zero solns: %d" % (leads[q], nzeros), file=description)
 
         return fig, description
 
@@ -1597,24 +1610,24 @@ class Plan(object):
         Refer to companion document for implementation details.
         """
         if self.rateMethod is None:
-            raise RuntimeError('Rate method must be selected before solving.')
+            raise RuntimeError("Rate method must be selected before solving.")
 
         # Assume unsuccessful until problem solved.
-        self.caseStatus = 'unsuccessful'
+        self.caseStatus = "unsuccessful"
 
         # Check objective and required options.
-        knownObjectives = ['maxBequest', 'maxSpending']
-        knownSolvers = ['HiGHS', 'MOSEK']
+        knownObjectives = ["maxBequest", "maxSpending"]
+        knownSolvers = ["HiGHS", "MOSEK"]
         knownOptions = [
-            'units',
-            'maxRothConversion',
-            'netSpending',
-            'bequest',
-            'bigM',
-            'noRothConversions',
-            'withMedicare',
-            'solver',
-            'previousMAGIs',
+            "units",
+            "maxRothConversion",
+            "netSpending",
+            "bequest",
+            "bigM",
+            "noRothConversions",
+            "withMedicare",
+            "solver",
+            "previousMAGIs",
         ]
         # We will modify options if required.
         if options is None:
@@ -1624,48 +1637,48 @@ class Plan(object):
 
         for opt in myoptions:
             if opt not in knownOptions:
-                raise ValueError('Option %s is not one of %r.' % (opt, knownOptions))
+                raise ValueError("Option %s is not one of %r." % (opt, knownOptions))
 
         if objective not in knownObjectives:
-            raise ValueError('Objective %s is not one of %r.' % (objective, knownObjectives))
+            raise ValueError("Objective %s is not one of %r." % (objective, knownObjectives))
 
-        if objective == 'maxBequest' and 'netSpending' not in myoptions:
-            raise RuntimeError('Objective %s needs netSpending option.' % objective)
+        if objective == "maxBequest" and "netSpending" not in myoptions:
+            raise RuntimeError("Objective %s needs netSpending option." % objective)
 
-        if objective == 'maxBequest' and 'bequest' in myoptions:
-            self.mylog.vprint('Ignoring bequest option provided.')
-            myoptions.pop('bequest')
+        if objective == "maxBequest" and "bequest" in myoptions:
+            self.mylog.vprint("Ignoring bequest option provided.")
+            myoptions.pop("bequest")
 
-        if objective == 'maxSpending' and 'netSpending' in myoptions:
-            self.mylog.vprint('Ignoring netSpending option provided.')
-            myoptions.pop('netSpending')
+        if objective == "maxSpending" and "netSpending" in myoptions:
+            self.mylog.vprint("Ignoring netSpending option provided.")
+            myoptions.pop("netSpending")
 
-        if objective == 'maxSpending' and 'bequest' not in myoptions:
-            self.mylog.vprint('Using bequest of $1.')
+        if objective == "maxSpending" and "bequest" not in myoptions:
+            self.mylog.vprint("Using bequest of $1.")
 
-        if 'previousMAGIs' in myoptions:
-            magi = myoptions['previousMAGIs']
+        if "previousMAGIs" in myoptions:
+            magi = myoptions["previousMAGIs"]
             if len(magi) != 2:
                 raise ValueError("previousMAGIs must have two values.")
 
-            if 'units' in options:
-                units = u.getUnits(options['units'])
+            if "units" in options:
+                units = u.getUnits(options["units"])
             else:
                 units = 1000
             self.prevMAGI = units * np.array(magi)
 
         self._adjustParameters()
 
-        if 'solver' in options:
-            solver = myoptions['solver']
+        if "solver" in options:
+            solver = myoptions["solver"]
             if solver not in knownSolvers:
-                raise ValueError('Unknown solver %s.' % solver)
+                raise ValueError("Unknown solver %s." % solver)
         else:
             solver = self.defaultSolver
 
-        if solver == 'HiGHS':
+        if solver == "HiGHS":
             self._milpSolve(objective, myoptions)
-        elif solver == 'MOSEK':
+        elif solver == "MOSEK":
             self._mosekSolve(objective, myoptions)
 
         self.objective = objective
@@ -1680,16 +1693,16 @@ class Plan(object):
         from scipy import optimize
 
         withMedicare = True
-        if 'withMedicare' in options and options['withMedicare'] is False:
+        if "withMedicare" in options and options["withMedicare"] is False:
             withMedicare = False
 
-        if objective == 'maxSpending':
+        if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
         else:
             objFac = -1 / self.gamma_n[-1]
 
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
-        milpOptions = {'disp': False, 'mip_rel_gap': 1e-6}
+        milpOptions = {"disp": False, "mip_rel_gap": 1e-6}
 
         it = 0
         absdiff = np.inf
@@ -1722,38 +1735,38 @@ class Plan(object):
 
             self._estimateMedicare(solution.x)
 
-            self.mylog.vprint('Iteration:', it, 'objective:', u.d(solution.fun * objFac, f=2))
+            self.mylog.vprint("Iteration:", it, "objective:", u.d(solution.fun * objFac, f=2))
 
             delta = solution.x - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
             if absdiff < 1:
-                self.mylog.vprint('Converged on full solution.')
+                self.mylog.vprint("Converged on full solution.")
                 break
 
             # Avoid oscillatory solutions. Look only at most recent solutions. Within $10.
-            isclosenough = abs(-solution.fun - min(old_solutions[int(it / 2):])) < 10 * self.xi_n[0]
+            isclosenough = abs(-solution.fun - min(old_solutions[int(it / 2) :])) < 10 * self.xi_n[0]
             if isclosenough:
-                self.mylog.vprint('Converged through selecting minimum oscillating objective.')
+                self.mylog.vprint("Converged through selecting minimum oscillating objective.")
                 break
 
             if it > 59:
-                self.mylog.vprint('WARNING: Exiting loop on maximum iterations.')
+                self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
                 break
 
             old_solutions.append(-solution.fun)
             old_x = solution.x
 
         if solution.success:
-            self.mylog.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
+            self.mylog.vprint("Self-consistent Medicare loop returned after %d iterations." % it)
             self.mylog.vprint(solution.message)
-            self.mylog.vprint('Objective:', u.d(solution.fun * objFac))
+            self.mylog.vprint("Objective:", u.d(solution.fun * objFac))
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(solution.x)
-            self._timestamp = datetime.now().strftime('%Y-%m-%d at %H:%M:%S')
-            self.caseStatus = 'solved'
+            self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
+            self.caseStatus = "solved"
         else:
-            self.mylog.vprint('WARNING: Optimization failed:', solution.message, solution.success)
-            self.caseStatus = 'unsuccessful'
+            self.mylog.vprint("WARNING: Optimization failed:", solution.message, solution.success)
+            self.caseStatus = "unsuccessful"
 
         return None
 
@@ -1764,10 +1777,10 @@ class Plan(object):
         import mosek
 
         withMedicare = True
-        if 'withMedicare' in options and options['withMedicare'] is False:
+        if "withMedicare" in options and options["withMedicare"] is False:
             withMedicare = False
 
-        if objective == 'maxSpending':
+        if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
         else:
             objFac = -1 / self.gamma_n[-1]
@@ -1775,11 +1788,11 @@ class Plan(object):
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
 
         bdic = {
-            'fx': mosek.boundkey.fx,
-            'fr': mosek.boundkey.fr,
-            'lo': mosek.boundkey.lo,
-            'ra': mosek.boundkey.ra,
-            'up': mosek.boundkey.up,
+            "fx": mosek.boundkey.fx,
+            "fr": mosek.boundkey.fr,
+            "lo": mosek.boundkey.lo,
+            "ra": mosek.boundkey.ra,
+            "up": mosek.boundkey.up,
         }
 
         it = 0
@@ -1834,22 +1847,22 @@ class Plan(object):
 
             self._estimateMedicare(xx)
 
-            self.mylog.vprint('Iteration:', it, 'objective:', u.d(solution * objFac, f=2))
+            self.mylog.vprint("Iteration:", it, "objective:", u.d(solution * objFac, f=2))
 
             delta = xx - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
             if absdiff < 1:
-                self.mylog.vprint('Converged on full solution.')
+                self.mylog.vprint("Converged on full solution.")
                 break
 
             # Avoid oscillatory solutions. Look only at most recent solutions. Within $10.
-            isclosenough = abs(-solution - min(old_solutions[int(it / 2):])) < 10 * self.xi_n[0]
+            isclosenough = abs(-solution - min(old_solutions[int(it / 2) :])) < 10 * self.xi_n[0]
             if isclosenough:
-                self.mylog.vprint('Converged through selecting minimum oscillating objective.')
+                self.mylog.vprint("Converged through selecting minimum oscillating objective.")
                 break
 
             if it > 59:
-                self.mylog.vprint('WARNING: Exiting loop on maximum iterations.')
+                self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
                 break
 
             old_solutions.append(-solution)
@@ -1858,17 +1871,17 @@ class Plan(object):
         task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
         # task.writedata(self._name+'.ptf')
         if solsta == mosek.solsta.integer_optimal:
-            self.mylog.vprint('Self-consistent Medicare loop returned after %d iterations.' % it)
+            self.mylog.vprint("Self-consistent Medicare loop returned after %d iterations." % it)
             task.solutionsummary(mosek.streamtype.msg)
-            self.mylog.vprint('Objective:', u.d(solution * objFac))
-            self.caseStatus = 'solved'
+            self.mylog.vprint("Objective:", u.d(solution * objFac))
+            self.caseStatus = "solved"
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(xx)
-            self._timestamp = datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+            self._timestamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         else:
-            self.mylog.vprint('WARNING: Optimization failed:', 'Infeasible or unbounded.')
+            self.mylog.vprint("WARNING: Optimization failed:", "Infeasible or unbounded.")
             task.solutionsummary(mosek.streamtype.msg)
-            self.caseStatus = 'unsuccessful'
+            self.caseStatus = "unsuccessful"
 
         return None
 
@@ -1883,9 +1896,9 @@ class Plan(object):
         if x is None:
             MAGI_n = np.zeros(self.N_n)
         else:
-            self.F_tn = np.array(x[self.C['F']:self.C['g']])
+            self.F_tn = np.array(x[self.C["F"] : self.C["g"]])
             self.F_tn = self.F_tn.reshape((self.N_t, self.N_n))
-            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C['e']:self.C['F']])
+            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C["e"] : self.C["F"]])
 
         self.M_n = tx.mediCosts(self.yobs, self.horizons, MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
 
@@ -1905,15 +1918,15 @@ class Plan(object):
         # Nz = self.N_z
         n_d = self.n_d
 
-        Cb = self.C['b']
-        Cd = self.C['d']
-        Ce = self.C['e']
-        CF = self.C['F']
-        Cg = self.C['g']
-        Cs = self.C['s']
-        Cw = self.C['w']
-        Cx = self.C['x']
-        Cz = self.C['z']
+        Cb = self.C["b"]
+        Cd = self.C["d"]
+        Ce = self.C["e"]
+        CF = self.C["F"]
+        Cg = self.C["g"]
+        Cs = self.C["s"]
+        Cw = self.C["w"]
+        Cx = self.C["x"]
+        Cz = self.C["z"]
 
         x = u.roundCents(x)
 
@@ -2006,20 +2019,20 @@ class Plan(object):
         ]
         """
         sources = {}
-        sources['wages'] = self.omega_in
-        sources['ssec'] = self.zetaBar_in
-        sources['pension'] = self.piBar_in
-        sources['txbl acc wdrwl'] = self.w_ijn[:, 0, :]
-        sources['RMD'] = self.rmd_in
-        sources['+dist'] = self.dist_in
-        sources['RothX'] = self.x_in
-        sources['tax-free wdrwl'] = self.w_ijn[:, 2, :]
-        sources['BTI'] = self.Lambda_in
+        sources["wages"] = self.omega_in
+        sources["ssec"] = self.zetaBar_in
+        sources["pension"] = self.piBar_in
+        sources["txbl acc wdrwl"] = self.w_ijn[:, 0, :]
+        sources["RMD"] = self.rmd_in
+        sources["+dist"] = self.dist_in
+        sources["RothX"] = self.x_in
+        sources["tax-free wdrwl"] = self.w_ijn[:, 2, :]
+        sources["BTI"] = self.Lambda_in
 
         savings = {}
-        savings['taxable'] = self.b_ijn[:, 0, :]
-        savings['tax-deferred'] = self.b_ijn[:, 1, :]
-        savings['tax-free'] = self.b_ijn[:, 2, :]
+        savings["taxable"] = self.b_ijn[:, 0, :]
+        savings["tax-deferred"] = self.b_ijn[:, 1, :]
+        savings["tax-free"] = self.b_ijn[:, 2, :]
 
         self.sources_in = sources
         self.savings_in = savings
@@ -2039,7 +2052,7 @@ class Plan(object):
         """
         _estate = np.sum(self.b_ijn[:, :, :, self.N_n], axis=(0, 2))
         _estate[1] *= 1 - self.nu
-        self.mylog.vprint('Estate value of %s at the end of year %s.' % (u.d(sum(_estate)), self.year_n[-1]))
+        self.mylog.vprint("Estate value of %s at the end of year %s." % (u.d(sum(_estate)), self.year_n[-1]))
 
         return None
 
@@ -2048,11 +2061,11 @@ class Plan(object):
         """
         Print summary in logs.
         """
-        self.mylog.print('SUMMARY ================================================================')
+        self.mylog.print("SUMMARY ================================================================")
         dic = self.summaryDic()
         for key, value in dic.items():
             self.mylog.print(f"{key}: {value}")
-        self.mylog.print('------------------------------------------------------------------------')
+        self.mylog.print("------------------------------------------------------------------------")
 
         return None
 
@@ -2071,11 +2084,10 @@ class Plan(object):
         """
         Return summary as a string.
         """
-        string = 'Synopsis\n'
+        string = "Synopsis\n"
         dic = self.summaryDic()
         for key, value in dic.items():
             string += f"{key:>70}: {value}\n"
-            # string += "%60s: %s\n" % (key, value)
 
         return string
 
@@ -2086,39 +2098,29 @@ class Plan(object):
         now = self.year_n[0]
         dic = {}
         # Results
-        dic[f"Net yearly spending basis in {now}$"] = (u.d(self.g_n[0] / self.xi_n[0]))
-        dic[f"Net yearly spending for year {now}"] = (u.d(self.g_n[0] / self.yearFracLeft))
+        dic[f"Net yearly spending basis in {now}$"] = u.d(self.g_n[0] / self.xi_n[0])
+        dic[f"Net yearly spending for year {now}"] = u.d(self.g_n[0] / self.yearFracLeft)
         dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0])
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total net spending in {now}$"] = (
-            "%s (%s nominal)" % (u.d(totIncomeNow), u.d(totIncome))
-        )
+        dic[f"Total net spending in {now}$"] = "%s (%s nominal)" % (u.d(totIncomeNow), u.d(totIncome))
 
         totRoth = np.sum(self.x_in, axis=(0, 1))
         totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n[:-1], axis=0)
-        dic[f"Total Roth conversions in {now}$"] = (
-            "%s (%s nominal)" % (u.d(totRothNow), u.d(totRoth))
-        )
+        dic[f"Total Roth conversions in {now}$"] = "%s (%s nominal)" % (u.d(totRothNow), u.d(totRoth))
 
         taxPaid = np.sum(self.T_n, axis=0)
         taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total income tax paid on ordinary income in {now}$"] = (
-            "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
-        )
+        dic[f"Total income tax paid on ordinary income in {now}$"] = "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total tax paid on gains and dividends in {now}$"] = (
-            "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
-        )
+        dic[f"Total tax paid on gains and dividends in {now}$"] = "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
 
         taxPaid = np.sum(self.M_n, axis=0)
         taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total Medicare premiums paid in {now}$"] = (
-            "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
-        )
+        dic[f"Total Medicare premiums paid in {now}$"] = "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
 
         if self.N_i == 2 and self.n_d < self.N_n:
             p_j = self.partialEstate_j * (1 - self.phi_j)
@@ -2129,23 +2131,21 @@ class Plan(object):
             q_j = self.partialEstate_j * self.phi_j
             totSpousal = np.sum(q_j)
             totSpousalNow = totSpousal / self.gamma_n[nx + 1]
-            dic["Spousal wealth transfer from %s to %s in year %d (nominal)" %
-                (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx])] = (
-                "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
-            )
+            dic[
+                "Spousal wealth transfer from %s to %s in year %d (nominal)"
+                % (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx])
+            ] = "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
 
-            dic["Sum of spousal bequests to %s in year %d in %d$" %
-                (self.inames[self.i_s], self.year_n[nx], now)] = (
+            dic["Sum of spousal bequests to %s in year %d in %d$" % (self.inames[self.i_s], self.year_n[nx], now)] = (
                 "%s (%s nominal)" % (u.d(totSpousalNow), u.d(totSpousal))
             )
-            dic["Post-tax non-spousal bequests from %s in year %d (nominal)" %
-                (self.inames[self.i_d], self.year_n[nx])] = (
-                "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
-            )
-            dic["Sum of post-tax non-spousal bequests from %s in year %d in %d$" %
-                (self.inames[self.i_d], self.year_n[nx], now)] = (
-               "%s (%s nominal)" % (u.d(totOthersNow), u.d(totOthers))
-            )
+            dic[
+                "Post-tax non-spousal bequests from %s in year %d (nominal)" % (self.inames[self.i_d], self.year_n[nx])
+            ] = "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
+            dic[
+                "Sum of post-tax non-spousal bequests from %s in year %d in %d$"
+                % (self.inames[self.i_d], self.year_n[nx], now)
+            ] = "%s (%s nominal)" % (u.d(totOthersNow), u.d(totOthers))
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
@@ -2159,12 +2159,11 @@ class Plan(object):
             "%s (%s nominal)" % (u.d(totEstateNow), u.d(totEstate))
         )
         dic["Plan starting date"] = str(self.startDate)
-        dic["Cumulative inflation factor from start date to end of plan"] = (
-            "%.2f" % (self.gamma_n[-1])
-        )
+        dic["Cumulative inflation factor from start date to end of plan"] = "%.2f" % (self.gamma_n[-1])
         for i in range(self.N_i):
-            dic["%12s's %02d-year life horizon" % (self.inames[i], self.horizons[i])] = (
-                "%d -> %d" % (now, now + self.horizons[i] - 1)
+            dic["%12s's %02d-year life horizon" % (self.inames[i], self.horizons[i])] = "%d -> %d" % (
+                now,
+                now + self.horizons[i] - 1,
             )
 
         dic["Plan name"] = self._name
@@ -2174,7 +2173,7 @@ class Plan(object):
 
         return dic
 
-    def showRatesCorrelations(self, tag='', shareRange=False, figure=False):
+    def showRatesCorrelations(self, tag="", shareRange=False, figure=False):
         """
         Plot correlations between various rates.
 
@@ -2182,15 +2181,15 @@ class Plan(object):
         """
         import seaborn as sbn
 
-        if self.rateMethod in [None, 'user', 'historical average', 'conservative']:
-            self.mylog.vprint('Warning: Cannot plot correlations for %s rate method.' % self.rateMethod)
+        if self.rateMethod in [None, "user", "historical average", "conservative"]:
+            self.mylog.vprint("Warning: Cannot plot correlations for %s rate method." % self.rateMethod)
             return None
 
         rateNames = [
-            'S&P500 (incl. div.)',
-            'Baa Corp. Bonds',
-            '10-y T-Notes',
-            'Inflation',
+            "S&P500 (incl. div.)",
+            "Baa Corp. Bonds",
+            "10-y T-Notes",
+            "Inflation",
         ]
 
         df = pd.DataFrame()
@@ -2206,25 +2205,25 @@ class Plan(object):
         g.map_upper(sbn.scatterplot)
         g.map_lower(sbn.kdeplot)
         # g.map_diag(sbn.kdeplot)
-        g.map_diag(sbn.histplot, color='orange')
+        g.map_diag(sbn.histplot, color="orange")
 
         # Put zero axes on off-diagonal plots.
         imod = len(rateNames) + 1
         for i, ax in enumerate(g.axes.flat):
-            ax.axvline(x=0, color='grey', linewidth=1, linestyle=':')
+            ax.axvline(x=0, color="grey", linewidth=1, linestyle=":")
             if i % imod != 0:
-                ax.axhline(y=0, color='grey', linewidth=1, linestyle=':')
+                ax.axhline(y=0, color="grey", linewidth=1, linestyle=":")
         #    ax.tick_params(axis='both', labelleft=True, labelbottom=True)
 
         # plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
-        title = self._name + '\n'
-        title += 'Rates Correlations (N=%d) %s' % (self.N_n, self.rateMethod)
-        if self.rateMethod in ['historical', 'histochastic']:
-            title += ' (' + str(self.rateFrm) + '-' + str(self.rateTo) + ')'
+        title = self._name + "\n"
+        title += "Rates Correlations (N=%d) %s" % (self.N_n, self.rateMethod)
+        if self.rateMethod in ["historical", "histochastic"]:
+            title += " (" + str(self.rateFrm) + "-" + str(self.rateTo) + ")"
 
-        if tag != '':
-            title += ' - ' + tag
+        if tag != "":
+            title += " - " + tag
 
         g.fig.suptitle(title, y=1.08)
 
@@ -2234,7 +2233,7 @@ class Plan(object):
         plt.show()
         return None
 
-    def showRates(self, tag='', figure=False):
+    def showRates(self, tag="", figure=False):
         """
         Plot rate values used over the time horizon.
 
@@ -2243,26 +2242,26 @@ class Plan(object):
         import matplotlib.ticker as tk
 
         if self.rateMethod is None:
-            self.mylog.vprint('Warning: Rate method must be selected before plotting.')
+            self.mylog.vprint("Warning: Rate method must be selected before plotting.")
             return None
 
         fig, ax = plt.subplots(figsize=(6, 4))
-        plt.grid(visible='both')
-        title = self._name + '\nReturn & Inflation Rates (' + str(self.rateMethod)
-        if self.rateMethod in ['historical', 'histochastic', 'historical average']:
-            title += ' ' + str(self.rateFrm) + '-' + str(self.rateTo)
-        title += ')'
+        plt.grid(visible="both")
+        title = self._name + "\nReturn & Inflation Rates (" + str(self.rateMethod)
+        if self.rateMethod in ["historical", "histochastic", "historical average"]:
+            title += " " + str(self.rateFrm) + "-" + str(self.rateTo)
+        title += ")"
 
-        if tag != '':
-            title += ' - ' + tag
+        if tag != "":
+            title += " - " + tag
 
         rateName = [
-            'S&P500 (incl. div.)',
-            'Baa Corp. Bonds',
-            '10-y T-Notes',
-            'Inflation',
+            "S&P500 (incl. div.)",
+            "Baa Corp. Bonds",
+            "10-y T-Notes",
+            "Inflation",
         ]
-        ltype = ['-', '-.', ':', '--']
+        ltype = ["-", "-.", ":", "--"]
         for k in range(self.N_k):
             if self.yearFracLeft == 1:
                 data = 100 * self.tau_kn[k]
@@ -2272,16 +2271,17 @@ class Plan(object):
                 years = self.year_n[1:]
 
             # Use ddof=1 to match pandas.
-            label = (rateName[k] + ' <' + '{:.1f}'.format(np.mean(data)) +
-                     ' +/- {:.1f}'.format(np.std(data, ddof=1)) + '%>')
+            label = (
+                rateName[k] + " <" + "{:.1f}".format(np.mean(data)) + " +/- {:.1f}".format(np.std(data, ddof=1)) + "%>"
+            )
             ax.plot(years, data, label=label, ls=ltype[k % self.N_k])
 
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-        ax.legend(loc='best', reverse=False, fontsize=8, framealpha=0.7)
+        ax.legend(loc="best", reverse=False, fontsize=8, framealpha=0.7)
         # ax.legend(loc='upper left')
         ax.set_title(title)
-        ax.set_xlabel('year')
-        ax.set_ylabel('%')
+        ax.set_xlabel("year")
+        ax.set_ylabel("%")
 
         if figure:
             return fig
@@ -2289,24 +2289,24 @@ class Plan(object):
         plt.show()
         return None
 
-    def showProfile(self, tag='', figure=False):
+    def showProfile(self, tag="", figure=False):
         """
         Plot spending profile over time.
 
         A tag string can be set to add information to the title of the plot.
         """
         if self.xi_n is None:
-            self.mylog.vprint('Warning: Profile must be selected before plotting.')
+            self.mylog.vprint("Warning: Profile must be selected before plotting.")
             return None
 
-        title = self._name + '\nSpending Profile'
-        if tag != '':
-            title += ' - ' + tag
+        title = self._name + "\nSpending Profile"
+        if tag != "":
+            title += " - " + tag
 
         # style = {'net': '-', 'target': ':'}
-        style = {'profile': '-'}
-        series = {'profile': self.xi_n}
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat='xi')
+        style = {"profile": "-"}
+        series = {"profile": self.xi_n}
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat="xi")
 
         if figure:
             return fig
@@ -2315,7 +2315,7 @@ class Plan(object):
         return None
 
     @_checkCaseStatus
-    def showNetSpending(self, tag='', value=None, figure=False):
+    def showNetSpending(self, tag="", value=None, figure=False):
         """
         Plot net available spending and target over time.
 
@@ -2326,20 +2326,20 @@ class Plan(object):
         """
         value = self._checkValue(value)
 
-        title = self._name + '\nNet Available Spending'
-        if tag != '':
-            title += ' - ' + tag
+        title = self._name + "\nNet Available Spending"
+        if tag != "":
+            title += " - " + tag
 
-        style = {'net': '-', 'target': ':'}
-        if value == 'nominal':
-            series = {'net': self.g_n, 'target': (self.g_n[0] / self.xi_n[0]) * self.xiBar_n}
-            yformat = '\\$k (nominal)'
+        style = {"net": "-", "target": ":"}
+        if value == "nominal":
+            series = {"net": self.g_n, "target": (self.g_n[0] / self.xi_n[0]) * self.xiBar_n}
+            yformat = "\\$k (nominal)"
         else:
             series = {
-                'net': self.g_n / self.gamma_n[:-1],
-                'target': (self.g_n[0] / self.xi_n[0]) * self.xi_n,
+                "net": self.g_n / self.gamma_n[:-1],
+                "target": (self.g_n[0] / self.xi_n[0]) * self.xi_n,
             }
-            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
+            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
@@ -2350,7 +2350,7 @@ class Plan(object):
         return None
 
     @_checkCaseStatus
-    def showAssetDistribution(self, tag='', value=None, figure=False):
+    def showAssetDistribution(self, tag="", value=None, figure=False):
         """
         Plot the distribution of each savings account in thousands of dollars
         during the simulation time. This function will generate three
@@ -2364,34 +2364,35 @@ class Plan(object):
         """
         value = self._checkValue(value)
 
-        if value == 'nominal':
-            yformat = '\\$k (nominal)'
+        if value == "nominal":
+            yformat = "\\$k (nominal)"
             infladjust = 1
         else:
-            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
+            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
             infladjust = self.gamma_n
 
         years_n = np.array(self.year_n)
         years_n = np.append(years_n, [years_n[-1] + 1])
         y2stack = {}
-        jDic = {'taxable': 0, 'tax-deferred': 1, 'tax-free': 2}
-        kDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
+        jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}
+        kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
         figures = []
         for jkey in jDic:
             stackNames = []
             for kkey in kDic:
-                name = kkey + ' / ' + jkey
+                name = kkey + " / " + jkey
                 stackNames.append(name)
                 y2stack[name] = np.zeros((self.N_i, self.N_n + 1))
                 for i in range(self.N_i):
                     y2stack[name][i][:] = self.b_ijkn[i][jDic[jkey]][kDic[kkey]][:] / infladjust
 
-            title = self._name + '\nAssets Distribution - ' + jkey
-            if tag != '':
-                title += ' - ' + tag
+            title = self._name + "\nAssets Distribution - " + jkey
+            if tag != "":
+                title += " - " + tag
 
-            fig, ax = _stackPlot(years_n, self.inames, title, range(self.N_i),
-                                 y2stack, stackNames, 'upper left', yformat)
+            fig, ax = _stackPlot(
+                years_n, self.inames, title, range(self.N_i), y2stack, stackNames, "upper left", yformat
+            )
             figures.append(fig)
 
         if figure:
@@ -2400,7 +2401,7 @@ class Plan(object):
         plt.show()
         return None
 
-    def showAllocations(self, tag='', figure=False):
+    def showAllocations(self, tag="", figure=False):
         """
         Plot desired allocation of savings accounts in percentage
         over simulation time and interpolated by the selected method
@@ -2409,39 +2410,38 @@ class Plan(object):
         A tag string can be set to add information to the title of the plot.
         """
         count = self.N_i
-        if self.ARCoord == 'spouses':
+        if self.ARCoord == "spouses":
             acList = [self.ARCoord]
             count = 1
-        elif self.ARCoord == 'individual':
+        elif self.ARCoord == "individual":
             acList = [self.ARCoord]
-        elif self.ARCoord == 'account':
-            acList = ['taxable', 'tax-deferred', 'tax-free']
+        elif self.ARCoord == "account":
+            acList = ["taxable", "tax-deferred", "tax-free"]
         else:
-            raise ValueError('Unknown coordination %s' % self.ARCoord)
+            raise ValueError("Unknown coordination %s" % self.ARCoord)
 
         figures = []
-        assetDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
+        assetDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
         for i in range(count):
             y2stack = {}
             for acType in acList:
                 stackNames = []
                 for key in assetDic:
-                    aname = key + ' / ' + acType
+                    aname = key + " / " + acType
                     stackNames.append(aname)
                     y2stack[aname] = np.zeros((count, self.N_n))
                     y2stack[aname][i][:] = self.alpha_ijkn[i, acList.index(acType), assetDic[key], : self.N_n]
 
-                    title = self._name + '\nAsset Allocation (%) - ' + acType
-                    if self.ARCoord == 'spouses':
-                        title += ' spouses'
+                    title = self._name + "\nAsset Allocation (%) - " + acType
+                    if self.ARCoord == "spouses":
+                        title += " spouses"
                     else:
-                        title += ' ' + self.inames[i]
+                        title += " " + self.inames[i]
 
-                if tag != '':
-                    title += ' - ' + tag
+                if tag != "":
+                    title += " - " + tag
 
-                fig, ax = _stackPlot(self.year_n, self.inames, title, [i], y2stack,
-                                     stackNames, 'upper left', 'percent')
+                fig, ax = _stackPlot(self.year_n, self.inames, title, [i], y2stack, stackNames, "upper left", "percent")
                 figures.append(fig)
 
         if figure:
@@ -2451,7 +2451,7 @@ class Plan(object):
         return None
 
     @_checkCaseStatus
-    def showAccounts(self, tag='', value=None, figure=False):
+    def showAccounts(self, tag="", value=None, figure=False):
         """
         Plot values of savings accounts over time.
 
@@ -2462,25 +2462,24 @@ class Plan(object):
         """
         value = self._checkValue(value)
 
-        title = self._name + '\nSavings Balance'
-        if tag != '':
-            title += ' - ' + tag
+        title = self._name + "\nSavings Balance"
+        if tag != "":
+            title += " - " + tag
 
         stypes = self.savings_in.keys()
         # Add one year for estate.
         year_n = np.append(self.year_n, [self.year_n[-1] + 1])
 
-        if value == 'nominal':
-            yformat = '\\$k (nominal)'
+        if value == "nominal":
+            yformat = "\\$k (nominal)"
             savings_in = self.savings_in
         else:
-            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
+            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
             savings_in = {}
             for key in self.savings_in:
                 savings_in[key] = self.savings_in[key] / self.gamma_n
 
-        fig, ax = _stackPlot(year_n, self.inames, title, range(self.N_i),
-                             savings_in, stypes, 'upper left', yformat)
+        fig, ax = _stackPlot(year_n, self.inames, title, range(self.N_i), savings_in, stypes, "upper left", yformat)
 
         if figure:
             return fig
@@ -2489,7 +2488,7 @@ class Plan(object):
         return None
 
     @_checkCaseStatus
-    def showSources(self, tag='', value=None, figure=False):
+    def showSources(self, tag="", value=None, figure=False):
         """
         Plot income over time.
 
@@ -2500,23 +2499,24 @@ class Plan(object):
         """
         value = self._checkValue(value)
 
-        title = self._name + '\nRaw Income Sources'
+        title = self._name + "\nRaw Income Sources"
         stypes = self.sources_in.keys()
 
-        if tag != '':
-            title += ' - ' + tag
+        if tag != "":
+            title += " - " + tag
 
-        if value == 'nominal':
-            yformat = '\\$k (nominal)'
+        if value == "nominal":
+            yformat = "\\$k (nominal)"
             sources_in = self.sources_in
         else:
-            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
+            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
             sources_in = {}
             for key in self.sources_in:
                 sources_in[key] = self.sources_in[key] / self.gamma_n[:-1]
 
-        fig, ax = _stackPlot(self.year_n, self.inames, title, range(self.N_i),
-                             sources_in, stypes, 'upper left', yformat)
+        fig, ax = _stackPlot(
+            self.year_n, self.inames, title, range(self.N_i), sources_in, stypes, "upper left", yformat
+        )
 
         if figure:
             return fig
@@ -2525,34 +2525,34 @@ class Plan(object):
         return None
 
     @_checkCaseStatus
-    def _showFeff(self, tag=''):
+    def _showFeff(self, tag=""):
         """
         Plot income tax paid over time.
 
         A tag string can be set to add information to the title of the plot.
         """
-        title = self._name + '\nEff f '
-        if tag != '':
-            title += ' - ' + tag
+        title = self._name + "\nEff f "
+        if tag != "":
+            title += " - " + tag
 
-        various = ['-', '--', '-.', ':']
+        various = ["-", "--", "-.", ":"]
         style = {}
         series = {}
         q = 0
         for t in range(self.N_t):
-            key = 'f ' + str(t)
+            key = "f " + str(t)
             series[key] = self.F_tn[t] / self.DeltaBar_tn[t]
             # print(key, series[key])
             style[key] = various[q % len(various)]
             q += 1
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat='')
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat="")
 
         plt.show()
         return None
 
     @_checkCaseStatus
-    def showTaxes(self, tag='', value=None, figure=False):
+    def showTaxes(self, tag="", value=None, figure=False):
         """
         Plot income tax paid over time.
 
@@ -2563,21 +2563,21 @@ class Plan(object):
         """
         value = self._checkValue(value)
 
-        style = {'income taxes': '-', 'Medicare': '-.'}
+        style = {"income taxes": "-", "Medicare": "-."}
 
-        if value == 'nominal':
-            series = {'income taxes': self.T_n, 'Medicare': self.M_n}
-            yformat = '\\$k (nominal)'
+        if value == "nominal":
+            series = {"income taxes": self.T_n, "Medicare": self.M_n}
+            yformat = "\\$k (nominal)"
         else:
             series = {
-                'income taxes': self.T_n / self.gamma_n[:-1],
-                'Medicare': self.M_n / self.gamma_n[:-1],
+                "income taxes": self.T_n / self.gamma_n[:-1],
+                "Medicare": self.M_n / self.gamma_n[:-1],
             }
-            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
+            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
 
-        title = self._name + '\nIncome Tax'
-        if tag != '':
-            title += ' - ' + tag
+        title = self._name + "\nIncome Tax"
+        if tag != "":
+            title += " - " + tag
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
@@ -2588,7 +2588,7 @@ class Plan(object):
         return None
 
     @_checkCaseStatus
-    def showGrossIncome(self, tag='', value=None, figure=False):
+    def showGrossIncome(self, tag="", value=None, figure=False):
         """
         Plot income tax and taxable income over time horizon.
 
@@ -2599,30 +2599,30 @@ class Plan(object):
         """
         value = self._checkValue(value)
 
-        style = {'taxable income': '-'}
+        style = {"taxable income": "-"}
 
-        if value == 'nominal':
-            series = {'taxable income': self.G_n}
-            yformat = '\\$k (nominal)'
+        if value == "nominal":
+            series = {"taxable income": self.G_n}
+            yformat = "\\$k (nominal)"
             infladjust = self.gamma_n[:-1]
         else:
-            series = {'taxable income': self.G_n / self.gamma_n[:-1]}
-            yformat = '\\$k (' + str(self.year_n[0]) + '\\$)'
+            series = {"taxable income": self.G_n / self.gamma_n[:-1]}
+            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
             infladjust = 1
 
-        title = self._name + '\nTaxable Ordinary Income vs. Tax Brackets'
-        if tag != '':
-            title += ' - ' + tag
+        title = self._name + "\nTaxable Ordinary Income vs. Tax Brackets"
+        if tag != "":
+            title += " - " + tag
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
         data = tx.taxBrackets(self.N_i, self.n_d, self.N_n)
         for key in data:
             data_adj = data[key] * infladjust
-            ax.plot(self.year_n, data_adj, label=key, ls=':')
+            ax.plot(self.year_n, data_adj, label=key, ls=":")
 
-        plt.grid(visible='both')
-        ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.3)
+        plt.grid(visible="both")
+        ax.legend(loc="upper left", reverse=True, fontsize=8, framealpha=0.3)
 
         if figure:
             return fig
@@ -2636,7 +2636,7 @@ class Plan(object):
         Save parameters in a configuration file.
         """
         if basename is None:
-            basename = 'case_' + self._name
+            basename = "case_" + self._name
 
         config.saveConfig(self, basename, self.mylog)
 
@@ -2678,10 +2678,11 @@ class Plan(object):
 
         Last worksheet contains summary.
         """
+
         def fillsheet(sheet, dic, datatype, op=lambda x: x):
             rawData = {}
-            rawData['year'] = self.year_n
-            if datatype == 'currency':
+            rawData["year"] = self.year_n
+            if datatype == "currency":
                 for key in dic:
                     rawData[key] = u.roundCents(op(dic[key]))
             else:
@@ -2699,71 +2700,71 @@ class Plan(object):
 
         # Income.
         ws = wb.active
-        ws.title = 'Income'
+        ws.title = "Income"
 
         incomeDic = {
-            'net spending': self.g_n,
-            'taxable ord. income': self.G_n,
-            'taxable gains/divs': self.Q_n,
-            'Tax bills + Med.': self.T_n + self.U_n + self.M_n,
+            "net spending": self.g_n,
+            "taxable ord. income": self.G_n,
+            "taxable gains/divs": self.Q_n,
+            "Tax bills + Med.": self.T_n + self.U_n + self.M_n,
         }
 
-        fillsheet(ws, incomeDic, 'currency')
+        fillsheet(ws, incomeDic, "currency")
 
         # Cash flow - sum over both individuals for some.
         cashFlowDic = {
-            'net spending': self.g_n,
-            'all wages': np.sum(self.omega_in, axis=0),
-            'all pensions': np.sum(self.piBar_in, axis=0),
-            'all soc sec': np.sum(self.zetaBar_in, axis=0),
+            "net spending": self.g_n,
+            "all wages": np.sum(self.omega_in, axis=0),
+            "all pensions": np.sum(self.piBar_in, axis=0),
+            "all soc sec": np.sum(self.zetaBar_in, axis=0),
             "all BTI's": np.sum(self.Lambda_in, axis=0),
-            'all wdrwls': np.sum(self.w_ijn, axis=(0, 1)),
-            'all deposits': -np.sum(self.d_in, axis=0),
-            'ord taxes': -self.T_n,
-            'div taxes': -self.U_n,
-            'Medicare': -self.M_n,
+            "all wdrwls": np.sum(self.w_ijn, axis=(0, 1)),
+            "all deposits": -np.sum(self.d_in, axis=0),
+            "ord taxes": -self.T_n,
+            "div taxes": -self.U_n,
+            "Medicare": -self.M_n,
         }
-        sname = 'Cash Flow'
+        sname = "Cash Flow"
         ws = wb.create_sheet(sname)
-        fillsheet(ws, cashFlowDic, 'currency')
+        fillsheet(ws, cashFlowDic, "currency")
 
         # Sources are handled separately.
         srcDic = {
-            'wages': self.sources_in['wages'],
-            'social sec': self.sources_in['ssec'],
-            'pension': self.sources_in['pension'],
-            'txbl acc wdrwl': self.sources_in['txbl acc wdrwl'],
-            'RMDs': self.sources_in['RMD'],
-            '+distributions': self.sources_in['+dist'],
-            'Roth conv': self.sources_in['RothX'],
-            'tax-free wdrwl': self.sources_in['tax-free wdrwl'],
-            'big-ticket items': self.sources_in['BTI'],
+            "wages": self.sources_in["wages"],
+            "social sec": self.sources_in["ssec"],
+            "pension": self.sources_in["pension"],
+            "txbl acc wdrwl": self.sources_in["txbl acc wdrwl"],
+            "RMDs": self.sources_in["RMD"],
+            "+distributions": self.sources_in["+dist"],
+            "Roth conv": self.sources_in["RothX"],
+            "tax-free wdrwl": self.sources_in["tax-free wdrwl"],
+            "big-ticket items": self.sources_in["BTI"],
         }
 
         for i in range(self.N_i):
             sname = self.inames[i] + "'s Sources"
             ws = wb.create_sheet(sname)
-            fillsheet(ws, srcDic, 'currency', op=lambda x: x[i])
+            fillsheet(ws, srcDic, "currency", op=lambda x: x[i])
 
         # Account balances except final year.
         accDic = {
-            'taxable bal': self.b_ijn[:, 0, :-1],
-            'taxable ctrb': self.kappa_ijn[:, 0, :],
-            'taxable dep': self.d_in,
-            'taxable wdrwl': self.w_ijn[:, 0, :],
-            'tax-deferred bal': self.b_ijn[:, 1, :-1],
-            'tax-deferred ctrb': self.kappa_ijn[:, 1, :],
-            'tax-deferred wdrwl': self.w_ijn[:, 1, :],
-            '(included RMDs)': self.rmd_in[:, :],
-            'Roth conv': self.x_in,
-            'tax-free bal': self.b_ijn[:, 2, :-1],
-            'tax-free ctrb': self.kappa_ijn[:, 2, :],
-            'tax-free wdrwl': self.w_ijn[:, 2, :],
+            "taxable bal": self.b_ijn[:, 0, :-1],
+            "taxable ctrb": self.kappa_ijn[:, 0, :],
+            "taxable dep": self.d_in,
+            "taxable wdrwl": self.w_ijn[:, 0, :],
+            "tax-deferred bal": self.b_ijn[:, 1, :-1],
+            "tax-deferred ctrb": self.kappa_ijn[:, 1, :],
+            "tax-deferred wdrwl": self.w_ijn[:, 1, :],
+            "(included RMDs)": self.rmd_in[:, :],
+            "Roth conv": self.x_in,
+            "tax-free bal": self.b_ijn[:, 2, :-1],
+            "tax-free ctrb": self.kappa_ijn[:, 2, :],
+            "tax-free wdrwl": self.w_ijn[:, 2, :],
         }
         for i in range(self.N_i):
             sname = self.inames[i] + "'s Accounts"
             ws = wb.create_sheet(sname)
-            fillsheet(ws, accDic, 'currency', op=lambda x: x[i])
+            fillsheet(ws, accDic, "currency", op=lambda x: x[i])
             # Add final balances.
             lastRow = [
                 self.year_n[-1] + 1,
@@ -2781,11 +2782,11 @@ class Plan(object):
                 0,
             ]
             ws.append(lastRow)
-            _formatSpreadsheet(ws, 'currency')
+            _formatSpreadsheet(ws, "currency")
 
         # Allocations.
-        jDic = {'taxable': 0, 'tax-deferred': 1, 'tax-free': 2}
-        kDic = {'stocks': 0, 'C bonds': 1, 'T notes': 2, 'common': 3}
+        jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}
+        kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
 
         # Add one year for estate.
         year_n = np.append(self.year_n, [self.year_n[-1] + 1])
@@ -2793,28 +2794,30 @@ class Plan(object):
             sname = self.inames[i] + "'s Allocations"
             ws = wb.create_sheet(sname)
             rawData = {}
-            rawData['year'] = year_n
+            rawData["year"] = year_n
             for jkey in jDic:
                 for kkey in kDic:
-                    rawData[jkey + '/' + kkey] = self.alpha_ijkn[i, jDic[jkey], kDic[kkey], :]
+                    rawData[jkey + "/" + kkey] = self.alpha_ijkn[i, jDic[jkey], kDic[kkey], :]
             df = pd.DataFrame(rawData)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
 
-            _formatSpreadsheet(ws, 'percent1')
+            _formatSpreadsheet(ws, "percent1")
 
         # Rates on penultimate sheet.
-        ratesDic = {'S&P 500': self.tau_kn[0],
-                    'Corporate Baa': self.tau_kn[1],
-                    'T Bonds': self.tau_kn[2],
-                    'inflation': self.tau_kn[3]}
-        ws = wb.create_sheet('Rates')
-        fillsheet(ws, ratesDic, 'percent2')
+        ratesDic = {
+            "S&P 500": self.tau_kn[0],
+            "Corporate Baa": self.tau_kn[1],
+            "T Bonds": self.tau_kn[2],
+            "inflation": self.tau_kn[3],
+        }
+        ws = wb.create_sheet("Rates")
+        fillsheet(ws, ratesDic, "percent2")
 
         # Summary on last sheet.
-        ws = wb.create_sheet('Summary')
+        ws = wb.create_sheet("Summary")
         rawData = {}
-        rawData['SUMMARY ==========================================================================='] = (
+        rawData["SUMMARY ==========================================================================="] = (
             self.summaryList()
         )
 
@@ -2822,7 +2825,7 @@ class Plan(object):
         for row in dataframe_to_rows(df, index=False, header=True):
             ws.append(row)
 
-        _formatSpreadsheet(ws, 'summary')
+        _formatSpreadsheet(ws, "summary")
 
         if saveToFile:
             if basename is None:
@@ -2841,27 +2844,27 @@ class Plan(object):
         """
 
         planData = {}
-        planData['year'] = self.year_n
-        planData['net spending'] = self.g_n
-        planData['taxable ord. income'] = self.G_n
-        planData['taxable gains/divs'] = self.Q_n
-        planData['tax bill'] = self.T_n
+        planData["year"] = self.year_n
+        planData["net spending"] = self.g_n
+        planData["taxable ord. income"] = self.G_n
+        planData["taxable gains/divs"] = self.Q_n
+        planData["tax bill"] = self.T_n
 
         for i in range(self.N_i):
-            planData[self.inames[i] + ' txbl bal'] = self.b_ijn[i, 0, :-1]
-            planData[self.inames[i] + ' txbl dep'] = self.d_in[i, :]
-            planData[self.inames[i] + ' txbl wrdwl'] = self.w_ijn[i, 0, :]
-            planData[self.inames[i] + ' tx-def bal'] = self.b_ijn[i, 1, :-1]
-            planData[self.inames[i] + ' tx-def ctrb'] = self.kappa_ijn[i, 1, :]
-            planData[self.inames[i] + ' tx-def wdrl'] = self.w_ijn[i, 1, :]
-            planData[self.inames[i] + ' (RMD)'] = self.rmd_in[i, :]
-            planData[self.inames[i] + ' Roth conv'] = self.x_in[i, :]
-            planData[self.inames[i] + ' tx-free bal'] = self.b_ijn[i, 2, :-1]
-            planData[self.inames[i] + ' tx-free ctrb'] = self.kappa_ijn[i, 2, :]
-            planData[self.inames[i] + ' tax-free wdrwl'] = self.w_ijn[i, 2, :]
-            planData[self.inames[i] + ' big-ticket items'] = self.Lambda_in[i, :]
+            planData[self.inames[i] + " txbl bal"] = self.b_ijn[i, 0, :-1]
+            planData[self.inames[i] + " txbl dep"] = self.d_in[i, :]
+            planData[self.inames[i] + " txbl wrdwl"] = self.w_ijn[i, 0, :]
+            planData[self.inames[i] + " tx-def bal"] = self.b_ijn[i, 1, :-1]
+            planData[self.inames[i] + " tx-def ctrb"] = self.kappa_ijn[i, 1, :]
+            planData[self.inames[i] + " tx-def wdrl"] = self.w_ijn[i, 1, :]
+            planData[self.inames[i] + " (RMD)"] = self.rmd_in[i, :]
+            planData[self.inames[i] + " Roth conv"] = self.x_in[i, :]
+            planData[self.inames[i] + " tx-free bal"] = self.b_ijn[i, 2, :-1]
+            planData[self.inames[i] + " tx-free ctrb"] = self.kappa_ijn[i, 2, :]
+            planData[self.inames[i] + " tax-free wdrwl"] = self.w_ijn[i, 2, :]
+            planData[self.inames[i] + " big-ticket items"] = self.Lambda_in[i, :]
 
-        ratesDic = {'S&P 500': 0, 'Corporate Baa': 1, 'T Bonds': 2, 'inflation': 3}
+        ratesDic = {"S&P 500": 0, "Corporate Baa": 1, "T Bonds": 2, "inflation": 3}
         for key in ratesDic:
             planData[key] = self.tau_kn[ratesDic[key]]
 
@@ -2869,39 +2872,39 @@ class Plan(object):
 
         while True:
             try:
-                fname = 'worksheet' + '_' + basename + '.csv'
+                fname = "worksheet" + "_" + basename + ".csv"
                 df.to_csv(fname)
                 break
             except PermissionError:
-                self.mylog.print('Failed to save "%s": %s.' % (fname, 'Permission denied'))
-                key = input('Close file and try again? [Yn] ')
-                if key == 'n':
+                self.mylog.print('Failed to save "%s": %s.' % (fname, "Permission denied"))
+                key = input("Close file and try again? [Yn] ")
+                if key == "n":
                     break
             except Exception as e:
-                raise Exception('Unanticipated exception %r.' % e)
+                raise Exception("Unanticipated exception %r." % e)
 
         return None
 
 
-def _lineIncomePlot(x, series, style, title, yformat='\\$k'):
+def _lineIncomePlot(x, series, style, title, yformat="\\$k"):
     """
     Core line plotter function.
     """
     import matplotlib.ticker as tk
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    plt.grid(visible='both')
+    plt.grid(visible="both")
 
     for sname in series:
         ax.plot(x, series[sname], label=sname, ls=style[sname])
 
-    ax.legend(loc='upper left', reverse=True, fontsize=8, framealpha=0.3)
+    ax.legend(loc="upper left", reverse=True, fontsize=8, framealpha=0.3)
     ax.set_title(title)
-    ax.set_xlabel('year')
+    ax.set_xlabel("year")
     ax.set_ylabel(yformat)
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-    if 'k' in yformat:
-        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ',')))
+    if "k" in yformat:
+        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ",")))
         # Give range to y values in unindexed flat profiles.
         ymin, ymax = ax.get_ylim()
         if ymax - ymin < 5000:
@@ -2910,7 +2913,7 @@ def _lineIncomePlot(x, series, style, title, yformat='\\$k'):
     return fig, ax
 
 
-def _stackPlot(x, inames, title, irange, series, snames, location, yformat='\\$k'):
+def _stackPlot(x, inames, title, irange, series, snames, location, yformat="\\$k"):
     """
     Core function for stacked plots.
     """
@@ -2921,28 +2924,28 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat='\\$k
         for i in irange:
             tmp = series[sname][i]
             if sum(tmp) > 1.0:
-                nonzeroSeries[sname + ' ' + inames[i]] = tmp
+                nonzeroSeries[sname + " " + inames[i]] = tmp
 
     if len(nonzeroSeries) == 0:
         # print('Nothing to plot for', title)
         return None
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    plt.grid(visible='both')
+    plt.grid(visible="both")
 
     ax.stackplot(x, nonzeroSeries.values(), labels=nonzeroSeries.keys(), alpha=0.6)
     ax.legend(loc=location, reverse=True, fontsize=8, ncol=2, framealpha=0.5)
     ax.set_title(title)
-    ax.set_xlabel('year')
+    ax.set_xlabel("year")
     ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-    if 'k' in yformat:
+    if "k" in yformat:
         ax.set_ylabel(yformat)
-        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ',')))
-    elif yformat == 'percent':
-        ax.set_ylabel('%')
-        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(100 * x), ',')))
+        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ",")))
+    elif yformat == "percent":
+        ax.set_ylabel("%")
+        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(100 * x), ",")))
     else:
-        raise RuntimeError('Unknown yformat: %s.' % yformat)
+        raise RuntimeError("Unknown yformat: %s." % yformat)
 
     return fig, ax
 
@@ -2955,15 +2958,15 @@ def _saveWorkbook(wb, basename, overwrite, mylog):
     from pathlib import Path
 
     if Path(basename).suffixes == []:
-        fname = 'workbook' + '_' + basename + '.xlsx'
+        fname = "workbook" + "_" + basename + ".xlsx"
     else:
         fname = basename
 
     if overwrite is False and isfile(fname):
         mylog.print('File "%s" already exists.' % fname)
-        key = input('Overwrite? [Ny] ')
-        if key != 'y':
-            mylog.vprint('Skipping save and returning.')
+        key = input("Overwrite? [Ny] ")
+        if key != "y":
+            mylog.vprint("Skipping save and returning.")
             return None
 
     while True:
@@ -2972,12 +2975,12 @@ def _saveWorkbook(wb, basename, overwrite, mylog):
             wb.save(fname)
             break
         except PermissionError:
-            mylog.print('Failed to save "%s": %s.' % (fname, 'Permission denied'))
-            key = input('Close file and try again? [Yn] ')
-            if key == 'n':
+            mylog.print('Failed to save "%s": %s.' % (fname, "Permission denied"))
+            key = input("Close file and try again? [Yn] ")
+            if key == "n":
                 break
         except Exception as e:
-            raise Exception('Unanticipated exception %r.' % e)
+            raise Exception("Unanticipated exception %r." % e)
 
     return None
 
@@ -2986,31 +2989,31 @@ def _formatSpreadsheet(ws, ftype):
     """
     Utility function to beautify spreadsheet.
     """
-    if ftype == 'currency':
-        fstring = '$#,##0_);[Red]($#,##0)'
-    elif ftype == 'percent2':
-        fstring = '#.00%'
-    elif ftype == 'percent1':
-        fstring = '#.0%'
-    elif ftype == 'percent0':
-        fstring = '#0%'
-    elif ftype == 'summary':
+    if ftype == "currency":
+        fstring = "$#,##0_);[Red]($#,##0)"
+    elif ftype == "percent2":
+        fstring = "#.00%"
+    elif ftype == "percent1":
+        fstring = "#.0%"
+    elif ftype == "percent0":
+        fstring = "#0%"
+    elif ftype == "summary":
         for col in ws.columns:
             column = col[0].column_letter
             width = max(len(str(col[0].value)) + 20, 40)
             ws.column_dimensions[column].width = width
             return None
     else:
-        raise RuntimeError('Unknown format: %s.' % ftype)
+        raise RuntimeError("Unknown format: %s." % ftype)
 
-    for cell in ws[1] + ws['A']:
-        cell.style = 'Pandas'
+    for cell in ws[1] + ws["A"]:
+        cell.style = "Pandas"
     for col in ws.columns:
         column = col[0].column_letter
         # col[0].style = 'Title'
         width = max(len(str(col[0].value)) + 4, 10)
         ws.column_dimensions[column].width = width
-        if column != 'A':
+        if column != "A":
             for cell in col:
                 cell.number_format = fstring
 

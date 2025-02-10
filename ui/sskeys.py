@@ -1,29 +1,33 @@
-'''
+"""
 Module for storing keys in Streamlit session state.
-'''
+"""
+
 import streamlit as st
 import copy
+import re
 
 
 ss = st.session_state
-newCase = 'New Case...'
-loadCaseFile = 'Upload Case File...'
+newCase = "New Case..."
+loadCaseFile = "Upload Case File..."
 help1000 = "Value is in \\$1,000 denoted \\$k."
 
 
 def init():
-    '''
+    """
     Initialize variables through a function as it will only happen once through module.
-    '''
+    """
     # Dictionary of dictionaries for each case.
     global ss
     ss = st.session_state
-    if 'cases' not in ss:
-        ss.cases = {newCase: {'iname0': '', 'status': 'unkown', 'caseStatus': 'new', 'summary': ''},
-                    loadCaseFile: {'iname0': '', 'status': 'unkown', 'caseStatus': 'new', 'summary': ''}}
+    if "cases" not in ss:
+        ss.cases = {
+            newCase: {"iname0": "", "status": "unkown", "caseStatus": "new", "summary": ""},
+            loadCaseFile: {"iname0": "", "status": "unkown", "caseStatus": "new", "summary": ""},
+        }
 
     # Variable for storing name of current case.
-    if 'currentCase' not in ss:
+    if "currentCase" not in ss:
         ss.currentCase = loadCaseFile
         # ss.currentCase = newCase
 
@@ -43,14 +47,14 @@ def onlyCaseNames() -> list:
 
 
 def runOncePerSession(func):
-    key = 'oNcE_' + func.__name__
+    key = "oNcE_" + func.__name__
     if getGlobalKey(key) is None:
         func()
         storeGlobalKey(key, 1)
 
 
 def runOncePerCase(func):
-    key = 'oNcE_' + func.__name__
+    key = "oNcE_" + func.__name__
     if getKey(key) is None:
         func()
         storeKey(key, 1)
@@ -61,15 +65,15 @@ def refreshCase(adic):
     When a case is duplicated, reset all the runOnce functions.
     """
     for key in list(adic):
-        if key.startswith('oNcE_'):
+        if key.startswith("oNcE_"):
             del adic[key]
 
 
 def resetTimeLists():
-    setKey('stTimeLists', None)
-    setKey('timeList0', None)
-    if getKey('status') == 'married':
-        setKey('timeList1', None)
+    setKey("stTimeLists", None)
+    setKey("timeList0", None)
+    if getKey("status") == "married":
+        setKey("timeList1", None)
 
 
 def getIndex(item, choices):
@@ -86,71 +90,79 @@ def currentCaseName() -> str:
 
 
 def updateContributions():
-    noChange = ((getKey('_timeList0') is None or
-                 getKey('_timeList0').equals(getKey('timeList0'))) and
-                (getKey('_timeList1') is None or
-                 getKey('_timeList1').equals(getKey('timeList1'))))
+    noChange = (getKey("_timeList0") is None or getKey("_timeList0").equals(getKey("timeList0"))) and (
+        getKey("_timeList1") is None or getKey("_timeList1").equals(getKey("timeList1"))
+    )
     if noChange:
         return True
 
-    setKey('timeList0', getKey('_timeList0'))
-    setKey('timeList1', getKey('_timeList1'))
+    setKey("timeList0", getKey("_timeList0"))
+    setKey("timeList1", getKey("_timeList1"))
 
 
 def switchToCase(key):
     # Catch case where switch happens while editing W&W tables.
-    if getGlobalKey('currentPageName') == 'Wages And Contributions':
+    if getGlobalKey("currentPageName") == "Wages And Contributions":
         updateContributions()
-    ss.currentCase = ss['_'+key]
+    ss.currentCase = ss["_" + key]
 
 
 def isIncomplete():
-    return (currentCaseName() == '' or getKey('iname0') in [None, '']
-            or (getKey('status') == 'married' and getKey('iname1') in [None, '']))
+    return (
+        currentCaseName() == ""
+        or getKey("iname0") in [None, ""]
+        or (getKey("status") == "married" and getKey("iname1") in [None, ""])
+    )
 
 
 def isCaseUnsolved():
     if caseHasNoPlan():
         return True
-    return getKey('caseStatus') != 'solved'
+    return getKey("caseStatus") != "solved"
 
 
 def caseHasNoPlan():
-    return getKey('plan') is None
+    return getKey("plan") is None
 
 
 def caseHasPlan():
-    return getKey('plan') is not None
+    return getKey("plan") is not None
 
 
 def caseIsRunReady():
-    return not caseIsNotRunReady() and getKey('caseStatus') in ['modified', 'new']
+    return not caseIsNotRunReady() and getKey("caseStatus") in ["modified", "new"]
 
 
 def caseIsNotRunReady():
-    return (getKey('plan') is None or
-            getKey('objective') is None or
-            getKey('rateType') is None or
-            getKey('interpMethod') is None or
-            getKey('spendingProfile') is None)
+    return (
+        getKey("plan") is None
+        or getKey("objective") is None
+        or getKey("rateType") is None
+        or getKey("interpMethod") is None
+        or getKey("spendingProfile") is None
+    )
 
 
 def caseIsNotMCReady():
     """
     Check that rates are  set to some stochastic method before MC run.
     """
-    return (caseIsNotRunReady() or
-            getKey('rateType') != 'varying' or
-            'tochastic' not in getKey('varyingType'))
+    return caseIsNotRunReady() or getKey("rateType") != "varying" or "tochastic" not in getKey("varyingType")
 
 
 def titleBar(nkey, choices=None):
     if choices is None:
         choices = onlyCaseNames()
-    helpmsg = 'Select an existing case, or create a new one from scratch or from a *case* parameter file.'
-    return st.sidebar.selectbox('Select case', choices, help=helpmsg,
-                                index=getIndex(currentCaseName(), choices), key='_'+nkey,
-                                on_change=switchToCase, args=[nkey])
+    helpmsg = "Select an existing case, or create a new one from scratch or from a *case* parameter file."
+    return st.sidebar.selectbox(
+        "Select case",
+        choices,
+        help=helpmsg,
+        index=getIndex(currentCaseName(), choices),
+        key="_" + nkey,
+        on_change=switchToCase,
+        args=[nkey],
+    )
 
 
 def currentCaseDic() -> dict:
@@ -159,38 +171,40 @@ def currentCaseDic() -> dict:
 
 def setCurrentCase(case):
     if case not in ss.cases:
-        raise RuntimeError('Case %s not found in dictionary' % case)
+        raise RuntimeError(f"Case {case} not found in dictionary")
     ss.currentCase = case
 
 
 def duplicateCase():
+    baseName = re.sub(r"\s*\(\d+\)$", "", ss.currentCase)
     for i in range(1, 10):
-        dupname = ss.currentCase + '(%d)' % i
+        dupname = baseName + f"({i})"
         if dupname not in ss.cases:
             break
     else:
-        raise RuntimeError('Exhausted number of duplicates')
+        raise RuntimeError("Exhausted number of duplicates")
 
     # Copy everything except the plan itself.
-    # print(ss.currentCase, '->', ss.cases[ss.currentCase])
-    currentPlan = ss.cases[ss.currentCase]['plan']
-    ss.cases[ss.currentCase]['plan'] = None
+    # print(ss.currentCase, "->", ss.cases[ss.currentCase])
+    currentPlan = ss.cases[ss.currentCase]["plan"]
+    ss.cases[ss.currentCase]["plan"] = None
     ss.cases[dupname] = copy.deepcopy(ss.cases[ss.currentCase])
-    ss.cases[ss.currentCase]['plan'] = currentPlan
-    ss.cases[dupname]['name'] = dupname
-    ss.cases[dupname]['summary'] = ''
-    ss.cases[dupname]['duplicate'] = True
+    ss.cases[ss.currentCase]["plan"] = currentPlan
+    ss.cases[dupname]["name"] = dupname
+    ss.cases[dupname]["summary"] = ""
+    ss.cases[dupname]["duplicate"] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
 
 
 def createCaseFromFile(confile):
     import owlbridge as owb
+
     name, dic = owb.createCaseFromFile(confile)
-    if name == '':
+    if name == "":
         return False
     elif name in ss.cases:
-        st.error("Case name '%s' already exists." % name)
+        st.error(f"Case name '{name}' already exists.")
         return False
 
     ss.cases[name] = dic
@@ -199,33 +213,33 @@ def createCaseFromFile(confile):
 
 
 def createNewCase(case):
-    if case != 'newcase':
-        st.error("Expected 'newcase' but got '%s'." % case)
+    if case != "newcase":
+        st.error(f"Expected 'newcase' but got '{case}'.")
         return
 
     # Widget stored case name in _newname.
     casename = ss._newcase
 
-    if casename == '':
+    if casename == "":
         return
 
     if casename in ss.cases:
-        st.error("Case name '%s' already exists." % casename)
+        st.error(f"Case name '{casename}' already exists.")
         return
 
-    ss.cases[casename] = {'name': casename, 'caseStatus': 'unknown', 'summary': '', 'logs': None}
+    ss.cases[casename] = {"name": casename, "caseStatus": "unknown", "summary": "", "logs": None}
     setCurrentCase(ss._newcase)
 
 
 def renameCase(key):
     if ss.currentCase == newCase or ss.currentCase == loadCaseFile:
         return
-    newname = ss['_'+key]
-    plan = getKey('plan')
+    newname = ss["_" + key]
+    plan = getKey("plan")
     if plan:
         plan.rename(newname)
     ss.cases[newname] = ss.cases.pop(ss.currentCase)
-    ss.cases[newname]['name'] = newname
+    ss.cases[newname]["name"] = newname
     setCurrentCase(newname)
 
 
@@ -237,27 +251,27 @@ def deleteCurrentCase():
 
 
 def dumpSession():
-    print('State Dump:', ss)
+    print("State Dump:", ss)
 
 
 def dumpCase(case=None):
     if case is None:
         case = ss.currentCase
-    print('Case Dump:', ss.cases[case])
+    print("Case Dump:", ss.cases[case])
 
 
 def setpull(key):
-    return setKey(key, ss['_'+key])
+    return setKey(key, ss["_" + key])
 
 
 def storepull(key):
-    return storeKey(key, ss['_'+key])
+    return storeKey(key, ss["_" + key])
 
 
 def setKey(key, val):
     ss.cases[ss.currentCase][key] = val
-    ss.cases[ss.currentCase]['caseStatus'] = 'modified'
-    # print('setKey', key, val)
+    ss.cases[ss.currentCase]["caseStatus"] = "modified"
+    # print("setKey", key, val)
     return val
 
 
@@ -269,7 +283,7 @@ def storeKey(key, val):
 def initKey(key, val):
     if key not in ss.cases[ss.currentCase]:
         ss.cases[ss.currentCase][key] = val
-        # print('initKey', key, val)
+        # print("initKey", key, val)
 
 
 def initGlobalKey(key, val):
@@ -302,44 +316,43 @@ def getDict(key=ss.currentCase):
 
 def getAccountBalances(ni):
     bal = [[], [], []]
-    accounts = ['txbl', 'txDef', 'txFree']
+    accounts = ["txbl", "txDef", "txFree"]
     for j, acc in enumerate(accounts):
         for i in range(ni):
-            bal[j].append(getKey(acc+str(i)))
+            bal[j].append(getKey(acc + str(i)))
 
     return bal
 
 
 def getSolveParameters():
-    maximize = getKey('objective')
+    maximize = getKey("objective")
     if maximize is None:
         return None
-    if 'spending' in maximize:
-        objective = 'maxSpending'
+    if "spending" in maximize:
+        objective = "maxSpending"
     else:
-        objective = 'maxBequest'
+        objective = "maxBequest"
 
     options = {}
-    optList = ['netSpending', 'maxRothConversion', 'noRothConversions',
-               'withMedicare', 'bequest', 'solver']
+    optList = ["netSpending", "maxRothConversion", "noRothConversions", "withMedicare", "bequest", "solver"]
     for opt in optList:
         val = getKey(opt)
         if val is not None:
             options[opt] = val
 
-    if getKey('readRothX'):
-        options['maxRothConversion'] = 'file'
+    if getKey("readRothX"):
+        options["maxRothConversion"] = "file"
 
     previousMAGIs = getPreviousMAGIs()
     if previousMAGIs[0] > 0 or previousMAGIs[1] > 0:
-        options['previousMAGIs'] = previousMAGIs
+        options["previousMAGIs"] = previousMAGIs
 
     return objective, options
 
 
 def getIndividualAllocationRatios():
     generic = []
-    ni = 2 if getKey('status') == 'married' else 1
+    ni = 2 if getKey("status") == "married" else 1
     for i in range(ni):
         initial = []
         final = []
@@ -354,7 +367,7 @@ def getIndividualAllocationRatios():
 
 def getAccountAllocationRatios():
     accounts = [[], [], []]
-    ni = 2 if getKey('status') == 'married' else 1
+    ni = 2 if getKey("status") == "married" else 1
     for i in range(ni):
         for j1 in range(3):
             initial = []
@@ -371,7 +384,7 @@ def getAccountAllocationRatios():
 def getPreviousMAGIs():
     backMAGIs = [0, 0]
     for ii in range(2):
-        val = getKey('MAGI'+str(ii))
+        val = getKey(f"MAGI{ii}")
         if val:
             backMAGIs[ii] = val
 
@@ -383,64 +396,85 @@ def getFixedIncome(ni, what):
     ages = []
     indexed = []
     for i in range(ni):
-        amounts.append(getKey(what+'Amt'+str(i)))
-        ages.append(getKey(what+'Age'+str(i)))
-        if what == 'p':
-            indexed.append(getKey(what+'Idx'+str(i)))
+        amounts.append(getKey(what + "Amt" + str(i)))
+        ages.append(getKey(what + "Age" + str(i)))
+        if what == "p":
+            indexed.append(getKey(what + "Idx" + str(i)))
 
     return amounts, ages, indexed
 
 
 def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, min_value=0, max_value=None):
-    return st.number_input(text,
-                           value=int(getKey(nkey)),
-                           disabled=disabled,
-                           min_value=min_value,
-                           max_value=max_value,
-                           step=step,
-                           help=help,
-                           on_change=callback, args=[nkey], key='_'+nkey)
+    return st.number_input(
+        text,
+        value=int(getKey(nkey)),
+        disabled=disabled,
+        min_value=min_value,
+        max_value=max_value,
+        step=step,
+        help=help,
+        on_change=callback,
+        args=[nkey],
+        key="_" + nkey,
+    )
 
 
-def getNum(text, nkey, disabled=False, callback=setpull, step=10.,
-           min_value=0., max_value=None, format='%.1f', help=None):
-    return st.number_input(text,
-                           value=float(getKey(nkey)),
-                           disabled=disabled,
-                           step=step,
-                           help=help,
-                           min_value=min_value,
-                           max_value=max_value,
-                           format=format,
-                           on_change=callback, args=[nkey], key='_'+nkey)
+def getNum(
+    text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0, max_value=None, format="%.1f", help=None
+):
+    return st.number_input(
+        text,
+        value=float(getKey(nkey)),
+        disabled=disabled,
+        step=step,
+        help=help,
+        min_value=min_value,
+        max_value=max_value,
+        format=format,
+        on_change=callback,
+        args=[nkey],
+        key="_" + nkey,
+    )
 
 
 def getText(text, nkey, disabled=False, callback=setpull, placeholder=None):
-    return st.text_input(text,
-                         value=getKey(nkey),
-                         disabled=disabled,
-                         on_change=callback, args=[nkey], key='_'+nkey,
-                         placeholder=placeholder)
+    return st.text_input(
+        text,
+        value=getKey(nkey),
+        disabled=disabled,
+        on_change=callback,
+        args=[nkey],
+        key="_" + nkey,
+        placeholder=placeholder,
+    )
 
 
 def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
-    return st.radio(text, choices,
-                    index=choices.index(getKey(nkey)),
-                    on_change=callback, args=[nkey], key='_'+nkey,
-                    disabled=disabled, horizontal=True, help=help)
+    return st.radio(
+        text,
+        choices,
+        index=choices.index(getKey(nkey)),
+        on_change=callback,
+        args=[nkey],
+        key="_" + nkey,
+        disabled=disabled,
+        horizontal=True,
+        help=help,
+    )
 
 
 def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
-    return st.toggle(text, value=getKey(nkey), on_change=callback, args=[nkey],
-                     disabled=disabled, key='_'+nkey, help=help)
+    return st.toggle(
+        text, value=getKey(nkey), on_change=callback, args=[nkey], disabled=disabled, key="_" + nkey, help=help
+    )
 
 
 def orangeDivider():
-    st.html('<style> hr {border-color: orange;}</style><hr>')
+    st.html("<style> hr {border-color: orange;}</style><hr>")
 
 
 def caseHeader(txt):
-    # st.html('<div style="text-align: right;color: orange;font-style: italic;">%s</div>' % currentCaseName())
-    st.html('<div style="text-align: left;color: orange;font-style: italic;">%s</div>' % currentCaseName())
-    st.write('## ' + txt)
+    # st.html("<div style="text-align: right;color: orange;font-style: italic;">%s</div>" % currentCaseName())
+    st.html("<div style='text-align: left;color: orange;font-style: italic;'>%s</div>" % currentCaseName())
+    st.write("## " + txt)
     orangeDivider()

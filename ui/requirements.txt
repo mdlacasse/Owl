@@ -7,4 +7,4 @@ scipy
 streamlit
 toml
 # --extra-index-url https://test.pypi.org/simple
-owlplanner >= 2025.02.08
+owlplanner >= 2025.02.09

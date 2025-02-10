@@ -43,7 +43,7 @@ class Row(object):
         """
         Add an element at index ``ind`` of value ``val`` to the row.
         """
-        assert 0 <= ind and ind < self.nvars, 'Index %d out of range.' % ind
+        assert 0 <= ind and ind < self.nvars, "Index %d out of range." % ind
         self.ind.append(ind)
         self.val.append(val)
 
@@ -96,11 +96,11 @@ class ConstraintMatrix(object):
         self.lb.append(lb)
         self.ub.append(ub)
         if lb == ub:
-            self.key.append('fx')
+            self.key.append("fx")
         elif ub == np.inf:
-            self.key.append('lo')
+            self.key.append("lo")
         else:
-            self.key.append('ra')
+            self.key.append("ra")
         self.ncons += 1
 
     def addNewRow(self, rowDic, lb, ub):
@@ -154,39 +154,39 @@ class Bounds(object):
         self.integrality = []
 
     def setBinary(self, ii):
-        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.' % ii
+        assert 0 <= ii and ii < self.nvars, "Index %d out of range." % ii
         self.ind.append(ii)
         self.lb.append(0)
         self.ub.append(1)
-        self.key.append('ra')
+        self.key.append("ra")
         self.integrality.append(ii)
 
     def set0_Ub(self, ii, ub):
-        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.' % ii
+        assert 0 <= ii and ii < self.nvars, "Index %d out of range." % ii
         self.ind.append(ii)
         self.lb.append(0)
         self.ub.append(ub)
-        self.key.append('ra')
+        self.key.append("ra")
 
     def setLb_Inf(self, ii, lb):
-        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.' % ii
+        assert 0 <= ii and ii < self.nvars, "Index %d out of range." % ii
         self.ind.append(ii)
         self.lb.append(lb)
         self.ub.append(np.inf)
-        self.key.append('lo')
+        self.key.append("lo")
 
     def setRange(self, ii, lb, ub):
-        assert 0 <= ii and ii < self.nvars, 'Index %d out of range.' % ii
+        assert 0 <= ii and ii < self.nvars, "Index %d out of range." % ii
         self.ind.append(ii)
         self.lb.append(lb)
         self.ub.append(ub)
         if lb == ub:
-            self.key.append('fx')
+            self.key.append("fx")
         else:
-            self.key.append('ra')
+            self.key.append("ra")
 
     def keys(self):
-        keys = ['lo'] * self.nvars
+        keys = ["lo"] * self.nvars
         for ii in range(len(self.ind)):
             keys[self.ind[ii]] = self.key[ii]
 
@@ -223,7 +223,7 @@ class Objective(object):
         self.val = []
 
     def setElem(self, ind, val):
-        assert 0 <= ind and ind < self.nvars, 'Index %d out of range.' % ind
+        assert 0 <= ind and ind < self.nvars, "Index %d out of range." % ind
         self.ind.append(ind)
         self.val.append(val)
 

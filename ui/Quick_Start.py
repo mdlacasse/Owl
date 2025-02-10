@@ -2,15 +2,16 @@ import streamlit as st
 
 import sskeys as kz
 
-col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap='large')
+col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col3:
     st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")
     st.caption("Retirement planner with great wisdom")
 with col1:
-    st.write('# Owl Retirement Planner\nA retirement exploration tool based on linear programming')
+    st.write("# Owl Retirement Planner\nA retirement exploration tool based on linear programming")
     kz.orangeDivider()
-    st.write('### Quick Start')
-    st.markdown('''
+    st.write("### Quick Start")
+    st.markdown(
+        """
 Owl does not store any information related to a case:
 all is lost after a session is closed. For that reason,
 two files can be used to store the specifications of a case so that it can be reproduced
@@ -38,7 +39,7 @@ of Jack and Jill provided here as an example:
 you just downloaded (*case_jack+jill.toml*).
 1) Navigate to the **Wages and Contributions** page and
 drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*).
-1) Move to the **Single Scenario** section to browse the simulation results.
+1) Move to any page in the **Single Scenario** section to browse the simulation results.
 
 Congratulations! :balloon: You just ran your first case. You can now explore each page and
 experiment with different parameters.
@@ -56,4 +57,5 @@ Multiple cases can coexist and can be called and compared using the `Select case
 at the bottom of the margin.
 
 More information can be found on the :material/help: **Documentation** page located in the **Resources** section.
-''')
+"""
+    )

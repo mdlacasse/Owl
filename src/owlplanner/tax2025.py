@@ -22,7 +22,7 @@ from datetime import date
 ##############################################################################
 # Prepare the data.
 
-taxBracketNames = ['10%', '12/15%', '22/25%', '24/28%', '32/33%', '35%', '37/40%']
+taxBracketNames = ["10%", "12/15%", "22/25%", "24/28%", "32/33%", "35%", "37/40%"]
 
 rates_2025 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
 rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
@@ -154,7 +154,7 @@ def taxBrackets(N_i, n_d, N_n):
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
     """
-    assert 0 < N_i and N_i <= 2, 'Cannot process %d individuals.' % N_i
+    assert 0 < N_i and N_i <= 2, "Cannot process %d individuals." % N_i
     # This 1 is the number of years left in TCJA from 2025.
     ytc = 1
     status = N_i - 1
@@ -218,7 +218,7 @@ def rho_in(yobs, N_n):
 
     N_i = len(yobs)
     if N_i == 2 and abs(yobs[0] - yobs[1]) > 10:
-        raise RuntimeError('RMD: Unsupported age difference of more than 10 years.')
+        raise RuntimeError("RMD: Unsupported age difference of more than 10 years.")
 
     rho = np.zeros((N_i, N_n))
     thisyear = date.today().year
