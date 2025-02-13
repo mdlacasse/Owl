@@ -463,7 +463,8 @@ class Plan(object):
             assert 0 <= phi[j] <= 1, "Fractions must be between 0 and 1."
 
         self.phi_j = np.array(phi, dtype=np.float32)
-        self.mylog.vprint(f"Spousal beneficiary fractions set to {phi}.")
+        self.mylog.vprint("Spousal beneficiary fractions set to",
+                          ["{:.2f}".format(self.phi_j[j]) for j in range(self.N_j)])
         self.caseStatus = "modified"
 
         if np.any(self.phi_j != 1):
@@ -493,7 +494,8 @@ class Plan(object):
         fac = u.getUnits(units)
         amounts = u.rescale(amounts, fac)
 
-        self.mylog.vprint("Setting pension of", [u.d(amounts[i]) for i in range(self.N_i)], "at age(s)", ages)
+        self.mylog.vprint("Setting pension of", [u.d(amounts[i]) for i in range(self.N_i)],
+                          "at age(s)", [int(ages[i]) for i in range(self.N_i)])
 
         thisyear = date.today().year
         # Use zero array freshly initialized.
@@ -525,10 +527,8 @@ class Plan(object):
         amounts = u.rescale(amounts, fac)
 
         self.mylog.vprint(
-            "Setting social security benefits of",
-            [u.d(amounts[i]) for i in range(self.N_i)],
-            "at age(s)",
-            ages,
+            "Setting social security benefits of", [u.d(amounts[i]) for i in range(self.N_i)],
+            "at age(s)", [int(ages[i]) for i in range(self.N_i)],
         )
 
         thisyear = date.today().year
