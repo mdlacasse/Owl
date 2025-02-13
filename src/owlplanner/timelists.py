@@ -55,12 +55,12 @@ def read(finput, inames, horizons, mylog):
         try:
             dfDict = pd.read_excel(finput, sheet_name=None)
         except Exception as e:
-            raise Exception("Could not read file %r: %s." % (finput, e))
-        streamName = "file '%s'" % finput
+            raise Exception(f"Could not read file {finput}: {e}.")
+        streamName = f"file '{finput}'"
 
         timeLists = condition(dfDict, inames, horizons, mylog)
 
-    mylog.vprint("Successfully read time horizons from %s." % streamName)
+    mylog.vprint(f"Successfully read time horizons from {streamName}.")
 
     return finput, timeLists
 
@@ -101,10 +101,10 @@ def condition(dfDict, inames, horizons, mylog):
             else:
                 for item in timeHorizonItems:
                     if item != "big-ticket items" and df[item].iloc[n] < 0:
-                        raise ValueError("Item %s for %s in year %d is < 0." % (item, iname, df["year"].iloc[n]))
+                        raise ValueError(f"Item {item} for {iname} in year {df['year'].iloc[n]} is < 0.")
 
         if len(missing) > 0:
-            mylog.vprint("Adding %d missing years for %s: %r." % (len(missing), iname, missing))
+            mylog.vprint(f"Adding {len(missing)} missing years for {iname}: {missing}.")
 
         df.sort_values("year", inplace=True)
         # Replace empty (NaN) cells with 0 value.

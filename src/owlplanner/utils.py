@@ -65,7 +65,7 @@ def getUnits(units) -> int:
     elif units in {"m", "M"}:
         fac = 1000000
     else:
-        raise ValueError("Unknown units %r." % units)
+        raise ValueError(f"Unknown units {units}.")
 
     return fac
 

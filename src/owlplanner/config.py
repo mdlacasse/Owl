@@ -42,7 +42,7 @@ def saveConfig(plan, file, mylog):
     diconf["Assets"] = {}
     for j in range(plan.N_j):
         amounts = plan.beta_ij[:, j] / 1000
-        diconf["Assets"]["%s savings balances" % accountTypes[j]] = amounts.tolist()
+        diconf["Assets"][f"{accountTypes[j]} savings balances"] = amounts.tolist()
     if plan.N_i == 2:
         diconf["Assets"]["Beneficiary fractions"] = plan.phi_j.tolist()
         diconf["Assets"]["Spousal surplus deposit fraction"] = plan.eta
@@ -113,23 +113,23 @@ def saveConfig(plan, file, mylog):
             filename = filename + ".toml"
         if not filename.startswith("case_"):
             filename = "case_" + filename
-        mylog.vprint("Saving plan case file as '%s'." % filename)
+        mylog.vprint(f"Saving plan case file as '{filename}'.")
 
         try:
             with open(filename, "w") as casefile:
                 toml.dump(diconf, casefile, encoder=toml.TomlNumpyEncoder())
         except Exception as e:
-            raise RuntimeError("Failed to save case file %s: %s" % (filename, e))
+            raise RuntimeError(f"Failed to save case file {filename}: {e}")
     elif isinstance(file, StringIO):
         try:
             string = toml.dumps(diconf, encoder=toml.TomlNumpyEncoder())
             file.write(string)
         except Exception as e:
-            raise RuntimeError("Failed to save case to StringIO: %s", e)
+            raise RuntimeError(f"Failed to save case to StringIO: {e}")
     elif file is None:
         pass
     else:
-        raise ValueError("Argument %s has unknown type" % type(file))
+        raise ValueError(f"Argument {type(file)} has unknown type")
 
     return diconf
 
@@ -151,27 +151,27 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         if not filename.endswith(".toml"):
             filename = filename + ".toml"
 
-        mylog.vprint("Reading plan from case file '%s'." % filename)
+        mylog.vprint(f"Reading plan from case file '{filename}'.")
 
         try:
             with open(filename, "r") as f:
                 diconf = toml.load(f)
         except Exception as e:
-            raise FileNotFoundError("File %s not found: %s" % (filename, e))
+            raise FileNotFoundError(f"File {filename} not found: {e}")
     elif isinstance(file, BytesIO):
         try:
             string = file.getvalue().decode("utf-8")
             diconf = toml.loads(string)
         except Exception as e:
-            raise RuntimeError("Cannot read from BytesIO: %s" % e)
+            raise RuntimeError(f"Cannot read from BytesIO: {e}")
     elif isinstance(file, StringIO):
         try:
             string = file.getvalue()
             diconf = toml.loads(string)
         except Exception as e:
-            raise RuntimeError("Cannot read from StringIO: %s" % e)
+            raise RuntimeError(f"Cannot read from StringIO: {e}")
     else:
-        raise ValueError("%s not a valid type" % type(file))
+        raise ValueError(f"Type {type(file)} not a valid type")
 
     # Basic Info.
     name = diconf["Plan Name"]
@@ -181,14 +181,14 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     expectancy = diconf["Basic Info"]["Life expectancy"]
     startDate = diconf["Basic Info"]["Start date"]
     icount = len(yobs)
-
-    mylog.vprint("Plan for %d individual%s: %s." % (icount, ["", "s"][icount - 1], inames))
+    s = ["", "s"][icount - 1]
+    mylog.vprint(f"Plan for {icount} individual{s}: {inames}.")
     p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate, verbose=True, logstreams=logstreams)
 
     # Assets.
     balances = {}
     for acc in accountTypes:
-        balances[acc] = diconf["Assets"]["%s savings balances" % acc]
+        balances[acc] = diconf["Assets"][f"{acc} savings balances"]
     p.setAccountBalances(
         taxable=balances["taxable"], taxDeferred=balances["tax-deferred"], taxFree=balances["tax-free"]
     )
@@ -207,11 +207,11 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             elif dirname != "" and os.path.exists(dirname + "/" + timeListsFileName):
                 myfile = dirname + "/" + timeListsFileName
             else:
-                raise FileNotFoundError("File '%s' not found." % timeListsFileName)
+                raise FileNotFoundError(f"File '{timeListsFileName}' not found.")
             p.readContributions(myfile)
         else:
             p.timeListsFileName = timeListsFileName
-            mylog.vprint("Ignoring to read contributions file %s." % timeListsFileName)
+            mylog.vprint(f"Ignoring to read contributions file {timeListsFileName}.")
 
     # Fixed Income.
     ssecAmounts = np.array(diconf["Fixed Income"]["Social security amounts"], dtype=np.float32)
@@ -272,7 +272,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             generic=boundsAR["generic"],
         )
     else:
-        raise ValueError("Unknown asset allocation type %s." % allocType)
+        raise ValueError(f"Unknown asset allocation type {allocType}.")
 
     # Optimization Parameters.
     p.objective = diconf["Optimization Parameters"]["Objective"]

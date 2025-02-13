@@ -27,7 +27,7 @@ class Logger(object):
             self._logstreams = 2 * logstreams
             self.vprint("Using logstream as stream logger.")
         else:
-            raise ValueError("Log streams %r must be a list." % logstreams)
+            raise ValueError(f"Log streams {logstreams} must be a list.")
 
     def setVerbose(self, verbose=True):
         """

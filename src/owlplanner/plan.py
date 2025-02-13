@@ -82,7 +82,7 @@ def _genXi_n(profile, fraction, n_d, N_n, a, b, c):
             xi[n_d:] *= fraction
         xi *= neutralSum / xi.sum()
     else:
-        raise ValueError("Unknown profile type %s." % profile)
+        raise ValueError(f"Unknown profile type {profile}.")
 
     return xi
 
@@ -161,7 +161,7 @@ def _checkCaseStatus(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.caseStatus != "solved":
-            self.mylog.vprint("Preventing to run method %s() while case is %s." % (func.__name__, self.caseStatus))
+            self.mylog.vprint(f"Preventing to run method {func.__name__}() while case is {self.caseStatus}.")
             return None
         return func(self, *args, **kwargs)
 
@@ -177,11 +177,11 @@ def _checkConfiguration(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.xi_n is None:
-            msg = "You must define a spending profile before calling %s()." % func.__name__
+            msg = f"You must define a spending profile before calling {func.__name__}()."
             self.mylog.vprint(msg)
             raise RuntimeError(msg)
         if self.alpha_ijkn is None:
-            msg = "You must define an allocation profile before calling %s()." % func.__name__
+            msg = f"You must define an allocation profile before calling {func.__name__}()."
             self.mylog.vprint(msg)
             raise RuntimeError(msg)
         return func(self, *args, **kwargs)
@@ -201,9 +201,7 @@ def _timer(func):
         result = func(self, *args, **kwargs)
         pt = time.process_time() - pt0
         rt = time.time() - rt0
-        self.mylog.vprint(
-            "CPU time used: %dm%.1fs, Wall time: %dm%.1fs." % (int(pt / 60), pt % 60, int(rt / 60), rt % 60)
-        )
+        self.mylog.vprint(f"CPU time used: {int(pt / 60)}m{pt % 60:.1f}s, Wall time: {int(rt / 60)}m{rt % 60:.1f}s.")
         return result
 
     return wrapper
@@ -245,9 +243,9 @@ class Plan(object):
         self.defaultSolver = "HiGHS"
 
         self.N_i = len(yobs)
-        assert 0 < self.N_i and self.N_i <= 2, "Cannot support %d individuals." % self.N_i
-        assert self.N_i == len(expectancy), "Expectancy must have %d entries." % self.N_i
-        assert self.N_i == len(inames), "Names for individuals must have %d entries." % self.N_i
+        assert 0 < self.N_i and self.N_i <= 2, f"Cannot support {self.N_i} individuals."
+        assert self.N_i == len(expectancy), f"Expectancy must have {self.N_i} entries."
+        assert self.N_i == len(inames), f"Names for individuals must have {self.N_i} entries."
         assert inames[0] != "" or (self.N_i == 2 and inames[1] == ""), "Name for each individual must be provided."
 
         self.filingStatus = ["single", "married"][self.N_i - 1]
@@ -301,13 +299,11 @@ class Plan(object):
         self.prevMAGI = np.zeros((2))
 
         # Scenario starts at the beginning of this year and ends at the end of the last year.
-        self.mylog.vprint(
-            "Preparing scenario of %d years for %d individual%s." % (self.N_n, self.N_i, ["", "s"][self.N_i - 1])
-        )
+        s = ["", "s"][self.N_i - 1]
+        self.mylog.vprint(f"Preparing scenario of {self.N_n} years for {self.N_i} individual{s}.")
         for i in range(self.N_i):
-            self.mylog.vprint(
-                "%14s: life horizon from %d -> %d." % (self.inames[i], thisyear, thisyear + self.horizons[i] - 1)
-            )
+            endyear = thisyear + self.horizons[i] - 1
+            self.mylog.vprint(f"{self.inames[i]:>14}: life horizon from {thisyear} -> {endyear}.")
 
         # Prepare income tax and RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
@@ -340,7 +336,7 @@ class Plan(object):
 
     def setLogstreams(self, verbose, logstreams):
         self.mylog = logging.Logger(verbose, logstreams)
-        # self.mylog.vprint("Setting logstreams to %r." % logstreams)
+        # self.mylog.vprint(f"Setting logstreams to {logstreams}.")
 
     def logger(self):
         return self.mylog
@@ -382,7 +378,7 @@ class Plan(object):
         # Take midnight as the reference.
         self.yearFracLeft = 1 - (refdate.timetuple().tm_yday - 1) / (365 + lp)
 
-        self.mylog.vprint("Setting 1st-year starting date to %s." % (self.startDate))
+        self.mylog.vprint(f"Setting 1st-year starting date to {self.startDate}.")
 
         return None
 
@@ -397,7 +393,7 @@ class Plan(object):
         if value in opts:
             return value
 
-        raise ValueError("Value type must be one of: %r" % opts)
+        raise ValueError(f"Value type must be one of: {opts}")
 
         return None
 
@@ -407,7 +403,7 @@ class Plan(object):
         to distinguish graph outputs and as base name for
         saving configurations and workbooks.
         """
-        self.mylog.vprint("Renaming plan %s -> %s." % (self._name, newname))
+        self.mylog.vprint(f"Renaming plan {self._name} -> {newname}.")
         self._name = newname
 
     def setSpousalDepositFraction(self, eta):
@@ -425,8 +421,8 @@ class Plan(object):
             self.mylog.vprint("Deposit fraction can only be 0 for single individuals.")
             eta = 0
         else:
-            self.mylog.vprint("Setting spousal surplus deposit fraction to %.1f." % eta)
-            self.mylog.vprint("\t%s: %.1f, %s: %.1f" % (self.inames[0], (1 - eta), self.inames[1], eta))
+            self.mylog.vprint(f"Setting spousal surplus deposit fraction to {eta:.1f}.")
+            self.mylog.vprint(f"\t{self.inames[0]}: {1-eta:.1f}, {self.inames[1]}: {eta:.1f}")
             self.eta = eta
 
     def setDefaultPlots(self, value):
@@ -435,7 +431,7 @@ class Plan(object):
         """
 
         self.defaultPlots = self._checkValue(value)
-        self.mylog.vprint("Setting plots default value to %s." % value)
+        self.mylog.vprint(f"Setting plots default value to {value}.")
 
     def setDividendRate(self, mu):
         """
@@ -443,7 +439,7 @@ class Plan(object):
         """
         assert 0 <= mu and mu <= 100, "Rate must be between 0 and 100."
         mu /= 100
-        self.mylog.vprint("Dividend return rate on equities set to %s." % u.pc(mu, f=1))
+        self.mylog.vprint(f"Dividend return rate on equities set to {u.pc(mu, f=1)}.")
         self.mu = mu
         self.caseStatus = "modified"
 
@@ -453,7 +449,7 @@ class Plan(object):
         """
         assert 0 <= psi and psi <= 100, "Rate must be between 0 and 100."
         psi /= 100
-        self.mylog.vprint("Long-term capital gain income tax set to %s." % u.pc(psi, f=0))
+        self.mylog.vprint(f"Long-term capital gain income tax set to {u.pc(psi, f=0)}.")
         self.psi = psi
         self.caseStatus = "modified"
 
@@ -462,17 +458,17 @@ class Plan(object):
         Set fractions of savings accounts that is left to surviving spouse.
         Default is [1, 1, 1] for taxable, tax-deferred, adn tax-exempt accounts.
         """
-        assert len(phi) == self.N_j, "Fractions must have %d entries." % self.N_j
+        assert len(phi) == self.N_j, f"Fractions must have {self.N_j} entries."
         for j in range(self.N_j):
             assert 0 <= phi[j] <= 1, "Fractions must be between 0 and 1."
 
         self.phi_j = np.array(phi, dtype=np.float32)
-        self.mylog.vprint("Spousal beneficiary fractions set to", phi)
+        self.mylog.vprint(f"Spousal beneficiary fractions set to {phi}.")
         self.caseStatus = "modified"
 
         if np.any(self.phi_j != 1):
             self.mylog.vprint("Consider changing spousal deposit fraction for better convergence.")
-            self.mylog.vprint("\tRecommended: setSpousalDepositFraction(%d)" % self.i_d)
+            self.mylog.vprint(f"\tRecommended: setSpousalDepositFraction({self.i_d}.)")
 
     def setHeirsTaxRate(self, nu):
         """
@@ -481,7 +477,7 @@ class Plan(object):
         """
         assert 0 <= nu and nu <= 100, "Rate must be between 0 and 100."
         nu /= 100
-        self.mylog.vprint("Heirs tax rate on tax-deferred portion of estate set to %s." % u.pc(nu, f=0))
+        self.mylog.vprint(f"Heirs tax rate on tax-deferred portion of estate set to {u.pc(nu, f=0)}.")
         self.nu = nu
         self.caseStatus = "modified"
 
@@ -490,9 +486,9 @@ class Plan(object):
         Set value of pension for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
-        assert len(amounts) == self.N_i, "Amounts must have %d entries." % self.N_i
-        assert len(ages) == self.N_i, "Ages must have %d entries." % self.N_i
-        assert len(indexed) >= self.N_i, "Indexed list must have at least %d entries." % self.N_i
+        assert len(amounts) == self.N_i, f"Amounts must have {self.N_i} entries."
+        assert len(ages) == self.N_i, f"Ages must have {self.N_i} entries."
+        assert len(indexed) >= self.N_i, f"Indexed list must have at least {self.N_i} entries."
 
         fac = u.getUnits(units)
         amounts = u.rescale(amounts, fac)
@@ -522,8 +518,8 @@ class Plan(object):
         Set value of social security for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
-        assert len(amounts) == self.N_i, "Amounts must have %d entries." % self.N_i
-        assert len(ages) == self.N_i, "Ages must have %d entries." % self.N_i
+        assert len(amounts) == self.N_i, f"Amounts must have {self.N_i} entries."
+        assert len(ages) == self.N_i, f"Ages must have {self.N_i} entries."
 
         fac = u.getUnits(units)
         amounts = u.rescale(amounts, fac)
@@ -560,10 +556,10 @@ class Plan(object):
         as a second argument. Default value is 60%.
         Dip and increase are percent changes in the smile profile.
         """
-        assert 0 <= percent and percent <= 100, "Survivor value %r outside range." % percent
-        assert 0 <= dip and dip <= 100, "Dip value %r outside range." % dip
-        assert -100 <= increase and increase <= 100, "Increase value %r outside range." % dip
-        assert 0 <= delay and delay <= self.N_n - 2, "Delay value %r outside range." % delay
+        assert 0 <= percent and percent <= 100, f"Survivor value {percent} outside range."
+        assert 0 <= dip and dip <= 100, f"Dip value {dip} outside range."
+        assert -100 <= increase and increase <= 100, f"Increase value {increase} outside range."
+        assert 0 <= delay and delay <= self.N_n - 2, f"Delay value {delay} outside year range."
 
         self.chi = percent / 100
 
@@ -606,13 +602,7 @@ class Plan(object):
         self.rateFrm = frm
         self.rateTo = to
         self.tau_kn = dr.genSeries(self.N_n).transpose()
-        self.mylog.vprint(
-            "Generating rate series of",
-            len(self.tau_kn[0]),
-            "years using",
-            method,
-            "method.",
-        )
+        self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using {method} method.")
 
         # Account for how late we are now in the first year and reduce rate accordingly.
         self.tau_kn[:, 0] *= self.yearFracLeft
@@ -671,10 +661,10 @@ class Plan(object):
         each spouse.  For single individuals, these lists will contain only
         one entry. Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
-        plurals = ["", "y", "ies"]
-        assert len(taxable) == self.N_i, "taxable must have %d entr%s." % (self.N_i, plurals[self.N_i])
-        assert len(taxDeferred) == self.N_i, "taxDeferred must have %d entr%s." % (self.N_i, plurals[self.N_i])
-        assert len(taxFree) == self.N_i, "taxFree must have %d entr%s." % (self.N_i, plurals[self.N_i])
+        plurals = ["", "y", "ies"][self.N_i]
+        assert len(taxable) == self.N_i, f"taxable must have {self.N_i} entr{plurals}."
+        assert len(taxDeferred) == self.N_i, f"taxDeferred must have {self.N_i} entr{plurals}."
+        assert len(taxFree) == self.N_i, f"taxFree must have {self.N_i} entr{plurals}."
 
         fac = u.getUnits(units)
         taxable = u.rescale(taxable, fac)
@@ -716,12 +706,12 @@ class Plan(object):
             self.interpCenter = center
             self.interpWidth = width
         else:
-            raise ValueError("Method %s not supported." % method)
+            raise ValueError(f"Method {method} not supported.")
 
         self.interpMethod = method
         self.caseStatus = "modified"
 
-        self.mylog.vprint("Asset allocation interpolation method set to %s." % method)
+        self.mylog.vprint(f"Asset allocation interpolation method set to {method}.")
 
     def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None, taxFree=None, generic=None):
         """
@@ -750,31 +740,19 @@ class Plan(object):
         if allocType == "account":
             # Make sure we have proper input.
             for item in [taxable, taxDeferred, taxFree]:
-                assert len(item) == self.N_i, "%s must one entry per individual." % (item)
+                assert len(item) == self.N_i, f"{item} must have one entry per individual."
                 for i in range(self.N_i):
                     # Initial and final.
-                    assert len(item[i]) == 2, "%s[%d] must have 2 lists (initial and final)." % (
-                        item,
-                        i,
-                    )
+                    assert len(item[i]) == 2, f"{item}[{i}] must have 2 lists (initial and final)."
                     for z in range(2):
-                        assert len(item[i][z]) == self.N_k, "%s[%d][%d] must have %d entries." % (
-                            item,
-                            i,
-                            z,
-                            self.N_k,
-                        )
+                        assert len(item[i][z]) == self.N_k, f"{item}[{i}][{z}] must have {self.N_k} entries."
                         assert abs(sum(item[i][z]) - 100) < 0.01, "Sum of percentages must add to 100."
 
             for i in range(self.N_i):
-                self.mylog.vprint(
-                    self.inames[i],
-                    ": Setting gliding allocation ratios (%) to",
-                    allocType,
-                )
-                self.mylog.vprint("      taxable:", taxable[i][0], "->", taxable[i][1])
-                self.mylog.vprint("  taxDeferred:", taxDeferred[i][0], "->", taxDeferred[i][1])
-                self.mylog.vprint("      taxFree:", taxFree[i][0], "->", taxFree[i][1])
+                self.mylog.vprint(f"{self.inames[i]}: Setting gliding allocation ratios (%) to {allocType}.")
+                self.mylog.vprint(f"      taxable: {taxable[i][0]} -> {taxable[i][1]}")
+                self.mylog.vprint(f"  taxDeferred: {taxDeferred[i][0]} -> {taxDeferred[i][1]}")
+                self.mylog.vprint(f"      taxFree: {taxFree[i][0]} -> {taxFree[i][1]}")
 
             # Order in alpha is j, i, 0/1, k.
             alpha = {}
@@ -798,22 +776,14 @@ class Plan(object):
             assert len(generic) == self.N_i, "generic must have one list per individual."
             for i in range(self.N_i):
                 # Initial and final.
-                assert len(generic[i]) == 2, "generic[%d] must have 2 lists (initial and final)." % i
+                assert len(generic[i]) == 2, f"generic[{i}] must have 2 lists (initial and final)."
                 for z in range(2):
-                    assert len(generic[i][z]) == self.N_k, "generic[%d][%d] must have %d entries." % (
-                        i,
-                        z,
-                        self.N_k,
-                    )
+                    assert len(generic[i][z]) == self.N_k, f"generic[{i}][{z}] must have {self.N_k} entries."
                     assert abs(sum(generic[i][z]) - 100) < 0.01, "Sum of percentages must add to 100."
 
             for i in range(self.N_i):
-                self.mylog.vprint(
-                    self.inames[i],
-                    ": Setting gliding allocation ratios (%) to",
-                    allocType,
-                )
-                self.mylog.vprint("\t", generic[i][0], "->", generic[i][1])
+                self.mylog.vprint(f"{self.inames[i]}: Setting gliding allocation ratios (%) to {allocType}.")
+                self.mylog.vprint(f"\t{generic[i][0]} -> {generic[i][1]}")
 
             for i in range(self.N_i):
                 Nin = self.horizons[i] + 1
@@ -829,14 +799,11 @@ class Plan(object):
         elif allocType == "spouses":
             assert len(generic) == 2, "generic must have 2 entries (initial and final)."
             for z in range(2):
-                assert len(generic[z]) == self.N_k, "generic[%d] must have %d entries." % (
-                    z,
-                    self.N_k,
-                )
+                assert len(generic[z]) == self.N_k, f"generic[{z}] must have {self.N_k} entries."
                 assert abs(sum(generic[z]) - 100) < 0.01, "Sum of percentages must add to 100."
 
-            self.mylog.vprint("Setting gliding allocation ratios (%) to", allocType)
-            self.mylog.vprint("\t", generic[0], "->", generic[1])
+            self.mylog.vprint(f"Setting gliding allocation ratios (%) to {allocType}.")
+            self.mylog.vprint(f"\t{generic[0]} -> {generic[1]}")
 
             # Use longest-lived spouse for both time scales.
             Nxn = max(self.horizons) + 1
@@ -854,7 +821,7 @@ class Plan(object):
         self.ARCoord = allocType
         self.caseStatus = "modified"
 
-        self.mylog.vprint("Interpolating assets allocation ratios using", self.interpMethod, "method.")
+        self.mylog.vprint(f"Interpolating assets allocation ratios using {self.interpMethod} method.")
 
     def readContributions(self, filename):
         """
@@ -880,7 +847,7 @@ class Plan(object):
         try:
             filename, self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
         except Exception as e:
-            raise Exception("Unsuccessful read of contributions: %s" % e)
+            raise Exception(f"Unsuccessful read of contributions: {e}")
             return False
 
         self.timeListsFileName = filename
@@ -1045,13 +1012,7 @@ class Plan(object):
         self.nvars = _qC(C["z"], self.N_i, self.N_n, self.N_z)
 
         self.C = C
-        self.mylog.vprint(
-            "Problem has",
-            len(C),
-            "distinct time series forming",
-            self.nvars,
-            "decision variables.",
-        )
+        self.mylog.vprint(f"Problem has {len(C)} distinct time series forming {self.nvars} decision variables.")
 
         return None
 
@@ -1132,7 +1093,7 @@ class Plan(object):
         # Roth conversions equalities/inequalities.
         if "maxRothConversion" in options:
             if options["maxRothConversion"] == "file":
-                # self.mylog.vprint('Fixing Roth conversions to those from file %s.' % self.timeListsFileName)
+                # self.mylog.vprint(f"Fixing Roth conversions to those from file {self.timeListsFileName}.")
                 for i in range(Ni):
                     for n in range(self.horizons[i]):
                         rhs = self.myRothX_in[i][n]
@@ -1157,7 +1118,7 @@ class Plan(object):
             try:
                 i_x = self.inames.index(rhsopt)
             except ValueError:
-                raise ValueError("Unknown individual %s for noRothConversions:" % rhsopt)
+                raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:")
 
             for n in range(Nn):
                 B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
@@ -1397,10 +1358,10 @@ class Plan(object):
         """
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n - 1
-            self.mylog.vprint("Warning: Upper bound for year range re-adjusted to %d." % yend)
+            self.mylog.vprint(f"Warning: Upper bound for year range re-adjusted to {yend}.")
         N = yend - ystart + 1
 
-        self.mylog.vprint("Running historical range from %d to %d." % (ystart, yend))
+        self.mylog.vprint(f"Running historical range from {ystart} to {yend}.")
 
         self.mylog.setVerbose(verbose)
 
@@ -1409,7 +1370,7 @@ class Plan(object):
         elif objective == "maxBequest":
             columns = ["partial", "final"]
         else:
-            self.mylog.print("Invalid objective %s." % objective)
+            self.mylog.print(f"Invalid objective {objective}.")
             return None
 
         df = pd.DataFrame(columns=columns)
@@ -1450,7 +1411,7 @@ class Plan(object):
             self.mylog.print("It is pointless to run Monte Carlo simulations with fixed rates.")
             return
 
-        self.mylog.vprint("Running %d Monte Carlo simulations." % N)
+        self.mylog.vprint(f"Running {N} Monte Carlo simulations.")
         self.mylog.setVerbose(verbose)
 
         # Turn off Medicare by default, unless specified in options.
@@ -1465,7 +1426,7 @@ class Plan(object):
         elif objective == "maxBequest":
             columns = ["partial", "final"]
         else:
-            self.mylog.print("Invalid objective %s." % objective)
+            self.mylog.print(f"Invalid objective {objective}.")
             return None
 
         df = pd.DataFrame(columns=columns)
@@ -1505,8 +1466,9 @@ class Plan(object):
 
         description = io.StringIO()
 
-        print("Success rate: %s on %d samples." % (u.pc(len(df) / N), N), file=description)
-        title = "$N$ = %d, $P$ = %s" % (N, u.pc(len(df) / N))
+        pSuccess = u.pc(len(df) / N)
+        print(f"Success rate: {pSuccess} on {N} samples.", file=description)
+        title = f"$N$ = {N}, $P$ = {pSuccess}"
         means = df.mean(axis=0, numeric_only=True)
         medians = df.median(axis=0, numeric_only=True)
 
@@ -1518,13 +1480,14 @@ class Plan(object):
         # or if solution led to empty accounts at the end of first spouse's life.
         if np.all(self.phi_j == 1) or medians.iloc[0] < 1:
             if medians.iloc[0] < 1:
-                print("Optimized solutions all have null partial bequest in year %d." % my[0], file=description)
+                print(f"Optimized solutions all have null partial bequest in year {my[0]}.", file=description)
             df.drop("partial", axis=1, inplace=True)
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
 
         df /= 1000
         if len(df) > 0:
+            thisyear = self.year_n[0]
             if objective == "maxBequest":
                 fig, axes = plt.subplots()
                 # Show both partial and final bequests in the same histogram.
@@ -1532,37 +1495,36 @@ class Plan(object):
                 legend = []
                 # Don't know why but legend is reversed from df.
                 for q in range(len(means) - 1, -1, -1):
-                    legend.append(
-                        "%d: $M$: %s, $\\bar{x}$: %s"
-                        % (my[q], u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True))
-                    )
+                    dmedian = u.d(medians.iloc[q], latex=True)
+                    dmean = u.d(means.iloc[q], latex=True)
+                    legend.append(f"{my[q]}: $M$: {dmedian}, $\\bar{{x}}$: {dmean}")
                 plt.legend(legend, shadow=True)
-                plt.xlabel("%d $k" % self.year_n[0])
+                plt.xlabel(f"{thisyear} $k")
                 plt.title(objective)
-                leads = ["partial %d" % my[0], "  final %d" % my[1]]
+                leads = [f"partial {my[0]}", f"  final {my[1]}"]
             elif len(means) == 2:
                 # Show partial bequest and net spending as two separate histograms.
                 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
                 cols = ["partial", objective]
-                leads = ["partial %d" % my[0], objective]
+                leads = [f"partial {my[0]}", objective]
                 for q in range(2):
                     sbn.histplot(df[cols[q]], kde=True, ax=axes[q])
-                    legend = [
-                        ("$M$: %s, $\\bar{x}$: %s" % (u.d(medians.iloc[q], latex=True), u.d(means.iloc[q], latex=True)))
-                    ]
+                    dmedian = u.d(medians.iloc[q], latex=True)
+                    dmean = u.d(means.iloc[q], latex=True)
+                    legend = [f"$M$: {dmedian}, $\\bar{{x}}$: {dmean}"]
                     axes[q].set_label(legend)
                     axes[q].legend(labels=legend)
                     axes[q].set_title(leads[q])
-                    axes[q].set_xlabel("%d $k" % self.year_n[0])
+                    axes[q].set_xlabel(f"{thisyear} $k")
             else:
                 # Show net spending as single histogram.
                 fig, axes = plt.subplots()
                 sbn.histplot(df[objective], kde=True, ax=axes)
-                legend = [
-                    ("$M$: %s, $\\bar{x}$: %s" % (u.d(medians.iloc[0], latex=True), u.d(means.iloc[0], latex=True)))
-                ]
+                dmedian = u.d(medians.iloc[0], latex=True)
+                dmean = u.d(means.iloc[0], latex=True)
+                legend = [f"$M$: {dmedian}, $\\bar{{x}}$: {dmean}"]
                 plt.legend(legend, shadow=True)
-                plt.xlabel("%d $k" % self.year_n[0])
+                plt.xlabel(f"{thisyear} $k")
                 plt.title(objective)
                 leads = [objective]
 
@@ -1570,15 +1532,13 @@ class Plan(object):
             # plt.show()
 
         for q in range(len(means)):
-            print("%12s: Median (%d $): %s" % (leads[q], self.year_n[0], u.d(medians.iloc[q])), file=description)
-            print("%12s:   Mean (%d $): %s" % (leads[q], self.year_n[0], u.d(means.iloc[q])), file=description)
-            print(
-                "%12s:           Range: %s - %s"
-                % (leads[q], u.d(1000 * df.iloc[:, q].min()), u.d(1000 * df.iloc[:, q].max())),
-                file=description,
-            )
+            print(f"{leads[q]:>12}: Median ({thisyear} $): {u.d(medians.iloc[q])}", file=description)
+            print(f"{leads[q]:>12}:   Mean ({thisyear} $): {u.d(means.iloc[q])}", file=description)
+            mmin = 1000 * df.iloc[:, q].min()
+            mmax = 1000 * df.iloc[:, q].max()
+            print(f"{leads[q]:>12}:           Range: {u.d(mmin)} - {u.d(mmax)}", file=description)
             nzeros = len(df.iloc[:, q][df.iloc[:, q] < 0.001])
-            print("%12s:  N zero solns: %d" % (leads[q], nzeros), file=description)
+            print(f"{leads[q]:>12}:    N zero solns: {nzeros}", file=description)
 
         return fig, description
 
@@ -1637,13 +1597,13 @@ class Plan(object):
 
         for opt in myoptions:
             if opt not in knownOptions:
-                raise ValueError("Option %s is not one of %r." % (opt, knownOptions))
+                raise ValueError(f"Option {opt} is not one of {knownOptions}.")
 
         if objective not in knownObjectives:
-            raise ValueError("Objective %s is not one of %r." % (objective, knownObjectives))
+            raise ValueError(f"Objective {objective} is not one of {knownObjectives}.")
 
         if objective == "maxBequest" and "netSpending" not in myoptions:
-            raise RuntimeError("Objective %s needs netSpending option." % objective)
+            raise RuntimeError(f"Objective {objective} needs netSpending option.")
 
         if objective == "maxBequest" and "bequest" in myoptions:
             self.mylog.vprint("Ignoring bequest option provided.")
@@ -1672,7 +1632,7 @@ class Plan(object):
         if "solver" in options:
             solver = myoptions["solver"]
             if solver not in knownSolvers:
-                raise ValueError("Unknown solver %s." % solver)
+                raise ValueError(f"Unknown solver {solver}.")
         else:
             solver = self.defaultSolver
 
@@ -1735,7 +1695,7 @@ class Plan(object):
 
             self._estimateMedicare(solution.x)
 
-            self.mylog.vprint("Iteration:", it, "objective:", u.d(solution.fun * objFac, f=2))
+            self.mylog.vprint(f"Iteration: {it} objective: {u.d(solution.fun * objFac, f=2)}")
 
             delta = solution.x - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
@@ -1757,9 +1717,9 @@ class Plan(object):
             old_x = solution.x
 
         if solution.success:
-            self.mylog.vprint("Self-consistent Medicare loop returned after %d iterations." % it)
+            self.mylog.vprint(f"Self-consistent Medicare loop returned after {it} iterations.")
             self.mylog.vprint(solution.message)
-            self.mylog.vprint("Objective:", u.d(solution.fun * objFac))
+            self.mylog.vprint(f"Objective: {u.d(solution.fun * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(solution.x)
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
@@ -1871,7 +1831,7 @@ class Plan(object):
         task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
         # task.writedata(self._name+'.ptf')
         if solsta == mosek.solsta.integer_optimal:
-            self.mylog.vprint("Self-consistent Medicare loop returned after %d iterations." % it)
+            self.mylog.vprint(f"Self-consistent Medicare loop returned after {it} iterations.")
             task.solutionsummary(mosek.streamtype.msg)
             self.mylog.vprint("Objective:", u.d(solution * objFac))
             self.caseStatus = "solved"
@@ -2052,7 +2012,7 @@ class Plan(object):
         """
         _estate = np.sum(self.b_ijn[:, :, :, self.N_n], axis=(0, 2))
         _estate[1] *= 1 - self.nu
-        self.mylog.vprint("Estate value of %s at the end of year %s." % (u.d(sum(_estate)), self.year_n[-1]))
+        self.mylog.vprint(f"Estate value of {u.d(sum(_estate))} at the end of year {self.year_n[-1]}.")
 
         return None
 
@@ -2104,67 +2064,63 @@ class Plan(object):
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total net spending in {now}$"] = "%s (%s nominal)" % (u.d(totIncomeNow), u.d(totIncome))
+        dic[f"Total net spending in {now}$"] = f"{u.d(totIncomeNow)} ({u.d(totIncome)} nominal)"
 
         totRoth = np.sum(self.x_in, axis=(0, 1))
         totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n[:-1], axis=0)
-        dic[f"Total Roth conversions in {now}$"] = "%s (%s nominal)" % (u.d(totRothNow), u.d(totRoth))
+        dic[f"Total Roth conversions in {now}$"] = f"{u.d(totRothNow)} ({u.d(totRoth)} nominal)"
 
         taxPaid = np.sum(self.T_n, axis=0)
         taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total income tax paid on ordinary income in {now}$"] = "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
+        dic[f"Total income tax paid on ordinary income in {now}$"] = f"{u.d(taxPaidNow)} ({u.d(taxPaid)} nominal)"
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total tax paid on gains and dividends in {now}$"] = "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
+        dic[f"Total tax paid on gains and dividends in {now}$"] = f"{u.d(taxPaidNow)} ({u.d(taxPaid)} nominal)"
 
         taxPaid = np.sum(self.M_n, axis=0)
         taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total Medicare premiums paid in {now}$"] = "%s (%s nominal)" % (u.d(taxPaidNow), u.d(taxPaid))
+        dic[f"Total Medicare premiums paid in {now}$"] = f"{u.d(taxPaidNow)} ({u.d(taxPaid)} nominal)"
 
         if self.N_i == 2 and self.n_d < self.N_n:
             p_j = self.partialEstate_j * (1 - self.phi_j)
             p_j[1] *= 1 - self.nu
             nx = self.n_d - 1
+            ynx = self.year_n[nx]
             totOthers = np.sum(p_j)
             totOthersNow = totOthers / self.gamma_n[nx + 1]
             q_j = self.partialEstate_j * self.phi_j
             totSpousal = np.sum(q_j)
             totSpousalNow = totSpousal / self.gamma_n[nx + 1]
-            dic[
-                "Spousal wealth transfer from %s to %s in year %d (nominal)"
-                % (self.inames[self.i_d], self.inames[self.i_s], self.year_n[nx])
-            ] = "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(q_j[0]), u.d(q_j[1]), u.d(q_j[2]))
+            iname_s = self.inames[self.i_s]
+            iname_d = self.inames[self.i_d]
+            dic[f"Spousal wealth transfer from {iname_d} to {iname_s} in year {ynx} (nominal)"] = (
+                f"taxable: {u.d(q_j[0])}  tax-def: {u.d(q_j[1])}  tax-free: {u.d(q_j[2])}")
 
-            dic["Sum of spousal bequests to %s in year %d in %d$" % (self.inames[self.i_s], self.year_n[nx], now)] = (
-                "%s (%s nominal)" % (u.d(totSpousalNow), u.d(totSpousal))
-            )
+            dic[f"Sum of spousal bequests to {iname_s} in year {ynx} in {now}$"] = (
+                f"{u.d(totSpousalNow)} ({u.d(totSpousal)} nominal)")
             dic[
-                "Post-tax non-spousal bequests from %s in year %d (nominal)" % (self.inames[self.i_d], self.year_n[nx])
-            ] = "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(p_j[0]), u.d(p_j[1]), u.d(p_j[2]))
+                f"Post-tax non-spousal bequests from {iname_d} in year {ynx} (nominal)"] = (
+                f"taxable: {u.d(p_j[0])}  tax-def: {u.d(p_j[1])}  tax-free: {u.d(p_j[2])}")
             dic[
-                "Sum of post-tax non-spousal bequests from %s in year %d in %d$"
-                % (self.inames[self.i_d], self.year_n[nx], now)
-            ] = "%s (%s nominal)" % (u.d(totOthersNow), u.d(totOthers))
+                f"Sum of post-tax non-spousal bequests from {iname_d} in year {ynx} in {now}$"] = (
+                f"{u.d(totOthersNow)} ({u.d(totOthers)} nominal)")
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
-        dic["Post-tax account values at the end of final plan year %d (nominal)" % self.year_n[-1]] = (
-            "taxable: %s  tax-def: %s  tax-free: %s" % (u.d(estate[0]), u.d(estate[1]), u.d(estate[2]))
-        )
+        lastyear = self.year_n[-1]
+        dic[f"Post-tax account values at the end of final plan year {lastyear} (nominal)"] = (
+            f"taxable: {u.d(estate[0])}  tax-def: {u.d(estate[1])}  tax-free: {u.d(estate[2])}")
 
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[-1]
-        dic["Total estate value at the end of final plan year %d in %d$" % (self.year_n[-1], now)] = (
-            "%s (%s nominal)" % (u.d(totEstateNow), u.d(totEstate))
-        )
+        dic[f"Total estate value at the end of final plan year {lastyear} in {now}$"] = (
+            f"{u.d(totEstateNow)} ({u.d(totEstate)} nominal)")
         dic["Plan starting date"] = str(self.startDate)
-        dic["Cumulative inflation factor from start date to end of plan"] = "%.2f" % (self.gamma_n[-1])
+        dic["Cumulative inflation factor from start date to end of plan"] = f"{self.gamma_n[-1]:.2f}"
         for i in range(self.N_i):
-            dic["%12s's %02d-year life horizon" % (self.inames[i], self.horizons[i])] = "%d -> %d" % (
-                now,
-                now + self.horizons[i] - 1,
-            )
+            dic[f"{self.inames[i]:>12}'s {self.horizons[i]:02}-year life horizon"] = (
+                f"{now} -> {now + self.horizons[i] - 1}")
 
         dic["Plan name"] = self._name
         dic["Number of decision variables"] = str(self.A.nvars)
@@ -2182,7 +2138,7 @@ class Plan(object):
         import seaborn as sbn
 
         if self.rateMethod in [None, "user", "historical average", "conservative"]:
-            self.mylog.vprint("Warning: Cannot plot correlations for %s rate method." % self.rateMethod)
+            self.mylog.vprint(f"Warning: Cannot plot correlations for {self.rateMethod} rate method.")
             return None
 
         rateNames = [
@@ -2218,7 +2174,7 @@ class Plan(object):
         # plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
         title = self._name + "\n"
-        title += "Rates Correlations (N=%d) %s" % (self.N_n, self.rateMethod)
+        title += f"Rates Correlations (N={self.N_n}) {self.rateMethod}"
         if self.rateMethod in ["historical", "histochastic"]:
             title += " (" + str(self.rateFrm) + "-" + str(self.rateTo) + ")"
 
@@ -2418,7 +2374,7 @@ class Plan(object):
         elif self.ARCoord == "account":
             acList = ["taxable", "tax-deferred", "tax-free"]
         else:
-            raise ValueError("Unknown coordination %s" % self.ARCoord)
+            raise ValueError(f"Unknown coordination {self.ARCoord}.")
 
         figures = []
         assetDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
@@ -2876,12 +2832,12 @@ class Plan(object):
                 df.to_csv(fname)
                 break
             except PermissionError:
-                self.mylog.print('Failed to save "%s": %s.' % (fname, "Permission denied"))
+                self.mylog.print(f'Failed to save "{fname}": Permission denied.')
                 key = input("Close file and try again? [Yn] ")
                 if key == "n":
                     break
             except Exception as e:
-                raise Exception("Unanticipated exception %r." % e)
+                raise Exception(f"Unanticipated exception: {e}.")
 
         return None
 
@@ -2945,7 +2901,7 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat="\\$k
         ax.set_ylabel("%")
         ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(100 * x), ",")))
     else:
-        raise RuntimeError("Unknown yformat: %s." % yformat)
+        raise RuntimeError(f"Unknown yformat: {yformat}.")
 
     return fig, ax
 
@@ -2963,7 +2919,7 @@ def _saveWorkbook(wb, basename, overwrite, mylog):
         fname = basename
 
     if overwrite is False and isfile(fname):
-        mylog.print('File "%s" already exists.' % fname)
+        mylog.print(f'File "{fname}" already exists.')
         key = input("Overwrite? [Ny] ")
         if key != "y":
             mylog.vprint("Skipping save and returning.")
@@ -2971,16 +2927,16 @@ def _saveWorkbook(wb, basename, overwrite, mylog):
 
     while True:
         try:
-            mylog.vprint('Saving plan as "%s".' % fname)
+            mylog.vprint(f'Saving plan as "{fname}".')
             wb.save(fname)
             break
         except PermissionError:
-            mylog.print('Failed to save "%s": %s.' % (fname, "Permission denied"))
+            mylog.print(f'Failed to save "{fname}": Permission denied.')
             key = input("Close file and try again? [Yn] ")
             if key == "n":
                 break
         except Exception as e:
-            raise Exception("Unanticipated exception %r." % e)
+            raise Exception(f"Unanticipated exception {e}.")
 
     return None
 
@@ -3004,7 +2960,7 @@ def _formatSpreadsheet(ws, ftype):
             ws.column_dimensions[column].width = width
             return None
     else:
-        raise RuntimeError("Unknown format: %s." % ftype)
+        raise RuntimeError(f"Unknown format: {ftype}.")
 
     for cell in ws[1] + ws["A"]:
         cell.style = "Pandas"

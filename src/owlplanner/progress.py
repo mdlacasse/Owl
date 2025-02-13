@@ -14,7 +14,7 @@ class Progress(object):
         self.mylog.print("|--- progress ---|")
 
     def show(self, x):
-        self.mylog.print("\r\r%s" % u.pc(x, f=0), end="")
+        self.mylog.print(f"\r\r{u.pc(x, f=0)}", end="")
 
     def finish(self):
         self.mylog.print()

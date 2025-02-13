@@ -154,7 +154,7 @@ def taxBrackets(N_i, n_d, N_n):
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
     """
-    assert 0 < N_i and N_i <= 2, "Cannot process %d individuals." % N_i
+    assert 0 < N_i and N_i <= 2, f"Cannot process {N_i} individuals."
     # This 1 is the number of years left in TCJA from 2025.
     ytc = 1
     status = N_i - 1
