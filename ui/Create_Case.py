@@ -23,7 +23,7 @@ elif ret == kz.loadCaseFile:
     # "<a href="Documentation" target="_self">Documentation</a>", unsafe_allow_html=True)
     st.info(
         "#### Starting a case from a *case* parameter file.\n\n"
-        "Look at the :material/help: Documentation for where to find examples.\n\n"
+        "Look at the :material/help: [Documentation](Documentation) for where to find examples.\n\n"
         "Alternatively, select `New Case...` to start a case from scratch."
     )
     confile = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])

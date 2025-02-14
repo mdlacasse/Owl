@@ -202,7 +202,7 @@ A great site for deciding on when to take social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
 And obviously there is [ssa.gov](https://ssa.gov).
 
-#### Rate Selection
+#### Rates Selection
 This page allows you to select the return rates over the
 time span of the plan. All rates are annual.
 There are two major types of rates:
@@ -219,7 +219,7 @@ There are two major types of rates:
 These rates are the annual rates of return for each of the assets considered. The types of asset are described
 in the next section.
 
-#### Asset Allocations
+#### Asset Allocation
 This page allows you to select how to partition your assets between 4 investment options:
 - S&P 500
 - Corporate Bonds Baa

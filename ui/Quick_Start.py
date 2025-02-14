@@ -56,6 +56,6 @@ the `Duplicate case` button, and then edit its values to fit your situation.
 Multiple cases can coexist and can be called and compared using the `Select case` box
 at the bottom of the margin.
 
-More information can be found on the :material/help: **Documentation** page located in the **Resources** section.
+More information can be found on the :material/help: **[Documentation](Documentation)** page located in the **Resources** section.
 """
     )
