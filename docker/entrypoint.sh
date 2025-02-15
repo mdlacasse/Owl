@@ -8,14 +8,20 @@ activate_script="/app/$venv_name/bin/activate"
 if [ -d "$venv_name" ]; then
   source "$activate_script"
 else
-  python -m venv "$venv_name"
+  python3 -m venv "$venv_name"
   source "$activate_script"
 fi
 
 cd /app
-git clone https://github.com/mdlacasse/Owl.git .
-python -m build
-pip3 install .
+git fetch https://github.com/mdlacasse/Owl.git owl
 
-python -m streamlit run /app/ui/main.py --server.port=8501 --server.address=0.0.0.0 --browser.gatherUsageStats=false
+cd owl
+pip install --upgrade pip
+pip install build
+python3 -m build
+pip install .
+pip install streamlit
+
+echo "Owl is now running locally: Point your browser to http://localhost:8501"
+python3 -m streamlit run /app/owl/ui/main.py --server.port=8501 --server.address=0.0.0.0 --browser.gatherUsageStats=false
 

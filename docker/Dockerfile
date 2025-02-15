@@ -9,8 +9,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     software-properties-common \
     git \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip3 install build
+    && rm -rf /var/lib/apt/lists/*
 
 COPY entrypoint.sh /usr/bin/entrypoint.sh
 

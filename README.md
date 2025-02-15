@@ -7,7 +7,7 @@
 
 -----
 
-### TLDR
+### TL;DR
 Owl is a planning tool that uses a linear programming optimization algorithm to provide guidance on retirement decisions.
 
 Go to [owlplanner.streamlit.app](https://owlplanner.streamlit.app) and explore the app to learn about its capabilities.
@@ -368,6 +368,7 @@ Finally, you will also need the capability to read and edit Excel files. One can
 - Image from [freepik](https://freepik.com)
 - Optimization solver from [HiGHS](https://highs.dev)
 - Streamlit Community Cloud [Streamlit](https://streamlit.io)
+- Docker container: Josh (noimjosh@gmail.com)
 
 ---------------------------------------------------------------------
 
