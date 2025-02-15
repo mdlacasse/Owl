@@ -368,7 +368,7 @@ Finally, you will also need the capability to read and edit Excel files. One can
 - Image from [freepik](https://freepik.com)
 - Optimization solver from [HiGHS](https://highs.dev)
 - Streamlit Community Cloud [Streamlit](https://streamlit.io)
-- Docker container: Josh (noimjosh@gmail.com)
+- Other contributors: Josh (noimjosh@gmail.com) for Docker image code
 
 ---------------------------------------------------------------------
 

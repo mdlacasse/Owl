@@ -31,8 +31,9 @@ Copyright &copy; 2024 - Martin-D. Lacasse
     [Scipy](https://scipy.org),
     [openpyxl](https://openpyxl.readthedocs.io),
     [toml](https://toml.io),
- and [Streamlit](https://streamlit.io) for the front-end.
-- The :streamlit: [Streamlit Community Cloud](https://streamlit.io/cloud) for hosting.
+ and [Streamlit](https://streamlit.io) for the front-end
+- Other contributors: Josh (noimjosh@gmail.com) for Docker image code.
+
 
 #### :orange[Privacy]
 - This app does not store or forward any information. All data entered is lost
