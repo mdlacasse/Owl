@@ -2262,7 +2262,7 @@ class Plan(object):
         # style = {'net': '-', 'target': ':'}
         style = {"profile": "-"}
         series = {"profile": self.xi_n}
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat="xi")
+        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat="$\\xi$")
 
         if figure:
             return fig
