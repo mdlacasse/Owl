@@ -5,7 +5,7 @@
 
 <img align=right src="https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png" width="250">
 
------
+-------------------------------------------------------------------------------------
 
 ### TL;DR
 Owl is a planning tool that uses a linear programming optimization algorithm to provide guidance on retirement decisions. There are a few ways to run Owl.
@@ -18,8 +18,8 @@ Follow these [instructions](docker/README.md) for this option.
 - Run locally on your computer using Python code and libraries.
 Follow there [instructions](INSTALL.md) to install Owl from the source code and run it on your computer.
 
------
-
+-------------------------------------------------------------------------------------
+## Overview
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy through the rigorous
