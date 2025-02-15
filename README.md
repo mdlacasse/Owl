@@ -10,7 +10,11 @@
 ### TL;DR
 Owl is a planning tool that uses a linear programming optimization algorithm to provide guidance on retirement decisions.
 
-Go to [owlplanner.streamlit.app](https://owlplanner.streamlit.app) and explore the app to learn about its capabilities.
+Go to [owlplanner.streamlit.app](https://owlplanner.streamlit.app) to run Owl direcly from the Streamlit Community Server.
+
+Follow [these steps](docker/README.md) to run locally on your computer using a Docker container.
+
+Or use [these steps](INSTALL.md) to install Owl from the source code downloaded to your computer.
 
 -----
 

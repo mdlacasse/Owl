@@ -5,4 +5,4 @@ call %root%\Scripts\activate.bat
 
 echo Hit Ctrl-C to terminate the server
 cd ui
-call streamlit run main.py
+call streamlit run main.py --browser.gatherUsageStats=false
