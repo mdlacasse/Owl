@@ -34,7 +34,7 @@ cd docker
 docker build . -t owldocker
 ```
 
-#### Run Using Docker Compose
+#### Run using docker-compose
 Then start the service from the same directory,
 ```shell
 docker-compose up
@@ -54,7 +54,7 @@ networks: {}
 ```
 This will run the service in a container. Just point your browser to http://localhost:8501 to access the `Owl` interface.
 
-#### Alternate Running Route
+#### Alternate running route
 Another route is run the container directly from the command line,
 with the desired port mapping.
 
