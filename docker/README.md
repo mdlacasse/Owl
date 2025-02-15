@@ -11,22 +11,23 @@ all dependencies within a Python Virtual Environment (VENV).
 
 ------------------------------------------------------------------------------------
 ### Run Owl without building the container
-Using this approach only requires downloading the container from the Docker Hub.
-From the command line:
+Using this approach only requires downloading the container from the [Docker Hub](http://hub.docker.com) and having [Docker](http://docker.com) installed on your computer.
+
+Downloading image from the command line:
 ```
 docker pull noimjosh/owldocker
 ```
-Then run from the command line
+Then running from the command line:
 ```
-docker run noimjosh/owldocker
+docker run -p 8501:8501 noimjosh/owldocker
 ```
-or use your favorite way, from the Docker interface.
+or use the Docker graphical user interface for performing the same steps.
 
 ------------------------------------------------------------------------------------
-### Building the image
-This approach requires downloading the full Owl package.
+### Building the docker image
+This approach requires cloning the full Owl package from GitHub, and having Python and Docker installed on your computer.
 
-##### Build Docker image
+##### Docker image
 First build the image from the `docker` directory:
 ```shell
 cd docker
@@ -38,7 +39,7 @@ Then start the service from the same directory,
 ```shell
 docker-compose up
 ```
-Adjust the `owl` directory mapping to a file system that can handle many files (avoid OneDrive or Dropbox).
+Adjust the `volume:` directory mapping to a file system that can handle many files (avoid OneDrive or Dropbox file systems).
 
 ```yml
 services:
@@ -51,10 +52,10 @@ services:
       - /tmp/owl:/app
 networks: {}
 ```
-This will run the service in a container. Just point your browser to http://localhost:8501.
+This will run the service in a container. Just point your browser to http://localhost:8501 to access the `Owl` interface.
 
 #### Alternate Running Route
-Another route is run the container from the command line,
+Another route is run the container directly from the command line,
 with the desired port mapping.
 
 ```shell
