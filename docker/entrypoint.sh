@@ -13,15 +13,22 @@ else
 fi
 
 cd /app
-git fetch https://github.com/mdlacasse/Owl.git owl
-
-cd owl
-pip install --upgrade pip
-pip install build
+if [ -d owl ]; then
+    cd owl
+    git pull
+else
+    git clone https://github.com/mdlacasse/Owl.git owl
+    cd owl
+fi
+pip3  install --upgrade pip
+pip3  install build
 python3 -m build
-pip install .
-pip install streamlit
+pip  install .
 
 echo "Owl is now running locally: Point your browser to http://localhost:8501"
-python3 -m streamlit run /app/owl/ui/main.py --server.port=8501 --server.address=0.0.0.0 --browser.gatherUsageStats=false
+if type -P streamlit >& /dev/null; then
+    streamlit run /app/owl/ui/main.py --server.port=8501 --server.address=0.0.0.0 --browser.gatherUsageStats=false
+else
+    python -m streamlit run /app/owl/ui/main.py --server.port=8501 --server.address=0.0.0.0 --browser.gatherUsageStats=false
+fi
 

@@ -10,8 +10,9 @@ This is a simple docker container that downloads the latest Owl version and inst
 all dependencies within a Python Virtual Environment (VENV).
 
 ------------------------------------------------------------------------------------
-### To run without building the container
+### Run Owl without building the container
 Using this approach only requires downloading the container from the Docker Hub.
+From the command line:
 ```
 docker pull noimjosh/owldocker
 ```
@@ -19,14 +20,21 @@ Then run from the command line
 ```
 docker run noimjosh/owldocker
 ```
-or use your favorite way.
+or use your favorite way, from the Docker interface.
 
 ------------------------------------------------------------------------------------
 ### Building the container
 This approach requires downloading the full Owl package.
 
-#### Using docker Compose
-To the server from the `docker` directory,
+##### Build
+First build the container from the `docker` directory:
+```shell
+cd docker
+docker build . -t owldocker
+```
+
+#### Run Using Docker Compose
+Then start the service from the same directory,
 ```shell
 docker-compose up
 ```
@@ -45,17 +53,10 @@ networks: {}
 ```
 This will run the service in a container. Just point your browser to http://localhost:8501.
 
-#### Alternate Route
-Another route is to build the container and run it from the command line,
+#### Alternate Running Route
+Another route is run the container from the command line,
 with the desired port mapping.
 
-##### Build
-```shell
-cd docker
-docker build . -t owldocker
-```
-
-##### Run
 ```shell
 cd docker
 docker run -p 8501:8501 owldocker
