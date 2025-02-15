@@ -1,4 +1,4 @@
-#/bin/sh
+#/bin/bash
 
 venv_name="owlvenv"
 
@@ -20,9 +20,10 @@ else
     git clone https://github.com/mdlacasse/Owl.git owl
     cd owl
 fi
-pip3  install --upgrade pip
-pip3  install build
-python3 -m build
+pip  install --upgrade pip
+pip  install build
+python3 -m pip install build
+sync
 pip  install .
 
 echo "Owl is now running locally: Point your browser to http://localhost:8501"

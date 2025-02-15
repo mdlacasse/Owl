@@ -23,11 +23,11 @@ docker run noimjosh/owldocker
 or use your favorite way, from the Docker interface.
 
 ------------------------------------------------------------------------------------
-### Building the container
+### Building the image
 This approach requires downloading the full Owl package.
 
-##### Build
-First build the container from the `docker` directory:
+##### Build Docker image
+First build the image from the `docker` directory:
 ```shell
 cd docker
 docker build . -t owldocker
