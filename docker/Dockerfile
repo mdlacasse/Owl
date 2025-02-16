@@ -4,22 +4,28 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    git \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update; \
+    apt-get install -y \
+        curl \
+        git \
+        python3-pip \
+    ; \
+    rm -rf /var/lib/apt/lists/*
 
-COPY entrypoint.sh /usr/bin/entrypoint.sh
+COPY fastentrypoint.sh /usr/bin/entrypoint.sh
 
 RUN chmod 555 /usr/bin/entrypoint.sh
 
-# Uncomment below to build into the container
-# The entrypoint.sh builds the runtime environment
-#RUN git clone https://github.com/mdlacasse/Owl.git .
+# Build in the container for faster starts.
+RUN python -m pip install --no-cache-dir --upgrade pip
 
-#RUN python -m build
+RUN pip install --no-cache-dir build
 
-#RUN pip3 install .
+RUN git clone --depth 1 https://github.com/mdlacasse/Owl.git owl
+
+RUN cd /app/owl && python -m build
+
+RUN cd /app/owl && pip install --no-cache-dir .
 
 EXPOSE 8501
 

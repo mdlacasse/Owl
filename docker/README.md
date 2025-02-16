@@ -22,19 +22,20 @@ docker pull noimjosh/owldocker
 ```
 Then the container can be started from the command line:
 ```
-docker run -p 8501:8501 noimjosh/owldocker
+docker run -p 8501:8501 --rm noimjosh/owldocker
 ```
 One can also use the Docker graphical user interface for performing the same steps. This is not covered here.
 
 ------------------------------------------------------------------------------------
 ### Building the docker image
-This approach requires cloning the full Owl package from GitHub, and having Python and Docker installed on your computer.
+This approach requires cloning the full Owl package from GitHub,
+and having Python and Docker installed on your computer.
 
 ##### Docker image
 First build the Docker image from the `docker` directory:
 ```shell
 cd docker
-docker build . -t owldocker
+docker build -t owldocker .
 ```
 
 #### Run using docker-compose
@@ -65,8 +66,7 @@ Another route is to run the container directly from the command line,
 with the desired port mapping.
 
 ```shell
-cd docker
-docker run -p 8501:8501 owldocker
+docker run -p 8501:8501 --rm owldocker
 ```
 
 ------------------------------------------------------------------------------------
