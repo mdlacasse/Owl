@@ -20,10 +20,10 @@ else
     git clone https://github.com/mdlacasse/Owl.git owl
     cd owl
 fi
-python3 -m pip install --upgrade pip
-python3 -m pip install build
+pip3 install --upgrade pip
+pip3 install build
 sync
-python3 -m pip install .
+pip3 install .
 
 echo "Owl is now running locally: Point your browser to http://localhost:8501"
 if type -P streamlit >& /dev/null; then

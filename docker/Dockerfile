@@ -1,14 +1,12 @@
 # app/Dockerfile
 
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    software-properties-common \
     git \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 COPY entrypoint.sh /usr/bin/entrypoint.sh
