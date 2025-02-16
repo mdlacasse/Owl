@@ -10,36 +10,36 @@ This is a simple docker container that downloads the latest Owl version and inst
 all dependencies within a Python Virtual Environment (VENV).
 
 ------------------------------------------------------------------------------------
-### Run Owl without building the container
-Using this approach only requires downloading the container from the [Docker Hub](http://hub.docker.com) and having [Docker](http://docker.com) installed on your computer.
+### Run Owl without building the Docker image
+Using this approach only requires downloading the Docker image from the [Docker Hub](http://hub.docker.com) and having the [Docker](http://docker.com) application installed on your computer.
 
-Downloading image from the command line:
+Downloading the Docker image from the command line:
 ```
 docker pull noimjosh/owldocker
 ```
-Then running from the command line:
+Then the container can be started from the command line:
 ```
 docker run -p 8501:8501 noimjosh/owldocker
 ```
-or use the Docker graphical user interface for performing the same steps.
+One can also use the Docker graphical user interface for performing the same steps. This is not covered here.
 
 ------------------------------------------------------------------------------------
 ### Building the docker image
 This approach requires cloning the full Owl package from GitHub, and having Python and Docker installed on your computer.
 
 ##### Docker image
-First build the image from the `docker` directory:
+First build the Docker image from the `docker` directory:
 ```shell
 cd docker
 docker build . -t owldocker
 ```
 
 #### Run using docker-compose
-Then start the service from the same directory,
+Then start the service from the same directory using `docker-compose`,
 ```shell
 docker-compose up
 ```
-Adjust the `volume:` directory mapping to a file system that can handle many files (avoid OneDrive or Dropbox file systems).
+Adjust the `volumes:` mapping to a directory on a file system that can handle many files (avoid OneDrive or Dropbox file systems).
 
 ```yml
 services:
@@ -53,9 +53,10 @@ services:
 networks: {}
 ```
 This will run the service in a container. Just point your browser to http://localhost:8501 to access the `Owl` interface.
+Everything will run locally and safely through a container on your computer.
 
 #### Alternate running route
-Another route is run the container directly from the command line,
+Another route is to run the container directly from the command line,
 with the desired port mapping.
 
 ```shell
