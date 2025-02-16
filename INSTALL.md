@@ -1,7 +1,13 @@
-## Installation steps
+# Owl
 
-The instructions below are for software developers desiring to install the Owl source code
-and run it locally on your computer.
+## A retirement exploration tool based on linear programming
+
+<img align=right src="https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png" width="250">
+
+------------------------------------------------------------------------------------
+### About
+This document is aimed at software developers desiring to install the Owl source code
+and run it locally on their computer.
 
 For end-users, we suggest accessing Owl from the [Streamlit Community Server](http://owlplanner.streamlit.app)
 or, if one prefers to have everything on their own computer,

@@ -1,4 +1,4 @@
-# Owl   
+# Owl
 
 ## A retirement exploration tool based on linear programming
 
@@ -6,12 +6,15 @@
 
 ------------------------------------------------------------------------------------
 ### About
-This is a simple docker container that downloads the latest Owl version and installs
+This document describes how to run Owl using a Docker container.
+This simple container downloads the latest Owl version and installs
 all dependencies within a Python Virtual Environment (VENV).
 
 ------------------------------------------------------------------------------------
-### Run Owl without building the Docker image
-Using this approach only requires downloading the Docker image from the [Docker Hub](http://hub.docker.com) and having the [Docker](http://docker.com) application installed on your computer.
+### Run Owl without building the Docker image - Currently broken on some OS
+Using this approach only requires downloading the Docker image from
+the [Docker Hub](http://hub.docker.com) and having the [Docker](http://docker.com)
+application installed on your computer.
 
 Downloading the Docker image from the command line:
 ```
@@ -39,7 +42,8 @@ Then start the service from the same directory using `docker-compose`,
 ```shell
 docker-compose up
 ```
-Adjust the `volumes:` mapping to a directory on a file system that can handle many files (avoid OneDrive or Dropbox file systems).
+Adjust the `volumes:` mapping to a directory on a file system that can handle many files
+(avoid OneDrive or Dropbox file systems).
 
 ```yml
 services:
@@ -52,8 +56,9 @@ services:
       - /tmp/owl:/app
 networks: {}
 ```
-This will run the service in a container. Just point your browser to http://localhost:8501 to access the `Owl` interface.
-Everything will run locally and safely through a container on your computer.
+This will run the service in a container.
+Just point your browser to http://localhost:8501 to access the Owl user interface.
+Owl will run locally and safely through a container on your computer.
 
 #### Alternate running route
 Another route is to run the container directly from the command line,

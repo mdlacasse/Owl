@@ -1,9 +1,13 @@
-
-# Owl   
+# Owl
 
 ## A retirement exploration tool based on linear programming
 
 <img align=right src="https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png" width="250">
+
+------------------------------------------------------------------------------------
+### About
+This document describes the underlying Owl package and how to use it within
+Python scripts or in Jupyter notebooks.
 
 -----------------------------------------------------------------------
 ## An example of Owl's functionality
