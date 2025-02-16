@@ -28,8 +28,8 @@ docker run -p 8501:8501 --rm owlplanner/owldocker
 Just point your browser to http://localhost:8501 to access the Owl user interface.
 Owl will run locally and safely through a container on your computer.
 
-One can also use the Docker graphical user interface for performing the same steps.
-This is not covered here.
+One can also use the Docker Desktop graphical user interface for performing the same steps.
+After clicking the run icon for the image, use host port 8501 to map to container port 8501.
 
 ------------------------------------------------------------------------------------
 ### Building the docker image
@@ -52,7 +52,7 @@ docker run -p 8501:8501 --rm owldocker
 ```
 
 #### Running with docker-compose
-Alternatively, it can be started using `docker-compose` as follows
+Alternatively, the container can be started using `docker-compose` as follows
 ```shell
 docker-compose up
 ```
