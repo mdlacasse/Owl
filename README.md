@@ -86,7 +86,7 @@ Other asset classes can easily be added, but would add complexity while only pro
 Historical data used are from
 [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) at the Stern School of Business.
 Asset allocations are selected for the duration of the plan, and these can glide linearly
-or along a configurable s-curve from now to the last year of the plan.
+or along a configurable s-curve over the lifespan of the individual.
 
 Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be
 flat or follow a *smile* curve which is also adjustable through two simple parameters.
@@ -97,10 +97,10 @@ the statistical characteristics (means and covariance matrix) of
 a selected historical year range. Pure *stochastic* rates can also be generated
 if the user provides means, volatility (expressed as standard deviation), and optionally
 the correlations between the different assets return rates provided as a matrix, or a list of
-the off-diagonal elements (see the notebook tutorial for details).
+the off-diagonal elements (see documentation for details).
 Average rates calculated over a historical data period can also be chosen.
 
-Monte Carlo simulations capabilities are included  and provide a probability of success and a histogram of
+Monte Carlo simulations capabilities are included and provide a probability of success and a histogram of
 outcomes. These simulations can be used for either determining the probability distribution of the
 maximum net spending amount under
 the constraint of a desired bequest, or the probability distribution of the maximum
@@ -109,33 +109,36 @@ simulators, Owl uses an optimization algorithm for every new scenario, which res
 calculations being performed. As a result, the number of cases to be considered should be kept
 to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates
 and reliable probability distributions.
-Optimizing each solution is more representative in the sense that optimal solutions
+
+Optimizing each solution is more representative than event-base simulators
+in the sense that optimal solutions
 will naturally adjust to the return scenarios being considered.
 This is more realistic as retirees would certainly re-evaluate
 their expectations under severe market drops or gains.
-This optimal approach provides a net benefit over event-based simulations,
+This optimal approach provides a net benefit over event-based simulators,
 which maintain a distribution strategy either fixed, or within guardrails for capturing the
- retirees' reactions to the market.
+retirees' reactions to the market.
 
-Basic input parameters are given through function calls while optional additional time series can be read from
+Basic input parameters can be entered through the user interface
+while optional additional time series can be read from
 an Excel spreadsheet that contains future wages, contributions
 to savings accounts, and planned *big-ticket items* such as the purchase of a lake house,
 the sale of a boat, large gifts, or inheritance.
 
 Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt,
 which are all tracked separately for married individuals. Asset transition to the surviving spouse
-is done according to beneficiary fractions for each account type.
+is done according to beneficiary fractions for each type of savings account.
 Tax status covers married filing jointly and single, depending on the number of individuals reported.
 
-Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints. Future
-values are simple projections of current values with the assumed inflation rates.
+Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints.
+Future values are simple projections of current values with the assumed inflation rates.
 
 ### Limitations
 Owl is work in progress. At the current time:
 - Only the US federal income tax is considered (and minimized through the optimization algorithm).
 Head of household filing status has not been added but can easily be.
 - Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not included.
-An error message will be generated for these cases.
+These cases are detected and will generate an error message.
 - Social security rule for surviving spouse assumes that benefits were taken at full retirement age.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
@@ -144,12 +147,12 @@ If there is interest, that could be added in the future.
 This means that the Medicare premiums are calculated after an initial solution is generated,
 and then a new solution is re-generated with these premiums as a constraint.
 In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise.
-Owl will detect these cases and inform the user.
-While the solutions generated are very close to one another, Owl will pick the smallest one
+While the solutions generated are very close to one another, Owl will pick the smallest solution
 for being conservative.
-- Part D is not included in the IRMAA calculations. Being considerably more, only Part B is taken into account. 
-- Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
-Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
+- Part D is not included in the IRMAA calculations. Being considerably more significant,
+only Part B is taken into account. 
+- Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years.
+Your guesses are as good as mine.
 
 The solution from an optimization algorithm has only two states: feasible and infeasible.
 Therefore, unlike event-driven simulators that can tell you that your distribution strategy runs
@@ -164,7 +167,7 @@ assets to support, even with no estate being left.
 
 - Documentation for the app user interface is available from the interface itself.
 - Installation guide and software requirements can be found [here](INSTALL.md).
-- User guide for the underlying library to be used in a Jupyter notebook can be found [here](USER_GUIDE.md).
+- User guide for the underlying Python package as used in a Jupyter notebook can be found [here](USER_GUIDE.md).
 
 ---------------------------------------------------------------------
 
@@ -179,7 +182,8 @@ assets to support, even with no estate being left.
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
+Disclaimers: I am not a financial planner. You make your own decisions.
+This program comes with no guarantee. Use at your own risk.
 
 --------------------------------------------------------
 

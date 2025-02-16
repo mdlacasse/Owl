@@ -1,17 +1,14 @@
 ## Installation steps
 
-### To install and run a Docker image, please see these [instructions](docker/README.md).
+The instructions below are for software developers desiring to install the Owl source code
+and run it locally on your computer.
+
+For end-users, we suggest accessing Owl from the [Streamlit Community Server](http://owlplanner.streamlit.app)
+or, if one prefers to have everything on their own computer,
+to install and run a Docker image as described in these [instructions](docker/README.md).
 
 ### Requirements
-These instructions are for installing the Python source code for Owl and run it on your computer.
 You will need Python and `pip` installed on your computer for that purpose.
-
-### Installation steps for end-users
-You can install the Owl package directly from the [Python Package Index](http://pypi.org).
-The following command will install the current version of owlplanner and all its dependencies:
-```shell
-pip install -r ui/requirements.txt
-```
 
 ### Installation steps for developers
 These instructions are command-line instructions.
@@ -27,12 +24,13 @@ python -m build
 pip install -e .
 ```
 The -e instructs Python to load the live version in the current directory tree. 
+
 ### Running the streamlit frontend 
 Running the Owl user interface locally from Windows:
 ```shell
 ./owlplanner.cmd
 ```
-From Linux or MacOS:
+Running the Owl user interface locally from Linux or MacOS:
 ```shell
 ./owlplanner.sh
 ```
@@ -50,3 +48,11 @@ python -m build
 twine upload --repository [repo] dist/*
 ```
 where [repo] is *testpypi* or *pypi* depending on the type of release.
+
+### Installation steps for Python package only
+You can install the Owl package directly from the [Python Package Index](http://pypi.org).
+The following command will install the current version of owlplanner and all its dependencies:
+```shell
+pip install -r ui/requirements.txt
+```
+
