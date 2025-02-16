@@ -1,6 +1,6 @@
 services:
   owl:
-    image: owldocker
+    image: owlplanner/owldocker
     restart: always
     ports:
       - 8501:8501
