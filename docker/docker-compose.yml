@@ -4,6 +4,4 @@ services:
     restart: always
     ports:
       - 8501:8501
-    volumes:
-      - /tmp/owl:/app
 networks: {}
