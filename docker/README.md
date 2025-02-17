@@ -66,8 +66,6 @@ services:
     restart: always
     ports:
       - 8501:8501
-    volumes:
-      - /tmp/owl:/app
 networks: {}
 ```
 As before, just point your browser to http://localhost:8501 to access the Owl user interface.
