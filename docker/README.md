@@ -7,8 +7,6 @@
 ------------------------------------------------------------------------------------
 ### About
 This document describes how to run Owl using a Docker container.
-This simple container downloads the latest Owl version and installs
-all dependencies within a Python Virtual Environment (VENV).
 
 ------------------------------------------------------------------------------------
 ### Run Owl without the source code
@@ -29,18 +27,20 @@ Just point your browser to http://localhost:8501 to access the Owl user interfac
 Owl will run locally and safely through a container on your computer.
 
 One can also use the Docker Desktop graphical user interface for performing the same steps.
-After clicking the run icon for the image, use host port 8501 to map to container port 8501.
+The image *owlplanner/owldocker* can be searched for and downloaded in the 
+*Docker Hub* section of Docker Desktop. Then, on the *Images* section,
+click on the run icon for the image, and use host port 8501 to map to container port 8501.
 
 ------------------------------------------------------------------------------------
 ### Building the docker image
-This approach requires cloning the Owl package from GitHub onto your computer,
+This approach requires cloning the Owl package from GitHub,
 and having both Python and Docker installed on your computer.
 
 ##### Docker image
 First build the Docker image from the `docker` directory:
 ```shell
 cd docker
-docker build -t owldocker .
+docker build --no-cache -t owldocker .
 ```
 
 #### Running the container
@@ -70,6 +70,7 @@ services:
       - /tmp/owl:/app
 networks: {}
 ```
+As before, just point your browser to http://localhost:8501 to access the Owl user interface.
 
 ------------------------------------------------------------------------------------
 

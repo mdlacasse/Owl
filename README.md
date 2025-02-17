@@ -16,7 +16,7 @@ Owl is a planning tool that uses a linear programming optimization algorithm to 
 Follow these [instructions](docker/README.md) for this option.
 
 - Run locally on your computer using Python code and libraries.
-Follow there [instructions](INSTALL.md) to install Owl from the source code and run it on your computer.
+Follow these [instructions](INSTALL.md) to install Owl from the source code and run it on your computer.
 
 -------------------------------------------------------------------------------------
 ## Overview
