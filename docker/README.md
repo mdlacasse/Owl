@@ -56,9 +56,7 @@ Alternatively, the container can be started using `docker-compose` as follows
 ```shell
 docker-compose up
 ```
-Adjust the `volumes:` mapping to a directory on a file system that can handle many files
-(avoid OneDrive or Dropbox file systems).
-
+The compose file maps the host-side port to the container-side port.
 ```yml
 services:
   owl:
