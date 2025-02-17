@@ -1,9 +1,9 @@
 services:
   owl:
-    image: noimjosh/owldocker:latest
+    image: owlplanner/owldocker
     restart: always
     ports:
       - 8501:8501
     volumes:
-      - ./config:/app
+      - /tmp/owl:/app
 networks: {}

@@ -7,10 +7,11 @@ import owlbridge as owb
 st.write("## About Owl 🦉")
 kz.orangeDivider()
 
-st.write("This is Owl version %s running on Streamlit %s." % (owb.version(), st.__version__))
+st.write(f"This is Owl version {owb.version()} running on Streamlit {st.__version__}.")
 st.snow()
 
-st.write('''
+st.write(
+    """
 - Owl is released under GPL Licence through a publicly available
 repository on [GitHub](https://github.com/mdlacasse/owl).
 
@@ -30,8 +31,9 @@ Copyright &copy; 2024 - Martin-D. Lacasse
     [Scipy](https://scipy.org),
     [openpyxl](https://openpyxl.readthedocs.io),
     [toml](https://toml.io),
- and [Streamlit](https://streamlit.io) for the front-end.
-- The :streamlit: [Streamlit Community Cloud](https://streamlit.io/cloud) for hosting.
+ and [Streamlit](https://streamlit.io) for the front-end
+- Other contributors: Josh (noimjosh@gmail.com) for Docker image code.
+
 
 #### :orange[Privacy]
 - This app does not store or forward any information. All data entered is lost
@@ -42,4 +44,5 @@ Source code is publicly available and can be inspected in the repository.
 #### :orange[Disclaimers]
 - I am not a financial planner. You make your own decisions.
 - This program comes with no guarantee. Use at your own risk.
-''')
+"""
+)

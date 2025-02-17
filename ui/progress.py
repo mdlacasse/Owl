@@ -12,8 +12,8 @@ class Progress:
         self.counter = 0
         self.clocks = []
         for i in range(1, 13):
-            self.clocks.extend([':clock%d:' % i, ':clock%d30:' % i])
-        self.txt = 'Calculations in progress. Please wait. '
+            self.clocks.extend([f":clock{i}:", f":clock{i}30:"])
+        self.txt = "Calculations in progress. Please wait. "
 
     def msg(self):
         self.counter += 1

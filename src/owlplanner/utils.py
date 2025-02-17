@@ -20,12 +20,12 @@ def d(value, f=0, latex=False) -> str:
     Number of decimals controlled by `f` which defaults to 0.
     """
     if np.isnan(value):
-        return 'NaN'
+        return "NaN"
 
     if latex:
-        mystr = '\\${:,.' + str(f) + 'f}'
+        mystr = "\\${:,." + str(f) + "f}"
     else:
-        mystr = '${:,.' + str(f) + 'f}'
+        mystr = "${:,." + str(f) + "f}"
 
     return mystr.format(value)
 
@@ -35,7 +35,7 @@ def pc(value, f=1, mul=100) -> str:
     Return a string formatting decimal value in percent.
     Number of decimals of percent controlled by `f` which defaults to 1.
     """
-    mystr = '{:.' + str(f) + 'f}%'
+    mystr = "{:." + str(f) + "f}%"
 
     return mystr.format(mul * value)
 
@@ -58,14 +58,14 @@ def getUnits(units) -> int:
     Translate multiplication factor for units as expressed by an abbreviation
     expressed in a string. Returns an integer.
     """
-    if units is None or units == 1 or units == '1' or units == 'one':
+    if units is None or units == 1 or units == "1" or units == "one":
         fac = 1
-    elif units in {'k', 'K'}:
+    elif units in {"k", "K"}:
         fac = 1000
-    elif units in {'m', 'M'}:
+    elif units in {"m", "M"}:
         fac = 1000000
     else:
-        raise ValueError('Unknown units %r.' % units)
+        raise ValueError(f"Unknown units {units}.")
 
     return fac
 
@@ -87,7 +87,7 @@ def roundCents(values, decimals=2):
     """
     multiplier = 10**decimals
 
-    newvalues = values * multiplier + 0.5*np.sign(values)
+    newvalues = values * multiplier + 0.5 * np.sign(values)
 
     arr = np.fix(newvalues) / multiplier
     # Remove negative zero-like values.

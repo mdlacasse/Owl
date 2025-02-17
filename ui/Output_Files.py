@@ -3,55 +3,56 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 
-ret = kz.titleBar('summary')
+ret = kz.titleBar("summary")
 kz.caseHeader("Output Files")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info('Case(s) must be first created before running this page.')
+    st.info("Case(s) must be first created before running this page.")
 else:
     if kz.caseIsRunReady():
         owb.runPlan()
 
     if kz.isCaseUnsolved():
-        st.info("Case status is currently '%s'." % kz.getKey('caseStatus'))
+        st.info("Case status is currently '%s'." % kz.getKey("caseStatus"))
     else:
-        lines = kz.getKey('summary')
-        if lines != '':
-            st.write('#### Synopsis')
+        caseName = kz.getKey("name")
+        lines = kz.getKey("summary")
+        if lines != "":
+            st.write("#### Synopsis")
             st.code(lines, language=None)
-            st.download_button('Download synopsis',
-                               data=lines,
-                               file_name='Synopsis_'+kz.getKey('name')+'.txt',
-                               mime='text/plain;charset=UTF-8')
+            st.download_button(
+                "Download synopsis", data=lines, file_name=f"Synopsis_{caseName}.txt", mime="text/plain;charset=UTF-8"
+            )
 
         st.divider()
         st.write("#### Excel workbooks")
-        col1, col2 = st.columns(2, gap='large')
+        col1, col2 = st.columns(2, gap="large")
         with col1:
             download2 = st.download_button(
                 label="Download wages and contributions file",
-                help='Download wages and contributions as an Excel workbook.',
+                help="Download wages and contributions as an Excel workbook.",
                 data=owb.saveContributions(),
-                file_name=kz.getKey('name')+'.xlsx',
+                file_name=f"{caseName}.xlsx",
                 disabled=kz.isCaseUnsolved(),
-                mime='application/vnd.ms-excel')
+                mime="application/vnd.ms-excel",
+            )
 
         with col2:
             download2 = st.download_button(
                 label="Download worksheets",
-                help='Download worksheets as an Excel workbook.',
+                help="Download worksheets as an Excel workbook.",
                 data=owb.saveWorkbook(),
-                file_name='Workbook_'+kz.getKey('name')+'.xlsx',
-                mime='application/vnd.ms-excel',
-                disabled=kz.isCaseUnsolved())
+                file_name=f"Workbook_{caseName}.xlsx",
+                mime="application/vnd.ms-excel",
+                disabled=kz.isCaseUnsolved(),
+            )
 
-        lines = kz.getKey('casetoml')
-        if lines != '':
+        lines = kz.getKey("casetoml")
+        if lines != "":
             st.divider()
             st.write("#### Case parameter file")
-            st.code(lines, language='toml')
+            st.code(lines, language="toml")
 
-            st.download_button('Download case parameter file',
-                               data=lines,
-                               file_name='case_'+kz.getKey('name')+'.toml',
-                               mime='application/toml')
+            st.download_button(
+                "Download case parameter file", data=lines, file_name=f"case_{caseName}.toml", mime="application/toml"
+            )

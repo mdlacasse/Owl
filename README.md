@@ -5,15 +5,21 @@
 
 <img align=right src="https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png" width="250">
 
------
+-------------------------------------------------------------------------------------
 
-### TLDR
-Owl is a planning tool that uses a linear programming optimization algorithm to provide guidance on retirement decisions.
+### TL;DR
+Owl is a planning tool that uses a linear programming optimization algorithm to provide guidance on retirement decisions. There are a few ways to run Owl.
 
-Go to [owlplanner.streamlit.app](https://owlplanner.streamlit.app) and explore the app to learn about its capabilities.
+- Run Owl directly on the Streamlit Community Server at [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
 
------
+- Run locally on your computer using a Docker image.
+Follow these [instructions](docker/README.md) for this option.
 
+- Run locally on your computer using Python code and libraries.
+Follow these [instructions](INSTALL.md) to install Owl from the source code and run it on your computer.
+
+-------------------------------------------------------------------------------------
+## Overview
 This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy through the rigorous
@@ -47,21 +53,21 @@ The algorithms in Owl rely on the open-source HiGHS linear programming solver. T
 detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
-While Owl can be used through Jupyter notebooks,
-its simple API also serves as a back-end for a Web application using Streamlit.
-A hosted version of the app can be found at [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
-Alternatively, the application can also be run locally by simply running the script
-`owlplanner.cmd` once all the dependencies have been installed.
+It is anticipated that most end users will use Owl through the graphical interface
+either at [owlplanner.streamlit.app](https://owlplanner.streamlit.app)
+or [installed](INSTALL.md) on their own computer.
+The underlying Python package can also be used directly through Python scripts or a Jupyter Notebook
+as described [here](USER_GUIDE.md).
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem.
 In particular, if one is interested in comparing different withdrawal strategies,
-[FI Calc](ficalc.app) is a more appropriate and elegant application that addresses this need.
+[FI Calc](ficalc.app) is an elegant application that addresses this need.
 If, however, you also want to optimize spending, bequest, and Roth conversions, with
 an approach also considering Medicare and federal income tax over the next few years,
 then Owl is definitely a tool that can help guide your decisions.
 
 --------------------------------------------------------------------------------------
-## Basic capabilities
+## Capabilities
 Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero),
 or maximize the after-tax value of a bequest under the constraint of a desired net spending profile,
 and under the assumption of a heirs marginal tax rate.
@@ -80,7 +86,7 @@ Other asset classes can easily be added, but would add complexity while only pro
 Historical data used are from
 [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) at the Stern School of Business.
 Asset allocations are selected for the duration of the plan, and these can glide linearly
-or along a configurable s-curve from now to the last year of the plan.
+or along a configurable s-curve over the lifespan of the individual.
 
 Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be
 flat or follow a *smile* curve which is also adjustable through two simple parameters.
@@ -91,10 +97,10 @@ the statistical characteristics (means and covariance matrix) of
 a selected historical year range. Pure *stochastic* rates can also be generated
 if the user provides means, volatility (expressed as standard deviation), and optionally
 the correlations between the different assets return rates provided as a matrix, or a list of
-the off-diagonal elements (see the notebook tutorial for details).
+the off-diagonal elements (see documentation for details).
 Average rates calculated over a historical data period can also be chosen.
 
-Monte Carlo simulations capabilities are included  and provide a probability of success and a histogram of
+Monte Carlo simulations capabilities are included and provide a probability of success and a histogram of
 outcomes. These simulations can be used for either determining the probability distribution of the
 maximum net spending amount under
 the constraint of a desired bequest, or the probability distribution of the maximum
@@ -102,32 +108,37 @@ bequest under the constraint of a desired net spending amount. Unlike discrete-e
 simulators, Owl uses an optimization algorithm for every new scenario, which results in more
 calculations being performed. As a result, the number of cases to be considered should be kept
 to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates
-and reliable probability distributions. Optimizing each solution is more representative in the sense that optimal solutions
-will naturally adjust to the return scenarios being considered. This is more realistic as retirees would certainly re-evaluate
-their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulations,
-which maintain a distribution strategy either fixed, or within guardrails for capturing the
- retirees' reactions to the market.
+and reliable probability distributions.
 
-Basic input parameters are given through function calls while optional additional time series can be read from
+Optimizing each solution is more representative than event-base simulators
+in the sense that optimal solutions
+will naturally adjust to the return scenarios being considered.
+This is more realistic as retirees would certainly re-evaluate
+their expectations under severe market drops or gains.
+This optimal approach provides a net benefit over event-based simulators,
+which maintain a distribution strategy either fixed, or within guardrails for capturing the
+retirees' reactions to the market.
+
+Basic input parameters can be entered through the user interface
+while optional additional time series can be read from
 an Excel spreadsheet that contains future wages, contributions
-to savings accounts, and planned *big-ticket items* such as the purchase of a lake house, the sale of a boat,
-large gifts, or inheritance.
+to savings accounts, and planned *big-ticket items* such as the purchase of a lake house,
+the sale of a boat, large gifts, or inheritance.
 
 Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt,
 which are all tracked separately for married individuals. Asset transition to the surviving spouse
-is done according to beneficiary fractions for each account type.
+is done according to beneficiary fractions for each type of savings account.
 Tax status covers married filing jointly and single, depending on the number of individuals reported.
 
-Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints. Future
-values are simple projections of current values with the assumed inflation rates.
-
-See one of the notebooks for a tutorial and representative user cases.
+Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints.
+Future values are simple projections of current values with the assumed inflation rates.
 
 ### Limitations
 Owl is work in progress. At the current time:
 - Only the US federal income tax is considered (and minimized through the optimization algorithm).
 Head of household filing status has not been added but can easily be.
-- Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not included. An error message will be generated for these cases.
+- Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not included.
+These cases are detected and will generate an error message.
 - Social security rule for surviving spouse assumes that benefits were taken at full retirement age.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
@@ -136,12 +147,12 @@ If there is interest, that could be added in the future.
 This means that the Medicare premiums are calculated after an initial solution is generated,
 and then a new solution is re-generated with these premiums as a constraint.
 In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise.
-Owl will detect these cases and inform the user.
-While the solutions generated are very close to one another, Owl will pick the smallest one
+While the solutions generated are very close to one another, Owl will pick the smallest solution
 for being conservative.
-- Part D is not included in the IRMAA calculations. Being considerably more, only Part B is taken into account. 
-- Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
-Having a knob to adjust future rates might be an interesting feature to add for measuring the impact on Roth conversions.
+- Part D is not included in the IRMAA calculations. Being considerably more significant,
+only Part B is taken into account. 
+- Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years.
+Your guesses are as good as mine.
 
 The solution from an optimization algorithm has only two states: feasible and infeasible.
 Therefore, unlike event-driven simulators that can tell you that your distribution strategy runs
@@ -151,215 +162,12 @@ estate value too large for the savings assets to support, even with zero net spe
 or maximizing the bequest subject to a net spending basis that is already too large for the savings
 assets to support, even with no estate being left.
 
------------------------------------------------------------------------
-## An example of Owl's functionality
-With about 10 lines of Python code, one can generate a full case study.
-Here is a typical plan with some comments.
-A plan starts with the names of the individuals, their birth years and life expectancies, and a name for the plan.
-Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
-```python
-import owlplanner as owl
-# Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to age 92.
-# Plan starts on Jan 1st of this year.
-plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='01-01')
-# Jack has $90.5k in a taxable investment account, $600.5k in a tax-deferred account and $70k from 2 tax-exempt accounts.
-# Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
-plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50.6 + 20, 40.8])
-# An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
-plan.readContributions('jack+jill.xlsx')
-# Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
-# Jill will do the same thing but is a bit more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
-plan.setInterpolationMethod('s-curve')
-plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
-# Jack has no pension, but Jill will receive $10k per year at 65 yo.
-plan.setPension([0, 10.5], [65, 65])
-# Jack anticipates receiving social security of $28.4k at age 70, and Jill $19.7k at age 62. All values are in today's $.
-plan.setSocialSecurity([28.4, 19.7], [70, 62])
-# Instead of a 'flat' profile, we select a 'smile' spending profile, with 60% needs for the survivor.
-plan.setSpendingProfile('smile', 60)
-# We will reproduce the historical sequence of returns starting in year 1969.
-plan.setRates('historical', 1969)
-# Jack and Jill want to leave a bequest of $500k, and limit Roth conversions to $100k per year.
-# Jill's 403b plan does not support in-plan Roth conversions.
-# We solve for the maximum net spending profile under these constraints.
-plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500, 'noRothConversions': 'Jill'})
-```
-The output can be seen using the following commands that display various plots of the decision variables in time.
-```python
-plan.showNetSpending()
-plan.showGrossIncome()
-plan.showTaxes()
-plan.showSources()
-plan.showAccounts()
-plan.showAssetDistribution()
-...
-```
-By default, all these plots are in nominal dollars. To get values in today's $, a call to
-```python
-plan.setDefaultPlots('today')
-```
-would change all graphs to report in today's dollars. Each plot can also override the default by setting the `value`
-parameters to either *nominal* or *today*, such as in the following example, which shows the taxable ordinary
-income over the duration of the plan,
-along with inflation-adjusted extrapolated tax brackets. Notice how the optimized income is surfing
-the boundaries of tax brackets.
-```python
-plan.showGrossIncome(value='nominal')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxIncomePlot.png" width="75%">
-
-The optimal spending profile is shown in the next plot (in today's dollars). Notice the drop
-(recall we selected 60% survivor needs) at the passing of the first spouse.
-```python
-plan.showProfile('today')
-```
-
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/spendingPlot.png" width="75%">
-
-The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill.
-It was generated using
-```python
-plan.showAccounts(value='nominal')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/savingsPlot.png" width="75%">
-
-while this plot shows the complex cash flow from all sources, which was generated with
-```python
-plan.showSources(value='nominal')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/sourcesPlot.png" width="75%">
-
-For taxes, the following call will display Medicare premiums (including Part B IRMAA fees) and federal income tax
-```python
-plan.showTaxes(value='nominal')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/taxesPlot.png" width="75%">
-
-For the case at hand, recall that asset allocations were selected above through
-
-```python
-plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
-```
-gliding from a 60%/40% stocks/bonds portfolio to 70%/30% for Jack, and 50%/50% -> 70%/30% for Jill.
-Assets distribution in all accounts in today's $ over time can be displayed from
-```python
-plan.showAssetDistribution(value='today')
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxable.png" width="75%">
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxDef.png" width="75%">
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/AD-taxFree.png" width="75%">
-
-These plots are irregular because we used historical rates from 1969. The volatility of
-the rates offers Roth conversion benefits which are exploited by the optimizer.
-The rates used can be displayed by:
-```python
-plan.showRates()
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesPlot.png" width="75%">
-
-Values between brackets <> are the average values and volatility over the selected period. 
-
-For the statisticians, rates distributions and correlations between them can be shown using:
-```python
-plan.showRatesCorrelations()
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/ratesCorrelations.png" width="75%">
-
-A short text summary of the outcome of the optimization can be displayed through using:
-```python
-plan.summary()
-```
-The output of the last command reports that if future rates are exactly like those observed
-starting from 1969 and the following years, Jack and Jill could afford an annual spending of
- \\$97k starting this year
-(with a basis of \\$88.8k - the basis multiplies the profile which can vary over the course of the plan).
-The summary also contains some details:
-```
-SUMMARY ================================================================
-Net yearly spending basis in 2025$: $91,812
-Net yearly spending for year 2025: $100,448
-Net spending remaining in year 2025: $100,448
-Total net spending in 2025$: $2,809,453 ($7,757,092 nominal)
-Total Roth conversions in 2025$: $320,639 ($456,454 nominal)
-Total income tax paid on ordinary income in 2025$: $247,788 ($469,522 nominal)
-Total tax paid on gains and dividends in 2025$: $3,313 ($3,768 nominal)
-Total Medicare premiums paid in 2025$: $117,660 ($343,388 nominal)
-Spousal wealth transfer from Jack to Jill in year 2051 (nominal): taxable: $0  tax-def: $57,224  tax-free: $2,102,173
-Sum of spousal bequests to Jill in year 2051 in 2025$: $499,341 ($2,159,397 nominal)
-Post-tax non-spousal bequests from Jack in year 2051 (nominal): taxable: $0  tax-def: $0  tax-free: $0
-Sum of post-tax non-spousal bequests from Jack in year 2051 in 2025$: $0 ($0 nominal)
-Post-tax account values at the end of final plan year 2057 (nominal): taxable: $0  tax-def: $0  tax-free: $2,488,808
-Total estate value at the end of final plan year 2057 in 2025$: $500,000 ($2,488,808 nominal)
-Plan starting date: 01-01
-Cumulative inflation factor from start date to end of plan: 4.98
-        Jack's 27-year life horizon: 2025 -> 2051
-        Jill's 33-year life horizon: 2025 -> 2057
-Plan name: jack & jill - tutorial
-Number of decision variables: 996
-Number of constraints: 867
-Case executed on: 2025-02-04 at 22:55:03
-------------------------------------------------------------------------
-```
-And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
-```python
-plan.saveWorkbook(overwrite=True)
-```
-For Monte Carlo simulations, the mean return rates, their volatility and covariance are specified
-and used to generate random scenarios. A histogram of outcomes is generated such as this one for Jack and Jill, which was generated
-by selecting *stochastic* rates and using
-```
-plan.runMC('maxSpending', ...)
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2a.png" width="75%">
-
-Similarly, the next one was generated using
-```
-plan.runMC('maxBequest', ...)
-```
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/MC-tutorial2b.png" width="75%">
-
-
-See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_1.ipynb),
-[2](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_2.ipynb), and
-[3](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_3.ipynb) for more info.
-
-
 ---------------------------------------------------------------
-## Requirements
+## Documentation
 
-If you have Python already installed on your computer, Owl can be installed as a package using the following commands:
-```shell
-python -m build
-pip install .
-```
-These commands need to run from the Owl directory where you downloaded Owl from GitHub either through git or a zip file.
-Pip will install all the required dependencies.
-
-Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
-The user front-end was built on Streamlit.
-Package `odfpy` might be required if one read files created by LibreOffice. Again, these dependencies
-will be installed by pip.
-
-The simplest way to get started with Owl is to use the `streamlit` browser-based user interface
-that is started by the `owlplanner.cmd` script, which  will start a user interface on your own browser.
-Here is a screenshot of one of the multiple tabs of the interface:
-
-<img src="https://raw.github.com/mdlacasse/Owl/main/docs/images/OwlUI.png" width="100%">
-
-Alternatively, one can prefer using Owl from Jupyter notebooks. For that purpose, the `examples` directory
-contains many files as a tutorial. The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations.
-Jupyter will run in your default web browser, from your computer to your browser, and therefore no data is ever transferred on the Internet
-(your computer, i.e., `localhost`, is the server).
-
-For simulating your own realizations, use the files beginning with the word *template*.
-Make a copy and rename them with your own names while keeping the same extension.
-Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
-Notebooks with detailed explanations can be found in
-[tutorial_1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
-[tutorial_2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb), and
-[tutorial_3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb).
-
-Finally, you will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.
+- Documentation for the app user interface is available from the interface itself.
+- Installation guide and software requirements can be found [here](INSTALL.md).
+- User guide for the underlying Python package as used in a Jupyter notebook can be found [here](USER_GUIDE.md).
 
 ---------------------------------------------------------------------
 
@@ -368,12 +176,14 @@ Finally, you will also need the capability to read and edit Excel files. One can
 - Image from [freepik](https://freepik.com)
 - Optimization solver from [HiGHS](https://highs.dev)
 - Streamlit Community Cloud [Streamlit](https://streamlit.io)
+- Other contributors: Josh (noimjosh@gmail.com) for Docker image code
 
 ---------------------------------------------------------------------
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.
+Disclaimers: I am not a financial planner. You make your own decisions.
+This program comes with no guarantee. Use at your own risk.
 
 --------------------------------------------------------
 

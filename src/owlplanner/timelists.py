@@ -21,15 +21,15 @@ import pandas as pd
 
 # Expected headers in each excel sheet, one per individual.
 timeHorizonItems = [
-    'year',
-    'anticipated wages',
-    'taxable ctrb',
-    '401k ctrb',
-    'Roth 401k ctrb',
-    'IRA ctrb',
-    'Roth IRA ctrb',
-    'Roth conv',
-    'big-ticket items',
+    "year",
+    "anticipated wages",
+    "taxable ctrb",
+    "401k ctrb",
+    "Roth 401k ctrb",
+    "IRA ctrb",
+    "Roth IRA ctrb",
+    "Roth conv",
+    "big-ticket items",
 ]
 
 
@@ -44,23 +44,23 @@ def read(finput, inames, horizons, mylog):
     Returs a dictionary of dataframes by individual's names.
     """
 
-    mylog.vprint('Reading wages, contributions, conversions, and big-ticket items over time...')
+    mylog.vprint("Reading wages, contributions, conversions, and big-ticket items over time...")
 
     if isinstance(finput, dict):
         timeLists = finput
-        finput = 'dictionary of DataFrames'
-        streamName = 'dictionary of DataFrames'
+        finput = "dictionary of DataFrames"
+        streamName = "dictionary of DataFrames"
     else:
         # Read all worksheets in memory but only process those with proper names.
         try:
             dfDict = pd.read_excel(finput, sheet_name=None)
         except Exception as e:
-            raise Exception('Could not read file %r: %s.' % (finput, e))
-        streamName = "file '%s'" % finput
+            raise Exception(f"Could not read file {finput}: {e}.")
+        streamName = f"file '{finput}'"
 
         timeLists = condition(dfDict, inames, horizons, mylog)
 
-    mylog.vprint("Successfully read time horizons from %s." % streamName)
+    mylog.vprint(f"Successfully read time horizons from {streamName}.")
 
     return finput, timeLists
 
@@ -80,9 +80,9 @@ def condition(dfDict, inames, horizons, mylog):
 
         df = dfDict[iname]
 
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+        df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
         for col in df.columns:
-            if col == '' or col not in timeHorizonItems:
+            if col == "" or col not in timeHorizonItems:
                 df.drop(col, axis=1)
 
         for item in timeHorizonItems:
@@ -90,34 +90,36 @@ def condition(dfDict, inames, horizons, mylog):
                 raise ValueError(f"Item {item} not found for {iname}.")
 
         # Only consider lines in proper year range.
-        df = df[df['year'] >= thisyear]
-        df = df[df['year'] < endyear]
+        df = df[df["year"] >= thisyear]
+        df = df[df["year"] < endyear]
         missing = []
         for n in range(horizons[i]):
             year = thisyear + n
-            if not (df[df['year'] == year]).any(axis=None):
+            if not (df[df["year"] == year]).any(axis=None):
                 df.loc[len(df)] = [year, 0, 0, 0, 0, 0, 0, 0, 0]
                 missing.append(year)
             else:
                 for item in timeHorizonItems:
-                    if item != 'big-ticket items' and df[item].iloc[n] < 0:
-                        raise ValueError('Item %s for %s in year %d is < 0.'
-                                         % (item, iname, df['year'].iloc[n])
-                                         )
+                    if item != "big-ticket items" and df[item].iloc[n] < 0:
+                        raise ValueError(f"Item {item} for {iname} in year {df['year'].iloc[n]} is < 0.")
 
         if len(missing) > 0:
-            mylog.vprint('Adding %d missing years for %s: %r.' % (len(missing), iname, missing))
+            mylog.vprint(f"Adding {len(missing)} missing years for {iname}: {missing}.")
 
-        df.sort_values('year', inplace=True)
+        df.sort_values("year", inplace=True)
         # Replace empty (NaN) cells with 0 value.
         df.fillna(0, inplace=True)
 
         timeLists[iname] = df
 
-        if df['year'].iloc[-1] != endyear - 1:
-            raise ValueError('Time horizon for', iname,
-                             'is too short.\n\tIt should end in',
-                             endyear, 'but ends in', df['year'].iloc[-1]
-                             )
+        if df["year"].iloc[-1] != endyear - 1:
+            raise ValueError(
+                "Time horizon for",
+                iname,
+                "is too short.\n\tIt should end in",
+                endyear,
+                "but ends in",
+                df["year"].iloc[-1],
+            )
 
     return timeLists

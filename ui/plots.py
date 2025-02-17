@@ -5,12 +5,12 @@ import sskeys as kz
 
 
 def changeStyle(key):
-    val = kz.getGlobalKey('_'+key)
+    val = kz.getGlobalKey("_" + key)
     kz.storeGlobalKey(key, val)
     plt.style.use(val)
 
 
-styles = ['default']
-otherChoices = [x for x in style.available if not x.startswith('_')]
+styles = ["default"]
+otherChoices = [x for x in style.available if not x.startswith("_")]
 otherChoices = sorted(otherChoices, key=str.casefold)
 styles.extend(otherChoices)

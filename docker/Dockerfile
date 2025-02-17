@@ -1,28 +1,31 @@
-# app/Dockerfile
+# docker/Dockerfile
 
-FROM python:3.9-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    software-properties-common \
-    git \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip3 install build
+RUN apt-get update; \
+    apt-get upgrade; \
+    apt-get install -y --no-install-recommends \
+        curl \
+        git \
+    ; \
+    rm -rf /var/lib/apt/lists/*
 
-COPY entrypoint.sh /usr/bin/entrypoint.sh
+COPY fastentrypoint.sh /usr/bin/entrypoint.sh
 
 RUN chmod 555 /usr/bin/entrypoint.sh
 
-# Uncomment below to build into the container
-# The entrypoint.sh builds the runtime environment
-#RUN git clone https://github.com/mdlacasse/Owl.git .
+# Build in the container for faster starts.
+RUN python -m pip install --no-cache-dir --upgrade pip
 
-#RUN python -m build
+RUN pip install --no-cache-dir build
 
-#RUN pip3 install .
+RUN git clone --depth 1 https://github.com/mdlacasse/Owl.git owl
+
+RUN cd /app/owl && python -m build
+
+RUN cd /app/owl && pip install --no-cache-dir .
 
 EXPOSE 8501
 

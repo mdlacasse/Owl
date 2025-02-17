@@ -43,31 +43,31 @@ from owlplanner import utils as u
 FROM = 1928
 TO = 2024
 
-where = os.path.dirname(sys.modules['owlplanner'].__file__)
-file = os.path.join(where, 'data/rates.csv')
+where = os.path.dirname(sys.modules["owlplanner"].__file__)
+file = os.path.join(where, "data/rates.csv")
 try:
     df = pd.read_csv(file)
 except Exception as e:
-    raise RuntimeError(f'Could not find rates data file: {e}')
+    raise RuntimeError(f"Could not find rates data file: {e}")
 
 
 # Annual rate of return (%) of S&P 500 since 1928, including dividends.
-SP500 = df['S&P 500']
+SP500 = df["S&P 500"]
 
 # Annual rate of return (%) of Baa Corporate Bonds since 1928.
-BondsBaa = df['Bonds Baa']
+BondsBaa = df["Bonds Baa"]
 
 # Annual rate of return (%) of Aaa Corporate Bonds since 1928.
-BondsAaa = df['Bonds Aaa']
+BondsAaa = df["Bonds Aaa"]
 
 # Annual rate of return (%) for 10-y Treasury notes since 1928.
-TNotes = df['TNotes']
+TNotes = df["TNotes"]
 
 # Annual rates of return for 3-month Treasury bills since 1928.
-TBills = df['TBills']
+TBills = df["TBills"]
 
 # Inflation rate as U.S. CPI index (%) since 1928.
-Inflation = df['Inflation']
+Inflation = df["Inflation"]
 
 
 def getRatesDistributions(frm, to, mylog=None):
@@ -87,10 +87,10 @@ def getRatesDistributions(frm, to, mylog=None):
     assert frm <= to, '"from" must be smaller than "to".'
 
     series = {
-        'SP500': SP500,
-        'BondsBaa': BondsBaa,
-        'T. Notes': TNotes,
-        'Inflation': Inflation,
+        "SP500": SP500,
+        "BondsBaa": BondsBaa,
+        "T. Notes": TNotes,
+        "Inflation": Inflation,
     }
 
     df = pd.DataFrame(series)
@@ -100,8 +100,8 @@ def getRatesDistributions(frm, to, mylog=None):
     stdev = df.std()
     covar = df.cov()
 
-    mylog.print('means: (%)\n', means)
-    mylog.print('standard deviation: (%)\n', stdev)
+    mylog.print("means: (%)\n", means)
+    mylog.print("standard deviation: (%)\n", stdev)
 
     # Convert to NumPy array and from percent to decimal.
     means = np.array(means) / 100.0
@@ -110,7 +110,7 @@ def getRatesDistributions(frm, to, mylog=None):
     # Build correlation matrix by dividing by the stdev for each column and row.
     corr = covar / stdev[:, None]
     corr = corr.T / stdev[:, None]
-    mylog.print('correlation matrix: \n\t\t%s' % str(corr).replace('\n', '\n\t\t'))
+    mylog.print("correlation matrix: \n\t\t%s" % str(corr).replace("\n", "\n\t\t"))
 
     return means, stdev, corr, covar
 
@@ -121,9 +121,9 @@ def historicalValue(amount, year):
     valued at the beginning of the year specified.
     """
     thisyear = date.today().year
-    assert TO == thisyear - 1, 'Rates file needs to be updated to be current to %d.' % thisyear
-    assert year >= FROM, 'Only data from %d is available.' % FROM
-    assert year <= thisyear, 'Year must be < %d for historical data.' % thisyear
+    assert TO == thisyear - 1, f"Rates file needs to be updated to be current to {thisyear}."
+    assert year >= FROM, f"Only data from {FROM} is available."
+    assert year <= thisyear, f"Year must be < {thisyear} for historical data."
 
     span = thisyear - year
     ub = len(Inflation)
@@ -173,7 +173,7 @@ class Rates(object):
         self.to = TO
 
         # Default values for rates.
-        self.setMethod('default')
+        self.setMethod("default")
 
     def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None):
         """
@@ -193,45 +193,45 @@ class Rates(object):
         For 4 assets, this represents a list of 6 off-diagonal values.
         """
         if method not in [
-            'default',
-            'optimistic',
-            'conservative',
-            'user',
-            'historical',
-            'historical average',
-            'mean',
-            'stochastic',
-            'histochastic',
+            "default",
+            "optimistic",
+            "conservative",
+            "user",
+            "historical",
+            "historical average",
+            "mean",
+            "stochastic",
+            "histochastic",
         ]:
-            raise ValueError('Unknown rate selection method %s.' % method)
+            raise ValueError(f"Unknown rate selection method {method}.")
 
         Nk = len(self._defRates)
         # First process fixed methods relying on values.
-        if method == 'default':
+        if method == "default":
             self.means = self._defRates
             # self.mylog.vprint('Using default fixed rates values:', *[u.pc(k) for k in values])
             self._setFixedRates(self._defRates)
-        elif method == 'optimistic':
+        elif method == "optimistic":
             self.means = self._defRates
-            self.mylog.vprint('Using optimistic fixed rates values:', *[u.pc(k) for k in self.means])
+            self.mylog.vprint("Using optimistic fixed rates values:", *[u.pc(k) for k in self.means])
             self._setFixedRates(self._optimisticRates)
-        elif method == 'conservative':
+        elif method == "conservative":
             self.means = self._conservRates
-            self.mylog.vprint('Using conservative fixed rates values:', *[u.pc(k) for k in self.means])
+            self.mylog.vprint("Using conservative fixed rates values:", *[u.pc(k) for k in self.means])
             self._setFixedRates(self._conservRates)
-        elif method == 'user':
-            assert values is not None, 'Fixed values must be provided with the user option.'
-            assert len(values) == Nk, 'values must have %d items.' % Nk
+        elif method == "user":
+            assert values is not None, "Fixed values must be provided with the user option."
+            assert len(values) == Nk, f"Values must have {Nk} items."
             self.means = np.array(values, dtype=float)
             # Convert percent to decimal for storing.
             self.means /= 100.0
-            self.mylog.vprint('Setting rates using fixed user values:', *[u.pc(k) for k in self.means])
+            self.mylog.vprint("Setting rates using fixed user values:", *[u.pc(k) for k in self.means])
             self._setFixedRates(self.means)
-        elif method == 'stochastic':
-            assert values is not None, 'Mean values must be provided with the stochastic option.'
-            assert stdev is not None, 'Standard deviations must be provided with the stochastic option.'
-            assert len(values) == Nk, 'values must have %d items.' % Nk
-            assert len(stdev) == Nk, 'stdev must have %d items.' % Nk
+        elif method == "stochastic":
+            assert values is not None, "Mean values must be provided with the stochastic option."
+            assert stdev is not None, "Standard deviations must be provided with the stochastic option."
+            assert len(values) == Nk, f"Values must have {Nk} items."
+            assert len(stdev) == Nk, f"stdev must have {Nk} items."
             self.means = np.array(values, dtype=float)
             self.stdev = np.array(stdev, dtype=float)
             # Convert percent to decimal for storing.
@@ -256,40 +256,40 @@ class Rates(object):
                             x += 1
                     corrarr = newcorr
                 else:
-                    raise RuntimeError('Unable to process correlation shape of %s.' % corrarr.shape)
+                    raise RuntimeError(f"Unable to process correlation shape of {corrarr.shape}.")
 
             self.corr = corrarr
-            assert np.array_equal(self.corr, self.corr.T), 'Correlation matrix must be symmetric.'
+            assert np.array_equal(self.corr, self.corr.T), "Correlation matrix must be symmetric."
             # Now build covariance matrix from stdev and correlation matrix.
             # Multiply each row by a vector element-wise. Then columns.
             covar = self.corr * self.stdev
             self.covar = covar.T * self.stdev
             self._rateMethod = self._stochRates
-            self.mylog.vprint('Setting rates using stochastic method with means:', *[u.pc(k) for k in self.means])
-            self.mylog.vprint('\t standard deviations:', *[u.pc(k) for k in self.stdev])
-            self.mylog.vprint('\t and correlation matrix:\n\t\t', str(self.corr).replace('\n', '\n\t\t'))
+            self.mylog.vprint("Setting rates using stochastic method with means:", *[u.pc(k) for k in self.means])
+            self.mylog.vprint("\t standard deviations:", *[u.pc(k) for k in self.stdev])
+            self.mylog.vprint("\t and correlation matrix:\n\t\t", str(self.corr).replace("\n", "\n\t\t"))
         else:
             # Then methods relying on historical data range.
-            assert frm is not None, 'From year must be provided with this option.'
-            assert FROM <= frm and frm <= TO, 'Lower range "frm=%d" out of bounds.' % frm
-            assert FROM <= to and to <= TO, 'Upper range "to=%d" out of bounds.' % to
-            assert frm < to, 'Unacceptable range.'
+            assert frm is not None, "From year must be provided with this option."
+            assert FROM <= frm and frm <= TO, f"Lower range 'frm={frm}' out of bounds."
+            assert FROM <= to and to <= TO, f"Upper range 'to={to}' out of bounds."
+            assert frm < to, "Unacceptable range."
             self.frm = frm
             self.to = to
 
-            if method == 'historical':
-                self.mylog.vprint('Using historical rates representing data from %d to %d.' % (frm, to))
+            if method == "historical":
+                self.mylog.vprint(f"Using historical rates representing data from {frm} to {to}.")
                 self._rateMethod = self._histRates
-            elif method == 'historical average' or method == 'means':
-                self.mylog.vprint('Using average of rates from %d to %d.' % (frm, to))
+            elif method == "historical average" or method == "means":
+                self.mylog.vprint(f"Using average of rates from {frm} to {to}.")
                 self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to, self.mylog)
                 self._setFixedRates(self.means)
-            elif method == 'histochastic':
-                self.mylog.vprint('Using histochastic rates derived from years %d to %d.' % (frm, to))
+            elif method == "histochastic":
+                self.mylog.vprint(f"Using histochastic rates derived from years {frm} to {to}.")
                 self._rateMethod = self._stochRates
                 self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to, self.mylog)
             else:
-                raise ValueError('Method $s not supported.' % method)
+                raise ValueError(f"Method {method} not supported.")
 
         self.method = method
 
@@ -297,7 +297,7 @@ class Rates(object):
 
     def _setFixedRates(self, rates):
         Nk = len(self._defRates)
-        assert len(rates) == Nk, 'Rate list provided must have %d entries.' % Nk
+        assert len(rates) == Nk, f"Rate list provided must have {Nk} entries."
         self._myRates = np.array(rates)
         self._rateMethod = self._fixedRates
 
@@ -369,7 +369,7 @@ def showRatesDistributions(frm=FROM, to=TO):
     """
     import matplotlib.pyplot as plt
 
-    title = 'Rates from ' + str(frm) + ' to ' + str(to)
+    title = "Rates from " + str(frm) + " to " + str(to)
     # Bring year values to indices.
     frm -= FROM
     to -= FROM
@@ -383,25 +383,25 @@ def showRatesDistributions(frm=FROM, to=TO):
     dat3 = np.array(Inflation[frm:to])
 
     fig.suptitle(title)
-    ax[0].set_title('S&P500')
-    label = '<>: ' + u.pc(np.mean(dat0), 2, 1)
+    ax[0].set_title("S&P500")
+    label = "<>: " + u.pc(np.mean(dat0), 2, 1)
     ax[0].hist(dat0, bins=nbins, label=label)
-    ax[0].legend(loc='upper left', fontsize=8, framealpha=0.7)
+    ax[0].legend(loc="upper left", fontsize=8, framealpha=0.7)
 
-    ax[1].set_title('BondsBaa')
-    label = '<>: ' + u.pc(np.mean(dat1), 2, 1)
+    ax[1].set_title("BondsBaa")
+    label = "<>: " + u.pc(np.mean(dat1), 2, 1)
     ax[1].hist(dat1, bins=nbins, label=label)
-    ax[1].legend(loc='upper left', fontsize=8, framealpha=0.7)
+    ax[1].legend(loc="upper left", fontsize=8, framealpha=0.7)
 
-    ax[2].set_title('TNotes')
-    label = '<>: ' + u.pc(np.mean(dat2), 2, 1)
+    ax[2].set_title("TNotes")
+    label = "<>: " + u.pc(np.mean(dat2), 2, 1)
     ax[2].hist(dat1, bins=nbins, label=label)
-    ax[2].legend(loc='upper left', fontsize=8, framealpha=0.7)
+    ax[2].legend(loc="upper left", fontsize=8, framealpha=0.7)
 
-    ax[3].set_title('Inflation')
-    label = '<>: ' + u.pc(np.mean(dat3), 2, 1)
+    ax[3].set_title("Inflation")
+    label = "<>: " + u.pc(np.mean(dat3), 2, 1)
     ax[3].hist(dat3, bins=nbins, label=label)
-    ax[3].legend(loc='upper left', fontsize=8, framealpha=0.7)
+    ax[3].legend(loc="upper left", fontsize=8, framealpha=0.7)
 
     plt.show()
 

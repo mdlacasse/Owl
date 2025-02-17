@@ -2,15 +2,18 @@ import streamlit as st
 
 import sskeys as kz
 
-col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap='large')
+col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
+with col1:
+    st.write("## Documentation")
+    kz.orangeDivider()
+    st.write("## Owl Retirement Planner\n-------")
 with col3:
     st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")
     st.caption("Retirement planner with great wisdom")
+
+col1, col2 = st.columns([0.80, 0.20], gap="large")
 with col1:
-    st.write('## Documentation')
-    kz.orangeDivider()
-    st.write('## Owl Retirement Planner')
-    st.markdown('''
+    st.markdown("""
 #### A retirement exploration tool based on linear programming
 
 The goal of Owl is to provide a free and open-source ecosystem that has cutting-edge
@@ -94,7 +97,7 @@ This page allows to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
 Three types of savings accounts are considered and are tracked separately for spouses:
-- Taxable savings accounts (e.g., investment accounts, CDs)
+- Taxable savings accounts (e.g., investment accounts, CDs),
 - Tax-deferred savings accounts (e.g., 401k, 403b, IRA),
 - Tax-exempt savings accounts (e.g., Roth 401k, Roth IRA).
 
@@ -124,21 +127,14 @@ This page allows to enter an optional Excel file containing future wages and con
 or to enter values directly into the corresponding tables.
 Values in these tables are all in nominal \\$, i.e., not in thousands.
 The wages and contributions data contains 9 columns titled as follows:
-''', unsafe_allow_html=True)
 
-# <span style="font-size: 10px;"> </span>
-st.write('''
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
 |2025 | | | | | | | | |
 |2026 | | | | | | | | |
 | ... | | | | | | | | |
 |20XX | | | | | | | | |
-''')
 
-col1, col2 = st.columns([0.65, 0.35], gap='large')
-with col1:
-    st.write('''
 Here, 20XX represents the last row which could be the last year based on the life expectancy values provided.
 While loading an Excel workbook, missing years or empty cells will be filled with zero values,
 while years outside the time span of the plan will be ignored.
@@ -196,28 +192,28 @@ A great site for deciding on when to take social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
 And obviously there is [ssa.gov](https://ssa.gov).
 
-#### Rate Selection
+#### Rates Selection
 This page allows you to select the return rates over the
 time span of the plan. All rates are annual.
 There are two major types of rates:
-- *Fixed rates* - staying the same from one year to another
-    - *conservative*
-    - *optimistic*
-    - *historical average* - i.e., average over a range of past years
-    - *user* - rates are provided by the user
-- *Varying rates* - changing from year to year
-    - *historical* - using a rate sequence which happened in the past
-    - *histochastic* - using stochastic rates derived from statistics over a time range of historical rates
+- *Fixed rates* - staying the same from one year to another:
+    - *conservative*,
+    - *optimistic*,
+    - *historical average* - i.e., average over a range of past years,
+    - *user* - rates are provided by the user.
+- *Varying rates* - changing from year to year:
+    - *historical* - using a rate sequence which happened in the past,
+    - *histochastic* - using stochastic rates derived from statistics over a time range of historical rates,
     - *stochastic* - using stochastic rates created from statistical parameters specified by the user.
 
 These rates are the annual rates of return for each of the assets considered. The types of asset are described
 in the next section.
 
-#### Asset Allocations
+#### Asset Allocation
 This page allows you to select how to partition your assets between 4 investment options:
-- S&P 500
-- Corporate Bonds Baa
-- 10-year Treasury Notes
+- S&P 500,
+- Corporate Bonds Baa,
+- 10-year Treasury Notes,
 - Cash assets assumed to follow inflation.
 
 Two choices of asset allocations are possible:
@@ -275,7 +271,6 @@ amounts over the duration of the plan.
 Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
 for that reason they do not start at 1. Moreover, if the plan starts later
 than on January 1$^{st}$, the value of the first year will be reduced accordingly.
-
 
 --------------------------------------------------------------------------------------
 ### :orange[Single Scenario]
@@ -353,8 +348,8 @@ and the other for the distribution of values of the objective being optimized.
 
 Linear programming solutions are more expensive than event-driven forward simulators. Therefore,
 when considering Monte Carlo simulations, consider:
-- Turning off Medicare calculations
-- Installing Owl and running on your local computer as it can be more than 3 times faster than the Streamlit host
+- Turning off Medicare calculations,
+- Installing Owl and running on your local computer as it can be more than 3 times faster than the Streamlit host.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
@@ -373,5 +368,4 @@ These very pages.
 #### About Owl
 Credits and disclaimers.
 
-</div>
-''', unsafe_allow_html=True)
+""")
