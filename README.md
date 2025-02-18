@@ -176,7 +176,7 @@ assets to support, even with no estate being left.
 - Image from [freepik](https://freepik.com)
 - Optimization solver from [HiGHS](https://highs.dev)
 - Streamlit Community Cloud [Streamlit](https://streamlit.io)
-- Other contributors: Josh (noimjosh@gmail.com) for Docker image code
+- Contributors: Josh (noimjosh@gmail.com) for Docker image code
 
 ---------------------------------------------------------------------
 

@@ -73,7 +73,7 @@ else:
         ret = kz.getIntNum(f"{iname0}'s birth year", "yob0", disabled=diz2)
 
         kz.initKey("life0", 80)
-        ret = kz.getIntNum("{iname0}'s expected longevity", "life0", disabled=diz1)
+        ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", disabled=diz1)
 
         today = date.today()
         thisyear = today.year

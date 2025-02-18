@@ -32,7 +32,7 @@ Copyright &copy; 2024 - Martin-D. Lacasse
     [openpyxl](https://openpyxl.readthedocs.io),
     [toml](https://toml.io),
  and [Streamlit](https://streamlit.io) for the front-end
-- Other contributors: Josh (noimjosh@gmail.com) for Docker image code.
+- Contributors: Josh (noimjosh@gmail.com) for Docker image code.
 
 
 #### :orange[Privacy]
