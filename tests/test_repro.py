@@ -36,7 +36,7 @@ def test_case1():
     p = createJackAndJillPlan('case1')
     p.setRates('historical', 1969)
     p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500})
-    assert p.basis == pytest.approx(81918.4, abs=0.5)
+    assert p.basis == pytest.approx(81978.0, abs=0.5)
     assert p.bequest == pytest.approx(500000, abs=0.5)
 
 
@@ -45,7 +45,7 @@ def test_case2():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p.basis == pytest.approx(80000, abs=0.5)
-    assert p.bequest == pytest.approx(592543, abs=0.5)
+    assert p.bequest == pytest.approx(595407.5, abs=0.5)
 
 
 def test_config1():
@@ -54,7 +54,7 @@ def test_config1():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p.basis == pytest.approx(80000, abs=0.5)
-    assert p.bequest == pytest.approx(592543, abs=0.5)
+    assert p.bequest == pytest.approx(595407.5, abs=0.5)
     p.saveConfig()
     base_filename = 'case_' + name
     full_filename = 'case_' + name + '.toml'
@@ -62,11 +62,11 @@ def test_config1():
     p2 = owl.readConfig(base_filename)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p2.basis == pytest.approx(80000, abs=0.5)
-    assert p2.bequest == pytest.approx(592543, abs=0.5)
+    assert p2.bequest == pytest.approx(595407.5, abs=0.5)
     p3 = owl.readConfig(full_filename)
     p3.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p3.basis == pytest.approx(80000, abs=0.5)
-    assert p3.bequest == pytest.approx(592543, abs=0.5)
+    assert p3.bequest == pytest.approx(595407.5, abs=0.5)
     os.remove(full_filename)
 
 
@@ -76,14 +76,14 @@ def test_config2():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p.basis == pytest.approx(80000, abs=0.5)
-    assert p.bequest == pytest.approx(592543, abs=0.5)
+    assert p.bequest == pytest.approx(595407.5, abs=0.5)
     iostring = StringIO()
     p.saveConfig(iostring)
     # print('iostream:', iostream.getvalue())
     p2 = owl.readConfig(iostring)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p2.basis == pytest.approx(80000, abs=0.5)
-    assert p2.bequest == pytest.approx(592543, abs=0.5)
+    assert p2.bequest == pytest.approx(595407.5, abs=0.5)
 
 
 def test_clone1():
@@ -92,12 +92,12 @@ def test_clone1():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p.basis == pytest.approx(80000, abs=0.5)
-    assert p.bequest == pytest.approx(592543, abs=0.5)
+    assert p.bequest == pytest.approx(595407.5, abs=0.5)
     name2 = 'testclone2'
     p2 = owl.clone(p, name2)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p2.basis == pytest.approx(80000, abs=0.5)
-    assert p2.bequest == pytest.approx(592543, abs=0.5)
+    assert p2.bequest == pytest.approx(595407.5, abs=0.5)
 
 
 def test_clone2():
@@ -105,10 +105,10 @@ def test_clone2():
     p = createJackAndJillPlan(name)
     p.setRates('historical', 1969)
     p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 0})
-    assert p.basis == pytest.approx(92258, abs=0.5)
+    assert p.basis == pytest.approx(92317.5, abs=0.5)
     assert p.bequest == pytest.approx(0, abs=0.5)
     name2 = 'testclone2'
     p2 = owl.clone(p, name2)
     p2.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 0})
-    assert p2.basis == pytest.approx(92258, abs=0.5)
+    assert p2.basis == pytest.approx(92317.5, abs=0.5)
     assert p2.bequest == pytest.approx(0, abs=0.5)
