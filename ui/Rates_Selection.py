@@ -210,23 +210,24 @@ else:
 
     st.divider()
     st.write("### Other rates")
-    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initKey("divRate", 2)
         helpmsg = "Average annual (qualified) dividend return rate on stock portfolio for income tax purposes."
         ret = kz.getNum("Dividend rate (%)", "divRate", max_value=100.0, format="%.2f", help=helpmsg, step=1.0)
 
     st.write("#### Income taxes")
-    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initKey("gainTx", 15)
         ret = kz.getNum("Long-term capital gains tax rate (%)", "gainTx", max_value=100.0, step=1.0)
-
-        kz.initKey("yTCJA", 2026)
-        helpmsg = "Year at which the Tax Cut And Job Act tax rates are speculated to expire."
-        ret = kz.getIntNum("TCJA expiration year", "yTCJA", help=helpmsg)
 
     with col2:
         kz.initKey("heirsTx", 30)
         helpmsg = "Marginal tax rate that heirs would have to pay on inherited tax-deferred balance."
         ret = kz.getNum("Heirs marginal tax rate (%)", "heirsTx", max_value=100.0, help=helpmsg, step=1.0)
+
+    with col3:
+        kz.initKey("yTCJA", 2026)
+        helpmsg = "Year at which the Tax Cut And Job Act tax rates are speculated to expire."
+        ret = kz.getIntNum("TCJA expiration year", "yTCJA", help=helpmsg)
