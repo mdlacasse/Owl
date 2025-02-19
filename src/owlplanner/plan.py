@@ -249,7 +249,8 @@ class Plan(object):
         assert inames[0] != "" or (self.N_i == 2 and inames[1] == ""), "Name for each individual must be provided."
 
         self.filingStatus = ["single", "married"][self.N_i - 1]
-
+        # Default year TCJA is speculated to expire.
+        self.yTCJA = 2026
         self.inames = inames
         self.yobs = np.array(yobs, dtype=np.int32)
         self.expectancy = np.array(expectancy, dtype=np.int32)
@@ -307,7 +308,8 @@ class Plan(object):
 
         # Prepare income tax and RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
-        self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d, self.N_n)
+        self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
+                                                                  self.N_n, self.yTCJA)
 
         # If none was given, default is to begin plan on today's date.
         self._setStartingDate(startDate)
@@ -441,6 +443,14 @@ class Plan(object):
         mu /= 100
         self.mylog.vprint(f"Dividend return rate on equities set to {u.pc(mu, f=1)}.")
         self.mu = mu
+        self.caseStatus = "modified"
+
+    def setExpirationYearTCJA(self, yTCJA):
+        """
+        Set year at which TCJA is speculated to expire.
+        """
+        self.mylog.vprint(f"Setting TCJA expiration year to {yTCJA}.")
+        self.yTCJA = yTCJA
         self.caseStatus = "modified"
 
     def setLongTermCapitalTaxRate(self, psi):
@@ -2572,7 +2582,7 @@ class Plan(object):
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
-        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n)
+        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yTCJA)
         for key in data:
             data_adj = data[key] * infladjust
             ax.plot(self.year_n, data_adj, label=key, ls=":")

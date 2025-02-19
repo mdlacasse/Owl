@@ -222,6 +222,10 @@ else:
         kz.initKey("gainTx", 15)
         ret = kz.getNum("Long-term capital gains tax rate (%)", "gainTx", max_value=100.0, step=1.0)
 
+        kz.initKey("yTCJA", 2026)
+        helpmsg = "Year at which the Tax Cut And Job Act tax rates are speculated to expire."
+        ret = kz.getIntNum("TCJA expiration year", "yTCJA", help=helpmsg)
+
     with col2:
         kz.initKey("heirsTx", 30)
         helpmsg = "Marginal tax rate that heirs would have to pay on inherited tax-deferred balance."

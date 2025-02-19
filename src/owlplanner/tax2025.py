@@ -24,49 +24,62 @@ from datetime import date
 
 taxBracketNames = ["10%", "12/15%", "22/25%", "24/28%", "32/33%", "35%", "37/40%"]
 
-rates_2025 = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
-rates_2026 = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
+rates_TCJA = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
+rates_nonTCJA = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 
+###############################################################################
+# Start of section where rates need to be actualized every year.
+###############################################################################
 # Single [0] and married filing jointly [1].
-taxBrackets_2025 = np.array(
+
+# These are current.
+taxBrackets_TCJA = np.array(
     [
         [11925, 48475, 103350, 197300, 250525, 626350, 9999999],
         [23850, 96950, 206700, 394600, 501050, 751700, 9999999],
     ]
 )
 
-irmaaBrackets_2025 = np.array(
+irmaaBrackets = np.array(
     [
         [0, 106000, 133000, 167000, 200000, 500000],
         [0, 212000, 266000, 334000, 400000, 750000],
     ]
 )
 
-# Use index [0] to store the standard Medicare part B premium.
+# Index [0] stores the standard Medicare part B premium.
 # Following values are incremental IRMAA part B monthly fees.
-# 2024 total monthly fees: [174.70, 244.60, 349.40, 454.20, 559.00, 594.00]
-# irmaaFees_2024 = 12 * np.array([174.70, 69.90, 104.80, 104.80, 104.80, 35.00])
-irmaaFees_2025 = 12 * np.array([185.00, 74.00, 111.00, 110.90, 111.00, 37.00])
+irmaaFees = 12 * np.array([185.00, 74.00, 111.00, 110.90, 111.00, 37.00])
 
-# Compute 2026 from 2017 with 27% increase.
+# Make projection for non-TCJA using 2017 to current year.
 # taxBrackets_2017 = np.array(
 #    [ [9325, 37950, 91900, 191650, 416700, 418400, 9999999],
-#      [18650, 75900, 153100, 233350, 416700, 470000, 9999999],
+#      [18650, 75900, 153100, 233350, 416700, 470700, 9999999],
 #    ])
-
-taxBrackets_2026 = np.array(
+#
+# stdDeduction_2017 = [6350, 12700]
+#
+# For 2025, I used a 30.5% adjustment from 2017, rounded to closest 50.
+#
+# These are speculated.
+taxBrackets_nonTCJA = np.array(
     [
-        [11850, 48200, 116700, 243400, 529200, 531400, 9999999],
-        [23700, 96400, 194400, 296350, 529200, 596900, 9999999],
+        [12150, 49550, 119950, 250200, 544000, 546200, 9999999],
+        [24350, 99100, 199850, 304600, 543950, 614450, 9999999],
     ]
 )
 
-stdDeduction_2025 = np.array([15000, 30000])
-stdDeduction_2026 = np.array([8300, 16600])
-extra65Deduction_2025 = np.array([2000, 1600])
+# These are current.
+stdDeduction_TCJA = np.array([15000, 30000])
+# These are speculated.
+stdDeduction_nonTCJA = np.array([8300, 16600])
 
+# These are current.
+extra65Deduction = np.array([2000, 1600])
 
-##############################################################################
+###############################################################################
+# End of section where rates need to be actualized every year.
+###############################################################################
 
 
 def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
@@ -80,21 +93,25 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
                 # Start with the (indexed) basic Medicare part B premium.
-                costs[n] += gamma_n[n] * irmaaFees_2025[0]
+                costs[n] += gamma_n[n] * irmaaFees[0]
                 if n < 2:
                     mymagi = prevmagi[n]
                 else:
                     mymagi = magi[n - 2]
                 for q in range(1, 6):
-                    if mymagi > gamma_n[n] * irmaaBrackets_2025[Ni - 1][q]:
-                        costs[n] += gamma_n[n] * irmaaFees_2025[q]
+                    if mymagi > gamma_n[n] * irmaaBrackets[Ni - 1][q]:
+                        costs[n] += gamma_n[n] * irmaaFees[q]
 
     return costs
 
 
-def taxParams(yobs, i_d, n_d, N_n):
+def taxParams(yobs, i_d, n_d, N_n, y_TCJA=2026):
     """
-    Return 3 time series:
+    Input is year of birth, index of shortest-lived individual,
+    lifespan of shortest-lived individual, total number of years
+    in the plan, and the year that TCJA might expire.
+
+    It returns 3 time series:
     1) Standard deductions at year n (sigma_n).
     2) Tax rate in year n (theta_tn)
     3) Delta from top to bottom of tax brackets (Delta_tn)
@@ -102,12 +119,12 @@ def taxParams(yobs, i_d, n_d, N_n):
     Returned values are not indexed for inflation.
     """
     # Compute the deltas in-place between brackets, starting from the end.
-    deltaBrackets_2025 = np.array(taxBrackets_2025)
-    deltaBrackets_2026 = np.array(taxBrackets_2026)
+    deltaBrackets_TCJA = np.array(taxBrackets_TCJA)
+    deltaBrackets_nonTCJA = np.array(taxBrackets_nonTCJA)
     for t in range(6, 0, -1):
         for i in range(2):
-            deltaBrackets_2025[i, t] -= deltaBrackets_2025[i, t - 1]
-            deltaBrackets_2026[i, t] -= deltaBrackets_2026[i, t - 1]
+            deltaBrackets_TCJA[i, t] -= deltaBrackets_TCJA[i, t - 1]
+            deltaBrackets_nonTCJA[i, t] -= deltaBrackets_nonTCJA[i, t - 1]
 
     # Prepare the 3 arrays to return - use transpose for easy slicing.
     sigma = np.zeros((N_n))
@@ -124,23 +141,23 @@ def taxParams(yobs, i_d, n_d, N_n):
             souls.remove(i_d)
             filingStatus -= 1
 
-        if thisyear + n < 2026:
-            sigma[n] = stdDeduction_2025[filingStatus]
-            Delta[n, :] = deltaBrackets_2025[filingStatus, :]
+        if thisyear + n < y_TCJA:
+            sigma[n] = stdDeduction_TCJA[filingStatus]
+            Delta[n, :] = deltaBrackets_TCJA[filingStatus, :]
         else:
-            sigma[n] = stdDeduction_2026[filingStatus]
-            Delta[n, :] = deltaBrackets_2026[filingStatus, :]
+            sigma[n] = stdDeduction_nonTCJA[filingStatus]
+            Delta[n, :] = deltaBrackets_nonTCJA[filingStatus, :]
 
         # Add 65+ additional exemption(s).
         for i in souls:
             if thisyear + n - yobs[i] >= 65:
-                sigma[n] += extra65Deduction_2025[filingStatus]
+                sigma[n] += extra65Deduction[filingStatus]
 
         # Fill in future tax rates for year n.
-        if thisyear + n < 2026:
-            theta[n, :] = rates_2025[:]
+        if thisyear + n < y_TCJA:
+            theta[n, :] = rates_TCJA[:]
         else:
-            theta[n, :] = rates_2026[:]
+            theta[n, :] = rates_nonTCJA[:]
 
     Delta = Delta.transpose()
     theta = theta.transpose()
@@ -149,23 +166,26 @@ def taxParams(yobs, i_d, n_d, N_n):
     return sigma, theta, Delta
 
 
-def taxBrackets(N_i, n_d, N_n):
+def taxBrackets(N_i, n_d, N_n, y_TCJA):
     """
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
     """
     assert 0 < N_i and N_i <= 2, f"Cannot process {N_i} individuals."
-    # This 1 is the number of years left in TCJA from 2025.
-    ytc = 1
-    status = N_i - 1
     n_d = min(n_d, N_n)
+    status = N_i - 1
+
+    # Number of years left in TCJA from this year.
+    thisyear = date.today().year
+    ytc = y_TCJA - thisyear
 
     data = {}
     for t in range(len(taxBracketNames) - 1):
         array = np.zeros(N_n)
-        array[0:ytc] = taxBrackets_2025[status][t]
-        array[ytc:n_d] = taxBrackets_2026[status][t]
-        array[n_d:N_n] = taxBrackets_2026[0][t]
+        for n in range(N_n):
+            stat = status if n < n_d else 0
+            array[n] = taxBrackets_TCJA[stat][t] if n < ytc else taxBrackets_nonTCJA[stat][t]
+
         data[taxBracketNames[t]] = array
 
     return data
