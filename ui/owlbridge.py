@@ -369,6 +369,8 @@ def _setAllocationRatios(plan):
         except Exception as e:
             st.error(f"Setting asset allocation failed: {e}")
             return
+    else:
+        st.error(f"Internal error: Unknown account type {kz.getKey('allocType')}.")
 
 
 @_checkPlan

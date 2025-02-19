@@ -140,6 +140,7 @@ def caseIsNotRunReady():
         or getKey("rateType") is None
         or getKey("interpMethod") is None
         or getKey("spendingProfile") is None
+        or getKey("allocType") is None
     )
 
 

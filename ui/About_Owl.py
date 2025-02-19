@@ -34,6 +34,10 @@ Copyright &copy; 2024 - Martin-D. Lacasse
  and [Streamlit](https://streamlit.io) for the front-end
 - Contributors: Josh (noimjosh@gmail.com) for Docker image code.
 
+#### :orange[Bugs and Feature Requests]
+- Please submit bugs and feature requests through
+[GitHub](https://github.com/mdlacasse/owl/issues) if you have a GitHub account
+or directly by [email](mailto://martin.d.lacasse@gmail.com).
 
 #### :orange[Privacy]
 - This app does not store or forward any information. All data entered is lost
