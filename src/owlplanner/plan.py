@@ -306,10 +306,8 @@ class Plan(object):
             endyear = thisyear + self.horizons[i] - 1
             self.mylog.vprint(f"{self.inames[i]:>14}: life horizon from {thisyear} -> {endyear}.")
 
-        # Prepare income tax and RMD time series.
+        # Prepare RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
-        self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
-                                                                  self.N_n, self.yTCJA)
 
         # If none was given, default is to begin plan on today's date.
         self._setStartingDate(startDate)
@@ -452,6 +450,7 @@ class Plan(object):
         self.mylog.vprint(f"Setting TCJA expiration year to {yTCJA}.")
         self.yTCJA = yTCJA
         self.caseStatus = "modified"
+        self._adjustedParameters = False
 
     def setLongTermCapitalTaxRate(self, psi):
         """
@@ -990,9 +989,11 @@ class Plan(object):
 
         if not self._adjustedParameters:
             self.mylog.vprint("Adjusting parameters for inflation.")
+            self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
+                                                                      self.N_n, self.yTCJA)
+            self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
-            self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
             self.xiBar_n = self.xi_n * self.gamma_n[:-1]
             self.piBar_in = self.pi_in
             for i in range(self.N_i):
