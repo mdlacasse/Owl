@@ -995,7 +995,7 @@ class Plan(object):
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
             self.xiBar_n = self.xi_n * self.gamma_n[:-1]
-            self.piBar_in = self.pi_in
+            self.piBar_in = np.array(self.pi_in)
             for i in range(self.N_i):
                 if self.pensionIndexed[i]:
                     self.piBar_in[i] *= self.gamma_n[:-1]

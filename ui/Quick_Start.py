@@ -24,8 +24,9 @@ This file is in *toml* format which is editable with a simple text editor.
 time table with anticipated wages, future contributions
 to savings accounts, and anticipated big-ticket items, which can be either expenses or income.
 This file is in Excel or LibreOffice format, and has one tab per individual in the plan.
+If no file is provided, values will default to zero, but these values can be edited in the app.
 
-With these two files, a scenario can be created and solved in only a few steps. We will use the case
+With these two files, a scenario can be created and solved with only a few steps. We will use the case
 of Jack and Jill provided here as an example:
 1) Download these two files from the GitHub repository
  (right-click on the link and select `Save link as...`):
@@ -46,7 +47,7 @@ experiment with different parameters.
 
 For creating your own cases, you can start
 from scratch by selecting `New Case...` in the selection box while on the **Create Case** page,
-and fill in the information needed on each page of the `Case Setup` section.
+and fill in the information needed on each page in the `Case Setup` section.
 Once a case has been fully parameterized and successfully optimized,
 its parameters can be saved by using the `Download case file...` button on the `Output Files` page.
 
