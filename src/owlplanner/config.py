@@ -180,7 +180,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     # status = diconf['Basic Info']['Status']
     yobs = diconf["Basic Info"]["Birth year"]
     expectancy = diconf["Basic Info"]["Life expectancy"]
-    startDate = diconf["Basic Info"]["Start date"]
+    startDate = diconf["Basic Info"].get("Start date", "today")
     icount = len(yobs)
     s = ["", "s"][icount - 1]
     mylog.vprint(f"Plan for {icount} individual{s}: {inames}.")
@@ -294,6 +294,11 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
 
     # Solver Options.
     p.solverOptions = diconf["Solver Options"]
+
+    # Check consistency of noRothConversions.
+    name = p.solverOptions.get("noRothConversions", "None")
+    if name != "None" and name not in p.inames:
+        raise ValueError(f"Unknown name {name} for noRothConversions.")
 
     # Results.
     p.setDefaultPlots(diconf["Results"]["Default plots"])

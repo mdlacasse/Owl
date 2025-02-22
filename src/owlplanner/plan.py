@@ -2895,7 +2895,7 @@ def _stackPlot(x, inames, title, irange, series, snames, location, yformat="\\$k
 
     if len(nonzeroSeries) == 0:
         # print('Nothing to plot for', title)
-        return None
+        return None, None
 
     fig, ax = plt.subplots(figsize=(6, 4))
     plt.grid(visible="both")

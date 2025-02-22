@@ -1,0 +1,56 @@
+"Plan Name" = "Jon+Jane"
+
+["Basic Info"]
+Status = "married"
+Names = [ "Jon", "Jane",]
+"Birth year" = [ 1965, 1968,]
+"Life expectancy" = [ 92, 92,]
+"Start date" = "01-01"
+
+[Assets]
+"taxable savings balances" = [ 50.0, 0.0,]
+"tax-deferred savings balances" = [ 900.0, 500.0,]
+"tax-free savings balances" = [ 0.0, 0.0,]
+"Beneficiary fractions" = [ 1.0, 1.0, 1.0,]
+"Spousal surplus deposit fraction" = 0.0
+
+["Wages and Contributions"]
+"Contributions file name" = "edited values"
+
+["Fixed Income"]
+"Pension amounts" = [ 0.0, 0.0,]
+"Pension ages" = [ 65, 65,]
+"Pension indexed" = [ false, false,]
+"Social security amounts" = [ 21.0, 21.0,]
+"Social security ages" = [ 65, 65,]
+
+["Rates Selection"]
+"Heirs rate on tax-deferred estate" = 30.0
+"Long-term capital gain tax rate" = 15.0
+"Dividend tax rate" = 2.0
+"TCJA expiration year" = 2026
+Method = "user"
+Values = [ 10.0, 0.0, 0.0, 3.5000000000000004,]
+From = 1928
+To = 2024
+
+["Asset Allocation"]
+"Interpolation method" = "linear"
+"Interpolation center" = 15.0
+"Interpolation width" = 5.0
+Type = "individual"
+generic = [ [ [ 100, 0, 0, 0,], [ 100, 0, 0, 0,],], [ [ 100, 0, 0, 0,], [ 100, 0, 0, 0,],],]
+
+["Optimization Parameters"]
+"Spending profile" = "flat"
+"Surviving spouse spending percent" = 60
+Objective = "maxSpending"
+
+["Solver Options"]
+maxRothConversion = 0.0
+noRothConversions = "None"
+withMedicare = true
+bequest = 30.0
+
+[Results]
+"Default plots" = "today"

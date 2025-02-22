@@ -422,7 +422,8 @@ def plotSingleResults(plan):
         st.write("##### Assets Distribution")
         morecols = st.columns(3, gap="small")
         for fig in figs:
-            morecols[c].pyplot(fig)
+            if fig is not None:
+                morecols[c].pyplot(fig)
             c = (c + 1) % 3
 
 
