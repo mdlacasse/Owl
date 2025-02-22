@@ -422,8 +422,11 @@ def plotSingleResults(plan):
         st.write("##### Assets Distribution")
         morecols = st.columns(3, gap="small")
         for fig in figs:
-            if fig is not None:
+            if fig:
                 morecols[c].pyplot(fig)
+            else:
+                morecols[c].write("#\n<div style='text-align: center'> This plot is empty </div>",
+                                  unsafe_allow_html=True)
             c = (c + 1) % 3
 
 
