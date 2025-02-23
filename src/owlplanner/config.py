@@ -19,7 +19,7 @@ from owlplanner import logging
 from owlplanner.rates import FROM, TO
 
 
-def saveConfig(plan, file, mylog):
+def saveConfig(myplan, file, mylog):
     """
     Save case parameters and return a dictionary containing all parameters.
     """
@@ -27,87 +27,87 @@ def saveConfig(plan, file, mylog):
     accountTypes = ["taxable", "tax-deferred", "tax-free"]
 
     diconf = {}
-    diconf["Plan Name"] = plan._name
-    diconf["Description"] = plan._description
+    diconf["Plan Name"] = myplan._name
+    diconf["Description"] = myplan._description
 
     # Basic Info.
     diconf["Basic Info"] = {
-        "Status": ["unknown", "single", "married"][plan.N_i],
-        "Names": plan.inames,
-        "Birth year": plan.yobs.tolist(),
-        "Life expectancy": plan.expectancy.tolist(),
-        "Start date": plan.startDate,
+        "Status": ["unknown", "single", "married"][myplan.N_i],
+        "Names": myplan.inames,
+        "Birth year": myplan.yobs.tolist(),
+        "Life expectancy": myplan.expectancy.tolist(),
+        "Start date": myplan.startDate,
     }
 
     # Assets.
     diconf["Assets"] = {}
-    for j in range(plan.N_j):
-        amounts = plan.beta_ij[:, j] / 1000
+    for j in range(myplan.N_j):
+        amounts = myplan.beta_ij[:, j] / 1000
         diconf["Assets"][f"{accountTypes[j]} savings balances"] = amounts.tolist()
-    if plan.N_i == 2:
-        diconf["Assets"]["Beneficiary fractions"] = plan.phi_j.tolist()
-        diconf["Assets"]["Spousal surplus deposit fraction"] = plan.eta
+    if myplan.N_i == 2:
+        diconf["Assets"]["Beneficiary fractions"] = myplan.phi_j.tolist()
+        diconf["Assets"]["Spousal surplus deposit fraction"] = myplan.eta
 
     # Wages and Contributions.
-    diconf["Wages and Contributions"] = {"Contributions file name": plan.timeListsFileName}
+    diconf["Wages and Contributions"] = {"Contributions file name": myplan.timeListsFileName}
 
     # Fixed Income.
     diconf["Fixed Income"] = {
-        "Pension amounts": (plan.pensionAmounts / 1000).tolist(),
-        "Pension ages": plan.pensionAges.tolist(),
-        "Pension indexed": plan.pensionIndexed,
-        "Social security amounts": (plan.ssecAmounts / 1000).tolist(),
-        "Social security ages": plan.ssecAges.tolist(),
+        "Pension amounts": (myplan.pensionAmounts / 1000).tolist(),
+        "Pension ages": myplan.pensionAges.tolist(),
+        "Pension indexed": myplan.pensionIndexed,
+        "Social security amounts": (myplan.ssecAmounts / 1000).tolist(),
+        "Social security ages": myplan.ssecAges.tolist(),
     }
 
     # Rates Selection.
     diconf["Rates Selection"] = {
-        "Heirs rate on tax-deferred estate": float(100 * plan.nu),
-        "Long-term capital gain tax rate": float(100 * plan.psi),
-        "Dividend tax rate": float(100 * plan.mu),
-        "TCJA expiration year": plan.yTCJA,
-        "Method": plan.rateMethod,
+        "Heirs rate on tax-deferred estate": float(100 * myplan.nu),
+        "Long-term capital gain tax rate": float(100 * myplan.psi),
+        "Dividend tax rate": float(100 * myplan.mu),
+        "TCJA expiration year": myplan.yTCJA,
+        "Method": myplan.rateMethod,
     }
-    if plan.rateMethod in ["user", "stochastic"]:
-        diconf["Rates Selection"]["Values"] = (100 * plan.rateValues).tolist()
-    if plan.rateMethod in ["stochastic"]:
-        diconf["Rates Selection"]["Standard deviations"] = (100 * plan.rateStdev).tolist()
-        diconf["Rates Selection"]["Correlations"] = plan.rateCorr.tolist()
-    if plan.rateMethod in ["historical average", "historical", "histochastic"]:
-        diconf["Rates Selection"]["From"] = int(plan.rateFrm)
-        diconf["Rates Selection"]["To"] = int(plan.rateTo)
+    if myplan.rateMethod in ["user", "stochastic"]:
+        diconf["Rates Selection"]["Values"] = (100 * myplan.rateValues).tolist()
+    if myplan.rateMethod in ["stochastic"]:
+        diconf["Rates Selection"]["Standard deviations"] = (100 * myplan.rateStdev).tolist()
+        diconf["Rates Selection"]["Correlations"] = myplan.rateCorr.tolist()
+    if myplan.rateMethod in ["historical average", "historical", "histochastic"]:
+        diconf["Rates Selection"]["From"] = int(myplan.rateFrm)
+        diconf["Rates Selection"]["To"] = int(myplan.rateTo)
     else:
         diconf["Rates Selection"]["From"] = int(FROM)
         diconf["Rates Selection"]["To"] = int(TO)
 
     # Asset Allocation.
     diconf["Asset Allocation"] = {
-        "Interpolation method": plan.interpMethod,
-        "Interpolation center": float(plan.interpCenter),
-        "Interpolation width": float(plan.interpWidth),
-        "Type": plan.ARCoord,
+        "Interpolation method": myplan.interpMethod,
+        "Interpolation center": float(myplan.interpCenter),
+        "Interpolation width": float(myplan.interpWidth),
+        "Type": myplan.ARCoord,
     }
-    if plan.ARCoord == "account":
+    if myplan.ARCoord == "account":
         for accType in accountTypes:
-            diconf["Asset Allocation"][accType] = plan.boundsAR[accType]
+            diconf["Asset Allocation"][accType] = myplan.boundsAR[accType]
     else:
-        diconf["Asset Allocation"]["generic"] = plan.boundsAR["generic"]
+        diconf["Asset Allocation"]["generic"] = myplan.boundsAR["generic"]
 
     # Optimization Parameters.
     diconf["Optimization Parameters"] = {
-        "Spending profile": plan.spendingProfile,
-        "Surviving spouse spending percent": int(100 * plan.chi),
+        "Spending profile": myplan.spendingProfile,
+        "Surviving spouse spending percent": int(100 * myplan.chi),
     }
-    if plan.spendingProfile == "smile":
-        diconf["Optimization Parameters"]["Smile dip"] = int(plan.smileDip)
-        diconf["Optimization Parameters"]["Smile increase"] = int(plan.smileIncrease)
-        diconf["Optimization Parameters"]["Smile delay"] = int(plan.smileDelay)
+    if myplan.spendingProfile == "smile":
+        diconf["Optimization Parameters"]["Smile dip"] = int(myplan.smileDip)
+        diconf["Optimization Parameters"]["Smile increase"] = int(myplan.smileIncrease)
+        diconf["Optimization Parameters"]["Smile delay"] = int(myplan.smileDelay)
 
-    diconf["Optimization Parameters"]["Objective"] = plan.objective
-    diconf["Solver Options"] = plan.solverOptions
+    diconf["Optimization Parameters"]["Objective"] = myplan.objective
+    diconf["Solver Options"] = myplan.solverOptions
 
     # Results.
-    diconf["Results"] = {"Default plots": plan.defaultPlots}
+    diconf["Results"] = {"Default plots": myplan.defaultPlots}
 
     if isinstance(file, str):
         filename = file
@@ -186,7 +186,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     s = ["", "s"][icount - 1]
     mylog.vprint(f"Plan for {icount} individual{s}: {inames}.")
     p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate, verbose=True, logstreams=logstreams)
-    plan._description = diconf.get("Description", "")
+    p._description = diconf.get("Description", "")
 
     # Assets.
     balances = {}

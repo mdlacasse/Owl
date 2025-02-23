@@ -451,6 +451,19 @@ def getText(text, nkey, disabled=False, callback=setpull, placeholder=None, help
     )
 
 
+def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None):
+    return st.text_area(
+        text,
+        value=getKey(nkey),
+        disabled=disabled,
+        on_change=callback,
+        args=[nkey],
+        key="_" + nkey,
+        placeholder=placeholder,
+        help=help,
+    )
+
+
 def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
     return st.radio(
         text,

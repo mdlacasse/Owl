@@ -20,6 +20,7 @@ def hasMOSEK():
 def createPlan():
     name = kz.currentCaseName()
     inames = [kz.getKey("iname0")]
+    description = kz.getKey("description")
     yobs = [kz.getKey("yob0")]
     life = [kz.getKey("life0")]
     startDate = kz.getKey("startDate")
@@ -37,6 +38,7 @@ def createPlan():
         st.error(f"Failed creation of plan '{name}': {e}")
         return
 
+    plan.setDescription(description)
     val = kz.getKey("plots")
     if val is not None:
         plan.setDefaultPlots(val)

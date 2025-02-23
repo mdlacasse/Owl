@@ -17,7 +17,7 @@ if ret == kz.newCase:
         key="_newcase",
         on_change=kz.createNewCase,
         args=["newcase"],
-        placeholder="Enter a name...",
+        placeholder="Enter a case name...",
     )
 elif ret == kz.loadCaseFile:
     # "<a href="Documentation" target="_self">Documentation</a>", unsafe_allow_html=True)
@@ -61,8 +61,9 @@ else:
         )
 
     kz.initKey("description", "")
-    helpmsg = "Provide a short distinguishing description of the case."
-    description = kz.getText("Brief description", "description", help=helpmsg)
+    helpmsg = "Provide a short distinguishing description for the case."
+    description = kz.getLongText("Brief description", "description", help=helpmsg,
+                                 placeholder="Enter a brief description...")
 
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
