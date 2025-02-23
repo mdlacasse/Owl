@@ -1,5 +1,5 @@
 "Plan Name" = "joe"
-Description = "This example case is for Joe, a single individual."
+Description = "This is an example of a case involving a single individual. Joe is single and will retire in a few years. His wages and contributions are contained in the 'joe.xlsx' spreadsheet."
 
 ["Basic Info"]
 Status = "single"

@@ -1,5 +1,5 @@
 "Plan Name" = "jack+jill"
-Description = "This example case is for Jack and Jill, a married couple."
+Description = "This example case aims to demonstrate some of Owl's capabilities. Jack and Jill are a married couple a few years from retirement. A wages and contributions file called 'jack+jill.xlsx' is associated with this case."
 
 ["Basic Info"]
 Status = "married"

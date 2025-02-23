@@ -1,5 +1,5 @@
 "Plan Name" = "kim+sam-spending"
-Description = "Kim and Sam is an example case for optimizing spending and Roth conversions."
+Description = "This is the case of Kim and Sam used as an example case for optimizing spending and Roth conversions. A wages and contributions file called 'kim+sam.xlsx' is associated with this case."
 
 ["Basic Info"]
 Status = "married"

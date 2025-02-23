@@ -1,5 +1,5 @@
 "Plan Name" = "Jon+Jane"
-Description = "The case of Jon and Jane was the base case discussed by i-orp."
+Description = "This case is similar to a case discussed by i-orp. It involve Jon and Jane close to retirement, and assumes a base case of optimistic returns of 10% with an inflation of 3.5%. A wages and contributions file called 'jon+jane.xlsx' is associated with this case."
 
 ["Basic Info"]
 Status = "married"
