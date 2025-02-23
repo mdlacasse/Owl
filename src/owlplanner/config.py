@@ -28,6 +28,7 @@ def saveConfig(plan, file, mylog):
 
     diconf = {}
     diconf["Plan Name"] = plan._name
+    diconf["Description"] = plan._description
 
     # Basic Info.
     diconf["Basic Info"] = {
@@ -185,6 +186,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     s = ["", "s"][icount - 1]
     mylog.vprint(f"Plan for {icount} individual{s}: {inames}.")
     p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate, verbose=True, logstreams=logstreams)
+    plan._description = diconf.get("Description", "")
 
     # Assets.
     balances = {}

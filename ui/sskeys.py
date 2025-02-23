@@ -438,7 +438,7 @@ def getNum(
     )
 
 
-def getText(text, nkey, disabled=False, callback=setpull, placeholder=None):
+def getText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None):
     return st.text_input(
         text,
         value=getKey(nkey),
@@ -447,6 +447,7 @@ def getText(text, nkey, disabled=False, callback=setpull, placeholder=None):
         args=[nkey],
         key="_" + nkey,
         placeholder=placeholder,
+        help=help,
     )
 
 

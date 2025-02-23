@@ -1,4 +1,5 @@
 "Plan Name" = "john+sally"
+Description = "This example reproduces the case of John and Sally, discussed by Eric Sajdak."
 
 ["Basic Info"]
 Status = "married"

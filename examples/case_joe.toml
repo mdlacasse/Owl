@@ -1,4 +1,5 @@
 "Plan Name" = "joe"
+Description = "This example case is for Joe, a single individual."
 
 ["Basic Info"]
 Status = "single"

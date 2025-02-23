@@ -98,6 +98,7 @@ def prepareRun(plan):
             st.error(f"Failed setting beneficiary fractions: {e}")
             return
 
+    plan.setDescription(kz.getKey("description"))
     plan.setHeirsTaxRate(kz.getKey("heirsTx"))
     plan.setLongTermCapitalTaxRate(kz.getKey("gainTx"))
     plan.setDividendRate(kz.getKey("divRate"))
@@ -561,6 +562,7 @@ def genDic(plan):
     dic = {}
     dic["plan"] = plan
     dic["name"] = plan._name
+    dic["description"] = plan._description
     dic["summary"] = ""
     dic["casetoml"] = ""
     dic["caseStatus"] = "new"

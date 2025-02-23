@@ -239,6 +239,7 @@ class Plan(object):
         self.interpCenter = 15
         self.interpWidth = 5
 
+        self._description = ''
         self.defaultPlots = "nominal"
         self.defaultSolver = "HiGHS"
 
@@ -405,6 +406,12 @@ class Plan(object):
         """
         self.mylog.vprint(f"Renaming plan {self._name} -> {newname}.")
         self._name = newname
+
+    def setDescription(self, description):
+        """
+        Set a text description of the plan.
+        """
+        self._description = description
 
     def setSpousalDepositFraction(self, eta):
         """
@@ -2069,6 +2076,8 @@ class Plan(object):
         now = self.year_n[0]
         dic = {}
         # Results
+        dic["Plan name"] = self._name
+        dic["Brief description"] = self._description
         dic[f"Net yearly spending basis in {now}$"] = u.d(self.g_n[0] / self.xi_n[0])
         dic[f"Net yearly spending for year {now}"] = u.d(self.g_n[0] / self.yearFracLeft)
         dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0])

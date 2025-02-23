@@ -1,4 +1,5 @@
 "Plan Name" = "jack+jill"
+Description = "This example case is for Jack and Jill, a married couple."
 
 ["Basic Info"]
 Status = "married"

@@ -40,7 +40,6 @@ else:
             on_change=kz.renameCase,
             args=["caseNewName"],
             key="_caseNewName",
-            placeholder="Enter a name",
             help=helpmsg,
         )
 
@@ -60,6 +59,10 @@ else:
             args=["status"],
             horizontal=True,
         )
+
+    kz.initKey("description", "")
+    helpmsg = "Provide a short distinguishing description of the case."
+    description = kz.getText("Brief description", "description", help=helpmsg)
 
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
