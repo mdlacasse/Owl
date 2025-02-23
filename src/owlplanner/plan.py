@@ -2077,7 +2077,6 @@ class Plan(object):
         dic = {}
         # Results
         dic["Plan name"] = self._name
-        dic["Brief description"] = self._description
         dic[f"Net yearly spending basis in {now}$"] = u.d(self.g_n[0] / self.xi_n[0])
         dic[f"Net yearly spending for year {now}"] = u.d(self.g_n[0] / self.yearFracLeft)
         dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0])
