@@ -135,14 +135,21 @@ The wages and contributions data contains 9 columns titled as follows:
 | ... | | | | | | | | |
 |20XX | | | | | | | | |
 
-Here, 20XX represents the last row which could be the last year based on the life expectancy values provided.
+Here, 20XX represents the last row which could be the last year based on the life
+expectancy values provided.
 While loading an Excel workbook, missing years or empty cells will be filled with zero values,
 while years outside the time span of the plan will be ignored.
 For the columns, *anticipated wages* is the annual amount
-(gross minus tax-deferred contributions) that you anticipate to receive from employment or other sources
-(not including dividends from your taxable investment accounts). Note that column names are case sensitive
-and all entries must be in lower case. The easiest way to start this process is to use the template
+(gross minus tax-deferred contributions) that you anticipate to receive from employment
+or other sources (e.g. rentals).
+This column does not include dividends from your taxable investment accounts,
+as they will be calculated based on your return rate assumptions.
+
+Note that column names are case sensitive and all entries must be in lower case.
+The easiest way to complete the process of filling this file is either to start from the template
 file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx).
+Values can also be filled in the user interface, but this approach does not have
+Excel capabilities for cross-column calculations.
 
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your

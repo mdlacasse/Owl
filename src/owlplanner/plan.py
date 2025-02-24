@@ -34,6 +34,10 @@ from owlplanner import logging
 from owlplanner import progress
 
 
+# This makes all graphs appear have the same height.
+plt.rcParams.update({'figure.autolayout': True})
+
+
 def _genGamma_n(tau):
     """
     Utility function to generate a cumulative inflation multiplier
