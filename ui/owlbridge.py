@@ -544,17 +544,16 @@ def saveCaseFile(plan):
     return BytesIO(encoded_data)
 
 
-def createCaseFromFile(file):
-    strio = StringIO()
+def createCaseFromFile(strio):
+    logstrio = StringIO()
     try:
-        mystringio = StringIO(file.read().decode("utf-8"))
-        plan = owl.readConfig(mystringio, logstreams=[strio], readContributions=False)
+        plan = owl.readConfig(strio, logstreams=[logstrio], readContributions=False)
     except Exception as e:
         st.error(f"Failed to parse case file: {e}")
         return "", {}
 
     name, mydic = genDic(plan)
-    mydic["logs"] = strio
+    mydic["logs"] = logstrio
 
     return name, mydic
 

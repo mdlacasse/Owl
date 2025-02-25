@@ -38,11 +38,12 @@ else:
                 " that has not yet been uploaded."
             )
 
+    st.write("#### Upload a *Wages and Contributions* file")
     kz.initKey("_xlsx", 0)
     stTimeLists = st.file_uploader(
         "Upload values from a wages and contributions file...",
         key="_stTimeLists" + str(kz.getKey("_xlsx")),
-        type=["xlsx"],
+        type=["xlsx", "ods"],
     )
     if stTimeLists is not None:
         if owb.readContributions(stTimeLists):
@@ -51,6 +52,7 @@ else:
             kz.storeKey("_xlsx", kz.getKey("_xlsx") + 1)
             st.rerun()
 
+    st.divider()
     for i in range(n):
         st.write("##### " + kz.getKey("iname" + str(i)) + "'s timetable")
         colfor = {"year": st.column_config.NumberColumn(None, format="%d")}

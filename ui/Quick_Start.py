@@ -36,7 +36,8 @@ of Jack and Jill provided here as an example:
     - Wages and contributions file named
     [jack+jill.xlsx](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
     in Excel format.
-1) Navigate to the **Create Case** page and drag and drop the case parameter file
+1) Navigate to the **Create Case** page and select the case of *jack+jill* among the GitHub examples.
+Alternatively, you can drag and drop the case parameter file
 you just downloaded (*case_jack+jill.toml*).
 1) Navigate to the **Wages and Contributions** page and
 drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*).

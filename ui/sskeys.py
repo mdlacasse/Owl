@@ -198,10 +198,10 @@ def duplicateCase():
     ss.currentCase = dupname
 
 
-def createCaseFromFile(confile):
+def createCaseFromFile(strio):
     import owlbridge as owb
 
-    name, dic = owb.createCaseFromFile(confile)
+    name, dic = owb.createCaseFromFile(strio)
     if name == "":
         return False
     elif name in ss.cases:

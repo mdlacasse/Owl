@@ -1,5 +1,5 @@
 "Plan Name" = "jack+jill"
-Description = "This example case aims to demonstrate some of Owl's capabilities. Jack and Jill are a married couple a few years from retirement. A wages and contributions file called 'jack+jill.xlsx' is associated with this case."
+Description = "This example aims to demonstrate some of Owl's capabilities. Jack and Jill are a married couple a few years from retirement. A wages and contributions file called 'jack+jill.xlsx' is associated with this case. This case uses the historical rate sequence of 1969 as a test case for guiding spending amounts from a near worst-case historical scenario. This case also demonstrates that the optimal strategy for Roth conversions does not necessarily involve surfing a tax bracket."
 
 ["Basic Info"]
 Status = "married"

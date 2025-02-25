@@ -21,7 +21,8 @@ else:
             st.write("#### Synopsis")
             st.code(lines, language=None)
             st.download_button(
-                "Download synopsis", data=lines, file_name=f"Synopsis_{caseName}.txt", mime="text/plain;charset=UTF-8"
+                "Download synopsis", data=lines, file_name=f"Synopsis_{caseName}.txt",
+                mime="text/plain;charset=UTF-8"
             )
 
         st.divider()
@@ -54,5 +55,6 @@ else:
             st.code(lines, language="toml")
 
             st.download_button(
-                "Download case parameter file", data=lines, file_name=f"case_{caseName}.toml", mime="application/toml"
+                "Download case parameter file", data=lines,
+                file_name=f"case_{caseName}.toml", mime="application/toml"
             )

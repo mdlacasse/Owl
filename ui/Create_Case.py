@@ -1,8 +1,10 @@
 from datetime import date
+from io import StringIO
 import streamlit as st
 
 import sskeys as kz
 import owlbridge as owb
+import tomlexamples as tomlex
 
 
 caseChoices = kz.allCaseNames()
@@ -23,12 +25,23 @@ elif ret == kz.loadCaseFile:
     # "<a href="Documentation" target="_self">Documentation</a>", unsafe_allow_html=True)
     st.info(
         "#### Starting a case from a *case* parameter file.\n\n"
-        "Look at the :material/help: [Documentation](Documentation) for where to find examples.\n\n"
-        "Alternatively, select `New Case...` to start a case from scratch."
+        "Upload your own case or select one from multiple examples."
+        " Alternatively, you can select `New Case...` in the margin selector box to start a case from scratch.\n\n"
+        "Look at the :material/help: [Documentation](Documentation) for more details."
     )
-    confile = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])
-    if confile is not None:
-        if kz.createCaseFromFile(confile):
+    st.write("#### Upload your own case file")
+    file = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])
+    if file is not None:
+        mystringio = StringIO(file.read().decode("utf-8"))
+        if kz.createCaseFromFile(mystringio):
+            st.rerun()
+
+    st.write("#### Load a case example")
+    case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None, placeholder="Select a case")
+    if case is not None:
+        print(case)
+        mystringio = tomlex.loadExample(case)
+        if kz.createCaseFromFile(mystringio):
             st.rerun()
 else:
     helpmsg = "Case name can be changed by editing it directly."
