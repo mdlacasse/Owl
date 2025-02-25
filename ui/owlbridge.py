@@ -381,7 +381,7 @@ def _setAllocationRatios(plan):
 def plotSingleResults(plan):
     c = 0
     n = 3
-    cols = st.columns(n, gap="medium")
+    cols = st.columns(n, gap="small")
     fig = plan.showRates(figure=True)
     if fig:
         cols[c].write("##### Annual Rates")
@@ -400,7 +400,7 @@ def plotSingleResults(plan):
         cols[c].pyplot(fig)
         c = (c + 1) % n
 
-    cols = st.columns(n, gap="medium")
+    cols = st.columns(n, gap="small")
     fig = plan.showSources(figure=True)
     if fig:
         cols[c].write("##### Raw Income Sources")
