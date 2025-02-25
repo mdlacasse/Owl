@@ -21,9 +21,10 @@ else:
         ret = kz.getRadio("Dollar amounts in plots", choices, "plots", callback=owb.setDefaultPlots)
 
     with col2:
+        helpmsg = "Click on button if graphs are not all showing."
         st.button(
             "Re-run single case",
-            help="Optimize single scenario.",
+            help=helpmsg,
             on_click=owb.runPlan,
             disabled=kz.caseIsNotRunReady(),
         )
