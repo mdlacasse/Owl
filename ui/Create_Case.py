@@ -39,7 +39,6 @@ elif ret == kz.loadCaseFile:
     st.write("#### Load a case example")
     case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None, placeholder="Select a case")
     if case is not None:
-        print(case)
         mystringio = tomlex.loadExample(case)
         if kz.createCaseFromFile(mystringio):
             st.rerun()
