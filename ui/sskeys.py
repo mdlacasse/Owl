@@ -196,6 +196,7 @@ def duplicateCase():
     ss.cases[dupname]["duplicate"] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
+    st.toast("Case duplicated except for Wages and Contributions tables.")
 
 
 def createCaseFromFile(strio):

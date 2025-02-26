@@ -4,11 +4,12 @@ import sskeys as kz
 import owlbridge as owb
 
 
+# Refresh Wages and Contributions tables as time window likely to change.
 def resetTimeLists():
-    if not kz.getKey("duplicate"):
-        tlists = owb.resetContributions()
-        for i, iname in enumerate(tlists):
-            kz.setKey("timeList" + str(i), tlists[iname])
+    # if not kz.getKey("duplicate"):
+    tlists = owb.resetContributions()
+    for i, iname in enumerate(tlists):
+        kz.setKey("timeList" + str(i), tlists[iname])
 
 
 ret = kz.titleBar("wages")
