@@ -223,10 +223,11 @@ def renameCase(key):
         return
     newname = ss["_" + key]
     plan = getKey("plan")
-    if plan:
-        plan.rename(newname)
     ss.cases[newname] = ss.cases.pop(ss.currentCase)
     ss.cases[newname]["name"] = newname
+    if plan:
+        plan.rename(newname)
+        ss.cases[newname]["caseStatus"] = "modified"
     setCurrentCase(newname)
 
 
