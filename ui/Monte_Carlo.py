@@ -4,8 +4,7 @@ import sskeys as kz
 import owlbridge as owb
 
 
-ret = kz.titleBar("MC")
-kz.caseHeader("Monte Carlo")
+ret = kz.titleBar("Monte Carlo")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

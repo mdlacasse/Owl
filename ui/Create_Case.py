@@ -8,8 +8,7 @@ import tomlexamples as tomlex
 
 
 caseChoices = kz.allCaseNames()
-ret = kz.titleBar("setup", caseChoices)
-kz.caseHeader("Create Case")
+ret = kz.titleBar("Create Case", caseChoices)
 
 if ret == kz.newCase:
     st.info("#### Starting a new case from scratch.\n\n" "A name for the scenario must first be provided.")

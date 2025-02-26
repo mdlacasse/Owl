@@ -16,8 +16,7 @@ def initProfile():
     owb.setProfile(profileChoices[0], False)
 
 
-ret = kz.titleBar("opto")
-kz.caseHeader("Optimization Parameters")
+ret = kz.titleBar("Optimization Parameters")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

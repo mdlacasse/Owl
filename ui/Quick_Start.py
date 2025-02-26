@@ -55,8 +55,8 @@ its parameters can be saved by using the `Download case file...` button on the `
 Alternatively, you can duplicate any existing case by using
 the `Duplicate case` button, and then edit its values to fit your situation.
 
-Multiple cases can coexist and can be called and compared using the `Select case` box
-at the bottom of the margin.
+Multiple cases can coexist and can be called and compared using the `Case selector` box
+at the top of the page.
 
 More information can be found on the :material/help: **[Documentation](Documentation)**
 page located in the **Resources** section.

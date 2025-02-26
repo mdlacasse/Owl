@@ -3,8 +3,7 @@ import streamlit as st
 import sskeys as kz
 
 
-ret = kz.titleBar("logs")
-kz.caseHeader("Logs")
+ret = kz.titleBar("Logs")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

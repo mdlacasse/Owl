@@ -151,21 +151,6 @@ def caseIsNotMCReady():
     return caseIsNotRunReady() or getKey("rateType") != "varying" or "tochastic" not in getKey("varyingType")
 
 
-def titleBar(nkey, choices=None):
-    if choices is None:
-        choices = onlyCaseNames()
-    helpmsg = "Select an existing case, or create a new one from scratch or from a *case* parameter file."
-    return st.sidebar.selectbox(
-        "Select case",
-        choices,
-        help=helpmsg,
-        index=getIndex(currentCaseName(), choices),
-        key="_" + nkey,
-        on_change=switchToCase,
-        args=[nkey],
-    )
-
-
 def currentCaseDic() -> dict:
     return ss.cases[ss.currentCase]
 
@@ -489,8 +474,28 @@ def orangeDivider():
     st.html("<style> hr {border-color: orange;}</style><hr>")
 
 
-def caseHeader(txt):
-    # st.html("<div style="text-align: right;color: orange;font-style: italic;">%s</div>" % currentCaseName())
-    st.html("<div style='text-align: left;color: orange;font-style: italic;'>%s</div>" % currentCaseName())
-    st.write("## " + txt)
+def titleBar(txt, choices=None):
+    # st.html(f"<div style='text-align: left;color: orange;font-style: italic;'>{currentCaseName()}</div>")
+    if choices is None:
+        choices = onlyCaseNames()
+        helpmsg = "Select an existing case."
+    else:
+        helpmsg = "Select an existing case, or create a new one from scratch or from a *case* parameter file."
+
+    col1, col2 = st.columns(2, gap="large")
+    with col1:
+        st.write("## " + txt)
+    with col2:
+        nkey = txt
+        ret = st.selectbox(
+            "Case selector",
+            choices,
+            help=helpmsg,
+            index=getIndex(currentCaseName(), choices),
+            key="_" + nkey,
+            on_change=switchToCase,
+            args=[nkey],
+        )
+
     orangeDivider()
+    return ret

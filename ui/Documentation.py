@@ -36,7 +36,7 @@ formulation of the optimization problem can be found
 ### Getting started with the user interface
 Functions of each page are described below in the same order as they appear in the sidebar.
 Typically, pages would be accessed in order, starting from the top.
-The `Select case` selection box at the bottom of the margin allows to select an existing case
+The `Case selector` box at the top of the page allows to select an existing case
 or create a new one from scratch, or from a *case* parameter file, which
 would then populate all parameter values.
 This box is present in all pages except those in the **Resources** section
@@ -51,7 +51,7 @@ This section contains the steps for creating and configuring case scenarios.
 
 #### Create Case
 This page is where every new scenario begins.
-It controls the creation of scenarios as the `Select case` drop-down menu contains
+It controls the creation of scenarios as the `Case selector` drop-down menu contains
 two additional items when this page is open:
 one to create new cases, and the other to create cases from a *case* parameter file.
 This page also allows you to duplicate and/or rename scenarios, as well as deleting them.
@@ -65,7 +65,7 @@ When duplicating a scenario, make sure to visit all pages in the **Case Setup** 
 and verify that all parameters are as intended.
 
 ##### Initializing the life parameters for the realization
-Start with the `Select case` box and choose one of `New case...` or `Upload case file...`.
+Start with the `Case selector` box and choose one of `New case...` or `Upload case file...`.
 
 If `Upload case file...` is selected, a *case* file must be uploaded.
 These files end with the *.toml* extension, are human readable (and therefore editable),

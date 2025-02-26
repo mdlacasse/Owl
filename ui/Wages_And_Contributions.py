@@ -12,8 +12,7 @@ def resetTimeLists():
         kz.setKey("timeList" + str(i), tlists[iname])
 
 
-ret = kz.titleBar("wages")
-kz.caseHeader("Wages and Contributions")
+ret = kz.titleBar("Wages and Contributions")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
