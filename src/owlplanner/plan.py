@@ -2129,12 +2129,17 @@ class Plan(object):
             iname_s = self.inames[self.i_s]
             iname_d = self.inames[self.i_d]
             dic[f"Sum of spousal transfer to {iname_s} in year {ynx}"] = (f"{u.d(totSpousalNow)}")
-            dic[f"- Sum of spousal transfer to {iname_s} in year {ynx} (nominal)"] = (f"{u.d(totSpousal)}")
-            dic[f"-- Spousal transfer to {iname_s} in year {ynx} - taxable (nominal)"] = (f"{u.d(q_j[0])}")
-            dic[f"-- Spousal transfer to {iname_s} in year {ynx} - tax-def (nominal)"] = (f"{u.d(q_j[1])}")
-            dic[f"-- Spousal transfer to {iname_s} in year {ynx} - tax-free (nominal)"] = (f"{u.d(q_j[2])}")
+            dic[f"- Sum of spousal transfer to {iname_s} in year {ynx} (nominal)"] = (
+                f"{u.d(totSpousal)}")
+            dic[f"-- Spousal transfer to {iname_s} in year {ynx} - taxable (nominal)"] = (
+                f"{u.d(q_j[0])}")
+            dic[f"-- Spousal transfer to {iname_s} in year {ynx} - tax-def (nominal)"] = (
+                f"{u.d(q_j[1])}")
+            dic[f"-- Spousal transfer to {iname_s} in year {ynx} - tax-free (nominal)"] = (
+                f"{u.d(q_j[2])}")
 
-            dic[f"Sum of post-tax non-spousal bequests from {iname_d} in year {ynx}"] = (f"{u.d(totOthersNow)}")
+            dic[f"Sum of post-tax non-spousal bequests from {iname_d} in year {ynx}"] = (
+                f"{u.d(totOthersNow)}")
             dic[f"- Sum of post-tax non-spousal bequests from {iname_d} in year {ynx} (nominal)"] = (
                 f"{u.d(totOthers)}")
             dic[f"-- Post-tax non-spousal bequests from {iname_d} in year {ynx} - taxable (nominal)"] = (
@@ -2156,7 +2161,7 @@ class Plan(object):
         dic[f"-- Post-tax account value at the end of {lastyear} - tax-free (nominal)"] = (f"{u.d(estate[2])}")
 
         dic["Plan starting date"] = str(self.startDate)
-        dic[f"Cumulative inflation factor from start date to end of {lastyear}"] = f"{self.gamma_n[-1]:.2f}"
+        dic[f"Cumulative inflation factor from start date to end of {lastyear}"] = (f"{self.gamma_n[-1]:.2f}")
         for i in range(self.N_i):
             dic[f"{self.inames[i]:>12}'s {self.horizons[i]:02}-year life horizon"] = (
                 f"{now} -> {now + self.horizons[i] - 1}")

@@ -19,7 +19,7 @@ else:
         if df is not None:
             st.write("#### Synopsis")
             st.dataframe(df[1:], use_container_width=True)
-            st.caption("Values are in todays's \\$ unless marked otherwise.")
+            st.caption("Values are in today's \\$ unless marked otherwise.")
             st.download_button(
                 "Download synopsis", data=df[1:].to_string(), file_name=f"Synopsis_{caseName}.txt",
                 mime="text/plain;charset=UTF-8"
