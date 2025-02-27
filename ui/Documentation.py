@@ -307,11 +307,12 @@ The first line of the *Sources* worksheets are the most important
 as these lines are the only ones that are actionable.
 
 #### Output Files
-This page allow to compare cases and save files for future use.
-First it shows a synopsis of the computed scenario by
+This page allows to compare cases and save files for future use.
+First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the plan.
-If more than one case was run, they will be compared provided they were made
-for the same individuals.
+If multiple cases were configured and run, they will be compared provided they are made
+for the same individuals. Columns on the right will show the difference in values between
+the different scenarios.
 The contents of the synopsis can be downloaded as a plain text file by
 clicking the button below it.
 
