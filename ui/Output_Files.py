@@ -15,12 +15,14 @@ else:
         st.info("Case status is currently '%s'." % kz.getKey("caseStatus"))
     else:
         caseName = kz.getKey("name")
-        lines = kz.getKey("summary")
-        if lines != "":
+        df = kz.compareSummaries()
+        if df is not None:
             st.write("#### Synopsis")
-            st.code(lines, language=None)
+            # st.code(lines, language=None)
+            # st.markdown(df.to_markdown())
+            st.dataframe(df[1:], use_container_width=True)
             st.download_button(
-                "Download synopsis", data=lines, file_name=f"Synopsis_{caseName}.txt",
+                "Download synopsis", data=df[1:].to_string(), file_name=f"Synopsis_{caseName}.txt",
                 mime="text/plain;charset=UTF-8"
             )
 

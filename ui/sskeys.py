@@ -3,6 +3,7 @@ Module for storing keys in Streamlit session state.
 """
 
 import streamlit as st
+import pandas as pd
 import copy
 import re
 
@@ -22,8 +23,8 @@ def init():
     ss = st.session_state
     if "cases" not in ss:
         ss.cases = {
-            newCase: {"iname0": "", "status": "unkown", "caseStatus": "new", "summary": ""},
-            loadCaseFile: {"iname0": "", "status": "unkown", "caseStatus": "new", "summary": ""},
+            newCase: {"iname0": "", "status": "unkown", "caseStatus": "new"},
+            loadCaseFile: {"iname0": "", "status": "unkown", "caseStatus": "new"},
         }
 
     # Variable for storing name of current case.
@@ -177,7 +178,7 @@ def duplicateCase():
     ss.cases[dupname] = copy.deepcopy(ss.cases[ss.currentCase])
     ss.cases[ss.currentCase]["plan"] = currentPlan
     ss.cases[dupname]["name"] = dupname
-    ss.cases[dupname]["summary"] = ""
+    ss.cases[dupname]["summaryDf"] = None
     ss.cases[dupname]["duplicate"] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
@@ -214,7 +215,7 @@ def createNewCase(case):
         st.error(f"Case name '{casename}' already exists.")
         return
 
-    ss.cases[casename] = {"name": casename, "caseStatus": "unknown", "summary": "", "logs": None}
+    ss.cases[casename] = {"name": casename, "caseStatus": "unknown", "logs": None}
     setCurrentCase(ss._newcase)
 
 
@@ -310,6 +311,34 @@ def getAccountBalances(ni):
             bal[j].append(getKey(acc + str(i)))
 
     return bal
+
+
+def compareSummaries():
+    df = getKey("summaryDf")
+    if df is None:
+        return None
+    for case in onlyCaseNames():
+        if case == currentCaseName():
+            continue
+        odf = ss.cases[case]["summaryDf"]
+        if odf is None or set(odf.columns) != set(df.columns):
+            continue
+        df = pd.concat([df, odf])
+
+    if df.shape[0] > 1:
+        # Unroll to subtract strings representations of numbers.
+        for col in range(1, df.shape[1] - 5):
+            strval = df.iloc[0, col]
+            if isinstance(strval, str) and strval[0] == "$":
+                f0val = float(strval[1:].replace(",", ""))
+                for row in range(1, df.shape[0]):
+                    fnval = float(df.iloc[row, col][1:].replace(",", ""))
+                    diff = fnval - f0val
+                    sign = "+" if diff >= 0 else "-"
+                    sign = "" if diff == 0 else sign
+                    df.iloc[row, col] = f"{sign}${abs(diff):,.0f}"
+
+    return df.transpose()
 
 
 def getSolveParameters():

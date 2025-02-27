@@ -122,15 +122,15 @@ def runPlan(plan):
     except Exception as e:
         st.error(f"Solution failed: {e}")
         kz.storeKey("caseStatus", "exception")
-        kz.storeKey("summary", "")
+        kz.storeKey("summaryDf", None)
         return
 
     kz.storeKey("caseStatus", plan.caseStatus)
     if plan.caseStatus == "solved":
-        kz.storeKey("summary", plan.summaryString())
+        kz.storeKey("summaryDf", plan.summaryDf())
         kz.storeKey("casetoml", getCaseString().getvalue())
     else:
-        kz.storeKey("summary", "")
+        kz.storeKey("summaryDf", None)
         kz.storeKey("casetoml", "")
 
 
@@ -564,7 +564,7 @@ def genDic(plan):
     dic["plan"] = plan
     dic["name"] = plan._name
     dic["description"] = plan._description
-    dic["summary"] = ""
+    dic["summaryDf"] = None
     dic["casetoml"] = ""
     dic["caseStatus"] = "new"
     dic["status"] = ["unknown", "single", "married"][plan.N_i]

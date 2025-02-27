@@ -307,13 +307,15 @@ The first line of the *Sources* worksheets are the most important
 as these lines are the only ones that are actionable.
 
 #### Output Files
-This page allow to save many files for future use.
+This page allow to compare cases and save files for future use.
 First it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the plan.
-The contents of this page can be downloaded as a plain text file by
-clicking the button at the bottom of the section.
+If more than one case was run, they will be compared provided they were made
+for the same individuals.
+The contents of the synopsis can be downloaded as a plain text file by
+clicking the button below it.
 
-Finally, parameters used to generate the case are collected in *toml* format and displayed.
+Similarly, parameters used to generate the case are collected in *toml* format and displayed.
 The `Download case file...` button allows to save the parameters used to generate the
 outcome of this case to a *case* file.
 

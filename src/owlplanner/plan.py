@@ -2062,6 +2062,12 @@ class Plan(object):
 
         return mylist
 
+    def summaryDf(self):
+        """
+        Return summary as a dataframe.
+        """
+        return pd.DataFrame(self.summaryDic(), index=[self._name])
+
     def summaryString(self):
         """
         Return summary as a string.
@@ -2081,29 +2087,34 @@ class Plan(object):
         dic = {}
         # Results
         dic["Plan name"] = self._name
-        dic[f"Net yearly spending basis in {now}$"] = u.d(self.g_n[0] / self.xi_n[0])
-        dic[f"Net yearly spending for year {now}"] = u.d(self.g_n[0] / self.yearFracLeft)
+        dic["Net yearly spending basis"] = u.d(self.g_n[0] / self.xi_n[0])
+        dic[f"Net spending for year {now}"] = u.d(self.g_n[0] / self.yearFracLeft)
         dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0])
 
         totIncome = np.sum(self.g_n, axis=0)
         totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total net spending in {now}$"] = f"{u.d(totIncomeNow)} ({u.d(totIncome)} nominal)"
+        dic["Total net spending"] = f"{u.d(totIncomeNow)}"
+        dic["- Total net spending (nominal)"] = f"{u.d(totIncome)}"
 
         totRoth = np.sum(self.x_in, axis=(0, 1))
         totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n[:-1], axis=0)
-        dic[f"Total Roth conversions in {now}$"] = f"{u.d(totRothNow)} ({u.d(totRoth)} nominal)"
+        dic["Total Roth conversions"] = f"{u.d(totRothNow)}"
+        dic["- Total Roth conversions (nominal)"] = f"{u.d(totRoth)}"
 
         taxPaid = np.sum(self.T_n, axis=0)
         taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total income tax paid on ordinary income in {now}$"] = f"{u.d(taxPaidNow)} ({u.d(taxPaid)} nominal)"
+        dic["Total income tax paid on ordinary income"] = f"{u.d(taxPaidNow)}"
+        dic["- Total income tax paid on ordinary income (nominal)"] = f"{u.d(taxPaid)}"
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total tax paid on gains and dividends in {now}$"] = f"{u.d(taxPaidNow)} ({u.d(taxPaid)} nominal)"
+        dic["Total tax paid on gains and dividends"] = f"{u.d(taxPaidNow)}"
+        dic["- Total tax paid on gains and dividends (nominal)"] = f"{u.d(taxPaid)}"
 
         taxPaid = np.sum(self.M_n, axis=0)
         taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
-        dic[f"Total Medicare premiums paid in {now}$"] = f"{u.d(taxPaidNow)} ({u.d(taxPaid)} nominal)"
+        dic["Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
+        dic["- Total Medicare premiums paid (nominal)"] = f"{u.d(taxPaid)}"
 
         if self.N_i == 2 and self.n_d < self.N_n:
             p_j = self.partialEstate_j * (1 - self.phi_j)
@@ -2117,30 +2128,35 @@ class Plan(object):
             totSpousalNow = totSpousal / self.gamma_n[nx + 1]
             iname_s = self.inames[self.i_s]
             iname_d = self.inames[self.i_d]
-            dic[f"Spousal wealth transfer from {iname_d} to {iname_s} in year {ynx} (nominal)"] = (
-                f"taxable: {u.d(q_j[0])}  tax-def: {u.d(q_j[1])}  tax-free: {u.d(q_j[2])}")
+            dic[f"Sum of spousal transfer to {iname_s} in year {ynx}"] = (f"{u.d(totSpousalNow)}")
+            dic[f"- Sum of spousal transfer to {iname_s} in year {ynx} (nominal)"] = (f"{u.d(totSpousal)}")
+            dic[f"-- Spousal transfer to {iname_s} in year {ynx} - taxable (nominal)"] = (f"{u.d(q_j[0])}")
+            dic[f"-- Spousal transfer to {iname_s} in year {ynx} - tax-def (nominal)"] = (f"{u.d(q_j[1])}")
+            dic[f"-- Spousal transfer to {iname_s} in year {ynx} - tax-free (nominal)"] = (f"{u.d(q_j[2])}")
 
-            dic[f"Sum of spousal bequests to {iname_s} in year {ynx} in {now}$"] = (
-                f"{u.d(totSpousalNow)} ({u.d(totSpousal)} nominal)")
-            dic[
-                f"Post-tax non-spousal bequests from {iname_d} in year {ynx} (nominal)"] = (
-                f"taxable: {u.d(p_j[0])}  tax-def: {u.d(p_j[1])}  tax-free: {u.d(p_j[2])}")
-            dic[
-                f"Sum of post-tax non-spousal bequests from {iname_d} in year {ynx} in {now}$"] = (
-                f"{u.d(totOthersNow)} ({u.d(totOthers)} nominal)")
+            dic[f"Sum of post-tax non-spousal bequests from {iname_d} in year {ynx}"] = (f"{u.d(totOthersNow)}")
+            dic[f"- Sum of post-tax non-spousal bequests from {iname_d} in year {ynx} (nominal)"] = (
+                f"{u.d(totOthers)}")
+            dic[f"-- Post-tax non-spousal bequests from {iname_d} in year {ynx} - taxable (nominal)"] = (
+                f"{u.d(p_j[0])}")
+            dic[f"-- Post-tax non-spousal bequests from {iname_d} in year {ynx} - tax-def (nominal)"] = (
+                f"{u.d(p_j[1])}")
+            dic[f"-- Post-tax non-spousal bequests from {iname_d} in year {ynx} - tax-free (nominal)"] = (
+                f"{u.d(p_j[2])}")
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
         lastyear = self.year_n[-1]
-        dic[f"Post-tax account values at the end of final plan year {lastyear} (nominal)"] = (
-            f"taxable: {u.d(estate[0])}  tax-def: {u.d(estate[1])}  tax-free: {u.d(estate[2])}")
-
         totEstate = np.sum(estate)
         totEstateNow = totEstate / self.gamma_n[-1]
-        dic[f"Total estate value at the end of final plan year {lastyear} in {now}$"] = (
-            f"{u.d(totEstateNow)} ({u.d(totEstate)} nominal)")
+        dic[f"Total estate value at the end of {lastyear}"] = (f"{u.d(totEstateNow)}")
+        dic[f"- Total estate value at the end of {lastyear} (nominal)"] = (f"{u.d(totEstate)}")
+        dic[f"-- Post-tax account value at the end of {lastyear} - taxable (nominal)"] = (f"{u.d(estate[0])}")
+        dic[f"-- Post-tax account value at the end of {lastyear} - tax-def (nominal)"] = (f"{u.d(estate[1])}")
+        dic[f"-- Post-tax account value at the end of {lastyear} - tax-free (nominal)"] = (f"{u.d(estate[2])}")
+
         dic["Plan starting date"] = str(self.startDate)
-        dic["Cumulative inflation factor from start date to end of plan"] = f"{self.gamma_n[-1]:.2f}"
+        dic[f"Cumulative inflation factor from start date to end of {lastyear}"] = f"{self.gamma_n[-1]:.2f}"
         for i in range(self.N_i):
             dic[f"{self.inames[i]:>12}'s {self.horizons[i]:02}-year life horizon"] = (
                 f"{now} -> {now + self.horizons[i] - 1}")
