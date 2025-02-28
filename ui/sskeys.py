@@ -334,9 +334,9 @@ def compareSummaries():
                 for row in range(1, df.shape[0]):
                     fnval = float(df.iloc[row, col][1:].replace(",", ""))
                     diff = fnval - f0val
-                    sign = "+" if diff >= 0 else "-"
-                    sign = "=" if diff == 0 else sign
-                    df.iloc[row, col] = f"{sign}${abs(diff):,.0f}"
+                    sign = "\u2191" if diff >= 0 else "\u2193"
+                    sign = "\u2192" if diff == 0 else sign
+                    df.iloc[row, col] = f"{sign} ${abs(diff):,.0f}"
 
     return df.transpose()
 
