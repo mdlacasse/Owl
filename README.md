@@ -165,7 +165,7 @@ assets to support, even with no estate being left.
 ---------------------------------------------------------------
 ## Documentation
 
-- Documentation for the app user interface is available from the interface itself.
+- Documentation for the app user interface is available from the interface [itself](https://owlplanner.streamlit.app/Documentation).
 - Installation guide and software requirements can be found [here](INSTALL.md).
 - User guide for the underlying Python package as used in a Jupyter notebook can be found [here](USER_GUIDE.md).
 
