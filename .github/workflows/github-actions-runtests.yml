@@ -5,6 +5,7 @@ name: Python package
 
 run-name: ${{ github.actor }} running tests
 on: [push]
+permissions: read-all
 jobs:
   build:
     runs-on: ubuntu-latest
