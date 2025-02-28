@@ -260,7 +260,7 @@ def storepull(key):
 def setKey(key, val):
     ss.cases[ss.currentCase][key] = val
     ss.cases[ss.currentCase]["caseStatus"] = "modified"
-    # print("setKey", key, val)
+    ss.cases[ss.currentCase]["summaryDf"] = None
     return val
 
 
@@ -326,7 +326,7 @@ def compareSummaries():
         df = pd.concat([df, odf])
 
     if df.shape[0] > 1:
-        # Unroll to subtract strings representations of numbers.
+        # Unroll to subtract $tring representation of numbers.
         for col in range(1, df.shape[1] - 5):
             strval = df.iloc[0, col]
             if isinstance(strval, str) and strval[0] == "$":

@@ -121,7 +121,7 @@ else:
     st.divider()
     cantcreate = kz.isIncomplete() or diz1
     if not cantcreate and kz.getKey("plan") is None:
-        st.info("Plan needs to be created once all the information needed has been entered.")
+        st.info("Plan needs to be created once desired changes are completed.")
 
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
     cantcopy = cantmodify or kz.caseHasNoPlan()

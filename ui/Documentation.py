@@ -34,16 +34,28 @@ formulation of the optimization problem can be found
 
 --------------------------------------------------------------------------------------
 ### Getting started with the user interface
-Functions of each page are described below in the same order as they appear in the sidebar.
+Functions of each page are described below in the same order as they appear in the left sidebar.
 Typically, pages would be accessed in order, starting from the top.
+
 The `Case selector` box at the top of the page allows to select an existing case
 or create a new one from scratch, or from a *case* parameter file, which
 would then populate all parameter values.
 This box is present in all pages except those in the **Resources** section
-and allows to compare different scenarios.
+and allows to access and compare different scenarios.
+
+A typical workflow for exploring different scenarios involves starting with a base
+case and then duplicating/creating derived scenarios with slight changes in the parameters,
+which are configured in the **Case Setup** section. The comparison between the
+different resulting outcomes is shown on the [Output Files](#output-files) page.
+
+Owl uses a year as the standard time unit. All values are therefore entered and
+reported as yearly values. These include wages, income, rates, social security, etc.
+Dollar values are typically entered in thousands, unless in tables, where they
+are entered and reported in unit dollars.
 
 There are four sections in the user interface:
 **Case Setup**, **Single Scenario**, **Multiple Scenarios**, and **Resources**.
+The sections below follow the same logical order.
 
 -------------------------------------------------
 ### :orange[Case Setup]
@@ -310,22 +322,25 @@ as these lines are the only ones that are actionable.
 This page allows to compare cases and save files for future use.
 First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the plan.
-If multiple cases were configured and run, they will be compared provided they are made
-for the same individuals. Columns on the right will show the difference in values between
-the different scenarios.
+If multiple cases were configured and run (most likely through duplication and
+modifying the configuration), they will be compared in that panel provided they were made
+for the same individuals. Column on the left shows the values for the selected case
+while those on the right will show the differences.
 The contents of the synopsis can be downloaded as a plain text file by
 clicking the button below it.
 
-Similarly, parameters used to generate the case are collected in *toml* format and displayed.
-The `Download case file...` button allows to save the parameters used to generate the
-outcome of this case to a *case* file.
-
 Another section called `Excel workbooks` allows
-to save the contents of the tables on the corresponding page to an Excel workbook.
+to save the contents of the tables on the corresponding page as an Excel workbook.
+These data are displayed on the *Worksheets* and the *Wages and Contributions* pages.
 
-With the case parameter and the wages and contributions files,
+Similarly, all parameters used to generate the case are collected in *toml* format and displayed.
+The `Download case file...` button allows to save the parameters of the selected scenario
+to a *case* file.
+
+With the case parameter file and the wages and contributions worksheet,
 the same case can be reproduced at a later time by uploading
-them through the widgets on the `Create Case` and `Wages and Contributions` pages.
+them through the widgets on the `Create Case` and `Wages and Contributions` pages,
+respectively.
 
 --------------------------------------------------------------------------------------
 ### :orange[Multiple Scenarios]
