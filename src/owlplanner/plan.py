@@ -1968,8 +1968,8 @@ class Plan(object):
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
         self.dist_in[self.dist_in < 0] = 0
         self.G_n = np.sum(self.F_tn, axis=0)
-        T_tn = self.F_tn * self.theta_tn
-        self.T_n = np.sum(T_tn, axis=0)
+        self.T_tn = self.F_tn * self.theta_tn
+        self.T_n = np.sum(self.T_tn, axis=0)
 
         tau_0 = np.array(self.tau_kn[0, :])
         tau_0[tau_0 < 0] = 0
@@ -2105,6 +2105,12 @@ class Plan(object):
         taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
         dic["Total income tax paid on ordinary income"] = f"{u.d(taxPaidNow)}"
         dic["- Total income tax paid on ordinary income (nominal)"] = f"{u.d(taxPaid)}"
+        for t in range(self.N_t):
+            taxPaid = np.sum(self.T_tn[t], axis=0)
+            taxPaidNow = np.sum(self.T_tn[t] / self.gamma_n[:-1], axis=0)
+            tname = tx.taxBracketNames[t]
+            dic[f"-- Subtotal in tax bracket {tname}"] = f"{u.d(taxPaidNow)}"
+            dic[f"--- Subtotal in tax bracket {tname} (nominal)"] = f"{u.d(taxPaid)}"
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)

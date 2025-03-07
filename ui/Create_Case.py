@@ -25,7 +25,7 @@ elif ret == kz.loadCaseFile:
     st.info(
         "#### Starting a case from a *case* parameter file.\n\n"
         "Upload your own case or select one from multiple examples."
-        " Alternatively, you can select `New Case...` in the margin selector box to start a case from scratch.\n\n"
+        " Alternatively, you can select `New Case...` in the top selector box to start a case from scratch.\n\n"
         "Look at the :material/help: [Documentation](Documentation) for more details."
     )
     st.write("#### Upload your own case file")

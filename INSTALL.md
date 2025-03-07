@@ -14,7 +14,7 @@ or, if one prefers to have everything on their own computer,
 to install and run a Docker image as described in these [instructions](docker/README.md).
 
 ### Requirements
-You will need Python and `pip` installed on your computer for that purpose.
+You will need Python and `pip` installed on your computer for completing the installation.
 
 ### Installation steps for developers
 These instructions are command-line instructions.
@@ -29,7 +29,8 @@ From the top directory of the source code run:
 python -m build 
 pip install -e .
 ```
-The -e instructs Python to load the live version in the current directory tree. 
+The -e instructs `pip` to install in *editable* mode and use the live version
+in the current directory tree.
 
 ### Running the streamlit frontend 
 Running the Owl user interface locally from Windows:
@@ -42,7 +43,7 @@ Running the Owl user interface locally from Linux or MacOS:
 ```
 
 ### Publishing a version (for reference only)
-Run checks before commit:
+Run checks before all commits:
 ```
 flake8 ui src tests
 pytest

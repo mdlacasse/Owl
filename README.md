@@ -8,7 +8,13 @@
 -------------------------------------------------------------------------------------
 
 ### TL;DR
-Owl is a planning tool that uses a linear programming optimization algorithm to provide guidance on retirement decisions. There are a few ways to run Owl.
+Owl is a retirement planning tool that uses a linear programming optimization algorithm
+to provide guidance on retirement decisions, including Roth conversions.
+Users can select varying return rates to perform historical back testing,
+stochastic rates for performing Monte Carlo analyses,
+or fixed rates either derived from historical averages, or set by the user.
+
+There are a few ways to run Owl:
 
 - Run Owl directly on the Streamlit Community Server at [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
 
@@ -56,7 +62,7 @@ mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main
 It is anticipated that most end users will use Owl through the graphical interface
 either at [owlplanner.streamlit.app](https://owlplanner.streamlit.app)
 or [installed](INSTALL.md) on their own computer.
-The underlying Python package can also be used directly through Python scripts or a Jupyter Notebook
+The underlying Python package can also be used directly through Python scripts or Jupyter Notebooks
 as described [here](USER_GUIDE.md).
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem.

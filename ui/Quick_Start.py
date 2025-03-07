@@ -49,12 +49,11 @@ experiment with different parameters.
 For creating your own cases, you can start
 from scratch by selecting `New Case...` in the selection box while on the **Create Case** page,
 and fill in the information needed on each page in the `Case Setup` section.
-Once a case has been fully parameterized and successfully optimized,
-its parameters can be saved by using the `Download case file...` button on the `Output Files` page.
-
 Alternatively, you can duplicate any existing case by using
 the `Duplicate case` button, and then edit its values to fit your situation.
 
+Once a case has been fully parameterized and successfully optimized,
+its parameters can be saved by using the `Download case file...` button on the `Output Files` page.
 Multiple cases can coexist and can be called and compared using the `Case selector` box
 at the top of the page.
 
