@@ -104,36 +104,6 @@ By default, it starts today, but any other date
 in the current year can be chosen. This is useful if your numbers are known for a fixed date, or
 for reproducibility purposes. This date does not affect when the plan ends.
 
-#### Assets
-This page allows to enter account balances in all savings accounts.
-Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
-
-Three types of savings accounts are considered and are tracked separately for spouses:
-- Taxable savings accounts (e.g., investment accounts, CDs),
-- Tax-deferred savings accounts (e.g., 401k, 403b, IRA),
-- Tax-exempt savings accounts (e.g., Roth 401k, Roth IRA).
-
-For married couples, the spousal `Beneficiary fractions` associated with these accounts
-can be selected, as well as a surplus deposit fraction. The first one controls
-how much is left to the surviving spouse while the second determines
-how to split potential surplus budget moneys between the taxable accounts of the spouses.
-When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
-surplus moneys in the taxable account of the first individual to pass. Otherwise,
-the optimizer will find creative solutions that can generate surpluses in order
-to maximize the final bequest. Finally, when fractions are not all equal,
-it can take longer to solve (minutes) as these cases trigger the use
-of binary variables which involve more complex algorithms.
-In some situations, transfers from tax-deferred savings accounts to taxable
-savings accounts, through surpluses and deposits, can be part of the optimal solution.
-
-Setting a surplus fraction that deposits some or all surpluses in the survivor's account
-can sometimes lead to slow convergence. This is especially noticeable when solving with
-varying rates and not so common when using fixed rates.
-This is due to the triggering of binary variables which add
-considerable computing effort in solving the problem.
-When using varying rates, it is recommended to set surpluses to be
-deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
-
 #### Wages and Contributions
 This page allows to enter an optional Excel file containing future wages and contributions,
 or to enter values directly into the corresponding tables.
@@ -150,17 +120,17 @@ The wages and contributions data contains 9 columns titled as follows:
 Here, 20XX represents the last row which could be the last year based on the life
 expectancy values provided.
 While loading an Excel workbook, missing years or empty cells will be filled with zero values,
-while years outside the time span of the plan will be ignored.
+while years outside the time span of the plan will simply be ignored.
 For the columns, *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment
-or other sources (e.g. rentals).
+or other sources (e.g., rentals).
 This column does not include dividends from your taxable investment accounts,
 as they will be calculated based on your return rate assumptions.
 
-Note that column names are case sensitive and all entries must be in lower case.
+Note that column names are case sensitive and all entries are in lower case.
 The easiest way to complete the process of filling this file is either to start from the template
-file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx).
-Values can also be filled in the user interface, but this approach does not have
+file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx) or
+to fill in the values using the user interface, but this last approach does not provide
 Excel capabilities for cross-column calculations.
 
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
@@ -190,7 +160,7 @@ to or from you). Therefore, the sign (+/-) of entries in this column is importan
 Positive numbers will be considered in the cash flow for that year and the surplus, if any, will be
 deposited in the taxable savings accounts. Negative numbers will potentially generate additional
 withdrawals and distributions from retirement accounts. This is the only column that can contain
-negative numbers: all other column entries should be positive.
+negative numbers: all other column entries must be positive.
 
 When loading an Excel workbook, each individual in the plan must have an associated sheet
 for reporting yearly transactions affecting the plan. The association is made by having
@@ -201,13 +171,45 @@ match the names used when creating the plan
 
 If a file was originally associated with a *case* file, a message will remind the user to upload the file.
 
+#### Current Assets
+This page allows to enter account balances in all savings accounts.
+Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
+
+Three types of savings accounts are considered and are tracked separately for spouses:
+- Taxable savings accounts (e.g., investment accounts, CDs),
+- Tax-deferred savings accounts (e.g., 401k, 403b, IRA),
+- Tax-exempt savings accounts (e.g., Roth 401k, Roth IRA).
+
+For married couples, the spousal `Beneficiary fractions` associated with these accounts
+can be selected, as well as a surplus deposit fraction. The first one controls
+how much is left to the surviving spouse while the second determines
+how to split potential surplus budget moneys between the taxable accounts of the spouses.
+When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
+surplus moneys in the taxable account of the first individual to pass. Otherwise,
+the optimizer will find creative solutions that can generate surpluses in order
+to maximize the final bequest. Finally, when fractions are not all equal,
+it can take longer to solve (minutes) as these cases trigger the use
+of binary variables which involve more complex algorithms.
+In some situations, transfers from tax-deferred savings accounts to taxable
+savings accounts, through surpluses and deposits, can be part of the optimal solution.
+
+Setting a surplus fraction that deposits some or all surpluses in the survivor's account
+can sometimes lead to slow convergence. This is especially noticeable when solving with
+varying rates and not so common when using fixed rates.
+This is due to the triggering of binary variables which add
+considerable computing effort in solving the problem.
+When using varying rates, it is recommended to set surpluses to be
+deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
+
 #### Fixed Income
 This page is for entering anticipated fixed income from pensions and social security.
-Amounts are in \\$k at the starting date. While
-social security is always adjusted for inflation, pensions can optionally be.
-Income starts on the first day of the year selected, with the value provided.
-In other words, the values given are in future \\$, not in today's \\$.
-A great site for deciding on when to take social security is
+Amounts are in thousands (\\$k) in today's \\$. While
+social security is always adjusted for inflation, pensions can optionally be
+by selecting the corresponding button.
+Income starts on the first day of the year selected, with the value provided,
+adjusted for inflation if necessary.
+
+A great website for guidance on when to start taking social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
 And obviously there is [ssa.gov](https://ssa.gov).
 

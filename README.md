@@ -95,7 +95,7 @@ Asset allocations are selected for the duration of the plan, and these can glide
 or along a configurable s-curve over the lifespan of the individual.
 
 Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be
-flat or follow a *smile* curve which is also adjustable through two simple parameters.
+flat or follow a *smile* curve which is also adjustable through three simple parameters.
 
 Available rates are from 1928 to last year and can be used to test historical performance.
 Fixed rates can also be provided, as well as *histochastic* rates, which are generated using

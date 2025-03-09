@@ -13,8 +13,8 @@ st.logo("https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png", size="l
 pages = {
     "Case Setup": [
         st.Page("Create_Case.py", icon=":material/person_add:"),
-        st.Page("Assets.py", icon=":material/savings:"),
         st.Page("Wages_And_Contributions.py", icon=":material/work_history:"),
+        st.Page("Current_Assets.py", icon=":material/savings:"),
         st.Page("Fixed_Income.py", icon=":material/currency_exchange:"),
         st.Page("Rates_Selection.py", icon=":material/monitoring:"),
         st.Page("Asset_Allocation.py", icon=":material/percent:"),

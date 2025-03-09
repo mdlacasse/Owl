@@ -55,7 +55,7 @@ def saveConfig(myplan, file, mylog):
     diconf["Fixed Income"] = {
         "Pension amounts": (myplan.pensionAmounts / 1000).tolist(),
         "Pension ages": myplan.pensionAges.tolist(),
-        "Pension indexed": myplan.pensionIndexed,
+        "Pension indexed": myplan.pensionIsIndexed,
         "Social security amounts": (myplan.ssecAmounts / 1000).tolist(),
         "Social security ages": myplan.ssecAges.tolist(),
     }
@@ -222,8 +222,8 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     p.setSocialSecurity(ssecAmounts, ssecAges)
     pensionAmounts = np.array(diconf["Fixed Income"]["Pension amounts"], dtype=np.float32)
     pensionAges = np.array(diconf["Fixed Income"]["Pension ages"], dtype=np.int32)
-    pensionIndexed = diconf["Fixed Income"]["Pension indexed"]
-    p.setPension(pensionAmounts, pensionAges, pensionIndexed)
+    pensionIsIndexed = diconf["Fixed Income"]["Pension indexed"]
+    p.setPension(pensionAmounts, pensionAges, pensionIsIndexed)
 
     # Rates Selection.
     p.setDividendRate(float(diconf["Rates Selection"]["Dividend tax rate"]))

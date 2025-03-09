@@ -291,7 +291,7 @@ class Plan(object):
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         self.pensionAmounts = np.zeros(self.N_i)
         self.pensionAges = 65 * np.ones(self.N_i, dtype=np.int32)
-        self.pensionIndexed = [False, False]
+        self.pensionIsIndexed = [False, False]
         self.ssecAmounts = np.zeros(self.N_i)
         self.ssecAges = 67 * np.ones(self.N_i, dtype=np.int32)
 
@@ -531,7 +531,7 @@ class Plan(object):
 
         self.pensionAmounts = np.array(amounts)
         self.pensionAges = np.array(ages, dtype=np.int32)
-        self.pensionIndexed = indexed
+        self.pensionIsIndexed = indexed
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
@@ -1008,7 +1008,7 @@ class Plan(object):
             self.xiBar_n = self.xi_n * self.gamma_n[:-1]
             self.piBar_in = np.array(self.pi_in)
             for i in range(self.N_i):
-                if self.pensionIndexed[i]:
+                if self.pensionIsIndexed[i]:
                     self.piBar_in[i] *= self.gamma_n[:-1]
 
             self._adjustedParameters = True
