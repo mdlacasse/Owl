@@ -313,6 +313,12 @@ def getAccountBalances(ni):
     return bal
 
 
+def colorBySign(val):
+    color = "green" if "\u2191" in val else "red" if "\u2193" in val else None
+
+    return f"color:{color};" if color else ""
+
+
 def compareSummaries():
     df = getKey("summaryDf")
     if df is None:

@@ -8,7 +8,7 @@ st.write("## About Owl 🦉")
 kz.orangeDivider()
 
 st.write(f"This is Owl version {owb.version()} running on Streamlit {st.__version__}.")
-st.snow()
+# st.balloons()
 
 st.write(
     """
