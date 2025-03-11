@@ -613,7 +613,7 @@ def genDic(plan):
         dic["ssAmt" + str(i)] = plan.ssecAmounts[i] / 1000
         dic["pAge" + str(i)] = plan.pensionAges[i]
         dic["pAmt" + str(i)] = plan.pensionAmounts[i] / 1000
-        dic["pIdx" + str(i)] = plan.pensionIndexed[i]
+        dic["pIdx" + str(i)] = plan.pensionIsIndexed[i]
         for j1 in range(plan.N_j):
             dic[accName[j1] + str(i)] = plan.beta_ij[i, j1] / 1000
 
