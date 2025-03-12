@@ -34,7 +34,7 @@ from owlplanner import logging
 from owlplanner import progress
 
 
-# This makes all graphs appear have the same height.
+# This makes all graphs to have the same height.
 plt.rcParams.update({'figure.autolayout': True})
 
 

@@ -53,6 +53,13 @@ reported as yearly values. These include wages, income, rates, social security, 
 Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars.
 
+If you are accessing Owl through the Chrome browser,
+the performance manager might be configured to disable hidden or inactive tabs.
+This will cause your Owl session to inadvertently reset, and losing the state of the calculator.
+To avoid this, configure Chrome to keep the page active using
+`More Tools` -> `Performance` -> `Always keep these sites active` and
+add the site *owlplanner.streamlit.app*.
+
 There are four sections in the user interface:
 **Case Setup**, **Single Scenario**, **Multiple Scenarios**, and **Resources**.
 The sections below follow the same logical order.

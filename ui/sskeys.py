@@ -510,7 +510,6 @@ def orangeDivider():
 
 
 def titleBar(txt, choices=None):
-    # st.html(f"<div style='text-align: left;color: orange;font-style: italic;'>{currentCaseName()}</div>")
     if choices is None:
         choices = onlyCaseNames()
         helpmsg = "Select an existing case."

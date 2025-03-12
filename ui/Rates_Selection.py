@@ -228,5 +228,5 @@ else:
 
     with col3:
         kz.initKey("yTCJA", 2026)
-        helpmsg = "Year at which the Tax Cut And Job Act tax rates are speculated to expire."
+        helpmsg = "Year at which the Tax Cut And Job Act tax rates are speculated to be expired."
         ret = kz.getIntNum("TCJA expiration year", "yTCJA", help=helpmsg)
