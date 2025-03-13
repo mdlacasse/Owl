@@ -93,10 +93,11 @@ else:
 
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
+            maxValue = owb.TO if kz.getKey("varyingType") == "historical" else kz.getKey("yto") - 1
             st.number_input(
                 "Starting year",
                 min_value=owb.FROM,
-                max_value=kz.getKey("yto") - 1,
+                max_value=maxValue,
                 value=kz.getKey("yfrm"),
                 on_change=updateRates,
                 args=["yfrm"],

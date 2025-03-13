@@ -2507,6 +2507,7 @@ class Plan(object):
 
         title = self._name + "\nRaw Income Sources"
         stypes = self.sources_in.keys()
+        # stypes = [item for item in stypes if "RothX" not in item]
 
         if tag != "":
             title += " - " + tag
@@ -2517,7 +2518,7 @@ class Plan(object):
         else:
             yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
             sources_in = {}
-            for key in self.sources_in:
+            for key in stypes:
                 sources_in[key] = self.sources_in[key] / self.gamma_n[:-1]
 
         fig, ax = _stackPlot(
