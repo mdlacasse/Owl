@@ -20,7 +20,7 @@ else:
             st.write("#### Synopsis")
             styledDf = df[1:].style.map(kz.colorBySign)
             st.dataframe(styledDf, use_container_width=True)
-            st.caption("Values are in today's \\$ unless marked otherwise.")
+            st.caption("Values with [legend] are nominal, otherwise in today's \\$.")
             st.download_button(
                 "Download synopsis", data=df[1:].to_string(), file_name=f"Synopsis_{caseName}.txt",
                 mime="text/plain;charset=UTF-8"
