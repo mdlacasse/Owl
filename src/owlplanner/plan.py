@@ -1284,18 +1284,14 @@ class Plan(object):
                 # Minus capital gains on taxable withdrawals using last year's rate if >=0.
                 # Plus taxable account withdrawals, and all other withdrawals.
                 row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fac * (tau_0prev[n] - self.mu) - 1)
-                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1)
-                row.addElem(_q3(Cw, i, 2, n, Ni, Nj, Nn), -1)
+                penalty = 0.1 if n < self.n59[i] else 0
+                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1 + penalty)
+                row.addElem(_q3(Cw, i, 2, n, Ni, Nj, Nn), -1 + penalty)
                 row.addElem(_q2(Cd, i, n, Ni, Nn), fac * self.mu)
 
             # Minus tax on ordinary income, T_n.
             for t in range(Nt):
                 row.addElem(_q2(CF, t, n, Nt, Nn), self.theta_tn[t, n])
-
-            # Minus 10% penalty on early withdrawals.
-            if n < self.n59[i]:
-                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), 0.1)
-                row.addElem(_q3(Cw, i, 2, n, Ni, Nj, Nn), 0.1)
 
             A.addRow(row, rhs, rhs)
 
@@ -1978,12 +1974,12 @@ class Plan(object):
         self.G_n = np.sum(self.F_tn, axis=0)
         self.T_tn = self.F_tn * self.theta_tn
         self.T_n = np.sum(self.T_tn, axis=0)
-        self.penalty_n = np.zeros(Nn)
-        # Add early withdrawal penalties if any.
+        self.P_n = np.zeros(Nn)
+        # Add early withdrawal penalty if any.
         for i in range(Ni):
-            self.penalty_n[0:self.n59[i]] += 0.1*(self.w_ijn[i, 1, 0:self.n59[i]] + self.w_ijn[i, 2, 0:self.n59[i]])
+            self.P_n[0:self.n59[i]] += 0.1*(self.w_ijn[i, 1, 0:self.n59[i]] + self.w_ijn[i, 2, 0:self.n59[i]])
 
-        self.T_n += self.penalty_n
+        self.T_n += self.P_n
 
         tau_0 = np.array(self.tau_kn[0, :])
         tau_0[tau_0 < 0] = 0
@@ -2126,8 +2122,8 @@ class Plan(object):
             dic[f"-- Subtotal in tax bracket {tname}"] = f"{u.d(taxPaidNow)}"
             dic[f"-- [Subtotal in tax bracket {tname}]"] = f"{u.d(taxPaid)}"
 
-        penaltyPaid = np.sum(self.penalty_n, axis=0)
-        penaltyPaidNow = np.sum(self.penalty_n / self.gamma_n[:-1], axis=0)
+        penaltyPaid = np.sum(self.P_n, axis=0)
+        penaltyPaidNow = np.sum(self.P_n / self.gamma_n[:-1], axis=0)
         dic["-- Subtotal in early withdrawal penalty"] = f"{u.d(penaltyPaidNow)}"
         dic["-- [Subtotal in early withdrawal penalty]"] = f"{u.d(penaltyPaid)}"
 
