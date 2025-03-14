@@ -70,13 +70,20 @@ def getUnits(units) -> int:
     return fac
 
 
-# Could be a one-line lambda function:
-# krond = lambda a, b: 1 if a == b else 0
+# Next two functins could be a one-line lambda functions.
+# e.g., krond = lambda a, b: 1 if a == b else 0
 def krond(a, b) -> int:
     """
     Kronecker integer delta function.
     """
     return 1 if a == b else 0
+
+
+def heavyside(x) -> int:
+    """
+    Heavyside step function.
+    """
+    return 1 if x >= 0 else 0
 
 
 def roundCents(values, decimals=2):

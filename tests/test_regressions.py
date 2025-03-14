@@ -89,7 +89,7 @@ def createPlan(ni, name, ny, topAge):
 
 def test_withdrawal1():
     n = 10
-    p = createPlan(1, 'withdrawal1', n, 64)
+    p = createPlan(1, 'withdrawal1', n, 70)
     amount = 3.0
     p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
@@ -102,7 +102,7 @@ def test_withdrawal1():
 
 def test_withdrawal2():
     n = 10
-    p = createPlan(1, 'withdrawal2', n, 64)
+    p = createPlan(1, 'withdrawal2', n, 70)
     # Small taxable income creates an income smaller than standard deduction. Testing e_n.
     amount = 40.0
     p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0])
@@ -116,7 +116,7 @@ def test_withdrawal2():
 
 def test_withdrawal2_2():
     n = 10
-    p = createPlan(2, 'withdrawal2_2', n, 64)
+    p = createPlan(2, 'withdrawal2_2', n, 70)
     # Small taxable income creates an income smaller than standard deduction. Testing e_n.
     amount = 50
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[amount/2, amount/2], taxFree=[0, 0])
@@ -130,7 +130,7 @@ def test_withdrawal2_2():
 
 def test_withdrawal3():
     n = 6
-    p = createPlan(1, 'withdrawal3', n, 64)
+    p = createPlan(1, 'withdrawal3', n, 70)
     amount = 60
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
@@ -143,7 +143,7 @@ def test_withdrawal3():
 
 def test_withdrawal3_2():
     n = 6
-    p = createPlan(2, 'withdrawal3', n, 64)
+    p = createPlan(2, 'withdrawal3', n, 70)
     amount = 60
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 0, 100], [0, 0, 0, 100]])
@@ -156,7 +156,7 @@ def test_withdrawal3_2():
 
 def test_taxfreegrowth1():
     n = 12
-    p = createPlan(1, 'taxfreegrowth1', n, 64)
+    p = createPlan(1, 'taxfreegrowth1', n, 72)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
@@ -170,7 +170,7 @@ def test_taxfreegrowth1():
 
 def test_taxfreegrowth1_2():
     n = 12
-    p = createPlan(2, 'taxfreegrowth1', n, 64)
+    p = createPlan(2, 'taxfreegrowth1', n, 72)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
@@ -184,7 +184,7 @@ def test_taxfreegrowth1_2():
 
 def test_taxfreegrowth2():
     n = 15
-    p = createPlan(1, 'taxfreegrowth2', n, 64)
+    p = createPlan(1, 'taxfreegrowth2', n, 75)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 50, 50, 0], [0, 50, 50, 0]]])
@@ -198,7 +198,7 @@ def test_taxfreegrowth2():
 
 def test_taxfreegrowth2_2():
     n = 15
-    p = createPlan(2, 'taxfreegrowth2', n, 64)
+    p = createPlan(2, 'taxfreegrowth2', n, 75)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 50, 50, 0], [0, 50, 50, 0]])
@@ -212,7 +212,7 @@ def test_taxfreegrowth2_2():
 
 def test_taxfreegrowth3():
     n = 15
-    p = createPlan(1, 'taxfreegrowth3', n, 64)
+    p = createPlan(1, 'taxfreegrowth3', n, 75)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[50, 50, 0, 0], [50, 50, 0, 0]]])
@@ -226,7 +226,7 @@ def test_taxfreegrowth3():
 
 def test_taxfreegrowth3_2():
     n = 15
-    p = createPlan(2, 'taxfreegrowth3', n, 64)
+    p = createPlan(2, 'taxfreegrowth3', n, 75)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[50, 50, 0, 0], [50, 50, 0, 0]])
@@ -240,7 +240,7 @@ def test_taxfreegrowth3_2():
 
 def test_taxfreegrowth4():
     n = 16
-    p = createPlan(1, 'taxfreegrowth4', n, 64)
+    p = createPlan(1, 'taxfreegrowth4', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 50, 50, 0], [0, 50, 50, 0]]])
@@ -255,7 +255,7 @@ def test_taxfreegrowth4():
 
 def test_taxfreegrowth4_2():
     n = 16
-    p = createPlan(2, 'taxfreegrowth4', n, 64)
+    p = createPlan(2, 'taxfreegrowth4', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 50, 50, 0], [0, 50, 50, 0]])
@@ -270,7 +270,7 @@ def test_taxfreegrowth4_2():
 
 def test_taxfreegrowth5():
     n = 15
-    p = createPlan(1, 'taxfreegrowth5', n, 64)
+    p = createPlan(1, 'taxfreegrowth5', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
@@ -284,7 +284,7 @@ def test_taxfreegrowth5():
 
 def test_taxfreegrowth5_2():
     n = 15
-    p = createPlan(2, 'taxfreegrowth5', n, 64)
+    p = createPlan(2, 'taxfreegrowth5', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
@@ -298,7 +298,7 @@ def test_taxfreegrowth5_2():
 
 def test_taxfreegrowth6():
     n = 15
-    p = createPlan(1, 'taxfreegrowth6', n, 64)
+    p = createPlan(1, 'taxfreegrowth6', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
@@ -312,7 +312,7 @@ def test_taxfreegrowth6():
 
 def test_taxfreegrowth6_2():
     n = 15
-    p = createPlan(2, 'taxfreegrowth6', n, 64)
+    p = createPlan(2, 'taxfreegrowth6', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 0, 100], [0, 0, 0, 100]])
@@ -326,7 +326,7 @@ def test_taxfreegrowth6_2():
 
 def test_taxfreegrowth7():
     n = 15
-    p = createPlan(1, 'taxfreegrowth7', n, 64)
+    p = createPlan(1, 'taxfreegrowth7', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 100, 0, 0], [0, 100, 0, 0]]])
@@ -340,7 +340,7 @@ def test_taxfreegrowth7():
 
 def test_taxfreegrowth7_2():
     n = 15
-    p = createPlan(2, 'taxfreegrowth7', n, 64)
+    p = createPlan(2, 'taxfreegrowth7', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 100, 0, 0], [0, 100, 0, 0]])
@@ -354,7 +354,7 @@ def test_taxfreegrowth7_2():
 
 def test_taxfreegrowth8():
     n = 15
-    p = createPlan(1, 'taxfreegrowth8', n, 64)
+    p = createPlan(1, 'taxfreegrowth8', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[100, 0, 0, 0], [100, 0, 0, 0]]])
@@ -368,7 +368,7 @@ def test_taxfreegrowth8():
 
 def test_taxfreegrowth8_2():
     n = 15
-    p = createPlan(2, 'taxfreegrowth8', n, 64)
+    p = createPlan(2, 'taxfreegrowth8', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[100, 0, 0, 0], [100, 0, 0, 0]])
@@ -382,7 +382,7 @@ def test_taxfreegrowth8_2():
 
 def test_annuity1():
     n = 12
-    p = createPlan(1, 'annuity1', n, 64)
+    p = createPlan(1, 'annuity1', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
@@ -400,7 +400,7 @@ def test_annuity1():
 
 def test_annuity1_2():
     n = 12
-    p = createPlan(2, 'annuity1', n, 64)
+    p = createPlan(2, 'annuity1', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
@@ -418,7 +418,7 @@ def test_annuity1_2():
 
 def test_annuity2():
     n = 18
-    p = createPlan(1, 'annuity2', n, 64)
+    p = createPlan(1, 'annuity2', n, 76)
     amount = 120
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
@@ -436,7 +436,7 @@ def test_annuity2():
 
 def test_annuity2_2():
     n = 18
-    p = createPlan(2, 'annuity2', n, 64)
+    p = createPlan(2, 'annuity2', n, 78)
     amount = 120
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
@@ -454,7 +454,7 @@ def test_annuity2_2():
 
 def test_annuity3():
     n = 30
-    p = createPlan(1, 'annuity2', n, 64)
+    p = createPlan(1, 'annuity2', n, 90)
     amount = 100
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount])
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
@@ -472,7 +472,7 @@ def test_annuity3():
 
 def test_annuity3_2():
     n = 30
-    p = createPlan(2, 'annuity2', n, 64)
+    p = createPlan(2, 'annuity2', n, 90)
     amount = 100
     p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount/2, amount/2])
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])

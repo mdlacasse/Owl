@@ -91,7 +91,7 @@ index name as a subscript, e.g., $N_i$ for index $i$.
 	the end of year $N_n-1$, and therefore $N_n + 1$ years are considered.
 	Year $N_n$ is the first year following the passing of all
 	individuals in the plan. The time period for all decision variables is annual.
-	For spouses, the end of year $n_d-1$ is the year in which the first individual passes while
+	For spouses, the end of year $n_d-1$ is when the first individual is assumed to pass while
 	the survivor will decease at the end of year $N_n-1$ of the plan.
 \item [$t$]
 	Federal income tax bracket. $t$ goes from 0 to $N_t - 1$, from low to high.
@@ -441,8 +441,18 @@ All intermediate variables are in uppercase letters.
 	paid in each tax bracket as
 	\begin{equation}
 		\label{Eq:IncTax0}
-		T_n = \sum_t f_{tn}\bar{\Delta}_{tn}\theta_{tn}.
+		T_n = \sum_t f_{tn}\bar{\Delta}_{tn}\theta_{tn} + 0.10 \sum_i (1 - \mathcal{H}(n - n_{i,60})) w_{i1n},
 	\end{equation}
+        where $H(n - n_{i, 60})$ is a Heavyside step function which is 0 or 1, depending on the sign of
+        its argument:
+        \[
+	\mathcal{H}(x) \def 	
+	\begin{cases}
+         0 & x < 0 \\
+         1 & x \geq 0. \\
+	\end{cases}
+         \]
+        Here, $n_{i, 60}$ is the year when individual $i$ will turn 60.
 	Notice that $G_n$ is also defined by Eq.~(\ref{Eq:Tx1}), and that optimal
 	values of $f_{tn}$ have to
 	minimize $T_n$ when either the bequest or the desired net spending are maximized.

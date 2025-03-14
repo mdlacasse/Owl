@@ -266,6 +266,9 @@ class Plan(object):
         # self.horizons = [yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)]
         self.N_n = np.max(self.horizons)
         self.year_n = np.linspace(thisyear, thisyear + self.N_n - 1, self.N_n, dtype=np.int32)
+        # Year in the plan (if any) where individuals turn 59. For 10% withdrawal penalty.
+        self.n59 = 59 - thisyear + self.yobs
+        self.n59[self.n59 < 0] = 0
         # Handle passing of one spouse before the other.
         if self.N_i == 2 and np.min(self.horizons) != np.max(self.horizons):
             self.n_d = np.min(self.horizons)
@@ -1289,6 +1292,11 @@ class Plan(object):
             for t in range(Nt):
                 row.addElem(_q2(CF, t, n, Nt, Nn), self.theta_tn[t, n])
 
+            # Minus 10% penalty on early withdrawals.
+            if n < self.n59[i]:
+                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), 0.1)
+                row.addElem(_q3(Cw, i, 2, n, Ni, Nj, Nn), 0.1)
+
             A.addRow(row, rhs, rhs)
 
         # Impose income profile.
@@ -1970,6 +1978,12 @@ class Plan(object):
         self.G_n = np.sum(self.F_tn, axis=0)
         self.T_tn = self.F_tn * self.theta_tn
         self.T_n = np.sum(self.T_tn, axis=0)
+        self.penalty_n = np.zeros(Nn)
+        # Add early withdrawal penalties if any.
+        for i in range(Ni):
+            self.penalty_n[0:self.n59[i]] += 0.1*(self.w_ijn[i, 1, 0:self.n59[i]] + self.w_ijn[i, 2, 0:self.n59[i]])
+
+        self.T_n += self.penalty_n
 
         tau_0 = np.array(self.tau_kn[0, :])
         tau_0[tau_0 < 0] = 0
@@ -2111,6 +2125,11 @@ class Plan(object):
             tname = tx.taxBracketNames[t]
             dic[f"-- Subtotal in tax bracket {tname}"] = f"{u.d(taxPaidNow)}"
             dic[f"-- [Subtotal in tax bracket {tname}]"] = f"{u.d(taxPaid)}"
+
+        penaltyPaid = np.sum(self.penalty_n, axis=0)
+        penaltyPaidNow = np.sum(self.penalty_n / self.gamma_n[:-1], axis=0)
+        dic["-- Subtotal in early withdrawal penalty"] = f"{u.d(penaltyPaidNow)}"
+        dic["-- [Subtotal in early withdrawal penalty]"] = f"{u.d(penaltyPaid)}"
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
