@@ -32,6 +32,7 @@
 \begin{document}
 \title{Formulation of the optimization model in Owl}
 \author{Martin-D. Lacasse}
+\date{March 14, 2025}
 \maketitle
 \thispagestyle{fancy}
 \fancyfoot[R]{\copyright\ 2024 - Martin-D. Lacasse}
@@ -112,8 +113,8 @@ to take only non-negative values ($\ge 0$ inequality).
 \item [$e_{n}$]
 	Standard exemption for year $n$. This is a variable as the taxable income can
         sometimes be less that the standard exemption $\bar{\sigma}_n$, leading to a
-	negative taxable income if the inflation adjusted standard deviation is simply subtracted
-	from gross taxable income $G_n$.
+	negative taxable income if the inflation-adjusted standard exemption is simply subtracted
+	from the gross taxable income $G_n$.
 \item [$f_{t n}$]
 	Fraction of tax bracket $t$ filled, so that taxable ordinary income $G_n$ can be expressed as
 	\begin{eqnarray}
@@ -141,19 +142,13 @@ For more easily distinguishing parameters from variables, all parameters will be
 or using caligraphic fonts.
 Parameter values are either set by the user, historical data, or by the tax code.
 \begin{description}[leftmargin=4em,style=multiline]
-\item [$\beta{ij}$]
+\item [$\beta_{ij}$]
 	Initial balances in savings accounts. These amounts are used to initialize $b_{ij0}$.
 \item [$\tau_{kn}$]
 	Annual rate of return for asset class $k$ in year $n$.
 	A time series of annual return rates for each class of asset.
 	Here, inflation and the rate of return of $(k=3)$ cash are assumed to be the same.
-	In other words, investing in cash yields constant dollars (just inflation).
-\item[$\mathcal{T}_{ijn}$]
-	When the allocation ratios $\alpha_{ijkn}$ are prescribed,
-	it is more convenient to express the return rates as
-	\begin{equation}
-		\mathcal{T}_{ijn} = \sum_k \alpha_{ijkn} \tau_{kn}.
-	\end{equation}
+	In other words, investing in cash yields constant dollars (return just matches inflation).
 \item [$\gamma_n$]
 	Cumulative inflation at the beginning of year $n$ computed as the product
 	\begin{equation}
@@ -172,12 +167,12 @@ Parameter values are either set by the user, historical data, or by the tax code
 	and can be modified for additional exemptions after 65 of age, for example.
 	It is a simple time series
 	which can include any foreseeable changes in the tax code, or change in filing status due to the
-	passing of one spouse for $n\ge n_d$.  The value of $\bar{\sigma}_n$ is an upper bound for $e_n$.
+	passing of one spouse for $n\ge n_d$.  The value of $\bar{\sigma}_n$ is an upper bound for variable $e_n$.
 \item [$\xi_{n}$]
-	Spending profile. This is a time series that multiplies the desired net spending amount.
+	Spending profile. This is a time series that multiplies a basis for the desired net spending amount.
 	It is $\xi_n =1$ for
 	a flat profile, or can be a {\em smile} profile allowing for more money at the start
-	of retirement. Parameter
+	of retirement and modulating it over retirement. Parameter
 	$\xi_n$ can also contain spending adjustments typically made at the passing of one spouse.
 	The {\em smile} can be implemented using a cosine superimposed over a gentle linear increase
 	such as in
@@ -186,14 +181,14 @@ Parameter values are either set by the user, historical data, or by the tax code
 	\end{equation}
 	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum-neutral with respect to a flat profile.
 	Values of $a_1 = 15\%$ and $a_2=12\%$ provide curves that are similar to realistic
-		spending profiles reported in the literature. See Fig.~\ref{Fig:profile} for an example.
+        spending profiles reported in the literature. See Fig.~\ref{Fig:profile} for an example.
 	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n \ge n_d$,
 	and the normalizing factor needs to be adjusted accordingly.
-		\begin{figure}[t]
-		\includegraphics{profile.png}
-		\caption{\small Example of a spending profile with 15\% cosine factor and a 12\% linear
-		profile. \label{Fig:profile}}
-		\end{figure}
+	\begin{figure}[t]
+	    \includegraphics{profile.png}
+	    \caption{\small Example of a spending profile with 15\% cosine factor and a 12\% linear
+	    profile. \label{Fig:profile}}
+	\end{figure}
 \item [$\chi$]
 	Factor to reduce spending profile after the passing of one spouse. It is typically
 	assumed to be 0.6.
@@ -230,7 +225,8 @@ Parameter values are either set by the user, historical data, or by the tax code
 	individuals and accounts as $\alpha_{kn}$, for example.
 	When specified by the user, allocation ratios typically involve two values, one at the
 	beginning of the plan $\alpha_{ijk0}$ and the other at the end
-	$\alpha_{ijkN_{n-1}}$. Then, intermediate values are interpolated either using
+	$\alpha_{ijkN_{n-1}}$, or $\alpha_{ijkn_d}$ for a spouse passing before the other.
+        Then, intermediate values are interpolated either using
 	a linear relation,
 \begin{equation}
 	\alpha_{ijkn} = a + \frac{n}{N_n - 1} (b - a),
@@ -280,6 +276,13 @@ or an s-curve as in
 	\end{eqnarray}
 	depending on the scheme selected.
 
+\item[$\mathcal{T}_{ijn}$]
+	When the allocation ratios $\alpha_{ijkn}$ are prescribed,
+	it is more convenient to express the return rates as
+	\begin{equation}
+		\mathcal{T}_{ijn} = \sum_k \alpha_{ijkn} \tau_{kn}.
+	\end{equation}
+
 \item [$\Lambda^\pm_{in}$]
 	Big-ticket item requested by individual $i$ in year $n$.
 	These are large expenses or influx of money
@@ -287,8 +290,8 @@ or an s-curve as in
 	(e.g., sell a house, inheritance) or negative (e.g., buy a house, large gifts).
 \item [$\pi_{in}$]
 	Sum of pension benefits for individual $i$ in year $n$. These amounts are typically
-	specified along with the ages at which these benefits begin. Pensions
-	can optionally be indexed for inflation.
+	specified along with the ages at which these benefits begin.
+	Pensions can optionally be indexed for inflation.
 \item [$\zeta_{in}$]
 	Social security benefits for individual $i$ in year $n$. Starting age and the passing
 	of one individual for spouses will determine the time series. $\bar{\zeta}_{in}$ is
@@ -344,7 +347,8 @@ or an s-curve as in
 	depends on the modified adjusted gross income (MAGI) from 2 years earlier. For the
 	MAGI, we simply use $G_{n-2} + e_{n-2}$ (i.e., gross taxable income
 	plus standard deduction (exemption) from 2 years ago) and ignore the additional IRS
-	rules around tax-free interests which are insignificant in most cases.
+	rules around tax-free interests which are insignificant in most cases. If the plan
+        has individuals above 63 years old, values of MAGI for previous years are requested from the user.
 
 	There are $q=5$ levels
 	of step adjustments adjusted for inflation,
@@ -404,6 +408,7 @@ All intermediate variables are in uppercase letters.
 		[(1-\delta(k, 0))(b_{i0n} - w_{i0n} + d_{in} + .5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
 	\end{eqnarray}
 	Social security is indexed for inflation and is assumed to be taxed at 85\%.
+	Pensions can optionally be indexed for inflation.
 	We use a discrete Kronecker $\delta$ function for selecting gains from non-equity assets in
 	taxable accounts. These gains are all taxed as ordinary income. Here, we assumed that
 	withdrawals and deposits in the taxable account are taking place at the beginning of the year, while
@@ -1216,7 +1221,7 @@ Fixing a bequest value amounts to adding the following constraint
 \begin{equation}
 	\sum_{ij} b_{ijN_n} (1 - \nu\delta(j, 1)) = \epsilon_{N_n} \gamma_{N_n},
 \end{equation}
-which would add one more row to $A_ey = v$ as
+which would add more rows to $A_ey = v$ as
 \begin{eqnarray}
 	A_e[I(0), q_b(i, j, N_n)] &=& (1 - \nu\delta(j, 1)) \nonumber \\
 	v[I(0)] &=& \epsilon_{N_n}\gamma_{N_n} \\
