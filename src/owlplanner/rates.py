@@ -110,6 +110,9 @@ def getRatesDistributions(frm, to, mylog=None):
     # Build correlation matrix by dividing by the stdev for each column and row.
     corr = covar / stdev[:, None]
     corr = corr.T / stdev[:, None]
+    # Fold round-off errors in proper bounds.
+    corr[corr > 1] = 1
+    corr[corr < -1] = -1
     mylog.print("correlation matrix: \n\t\t%s" % str(corr).replace("\n", "\n\t\t"))
 
     return means, stdev, corr, covar
