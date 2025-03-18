@@ -31,7 +31,7 @@ pages = {
     ],
     "Resources": [
         st.Page("Logs.py", icon=":material/error:"),
-        st.Page("Settings.py", icon=":material/settings:"),
+        # st.Page("Settings.py", icon=":material/settings:"),
         st.Page("Quick_Start.py", icon=":material/rocket_launch:", default=True),
         st.Page("Documentation.py", icon=":material/help:"),
         st.Page("About_Owl.py", icon=":material/info:"),

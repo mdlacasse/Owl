@@ -6,7 +6,7 @@ import sskeys as kz
 
 def changeStyle(key):
     val = kz.getGlobalKey("_" + key)
-    kz.storeGlobalKey(key, val)
+    kz.getGlobalKey(key)
     plt.style.use(val)
 
 

@@ -11,7 +11,7 @@ col1, col2, col3 = st.columns(3, gap="large")
 with col1:
     st.write("#### Graphs appearance style")
     key = "plot_style"
-    kz.initGlobalKey(key, plots.styles[0])
+    kz.initGlobalKey("_"+key, plots.styles[0])
     helpmsg = "Select color style for graphs."
     st.selectbox(
         "Select plot style",

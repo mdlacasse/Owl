@@ -390,12 +390,6 @@ when considering Monte Carlo simulations, consider:
 #### Logs
 Messages coming from the underlying Owl calculation engine are displayed on this page.
 
-#### Settings
-This page contains global settings. At the current time, there is only a single
-option for choosing the style used for the graphs. Some color
-schemes are best suited for colorblind individuals. The *classic* offers good contrast, while
-*petroff10* presents other distinguishing colors.
-
 #### Documentation
 These very pages.
 
