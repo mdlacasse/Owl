@@ -17,7 +17,9 @@ else:
         caseName = kz.getKey("name")
         df = kz.compareSummaries()
         if df is not None:
-            st.write("#### Synopsis")
+            st.write("#### Synopsis\n"
+                     "This table provides a summary of the current case and"
+                     " compares it with other similar cases which ran successfully.")
             styledDf = df[1:].style.map(kz.colorBySign)
             st.dataframe(styledDf, use_container_width=True)
             st.caption("Values with [legend] are nominal, otherwise in today's \\$.")
@@ -27,7 +29,9 @@ else:
             )
 
         st.divider()
-        st.write("#### Excel workbooks")
+        st.write("#### Excel workbooks\n"
+                 "These workbooks contain time tables describing the flow of money,"
+                 " the first one as input to the case, and the second as its output.")
         col1, col2 = st.columns(2, gap="large")
         with col1:
             download2 = st.download_button(
@@ -52,7 +56,9 @@ else:
         lines = kz.getKey("casetoml")
         if lines != "":
             st.divider()
-            st.write("#### Case parameter file")
+            st.write("#### Case parameter file\n"
+                     "This file contains the parameters characterizing the current case"
+                     " and can be used, along with the *Wages and Contributions* file, to reproduce it in the future.")
             st.code(lines, language="toml")
 
             st.download_button(

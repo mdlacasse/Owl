@@ -42,6 +42,9 @@ def createPlan():
     val = kz.getKey("plots")
     if val is not None:
         plan.setDefaultPlots(val)
+    if kz.getKey("duplicate"):
+        setProfile("dummy", False)
+
     st.toast(f"Created new case *'{name}'*. You can now move to the next page.")
 
 
