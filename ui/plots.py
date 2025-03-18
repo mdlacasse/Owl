@@ -8,8 +8,11 @@ def changeStyle(key):
     val = kz.getGlobalKey("_" + key)
     kz.storeGlobalKey(key, val)
     plt.style.use(val)
-    # This makes all graphs appear have the same height.
-    plt.rcParams.update({'figure.autolayout': True})
+
+
+# This makes all graphs appear have the same height.
+plt.rcParams.update({'figure.autolayout': True})
+plt.style.use("default")
 
 
 styles = ["default"]
