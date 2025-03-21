@@ -3,7 +3,6 @@ Module for storing keys in Streamlit session state.
 """
 
 import streamlit as st
-from streamlit_javascript import st_javascript
 import pandas as pd
 import copy
 import re
@@ -514,21 +513,10 @@ def orangeDivider():
     st.html("<style> hr {border-color: orange;}</style><hr>")
 
 
-# A kludge to avoid flashing.
-prevColor = "dark"
-
-
-def backgroundColor():
-    global prevColor
-    st_theme = st_javascript("""window.getComputedStyle(window.parent.document.getElementsByClassName("stApp")[0]).getPropertyValue("color-scheme")""")
-
-    if not st_theme:
-        st_theme = prevColor
-    else:
-        prevColor = st_theme
-
-    bc = "#0E1117" if st_theme == "dark" else "white"
-    return bc
+def colors(st_theme):
+    bc = "#0E1117" if st_theme == "dark" else "#FFFFFF"
+    fc = "#FAFAFA" if st_theme == "dark" else "#31333F"
+    return bc, fc
 
 
 def titleBar(txt, choices=None):
@@ -542,21 +530,22 @@ def titleBar(txt, choices=None):
     # header.title("Here is a sticky header")
     header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
 
-    # Custom CSS for the sticky header
-    bc = backgroundColor()
+    bc, fc = colors("dark")
 
+    # Custom CSS for the sticky header
     st.markdown(
         """<style>
     div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
         position: sticky;
         background-color: %s;
+        foreground-color: %s;
         top: 2.875rem;
         z-index: 999;
     }
     .fixed-header {
         border-bottom: 0px solid orange;
     }
-</style>""" % bc, unsafe_allow_html=True
+</style>""" % (bc, fc), unsafe_allow_html=True
     )
     with header:
         col1, col2 = st.columns([0.6, 0.4], gap="small")

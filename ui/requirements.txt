@@ -5,7 +5,6 @@ pandas
 openpyxl
 scipy
 streamlit
-streamlit_javascript
 toml
 # --extra-index-url https://test.pypi.org/simple
 owlplanner >= 2025.03.16
