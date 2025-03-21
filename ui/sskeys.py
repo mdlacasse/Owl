@@ -514,26 +514,56 @@ def orangeDivider():
 
 
 def titleBar(txt, choices=None):
+    from streamlit_javascript import st_javascript
+    st_theme = st_javascript("""window.getComputedStyle(window.parent.document.getElementsByClassName("stApp")[0]).getPropertyValue("color-scheme")""")
+    if st_theme == "dark":
+        bc = "black"
+    else:
+        bc = "white"
+
     if choices is None:
         choices = onlyCaseNames()
         helpmsg = "Select an existing case."
     else:
         helpmsg = "Select an existing case, or create a new one from scratch or from a *case* parameter file."
 
-    col1, col2 = st.columns(2, gap="large")
-    with col1:
-        st.write("## " + txt)
-    with col2:
-        nkey = txt
-        ret = st.selectbox(
-            "Case selector",
-            choices,
-            help=helpmsg,
-            index=getIndex(currentCaseName(), choices),
-            key="_" + nkey,
-            on_change=switchToCase,
-            args=[nkey],
-        )
+    header = st.container()
+    # header.title("Here is a sticky header")
+    header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
 
-    orangeDivider()
+    ### Custom CSS for the sticky header
+    # bc = "black"
+    st.markdown(
+        """
+<style>
+    div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
+        position: sticky;
+        background-color: %s;
+        top: 2.875rem;
+        z-index: 999;
+    }
+    .fixed-header {
+        border-bottom: 0px solid orange;
+    }
+</style>
+        """ % bc,
+        unsafe_allow_html=True
+    )
+    with header:
+        col1, col2 = st.columns([0.6, 0.4], gap="small")
+        with col1:
+            st.write("## " + txt)
+        with col2:
+            nkey = txt
+            ret = st.selectbox(
+                "Case selector",
+                choices,
+                help=helpmsg,
+                index=getIndex(currentCaseName(), choices),
+                key="_" + nkey,
+                on_change=switchToCase,
+                args=[nkey],
+            )
+
+        orangeDivider()
     return ret

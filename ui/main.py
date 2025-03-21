@@ -2,7 +2,7 @@ import streamlit as st
 
 import sskeys as kz
 
-# Pick one for narrow or wide graphs. That can be changed in upper-right settings menu.
+# Pick one for narrow or wide graphs. That can also be changed in upper-right settings menu.
 st.set_page_config(layout="wide", page_title="Owl Retirement Planner")
 # st.set_page_config(layout="centered", page_title="Owl Retirement Planner")
 
@@ -31,6 +31,7 @@ pages = {
     ],
     "Resources": [
         st.Page("Logs.py", icon=":material/error:"),
+        # Graph style needs a rewrite of plot() to avoid cross-talk between sessions.
         # st.Page("Settings.py", icon=":material/settings:"),
         st.Page("Quick_Start.py", icon=":material/rocket_launch:", default=True),
         st.Page("Documentation.py", icon=":material/help:"),
