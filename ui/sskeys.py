@@ -259,9 +259,13 @@ def storepull(key):
 
 def setKey(key, val):
     ss.cases[ss.currentCase][key] = val
+    flagModified()
+    return val
+
+
+def flagModified():
     ss.cases[ss.currentCase]["caseStatus"] = "modified"
     ss.cases[ss.currentCase]["summaryDf"] = None
-    return val
 
 
 def storeKey(key, val):

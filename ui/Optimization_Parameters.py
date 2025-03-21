@@ -13,7 +13,7 @@ kz.initKey("smileDelay", 0)
 
 
 def initProfile():
-    owb.setProfile(profileChoices[1], False)
+    owb.setProfile(None)
 
 
 ret = kz.titleBar("Optimization Parameters")

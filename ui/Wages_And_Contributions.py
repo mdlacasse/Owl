@@ -4,20 +4,12 @@ import sskeys as kz
 import owlbridge as owb
 
 
-# Refresh Wages and Contributions tables as time window likely to change.
-def resetTimeLists():
-    # if not kz.getKey("duplicate"):
-    tlists = owb.resetContributions()
-    for i, iname in enumerate(tlists):
-        kz.setKey("timeList" + str(i), tlists[iname])
-
-
 ret = kz.titleBar("Wages and Contributions")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
-    kz.runOncePerCase(resetTimeLists)
+    kz.runOncePerCase(owb.resetTimeLists)
     kz.initKey("stTimeLists", None)
     n = 2 if kz.getKey("status") == "married" else 1
 
@@ -66,4 +58,4 @@ else:
         newdf.fillna(0, inplace=True)
         kz.storeKey("_timeList" + str(i), newdf)
 
-    st.button("Reset to zero", help="Reset all values to zero.", on_click=resetTimeLists)
+    st.button("Reset to zero", help="Reset all values to zero.", on_click=owb.resetTimeLists)

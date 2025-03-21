@@ -42,8 +42,9 @@ def createPlan():
     val = kz.getKey("plots")
     if val is not None:
         plan.setDefaultPlots(val)
-    if kz.getKey("duplicate"):
-        setProfile("dummy", False)
+    if kz.getKey("spendingProfile"):
+        setProfile(None)
+    resetTimeLists()
 
     st.toast(f"Created new case *'{name}'*. You can now move to the next page.")
 
@@ -356,6 +357,12 @@ def resetContributions(plan):
     return plan.zeroContributions()
 
 
+def resetTimeLists():
+    tlists = resetContributions()
+    for i, iname in enumerate(tlists):
+        kz.setKey("timeList" + str(i), tlists[iname])
+
+
 @_checkPlan
 def setAllocationRatios(plan):
     _setAllocationRatios(plan)
@@ -437,9 +444,11 @@ def plotSingleResults(plan):
 
 
 @_checkPlan
-def setProfile(plan, key, pull=True):
-    if pull:
+def setProfile(plan, key):
+    if key is not None:
         kz.setpull(key)
+    else:
+        kz.flagModified()
     profile = kz.getKey("spendingProfile")
     survivor = kz.getKey("survivor")
     dip = kz.getKey("smileDip")

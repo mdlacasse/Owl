@@ -41,6 +41,7 @@ def initRates():
         updateFixedRates(fixedChoices[0], False)
     else:
         owb.setRates()
+    kz.flagModified()
 
 
 kz.initKey("rateType", rateChoices[0])
