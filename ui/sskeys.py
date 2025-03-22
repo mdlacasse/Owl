@@ -538,7 +538,7 @@ def titleBar(txt, choices=None):
     div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
         position: sticky;
         background-color: %s;
-        foreground-color: %s;
+        color: %s;
         top: 2.875rem;
         z-index: 999;
     }
