@@ -4,8 +4,8 @@ import sskeys as kz
 
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col1:
-    st.write("## Documentation")
-    kz.orangeDivider()
+    st.write("# Documentation")
+    kz.divider("orange")
     st.write("## Owl Retirement Planner\n-------")
 with col3:
     st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")

@@ -4,8 +4,8 @@ import sskeys as kz
 import owlbridge as owb
 
 
-st.write("## About Owl 🦉")
-kz.orangeDivider()
+st.write("# About Owl 🦉")
+kz.divider("orange")
 
 st.write(f"This is Owl version {owb.version()} running on Streamlit {st.__version__}.")
 # st.balloons()

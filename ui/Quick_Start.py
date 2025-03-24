@@ -8,7 +8,7 @@ with col3:
     st.caption("Retirement planner with great wisdom")
 with col1:
     st.write("# Owl Retirement Planner\nA retirement exploration tool based on linear programming")
-    kz.orangeDivider()
+    kz.divider("orange")
     st.write("### Quick Start")
     st.markdown(
         """

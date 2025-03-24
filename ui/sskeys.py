@@ -509,13 +509,15 @@ def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
     )
 
 
-def orangeDivider():
-    st.html("<style> hr {border-color: orange;}</style><hr>")
+def divider(color):
+    st.html("<style> hr {border-color: %s;}</style><hr>" % color)
 
 
-def colors(st_theme):
-    bc = "#0E1117" if st_theme == "dark" else "#FFFFFF"
-    fc = "#FAFAFA" if st_theme == "dark" else "#31333F"
+def getColors():
+    def_theme = "dark"
+    bc = "#0E1117" if def_theme == "dark" else "#FFFFFF"
+    fc = "#FAFAFA" if def_theme == "dark" else "#31333F"
+
     return bc, fc
 
 
@@ -530,28 +532,26 @@ def titleBar(txt, choices=None):
     # header.title("Here is a sticky header")
     header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
 
-    bc, fc = colors("dark")
+    bc, fc = getColors()
 
     # Custom CSS for the sticky header
     st.markdown(
         """<style>
     div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
         position: sticky;
-        background-color: %s;
+        background: linear-gradient(to right, #551b1b, #909090);
+        /* background-color: %s; */
         color: %s;
         top: 2.875rem;
         z-index: 999;
     }
-    .fixed-header {
-        border-bottom: 0px solid orange;
-    }
 </style>""" % (bc, fc), unsafe_allow_html=True
     )
     with header:
-        col1, col2 = st.columns([0.6, 0.4], gap="small")
-        with col1:
-            st.write("## " + txt)
+        col1, col2, col3, col4 = st.columns([0.005, 0.6, 0.4, 0.01], gap="small")
         with col2:
+            st.write("## " + txt)
+        with col3:
             nkey = txt
             ret = st.selectbox(
                 "Case selector",
@@ -563,5 +563,5 @@ def titleBar(txt, choices=None):
                 args=[nkey],
             )
 
-        orangeDivider()
+        divider("white")
     return ret
