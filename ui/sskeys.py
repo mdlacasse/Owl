@@ -538,6 +538,7 @@ def titleBar(txt, choices=None):
     st.markdown(
         """<style>
     div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
+        border-radius: 10px;
         position: sticky;
         background: linear-gradient(to right, #551b1b, #909090);
         /* background-color: %s; */

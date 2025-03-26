@@ -19,7 +19,7 @@ else:
         if df is not None:
             st.write("#### Synopsis\n"
                      "This table provides a summary of the current case and"
-                     " compares it with other similar cases which ran successfully.")
+                     " compares it with other similar cases that ran successfully.")
             styledDf = df[1:].style.map(kz.colorBySign)
             st.dataframe(styledDf, use_container_width=True)
             st.caption("Values with [legend] are nominal, otherwise in today's \\$.")
