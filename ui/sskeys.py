@@ -566,4 +566,5 @@ def titleBar(txt, choices=None):
             )
 
         divider("white")
+
     return ret
