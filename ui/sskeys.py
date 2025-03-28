@@ -510,8 +510,8 @@ def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
     )
 
 
-def divider(color):
-    st.html("<style> hr {border-color: %s;width: 99%%}</style><hr>" % color)
+def divider(color, width="auto"):
+    st.html("<style> hr {border-color: %s;width: %s}</style><hr>" % (color, width))
 
 
 def getColors():
@@ -565,6 +565,6 @@ def titleBar(txt, choices=None):
                 args=[nkey],
             )
 
-        divider("white")
+        divider("white", "99%")
 
     return ret
