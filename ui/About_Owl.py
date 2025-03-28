@@ -41,12 +41,10 @@ or directly by [email](mailto://martin.d.lacasse@gmail.com).
 
 #### :orange[Privacy]
 - This app does not store or forward any information. All data entered is lost
-after a session is closed. However, you can choose to download selected data to your own
-computer before closing the session.
-Source code is publicly available and can be inspected in the repository.
+after a session is closed. You can choose to download selected part of your
+own data to your computer before closing the session.
 
-#### :orange[Disclaimers]
-- I am not a financial planner. You make your own decisions.
-- This program comes with no guarantee. Use at your own risk.
+#### :orange[Disclaimer]
+- This program is provided for educational purposes and comes with no guarantee. Use at your own risk.
 """
 )
