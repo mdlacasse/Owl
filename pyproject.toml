@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "owlplanner"
-version = "2025.03.16"
+version = "2025.03.27"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]

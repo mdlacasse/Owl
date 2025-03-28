@@ -288,6 +288,10 @@ or an s-curve as in
 	These are large expenses or influx of money
 	that can be planned. Therefore, $\Lambda^\pm$ can be positive
 	(e.g., sell a house, inheritance) or negative (e.g., buy a house, large gifts).
+\item [$\lambda$]
+        Allowed deviation from the desired net spending profile during one year. Parameter
+        $\lambda$ can be better understood as a percentage.
+
 \item [$\pi_{in}$]
 	Sum of pension benefits for individual $i$ in year $n$. These amounts are typically
 	specified along with the ages at which these benefits begin.
@@ -1237,14 +1241,38 @@ minimize the inner product $c\cdot y$, where $c$ is
 \end{eqnarray}
 and 0 otherwise. See Eq.~\ref{Eq:C5}.
 
+\paragraph*{Maximum variable net spending}
+If instead of maximizing a basis for net spending that is multiplied by a profile $\bar{\xi}_n$,
+one maximizes the sum of net spending over the full duration
+of the plan, in today's dollars. In that case, the quantity to optimize is
+\begin{eqnarray}
+	c[q_g(n)] &=& -1/\gamma_n,
+\end{eqnarray}
+and 0 otherwise.
+In that case, constraint equality Eq.~\ref{Eq:C5} will need to be changed to an inequality. 
+Instead of obeying 
+\begin{equation}
+	g_n \xi_0 - g_0 \bar{\xi}_n = 0,
+\end{equation}
+we now impose the following inequality constraint
+\begin{equation}
+        \label{Eq:C15}
+	(1 - \lambda/100) g_0 \bar{\xi}_n/\xi_0 <= g_n <= (1 + \lambda/100) g_0 \bar{\xi}_n/\xi_0 ,
+\end{equation}
+where $\lambda$ is the percentage that the annual net spending is allowed to deviate
+from the desired profile. It should be noticed that when $\lambda = 0$ the two
+last equations are equivalent.
+
 \paragraph*{Maximum bequest}
-If, on the other hand, one would like to maximize the bequest under the constraint of a desired net spending $g_o$,
+If, on the other hand, one would like to maximize the bequest under the constraint of a desired
+net spending $g_o$, specified for the first year,
 one would add the following row to $A_ey = v$
 \begin{eqnarray}
 	\label{Eq:FixedIncome}
 	A_e[I(0), q_g(0)] &=& 1, \nonumber \\
-	v[I(0)] &=& g_o.
+	v[I(0)] &=& g_o,
 \end{eqnarray}
+subject to the net spending $g_n$ obeying Eq.~\ref{Eq:C5} over time.
 
 The objective function would then be derived from Eq.~(\ref{Eq:Bequest}) as
 minimizing the inner product $c\cdot y$, where $c$ is

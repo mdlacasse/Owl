@@ -307,6 +307,9 @@ class Plan(object):
         # Previous 2 years for Medicare.
         self.prevMAGI = np.zeros((2))
 
+        # Default slack on profile.
+        self.lambdha = 0
+
         # Scenario starts at the beginning of this year and ends at the end of the last year.
         s = ["", "s"][self.N_i - 1]
         self.mylog.vprint(f"Preparing scenario of {self.N_n} years for {self.N_i} individual{s}.")
@@ -1071,6 +1074,9 @@ class Plan(object):
         Cx = self.C["x"]
         Cz = self.C["z"]
 
+        spLo = 1 - self.lambdha
+        spHi = 1 + self.lambdha
+
         tau_ijn = np.zeros((Ni, Nj, Nn))
         for i in range(Ni):
             for j in range(Nj):
@@ -1191,7 +1197,7 @@ class Plan(object):
             # Account for time elapsed in the current year.
             spending *= units * self.yearFracLeft
             # self.mylog.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
-            A.addNewRow({_q1(Cg, 0): 1}, spending, spending)
+            A.addNewRow({_q1(Cg, 0): 1}, spLo * spending, spHi * spending)
 
         # Set initial balances through constraints.
         for i in range(Ni):
@@ -1297,8 +1303,10 @@ class Plan(object):
 
         # Impose income profile.
         for n in range(1, Nn):
-            rowDic = {_q1(Cg, 0, Nn): -self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
-            A.addNewRow(rowDic, zero, zero)
+            rowDic = {_q1(Cg, 0, Nn): -spLo * self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
+            A.addNewRow(rowDic, zero, inf)
+            rowDic = {_q1(Cg, 0, Nn): spHi * self.xiBar_n[n], _q1(Cg, n, Nn): -self.xiBar_n[0]}
+            A.addNewRow(rowDic, zero, inf)
 
         # Taxable ordinary income.
         for n in range(Nn):
@@ -1362,7 +1370,9 @@ class Plan(object):
         # Now build a solver-neutral objective vector.
         c = abc.Objective(self.nvars)
         if objective == "maxSpending":
-            c.setElem(_q1(Cg, 0, Nn), -1)
+            # c.setElem(_q1(Cg, 0, Nn), -1)
+            for n in range(Nn):
+                c.setElem(_q1(Cg, n, Nn), -1/self.gamma_n[n])
         elif objective == "maxBequest":
             for i in range(Ni):
                 c.setElem(_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1), -1)
@@ -1608,6 +1618,7 @@ class Plan(object):
             "units",
             "maxRothConversion",
             "netSpending",
+            "spendingSlack",
             "bequest",
             "bigM",
             "noRothConversions",
@@ -1642,6 +1653,7 @@ class Plan(object):
         if objective == "maxSpending" and "bequest" not in myoptions:
             self.mylog.vprint("Using bequest of $1.")
 
+        self.prevMAGI = np.zeros(2)
         if "previousMAGIs" in myoptions:
             magi = myoptions["previousMAGIs"]
             if len(magi) != 2:
@@ -1652,6 +1664,13 @@ class Plan(object):
             else:
                 units = 1000
             self.prevMAGI = units * np.array(magi)
+
+        self.lambdha = 0
+        if "spendingSlack" in myoptions:
+            lambdha = myoptions["spendingSlack"]
+            if lambdha < 0 or lambdha > 50:
+                raise ValueError(f"Slack value out of range {lambdha}.")
+            self.lambdha = lambdha / 100
 
         self._adjustParameters()
 

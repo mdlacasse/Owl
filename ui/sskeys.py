@@ -360,7 +360,8 @@ def getSolveParameters():
         objective = "maxBequest"
 
     options = {}
-    optList = ["netSpending", "maxRothConversion", "noRothConversions", "withMedicare", "bequest", "solver"]
+    optList = ["netSpending", "maxRothConversion", "noRothConversions",
+               "withMedicare", "bequest", "solver", "spendingSlack"]
     for opt in optList:
         val = getKey(opt)
         if val is not None:
