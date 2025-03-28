@@ -545,7 +545,7 @@ def titleBar(txt, choices=None):
         /* background-color: %s; */
         color: %s;
         top: 2.875rem;
-        z-index: 999;
+        z-index: 100;
     }
 </style>""" % (bc, fc), unsafe_allow_html=True
     )
