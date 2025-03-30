@@ -3,8 +3,9 @@ matplotlib
 seaborn
 pandas
 openpyxl
+odfpy
 scipy
 streamlit
 toml
 # --extra-index-url https://test.pypi.org/simple
-owlplanner >= 2025.03.27
+owlplanner >= 2025.03.30

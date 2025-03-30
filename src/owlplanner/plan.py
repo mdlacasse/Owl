@@ -1197,7 +1197,8 @@ class Plan(object):
             # Account for time elapsed in the current year.
             spending *= units * self.yearFracLeft
             # self.mylog.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
-            A.addNewRow({_q1(Cg, 0): 1}, spLo * spending, spHi * spending)
+            # To allow slack in first year, Cg can be made Nn+1 and store basis in g[Nn]. 
+            A.addNewRow({_q1(Cg, 0, Nn): 1}, spending, spending)
 
         # Set initial balances through constraints.
         for i in range(Ni):
@@ -1370,7 +1371,7 @@ class Plan(object):
         # Now build a solver-neutral objective vector.
         c = abc.Objective(self.nvars)
         if objective == "maxSpending":
-            # c.setElem(_q1(Cg, 0, Nn), -1)
+            # c.setElem(_q1(Cg, 0, Nn), -1) # Only OK in implemention without slack.
             for n in range(Nn):
                 c.setElem(_q1(Cg, n, Nn), -1/self.gamma_n[n])
         elif objective == "maxBequest":
