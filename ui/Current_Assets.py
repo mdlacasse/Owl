@@ -51,7 +51,7 @@ else:
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
             kz.initKey("surplusFraction", 0.5)
-            helpmsg = "When beneficiary fractions are not all 1, set surplus deposits to all go to survivor's account."
+            helpmsg = "When beneficiary fractions are not all 1, set surplus deposits to all go to the account of the spouse first to pass."
             ret = kz.getNum(
                 f"Fraction deposited in {iname1}'s taxable account",
                 "surplusFraction",

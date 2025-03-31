@@ -49,7 +49,7 @@ else:
         kz.initKey("readRothX", False)
         fromFile = kz.getKey("readRothX")
         kz.initKey("maxRothConversion", 50)
-        ret = kz.getNum("Maximum Roth conversion (\\$k)", "maxRothConversion", disabled=fromFile, help=helpmsg)
+        ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion", disabled=fromFile, help=helpmsg)
         ret = kz.getToggle("Convert as in wages and contributions tables", "readRothX")
 
     with col2:
