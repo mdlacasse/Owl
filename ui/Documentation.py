@@ -55,7 +55,8 @@ are entered and reported in unit dollars.
 
 If you are accessing Owl through the Chrome browser,
 the performance manager might be configured to disable hidden or inactive tabs.
-This will cause your Owl session to inadvertently reset, and losing the state of the calculator.
+This could cause your Owl session to inadvertently reset when idling for too long,
+and losing the state of the calculator.
 To avoid this, configure Chrome to keep the page active using
 `More Tools` -> `Performance` -> `Always keep these sites active` and
 add the site *owlplanner.streamlit.app*.
@@ -80,8 +81,13 @@ and life expectancies are required. A starting date for the plan determines when
 starts in the first year. Plan still ends at the end of the year when all individuals
 have passed according to the specified life expectancies.
 
+A typical workflow will involve creating
+a base case, and duplicating it a few times with slight parameter changes
+for investigating the resulting effects.
+It is recommended to rename the case to reflect the change in parameters.
 When duplicating a scenario, make sure to visit all pages in the **Case Setup** section
-and verify that all parameters are as intended.
+and verify that all parameters are as intended. When all cases were succussfully run,
+results of the different cases can be compared side-by-side in the `Output Files` section.
 
 ##### Initializing the life parameters for the realization
 Start with the `Case selector` box and choose one of `New case...` or `Upload case file...`.

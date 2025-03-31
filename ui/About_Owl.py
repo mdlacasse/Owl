@@ -30,6 +30,7 @@ Copyright &copy; 2024 - Martin-D. Lacasse
     [Seaborn](https://seaborn.pydata.org),
     [Scipy](https://scipy.org),
     [openpyxl](https://openpyxl.readthedocs.io),
+    [odfpy](https://https://pypi.org/project/odfpy),
     [toml](https://toml.io),
  and [Streamlit](https://streamlit.io) for the front-end
 - Contributors: Josh (noimjosh@gmail.com) for Docker image code.
@@ -41,7 +42,7 @@ or directly by [email](mailto://martin.d.lacasse@gmail.com).
 
 #### :orange[Privacy]
 - This app does not store or forward any information. All data entered is lost
-after a session is closed. You can choose to download selected part of your
+after a session is closed. You can choose to download selected parts of your
 own data to your computer before closing the session.
 
 #### :orange[Disclaimer]
