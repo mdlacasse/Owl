@@ -12,6 +12,7 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 import toml as toml
 from io import StringIO, BytesIO
 import numpy as np
+from datetime import date
 import os
 
 from owlplanner import plan
@@ -301,6 +302,11 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     name = p.solverOptions.get("noRothConversions", "None")
     if name != "None" and name not in p.inames:
         raise ValueError(f"Unknown name {name} for noRothConversions.")
+
+    # Rebase startRothConversions on year change.
+    thisyear = date.today().year
+    year = p.solverOptions.get("startRothConversions", thisyear)
+    diconf["Solver Options"]["startRothConversions"] = max(year, thisyear)
 
     # Results.
     p.setDefaultPlots(diconf["Results"]["Default plots"])

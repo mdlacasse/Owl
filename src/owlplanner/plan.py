@@ -1143,6 +1143,17 @@ class Plan(object):
                             #  Should we adjust Roth conversion cap with inflation?
                             B.set0_Ub(_q2(Cx, i, n, Ni, Nn), rhsopt)
 
+        # Process startRothConversions option.
+        if "startRothConversions" in options:
+            rhsopt = options["startRothConversions"]
+            thisyear = date.today().year
+            yearn = max(rhsopt - thisyear, 0)
+
+            for i in range(Ni):
+                nstart = min(yearn, self.horizons[i])
+                for n in range(0, nstart):
+                    B.set0_Ub(_q2(Cx, i, n, Ni, Nn), zero)
+
         # Process noRothConversions option. Also valid when N_i == 1, why not?
         if "noRothConversions" in options and options["noRothConversions"] != "None":
             rhsopt = options["noRothConversions"]
@@ -1197,7 +1208,7 @@ class Plan(object):
             # Account for time elapsed in the current year.
             spending *= units * self.yearFracLeft
             # self.mylog.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
-            # To allow slack in first year, Cg can be made Nn+1 and store basis in g[Nn]. 
+            # To allow slack in first year, Cg can be made Nn+1 and store basis in g[Nn].
             A.addNewRow({_q1(Cg, 0, Nn): 1}, spending, spending)
 
         # Set initial balances through constraints.
@@ -1616,16 +1627,17 @@ class Plan(object):
         knownObjectives = ["maxBequest", "maxSpending"]
         knownSolvers = ["HiGHS", "MOSEK"]
         knownOptions = [
-            "units",
-            "maxRothConversion",
-            "netSpending",
-            "spendingSlack",
             "bequest",
             "bigM",
+            "maxRothConversion",
+            "netSpending",
             "noRothConversions",
-            "withMedicare",
-            "solver",
             "previousMAGIs",
+            "solver",
+            "spendingSlack",
+            "startRothConversions",
+            "units",
+            "withMedicare",
         ]
         # We will modify options if required.
         if options is None:
