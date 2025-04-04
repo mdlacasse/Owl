@@ -57,7 +57,7 @@ else:
         helpmsg = "Do not perform Roth conversions before that year."
         thisyear = date.today().year
         kz.initKey("startRothConversions", thisyear)
-        ret = kz.getIntNum("Year to start Roth conversions", "startRothConversions", min_value=thisyear,
+        ret = kz.getIntNum("Year to start considering Roth conversions", "startRothConversions", min_value=thisyear,
                            disabled=fromFile, help=helpmsg)
         if kz.getKey("status") == "married":
             iname1 = kz.getKey("iname1")
