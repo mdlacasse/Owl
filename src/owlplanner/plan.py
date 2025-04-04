@@ -1122,16 +1122,17 @@ class Plan(object):
             B.set0_Ub(_q1(Ce, n, Nn), self.sigmaBar_n[n])
 
         # Roth conversions equalities/inequalities.
-        if "maxRothConversion" in options:
-            if options["maxRothConversion"] == "file":
-                # self.mylog.vprint(f"Fixing Roth conversions to those from file {self.timeListsFileName}.")
-                for i in range(Ni):
-                    for n in range(self.horizons[i]):
-                        rhs = self.myRothX_in[i][n]
-                        B.setRange(_q2(Cx, i, n, Ni, Nn), rhs, rhs)
-            else:
+        # This condition supercedes everything else.
+        if "maxRothConversion" in options and options["maxRothConversion"] == "file":
+            # self.mylog.vprint(f"Fixing Roth conversions to those from file {self.timeListsFileName}.")
+            for i in range(Ni):
+                for n in range(self.horizons[i]):
+                    rhs = self.myRothX_in[i][n]
+                    B.setRange(_q2(Cx, i, n, Ni, Nn), rhs, rhs)
+        else:
+            if "maxRothConversion" in options:
                 rhsopt = options["maxRothConversion"]
-                assert isinstance(rhsopt, (int, float)), "Specified maxConversion is not a number."
+                assert isinstance(rhsopt, (int, float)), "Specified maxRothConversion is not a number."
                 rhsopt *= units
                 if rhsopt < 0:
                     # self.mylog.vprint('Unlimited Roth conversions (<0)')
@@ -1143,27 +1144,28 @@ class Plan(object):
                             #  Should we adjust Roth conversion cap with inflation?
                             B.set0_Ub(_q2(Cx, i, n, Ni, Nn), rhsopt)
 
-        # Process startRothConversions option.
-        if "startRothConversions" in options:
-            rhsopt = options["startRothConversions"]
-            thisyear = date.today().year
-            yearn = max(rhsopt - thisyear, 0)
+            # Process startRothConversions option.
+            if "startRothConversions" in options:
+                rhsopt = options["startRothConversions"]
+                assert isinstance(rhsopt, (int, float)), "Specified startRothConversions is not a number."
+                thisyear = date.today().year
+                yearn = max(rhsopt - thisyear, 0)
 
-            for i in range(Ni):
-                nstart = min(yearn, self.horizons[i])
-                for n in range(0, nstart):
-                    B.set0_Ub(_q2(Cx, i, n, Ni, Nn), zero)
+                for i in range(Ni):
+                    nstart = min(yearn, self.horizons[i])
+                    for n in range(0, nstart):
+                        B.set0_Ub(_q2(Cx, i, n, Ni, Nn), zero)
 
-        # Process noRothConversions option. Also valid when N_i == 1, why not?
-        if "noRothConversions" in options and options["noRothConversions"] != "None":
-            rhsopt = options["noRothConversions"]
-            try:
-                i_x = self.inames.index(rhsopt)
-            except ValueError:
-                raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:")
+            # Process noRothConversions option. Also valid when N_i == 1, why not?
+            if "noRothConversions" in options and options["noRothConversions"] != "None":
+                rhsopt = options["noRothConversions"]
+                try:
+                    i_x = self.inames.index(rhsopt)
+                except ValueError:
+                    raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:")
 
-            for n in range(Nn):
-                B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
+                for n in range(Nn):
+                    B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
 
         # Impose withdrawal limits on taxable and tax-exempt accounts.
         for i in range(Ni):
