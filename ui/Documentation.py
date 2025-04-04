@@ -282,6 +282,8 @@ button is toggled, in which case Roth conversions will not be optimized,
 but will rather be performed according to
 the `Roth conv` column on the
 [Wages and Contributions](#wages-and-contributions) page.
+A year from which Roth conversions can begin to be considered can also be selected: no Roth
+conversions will be allowed before the year specified.
 
 Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
 the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
