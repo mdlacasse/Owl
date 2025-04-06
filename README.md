@@ -182,7 +182,7 @@ assets to support, even with no estate being left.
 - Image from [freepik](https://freepik.com)
 - Optimization solver from [HiGHS](https://highs.dev)
 - Streamlit Community Cloud [Streamlit](https://streamlit.io)
-- Contributors: Josh (noimjosh@gmail.com) for Docker image code
+- Contributors: Josh (noimjosh@gmail.com) for Docker image code, Dale Seng (sengsational) for great insights and suggestions, Robert E. Anderson (NH-RedAnt) for bug fixes.
 
 ---------------------------------------------------------------------
 
