@@ -47,10 +47,16 @@ else:
     st.divider()
     for i in range(n):
         st.write("##### " + kz.getKey("iname" + str(i)) + "'s timetable")
-        colfor = {"year": st.column_config.NumberColumn(None, format="%d")}
+        df = kz.getKey("timeList" + str(i))
+        formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
+        cols = list(df.columns)
+        for col in cols[1:-1]:
+            formatdic[col] = st.column_config.NumberColumn(None, min_value=0.0, format="accounting")
+        formatdic[cols[-1]] = st.column_config.NumberColumn(None, format="accounting")
+
         newdf = st.data_editor(
-            kz.getKey("timeList" + str(i)),
-            column_config=colfor,
+            df,
+            column_config=formatdic,
             hide_index=True,
             key=kz.currentCaseName() + "_wages" + str(i),
         )
