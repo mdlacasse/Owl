@@ -695,6 +695,7 @@ def backYearsMAGI(plan):
     for i in range(plan.N_i):
         if thisyear - plan.yobs[i] >= 65:
             backyears[0] = thisyear - 2
+            backyears[1] = thisyear - 1
         elif thisyear - plan.yobs[i] >= 64:
             backyears[1] = thisyear - 1
 
