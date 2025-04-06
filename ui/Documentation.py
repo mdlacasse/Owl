@@ -406,6 +406,9 @@ when considering Monte Carlo simulations, consider:
 #### Logs
 Messages coming from the underlying Owl calculation engine are displayed on this page.
 
+#### Quick Start
+Landing page of the application. This page describes how to quickly get started by using an example case file.
+
 #### Documentation
 These very pages.
 

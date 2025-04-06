@@ -177,8 +177,11 @@ def duplicateCase():
     ss.cases[ss.currentCase]["plan"] = None
     ss.cases[dupname] = copy.deepcopy(ss.cases[ss.currentCase])
     ss.cases[ss.currentCase]["plan"] = currentPlan
+
     ss.cases[dupname]["name"] = dupname
-    ss.cases[dupname]["summaryDf"] = None
+    for key in ["summaryDf", "histoPlot", "histoSummary", "monteCarloPlot", "monteCarloSummary"]:
+        ss.cases[dupname][key] = None
+
     ss.cases[dupname]["duplicate"] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname

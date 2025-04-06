@@ -11,7 +11,7 @@ if ret is None or kz.caseHasNoPlan():
 else:
     kz.initKey("hyfrm", owb.FROM)
     kz.initKey("hyto", owb.TO)
-    kz.initKey("histoplot", None)
+    kz.initKey("histoPlot", None)
     kz.initKey("histoSummary", None)
 
     st.write(

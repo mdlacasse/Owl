@@ -33,7 +33,9 @@ Copyright &copy; 2024 - Martin-D. Lacasse
     [odfpy](https://https://pypi.org/project/odfpy),
     [toml](https://toml.io),
  and [Streamlit](https://streamlit.io) for the front-end
-- Contributors: Josh (noimjosh@gmail.com) for Docker image code, Dale Seng (sengsational) for great insights and suggestions, Robert E. Anderson (NH-RedAnt) for bug fixes.
+- Contributors: Josh (noimjosh@gmail.com) for Docker image code,
+ Dale Seng (sengsational) for great insights and suggestions,
+ Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions.
 
 #### :orange[Bugs and Feature Requests]
 - Please submit bugs and feature requests through
