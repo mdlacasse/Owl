@@ -409,11 +409,11 @@ def getAccountAllocationRatios():
 
 
 def getPreviousMAGIs():
-    backMAGIs = [0, 0]
+    backMAGIs = [0., 0.]
     for ii in range(2):
         val = getKey(f"MAGI{ii}")
         if val:
-            backMAGIs[ii] = val
+            backMAGIs[ii] = float(val)
 
     return backMAGIs
 
