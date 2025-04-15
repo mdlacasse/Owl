@@ -22,20 +22,21 @@ Copyright &copy; 2024 - Martin-D. Lacasse
 
 #### :orange[Credits]
 - Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
-- Owl image is from [freepik](https://freepik.com).
 - Linear programming optimization solver is from [HiGHS](https://highs.dev).
 - Owl planner relies on the following [Python](https://python.org) packages:
-    - [Numpy](https://numpy.org), [Matplotlib](https://matplotlib.org),
-    [Pandas](https://pandas.pydata.org),
-    [Seaborn](https://seaborn.pydata.org),
-    [Scipy](https://scipy.org),
-    [openpyxl](https://openpyxl.readthedocs.io),
+    - [Matplotlib](https://matplotlib.org),
+    [Numpy](https://numpy.org),
     [odfpy](https://https://pypi.org/project/odfpy),
+    [openpyxl](https://openpyxl.readthedocs.io),
+    [Pandas](https://pandas.pydata.org),
+    [Scipy](https://scipy.org),
+    [Seaborn](https://seaborn.pydata.org),
     [toml](https://toml.io),
- and [Streamlit](https://streamlit.io) for the front-end
-- Contributors: Josh (noimjosh@gmail.com) for Docker image code,
+ and [Streamlit](https://streamlit.io) for the front-end.
+- Contributors: Josh Williams (noimjosh) for Docker image code,
  Dale Seng (sengsational) for great insights and suggestions,
  Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions.
+- Owl image is from [freepik](https://freepik.com).
 
 #### :orange[Bugs and Feature Requests]
 - Please submit bugs and feature requests through

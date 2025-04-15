@@ -53,14 +53,6 @@ reported as yearly values. These include wages, income, rates, social security, 
 Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars.
 
-If you are accessing Owl through the Chrome browser,
-the performance manager might be configured to disable hidden or inactive tabs.
-This could cause your Owl session to inadvertently reset when idling for too long,
-and losing the state of the calculator.
-To avoid this, configure Chrome to keep the page active using
-`More Tools` -> `Performance` -> `Always keep these sites active` and
-add the site *owlplanner.streamlit.app*.
-
 There are four sections in the user interface:
 **Case Setup**, **Single Scenario**, **Multiple Scenarios**, and **Resources**.
 The sections below follow the same logical order.
@@ -414,5 +406,51 @@ These very pages.
 
 #### About Owl
 Credits and disclaimers.
+
+--------------------------------------------------------------------------------------
+### :orange[Tips]
+#### Timeouts
+If you are accessing Owl through the Chrome browser,
+the performance manager might be configured to disable hidden or inactive tabs.
+This could cause your Owl session to inadvertently reset when idling for too long,
+and losing the state of the calculator.
+The best way to avoid this situation is to use the Streamlit app on your device.
+This is done by clicking the '+" icon at the right end of the browser URL bar,
+showing *App available: Install Streamlit*.
+
+#### Advice on optimization and Roth conversions
+Owl does not (yet) explicitly optimize for Medicare costs.
+As Medicare costs are added after the optimization step,
+suggested Roth conversions can sometimes lead to
+smaller net spending or bequest than when no conversions are made.
+This is due to higher Medicare costs triggered by the Roth conversions
+and not factored in during the optimization step. 
+This is why one should always run a comparison for cases with and without Roth conversions.
+Also keep in mind that these cases only consider current assumptions and obviously
+do not take into account future income tax rate increases.
+
+#### Typical workflows
+A typical workflow would look like the following:
+1) create a base case representing your basic scenario;
+2) duplicate the base case and modify the parameter you want to investigate;
+3) repeat 2) with other end-member values of the parameter you would like to investigate;
+4) run all cases and compare them on the `Output Files` page.
+
+To make it more concrete, here is an example
+where one would like to investigate the effects of Roth conversions
+on total net spending.
+1) Create a case called, say, *April 2025 - Base case*. Fill in all parameters representing your goals and situation.
+Let's say this case allows for Roth conversions up to $100k.
+2) Duplicate the base case, call it *April 2025 - No Roth conversions* and
+set maximum Roth conversions to 0.
+Make sure to reload the *Wages and Contributions* file, if any was used in the base case.
+3) Duplicate the base case again, call it *April 2025 - No Roth limit* and
+set maximum Roth conversions to, say, $5,000k.
+Again, make sure to reload the *Wages and Contributions* file, if any was used in the base case.
+4) Compare all cases on the `Output Files` page.
+
+As mentionned above, the most actionable information is located on the first few lines
+of the *Sources* tables on the Worksheets pages.
+This is where withdrawals and conversions are displayed.
 
 """)
