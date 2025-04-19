@@ -409,14 +409,21 @@ Credits and disclaimers.
 
 --------------------------------------------------------------------------------------
 ### :orange[Tips]
-#### Timeouts
+#### App and theme
 If you are accessing Owl through the Chrome browser,
-the performance manager might be configured to disable hidden or inactive tabs.
+the Chrome performance manager might be configured to disable hidden or inactive tabs.
 This could cause your Owl session to inadvertently reset when idling for too long,
 and losing the state of the calculator.
+
 The best way to avoid this situation is to use the Streamlit app on your device.
 This is done by clicking the '+" icon at the right end of the browser URL bar,
 showing *App available: Install Streamlit*.
+The app provides more screen space as it doesn't use the navigation bar
+of the browser, similar to hitting key F11 while in your browser.
+
+I also recommend using the *dark* mode as Streamlit's default theme.
+This selection is accessed through the *Settings* option after clicking on the three vertical dots
+located on the upper right of the app.
 
 #### Advice on optimization and Roth conversions
 Owl does not (yet) explicitly optimize for Medicare costs.
@@ -424,17 +431,17 @@ As Medicare costs are added after the optimization step,
 suggested Roth conversions can sometimes lead to
 smaller net spending or bequest than when no conversions are made.
 This is due to higher Medicare costs triggered by the Roth conversions
-and not factored in during the optimization step. 
+which are not factored in during the optimization step. 
 This is why one should always run a comparison for cases with and without Roth conversions.
 Also keep in mind that these cases only consider current assumptions and obviously
 do not take into account future income tax rate increases.
 
 #### Typical workflows
 A typical workflow would look like the following:
-1) create a base case representing your basic scenario;
-2) duplicate the base case and modify the parameter you want to investigate;
-3) repeat 2) with other end-member values of the parameter you would like to investigate;
-4) run all cases and compare them on the `Output Files` page.
+1) Create a base case representing your basic scenario;
+2) Duplicate the base case and modify the parameter you want to investigate;
+3) Repeat 2) with other end-member values of the parameter you would like to investigate;
+4) Run all cases and compare them on the `Output Files` page.
 
 To make it more concrete, here is an example
 where one would like to investigate the effects of Roth conversions
