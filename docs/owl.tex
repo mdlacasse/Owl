@@ -1207,10 +1207,11 @@ For the equality constraint on net spending expressed in Eq.~(\ref{Eq:C4}),
 we add $N_n$ more rows to $A_ey = v$ as
 \begin{eqnarray}
 	A_e[J_4(n), q_g(n)] &=& 1, \nonumber \\
-	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + .1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59})) + \delta(j, 0)\psi\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
+	A_e[J_4(n), q_b(i, 0, n)] &=& \psi\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_4(n), q_d(i, n)] &=& 1 + \psi\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_4(n), q_F(t, n)] &=& \theta_{t n}, \nonumber \\
-	A_e[J_4(n), q_b(i, 0, n)] &=& \psi\mu\alpha_{i00n}, \nonumber \\
+	A_e[J_4(n), q_m(n)] &=& 1, \nonumber \\
+	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59})) + \delta(j, 0)\psi\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -1219,7 +1220,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 where $v$ is
 \begin{equation}
 	v[J_4(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
-	+ \Lambda^\pm_{in} - 0.5\psi\mu\alpha_{i00n}\kappa_{i0n}] - \mathcal{M}_n^\ell.
+	+ \Lambda^\pm_{in} - 0.5\psi\mu\alpha_{i00n}\kappa_{i0n}].
 \end{equation}
 
 The condition of having a predictable net spending expressed as an
