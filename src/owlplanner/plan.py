@@ -230,11 +230,12 @@ class Plan(object):
         self._name = name
         self.setLogstreams(verbose, logstreams)
 
-        # 7 tax brackets, 3 types of accounts, 4 classes of assets.
+        # 7 tax brackets, 6 Medicare levels, 3 types of accounts, 4 classes of assets.
         self.N_t = 7
+        self.N_q = 6
         self.N_j = 3
         self.N_k = 4
-        # 2 binary variables.
+        # 2 binary variables per year per invididual.
         self.N_z = 2
 
         # Default interpolation parameters for allocation ratios.
@@ -1033,11 +1034,13 @@ class Plan(object):
         C["e"] = _qC(C["d"], self.N_i, self.N_n)
         C["F"] = _qC(C["e"], self.N_n)
         C["g"] = _qC(C["F"], self.N_t, self.N_n)
-        C["s"] = _qC(C["g"], self.N_n)
+        C["m"] = _qC(C["g"], self.N_n)
+        C["s"] = _qC(C["m"], self.N_n)
         C["w"] = _qC(C["s"], self.N_n)
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
         C["z"] = _qC(C["x"], self.N_i, self.N_n)
-        self.nvars = _qC(C["z"], self.N_i, self.N_n, self.N_z)
+        C["zm"] = _qC(C["z"], self.N_i, self.N_n, self.N_z)
+        self.nvars = _qC(C["zm"], self.N_n)
 
         self.C = C
         self.mylog.vprint(f"Problem has {len(C)} distinct time series forming {self.nvars} decision variables.")
@@ -1057,6 +1060,7 @@ class Plan(object):
         Ni = self.N_i
         Nj = self.N_j
         Nk = self.N_k
+        Nq = self.N_q
         Nn = self.N_n
         Nt = self.N_t
         Nz = self.N_z
@@ -1069,6 +1073,7 @@ class Plan(object):
         Ce = self.C["e"]
         CF = self.C["F"]
         Cg = self.C["g"]
+        Cm = self.C["m"]
         Cs = self.C["s"]
         Cw = self.C["w"]
         Cx = self.C["x"]
@@ -1712,73 +1717,28 @@ class Plan(object):
         """
         from scipy import optimize
 
-        withMedicare = True
-        if "withMedicare" in options and options["withMedicare"] is False:
-            withMedicare = False
-
-        if objective == "maxSpending":
-            objFac = -1 / self.xi_n[0]
-        else:
-            objFac = -1 / self.gamma_n[-1]
-
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
         milpOptions = {"disp": False, "mip_rel_gap": 1e-6}
 
-        it = 0
-        absdiff = np.inf
-        old_x = np.zeros(self.nvars)
-        old_solutions = [np.inf]
-        self._estimateMedicare(None, withMedicare)
-        while True:
-            self._buildConstraints(objective, options)
-            Alu, lbvec, ubvec = self.A.arrays()
-            Lb, Ub = self.B.arrays()
-            integrality = self.B.integralityArray()
-            c = self.c.arrays()
+        self._buildConstraints(objective, options)
+        Alu, lbvec, ubvec = self.A.arrays()
+        Lb, Ub = self.B.arrays()
+        integrality = self.B.integralityArray()
+        c = self.c.arrays()
 
-            bounds = optimize.Bounds(Lb, Ub)
-            constraint = optimize.LinearConstraint(Alu, lbvec, ubvec)
-            solution = optimize.milp(
-                c,
-                integrality=integrality,
-                constraints=constraint,
-                bounds=bounds,
-                options=milpOptions,
-            )
-            it += 1
-
-            if not solution.success:
-                break
-
-            if not withMedicare:
-                break
-
-            self._estimateMedicare(solution.x)
-
-            self.mylog.vprint(f"Iteration: {it} objective: {u.d(solution.fun * objFac, f=2)}")
-
-            delta = solution.x - old_x
-            absdiff = np.sum(np.abs(delta), axis=0)
-            if absdiff < 1:
-                self.mylog.vprint("Converged on full solution.")
-                break
-
-            # Avoid oscillatory solutions. Look only at most recent solutions. Within $10.
-            isclosenough = abs(-solution.fun - min(old_solutions[int(it / 2) :])) < 10 * self.xi_n[0]
-            if isclosenough:
-                self.mylog.vprint("Converged through selecting minimum oscillating objective.")
-                break
-
-            if it > 59:
-                self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
-                break
-
-            old_solutions.append(-solution.fun)
-            old_x = solution.x
+        bounds = optimize.Bounds(Lb, Ub)
+        constraint = optimize.LinearConstraint(Alu, lbvec, ubvec)
+        solution = optimize.milp(c, integrality=integrality,
+                                 constraints=constraint, bounds=bounds, options=milpOptions)
 
         if solution.success:
-            self.mylog.vprint(f"Self-consistent Medicare loop returned after {it} iterations.")
+            self.mylog.vprint(f"Solution successful.")
             self.mylog.vprint(solution.message)
+            if objective == "maxSpending":
+                objFac = -1 / self.xi_n[0]
+            else:
+                objFac = -1 / self.gamma_n[-1]
+
             self.mylog.vprint(f"Objective: {u.d(solution.fun * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(solution.x)
@@ -1796,15 +1756,6 @@ class Plan(object):
         """
         import mosek
 
-        withMedicare = True
-        if "withMedicare" in options and options["withMedicare"] is False:
-            withMedicare = False
-
-        if objective == "maxSpending":
-            objFac = -1 / self.xi_n[0]
-        else:
-            objFac = -1 / self.gamma_n[-1]
-
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
 
         bdic = {
@@ -1815,84 +1766,56 @@ class Plan(object):
             "up": mosek.boundkey.up,
         }
 
-        it = 0
-        absdiff = np.inf
-        old_x = np.zeros(self.nvars)
-        old_solutions = [np.inf]
-        self._estimateMedicare(None, withMedicare)
-        while True:
-            self._buildConstraints(objective, options)
-            Aind, Aval, clb, cub = self.A.lists()
-            ckeys = self.A.keys()
-            vlb, vub = self.B.arrays()
-            integrality = self.B.integralityList()
-            vkeys = self.B.keys()
-            cind, cval = self.c.lists()
+        self._buildConstraints(objective, options)
+        Aind, Aval, clb, cub = self.A.lists()
+        ckeys = self.A.keys()
+        vlb, vub = self.B.arrays()
+        integrality = self.B.integralityList()
+        vkeys = self.B.keys()
+        cind, cval = self.c.lists()
 
-            task = mosek.Task()
-            # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-5)
-            # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 1e-4)
-            # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
-            task.appendcons(self.A.ncons)
-            task.appendvars(self.A.nvars)
+        task = mosek.Task()
+        # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-5)
+        # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 1e-4)
+        # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
+        task.appendcons(self.A.ncons)
+        task.appendvars(self.A.nvars)
 
-            for ii in range(len(cind)):
-                task.putcj(cind[ii], cval[ii])
+        for ii in range(len(cind)):
+            task.putcj(cind[ii], cval[ii])
 
-            for ii in range(self.nvars):
-                task.putvarbound(ii, bdic[vkeys[ii]], vlb[ii], vub[ii])
+        for ii in range(self.nvars):
+            task.putvarbound(ii, bdic[vkeys[ii]], vlb[ii], vub[ii])
 
-            for ii in range(len(integrality)):
-                task.putvartype(integrality[ii], mosek.variabletype.type_int)
+        for ii in range(len(integrality)):
+            task.putvartype(integrality[ii], mosek.variabletype.type_int)
 
-            for ii in range(self.A.ncons):
-                task.putarow(ii, Aind[ii], Aval[ii])
-                task.putconbound(ii, bdic[ckeys[ii]], clb[ii], cub[ii])
+        for ii in range(self.A.ncons):
+            task.putarow(ii, Aind[ii], Aval[ii])
+            task.putconbound(ii, bdic[ckeys[ii]], clb[ii], cub[ii])
 
-            task.putobjsense(mosek.objsense.minimize)
-            task.optimize()
+        task.putobjsense(mosek.objsense.minimize)
+        task.optimize()
 
-            solsta = task.getsolsta(mosek.soltype.itg)
-            # prosta = task.getprosta(mosek.soltype.itg)
-            it += 1
+        solsta = task.getsolsta(mosek.soltype.itg)
+        # prosta = task.getprosta(mosek.soltype.itg)
 
-            if solsta != mosek.solsta.integer_optimal:
-                break
+        if solsta != mosek.solsta.integer_optimal:
+            break
 
-            xx = np.array(task.getxx(mosek.soltype.itg))
-            solution = task.getprimalobj(mosek.soltype.itg)
-
-            if withMedicare is False:
-                break
-
-            self._estimateMedicare(xx)
-
-            self.mylog.vprint("Iteration:", it, "objective:", u.d(solution * objFac, f=2))
-
-            delta = xx - old_x
-            absdiff = np.sum(np.abs(delta), axis=0)
-            if absdiff < 1:
-                self.mylog.vprint("Converged on full solution.")
-                break
-
-            # Avoid oscillatory solutions. Look only at most recent solutions. Within $10.
-            isclosenough = abs(-solution - min(old_solutions[int(it / 2) :])) < 10 * self.xi_n[0]
-            if isclosenough:
-                self.mylog.vprint("Converged through selecting minimum oscillating objective.")
-                break
-
-            if it > 59:
-                self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
-                break
-
-            old_solutions.append(-solution)
-            old_x = xx
+        xx = np.array(task.getxx(mosek.soltype.itg))
+        solution = task.getprimalobj(mosek.soltype.itg)
 
         task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
         # task.writedata(self._name+'.ptf')
         if solsta == mosek.solsta.integer_optimal:
-            self.mylog.vprint(f"Self-consistent Medicare loop returned after {it} iterations.")
+            self.mylog.vprint(f"Solution successful.")
             task.solutionsummary(mosek.streamtype.msg)
+            if objective == "maxSpending":
+                objFac = -1 / self.xi_n[0]
+            else:
+                objFac = -1 / self.gamma_n[-1]
+
             self.mylog.vprint("Objective:", u.d(solution * objFac))
             self.caseStatus = "solved"
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))

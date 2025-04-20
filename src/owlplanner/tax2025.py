@@ -42,14 +42,15 @@ taxBrackets_TCJA = np.array(
 
 irmaaBrackets = np.array(
     [
-        [0, 106000, 133000, 167000, 200000, 500000],
-        [0, 212000, 266000, 334000, 400000, 750000],
+        [0, 106000, 133000, 167000, 200000, 500000, 9999999],
+        [0, 212000, 266000, 334000, 400000, 750000, 9999999],
     ]
 )
 
 # Index [0] stores the standard Medicare part B premium.
 # Following values are incremental IRMAA part B monthly fees.
 irmaaFees = 12 * np.array([185.00, 74.00, 111.00, 110.90, 111.00, 37.00])
+irmaaCosts = np.cumsum(irmaaFees)
 
 # Make projection for non-TCJA using 2017 to current year.
 # taxBrackets_2017 = np.array(
@@ -82,6 +83,32 @@ extra65Deduction = np.array([2000, 1600])
 ###############################################################################
 
 
+def mediVals(yobs, horizons, gamma_n, Nn):
+    """
+    Return tuple (nm, L, C) of year index when Medicare starts and vectors L, and C
+    defining end points of constant piecewise linear functions representing IRMAA fees.
+    """
+    thisyear = date.today().year
+    Ni = len(yobs)
+    L = []
+    C = []
+    nm = 0
+    for n in range(Nn):
+        x = 0
+        if thisyear + n - yobs[0] >= 65 and n < horizons[0]:
+            x += 1
+        if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
+            x += 1
+        if x > 0:
+            status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0 
+            L.append(gamma_n[n] * irmaaBrackets[status])
+            C.append(x * gamma_n[n] * irmaaCosts)
+        else:
+            nm = n + 1
+
+    return nm, L, C
+
+
 def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     """
     Compute Medicare costs directly.
@@ -90,6 +117,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     Ni = len(yobs)
     costs = np.zeros(Nn)
     for n in range(Nn):
+        status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
                 # Start with the (indexed) basic Medicare part B premium.
@@ -99,7 +127,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
                 else:
                     mymagi = magi[n - 2]
                 for q in range(1, 6):
-                    if mymagi > gamma_n[n] * irmaaBrackets[Ni - 1][q]:
+                    if mymagi > gamma_n[n] * irmaaBrackets[status][q]:
                         costs[n] += gamma_n[n] * irmaaFees[q]
 
     return costs
