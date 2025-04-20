@@ -944,7 +944,7 @@ For the surplus deposits in the taxable savings accounts $d_{in}$ we will use
 \end{equation}
 where
 \begin{equation}
-	q_d(i, n) = q_*(C_d, i, n, 0; N_i, N_n)
+	q_d(i, n) = q_*(C_d, i, n, 0; N_i, N_n, 1)
 \end{equation}
 with $q_d$ running from $C_d$ to $C_f - 1$, where
 \[
@@ -1076,6 +1076,8 @@ This allows us to build rectangular matrices by iteratively adding rows.
 These constraint matrices have $C_*$
 columns but will have less rows,
 forming an underdetermined system to be optimized using linear programming.
+Function $J$ is defined similarly for equality constraints, while $I$ is used
+for inequality constraints.
 
 \section{Inequality constraints}
 
