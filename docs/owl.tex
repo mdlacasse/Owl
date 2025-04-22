@@ -1460,7 +1460,7 @@ A similar spousal ratio can be imposed on withdrawals from tax-deferred accounts
 	w_{01n} = \eta w_{11n},
 \end{equation}
 but this can cause drawing from an empty account while the other spousal account is not.
-Only the deposit scheme has been implemented.
+Only the deposit scheme has currently been implemented in Owl.
 
 \chapter{Objective functions}
 The objective function is a simple scalar defined as $c\cdot y$ that will be minimized.
@@ -1473,9 +1473,7 @@ the constraint of a desired bequest, we introduce the following relation
 	E_n = \sum_{i,j} (1 - \nu\delta(j, 1)) b_{ijn},
 \end{equation}
 which is the value of the estate in nominal dollars at year $n$,
-taking into consideration the heir's marginal income tax rate on the ($j=1$) tax-deferred account. 
-In this situation, the concept of surplus deposit remains valid to handle
-surplus income.
+taking into consideration the heir's marginal income tax rate $\nu$ on the ($j=1$) tax-deferred account. 
 
 For a desired bequest $\epsilon_{N_n}$, expressed in today's
 dollars, the final amount in year $N_n$ will need to be
@@ -1503,9 +1501,9 @@ minimize the inner product $c\cdot y$, where $c$ is
 and 0 otherwise. See Eq.~(\ref{Eq:C5}).
 
 \paragraph*{Maximum variable net spending}
-If instead of maximizing a basis for net spending that is multiplied by a profile $\bar{\xi}_n$,
-one maximizes the sum of net spending over the full duration
-of the plan, in today's dollars. In that case, the quantity to optimize is
+Instead of maximizing a basis for net spending that is multiplied by a profile $\bar{\xi}_n$,
+one could maximize the sum of net spending over the full duration
+of the plan, in today's dollars. The quantity to optimize is then
 \begin{eqnarray}
 	c[q_g(n)] &=& -1/\gamma_n,
 \end{eqnarray}
