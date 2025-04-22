@@ -100,7 +100,7 @@ def mediVals(yobs, horizons, gamma_n, Nn):
         if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
             x += 1
         if x > 0:
-            status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0 
+            status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
             L.append(gamma_n[n] * irmaaBrackets[status])
             C.append(x * gamma_n[n] * irmaaCosts)
         else:

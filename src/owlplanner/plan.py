@@ -1038,8 +1038,8 @@ class Plan(object):
         C["s"] = _qC(C["m"], self.N_n)
         C["w"] = _qC(C["s"], self.N_n)
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
-        C["z"] = _qC(C["x"], self.N_i, self.N_n)
-        C["zm"] = _qC(C["z"], self.N_i, self.N_n, self.N_z)
+        C["zx"] = _qC(C["x"], self.N_i, self.N_n)
+        C["zm"] = _qC(C["zx"], self.N_i, self.N_n, self.N_z)
         self.nvars = _qC(C["zm"], self.N_n)
 
         self.C = C
@@ -1077,7 +1077,8 @@ class Plan(object):
         Cs = self.C["s"]
         Cw = self.C["w"]
         Cx = self.C["x"]
-        Cz = self.C["z"]
+        Czx = self.C["zx"]
+        Czm = self.C["zm"]
 
         spLo = 1 - self.lambdha
         spHi = 1 + self.lambdha
@@ -1275,7 +1276,7 @@ class Plan(object):
 
                     if Ni == 2 and n_d < Nn and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
-                        fac2_idjn = fac2 * Tau1[i_d, j, n]
+                        fac2_idjn = fac2 * Tau1_ijn[i_d, j, n]
                         rhs += self.kappa_ijn[i_d, j, n] * fac2 * Tauh_ijn[i_d, j, n]
                         row.addElem(_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1), -fac2_idjn)
                         row.addElem(_q2(Cd, i_d, n, Ni, Nn), -u.krond(j, 0) * fac2_idjn)
@@ -1291,9 +1292,9 @@ class Plan(object):
 
         # Net cash flow.
         for n in range(Nn):
-            rhs = -self.M_n[n]
+            rhs = 0
             row = A.newRow({_q1(Cg, n, Nn): 1})
-            row.addElem(_q1(Cs, n, Nn), 1)
+            row.addElem(_q1(Cm, n, Nn), 1)
             for i in range(Ni):
                 fac = self.psi * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
@@ -1305,13 +1306,13 @@ class Plan(object):
                 )
 
                 row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), fac * self.mu)
+                row.addElem(_q2(Cd, i, n, Ni, Nn), 1 + fac * self.mu)
                 # Minus capital gains on taxable withdrawals using last year's rate if >=0.
                 # Plus taxable account withdrawals, and all other withdrawals.
-                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fac * (tau_0prev[n] - self.mu) - 1)
+                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), -1 + fac * (tau_0prev[n] - self.mu))
                 penalty = 0.1 if n < self.n59[i] else 0
                 row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1 + penalty)
                 row.addElem(_q3(Cw, i, 2, n, Ni, Nj, Nn), -1 + penalty)
-                row.addElem(_q2(Cd, i, n, Ni, Nn), fac * self.mu)
 
             # Minus tax on ordinary income, T_n.
             for t in range(Nt):
@@ -1353,18 +1354,18 @@ class Plan(object):
         for i in range(Ni):
             for n in range(self.horizons[i]):
                 for z in range(Nz):
-                    B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
+                    B.setBinary(_q3(Czx, i, n, z, Ni, Nn, Nz))
 
                 # Exclude simultaneous deposits and withdrawals from taxable or tax-free accounts.
                 A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q1(Cs, n, Nn): -1},
+                    {_q3(Czx, i, n, 0, Ni, Nn, Nz): bigM, _q1(Cs, n, Nn): -1},
                     zero,
                     bigM,
                 )
 
                 A.addNewRow(
                     {
-                        _q3(Cz, i, n, 0, Ni, Nn, Nz): bigM,
+                        _q3(Czx, i, n, 0, Ni, Nn, Nz): bigM,
                         _q3(Cw, i, 0, n, Ni, Nj, Nn): 1,
                         _q3(Cw, i, 2, n, Ni, Nj, Nn): 1,
                     },
@@ -1374,13 +1375,13 @@ class Plan(object):
 
                 # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
                 A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
+                    {_q3(Czx, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
                     zero,
                     bigM,
                 )
 
                 A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
+                    {_q3(Czx, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
                     zero,
                     bigM,
                 )
@@ -1731,7 +1732,7 @@ class Plan(object):
                                  constraints=constraint, bounds=bounds, options=milpOptions)
 
         if solution.success:
-            self.mylog.vprint(f"Solution successful.")
+            self.mylog.vprint("Solution successful.")
             self.mylog.vprint(solution.message)
             if objective == "maxSpending":
                 objFac = -1 / self.xi_n[0]
@@ -1799,16 +1800,13 @@ class Plan(object):
         solsta = task.getsolsta(mosek.soltype.itg)
         # prosta = task.getprosta(mosek.soltype.itg)
 
-        if solsta != mosek.solsta.integer_optimal:
-            break
-
-        xx = np.array(task.getxx(mosek.soltype.itg))
-        solution = task.getprimalobj(mosek.soltype.itg)
-
         task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
         # task.writedata(self._name+'.ptf')
         if solsta == mosek.solsta.integer_optimal:
-            self.mylog.vprint(f"Solution successful.")
+            xx = np.array(task.getxx(mosek.soltype.itg))
+            solution = task.getprimalobj(mosek.soltype.itg)
+
+            self.mylog.vprint("Solution successful.")
             task.solutionsummary(mosek.streamtype.msg)
             if objective == "maxSpending":
                 objFac = -1 / self.xi_n[0]
@@ -1868,7 +1866,8 @@ class Plan(object):
         Cs = self.C["s"]
         Cw = self.C["w"]
         Cx = self.C["x"]
-        Cz = self.C["z"]
+        Czx = self.C["zx"]
+        Czm = self.C["zm"]
 
         x = u.roundCents(x)
 
@@ -1894,10 +1893,10 @@ class Plan(object):
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
 
-        self.x_in = np.array(x[Cx:Cz])
+        self.x_in = np.array(x[Cx:Czx])
         self.x_in = self.x_in.reshape((Ni, Nn))
 
-        # self.z_inz = np.array(x[Cz:])
+        # self.z_inz = np.array(x[Czx:])
         # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
         # print(self.z_inz)
 

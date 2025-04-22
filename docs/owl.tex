@@ -135,7 +135,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$g_n$]
 	Net spending in year $n$.
 \item [$m_n$]
-	Medicare costs in year $n$.
+	Medicare costs in year $n$, including part B premiums and IRMAA income-related adjustments.
 \item [$s_{n}$]
 	Surplus of funds during year $n$, most likely caused by required minimum distributions (RMDs)
 	or influx of money from big-ticket items (inheritance, gifts, sale of a house, etc.).
@@ -146,7 +146,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$x_{in}$]
 	Roth conversion performed by individual $i$ during year $n$.
 	These events are taxable as ordinary income.
-\item [$z_{*}$]
+\item [$z_{*}^*$]
 	Binary variables will all be designated by the letter $z$, but a superscript will be
 	used to distinguish the different families. For example, $z_{qn}^m$ will be used
 	for binary variables associated with Medicare calculations.
@@ -162,8 +162,9 @@ Parameter values are either set by the user, historical data, or by the tax code
 \item [$\tau_{kn}$]
 	Annual rate of return for asset class $k$ in year $n$.
 	A time series of annual return rates for each class of asset.
-	Here, inflation and the rate of return of $(k=3)$ cash are assumed to be the same.
-	In other words, investing in cash yields constant dollars (return just matches inflation).
+	Here, inflation and the rate of return of cash $(k=3)$ are assumed to be the same.
+	In other words, investing in cash yields constant dollars as the return perfectly
+	matches inflation.
 \item [$\gamma_n$]
 	Cumulative inflation at the beginning of year $n$ computed as the product
 	\begin{equation}
@@ -193,7 +194,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 	The {\em smile} can be implemented using a cosine superimposed over a gentle linear increase
 	such as in
 	\begin{equation}
-		\xi_n = 1 + a_1*cos(2n\pi/(N_n-1)) + a_2n/(N_n-1),
+		\xi_n = 1 + a_1*\cos(2n\pi/(N_n-1)) + a_2n/(N_n-1),
 	\end{equation}
 	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum-neutral with respect to a flat profile.
 	Values of $a_1 = 15\%$ and $a_2=12\%$ provide curves that are similar to realistic
@@ -216,7 +217,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 	Current implementation only supports spouses being less that 10 years apart.
 	An error message is generated in these cases and the calculation is aborted.
 \item [$\Gamma_{tn}$]
-	Bound for federal income tax bracket. We define $\Gamma_{(-1)n} := 0$, so that
+	Bounds for federal income tax brackets. We define $\Gamma_{(-1)n} := 0$, so that
 	$\Gamma_{0n}$ is the upper bound for the 10\% tax bracket in year $n$. As the filing status
 	can change for couples, and so can the tax code, $\Gamma_{tn}$ will be changing over $n$.
 \item [$\Delta_{tn}$]
@@ -227,13 +228,13 @@ Parameter values are either set by the user, historical data, or by the tax code
 	\end{equation}
 	Once adjusted for inflation,
 	the taxable income can be expressed as in Eq.~(\ref{Eq:Tx1}). These data are 7 time series.
-	The filing status changes after the passing of one spouse ($n \ge n_d$) and these
-	brackets are adjusted accordingly.
+	The filing status changes after the passing of one spouse ($n \ge n_d$) and income tax
+	brackets and differences are adjusted accordingly.
 \item [$\theta_{tn}$]
 	Tax rate for tax bracket $t$ in year $n$. Using $N_t$ time series allows to adjust income
 	tax rates in the foreseeable future.
 	For example, in 2024 the rates (in decimal) are .10, .12, .22, .24, .32, .35, and .37.
-	It is speculated that the rates will revert back to 2017 rates in 2026 with
+	It is speculated that the rates will revert back to 2017 rates in 2026 or later to
 	.10, .15, .25, .28, .33, .35, and .396. See Eq.~(\ref{Eq:IncTax0}) for its use.
 \item [$\alpha_{ijkn}$]
 	Desired asset allocation for savings account $j$ of individual $i$ in
@@ -295,7 +296,7 @@ or an s-curve as in
 
 \item[$\mathcal{T}_{ijn}$]
 	When the allocation ratios $\alpha_{ijkn}$ are prescribed,
-	it is more convenient to express the return rates as
+	it is sometimes more convenient to express the return rates as
 	\begin{equation}
 		\mathcal{T}_{ijn} = \sum_k \alpha_{ijkn} \tau_{kn}.
 	\end{equation}
@@ -390,11 +391,11 @@ All intermediate variables are in uppercase letters.
 		\label{Eq:Tx2}
 		G_n &=& 
 		\sum_i [\omega_{in} + 0.85\bar\zeta_{in} + \pi_{in}]
-		- e_n +
+		- e_n
 		\nonumber \\
-		&& \sum_i [w_{i1n} + x_{in}] +
+		&& + \sum_i [w_{i1n} + x_{in}]
 		\nonumber \\
-		&& \sum_{i,k} 
+		&& + \sum_{i,k} 
 		[(1-\delta(k, 0))(b_{i0n} - w_{i0n} + d_{in} + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
 	\end{eqnarray}
 	Social security is indexed for inflation and is assumed to be taxed at 85\%.
@@ -610,11 +611,11 @@ add the market returns to the savings balances.
 	for $j \neq 1$, i.e., for all withdrawals except those from tax-deferred accounts.
 	For example, to favor tax-deferred withdrawals in most reasonable situations,
 	it is desirable to make Roth conversions and tax-exempt distributions exclusive events
-	by introducing binary variables $z_{in}^R \in \{0, 1\}$ with the following constraints:
+	by introducing binary variables $z_{in}^x \in \{0, 1\}$ with the following constraints:
 	\begin{alignat}{2}
 		\label{Eq:Binary}
-		0 & \le \; z_{in}^R \mathcal{M} - x_{in} &\le \mathcal{M}, \nonumber \\
-		0 & \le \; z_{in}^R \mathcal{M} + w_{i2n} &\le \mathcal{M}.
+		0 & \le \; z_{in}^x \mathcal{M} - x_{in} &\le \mathcal{M}, \nonumber \\
+		0 & \le \; z_{in}^x \mathcal{M} + w_{i2n} &\le \mathcal{M}.
 	\end{alignat}
 	Here, $\mathcal{M}$ is a large number such as $10^7$, just slightly
 	larger than what $x$ and $w$ can possibly be.
@@ -663,12 +664,15 @@ add the market returns to the savings balances.
 	\begin{eqnarray}
 		\label{Eq:C3b}
 		b_{ij(n+1)}
-		&& \nonumber \\
+		% && \nonumber \\
 		- \ [b_{ijn} + \delta(j, 0)d_{in} - w_{ijn} + (\delta(j, 2) - \delta(j, 1))x_{in}]
 		(1 + \mathcal{T}_{ijn})
 		&=& \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
+		\nonumber \\
 	\end{eqnarray}
-	This is the current approach used in Owl.
+This is the current approach used in Owl, coupled with
+binary variables excluding simultaneous overwithdrawals and deposits, and
+simultaneous Roth conversions and withdrawals from tax-exempt accounts.
 
 \paragraph*{Initial balances}
 	The initial balances $\beta_{ij}$ are one of the main inputs of the model.
@@ -861,8 +865,9 @@ is determined.
 		\sum_{q\neq 0} z_{qn}^m \bar{\mathcal{L}}_{qn} &\le &
 		\sum_{i,k\neq 0} [(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)}
 		+ 0.5\kappa_{i0(n-2)})\alpha_{i0k(n-2)}\tau_{k(n-2)}] \nonumber\\
-		&& + \sum_i \alpha_{i00(n-2)}\left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)} + 0.5\kappa_{i0(n-2)})\mu +
-		w_{i0(n-2)}{\max(0, \tau_{0(n-3)})}\right]
+		&& + \sum_i \alpha_{i00(n-2)}\left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)} + 0.5\kappa_{i0(n-2)})\mu\right.
+		\nonumber\\
+		&& \qquad + \left.w_{i0(n-2)}{\max(0, \tau_{0(n-3)})}\right]
 		\nonumber \\
 		&& + \sum_i [\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} + w_{i1(n-2)} + x_{i(n-2)} ].
 	\end{eqnarray}
@@ -879,8 +884,8 @@ is determined.
 		\nonumber\\
 		&& - \sum_i \left[w_{i1(n-2)} + x_{i(n-2)}
 		 + \alpha_{i00(n-2)}w_{i0(n-2)}\max(0, \tau_{0\max(0, n-3)})\right] \nonumber\\
-		&& \le \sum_i [\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} ] \nonumber\\
-		&& + 0.5 \sum_{i} \left[\kappa_{i0(n-2)}
+		&& \qquad \le \sum_i [\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} ] \nonumber\\
+		&& \qquad \quad + 0.5 \sum_{i} \left[\kappa_{i0(n-2)}
 		\left(
 		\mu\alpha_{i00(n-2)} + 
 		\sum_{k\neq 0}
@@ -907,8 +912,8 @@ is determined.
 		\nonumber\\
 		&& - \sum_i \left[w_{i1(n-2)} + x_{i(n-2)}
 		  + \alpha_{i00(n-2)}w_{i0(n-2)}\max(0, \tau_{0\max(0, n-3)})\right] \nonumber\\
-		&& > \sum_i [\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} ] \nonumber\\
-		&& + 0.5 \sum_{i} \left[\kappa_{i0(n-2)}
+		&& \qquad > \sum_i [\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} ] \nonumber\\
+		&& \qquad \quad + 0.5 \sum_{i} \left[\kappa_{i0(n-2)}
 		\left(
 		\mu\alpha_{i00(n-2)} + 
 		\sum_{k\neq 0}
@@ -1078,7 +1083,7 @@ With $N_i = 2, N_j = 3, N_k = 4, N_t = 7$ we have $24 N_n + 6$ variables. For
 a 30-year plan, this results in 726 non-integer decision variables.
 If the time resolution is increased to
 months, that would result in 8,646 variables which is still solvable by today's standards.
-Adding binary variables $z^R_{inz}$ can adds $N_zN_iN_n$ more decision variables,
+Adding binary variables $z^x_{inz}$ can adds $N_zN_iN_n$ more decision variables,
 while adding $z^m_{qn}$ adds $6N_n$ more, resulting in $34 N_n + 6$, or 1,026 for 30 years.
 
 \section{Reverse mapping of indices}
@@ -1285,10 +1290,10 @@ For the equality constraint on net spending expressed in Eq.~(\ref{Eq:C4}),
 we add $N_n$ more rows to $A_ey = v$ as
 \begin{eqnarray}
 	A_e[J_4(n), q_g(n)] &=& 1, \nonumber \\
+	A_e[J_4(n), q_m(n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_b(i, 0, n)] &=& \psi\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_4(n), q_d(i, n)] &=& 1 + \psi\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_4(n), q_{\bar{F}}(t, n)] &=& \theta_{t n}, \nonumber \\
-	A_e[J_4(n), q_m(n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59})) + \delta(j, 0)\psi\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
@@ -1300,7 +1305,7 @@ where $v$ is
 	v[J_4(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
 	+ \Lambda^\pm_{in} - 0.5\psi\mu\alpha_{i00n}\kappa_{i0n}].
 \end{equation}
-Here we used the fact that the sum of all deposits $d_{in}$ must equal the surplus $s_n$,
+Here we used Eq.~(\ref{Eq:eta2}) reflecting the fact that the sum of all deposits $d_{in}$ must equal the surplus $s_n$,
 \[
 	s_n = \sum_i d_{in}.
 \]
