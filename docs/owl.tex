@@ -338,13 +338,13 @@ or an s-curve as in
 \item [$\mathcal{C}_{q}$]
 	Cost of Medicare for bracket $q$ of modified adjusted gross income (MAGI). This includes
 	Medicare part B premiums and any additional
-	Income Related Monthly Adjusted Adjustment (IRMAA). When adjusted
+	Income-Related Monthly Adjusted Amount (IRMAA). When adjusted
 	for inflation, this becomes $\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$.
-        There are $N_q=6$ brackets for IRMAA adjustments forming a constant piecewise linear function.
+        There are $N_q=6$ brackets for IRMAA adjustments forming a piecewise constant function.
 \item [$\mathcal{L}_{q}$]
 	Income brackets used to determine Medicare adjustments based on the modified adjusted gross income.
 	When adjusted for inflation, this becomes $\bar{\mathcal{L}}_{qn} = \gamma_n\mathcal{L}_q$.
-        While there are $N_q=6$ brackets for IRMAA adjustments forming a constant piecewise linear function,
+        While there are $N_q=6$ brackets for IRMAA adjustments forming a piecewise constant function,
 	$\mathcal{L}_q$ has $N_q + 1$ elements as the last element is an arbitrary large number bounding the
 	last bracket. See Fig.~\ref{Fig:piecewise} for a visual representation.
 \item [$\mu$]
@@ -496,12 +496,12 @@ the rates of return weighted according to the desired allocation ratio.
 This approach allows us to eliminate $k$ by summing over it and rewrite
 equations such as
 \begin{eqnarray}
-	\sum_k b_{ijkn+1} &=& \sum_k b_{ijkn} (1 + \tau_{kn}) + \ldots ,
+	\sum_k b_{ijk(n+1)} &=& \sum_k b_{ijkn} (1 + \tau_{kn}) + \ldots ,
 \end{eqnarray}
 for the annual evolution of account balances from year $n$ to year $n+1$
 as the simpler expression 
 \begin{eqnarray}
-	b_{ijn+1} &=& b_{ijn} \sum_k \alpha_{ijkn} (1 + \tau_{kn}) + \ldots ,\nonumber \\
+	b_{ij(n+1)} &=& b_{ijn} \sum_k \alpha_{ijkn} (1 + \tau_{kn}) + \ldots ,\nonumber \\
 		  &=& b_{ijn} (1 + \mathcal{T}_{ijn}) + \ldots ,
 \end{eqnarray}
 where
@@ -571,7 +571,7 @@ add the market returns to the savings balances.
 	Changes include contributions $\kappa$, distributions and withdrawals $w$,
 	conversions $x$, surplus deposits $d$, and growth $\tau$ on the account through the year.
 	For each spouse $i$, we track each savings account $j$ separately, and tax-deferred accounts
-	are coupled to the corresponding tax-exempt account through Roth conversions.
+	are coupled with the corresponding tax-exempt account through Roth conversions.
 
 	The timing of Roth conversions, withdrawals, and deposits brings
 	additional coupling between these variables, and is worth a detailed discussion.
@@ -585,7 +585,7 @@ add the market returns to the savings balances.
 	to better represent evenly distributed withdrawals. So, financially,
 	conversions at the beginning of the year, and withdrawals at mid-year
 	make good sense. Conversions are also typically best when
-	timed with a market downturns in the year, which are obviously not always at the
+	timed with market downturns, which are obviously not always at the
 	beginning of the year.
 
 	Now, let's look at the optimization side of these transactions.
@@ -613,10 +613,10 @@ add the market returns to the savings balances.
 	by introducing binary variables $z_{in}^R \in \{0, 1\}$ with the following constraints:
 	\begin{alignat}{2}
 		\label{Eq:Binary}
-		0 & \le \; z_{in}^R M - x_{in} &\le M, \nonumber \\
-		0 & \le \; z_{in}^R M + w_{i2n} &\le M.
+		0 & \le \; z_{in}^R \mathcal{M} - x_{in} &\le \mathcal{M}, \nonumber \\
+		0 & \le \; z_{in}^R \mathcal{M} + w_{i2n} &\le \mathcal{M}.
 	\end{alignat}
-	Here, $M$ is a large number such as $10^7$, just slightly
+	Here, $\mathcal{M}$ is a large number such as $10^7$, just slightly
 	larger than what $x$ and $w$ can possibly be.
 
 	Another approach could be to perform Roth conversions at mid-year, while withdrawals
@@ -662,9 +662,10 @@ add the market returns to the savings balances.
 	If we select the beginning of the year, this leads to
 	\begin{eqnarray}
 		\label{Eq:C3b}
-		b_{ij(n+1)} - b_{ijn}(1 + \mathcal{T}_{ijn}) 
+		b_{ij(n+1)}
 		&& \nonumber \\
-		- \ [\delta(j, 0)d_{in} - w_{ijn} + (\delta(j, 2) - \delta(j, 1))x_{in}] (1 + \mathcal{T}_{ijn})
+		- \ [b_{ijn} + \delta(j, 0)d_{in} - w_{ijn} + (\delta(j, 2) - \delta(j, 1))x_{in}]
+		(1 + \mathcal{T}_{ijn})
 		&=& \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
 	\end{eqnarray}
 	This is the current approach used in Owl.
@@ -699,6 +700,7 @@ add the market returns to the savings balances.
 	\begin{equation}
 		x_{in} \le \min(b_{i1n}, x_{max}).
 	\end{equation}
+	This last equation will typically need to be coded as two separate constraints.
 
 \paragraph*{Net spending}
 	For calculating the net spending $g_n$, we consider the cash flow of all withdrawals,
@@ -723,7 +725,7 @@ add the market returns to the savings balances.
 		\label{Eq:C4}
 		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_{i,j\neq0} (1-\mathcal{H}(n - n_{i, 59})) w_{ijn}\nonumber\\
                 + m_n + s_n + \sum_t \bar{F}_{tn} \theta_{t n} &&\nonumber \\
-		+ \psi\alpha_{i00n} \sum_i \left[\mu(b_{i0n} - w_{i0n} + d_{in})
+		+ \psi\sum_i \alpha_{i00n} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0(n-1)})\right] 
 		&=& \sum_i [\Lambda^\pm_{in} - 0.5\psi\alpha_{i00n}\mu\kappa_{i0n}] \nonumber\\
                 && + \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ].
@@ -733,15 +735,15 @@ add the market returns to the savings balances.
 	harvesting is beyond the scope of this model, as is the tracking of stocks
 	purchased over the years.
 
-	We want the net spending to be predictable and smooth. We use
+	We want the net spending to be predictable and smooth. For that purpose, we use
 \begin{equation}
 	\label{Eq:C5a}
 	g_{n}/\bar{\xi}_{n} = g_0/\bar{\xi}_0,
 \end{equation}
-where the net spending is adjusted for inflation and where we use the time series of parameter $\xi_n$ 
+where the net spending is adjusted for inflation and where we use the time series of parameter $\xi_n$,
 allowing for additional adjustments to the overall desired spending.
 Note that $\bar{\xi}_0 = \xi_0$ as $\gamma_0=1$.
-This spending profile is used to lower the desired income by a reduction factor $\chi$
+This profile is used to lower the desired net spending amount by a reduction factor $\chi$
 after the passing of one spouse and/or to allow for more realistic spending profiles, such as
 the {\em smile} profile described above.
 Eq.~(\ref{Eq:C5a}) can be rewritten as
@@ -765,13 +767,13 @@ is determined.
 	and re-arrange to move variables to the LHS as follows
 	\begin{eqnarray}
 		\label{Eq:C6}
-		e_n + \sum_t \bar{\Delta}_{t n} f_{t n}
+		e_n + \sum_t \bar{F}_{tn}
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
 		\sum_i [\omega_{in} + 0.85\bar\zeta_{in} + \pi_{in} ]
 		\nonumber \\
-		&& + 0.5\sum_{i,k\neq 0} [\alpha_{i0kn}\tau_{kn}\kappa_{i0n}].
+		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n}.
 	\end{eqnarray}
 
 	Finally, the standard exemption is constrained by
@@ -780,37 +782,40 @@ is determined.
 	\end{equation}
 
 \paragraph*{Medicare Costs}
-	Medicare costs $m_n$ include the Income Related Monthly Adjusted Adjustment (IRMAA).
+	Annual Medicare costs $m_n$ include the Income-Related Monthly Adjusted Amount
+	commonly known as IRMAA.
 	As this additional adjustment
-	is a constant piecewise linear step function,
-        it has to be computed using binary variables and mixed-integer linear
+	is a piecewise constant function,
+        it can be computed using binary variables and mixed-integer linear
 	programming. In the current tax code, this adjustment
 	depends on the modified adjusted gross income (MAGI) from 2 years earlier. For the
-	MAGI, we simply use $G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}$, i.e., gross taxable income
-	plus dividends plus standard exemption from 2 years ago, and ignore the additional IRS
+	MAGI, we simply use $G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}$, i.e., gross taxable ordinary income
+	plus dividends plus standard exemption from 2 years ago. This approach ignores the additional IRS
 	rules around tax-free interests which are insignificant in most cases. If the plan
-        has individuals currently between 63 and 65 years old, values of MAGI for previous years
+        has its oldest individual currently either 64 or 65 years old, MAGI values for previous years
 	must be provided by the user.
 	\begin{figure}[t]
 	    \center\includegraphics[width=10cm]{piecewiseConstant.png}
-	    \caption{\small Modeling a piecewise constant function with special order set of type 1.
+	    \caption{\small Modeling a piecewise constant function with special ordered set of type 1 (SOS1).
 	    The $x$-axis represents the MAGI from two years ago, while $m_n$ is the Medicare adjusted premiums.
+	    A binary variable $z_q^m$ is associated with each segment $q$.
 	    \label{Fig:piecewise}}
 	\end{figure}
 
-	There are $N_q=6$ levels
-	of step adjustments indexed for inflation,
+	Including regular premiums, there are $N_q=6$ brackets
+	of MAGI indexed for inflation defined as
 	$\bar{\mathcal{L}}_{qn} = \gamma_n\mathcal{L}_q$ and each step increases
 	the annual Medicare
 	cost to $\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$, also adjusted for inflation.
 	Notice that $\mathcal{L}_q$ has $N_q + 1$ elements, with the last element
-	being an arbitrary large number bounding the last bracket.
-        Points $(\bar{\mathcal{L}}_{qn}, \bar{\mathcal{C}}_{qn})$ form a constant piecewise
-	linear function that can be modeled using a special order set of type 1.
+	$\mathcal{L}_{N_q} = \mathcal{M}$, where $\mathcal{M}$ is an arbitrary large number
+	bounding the last bracket.
+        Points $(\bar{\mathcal{L}}_{qn}, \bar{\mathcal{C}}_{qn})$ form a piecewise
+	constant function that can be modeled using a special ordered set of type 1 (SOS1).
 	These points are shown in Fig.~\ref{Fig:piecewise}. When $q=0$, 
 	the value $\bar{\mathcal{C}}_{qn}$
 	represents the inflation-adjusted base premium for Medicare part B in year $n$, while
-	higher $q$ values include the IRMAA additional adjustments.
+	higher $q$ values include the IRMAA additional costs.
 
 	We use binary variables $z_{qn}^m \in \{0, 1\}$ with the constraints
 	\begin{equation}
@@ -823,21 +828,37 @@ is determined.
 	\begin{equation}
 		m_n = \sum_q z_{qn}^m \bar{\mathcal{C}}_{qn},
 	\end{equation}
-	as only one $z_{qn}^m$ can be active.
-        The determination of which $z_{qn}^m$ is active is achieved by enforcing the following constraints
+	as only one $z_{qn}^m$ can be non-zero for a given $n$.
+        The determination of which $z_{qn}^m$ is active is achieved by enforcing the following
+	$(N_n - n_m +1)$ constraints
 	\begin{equation}
 		\label{Eq:MedBracket}
-		\sum_q z_{qn}^m \bar{\mathcal{L}}_{qn} \le G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}
-		   < \sum_q z_{qn}^m \bar{\mathcal{L}}_{(q+1)n},
+		\sum_{q\neq 0} z_{qn}^m \bar{\mathcal{L}}_{qn} \le G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}
+		   < \sum_{q\neq N_q -1} z_{qn}^m \bar{\mathcal{L}}_{(q+1)n},
 	\end{equation}
-        for all years $n \ge n_m$ when Medicare is required. This states that the MAGI from two years before
+        for all years $n \ge n_m$ when Medicare is required.
+	The end points $\mathcal{L}_0 = 0$ and $\mathcal{L}_{N_q} = \mathcal{M}$ are not included
+        as they generate constraints
+	that are true for all values considered and do not bring additional information.
+	Eq.~(\ref{Eq:MedBracket}) merely states that the MAGI from two years before
 	must fall into the interval associated with the right premium. For plans where $n_m<2$, we will request
-	and use user-provided values for MAGI of the first years.
+	and use user-provided values for the first years MAGIs.
+	Eq.~(\ref{Eq:MedBracket}) constraints can also be implemented individually
+	with $(N_q -1)(N_n - n_m + 1)$ constraints as
+	\begin{eqnarray}
+		\label{Eq:MedBracket2}
+		z_{qn}^m \bar{\mathcal{L}}_{qn} &\le& G_{(n-2)} + Q_{(n-2)} + e_{(n-2)},
+			\qquad q\neq 0, \nonumber\\
+		z_{qn}^m \bar{\mathcal{L}}_{(q+1)n} + (1 - z_{qn}^m)\mathcal{M} &>& G_{(n-2)} + Q_{(n-2)} + e_{(n-2)},
+			\qquad q \neq N_q-1, \nonumber\\
+		&&\forall q \in {0, \ldots, N_q},\nonumber \\
+		&&\forall n \in {n_m, \ldots, N_n}.
+	\end{eqnarray}
 
-	As $G$ and $Q$ are intermediate variables, we need to expand the first inequality in the last equation
+	As $G$ and $Q$ are intermediate variables, we need to expand the first inequality of Eq.~(\ref{Eq:MedBracket})
 	using Eqs.~(\ref{Eq:Tx2}) and (\ref{Eq:Qx2}) as follows
 	\begin{eqnarray}
-		\sum_q z_{qn}^m \bar{\mathcal{L}}_{qn} &\le &
+		\sum_{q\neq 0} z_{qn}^m \bar{\mathcal{L}}_{qn} &\le &
 		\sum_{i,k\neq 0} [(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)}
 		+ 0.5\kappa_{i0(n-2)})\alpha_{i0k(n-2)}\tau_{k(n-2)}] \nonumber\\
 		&& + \sum_i \alpha_{i00(n-2)}\left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)} + 0.5\kappa_{i0(n-2)})\mu +
@@ -849,34 +870,49 @@ is determined.
 	Pulling all variables on the left-hand side yields
 	\begin{eqnarray}
 		\label{Eq:Med1}
-		&& \sum_q z_{qn}^m \bar{\mathcal{L}}_{qn} \nonumber\\
+		&& \sum_{q  \neq 0} z_{qn}^m \bar{\mathcal{L}}_{qn} \nonumber\\
 		&& - \sum_{i} \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})
-		\left(\sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] \nonumber\\
+		\left(
+		\mu\alpha_{i00(n-2)}
+		+ \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
+		\right)\right]
+		\nonumber\\
 		&& - \sum_i \left[w_{i1(n-2)} + x_{i(n-2)}
 		 + \alpha_{i00(n-2)}w_{i0(n-2)}\max(0, \tau_{0\max(0, n-3)})\right] \nonumber\\
 		&& \le \sum_i [\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} ] \nonumber\\
 		&& + 0.5 \sum_{i} \left[\kappa_{i0(n-2)}
-		\left(\sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right],
+		\left(
+		\mu\alpha_{i00(n-2)} + 
+		\sum_{k\neq 0}
+		\alpha_{i0k(n-2)}\tau_{k(n-2)}\right)\right],
 	\end{eqnarray}
 	for all $n \in \{n_m, \ldots, N_n\}$, and $n_m \ge 2$,
 	otherwise use numbers provided by user if $n_m < 2$.
-	The second line represents the interests and dividends from taxable accounts, the third line
+	The second line of Eq.~(\ref{Eq:Med1}) represents the dividends and interests
+	from taxable accounts, the third line
 	contains distributions and Roth conversions from tax-deferred accounts and taxable gains
-	resulting from the withdrawal of equity assets in taxable accounts. Last two lines are wages,
-	social security, pensions, and gains (interests and dividends) generated
-	from contributions in taxable accounts.
+	resulting from the withdrawal of equity assets sold in taxable accounts. Last two lines are wages,
+	social security, pensions, and gains (dividends and interests) generated
+	from contributions in taxable accounts, which are assumed to be made at half-year.
 
 	Similarly, the second inequality in Eq.~(\ref{Eq:MedBracket}) becomes
 	\begin{eqnarray}
 		\label{Eq:Med2}
-		&& \sum_q z_{qn}^m \bar{\mathcal{L}}_{(q+1)n} \nonumber\\
+		&& \sum_{q\neq N_q - 1} z_{qn}^m \bar{\mathcal{L}}_{(q+1)n} \nonumber\\
 		&& - \sum_{i} \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})
-		\left(\sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] \nonumber\\
+		\left(
+		\mu\alpha_{i00(n-2)}
+		+ \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
+		\right)\right]
+		\nonumber\\
 		&& - \sum_i \left[w_{i1(n-2)} + x_{i(n-2)}
 		  + \alpha_{i00(n-2)}w_{i0(n-2)}\max(0, \tau_{0\max(0, n-3)})\right] \nonumber\\
 		&& > \sum_i [\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} ] \nonumber\\
 		&& + 0.5 \sum_{i} \left[\kappa_{i0(n-2)}
-		\left(\sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right],
+		\left(
+		\mu\alpha_{i00(n-2)} + 
+		\sum_{k\neq 0}
+		\alpha_{i0k(n-2)}\tau_{k(n-2)}\right)\right],
 	\end{eqnarray}
 	for all $n \in \{n_m, \ldots, N_n\}$, and $n_m \ge 2$,
 	otherwise use numbers provided by user if $n_m < 2$.
@@ -934,11 +970,11 @@ and where $n$ exceptionally runs from 0 to $N_n$ inclusively, and therefore
 $q_b$ runs from $C_b = 0$ to $C_{d} - 1$,
 where
 \[
-	C_{d} = q_C(C_b, N_i, N_j, N_n+1) = [N_i N_j (N_n+1)].
+	C_{d} = q_C(C_b, N_i, N_j, N_n+1) = N_i N_j (N_n+1).
 \]
 
 \paragraph*{Surplus deposits (\boldmath$d$)}
-For the surplus deposits in the taxable savings accounts $d_{in}$ we will use
+For surplus deposits in the taxable savings accounts $d_{in}$ we will use
 \begin{equation}
 	y[q_d(i, n)] = d_{in},
 \end{equation}
@@ -948,7 +984,7 @@ where
 \end{equation}
 with $q_d$ running from $C_d$ to $C_f - 1$, where
 \[
-	C_f = q_C(C_d, N_i, N_n, 1) = [N_i(N_j(N_n+1) + N_n)].
+	C_f = q_C(C_d, N_i, N_n, 1) = N_i(N_j(N_n+1) + N_n).
 \]
 
 \paragraph*{Tax bracket fractions (\boldmath$f$)}
@@ -962,7 +998,7 @@ where
 \end{equation}
 with $q_f$ running from $C_f$ to $C_g - 1$, where
 \[
-	C_g = q_C(C_f, N_t, N_n, 1) = [N_i(N_j(N_n+1) + N_n) + N_tN_n].
+	C_g = q_C(C_f, N_t, N_n, 1) = N_i(N_j(N_n+1) + N_n) + N_tN_n.
 \]
 
 \paragraph*{Net spending (\boldmath$g$)}
@@ -976,7 +1012,7 @@ where
 \end{equation}
 with $q_g$ running from $C_g$ to $C_m - 1$, where
 \[
-	C_m = q_C(C_g, N_n, 1, 1) = [N_i(N_j(N_n+1) + N_n) + (N_t + 1) N_n].
+	C_m = q_C(C_g, N_n, 1, 1) = N_i(N_j(N_n+1) + N_n) + (N_t + 1) N_n.
 \]
 
 \paragraph*{Medicare costs (\boldmath$m$)}
@@ -990,7 +1026,7 @@ where
 \end{equation}
 with $q_m$ running from $C_m$ to $C_s - 1$, where
 \[
-	C_s = q_C(C_m, N_n, 1, 1) = [N_i(N_j(N_n+1) + N_n) + (N_t + 2) N_n].
+	C_s = q_C(C_m, N_n, 1, 1) = N_i(N_j(N_n+1) + N_n) + (N_t + 2) N_n.
 \]
 
 \paragraph*{Surplus (\boldmath$s$)}
@@ -1006,7 +1042,7 @@ where
 \end{equation}
 with $q_s$ running from $C_s$ to $C_w - 1$, where
 \[
-	C_w = q_C(C_s, N_n, 1, 1) = [N_i(N_j(N_n+1) + N_n) + (N_t + 3) N_n].
+	C_w = q_C(C_s, N_n, 1, 1) = N_i(N_j(N_n+1) + N_n) + (N_t + 3) N_n.
 \]
 
 \paragraph*{Withdrawals (\boldmath$w$)}
@@ -1020,7 +1056,7 @@ where
 \end{equation}
 with $q_w$ running from $C_w$ to $C_x - 1$, where
 \[
-	C_x = q_C(C_w, N_i, N_j, N_n) = [N_i(N_j(2N_n + 1) + (N_t + 3) N_n].
+	C_x = q_C(C_w, N_i, N_j, N_n) = N_i(N_j(2N_n + 1) + (N_t + 3) N_n.
 \]
 
 \paragraph*{Roth conversions (\boldmath$x$)}
@@ -1033,15 +1069,17 @@ where
 	q_x(i, n) = q_*(C_x, i, n, 0; N_i, N_n, 1)
 \end{equation}
 with $q_x$ running from $C_x$ to $C_* - 1$, where
-\[
-	C_* = q_C(C_x, Ni, N_n, 1) = [N_i(N_j(2N_n + 1) + (N_t + N_i + 3) N_n].
-\]
+\begin{equation}
+	\label{Eq:Cstar}
+	C_* = q_C(C_x, N_i, N_n, 1) = N_i(N_j(2N_n + 1) + (N_t + N_i + 3) N_n.
+\end{equation}
 
 With $N_i = 2, N_j = 3, N_k = 4, N_t = 7$ we have $24 N_n + 6$ variables. For
 a 30-year plan, this results in 726 non-integer decision variables.
 If the time resolution is increased to
 months, that would result in 8,646 variables which is still solvable by today's standards.
-Adding $N_z=2$ binary variables $z_{inz}$ adds $N_zN_iN_n$ more decision variables.
+Adding binary variables $z^R_{inz}$ can adds $N_zN_iN_n$ more decision variables,
+while adding $z^m_{qn}$ adds $6N_n$ more, resulting in $34 N_n + 6$, or 1,026 for 30 years.
 
 \section{Reverse mapping of indices}
 The inverse functions for the index-mapping functions will be derived for the
@@ -1073,11 +1111,12 @@ Let's first define generic index-mapping functions $I$ and $J$ as
 and so on, which would cumulatively increase row count $C_l$ at each new instance $l$,
 similar to how we proceeded in the previous section.
 This allows us to build rectangular matrices by iteratively adding rows.
-These constraint matrices have $C_*$
-columns but will have less rows,
+These constraint matrices have $C_*$ (defined in Eq.~(\ref{Eq:Cstar}))
+columns but can have less rows,
 forming an underdetermined system to be optimized using linear programming.
 Function $J$ is defined similarly for equality constraints, while $I$ is used
-for inequality constraints.
+for building the rows of the matrix containing the inequality constraints.
+Additional indices found in columns and not in rows implies the existence of multiple elements on that row. 
 
 \section{Inequality constraints}
 
@@ -1100,10 +1139,10 @@ See Eq.~(\ref{Eq:Extra}).
 Similarly, we add $N_t N_n$ more rows to matrix $A_uy \le u$ to express
 the inequality constraint in Eq.~(\ref{Eq:C2})
 setting an upper limit on fractions $f_{t n} \le 1$.
-Instead of using $f$, however, we will use $F_{tn} = f_{tn}\bar{\Delta}_{tn}$
+Instead of using $f$, however, we will use $\bar{F}_{tn} = f_{tn}\bar{\Delta}_{tn}$
 of the same dimensions and therefore,
 \begin{eqnarray}
-	A_u[I_1(t, n), q_F(t, n)] &=& 1, \nonumber \\
+	A_u[I_1(t, n), q_{\bar{F}}(t, n)] &=& 1, \nonumber \\
 	u[I_1(t, n)] &=& \bar{\Delta}_{tn},\\
 	&&\qquad\forall t \in \{0,\ldots, N_t - 1\}, \nonumber\\
 	&&\qquad\forall n \in \{0,\ldots, N_n - 1\},\nonumber
@@ -1111,96 +1150,135 @@ of the same dimensions and therefore,
 and all other elements in the same rows of $A_u$ being $0$.
 
 \paragraph*{Medicare brackets}
-Medicare MAGI brackets determine binary variables in the special order set of type 1.
-We first code Eqs.~(\ref{Eq:Med1}) and then (\ref{Eq:Med2}) will be very similar.
+Medicare's MAGI brackets determine the values of binary variables which are
+member of a special ordered set of type 1.
+We first code Eq.~(\ref{Eq:Med1}) and then Eq.~(\ref{Eq:Med2}) will be very similar.
 For establishing the segment lower bound we set
 \begin{eqnarray}
-	A_u[I_2(q, n), q_{z^m}(q, n)] &=& +\bar{\mathcal{L}}_{qn}, \nonumber \\
-	A_u[I_2(q, n), q_{b}(i, 0, n-2)] &=&
-	    - \sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu \alpha_{i00(n-2)}, \nonumber \\
-	A_u[I_2(q, n), q_{d}(i, n-2)] &=&
-	    - \sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu \alpha_{i00(n-2)}, \nonumber \\
-	A_u[I_2(q, n), q_{w}(i, 0, n-2)] &=& + \sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu \alpha_{i00(n-2)} \nonumber \\
-	 && -\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)}), \nonumber \\
-	A_u[I_2(q, n), q_{w}(i, 1, n-2)] &=& -1, \nonumber \\
-	A_u[I_2(q, n), q_{x}(i, n-2)] &=& -1, \nonumber \\
-	u[I_2(q, n)] &=& +\sum_i \left[\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} \right]\nonumber \\
+	A_u[I_2(n), q_{z^m}(q, n)] &=& +\bar{\mathcal{L}}_{qn}, \nonumber \\
+	A_u[I_2(n), q_{b}(i, 0, n-2)] &=&
+	    - \mu \alpha_{i00(n-2)}
+	    - \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
+	    \nonumber \\
+	A_u[I_2(n), q_{d}(i, n-2)] &=&
+	    - \mu \alpha_{i00(n-2)}
+	    - \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
+	    \nonumber \\
+	A_u[I_2(n), q_{w}(i, 0, n-2)] &=&
+		+ \mu \alpha_{i00(n-2)}
+		+ \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
+		% \nonumber \\ &&
+	 	-\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)}), \nonumber \\
+	A_u[I_2(n), q_{w}(i, 1, n-2)] &=& -1, \nonumber \\
+	A_u[I_2(n), q_{x}(i, n-2)] &=& -1, \nonumber \\
+	u[I_2(n)] &=& +\sum_i \left[\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} \right]\nonumber \\
 	&& + 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
-	  \sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right],\nonumber\\
+	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
+	  \right)\right],\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\}, \nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k - 1\}, \nonumber\\
-	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}.
+	&&\qquad\forall q \in \{1,\ldots, N_q - 1\}, \nonumber\\
+	&&\qquad\forall n \in \{\max(n_m, 2),\ldots, N_n - 1\}.
 \end{eqnarray}
-The associated upper bound for the constant linear segment of Fig.~\ref{Fig:piecewise} is enforced through
-a similar constraint.
+If $n_m < 2$, we must enforce these additional rows
 \begin{eqnarray}
-	A_u[I_3(q, n), q_{z^m}(q, n)] &=& -\bar{\mathcal{L}}_{(q+1)n}, \nonumber \\
-	A_u[I_3(q, n), q_{b}(i, 0, n-2)] &=&
-	    + \sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu \alpha_{i00(n-2)}, \nonumber \\
-	A_u[I_3(q, n), q_{d}(i, n-2)] &=&
-	    + \sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu \alpha_{i00(n-2)}, \nonumber \\
-	A_u[I_3(q, n), q_{w}(i, 0, n-2)] &=& - \sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu \alpha_{i00(n-2)} \nonumber \\
-	 && +\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)}), \nonumber \\
-	A_u[I_3(q, n), q_{w}(i, 1, n-2)] &=& +1, \nonumber \\
-	A_u[I_3(q, n), q_{x}(i, n-2)] &=& +1, \nonumber \\
-	u[I_3(q, n)] &=& -\sum_i \left[\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} \right]\nonumber \\
+	A_u[I_2(n), q_{z^m}(q, n)] &=& +\bar{\mathcal{L}}_{qn}, \nonumber \\
+	u[I_2(n)] &=& \mathcal{A}_{n}, \nonumber \\
+	&&\qquad\forall q \in \{1,\ldots, N_q - 1\}, \nonumber\\
+	&&\qquad\forall n \in \{n_m,\ldots, 2\},
+\end{eqnarray}
+where $\mathcal{A}_n$ is a user-provided array of MAGI values for the last two years in chronological order.
+
+Determining which constant linear segment of Fig.~\ref{Fig:piecewise}
+is active requires comparison with the segment upper bounds which is enforced through similar constraints.
+\begin{eqnarray}
+	A_u[I_3(n), q_{z^m}(q, n)] &=& - \bar{\mathcal{L}}_{(q+1)n}, \nonumber \\
+	A_u[I_3(n), q_{b}(i, 0, n-2)] &=&
+	    + \mu \alpha_{i00(n-2)}
+	    + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
+	    \nonumber \\
+	A_u[I_3(n), q_{d}(i, n-2)] &=&
+	    + \mu \alpha_{i00(n-2)}
+	    + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
+	    \nonumber \\
+	A_u[I_3(n), q_{w}(i, 0, n-2)] &=&
+	    - \mu \alpha_{i00(n-2)}
+	    - \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
+	    % \nonumber \\ &&
+	    +\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)}), \nonumber \\
+	A_u[I_3(n), q_{w}(i, 1, n-2)] &=& +1, \nonumber \\
+	A_u[I_3(n), q_{x}(i, n-2)] &=& +1, \nonumber \\
+	u[I_3(n)] &=& - \sum_i \left[\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} \right]\nonumber \\
 	&& - 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
 	  \sum_{k\neq 0} [\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right],\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\}, \nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k - 1\}, \nonumber\\
-	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}.
+	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
+	&&\qquad\forall n \in \{\max(n_m, 2),\ldots, N_n - 1\}.
 \end{eqnarray}
+When $n_m < 2$, we simply enforce these additional rows
+\begin{eqnarray}
+	A_u[I_2(n), q_{z^m}(q, n)] &=& -\bar{\mathcal{L}}_{(q+1)n}, \nonumber \\
+	u[I_2(n)] &=& -\mathcal{A}_{n}, \nonumber \\
+	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
+	&&\qquad\forall n \in \{n_m,\ldots, 2\},
+\end{eqnarray}
+where $\mathcal{A}_n$ has been defined above.
+
 
 \section{Equality constraints}
 
-\paragraph*{Medicare brackets and costs}
-For binary variables $z_{qn}^m$ to satisfy
-the special order set of type 1, we must enforce these $N_n$ constraints
-\begin{eqnarray}
-	A_u[J_0(n), q_{z^m}(q, n)] &=& 1, \nonumber \\
-	u[J_0(n)] &=& \text{1 if $n \ge n_m$, 0 otherwise},\\
-	&&\qquad\forall q \in \{0,\ldots, N_q - 1\}, \nonumber\\
-	&&\qquad\forall n \in \{0,\ldots, N_n - 1\},\nonumber
-\end{eqnarray}
-where $n_m$ is the first index year when Medicare is activated.
-
-The costs for Medicare are easily obtained once the binary variables
-$z^m_{qn}$ are determined.
-\begin{eqnarray}
-	A_u[J_1(n), q_{m}(n)] &=& 1, \nonumber \\
-	A_u[J_1(n), q_{z^m}(q, n)] &=& -\bar{\mathcal{C}}_{qn}, \nonumber \\
-	u[J_1(n)] &=& 0,\\
-	&&\qquad\forall q \in \{0,\ldots, N_q - 1\}, \nonumber\\
-	&&\qquad\forall n \in \{0,\ldots, N_n - 1\},\nonumber
-\end{eqnarray}
-
 \paragraph*{Account balances}
-For the equality constraint on account balances expressed in Eq.~(\ref{Eq:C3}),
-we will define an equality constraint matrix $A_ey = v$ starting
+For the equality constraints on account balances expressed in Eq.~(\ref{Eq:C3b}),
+we define an equality constraint matrix $A_ey = v$ starting
 with $N_iN_jN_n$ rows as
 \begin{eqnarray}
 	\label{Eq:B1}
-	A_e[J_2(i, j, n), q_b(i, j, n+1)] &=& 1, \nonumber \\
-	A_e[J_2(i, j, n), q_b(i, j, n)] &=& -(1 + \mathcal{T}_{ijn}), \nonumber \\
-	A_e[J_2(i, j, n), q_x(i, n)] &=& -(\delta(j, 2) - \delta(j, 1))(1 + \mathcal{T}_{ijn}), \nonumber \\
-	A_e[J_2(i, j, n), q_w(i, j, n)] &=& (1 + \mathcal{T}_{ijn}), \nonumber \\
-	A_e[J_2(i, j, n), q_d(i, n)] &=& -\delta(j, 0)(1 + \mathcal{T}_{ijn}), \\
+	A_e[J_0(i, j, n), q_b(i, j, n+1)] &=& 1, \nonumber \\
+	A_e[J_0(i, j, n), q_b(i, j, n)] &=& -(1 + \mathcal{T}_{ijn}), \nonumber \\
+	A_e[J_0(i, j, n), q_x(i, n)] &=& -(\delta(j, 2) - \delta(j, 1))(1 + \mathcal{T}_{ijn}), \nonumber \\
+	A_e[J_0(i, j, n), q_w(i, j, n)] &=& (1 + \mathcal{T}_{ijn}), \nonumber \\
+	A_e[J_0(i, j, n), q_d(i, n)] &=& -\delta(j, 0)(1 + \mathcal{T}_{ijn}), \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall n \in \{0,\ldots, N_n-1\}, \nonumber
 \end{eqnarray}
 where $v$ is
 \begin{equation}
-	v[J_2(i, j, n)] = \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2).
+	v[J_0(i, j, n)] = \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2).
 \end{equation}
 The initial account balances expressed in Eq.~(\ref{Eq:InitialBalance}) are imposed through
 \begin{eqnarray}
-	A_e[J_3(i, j, k), q_b(i, j, 0)] &=& 1, \nonumber \\
-	v[J_3(i, j, k)] &=& \beta_{ijk},  \\
+	A_e[J_1(i, j), q_b(i, j, 0)] &=& 1, \nonumber \\
+	v[J_1(i, j)] &=& \beta_{ij},  \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 \end{eqnarray}
 leading to $N_i N_j$ additional rows to $A_e$.
+
+\paragraph*{Medicare brackets and costs}
+For binary variables $z_{qn}^m$ to satisfy
+the special ordered set of type 1, we must enforce these $N_n$ constraints
+\begin{eqnarray}
+	\label{Eq:SOS1Constraint}
+	A_u[J_2(n), q_{z^m}(q, n)] &=& 1, \nonumber \\
+	u[J_2(n)] &=& \text{1 if $n \ge n_m$, 0 otherwise},\\
+	&&\qquad\forall q \in \{0,\ldots, N_q - 1\}, \nonumber\\
+	&&\qquad\forall n \in \{n_m,\ldots, N_n - 1\},\nonumber
+\end{eqnarray}
+where $n_m$ is the first index year when Medicare is activated.
+For $n < n_m$, we could also set $z_{qn}^m = 0$,
+for all $q$ instead of using Eq.~(\ref{Eq:SOS1Constraint}).
+
+The costs for Medicare are easily obtained once the binary variables
+$z^m_{qn}$ are determined.
+\begin{eqnarray}
+	A_u[J_3(n), q_{m}(n)] &=& 1, \nonumber \\
+	A_u[J_3(n), q_{z^m}(q, n)] &=& -\bar{\mathcal{C}}_{qn}, \nonumber \\
+	u[J_3(n)] &=& 0,\\
+	&&\qquad\forall q \in \{0,\ldots, N_q - 1\}, \nonumber\\
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}.\nonumber
+\end{eqnarray}
 
 \paragraph*{Net spending}
 For the equality constraint on net spending expressed in Eq.~(\ref{Eq:C4}),
@@ -1209,7 +1287,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 	A_e[J_4(n), q_g(n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_b(i, 0, n)] &=& \psi\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_4(n), q_d(i, n)] &=& 1 + \psi\mu\alpha_{i00n}, \nonumber \\
-	A_e[J_4(n), q_F(t, n)] &=& \theta_{t n}, \nonumber \\
+	A_e[J_4(n), q_{\bar{F}}(t, n)] &=& \theta_{t n}, \nonumber \\
 	A_e[J_4(n), q_m(n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59})) + \delta(j, 0)\psi\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
@@ -1222,6 +1300,10 @@ where $v$ is
 	v[J_4(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
 	+ \Lambda^\pm_{in} - 0.5\psi\mu\alpha_{i00n}\kappa_{i0n}].
 \end{equation}
+Here we used the fact that the sum of all deposits $d_{in}$ must equal the surplus $s_n$,
+\[
+	s_n = \sum_i d_{in}.
+\]
 
 The condition of having a predictable net spending expressed as an
 equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
@@ -1237,12 +1319,12 @@ Finally, for the equality constraint in Eq.~(\ref{Eq:C6}) establishing taxable
 ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 \begin{eqnarray}
 	A_e[J_6(n), q_e(n)] &=& 1, \nonumber \\
-	A_e[J_6(n), q_F(t, n)] &=& 1, \nonumber \\
+	A_e[J_6(n), q_{\bar{F}}(t, n)] &=& 1, \nonumber \\
 	A_e[J_6(n), q_w(i, 1, n)] &=& -1, \nonumber \\
-	A_e[J_6(n), q_b(i, 0, n)] &=&  (1 - \delta(k, 0))\alpha_{i0kn}\tau_{kn}, \\
-	A_e[J_6(n), q_w(i, 0, n)] &=& -(1 - \delta(k, 0))\alpha_{i0kn}\tau_{kn}, \nonumber \\
-	A_e[J_6(n), q_d(i, n)] &=&     (1 - \delta(k, 0))\alpha_{i0kn}\tau_{kn}, \nonumber \\
 	A_e[J_6(n), q_x(i, n)] &=& -1, \nonumber \\
+	A_e[J_6(n), q_b(i, 0, n)] &=& -\sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \\
+	A_e[J_6(n), q_w(i, 0, n)] &=&  \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \nonumber \\
+	A_e[J_6(n), q_d(i, n)] &=&    -\sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -1252,7 +1334,7 @@ with
 \begin{eqnarray}
 	v[J_6(n)] &=& 
 	\sum_i [\omega_{in} + 0.85\bar\zeta_{in}  + \pi_{in}]
-	+ 0.5\sum_{i,k} [(1-\delta(k, 0))\alpha_{i0kn}\tau_{kn}\kappa_{i0n}].
+	+ 0.5\sum_{i} \kappa_{i0n} \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}.
 \end{eqnarray}
 
 \section{Other considerations}
@@ -1266,20 +1348,26 @@ to leave to his/her surviving spouse $i_s$
 in the year $n_d  - 1 < N_n - 1$ following the year of passing. 
 To account for that event in year $n_d$, Eq.~(\ref{Eq:C3b}) needs to be rewritten as
 \begin{eqnarray}
-	b_{ij(n+1)} &=& (1 - \delta(n, n_d-1)\delta(i, i_d)) \nonumber \\
-	&&\times \Bigl\{\left[b_{ijn} - w_{ijn} + \delta(j, 0)d_{ij}\right](1 + \mathcal{T}_{ijn})
-	+ \left[(\delta(j, 2) - \delta(j, 1))x_{in} + \kappa_{ijn}\right](1 + \mathcal{T}_{ijn}/2) 
+	b_{ij(n+1)} &=& [1 - \delta(n, n_d-1)\delta(i, i_d)] \nonumber \\
+	&&\times \Bigl\{\left[b_{ijn} + \delta(j, 0)d_{ij} - w_{ijn}
+	+ (\delta(j, 2) - \delta(j, 1))x_{in}
+	\right](1 + \mathcal{T}_{ijn})
+	+ \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2) 
 	\Bigr\}\nonumber \\
-	&& + (\phi_j\delta(n, n_d-1)\delta(i, i_s)) \nonumber  \\
-	&& \times \Bigl\{\left[b_{i_djn} - w_{i_djn} + \delta(j, 0)d_{i_dn}\right](1 + \mathcal{T}_{i_djn})
+	&& + [\phi_j\delta(n, n_d-1)\delta(i, i_s)] \nonumber  \\
+	&& \times \Bigl\{\left[b_{i_djn}
+	+ \delta(j, 0)d_{i_dn}
+	- w_{i_djn}
+	+ (\delta(j, 2) - \delta(j, 1))x_{i_dn}
+	\right] (1 + \mathcal{T}_{i_djn})
 	\nonumber\\
-	&& + \left[(\delta(j, 2) - \delta(j, 1))x_{i_dn} + \kappa_{i_djkn}\right](1 + \mathcal{T}_{i_djn}/2) 
+	&& + \kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2) 
 	\Bigr\}.
 \end{eqnarray}
-The first multiplier $()$ on the right-hand side will always be one except for $i_d$ in
+The first multiplier $[\ldots]$ on the right-hand side will always be one except for $i_d$ in
 year $n_d-1$ when it will be zero. This will result in emptying all accounts for $i_d$ for years
 $n_d$ and beyond.
-The second special multiplier $()$ before the second set of curly braces
+The second special multiplier $[\ldots]$ before the second set of curly braces
 $\{\}$ will always be zero except for the surviving
 spouse $i_s$ in year $n_d-1$, who will then inherit a fraction $\phi_j$ of account $j$ that
 was scheduled to go into $i_d$'s $j$ account at the beginning of year $n_d$.
@@ -1288,42 +1376,44 @@ Rewriting the last equation as a constraint results in
 \begin{eqnarray}
 	&&b_{ij(n+1)} 
 	  \nonumber  \\
-	&& - (1 - \delta(n, n_d-1)\delta(i, i_d)) \nonumber\\
-	&& \times \Bigl\{ \left[b_{ijn} - w_{ijn} + \delta(j, 0)d_{in} \right](1 + \mathcal{T}_{ijn})
-	+ \left[(\delta(j, 2) - \delta(j, 1))x_{ikn}\right](1 + \mathcal{T}_{ijn}/2) \Bigr\}
+	&& - [1 - \delta(n, n_d-1)\delta(i, i_d)] \nonumber\\
+	&& \times \Bigl\{ \left[b_{ijn} + \delta(j, 0)d_{in} - w_{ijn}
+	+ (\delta(j, 2) - \delta(j, 1))x_{ikn} \right](1 + \mathcal{T}_{ijn}) \Bigr\}
 	\nonumber \\
-	&&- (\phi_j\delta(n, n_d-1)\delta(i, i_s)) \nonumber \\
-	&& \times \Bigl\{ \left[b_{i_djn} w_{ijn} + \delta(j, 0)d_{in}\right](1 + \mathcal{T}_{i_djn})
-	+ \left[(\delta(j, 2) - \delta(j, 1))x_{i_dkn}\right](1 + \mathcal{T}_{i_djn}/2) \Bigr\}
+	&&- [\phi_j\delta(n, n_d-1)\delta(i, i_s)] \nonumber \\
+	&& \times \Bigl\{ \left[b_{i_djn} + \delta(j, 0)d_{in} - w_{ijn}
+	+ (\delta(j, 2) - \delta(j, 1))x_{i_dkn}
+	\right](1 + \mathcal{T}_{i_djn})
+	\Bigr\}
 	\nonumber \\
-	&=& \left[(1 - \delta(n, n_d-1)\delta(i, i_d)) \kappa_{ijn} (1 + \mathcal{T}_{i_djn}/2) \right.
-	\nonumber\\
-	&& + \left.(\phi_j\delta(n, n_d-1)\delta(i, i_s))
-	\kappa_{i_djn}\right](1 + \mathcal{T}_{i_djn}/2).
+	&=& [1 - \delta(n, n_d-1)\delta(i, i_d)] \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2)
+	\nonumber\\ &&
+	+ [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
+	\kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2).
 \end{eqnarray}
 We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
 \begin{eqnarray}
         \label{Eq:B2}
         A_e[J_0(i, j, n), q_b(i, j, n+1)] &=& 1, \nonumber \\
-        A_e[J_0(i, j, n), q_b(i, j, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
-		(1 + \mathcal{T}{ijn}), \nonumber \\
-        A_e[J_0(i, j, n), q_w(i, j, n)] &=& (1 - \delta(n, n_d-1)\delta(i, i_d))
+        A_e[J_0(i, j, n), q_b(i, j, n)] &=& - [1 - \delta(n, n_d-1)\delta(i, i_d)]
+		(1 + \mathcal{T}_{ijn}), \nonumber \\
+        A_e[J_0(i, j, n), q_w(i, j, n)] &=& [1 - \delta(n, n_d-1)\delta(i, i_d)]
 	(1 + \mathcal{T}_{ijn}),\nonumber \\
-        A_e[J_0(i, j, n), q_d(i, j, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
+        A_e[J_0(i, j, n), q_d(i, j, n)] &=& - [1 - \delta(n, n_d-1)\delta(i, i_d)]
 		\delta(j, 0) (1 + \mathcal{T}_{ijn}), \nonumber \\
-        A_e[J_0(i, j, n), q_x(i, n)] &=& - (1 - \delta(n, n_d-1)\delta(i, i_d))
-                (\delta(j, 2) - \delta(j, 1)),
-		(1 + \mathcal{T}_{ijn}/2), \nonumber \\
-		\text{when $N_i =2$ and $i = i_s$,} && \nonumber\\
-        A_e[J_0(i, j, n), q_b(i_d, j, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
-		(1 + \mathcal{T}_{i_djn}), \nonumber \\
-        A_e[J_0(i, j, n), q_w(i_d, j, n)] &=& (\phi_j\delta(n, n_d-1)\delta(i, i_s))
-	(1 + \mathcal{T}_{i_djn}), \nonumber\\
-        A_e[J_0(i, j, n), q_d(i_d, n)] &=&  -(\phi_j\delta(n, n_d-1)\delta(i, i_s))
-		\delta(j, 0)(1 + \mathcal{T}_{i_djn}), \nonumber \\
-        A_e[J_0(i, j, n), q_x(i_d, n)] &=& - (\phi_j\delta(n, n_d-1)\delta(i, i_s))
+        A_e[J_0(i, j, n), q_x(i, n)] &=& - [1 - \delta(n, n_d-1)\delta(i, i_d)]
                 (\delta(j, 2) - \delta(j, 1))
-		(1 + \mathcal{T}_{i_djn}/2), \nonumber \\
+		(1 + \mathcal{T}_{ijn}), \nonumber \\
+		\text{when $N_i =2$ and $i = i_s$,} && \nonumber\\
+        A_e[J_0(i, j, n), q_b(i_d, j, n)] &=& - [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
+		(1 + \mathcal{T}_{i_djn}), \nonumber \\
+        A_e[J_0(i, j, n), q_w(i_d, j, n)] &=& [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
+	(1 + \mathcal{T}_{i_djn}), \nonumber\\
+        A_e[J_0(i, j, n), q_d(i_d, n)] &=&  -[\phi_j\delta(n, n_d-1)\delta(i, i_s)]
+		\delta(j, 0)(1 + \mathcal{T}_{i_djn}), \nonumber \\
+        A_e[J_0(i, j, n), q_x(i_d, n)] &=& - [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
+                (\delta(j, 2) - \delta(j, 1))
+		(1 + \mathcal{T}_{i_djn}), \nonumber \\
                 \nonumber \\
         &&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
         &&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -1332,9 +1422,9 @@ We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
 where $v$ is
 \begin{eqnarray}
 	v[J_0(i, j, n)] 
-	&=& (1 - \delta(n, n_d-1)\delta(i, i_d)) \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2)
+	&=& [1 - \delta(n, n_d-1)\delta(i, i_d)] \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2)
 	\nonumber \\
-	&& + (\phi_j\delta(n, n_d-1)\delta(i, i_s))\kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2). 
+	&& + [\phi_j\delta(n, n_d-1)\delta(i, i_s)]\kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2). 
 \end{eqnarray}
 While the last two equations may look cumbersome, their net effect is only to include
 a few more terms when $n=n_d-1$. 
@@ -1359,8 +1449,8 @@ to compute to return
 on the total balance of each savings account.
 
 \paragraph*{Spousal deposits and withdrawals}
-In order to keep the problem linear, a simple constraint that can be imposed on
-surplus deposits to be made in taxable savings accounts is to specify a spousal ratio $\eta$
+While keeping the problem linear, a simple constraint can be imposed on
+surplus deposits in taxable savings accounts. One can specify a spousal ratio $\eta$
 such as
 \begin{equation}
 	d_{0n} = \eta d_{1n}.
@@ -1369,7 +1459,8 @@ A similar spousal ratio can be imposed on withdrawals from tax-deferred accounts
 \begin{equation}
 	w_{01n} = \eta w_{11n},
 \end{equation}
-but this can cause drawing from an account empty while the other spousal account is not.
+but this can cause drawing from an empty account while the other spousal account is not.
+Only the deposit scheme has been implemented.
 
 \chapter{Objective functions}
 The objective function is a simple scalar defined as $c\cdot y$ that will be minimized.

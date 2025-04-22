@@ -1257,33 +1257,32 @@ class Plan(object):
         for i in range(Ni):
             for j in range(Nj):
                 for n in range(Nn):
-                    if Ni == 2 and n_d < Nn and i == i_d and n == n_d - 1:
-                        # fac1 = 1 - (u.krond(n, n_d - 1) * u.krond(i, i_d))
-                        fac1 = 0
-                    else:
-                        fac1 = 1
+                    # fac1 = 1 - (u.krond(n, n_d - 1) * u.krond(i, i_d))
+                    fac1 = 0 if (Ni == 2 and n_d < Nn and i == i_d and n == n_d - 1) else 1
 
                     rhs = fac1 * self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
+                    fac1_ijn = fac1 * Tau1_ijn[i, j, n]
 
                     row = A.newRow()
                     row.addElem(_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1), 1)
-                    row.addElem(_q3(Cb, i, j, n, Ni, Nj, Nn + 1), -fac1 * Tau1_ijn[i, j, n])
-                    row.addElem(_q3(Cw, i, j, n, Ni, Nj, Nn), fac1 * Tau1_ijn[i, j, n])
-                    row.addElem(_q2(Cd, i, n, Ni, Nn), -fac1 * u.krond(j, 0) * Tau1_ijn[i, 0, n])
+                    row.addElem(_q3(Cb, i, j, n, Ni, Nj, Nn + 1), -fac1_ijn)
+                    row.addElem(_q2(Cd, i, n, Ni, Nn), -u.krond(j, 0) * fac1_ijn)
+                    row.addElem(_q3(Cw, i, j, n, Ni, Nj, Nn), fac1_ijn)
                     row.addElem(
                         _q2(Cx, i, n, Ni, Nn),
-                        -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n],
+                        -(u.krond(j, 2) - u.krond(j, 1)) * fac1_ijn,
                     )
 
                     if Ni == 2 and n_d < Nn and i == i_s and n == n_d - 1:
                         fac2 = self.phi_j[j]
-                        rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
-                        row.addElem(_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1), -fac2 * Tau1_ijn[i_d, j, n])
-                        row.addElem(_q3(Cw, i_d, j, n, Ni, Nj, Nn), fac2 * Tau1_ijn[i_d, j, n])
-                        row.addElem(_q2(Cd, i_d, n, Ni, Nn), -fac2 * u.krond(j, 0) * Tau1_ijn[i_d, 0, n])
+                        fac2_idjn = fac2 * Tau1[i_d, j, n]
+                        rhs += self.kappa_ijn[i_d, j, n] * fac2 * Tauh_ijn[i_d, j, n]
+                        row.addElem(_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1), -fac2_idjn)
+                        row.addElem(_q2(Cd, i_d, n, Ni, Nn), -u.krond(j, 0) * fac2_idjn)
+                        row.addElem(_q3(Cw, i_d, j, n, Ni, Nj, Nn), fac2_idjn)
                         row.addElem(
                             _q2(Cx, i_d, n, Ni, Nn),
-                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i_d, j, n],
+                            -(u.krond(j, 2) - u.krond(j, 1)) * fac2_idjn,
                         )
                     A.addRow(row, rhs, rhs)
 
@@ -1320,7 +1319,7 @@ class Plan(object):
 
             A.addRow(row, rhs, rhs)
 
-        # Impose income profile.
+        # Enforce income profile.
         for n in range(1, Nn):
             rowDic = {_q1(Cg, 0, Nn): -spLo * self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
             A.addNewRow(rowDic, zero, inf)
@@ -1339,11 +1338,11 @@ class Plan(object):
                 row.addElem(_q2(Cx, i, n, Ni, Nn), -1)
 
                 # Taxable returns on securities in taxable account.
-                fak = np.sum(self.tau_kn[1:Nk, n] * self.alpha_ijkn[i, 0, 1:Nk, n], axis=0)
-                rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
-                row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), -fak)
-                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fak)
-                row.addElem(_q2(Cd, i, n, Ni, Nn), -fak)
+                fak_i = np.sum(self.tau_kn[1:Nk, n] * self.alpha_ijkn[i, 0, 1:Nk, n], axis=0)
+                rhs += 0.5 * fak_i * self.kappa_ijn[i, 0, n]
+                row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), -fak_i)
+                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fak_i)
+                row.addElem(_q2(Cd, i, n, Ni, Nn), -fak_i)
 
             for t in range(Nt):
                 row.addElem(_q2(CF, t, n, Nt, Nn), 1)
