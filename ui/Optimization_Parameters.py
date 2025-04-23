@@ -75,9 +75,9 @@ else:
         ret = kz.getToggle("Medicare and IRMAA calculations", "withMedicare", help=helpmsg)
     with col2:
         if kz.getKey("withMedicare"):
-            helpmsg = "MAGI in nominal $k for that previous year."
+            helpmsg = "MAGI in nominal $k for current and previous years."
             years = owb.backYearsMAGI()
-            for ii in range(2):
+            for ii in range(3):
                 kz.initKey("MAGI" + str(ii), 0)
                 if years[ii] > 0:
                     ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)

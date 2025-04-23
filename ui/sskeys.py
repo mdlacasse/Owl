@@ -374,7 +374,7 @@ def getSolveParameters():
         options["maxRothConversion"] = "file"
 
     previousMAGIs = getPreviousMAGIs()
-    if previousMAGIs[0] > 0 or previousMAGIs[1] > 0:
+    if previousMAGIs[0] > 0 or previousMAGIs[1] > 0 or previousMAGIs[2] > 0:
         options["previousMAGIs"] = previousMAGIs
 
     return objective, options
@@ -412,8 +412,8 @@ def getAccountAllocationRatios():
 
 
 def getPreviousMAGIs():
-    backMAGIs = [0., 0.]
-    for ii in range(2):
+    backMAGIs = [0., 0., 0.]
+    for ii in range(3):
         val = getKey(f"MAGI{ii}")
         if val:
             backMAGIs[ii] = float(val)

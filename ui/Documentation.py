@@ -431,7 +431,7 @@ As Medicare costs are added after the optimization step,
 suggested Roth conversions can sometimes lead to
 smaller net spending or bequest than when no conversions are made.
 This is due to higher Medicare costs triggered by the Roth conversions
-which are not factored in during the optimization step. 
+which are not factored in during the optimization step.
 This is why one should always run a comparison for cases with and without Roth conversions.
 Also keep in mind that these cases only consider current assumptions and obviously
 do not take into account future income tax rate increases.

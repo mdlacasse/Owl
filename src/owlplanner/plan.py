@@ -304,8 +304,8 @@ class Plan(object):
         self.myRothX_in = np.zeros((self.N_i, self.N_n))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
 
-        # Previous 2 years for Medicare.
-        self.prevMAGI = np.zeros((2))
+        # Previous 3 years for Medicare.
+        self.prevMAGI = np.zeros((3))
 
         # Default slack on profile.
         self.lambdha = 0
@@ -1668,11 +1668,11 @@ class Plan(object):
         if objective == "maxSpending" and "bequest" not in myoptions:
             self.mylog.vprint("Using bequest of $1.")
 
-        self.prevMAGI = np.zeros(2)
+        self.prevMAGI = np.zeros(3)
         if "previousMAGIs" in myoptions:
             magi = myoptions["previousMAGIs"]
-            if len(magi) != 2:
-                raise ValueError("previousMAGIs must have two values.")
+            if len(magi) != 3:
+                raise ValueError("previousMAGIs must have 3 values.")
 
             if "units" in options:
                 units = u.getUnits(options["units"])

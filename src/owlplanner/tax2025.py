@@ -90,16 +90,17 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     Ni = len(yobs)
     costs = np.zeros(Nn)
     for n in range(Nn):
+        status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
                 # Start with the (indexed) basic Medicare part B premium.
                 costs[n] += gamma_n[n] * irmaaFees[0]
-                if n < 2:
+                if n < 3:
                     mymagi = prevmagi[n]
                 else:
                     mymagi = magi[n - 2]
                 for q in range(1, 6):
-                    if mymagi > gamma_n[n] * irmaaBrackets[Ni - 1][q]:
+                    if mymagi > gamma_n[n] * irmaaBrackets[status][q]:
                         costs[n] += gamma_n[n] * irmaaFees[q]
 
     return costs
