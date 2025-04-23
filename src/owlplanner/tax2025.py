@@ -83,26 +83,26 @@ extra65Deduction = np.array([2000, 1600])
 ###############################################################################
 
 
-def mediVals(yobs, horizons, gamma_n, Nn):
+def mediVals(yobs, horizons, gamma_n, Nn, Nq):
     """
     Return tuple (nm, L, C) of year index when Medicare starts and vectors L, and C
     defining end points of constant piecewise linear functions representing IRMAA fees.
     """
     thisyear = date.today().year
     Ni = len(yobs)
-    L = []
-    C = []
+    L = np.zeros((Nn, Nq+1))
+    C = np.zeros((Nn, Nq))
     nm = 0
     for n in range(Nn):
-        x = 0
+        icount = 0
         if thisyear + n - yobs[0] >= 65 and n < horizons[0]:
-            x += 1
+            icount += 1
         if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
-            x += 1
-        if x > 0:
+            icount += 1
+        if icount > 0:
             status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
-            L.append(gamma_n[n] * irmaaBrackets[status])
-            C.append(x * gamma_n[n] * irmaaCosts)
+            L[n] = gamma_n[n] * irmaaBrackets[status]
+            C[n] = icount * gamma_n[n] * irmaaCosts
         else:
             nm = n + 1
 

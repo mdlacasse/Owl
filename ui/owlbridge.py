@@ -651,6 +651,10 @@ def genDic(plan):
     if "previousMAGIs" in optionKeys:
         dic["MAGI0"] = plan.solverOptions["previousMAGIs"][0]
         dic["MAGI1"] = plan.solverOptions["previousMAGIs"][1]
+        if len(plan.solverOptions["previousMAGIs"]) == 3:
+            dic["MAGI2"] = plan.solverOptions["previousMAGIs"][2]
+        else:
+            dic["MAGI2"] = 0.
 
     if plan.objective == "maxSpending":
         dic["objective"] = "Net spending"
@@ -691,13 +695,17 @@ def genDic(plan):
 @_checkPlan
 def backYearsMAGI(plan):
     thisyear = date.today().year
-    backyears = [0, 0]
-    for i in range(plan.N_i):
-        if thisyear - plan.yobs[i] >= 65:
-            backyears[0] = thisyear - 2
-            backyears[1] = thisyear - 1
-        elif thisyear - plan.yobs[i] >= 64:
-            backyears[1] = thisyear - 1
+    backyears = [0, 0, 0]
+    goatyear = min(plan.yobs)
+    if thisyear - goatyear >= 65:
+        backyears[0] = thisyear - 2
+        backyears[1] = thisyear - 1
+        backyears[2] = thisyear
+    elif thisyear - goatyear >= 64:
+        backyears[1] = thisyear - 1
+        backyears[2] = thisyear
+    elif thisyear - goatyear >= 63:
+        backyears[2] = thisyear
 
     return backyears
 

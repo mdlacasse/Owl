@@ -564,6 +564,69 @@ add the market returns to the savings balances.
 		T_n = \sum_t \bar{F}_t \theta_{tn}.
 	\end{equation*}
 
+\paragraph*{Standard exemption}
+	The standard exemption is constrained by
+	\begin{equation}
+		0 \le e_n \le \bar{\sigma}_n.
+	\end{equation}
+	Variable $e_n$ is required for accounting for years when the taxable ordinary
+	income is smaller that the standard exemption.
+
+\paragraph*{Withdrawal limits}
+	We also introduce another set of constraints that might look unnecessary, but help
+	convergence, and prevent overdrafts during the year of passing of the first spouse.
+	As withdrawals and conversions are at the beginning of the year 
+	we impose that
+	\begin{equation}
+		w_{ijn} + \delta(j, 1)x_{in} \le b_{ijn},
+	\end{equation}
+	which just states that account balances need to be larger than withdrawals and possible Roth conversions.
+
+\paragraph*{Posthumous account activities}
+	For cases with spouses, no withdrawal, Roth conversion, or deposit should
+	occur in the accounts of the passed individual:
+	\begin{eqnarray}
+		w_{i_djn} &=& 0,\nonumber\\
+		d_{i_dn} &=& 0, \nonumber \\
+		x_{i_dn} &=& 0, \nonumber \\
+		&& \quad \forall j \in {0, \ldots, N_j-1} \nonumber \\
+		&& \quad \forall n \in {n_d, \ldots, Nn-1}.
+	\end{eqnarray}
+
+\paragraph*{Roth conversions}
+	Roth conversions cannot be larger than the balance at the beginning of the year in the account:
+	\begin{equation}
+		x_{ijn} \le b_{i1n}.
+	\end{equation}
+	This constraint, however, is naturally satisfied when $b_{ijn} \ge 0$ non-negativity bounds are enforced.
+	Additional maximum Roth conversion constraints $x_{max}$ can be imposed by the user and
+	then the previous equation becomes
+	\begin{equation}
+		x_{in} \le \min(b_{i1n}, x_{max}).
+	\end{equation}
+	As this last equation involves a variable and a parameter in the $\min$ function,
+	it needs to be coded as two separate constraints.
+
+\paragraph*{Initial balances}
+	The initial balances $\beta_{ij}$ are one of the main inputs of the model.
+	The initial savings account balances are imposed through additional constraints as
+	\begin{eqnarray}
+		\label{Eq:InitialBalance}
+		b_{ij0} = \beta_{ij}.
+	\end{eqnarray}
+	At this point, we assume that all accounts are balanced according to the desired
+	allocation ratios $\alpha_{ijkn}$.
+
+\paragraph*{Cash flow surplus}
+	When both spouses are alive, surplus $s_n$ gets deposited in the taxable accounts
+	according to variable $\eta$ as described in Eq.~(\ref{Eq:eta}),
+	\begin{equation}
+		\label{Eq:eta2}
+		d_{in} = [\delta(i, 0)(1 - \eta) + \delta(i, 1)\eta] s_n .
+	\end{equation}
+	Otherwise, for $n \ge n_d$, variable $\eta$ gets redefined as $\eta = \delta(1, i_s)$.
+	This can be caused by large influx of money coming from big-ticket items or compulsory RMDs.
+
 \paragraph*{Account balances}
 	Contributions are assumed to be made at half-year to better represent periodic contributions
 	made throughout the year. As we already mentioned,
@@ -674,38 +737,6 @@ This is the current approach used in Owl, coupled with
 binary variables excluding simultaneous overwithdrawals and deposits, and
 simultaneous Roth conversions and withdrawals from tax-exempt accounts.
 
-\paragraph*{Initial balances}
-	The initial balances $\beta_{ij}$ are one of the main inputs of the model.
-	The initial savings account balances are imposed through additional constraints as
-	\begin{eqnarray}
-		\label{Eq:InitialBalance}
-		b_{ij0} = \beta_{ij}.
-	\end{eqnarray}
-	At this point, we assume that all accounts are balanced according to the desired
-	allocation ratios $\alpha_{ijkn}$.
-
-	We also introduce another constraint that might look unnecessary, but helps
-	convergence, and prevents overdrafts during the year of passing of the first spouse.
-	As withdrawals and conversions are at the beginning of the year 
-	we impose that
-	\begin{eqnarray}
-		w_{ijn} + \delta(j, 1)x_{in} \le b_{ijn},
-	\end{eqnarray}
-	which just states that account balances need to be larger than withdrawals and possible Roth conversions.
-
-\paragraph*{Roth Conversions}
-	Roth conversions cannot be larger than the balance at the beginning of the year in the account:
-	\begin{equation}
-		x_{ijn} \le b_{i1n}.
-	\end{equation}
-	This constraint, however, is naturally satisfied when $b_{ijn} \ge 0$ non-negativity bounds are enforced.
-	Additional maximum Roth conversion constraints $x_{max}$ can be imposed by the user and
-	then the previous equation becomes
-	\begin{equation}
-		x_{in} \le \min(b_{i1n}, x_{max}).
-	\end{equation}
-	This last equation will typically need to be coded as two separate constraints.
-
 \paragraph*{Net spending}
 	For calculating the net spending $g_n$, we consider the cash flow of all withdrawals,
 	wages, social security and pension benefits, and big-ticket items. 
@@ -715,13 +746,6 @@ simultaneous Roth conversions and withdrawals from tax-exempt accounts.
 		+ \sum_{i,j} w_{ijn} + \sum_i \Lambda^\pm_{in} - s_{n}
 		- P_n - T_n - U_n - m_n.
 	\end{eqnarray}
-	When both spouses are alive, surplus $s_n$ gets deposited in the taxable accounts
-	according to variable $\eta$ as described in Eq.~(\ref{Eq:eta}),
-	\begin{equation}
-		\label{Eq:eta2}
-		d_{in} = [\delta(i, 0)(1 - \eta) + \delta(i, 1)\eta] s_n .
-	\end{equation}
-	Otherwise, for $n \ge n_d$, variable $\eta$ gets redefined as $\eta = \delta(1, i_s)$.
 
 	Notice how big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
@@ -779,11 +803,6 @@ is determined.
 		\nonumber \\
 		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n}.
 	\end{eqnarray}
-
-	Finally, the standard exemption is constrained by
-	\begin{equation}
-		0 \le e_n \le \bar{\sigma}_n.
-	\end{equation}
 
 \paragraph*{Medicare Costs}
 	Annual Medicare costs $m_n$ include the Income-Related Monthly Adjusted Amount
@@ -1402,20 +1421,20 @@ We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
         A_e[J_0(i, j, n), q_b(i, j, n+1)] &=& 1, \nonumber \\
         A_e[J_0(i, j, n), q_b(i, j, n)] &=& - [1 - \delta(n, n_d-1)\delta(i, i_d)]
 		(1 + \mathcal{T}_{ijn}), \nonumber \\
-        A_e[J_0(i, j, n), q_w(i, j, n)] &=& [1 - \delta(n, n_d-1)\delta(i, i_d)]
-	(1 + \mathcal{T}_{ijn}),\nonumber \\
         A_e[J_0(i, j, n), q_d(i, j, n)] &=& - [1 - \delta(n, n_d-1)\delta(i, i_d)]
 		\delta(j, 0) (1 + \mathcal{T}_{ijn}), \nonumber \\
+        A_e[J_0(i, j, n), q_w(i, j, n)] &=& [1 - \delta(n, n_d-1)\delta(i, i_d)]
+	(1 + \mathcal{T}_{ijn}),\nonumber \\
         A_e[J_0(i, j, n), q_x(i, n)] &=& - [1 - \delta(n, n_d-1)\delta(i, i_d)]
                 (\delta(j, 2) - \delta(j, 1))
 		(1 + \mathcal{T}_{ijn}), \nonumber \\
 		\text{when $N_i =2$ and $i = i_s$,} && \nonumber\\
         A_e[J_0(i, j, n), q_b(i_d, j, n)] &=& - [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
 		(1 + \mathcal{T}_{i_djn}), \nonumber \\
-        A_e[J_0(i, j, n), q_w(i_d, j, n)] &=& [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
-	(1 + \mathcal{T}_{i_djn}), \nonumber\\
         A_e[J_0(i, j, n), q_d(i_d, n)] &=&  -[\phi_j\delta(n, n_d-1)\delta(i, i_s)]
 		\delta(j, 0)(1 + \mathcal{T}_{i_djn}), \nonumber \\
+        A_e[J_0(i, j, n), q_w(i_d, j, n)] &=& [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
+	(1 + \mathcal{T}_{i_djn}), \nonumber\\
         A_e[J_0(i, j, n), q_x(i_d, n)] &=& - [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
                 (\delta(j, 2) - \delta(j, 1))
 		(1 + \mathcal{T}_{i_djn}), \nonumber \\
