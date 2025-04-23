@@ -279,9 +279,11 @@ conversions will be allowed before the year specified.
 
 Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
 the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
-If the age of individuals makes them eligible for Medicare within the next two years,
-additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for past years.
+If the age of individuals makes them eligible for Medicare within the next three years,
+additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for the current
+and past 2 years, when applicable. Values default to zero.
 These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
+MAGI for current year is required as it allows plan to start in mid-year for the first year.
 
 The time profile modulating the net spending amount
 can be selected to either be *flat* or follow a *smile* shape.

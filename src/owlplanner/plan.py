@@ -1722,7 +1722,7 @@ class Plan(object):
             objFac = -1 / self.gamma_n[-1]
 
         # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
-        milpOptions = {"disp": False, "mip_rel_gap": 1e-6}
+        milpOptions = {"disp": False, "mip_rel_gap": 1e-7}
 
         it = 0
         absdiff = np.inf
