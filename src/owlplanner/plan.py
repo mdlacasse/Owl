@@ -1097,8 +1097,7 @@ class Plan(object):
         Tau1_ijn = 1 + tau_ijn
         Tauh_ijn = 1 + tau_ijn / 2
 
-        units = options.get("units", 1000)
-        assert isinstance(units, (int, float)), f"Units {units} is not a number."
+        units = u.getUnits(options.get("units", "k"))
         bigM = options.get("bigM", 5e6)
         assert isinstance(bigM, (int, float)), f"bigM {bigM} is not a number."
 
@@ -1739,10 +1738,7 @@ class Plan(object):
             if len(magi) != 3:
                 raise ValueError("previousMAGIs must have 3 values.")
 
-            if "units" in options:
-                units = u.getUnits(options["units"])
-            else:
-                units = 1000
+            units = u.getUnits(options.get("units", "k"))
             self.prevMAGIs = units * np.array(magi)
 
         self.lambdha = 0
