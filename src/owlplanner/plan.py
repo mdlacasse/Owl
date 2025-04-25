@@ -1090,6 +1090,7 @@ class Plan(object):
         units = u.getUnits(options.get("units", "k"))
         # No units for bigM.
         bigM = options.get("bigM", 5e6)
+        assert isinstance(bigM, (int, float)), f"bigM {bigM} is not a number."
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
