@@ -1087,15 +1087,9 @@ class Plan(object):
         Tau1_ijn = 1 + tau_ijn
         Tauh_ijn = 1 + tau_ijn / 2
 
-        if "units" in options:
-            units = u.getUnits(options["units"])
-        else:
-            units = 1000
-
-        bigM = 5e6
-        if "bigM" in options:
-            # No units for bigM.
-            bigM = options["bigM"]
+        units = u.getUnits(options.get("units", "k"))
+        # No units for bigM.
+        bigM = options.get("bigM", 5e6)
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
@@ -1674,10 +1668,7 @@ class Plan(object):
             if len(magi) != 3:
                 raise ValueError("previousMAGIs must have 3 values.")
 
-            if "units" in options:
-                units = u.getUnits(options["units"])
-            else:
-                units = 1000
+            units = u.getUnits(options.get("units", "k"))
             self.prevMAGI = units * np.array(magi)
 
         self.lambdha = 0
