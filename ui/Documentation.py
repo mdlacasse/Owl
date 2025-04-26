@@ -426,15 +426,16 @@ This selection is accessed through the *Settings* option after clicking on the t
 located on the upper right of the app.
 
 #### Advice on optimization and Roth conversions
-Owl does not (yet) explicitly optimize for Medicare costs.
-As Medicare costs are added after the optimization step,
-suggested Roth conversions can sometimes lead to
-smaller net spending or bequest than when no conversions are made.
-This is due to higher Medicare costs triggered by the Roth conversions
-which are not factored in during the optimization step.
-This is why one should always run a comparison for cases with and without Roth conversions.
+Latest version of Owl now explicitly accounts for Medicare costs when optimizing.
+This means tbat Roth conversions will only be performed if favorable,
+even when accounting for IRMAA penalties.
+However, a $1 increase in the objective function is still favorable when considered by an optimizer.
+This is why one should always run a comparison for cases with and without Roth conversions,
+and judge if the size of the actual benefit is worth the effort.
 Also keep in mind that these cases only consider current assumptions and obviously
-do not take into account future income tax rate increases.
+do not take into account potential future income tax rate increases.
+If one is hedging against rates increases in the future, then this is
+different conversation.
 
 #### Typical workflows
 A typical workflow would look like the following:
