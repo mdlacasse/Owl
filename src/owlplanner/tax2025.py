@@ -42,14 +42,15 @@ taxBrackets_TCJA = np.array(
 
 irmaaBrackets = np.array(
     [
-        [0, 106000, 133000, 167000, 200000, 500000],
-        [0, 212000, 266000, 334000, 400000, 750000],
+        [0, 106000, 133000, 167000, 200000, 500000, 9999999],
+        [0, 212000, 266000, 334000, 400000, 750000, 9999999],
     ]
 )
 
 # Index [0] stores the standard Medicare part B premium.
 # Following values are incremental IRMAA part B monthly fees.
 irmaaFees = 12 * np.array([185.00, 74.00, 111.00, 110.90, 111.00, 37.00])
+irmaaCosts = np.cumsum(irmaaFees)
 
 # Make projection for non-TCJA using 2017 to current year.
 # taxBrackets_2017 = np.array(
@@ -80,6 +81,34 @@ extra65Deduction = np.array([2000, 1600])
 ###############################################################################
 # End of section where rates need to be actualized every year.
 ###############################################################################
+
+
+def mediVals(yobs, horizons, gamma_n, Nn, Nq):
+    """
+    Return tuple (nm, L, C) of year index when Medicare starts and vectors L, and C
+    defining end points of constant piecewise linear functions representing IRMAA fees.
+    """
+    thisyear = date.today().year
+    assert Nq == len(irmaaCosts), f"Inconsistent value of Nq: {Nq}."
+    assert Nq+1 == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
+    Ni = len(yobs)
+    L = np.zeros((Nn, Nq+1))
+    C = np.zeros((Nn, Nq))
+    nm = 0
+    for n in range(Nn):
+        icount = 0
+        if thisyear + n - yobs[0] >= 65 and n < horizons[0]:
+            icount += 1
+        if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
+            icount += 1
+        if icount > 0:
+            status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
+            L[n] = gamma_n[n] * irmaaBrackets[status]
+            C[n] = icount * gamma_n[n] * irmaaCosts
+        else:
+            nm = n + 1
+
+    return nm, L, C
 
 
 def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):

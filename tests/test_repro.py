@@ -14,8 +14,9 @@ thisyear = date.today().year
 
 def createJackAndJillPlan(name):
     inames = ['Jack', 'Jill']
-    yobs = [1963, 1966]
-    expectancy = [thisyear - 1963 + 20, thisyear - 1966 + 20]
+    ages = [62, 59]
+    yobs = [thisyear - ages[0], thisyear - ages[1]]
+    expectancy = [ages[0] + 20, ages[1] + 20]
     p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
     p.setSpendingProfile('flat', 60)
 
