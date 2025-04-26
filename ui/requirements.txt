@@ -7,4 +7,4 @@ odfpy
 scipy
 streamlit
 toml
-owlplanner >= 2025.04.22
+owlplanner >= 2025.04.26
