@@ -155,13 +155,13 @@ These cases are detected and will generate an error message.
 I've observed run requiring up to 10 seconds.
 These calculations can be turned off when shorter time to solutions are required.
 The use of a commercial solver (e.g. MOSEK) can substantially reduce computing time
-but require a license.
+but requires a license.
 - Part D is not included in the IRMAA calculations. Being considerably more significant,
 only Part B is taken into account. 
 - Future tax brackets are pure speculations derived from the little we know now and projected
 to the next 30 years. Your guesses are as good as mine.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
-If there is interest, that could be added in the future.
+If there is sufficient interest, that could explored in the future.
 
 The solution from an optimization algorithm has only two states: feasible and infeasible.
 Therefore, unlike event-driven simulators that can tell you that your distribution strategy runs
