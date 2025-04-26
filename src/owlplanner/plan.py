@@ -1704,9 +1704,7 @@ class Plan(object):
         """
         from scipy import optimize
 
-        withMedicare = True
-        if "withMedicare" in options and options["withMedicare"] is False:
-            withMedicare = False
+        withMedicare = options.get("withMedicare", True)
 
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
@@ -1788,9 +1786,7 @@ class Plan(object):
         """
         import mosek
 
-        withMedicare = True
-        if "withMedicare" in options and options["withMedicare"] is False:
-            withMedicare = False
+        withMedicare = options.get("withMedicare", True)
 
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
