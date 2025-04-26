@@ -97,6 +97,8 @@ class ConstraintMatrix(object):
         self.ub.append(ub)
         if lb == ub:
             self.key.append("fx")
+        elif lb == -np.inf:
+            self.key.append("up")
         elif ub == np.inf:
             self.key.append("lo")
         else:

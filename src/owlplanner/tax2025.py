@@ -89,6 +89,8 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
     defining end points of constant piecewise linear functions representing IRMAA fees.
     """
     thisyear = date.today().year
+    assert Nq == len(irmaaCosts), f"Inconsistent value of Nq: {Nq}."
+    assert Nq+1 == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
     Ni = len(yobs)
     L = np.zeros((Nn, Nq+1))
     C = np.zeros((Nn, Nq))

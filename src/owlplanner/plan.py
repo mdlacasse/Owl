@@ -1345,8 +1345,8 @@ class Plan(object):
         if options.get("withMedicare", True):
             nm, L_nq, C_nq = tx.mediVals(self.yobs, self.horizons, self.gamma_n, Nn, Nq)
             for n in range(Nn):
-                row = A.newRow()
                 # SOS1 constraint: 1 for n < nm otherwise all zero.
+                row = A.newRow()
                 for q in range(Nq):
                     B.setBinary(_q2(Czm, n, q, Nn, Nq))
                     row.addElem(_q2(Czm, n, q, Nn, Nq), 1)
@@ -1360,11 +1360,12 @@ class Plan(object):
                     row.addElem(_q2(Czm, n, q, Nn, Nq), -C_nq[n, q])
                 A.addRow(row, zero, zero)
 
+                largeM = 2*L_nq[n, Nq]
                 # Medicare brackets calculations.
                 if n >= nm:
                     # Lower bound.
-                    rhs = 0
                     row = A.newRow()
+                    rhs = 0
                     for q in range(0, Nq):
                         row.addElem(_q2(Czm, n, q, Nn, Nq), L_nq[n, q])
                     if n > 2:
@@ -1372,7 +1373,7 @@ class Plan(object):
                             fac = (self.mu * self.alpha_ijkn[i, 0, 0, n-2]
                                    + np.sum(self.alpha_ijkn[i, 0, 1:, n-2] * self.tau_kn[1:, n-2], axis=0))
 
-                            row.addElem(_q3(Cb, i, 0, n-2, Ni, Nj, Nn), -fac)
+                            row.addElem(_q3(Cb, i, 0, n-2, Ni, Nj, Nn + 1), -fac)
                             row.addElem(_q2(Cd, i, n-2, Ni, Nn), -fac)
                             row.addElem(_q3(Cw, i, 0, n-2, Ni, Nj, Nn),
                                         fac - self.alpha_ijkn[i, 0, 0, n-2]*max(0, self.tau_kn[0, n-3]))
@@ -1383,19 +1384,19 @@ class Plan(object):
                     else:
                         rhs = self.prevMAGIs[n]
 
-                    A.addRow(row, zero, rhs)
+                    A.addRow(row, -largeM, rhs)
 
-                    # Upper bound. Can be merged with lower bound at one point.
-                    rhs = 0
+                    # Upper bound. Lots of duplication. Can be merged with lower bound at one point.
                     row = A.newRow()
+                    rhs = largeM
                     for q in range(0, Nq):
-                        row.addElem(_q2(Czm, n, q, Nn, Nq), -L_nq[n, q+1])
+                        row.addElem(_q2(Czm, n, q, Nn, Nq), largeM - L_nq[n, q+1])
                     if n > 2:
                         for i in range(Ni):
                             fac = (self.mu * self.alpha_ijkn[i, 0, 0, n-2]
                                    + np.sum(self.alpha_ijkn[i, 0, 1:, n-2] * self.tau_kn[1:, n-2], axis=0))
 
-                            row.addElem(_q3(Cb, i, 0, n-2, Ni, Nj, Nn), +fac)
+                            row.addElem(_q3(Cb, i, 0, n-2, Ni, Nj, Nn + 1), +fac)
                             row.addElem(_q2(Cd, i, n-2, Ni, Nn), +fac)
                             row.addElem(_q3(Cw, i, 0, n-2, Ni, Nj, Nn),
                                         -fac + self.alpha_ijkn[i, 0, 0, n-2]*max(0, self.tau_kn[0, n-3]))
@@ -1404,9 +1405,9 @@ class Plan(object):
                             rhs -= self.omega_in[i, n-2] + 0.85*self.zetaBar_in[i, n-2] + self.piBar_in[i, n-2]
                             rhs -= 0.5*self.kappa_ijn[i, 0, n-2] * fac
                     else:
-                        rhs = -self.prevMAGIs[n]
+                        rhs = largeM - self.prevMAGIs[n]
 
-                    A.addRow(row, -5e6, rhs)
+                    A.addRow(row, zero, rhs)
 
         # Set mutual exclusions of withdrawals, conversions, and deposits.
         for i in range(Ni):
