@@ -1368,7 +1368,7 @@ class Plan(object):
                     rhs = 0
                     for q in range(0, Nq):
                         row.addElem(_q2(Czm, n, q, Nn, Nq), L_nq[n, q])
-                    if n > 2:
+                    if n > 2 or (n == 2 and self.yearFracLeft == 1):
                         for i in range(Ni):
                             fac = (self.mu * self.alpha_ijkn[i, 0, 0, n-2]
                                    + np.sum(self.alpha_ijkn[i, 0, 1:, n-2] * self.tau_kn[1:, n-2], axis=0))
@@ -1376,7 +1376,7 @@ class Plan(object):
                             row.addElem(_q3(Cb, i, 0, n-2, Ni, Nj, Nn + 1), -fac)
                             row.addElem(_q2(Cd, i, n-2, Ni, Nn), -fac)
                             row.addElem(_q3(Cw, i, 0, n-2, Ni, Nj, Nn),
-                                        fac - self.alpha_ijkn[i, 0, 0, n-2]*max(0, self.tau_kn[0, n-3]))
+                                        fac - self.alpha_ijkn[i, 0, 0, n-2]*max(0, self.tau_kn[0, min(0, n-3)]))
                             row.addElem(_q3(Cw, i, 1, n-2, Ni, Nj, Nn), -1)
                             row.addElem(_q2(Cx, i, n-2, Ni, Nn), -1)
                             rhs += self.omega_in[i, n-2] + 0.85*self.zetaBar_in[i, n-2] + self.piBar_in[i, n-2]
@@ -1391,7 +1391,7 @@ class Plan(object):
                     rhs = largeM
                     for q in range(0, Nq):
                         row.addElem(_q2(Czm, n, q, Nn, Nq), largeM - L_nq[n, q+1])
-                    if n > 2:
+                    if n > 2 or (n == 2 and self.yearFracLeft == 1):
                         for i in range(Ni):
                             fac = (self.mu * self.alpha_ijkn[i, 0, 0, n-2]
                                    + np.sum(self.alpha_ijkn[i, 0, 1:, n-2] * self.tau_kn[1:, n-2], axis=0))
@@ -1399,7 +1399,7 @@ class Plan(object):
                             row.addElem(_q3(Cb, i, 0, n-2, Ni, Nj, Nn + 1), +fac)
                             row.addElem(_q2(Cd, i, n-2, Ni, Nn), +fac)
                             row.addElem(_q3(Cw, i, 0, n-2, Ni, Nj, Nn),
-                                        -fac + self.alpha_ijkn[i, 0, 0, n-2]*max(0, self.tau_kn[0, n-3]))
+                                        -fac + self.alpha_ijkn[i, 0, 0, n-2]*max(0, self.tau_kn[0, min(0, n-3)]))
                             row.addElem(_q3(Cw, i, 1, n-2, Ni, Nj, Nn), +1)
                             row.addElem(_q2(Cx, i, n-2, Ni, Nn), +1)
                             rhs -= self.omega_in[i, n-2] + 0.85*self.zetaBar_in[i, n-2] + self.piBar_in[i, n-2]
@@ -1960,14 +1960,13 @@ class Plan(object):
         self.x_in = np.array(x[Cx:Czx])
         self.x_in = self.x_in.reshape((Ni, Nn))
 
-        # if options.get("withMedicare", True):
-            # z_nq = np.array(x[Czm:])
-            # z_nq = z_nq.reshape((Nn, Nq))
-            # print(z_nq)
+        # self.zx_inz = np.array(x[Czx:Czm])
+        # self.zx_inz = self.zx_inz.reshape((Ni, Nn, Nz))
+        # print(self.zx_inz)
 
-        # self.z_inz = np.array(x[Czx:Czm])
-        # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
-        # print(self.z_inz)
+        if options.get("withMedicare", True):
+            self.zm_nq = np.array(x[Czm:])
+            self.zm_nq = self.zm_nq.reshape((Nn, Nq))
 
         # Partial distribution at the passing of first spouse.
         if Ni == 2 and n_d < Nn:

@@ -695,17 +695,18 @@ def genDic(plan):
 @_checkPlan
 def backYearsMAGI(plan):
     thisyear = date.today().year
+    maybe = 0 if plan.yearFracLeft == 1 else thisyear
     backyears = [0, 0, 0]
     goatyear = min(plan.yobs)
     if thisyear - goatyear >= 65:
         backyears[0] = thisyear - 2
         backyears[1] = thisyear - 1
-        backyears[2] = thisyear
+        backyears[2] = maybe
     elif thisyear - goatyear >= 64:
         backyears[1] = thisyear - 1
-        backyears[2] = thisyear
+        backyears[2] = maybe
     elif thisyear - goatyear >= 63:
-        backyears[2] = thisyear
+        backyears[2] = maybe
 
     return backyears
 

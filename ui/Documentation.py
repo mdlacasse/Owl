@@ -71,7 +71,10 @@ This page also allows you to duplicate and/or rename scenarios, as well as delet
 For creating a scenario from scratch, (first) name(s), marital status, birth year(s),
 and life expectancies are required. A starting date for the plan determines when the plan
 starts in the first year. Plan still ends at the end of the year when all individuals
-have passed according to the specified life expectancies.
+have passed according to the specified life expectancies. Starting a plan at mid-year
+can be useful when numbers are ony available at a specified date (e.g., today), but will
+require providing an estimate for the current year's adjusted income for Medicare calculations.
+When starting at the beginning of the year, this number will be calculated automatically.
 
 A typical workflow will involve creating
 a base case, and duplicating it a few times with slight parameter changes
@@ -277,11 +280,15 @@ the `Roth conv` column on the
 A year from which Roth conversions can begin to be considered can also be selected: no Roth
 conversions will be allowed before the year specified.
 
-Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
-the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
-If the age of individuals makes them eligible for Medicare within the next two years,
-additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for past years.
-These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
+Calculations of Medicare part B premiums and Income-Related Monthly Adjusted Amounts (IRMAA)
+can be turned on or off.
+This will typically speed up the calculations, which can be useful when running Monte Carlo simulations.
+If the age of individuals makes them eligible for Medicare within the next three years,
+additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for these years.
+These numbers are needed to calculate the IRMAAs.
+If the current scenario is starting at mid-year, MAGI for current year might also be requested
+as the events which occurred since the beginning of the year will have a direct impact on
+the current year's MAGI.
 
 The time profile modulating the net spending amount
 can be selected to either be *flat* or follow a *smile* shape.

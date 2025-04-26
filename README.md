@@ -16,7 +16,8 @@ or fixed rates either derived from historical averages, or set by the user.
 
 There are a few ways to run Owl:
 
-- Run Owl directly on the Streamlit Community Server at [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
+- Run Owl directly on the Streamlit Community Server at
+[owlplanner.streamlit.app](https://owlplanner.streamlit.app).
 
 - Run locally on your computer using a Docker image.
 Follow these [instructions](docker/README.md) for this option.
@@ -55,8 +56,8 @@ while providing a codebase where they can learn and contribute. There are and we
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
 collecting your data, or academic papers that share the results without really sharing the details of
 the underlying mathematical models.
-The algorithms in Owl rely on the open-source HiGHS linear programming solver. The complete formulation and
-detailed description of the underlying
+The algorithms in Owl rely on the open-source HiGHS linear programming solver.
+The complete formulation and detailed description of the underlying
 mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
 It is anticipated that most end users will use Owl through the graphical interface
@@ -69,16 +70,18 @@ Not every retirement decision strategy can be framed as an easy-to-solve optimiz
 In particular, if one is interested in comparing different withdrawal strategies,
 [FI Calc](ficalc.app) is an elegant application that addresses this need.
 If, however, you also want to optimize spending, bequest, and Roth conversions, with
-an approach also considering Medicare and federal income tax over the next few years,
+an approach also considering Medicare costs and federal income tax over the next few years,
 then Owl is definitely a tool that can help guide your decisions.
 
 --------------------------------------------------------------------------------------
 ## Capabilities
-Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero),
+Owl can optimize for either the maximum net spending amount under the constraint
+of a given bequest (which can be zero),
 or maximize the after-tax value of a bequest under the constraint of a desired net spending profile,
-and under the assumption of a heirs marginal tax rate.
-Roth conversions are also considered, subject to an optional maximum conversion amount,
-and optimized to suit the goals of the selected objective function.
+under the assumption of a heirs marginal tax rate.
+Roth conversions are also considered, subject to an optional maximum Roth conversion amount,
+and optimized to suit the goals of the selected objective function, while considering
+Medicare costs, and federal income tax under different rates of return assumptions.
 All calculations are indexed for inflation, which is either provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 These rates can be used for backtesting different scenarios by choosing
@@ -136,29 +139,29 @@ which are all tracked separately for married individuals. Asset transition to th
 is done according to beneficiary fractions for each type of savings account.
 Tax status covers married filing jointly and single, depending on the number of individuals reported.
 
-Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints.
+Federal income tax, Medicare part B premiums, and IRMAA calculations are part of the optimization.
 Future values are simple projections of current values with the assumed inflation rates.
 
 ### Limitations
 Owl is work in progress. At the current time:
 - Only the US federal income tax is considered (and minimized through the optimization algorithm).
 Head of household filing status has not been added but can easily be.
-- Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not included.
+- Required minimum distributions are always performed and calculated,
+but tables for spouses more than 10 years apart are not included.
 These cases are detected and will generate an error message.
 - Social security rule for surviving spouse assumes that benefits were taken at full retirement age.
-- Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
-If there is interest, that could be added in the future.
 - In the current implementation, social securiy is always taxed at 85%.
-- Medicare calculations are done through a self-consistent loop.
-This means that the Medicare premiums are calculated after an initial solution is generated,
-and then a new solution is re-generated with these premiums as a constraint.
-In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise.
-While the solutions generated are very close to one another, Owl will pick the smallest solution
-for being conservative.
+- Medicare calculations require the use of binary variables which add to the computational costs.
+I've observed run requiring up to 10 seconds.
+These calculations can be turned off when shorter time to solutions are required.
+The use of a commercial solver (e.g. MOSEK) can substantially reduce computing time
+but require a license.
 - Part D is not included in the IRMAA calculations. Being considerably more significant,
 only Part B is taken into account. 
-- Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years.
-Your guesses are as good as mine.
+- Future tax brackets are pure speculations derived from the little we know now and projected
+to the next 30 years. Your guesses are as good as mine.
+- Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
+If there is interest, that could be added in the future.
 
 The solution from an optimization algorithm has only two states: feasible and infeasible.
 Therefore, unlike event-driven simulators that can tell you that your distribution strategy runs
@@ -171,7 +174,8 @@ assets to support, even with no estate being left.
 ---------------------------------------------------------------
 ## Documentation
 
-- Documentation for the app user interface is available from the interface [itself](https://owlplanner.streamlit.app/Documentation).
+- Documentation for the app user interface is available from the interface
+[itself](https://owlplanner.streamlit.app/Documentation).
 - Installation guide and software requirements can be found [here](INSTALL.md).
 - User guide for the underlying Python package as used in a Jupyter notebook can be found [here](USER_GUIDE.md).
 
@@ -188,7 +192,7 @@ assets to support, even with no estate being left.
 
 ---------------------------------------------------------------------
 
-Copyright &copy; 2024 - Martin-D. Lacasse
+Copyright &copy; 2025 - Martin-D. Lacasse
 
 Disclaimers: I am not a financial planner. You make your own decisions.
 This program comes with no guarantee. Use at your own risk.
