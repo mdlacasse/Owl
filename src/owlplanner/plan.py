@@ -1774,7 +1774,7 @@ class Plan(object):
         """
         from scipy import optimize
 
-        # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
+        # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions. Default 1e-4.
         milpOptions = {"disp": False, "mip_rel_gap": 1e-6}
 
         self._buildConstraints(objective, options)
