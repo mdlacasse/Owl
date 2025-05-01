@@ -52,10 +52,10 @@ else:
         kz.initKey("maxRothConversion", 50)
         ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion", disabled=fromFile, help=helpmsg)
         ret = kz.getToggle("Convert as in wages and contributions tables", "readRothX")
-        kz.initKey("oppCostX", 0.)
-        helpmsg = "Estimated opportunity cost for paying estimated tax on Roth conversions."
-        ret = kz.getNum("Opportunity cost for conversion (%)", "oppCostX", step=0.01, format="%.2f",
-                        min_value=0., max_value=5., help=helpmsg)
+        # kz.initKey("oppCostX", 0.)
+        # helpmsg = "Estimated opportunity cost for paying estimated tax on Roth conversions."
+        # ret = kz.getNum("Opportunity cost for conversion (%)", "oppCostX", step=0.01, format="%.2f",
+        #                min_value=0., max_value=5., help=helpmsg)
 
     with col2:
         helpmsg = "Do not perform Roth conversions before that year."
