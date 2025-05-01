@@ -12,23 +12,23 @@ st.write(f"This is Owl version {owb.version()} running on Streamlit {st.__versio
 
 st.write(
     """
-- Owl is released under GPL Licence through a publicly available
-repository on [GitHub](https://github.com/mdlacasse/owl).
-
+- Owl is an open-source retirement planner capable of optimization through linear programming.
+- Source code is available from a repository on [GitHub](https://github.com/mdlacasse/owl).
 - Mathematical formulation of the linear optimization problem can be
-found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
+found in this [document](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
-Copyright &copy; 2024 - Martin-D. Lacasse
+Copyright &copy; 2025 - Martin-D. Lacasse
 
 #### :orange[Credits]
 - Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
-- Linear programming optimization solver is from [HiGHS](https://highs.dev).
+- Linear programming optimization solvers are from [HiGHS](https://highs.dev) and [PuLP](https://coin-or.github.io/pulp/).
 - Owl planner relies on the following [Python](https://python.org) packages:
     - [Matplotlib](https://matplotlib.org),
     [Numpy](https://numpy.org),
     [odfpy](https://https://pypi.org/project/odfpy),
     [openpyxl](https://openpyxl.readthedocs.io),
     [Pandas](https://pandas.pydata.org),
+    [PuLP](https://coin-or.github.io/pulp),
     [Scipy](https://scipy.org),
     [Seaborn](https://seaborn.pydata.org),
     [toml](https://toml.io),
@@ -47,6 +47,9 @@ or directly by [email](mailto://martin.d.lacasse@gmail.com).
 - This app does not store or forward any information. All data entered is lost
 after a session is closed. You can choose to download selected parts of your
 own data to your computer before closing the session.
+
+#### :orange[License]
+- This software is released under the [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
 #### :orange[Disclaimer]
 - This program is provided for educational purposes and comes with no guarantee. Use at your own risk.
