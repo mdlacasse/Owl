@@ -82,12 +82,13 @@ else:
                 if years[ii] > 0:
                     ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
+    st.divider()
+    st.write("##### Solver")
+    choices = ["HiGHS", "PuLP/CBC"]
     if owb.hasMOSEK():
-        st.divider()
-        st.write("##### Solver")
-        choices = ["HiGHS", "MOSEK"]
-        kz.initKey("solver", choices[0])
-        ret = kz.getRadio("Linear programming solver", choices, "solver")
+        choices += ["MOSEK"]
+    kz.initKey("solver", choices[0])
+    ret = kz.getRadio("Linear programming solver", choices, "solver")
 
     st.divider()
     st.write("##### Spending Profile")

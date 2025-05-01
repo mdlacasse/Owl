@@ -4,7 +4,8 @@ seaborn
 pandas
 openpyxl
 odfpy
+pulp
 scipy
 streamlit
 toml
-owlplanner >= 2025.04.26
+owlplanner >= 2025.05.01

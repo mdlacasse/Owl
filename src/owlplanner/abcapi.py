@@ -47,12 +47,10 @@ class Row(object):
         self.ind.append(ind)
         self.val.append(val)
 
-    def addElemDic(self, rowDic=None):
+    def addElemDic(self, rowDic={}):
         """
         Add elements at indices provided by a dictionary.
         """
-        if rowDic is None:
-            rowDic = {}
         for key in rowDic:
             self.addElem(key, rowDic[key])
         return self
@@ -75,13 +73,11 @@ class ConstraintMatrix(object):
         self.ub = []
         self.key = []
 
-    def newRow(self, rowDic=None):
+    def newRow(self, rowDic={}):
         """
         Create a new row and populate its elements using the dictionary provided.
         Return the row created.
         """
-        if rowDic is None:
-            rowDic = {}
         row = Row(self.nvars)
         row.addElemDic(rowDic)
         return row
@@ -97,8 +93,12 @@ class ConstraintMatrix(object):
         self.ub.append(ub)
         if lb == ub:
             self.key.append("fx")
+        elif ub == np.inf and lb == -np.inf:
+            self.key.append("fr")
         elif ub == np.inf:
             self.key.append("lo")
+        elif lb == -np.inf:
+            self.key.append("up")
         else:
             self.key.append("ra")
         self.ncons += 1
@@ -145,13 +145,16 @@ class Bounds(object):
     Solver-neutral API for bounds on variables.
     """
 
-    def __init__(self, nvars):
+    def __init__(self, nvars, nbins):
         self.nvars = nvars
+        self.nbins = nbins
         self.ind = []
         self.lb = []
         self.ub = []
         self.key = []
         self.integrality = []
+        for ii in range(nvars-nbins, nvars):
+            self.setBinary(ii)
 
     def setBinary(self, ii):
         assert 0 <= ii and ii < self.nvars, f"Index {ii} out of range."
@@ -161,27 +164,20 @@ class Bounds(object):
         self.key.append("ra")
         self.integrality.append(ii)
 
-    def set0_Ub(self, ii, ub):
-        assert 0 <= ii and ii < self.nvars, f"Index {ii} out of range."
-        self.ind.append(ii)
-        self.lb.append(0)
-        self.ub.append(ub)
-        self.key.append("ra")
-
-    def setLb_Inf(self, ii, lb):
-        assert 0 <= ii and ii < self.nvars, f"Index {ii} out of range."
-        self.ind.append(ii)
-        self.lb.append(lb)
-        self.ub.append(np.inf)
-        self.key.append("lo")
-
     def setRange(self, ii, lb, ub):
         assert 0 <= ii and ii < self.nvars, f"Index {ii} out of range."
+        assert lb <= ub, f"Lower bound {lb} > upper bound {ub}."
         self.ind.append(ii)
         self.lb.append(lb)
         self.ub.append(ub)
         if lb == ub:
             self.key.append("fx")
+        elif ub == np.inf and lb == -np.inf:
+            self.key.append("fr")
+        elif ub == np.inf:
+            self.key.append("lo")
+        elif lb == -np.inf:
+            self.key.append("up")
         else:
             self.key.append("ra")
 

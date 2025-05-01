@@ -285,6 +285,14 @@ and past 2 years, when applicable. Values default to zero.
 These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
 MAGI for current year is required as it allows plan to start in mid-year for the first year.
 
+Different solvers can be selected. This option is mostly for verification purposes. All solvers
+tested (HiGHS, COIN-OR Branch-and-Cut solver, and MOSEK) provided very similar results.
+Due to the mixed integer formulation, solver performance is sometimes unpredictable.
+In general, CBC will tend to be slower, partly because of the algorithm,
+and partly because it solves the problem through a model description saved in
+a temporary file requiring I/O.
+Using HiGHS for most cases provides very good results.
+
 The time profile modulating the net spending amount
 can be selected to either be *flat* or follow a *smile* shape.
 The smile shape has three configurable parameters: a *dip* percentage

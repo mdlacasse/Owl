@@ -1026,7 +1026,7 @@ class Plan(object):
         Utility function to map variables to a block vector.
         Refer to companion document for explanations.
         """
-        # Stack all variables in a single block vector.
+        # Stack all variables in a single block vector with all binary variables at the end.
         C = {}
         C["b"] = 0
         C["d"] = _qC(C["b"], self.N_i, self.N_j, self.N_n + 1)
@@ -1038,9 +1038,13 @@ class Plan(object):
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
         C["z"] = _qC(C["x"], self.N_i, self.N_n)
         self.nvars = _qC(C["z"], self.N_i, self.N_n, self.N_z)
+        self.nbins = self.nvars - C["z"]
+        # # self.nvars = _qC(C["x"], self.N_i, self.N_n)
+        # # self.nbins = 0
 
         self.C = C
-        self.mylog.vprint(f"Problem has {len(C)} distinct time series forming {self.nvars} decision variables.")
+        self.mylog.vprint(
+            f"Problem has {len(C)} distinct series, {self.nvars} decision variables (including {self.nbins} binary).")
 
         return None
 
@@ -1095,7 +1099,7 @@ class Plan(object):
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
         A = abc.ConstraintMatrix(self.nvars)
-        B = abc.Bounds(self.nvars)
+        B = abc.Bounds(self.nvars, self.nbins)
 
         # RMDs inequalities, only if there is an initial balance in tax-deferred account.
         for i in range(Ni):
@@ -1110,11 +1114,19 @@ class Plan(object):
         # Income tax bracket range inequalities.
         for t in range(Nt):
             for n in range(Nn):
-                B.set0_Ub(_q2(CF, t, n, Nt, Nn), self.DeltaBar_tn[t, n])
+                B.setRange(_q2(CF, t, n, Nt, Nn), zero, self.DeltaBar_tn[t, n])
 
         # Standard exemption range inequalities.
         for n in range(Nn):
-            B.set0_Ub(_q1(Ce, n, Nn), self.sigmaBar_n[n])
+            B.setRange(_q1(Ce, n, Nn), zero, self.sigmaBar_n[n])
+
+        # Start with no activities after passing.
+        for i in range(Ni):
+            for n in range(self.horizons[i], Nn):
+                B.setRange(_q2(Cd, i, n, Ni, Nn), zero, zero)
+                B.setRange(_q2(Cx, i, n, Ni, Nn), zero, zero)
+                for j in range(Nj):
+                    B.setRange(_q3(Cw, i, j, n, Ni, Nj, Nn), zero, zero)
 
         # Roth conversions equalities/inequalities.
         # This condition supercedes everything else.
@@ -1136,8 +1148,9 @@ class Plan(object):
                     # self.mylog.vprint('Limiting Roth conversions to:', u.d(rhsopt))
                     for i in range(Ni):
                         for n in range(self.horizons[i]):
-                            #  Should we adjust Roth conversion cap with inflation?
-                            B.set0_Ub(_q2(Cx, i, n, Ni, Nn), rhsopt)
+                            # MOSEK chokes if completely zero. Add a 1 cent slack.
+                            # Should we adjust Roth conversion cap with inflation?
+                            B.setRange(_q2(Cx, i, n, Ni, Nn), zero, rhsopt + 0.01)
 
             # Process startRothConversions option.
             if "startRothConversions" in options:
@@ -1149,7 +1162,7 @@ class Plan(object):
                 for i in range(Ni):
                     nstart = min(yearn, self.horizons[i])
                     for n in range(0, nstart):
-                        B.set0_Ub(_q2(Cx, i, n, Ni, Nn), zero)
+                        B.setRange(_q2(Cx, i, n, Ni, Nn), zero, zero)
 
             # Process noRothConversions option. Also valid when N_i == 1, why not?
             if "noRothConversions" in options and options["noRothConversions"] != "None":
@@ -1160,7 +1173,7 @@ class Plan(object):
                     raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:")
 
                 for n in range(Nn):
-                    B.set0_Ub(_q2(Cx, i_x, n, Ni, Nn), zero)
+                    B.setRange(_q2(Cx, i_x, n, Ni, Nn), zero, zero)
 
         # Impose withdrawal limits on taxable and tax-exempt accounts.
         for i in range(Ni):
@@ -1206,13 +1219,15 @@ class Plan(object):
             spending *= units * self.yearFracLeft
             # self.mylog.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
             # To allow slack in first year, Cg can be made Nn+1 and store basis in g[Nn].
-            A.addNewRow({_q1(Cg, 0, Nn): 1}, spending, spending)
+            # A.addNewRow({_q1(Cg, 0, Nn): 1}, spending, spending)
+            B.setRange(_q1(Cg, 0, Nn), spending, spending)
 
-        # Set initial balances through constraints.
+        # Set initial balances through bounds or constraints.
         for i in range(Ni):
             for j in range(Nj):
                 rhs = self.beta_ij[i, j]
-                A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
+                # A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
+                B.setRange(_q3(Cb, i, j, 0, Ni, Nj, Nn + 1), rhs, rhs)
 
         # Link surplus and taxable account deposits regardless of Ni.
         for i in range(Ni):
@@ -1226,20 +1241,20 @@ class Plan(object):
                 A.addNewRow(rowDic, zero, zero)
 
         # No surplus allowed during the last year to be used as a tax loophole.
-        B.set0_Ub(_q1(Cs, Nn - 1, Nn), zero)
+        B.setRange(_q1(Cs, Nn - 1, Nn), zero, zero)
 
         if Ni == 2:
             # No conversion during last year.
-            # B.set0_Ub(_q2(Cx, i_d, nd-1, Ni, Nn), zero)
-            # B.set0_Ub(_q2(Cx, i_s, Nn-1, Ni, Nn), zero)
+            # B.setRange(_q2(Cx, i_d, nd-1, Ni, Nn), zero, zero)
+            # B.setRange(_q2(Cx, i_s, Nn-1, Ni, Nn), zero, zero)
 
             # No withdrawals or deposits for any i_d-owned accounts after year of passing.
             # Implicit n_d < Nn imposed by for loop.
             for n in range(n_d, Nn):
-                B.set0_Ub(_q2(Cd, i_d, n, Ni, Nn), zero)
-                B.set0_Ub(_q2(Cx, i_d, n, Ni, Nn), zero)
+                B.setRange(_q2(Cd, i_d, n, Ni, Nn), zero, zero)
+                B.setRange(_q2(Cx, i_d, n, Ni, Nn), zero, zero)
                 for j in range(Nj):
-                    B.set0_Ub(_q3(Cw, i_d, j, n, Ni, Nj, Nn), zero)
+                    B.setRange(_q3(Cw, i_d, j, n, Ni, Nj, Nn), zero, zero)
 
         # Account balances carried from year to year.
         # Considering spousal asset transfer at passing of a spouse.
@@ -1312,8 +1327,8 @@ class Plan(object):
 
         # Impose income profile.
         for n in range(1, Nn):
-            rowDic = {_q1(Cg, 0, Nn): -spLo * self.xiBar_n[n], _q1(Cg, n, Nn): self.xiBar_n[0]}
-            A.addNewRow(rowDic, zero, inf)
+            rowDic = {_q1(Cg, 0, Nn): spLo * self.xiBar_n[n], _q1(Cg, n, Nn): -self.xiBar_n[0]}
+            A.addNewRow(rowDic, -inf, zero)
             rowDic = {_q1(Cg, 0, Nn): spHi * self.xiBar_n[n], _q1(Cg, n, Nn): -self.xiBar_n[0]}
             A.addNewRow(rowDic, zero, inf)
 
@@ -1343,8 +1358,8 @@ class Plan(object):
         # Configure binary variables.
         for i in range(Ni):
             for n in range(self.horizons[i]):
-                for z in range(Nz):
-                    B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
+                # for z in range(Nz):
+                #     B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
 
                 # Exclude simultaneous deposits and withdrawals from taxable or tax-free accounts.
                 A.addNewRow(
@@ -1375,6 +1390,10 @@ class Plan(object):
                     zero,
                     bigM,
                 )
+
+            for n in range(self.horizons[i], Nn):
+                B.setRange(_q3(Cz, i, n, 0, Ni, Nn, Nz), zero, zero)
+                B.setRange(_q3(Cz, i, n, 1, Ni, Nn, Nz), zero, zero)
 
         # Now build a solver-neutral objective vector.
         c = abc.Objective(self.nvars)
@@ -1597,7 +1616,7 @@ class Plan(object):
 
     @_checkConfiguration
     @_timer
-    def solve(self, objective, options=None):
+    def solve(self, objective, options={}):
         """
         This function builds the necessary constaints and
         runs the optimizer.
@@ -1622,7 +1641,8 @@ class Plan(object):
 
         # Check objective and required options.
         knownObjectives = ["maxBequest", "maxSpending"]
-        knownSolvers = ["HiGHS", "MOSEK"]
+        knownSolvers = ["HiGHS", "PuLP/CBC", "MOSEK"]
+
         knownOptions = [
             "bequest",
             "bigM",
@@ -1636,11 +1656,8 @@ class Plan(object):
             "units",
             "withMedicare",
         ]
-        # We will modify options if required.
-        if options is None:
-            myoptions = {}
-        else:
-            myoptions = dict(options)
+        # We might modify options if required.
+        myoptions = dict(options)
 
         for opt in myoptions:
             if opt not in knownOptions:
@@ -1672,38 +1689,37 @@ class Plan(object):
             units = u.getUnits(options.get("units", "k"))
             self.prevMAGI = units * np.array(magi)
 
-        self.lambdha = 0
-        if "spendingSlack" in myoptions:
-            lambdha = myoptions["spendingSlack"]
-            if lambdha < 0 or lambdha > 50:
-                raise ValueError(f"Slack value out of range {lambdha}.")
-            self.lambdha = lambdha / 100
+        lambdha = myoptions.get("spendingSlack", 0)
+        if lambdha < 0 or lambdha > 50:
+            raise ValueError(f"Slack value out of range {lambdha}.")
+        self.lambdha = lambdha / 100
 
         self._adjustParameters()
 
-        if "solver" in options:
-            solver = myoptions["solver"]
-            if solver not in knownSolvers:
-                raise ValueError(f"Unknown solver {solver}.")
-        else:
-            solver = self.defaultSolver
+        solver = myoptions.get("solver", self.defaultSolver)
+        if solver not in knownSolvers:
+            raise ValueError(f"Unknown solver {solver}.")
 
         if solver == "HiGHS":
-            self._milpSolve(objective, myoptions)
+            solverMethod = self._milpSolve
+        elif solver == "PuLP/CBC":
+            solverMethod = self._pulpSolve
         elif solver == "MOSEK":
-            self._mosekSolve(objective, myoptions)
+            solverMethod = self._mosekSolve
+        else:
+            raise RuntimeError("Internal error in defining solverMethod.")
+
+        self._scSolve(objective, options, solverMethod)
 
         self.objective = objective
         self.solverOptions = myoptions
 
         return None
 
-    def _milpSolve(self, objective, options):
+    def _scSolve(self, objective, options, solverMethod):
         """
-        Solve problem using scipy HiGHS solver.
+        Self-consistent loop, regardless of solver.
         """
-        from scipy import optimize
-
         withMedicare = options.get("withMedicare", True)
 
         if objective == "maxSpending":
@@ -1711,151 +1727,23 @@ class Plan(object):
         else:
             objFac = -1 / self.gamma_n[-1]
 
-        # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
-        milpOptions = {"disp": False, "mip_rel_gap": 1e-7}
-
         it = 0
         absdiff = np.inf
         old_x = np.zeros(self.nvars)
         old_solutions = [np.inf]
         self._estimateMedicare(None, withMedicare)
         while True:
-            self._buildConstraints(objective, options)
-            Alu, lbvec, ubvec = self.A.arrays()
-            Lb, Ub = self.B.arrays()
-            integrality = self.B.integralityArray()
-            c = self.c.arrays()
+            solution, xx, solverSuccess, solverMsg = solverMethod(objective, options)
 
-            bounds = optimize.Bounds(Lb, Ub)
-            constraint = optimize.LinearConstraint(Alu, lbvec, ubvec)
-            solution = optimize.milp(
-                c,
-                integrality=integrality,
-                constraints=constraint,
-                bounds=bounds,
-                options=milpOptions,
-            )
-            it += 1
-
-            if not solution.success:
+            if not solverSuccess:
                 break
 
             if not withMedicare:
                 break
 
-            self._estimateMedicare(solution.x)
-
-            self.mylog.vprint(f"Iteration: {it} objective: {u.d(solution.fun * objFac, f=2)}")
-
-            delta = solution.x - old_x
-            absdiff = np.sum(np.abs(delta), axis=0)
-            if absdiff < 1:
-                self.mylog.vprint("Converged on full solution.")
-                break
-
-            # Avoid oscillatory solutions. Look only at most recent solutions. Within $10.
-            isclosenough = abs(-solution.fun - min(old_solutions[int(it / 2) :])) < 10 * self.xi_n[0]
-            if isclosenough:
-                self.mylog.vprint("Converged through selecting minimum oscillating objective.")
-                break
-
-            if it > 59:
-                self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
-                break
-
-            old_solutions.append(-solution.fun)
-            old_x = solution.x
-
-        if solution.success:
-            self.mylog.vprint(f"Self-consistent Medicare loop returned after {it} iterations.")
-            self.mylog.vprint(solution.message)
-            self.mylog.vprint(f"Objective: {u.d(solution.fun * objFac)}")
-            # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
-            self._aggregateResults(solution.x)
-            self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
-            self.caseStatus = "solved"
-        else:
-            self.mylog.vprint("WARNING: Optimization failed:", solution.message, solution.success)
-            self.caseStatus = "unsuccessful"
-
-        return None
-
-    def _mosekSolve(self, objective, options):
-        """
-        Solve problem using MOSEK solver.
-        """
-        import mosek
-
-        withMedicare = options.get("withMedicare", True)
-
-        if objective == "maxSpending":
-            objFac = -1 / self.xi_n[0]
-        else:
-            objFac = -1 / self.gamma_n[-1]
-
-        # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
-
-        bdic = {
-            "fx": mosek.boundkey.fx,
-            "fr": mosek.boundkey.fr,
-            "lo": mosek.boundkey.lo,
-            "ra": mosek.boundkey.ra,
-            "up": mosek.boundkey.up,
-        }
-
-        it = 0
-        absdiff = np.inf
-        old_x = np.zeros(self.nvars)
-        old_solutions = [np.inf]
-        self._estimateMedicare(None, withMedicare)
-        while True:
-            self._buildConstraints(objective, options)
-            Aind, Aval, clb, cub = self.A.lists()
-            ckeys = self.A.keys()
-            vlb, vub = self.B.arrays()
-            integrality = self.B.integralityList()
-            vkeys = self.B.keys()
-            cind, cval = self.c.lists()
-
-            task = mosek.Task()
-            # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-5)
-            # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 1e-4)
-            # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
-            task.appendcons(self.A.ncons)
-            task.appendvars(self.A.nvars)
-
-            for ii in range(len(cind)):
-                task.putcj(cind[ii], cval[ii])
-
-            for ii in range(self.nvars):
-                task.putvarbound(ii, bdic[vkeys[ii]], vlb[ii], vub[ii])
-
-            for ii in range(len(integrality)):
-                task.putvartype(integrality[ii], mosek.variabletype.type_int)
-
-            for ii in range(self.A.ncons):
-                task.putarow(ii, Aind[ii], Aval[ii])
-                task.putconbound(ii, bdic[ckeys[ii]], clb[ii], cub[ii])
-
-            task.putobjsense(mosek.objsense.minimize)
-            task.optimize()
-
-            solsta = task.getsolsta(mosek.soltype.itg)
-            # prosta = task.getprosta(mosek.soltype.itg)
-            it += 1
-
-            if solsta != mosek.solsta.integer_optimal:
-                break
-
-            xx = np.array(task.getxx(mosek.soltype.itg))
-            solution = task.getprimalobj(mosek.soltype.itg)
-
-            if withMedicare is False:
-                break
-
             self._estimateMedicare(xx)
 
-            self.mylog.vprint("Iteration:", it, "objective:", u.d(solution * objFac, f=2))
+            self.mylog.vprint(f"Iteration: {it} objective: {u.d(solution * objFac, f=2)}")
 
             delta = xx - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
@@ -1876,22 +1764,167 @@ class Plan(object):
             old_solutions.append(-solution)
             old_x = xx
 
-        task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
-        # task.writedata(self._name+'.ptf')
-        if solsta == mosek.solsta.integer_optimal:
+        if solverSuccess:
             self.mylog.vprint(f"Self-consistent Medicare loop returned after {it} iterations.")
-            task.solutionsummary(mosek.streamtype.msg)
-            self.mylog.vprint("Objective:", u.d(solution * objFac))
-            self.caseStatus = "solved"
+            self.mylog.vprint(solverMsg)
+            self.mylog.vprint(f"Objective: {u.d(solution * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(xx)
-            self._timestamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+            self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
+            self.caseStatus = "solved"
         else:
-            self.mylog.vprint("WARNING: Optimization failed:", "Infeasible or unbounded.")
-            task.solutionsummary(mosek.streamtype.msg)
+            self.mylog.vprint("WARNING: Optimization failed:", solverMsg, solverSuccess)
             self.caseStatus = "unsuccessful"
 
         return None
+
+    def _milpSolve(self, objective, options):
+        """
+        Solve problem using scipy HiGHS solver.
+        """
+        from scipy import optimize
+
+        # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
+        milpOptions = {"disp": False, "mip_rel_gap": 1e-7}
+
+        self._buildConstraints(objective, options)
+        Alu, lbvec, ubvec = self.A.arrays()
+        Lb, Ub = self.B.arrays()
+        integrality = self.B.integralityArray()
+        c = self.c.arrays()
+
+        bounds = optimize.Bounds(Lb, Ub)
+        constraint = optimize.LinearConstraint(Alu, lbvec, ubvec)
+        solution = optimize.milp(
+            c,
+            integrality=integrality,
+            constraints=constraint,
+            bounds=bounds,
+            options=milpOptions,
+        )
+
+        return solution.fun, solution.x, solution.success, solution.message
+
+    def _pulpSolve(self, objective, options):
+        """
+        Solve problem using scipy PuLP solver.
+        """
+        import pulp
+
+        self._buildConstraints(objective, options)
+        Alu, lbvec, ubvec = self.A.arrays()
+        ckeys = self.A.keys()
+        Lb, Ub = self.B.arrays()
+        vkeys = self.B.keys()
+        c = self.c.arrays()
+        c_list = c.tolist()
+
+        prob = pulp.LpProblem(self._name.replace(" ", "_"), pulp.LpMinimize)
+
+        x = []
+        for i in range(self.nvars - self.nbins):
+            if vkeys[i] == "ra":
+                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=Lb[i], upBound=Ub[i])]
+            elif vkeys[i] == "lo":
+                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=Lb[i], upBound=None)]
+            elif vkeys[i] == "up":
+                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=None, upBound=Ub[i])]
+            elif vkeys[i] == "fr":
+                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=None, upBound=None)]
+            elif vkeys[i] == "fx":
+                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=Lb[i], upBound=Ub[i])]
+            else:
+                raise RuntimeError(f"Internal error: Variable with wierd bound f{vkeys[i]}.")
+
+        x.extend([pulp.LpVariable(f"z_{i}", cat="Binary") for i in range(self.nbins)])
+
+        prob += pulp.lpDot(c_list, x)
+
+        for r in range(self.A.ncons):
+            row = Alu[r].tolist()
+            if ckeys[r] in ["lo", "ra"] and lbvec[r] != -np.inf:
+                prob += pulp.lpDot(row, x) >= lbvec[r]
+            if ckeys[r] in ["up", "ra"] and ubvec[r] != np.inf:
+                prob += pulp.lpDot(row, x) <= ubvec[r]
+            if ckeys[r] == "fx":
+                prob += pulp.lpDot(row, x) == ubvec[r]
+
+        # prob.writeLP("C:\\Users\\marti\\Downloads\\pulp.lp")
+        # prob.writeMPS("C:\\Users\\marti\\Downloads\\pulp.mps", rename=True)
+        # solver_list = pulp.listSolvers(onlyAvailable=True)
+        # print("Available solvers:", solver_list)
+        # solver = pulp.getSolver("MOSEK")
+        # prob.solve(solver)
+
+        prob.solve(pulp.PULP_CBC_CMD(msg=False))
+        # Filter out None values and convert to array.
+        xx = np.array([0 if x[i].varValue is None else x[i].varValue for i in range(self.nvars)])
+        solution = np.dot(c, xx)
+        success = (pulp.LpStatus[prob.status] == "Optimal")
+
+        return solution, xx, success, pulp.LpStatus[prob.status]
+
+    def _mosekSolve(self, objective, options):
+        """
+        Solve problem using MOSEK solver.
+        """
+        import mosek
+
+        bdic = {
+            "fx": mosek.boundkey.fx,
+            "fr": mosek.boundkey.fr,
+            "lo": mosek.boundkey.lo,
+            "ra": mosek.boundkey.ra,
+            "up": mosek.boundkey.up,
+        }
+
+        solverMsg = str()
+
+        def _streamPrinter(text, msg=solverMsg):
+            msg += text
+
+        self._buildConstraints(objective, options)
+        Aind, Aval, clb, cub = self.A.lists()
+        ckeys = self.A.keys()
+        vlb, vub = self.B.arrays()
+        integrality = self.B.integralityList()
+        vkeys = self.B.keys()
+        cind, cval = self.c.lists()
+
+        task = mosek.Task()
+        # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)
+        # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 1e-4)
+        # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
+        task.appendcons(self.A.ncons)
+        task.appendvars(self.A.nvars)
+
+        for ii in range(len(cind)):
+            task.putcj(cind[ii], cval[ii])
+
+        for ii in range(self.nvars):
+            task.putvarbound(ii, bdic[vkeys[ii]], vlb[ii], vub[ii])
+
+        for ii in range(len(integrality)):
+            task.putvartype(integrality[ii], mosek.variabletype.type_int)
+
+        for ii in range(self.A.ncons):
+            task.putarow(ii, Aind[ii], Aval[ii])
+            task.putconbound(ii, bdic[ckeys[ii]], clb[ii], cub[ii])
+
+        task.putobjsense(mosek.objsense.minimize)
+        task.optimize()
+
+        # Problem MUST contain binary variables to make these calls.
+        solsta = task.getsolsta(mosek.soltype.itg)
+        solverSuccess = (solsta == mosek.solsta.integer_optimal)
+
+        xx = np.array(task.getxx(mosek.soltype.itg))
+        solution = task.getprimalobj(mosek.soltype.itg)
+        task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
+        task.solutionsummary(mosek.streamtype.msg)
+        # task.writedata(self._name+'.ptf')
+
+        return solution, xx, solverSuccess, solverMsg
 
     def _estimateMedicare(self, x=None, withMedicare=True):
         """
@@ -3062,13 +3095,3 @@ def _formatSpreadsheet(ws, ftype):
                 cell.number_format = fstring
 
     return None
-
-
-def _streamPrinter(text):
-    """
-    Define a stream printer to grab output from MOSEK.
-    """
-    import sys
-
-    sys.stdout.write(text)
-    sys.stdout.flush()
