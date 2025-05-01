@@ -4,6 +4,7 @@ seaborn
 pandas
 openpyxl
 odfpy
+pulp
 scipy
 streamlit
 toml

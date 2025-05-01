@@ -88,7 +88,8 @@ else:
     if owb.hasMOSEK():
         choices += ["MOSEK"]
     kz.initKey("solver", choices[0])
-    ret = kz.getRadio("Linear programming solver", choices, "solver")
+    helpmsg = "Select different solvers for comparison purposes. Use HiGHS for best performance."
+    ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
 
     st.divider()
     st.write("##### Spending Profile")
