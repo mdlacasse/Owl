@@ -8,4 +8,4 @@ pulp
 scipy
 streamlit
 toml
-owlplanner >= 2025.05.01
+owlplanner >= 2025.05.02

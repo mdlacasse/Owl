@@ -277,6 +277,15 @@ the `Roth conv` column on the
 A year from which Roth conversions can begin to be considered can also be selected: no Roth
 conversions will be allowed before the year specified.
 
+In order to mitigate cases where Roth conversions can only provide marginal gains,
+an opportunity cost can be set for Roth conversions. This value is
+a percentage amount removed from the Roth conversion to compensate for the
+opportunity loss resulting from the payment of estimated income tax.
+This is a heuristical approach
+creating a virtual penalty on conversions resulting in a smaller amount
+being deposited in the tax-exempt account.
+Opportunity cost is configurable from 0 to 5%. Leave to 0% if unsure.
+
 Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
 the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
 If the age of individuals makes them eligible for Medicare within the next three years,

@@ -1081,6 +1081,9 @@ class Plan(object):
         spLo = 1 - self.lambdha
         spHi = 1 + self.lambdha
 
+        oppCostX = options.get("oppCostX", 0.)
+        xnet = 1 - oppCostX/100.
+
         tau_ijn = np.zeros((Ni, Nj, Nn))
         for i in range(Ni):
             for j in range(Nj):
@@ -1277,7 +1280,7 @@ class Plan(object):
                     row.addElem(_q2(Cd, i, n, Ni, Nn), -fac1 * u.krond(j, 0) * Tau1_ijn[i, 0, n])
                     row.addElem(
                         _q2(Cx, i, n, Ni, Nn),
-                        -fac1 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n],
+                        -fac1 * (xnet*u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n],
                     )
 
                     if Ni == 2 and n_d < Nn and i == i_s and n == n_d - 1:
@@ -1288,7 +1291,7 @@ class Plan(object):
                         row.addElem(_q2(Cd, i_d, n, Ni, Nn), -fac2 * u.krond(j, 0) * Tau1_ijn[i_d, 0, n])
                         row.addElem(
                             _q2(Cx, i_d, n, Ni, Nn),
-                            -fac2 * (u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i_d, j, n],
+                            -fac2 * (xnet*u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i_d, j, n],
                         )
                     A.addRow(row, rhs, rhs)
 
@@ -1655,6 +1658,7 @@ class Plan(object):
             "startRothConversions",
             "units",
             "withMedicare",
+            "oppCostX",
         ]
         # We might modify options if required.
         myoptions = dict(options)

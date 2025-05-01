@@ -21,7 +21,8 @@ Copyright &copy; 2025 - Martin-D. Lacasse
 
 #### :orange[Credits]
 - Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
-- Linear programming optimization solvers are from [HiGHS](https://highs.dev) and [PuLP](https://coin-or.github.io/pulp/).
+- Linear programming optimization solvers are from
+[HiGHS](https://highs.dev) and [PuLP](https://coin-or.github.io/pulp/).
 - Owl planner relies on the following [Python](https://python.org) packages:
     - [Matplotlib](https://matplotlib.org),
     [Numpy](https://numpy.org),
@@ -49,7 +50,8 @@ after a session is closed. You can choose to download selected parts of your
 own data to your computer before closing the session.
 
 #### :orange[License]
-- This software is released under the [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
+- This software is released under the
+[Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
 #### :orange[Disclaimer]
 - This program is provided for educational purposes and comes with no guarantee. Use at your own risk.
