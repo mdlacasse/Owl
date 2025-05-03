@@ -48,7 +48,7 @@ file = os.path.join(where, "data/rates.csv")
 try:
     df = pd.read_csv(file)
 except Exception as e:
-    raise RuntimeError(f"Could not find rates data file: {e}")
+    raise RuntimeError(f"Could not find rates data file: {e}") from e
 
 
 # Annual rate of return (%) of S&P 500 since 1928, including dividends.

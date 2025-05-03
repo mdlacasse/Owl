@@ -519,7 +519,7 @@ def saveWorkbook(plan):
     try:
         wb.save(buffer)
     except Exception as e:
-        raise Exception(f"Unanticipated exception: {e}.")
+        raise Exception(f"Unanticipated exception: {e}.") from e
 
     return buffer
 
@@ -533,7 +533,7 @@ def saveContributions(plan):
     try:
         wb.save(buffer)
     except Exception as e:
-        raise Exception(f"Unanticipated exception: {e}.")
+        raise Exception(f"Unanticipated exception: {e}.") from e
 
     return buffer
 
@@ -591,7 +591,7 @@ def genDic(plan):
     try:
         startDate = datetime.strptime(mystartDate, "%Y-%m-%d").date()
     except Exception as e:
-        raise ValueError(f"Wrong date format {plan.startDate}: {e}")
+        raise ValueError(f"Wrong date format {plan.startDate}: {e}") from e
     dic["startDate"] = startDate
     dic["interpMethod"] = plan.interpMethod
     dic["interpCenter"] = plan.interpCenter

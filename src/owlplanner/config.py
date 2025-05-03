@@ -122,13 +122,13 @@ def saveConfig(myplan, file, mylog):
             with open(filename, "w") as casefile:
                 toml.dump(diconf, casefile, encoder=toml.TomlNumpyEncoder())
         except Exception as e:
-            raise RuntimeError(f"Failed to save case file {filename}: {e}")
+            raise RuntimeError(f"Failed to save case file {filename}: {e}") from e
     elif isinstance(file, StringIO):
         try:
             string = toml.dumps(diconf, encoder=toml.TomlNumpyEncoder())
             file.write(string)
         except Exception as e:
-            raise RuntimeError(f"Failed to save case to StringIO: {e}")
+            raise RuntimeError(f"Failed to save case to StringIO: {e}") from e
     elif file is None:
         pass
     else:
@@ -160,19 +160,19 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             with open(filename, "r") as f:
                 diconf = toml.load(f)
         except Exception as e:
-            raise FileNotFoundError(f"File {filename} not found: {e}")
+            raise FileNotFoundError(f"File {filename} not found: {e}") from e
     elif isinstance(file, BytesIO):
         try:
             string = file.getvalue().decode("utf-8")
             diconf = toml.loads(string)
         except Exception as e:
-            raise RuntimeError(f"Cannot read from BytesIO: {e}")
+            raise RuntimeError(f"Cannot read from BytesIO: {e}") from e
     elif isinstance(file, StringIO):
         try:
             string = file.getvalue()
             diconf = toml.loads(string)
         except Exception as e:
-            raise RuntimeError(f"Cannot read from StringIO: {e}")
+            raise RuntimeError(f"Cannot read from StringIO: {e}") from e
     else:
         raise ValueError(f"Type {type(file)} not a valid type")
 

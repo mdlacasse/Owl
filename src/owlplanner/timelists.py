@@ -55,7 +55,7 @@ def read(finput, inames, horizons, mylog):
         try:
             dfDict = pd.read_excel(finput, sheet_name=None)
         except Exception as e:
-            raise Exception(f"Could not read file {finput}: {e}.")
+            raise Exception(f"Could not read file {finput}: {e}.") from e
         streamName = f"file '{finput}'"
 
         timeLists = condition(dfDict, inames, horizons, mylog)

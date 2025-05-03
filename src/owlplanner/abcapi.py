@@ -47,10 +47,11 @@ class Row(object):
         self.ind.append(ind)
         self.val.append(val)
 
-    def addElemDic(self, rowDic={}):
+    def addElemDic(self, rowDic=None):
         """
         Add elements at indices provided by a dictionary.
         """
+        rowDic = {} if rowDic is None else rowDic
         for key in rowDic:
             self.addElem(key, rowDic[key])
         return self
@@ -73,11 +74,12 @@ class ConstraintMatrix(object):
         self.ub = []
         self.key = []
 
-    def newRow(self, rowDic={}):
+    def newRow(self, rowDic=None):
         """
         Create a new row and populate its elements using the dictionary provided.
         Return the row created.
         """
+        rowDic = {} if rowDic is None else rowDic
         row = Row(self.nvars)
         row.addElemDic(rowDic)
         return row

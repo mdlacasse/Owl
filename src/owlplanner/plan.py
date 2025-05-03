@@ -508,7 +508,7 @@ class Plan(object):
         self.nu = nu
         self.caseStatus = "modified"
 
-    def setPension(self, amounts, ages, indexed=[False, False], units="k"):
+    def setPension(self, amounts, ages, indexed=(False, False), units="k"):
         """
         Set value of pension for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
@@ -873,7 +873,7 @@ class Plan(object):
         try:
             filename, self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
         except Exception as e:
-            raise Exception(f"Unsuccessful read of contributions: {e}")
+            raise Exception(f"Unsuccessful read of contributions: {e}") from e
             return False
 
         self.timeListsFileName = filename
@@ -1172,8 +1172,8 @@ class Plan(object):
                 rhsopt = options["noRothConversions"]
                 try:
                     i_x = self.inames.index(rhsopt)
-                except ValueError:
-                    raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:")
+                except ValueError as e:
+                    raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:") from e
 
                 for n in range(Nn):
                     B.setRange(_q2(Cx, i_x, n, Ni, Nn), zero, zero)
@@ -1619,7 +1619,7 @@ class Plan(object):
 
     @_checkConfiguration
     @_timer
-    def solve(self, objective, options={}):
+    def solve(self, objective, options=None):
         """
         This function builds the necessary constaints and
         runs the optimizer.
@@ -1661,6 +1661,7 @@ class Plan(object):
             "oppCostX",
         ]
         # We might modify options if required.
+        options = {} if options is None else options
         myoptions = dict(options)
 
         for opt in myoptions:
@@ -2826,7 +2827,7 @@ class Plan(object):
         for i in range(self.N_i):
             sname = self.inames[i] + "'s Sources"
             ws = wb.create_sheet(sname)
-            fillsheet(ws, srcDic, "currency", op=lambda x: x[i])
+            fillsheet(ws, srcDic, "currency", op=lambda x: x[i])   # noqa: B023
 
         # Account balances except final year.
         accDic = {
@@ -2846,7 +2847,7 @@ class Plan(object):
         for i in range(self.N_i):
             sname = self.inames[i] + "'s Accounts"
             ws = wb.create_sheet(sname)
-            fillsheet(ws, accDic, "currency", op=lambda x: x[i])
+            fillsheet(ws, accDic, "currency", op=lambda x: x[i])   # noqa: B023
             # Add final balances.
             lastRow = [
                 self.year_n[-1] + 1,
@@ -2963,7 +2964,7 @@ class Plan(object):
                 if key == "n":
                     break
             except Exception as e:
-                raise Exception(f"Unanticipated exception: {e}.")
+                raise Exception(f"Unanticipated exception: {e}.") from e
 
         return None
 
@@ -3062,7 +3063,7 @@ def _saveWorkbook(wb, basename, overwrite, mylog):
             if key == "n":
                 break
         except Exception as e:
-            raise Exception(f"Unanticipated exception {e}.")
+            raise Exception(f"Unanticipated exception {e}.") from e
 
     return None
 
