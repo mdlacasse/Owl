@@ -1765,6 +1765,7 @@ class Plan(object):
                 self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
                 break
 
+            it += 1
             old_solutions.append(-solution)
             old_x = xx
 
