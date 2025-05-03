@@ -377,7 +377,7 @@ class Plan(object):
             refdate = date.today()
             self.startDate = refdate.strftime("%Y-%m-%d")
         else:
-            mydatelist = mydate.split("-")
+            mydatelist = mydate.replace("/", "-").split("-")
             if len(mydatelist) == 2 or len(mydatelist) == 3:
                 self.startDate = mydate
                 # Ignore the year provided.
