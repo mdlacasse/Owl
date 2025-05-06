@@ -263,10 +263,9 @@ class Plan(object):
         # Reference time is starting date in the current year and all passings are assumed at the end.
         thisyear = date.today().year
         self.horizons = self.yobs + self.expectancy - thisyear + 1
-        # self.horizons = [yobs[i] + expectancy[i] - thisyear + 1 for i in range(self.N_i)]
         self.N_n = np.max(self.horizons)
         self.year_n = np.linspace(thisyear, thisyear + self.N_n - 1, self.N_n, dtype=np.int32)
-        # Year in the plan (if any) where individuals turn 59. For 10% withdrawal penalty.
+        # Year index in the plan (if any) where individuals turn 59. For 10% withdrawal penalty.
         self.n59 = 59 - thisyear + self.yobs
         self.n59[self.n59 < 0] = 0
         # Handle passing of one spouse before the other.

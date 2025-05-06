@@ -45,7 +45,8 @@ kz.initGlobalKey("currentPageName", None)
 pg = st.navigation(pages)
 kz.storeGlobalKey("currentPageName", pg.title)
 # Workaround resetting dataframes for data_editor wierd behavior.
-if pg.title != kz.getGlobalKey("prevPageName") and kz.getGlobalKey("prevPageName") == "Wages And Contributions":
+wncPage = "Wages And Contributions"
+if pg.title != wncPage and kz.getGlobalKey("prevPageName") == wncPage:
     if kz.caseHasPlan():
         kz.updateContributions()
 
