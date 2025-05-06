@@ -500,7 +500,7 @@ def test_Historical1():
     p.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
     p.setPension([0], [65])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withMedicare': False}
-    p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=True)
+    p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=False)
 
 
 def test_Historical2():
@@ -520,4 +520,4 @@ def test_Historical2():
     p.setLongTermCapitalTaxRate(15)
 
     options = {'maxRothConversion': 100, 'noRothConversions': 'Jill', 'withMedicare': True}
-    p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=True)
+    p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=False)

@@ -1075,264 +1075,217 @@ class Plan(object):
     def _buildConstraints(self, objective, options):
         """
         Utility function that builds constraint matrix and vectors.
-        Refer to companion document for notation and detailed explanations.
+        Refactored for clarity and maintainability.
         """
-        # Bounds values.
-        zero = 0
-        inf = np.inf
+        self._setup_constraint_shortcuts(options)
 
-        # Simplified notation.
-        Ni = self.N_i
-        Nj = self.N_j
-        Nk = self.N_k
-        Nn = self.N_n
-        Nt = self.N_t
-        Nz = self.N_z
-        i_d = self.i_d
-        i_s = self.i_s
-        n_d = self.n_d
+        self.A = abc.ConstraintMatrix(self.nvars)
+        self.B = abc.Bounds(self.nvars, self.nbins)
 
-        Cb = self.C["b"]
-        Cd = self.C["d"]
-        Ce = self.C["e"]
-        CF = self.C["F"]
-        Cg = self.C["g"]
-        Cs = self.C["s"]
-        Cw = self.C["w"]
-        Cx = self.C["x"]
-        Cz = self.C["z"]
+        self._add_rmd_inequalities()
+        self._add_tax_bracket_bounds()
+        self._add_standard_exemption_bounds()
+        self._add_defunct_constraints()
+        self._add_roth_conversion_constraints(options)
+        self._add_withdrawal_limits()
+        self._add_conversion_limits()
+        self._add_objective_constraints(objective, options)
+        self._add_initial_balances()
+        self._add_surplus_deposit_linking()
+        self._add_account_balance_carryover()
+        self._add_net_cash_flow()
+        self._add_income_profile()
+        self._add_taxable_income()
+        self._configure_binary_variables(options)
+        self._build_objective_vector(objective)
 
-        spLo = 1 - self.lambdha
-        spHi = 1 + self.lambdha
+        return None
 
+    def _setup_constraint_shortcuts(self, options):
+        # Set up all the local variables as attributes for use in helpers
         oppCostX = options.get("oppCostX", 0.)
-        xnet = 1 - oppCostX/100.
+        self.xnet = 1 - oppCostX / 100.
+        self.optionsUnits = u.getUnits(options.get("units", "k"))
 
-        tau_ijn = np.zeros((Ni, Nj, Nn))
-        for i in range(Ni):
-            for j in range(Nj):
-                for n in range(Nn):
-                    tau_ijn[i, j, n] = np.sum(self.alpha_ijkn[i, j, :, n] * self.tau_kn[:, n], axis=0)
-
-        # Weights are normalized on k: sum_k[alpha*(1 + tau)] = 1 + sum_k(alpha*tau).
-        Tau1_ijn = 1 + tau_ijn
-        Tauh_ijn = 1 + tau_ijn / 2
-
-        units = u.getUnits(options.get("units", "k"))
-        # No units for bigM.
-        bigM = options.get("bigM", 5e6)
-        if not isinstance(bigM, (int, float)):
-            raise ValueError(f"bigM {bigM} is not a number.")
-
-        ###################################################################
-        # Inequality constraint matrix with upper and lower bound vectors.
-        A = abc.ConstraintMatrix(self.nvars)
-        B = abc.Bounds(self.nvars, self.nbins)
-
-        # RMDs inequalities, only if there is an initial balance in tax-deferred account.
-        for i in range(Ni):
+    def _add_rmd_inequalities(self):
+        for i in range(self.N_i):
             if self.beta_ij[i, 1] > 0:
                 for n in range(self.horizons[i]):
                     rowDic = {
-                        _q3(Cw, i, 1, n, Ni, Nj, Nn): 1,
-                        _q3(Cb, i, 1, n, Ni, Nj, Nn + 1): -self.rho_in[i, n],
+                        _q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n): 1,
+                        _q3(self.C["b"], i, 1, n, self.N_i, self.N_j, self.N_n + 1): -self.rho_in[i, n],
                     }
-                    A.addNewRow(rowDic, zero, inf)
+                    self.A.addNewRow(rowDic, 0, np.inf)
 
-        # Income tax bracket range inequalities.
-        for t in range(Nt):
-            for n in range(Nn):
-                B.setRange(_q2(CF, t, n, Nt, Nn), zero, self.DeltaBar_tn[t, n])
+    def _add_tax_bracket_bounds(self):
+        for t in range(self.N_t):
+            for n in range(self.N_n):
+                self.B.setRange(_q2(self.C["F"], t, n, self.N_t, self.N_n), 0, self.DeltaBar_tn[t, n])
 
-        # Standard exemption range inequalities.
-        for n in range(Nn):
-            B.setRange(_q1(Ce, n, Nn), zero, self.sigmaBar_n[n])
+    def _add_standard_exemption_bounds(self):
+        for n in range(self.N_n):
+            self.B.setRange(_q1(self.C["e"], n, self.N_n), 0, self.sigmaBar_n[n])
 
-        # Start with no activities after passing.
-        for i in range(Ni):
-            for n in range(self.horizons[i], Nn):
-                B.setRange(_q2(Cd, i, n, Ni, Nn), zero, zero)
-                B.setRange(_q2(Cx, i, n, Ni, Nn), zero, zero)
-                for j in range(Nj):
-                    B.setRange(_q3(Cw, i, j, n, Ni, Nj, Nn), zero, zero)
+    def _add_defunct_constraints(self):
+        if self.N_i == 2:
+            for n in range(self.n_d, self.N_n):
+                self.B.setRange(_q2(self.C["d"], self.i_d, n, self.N_i, self.N_n), 0, 0)
+                self.B.setRange(_q2(self.C["x"], self.i_d, n, self.N_i, self.N_n), 0, 0)
+                for j in range(self.N_j):
+                    self.B.setRange(_q3(self.C["w"], self.i_d, j, n, self.N_i, self.N_j, self.N_n), 0, 0)
 
-        # Roth conversions equalities/inequalities.
-        # This condition supercedes everything else.
+    def _add_roth_conversion_constraints(self, options):
         if "maxRothConversion" in options and options["maxRothConversion"] == "file":
-            # self.mylog.vprint(f"Fixing Roth conversions to those from file {self.timeListsFileName}.")
-            for i in range(Ni):
+            for i in range(self.N_i):
                 for n in range(self.horizons[i]):
                     rhs = self.myRothX_in[i][n]
-                    B.setRange(_q2(Cx, i, n, Ni, Nn), rhs, rhs)
+                    self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), rhs, rhs)
         else:
             if "maxRothConversion" in options:
                 rhsopt = options["maxRothConversion"]
                 if not isinstance(rhsopt, (int, float)):
                     raise ValueError(f"Specified maxRothConversion {rhsopt} is not a number.")
-                rhsopt *= units
-                if rhsopt < 0:
-                    # self.mylog.vprint('Unlimited Roth conversions (<0)')
-                    pass
-                else:
-                    # self.mylog.vprint('Limiting Roth conversions to:', u.d(rhsopt))
-                    for i in range(Ni):
-                        for n in range(self.horizons[i]):
-                            # MOSEK chokes if completely zero. Add a 1 cent slack.
-                            # Should we adjust Roth conversion cap with inflation?
-                            B.setRange(_q2(Cx, i, n, Ni, Nn), zero, rhsopt + 0.01)
 
-            # Process startRothConversions option.
+                if rhsopt >= 0:
+                    rhsopt *= self.optionsUnits
+                    for i in range(self.N_i):
+                        for n in range(self.horizons[i]):
+                            self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, rhsopt + 0.01)
+
             if "startRothConversions" in options:
                 rhsopt = options["startRothConversions"]
                 if not isinstance(rhsopt, (int, float)):
                     raise ValueError(f"Specified startRothConversions {rhsopt} is not a number.")
                 thisyear = date.today().year
                 yearn = max(rhsopt - thisyear, 0)
-
-                for i in range(Ni):
+                for i in range(self.N_i):
                     nstart = min(yearn, self.horizons[i])
                     for n in range(0, nstart):
-                        B.setRange(_q2(Cx, i, n, Ni, Nn), zero, zero)
+                        self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, 0)
 
-            # Process noRothConversions option. Also valid when N_i == 1, why not?
             if "noRothConversions" in options and options["noRothConversions"] != "None":
                 rhsopt = options["noRothConversions"]
                 try:
                     i_x = self.inames.index(rhsopt)
                 except ValueError as e:
                     raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:") from e
+                for n in range(self.N_n):
+                    self.B.setRange(_q2(self.C["x"], i_x, n, self.N_i, self.N_n), 0, 0)
 
-                for n in range(Nn):
-                    B.setRange(_q2(Cx, i_x, n, Ni, Nn), zero, zero)
-
-        # Impose withdrawal limits on taxable and tax-exempt accounts.
-        for i in range(Ni):
+    def _add_withdrawal_limits(self):
+        for i in range(self.N_i):
             for j in [0, 2]:
-                for n in range(Nn):
-                    rowDic = {_q3(Cw, i, j, n, Ni, Nj, Nn): -1, _q3(Cb, i, j, n, Ni, Nj, Nn + 1): 1}
-                    A.addNewRow(rowDic, zero, inf)
+                for n in range(self.N_n):
+                    rowDic = {_q3(self.C["w"], i, j, n, self.N_i, self.N_j, self.N_n): -1,
+                              _q3(self.C["b"], i, j, n, self.N_i, self.N_j, self.N_n + 1): 1}
+                    self.A.addNewRow(rowDic, 0, np.inf)
 
-        # Impose withdrawals and conversion limits on tax-deferred account.
-        for i in range(Ni):
-            for n in range(Nn):
+    def _add_conversion_limits(self):
+        for i in range(self.N_i):
+            for n in range(self.N_n):
                 rowDic = {
-                    _q2(Cx, i, n, Ni, Nn): -1,
-                    _q3(Cw, i, 1, n, Ni, Nj, Nn): -1,
-                    _q3(Cb, i, 1, n, Ni, Nj, Nn + 1): 1,
+                    _q2(self.C["x"], i, n, self.N_i, self.N_n): -1,
+                    _q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n): -1,
+                    _q3(self.C["b"], i, 1, n, self.N_i, self.N_j, self.N_n + 1): 1,
                 }
-                A.addNewRow(rowDic, zero, inf)
+                self.A.addNewRow(rowDic, 0, np.inf)
 
-        # Constraints depending on objective function.
+    def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
-            # Impose optional constraint on final bequest requested in today's $.
             if "bequest" in options:
                 bequest = options["bequest"]
                 if not isinstance(bequest, (int, float)):
                     raise ValueError(f"Desired bequest {bequest} is not a number.")
-                bequest *= units * self.gamma_n[-1]
+                bequest *= self.optionsUnits * self.gamma_n[-1]
             else:
-                # If not specified, defaults to $1 (nominal $).
                 bequest = 1
 
-            row = A.newRow()
-            for i in range(Ni):
-                row.addElem(_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1), 1)
-                row.addElem(_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1), 1 - self.nu)
-                # Nudge could be added (e.g. 1.02) to artificially favor tax-exempt account
-                # as heirs's benefits of 10y tax-free is not weighted in?
-                row.addElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), 1)
-            A.addRow(row, bequest, bequest)
-            # self.mylog.vprint('Adding bequest constraint of:', u.d(bequest))
+            row = self.A.newRow()
+            for i in range(self.N_i):
+                row.addElem(_q3(self.C["b"], i, 0, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
+                row.addElem(_q3(self.C["b"], i, 1, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1 - self.nu)
+                row.addElem(_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
+            self.A.addRow(row, bequest, bequest)
         elif objective == "maxBequest":
             spending = options["netSpending"]
             if not isinstance(spending, (int, float)):
                 raise ValueError(f"Desired spending provided {spending} is not a number.")
-            # Account for time elapsed in the current year.
-            spending *= units * self.yearFracLeft
-            # self.mylog.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
-            # To allow slack in first year, Cg can be made Nn+1 and store basis in g[Nn].
-            # A.addNewRow({_q1(Cg, 0, Nn): 1}, spending, spending)
-            B.setRange(_q1(Cg, 0, Nn), spending, spending)
+            spending *= self.optionsUnits * self.yearFracLeft
+            self.B.setRange(_q1(self.C["g"], 0, self.N_n), spending, spending)
 
-        # Set initial balances through bounds or constraints.
-        for i in range(Ni):
-            for j in range(Nj):
+    def _add_initial_balances(self):
+        for i in range(self.N_i):
+            for j in range(self.N_j):
                 rhs = self.beta_ij[i, j]
-                # A.addNewRow({_q3(Cb, i, j, 0, Ni, Nj, Nn + 1): 1}, rhs, rhs)
-                B.setRange(_q3(Cb, i, j, 0, Ni, Nj, Nn + 1), rhs, rhs)
+                self.B.setRange(_q3(self.C["b"], i, j, 0, self.N_i, self.N_j, self.N_n + 1), rhs, rhs)
 
-        # Link surplus and taxable account deposits regardless of Ni.
-        for i in range(Ni):
+    def _add_surplus_deposit_linking(self):
+        for i in range(self.N_i):
             fac1 = u.krond(i, 0) * (1 - self.eta) + u.krond(i, 1) * self.eta
-            for n in range(n_d):
-                rowDic = {_q2(Cd, i, n, Ni, Nn): 1, _q1(Cs, n, Nn): -fac1}
-                A.addNewRow(rowDic, zero, zero)
+            for n in range(self.n_d):
+                rowDic = {_q2(self.C["d"], i, n, self.N_i, self.N_n): 1, _q1(self.C["s"], n, self.N_n): -fac1}
+                self.A.addNewRow(rowDic, 0, 0)
             fac2 = u.krond(self.i_s, i)
-            for n in range(n_d, Nn):
-                rowDic = {_q2(Cd, i, n, Ni, Nn): 1, _q1(Cs, n, Nn): -fac2}
-                A.addNewRow(rowDic, zero, zero)
+            for n in range(self.n_d, self.N_n):
+                rowDic = {_q2(self.C["d"], i, n, self.N_i, self.N_n): 1, _q1(self.C["s"], n, self.N_n): -fac2}
+                self.A.addNewRow(rowDic, 0, 0)
+        # Prevent surplus on last year.
+        self.B.setRange(_q1(self.C["s"], self.N_n - 1, self.N_n), 0, 0)
 
-        # No surplus allowed during the last year to be used as a tax loophole.
-        B.setRange(_q1(Cs, Nn - 1, Nn), zero, zero)
+    def _add_account_balance_carryover(self):
+        tau_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
+        for i in range(self.N_i):
+            for j in range(self.N_j):
+                for n in range(self.N_n):
+                    tau_ijn[i, j, n] = np.sum(self.alpha_ijkn[i, j, :, n] * self.tau_kn[:, n], axis=0)
 
-        if Ni == 2:
-            # No conversion during last year.
-            # B.setRange(_q2(Cx, i_d, nd-1, Ni, Nn), zero, zero)
-            # B.setRange(_q2(Cx, i_s, Nn-1, Ni, Nn), zero, zero)
+        # Weights are normalized on k: sum_k[alpha*(1 + tau)] = 1 + sum_k[alpha*tau]
+        Tau1_ijn = 1 + tau_ijn
+        Tauh_ijn = 1 + tau_ijn / 2
 
-            # No withdrawals or deposits for any i_d-owned accounts after year of passing.
-            # Implicit n_d < Nn imposed by for loop.
-            for n in range(n_d, Nn):
-                B.setRange(_q2(Cd, i_d, n, Ni, Nn), zero, zero)
-                B.setRange(_q2(Cx, i_d, n, Ni, Nn), zero, zero)
-                for j in range(Nj):
-                    B.setRange(_q3(Cw, i_d, j, n, Ni, Nj, Nn), zero, zero)
-
-        # Account balances carried from year to year.
-        # Considering spousal asset transfer at passing of a spouse.
-        # Using hybrid approach with 'if' statement and Kronecker deltas.
-        for i in range(Ni):
-            for j in range(Nj):
-                for n in range(Nn):
-                    if Ni == 2 and n_d < Nn and i == i_d and n == n_d - 1:
-                        # fac1 = 1 - (u.krond(n, n_d - 1) * u.krond(i, i_d))
+        for i in range(self.N_i):
+            for j in range(self.N_j):
+                for n in range(self.N_n):
+                    if self.N_i == 2 and self.n_d < self.N_n and i == self.i_d and n == self.n_d - 1:
                         fac1 = 0
                     else:
                         fac1 = 1
 
                     rhs = fac1 * self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
 
-                    row = A.newRow()
-                    row.addElem(_q3(Cb, i, j, n + 1, Ni, Nj, Nn + 1), 1)
-                    row.addElem(_q3(Cb, i, j, n, Ni, Nj, Nn + 1), -fac1 * Tau1_ijn[i, j, n])
-                    row.addElem(_q3(Cw, i, j, n, Ni, Nj, Nn), fac1 * Tau1_ijn[i, j, n])
-                    row.addElem(_q2(Cd, i, n, Ni, Nn), -fac1 * u.krond(j, 0) * Tau1_ijn[i, 0, n])
+                    row = self.A.newRow()
+                    row.addElem(_q3(self.C["b"], i, j, n + 1, self.N_i, self.N_j, self.N_n + 1), 1)
+                    row.addElem(_q3(self.C["b"], i, j, n, self.N_i, self.N_j, self.N_n + 1), -fac1 * Tau1_ijn[i, j, n])
+                    row.addElem(_q3(self.C["w"], i, j, n, self.N_i, self.N_j, self.N_n), fac1 * Tau1_ijn[i, j, n])
+                    row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), -fac1 * u.krond(j, 0) * Tau1_ijn[i, 0, n])
                     row.addElem(
-                        _q2(Cx, i, n, Ni, Nn),
-                        -fac1 * (xnet*u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n],
+                        _q2(self.C["x"], i, n, self.N_i, self.N_n),
+                        -fac1 * (self.xnet * u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n],
                     )
 
-                    if Ni == 2 and n_d < Nn and i == i_s and n == n_d - 1:
+                    if self.N_i == 2 and self.n_d < self.N_n and i == self.i_s and n == self.n_d - 1:
                         fac2 = self.phi_j[j]
-                        rhs += fac2 * self.kappa_ijn[i_d, j, n] * Tauh_ijn[i_d, j, n]
-                        row.addElem(_q3(Cb, i_d, j, n, Ni, Nj, Nn + 1), -fac2 * Tau1_ijn[i_d, j, n])
-                        row.addElem(_q3(Cw, i_d, j, n, Ni, Nj, Nn), fac2 * Tau1_ijn[i_d, j, n])
-                        row.addElem(_q2(Cd, i_d, n, Ni, Nn), -fac2 * u.krond(j, 0) * Tau1_ijn[i_d, 0, n])
+                        rhs += fac2 * self.kappa_ijn[self.i_d, j, n] * Tauh_ijn[self.i_d, j, n]
+                        row.addElem(_q3(self.C["b"], self.i_d, j, n, self.N_i, self.N_j, self.N_n + 1),
+                                    -fac2 * Tau1_ijn[self.i_d, j, n])
+                        row.addElem(_q3(self.C["w"], self.i_d, j, n, self.N_i, self.N_j, self.N_n),
+                                    fac2 * Tau1_ijn[self.i_d, j, n])
+                        row.addElem(_q2(self.C["d"], self.i_d, n, self.N_i, self.N_n),
+                                    -fac2 * u.krond(j, 0) * Tau1_ijn[self.i_d, 0, n])
                         row.addElem(
-                            _q2(Cx, i_d, n, Ni, Nn),
-                            -fac2 * (xnet*u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i_d, j, n],
+                            _q2(self.C["x"], self.i_d, n, self.N_i, self.N_n),
+                            -fac2 * (self.xnet * u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[self.i_d, j, n],
                         )
-                    A.addRow(row, rhs, rhs)
+                    self.A.addRow(row, rhs, rhs)
 
+    def _add_net_cash_flow(self):
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
         tau_0prev[tau_0prev < 0] = 0
-
-        # Net cash flow.
-        for n in range(Nn):
+        for n in range(self.N_n):
             rhs = -self.M_n[n]
-            row = A.newRow({_q1(Cg, n, Nn): 1})
-            row.addElem(_q1(Cs, n, Nn), 1)
-            for i in range(Ni):
+            row = self.A.newRow({_q1(self.C["g"], n, self.N_n): 1})
+            row.addElem(_q1(self.C["s"], n, self.N_n), 1)
+            for i in range(self.N_i):
                 fac = self.psi * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
                     self.omega_in[i, n]
@@ -1341,111 +1294,98 @@ class Plan(object):
                     + self.Lambda_in[i, n]
                     - 0.5 * fac * self.mu * self.kappa_ijn[i, 0, n]
                 )
-
-                row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), fac * self.mu)
-                # Minus capital gains on taxable withdrawals using last year's rate if >=0.
-                # Plus taxable account withdrawals, and all other withdrawals.
-                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fac * (tau_0prev[n] - self.mu) - 1)
+                row.addElem(_q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1), fac * self.mu)
+                row.addElem(_q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n), fac * (tau_0prev[n] - self.mu) - 1)
                 penalty = 0.1 if n < self.n59[i] else 0
-                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1 + penalty)
-                row.addElem(_q3(Cw, i, 2, n, Ni, Nj, Nn), -1 + penalty)
-                row.addElem(_q2(Cd, i, n, Ni, Nn), fac * self.mu)
+                row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1 + penalty)
+                row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1 + penalty)
+                row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), fac * self.mu)
 
-            # Minus tax on ordinary income, T_n.
-            for t in range(Nt):
-                row.addElem(_q2(CF, t, n, Nt, Nn), self.theta_tn[t, n])
+            for t in range(self.N_t):
+                row.addElem(_q2(self.C["F"], t, n, self.N_t, self.N_n), self.theta_tn[t, n])
 
-            A.addRow(row, rhs, rhs)
+            self.A.addRow(row, rhs, rhs)
 
-        # Impose income profile.
-        for n in range(1, Nn):
-            rowDic = {_q1(Cg, 0, Nn): spLo * self.xiBar_n[n], _q1(Cg, n, Nn): -self.xiBar_n[0]}
-            A.addNewRow(rowDic, -inf, zero)
-            rowDic = {_q1(Cg, 0, Nn): spHi * self.xiBar_n[n], _q1(Cg, n, Nn): -self.xiBar_n[0]}
-            A.addNewRow(rowDic, zero, inf)
+    def _add_income_profile(self):
+        spLo = 1 - self.lambdha
+        spHi = 1 + self.lambdha
+        for n in range(1, self.N_n):
+            rowDic = {_q1(self.C["g"], 0, self.N_n): spLo * self.xiBar_n[n],
+                      _q1(self.C["g"], n, self.N_n): -self.xiBar_n[0]}
+            self.A.addNewRow(rowDic, -np.inf, 0)
+            rowDic = {_q1(self.C["g"], 0, self.N_n): spHi * self.xiBar_n[n],
+                      _q1(self.C["g"], n, self.N_n): -self.xiBar_n[0]}
+            self.A.addNewRow(rowDic, 0, np.inf)
 
-        # Taxable ordinary income.
-        for n in range(Nn):
+    def _add_taxable_income(self):
+        for n in range(self.N_n):
             rhs = 0
-            row = A.newRow()
-            row.addElem(_q1(Ce, n, Nn), 1)
-            for i in range(Ni):
+            row = self.A.newRow()
+            row.addElem(_q1(self.C["e"], n, self.N_n), 1)
+            for i in range(self.N_i):
                 rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.piBar_in[i, n]
-                # Taxable income from tax-deferred withdrawals.
-                row.addElem(_q3(Cw, i, 1, n, Ni, Nj, Nn), -1)
-                row.addElem(_q2(Cx, i, n, Ni, Nn), -1)
-
-                # Taxable returns on securities in taxable account.
-                fak = np.sum(self.tau_kn[1:Nk, n] * self.alpha_ijkn[i, 0, 1:Nk, n], axis=0)
+                row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1)
+                row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), -1)
+                fak = np.sum(self.tau_kn[1:self.N_k, n] * self.alpha_ijkn[i, 0, 1:self.N_k, n], axis=0)
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
-                row.addElem(_q3(Cb, i, 0, n, Ni, Nj, Nn + 1), -fak)
-                row.addElem(_q3(Cw, i, 0, n, Ni, Nj, Nn), fak)
-                row.addElem(_q2(Cd, i, n, Ni, Nn), -fak)
+                row.addElem(_q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1), -fak)
+                row.addElem(_q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n), fak)
+                row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), -fak)
+            for t in range(self.N_t):
+                row.addElem(_q2(self.C["F"], t, n, self.N_t, self.N_n), 1)
+            self.A.addRow(row, rhs, rhs)
 
-            for t in range(Nt):
-                row.addElem(_q2(CF, t, n, Nt, Nn), 1)
+    def _configure_binary_variables(self, options):
+        bigM = options.get("bigM", 5e6)
+        if not isinstance(bigM, (int, float)):
+            raise ValueError(f"bigM {bigM} is not a number.")
 
-            A.addRow(row, rhs, rhs)
-
-        # Configure binary variables.
-        for i in range(Ni):
+        for i in range(self.N_i):
             for n in range(self.horizons[i]):
-                # for z in range(Nz):
-                #     B.setBinary(_q3(Cz, i, n, z, Ni, Nn, Nz))
-
-                # Exclude simultaneous deposits and withdrawals from taxable or tax-free accounts.
-                A.addNewRow(
-                    {_q3(Cz, i, n, 0, Ni, Nn, Nz): bigM, _q1(Cs, n, Nn): -1},
-                    zero,
+                self.A.addNewRow(
+                    {_q3(self.C["z"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
+                     _q1(self.C["s"], n, self.N_n): -1},
+                    0,
                     bigM,
                 )
-
-                A.addNewRow(
+                self.A.addNewRow(
                     {
-                        _q3(Cz, i, n, 0, Ni, Nn, Nz): bigM,
-                        _q3(Cw, i, 0, n, Ni, Nj, Nn): 1,
-                        _q3(Cw, i, 2, n, Ni, Nj, Nn): 1,
+                        _q3(self.C["z"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
+                        _q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n): 1,
+                        _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1,
                     },
-                    zero,
+                    0,
                     bigM,
                 )
-
-                # Exclude simultaneous Roth conversions and tax-exempt withdrawals.
-                A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q2(Cx, i, n, Ni, Nn): -1},
-                    zero,
+                self.A.addNewRow(
+                    {_q3(self.C["z"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
+                     _q2(self.C["x"], i, n, self.N_i, self.N_n): -1},
+                    0,
                     bigM,
                 )
-
-                A.addNewRow(
-                    {_q3(Cz, i, n, 1, Ni, Nn, Nz): bigM, _q3(Cw, i, 2, n, Ni, Nj, Nn): 1},
-                    zero,
+                self.A.addNewRow(
+                    {_q3(self.C["z"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
+                     _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1},
+                    0,
                     bigM,
                 )
+            for n in range(self.horizons[i], self.N_n):
+                self.B.setRange(_q3(self.C["z"], i, n, 0, self.N_i, self.N_n, self.N_z), 0, 0)
+                self.B.setRange(_q3(self.C["z"], i, n, 1, self.N_i, self.N_n, self.N_z), 0, 0)
 
-            for n in range(self.horizons[i], Nn):
-                B.setRange(_q3(Cz, i, n, 0, Ni, Nn, Nz), zero, zero)
-                B.setRange(_q3(Cz, i, n, 1, Ni, Nn, Nz), zero, zero)
-
-        # Now build a solver-neutral objective vector.
+    def _build_objective_vector(self, objective):
         c = abc.Objective(self.nvars)
         if objective == "maxSpending":
-            # c.setElem(_q1(Cg, 0, Nn), -1) # Only OK in implemention without slack.
-            for n in range(Nn):
-                c.setElem(_q1(Cg, n, Nn), -1/self.gamma_n[n])
+            for n in range(self.N_n):
+                c.setElem(_q1(self.C["g"], n, self.N_n), -1/self.gamma_n[n])
         elif objective == "maxBequest":
-            for i in range(Ni):
-                c.setElem(_q3(Cb, i, 0, Nn, Ni, Nj, Nn + 1), -1)
-                c.setElem(_q3(Cb, i, 1, Nn, Ni, Nj, Nn + 1), -(1 - self.nu))
-                c.setElem(_q3(Cb, i, 2, Nn, Ni, Nj, Nn + 1), -1)
+            for i in range(self.N_i):
+                c.setElem(_q3(self.C["b"], i, 0, self.N_n, self.N_i, self.N_j, self.N_n + 1), -1)
+                c.setElem(_q3(self.C["b"], i, 1, self.N_n, self.N_i, self.N_j, self.N_n + 1), -(1 - self.nu))
+                c.setElem(_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1), -1)
         else:
             raise RuntimeError("Internal error in objective function.")
-
-        self.A = A
-        self.B = B
         self.c = c
-
-        return None
 
     @_timer
     def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False, progcall=None):
@@ -1490,10 +1430,10 @@ class Plan(object):
 
         progcall.finish()
         self.mylog.resetVerbose()
-        fig, description = self._showResults(objective, df, N, figure)
-        self.mylog.print(description.getvalue())
 
         if figure:
+            fig, description = self._showResults(objective, df, N)
+            self.mylog.print(description.getvalue())
             return fig, description.getvalue()
 
         return N, df
@@ -1546,15 +1486,15 @@ class Plan(object):
 
         progcall.finish()
         self.mylog.resetVerbose()
-        fig, description = self._showResults(objective, df, N, figure)
-        self.mylog.print(description.getvalue())
 
         if figure:
+            fig, description = self._showResults(objective, df, N)
+            self.mylog.print(description.getvalue())
             return fig, description.getvalue()
 
         return N, df
 
-    def _showResults(self, objective, df, N, figure):
+    def _showResults(self, objective, df, N):
         """
         Show a histogram of values from runMC() and runHistoricalRange().
         """
