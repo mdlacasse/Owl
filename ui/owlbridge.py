@@ -581,7 +581,7 @@ def genDic(plan):
     dic["caseStatus"] = "new"
     dic["status"] = ["unknown", "single", "married"][plan.N_i]
     # Prepend year if not there.
-    tdate = plan.startDate..replace("/", "-").split("-")
+    tdate = plan.startDate.replace("/", "-").split("-")
     if len(tdate) == 2:
         mystartDate = str(date.today().year) + "-" + plan.startDate
     elif len(tdate) == 3:
