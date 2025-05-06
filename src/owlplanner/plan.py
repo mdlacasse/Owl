@@ -248,10 +248,14 @@ class Plan(object):
         self.defaultSolver = "HiGHS"
 
         self.N_i = len(yobs)
-        assert 0 < self.N_i and self.N_i <= 2, f"Cannot support {self.N_i} individuals."
-        assert self.N_i == len(expectancy), f"Expectancy must have {self.N_i} entries."
-        assert self.N_i == len(inames), f"Names for individuals must have {self.N_i} entries."
-        assert inames[0] != "" or (self.N_i == 2 and inames[1] == ""), "Name for each individual must be provided."
+        if not (0 <= self.N_i <= 2):
+            raise ValueError(f"Cannot support {self.N_i} individuals.")
+        if self.N_i != len(expectancy):
+            raise ValueError(f"Expectancy must have {self.N_i} entries.")
+        if self.N_i != len(inames):
+            raise ValueError(f"Names for individuals must have {self.N_i} entries.")
+        if inames[0] == "" or (self.N_i == 2 and inames[1] == ""):
+            raise ValueError("Name for each individual must be provided.")
 
         self.filingStatus = ["single", "married"][self.N_i - 1]
         # Default year TCJA is speculated to expire.
@@ -432,7 +436,8 @@ class Plan(object):
         where s_n is the surplus amount. Here d_0n is the taxable account
         deposit for the first spouse while d_1n is for the second spouse.
         """
-        assert 0 <= eta and eta <= 1, "Fraction must be between 0 and 1."
+        if not (0 <= eta <= 1):
+            raise ValueError("Fraction must be between 0 and 1.")
         if self.N_i != 2:
             self.mylog.vprint("Deposit fraction can only be 0 for single individuals.")
             eta = 0
@@ -451,11 +456,12 @@ class Plan(object):
 
     def setDividendRate(self, mu):
         """
-        Set dividend rate on equities. Rate is in percent. Default 2%.
+        Set dividend tax rate. Rate is in percent. Default 2%.
         """
-        assert 0 <= mu and mu <= 100, "Rate must be between 0 and 100."
+        if not (0 <= mu <= 100):
+            raise ValueError("Rate must be between 0 and 100.")
         mu /= 100
-        self.mylog.vprint(f"Dividend return rate on equities set to {u.pc(mu, f=1)}.")
+        self.mylog.vprint(f"Dividend tax rate set to {u.pc(mu, f=0)}.")
         self.mu = mu
         self.caseStatus = "modified"
 
@@ -472,7 +478,8 @@ class Plan(object):
         """
         Set long-term income tax rate. Rate is in percent. Default 15%.
         """
-        assert 0 <= psi and psi <= 100, "Rate must be between 0 and 100."
+        if not (0 <= psi <= 100):
+            raise ValueError("Rate must be between 0 and 100.")
         psi /= 100
         self.mylog.vprint(f"Long-term capital gain income tax set to {u.pc(psi, f=0)}.")
         self.psi = psi
@@ -483,10 +490,11 @@ class Plan(object):
         Set fractions of savings accounts that is left to surviving spouse.
         Default is [1, 1, 1] for taxable, tax-deferred, adn tax-exempt accounts.
         """
-        assert len(phi) == self.N_j, f"Fractions must have {self.N_j} entries."
+        if len(phi) != self.N_j:
+            raise ValueError(f"Fractions must have {self.N_j} entries.")
         for j in range(self.N_j):
-            assert 0 <= phi[j] <= 1, "Fractions must be between 0 and 1."
-
+            if not (0 <= phi[j] <= 1):
+                raise ValueError("Fractions must be between 0 and 1.")
         self.phi_j = np.array(phi, dtype=np.float32)
         self.mylog.vprint("Spousal beneficiary fractions set to",
                           ["{:.2f}".format(self.phi_j[j]) for j in range(self.N_j)])
@@ -501,7 +509,8 @@ class Plan(object):
         Set the heirs tax rate on the tax-deferred portion of the estate.
         Rate is in percent. Default is 30%.
         """
-        assert 0 <= nu and nu <= 100, "Rate must be between 0 and 100."
+        if not (0 <= nu <= 100):
+            raise ValueError("Rate must be between 0 and 100.")
         nu /= 100
         self.mylog.vprint(f"Heirs tax rate on tax-deferred portion of estate set to {u.pc(nu, f=0)}.")
         self.nu = nu
@@ -512,9 +521,12 @@ class Plan(object):
         Set value of pension for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
-        assert len(amounts) == self.N_i, f"Amounts must have {self.N_i} entries."
-        assert len(ages) == self.N_i, f"Ages must have {self.N_i} entries."
-        assert len(indexed) >= self.N_i, f"Indexed list must have at least {self.N_i} entries."
+        if len(amounts) != self.N_i:
+            raise ValueError(f"Amounts must have {self.N_i} entries.")
+        if len(ages) != self.N_i:
+            raise ValueError(f"Ages must have {self.N_i} entries.")
+        if len(indexed) < self.N_i:
+            raise ValueError(f"Indexed list must have at least {self.N_i} entries.")
 
         fac = u.getUnits(units)
         amounts = u.rescale(amounts, fac)
@@ -545,8 +557,10 @@ class Plan(object):
         Set value of social security for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
-        assert len(amounts) == self.N_i, f"Amounts must have {self.N_i} entries."
-        assert len(ages) == self.N_i, f"Ages must have {self.N_i} entries."
+        if len(amounts) != self.N_i:
+            raise ValueError(f"Amounts must have {self.N_i} entries.")
+        if len(ages) != self.N_i:
+            raise ValueError(f"Ages must have {self.N_i} entries.")
 
         fac = u.getUnits(units)
         amounts = u.rescale(amounts, fac)
@@ -581,10 +595,14 @@ class Plan(object):
         as a second argument. Default value is 60%.
         Dip and increase are percent changes in the smile profile.
         """
-        assert 0 <= percent and percent <= 100, f"Survivor value {percent} outside range."
-        assert 0 <= dip and dip <= 100, f"Dip value {dip} outside range."
-        assert -100 <= increase and increase <= 100, f"Increase value {increase} outside range."
-        assert 0 <= delay and delay <= self.N_n - 2, f"Delay value {delay} outside year range."
+        if not (0 <= percent <= 100):
+            raise ValueError(f"Survivor value {percent} outside range.")
+        if not (0 <= dip <= 100):
+            raise ValueError(f"Dip value {dip} outside range.")
+        if not (-100 <= increase <= 100):
+            raise ValueError(f"Increase value {increase} outside range.")
+        if not (0 <= delay <= self.N_n - 2):
+            raise ValueError(f"Delay value {delay} outside year range.")
 
         self.chi = percent / 100
 
@@ -675,7 +693,8 @@ class Plan(object):
             raise RuntimeError("A rate method needs to be first selected using setRates(...).")
 
         thisyear = date.today().year
-        assert year > thisyear, "Internal error in forwardValue()."
+        if year <= thisyear:
+            raise RuntimeError("Internal error in forwardValue().")
         span = year - thisyear
 
         return amount * self.gamma_n[span]
@@ -687,9 +706,12 @@ class Plan(object):
         one entry. Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
         plurals = ["", "y", "ies"][self.N_i]
-        assert len(taxable) == self.N_i, f"taxable must have {self.N_i} entr{plurals}."
-        assert len(taxDeferred) == self.N_i, f"taxDeferred must have {self.N_i} entr{plurals}."
-        assert len(taxFree) == self.N_i, f"taxFree must have {self.N_i} entr{plurals}."
+        if len(taxable) != self.N_i:
+            raise ValueError(f"taxable must have {self.N_i} entr{plurals}.")
+        if len(taxDeferred) != self.N_i:
+            raise ValueError(f"taxDeferred must have {self.N_i} entr{plurals}.")
+        if len(taxFree) != self.N_i:
+            raise ValueError(f"taxFree must have {self.N_i} entr{plurals}.")
 
         fac = u.getUnits(units)
         taxable = u.rescale(taxable, fac)
@@ -765,13 +787,17 @@ class Plan(object):
         if allocType == "account":
             # Make sure we have proper input.
             for item in [taxable, taxDeferred, taxFree]:
-                assert len(item) == self.N_i, f"{item} must have one entry per individual."
+                if len(item) != self.N_i:
+                    raise ValueError(f"{item} must have one entry per individual.")
                 for i in range(self.N_i):
                     # Initial and final.
-                    assert len(item[i]) == 2, f"{item}[{i}] must have 2 lists (initial and final)."
+                    if len(item[i]) != 2:
+                        raise ValueError(f"{item}[{i}] must have 2 lists (initial and final).")
                     for z in range(2):
-                        assert len(item[i][z]) == self.N_k, f"{item}[{i}][{z}] must have {self.N_k} entries."
-                        assert abs(sum(item[i][z]) - 100) < 0.01, "Sum of percentages must add to 100."
+                        if len(item[i][z]) != self.N_k:
+                            raise ValueError(f"{item}[{i}][{z}] must have {self.N_k} entries.")
+                        if abs(sum(item[i][z]) - 100) > 0.01:
+                            raise ValueError("Sum of percentages must add to 100.")
 
             for i in range(self.N_i):
                 self.mylog.vprint(f"{self.inames[i]}: Setting gliding allocation ratios (%) to {allocType}.")
@@ -798,13 +824,17 @@ class Plan(object):
             self.boundsAR["tax-free"] = taxFree
 
         elif allocType == "individual":
-            assert len(generic) == self.N_i, "generic must have one list per individual."
+            if len(generic) != self.N_i:
+                raise ValueError("generic must have one list per individual.")
             for i in range(self.N_i):
                 # Initial and final.
-                assert len(generic[i]) == 2, f"generic[{i}] must have 2 lists (initial and final)."
+                if len(generic[i]) != 2:
+                    raise ValueError(f"generic[{i}] must have 2 lists (initial and final).")
                 for z in range(2):
-                    assert len(generic[i][z]) == self.N_k, f"generic[{i}][{z}] must have {self.N_k} entries."
-                    assert abs(sum(generic[i][z]) - 100) < 0.01, "Sum of percentages must add to 100."
+                    if len(generic[i][z]) != self.N_k:
+                        raise ValueError(f"generic[{i}][{z}] must have {self.N_k} entries.")
+                    if abs(sum(generic[i][z]) - 100) > 0.01:
+                        raise ValueError("Sum of percentages must add to 100.")
 
             for i in range(self.N_i):
                 self.mylog.vprint(f"{self.inames[i]}: Setting gliding allocation ratios (%) to {allocType}.")
@@ -816,30 +846,26 @@ class Plan(object):
                     start = generic[i][0][k] / 100
                     end = generic[i][1][k] / 100
                     dat = self._interpolator(start, end, Nin)
-                    for j in range(self.N_j):
-                        self.alpha_ijkn[i, j, k, :Nin] = dat[:]
+                    self.alpha_ijkn[i, :, k, :Nin] = dat[:]
 
             self.boundsAR["generic"] = generic
 
         elif allocType == "spouses":
-            assert len(generic) == 2, "generic must have 2 entries (initial and final)."
+            if len(generic) != 2:
+                raise ValueError("generic must have 2 entries (initial and final).")
             for z in range(2):
-                assert len(generic[z]) == self.N_k, f"generic[{z}] must have {self.N_k} entries."
-                assert abs(sum(generic[z]) - 100) < 0.01, "Sum of percentages must add to 100."
+                if len(generic[z]) != self.N_k:
+                    raise ValueError(f"generic[{z}] must have {self.N_k} entries.")
+                if abs(sum(generic[z]) - 100) > 0.01:
+                    raise ValueError("Sum of percentages must add to 100.")
 
-            self.mylog.vprint(f"Setting gliding allocation ratios (%) to {allocType}.")
-            self.mylog.vprint(f"\t{generic[0]} -> {generic[1]}")
-
-            # Use longest-lived spouse for both time scales.
-            Nxn = max(self.horizons) + 1
-
-            for k in range(self.N_k):
-                start = generic[0][k] / 100
-                end = generic[1][k] / 100
-                dat = self._interpolator(start, end, Nxn)
-                for i in range(self.N_i):
-                    for j in range(self.N_j):
-                        self.alpha_ijkn[i, j, k, :Nxn] = dat[:]
+            for i in range(self.N_i):
+                Nin = self.horizons[i] + 1
+                for k in range(self.N_k):
+                    start = generic[0][k] / 100
+                    end = generic[1][k] / 100
+                    dat = self._interpolator(start, end, Nin)
+                    self.alpha_ijkn[i, :, k, :Nin] = dat[:]
 
             self.boundsAR["generic"] = generic
 
@@ -873,7 +899,6 @@ class Plan(object):
             filename, self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
         except Exception as e:
             raise Exception(f"Unsuccessful read of contributions: {e}") from e
-            return False
 
         self.timeListsFileName = filename
         self.setContributions()
@@ -1096,7 +1121,8 @@ class Plan(object):
         units = u.getUnits(options.get("units", "k"))
         # No units for bigM.
         bigM = options.get("bigM", 5e6)
-        assert isinstance(bigM, (int, float)), f"bigM {bigM} is not a number."
+        if not isinstance(bigM, (int, float)):
+            raise ValueError(f"bigM {bigM} is not a number.")
 
         ###################################################################
         # Inequality constraint matrix with upper and lower bound vectors.
@@ -1141,7 +1167,8 @@ class Plan(object):
         else:
             if "maxRothConversion" in options:
                 rhsopt = options["maxRothConversion"]
-                assert isinstance(rhsopt, (int, float)), "Specified maxRothConversion is not a number."
+                if not isinstance(rhsopt, (int, float)):
+                    raise ValueError(f"Specified maxRothConversion {rhsopt} is not a number.")
                 rhsopt *= units
                 if rhsopt < 0:
                     # self.mylog.vprint('Unlimited Roth conversions (<0)')
@@ -1157,7 +1184,8 @@ class Plan(object):
             # Process startRothConversions option.
             if "startRothConversions" in options:
                 rhsopt = options["startRothConversions"]
-                assert isinstance(rhsopt, (int, float)), "Specified startRothConversions is not a number."
+                if not isinstance(rhsopt, (int, float)):
+                    raise ValueError(f"Specified startRothConversions {rhsopt} is not a number.")
                 thisyear = date.today().year
                 yearn = max(rhsopt - thisyear, 0)
 
@@ -1199,7 +1227,8 @@ class Plan(object):
             # Impose optional constraint on final bequest requested in today's $.
             if "bequest" in options:
                 bequest = options["bequest"]
-                assert isinstance(bequest, (int, float)), "Desired bequest is not a number."
+                if not isinstance(bequest, (int, float)):
+                    raise ValueError(f"Desired bequest {bequest} is not a number.")
                 bequest *= units * self.gamma_n[-1]
             else:
                 # If not specified, defaults to $1 (nominal $).
@@ -1216,7 +1245,8 @@ class Plan(object):
             # self.mylog.vprint('Adding bequest constraint of:', u.d(bequest))
         elif objective == "maxBequest":
             spending = options["netSpending"]
-            assert isinstance(spending, (int, float)), "Desired spending provided is not a number."
+            if not isinstance(spending, (int, float)):
+                raise ValueError(f"Desired spending provided {spending} is not a number.")
             # Account for time elapsed in the current year.
             spending *= units * self.yearFracLeft
             # self.mylog.vprint('Maximizing bequest with desired net spending of:', u.d(spending))
@@ -3051,7 +3081,7 @@ def _saveWorkbook(wb, basename, overwrite, mylog):
             mylog.vprint("Skipping save and returning.")
             return None
 
-    while True:
+    for _ in range(3):
         try:
             mylog.vprint(f'Saving plan as "{fname}".')
             wb.save(fname)

@@ -37,7 +37,9 @@ license = {file = "LICENSE"}
 
 [tool.pytest.ini_options]
 pythonpath = [
-    "src"
+    ".",
+    "ui",
+    "src",
 ]
 
 [project.urls]

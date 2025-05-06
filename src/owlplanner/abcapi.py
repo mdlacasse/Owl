@@ -43,7 +43,8 @@ class Row(object):
         """
         Add an element at index ``ind`` of value ``val`` to the row.
         """
-        assert 0 <= ind and ind < self.nvars, f"Index {ind} out of range."
+        if not (0 <= ind < self.nvars):
+            raise ValueError(f"Index {ind} out of range.")
         self.ind.append(ind)
         self.val.append(val)
 
@@ -159,7 +160,8 @@ class Bounds(object):
             self.setBinary(ii)
 
     def setBinary(self, ii):
-        assert 0 <= ii and ii < self.nvars, f"Index {ii} out of range."
+        if not (0 <= ii < self.nvars):
+            raise ValueError(f"Index {ii} out of range.")
         self.ind.append(ii)
         self.lb.append(0)
         self.ub.append(1)
@@ -167,8 +169,10 @@ class Bounds(object):
         self.integrality.append(ii)
 
     def setRange(self, ii, lb, ub):
-        assert 0 <= ii and ii < self.nvars, f"Index {ii} out of range."
-        assert lb <= ub, f"Lower bound {lb} > upper bound {ub}."
+        if not (0 <= ii < self.nvars):
+            raise ValueError(f"Index {ii} out of range.")
+        if lb > ub:
+            raise ValueError(f"Lower bound {lb} > upper bound {ub}.")
         self.ind.append(ii)
         self.lb.append(lb)
         self.ub.append(ub)
@@ -221,7 +225,8 @@ class Objective(object):
         self.val = []
 
     def setElem(self, ind, val):
-        assert 0 <= ind and ind < self.nvars, f"Index {ind} out of range."
+        if not (0 <= ind < self.nvars):
+            raise ValueError(f"Index {ind} out of range.")
         self.ind.append(ind)
         self.val.append(val)
 

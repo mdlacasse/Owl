@@ -172,7 +172,8 @@ def taxBrackets(N_i, n_d, N_n, y_TCJA):
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
     """
-    assert 0 < N_i and N_i <= 2, f"Cannot process {N_i} individuals."
+    if not (0 < N_i <= 2):
+        raise ValueError(f"Cannot process {N_i} individuals.")
     n_d = min(n_d, N_n)
     status = N_i - 1
 

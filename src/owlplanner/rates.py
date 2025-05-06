@@ -82,9 +82,12 @@ def getRatesDistributions(frm, to, mylog=None):
     # Convert years to index and check range.
     frm -= FROM
     to -= FROM
-    assert 0 <= frm and frm <= len(SP500), 'Range "from" out of bounds.'
-    assert 0 <= to and to <= len(SP500), 'Range "to" out of bounds.'
-    assert frm <= to, '"from" must be smaller than "to".'
+    if not (0 <= frm and frm <= len(SP500)):
+        raise ValueError(f"Range 'from' {frm} out of bounds.")
+    if not (0 <= to and to <= len(SP500)):
+        raise ValueError(f"Range 'to' {to} out of bounds.")
+    if frm >= to:
+        raise ValueError(f'"from" {frm} must be smaller than "to" {to}.')
 
     series = {
         "SP500": SP500,
@@ -124,9 +127,12 @@ def historicalValue(amount, year):
     valued at the beginning of the year specified.
     """
     thisyear = date.today().year
-    assert TO == thisyear - 1, f"Rates file needs to be updated to be current to {thisyear}."
-    assert year >= FROM, f"Only data from {FROM} is available."
-    assert year <= thisyear, f"Year must be < {thisyear} for historical data."
+    if TO != thisyear - 1:
+        raise RuntimeError(f"Rates file needs to be updated to be current to {thisyear}.")
+    if year < FROM:
+        raise ValueError(f"Only data from {FROM} is available.")
+    if year > thisyear:
+        raise ValueError(f"Year must be < {thisyear} for historical data.")
 
     span = thisyear - year
     ub = len(Inflation)
@@ -223,18 +229,24 @@ class Rates(object):
             self.mylog.vprint("Using conservative fixed rates values:", *[u.pc(k) for k in self.means])
             self._setFixedRates(self._conservRates)
         elif method == "user":
-            assert values is not None, "Fixed values must be provided with the user option."
-            assert len(values) == Nk, f"Values must have {Nk} items."
+            if values is None:
+                raise ValueError("Fixed values must be provided with the user option.")
+            if len(values) != Nk:
+                raise ValueError(f"Values must have {Nk} items.")
             self.means = np.array(values, dtype=float)
             # Convert percent to decimal for storing.
             self.means /= 100.0
             self.mylog.vprint("Setting rates using fixed user values:", *[u.pc(k) for k in self.means])
             self._setFixedRates(self.means)
         elif method == "stochastic":
-            assert values is not None, "Mean values must be provided with the stochastic option."
-            assert stdev is not None, "Standard deviations must be provided with the stochastic option."
-            assert len(values) == Nk, f"Values must have {Nk} items."
-            assert len(stdev) == Nk, f"stdev must have {Nk} items."
+            if values is None:
+                raise ValueError("Mean values must be provided with the stochastic option.")
+            if stdev is None:
+                raise ValueError("Standard deviations must be provided with the stochastic option.")
+            if len(values) != Nk:
+                raise ValueError(f"Values must have {Nk} items.")
+            if len(stdev) != Nk:
+                raise ValueError(f"stdev must have {Nk} items.")
             self.means = np.array(values, dtype=float)
             self.stdev = np.array(stdev, dtype=float)
             # Convert percent to decimal for storing.
@@ -262,7 +274,8 @@ class Rates(object):
                     raise RuntimeError(f"Unable to process correlation shape of {corrarr.shape}.")
 
             self.corr = corrarr
-            assert np.array_equal(self.corr, self.corr.T), "Correlation matrix must be symmetric."
+            if not np.array_equal(self.corr, self.corr.T):
+                raise ValueError("Correlation matrix must be symmetric.")
             # Now build covariance matrix from stdev and correlation matrix.
             # Multiply each row by a vector element-wise. Then columns.
             covar = self.corr * self.stdev
@@ -273,10 +286,14 @@ class Rates(object):
             self.mylog.vprint("\t and correlation matrix:\n\t\t", str(self.corr).replace("\n", "\n\t\t"))
         else:
             # Then methods relying on historical data range.
-            assert frm is not None, "From year must be provided with this option."
-            assert FROM <= frm and frm <= TO, f"Lower range 'frm={frm}' out of bounds."
-            assert FROM <= to and to <= TO, f"Upper range 'to={to}' out of bounds."
-            assert frm < to, "Unacceptable range."
+            if frm is None:
+                raise ValueError("From year must be provided with this option.")
+            if not (FROM <= frm <= TO):
+                raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
+            if not (FROM <= to <= TO):
+                raise ValueError(f"Upper range 'to={to}' out of bounds.")
+            if not (frm < to):
+                raise ValueError("Unacceptable range.")
             self.frm = frm
             self.to = to
 
@@ -300,7 +317,8 @@ class Rates(object):
 
     def _setFixedRates(self, rates):
         Nk = len(self._defRates)
-        assert len(rates) == Nk, f"Rate list provided must have {Nk} entries."
+        if len(rates) != Nk:
+            raise ValueError(f"Rate list provided must have {Nk} entries.")
         self._myRates = np.array(rates)
         self._rateMethod = self._fixedRates
 
