@@ -403,13 +403,10 @@ class Plan(object):
         if value is None:
             return self.defaultPlots
 
-        opts = ["nominal", "today"]
-        if value in opts:
+        if value in ["nominal", "today"]:
             return value
 
         raise ValueError(f"Value type must be one of: {opts}")
-
-        return None
 
     def rename(self, newname):
         """
@@ -1675,8 +1672,13 @@ class Plan(object):
         """
         from scipy import optimize
 
-        # mip_rel_gap smaller than 1e-6 can lead to oscillatory solutions.
-        milpOptions = {"disp": False, "mip_rel_gap": 1e-7}
+        # Optimize solver parameters
+        milpOptions = {
+            "disp": False,
+            "mip_rel_gap": 1e-7,
+            "presolve": True,
+            "node_limit": 10000  # Limit search nodes for faster solutions
+        }
 
         self._buildConstraints(objective, options)
         Alu, lbvec, ubvec = self.A.arrays()
