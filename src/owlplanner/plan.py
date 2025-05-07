@@ -403,10 +403,11 @@ class Plan(object):
         if value is None:
             return self.defaultPlots
 
-        if value in ["nominal", "today"]:
-            return value
+        opt = ["nominal", "today"]
+        if value not in opt:
+            raise ValueError(f"Value type must be one of: {opts}")
 
-        raise ValueError(f"Value type must be one of: {opts}")
+        return value
 
     def rename(self, newname):
         """
