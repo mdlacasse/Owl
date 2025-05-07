@@ -4,6 +4,7 @@ dist
 *~
 *.aux
 *.log
+.coverage
 otherFiles
 myfiles
 secrets

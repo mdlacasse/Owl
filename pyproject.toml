@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "owlplanner"
-version = "2025.05.03"
+version = "2025.05.05"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
@@ -34,13 +34,6 @@ dependencies = [
     "toml",
 ]
 license = {file = "LICENSE"}
-
-[tool.pytest.ini_options]
-pythonpath = [
-    ".",
-    "ui",
-    "src",
-]
 
 [project.urls]
 HomePage = "https://github.com/mdlacasse/owl"

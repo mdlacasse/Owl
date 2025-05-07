@@ -37,6 +37,7 @@ from datetime import date
 
 from owlplanner import logging
 from owlplanner import utils as u
+from owlplanner import plots
 
 # All data goes from 1928 to 2024. Update the TO value when data
 # becomes available for subsequent years.
@@ -388,43 +389,7 @@ def showRatesDistributions(frm=FROM, to=TO):
     """
     Plot histograms of the rates distributions.
     """
-    import matplotlib.pyplot as plt
-
-    title = "Rates from " + str(frm) + " to " + str(to)
-    # Bring year values to indices.
-    frm -= FROM
-    to -= FROM
-
-    nbins = int((to - frm) / 4)
-    fig, ax = plt.subplots(1, 4, sharey=True, sharex=True, tight_layout=True)
-
-    dat0 = np.array(SP500[frm:to])
-    dat1 = np.array(BondsBaa[frm:to])
-    dat2 = np.array(TNotes[frm:to])
-    dat3 = np.array(Inflation[frm:to])
-
-    fig.suptitle(title)
-    ax[0].set_title("S&P500")
-    label = "<>: " + u.pc(np.mean(dat0), 2, 1)
-    ax[0].hist(dat0, bins=nbins, label=label)
-    ax[0].legend(loc="upper left", fontsize=8, framealpha=0.7)
-
-    ax[1].set_title("BondsBaa")
-    label = "<>: " + u.pc(np.mean(dat1), 2, 1)
-    ax[1].hist(dat1, bins=nbins, label=label)
-    ax[1].legend(loc="upper left", fontsize=8, framealpha=0.7)
-
-    ax[2].set_title("TNotes")
-    label = "<>: " + u.pc(np.mean(dat2), 2, 1)
-    ax[2].hist(dat1, bins=nbins, label=label)
-    ax[2].legend(loc="upper left", fontsize=8, framealpha=0.7)
-
-    ax[3].set_title("Inflation")
-    label = "<>: " + u.pc(np.mean(dat3), 2, 1)
-    ax[3].hist(dat3, bins=nbins, label=label)
-    ax[3].legend(loc="upper left", fontsize=8, framealpha=0.7)
-
-    plt.show()
-
-    # return fig, ax
-    return None
+    fig = plots.show_rates_distributions(frm, to, SP500, BondsBaa, TNotes, Inflation, FROM)
+    return fig
+    # plt.show()
+    # return None

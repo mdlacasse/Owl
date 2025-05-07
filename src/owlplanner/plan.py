@@ -22,7 +22,6 @@ from functools import wraps
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 import time
-import io
 
 from owlplanner import utils as u
 from owlplanner import tax2025 as tx
@@ -32,6 +31,7 @@ from owlplanner import config
 from owlplanner import timelists
 from owlplanner import logging
 from owlplanner import progress
+from owlplanner import plots
 
 
 # This makes all graphs to have the same height.
@@ -995,9 +995,7 @@ class Plan(object):
         a linear interpolation.
         """
         # num goes one more year as endpoint=True.
-        dat = np.linspace(a, b, numPoints)
-
-        return dat
+        return np.linspace(a, b, numPoints)
 
     def _tanhInterp(self, a, b, numPoints):
         """
@@ -1432,7 +1430,8 @@ class Plan(object):
         self.mylog.resetVerbose()
 
         if figure:
-            fig, description = self._showResults(objective, df, N)
+            fig, description = plots.show_histogram_results(objective, df, N, self.year_n,
+                                                            self.n_d, self.N_i, self.phi_j)
             self.mylog.print(description.getvalue())
             return fig, description.getvalue()
 
@@ -1488,95 +1487,12 @@ class Plan(object):
         self.mylog.resetVerbose()
 
         if figure:
-            fig, description = self._showResults(objective, df, N)
+            fig, description = plots.show_histogram_results(objective, df, N, self.year_n,
+                                                            self.n_d, self.N_i, self.phi_j)
             self.mylog.print(description.getvalue())
             return fig, description.getvalue()
 
         return N, df
-
-    def _showResults(self, objective, df, N):
-        """
-        Show a histogram of values from runMC() and runHistoricalRange().
-        """
-        import seaborn as sbn
-
-        description = io.StringIO()
-
-        pSuccess = u.pc(len(df) / N)
-        print(f"Success rate: {pSuccess} on {N} samples.", file=description)
-        title = f"$N$ = {N}, $P$ = {pSuccess}"
-        means = df.mean(axis=0, numeric_only=True)
-        medians = df.median(axis=0, numeric_only=True)
-
-        my = 2 * [self.year_n[-1]]
-        if self.N_i == 2 and self.n_d < self.N_n:
-            my[0] = self.year_n[self.n_d - 1]
-
-        # Don't show partial bequest of zero if spouse is full beneficiary,
-        # or if solution led to empty accounts at the end of first spouse's life.
-        if np.all(self.phi_j == 1) or medians.iloc[0] < 1:
-            if medians.iloc[0] < 1:
-                print(f"Optimized solutions all have null partial bequest in year {my[0]}.", file=description)
-            df.drop("partial", axis=1, inplace=True)
-            means = df.mean(axis=0, numeric_only=True)
-            medians = df.median(axis=0, numeric_only=True)
-
-        df /= 1000
-        if len(df) > 0:
-            thisyear = self.year_n[0]
-            if objective == "maxBequest":
-                fig, axes = plt.subplots()
-                # Show both partial and final bequests in the same histogram.
-                sbn.histplot(df, multiple="dodge", kde=True, ax=axes)
-                legend = []
-                # Don't know why but legend is reversed from df.
-                for q in range(len(means) - 1, -1, -1):
-                    dmedian = u.d(medians.iloc[q], latex=True)
-                    dmean = u.d(means.iloc[q], latex=True)
-                    legend.append(f"{my[q]}: $M$: {dmedian}, $\\bar{{x}}$: {dmean}")
-                plt.legend(legend, shadow=True)
-                plt.xlabel(f"{thisyear} $k")
-                plt.title(objective)
-                leads = [f"partial {my[0]}", f"  final {my[1]}"]
-            elif len(means) == 2:
-                # Show partial bequest and net spending as two separate histograms.
-                fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-                cols = ["partial", objective]
-                leads = [f"partial {my[0]}", objective]
-                for q in range(2):
-                    sbn.histplot(df[cols[q]], kde=True, ax=axes[q])
-                    dmedian = u.d(medians.iloc[q], latex=True)
-                    dmean = u.d(means.iloc[q], latex=True)
-                    legend = [f"$M$: {dmedian}, $\\bar{{x}}$: {dmean}"]
-                    axes[q].set_label(legend)
-                    axes[q].legend(labels=legend)
-                    axes[q].set_title(leads[q])
-                    axes[q].set_xlabel(f"{thisyear} $k")
-            else:
-                # Show net spending as single histogram.
-                fig, axes = plt.subplots()
-                sbn.histplot(df[objective], kde=True, ax=axes)
-                dmedian = u.d(medians.iloc[0], latex=True)
-                dmean = u.d(means.iloc[0], latex=True)
-                legend = [f"$M$: {dmedian}, $\\bar{{x}}$: {dmean}"]
-                plt.legend(legend, shadow=True)
-                plt.xlabel(f"{thisyear} $k")
-                plt.title(objective)
-                leads = [objective]
-
-            plt.suptitle(title)
-            # plt.show()
-
-        for q in range(len(means)):
-            print(f"{leads[q]:>12}: Median ({thisyear} $): {u.d(medians.iloc[q])}", file=description)
-            print(f"{leads[q]:>12}:   Mean ({thisyear} $): {u.d(means.iloc[q])}", file=description)
-            mmin = 1000 * df.iloc[:, q].min()
-            mmax = 1000 * df.iloc[:, q].max()
-            print(f"{leads[q]:>12}:           Range: {u.d(mmin)} - {u.d(mmax)}", file=description)
-            nzeros = len(df.iloc[:, q][df.iloc[:, q] < 0.001])
-            print(f"{leads[q]:>12}:    N zero solns: {nzeros}", file=description)
-
-        return fig, description
 
     def resolve(self):
         """
@@ -2230,56 +2146,15 @@ class Plan(object):
 
         A tag string can be set to add information to the title of the plot.
         """
-        import seaborn as sbn
-
         if self.rateMethod in [None, "user", "historical average", "conservative"]:
             self.mylog.vprint(f"Warning: Cannot plot correlations for {self.rateMethod} rate method.")
             return None
 
-        rateNames = [
-            "S&P500 (incl. div.)",
-            "Baa Corp. Bonds",
-            "10-y T-Notes",
-            "Inflation",
-        ]
-
-        df = pd.DataFrame()
-        for k, name in enumerate(rateNames):
-            data = 100 * self.tau_kn[k]
-            df[name] = data
-
-        g = sbn.PairGrid(df, diag_sharey=False, height=1.8, aspect=1)
-        if shareRange:
-            minval = df.min().min() - 5
-            maxval = df.max().max() + 5
-            g.set(xlim=(minval, maxval), ylim=(minval, maxval))
-        g.map_upper(sbn.scatterplot)
-        g.map_lower(sbn.kdeplot)
-        # g.map_diag(sbn.kdeplot)
-        g.map_diag(sbn.histplot, color="orange")
-
-        # Put zero axes on off-diagonal plots.
-        imod = len(rateNames) + 1
-        for i, ax in enumerate(g.axes.flat):
-            ax.axvline(x=0, color="grey", linewidth=1, linestyle=":")
-            if i % imod != 0:
-                ax.axhline(y=0, color="grey", linewidth=1, linestyle=":")
-        #    ax.tick_params(axis='both', labelleft=True, labelbottom=True)
-
-        # plt.subplots_adjust(wspace=0.3, hspace=0.3)
-
-        title = self._name + "\n"
-        title += f"Rates Correlations (N={self.N_n}) {self.rateMethod}"
-        if self.rateMethod in ["historical", "histochastic"]:
-            title += " (" + str(self.rateFrm) + "-" + str(self.rateTo) + ")"
-
-        if tag != "":
-            title += " - " + tag
-
-        g.fig.suptitle(title, y=1.08)
+        fig = plots.show_rates_correlations(self._name, self.tau_kn, self.N_n, self.rateMethod,
+                                            self.rateFrm, self.rateTo, tag, shareRange)
 
         if figure:
-            return g.fig
+            return fig
 
         plt.show()
         return None
@@ -2290,49 +2165,12 @@ class Plan(object):
 
         A tag string can be set to add information to the title of the plot.
         """
-        import matplotlib.ticker as tk
-
         if self.rateMethod is None:
             self.mylog.vprint("Warning: Rate method must be selected before plotting.")
             return None
 
-        fig, ax = plt.subplots(figsize=(6, 4))
-        plt.grid(visible="both")
-        title = self._name + "\nReturn & Inflation Rates (" + str(self.rateMethod)
-        if self.rateMethod in ["historical", "histochastic", "historical average"]:
-            title += " " + str(self.rateFrm) + "-" + str(self.rateTo)
-        title += ")"
-
-        if tag != "":
-            title += " - " + tag
-
-        rateName = [
-            "S&P500 (incl. div.)",
-            "Baa Corp. Bonds",
-            "10-y T-Notes",
-            "Inflation",
-        ]
-        ltype = ["-", "-.", ":", "--"]
-        for k in range(self.N_k):
-            if self.yearFracLeft == 1:
-                data = 100 * self.tau_kn[k]
-                years = self.year_n
-            else:
-                data = 100 * self.tau_kn[k, 1:]
-                years = self.year_n[1:]
-
-            # Use ddof=1 to match pandas.
-            label = (
-                rateName[k] + " <" + "{:.1f}".format(np.mean(data)) + " +/- {:.1f}".format(np.std(data, ddof=1)) + "%>"
-            )
-            ax.plot(years, data, label=label, ls=ltype[k % self.N_k])
-
-        ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-        ax.legend(loc="best", reverse=False, fontsize=8, framealpha=0.7)
-        # ax.legend(loc='upper left')
-        ax.set_title(title)
-        ax.set_xlabel("year")
-        ax.set_ylabel("%")
+        fig = plots.show_rates(self._name, self.tau_kn, self.year_n, self.yearFracLeft,
+                               self.N_k, self.rateMethod, self.rateFrm, self.rateTo, tag)
 
         if figure:
             return fig
@@ -2354,10 +2192,9 @@ class Plan(object):
         if tag != "":
             title += " - " + tag
 
-        # style = {'net': '-', 'target': ':'}
         style = {"profile": "-"}
         series = {"profile": self.xi_n}
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat="$\\xi$")
+        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat="$\\xi$")
 
         if figure:
             return fig
@@ -2392,7 +2229,7 @@ class Plan(object):
             }
             yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
+        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat)
 
         if figure:
             return fig
@@ -2441,9 +2278,8 @@ class Plan(object):
             if tag != "":
                 title += " - " + tag
 
-            fig, ax = _stackPlot(
-                years_n, self.inames, title, range(self.N_i), y2stack, stackNames, "upper left", yformat
-            )
+            fig, ax = plots.stack_plot(years_n, self.inames, title, range(self.N_i),
+                                       y2stack, stackNames, "upper left", yformat)
             figures.append(fig)
 
         if figure:
@@ -2492,7 +2328,8 @@ class Plan(object):
                 if tag != "":
                     title += " - " + tag
 
-                fig, ax = _stackPlot(self.year_n, self.inames, title, [i], y2stack, stackNames, "upper left", "percent")
+                fig, ax = plots.stack_plot(self.year_n, self.inames, title, [i],
+                                           y2stack, stackNames, "upper left", "percent")
                 figures.append(fig)
 
         if figure:
@@ -2530,7 +2367,8 @@ class Plan(object):
             for key in self.savings_in:
                 savings_in[key] = self.savings_in[key] / self.gamma_n
 
-        fig, ax = _stackPlot(year_n, self.inames, title, range(self.N_i), savings_in, stypes, "upper left", yformat)
+        fig, ax = plots.stack_plot(year_n, self.inames, title, range(self.N_i),
+                                   savings_in, stypes, "upper left", yformat)
 
         if figure:
             return fig
@@ -2552,7 +2390,6 @@ class Plan(object):
 
         title = self._name + "\nRaw Income Sources"
         stypes = self.sources_in.keys()
-        # stypes = [item for item in stypes if "RothX" not in item]
 
         if tag != "":
             title += " - " + tag
@@ -2566,9 +2403,8 @@ class Plan(object):
             for key in stypes:
                 sources_in[key] = self.sources_in[key] / self.gamma_n[:-1]
 
-        fig, ax = _stackPlot(
-            self.year_n, self.inames, title, range(self.N_i), sources_in, stypes, "upper left", yformat
-        )
+        fig, ax = plots.stack_plot(self.year_n, self.inames, title, range(self.N_i),
+                                   sources_in, stypes, "upper left", yformat)
 
         if figure:
             return fig
@@ -2594,11 +2430,10 @@ class Plan(object):
         for t in range(self.N_t):
             key = "f " + str(t)
             series[key] = self.F_tn[t] / self.DeltaBar_tn[t]
-            # print(key, series[key])
             style[key] = various[q % len(various)]
             q += 1
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat="")
+        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat="")
 
         plt.show()
         return None
@@ -2631,7 +2466,7 @@ class Plan(object):
         if tag != "":
             title += " - " + tag
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
+        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat)
 
         if figure:
             return fig
@@ -2666,7 +2501,7 @@ class Plan(object):
         if tag != "":
             title += " - " + tag
 
-        fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
+        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat)
 
         data = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yTCJA)
         for key in data:
@@ -2936,70 +2771,6 @@ class Plan(object):
                 raise Exception(f"Unanticipated exception: {e}.") from e
 
         return None
-
-
-def _lineIncomePlot(x, series, style, title, yformat="\\$k"):
-    """
-    Core line plotter function.
-    """
-    import matplotlib.ticker as tk
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-    plt.grid(visible="both")
-
-    for sname in series:
-        ax.plot(x, series[sname], label=sname, ls=style[sname])
-
-    ax.legend(loc="upper left", reverse=True, fontsize=8, framealpha=0.3)
-    ax.set_title(title)
-    ax.set_xlabel("year")
-    ax.set_ylabel(yformat)
-    ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-    if "k" in yformat:
-        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ",")))
-        # Give range to y values in unindexed flat profiles.
-        ymin, ymax = ax.get_ylim()
-        if ymax - ymin < 5000:
-            ax.set_ylim((ymin * 0.95, ymax * 1.05))
-
-    return fig, ax
-
-
-def _stackPlot(x, inames, title, irange, series, snames, location, yformat="\\$k"):
-    """
-    Core function for stacked plots.
-    """
-    import matplotlib.ticker as tk
-
-    nonzeroSeries = {}
-    for sname in snames:
-        for i in irange:
-            tmp = series[sname][i]
-            if sum(tmp) > 1.0:
-                nonzeroSeries[sname + " " + inames[i]] = tmp
-
-    if len(nonzeroSeries) == 0:
-        # print('Nothing to plot for', title)
-        return None, None
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-    plt.grid(visible="both")
-
-    ax.stackplot(x, nonzeroSeries.values(), labels=nonzeroSeries.keys(), alpha=0.6)
-    ax.legend(loc=location, reverse=True, fontsize=8, ncol=2, framealpha=0.5)
-    ax.set_title(title)
-    ax.set_xlabel("year")
-    ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-    if "k" in yformat:
-        ax.set_ylabel(yformat)
-        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(x / 1000), ",")))
-    elif yformat == "percent":
-        ax.set_ylabel("%")
-        ax.get_yaxis().set_major_formatter(tk.FuncFormatter(lambda x, p: format(int(100 * x), ",")))
-    else:
-        raise RuntimeError(f"Unknown yformat: {yformat}.")
-
-    return fig, ax
 
 
 def _saveWorkbook(wb, basename, overwrite, mylog):
