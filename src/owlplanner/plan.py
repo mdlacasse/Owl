@@ -403,8 +403,8 @@ class Plan(object):
         if value is None:
             return self.defaultPlots
 
-        opt = ["nominal", "today"]
-        if value not in opt:
+        opts = ["nominal", "today"]
+        if value not in opts:
             raise ValueError(f"Value type must be one of: {opts}")
 
         return value

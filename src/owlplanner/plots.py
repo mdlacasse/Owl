@@ -19,10 +19,10 @@ import matplotlib.ticker as tk
 import io
 import os
 
-os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
-import seaborn as sbn
-
 from owlplanner import utils as u
+
+os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
+import seaborn as sbn   # noqa: E402
 
 
 def line_income_plot(x, series, style, title, yformat="\\$k"):
@@ -172,6 +172,7 @@ def show_rates_correlations(name, tau_kn, N_n, rate_method, rate_frm=None, rate_
     """
     Plot correlations between various rates.
     """
+
     rate_names = [
         "S&P500 (incl. div.)",
         "Baa Corp. Bonds",
