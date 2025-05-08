@@ -1388,11 +1388,15 @@ class Plan(object):
         """
         Run historical scenarios on plan over a range of years.
         """
+
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n - 1
             self.mylog.vprint(f"Warning: Upper bound for year range re-adjusted to {yend}.")
-        N = yend - ystart + 1
 
+        if yend < ystart:
+            raise ValueError(f"Starting year is too large to support a lifespan of {self.N_n} years.")
+
+        N = yend - ystart + 1
         self.mylog.vprint(f"Running historical range from {ystart} to {yend}.")
 
         self.mylog.setVerbose(verbose)
@@ -1403,7 +1407,8 @@ class Plan(object):
             columns = ["partial", "final"]
         else:
             self.mylog.print(f"Invalid objective {objective}.")
-            return None
+            raise ValueError(f"Invalid objective {objective}.")
+
 
         df = pd.DataFrame(columns=columns)
 

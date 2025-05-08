@@ -102,7 +102,7 @@ def show_histogram_results(objective, df, N, year_n, n_d=None, N_i=1, phi_j=None
 
     # Don't show partial bequest of zero if spouse is full beneficiary,
     # or if solution led to empty accounts at the end of first spouse's life.
-    if (phi_j is not None and np.all(phi_j == 1)) or medians.iloc[0] < 1:
+    if (phi_j is not None and np.all((1 - phi_j) < 0.01)) or medians.iloc[0] < 1:
         if medians.iloc[0] < 1:
             print(f"Optimized solutions all have null partial bequest in year {my[0]}.", file=description)
         df.drop("partial", axis=1, inplace=True)
