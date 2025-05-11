@@ -1,5 +1,4 @@
 import streamlit as st
-import sys
 
 import sskeys as kz
 

@@ -9,11 +9,11 @@ import sys
 sys.path.insert(0, "./src")
 sys.path.insert(0, "../src")
 
-import owlplanner as owl
-from owlplanner.rates import FROM, TO
+import owlplanner as owl                      # noqa: E402
+from owlplanner.rates import FROM, TO         # noqa: E402
 
-import sskeys as kz
-import progress
+import sskeys as kz         # noqa: E402
+import progress             # noqa: E402
 
 
 def hasMOSEK():

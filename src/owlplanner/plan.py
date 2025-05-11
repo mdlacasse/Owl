@@ -16,7 +16,6 @@ Disclaimer: This program comes with no guarantee. Use at your own risk.
 ###########################################################################
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import date, datetime
 from functools import wraps
 from openpyxl import Workbook
@@ -2191,14 +2190,10 @@ class Plan(object):
         if self.xi_n is None:
             self.mylog.vprint("Warning: Profile must be selected before plotting.")
             return None
-
         title = self._name + "\nSpending Profile"
-        if tag != "":
+        if tag:
             title += " - " + tag
-
-        style = {"profile": "-"}
-        series = {"profile": self.xi_n}
-        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat="$\\xi$")
+        fig = plots.plot_profile(self.year_n, self.xi_n, title, self.inames)
 
         if figure:
             return fig
@@ -2216,24 +2211,11 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-
         title = self._name + "\nNet Available Spending"
-        if tag != "":
+        if tag:
             title += " - " + tag
-
-        style = {"net": "-", "target": ":"}
-        if value == "nominal":
-            series = {"net": self.g_n, "target": (self.g_n[0] / self.xi_n[0]) * self.xiBar_n}
-            yformat = "\\$k (nominal)"
-        else:
-            series = {
-                "net": self.g_n / self.gamma_n[:-1],
-                "target": (self.g_n[0] / self.xi_n[0]) * self.xi_n,
-            }
-            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
-
-        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat)
-
+        fig = plots.plot_net_spending(self.year_n, self.g_n, self.xi_n, self.xiBar_n,
+                                      self.gamma_n, value, title, self.inames)
         if figure:
             return fig
 
@@ -2253,39 +2235,33 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-
-        if value == "nominal":
-            yformat = "\\$k (nominal)"
-            infladjust = 1
-        else:
-            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
-            infladjust = self.gamma_n
-
-        years_n = np.array(self.year_n)
-        years_n = np.append(years_n, [years_n[-1] + 1])
-        y2stack = {}
-        jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}
-        kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
-        figures = []
-        for jkey in jDic:
-            stackNames = []
-            for kkey in kDic:
-                name = kkey + " / " + jkey
-                stackNames.append(name)
-                y2stack[name] = np.zeros((self.N_i, self.N_n + 1))
-                for i in range(self.N_i):
-                    y2stack[name][i][:] = self.b_ijkn[i][jDic[jkey]][kDic[kkey]][:] / infladjust
-
-            title = self._name + "\nAssets Distribution - " + jkey
-            if tag != "":
-                title += " - " + tag
-
-            fig, ax = plots.stack_plot(years_n, self.inames, title, range(self.N_i),
-                                       y2stack, stackNames, "upper left", yformat)
-            figures.append(fig)
-
+        figures = plots.plot_asset_distribution(self.year_n, self.inames, self.b_ijkn,
+                                                self.gamma_n, value, self._name, tag)
         if figure:
             return figures
+
+        return None
+
+    @_checkCaseStatus
+    def showGrossIncome(self, tag="", value=None, figure=False):
+        """
+        Plot income tax and taxable income over time horizon.
+
+        A tag string can be set to add information to the title of the plot.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
+        """
+        value = self._checkValue(value)
+        tax_brackets = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yTCJA)
+        title = self._name + "\nTaxable Ordinary Income vs. Tax Brackets"
+        if tag:
+            title += " - " + tag
+        fig = plots.plot_gross_income(
+            self.year_n, self.G_n, self.gamma_n, value, title, tax_brackets
+        )
+        if figure:
+            return fig
 
         return None
 
@@ -2297,42 +2273,10 @@ class Plan(object):
 
         A tag string can be set to add information to the title of the plot.
         """
-        count = self.N_i
-        if self.ARCoord == "spouses":
-            acList = [self.ARCoord]
-            count = 1
-        elif self.ARCoord == "individual":
-            acList = [self.ARCoord]
-        elif self.ARCoord == "account":
-            acList = ["taxable", "tax-deferred", "tax-free"]
-        else:
-            raise ValueError(f"Unknown coordination {self.ARCoord}.")
-
-        figures = []
-        assetDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
-        for i in range(count):
-            y2stack = {}
-            for acType in acList:
-                stackNames = []
-                for key in assetDic:
-                    aname = key + " / " + acType
-                    stackNames.append(aname)
-                    y2stack[aname] = np.zeros((count, self.N_n))
-                    y2stack[aname][i][:] = self.alpha_ijkn[i, acList.index(acType), assetDic[key], : self.N_n]
-
-                    title = self._name + "\nAsset Allocation (%) - " + acType
-                    if self.ARCoord == "spouses":
-                        title += " spouses"
-                    else:
-                        title += " " + self.inames[i]
-
-                if tag != "":
-                    title += " - " + tag
-
-                fig, ax = plots.stack_plot(self.year_n, self.inames, title, [i],
-                                           y2stack, stackNames, "upper left", "percent")
-                figures.append(fig)
-
+        title = self._name + "\nAsset Allocation"
+        if tag:
+            title += " - " + tag
+        figures = plots.plot_allocations(self.year_n, self.inames, self.alpha_ijkn, self.ARCoord, title)
         if figure:
             return figures
 
@@ -2349,27 +2293,10 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-
         title = self._name + "\nSavings Balance"
-        if tag != "":
+        if tag:
             title += " - " + tag
-
-        stypes = self.savings_in.keys()
-        # Add one year for estate.
-        year_n = np.append(self.year_n, [self.year_n[-1] + 1])
-
-        if value == "nominal":
-            yformat = "\\$k (nominal)"
-            savings_in = self.savings_in
-        else:
-            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
-            savings_in = {}
-            for key in self.savings_in:
-                savings_in[key] = self.savings_in[key] / self.gamma_n
-
-        fig, ax = plots.stack_plot(year_n, self.inames, title, range(self.N_i),
-                                   savings_in, stypes, "upper left", yformat)
-
+        fig = plots.plot_accounts(self.year_n, self.savings_in, self.gamma_n, value, title, self.inames)
         if figure:
             return fig
 
@@ -2386,25 +2313,10 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-
         title = self._name + "\nRaw Income Sources"
-        stypes = self.sources_in.keys()
-
-        if tag != "":
+        if tag:
             title += " - " + tag
-
-        if value == "nominal":
-            yformat = "\\$k (nominal)"
-            sources_in = self.sources_in
-        else:
-            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
-            sources_in = {}
-            for key in stypes:
-                sources_in[key] = self.sources_in[key] / self.gamma_n[:-1]
-
-        fig, ax = plots.stack_plot(self.year_n, self.inames, title, range(self.N_i),
-                                   sources_in, stypes, "upper left", yformat)
-
+        fig = plots.plot_sources(self.year_n, self.sources_in, self.gamma_n, value, title, self.inames)
         if figure:
             return fig
 
@@ -2421,85 +2333,15 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-
-        style = {"income taxes": "-", "Medicare": "-."}
-
-        if value == "nominal":
-            series = {"income taxes": self.T_n, "Medicare": self.M_n}
-            yformat = "\\$k (nominal)"
-        else:
-            series = {
-                "income taxes": self.T_n / self.gamma_n[:-1],
-                "Medicare": self.M_n / self.gamma_n[:-1],
-            }
-            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
-
         title = self._name + "\nIncome Tax"
-        if tag != "":
+        if tag:
             title += " - " + tag
-
-        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat)
-
+        fig = plots.plot_taxes(self.year_n, self.T_n, self.M_n, self.gamma_n, value, title, self.inames)
         if figure:
             return fig
 
         return None
 
-    @_checkCaseStatus
-    def showGrossIncome(self, tag="", value=None, figure=False):
-        """
-        Plot income tax and taxable income over time horizon.
-
-        A tag string can be set to add information to the title of the plot.
-
-        The value parameter can be set to *nominal* or *today*, overriding
-        the default behavior of setDefaultPlots().
-        """
-        value = self._checkValue(value)
-
-        style = {"taxable income": "-"}
-
-        if value == "nominal":
-            series = {"taxable income": self.G_n}
-            yformat = "\\$k (nominal)"
-            infladjust = self.gamma_n[:-1]
-        else:
-            series = {"taxable income": self.G_n / self.gamma_n[:-1]}
-            yformat = "\\$k (" + str(self.year_n[0]) + "\\$)"
-            infladjust = 1
-
-        title = self._name + "\nTaxable Ordinary Income vs. Tax Brackets"
-        if tag != "":
-            title += " - " + tag
-
-        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat)
-
-        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yTCJA)
-        for key in data:
-            data_adj = data[key] * infladjust
-            ax.plot(self.year_n, data_adj, label=key, ls=":")
-
-        plt.grid(visible="both")
-        ax.legend(loc="upper left", reverse=True, fontsize=8, framealpha=0.3)
-
-        if figure:
-            return fig
-
-        return None
-
-    # @_checkCaseStatus
-    def saveConfig(self, basename=None):
-        """
-        Save parameters in a configuration file.
-        """
-        if basename is None:
-            basename = "case_" + self._name
-
-        config.saveConfig(self, basename, self.mylog)
-
-        return None
-
-    @_checkCaseStatus
     def saveWorkbook(self, overwrite=False, *, basename=None, saveToFile=True):
         """
         Save instance in an Excel spreadsheet.
@@ -2739,6 +2581,17 @@ class Plan(object):
                     break
             except Exception as e:
                 raise Exception(f"Unanticipated exception: {e}.") from e
+
+        return None
+
+    def saveConfig(self, basename=None):
+        """
+        Save parameters in a configuration file.
+        """
+        if basename is None:
+            basename = "case_" + self._name
+
+        config.saveConfig(self, basename, self.mylog)
 
         return None
 

@@ -32,6 +32,8 @@ def set_plot_style():
     """
     plt.rcParams.update({'figure.autolayout': True})
     plt.rcParams.update({'figure.figsize': (6, 4)})
+    plt.rcParams.update({'axes.grid': True})
+    plt.rcParams.update({'axes.grid.which': 'both'})
 
 
 set_plot_style()
@@ -42,7 +44,6 @@ def line_income_plot(x, series, style, title, yformat="\\$k"):
     Core line plotter function.
     """
     fig, ax = plt.subplots()
-    plt.grid(visible="both")
 
     for sname in series:
         ax.plot(x, series[sname], label=sname, ls=style[sname])
@@ -77,7 +78,6 @@ def stack_plot(x, inames, title, irange, series, snames, location, yformat="\\$k
         return None, None
 
     fig, ax = plt.subplots()
-    plt.grid(visible="both")
 
     ax.stackplot(x, nonzeroSeries.values(), labels=nonzeroSeries.keys(), alpha=0.6)
     ax.legend(loc=location, reverse=True, fontsize=8, ncol=2, framealpha=0.5)
@@ -180,7 +180,8 @@ def show_histogram_results(objective, df, N, year_n, n_d=None, N_i=1, phi_j=None
     return None, description
 
 
-def show_rates_correlations(name, tau_kn, N_n, rate_method, rate_frm=None, rate_to=None, tag="", share_range=False):
+def show_rates_correlations(name, tau_kn, N_n, rate_method, rate_frm=None, rate_to=None,
+                            tag="", share_range=False):
     """
     Plot correlations between various rates.
     """
@@ -221,8 +222,8 @@ def show_rates_correlations(name, tau_kn, N_n, rate_method, rate_frm=None, rate_
     if tag != "":
         title += " - " + tag
 
-    g.fig.suptitle(title, y=1.08)
-    return g.fig
+    g.figure.suptitle(title, y=1.08)
+    return g.figure
 
 
 def show_rates(name, tau_kn, year_n, year_frac_left, N_k, rate_method, rate_frm=None, rate_to=None, tag=""):
@@ -230,7 +231,6 @@ def show_rates(name, tau_kn, year_n, year_frac_left, N_k, rate_method, rate_frm=
     Plot rate values used over the time horizon.
     """
     fig, ax = plt.subplots()
-    plt.grid(visible="both")
     title = name + "\nReturn & Inflation Rates (" + str(rate_method)
     if rate_method in ["historical", "histochastic", "historical average"]:
         title += f" {rate_frm}-{rate_to}"
@@ -246,6 +246,7 @@ def show_rates(name, tau_kn, year_n, year_frac_left, N_k, rate_method, rate_frm=
         "Inflation",
     ]
     ltype = ["-", "-.", ":", "--"]
+
     for k in range(N_k):
         # Don't plot partial rates for current year if mid-year.
         if year_frac_left == 1:
@@ -266,6 +267,7 @@ def show_rates(name, tau_kn, year_n, year_frac_left, N_k, rate_method, rate_frm=
     ax.set_title(title)
     ax.set_xlabel("year")
     ax.set_ylabel("%")
+
     return fig
 
 
@@ -306,5 +308,144 @@ def show_rates_distributions(frm, to, SP500, BondsBaa, TNotes, Inflation, FROM):
     label = "<>: " + u.pc(np.mean(dat3), 2, 1)
     ax[3].hist(dat3, bins=nbins, label=label)
     ax[3].legend(loc="upper left", fontsize=8, framealpha=0.7)
+
+    return fig
+
+
+def plot_gross_income(year_n, G_n, gamma_n, value, title, tax_brackets):
+    style = {"taxable income": "-"}
+    if value == "nominal":
+        series = {"taxable income": G_n}
+        yformat = "\\$k (nominal)"
+        infladjust = gamma_n[:-1]
+    else:
+        series = {"taxable income": G_n / gamma_n[:-1]}
+        yformat = "\\$k (" + str(year_n[0]) + "\\$)"
+        infladjust = 1
+    fig, ax = line_income_plot(year_n, series, style, title, yformat)
+    # Overlay tax brackets
+    for key in tax_brackets:
+        data_adj = tax_brackets[key] * infladjust
+        ax.plot(year_n, data_adj, label=key, ls=":")
+    ax.grid(visible=True, which='both')
+    ax.legend(loc="upper left", reverse=True, fontsize=8, framealpha=0.3)
+
+    return fig
+
+
+def plot_profile(year_n, xi_n, title, inames):
+    style = {"profile": "-"}
+    series = {"profile": xi_n}
+
+    return line_income_plot(year_n, series, style, title, yformat="$\\xi$")[0]
+
+
+def plot_net_spending(year_n, g_n, xi_n, xiBar_n, gamma_n, value, title, inames):
+    style = {"net": "-", "target": ":"}
+    if value == "nominal":
+        series = {"net": g_n, "target": (g_n[0] / xi_n[0]) * xiBar_n}
+        yformat = "\\$k (nominal)"
+    else:
+        series = {"net": g_n / gamma_n[:-1], "target": (g_n[0] / xi_n[0]) * xi_n}
+        yformat = "\\$k (" + str(year_n[0]) + "\\$)"
+
+    return line_income_plot(year_n, series, style, title, yformat)[0]
+
+
+def plot_asset_distribution(year_n, inames, b_ijkn, gamma_n, value, name, tag):
+    if value == "nominal":
+        yformat = "\\$k (nominal)"
+        infladjust = 1
+    else:
+        yformat = "\\$k (" + str(year_n[0]) + "\\$)"
+        infladjust = gamma_n
+    years_n = np.array(year_n)
+    years_n = np.append(years_n, [years_n[-1] + 1])
+    y2stack = {}
+    jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}
+    kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
+    figures = []
+    for jkey in jDic:
+        stackNames = []
+        for kkey in kDic:
+            namek = kkey + " / " + jkey
+            stackNames.append(namek)
+            y2stack[namek] = np.zeros((len(inames), len(years_n)))
+            for i in range(len(inames)):
+                y2stack[namek][i][:] = b_ijkn[i][jDic[jkey]][kDic[kkey]][:] / infladjust
+        title = name + "\nAssets Distribution - " + jkey
+        if tag:
+            title += " - " + tag
+        fig, ax = stack_plot(years_n, inames, title, range(len(inames)), y2stack, stackNames, "upper left", yformat)
+        figures.append(fig)
+
+    return figures
+
+
+def plot_allocations(year_n, inames, alpha_ijkn, ARCoord, title):
+    count = len(inames)
+    if ARCoord == "spouses":
+        acList = [ARCoord]
+        count = 1
+    elif ARCoord == "individual":
+        acList = [ARCoord]
+    elif ARCoord == "account":
+        acList = ["taxable", "tax-deferred", "tax-free"]
+    else:
+        raise ValueError(f"Unknown coordination {ARCoord}.")
+    figures = []
+    assetDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
+    for i in range(count):
+        y2stack = {}
+        for acType in acList:
+            stackNames = []
+            for key in assetDic:
+                aname = key + " / " + acType
+                stackNames.append(aname)
+                y2stack[aname] = np.zeros((count, len(year_n)))
+                y2stack[aname][i][:] = alpha_ijkn[i, acList.index(acType), assetDic[key], : len(year_n)]
+            t = title + f" - {acType}"
+            fig, ax = stack_plot(year_n, inames, t, [i], y2stack, stackNames, "upper left", "percent")
+            figures.append(fig)
+
+    return figures
+
+
+def plot_accounts(year_n, savings_in, gamma_n, value, title, inames):
+    stypes = list(savings_in.keys())
+    year_n_full = np.append(year_n, [year_n[-1] + 1])
+    if value == "nominal":
+        yformat = "\\$k (nominal)"
+        savings = savings_in
+    else:
+        yformat = "\\$k (" + str(year_n[0]) + "\\$)"
+        savings = {k: v / gamma_n for k, v in savings_in.items()}
+    fig, ax = stack_plot(year_n_full, inames, title, range(len(inames)), savings, stypes, "upper left", yformat)
+
+    return fig
+
+
+def plot_sources(year_n, sources_in, gamma_n, value, title, inames):
+    stypes = list(sources_in.keys())
+    if value == "nominal":
+        yformat = "\\$k (nominal)"
+        sources = sources_in
+    else:
+        yformat = "\\$k (" + str(year_n[0]) + "\\$)"
+        sources = {k: v / gamma_n[:-1] for k, v in sources_in.items()}
+    fig, ax = stack_plot(year_n, inames, title, range(len(inames)), sources, stypes, "upper left", yformat)
+
+    return fig
+
+
+def plot_taxes(year_n, T_n, M_n, gamma_n, value, title, inames):
+    style = {"income taxes": "-", "Medicare": "-."}
+    if value == "nominal":
+        series = {"income taxes": T_n, "Medicare": M_n}
+        yformat = "\\$k (nominal)"
+    else:
+        series = {"income taxes": T_n / gamma_n[:-1], "Medicare": M_n / gamma_n[:-1]}
+        yformat = "\\$k (" + str(year_n[0]) + "\\$)"
+    fig, ax = line_income_plot(year_n, series, style, title, yformat)
 
     return fig
