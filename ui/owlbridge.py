@@ -4,9 +4,12 @@ from io import StringIO, BytesIO
 from functools import wraps
 from datetime import datetime, date
 import importlib
+import sys
 
-from ..src import owlplanner as owl
-from ..src.owlplanner.rates import FROM, TO
+sys.path.insert(0, "../src")
+
+import owlplanner as owl
+from owlplanner.rates import FROM, TO
 
 import sskeys as kz
 import progress
