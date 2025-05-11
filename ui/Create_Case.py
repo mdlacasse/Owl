@@ -93,6 +93,7 @@ else:
         today = date.today()
         thisyear = today.year
         kz.initKey("startDate", today)
+        helpmsg = "Selecting Jan 1 will include whole first year. First year rates and income reduced if other date."
         ret = st.date_input(
             "Plan's starting date on first year",
             min_value=date(thisyear, 1, 1),
@@ -101,6 +102,7 @@ else:
             key="_startDate",
             args=["startDate"],
             on_change=kz.setpull,
+            help=helpmsg,
             disabled=diz2,
         )
 
