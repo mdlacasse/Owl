@@ -6,7 +6,7 @@ from datetime import datetime, date
 import importlib
 import sys
 
-sys.path.insert(0, "../src")
+sys.path.insert(0, "src:../src")
 
 import owlplanner as owl
 from owlplanner.rates import FROM, TO
