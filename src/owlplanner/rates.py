@@ -385,11 +385,12 @@ class Rates(object):
         return srates
 
 
-def showRatesDistributions(frm=FROM, to=TO):
+def showRatesDistributions(frm=FROM, to=TO, figure=False):
     """
     Plot histograms of the rates distributions.
     """
     fig = plots.show_rates_distributions(frm, to, SP500, BondsBaa, TNotes, Inflation, FROM)
-    return fig
-    # plt.show()
-    # return None
+    if figure:
+        return fig
+
+    return None

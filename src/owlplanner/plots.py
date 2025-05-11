@@ -25,11 +25,23 @@ os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
 import seaborn as sbn   # noqa: E402
 
 
+# Set the style for all plots.
+def set_plot_style():
+    """
+    Set the style for all matplotlib plots.
+    """
+    plt.rcParams.update({'figure.autolayout': True})
+    plt.rcParams.update({'figure.figsize': (6, 4)})
+
+
+set_plot_style()
+
+
 def line_income_plot(x, series, style, title, yformat="\\$k"):
     """
     Core line plotter function.
     """
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots()
     plt.grid(visible="both")
 
     for sname in series:
@@ -64,7 +76,7 @@ def stack_plot(x, inames, title, irange, series, snames, location, yformat="\\$k
     if len(nonzeroSeries) == 0:
         return None, None
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots()
     plt.grid(visible="both")
 
     ax.stackplot(x, nonzeroSeries.values(), labels=nonzeroSeries.keys(), alpha=0.6)
@@ -217,7 +229,7 @@ def show_rates(name, tau_kn, year_n, year_frac_left, N_k, rate_method, rate_frm=
     """
     Plot rate values used over the time horizon.
     """
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots()
     plt.grid(visible="both")
     title = name + "\nReturn & Inflation Rates (" + str(rate_method)
     if rate_method in ["historical", "histochastic", "historical average"]:
@@ -235,6 +247,7 @@ def show_rates(name, tau_kn, year_n, year_frac_left, N_k, rate_method, rate_frm=
     ]
     ltype = ["-", "-.", ":", "--"]
     for k in range(N_k):
+        # Don't plot partial rates for current year if mid-year.
         if year_frac_left == 1:
             data = 100 * tau_kn[k]
             years = year_n
@@ -242,7 +255,7 @@ def show_rates(name, tau_kn, year_n, year_frac_left, N_k, rate_method, rate_frm=
             data = 100 * tau_kn[k, 1:]
             years = year_n[1:]
 
-        # Use ddof=1 to match pandas.
+        # Use ddof=1 to match pandas' statistical calculations from numpy.
         label = (
             rate_name[k] + " <" + "{:.1f}".format(np.mean(data)) + " +/- {:.1f}".format(np.std(data, ddof=1)) + "%>"
         )

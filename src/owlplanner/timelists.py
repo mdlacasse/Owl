@@ -83,7 +83,7 @@ def condition(dfDict, inames, horizons, mylog):
         df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
         for col in df.columns:
             if col == "" or col not in timeHorizonItems:
-                df.drop(col, axis=1)
+                df.drop(col, axis=1, inplace=True)
 
         for item in timeHorizonItems:
             if item not in df.columns:
@@ -114,12 +114,7 @@ def condition(dfDict, inames, horizons, mylog):
 
         if df["year"].iloc[-1] != endyear - 1:
             raise ValueError(
-                "Time horizon for",
-                iname,
-                "is too short.\n\tIt should end in",
-                endyear,
-                "but ends in",
-                df["year"].iloc[-1],
+                f"Time horizon for {iname} too short.\n\tIt should end in {endyear}, not {df['year'].iloc[-1]}"
             )
 
     return timeLists

@@ -1,6 +1,10 @@
 import streamlit as st
+import sys
 
 import sskeys as kz
+
+# Include owlplanner path directly instead of installing module.
+sys.path.insert(0, "../src")
 
 # Pick one for narrow or wide graphs. That can also be changed in upper-right settings menu.
 st.set_page_config(layout="wide", page_title="Owl Retirement Planner")

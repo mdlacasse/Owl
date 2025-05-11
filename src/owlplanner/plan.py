@@ -34,10 +34,6 @@ from owlplanner import progress
 from owlplanner import plots
 
 
-# This makes all graphs to have the same height.
-plt.rcParams.update({'figure.autolayout': True})
-
-
 def _genGamma_n(tau):
     """
     Utility function to generate a cumulative inflation multiplier
@@ -1098,7 +1094,7 @@ class Plan(object):
         return None
 
     def _setup_constraint_shortcuts(self, options):
-        # Set up all the local variables as attributes for use in helpers
+        # Set up all the local variables as attributes for use in helpers.
         oppCostX = options.get("oppCostX", 0.)
         self.xnet = 1 - oppCostX / 100.
         self.optionsUnits = u.getUnits(options.get("units", "k"))
@@ -1409,7 +1405,6 @@ class Plan(object):
             self.mylog.print(f"Invalid objective {objective}.")
             raise ValueError(f"Invalid objective {objective}.")
 
-
         df = pd.DataFrame(columns=columns)
 
         if progcall is None:
@@ -1432,10 +1427,11 @@ class Plan(object):
         progcall.finish()
         self.mylog.resetVerbose()
 
+        fig, description = plots.show_histogram_results(objective, df, N, self.year_n,
+                                                        self.n_d, self.N_i, self.phi_j)
+        self.mylog.print(description.getvalue())
+
         if figure:
-            fig, description = plots.show_histogram_results(objective, df, N, self.year_n,
-                                                            self.n_d, self.N_i, self.phi_j)
-            self.mylog.print(description.getvalue())
             return fig, description.getvalue()
 
         return N, df
@@ -1489,10 +1485,11 @@ class Plan(object):
         progcall.finish()
         self.mylog.resetVerbose()
 
+        fig, description = plots.show_histogram_results(objective, df, N, self.year_n,
+                                                        self.n_d, self.N_i, self.phi_j)
+        self.mylog.print(description.getvalue())
+
         if figure:
-            fig, description = plots.show_histogram_results(objective, df, N, self.year_n,
-                                                            self.n_d, self.N_i, self.phi_j)
-            self.mylog.print(description.getvalue())
             return fig, description.getvalue()
 
         return N, df
@@ -1628,7 +1625,8 @@ class Plan(object):
         while True:
             solution, xx, solverSuccess, solverMsg = solverMethod(objective, options)
 
-            if not solverSuccess:
+            if not solverSuccess or solution is None:
+                self.mylog.vprint("Solver failed:", solverMsg, solverSuccess)
                 break
 
             if not withMedicare:
@@ -2164,7 +2162,6 @@ class Plan(object):
         if figure:
             return fig
 
-        plt.show()
         return None
 
     def showRates(self, tag="", figure=False):
@@ -2183,7 +2180,6 @@ class Plan(object):
         if figure:
             return fig
 
-        plt.show()
         return None
 
     def showProfile(self, tag="", figure=False):
@@ -2207,7 +2203,6 @@ class Plan(object):
         if figure:
             return fig
 
-        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2242,7 +2237,6 @@ class Plan(object):
         if figure:
             return fig
 
-        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2293,7 +2287,6 @@ class Plan(object):
         if figure:
             return figures
 
-        plt.show()
         return None
 
     def showAllocations(self, tag="", figure=False):
@@ -2343,7 +2336,6 @@ class Plan(object):
         if figure:
             return figures
 
-        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2381,7 +2373,6 @@ class Plan(object):
         if figure:
             return fig
 
-        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2417,33 +2408,6 @@ class Plan(object):
         if figure:
             return fig
 
-        plt.show()
-        return None
-
-    @_checkCaseStatus
-    def _showFeff(self, tag=""):
-        """
-        Plot income tax paid over time.
-
-        A tag string can be set to add information to the title of the plot.
-        """
-        title = self._name + "\nEff f "
-        if tag != "":
-            title += " - " + tag
-
-        various = ["-", "--", "-.", ":"]
-        style = {}
-        series = {}
-        q = 0
-        for t in range(self.N_t):
-            key = "f " + str(t)
-            series[key] = self.F_tn[t] / self.DeltaBar_tn[t]
-            style[key] = various[q % len(various)]
-            q += 1
-
-        fig, ax = plots.line_income_plot(self.year_n, series, style, title, yformat="")
-
-        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2479,7 +2443,6 @@ class Plan(object):
         if figure:
             return fig
 
-        plt.show()
         return None
 
     @_checkCaseStatus
@@ -2522,7 +2485,6 @@ class Plan(object):
         if figure:
             return fig
 
-        plt.show()
         return None
 
     # @_checkCaseStatus
