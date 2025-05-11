@@ -6,7 +6,7 @@ from datetime import datetime, date
 import importlib
 
 from ..src import owlplanner as owl
-from ..src from owlplanner.rates import FROM, TO
+from ..src.owlplanner.rates import FROM, TO
 
 import sskeys as kz
 import progress
