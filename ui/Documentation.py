@@ -401,7 +401,9 @@ and the other for the distribution of values of the objective being optimized.
 Linear programming solutions are more expensive than event-driven forward simulators. Therefore,
 when considering Monte Carlo simulations, consider:
 - Turning off Medicare calculations,
-- Installing Owl and running on your local computer as it can be more than 3 times faster than the Streamlit host.
+- Installing Owl and running on your local computer as it can be more than 3 times
+faster than the Streamlit host. Morevover, the community server has a CPU limit
+that will stop a session. This can only happen in long Monte Carlo runs.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
@@ -414,6 +416,10 @@ Landing page of the application. This page describes how to quickly get started 
 #### Documentation
 These very pages.
 
+#### Settings
+This page allows to select different backends for plotting the graphs.
+Matplotlib is the most mature part of the code. Plotly still experimental.
+
 #### About Owl
 Credits and disclaimers.
 
@@ -425,49 +431,53 @@ the Chrome performance manager might be configured to disable hidden or inactive
 This could cause your Owl session to inadvertently reset when idling for too long,
 and losing the state of the calculator.
 
-The best way to avoid this situation is to use the Streamlit app on your device.
+The best way to avoid this situation is to run the web page through the Streamlit app on your device.
 This is done by clicking the '+" icon at the right end of the browser URL bar,
 showing *App available: Install Streamlit*.
-The app provides more screen space as it doesn't use the navigation bar
-of the browser, similar to hitting key F11 while in your browser.
+The app provides more screen space as it doesn't have a navigation bar.
 
+In general, collapsing the side menu and going fullscreen by hitting F11 while in your browser
+can improve the visualization of graphs and worksheets.
 I also recommend using the *dark* mode as Streamlit's default theme.
 This selection is accessed through the *Settings* option after clicking on the three vertical dots
 located on the upper right of the app.
 
 #### Advice on optimization and Roth conversions
-Owl does not (yet) explicitly optimize for Medicare costs.
+Owl does not explicitly optimize for Medicare costs. While this approach
+is possible, it is not practical due to the unpredictable computing time
+required by the additional amount of binary variables required.
 As Medicare costs are added after the optimization step,
 suggested Roth conversions can sometimes lead to
 smaller net spending or bequest than when no conversions are made.
 This is due to higher Medicare costs triggered by the Roth conversions
 which are not factored in during the optimization step.
-This is why one should always run a comparison for cases with and without Roth conversions.
+This is why one should **always** run comparisons between cases with and without Roth conversions.
 Also keep in mind that these cases only consider current assumptions and obviously
 do not take into account future income tax rate increases.
 
-#### Typical workflows
+#### Typical workflow
 A typical workflow would look like the following:
 1) Create a base case representing your basic scenario;
 2) Duplicate the base case and modify the parameter you want to investigate;
-3) Repeat 2) with other end-member values of the parameter you would like to investigate;
+3) Repeat 2) with other end-member values of the parameter you would like to consider;
 4) Run all cases and compare them on the `Output Files` page.
 
 To make it more concrete, here is an example
 where one would like to investigate the effects of Roth conversions
 on total net spending.
-1) Create a case called, say, *April 2025 - Base case*. Fill in all parameters representing your goals and situation.
-Let's say this case allows for Roth conversions up to $100k.
-2) Duplicate the base case, call it *April 2025 - No Roth conversions* and
+1) Create a case called, say, *Jan 2025 - Base case*.
+Fill in all parameters representing your goals and situation.
+Let's say this case allows for Roth conversions up to \\$100k.
+2) Duplicate the base case, call it *Jan 2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
-Make sure to reload the *Wages and Contributions* file, if any was used in the base case.
-3) Duplicate the base case again, call it *April 2025 - No Roth limit* and
-set maximum Roth conversions to, say, $5,000k.
+Also make sure to load the *Wages and Contributions* file, if any was used in the base case.
+3) Duplicate the base case again, call it *Jan 2025 - No Roth limit* and
+set maximum Roth conversions to a vary large number, say, \\$5,000k (i.e., \\$5 millions).
 Again, make sure to reload the *Wages and Contributions* file, if any was used in the base case.
 4) Compare all cases on the `Output Files` page.
 
 As mentionned above, the most actionable information is located on the first few lines
 of the *Sources* tables on the Worksheets pages.
-This is where withdrawals and conversions are displayed.
+This is where withdrawals and conversions are displayed for this year and the next few years.
 
 """)

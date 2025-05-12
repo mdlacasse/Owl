@@ -29,6 +29,7 @@ Copyright &copy; 2025 - Martin-D. Lacasse
     [odfpy](https://https://pypi.org/project/odfpy),
     [openpyxl](https://openpyxl.readthedocs.io),
     [Pandas](https://pandas.pydata.org),
+    [Plotly](https://plotly.com),
     [PuLP](https://coin-or.github.io/pulp),
     [Scipy](https://scipy.org),
     [Seaborn](https://seaborn.pydata.org),

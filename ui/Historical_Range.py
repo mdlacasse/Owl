@@ -49,6 +49,6 @@ else:
     st.divider()
     fig = kz.getKey("histoPlot")
     if fig:
-        col1, col2 = st.columns(2, gap="small")
+        col1, col2 = st.columns(2, gap="medium")
         owb.renderPlot(fig, col1)
         col2.code(kz.getKey("histoSummary"), language=None)

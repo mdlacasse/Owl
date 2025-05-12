@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+# import plotly.io as pio
+
 import io
 from scipy import stats
 
@@ -33,6 +35,7 @@ class PlotlyBackend(PlotBackend):
             xaxis=dict(
                 # title="year",
                 showgrid=True,
+                griddash="dot",
                 gridcolor="lightgray",
                 zeroline=True,
                 zerolinecolor="gray",
@@ -40,16 +43,19 @@ class PlotlyBackend(PlotBackend):
             ),
             yaxis=dict(
                 showgrid=True,
+                griddash="dot",
                 gridcolor="lightgray",
                 zeroline=True,
                 zerolinecolor="gray",
                 zerolinewidth=1
             )
         )
+        # Setting to "browser" will open each graph in a separate tab.
+        # pio.renderers.default = "browser"
 
-    def _format_currency(self, value):
-        """Format currency values with commas in k and without $ symbol."""
-        return f"{value/1000:,.0f}"
+    def jupyter_renderer(self, fig):
+        """Simple renderer for plotly in Jupyter notebook."""
+        return fig.show()
 
     def plot_profile(self, year_n, xi_n, title, inames):
         """Plot profile over time."""

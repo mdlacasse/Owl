@@ -4,6 +4,7 @@ seaborn
 pandas
 openpyxl
 odfpy
+plotly
 pulp
 scipy
 streamlit

@@ -36,6 +36,13 @@ def init():
 init()
 
 
+def getKeyInCase(key, casename):
+    if casename in ss.cases:
+        if key in ss.cases[casename]:
+            return ss.cases[casename][key]
+    return None
+
+
 def allCaseNames() -> list:
     return list(ss.cases)
 

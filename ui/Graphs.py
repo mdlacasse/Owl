@@ -18,13 +18,8 @@ else:
         choices = ["nominal", "today"]
         kz.initKey("plots", choices[0])
         helpmsg = "Plot can be in today's dollars or in nominal value."
-        ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg, callback=owb.setDefaultPlots)
-
-    with col2:
-        choices = ["matplotlib", "plotly"]
-        kz.initKey("plotBackend", choices[0])
-        helpmsg = "Select the plotting library to use (still experimental)."
-        kz.getRadio("Plot Backend", choices, "plotBackend", callback=owb.setPlotBackend, help=helpmsg)
+        ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg,
+                          callback=owb.setDefaultPlots)
 
     with col3:
         helpmsg = "Click on button if graphs are not all showing."

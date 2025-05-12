@@ -22,15 +22,14 @@ from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 import time
 
-from owlplanner import utils as u
-from owlplanner import tax2025 as tx
-from owlplanner import abcapi as abc
-from owlplanner import rates
-from owlplanner import config
-from owlplanner import timelists
-from owlplanner import logging
-from owlplanner import progress
-# from owlplanner import plots
+from . import utils as u
+from . import tax2025 as tx
+from . import abcapi as abc
+from . import rates
+from . import config
+from . import timelists
+from . import mylogging as log
+from . import progress
 from .plotting.factory import PlotFactory
 
 
@@ -241,9 +240,9 @@ class Plan(object):
 
         self._description = ''
         self.defaultPlots = "nominal"
-        self.defaultPlotter = "matplotlib"
         self.defaultSolver = "HiGHS"
-        self._plotter = PlotFactory.createBackend(self.defaultPlotter)
+        self._plotterName = None
+        self.setPlotBackend("matplotlib")
 
         self.N_i = len(yobs)
         if not (0 <= self.N_i <= 2):
@@ -255,7 +254,7 @@ class Plan(object):
         if inames[0] == "" or (self.N_i == 2 and inames[1] == ""):
             raise ValueError("Name for each individual must be provided.")
 
-        self.filingStatus = ["single", "married"][self.N_i - 1]
+        self.filingStatus = ("single", "married")[self.N_i - 1]
         # Default year TCJA is speculated to expire.
         self.yTCJA = 2026
         self.inames = inames
@@ -312,7 +311,7 @@ class Plan(object):
         self.lambdha = 0
 
         # Scenario starts at the beginning of this year and ends at the end of the last year.
-        s = ["", "s"][self.N_i - 1]
+        s = ("", "s")[self.N_i - 1]
         self.mylog.vprint(f"Preparing scenario of {self.N_n} years for {self.N_i} individual{s}.")
         for i in range(self.N_i):
             endyear = thisyear + self.horizons[i] - 1
@@ -347,7 +346,7 @@ class Plan(object):
         self.mylog = logger
 
     def setLogstreams(self, verbose, logstreams):
-        self.mylog = logging.Logger(verbose, logstreams)
+        self.mylog = log.Logger(verbose, logstreams)
         # self.mylog.vprint(f"Setting logstreams to {logstreams}.")
 
     def logger(self):
@@ -401,7 +400,7 @@ class Plan(object):
         if value is None:
             return self.defaultPlots
 
-        opts = ["nominal", "today"]
+        opts = ("nominal", "today")
         if value not in opts:
             raise ValueError(f"Value type must be one of: {opts}")
 
@@ -458,8 +457,9 @@ class Plan(object):
         if backend not in ("matplotlib", "plotly"):
             raise ValueError(f"Backend {backend} not a valid option.")
 
-        self._plotter = PlotFactory.createBackend(backend)
-        self.mylog.vprint(f"Setting plotting backend to {backend}.")
+        if backend != self._plotterName:
+            self._plotter = PlotFactory.createBackend(backend)
+            self.mylog.vprint(f"Setting plotting backend to {backend}.")
 
     def setDividendRate(self, mu):
         """
@@ -1454,7 +1454,7 @@ class Plan(object):
         """
         Run Monte Carlo simulations on plan.
         """
-        if self.rateMethod not in ["stochastic", "histochastic"]:
+        if self.rateMethod not in ("stochastic", "histochastic"):
             self.mylog.print("It is pointless to run Monte Carlo simulations with fixed rates.")
             return
 
@@ -2175,17 +2175,19 @@ class Plan(object):
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
         return None
 
     def showRatesDistributions(self, frm=rates.FROM, to=rates.TO, figure=False):
         """
         Plot histograms of the rates distributions.
         """
-        fig = self._plotter.show_rates_distributions(frm, to, rates.SP500, rates.BondsBaa,
+        fig = self._plotter.plot_rates_distributions(frm, to, rates.SP500, rates.BondsBaa,
                                                      rates.TNotes, rates.Inflation, rates.FROM)
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
         return None
 
     def showRates(self, tag="", figure=False):
@@ -2204,6 +2206,7 @@ class Plan(object):
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
         return None
 
     def showProfile(self, tag="", figure=False):
@@ -2223,6 +2226,7 @@ class Plan(object):
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
         return None
 
     @_checkCaseStatus
@@ -2244,6 +2248,7 @@ class Plan(object):
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
         return None
 
     @_checkCaseStatus
@@ -2265,6 +2270,8 @@ class Plan(object):
         if figure:
             return figures
 
+        for fig in figures:
+            self._plotter.jupyter_renderer(fig)
         return None
 
     @_checkCaseStatus
@@ -2288,6 +2295,7 @@ class Plan(object):
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
         return None
 
     def showAllocations(self, tag="", figure=False):
@@ -2301,10 +2309,13 @@ class Plan(object):
         title = self._name + "\nAsset Allocation"
         if tag:
             title += " - " + tag
-        figures = self._plotter.plot_allocations(self.year_n, self.inames, self.alpha_ijkn, self.ARCoord, title)
+        figures = self._plotter.plot_allocations(self.year_n, self.inames, self.alpha_ijkn,
+                                                 self.ARCoord, title)
         if figure:
             return figures
 
+        for fig in figures:
+            self._plotter.jupyter_renderer(fig)
         return None
 
     @_checkCaseStatus
@@ -2321,10 +2332,12 @@ class Plan(object):
         title = self._name + "\nSavings Balance"
         if tag:
             title += " - " + tag
-        fig = self._plotter.plot_accounts(self.year_n, self.savings_in, self.gamma_n, value, title, self.inames)
+        fig = self._plotter.plot_accounts(self.year_n, self.savings_in, self.gamma_n,
+                                          value, title, self.inames)
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
         return None
 
     @_checkCaseStatus
@@ -2341,10 +2354,12 @@ class Plan(object):
         title = self._name + "\nRaw Income Sources"
         if tag:
             title += " - " + tag
-        fig = self._plotter.plot_sources(self.year_n, self.sources_in, self.gamma_n, value, title, self.inames)
+        fig = self._plotter.plot_sources(self.year_n, self.sources_in, self.gamma_n,
+                                         value, title, self.inames)
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
         return None
 
     @_checkCaseStatus
@@ -2361,10 +2376,12 @@ class Plan(object):
         title = self._name + "\nIncome Tax"
         if tag:
             title += " - " + tag
-        fig = self._plotter.plot_taxes(self.year_n, self.T_n, self.M_n, self.gamma_n, value, title, self.inames)
+        fig = self._plotter.plot_taxes(self.year_n, self.T_n, self.M_n, self.gamma_n,
+                                       value, title, self.inames)
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
         return None
 
     def saveWorkbook(self, overwrite=False, *, basename=None, saveToFile=True):

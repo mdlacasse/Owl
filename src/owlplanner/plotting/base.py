@@ -9,6 +9,11 @@ class PlotBackend(ABC):
     """Abstract base class for plot backends."""
 
     @abstractmethod
+    def jupyter_renderer(self, fig):
+        """Render plot for Jupyter."""
+        pass
+
+    @abstractmethod
     def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None):
         """Show a histogram of values from historical data or Monte Carlo simulations."""
         pass

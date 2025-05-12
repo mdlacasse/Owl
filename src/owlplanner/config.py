@@ -16,7 +16,7 @@ from datetime import date
 import os
 
 from owlplanner import plan
-from owlplanner import logging
+from owlplanner import mylogging as log
 from owlplanner.rates import FROM, TO
 
 
@@ -143,7 +143,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     A new plan is created and returned.
     Argument file can be a filename, a file, or a stringIO.
     """
-    mylog = logging.Logger(verbose, logstreams)
+    mylog = log.Logger(verbose, logstreams)
 
     accountTypes = ["taxable", "tax-deferred", "tax-free"]
 

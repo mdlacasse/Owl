@@ -36,24 +36,19 @@ def createPlan():
     strio = StringIO()
     kz.storeKey("logs", strio)
     try:
-        plan = owl.Plan(inames, yobs, life, name, startDate=startDate, verbose=True, logstreams=[strio, strio])
+        plan = owl.Plan(inames, yobs, life, name, startDate=startDate,
+                        verbose=True, logstreams=[strio, strio])
         kz.setKey("plan", plan)
     except Exception as e:
         st.error(f"Failed creation of plan '{name}': {e}")
         return
 
     plan.setDescription(description)
-    val = kz.getKey("plots")
-    if val:
-        plan.setDefaultPlots(val)
 
-    val = kz.getKey("plotBackend")
+    val = kz.getGlobalKey("plotGlobalBackend")
     if val:
         plan.setPlotBackend(val)
 
-    # LOOK AT THIS LINE
-    if kz.getKey("spendingProfile"):
-        setProfile(None)
     resetTimeLists()
 
     st.toast(f"Created new case *'{name}'*. You can now move to the next page.")
@@ -256,9 +251,10 @@ def showAllocations(plan):
     figures = plan.showAllocations(figure=True)
     st.divider()
     st.markdown("##### Asset Allocation")
-    n = 3 if kz.getKey("allocType") == "account" else 2
+    # n = 3 if kz.getKey("allocType") == "account" else 2
+    n = 2
     c = 0
-    cols = st.columns(n, gap="small")
+    cols = st.columns(n, gap="medium")
     for fig in figures:
         renderPlot(fig, cols[c])
         c = (c + 1) % n
@@ -307,7 +303,8 @@ def setInterpolationMethod(plan):
 
 
 def _setInterpolationMethod(plan):
-    plan.setInterpolationMethod(kz.getKey("interpMethod"), kz.getKey("interpCenter"), kz.getKey("interpWidth"))
+    plan.setInterpolationMethod(kz.getKey("interpMethod"), kz.getKey("interpCenter"),
+                                kz.getKey("interpWidth"))
 
 
 @_checkPlan
@@ -400,8 +397,8 @@ def _setAllocationRatios(plan):
 @_checkPlan
 def plotSingleResults(plan):
     c = 0
-    n = 3
-    cols = st.columns(n, gap="small")
+    n = 2
+    cols = st.columns(n, gap="medium")
     fig = plan.showRates(figure=True)
     if fig:
         cols[c].write("##### Annual Rates")
@@ -420,8 +417,8 @@ def plotSingleResults(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
-    st.divider()
-    cols = st.columns(n, gap="small")
+    # st.divider()
+    # cols = st.columns(n, gap="medium")
     fig = plan.showSources(figure=True)
     if fig:
         cols[c].write("##### Raw Income Sources")
@@ -443,16 +440,16 @@ def plotSingleResults(plan):
     c = 0
     figs = plan.showAssetDistribution(figure=True)
     if figs:
-        st.divider()
-        st.write("##### Assets Distribution")
-        morecols = st.columns(3, gap="small")
+        # st.divider()
+        st.write("#### Assets Distribution")
+        col1, col2, _ = st.columns([.6, .2, .2], gap="medium")
         for fig in figs:
             if fig:
-                renderPlot(fig, morecols[c])
+                renderPlot(fig, col1)
             else:
-                morecols[c].write("#\n<div style='text-align: center'> This plot is empty </div>",
-                                  unsafe_allow_html=True)
-            c = (c + 1) % 3
+                col1.write("#\n<div style='text-align: center'> This plot is empty </div>",
+                           unsafe_allow_html=True)
+            # c = (c + 1) % n
 
 
 @_checkPlan
@@ -475,10 +472,14 @@ def setDefaultPlots(plan, key):
     plan.setDefaultPlots(val)
 
 
-@_checkPlan
-def setPlotBackend(plan, key):
-    val = kz.storepull(key)
-    plan.setPlotBackend(val)
+def setGlobalPlotBackend(key):
+    val = kz.getGlobalKey("_"+key)
+    kz.storeGlobalKey(key, val)
+    # Apply to all existing cases.
+    for casename in kz.onlyCaseNames():
+        plan = kz.getKeyInCase("plan", casename)
+        if plan:
+            plan.setPlotBackend(val)
 
 
 @_checkPlan
@@ -584,6 +585,10 @@ def createCaseFromFile(strio):
 
     name, mydic = genDic(plan)
     mydic["logs"] = logstrio
+
+    val = kz.getGlobalKey("plotGlobalBackend")
+    if val:
+        plan.setPlotBackend(val)
 
     return name, mydic
 
@@ -750,6 +755,14 @@ def renderPlot(fig, col=None):
             col.pyplot(fig)
         else:
             st.pyplot(fig)
+
+    # Add a space below each figure
+    if col:
+        # col.write("####")
+        col.divider()
+    else:
+        st.divider()
+        # st.write("####")
 
 
 def version():

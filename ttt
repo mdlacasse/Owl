@@ -1,0 +1,10 @@
+# New features
+- Ability to delay TCJA rates
+- Comparison between different scenarios
+- Improved user interface
+- Quick start guide and improved documentation
+- Configurable smile profile with time delay
+- Added brief description field for each case
+- Added MAGI input for two previous years when required
+- Docker image building
+- Many UI bug fixes and enhancements

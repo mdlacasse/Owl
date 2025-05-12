@@ -16,6 +16,6 @@ if ERRORLEVEL 1 (
     )
 ) else (
     echo Hit Ctrl-C to terminate the Streamlit server.
-    :: set PYTHONPATH=../src;$(PYTHONPATH)
+    :: set PYTHONPATH=..\src;%PYTHONPATH%
     call streamlit run main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost
 )

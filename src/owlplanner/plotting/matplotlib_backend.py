@@ -24,6 +24,10 @@ class MatplotlibBackend(PlotBackend):
         """Initialize the matplotlib backend."""
         self.set_plot_style()
 
+    def jupyter_renderer(self, fig):
+        pass
+        # plt.show()
+
     def set_plot_style(self):
         """Set the style for all matplotlib plots."""
         plt.rcParams.update({'figure.autolayout': True})
@@ -205,7 +209,8 @@ class MatplotlibBackend(PlotBackend):
         g.figure.suptitle(title, y=1.08)
         return g.figure
 
-    def plot_rates(self, name, tau_kn, year_n, year_frac_left, N_k, rate_method, rate_frm=None, rate_to=None, tag=""):
+    def plot_rates(self, name, tau_kn, year_n, year_frac_left, N_k,
+                   rate_method, rate_frm=None, rate_to=None, tag=""):
         """Plot rate values used over the time horizon."""
         fig, ax = plt.subplots()
         title = name + "\nReturn & Inflation Rates (" + str(rate_method)

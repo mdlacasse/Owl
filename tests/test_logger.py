@@ -1,11 +1,11 @@
 from io import StringIO
 
-from owlplanner import logging
+from owlplanner import mylogging as log
 
 
 def test_logger1():
     strio = StringIO()
-    mylog = logging.Logger(True, [strio])
+    mylog = log.Logger(True, [strio])
     msg1 = 'Hello'
     mylog.vprint(msg1)
     msg2 = strio.getvalue().splitlines()
@@ -14,7 +14,7 @@ def test_logger1():
 
 def test_logger2():
     strio = StringIO()
-    mylog = logging.Logger(False, [strio])
+    mylog = log.Logger(False, [strio])
     msg1 = 'Hello'
     mylog.vprint(msg1)
     msg2 = strio.getvalue()

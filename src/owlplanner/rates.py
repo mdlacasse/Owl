@@ -35,7 +35,7 @@ import os
 import sys
 from datetime import date
 
-from owlplanner import logging
+from owlplanner import mylogging as log
 from owlplanner import utils as u
 
 # All data goes from 1928 to 2024. Update the TO value when data
@@ -77,7 +77,7 @@ def getRatesDistributions(frm, to, mylog=None):
     the different rates. Function returns means and covariance matrix.
     """
     if mylog is None:
-        mylog = logging.Logger()
+        mylog = log.Logger()
 
     # Convert years to index and check range.
     frm -= FROM
@@ -159,7 +159,7 @@ class Rates(object):
         Default constructor.
         """
         if mylog is None:
-            self.mylog = logging.Logger()
+            self.mylog = log.Logger()
         else:
             self.mylog = mylog
 
