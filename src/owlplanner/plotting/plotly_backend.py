@@ -23,6 +23,7 @@ class PlotlyBackend(PlotBackend):
         self.layout = dict(
             showlegend=True,
             legend=dict(
+                traceorder="reversed",
                 yanchor="top",
                 y=0.99,
                 xanchor="left",
@@ -70,6 +71,7 @@ class PlotlyBackend(PlotBackend):
             template=self.template,
             showlegend=True,
             legend=dict(
+                traceorder="reversed",
                 yanchor="bottom",
                 y=-0.5,
                 xanchor="center",
@@ -175,7 +177,7 @@ class PlotlyBackend(PlotBackend):
             showlegend=True,
             legend=dict(
                 yanchor="bottom",
-                y=-0.5,
+                y=-0.4,
                 xanchor="center",
                 x=0.5,
                 bgcolor="rgba(0, 0, 0, 0)",
@@ -228,7 +230,7 @@ class PlotlyBackend(PlotBackend):
             showlegend=True,
             legend=dict(
                 yanchor="bottom",
-                y=-0.5,
+                y=-0.4,
                 xanchor="center",
                 x=0.5,
                 bgcolor="rgba(0, 0, 0, 0)",
@@ -298,7 +300,7 @@ class PlotlyBackend(PlotBackend):
             showlegend=True,
             legend=dict(
                 yanchor="bottom",
-                y=-0.75,
+                y=-0.60,
                 xanchor="center",
                 x=0.5,
                 bgcolor="rgba(0, 0, 0, 0)",
@@ -394,7 +396,7 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
-    def plot_rates_correlations(self, name, tau_kn, N_n, rate_method, rate_frm=None, rate_to=None,
+    def plot_rates_correlations(self, pname, tau_kn, N_n, rate_method, rate_frm=None, rate_to=None,
                                 tag="", share_range=False):
         """Plot correlations between various rates."""
         # Create DataFrame with rate data
@@ -494,7 +496,7 @@ class PlotlyBackend(PlotBackend):
                         fig.update_yaxes(range=[minval, maxval], row=i+1, col=j+1)
 
         # Update layout
-        title = name + "<br>"
+        title = pname + "<br>"
         title += f"Rates Correlations (N={N_n}) {rate_method}"
         if rate_method in ["historical", "histochastic"]:
             title += f" ({rate_frm}-{rate_to})"
@@ -737,20 +739,21 @@ class PlotlyBackend(PlotBackend):
                 for i in range(len(inames)):
                     values[i] = b_ijkn[i][jDic[jkey]][kDic[kkey]] / infladjust
 
-                # Sum across individuals
-                stack_data.append(np.sum(values, axis=0))
+                # Add each individual's data as a separate series
+                for i in range(len(inames)):
+                    if np.sum(values[i]) > 1.0:  # Only show non-zero series
+                        stack_data.append((values[i], f"{namek} {inames[i]}"))
 
             # Add stacked area traces
-            for i, (data, dname) in enumerate(zip(stack_data, stack_names)):
-                if np.sum(data) > 1.0:  # Only show non-zero series
-                    fig.add_trace(go.Scatter(
-                        x=years_n,
-                        y=data/1000,
-                        name=dname,
-                        stackgroup="one",
-                        fill="tonexty",
-                        opacity=0.6
-                    ))
+            for data, dname in stack_data:
+                fig.add_trace(go.Scatter(
+                    x=years_n,
+                    y=data/1000,
+                    name=dname,
+                    stackgroup="one",
+                    fill="tonexty",
+                    opacity=0.6
+                ))
 
             # Update layout
             title = f"{name}<br>Assets Distribution - {jkey}"
@@ -764,8 +767,9 @@ class PlotlyBackend(PlotBackend):
                 template=self.template,
                 showlegend=True,
                 legend=dict(
+                    # traceorder="reversed",
                     yanchor="bottom",
-                    y=-0.5,
+                    y=-0.65,
                     xanchor="center",
                     x=0.5,
                     bgcolor="rgba(0, 0, 0, 0)",
@@ -796,6 +800,7 @@ class PlotlyBackend(PlotBackend):
         # Define asset type mapping
         assetDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
 
+        title = title.replace("\n", "<br>")
         figures = []
         icount = len(inames)
         for i in range(icount):
@@ -834,6 +839,7 @@ class PlotlyBackend(PlotBackend):
                     template=self.template,
                     showlegend=True,
                     legend=dict(
+                        traceorder="reversed",
                         yanchor="bottom",
                         y=-0.5,
                         xanchor="center",
@@ -895,6 +901,7 @@ class PlotlyBackend(PlotBackend):
             template=self.template,
             showlegend=True,
             legend=dict(
+                traceorder="reversed",
                 yanchor="bottom",
                 y=-0.5,
                 xanchor="center",
@@ -946,17 +953,17 @@ class PlotlyBackend(PlotBackend):
         # Update layout
         fig.update_layout(
             title=title,
-            # xaxis_title="year",
             yaxis_title=yformat,
             template=self.template,
             showlegend=True,
+            legend_traceorder="reversed",
             legend=dict(
                 yanchor="bottom",
                 y=-0.75,
                 xanchor="center",
                 x=0.5,
                 bgcolor="rgba(0, 0, 0, 0)",
-                orientation="h"
+                orientation="h",
             ),
             margin=dict(b=150)
         )

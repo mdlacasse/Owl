@@ -23,7 +23,7 @@ else:
     with col2:
         choices = ["matplotlib", "plotly"]
         kz.initKey("plotBackend", choices[0])
-        helpmsg = "Select the plotting library to use."
+        helpmsg = "Select the plotting library to use (still experimental)."
         kz.getRadio("Plot Backend", choices, "plotBackend", callback=owb.setPlotBackend, help=helpmsg)
 
     with col3:
