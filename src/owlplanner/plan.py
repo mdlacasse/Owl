@@ -30,7 +30,8 @@ from owlplanner import config
 from owlplanner import timelists
 from owlplanner import logging
 from owlplanner import progress
-from owlplanner import plots
+# from owlplanner import plots
+from .plotting.factory import PlotFactory
 
 
 def _genGamma_n(tau):
@@ -240,7 +241,9 @@ class Plan(object):
 
         self._description = ''
         self.defaultPlots = "nominal"
+        self.defaultPlotter = "matplotlib"
         self.defaultSolver = "HiGHS"
+        self._plotter = PlotFactory.createBackend(self.defaultPlotter)
 
         self.N_i = len(yobs)
         if not (0 <= self.N_i <= 2):
@@ -446,6 +449,17 @@ class Plan(object):
 
         self.defaultPlots = self._checkValue(value)
         self.mylog.vprint(f"Setting plots default value to {value}.")
+
+    def setPlotBackend(self, backend: str):
+        """
+        Set plotting backend.
+        """
+
+        if backend not in ("matplotlib", "plotly"):
+            raise ValueError(f"Backend {backend} not a valid option.")
+
+        self._plotter = PlotFactory.createBackend(backend)
+        self.mylog.vprint(f"Setting plotting backend to {backend}.")
 
     def setDividendRate(self, mu):
         """
@@ -1426,8 +1440,8 @@ class Plan(object):
         progcall.finish()
         self.mylog.resetVerbose()
 
-        fig, description = plots.show_histogram_results(objective, df, N, self.year_n,
-                                                        self.n_d, self.N_i, self.phi_j)
+        fig, description = self._plotter.plot_histogram_results(objective, df, N, self.year_n,
+                                                                self.n_d, self.N_i, self.phi_j)
         self.mylog.print(description.getvalue())
 
         if figure:
@@ -1484,8 +1498,8 @@ class Plan(object):
         progcall.finish()
         self.mylog.resetVerbose()
 
-        fig, description = plots.show_histogram_results(objective, df, N, self.year_n,
-                                                        self.n_d, self.N_i, self.phi_j)
+        fig, description = self._plotter.plot_histogram_results(objective, df, N, self.year_n,
+                                                                self.n_d, self.N_i, self.phi_j)
         self.mylog.print(description.getvalue())
 
         if figure:
@@ -2155,9 +2169,20 @@ class Plan(object):
             self.mylog.vprint(f"Warning: Cannot plot correlations for {self.rateMethod} rate method.")
             return None
 
-        fig = plots.show_rates_correlations(self._name, self.tau_kn, self.N_n, self.rateMethod,
-                                            self.rateFrm, self.rateTo, tag, shareRange)
+        fig = self._plotter.plot_rates_correlations(self._name, self.tau_kn, self.N_n, self.rateMethod,
+                                                    self.rateFrm, self.rateTo, tag, shareRange)
 
+        if figure:
+            return fig
+
+        return None
+
+    def showRatesDistributions(self, frm=rates.FROM, to=rates.TO, figure=False):
+        """
+        Plot histograms of the rates distributions.
+        """
+        fig = self._plotter.show_rates_distributions(frm, to, rates.SP500, rates.BondsBaa,
+                                                     rates.TNotes, rates.Inflation, rates.FROM)
         if figure:
             return fig
 
@@ -2173,8 +2198,8 @@ class Plan(object):
             self.mylog.vprint("Warning: Rate method must be selected before plotting.")
             return None
 
-        fig = plots.show_rates(self._name, self.tau_kn, self.year_n, self.yearFracLeft,
-                               self.N_k, self.rateMethod, self.rateFrm, self.rateTo, tag)
+        fig = self._plotter.plot_rates(self._name, self.tau_kn, self.year_n, self.yearFracLeft,
+                                       self.N_k, self.rateMethod, self.rateFrm, self.rateTo, tag)
 
         if figure:
             return fig
@@ -2193,7 +2218,7 @@ class Plan(object):
         title = self._name + "\nSpending Profile"
         if tag:
             title += " - " + tag
-        fig = plots.plot_profile(self.year_n, self.xi_n, title, self.inames)
+        fig = self._plotter.plot_profile(self.year_n, self.xi_n, title, self.inames)
 
         if figure:
             return fig
@@ -2214,8 +2239,8 @@ class Plan(object):
         title = self._name + "\nNet Available Spending"
         if tag:
             title += " - " + tag
-        fig = plots.plot_net_spending(self.year_n, self.g_n, self.xi_n, self.xiBar_n,
-                                      self.gamma_n, value, title, self.inames)
+        fig = self._plotter.plot_net_spending(self.year_n, self.g_n, self.xi_n, self.xiBar_n,
+                                              self.gamma_n, value, title, self.inames)
         if figure:
             return fig
 
@@ -2235,8 +2260,8 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-        figures = plots.plot_asset_distribution(self.year_n, self.inames, self.b_ijkn,
-                                                self.gamma_n, value, self._name, tag)
+        figures = self._plotter.plot_asset_distribution(self.year_n, self.inames, self.b_ijkn,
+                                                        self.gamma_n, value, self._name, tag)
         if figure:
             return figures
 
@@ -2257,7 +2282,7 @@ class Plan(object):
         title = self._name + "\nTaxable Ordinary Income vs. Tax Brackets"
         if tag:
             title += " - " + tag
-        fig = plots.plot_gross_income(
+        fig = self._plotter.plot_gross_income(
             self.year_n, self.G_n, self.gamma_n, value, title, tax_brackets
         )
         if figure:
@@ -2276,7 +2301,7 @@ class Plan(object):
         title = self._name + "\nAsset Allocation"
         if tag:
             title += " - " + tag
-        figures = plots.plot_allocations(self.year_n, self.inames, self.alpha_ijkn, self.ARCoord, title)
+        figures = self._plotter.plot_allocations(self.year_n, self.inames, self.alpha_ijkn, self.ARCoord, title)
         if figure:
             return figures
 
@@ -2296,7 +2321,7 @@ class Plan(object):
         title = self._name + "\nSavings Balance"
         if tag:
             title += " - " + tag
-        fig = plots.plot_accounts(self.year_n, self.savings_in, self.gamma_n, value, title, self.inames)
+        fig = self._plotter.plot_accounts(self.year_n, self.savings_in, self.gamma_n, value, title, self.inames)
         if figure:
             return fig
 
@@ -2316,7 +2341,7 @@ class Plan(object):
         title = self._name + "\nRaw Income Sources"
         if tag:
             title += " - " + tag
-        fig = plots.plot_sources(self.year_n, self.sources_in, self.gamma_n, value, title, self.inames)
+        fig = self._plotter.plot_sources(self.year_n, self.sources_in, self.gamma_n, value, title, self.inames)
         if figure:
             return fig
 
@@ -2336,7 +2361,7 @@ class Plan(object):
         title = self._name + "\nIncome Tax"
         if tag:
             title += " - " + tag
-        fig = plots.plot_taxes(self.year_n, self.T_n, self.M_n, self.gamma_n, value, title, self.inames)
+        fig = self._plotter.plot_taxes(self.year_n, self.T_n, self.M_n, self.gamma_n, value, title, self.inames)
         if figure:
             return fig
 

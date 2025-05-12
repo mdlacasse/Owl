@@ -37,7 +37,6 @@ from datetime import date
 
 from owlplanner import logging
 from owlplanner import utils as u
-from owlplanner import plots
 
 # All data goes from 1928 to 2024. Update the TO value when data
 # becomes available for subsequent years.
@@ -383,14 +382,3 @@ class Rates(object):
         srates = np.random.multivariate_normal(self.means, self.covar)
 
         return srates
-
-
-def showRatesDistributions(frm=FROM, to=TO, figure=False):
-    """
-    Plot histograms of the rates distributions.
-    """
-    fig = plots.show_rates_distributions(frm, to, SP500, BondsBaa, TNotes, Inflation, FROM)
-    if figure:
-        return fig
-
-    return None

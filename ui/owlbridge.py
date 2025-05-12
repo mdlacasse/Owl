@@ -44,8 +44,14 @@ def createPlan():
 
     plan.setDescription(description)
     val = kz.getKey("plots")
-    if val is not None:
+    if val:
         plan.setDefaultPlots(val)
+
+    val = kz.getKey("plotBackend")
+    if val:
+        plan.setPlotBackend(val)
+
+    # LOOK AT THIS LINE
     if kz.getKey("spendingProfile"):
         setProfile(None)
     resetTimeLists()
@@ -254,7 +260,7 @@ def showAllocations(plan):
     c = 0
     cols = st.columns(n, gap="small")
     for fig in figures:
-        cols[c].pyplot(fig)
+        renderPlot(fig, cols[c])
         c = (c + 1) % n
 
 
@@ -262,7 +268,7 @@ def showAllocations(plan):
 def showProfile(plan):
     fig = plan.showProfile(figure=True)
     if fig:
-        st.pyplot(fig)
+        renderPlot(fig)
 
 
 @_checkPlan
@@ -270,7 +276,7 @@ def showRates(plan, col):
     fig = plan.showRates(figure=True)
     if fig:
         col.write("##### Selected rates over time horizon")
-        col.pyplot(fig)
+        renderPlot(fig, col)
 
 
 @_checkPlan
@@ -278,21 +284,21 @@ def showRatesCorrelations(plan, col):
     fig = plan.showRatesCorrelations(figure=True)
     if fig:
         col.write("##### Correlations between return rates")
-        col.pyplot(fig)
+        renderPlot(fig, col)
 
 
 @_checkPlan
 def showIncome(plan):
     fig = plan.showIncome(figure=True)
     if fig:
-        st.pyplot(fig)
+        renderPlot(fig)
 
 
 @_checkPlan
 def showSources(plan):
     fig = plan.showSources(figure=True)
     if fig:
-        st.pyplot(fig)
+        renderPlot(fig)
 
 
 @_checkPlan
@@ -399,48 +405,50 @@ def plotSingleResults(plan):
     fig = plan.showRates(figure=True)
     if fig:
         cols[c].write("##### Annual Rates")
-        cols[c].pyplot(fig)
+        renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showNetSpending(figure=True)
     if fig:
         cols[c].write("##### Net Available Spending")
-        cols[c].pyplot(fig)
+        renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showGrossIncome(figure=True)
     if fig:
         cols[c].write("##### Taxable Ordinary Income")
-        cols[c].pyplot(fig)
+        renderPlot(fig, cols[c])
         c = (c + 1) % n
 
+    st.divider()
     cols = st.columns(n, gap="small")
     fig = plan.showSources(figure=True)
     if fig:
         cols[c].write("##### Raw Income Sources")
-        cols[c].pyplot(fig)
+        renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showAccounts(figure=True)
     if fig:
         cols[c].write("##### Savings Balance")
-        cols[c].pyplot(fig)
+        renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showTaxes(figure=True)
     if fig:
         cols[c].write("##### Taxes and Medicare (+IRMAA)")
-        cols[c].pyplot(fig)
+        renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     c = 0
     figs = plan.showAssetDistribution(figure=True)
     if figs:
+        st.divider()
         st.write("##### Assets Distribution")
         morecols = st.columns(3, gap="small")
         for fig in figs:
             if fig:
-                morecols[c].pyplot(fig)
+                renderPlot(fig, morecols[c])
             else:
                 morecols[c].write("#\n<div style='text-align: center'> This plot is empty </div>",
                                   unsafe_allow_html=True)
@@ -465,6 +473,12 @@ def setProfile(plan, key):
 def setDefaultPlots(plan, key):
     val = kz.storepull(key)
     plan.setDefaultPlots(val)
+
+
+@_checkPlan
+def setPlotBackend(plan, key):
+    val = kz.storepull(key)
+    plan.setPlotBackend(val)
 
 
 @_checkPlan
@@ -712,6 +726,30 @@ def backYearsMAGI(plan):
         backyears[0] = thisyear
 
     return backyears
+
+
+def renderPlot(fig, col=None):
+    """
+    Render a plot using the appropriate Streamlit function based on the backend type
+
+        Args:
+        fig: The figure object from either matplotlib or plotly
+        col: Optional Streamlit column to render in
+    """
+    if fig is None:
+        return
+
+    # Check if it's a plotly figure.
+    if hasattr(fig, 'to_dict'):  # plotly figures have to_dict method.
+        if col:
+            col.plotly_chart(fig, use_container_width=True)
+        else:
+            st.plotly_chart(fig, use_container_width=True)
+    else:  # matplotlib figure.
+        if col:
+            col.pyplot(fig)
+        else:
+            st.pyplot(fig)
 
 
 def version():

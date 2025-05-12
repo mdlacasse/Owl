@@ -31,10 +31,9 @@ pages = {
     ],
     "Resources": [
         st.Page("Logs.py", icon=":material/error:"),
-        # Graph style needs a rewrite of plot() to avoid cross-talk between sessions.
-        # st.Page("Settings.py", icon=":material/settings:"),
         st.Page("Quick_Start.py", icon=":material/rocket_launch:", default=True),
         st.Page("Documentation.py", icon=":material/help:"),
+        # st.Page("Settings.py", icon=":material/settings:"),
         st.Page("About_Owl.py", icon=":material/info:"),
     ],
 }

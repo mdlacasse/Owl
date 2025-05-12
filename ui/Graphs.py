@@ -13,13 +13,20 @@ else:
         owb.runPlan()
 
     st.write("Optimize a single scenario based on the parameters selected in the **Case Setup** section.")
-    col1, col2 = st.columns(2, gap="large", vertical_alignment="bottom")
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
     with col1:
         choices = ["nominal", "today"]
         kz.initKey("plots", choices[0])
-        ret = kz.getRadio("Dollar amounts in plots", choices, "plots", callback=owb.setDefaultPlots)
+        helpmsg = "Plot can be in today's dollars or in nominal value."
+        ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg, callback=owb.setDefaultPlots)
 
     with col2:
+        choices = ["matplotlib", "plotly"]
+        kz.initKey("plotBackend", choices[0])
+        helpmsg = "Select the plotting library to use."
+        kz.getRadio("Plot Backend", choices, "plotBackend", callback=owb.setPlotBackend, help=helpmsg)
+
+    with col3:
         helpmsg = "Click on button if graphs are not all showing."
         st.button(
             "Re-run single case",
