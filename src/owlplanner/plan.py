@@ -2066,10 +2066,10 @@ class Plan(object):
         dic[f"Net spending for year {now}"] = u.d(self.g_n[0] / self.yearFracLeft)
         dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0])
 
-        totIncome = np.sum(self.g_n, axis=0)
-        totIncomeNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
-        dic["Total net spending"] = f"{u.d(totIncomeNow)}"
-        dic["[Total net spending]"] = f"{u.d(totIncome)}"
+        totSpending = np.sum(self.g_n, axis=0)
+        totSpendingNow np.sum(self.g_n / self.gamma_n[:-1], axis=0)
+        dic["Total net spending"] = f"{u.d(totSpendingNow"
+        dic["[Total net spending]"] = f"{u.d(totSpending)}"
 
         totRoth = np.sum(self.x_in, axis=(0, 1))
         totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n[:-1], axis=0)

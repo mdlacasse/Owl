@@ -78,7 +78,7 @@ a base case, and duplicating it a few times with slight parameter changes
 for investigating the resulting effects.
 It is recommended to rename the case to reflect the change in parameters.
 When duplicating a scenario, make sure to visit all pages in the **Case Setup** section
-and verify that all parameters are as intended. When all cases were succussfully run,
+and verify that all parameters are as intended. When all cases were successfully run,
 results of the different cases can be compared side-by-side in the `Output Files` section.
 
 ##### Initializing the life parameters for the realization
@@ -402,8 +402,9 @@ Linear programming solutions are more expensive than event-driven forward simula
 when considering Monte Carlo simulations, consider:
 - Turning off Medicare calculations,
 - Installing Owl and running on your local computer as it can be more than 3 times
-faster than the Streamlit host. Morevover, the community server has a CPU limit
-that will stop a session. This can only happen in long Monte Carlo runs.
+faster than running on the Streamlit host. Moreover, the community server has a
+CPU time limit that will stop a session after the quota is reached.
+Most likely, this will only happen during long Monte Carlo runs.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
@@ -436,7 +437,7 @@ This is done by clicking the '+" icon at the right end of the browser URL bar,
 showing *App available: Install Streamlit*.
 The app provides more screen space as it doesn't have a navigation bar.
 
-In general, collapsing the side menu and going fullscreen by hitting F11 while in your browser
+In general, collapsing the side menu and going full screen by hitting F11 while in your browser
 can improve the visualization of graphs and worksheets.
 I also recommend using the *dark* mode as Streamlit's default theme.
 This selection is accessed through the *Settings* option after clicking on the three vertical dots
