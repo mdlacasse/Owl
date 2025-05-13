@@ -442,7 +442,7 @@ def plotSingleResults(plan):
     if figs:
         # st.divider()
         st.write("#### Assets Distribution")
-        col1, col2, _ = st.columns([.6, .2, .2], gap="medium")
+        col1, col2, _ = st.columns([0.6, 0.2, 0.2], gap="medium")
         for fig in figs:
             if fig:
                 renderPlot(fig, col1)

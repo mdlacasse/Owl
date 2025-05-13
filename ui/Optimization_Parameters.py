@@ -50,7 +50,8 @@ else:
         kz.initKey("readRothX", False)
         fromFile = kz.getKey("readRothX")
         kz.initKey("maxRothConversion", 50)
-        ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion", disabled=fromFile, help=helpmsg)
+        ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion",
+                        disabled=fromFile, help=helpmsg)
         ret = kz.getToggle("Convert as in wages and contributions tables", "readRothX")
         # kz.initKey("oppCostX", 0.)
         # helpmsg = "Estimated opportunity cost for paying estimated tax on Roth conversions."
@@ -61,8 +62,8 @@ else:
         helpmsg = "Do not perform Roth conversions before that year."
         thisyear = date.today().year
         kz.initKey("startRothConversions", thisyear)
-        ret = kz.getIntNum("Year to start considering Roth conversions", "startRothConversions", min_value=thisyear,
-                           disabled=fromFile, help=helpmsg)
+        ret = kz.getIntNum("Year to start considering Roth conversions", "startRothConversions",
+                           min_value=thisyear, disabled=fromFile, help=helpmsg)
         if kz.getKey("status") == "married":
             iname1 = kz.getKey("iname1")
             choices = ["None", iname0, iname1]
@@ -102,29 +103,28 @@ else:
         ret = kz.getRadio("Type of profile", profileChoices, "spendingProfile", callback=owb.setProfile)
         if kz.getKey("spendingProfile") == "smile":
             helpmsg = "Time in year before spending starts decreasing."
-            ret = kz.getIntNum(
-                "Smile delay (in years from now)", "smileDelay", max_value=30, help=helpmsg, callback=owb.setProfile
-            )
+            ret = kz.getIntNum("Smile delay (in years from now)", "smileDelay", max_value=30,
+                               help=helpmsg, callback=owb.setProfile)
     with col2:
         kz.initKey("spendingSlack", 0)
         helpmsg = "Percentage allowed to deviate from spending profile."
         ret = kz.getIntNum("Profile slack (%)", "spendingSlack", max_value=50, help=helpmsg)
         if kz.getKey("spendingProfile") == "smile":
             helpmsg = "Percentage to decrease for the slow-go years."
-            ret = kz.getIntNum("Smile dip (%)", "smileDip", max_value=100, help=helpmsg, callback=owb.setProfile)
+            ret = kz.getIntNum("Smile dip (%)", "smileDip", max_value=100, help=helpmsg,
+                               callback=owb.setProfile)
     with col3:
         if kz.getKey("status") == "married":
             helpmsg = "Percentage of spending required for the surviving spouse."
-            ret = kz.getIntNum(
-                "Survivor's spending (%)", "survivor", max_value=100, help=helpmsg, callback=owb.setProfile
-            )
+            ret = kz.getIntNum("Survivor's spending (%)", "survivor", max_value=100,
+                               help=helpmsg, callback=owb.setProfile)
         if kz.getKey("spendingProfile") == "smile":
             helpmsg = "Percentage to increase (or decrease) over time period."
             ret = kz.getIntNum("Smile increase (%)", "smileIncrease",
                                min_value=-100, max_value=100, help=helpmsg, callback=owb.setProfile)
 
     st.divider()
-    col1, col2 = st.columns(2, gap="small")
+    col1, col2 = st.columns([0.6, 0.4], gap="small")
     with col1:
         st.write("##### Spending Profile")
         owb.showProfile()
