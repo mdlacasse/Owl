@@ -49,6 +49,10 @@ def createPlan():
     if val:
         plan.setPlotBackend(val)
 
+    # Force to pull key and set profile if key was defined.
+    if kz.getKey("spendingProfile"):
+        setProfile(None)
+
     resetTimeLists()
 
     st.toast(f"Created new case *'{name}'*. You can now move to the next page.")
