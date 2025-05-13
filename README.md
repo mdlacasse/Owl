@@ -8,15 +8,17 @@
 -------------------------------------------------------------------------------------
 
 ### TL;DR
-Owl is a retirement planning tool that uses a linear programming optimization algorithm
-to provide guidance on retirement decisions, including Roth conversions.
+Owl is a financial retirement planning tool that uses a linear programming
+optimization algorithm to provide guidance on retirement decisions
+such as contributions, withdrawals, Roth conversions, and more.
 Users can select varying return rates to perform historical back testing,
 stochastic rates for performing Monte Carlo analyses,
 or fixed rates either derived from historical averages, or set by the user.
 
 There are a few ways to run Owl:
 
-- Run Owl directly on the Streamlit Community Server at [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
+- Run Owl directly on the Streamlit Community Server at
+[owlplanner.streamlit.app](https://owlplanner.streamlit.app).
 
 - Run locally on your computer using a Docker image.
 Follow these [instructions](docker/README.md) for this option.
@@ -26,7 +28,7 @@ Follow these [instructions](INSTALL.md) to install Owl from the source code and 
 
 -------------------------------------------------------------------------------------
 ## Overview
-This package is a retirement modeling framework for exploring the sensitivity of retirement financial decisions.
+This package is a modeling framework for exploring the sensitivity of retirement financial decisions.
 Strictly speaking, it is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy through the rigorous
 mathematical optimization of relevant decision variables. Two major objective goals can be set: either

@@ -14,7 +14,7 @@ with col3:
 col1, col2 = st.columns([0.80, 0.20], gap="large")
 with col1:
     st.markdown("""
-#### A retirement exploration tool based on linear programming
+#### A retirement financial exploration tool based on linear programming
 
 The goal of Owl is to provide a free and open-source ecosystem that has cutting-edge
 optimization capabilities, allowing for the new generation of computer-literate retirees

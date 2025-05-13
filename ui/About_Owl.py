@@ -12,7 +12,7 @@ st.write(f"This is Owl version {owb.version()} running on Streamlit {st.__versio
 
 st.write(
     """
-- Owl is an open-source retirement planner capable of optimization through linear programming.
+- Owl is an open-source retirement financial planner capable of optimization through linear programming.
 - Source code is available from a repository on [GitHub](https://github.com/mdlacasse/owl).
 - Mathematical formulation of the linear optimization problem can be
 found in this [document](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
