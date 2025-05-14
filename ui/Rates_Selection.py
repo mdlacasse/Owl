@@ -62,7 +62,7 @@ else:
     if kz.getKey("rateType") == "fixed":
         fxType = kz.getRadio("Select fixed rates", fixedChoices, "fixedType", updateFixedRates)
 
-        st.write("#### Fixed rate values (%)")
+        st.write("#### Fixed Rate Values (%)")
         rates = FXRATES[fxType]
         for j in range(4):
             kz.initKey("fxRate" + str(j), rates[j])
@@ -120,7 +120,7 @@ else:
 
     if kz.getKey("rateType") == "varying":
         st.divider()
-        st.write("#### Stochastic parameters")
+        st.write("#### Stochastic Parameters")
         ro = kz.getKey("varyingType") != "stochastic"
         st.write("##### Means (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
@@ -158,7 +158,7 @@ else:
             kz.initKey("stdev3", 0)
             kz.getNum("Cash Assets/Inflation", "stdev3", ro, step=1.0, callback=updateRates)
 
-        st.write("##### Correlation Matrix")
+        st.write("##### Correlation matrix")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initKey("diag1", 1)
@@ -207,14 +207,15 @@ else:
     owb.showRates(col1)
 
     st.divider()
-    st.write("### Other rates")
+    st.write("### Other Rates")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initKey("divRate", 2)
         helpmsg = "Average annual (qualified) dividend return rate on stock portfolio for income tax purposes."
         ret = kz.getNum("Dividend rate (%)", "divRate", max_value=100.0, format="%.2f", help=helpmsg, step=1.0)
 
-    st.write("#### Income taxes")
+    st.write("#####")
+    st.write("##### Income taxes")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initKey("gainTx", 15)

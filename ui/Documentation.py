@@ -51,7 +51,7 @@ different resulting outcomes is shown on the [Output Files](#output-files) page.
 Owl uses a year as the standard time unit. All values are therefore entered and
 reported as yearly values. These include wages, income, rates, social security, etc.
 Dollar values are typically entered in thousands, unless in tables, where they
-are entered and reported in unit dollars.
+are entered and reported in unit dollars. Graph report values in thousands.
 
 There are four sections in the user interface:
 **Case Setup**, **Single Scenario**, **Multiple Scenarios**, and **Resources**.
@@ -107,7 +107,8 @@ or just Google *life expectancy calculator*.
 Finally, a starting date for the first year of the plan must be provided.
 By default, it starts today, but any other date
 in the current year can be chosen. This is useful if your numbers are known for a fixed date, or
-for reproducibility purposes. This date does not affect when the plan ends.
+for reproducibility purposes. This date does not affect when the plan ends, which is at the
+end of the year matching the longest longevity.
 
 #### Wages and Contributions
 This page allows to enter an optional Excel file containing future wages and contributions,

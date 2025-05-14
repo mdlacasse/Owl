@@ -532,12 +532,13 @@ def getColors():
     return bc, fc
 
 
-def titleBar(txt, choices=None):
-    if choices is None:
+def titleBar(txt, allCases=False):
+    if allCases:
+        choices = allCaseNames()
+        helpmsg = "Select an existing case, or create a new one from scratch or from a *case* parameter file."
+    else:
         choices = onlyCaseNames()
         helpmsg = "Select an existing case."
-    else:
-        helpmsg = "Select an existing case, or create a new one from scratch or from a *case* parameter file."
 
     header = st.container()
     # header.title("Here is a sticky header")

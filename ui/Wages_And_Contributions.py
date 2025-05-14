@@ -30,7 +30,7 @@ else:
                 " that has not yet been uploaded."
             )
 
-    st.write("#### Upload a *Wages and Contributions* file")
+    st.write("#### Upload a *Wages and Contributions* File")
     kz.initKey("_xlsx", 0)
     stTimeLists = st.file_uploader(
         "Upload values from a wages and contributions file...",
@@ -46,7 +46,7 @@ else:
 
     st.divider()
     for i in range(n):
-        st.write("##### " + kz.getKey("iname" + str(i)) + "'s timetable")
+        st.write("##### " + kz.getKey("iname" + str(i)) + "'s Timetable")
         df = kz.getKey("timeList" + str(i))
         formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
         cols = list(df.columns)

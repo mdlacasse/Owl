@@ -7,7 +7,7 @@ ret = kz.titleBar("Current Assets")
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
-    st.write("##### Savings Account Balances")
+    st.write("#### Savings Account Balances")
     accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-exempt"}
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
@@ -27,7 +27,7 @@ else:
 
     if kz.getKey("status") == "married":
         st.divider()
-        st.write("##### Survivor's spousal beneficiary fractions")
+        st.write("##### Survivor's Spousal Beneficiary Fractions")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
             nkey = "benf" + str(0)
@@ -47,7 +47,8 @@ else:
                 accounts["txFree"].capitalize(), nkey, format="%.2f", max_value=1.0, step=0.05, help=helpmsg
             )
 
-        st.write("##### Surplus deposit fraction")
+        st.write("#####")
+        st.write("##### Surplus Deposit Fraction")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
             kz.initKey("surplusFraction", 0.5)
