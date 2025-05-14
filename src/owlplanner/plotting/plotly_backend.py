@@ -421,7 +421,7 @@ class PlotlyBackend(PlotBackend):
         n_vars = len(rate_names)
         fig = make_subplots(
             rows=n_vars, cols=n_vars,
-            subplot_titles=rate_names,  # Only use rate names for first row
+            # subplot_titles=rate_names,  # Only use rate names for first row
             shared_xaxes=True,  # Share x-axes
             vertical_spacing=0.05,
             horizontal_spacing=0.05
@@ -537,9 +537,9 @@ class PlotlyBackend(PlotBackend):
 
                 # Update axis labels
                 if i == n_vars-1:  # Bottom row
-                    fig.update_xaxes(title_text="%", row=i+1, col=j+1)
+                    fig.update_xaxes(title_text=rate_names[j], row=i+1, col=j+1)
                 if j == 0:  # Left column
-                    fig.update_yaxes(title_text="%", row=i+1, col=j+1)
+                    fig.update_yaxes(title_text=rate_names[i], row=i+1, col=j+1)
 
         return fig
 

@@ -7,7 +7,7 @@ with col3:
     st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")
     st.caption("Retirement planner with great wisdom")
 with col1:
-    st.write("# Owl Retirement Planner\nA retirement exploration tool based on linear programming")
+    st.write("# Owl Retirement Planner\nA retirement financial exploration tool based on linear programming")
     kz.divider("orange")
     st.write("### Quick Start")
     st.markdown(
