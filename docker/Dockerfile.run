@@ -12,7 +12,7 @@ RUN apt-get update; \
     ; \
     rm -rf /var/lib/apt/lists/*
 
-COPY fastentrypoint.sh /usr/bin/entrypoint.sh
+COPY runentrypoint.sh /usr/bin/entrypoint.sh
 
 RUN chmod 555 /usr/bin/entrypoint.sh
 

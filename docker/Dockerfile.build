@@ -1,0 +1,24 @@
+# docker/Dockerfile
+
+FROM python:3.13-slim
+
+WORKDIR /app
+
+RUN apt-get update; \
+    apt-get upgrade; \
+    apt-get install -y --no-install-recommends \
+        curl \
+        git \
+    ; \
+    rm -rf /var/lib/apt/lists/*
+
+COPY buildentrypoint.sh /usr/bin/entrypoint.sh
+COPY runentrypoint.sh /usr/bin/runentrypoint.sh
+
+RUN chmod 555 /usr/bin/entrypoint.sh /usr/bin/runentrypoint.sh
+
+EXPOSE 8501
+
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+
+ENTRYPOINT ["/bin/bash", "/usr/bin/entrypoint.sh"]
