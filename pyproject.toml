@@ -26,9 +26,11 @@ classifiers = [
 dependencies = [
     "matplotlib",
     "numpy",
+    "odfpy",
     "openpyxl",
     "pandas",
     "plotly",
+    "pulp",
     "seaborn",
     "scipy",
     "streamlit",
