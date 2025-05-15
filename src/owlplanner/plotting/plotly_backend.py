@@ -345,7 +345,7 @@ class PlotlyBackend(PlotBackend):
         ]
 
         # Add histograms
-        for i, (dat, title) in enumerate(zip(data, ["S&P500", "BondsBaa", "TNotes", "Inflation"])):
+        for i, dat in enumerate(data):
             mean_val = np.mean(dat)
             label = f"<>: {u.pc(mean_val, 2, 1)}"
 
