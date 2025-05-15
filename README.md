@@ -8,7 +8,7 @@
 -------------------------------------------------------------------------------------
 
 ### TL;DR
-Owl is a financial retirement planning tool that uses a linear programming
+Owl is a retirement financial planning tool that uses a linear programming
 optimization algorithm to provide guidance on retirement decisions
 such as contributions, withdrawals, Roth conversions, and more.
 Users can select varying return rates to perform historical back testing,

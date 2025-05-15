@@ -88,6 +88,9 @@ class PlotlyBackend(PlotBackend):
             margin=dict(b=150)
         )
 
+        # Format y-axis as number
+        fig.update_yaxes(tickformat=",.1f")
+
         return fig
 
     def plot_gross_income(self, year_n, G_n, gamma_n, value, title, tax_brackets):
