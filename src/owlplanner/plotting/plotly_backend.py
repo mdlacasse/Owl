@@ -822,7 +822,7 @@ class PlotlyBackend(PlotBackend):
                     stack_names.append(aname)
 
                     # Get allocation data
-                    data = alpha_ijkn[i, acList.index(acType), assetDic[key], :len(year_n)]
+                    data = 100*alpha_ijkn[i, acList.index(acType), assetDic[key], :len(year_n)]
                     stack_data.append(data)
 
                 # Add stacked area traces
@@ -857,7 +857,7 @@ class PlotlyBackend(PlotBackend):
                 )
 
                 # Format y-axis as percentage
-                fig.update_yaxes(tickformat=".1f")
+                fig.update_yaxes(tickformat=".0f")
 
                 figures.append(fig)
 

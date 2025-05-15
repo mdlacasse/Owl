@@ -420,7 +420,14 @@ These very pages.
 
 #### Settings
 This page allows to select different backends for plotting the graphs.
-Matplotlib is the most mature part of the code. Plotly still experimental.
+Matplotlib is the most mature part of the code. Plotly is still experimental.
+Owl currently defaults to matpotlib.
+
+When using Plotly, graphs are interactive. Users can zoom and pan, and toggle
+traces by clicking on the associated legend. Double clicking on a legend item
+selects only this item. Double-clicking on a disabled item restores all traces.
+A copy of the plot can also be saved as a *png* file. Both matplotlib and plotly
+graphs can be seen in full-screen mode.
 
 #### About Owl
 Credits and disclaimers.

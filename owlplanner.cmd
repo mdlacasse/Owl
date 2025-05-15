@@ -3,7 +3,6 @@
 set root=C:\Users\%username%\Anaconda3
 call %root%\Scripts\activate.bat
 
-cd ui
 where /q streamlit
 if ERRORLEVEL 1 (
     where /q python3
@@ -16,6 +15,6 @@ if ERRORLEVEL 1 (
     )
 ) else (
     echo Hit Ctrl-C to terminate the Streamlit server.
-    :: set PYTHONPATH=..\src;%PYTHONPATH%
-    call streamlit run main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost
+    :: set PYTHONPATH=.\src;%PYTHONPATH%
+    call streamlit run .\ui\main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost
 )

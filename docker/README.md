@@ -39,8 +39,8 @@ and having both Python and Docker installed on your computer.
 ##### Docker image
 There are two images you can create. One builds Owl at run time, while
 the other builds it statically in the image.
-These two approaches trade startup time for space
-(~300 MB vs. 1.8 GB, ~22 vs. 193 sec).
+These two approaches trade startup time for image space
+(~300 MB vs. 1.8 GB, ~22 vs. 200 sec).
 First build the Docker image from the `docker` directory:
 ```shell
 cd docker
