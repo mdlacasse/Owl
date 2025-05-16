@@ -28,7 +28,7 @@ Names = [ "John", "Sally",]
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 30.0
 "Long-term capital gain tax rate" = 15.0
-"Dividend tax rate" = 2.0
+"Dividend rate" = 1.8
 "TCJA expiration year" = 2026
 Method = "historical average"
 From = 1990

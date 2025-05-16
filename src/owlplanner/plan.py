@@ -281,9 +281,9 @@ class Plan(object):
 
         # Default parameters:
         self.psi = 0.15  # Long-term income tax rate on capital gains (decimal)
-        self.chi = 0.6  # Survivor fraction
-        self.mu = 0.02  # Dividend rate (decimal)
-        self.nu = 0.30  # Heirs tax rate (decimal)
+        self.chi = 0.6   # Survivor fraction
+        self.mu = 0.018  # Dividend rate (decimal)
+        self.nu = 0.30   # Heirs tax rate (decimal)
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1])  # Fractions left to other spouse at death
         self.smileDip = 15  # Percent to reduce smile profile
@@ -463,7 +463,7 @@ class Plan(object):
 
     def setDividendRate(self, mu):
         """
-        Set dividend tax rate. Rate is in percent. Default 2%.
+        Set dividend tax rate. Rate is in percent. Default 1.8%.
         """
         if not (0 <= mu <= 100):
             raise ValueError("Rate must be between 0 and 100.")

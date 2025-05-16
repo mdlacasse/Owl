@@ -210,7 +210,7 @@ else:
     st.write("### Other Rates")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
-        kz.initKey("divRate", 2)
+        kz.initKey("divRate", 1.8)
         helpmsg = "Average annual (qualified) dividend return rate on stock portfolio for income tax purposes."
         ret = kz.getNum("Dividend rate (%)", "divRate", max_value=100.0, format="%.2f", help=helpmsg, step=1.0)
 
