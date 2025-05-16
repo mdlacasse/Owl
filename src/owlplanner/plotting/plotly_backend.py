@@ -198,6 +198,11 @@ class PlotlyBackend(PlotBackend):
         # Format y-axis as k
         fig.update_yaxes(tickformat=",.0f")
 
+        ymin = np.min(net_data)
+        ymax = np.max(net_data)
+        if np.abs(ymax - ymin) < 1:
+            fig.update_layout(yaxis=dict(range=[np.floor(ymin)-1, np.ceil(ymax)+1]))
+
         return fig
 
     def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames):
