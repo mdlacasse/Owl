@@ -177,6 +177,18 @@ match the names used when creating the plan
 
 If a file was originally associated with a *case* file, a message will remind the user to upload the file.
 
+#### Fixed Income
+This page is for entering anticipated fixed income from pensions and social security.
+Amounts are in thousands (\\$k) in today's \\$. While
+social security is always adjusted for inflation, pensions can optionally be
+by selecting the corresponding button.
+Income starts on the first day of the year selected, with the value provided,
+adjusted for inflation if necessary.
+
+A great website for guidance on when to start taking social security is
+[opensocialsecurity.com](https://opensocialsecurity.com).
+And obviously there is [ssa.gov](https://ssa.gov).
+
 #### Current Assets
 This page allows to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
@@ -207,35 +219,6 @@ considerable computing effort in solving the problem.
 When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
 
-#### Fixed Income
-This page is for entering anticipated fixed income from pensions and social security.
-Amounts are in thousands (\\$k) in today's \\$. While
-social security is always adjusted for inflation, pensions can optionally be
-by selecting the corresponding button.
-Income starts on the first day of the year selected, with the value provided,
-adjusted for inflation if necessary.
-
-A great website for guidance on when to start taking social security is
-[opensocialsecurity.com](https://opensocialsecurity.com).
-And obviously there is [ssa.gov](https://ssa.gov).
-
-#### Rates Selection
-This page allows you to select the return rates over the
-time span of the plan. All rates are annual.
-There are two major types of rates:
-- *Fixed rates* - staying the same from one year to another:
-    - *conservative*,
-    - *optimistic*,
-    - *historical average* - i.e., average over a range of past years,
-    - *user* - rates are provided by the user.
-- *Varying rates* - changing from year to year:
-    - *historical* - using a rate sequence which happened in the past,
-    - *histochastic* - using stochastic rates derived from statistics over a time range of historical rates,
-    - *stochastic* - using stochastic rates created from statistical parameters specified by the user.
-
-These rates are the annual rates of return for each of the assets considered. The types of asset are described
-in the next section.
-
 #### Asset Allocation
 This page allows you to select how to partition your assets between 4 investment options:
 - S&P 500,
@@ -260,7 +243,25 @@ When an *s-curve* is selected, two additional parameters controlling the shape o
 will appear, one for the timing of the inflection point measured in years from now,
 and the other for the width of the transition, measured in +/- years from the inflection point.
 
-### Optimization Parameters
+#### Rates Selection
+This page allows you to select the return rates over the
+time span of the plan. All rates are annual.
+There are two major types of rates:
+- *Fixed rates* - staying the same from one year to another:
+    - *conservative*,
+    - *optimistic*,
+    - *historical average* - i.e., average over a range of past years,
+    - *user* - rates are provided by the user.
+- *Varying rates* - changing from year to year:
+    - *historical* - using a rate sequence which happened in the past,
+    - *histochastic* - using stochastic rates derived from statistics over a time range of historical rates,
+    - *stochastic* - using stochastic rates created from statistical parameters specified by the user.
+
+These rates are the annual rates of return for each of the assets considered. The types of asset are described
+in the previous section. Rates for S&P500 include dividends, and all rates are before inflation.
+Cash assets are secure investments considered to track inflation only and therefore remain at constant value.
+
+#### Optimization Parameters
 This page allows you to select the objective to optimize.
 One can choose between maximizing the net spending amount subject to the constraint
 of a desired bequest, or maximizing a bequest, subject to the constraint of providing

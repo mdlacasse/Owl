@@ -58,6 +58,7 @@ else:
     kz.initKey("yto", owb.TO)
 
     kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates)
+    helpmsgSP500 = "Rate includes dividends."
 
     if kz.getKey("rateType") == "fixed":
         fxType = kz.getRadio("Select fixed rates", fixedChoices, "fixedType", updateFixedRates)
@@ -70,8 +71,7 @@ else:
         ro = fxType != "user"
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
-            helpmsg = "Rate includes dividends."
-            kz.getNum("S&P 500", "fxRate0", ro, step=1.0, help=helpmsg, callback=updateRates)
+            kz.getNum("S&P 500", "fxRate0", ro, step=1.0, help=helpmsgSP500, callback=updateRates)
 
         with col2:
             kz.getNum("Corporate Bonds Baa", "fxRate1", ro, step=1.0, callback=updateRates)
@@ -126,7 +126,7 @@ else:
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initKey("mean0", 0)
-            kz.getNum("S&P 500", "mean0", ro, step=1.0, min_value=-9.0, callback=updateRates)
+            kz.getNum("S&P 500", "mean0", ro, step=1.0, help=helpmsgSP500, min_value=-9.0, callback=updateRates)
 
         with col2:
             kz.initKey("mean1", 0)
