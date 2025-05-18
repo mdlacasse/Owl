@@ -456,9 +456,8 @@ def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, m
     )
 
 
-def getNum(
-    text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0, max_value=None, format="%.1f", help=None
-):
+def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0,
+           max_value=None, format="%.1f", help=None):
     return st.number_input(
         text,
         value=float(getKey(nkey)),
@@ -534,7 +533,7 @@ def getColors():
 
 def flagCurrentCase(caseName):
     if caseName == currentCaseName():
-        return caseName + "*"
+        return caseName + "🔻"
     else:
         return caseName
 
