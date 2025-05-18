@@ -51,8 +51,8 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_asset_distribution(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
-        """Plot asset distribution over time."""
+    def plot_asset_composition(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
+        """Plot asset composition over time."""
         pass
 
     @abstractmethod

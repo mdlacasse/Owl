@@ -447,10 +447,10 @@ def plotSingleResults(plan):
         c = (c + 1) % n
 
     c = 0
-    figs = plan.showAssetDistribution(figure=True)
+    figs = plan.showAssetComposition(figure=True)
     if figs:
         # st.divider()
-        st.write("#### Assets Distribution")
+        st.write("#### Asset Composition")
         col1, col2, _ = st.columns([0.6, 0.2, 0.2], gap="medium")
         for fig in figs:
             if fig:

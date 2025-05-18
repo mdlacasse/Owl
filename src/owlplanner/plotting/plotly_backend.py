@@ -718,7 +718,7 @@ class PlotlyBackend(PlotBackend):
 
         return None, description
 
-    def plot_asset_distribution(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
+    def plot_asset_composition(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
         """Plot asset distribution over time."""
         # Set up value formatting
         if value == "nominal":
@@ -770,7 +770,7 @@ class PlotlyBackend(PlotBackend):
                 ))
 
             # Update layout
-            title = f"{name}<br>Assets Distribution - {jkey}"
+            title = f"{name}<br>Asset Composition - {jkey}"
             if tag:
                 title += f" - {tag}"
 

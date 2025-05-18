@@ -330,8 +330,8 @@ class MatplotlibBackend(PlotBackend):
 
         return self._line_income_plot(year_n, series, style, title, yformat)[0]
 
-    def plot_asset_distribution(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
-        """Plot asset distribution over time."""
+    def plot_asset_composition(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
+        """Plot asset composition over time."""
         if value == "nominal":
             yformat = r"\$k (nominal)"
             infladjust = 1
@@ -352,7 +352,7 @@ class MatplotlibBackend(PlotBackend):
                 y2stack[namek] = np.zeros((len(inames), len(years_n)))
                 for i in range(len(inames)):
                     y2stack[namek][i][:] = b_ijkn[i][jDic[jkey]][kDic[kkey]][:] / infladjust
-            title = name + "\nAssets Distribution - " + jkey
+            title = name + "\nAsset Composition - " + jkey
             if tag:
                 title += " - " + tag
             fig, ax = self._stack_plot(years_n, inames, title, range(len(inames)),

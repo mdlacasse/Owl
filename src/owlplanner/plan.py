@@ -242,7 +242,9 @@ class Plan(object):
         self.defaultPlots = "nominal"
         self.defaultSolver = "HiGHS"
         self._plotterName = None
-        self.setPlotBackend("matplotlib")
+        # Pick a default plotting backend here.
+        # self.setPlotBackend("matplotlib")
+        self.setPlotBackend("plotly")
 
         self.N_i = len(yobs)
         if not (0 <= self.N_i <= 2):
@@ -2252,9 +2254,9 @@ class Plan(object):
         return None
 
     @_checkCaseStatus
-    def showAssetDistribution(self, tag="", value=None, figure=False):
+    def showAssetComposition(self, tag="", value=None, figure=False):
         """
-        Plot the distribution of each savings account in thousands of dollars
+        Plot the composition of each savings account in thousands of dollars
         during the simulation time. This function will generate three
         graphs, one for taxable accounts, one the tax-deferred accounts,
         and one for tax-free accounts.
@@ -2265,8 +2267,8 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-        figures = self._plotter.plot_asset_distribution(self.year_n, self.inames, self.b_ijkn,
-                                                        self.gamma_n, value, self._name, tag)
+        figures = self._plotter.plot_asset_composition(self.year_n, self.inames, self.b_ijkn,
+                                                       self.gamma_n, value, self._name, tag)
         if figure:
             return figures
 

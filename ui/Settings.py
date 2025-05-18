@@ -11,11 +11,12 @@ col1, col2, col3 = st.columns(3, gap="large")
 with col1:
     choices = ("matplotlib", "plotly")
     gkey = "plotGlobalBackend"
-    kz.initGlobalKey(gkey, choices[0])
+    # This should point to the default behavior. No point to call back.
+    kz.initGlobalKey(gkey, choices[1])
     st.write("#### Graph Appearance")
     helpmsg = "Select the plotting library to use."
     index = choices.index(kz.getGlobalKey(gkey))
-    ret = st.radio("Plotting backend (experimental)", options=choices, index=index, args=[gkey],
+    ret = st.radio("Plotting backend", options=choices, index=index, args=[gkey],
                    key="_"+gkey, on_change=owb.setGlobalPlotBackend, help=helpmsg, horizontal=True)
 
 st.divider()
