@@ -68,7 +68,7 @@ else:
             iname1 = kz.getKey("iname1")
             choices = ["None", iname0, iname1]
             kz.initKey("noRothConversions", choices[0])
-            helpmsg = "`None` means no exclusion. Set `Maximum Roth conversion` to 0 to exclude both spouses."
+            helpmsg = "`None` means no exclusion. To exclude both spouses, set `Maximum Roth conversion` to 0."
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg)
 
     st.divider()

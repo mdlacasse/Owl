@@ -49,6 +49,11 @@ def createPlan():
     if val:
         plan.setPlotBackend(val)
 
+    # Set default plot value from case settings.
+    plot_val = kz.getKey("plots")
+    if plot_val:
+        plan.setDefaultPlots(plot_val)
+
     # Force to pull key and set profile if key was defined.
     if kz.getKey("spendingProfile"):
         setProfile(None)

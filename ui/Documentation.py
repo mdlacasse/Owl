@@ -245,7 +245,7 @@ and the other for the width of the transition, measured in +/- years from the in
 
 #### Rates Selection
 This page allows you to select the return rates over the
-time span of the plan. All rates are annual.
+time span of the plan. All rates are nominal and annual.
 There are two major types of rates:
 - *Fixed rates* - staying the same from one year to another:
     - *conservative*,
@@ -258,8 +258,12 @@ There are two major types of rates:
     - *stochastic* - using stochastic rates created from statistical parameters specified by the user.
 
 These rates are the annual rates of return for each of the assets considered. The types of asset are described
-in the previous section. Rates for S&P500 include dividends, and all rates are before inflation.
+in the previous section. Rates for S&P500 include dividends.
 Cash assets are secure investments considered to track inflation only and therefore remain at constant value.
+As mentioned on the Rates Selection page,
+unless historical, S&P 500 can represent any mix of stock equities (domestic, international, emerging, etc.).
+A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
+[here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition) for 2025.
 
 #### Optimization Parameters
 This page allows you to select the objective to optimize.
