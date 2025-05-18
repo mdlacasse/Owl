@@ -532,6 +532,13 @@ def getColors():
     return bc, fc
 
 
+def flagCurrentCase(caseName):
+    if caseName == currentCaseName():
+        return caseName + "*"
+    else:
+        return caseName
+
+
 def titleBar(txt, allCases=False):
     if allCases:
         choices = allCaseNames()
@@ -571,6 +578,7 @@ def titleBar(txt, allCases=False):
                 choices,
                 help=helpmsg,
                 index=getIndex(currentCaseName(), choices),
+                format_func=flagCurrentCase,
                 key="_" + nkey,
                 on_change=switchToCase,
                 args=[nkey],

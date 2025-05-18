@@ -2078,8 +2078,8 @@ class Plan(object):
 
         taxPaid = np.sum(self.T_n, axis=0)
         taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
-        dic["Total income tax paid on ordinary income"] = f"{u.d(taxPaidNow)}"
-        dic["[Total income tax paid on ordinary income]"] = f"{u.d(taxPaid)}"
+        dic["Total tax paid on ordinary income"] = f"{u.d(taxPaidNow)}"
+        dic["[Total tax paid on ordinary income]"] = f"{u.d(taxPaid)}"
         for t in range(self.N_t):
             taxPaid = np.sum(self.T_tn[t], axis=0)
             taxPaidNow = np.sum(self.T_tn[t] / self.gamma_n[:-1], axis=0)

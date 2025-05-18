@@ -42,6 +42,7 @@ or create a new one from scratch, or from a *case* parameter file, which
 would then populate all parameter values.
 This box is present in all pages except those in the **Resources** section
 and allows to access and compare different scenarios.
+Page being currently displayed is marked with as asterisk.
 
 A typical workflow for exploring different scenarios involves starting with a base
 case and then duplicating/creating derived scenarios with slight changes in the parameters,
