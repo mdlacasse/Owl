@@ -21,8 +21,8 @@ with col1:
 st.divider()
 st.write("""
 #### Full Screen
-Running Owl in full screen mode provides a more immersive user experience.
-You can use the F11 key to toggle your browser in full screen mode.
+Running Owl in full screen provides a more immersive user experience.
+Use the F11 key to toggle your browser in full screen mode.
 """)
 
 st.divider()
@@ -30,7 +30,7 @@ st.write("""
 #### App Theme
 The color theme for the whole app can be adjusted using the *Settings* options in the dropdown
 menu under the three dots in the upper right corner of the page. Choose *Light* or *Dark*.
-Default theme is dark.
+Default theme is *Dark*.
 
 More information on theming can be found from the Streamlit documentation
 [here](https://docs.streamlit.io/develop/concepts/configuration/theming).

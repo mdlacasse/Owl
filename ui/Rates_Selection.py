@@ -64,6 +64,11 @@ else:
         fxType = kz.getRadio("Select fixed rates", fixedChoices, "fixedType", updateFixedRates)
 
         st.write("#### Fixed Rate Values (%)")
+        st.markdown("""
+Unless historical, S&P 500 can represent any mix of stock equities (domestic, international, emerging, etc.).
+A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
+[here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition) for 2025.
+""")
         rates = FXRATES[fxType]
         for j in range(4):
             kz.initKey("fxRate" + str(j), rates[j])
