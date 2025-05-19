@@ -78,8 +78,7 @@ A typical workflow will involve creating
 a base case, and duplicating it a few times with slight changes in parameters
 to investigate their effects.
 Duplication appends a number counter in parenthesis to the name, just as duplicate files on Windows.
-It is recommended to rename cases to reflect the change in parameters, but
-use distinct names as renaming a case using an existing name will overwrite the original case.
+It is recommended to rename cases to reflect the change in parameters.
 When duplicating a scenario, make sure to visit all pages in the **Case Setup** section
 and verify that all parameters are as intended. In particular,
 the *Wages and Contributions* file will need to be uploaded for each new copy.

@@ -233,6 +233,10 @@ def renameCase(key):
     if ss.currentCase == newCase or ss.currentCase == loadCaseFile:
         return
     newname = ss["_" + key]
+    if newname in ss.cases:
+        st.error(f"Case name '{newname}' already exists.")
+        return
+
     plan = getKey("plan")
     ss.cases[newname] = ss.cases.pop(ss.currentCase)
     ss.cases[newname]["name"] = newname
