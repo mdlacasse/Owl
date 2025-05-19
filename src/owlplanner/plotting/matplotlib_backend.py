@@ -108,6 +108,9 @@ class MatplotlibBackend(PlotBackend):
             df.drop("partial", axis=1, inplace=True)
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
+            my[0] = my[1]
+
+        nfields = len(means)
 
         df /= 1000
         if len(df) > 0:
@@ -118,7 +121,7 @@ class MatplotlibBackend(PlotBackend):
                 sbn.histplot(df, multiple="dodge", kde=True, ax=axes)
                 legend = []
                 # Don't know why but legend is reversed from df.
-                for q in range(len(means) - 1, -1, -1):
+                for q in range(nfields - 1, -1, -1):
                     dmedian = u.d(medians.iloc[q], latex=True)
                     dmean = u.d(means.iloc[q], latex=True)
                     legend.append(f"{my[q]}: $M$: {dmedian}, $\\bar{{x}}$: {dmean}")
@@ -126,13 +129,14 @@ class MatplotlibBackend(PlotBackend):
                 plt.xlabel(f"{thisyear} $k")
                 plt.title(objective)
                 leads = [f"partial {my[0]}", f"  final {my[1]}"]
-            elif len(means) == 2:
+                leads = leads if nfields == 2 else leads[1:]
+            elif nfields == 2:
                 # Show partial bequest and net spending as two separate histograms.
                 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
                 cols = ["partial", objective]
                 leads = [f"partial {my[0]}", objective]
-                for q in range(2):
-                    sbn.histplot(df[cols[q]], kde=True, ax=axes[q])
+                for q, col in enumerate(cols):
+                    sbn.histplot(df[col], kde=True, ax=axes[q])
                     dmedian = u.d(medians.iloc[q], latex=True)
                     dmean = u.d(means.iloc[q], latex=True)
                     legend = [f"$M$: {dmedian}, $\\bar{{x}}$: {dmean}"]
@@ -154,7 +158,7 @@ class MatplotlibBackend(PlotBackend):
 
             plt.suptitle(title)
 
-            for q in range(len(means)):
+            for q in range(nfields):
                 print(f"{leads[q]:>12}: Median ({thisyear} $): {u.d(medians.iloc[q])}", file=description)
                 print(f"{leads[q]:>12}:   Mean ({thisyear} $): {u.d(means.iloc[q])}", file=description)
                 mmin = 1000 * df.iloc[:, q].min()

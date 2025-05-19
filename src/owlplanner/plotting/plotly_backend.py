@@ -577,7 +577,10 @@ class PlotlyBackend(PlotBackend):
             df.drop("partial", axis=1, inplace=True)
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
+            my[0] = my[1]
 
+        colors = ["orange", "green"]
+        nfields = len(means)
         # Convert to thousands
         df /= 1000
 
@@ -599,7 +602,7 @@ class PlotlyBackend(PlotBackend):
                         x=df[col],
                         name=label,
                         opacity=0.7,
-                        marker_color="orange"
+                        marker_color=colors[i]
                     ))
 
                 # Update layout
@@ -620,8 +623,9 @@ class PlotlyBackend(PlotBackend):
                 )
 
                 leads = [f"partial {my[0]}", f"  final {my[1]}"]
+                leads = leads if nfields == 2 else leads[1:]
 
-            elif len(means) == 2:
+            elif nfields == 2:
                 # Two separate histograms
                 fig = make_subplots(
                     rows=1, cols=2,
@@ -642,21 +646,10 @@ class PlotlyBackend(PlotBackend):
                         go.Histogram(
                             x=df[col],
                             name=label,
-                            marker_color="orange",
-                            showlegend=False
+                            marker_color=colors[i],
+                            showlegend=True
                         ),
                         row=1, col=i+1
-                    )
-
-                    # Add statistics annotation
-                    fig.add_annotation(
-                        x=0.01, y=0.99,
-                        xref=f"x{i+1}",
-                        yref="paper",
-                        text=label,
-                        showarrow=False,
-                        font=dict(size=10),
-                        bgcolor="rgba(0, 0, 0, 0)"
                     )
 
                 # Update layout
@@ -669,7 +662,9 @@ class PlotlyBackend(PlotBackend):
 
                 # Update y-axis labels
                 fig.update_yaxes(title_text="Count", row=1, col=1)
-                fig.update_yaxes(title_text="Count", row=1, col=2)
+                # fig.update_yaxes(title_text="Count", row=1, col=2)
+                fig.update_xaxes(title_text=f"{thisyear} $k", row=1, col=1)
+                fig.update_xaxes(title_text=f"{thisyear} $k", row=1, col=2)
 
             else:
                 # Single histogram for net spending
@@ -705,7 +700,7 @@ class PlotlyBackend(PlotBackend):
                 leads = [objective]
 
             # Add statistics to description
-            for q in range(len(means)):
+            for q in range(nfields):
                 print(f"{leads[q]:>12}: Median ({thisyear} $): {u.d(medians.iloc[q])}", file=description)
                 print(f"{leads[q]:>12}:   Mean ({thisyear} $): {u.d(means.iloc[q])}", file=description)
                 mmin = 1000 * df.iloc[:, q].min()
