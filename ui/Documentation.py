@@ -75,11 +75,15 @@ starts in the first year. Plan still ends at the end of the year when all indivi
 have passed according to the specified life expectancies.
 
 A typical workflow will involve creating
-a base case, and duplicating it a few times with slight parameter changes
-for investigating the resulting effects.
-It is recommended to rename the case to reflect the change in parameters.
+a base case, and duplicating it a few times with slight changes in parameters
+to investigate their effects.
+Duplication appends a number counter in parenthesis to the name, just as duplicate files on Windows.
+It is recommended to rename cases to reflect the change in parameters, but
+use distinct names as renaming a case using an existing name will overwrite the original case.
 When duplicating a scenario, make sure to visit all pages in the **Case Setup** section
-and verify that all parameters are as intended. When all cases were successfully run,
+and verify that all parameters are as intended. In particular,
+the *Wages and Contributions* file will need to be uploaded for each new copy.
+When all cases were successfully run,
 results of the different cases can be compared side-by-side in the `Output Files` section.
 
 ##### Initializing the life parameters for the realization
