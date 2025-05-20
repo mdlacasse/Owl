@@ -449,23 +449,6 @@ Credits and disclaimers.
 
 --------------------------------------------------------------------------------------
 ### :orange[Tips]
-#### App and theme
-If you are accessing Owl through the Chrome browser,
-the Chrome performance manager might be configured to disable hidden or inactive tabs.
-This could cause your Owl session to inadvertently reset when idling for too long,
-and losing the state of the calculator.
-
-The best way to avoid this situation is to run the web page through the Streamlit app on your device.
-This is done by clicking the '+" icon at the right end of the browser URL bar,
-showing *App available: Install Streamlit*.
-The app provides more screen space as it doesn't have a navigation bar.
-
-In general, collapsing the side menu and going full screen by hitting F11 while in your browser
-can improve the visualization of graphs and worksheets.
-I also recommend using the *dark* mode as Streamlit's default theme.
-This selection is accessed through the *Settings* option after clicking on the three vertical dots
-located on the upper right of the app.
-
 #### Advice on optimization and Roth conversions
 Owl does not explicitly optimize for Medicare costs. While this approach
 is possible, it is not practical due to the unpredictable computing time
@@ -491,6 +474,7 @@ where one would like to investigate the effects of Roth conversions
 on total net spending.
 1) Create a case called, say, *Jan 2025 - Base case*.
 Fill in all parameters representing your goals and situation.
+Upload file or fill-in values for Wages and Contributions.
 Let's say this case allows for Roth conversions up to \\$100k.
 2) Duplicate the base case, call it *Jan 2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
@@ -502,4 +486,20 @@ As mentionned above, the most actionable information is located on the first few
 of the *Sources* tables on the Worksheets pages.
 This is where withdrawals and conversions are displayed for this year and the next few years.
 
+#### App and theme
+If you are accessing Owl through the Chrome browser,
+the Chrome performance manager might be configured to disable hidden or inactive tabs.
+This could cause your Owl session to inadvertently reset when idling for too long,
+and losing the state of the calculator.
+The best way to avoid this situation is to run the web page through the Streamlit app on your device.
+This is done by clicking the '+" icon at the right end of the browser URL bar,
+showing *App available: Install Streamlit*.
+The app provides more screen space as it doesn't have a navigation bar.
+
+In general, collapsing the side menu and going full screen by hitting F11 while in your browser
+can greatly improve the visualization of graphs and worksheets.
+I also recommend using the *dark* mode as Streamlit's default theme, but a Light theme is
+also available.
+This selection is accessed through the *Settings* option after clicking on the three vertical dots
+located on the upper right of the app.
 """)
