@@ -224,11 +224,17 @@ When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
 
 #### Asset Allocation
-This page allows you to select how to partition your assets between 4 investment options:
+This page allows you to select how to partition your assets between 4 investment options,
+one equity and three fixed-income securities:
 - S&P 500,
 - Corporate Bonds Baa,
 - 10-year Treasury Notes,
 - Cash assets assumed to follow inflation.
+
+When using historical data, the term S&P 500 represents the real index. However,
+when selecting fixed rates, the term can represent any mix of stocks or equities.
+The main difference is in the tax treatment of gains realized in the taxable account.
+Equities will be taxed differently than fixed securities.
 
 Two choices of asset allocations are possible:
 *account* and *individual*. For *account* type, each type
@@ -262,10 +268,10 @@ There are two major types of rates:
     - *stochastic* - using stochastic rates created from statistical parameters specified by the user.
 
 These rates are the annual rates of return for each of the assets considered. The types of asset are described
-in the previous section. Rates for S&P500 include dividends.
+in the previous section. Rates for the S&P 500 equities include dividends.
 Cash assets are secure investments considered to track inflation only and therefore remain at constant value.
 As mentioned on the Rates Selection page,
-unless historical, S&P 500 can represent any mix of stock equities (domestic, international, emerging, etc.).
+unless historical, S&P 500 can represent any mix of equities (domestic, international, emerging, etc.).
 A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition) for 2025.
 

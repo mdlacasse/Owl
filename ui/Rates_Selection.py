@@ -58,22 +58,25 @@ else:
     kz.initKey("yto", owb.TO)
 
     kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates)
-    helpmsgSP500 = "Rate includes dividends."
+    helpmsgSP500 = """Rate also includes dividends.
+Unless historical, S&P 500 can represent any mix of equities
+(domestic, international, emerging, ...).
+"""
+    helpFixed = """A 2025 roundup of expert opinions on stock and bond return forecasts for the next decade can be found
+[here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition)."""
+    helpCash = """Here, "Cash Assets" are TIPS-like securities assumed to track inflation."""
 
     if kz.getKey("rateType") == "fixed":
-        fxType = kz.getRadio("Select fixed rates", fixedChoices, "fixedType", updateFixedRates)
+        fxType = kz.getRadio("Select fixed rates", fixedChoices, "fixedType", updateFixedRates,
+                             help=helpFixed)
+
+        ro = fxType != "user"
 
         st.write("#### Fixed Rate Values (%)")
-        st.markdown("""
-Unless historical, S&P 500 can represent any mix of stock equities (domestic, international, emerging, etc.).
-A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
-[here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition) for 2025.
-""")
         rates = FXRATES[fxType]
         for j in range(4):
             kz.initKey("fxRate" + str(j), rates[j])
 
-        ro = fxType != "user"
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.getNum("S&P 500", "fxRate0", ro, step=1.0, help=helpmsgSP500, callback=updateRates)
@@ -85,7 +88,7 @@ A roundup of expert opinions on stock and bond return forecasts for the next dec
             kz.getNum("10-y Treasury Notes", "fxRate2", ro, step=1.0, callback=updateRates)
 
         with col4:
-            kz.getNum("Cash Assets/Inflation", "fxRate3", ro, step=1.0, callback=updateRates)
+            kz.getNum("Cash Assets/Inflation", "fxRate3", ro, step=1.0, help=helpCash, callback=updateRates)
 
     elif kz.getKey("rateType") == "varying":
         kz.getRadio("Select varying rates", varyingChoices, "varyingType", callback=updateRates)
