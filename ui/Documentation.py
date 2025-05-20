@@ -77,11 +77,11 @@ have passed according to the specified life expectancies.
 A typical workflow will involve creating
 a base case, and duplicating it a few times with slight changes in parameters
 to investigate their effects.
-Duplication appends a number counter in parenthesis to the name, just as duplicate files on Windows.
+Duplication appends a number counter in parenthesis to the name, just as creating
+a copy of a file on Windows.
 It is recommended to rename cases to reflect the change in parameters.
 When duplicating a scenario, make sure to visit all pages in the **Case Setup** section
-and verify that all parameters are as intended. In particular,
-the *Wages and Contributions* file will need to be uploaded for each new copy.
+and verify that all parameters are as intended.
 When all cases were successfully run,
 results of the different cases can be compared side-by-side in the `Output Files` section.
 
@@ -488,10 +488,8 @@ Fill in all parameters representing your goals and situation.
 Let's say this case allows for Roth conversions up to \\$100k.
 2) Duplicate the base case, call it *Jan 2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
-Also make sure to load the *Wages and Contributions* file, if any was used in the base case.
 3) Duplicate the base case again, call it *Jan 2025 - No Roth limit* and
 set maximum Roth conversions to a vary large number, say, \\$5,000k (i.e., \\$5 millions).
-Again, make sure to reload the *Wages and Contributions* file, if any was used in the base case.
 4) Compare all cases on the `Output Files` page.
 
 As mentionned above, the most actionable information is located on the first few lines

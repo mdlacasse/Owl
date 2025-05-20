@@ -58,7 +58,10 @@ def createPlan():
     if kz.getKey("spendingProfile"):
         setProfile(None)
 
-    resetTimeLists()
+    if kz.getKey("duplicate"):
+        _setContributions(plan, False)
+    else:
+        resetTimeLists()
 
     st.toast(f"Created new case *'{name}'*. You can now move to the next page.")
 
