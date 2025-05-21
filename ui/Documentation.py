@@ -486,7 +486,7 @@ As mentionned above, the most actionable information is located on the first few
 of the *Sources* tables on the Worksheets pages.
 This is where withdrawals and conversions are displayed for this year and the next few years.
 
-#### App and theme
+#### Streamlit App and theme
 If you are accessing Owl through the Chrome browser,
 the Chrome performance manager might be configured to disable hidden or inactive tabs.
 This could cause your Owl session to inadvertently reset when idling for too long,
@@ -495,6 +495,11 @@ The best way to avoid this situation is to run the web page through the Streamli
 This is done by clicking the '+" icon at the right end of the browser URL bar,
 showing *App available: Install Streamlit*.
 The app provides more screen space as it doesn't have a navigation bar.
+A similar thing can happen if your simulations
+(Monte Carlo) are too long. The Streamlit community server also has a hard limit
+on used CPU time that might stop your calculations before completion.
+To avoid this situation, you should run Owl locally on your computer.
+See instructions on the GitHub repository for how to proceed.
 
 In general, collapsing the side menu and going full screen by hitting F11 while in your browser
 can greatly improve the visualization of graphs and worksheets.
