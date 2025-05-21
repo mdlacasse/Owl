@@ -9,7 +9,7 @@ ret = kz.titleBar("Wages and Contributions")
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
-    if not kz.getKey("duplicate"):
+    if kz.getKey("timeList0") is None:
         kz.runOncePerCase(owb.resetTimeLists)
     kz.initKey("stTimeLists", None)
     n = 2 if kz.getKey("status") == "married" else 1
