@@ -71,28 +71,31 @@ formulation of the optimization problem can be found
 Functions of each page are described below in the same order as they appear in the left sidebar.
 Typically, pages would be accessed in order, starting from the top.
 
-The `Case selector` box at the top of the page allows to select
-an existing case among all those created.
+A `Case selector` box located at the top of the page allows to
+navigate between the different created scenarios.
 When on the [Create Case](#create-case) page, however, the selector box offers two more options:
 one to create a new case from scratch, and one to create a case
 from a *case* parameter file, which
 would then populate all parameter values on the pages of the [Case Setup](#case-setup) section.
-This box is present in all pages except those in the **Resources** section
-and allows to access and compare different scenarios.
 Case being currently displayed is marked with a small red triangle.
+This box is present in all pages except those in the [Resources](#resource) section.
 
 A typical workflow for exploring different scenarios involves starting with a base
 case and then duplicating/creating derived scenarios with slight changes in the parameters,
-which are configured in the **Case Setup** section. The comparison between the
+which are configured in the [Case Setup](#case-setup) section. The comparison between the
 different resulting outcomes is shown on the [Output Files](#output-files) page.
+The [Typical Workflow](#typical-workflow) section of the documentation
+goes through a more specific example.
 
-Owl uses a year as the standard time unit. All values are therefore entered and
+Except for the first year, which can potentially be truncated,
+Owl uses a full year as the standard time unit. All values are therefore entered and
 reported as yearly values. These include wages, income, rates, social security, etc.
 Dollar values are typically entered in thousands, unless in tables, where they
-are entered and reported in unit dollars. Graph report values in thousands.
+are entered and reported in unit dollars. Graphs report values in thousands.
 
 There are four sections in the user interface:
-**Case Setup**, **Single Scenario**, **Multiple Scenarios**, and **Resources**.
+[Case Setup](#case-setup), [Single Scenario](#single-scenario),
+[Multiple Scenarios](#multiple-scenarios), and [Resources](#resources).
 The sections below follow the same logical order.
 
 -------------------------------------------------
@@ -100,7 +103,7 @@ The sections below follow the same logical order.
 This section contains the steps for creating and configuring case scenarios.
 
 #### Create Case
-This page is where every new scenario begins.
+The *Create Case* page is where every new scenario begins.
 It controls the creation of scenarios as the `Case selector` drop-down menu contains
 two additional items when this page is open:
 one to create new cases, and the other to create cases from a *case* parameter file.
@@ -117,8 +120,8 @@ to investigate their effects.
 Duplication appends a number counter in parenthesis to the name, just as creating
 a copy of a file on Windows.
 It is recommended to rename cases to reflect the change in parameters.
-When duplicating a scenario, make sure to visit all pages in the **Case Setup** section
-and verify that all parameters are as intended.
+When duplicating a scenario, make sure to visit all pages in the [Case Setup](#case-setup)
+section and verify that all parameters are as intended.
 When all cases were successfully run,
 results of the different cases can be compared side-by-side
 in the [Output Files](#output-files) section.
@@ -135,7 +138,8 @@ can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/exam
 Using a *case* file
 will populate all the fields required to run a scenario. A *case* file for the case being developed
 can be saved under the [Output Files](#output-files) page and made available to reload at a later time.
-Case parameter files can have any name but when saving from the interface, their name will start with *case_*
+Case parameter files can have any name but when saving from the interface,
+their name will start with *case_*
 followed by the case name.
 
 When starting from `New case...`,
@@ -276,19 +280,19 @@ The main difference is in the tax treatment of gains realized in the taxable acc
 Equities will be taxed differently than fixed securities.
 
 Two choices of asset allocations are possible:
-*account* and *individual*. For *account* type, each type
+`account` and `individual`. For `account` type, each type
 of individual savings account is associated with its own asset allocation ratios.
-For *individual*, it is assumed that all savings accounts of a given
+For `individual`, it is assumed that all savings accounts of a given
 individual follow the same allocation ratios.
 Allocation ratios can vary over the duration of the plan, starting
-from an *initial* allocation ratio at the beginning of the plan
-to a *final* allocation ratio at the passing of the individual.
+from an `initial` allocation ratio at the beginning of the plan
+to a `final` allocation ratio at the passing of the individual.
 It is assumed that the accounts are regularly
 rebalanced to maintain the prescribed allocation ratios.
 
-A gliding function (either *linear* or an *s-curve*) interpolates the values
-of the allocation ratios from the *initial* values to the *final* values as the plan progresses in time.
-When an *s-curve* is selected, two additional parameters controlling the shape of the transition
+A gliding function (either `linear` or an `s-curve`) interpolates the values
+of the allocation ratios from the `initial` values to the `final` values as the plan progresses in time.
+When an `s-curve` is selected, two additional parameters controlling the shape of the transition
 will appear, one for the timing of the inflection point measured in years from now,
 and the other for the width of the transition, measured in +/- years from the inflection point.
 
@@ -296,15 +300,15 @@ and the other for the width of the transition, measured in +/- years from the in
 This page allows you to select the return rates over the
 time span of the plan. All rates are nominal and annual.
 There are two major types of rates:
-- *Fixed rates* - staying the same from one year to another:
-    - *conservative*,
-    - *optimistic*,
-    - *historical average* - i.e., average over a range of past years,
-    - *user* - rates are provided by the user.
-- *Varying rates* - changing from year to year:
-    - *historical* - using a rate sequence which happened in the past,
-    - *histochastic* - using stochastic rates derived from statistics over a time range of historical rates,
-    - *stochastic* - using stochastic rates created from statistical parameters specified by the user.
+- `Fixed` rates - staying the same from one year to another:
+    - `conservative`,
+    - `optimistic`,
+    - `historical average` - i.e., average over a range of past years,
+    - `user` - rates are provided by the user.
+- `Varying` rates - changing from year to year:
+    - `historical` - using a rate sequence which happened in the past,
+    - `histochastic` - using stochastic rates derived from statistics over a time range of historical rates,
+    - `stochastic` - using stochastic rates created from statistical parameters specified by the user.
 
 These rates are the annual rates of return for each of the assets considered. The types of asset are described
 in the previous section. Rates for the S&P 500 equities include dividends.
@@ -346,17 +350,17 @@ Due to the mixed integer formulation, solver performance is sometimes unpredicta
 In general, CBC will tend to be slower, partly because of the algorithm,
 and partly because it solves the problem through a model description saved in
 a temporary file requiring I/O.
-Using HiGHS for most cases provides very good results.
+Selecting `HiGHS` for most cases provides very good results.
 
 The time profile modulating the net spending amount
-can be selected to either be *flat* or follow a *smile* shape.
-The smile shape has three configurable parameters: a *dip* percentage
-a linear *increase* (or decrease if negative), over the time period (apart from inflation),
-and a time *delay*, in years from today, before the non-flat behavior starts to act.
+can be selected to either be `flat` or follow a `smile` shape.
+The smile shape has three configurable parameters: a `dip` percentage
+a linear `increase` (or decrease if negative), over the time period (apart from inflation),
+and a time `delay`, in years from today, before the non-flat behavior starts to act.
 Values default to 15%, 12%, and 0 year respectively, but they are fully configurable
 for experimentation and to fit your anticipated lifestyle.
 
-A slack variable can also be adjusted. This variable allows the net spending to deviate from
+A `slack` variable can also be adjusted. This variable allows the net spending to deviate from
 the desired profile in order to maximize the objective. This is provided mostly for educational purpose
 as maximizing the total net spending will involve leaving the savings invested for as long as possible,
 and therefore this will favor smaller spending early in the plan and larger towards the end.
@@ -380,14 +384,14 @@ than on January 1$^{st}$, the value of the first year will be reduced accordingl
 This page displays various plots from a single scenario based on the selections made
 in the [Case Setup](#case-setup) section.
 This simulation uses a single instance of a series of rates, either fixed or varying,
-as selected in the **Case Setup** section.
+as selected in the [Case Setup](#case-setup) section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, of maximize the bequest under the constraint of a net spending amount.
 Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
 A button allows to re-run the case which would generate a different result
-if the chosen rates are "histochastic* or *stochastic*. Each graph can be seen
+if the chosen rates are `histochastic` or `stochastic`. Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the [Settings](#settings) section described below.
@@ -415,7 +419,8 @@ clicking the button below it.
 
 Another section called `Excel workbooks` allows
 to save the contents of the tables on the corresponding page as an Excel workbook.
-These data are displayed on the *Worksheets* and the *Wages and Contributions* pages.
+These data are displayed on the [Worksheets](#worksheets) and
+the [Wages and Contributions](#wages-and-contributions) pages.
 
 Similarly, all parameters used to generate the case are collected in *toml* format and displayed.
 The `Download case file...` button allows to save the parameters of the selected scenario
@@ -530,7 +535,7 @@ set maximum Roth conversions to a vary large number, say, \\$5,000k (i.e., \\$5 
 4) Compare all cases on the [Output Files](#output-files) page.
 
 As mentionned above, the most actionable information is located on the first few lines
-of the *Sources* tables on the Worksheets pages.
+of the *Sources* tables on the [Worksheets](#worksheets) pages.
 This is where withdrawals and conversions are displayed for this year and the next few years.
 
 #### Streamlit App and Theme
@@ -552,6 +557,7 @@ In general, collapsing the side menu and going full screen by hitting F11 while 
 can greatly improve the visualization of graphs and worksheets.
 I also recommend using the *dark* mode as Streamlit's default theme, but a Light theme is
 also available.
-This selection is accessed through the *Settings* option after clicking on the three vertical dots
+This selection is accessed through the *Settings* option
+after clicking on the three vertical dots
 located on the upper right of the app.
 """)
