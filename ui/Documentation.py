@@ -34,7 +34,7 @@ formulation of the optimization problem can be found
 
 -------------------------------------------------
 ### :orange[Table of Contents]
-[Getting Started with the User Interface](#getting-started-with-the-user-interface)
+[Getting Started with User Interface](#getting-started-with-user-interface)
 
 [Case Setup](#case-setup)
 - [Create Case](#create-case)
@@ -67,7 +67,7 @@ formulation of the optimization problem can be found
 - [Streamlit App and Theme](#streamlit-app-and-theme)
 
 --------------------------------------------------------------------------------------
-### :orange[Getting Started with the User Interface]
+### :orange[Getting Started with User Interface]
 Functions of each page are described below in the same order as they appear in the left sidebar.
 Typically, pages would be accessed in order, starting from the top.
 
