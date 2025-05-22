@@ -312,8 +312,8 @@ Using HiGHS for most cases provides very good results.
 The time profile modulating the net spending amount
 can be selected to either be *flat* or follow a *smile* shape.
 The smile shape has three configurable parameters: a *dip* percentage
-a linear *increase*, or *decrease if negative, over the time period (apart from inflation),
-and a time delay, in years from today, before the non-flat behavior starts to act.
+a linear *increase* (or decrease if negative), over the time period (apart from inflation),
+and a time *delay*, in years from today, before the non-flat behavior starts to act.
 Values default to 15%, 12%, and 0 year respectively, but they are fully configurable
 for experimentation and to fit your anticipated lifestyle.
 
@@ -323,7 +323,7 @@ as maximizing the total net spending will involve leaving the savings invested f
 and therefore this will favor smaller spending early in the plan and larger towards the end.
 This tension between maximizing a dollar amount and the utility of money then becomes evident.
 While the health of the individuals and therefore the utility of money is higher at the beginning
-of retirement, maximizing the total spending or bequest will pull in an opposite direction.
+of retirement, maximizing the total spending or bequest will pull in the opposite direction.
 
 For married couples, the survivor's
 net spending percentage is also configurable. A value of 60% is typically used.
