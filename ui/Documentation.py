@@ -469,7 +469,7 @@ when considering Monte Carlo simulations, consider:
 - Installing Owl and running on your local computer as it can be more than 3 times
 faster than running on the Streamlit host. Moreover, the community server has a
 CPU time limit that will stop a session after the quota is reached.
-Most likely, this will only happen during very long Monte Carlo runs.
+Most likely, this will only happen during unusually long Monte Carlo runs.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
@@ -548,9 +548,14 @@ This is done by clicking the '+" icon at the right end of the browser URL bar,
 showing *App available: Install Streamlit*.
 The app provides more screen space as it doesn't have a navigation bar.
 A similar thing can happen if your simulations
-(Monte Carlo) are too long. The Streamlit community server also has a hard limit
-on used CPU time that might stop your calculations before completion.
-To avoid this situation, you should run Owl locally on your computer.
+(Monte Carlo) are extremely long.
+The Streamlit community server has a hard resource limit
+on CPU time that might stop your calculations before completion.
+I could run 1,000 simulations using the app on the community server.
+However, if you are contemplating running Monte Carlo simulations
+with thousands of cases routinely,
+you should definitely consider installing and running Owl
+locally on your computer, either natively or through a container.
 See instructions on the GitHub repository for how to proceed.
 
 In general, collapsing the side menu and going full screen by hitting F11 while in your browser
