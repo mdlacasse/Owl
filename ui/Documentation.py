@@ -331,7 +331,7 @@ Roth conversions are optimized for reducing taxes and maximizing the selected ob
 unless the `Convert from contributions file`
 button is toggled, in which case Roth conversions will not be optimized,
 but will rather be performed according to
-the `Roth conv` column on the
+the *Roth conv* column on the
 [Wages and Contributions](#wages-and-contributions) page.
 A year from which Roth conversions can begin to be considered can also be selected: no Roth
 conversions will be allowed before the year specified.
@@ -469,7 +469,7 @@ when considering Monte Carlo simulations, consider:
 - Installing Owl and running on your local computer as it can be more than 3 times
 faster than running on the Streamlit host. Moreover, the community server has a
 CPU time limit that will stop a session after the quota is reached.
-Most likely, this will only happen during very long Monte Carlo runs.
+Most likely, this will only happen during unusually long Monte Carlo runs.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
@@ -503,13 +503,16 @@ Credits and disclaimers.
 ### :orange[Tips]
 #### Advice on Optimization and Roth Conversions
 Owl does not explicitly optimize for Medicare costs. While this approach
-is possible, it is not practical due to the unpredictable computing time
-required by the additional amount of binary variables required.
-As Medicare costs are added after the optimization step,
-suggested Roth conversions can sometimes lead to
+is possible and was tested,
+it is not practical due to the unpredictable computing time
+required by the additional amount of binary variables involved.
+The current approach is to add
+Medicare costs after the optimization step.
+As a reult, the suggested Roth conversions can sometimes lead to
 smaller net spending or bequest than when no conversions are made.
-This is due to higher Medicare costs triggered by the Roth conversions
-which are not factored in during the optimization step.
+This is due to higher Medicare costs triggered by the increased MAGI
+resulting from Roth conversions
+which are is factored in during the optimization step.
 This is why one should **always** run comparisons between cases with and without Roth conversions.
 Also keep in mind that these cases only consider current assumptions and obviously
 do not take into account future income tax rate increases.
@@ -531,7 +534,7 @@ Let's say this case allows for Roth conversions up to \\$100k.
 2) Duplicate the base case, call it *Jan 2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
 3) Duplicate the base case again, call it *Jan 2025 - No Roth limit* and
-set maximum Roth conversions to a vary large number, say, \\$5,000k (i.e., \\$5 millions).
+set maximum Roth conversions to a vary large number, say, \\$800k.
 4) Compare all cases on the [Output Files](#output-files) page.
 
 As mentionned above, the most actionable information is located on the first few lines
@@ -539,7 +542,7 @@ of the *Sources* tables on the [Worksheets](#worksheets) pages.
 This is where withdrawals and conversions are displayed for this year and the next few years.
 
 #### Streamlit App and Theme
-If you are accessing Owl through the Chrome browser,
+If you are accessing Owl remotely through the Chrome browser,
 the Chrome performance manager might be configured to disable hidden or inactive tabs.
 This could cause your Owl session to inadvertently reset when idling for too long,
 and losing the state of the calculator.
@@ -548,9 +551,15 @@ This is done by clicking the '+" icon at the right end of the browser URL bar,
 showing *App available: Install Streamlit*.
 The app provides more screen space as it doesn't have a navigation bar.
 A similar thing can happen if your simulations
-(Monte Carlo) are too long. The Streamlit community server also has a hard limit
-on used CPU time that might stop your calculations before completion.
-To avoid this situation, you should run Owl locally on your computer.
+(Monte Carlo) are extremely long.
+The Streamlit community server has a hard resource limit
+on CPU time that might stop your calculations before completion.
+I could successfully run 1,000 simulations using the Streamlit app while
+being hosted on the Streamlit community server.
+However, if you are contemplating running Monte Carlo simulations
+with thousands of cases routinely,
+you should definitely consider installing and running Owl
+locally on your computer, either natively or through a container.
 See instructions on the GitHub repository for how to proceed.
 
 In general, collapsing the side menu and going full screen by hitting F11 while in your browser
