@@ -63,7 +63,7 @@ formulation of the optimization problem can be found
 
 [Tips](#tips)
 - [Advice on Optimization and Roth Conversions](#advice-on-optimization-and-roth-conversions)
-- [Typical Worfflow](#typical-worfflow)
+- [Typical Workflow](#typical-workflow)
 - [Streamlit App and Theme](#streamlit-app-and-theme)
 
 --------------------------------------------------------------------------------------
@@ -73,10 +73,10 @@ Typically, pages would be accessed in order, starting from the top.
 
 The `Case selector` box at the top of the page allows to select
 an existing case among all those created.
-When on the `Create Case` page, however, the selector box offers two more options:
+When on the [Create Case](#create-case) page, however, the selector box offers two more options:
 one to create a new case from scratch, and one to create a case
 from a *case* parameter file, which
-would then populate all parameter values on the pages of the `Case Setup` section.
+would then populate all parameter values on the pages of the [Case Setup](#case-setup) section.
 This box is present in all pages except those in the **Resources** section
 and allows to access and compare different scenarios.
 Case being currently displayed is marked with a small red triangle.
@@ -120,7 +120,8 @@ It is recommended to rename cases to reflect the change in parameters.
 When duplicating a scenario, make sure to visit all pages in the **Case Setup** section
 and verify that all parameters are as intended.
 When all cases were successfully run,
-results of the different cases can be compared side-by-side in the `Output Files` section.
+results of the different cases can be compared side-by-side
+in the [Output Files](#output-files) section.
 
 ##### Initializing the life parameters for the realization
 Start with the `Case selector` box and choose one of `New case...` or `Upload case file...`.
@@ -196,7 +197,8 @@ to derive relevant numbers from there. These columns will be ignored when the fi
 
 Roth conversion can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in Owl. When the option
-`Convert as in contribution file` is toggled in the [Optimization Parameters](#optimization-parameters) page,
+`Convert as in contribution file` is toggled
+in the [Optimization Parameters](#optimization-parameters) page,
 values from the contributions file will be used and no optimization over Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guesses.
@@ -388,7 +390,7 @@ A button allows to re-run the case which would generate a different result
 if the chosen rates are "histochastic* or *stochastic*. Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
-selected in the `Settings` section described below.
+selected in the [Settings](#settings) section described below.
 
 #### Worksheets
 This page shows the various worksheets containing annual transactions
@@ -421,7 +423,8 @@ to a *case* file.
 
 With the case parameter file and the wages and contributions worksheet,
 the same case can be reproduced at a later time by uploading
-them through the widgets on the `Create Case` and `Wages and Contributions` pages,
+them through the widgets on the [Create Case](#create-case)
+and [Wages and Contributions](#wages-and-contributions) pages,
 respectively.
 
 --------------------------------------------------------------------------------------
@@ -511,7 +514,7 @@ A typical workflow would look like the following:
 1) Create a base case representing your basic scenario;
 2) Duplicate the base case and modify the parameter you want to investigate;
 3) Repeat 2) with other end-member values of the parameter you would like to consider;
-4) Run all cases and compare them on the `Output Files` page.
+4) Run all cases and compare them on the [Output Files](#output-files) page.
 
 To make it more concrete, here is an example
 where one would like to investigate the effects of Roth conversions
@@ -524,7 +527,7 @@ Let's say this case allows for Roth conversions up to \\$100k.
 set maximum Roth conversions to 0.
 3) Duplicate the base case again, call it *Jan 2025 - No Roth limit* and
 set maximum Roth conversions to a vary large number, say, \\$5,000k (i.e., \\$5 millions).
-4) Compare all cases on the `Output Files` page.
+4) Compare all cases on the [Output Files](#output-files) page.
 
 As mentionned above, the most actionable information is located on the first few lines
 of the *Sources* tables on the Worksheets pages.

@@ -9,7 +9,7 @@ with col3:
 with col1:
     st.write("# Owl Retirement Planner\nA retirement financial exploration tool based on linear programming")
     kz.divider("orange")
-    st.write("### Quick Start")
+    st.write("### :orange[Quick Start]")
     st.markdown(
         """
 Owl does not store any information related to a case:
