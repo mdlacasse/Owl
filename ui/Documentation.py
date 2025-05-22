@@ -347,9 +347,11 @@ net spending, of maximize the bequest under the constraint of a net spending amo
 Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
-When a case has run successfully, different graphs will show the time evolution
-of different quantities over the duration of the plan. Below
-these graphs, two additional buttons will appear.
+A button allows to re-run the case which would generate a different result
+if the chosen rates are "histochastic* or *stochastic*. Each graph can be seen
+in full screen, and are interactive when using the `plotly` library.
+Graphs can be drawn using the `matplotlib` or `plotly` libraries as
+selected in the `Settings` section described below.
 
 #### Worksheets
 This page shows the various worksheets containing annual transactions
@@ -391,11 +393,12 @@ There are two different ways to run multiple scenarios and generate a histogram
 of results.
 
 #### Historical Range
-This page allows the user to run multiple simulations over a range of historical time spans.
-Each simulation assumes that the rates followed a sequence which happened in the past,
-starting from each year in the past, and then offset by one year, and so on.
+This page allows the user to run multiple simulations over a range of historical years.
+Each simulation assumes that the rates follow a sequence that happened in the past,
+starting from each selected year in the past, and then offset by one year, and so on.
 A histogram of results and a success rate is displayed at the end of the run.
-$N$ is the number of runs, $P$ the probability of success,
+$N$ is the number of runs that could fit in the year range selected,
+$P$ the probability of success,
 $\\bar{x}$ is the resulting average, and $M$ is the median.
 
 If the `Beneficiary fractions` are not all unity, two histograms will be displayed:
@@ -403,7 +406,8 @@ one for the partial bequest at the passing of the first spouse
 and the other for the distribution of values of the objective being optimized.
 
 #### Monte Carlo
-This page runs a Monte Carlo simulation using time sequences of annual rates of return that are generated
+This page runs a Monte Carlo simulation using time sequences of
+annual rates of return that are generated
 using statistical methods. At the end of the run,
 a histogram is shown, with a probability of success.
 
@@ -420,7 +424,7 @@ when considering Monte Carlo simulations, consider:
 - Installing Owl and running on your local computer as it can be more than 3 times
 faster than running on the Streamlit host. Moreover, the community server has a
 CPU time limit that will stop a session after the quota is reached.
-Most likely, this will only happen during long Monte Carlo runs.
+Most likely, this will only happen during very long Monte Carlo runs.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
@@ -428,20 +432,23 @@ Most likely, this will only happen during long Monte Carlo runs.
 Messages coming from the underlying Owl calculation engine are displayed on this page.
 
 #### Quick Start
-Landing page of the application. This page describes how to quickly get started by using an example case file.
+Landing page of the application.
+This page describes how to quickly get started by using an example case file.
 
 #### Documentation
 These very pages.
 
 #### Settings
 This page allows to select different backends for plotting the graphs.
-Matplotlib is the most mature part of the code. Plotly is still experimental.
-Owl currently defaults to matpotlib.
+The `plotly` currently is the default and the graphs generated are interactive.
+While not interactive, `matplotlib` plots are more traditional
+and form the most mature part of the code.
+Owl currently defaults to `plotly`.
 
-When using Plotly, graphs are interactive. Users can zoom and pan, and toggle
+When using `plotly`, users can zoom and pan, and toggle
 traces by clicking on the associated legend. Double clicking on a legend item
 selects only this item. Double-clicking on a disabled item restores all traces.
-A copy of the plot can also be saved as a *png* file. Both matplotlib and plotly
+A copy of the plot can also be saved as a *png* file. Both `matplotlib` and `plotly`
 graphs can be seen in full-screen mode.
 
 #### About Owl
