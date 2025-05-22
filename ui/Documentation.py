@@ -32,17 +32,54 @@ open [repository](https://github.com/mdlacasse/Owl), and the mathematical
 formulation of the optimization problem can be found
 [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
 
+-------------------------------------------------
+### :orange[Table of Contents]
+[Getting Started with the User Interface](#getting-started-with-the-user-interface)
+
+[Case Setup](#case-setup)
+- [Create Case](#create-case)
+- [Wages and Contributions](#wages-and-contributions)
+- [Fixed Income](#fixed-income)
+- [Current Assets](#current-assets)
+- [Asset Allocation](#asset-allocation)
+- [Rates Selection](#rates-selection)
+- [Optimization Parameters](#optimization-parameters)
+
+[Single Scenario](#single-scenario)
+- [Graphs](#graphs)
+- [Worksheets](#worksheets)
+- [Output Files](#output-files)
+
+[Multiple Scenarios](#multiple-scenarios)
+- [Historical Range](#historical-range)
+- [Monte Carlo](#monte-carlo)
+
+[Resources](#resources)
+- [Logs](#logs)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [Settings](#settings)
+- [About Owl](#about-owl)
+
+[Tips](#tips)
+- [Advice on Optimization and Roth Conversions](#advice-on-optimization-and-roth-conversions)
+- [Typical Worfflow](#typical-worfflow)
+- [Streamlit App and Theme](#streamlit-app-and-theme)
+
 --------------------------------------------------------------------------------------
-### Getting started with the user interface
+### :orange[Getting Started with the User Interface]
 Functions of each page are described below in the same order as they appear in the left sidebar.
 Typically, pages would be accessed in order, starting from the top.
 
-The `Case selector` box at the top of the page allows to select an existing case
-or create a new one from scratch, or from a *case* parameter file, which
-would then populate all parameter values.
+The `Case selector` box at the top of the page allows to select
+an existing case among all those created.
+When on the `Create Case` page, however, the selector box offers two more options:
+one to create a new case from scratch, and one to create a case
+from a *case* parameter file, which
+would then populate all parameter values on the pages of the `Case Setup` section.
 This box is present in all pages except those in the **Resources** section
 and allows to access and compare different scenarios.
-Page being currently displayed is marked with a small triangle.
+Case being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
 case and then duplicating/creating derived scenarios with slight changes in the parameters,
@@ -456,7 +493,7 @@ Credits and disclaimers.
 
 --------------------------------------------------------------------------------------
 ### :orange[Tips]
-#### Advice on optimization and Roth conversions
+#### Advice on Optimization and Roth Conversions
 Owl does not explicitly optimize for Medicare costs. While this approach
 is possible, it is not practical due to the unpredictable computing time
 required by the additional amount of binary variables required.
@@ -469,7 +506,7 @@ This is why one should **always** run comparisons between cases with and without
 Also keep in mind that these cases only consider current assumptions and obviously
 do not take into account future income tax rate increases.
 
-#### Typical workflow
+#### Typical Workflow
 A typical workflow would look like the following:
 1) Create a base case representing your basic scenario;
 2) Duplicate the base case and modify the parameter you want to investigate;
@@ -493,7 +530,7 @@ As mentionned above, the most actionable information is located on the first few
 of the *Sources* tables on the Worksheets pages.
 This is where withdrawals and conversions are displayed for this year and the next few years.
 
-#### Streamlit App and theme
+#### Streamlit App and Theme
 If you are accessing Owl through the Chrome browser,
 the Chrome performance manager might be configured to disable hidden or inactive tabs.
 This could cause your Owl session to inadvertently reset when idling for too long,
