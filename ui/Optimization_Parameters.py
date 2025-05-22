@@ -126,5 +126,4 @@ else:
     st.divider()
     col1, col2 = st.columns([0.6, 0.4], gap="small")
     with col1:
-        st.write("##### Spending Profile")
-        owb.showProfile()
+        owb.showProfile(col1)

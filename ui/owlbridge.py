@@ -262,7 +262,7 @@ def _setRates(plan):
 def showAllocations(plan):
     figures = plan.showAllocations(figure=True)
     st.divider()
-    st.markdown("##### Asset Allocation")
+    st.markdown("#### :orange[Asset Allocation]")
     # n = 3 if kz.getKey("allocType") == "account" else 2
     n = 2
     c = 0
@@ -273,17 +273,18 @@ def showAllocations(plan):
 
 
 @_checkPlan
-def showProfile(plan):
+def showProfile(plan, col):
     fig = plan.showProfile(figure=True)
     if fig:
-        renderPlot(fig)
+        col.write("#### :orange[Spending Profile]")
+        renderPlot(fig, col)
 
 
 @_checkPlan
 def showRates(plan, col):
     fig = plan.showRates(figure=True)
     if fig:
-        col.write("##### Selected rates over time horizon")
+        col.write("#### :orange[Selected Rates Over Time Horizon]")
         renderPlot(fig, col)
 
 
@@ -291,7 +292,7 @@ def showRates(plan, col):
 def showRatesCorrelations(plan, col):
     fig = plan.showRatesCorrelations(figure=True)
     if fig:
-        col.write("##### Correlations between return rates")
+        col.write("#### :orange[Correlations Between Return Rates]")
         renderPlot(fig, col)
 
 
@@ -413,19 +414,19 @@ def plotSingleResults(plan):
     cols = st.columns(n, gap="medium")
     fig = plan.showRates(figure=True)
     if fig:
-        cols[c].write("##### Annual Rates")
+        cols[c].write("#### :orange[Annual Rates]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showNetSpending(figure=True)
     if fig:
-        cols[c].write("##### Net Available Spending")
+        cols[c].write("#### :orange[Net Available Spending]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showGrossIncome(figure=True)
     if fig:
-        cols[c].write("##### Taxable Ordinary Income")
+        cols[c].write("#### :orange[Taxable Ordinary Income]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
@@ -433,19 +434,19 @@ def plotSingleResults(plan):
     # cols = st.columns(n, gap="medium")
     fig = plan.showSources(figure=True)
     if fig:
-        cols[c].write("##### Raw Income Sources")
+        cols[c].write("#### :orange[Raw Income Sources]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showAccounts(figure=True)
     if fig:
-        cols[c].write("##### Savings Balance")
+        cols[c].write("#### :orange[Savings Balance]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showTaxes(figure=True)
     if fig:
-        cols[c].write("##### Taxes and Medicare (+IRMAA)")
+        cols[c].write("#### :orange[Taxes and Medicare (+IRMAA)]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
@@ -453,7 +454,7 @@ def plotSingleResults(plan):
     figs = plan.showAssetComposition(figure=True)
     if figs:
         # st.divider()
-        st.write("#### Asset Composition")
+        st.write("#### :orange[Asset Composition]")
         col1, col2, _ = st.columns([0.6, 0.2, 0.2], gap="medium")
         for fig in figs:
             if fig:
