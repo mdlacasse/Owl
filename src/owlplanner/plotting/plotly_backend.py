@@ -223,7 +223,7 @@ class PlotlyBackend(PlotBackend):
         fig.add_trace(go.Scatter(
             x=year_n,
             y=income_tax_data,
-            name="income taxes",
+            name="income tax",
             line=dict(width=2)
         ))
 

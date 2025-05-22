@@ -424,12 +424,12 @@ class MatplotlibBackend(PlotBackend):
 
     def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames):
         """Plot taxes over time."""
-        style = {"income taxes": "-", "Medicare": "-."}
+        style = {"income tax": "-", "Medicare": "-."}
         if value == "nominal":
-            series = {"income taxes": T_n, "Medicare": M_n}
+            series = {"income tax": T_n, "Medicare": M_n}
             yformat = r"\$k (nominal)"
         else:
-            series = {"income taxes": T_n / gamma_n[:-1], "Medicare": M_n / gamma_n[:-1]}
+            series = {"income tax": T_n / gamma_n[:-1], "Medicare": M_n / gamma_n[:-1]}
             yformat = r"\$k (" + str(year_n[0]) + r"\$)"
         fig, ax = self._line_income_plot(year_n, series, style, title, yformat)
 

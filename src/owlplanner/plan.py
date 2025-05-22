@@ -2378,7 +2378,9 @@ class Plan(object):
         title = self._name + "\nIncome Tax"
         if tag:
             title += " - " + tag
-        fig = self._plotter.plot_taxes(self.year_n, self.T_n, self.M_n, self.gamma_n,
+        # All taxes: ordinary income and dividends.
+        allTaxes = self.T_n + self.U_n
+        fig = self._plotter.plot_taxes(self.year_n, allTaxes, self.M_n, self.gamma_n,
                                        value, title, self.inames)
         if figure:
             return fig
