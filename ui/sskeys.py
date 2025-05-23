@@ -110,7 +110,7 @@ def updateContributions():
 
 def switchToCase(key):
     # Catch case where switch happens while editing W&W tables.
-    if getGlobalKey("currentPageName") == "Wages And Contributions":
+    if getGlobalKey("currentPageName") == "Wages and Contributions":
         updateContributions()
     ss.currentCase = ss["_" + key]
 
