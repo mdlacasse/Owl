@@ -72,23 +72,24 @@ Functions of each page are described below in the same order as they appear in t
 Typically, pages would be accessed in order, starting from the top.
 
 A `Case selector` box located at the top of the page allows to
-navigate between the different created scenarios.
+navigate between the different scenarios created.
 When on the [Create Case](#create-case) page, however, the selector box offers two more options:
 one to create a new case from scratch, and one to create a case
 from a *case* parameter file, which
-would then populate all parameter values on the pages of the [Case Setup](#case-setup) section.
-Case being currently displayed is marked with a small red triangle.
+would then populate values of all parameters found
+in the [Case Setup](#case-setup) section.
 This box is present in all pages except those in the [Resources](#resource) section.
+The case being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
-case and then duplicating/creating derived scenarios with slight changes in the parameters,
-which are configured in the [Case Setup](#case-setup) section. The comparison between the
-different resulting outcomes is shown on the [Output Files](#output-files) page.
-The [Typical Workflow](#typical-workflow) section of the documentation
+case and then duplicating/creating derived scenarios with slight changes in the parameters.
+A comparison between the
+different resulting outcomes can be found on the [Output Files](#output-files) page.
+The [Typical Workflow](#typical-workflow) section below
 goes through a more specific example.
 
 Except for the first year, which can potentially be truncated,
-Owl uses a full year as the standard time unit. All values are therefore entered and
+Owl uses a full year as the standard unit of time. All values are therefore entered and
 reported as yearly values. These include wages, income, rates, social security, etc.
 Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars. Graphs report values in thousands.
@@ -115,15 +116,15 @@ starts in the first year. Plan still ends at the end of the year when all indivi
 have passed according to the specified life expectancies.
 
 A typical workflow will involve creating
-a base case, and duplicating it a few times with slight changes in parameters
+a base case, and duplicating it a few times with slight changes in its parameters
 to investigate their effects.
 Duplication appends a number counter in parenthesis to the name, just as creating
 a copy of a file on Windows.
 It is recommended to rename cases to reflect the change in parameters.
 When duplicating a scenario, make sure to visit all pages in the [Case Setup](#case-setup)
 section and verify that all parameters are as intended.
-When all cases were successfully run,
-results of the different cases can be compared side-by-side
+When all cases have successfully run,
+results of the different cases are compared side-by-side with differences
 in the [Output Files](#output-files) section.
 
 ##### Initializing the life parameters for the realization
@@ -144,7 +145,8 @@ followed by the case name.
 
 When starting from `New case...`,
 one must provide the year of birth of each spouse(s) and their expected lifespan(s).
-For selecting your own numbers, there are plenty of longevity predictors on the web. Pick your favorite:
+For selecting your own numbers, there are plenty of longevity predictors on the Internet.
+Pick your favorite:
 - [longevityillustrator](https://longevityillustrator.org),
 - [livingto100](https://www.livingto100.com/calculator),
 
@@ -154,12 +156,12 @@ Finally, a starting date for the first year of the plan must be provided.
 By default, it starts today, but any other date
 in the current year can be chosen. This is useful if your numbers are known for a fixed date, or
 for reproducibility purposes. This date does not affect when the plan ends, which is at the
-end of the year matching the longest longevity.
+end of the year when all individuals in the plan have passed.
 
 #### Wages and Contributions
-This page allows to enter an optional Excel file containing future wages and contributions,
-or to enter values directly into the corresponding tables.
-Values in these tables are all in nominal \\$, i.e., not in thousands.
+This page allows to enter an optional Excel file containing future wages and contributions.
+Alternatively, values can be entered and/or edited directly into the corresponding tables.
+Values in these tables are all in nominal values, and in \\$, not thousands (\$$k).
 The wages and contributions data contains 9 columns titled as follows:
 
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
@@ -169,41 +171,44 @@ The wages and contributions data contains 9 columns titled as follows:
 | ... | | | | | | | | |
 |20XX | | | | | | | | |
 
-Here, 20XX represents the last row which could be the last year based on the life
-expectancy values provided.
-While loading an Excel workbook, missing years or empty cells will be filled with zero values,
-while years outside the time span of the plan will simply be ignored.
-For the columns, *anticipated wages* is the annual amount
-(gross minus tax-deferred contributions) that you anticipate to receive from employment
-or other sources (e.g., rentals).
-This column does not include dividends from your taxable investment accounts,
-as they will be calculated based on your return rate assumptions.
-
 Note that column names are case sensitive and all entries are in lower case.
 The easiest way to complete the process of filling this file is either to start from the template
 file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx) or
 to fill in the values using the user interface, but this last approach does not provide
 Excel capabilities for cross-column calculations.
 
+Here, year 20XX represents the last row which could be the last year based on the life
+expectancy values provided.
+While loading an Excel workbook, missing years or empty cells will be filled with zero values,
+while years outside the time span of the plan will simply be ignored.
+
+The column *anticipated wages* is the annual amount
+(gross minus tax-deferred contributions) that you anticipate to receive from employment
+or other sources (e.g., rentals).
+This column does not include dividends from your taxable investment accounts,
+as they will be calculated based on your return rate assumptions.
+
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your
-work load. This transition can be gradual or sudden, and can be explored through this wages
-and contributions file.
+work load. This transition can be gradual or sudden, and can be explored through these wages
+and contributions tables.
 
 Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term which includes
 contributions to 403b as well or any other tax-deferred account, with the exception
-of IRAs accounts which are treated separately. Contributions to your 401k/403b must
-also include your employer's
-contributions, if any. As this file is in Excel, one can use the native calculator to enter a percentage
-of the anticipated wages for contributions as this can sometimes be easier. For this
-purpose, additional columns (on the right) can be used for storing the anticipated total salary and
-to derive relevant numbers from there. These columns will be ignored when the file is processed.
+of IRAs accounts which are treated separately for clarity.
+Contributions to your 401k/403b must also include your employer's
+contributions, if any. As these data can exist in Excel,
+one can use the native calculator to enter a percentage
+of the anticipated wages for contributions as this can sometimes be easier to manage.
+For this purpose, additional columns can coexist in the Excel file
+and can be used for tracking other quantities from which
+to derive the numbers needed. These extra columns will be ignored when the file is processed.
 
-Roth conversion can be specified in the column marked *Roth conv*.
-This column is provided to override the Roth conversion optimization in Owl. When the option
-`Convert as in contribution file` is toggled
+Manual Roth conversions can be specified in the column marked *Roth conv*.
+This column is provided to override the Roth conversion optimization in Owl.
+When the option `Convert as in contribution file` is toggled
 in the [Optimization Parameters](#optimization-parameters) page,
-values from the contributions file will be used and no optimization over Roth conversions
+values from the contributions file will be used and no optimization on Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guesses.
 
@@ -221,7 +226,6 @@ the individual's name as the sheet name in the workbook.
 Therefore, if preparing your own case using a template, you will need to rename the tabs in the file to
 match the names used when creating the plan
 (i.e., *Jack* and *Jill* in the example files provided).
-
 If a file was originally associated with a *case* file, a message will remind the user to upload the file.
 
 #### Fixed Income
@@ -230,7 +234,9 @@ Amounts are in thousands (\\$k) in today's \\$. While
 social security is always adjusted for inflation, pensions can optionally be
 by selecting the corresponding button.
 Income starts on the first day of the year selected, with the value provided,
-adjusted for inflation if necessary.
+adjusted for inflation if necessary. As months are not currently
+considered, you should consider rounding up your birth year to the next year
+if born late in the year.
 
 A great website for guidance on when to start taking social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
@@ -254,15 +260,13 @@ surplus moneys in the taxable account of the first individual to pass. Otherwise
 the optimizer will find creative solutions that can generate surpluses in order
 to maximize the final bequest. Finally, when fractions are not all equal,
 it can take longer to solve (minutes) as these cases trigger the use
-of binary variables which involve more complex algorithms.
+of binary variables which involves more complex algorithms.
 In some situations, transfers from tax-deferred savings accounts to taxable
 savings accounts, through surpluses and deposits, can be part of the optimal solution.
 
 Setting a surplus fraction that deposits some or all surpluses in the survivor's account
 can sometimes lead to slow convergence. This is especially noticeable when solving with
 varying rates and not so common when using fixed rates.
-This is due to the triggering of binary variables which add
-considerable computing effort in solving the problem.
 When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
 
@@ -300,19 +304,21 @@ and the other for the width of the transition, measured in +/- years from the in
 This page allows you to select the return rates over the
 time span of the plan. All rates are nominal and annual.
 There are two major types of rates:
-- `Fixed` rates - staying the same from one year to another:
+- `Fixed` - staying the same from one year to another:
     - `conservative`,
     - `optimistic`,
     - `historical average` - i.e., average over a range of past years,
     - `user` - rates are provided by the user.
-- `Varying` rates - changing from year to year:
+- `Varying` - changing from year to year:
     - `historical` - using a rate sequence which happened in the past,
     - `histochastic` - using stochastic rates derived from statistics over a time range of historical rates,
     - `stochastic` - using stochastic rates created from statistical parameters specified by the user.
 
-These rates are the annual rates of return for each of the assets considered. The types of asset are described
+These rates are the annual rates of return for each of the assets considered.
+The types of asset are described
 in the previous section. Rates for the S&P 500 equities include dividends.
-Cash assets are secure investments considered to track inflation only and therefore remain at constant value.
+Cash assets are securities such as Treasury Inflation-Protected Securities (TIPS)
+considered to track inflation only and therefore remain at constant value.
 As mentioned on the Rates Selection page,
 unless historical, S&P 500 can represent any mix of equities (domestic, international, emerging, etc.).
 A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
@@ -403,28 +409,29 @@ Each table can be downloaded separately in csv format, or all tables can be down
 together as an Excel workbook by clicking the associated button on the
 [Output Files](#output-files) page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
-The first line of the *Sources* worksheets are the most important
-as these lines are the only ones that are actionable.
+The first few lines of the *Sources* worksheets are the most important
+as these lines are the only ones that are actionable in the near term.
 
 #### Output Files
 This page allows to compare cases and save files for future use.
 First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the plan.
+Note that all tables are scrollable and can be seen in full-screen mode.
 If multiple cases were configured and run (most likely through duplication and
 modifying the configuration), they will be compared in that panel provided they were made
-for the same individuals. Column on the left shows the values for the selected case
+for the same individuals and years spans. Column on the left shows the values for the selected case
 while those on the right will show the differences.
 The contents of the synopsis can be downloaded as a plain text file by
 clicking the button below it.
 
 Another section called `Excel workbooks` allows
-to save the contents of the tables on the corresponding page as an Excel workbook.
+to save the contents of the tables on corresponding pages of a single Excel workbook.
 These data are displayed on the [Worksheets](#worksheets) and
 the [Wages and Contributions](#wages-and-contributions) pages.
 
 Similarly, all parameters used to generate the case are collected in *toml* format and displayed.
 The `Download case file...` button allows to save the parameters of the selected scenario
-to a *case* file.
+to a *case* file for future use.
 
 With the case parameter file and the wages and contributions worksheet,
 the same case can be reproduced at a later time by uploading
@@ -447,8 +454,10 @@ $P$ the probability of success,
 $\\bar{x}$ is the resulting average, and $M$ is the median.
 
 If the `Beneficiary fractions` are not all unity, two histograms will be displayed:
-one for the partial bequest at the passing of the first spouse
-and the other for the distribution of values of the objective being optimized.
+one for the partial bequest left at the passing of the first spouse
+and the other for the distribution of values of the objective being optimized,
+either maximum net spending or maximum bequest left at the passing
+of the surviving spouse.
 
 #### Monte Carlo
 This page runs a Monte Carlo simulation using time sequences of
@@ -458,37 +467,44 @@ a histogram is shown, with a probability of success.
 
 The mean outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
 of cases $N$ and the probability of success $P$, which is the percentage of cases that succeeded.
+Cases that failed are termed infeasible, as the optimizer could not find
+values that could satisty all constraints.
 
-If the `Beneficiary fractions` are not all unity, two histograms will be displayed:
-one for the partial bequest at the passing of the first spouse
-and the other for the distribution of values of the objective being optimized.
+As is the case for [Historical Range](#historical-range),
+if the `Beneficiary fractions` are not all unity, two histograms will also be displayed:
+one for the partial bequest left at the passing of the first spouse
+and the other for the distribution of values of the objective being optimized,
+either maximum net spending or maximum bequest left at the passing
+of the surviving spouse.
 
-Linear programming solutions are more expensive than event-driven forward simulators. Therefore,
-when considering Monte Carlo simulations, consider:
+Linear programming solutions are more expensive than event-driven forward simulators.
+Therefore, when considering Monte Carlo simulations, consider:
 - Turning off Medicare calculations,
-- Installing Owl and running on your local computer as it can be more than 3 times
-faster than running on the Streamlit host. Moreover, the community server has a
+- Installing Owl and running on your local computer as it can sometimes be
+faster than running on the Streamlit host, depending on your hardware.
+Moreover, the community server has a
 CPU time limit that will stop a session after the quota is reached.
-Most likely, this will only happen during unusually long Monte Carlo runs.
+Most likely, this will not happen unless you devise unusually long Monte Carlo runs.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
 #### Logs
 Messages coming from the underlying Owl calculation engine are displayed on this page.
+This page is mainly used for debugging purposes.
 
 #### Quick Start
-Landing page of the application.
-This page describes how to quickly get started by using an example case file.
+This page is the landing page of the application.
+It shows new users how to quickly get started by using an example case file.
 
 #### Documentation
 These very pages.
 
 #### Settings
 This page allows to select different backends for plotting the graphs.
-The `plotly` currently is the default and the graphs generated are interactive.
-While not interactive, `matplotlib` plots are more traditional
+The `plotly` package is currently the default as the graphs generated are interactive
+while `matplotlib` graphs are not.
+Plots generated by `matplotlib`, however, have a more traditional look
 and form the most mature part of the code.
-Owl currently defaults to `plotly`.
 
 When using `plotly`, users can zoom and pan, and toggle
 traces by clicking on the associated legend. Double clicking on a legend item
