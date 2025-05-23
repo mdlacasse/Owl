@@ -104,7 +104,7 @@ The sections below follow the same logical order.
 This section contains the steps for creating and configuring case scenarios.
 
 #### Create Case
-The *Create Case* page is where every new scenario begins.
+The **Create Case** page is where every new scenario begins.
 It controls the creation of scenarios as the `Case selector` drop-down menu contains
 two additional items when this page is open:
 one to create new cases, and the other to create cases from a *case* parameter file.
@@ -112,43 +112,27 @@ This page also allows you to duplicate and/or rename scenarios, as well as delet
 
 For creating a scenario from scratch, (first) name(s), marital status, birth year(s),
 and life expectancies are required. A starting date for the plan determines when the plan
-starts in the first year. Plan still ends at the end of the year when all individuals
+starts in the first year. Plan still ends on December 31st of the year when all individuals
 have passed according to the specified life expectancies.
-
-Except for the first year of the plan, which can be truncated
-by specifying a start date, the unit of time in Owl is a year.
-As months are not currently considered in Owl, plans will be more
-representative if birth years are rounded to the closest January 1st, i.e.,
-rounding up to the following year if born late in the year.
 
 A typical workflow will involve creating
 a base case, and duplicating it a few times with slight changes in its parameters
-to investigate their effects.
+in order to investigate their effects.
 Duplication appends a number counter in parenthesis to the name, just as creating
 a copy of a file on Windows.
 It is recommended to rename cases to reflect the change in parameters.
 When duplicating a scenario, make sure to visit all pages in the [Case Setup](#case-setup)
 section and verify that all parameters are as intended.
 When all cases have successfully run,
-results of the different cases are compared side-by-side with differences
+results of related cases are compared side-by-side with differences
 in the [Output Files](#output-files) section.
+Related cases are determined by having the same individual's names and longevity.
 
-##### Initializing the life parameters for the realization
-Start with the `Case selector` box and choose one of `New case...` or `Upload case file...`.
+##### Initializing the life parameters of a scenario
+While on the **Create Case** page,
+click on the `Case selector` box and choose one of `New case...` or `Upload case file...`.
 
-If `Upload case file...` is selected, a *case* file must be uploaded.
-These files end with the *.toml* extension, are human readable (and therefore editable),
-and contain all the parameters required to characterize a scenario.
-An example is provided
-[here](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml) and more
-can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
-Using a *case* file
-will populate all the fields required to run a scenario. A *case* file for the case being developed
-can be saved under the [Output Files](#output-files) page and made available to reload at a later time.
-Case parameter files can have any name but when saving from the interface,
-their name will start with *case_*
-followed by the case name.
-
+##### Creating a case from scratch
 When starting from `New case...`,
 one must provide the year of birth of each spouse(s) and their expected lifespan(s).
 For selecting your own numbers, there are plenty of longevity predictors on the Internet.
@@ -164,11 +148,27 @@ in the current year can be chosen. This is useful if your numbers are known for 
 for reproducibility purposes. This date does not affect when the plan ends, which is at the
 end of the year when all individuals in the plan have passed.
 
+##### Using a *case* file
+If `Upload case file...` is selected, a *case* file must be uploaded.
+These files end with the *.toml* extension, are human readable (and therefore editable),
+and contain all the parameters required to characterize a scenario.
+An example is provided
+[here](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml) and more
+can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
+Using a *case* file
+will populate all the fields in the [Case Setup](#case-setup) section.
+
+A *case* file for the case being developed
+can be saved under the [Output Files](#output-files) page and
+can be reloaded at a later time.
+Case parameter files can have any name but when saving from the interface,
+their name will start with *case_* followed by the case name.
+
 #### Wages and Contributions
 This page allows to enter an optional Excel file containing future wages and contributions.
 Alternatively, values can be entered and/or edited directly into the corresponding tables.
-Values in these tables are all in nominal values, and in \\$, not thousands (\$$k).
-The wages and contributions data contains 9 columns titled as follows:
+Values in these tables are all in nominal values, and in \\$, not thousands (\\$k).
+The *Wages and Contributions* table contains 9 columns titled as follows:
 
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
@@ -192,29 +192,31 @@ The column *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment
 or other sources (e.g., rentals).
 This column does not include dividends from your taxable investment accounts,
-as they will be calculated based on your return rate assumptions.
+as they will be calculated based on your assumptions for future return rates.
 
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your
 work load. This transition can be gradual or sudden, and can be explored through these wages
-and contributions tables.
+and contributions tables. The only *hard* dates are the years when you intend to receive
+a pension or collect social security, and these years are entered elsewhere on the
+[Fixed Income](#fixed-income) page.
 
-Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term which includes
+Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term that includes
 contributions to 403b as well or any other tax-deferred account, with the exception
-of IRAs accounts which are treated separately for clarity.
+of IRAs accounts which are treated separately to facilitate data entry.
 Contributions to your 401k/403b must also include your employer's
-contributions, if any. As these data can exist in Excel,
+contributions, if any. As these data can be entered in Excel,
 one can use the native calculator to enter a percentage
-of the anticipated wages for contributions as this can sometimes be easier to manage.
+of the anticipated wages for contributions to savings accounts as an easier way to enter the data.
 For this purpose, additional columns can coexist in the Excel file
 and can be used for tracking other quantities from which
-to derive the numbers needed. These extra columns will be ignored when the file is processed.
+the needed values can be derived. These extra columns will be ignored when the file is processed.
 
 Manual Roth conversions can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in Owl.
 When the option `Convert as in contribution file` is toggled
 in the [Optimization Parameters](#optimization-parameters) page,
-values from the contributions file will be used and no optimization on Roth conversions
+values from the *Wages and Contributions* file will be used and no optimization on Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guesses.
 
@@ -239,14 +241,15 @@ This page is for entering anticipated fixed income from pensions and social secu
 Amounts are in thousands (\\$k) in today's \\$. While
 social security is always adjusted for inflation, pensions can optionally be
 by selecting the corresponding button.
-The amounts provided should be as if the benefits would start on
-January 1st, i.e., before the month when the individual will actually reach the age selected.
-This is because fixed income starts on the first day of the year during which individual will turn
-the age selected, with the amount provided, adjusted for inflation if necessary.
-Another approach is to round birth year to closest January 1st.
-This means rounding birth year to the following year
-if born after June, as months are not currently considered in Owl, and
-adjust amount by the difference to birth month.
+The amounts provided should be as if the benefits start on
+January 1st, i.e., before the month when individuals will actually reach the age selected.
+This is because Owl uses a full year as time unit and
+therefore fixed income starts on the first day of the year during which
+the individual reaches the age selected, with the amount provided adjusted for inflation.
+If born in November, for example, and planning to take social security at age
+67, it is more accurate to provide age 68 as a starting age,
+as January 1st of the following year is closer to a November birthday.
+The amount would then be for taking social security at age 67 and two months.
 
 A great website for guidance on when to start taking social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
@@ -262,7 +265,7 @@ Three types of savings accounts are considered and are tracked separately for sp
 - Tax-exempt savings accounts (e.g., Roth 401k, Roth IRA).
 
 For married couples, the spousal `Beneficiary fractions` associated with these accounts
-can be selected, as well as a surplus deposit fraction. The first one controls
+can be configured, as well as a surplus deposit fraction. The first one controls
 how much is left to the surviving spouse while the second determines
 how to split potential surplus budget moneys between the taxable accounts of the spouses.
 When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
@@ -289,9 +292,12 @@ one equity and three fixed-income securities:
 - Cash assets assumed to follow inflation.
 
 When using historical data, the term S&P 500 represents the real index. However,
-when selecting fixed rates, the term can represent any mix of stocks or equities.
-The main difference is in the tax treatment of gains realized in the taxable account.
-Equities will be taxed differently than fixed securities.
+when selecting non-historical rates, the term can represent any mix of stocks or equities
+(domestic, international, emerging, etc.).
+The main difference is in the tax treatment of gains realized in the taxable account:
+equities will be taxed differently than fixed securities.
+Cash assets are securities such as Treasury Inflation-Protected Securities (TIPS)
+considered to merely track inflation and therefore remain at constant value.
 
 Two choices of asset allocations are possible:
 `account` and `individual`. For `account` type, each type
@@ -325,52 +331,52 @@ There are two major types of rates:
     - `stochastic` - using stochastic rates created from statistical parameters specified by the user.
 
 These rates are the annual rates of return for each of the assets considered.
-The types of asset are described
-in the previous section. Rates for the S&P 500 equities include dividends.
-Cash assets are securities such as Treasury Inflation-Protected Securities (TIPS)
-considered to track inflation only and therefore remain at constant value.
-As mentioned on the Rates Selection page,
-unless historical, S&P 500 can represent any mix of equities (domestic, international, emerging, etc.).
+The types of asset are described in the previous section.
+Rates for the S&P 500 equities include dividends.
 A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition) for 2025.
 
 #### Optimization Parameters
-This page allows you to select the objective to optimize.
+This page allows you to select the objective function to optimize.
 One can choose between maximizing the net spending amount subject to the constraint
 of a desired bequest, or maximizing a bequest, subject to the constraint of providing
 a desired net spending amount.
 As one of the two choices (net spending or bequest) is selected as the value to maximize,
 the other becomes a constraint to obey.
 
-The maximum amount for Roth conversions and who can execute them is configurable.
+The maximum amount for Roth conversions and which spouse can execute them is configurable.
 Roth conversions are optimized for reducing taxes and maximizing the selected objective function,
 unless the `Convert from contributions file`
 button is toggled, in which case Roth conversions will not be optimized,
 but will rather be performed according to
 the *Roth conv* column on the
 [Wages and Contributions](#wages-and-contributions) page.
-A year from which Roth conversions can begin to be considered can also be selected: no Roth
-conversions will be allowed before the year specified.
+A year from which Roth conversions can begin to be considered can also be selected:
+no Roth conversions will be allowed before the year specified.
 
+Medicare premiums start automatically in the year each individual reach age 65.
 Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
 the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
-If the age of individuals makes them eligible for Medicare within the next three years,
+If the current age of any individual in the plan makes them eligible
+for Medicare within the next three years,
 additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for the current
-and past 2 years, when applicable. Values default to zero.
+and past 2 years, whichever applies. Values default to zero.
 These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
-MAGI for current year is required as it allows plan to start in mid-year for the first year.
+MAGI for the current year is required and needs to be estimated
+as it allows the plan to start in mid-year for the first year.
 
-Different solvers can be selected. This option is mostly for verification purposes. All solvers
+Different mixed-integer linear programming solvers can be selected.
+This option is mostly for verification purposes. All solvers
 tested (HiGHS, COIN-OR Branch-and-Cut solver, and MOSEK) provided very similar results.
-Due to the mixed integer formulation, solver performance is sometimes unpredictable.
-In general, CBC will tend to be slower, partly because of the algorithm,
+Due to the mixed-integer formulation, solver performance is sometimes unpredictable.
+In general, CBC tends to be slower, partly because of the algorithm,
 and partly because it solves the problem through a model description saved in
 a temporary file requiring I/O.
 Selecting `HiGHS` for most cases provides very good results.
 
 The time profile modulating the net spending amount
 can be selected to either be `flat` or follow a `smile` shape.
-The smile shape has three configurable parameters: a `dip` percentage
+The *smile* shape has three configurable parameters: a `dip` percentage
 a linear `increase` (or decrease if negative), over the time period (apart from inflation),
 and a time `delay`, in years from today, before the non-flat behavior starts to act.
 Values default to 15%, 12%, and 0 year respectively, but they are fully configurable
@@ -391,7 +397,7 @@ the net spending *basis* which sets the resulting spending
 amounts over the duration of the plan.
 Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
 for that reason they do not start at 1. Moreover, if the plan starts later
-than on January 1$^{st}$, the value of the first year will be reduced accordingly.
+than on January 1st, the value of the first year will be reduced accordingly.
 
 --------------------------------------------------------------------------------------
 ### :orange[Single Scenario]
@@ -428,9 +434,9 @@ First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the plan.
 Note that all tables are scrollable and can be seen in full-screen mode.
 If multiple cases were configured and run (most likely through duplication and
-modifying the configuration), they will be compared in that panel provided they were made
+modifying the parameters), they will be compared in that panel provided they were made
 for the same individuals and years spans. Column on the left shows the values for the selected case
-while those on the right will show the differences.
+while those on the right shows the differences.
 The contents of the synopsis can be downloaded as a plain text file by
 clicking the button below it.
 
@@ -443,7 +449,7 @@ Similarly, all parameters used to generate the case are collected in *toml* form
 The `Download case file...` button allows to save the parameters of the selected scenario
 to a *case* file for future use.
 
-With the case parameter file and the wages and contributions worksheet,
+With the case parameter file and the *Wages and Contributions* worksheet,
 the same case can be reproduced at a later time by uploading
 them through the widgets on the [Create Case](#create-case)
 and [Wages and Contributions](#wages-and-contributions) pages,
