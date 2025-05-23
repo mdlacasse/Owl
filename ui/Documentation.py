@@ -409,28 +409,29 @@ Each table can be downloaded separately in csv format, or all tables can be down
 together as an Excel workbook by clicking the associated button on the
 [Output Files](#output-files) page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
-The first line of the *Sources* worksheets are the most important
-as these lines are the only ones that are actionable.
+The first few lines of the *Sources* worksheets are the most important
+as these lines are the only ones that are actionable in the near term.
 
 #### Output Files
 This page allows to compare cases and save files for future use.
 First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the plan.
+Note that all tables are scrollable and can be seen in full-screen mode.
 If multiple cases were configured and run (most likely through duplication and
 modifying the configuration), they will be compared in that panel provided they were made
-for the same individuals. Column on the left shows the values for the selected case
+for the same individuals and years spans. Column on the left shows the values for the selected case
 while those on the right will show the differences.
 The contents of the synopsis can be downloaded as a plain text file by
 clicking the button below it.
 
 Another section called `Excel workbooks` allows
-to save the contents of the tables on the corresponding page as an Excel workbook.
+to save the contents of the tables on corresponding pages of a single Excel workbook.
 These data are displayed on the [Worksheets](#worksheets) and
 the [Wages and Contributions](#wages-and-contributions) pages.
 
 Similarly, all parameters used to generate the case are collected in *toml* format and displayed.
 The `Download case file...` button allows to save the parameters of the selected scenario
-to a *case* file.
+to a *case* file for future use.
 
 With the case parameter file and the wages and contributions worksheet,
 the same case can be reproduced at a later time by uploading
@@ -453,8 +454,10 @@ $P$ the probability of success,
 $\\bar{x}$ is the resulting average, and $M$ is the median.
 
 If the `Beneficiary fractions` are not all unity, two histograms will be displayed:
-one for the partial bequest at the passing of the first spouse
-and the other for the distribution of values of the objective being optimized.
+one for the partial bequest left at the passing of the first spouse
+and the other for the distribution of values of the objective being optimized,
+either maximum net spending or maximum bequest left at the passing
+of the surviving spouse.
 
 #### Monte Carlo
 This page runs a Monte Carlo simulation using time sequences of
@@ -464,37 +467,44 @@ a histogram is shown, with a probability of success.
 
 The mean outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
 of cases $N$ and the probability of success $P$, which is the percentage of cases that succeeded.
+Cases that failed are termed infeasible, as the optimizer could not find
+values that could satisty all constraints.
 
-If the `Beneficiary fractions` are not all unity, two histograms will be displayed:
-one for the partial bequest at the passing of the first spouse
-and the other for the distribution of values of the objective being optimized.
+As is the case for [Historical Range](#historical-range),
+if the `Beneficiary fractions` are not all unity, two histograms will also be displayed:
+one for the partial bequest left at the passing of the first spouse
+and the other for the distribution of values of the objective being optimized,
+either maximum net spending or maximum bequest left at the passing
+of the surviving spouse.
 
-Linear programming solutions are more expensive than event-driven forward simulators. Therefore,
-when considering Monte Carlo simulations, consider:
+Linear programming solutions are more expensive than event-driven forward simulators.
+Therefore, when considering Monte Carlo simulations, consider:
 - Turning off Medicare calculations,
-- Installing Owl and running on your local computer as it can be more than 3 times
-faster than running on the Streamlit host. Moreover, the community server has a
+- Installing Owl and running on your local computer as it can sometimes be
+faster than running on the Streamlit host, depending on your hardware.
+Moreover, the community server has a
 CPU time limit that will stop a session after the quota is reached.
-Most likely, this will only happen during unusually long Monte Carlo runs.
+Most likely, this will not happen unless you devise unusually long Monte Carlo runs.
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
 #### Logs
 Messages coming from the underlying Owl calculation engine are displayed on this page.
+This page is mainly used for debugging purposes.
 
 #### Quick Start
-Landing page of the application.
-This page describes how to quickly get started by using an example case file.
+This page is the landing page of the application.
+It shows new users how to quickly get started by using an example case file.
 
 #### Documentation
 These very pages.
 
 #### Settings
 This page allows to select different backends for plotting the graphs.
-The `plotly` currently is the default and the graphs generated are interactive.
-While not interactive, `matplotlib` plots are more traditional
+The `plotly` package is currently the default as the graphs generated are interactive
+while `matplotlib` graphs are not.
+Plots generated by `matplotlib`, however, have a more traditional look
 and form the most mature part of the code.
-Owl currently defaults to `plotly`.
 
 When using `plotly`, users can zoom and pan, and toggle
 traces by clicking on the associated legend. Double clicking on a legend item
