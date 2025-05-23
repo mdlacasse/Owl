@@ -22,7 +22,8 @@ else:
                      " compares it with other similar cases that ran successfully.")
             styledDf = df[1:].style.map(kz.colorBySign)
             st.dataframe(styledDf, use_container_width=True)
-            st.caption("Values with [legend] are nominal, otherwise in today's \\$.")
+            st.caption("Values with [legend] are nominal, otherwise in today's \\$. "
+                       "Lines starting with » indicate itemized subtotals.")
             st.download_button("Download synopsis", data=df[1:].to_string(),
                                file_name=f"Synopsis_{caseName}.txt", mime="text/plain;charset=UTF-8")
 
@@ -33,8 +34,8 @@ else:
         col1, col2 = st.columns(2, gap="large")
         with col1:
             download2 = st.download_button(
-                label="Download wages and contributions file",
-                help="Download wages and contributions as an Excel workbook.",
+                label="Download Wages and Contributions file",
+                help="Download Wages and Contributions as an Excel workbook.",
                 data=owb.saveContributions(),
                 file_name=f"{caseName}.xlsx",
                 disabled=kz.isCaseUnsolved(),

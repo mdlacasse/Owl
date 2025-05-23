@@ -2070,38 +2070,38 @@ class Plan(object):
 
         totSpending = np.sum(self.g_n, axis=0)
         totSpendingNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
-        dic["Total net spending"] = f"{u.d(totSpendingNow)}"
+        dic[" Total net spending"] = f"{u.d(totSpendingNow)}"
         dic["[Total net spending]"] = f"{u.d(totSpending)}"
 
         totRoth = np.sum(self.x_in, axis=(0, 1))
         totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n[:-1], axis=0)
-        dic["Total Roth conversions"] = f"{u.d(totRothNow)}"
+        dic[" Total Roth conversions"] = f"{u.d(totRothNow)}"
         dic["[Total Roth conversions]"] = f"{u.d(totRoth)}"
 
         taxPaid = np.sum(self.T_n, axis=0)
         taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
-        dic["Total tax paid on ordinary income"] = f"{u.d(taxPaidNow)}"
+        dic[" Total tax paid on ordinary income"] = f"{u.d(taxPaidNow)}"
         dic["[Total tax paid on ordinary income]"] = f"{u.d(taxPaid)}"
         for t in range(self.N_t):
             taxPaid = np.sum(self.T_tn[t], axis=0)
             taxPaidNow = np.sum(self.T_tn[t] / self.gamma_n[:-1], axis=0)
             tname = tx.taxBracketNames[t]
-            dic[f"-- Subtotal in tax bracket {tname}"] = f"{u.d(taxPaidNow)}"
-            dic[f"-- [Subtotal in tax bracket {tname}]"] = f"{u.d(taxPaid)}"
+            dic[f"»  Subtotal in tax bracket {tname}"] = f"{u.d(taxPaidNow)}"
+            dic[f"» [Subtotal in tax bracket {tname}]"] = f"{u.d(taxPaid)}"
 
         penaltyPaid = np.sum(self.P_n, axis=0)
         penaltyPaidNow = np.sum(self.P_n / self.gamma_n[:-1], axis=0)
-        dic["-- Subtotal in early withdrawal penalty"] = f"{u.d(penaltyPaidNow)}"
-        dic["-- [Subtotal in early withdrawal penalty]"] = f"{u.d(penaltyPaid)}"
+        dic["»  Subtotal in early withdrawal penalty"] = f"{u.d(penaltyPaidNow)}"
+        dic["» [Subtotal in early withdrawal penalty]"] = f"{u.d(penaltyPaid)}"
 
         taxPaid = np.sum(self.U_n, axis=0)
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
-        dic["Total tax paid on gains and dividends"] = f"{u.d(taxPaidNow)}"
+        dic[" Total tax paid on gains and dividends"] = f"{u.d(taxPaidNow)}"
         dic["[Total tax paid on gains and dividends]"] = f"{u.d(taxPaid)}"
 
         taxPaid = np.sum(self.M_n, axis=0)
         taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
-        dic["Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
+        dic[" Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
         dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
 
         if self.N_i == 2 and self.n_d < self.N_n:
@@ -2109,50 +2109,51 @@ class Plan(object):
             p_j[1] *= 1 - self.nu
             nx = self.n_d - 1
             ynx = self.year_n[nx]
+            ynxNow = 1./self.gamma_n[nx + 1]
             totOthers = np.sum(p_j)
-            totOthersNow = totOthers / self.gamma_n[nx + 1]
             q_j = self.partialEstate_j * self.phi_j
             totSpousal = np.sum(q_j)
-            totSpousalNow = totSpousal / self.gamma_n[nx + 1]
             iname_s = self.inames[self.i_s]
             iname_d = self.inames[self.i_d]
-            dic[f"Sum of spousal transfer to {iname_s} in year {ynx}"] = (f"{u.d(totSpousalNow)}")
-            dic[f"[Sum of spousal transfer to {iname_s} in year {ynx}]"] = (
-                f"{u.d(totSpousal)}")
-            dic[f"-- [Spousal transfer to {iname_s} in year {ynx} - taxable]"] = (
-                f"{u.d(q_j[0])}")
-            dic[f"-- [Spousal transfer to {iname_s} in year {ynx} - tax-def]"] = (
-                f"{u.d(q_j[1])}")
-            dic[f"-- [Spousal transfer to {iname_s} in year {ynx} - tax-free]"] = (
-                f"{u.d(q_j[2])}")
+            dic["Year of partial bequest"] = (f"{ynx}")
+            dic[f" Sum of spousal transfer to {iname_s}"] = (f"{u.d(ynxNow*totSpousal)}")
+            dic[f"[Sum of spousal transfer to {iname_s}]"] = (f"{u.d(totSpousal)}")
+            dic[f"»  Spousal transfer to {iname_s} - taxable"] = (f"{u.d(ynxNow*q_j[0])}")
+            dic[f"» [Spousal transfer to {iname_s} - taxable]"] = (f"{u.d(q_j[0])}")
+            dic[f"»  Spousal transfer to {iname_s} - tax-def"] = (f"{u.d(ynxNow*q_j[1])}")
+            dic[f"» [Spousal transfer to {iname_s} - tax-def]"] = (f"{u.d(q_j[1])}")
+            dic[f"»  Spousal transfer to {iname_s} - tax-free"] = (f"{u.d(ynxNow*q_j[2])}")
+            dic[f"» [Spousal transfer to {iname_s} - tax-free]"] = (f"{u.d(q_j[2])}")
 
-            dic[f"Sum of post-tax non-spousal bequests from {iname_d} in year {ynx}"] = (
-                f"{u.d(totOthersNow)}")
-            dic[f"[Sum of post-tax non-spousal bequests from {iname_d} in year {ynx}]"] = (
-                f"{u.d(totOthers)}")
-            dic[f"-- [Post-tax non-spousal bequests from {iname_d} in year {ynx} - taxable]"] = (
-                f"{u.d(p_j[0])}")
-            dic[f"-- [Post-tax non-spousal bequests from {iname_d} in year {ynx} - tax-def]"] = (
-                f"{u.d(p_j[1])}")
-            dic[f"-- [Post-tax non-spousal bequests from {iname_d} in year {ynx} - tax-free]"] = (
-                f"{u.d(p_j[2])}")
+            dic[f" Sum of post-tax non-spousal bequests from {iname_d}"] = (f"{u.d(ynxNow*totOthers)}")
+            dic[f"[Sum of post-tax non-spousal bequests from {iname_d}]"] = (f"{u.d(totOthers)}")
+            dic[f"»  Post-tax non-spousal bequests from {iname_d} - taxable"] = (f"{u.d(ynxNow*p_j[0])}")
+            dic[f"» [Post-tax non-spousal bequests from {iname_d} - taxable]"] = (f"{u.d(p_j[0])}")
+            dic[f"»  Post-tax non-spousal bequests from {iname_d} - tax-def"] = (f"{u.d(ynxNow*p_j[1])}")
+            dic[f"» [Post-tax non-spousal bequests from {iname_d} - tax-def]"] = (f"{u.d(p_j[1])}")
+            dic[f"»  Post-tax non-spousal bequests from {iname_d} - tax-free"] = (f"{u.d(ynxNow*p_j[2])}")
+            dic[f"» [Post-tax non-spousal bequests from {iname_d} - tax-free]"] = (f"{u.d(p_j[2])}")
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate[1] *= 1 - self.nu
         lastyear = self.year_n[-1]
+        lyNow = 1./self.gamma_n[-1]
         totEstate = np.sum(estate)
-        totEstateNow = totEstate / self.gamma_n[-1]
-        dic[f"Total estate value at the end of {lastyear}"] = (f"{u.d(totEstateNow)}")
-        dic[f"[Total estate value at the end of {lastyear}]"] = (f"{u.d(totEstate)}")
-        dic[f"-- [Post-tax account value at the end of {lastyear} - taxable]"] = (f"{u.d(estate[0])}")
-        dic[f"-- [Post-tax account value at the end of {lastyear} - tax-def]"] = (f"{u.d(estate[1])}")
-        dic[f"-- [Post-tax account value at the end of {lastyear} - tax-free]"] = (f"{u.d(estate[2])}")
+        dic["Year of final bequest"] = (f"{lastyear}")
+        dic[" Total estate value at year end"] = (f"{u.d(lyNow*totEstate)}")
+        dic["[Total estate value at year end]"] = (f"{u.d(totEstate)}")
+        dic["»  Post-tax account value at year end - taxable"] = (f"{u.d(lyNow*estate[0])}")
+        dic["» [Post-tax account value at year end - taxable]"] = (f"{u.d(estate[0])}")
+        dic["»  Post-tax account value at year end - tax-def"] = (f"{u.d(lyNow*estate[1])}")
+        dic["» [Post-tax account value at year end - tax-def]"] = (f"{u.d(estate[1])}")
+        dic["»  Post-tax account value at year end - tax-free"] = (f"{u.d(lyNow*estate[2])}")
+        dic["» [Post-tax account value at year end - tax-free]"] = (f"{u.d(estate[2])}")
 
         dic["Plan starting date"] = str(self.startDate)
         dic[f"Cumulative inflation factor from start date to end of {lastyear}"] = (f"{self.gamma_n[-1]:.2f}")
         for i in range(self.N_i):
-            dic[f"{self.inames[i]:>12}'s {self.horizons[i]:02}-year life horizon"] = (
-                f"{now} -> {now + self.horizons[i] - 1}")
+            dic[f"{self.inames[i]:>14}'s life horizon"] = (f"{now} -> {now + self.horizons[i] - 1}")
+            dic[f"{self.inames[i]:>14}'s years planned"] = (f"{self.horizons[i]}")
 
         dic["Plan name"] = self._name
         dic["Number of decision variables"] = str(self.A.nvars)

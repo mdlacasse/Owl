@@ -126,7 +126,8 @@ section and verify that all parameters are as intended.
 When all cases have successfully run,
 results of related cases are compared side-by-side with differences
 in the [Output Files](#output-files) section.
-Related cases are determined by having the same individual's names and longevity.
+Related cases are determined by having the same individual's names:
+anything else can change between cases.
 
 ##### Initializing the life parameters of a scenario
 While on the **Create Case** page,
