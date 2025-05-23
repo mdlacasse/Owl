@@ -43,17 +43,17 @@ Alternatively, you can directly select the case of *jack+jill* among the GitHub 
 drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*).
 1) Move to any page in the **Single Scenario** section to browse the simulation results.
 
-Congratulations! :balloon: You just ran your first case. You can now explore each page and
+Congratulations! :balloon: :medal: You just ran your first case. You can now explore each page and
 experiment with different parameters.
 
 For creating your own cases, you can start
 from scratch by selecting `New Case...` in the selection box while on the **Create Case** page,
-and fill in the information needed on each page in the `Case Setup` section.
+and fill in the information needed on each page in the **Case Setup** section.
 Alternatively, you can duplicate any existing case by using
 the `Duplicate case` button, and then edit its values to fit your situation.
 
 Once a case has been fully parameterized and successfully optimized,
-its parameters can be saved by using the `Download case file...` button on the `Output Files` page.
+its parameters can be saved by using the `Download case file...` button on the **Output Files** page.
 Multiple cases can coexist and can be called and compared using the `Case selector` box
 at the top of the page.
 
