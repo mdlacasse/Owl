@@ -97,21 +97,7 @@ def currentCaseName() -> str:
     return ss.currentCase
 
 
-def updateContributions():
-    noChange = (getKey("_timeList0") is None or getKey("_timeList0").equals(getKey("timeList0"))) and (
-        getKey("_timeList1") is None or getKey("_timeList1").equals(getKey("timeList1"))
-    )
-    if noChange:
-        return True
-
-    setKey("timeList0", getKey("_timeList0"))
-    setKey("timeList1", getKey("_timeList1"))
-
-
 def switchToCase(key):
-    # Catch case where switch happens while editing W&W tables.
-    if getGlobalKey("currentPageName") == "Wages and Contributions":
-        updateContributions()
     ss.currentCase = ss["_" + key]
 
 

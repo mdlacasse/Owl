@@ -65,4 +65,8 @@ else:
         newdf.fillna(0, inplace=True)
         kz.storeKey("_timeList" + str(i), newdf)
 
+        if not df.equals(newdf):
+            kz.setKey("timeList" + str(i), newdf)
+            st.rerun()
+
     st.button("Reset to zero", help="Reset all values to zero.", on_click=owb.resetTimeLists)
