@@ -169,7 +169,7 @@ their name will start with *case_* followed by the case name.
 This page allows to enter an optional Excel file containing future wages and contributions.
 Alternatively, values can be entered and/or edited directly into the corresponding tables.
 Values in these tables are all in nominal values, and in \\$, not thousands (\\$k).
-The *Wages and Contributions* table contains 9 columns titled as follows:
+The **Wages and Contributions** table contains 9 columns titled as follows:
 
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
@@ -217,7 +217,7 @@ Manual Roth conversions can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in Owl.
 When the option `Convert as in contribution file` is toggled
 in the [Optimization Parameters](#optimization-parameters) page,
-values from the *Wages and Contributions* file will be used and no optimization on Roth conversions
+values from the **Wages and Contributions** file will be used and no optimization on Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guesses.
 
@@ -426,7 +426,7 @@ Each table can be downloaded separately in csv format, or all tables can be down
 together as an Excel workbook by clicking the associated button on the
 [Output Files](#output-files) page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
-The first few lines of the *Sources* worksheets are the most important
+The first few lines of the **Sources** worksheets are the most important
 as these lines are the only ones that are actionable in the near term.
 
 #### Output Files
@@ -453,7 +453,7 @@ Similarly, all parameters used to generate the case are collected in *toml* form
 The `Download case file...` button allows to save the parameters of the selected scenario
 to a *case* file for future use.
 
-With the case parameter file and the *Wages and Contributions* worksheet,
+With the case parameter file and the **Wages and Contributions** worksheet,
 the same case can be reproduced at a later time by uploading
 them through the widgets on the [Create Case](#create-case)
 and [Wages and Contributions](#wages-and-contributions) pages,
@@ -548,7 +548,7 @@ As a reult, the suggested Roth conversions can sometimes lead to
 smaller net spending or bequest than when no conversions are made.
 This is due to higher Medicare costs triggered by the increased MAGI
 resulting from Roth conversions
-which are is factored in during the optimization step.
+which are factored in during the optimization step.
 This is why one should **always** run comparisons between cases with and without Roth conversions.
 Also keep in mind that these cases only consider current assumptions and obviously
 do not take into account future income tax rate increases.
@@ -574,16 +574,16 @@ set maximum Roth conversions to a vary large number, say, \\$800k.
 4) Compare all cases on the [Output Files](#output-files) page.
 
 As mentionned above, the most actionable information is located on the first few lines
-of the *Sources* tables on the [Worksheets](#worksheets) pages.
+of the **Sources** tables on the [Worksheets](#worksheets) pages.
 This is where withdrawals and conversions are displayed for this year and the next few years.
 
 #### Streamlit App and Theme
-If you are accessing Owl remotely through the Chrome browser,
-the Chrome performance manager might be configured to disable hidden or inactive tabs.
+If you are accessing Owl remotely on the Streamlit Community Server through the Chrome browser,
+the Chrome performance manager might disable hidden or inactive tabs.
 This could cause your Owl session to inadvertently reset when idling for too long,
 and losing the state of the calculator.
 The best way to avoid this situation is to run the web page through the Streamlit app on your device.
-This is done by clicking the '+" icon at the right end of the browser URL bar,
+This is done by clicking the '+" icon shown at the right end of the browser URL bar,
 showing *App available: Install Streamlit*.
 The app provides more screen space as it doesn't have a navigation bar.
 A similar thing can happen if your simulations
@@ -602,7 +602,7 @@ In general, collapsing the side menu and going full screen by hitting F11 while 
 can greatly improve the visualization of graphs and worksheets.
 I also recommend using the *dark* mode as Streamlit's default theme, but a Light theme is
 also available.
-This selection is accessed through the *Settings* option
+This selection is accessed through the **Settings** option
 after clicking on the three vertical dots
 located on the upper right of the app.
 """)
