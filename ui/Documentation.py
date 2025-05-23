@@ -440,6 +440,9 @@ for the same individuals and years spans. Column on the left shows the values fo
 while those on the right shows the differences.
 The contents of the synopsis can be downloaded as a plain text file by
 clicking the button below it.
+An additional button allows to rerun all cases,
+ensuring that the table provides an accurate comparison
+of the parameters selected for each case.
 
 Another section called `Excel workbooks` allows
 to save the contents of the tables on corresponding pages of a single Excel workbook.
