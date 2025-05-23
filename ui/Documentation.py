@@ -115,6 +115,12 @@ and life expectancies are required. A starting date for the plan determines when
 starts in the first year. Plan still ends at the end of the year when all individuals
 have passed according to the specified life expectancies.
 
+Except for the first year of the plan, which can be truncated
+by specifying a start date, the unit of time in Owl is a year.
+As months are not currently considered in Owl, plans will be more
+representative if birth years are rounded to the closest January 1st, i.e.,
+rounding up to the following year if born late in the year.
+
 A typical workflow will involve creating
 a base case, and duplicating it a few times with slight changes in its parameters
 to investigate their effects.
@@ -235,7 +241,7 @@ social security is always adjusted for inflation, pensions can optionally be
 by selecting the corresponding button.
 Income starts on the first day of the year selected, with the value provided,
 adjusted for inflation if necessary. As months are not currently
-considered, you should consider rounding up your birth year to the next year
+considered in Owl, birth years should be rounded up to the following year
 if born late in the year.
 
 A great website for guidance on when to start taking social security is
