@@ -239,10 +239,14 @@ This page is for entering anticipated fixed income from pensions and social secu
 Amounts are in thousands (\\$k) in today's \\$. While
 social security is always adjusted for inflation, pensions can optionally be
 by selecting the corresponding button.
-Income starts on the first day of the year selected, with the value provided,
-adjusted for inflation if necessary. As months are not currently
-considered in Owl, birth years should be rounded up to the following year
-if born late in the year.
+The amounts provided should be as if the benefits would start on
+January 1st, i.e., before the month when the individual will actually reach the age selected.
+This is because fixed income starts on the first day of the year during which individual will turn
+the age selected, with the amount provided, adjusted for inflation if necessary.
+Another approach is to round birth year to closest January 1st.
+This means rounding birth year to the following year
+if born after June, as months are not currently considered in Owl, and
+adjust amount by the difference to birth month.
 
 A great website for guidance on when to start taking social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
