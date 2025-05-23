@@ -101,6 +101,10 @@ def switchToCase(key):
     ss.currentCase = ss["_" + key]
 
 
+def switchToCaseName(casename):
+    ss.currentCase = casename
+
+
 def isIncomplete():
     return (
         currentCaseName() == ""

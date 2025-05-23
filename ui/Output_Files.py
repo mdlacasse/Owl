@@ -24,8 +24,12 @@ else:
             st.dataframe(styledDf, use_container_width=True)
             st.caption("Values with [legend] are nominal, otherwise in today's \\$. "
                        "Lines starting with » indicate itemized subtotals.")
-            st.download_button("Download synopsis", data=df[1:].to_string(),
-                               file_name=f"Synopsis_{caseName}.txt", mime="text/plain;charset=UTF-8")
+            col1, col2 = st.columns(2, gap="large")
+            col1.download_button("Download synopsis", data=df[1:].to_string(),
+                                 file_name=f"Synopsis_{caseName}.txt", mime="text/plain;charset=UTF-8")
+
+            helpmsg = "Rerun all cases."
+            col2.button("Rerun all cases", on_click=owb.runAllCases, help=helpmsg)
 
         st.divider()
         st.write("#### Excel Workbooks\n"

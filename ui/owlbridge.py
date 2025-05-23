@@ -133,6 +133,14 @@ def prepareRun(plan):
     _setContributions(plan, False)
 
 
+def runAllCases():
+    currentcase = kz.currentCaseName()
+    for case in kz.onlyCaseNames():
+        kz.switchToCaseName(case)
+        runPlan()
+    kz.switchToCaseName(currentcase)
+
+
 @_checkPlan
 def runPlan(plan):
     prepareRun(plan)
