@@ -30,7 +30,7 @@ else:
                                  file_name=f"Synopsis_{caseName}.txt", help=helpmsg,
                                  mime="text/plain;charset=UTF-8")
 
-            helpmsg = "Rerun all cases defined in the case selector."
+            helpmsg = "Rerun all other cases defined in the case selector."
             col2.button("Rerun all cases", on_click=owb.runAllCases, help=helpmsg)
 
         st.divider()
@@ -64,7 +64,7 @@ else:
             st.write("#### Case Parameter File\n"
                      "This file contains the parameters characterizing the current case"
                      " and can be used, along with the *Wages and Contributions* file, to reproduce it in the future.")
-            st.code(lines, language="toml")
+            st.code(lines, height=400, language="toml")
 
             st.download_button(
                 "Download case parameter file", data=lines,
