@@ -25,10 +25,12 @@ else:
             st.caption("Values with [legend] are nominal, otherwise in today's \\$. "
                        "Lines starting with » indicate itemized subtotals.")
             col1, col2 = st.columns(2, gap="large")
-            col1.download_button("Download synopsis", data=df[1:].to_string(),
-                                 file_name=f"Synopsis_{caseName}.txt", mime="text/plain;charset=UTF-8")
+            helpmsg = "Download synopsis and comparisons as a text file."
+            col1.download_button("Download Synopsis", data=df[1:].to_string(),
+                                 file_name=f"Synopsis_{caseName}.txt", help=helpmsg,
+                                 mime="text/plain;charset=UTF-8")
 
-            helpmsg = "Rerun all cases."
+            helpmsg = "Rerun all cases defined in the case selector."
             col2.button("Rerun all cases", on_click=owb.runAllCases, help=helpmsg)
 
         st.divider()
@@ -48,8 +50,8 @@ else:
 
         with col2:
             download2 = st.download_button(
-                label="Download worksheets",
-                help="Download worksheets as an Excel workbook.",
+                label="Download Worksheets",
+                help="Download Worksheets as an Excel workbook.",
                 data=owb.saveWorkbook(),
                 file_name=f"Workbook_{caseName}.xlsx",
                 mime="application/vnd.ms-excel",
