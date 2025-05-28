@@ -258,7 +258,7 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
-    def plot_rates(self, name, tau_kn, year_n, year_frac_left, N_k, rate_method, rate_frm=None, rate_to=None, tag=""):
+    def plot_rates(self, name, tau_kn, year_n, N_k, rate_method, rate_frm=None, rate_to=None, tag=""):
         """Plot rate values used over the time horizon."""
         fig = go.Figure()
 
@@ -281,13 +281,7 @@ class PlotlyBackend(PlotBackend):
 
         # Plot each rate
         for k in range(N_k):
-            # Don't plot partial rates for current year if mid-year
-            if year_frac_left == 1:
-                data = 100 * tau_kn[k]
-                years = year_n
-            else:
-                data = 100 * tau_kn[k, 1:]
-                years = year_n[1:]
+            data = 100 * tau_kn[k]
 
             # Calculate mean and std
             mean_val = np.mean(data)
@@ -296,7 +290,7 @@ class PlotlyBackend(PlotBackend):
 
             # Add trace
             fig.add_trace(go.Scatter(
-                x=years,
+                x=year_n,
                 y=data,
                 name=label,
                 line=dict(

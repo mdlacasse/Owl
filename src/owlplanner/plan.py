@@ -551,9 +551,6 @@ class Plan(object):
                 ns = max(0, self.yobs[i] + ages[i] - thisyear)
                 nd = self.horizons[i]
                 self.pi_in[i, ns:nd] = amounts[i]
-                # Only include remaining part of current year.
-                if ns == 0:
-                    self.pi_in[i, 0] *= self.yearFracLeft
 
         self.pensionAmounts = np.array(amounts)
         self.pensionAges = np.array(ages, dtype=np.int32)
@@ -585,9 +582,6 @@ class Plan(object):
             ns = max(0, self.yobs[i] + ages[i] - thisyear)
             nd = self.horizons[i]
             self.zeta_in[i, ns:nd] = amounts[i]
-            # Only include remaining part of current year.
-            if ns == 0:
-                self.zeta_in[i, 0] *= self.yearFracLeft
 
         if self.N_i == 2:
             # Approximate calculation for spousal benefit (only valid at FRA).
@@ -620,8 +614,6 @@ class Plan(object):
             self.mylog.vprint("Securing", u.pc(self.chi, f=0), "of spending amount for surviving spouse.")
 
         self.xi_n = _genXi_n(profile, self.chi, self.n_d, self.N_n, dip, increase, delay)
-        # Account for time elapsed in the current year.
-        self.xi_n[0] *= self.yearFracLeft
 
         self.spendingProfile = profile
         self.smileDip = dip
@@ -655,9 +647,6 @@ class Plan(object):
         self.rateTo = to
         self.tau_kn = dr.genSeries(self.N_n).transpose()
         self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using {method} method.")
-
-        # Account for how late we are now in the first year and reduce rate accordingly.
-        self.tau_kn[:, 0] *= self.yearFracLeft
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = _genGamma_n(self.tau_kn)
@@ -727,11 +716,12 @@ class Plan(object):
         taxDeferred = u.rescale(taxDeferred, fac)
         taxFree = u.rescale(taxFree, fac)
 
-        self.b_ji = np.zeros((self.N_j, self.N_i))
-        self.b_ji[0][:] = taxable
-        self.b_ji[1][:] = taxDeferred
-        self.b_ji[2][:] = taxFree
-        self.beta_ij = self.b_ji.transpose()
+        self.bet_ji = np.zeros((self.N_j, self.N_i))
+        self.bet_ji[0][:] = taxable
+        self.bet_ji[1][:] = taxDeferred
+        self.bet_ji[2][:] = taxFree
+        self.beta_ij = self.bet_ji.transpose()
+
         self.caseStatus = "modified"
 
         self.mylog.vprint("Taxable balances:", *[u.d(taxable[i]) for i in range(self.N_i)])
@@ -930,10 +920,6 @@ class Plan(object):
             self.kappa_ijn[i, 2, :h] += self.timeLists[iname]["Roth IRA ctrb"].iloc[:h]
             self.myRothX_in[i, :h] = self.timeLists[iname]["Roth conv"].iloc[:h]
             self.Lambda_in[i, :h] = self.timeLists[iname]["big-ticket items"].iloc[:h]
-
-        #  In 1st year, reduce wages and contributions depending on starting date.
-        self.omega_in[:, 0] *= self.yearFracLeft
-        self.kappa_ijn[:, :, 0] *= self.yearFracLeft
 
         self.caseStatus = "modified"
 
@@ -1217,13 +1203,17 @@ class Plan(object):
             spending = options["netSpending"]
             if not isinstance(spending, (int, float)):
                 raise ValueError(f"Desired spending provided {spending} is not a number.")
-            spending *= self.optionsUnits * self.yearFracLeft
+            spending *= self.optionsUnits
             self.B.setRange(_q1(self.C["g"], 0, self.N_n), spending, spending)
 
     def _add_initial_balances(self):
+        # Back project balances to the beginning of the year.
+        yearSpent = 1 - self.yearFracLeft
+
         for i in range(self.N_i):
             for j in range(self.N_j):
-                rhs = self.beta_ij[i, j]
+                backTau = 1 - yearSpent * np.sum(self.tau_kn[:, 0] * self.alpha_ijkn[i, j, :, 0])
+                rhs = self.beta_ij[i, j] * backTau
                 self.B.setRange(_q3(self.C["b"], i, j, 0, self.N_i, self.N_j, self.N_n + 1), rhs, rhs)
 
     def _add_surplus_deposit_linking(self):
@@ -2065,8 +2055,8 @@ class Plan(object):
         # Results
         dic["Plan name"] = self._name
         dic["Net yearly spending basis"] = u.d(self.g_n[0] / self.xi_n[0])
-        dic[f"Net spending for year {now}"] = u.d(self.g_n[0] / self.yearFracLeft)
-        dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0])
+        dic[f"Net spending for year {now}"] = u.d(self.g_n[0])
+        dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0] * self.yearFracLeft)
 
         totSpending = np.sum(self.g_n, axis=0)
         totSpendingNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
@@ -2203,7 +2193,7 @@ class Plan(object):
             self.mylog.vprint("Warning: Rate method must be selected before plotting.")
             return None
 
-        fig = self._plotter.plot_rates(self._name, self.tau_kn, self.year_n, self.yearFracLeft,
+        fig = self._plotter.plot_rates(self._name, self.tau_kn, self.year_n,
                                        self.N_k, self.rateMethod, self.rateFrm, self.rateTo, tag)
 
         if figure:

@@ -88,7 +88,6 @@ different resulting outcomes can be found on the [Output Files](#output-files) p
 The [Typical Workflow](#typical-workflow) section below
 goes through a more specific example.
 
-Except for the first year, which can potentially be truncated,
 Owl uses a full year as the standard unit of time. All values are therefore entered and
 reported as yearly values. These include wages, income, rates, social security, etc.
 Dollar values are typically entered in thousands, unless in tables, where they
@@ -114,6 +113,8 @@ For creating a scenario from scratch, (first) name(s), marital status, birth yea
 and life expectancies are required. A starting date for the plan determines when the plan
 starts in the first year. Plan still ends on December 31st of the year when all individuals
 have passed according to the specified life expectancies.
+The starting date has the effect of back projecting current savings balances to the beginning
+of the year using the assumed return rates and allocations for the first year.
 
 A typical workflow will involve creating
 a base case, and duplicating it a few times with slight changes in its parameters
@@ -397,8 +398,7 @@ The selected profile multiplies
 the net spending *basis* which sets the resulting spending
 amounts over the duration of the plan.
 Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
-for that reason they do not start at 1. Moreover, if the plan starts later
-than on January 1st, the value of the first year will be reduced accordingly.
+for that reason they do not start at 1.
 
 --------------------------------------------------------------------------------------
 ### :orange[Single Scenario]

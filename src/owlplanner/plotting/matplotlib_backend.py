@@ -213,7 +213,7 @@ class MatplotlibBackend(PlotBackend):
         g.figure.suptitle(title, y=1.08)
         return g.figure
 
-    def plot_rates(self, name, tau_kn, year_n, year_frac_left, N_k,
+    def plot_rates(self, name, tau_kn, year_n, N_k,
                    rate_method, rate_frm=None, rate_to=None, tag=""):
         """Plot rate values used over the time horizon."""
         fig, ax = plt.subplots()
@@ -234,19 +234,12 @@ class MatplotlibBackend(PlotBackend):
         ltype = ["-", "-.", ":", "--"]
 
         for k in range(N_k):
-            # Don't plot partial rates for current year if mid-year.
-            if year_frac_left == 1:
-                data = 100 * tau_kn[k]
-                years = year_n
-            else:
-                data = 100 * tau_kn[k, 1:]
-                years = year_n[1:]
-
+            data = 100 * tau_kn[k]
             # Use ddof=1 to match pandas' statistical calculations from numpy.
             label = (
                 rate_name[k] + " <" + "{:.1f}".format(np.mean(data)) + " +/- {:.1f}".format(np.std(data, ddof=1)) + "%>"
             )
-            ax.plot(years, data, label=label, ls=ltype[k % N_k])
+            ax.plot(year_n, data, label=label, ls=ltype[k % N_k])
 
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
         ax.legend(loc="best", reverse=False, fontsize=8, framealpha=0.7)

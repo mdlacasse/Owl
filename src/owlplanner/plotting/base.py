@@ -25,7 +25,7 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_rates(self, name, tau_kn, year_n, year_frac_left, N_k, rate_method,
+    def plot_rates(self, name, tau_kn, year_n, N_k, rate_method,
                    rate_frm=None, rate_to=None, tag=""):
         """Plot rate values used over the time horizon."""
         pass

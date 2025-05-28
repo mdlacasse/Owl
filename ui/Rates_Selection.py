@@ -227,7 +227,8 @@ Unless historical, S&P 500 can represent any mix of equities
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initKey("gainTx", 15)
-        ret = kz.getNum("Long-term capital gains tax rate (%)", "gainTx", max_value=100.0, step=1.0)
+        helpmsg = "Choose 0, 15, or 20% depending on anticipated total income."
+        ret = kz.getNum("Long-term capital gains tax rate (%)", "gainTx", max_value=20.0, step=5.0)
 
     with col2:
         kz.initKey("heirsTx", 30)
