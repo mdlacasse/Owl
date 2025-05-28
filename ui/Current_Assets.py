@@ -1,3 +1,4 @@
+from datetime import date
 import streamlit as st
 
 import sskeys as kz
@@ -16,6 +17,21 @@ else:
             nkey = key + str(0)
             kz.initKey(nkey, 0)
             ret = kz.getNum(f"{iname}'s {accounts[key]} account ($k)", nkey, help=kz.help1000)
+
+        today = date.today()
+        thisyear = today.year
+        kz.initKey("startDate", today)
+        helpmsg = "Date at which savings balances are known. Values will be back projected to Jan 1st."
+        ret = st.date_input(
+            "Account balance date",
+            min_value=date(thisyear, 1, 1),
+            max_value=date(thisyear, 12, 31),
+                value=kz.getKey("startDate"),
+                key="_startDate",
+                args=["startDate"],
+                on_change=kz.setpull,
+                help=helpmsg,
+            )
 
     with col2:
         if kz.getKey("status") == "married":

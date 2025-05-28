@@ -110,11 +110,9 @@ one to create new cases, and the other to create cases from a *case* parameter f
 This page also allows you to duplicate and/or rename scenarios, as well as deleting them.
 
 For creating a scenario from scratch, (first) name(s), marital status, birth year(s),
-and life expectancies are required. A starting date for the plan determines when the plan
-starts in the first year. Plan still ends on December 31st of the year when all individuals
+and life expectancies are required.
+Plan starts on Jan 1st of this year and ends on December 31st of the year when all individuals
 have passed according to the specified life expectancies.
-The starting date has the effect of back projecting current savings balances to the beginning
-of the year using the assumed return rates and allocations for the first year.
 
 A typical workflow will involve creating
 a base case, and duplicating it a few times with slight changes in its parameters
@@ -265,6 +263,10 @@ Three types of savings accounts are considered and are tracked separately for sp
 - Taxable savings accounts (e.g., investment accounts, CDs),
 - Tax-deferred savings accounts (e.g., 401k, 403b, IRA),
 - Tax-exempt savings accounts (e.g., Roth 401k, Roth IRA).
+
+The `Account balance date` has the effect of back projecting the amounts entered
+to the beginning of the year using the return rates and allocations
+assumed for the first year.
 
 For married couples, the spousal `Beneficiary fractions` associated with these accounts
 can be configured, as well as a surplus deposit fraction. The first one controls
@@ -422,6 +424,8 @@ selected in the [Settings](#settings) section described below.
 #### Worksheets
 This page shows the various worksheets containing annual transactions
 and savings account balances in nominal \\$.
+Savings balances are at the beginning of the year, while other quantities
+are for the full year.
 Each table can be downloaded separately in csv format, or all tables can be downloaded
 together as an Excel workbook by clicking the associated button on the
 [Output Files](#output-files) page.
@@ -563,13 +567,13 @@ A typical workflow would look like the following:
 To make it more concrete, here is an example
 where one would like to investigate the effects of Roth conversions
 on total net spending.
-1) Create a case called, say, *Jan 2025 - Base case*.
+1) Create a case called, say, *May 2025 - Base case*.
 Fill in all parameters representing your goals and situation.
 Upload file or fill-in values for Wages and Contributions.
 Let's say this case allows for Roth conversions up to \\$100k.
-2) Duplicate the base case, call it *Jan 2025 - No Roth conversions* and
+2) Duplicate the base case, call it *May 2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
-3) Duplicate the base case again, call it *Jan 2025 - No Roth limit* and
+3) Duplicate the base case again, call it *May 2025 - No Roth limit* and
 set maximum Roth conversions to a vary large number, say, \\$800k.
 4) Compare all cases on the [Output Files](#output-files) page.
 

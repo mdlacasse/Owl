@@ -1,4 +1,3 @@
-from datetime import date
 from io import StringIO
 import streamlit as st
 
@@ -88,22 +87,6 @@ else:
 
         kz.initKey("life0", 80)
         ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", disabled=diz1)
-
-        today = date.today()
-        thisyear = today.year
-        kz.initKey("startDate", today)
-        helpmsg = "Selecting Jan 1 will include whole first year. First year rates and income reduced if other date."
-        ret = st.date_input(
-            "Plan's starting date on first year",
-            min_value=date(thisyear, 1, 1),
-            max_value=date(thisyear, 12, 31),
-            value=kz.getKey("startDate"),
-            key="_startDate",
-            args=["startDate"],
-            on_change=kz.setpull,
-            help=helpmsg,
-            disabled=diz2,
-        )
 
     with col2:
         if kz.getKey("status") == "married":

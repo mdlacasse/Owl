@@ -211,7 +211,7 @@ class Plan(object):
     This is the main class of the Owl Project.
     """
 
-    def __init__(self, inames, yobs, expectancy, name, *, startDate=None, verbose=False, logstreams=None):
+    def __init__(self, inames, yobs, expectancy, name, *, verbose=False, logstreams=None):
         """
         Constructor requires three lists: the first
         one contains the name(s) of the individual(s),
@@ -322,9 +322,6 @@ class Plan(object):
         # Prepare RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
 
-        # If none was given, default is to begin plan on today's date.
-        self._setStartingDate(startDate)
-
         self._buildOffsetMap()
 
         # Initialize guardrails to ensure proper configuration.
@@ -365,7 +362,7 @@ class Plan(object):
     def _setStartingDate(self, mydate):
         """
         Set the date when the plan starts in the current year.
-        This is for reproducibility purposes.
+        This is mostly for reproducibility purposes and back projecting known balances to Jan 1st.
         String format of mydate is 'month/day'.
         """
         import calendar
@@ -697,7 +694,7 @@ class Plan(object):
 
         return amount * self.gamma_n[span]
 
-    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, units="k"):
+    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, startDate=None, units="k"):
         """
         Three lists containing the balance of all assets in each category for
         each spouse.  For single individuals, these lists will contain only
@@ -721,6 +718,9 @@ class Plan(object):
         self.bet_ji[1][:] = taxDeferred
         self.bet_ji[2][:] = taxFree
         self.beta_ij = self.bet_ji.transpose()
+
+        # If none was given, default is to begin plan on today's date.
+        self._setStartingDate(startDate)
 
         self.caseStatus = "modified"
 

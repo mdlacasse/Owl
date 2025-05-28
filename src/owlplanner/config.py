@@ -182,20 +182,19 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     # status = diconf['Basic Info']['Status']
     yobs = diconf["Basic Info"]["Birth year"]
     expectancy = diconf["Basic Info"]["Life expectancy"]
-    startDate = diconf["Basic Info"].get("Start date", "today")
     icount = len(yobs)
     s = ["", "s"][icount - 1]
     mylog.vprint(f"Plan for {icount} individual{s}: {inames}.")
-    p = plan.Plan(inames, yobs, expectancy, name, startDate=startDate, verbose=True, logstreams=logstreams)
+    p = plan.Plan(inames, yobs, expectancy, name, verbose=True, logstreams=logstreams)
     p._description = diconf.get("Description", "")
 
     # Assets.
+    startDate = diconf["Basic Info"].get("Start date", "today")
     balances = {}
     for acc in accountTypes:
         balances[acc] = diconf["Assets"][f"{acc} savings balances"]
-    p.setAccountBalances(
-        taxable=balances["taxable"], taxDeferred=balances["tax-deferred"], taxFree=balances["tax-free"]
-    )
+    p.setAccountBalances(taxable=balances["taxable"], taxDeferred=balances["tax-deferred"],
+                         taxFree=balances["tax-free"], startDate=startDate)
     if icount == 2:
         phi_j = diconf["Assets"]["Beneficiary fractions"]
         p.setBeneficiaryFractions(phi_j)

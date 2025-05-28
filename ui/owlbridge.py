@@ -27,7 +27,6 @@ def createPlan():
     description = kz.getKey("description")
     yobs = [kz.getKey("yob0")]
     life = [kz.getKey("life0")]
-    startDate = kz.getKey("startDate")
     if kz.getKey("status") == "married":
         inames.append(kz.getKey("iname1"))
         yobs.append(kz.getKey("yob1"))
@@ -36,7 +35,7 @@ def createPlan():
     strio = StringIO()
     kz.storeKey("logs", strio)
     try:
-        plan = owl.Plan(inames, yobs, life, name, startDate=startDate,
+        plan = owl.Plan(inames, yobs, life, name,
                         verbose=True, logstreams=[strio, strio])
         kz.setKey("plan", plan)
     except Exception as e:
@@ -85,9 +84,10 @@ def _checkPlan(func):
 def prepareRun(plan):
     ni = 2 if kz.getKey("status") == "married" else 1
 
+    startDate = kz.getKey("startDate")
     bal = kz.getAccountBalances(ni)
     try:
-        plan.setAccountBalances(taxable=bal[0], taxDeferred=bal[1], taxFree=bal[2])
+        plan.setAccountBalances(taxable=bal[0], taxDeferred=bal[1], taxFree=bal[2], startDate=startDate)
     except Exception as e:
         st.error(f"Setting account balances failed: {e}")
         return
