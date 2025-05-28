@@ -16,11 +16,11 @@ def createJackAndJillPlan(name):
     inames = ['Jack', 'Jill']
     yobs = [1963, 1966]
     expectancy = [thisyear - 1963 + 20, thisyear - 1966 + 20]
-    p = owl.Plan(inames, yobs, expectancy, name, startDate='1-1')
+    p = owl.Plan(inames, yobs, expectancy, name)
     p.setSpendingProfile('flat', 60)
 
-    p.setAccountBalances(taxable=[90, 60],
-                         taxDeferred=[600, 150], taxFree=[50 + 20, 40])
+    p.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150],
+                         taxFree=[50 + 20, 40], startDate="1-1")
     p.readContributions('./examples/jack+jill.xlsx')
     p.setInterpolationMethod('s-curve')
     p.setAllocationRatios('individual',

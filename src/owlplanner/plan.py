@@ -309,6 +309,10 @@ class Plan(object):
         # Previous 3 years for Medicare.
         self.prevMAGI = np.zeros((3))
 
+        # Init previous balance to none.
+        self.beta_ij = None
+        self.startDate = None
+
         # Default slack on profile.
         self.lambdha = 0
 

@@ -2,7 +2,7 @@
 import owlplanner as owl
 
 
-def getWac(exdir, base):
+def getWaC(exdir, base):
     import os
     wac = base.replace('case_', '')
     wac = wac.replace('-spending', '')
@@ -22,7 +22,7 @@ def test_allcases():
                  'case_kim+sam-spending',
                  'case_kim+sam-bequest']:
         p = owl.readConfig(exdir + case)
-        wac = getWac(exdir, case)
+        wac = getWaC(exdir, case)
         if wac != '':
             p.readContributions(wac)
         p.resolve()
@@ -32,7 +32,7 @@ def test_historical():
     exdir = './examples/'
     case = 'case_jack+jill'
     p = owl.readConfig(exdir + case)
-    wac = getWac(exdir, case)
+    wac = getWaC(exdir, case)
     if wac != '':
         p.readContributions(wac)
     options = p.solverOptions
@@ -44,7 +44,7 @@ def test_MC():
     exdir = './examples/'
     case = 'case_jack+jill'
     p = owl.readConfig(exdir + case)
-    wac = getWac(exdir, case)
+    wac = getWaC(exdir, case)
     if wac != '':
         p.readContributions(wac)
     options = p.solverOptions
