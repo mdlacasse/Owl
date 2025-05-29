@@ -67,11 +67,10 @@ def test_date_1():
     assert np.array_equal(p.expectancy, expectancy)
     assert p.N_i == 2
     assert p._name == name
-    assert p.startDate == None
+    assert p.startDate is None
 
 
 def test_date_2():
-    thisyear = date.today().year
     n = 10
     p = createPlan(1, 'date_2', n, 70)
     amount = 3.0

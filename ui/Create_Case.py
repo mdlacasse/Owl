@@ -82,11 +82,12 @@ else:
 
         iname0 = kz.getText("Your first name", "iname0", disabled=diz2, placeholder="Enter name...")
 
-        kz.initKey("yob0", 1965)
-        ret = kz.getIntNum(f"{iname0}'s birth year", "yob0", disabled=diz2)
+        if iname0:
+            kz.initKey("yob0", 1965)
+            ret = kz.getIntNum(f"{iname0}'s birth year", "yob0", disabled=diz2)
 
-        kz.initKey("life0", 80)
-        ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", disabled=diz1)
+            kz.initKey("life0", 80)
+            ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", disabled=diz1)
 
     with col2:
         if kz.getKey("status") == "married":
@@ -96,11 +97,12 @@ else:
 
             iname1 = kz.getText("Your spouse's first name", "iname1", disabled=diz2, placeholder="Enter a name...")
 
-            kz.initKey("yob1", 1965)
-            ret = kz.getIntNum(f"{iname1}'s birth year", "yob1", disabled=diz2)
+            if iname1:
+                kz.initKey("yob1", 1965)
+                ret = kz.getIntNum(f"{iname1}'s birth year", "yob1", disabled=diz2)
 
-            kz.initKey("life1", 80)
-            ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1", disabled=diz1)
+                kz.initKey("life1", 80)
+                ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1", disabled=diz1)
 
     st.divider()
     cantcreate = kz.isIncomplete() or diz1
