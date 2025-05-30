@@ -58,7 +58,7 @@ def createPlan():
         setProfile(None)
 
     if kz.getKey("duplicate"):
-        _setContributions(plan, False)
+        _setContributions(plan, "copy")
     else:
         resetTimeLists()
 
@@ -130,7 +130,7 @@ def prepareRun(plan):
     _setInterpolationMethod(plan)
     _setAllocationRatios(plan)
     _setRates(plan)
-    _setContributions(plan, False)
+    _setContributions(plan, "set")
 
 
 def runAllCases():
@@ -332,10 +332,10 @@ def _setInterpolationMethod(plan):
 
 @_checkPlan
 def setContributions(plan, reset=True):
-    _setContributions(plan, reset)
+    _setContributions(plan, "reset")
 
 
-def _setContributions(plan, reset):
+def _setContributions(plan, action):
     """
     Set from UI -> Plan.
     """
@@ -348,14 +348,21 @@ def _setContributions(plan, reset):
 
     try:
         plan.readContributions(dicDf)
-        if reset:
-            kz.setKey("timeListsFileName", "edited values")
-        else:
-            kz.storeKey("timeListsFileName", "edited values")
-        plan.timeListsFileName = "edited values"
     except Exception as e:
-        st.error(f"Failed to parse wages and contributions: {e}")
+        st.error(f"Failed to parse Wages and Contributions: {e}")
         return False
+
+    if action == "copy":
+        # Possible reconditionned data due to delta in year span.
+        kz.setKey("timeList0", plan.timeLists[kz.getKey("iname0")])
+        if kz.getKey("status") == "married":
+            kz.setKey("timeList1", plan.timeLists[kz.getKey("iname1")])
+    elif action == "reset":
+        kz.setKey("timeListsFileName", "edited values")
+    elif action == "set":
+        kz.storeKey("timeListsFileName", "edited values")
+
+    plan.timeListsFileName = "edited values"
 
 
 @_checkPlan
@@ -697,10 +704,6 @@ def genDic(plan):
     if "previousMAGIs" in optionKeys:
         dic["MAGI0"] = plan.solverOptions["previousMAGIs"][0]
         dic["MAGI1"] = plan.solverOptions["previousMAGIs"][1]
-        if len(plan.solverOptions["previousMAGIs"]) == 3:
-            dic["MAGI2"] = plan.solverOptions["previousMAGIs"][2]
-        else:
-            dic["MAGI2"] = 0.
 
     if plan.objective == "maxSpending":
         dic["objective"] = "Net spending"
@@ -741,17 +744,13 @@ def genDic(plan):
 @_checkPlan
 def backYearsMAGI(plan):
     thisyear = date.today().year
-    backyears = [0, 0, 0]
+    backyears = [0, 0]
     goatyear = min(plan.yobs)
     if thisyear - goatyear >= 65:
         backyears[0] = thisyear - 2
         backyears[1] = thisyear - 1
-        backyears[2] = thisyear
     elif thisyear - goatyear >= 64:
         backyears[0] = thisyear - 1
-        backyears[1] = thisyear
-    elif thisyear - goatyear >= 63:
-        backyears[0] = thisyear
 
     return backyears
 

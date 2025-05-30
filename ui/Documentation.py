@@ -231,6 +231,12 @@ match the names used when creating the plan
 (i.e., *Jack* and *Jill* in the example files provided).
 If a file was originally associated with a *case* file, a message will remind the user to upload the file.
 
+If values were entered or edited directly in the table,
+values can be saved directly in Excel format by clicking
+the `Download Wages and Contributions` on the
+[Output Files](#output-files) page. This allows to rerun the same case at a later time
+by reloading the same Wages and Contributions file.
+
 #### Fixed Income
 This page is for entering anticipated fixed income from pensions and social security.
 Amounts are in thousands (\\$k) in today's \\$. While
@@ -263,23 +269,25 @@ Account values are assumed to be known at the beginning of the current year,
 which is not always possible. For that purpose,
 the `Account balance date` has the effect of back projecting the amounts entered
 to the beginning of the year using the return rates and allocations
-assumed for the first year.
+assumed for the first year. If withdrawals contributing to the
+net spending were already performed for the current year,
+true account balances should be corrected to reflect values as of Jan 1st.
 
-For married couples, the spousal `Beneficiary fractions` associated with these accounts
+For married couples, the spousal `Beneficiary fractions` associated with each account
 can be configured, as well as a surplus deposit fraction. The first one controls
 how much is left to the surviving spouse while the second determines
 how to split potential surplus budget moneys between the taxable accounts of the spouses.
 When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
 surplus moneys in the taxable account of the first individual to pass. Otherwise,
 the optimizer will find creative solutions that can generate surpluses in order
-to maximize the final bequest. Finally, when fractions are not all equal,
+to maximize the final bequest. Finally, when fractions between accounts are not all equal,
 it can take longer to solve (minutes) as these cases trigger the use
 of binary variables which involves more complex algorithms.
-In some situations, transfers from tax-deferred savings accounts to taxable
+In some situations, creative transfers from tax-deferred savings accounts to taxable
 savings accounts, through surpluses and deposits, can be part of the optimal solution.
 
 Setting a surplus fraction that deposits some or all surpluses in the survivor's account
-can sometimes lead to slow convergence. This is especially noticeable when solving with
+can also sometimes lead to slow convergence. This is especially noticeable when solving with
 varying rates and not so common when using fixed rates.
 When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
@@ -295,7 +303,8 @@ one equity and three fixed-income securities:
 When using historical data, the term S&P 500 represents the real index. However,
 when selecting non-historical rates, the term can represent any mix of stocks or equities
 (domestic, international, emerging, etc.).
-The main difference is in the tax treatment of gains realized in the taxable account:
+The main difference between equities and fixed securities lies
+in the tax treatment of gains realized in the taxable account:
 equities will be taxed differently than fixed securities.
 Cash assets are securities such as Treasury Inflation-Protected Securities (TIPS)
 considered to merely track inflation and therefore remain at constant value.
@@ -360,11 +369,9 @@ Calculations of Medicare and IRMAA can be turned on or off. This will typically 
 the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
 If the current age of any individual in the plan makes them eligible
 for Medicare within the next three years,
-additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for the current
-and past 2 years, whichever applies. Values default to zero.
+additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for the
+past 1 or 2 years, whichever applies. Values default to zero.
 These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
-MAGI for the current year is required and needs to be estimated
-as it allows the plan to start in mid-year for the first year.
 
 Different mixed-integer linear programming solvers can be selected.
 This option is mostly for verification purposes. All solvers
@@ -421,10 +428,10 @@ selected in the [Settings](#settings) section described below.
 #### Worksheets
 This page shows the various worksheets containing annual transactions
 and savings account balances in nominal \\$.
-Savings balances are at the beginning of the year, while other quantities
+Savings balances are values at the beginning of the year, while other quantities
 are for the full year.
 Each table can be downloaded separately in csv format, or all tables can be downloaded
-together as an Excel workbook by clicking the associated button on the
+jointly as a single Excel workbook by clicking on the `Download Worksheets` on the
 [Output Files](#output-files) page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 The first few lines of the **Sources** worksheets are the most important
@@ -445,13 +452,15 @@ An additional button allows to rerun all cases,
 ensuring that the table provides an accurate comparison
 of the parameters selected for each case.
 
-Another section called `Excel workbooks` allows
-to save the contents of the tables on corresponding pages of a single Excel workbook.
-These data are displayed on the [Worksheets](#worksheets) and
-the [Wages and Contributions](#wages-and-contributions) pages.
+Another section called **Excel Workbooks** allows
+to save the contents of the tables on corresponding pages as a single Excel workbook.
+The `Download Wages and Contributions file` will save the data displayed on the
+[Wages and Contributions](#wages-and-contributions) page while the
+`Download Worksheets` will save all tables displayed
+on the [Worksheets](#worksheets) page as a single Excel file.
 
 Similarly, all parameters used to generate the case are collected in *toml* format and displayed.
-The `Download case file...` button allows to save the parameters of the selected scenario
+The `Download case parameter file...` button allows to save the parameters of the selected scenario
 to a *case* file for future use.
 
 With the case parameter file and the **Wages and Contributions** worksheet,

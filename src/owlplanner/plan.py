@@ -307,7 +307,7 @@ class Plan(object):
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
 
         # Previous 3 years for Medicare.
-        self.prevMAGI = np.zeros((3))
+        self.prevMAGI = np.zeros((2))
 
         # Init previous balance to none.
         self.beta_ij = None
@@ -901,7 +901,7 @@ class Plan(object):
         try:
             filename, self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
         except Exception as e:
-            raise Exception(f"Unsuccessful read of contributions: {e}") from e
+            raise Exception(f"Unsuccessful read of Wages and Contributions: {e}") from e
 
         self.timeListsFileName = filename
         self.setContributions()
@@ -909,6 +909,9 @@ class Plan(object):
         return True
 
     def setContributions(self, timeLists=None):
+        """
+        If no argument is given, use the values that have been stored in self.timeLists.
+        """
         if timeLists is not None:
             timelists.check(timeLists, self.inames, self.horizons)
             self.timeLists = timeLists
@@ -1579,11 +1582,11 @@ class Plan(object):
         if objective == "maxSpending" and "bequest" not in myoptions:
             self.mylog.vprint("Using bequest of $1.")
 
-        self.prevMAGI = np.zeros(3)
+        self.prevMAGI = np.zeros(2)
         if "previousMAGIs" in myoptions:
             magi = myoptions["previousMAGIs"]
-            if len(magi) != 3:
-                raise ValueError("previousMAGIs must have 3 values.")
+            if 3 < len(magi) < 2:
+                raise ValueError("previousMAGIs must have 2 values.")
 
             units = u.getUnits(options.get("units", "k"))
             self.prevMAGI = units * np.array(magi)

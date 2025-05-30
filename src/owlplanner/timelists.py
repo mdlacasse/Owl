@@ -47,7 +47,7 @@ def read(finput, inames, horizons, mylog):
     mylog.vprint("Reading wages, contributions, conversions, and big-ticket items over time...")
 
     if isinstance(finput, dict):
-        timeLists = finput
+        dfDict = finput
         finput = "dictionary of DataFrames"
         streamName = "dictionary of DataFrames"
     else:
@@ -58,7 +58,7 @@ def read(finput, inames, horizons, mylog):
             raise Exception(f"Could not read file {finput}: {e}.") from e
         streamName = f"file '{finput}'"
 
-        timeLists = condition(dfDict, inames, horizons, mylog)
+    timeLists = condition(dfDict, inames, horizons, mylog)
 
     mylog.vprint(f"Successfully read time horizons from {streamName}.")
 

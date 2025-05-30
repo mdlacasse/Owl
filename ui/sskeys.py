@@ -162,7 +162,7 @@ def setCurrentCase(case):
 def duplicateCase():
     baseName = re.sub(r"\s*\(\d+\)$", "", ss.currentCase)
     for i in range(1, 10):
-        dupname = baseName + f"({i})"
+        dupname = baseName + f" ({i})"
         if dupname not in ss.cases:
             break
     else:
@@ -182,7 +182,7 @@ def duplicateCase():
     ss.cases[dupname]["duplicate"] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
-    st.toast("Case duplicated except for Wages and Contributions tables.")
+    st.toast("Case duplicated.")
 
 
 def createCaseFromFile(strio):
@@ -375,7 +375,7 @@ def getSolveParameters():
         options["maxRothConversion"] = "file"
 
     previousMAGIs = getPreviousMAGIs()
-    if previousMAGIs[0] > 0 or previousMAGIs[1] > 0 or previousMAGIs[2] > 0:
+    if previousMAGIs[0] > 0 or previousMAGIs[1] > 0:
         options["previousMAGIs"] = previousMAGIs
 
     return objective, options
@@ -413,8 +413,8 @@ def getAccountAllocationRatios():
 
 
 def getPreviousMAGIs():
-    backMAGIs = [0., 0., 0.]
-    for ii in range(3):
+    backMAGIs = [0., 0.]
+    for ii in range(2):
         val = getKey(f"MAGI{ii}")
         if val:
             backMAGIs[ii] = float(val)
