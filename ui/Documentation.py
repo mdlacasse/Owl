@@ -78,7 +78,7 @@ one to create a new case from scratch, and one to create a case
 from a *case* parameter file, which
 would then populate values of all parameters found
 in the [Case Setup](#case-setup) section.
-This box is present in all pages except those in the [Resources](#resource) section.
+This box is present on all pages except those in the [Resources](#resource) section.
 The case being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
@@ -91,9 +91,10 @@ goes through a more specific example.
 Owl uses a full year as the standard unit of time. All values are therefore entered and
 reported as yearly values. These include wages, income, rates, social security, etc.
 Dollar values are typically entered in thousands, unless in tables, where they
-are entered and reported in unit dollars. Graphs report values in thousands.
+are entered and reported in unit dollars.
+Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
 
-There are four sections in the user interface:
+There are four sections in the left sidebar:
 [Case Setup](#case-setup), [Single Scenario](#single-scenario),
 [Multiple Scenarios](#multiple-scenarios), and [Resources](#resources).
 The sections below follow the same logical order.
@@ -105,7 +106,7 @@ This section contains the steps for creating and configuring case scenarios.
 #### Create Case
 The **Create Case** page is where every new scenario begins.
 It controls the creation of scenarios as the `Case selector` drop-down menu contains
-two additional items when this page is open:
+two additional items:
 one to create new cases, and the other to create cases from a *case* parameter file.
 This page also allows you to duplicate and/or rename scenarios, as well as deleting them.
 
@@ -117,9 +118,9 @@ have passed according to the specified life expectancies.
 A typical workflow will involve creating
 a base case, and duplicating it a few times with slight changes in its parameters
 in order to investigate their effects.
-Duplication appends a number counter in parenthesis to the name, just as creating
+Duplication renames the case by appending a number counter in parenthesis, just as creating
 a copy of a file on Windows.
-It is recommended to rename cases to reflect the change in parameters.
+It is recommended to rename each case to reflect the change in parameters.
 When duplicating a scenario, make sure to visit all pages in the [Case Setup](#case-setup)
 section and verify that all parameters are as intended.
 When all cases have successfully run,
@@ -141,12 +142,6 @@ Pick your favorite:
 - [livingto100](https://www.livingto100.com/calculator),
 
 or just Google *life expectancy calculator*.
-
-Finally, a starting date for the first year of the plan must be provided.
-By default, it starts today, but any other date
-in the current year can be chosen. This is useful if your numbers are known for a fixed date, or
-for reproducibility purposes. This date does not affect when the plan ends, which is at the
-end of the year when all individuals in the plan have passed.
 
 ##### Using a *case* file
 If `Upload case file...` is selected, a *case* file must be uploaded.
@@ -264,7 +259,9 @@ Three types of savings accounts are considered and are tracked separately for sp
 - Tax-deferred savings accounts (e.g., 401k, 403b, IRA),
 - Tax-exempt savings accounts (e.g., Roth 401k, Roth IRA).
 
-The `Account balance date` has the effect of back projecting the amounts entered
+Account values are assumed to be known at the beginning of the current year,
+which is not always possible. For that purpose,
+the `Account balance date` has the effect of back projecting the amounts entered
 to the beginning of the year using the return rates and allocations
 assumed for the first year.
 
