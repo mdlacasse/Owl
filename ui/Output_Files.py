@@ -3,7 +3,7 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 
-ret = kz.titleBar("Output Files")
+ret = kz.titleBar(":material/description: Output Files")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

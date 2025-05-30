@@ -4,7 +4,7 @@ import sskeys as kz
 import owlbridge as owb
 
 
-ret = kz.titleBar("Wages and Contributions")
+ret = kz.titleBar(":material/work_history: Wages and Contributions")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

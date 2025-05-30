@@ -4,7 +4,7 @@ import sskeys as kz
 import owlbridge as owb
 
 
-ret = kz.titleBar("Graphs")
+ret = kz.titleBar(":material/stacked_line_chart: Graphs")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

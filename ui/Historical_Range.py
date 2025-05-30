@@ -4,7 +4,7 @@ import sskeys as kz
 import owlbridge as owb
 
 
-ret = kz.titleBar("Historical Range")
+ret = kz.titleBar(":material/history: Historical Range")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

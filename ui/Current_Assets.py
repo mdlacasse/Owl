@@ -3,7 +3,7 @@ import streamlit as st
 
 import sskeys as kz
 
-ret = kz.titleBar("Current Assets")
+ret = kz.titleBar(":material/savings: Current Assets")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

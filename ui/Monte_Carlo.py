@@ -4,7 +4,7 @@ import sskeys as kz
 import owlbridge as owb
 
 
-ret = kz.titleBar("Monte Carlo")
+ret = kz.titleBar(":material/finance: Monte Carlo")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

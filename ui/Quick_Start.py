@@ -9,7 +9,7 @@ with col3:
 with col1:
     st.write("# Owl Retirement Planner\nA retirement financial exploration tool based on linear programming")
     kz.divider("orange")
-    st.write("### :orange[Quick Start]")
+    st.write("### :orange[:material/rocket_launch: Quick Start]")
     st.markdown(
         """
 Owl does not store any information related to a case:
@@ -43,7 +43,7 @@ Alternatively, you can directly select the case of *jack+jill* among the GitHub 
 drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*).
 1) Move to any page in the **Single Scenario** section to browse the simulation results.
 
-Congratulations! :balloon: :medal: You just ran your first case. You can now explore each page and
+Congratulations! :balloon: You just ran your first case. :medal: You can now explore each page and
 experiment with different parameters.
 
 For creating your own cases, you can start

@@ -6,7 +6,7 @@ import owlbridge as owb
 import tomlexamples as tomlex
 
 
-ret = kz.titleBar("Create Case", allCases=True)
+ret = kz.titleBar(":material/person_add: Create Case", allCases=True)
 
 if ret == kz.newCase:
     st.info("#### Starting a new case from scratch.\n\n" "A name for the scenario must first be provided.")

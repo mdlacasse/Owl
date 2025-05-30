@@ -3,7 +3,7 @@ import streamlit as st
 import sskeys as kz
 
 
-ret = kz.titleBar("Logs")
+ret = kz.titleBar(":material/error: Logs")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

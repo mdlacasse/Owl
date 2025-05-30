@@ -36,7 +36,7 @@ def getToggleInput(i, key, thing):
     st.toggle(thing, on_change=kz.setpull, value=defval, args=[nkey], key="_" + nkey)
 
 
-ret = kz.titleBar("Fixed Income")
+ret = kz.titleBar(":material/currency_exchange: Fixed Income")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

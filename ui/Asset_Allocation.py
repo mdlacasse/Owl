@@ -81,7 +81,7 @@ def checkAllAllocs():
     return result
 
 
-ret = kz.titleBar("Asset Allocation")
+ret = kz.titleBar(":material/percent: Asset Allocation")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

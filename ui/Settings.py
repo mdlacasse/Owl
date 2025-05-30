@@ -4,7 +4,7 @@ import sskeys as kz
 import owlbridge as owb
 
 
-st.write("# Settings")
+st.write("# :material/settings: Settings")
 kz.divider("orange")
 
 col1, col2, col3 = st.columns(3, gap="large")
