@@ -64,7 +64,6 @@ formulation of the optimization problem can be found
 [Tips](#tips)
 - [Advice on Optimization and Roth Conversions](#advice-on-optimization-and-roth-conversions)
 - [Typical Workflow](#typical-workflow)
-- [Streamlit App and Theme](#streamlit-app-and-theme)
 
 --------------------------------------------------------------------------------------
 ### :orange[Getting Started with User Interface]
@@ -103,7 +102,7 @@ The sections below follow the same logical order.
 ### :orange[Case Setup]
 This section contains the steps for creating and configuring case scenarios.
 
-#### Create Case
+#### :material/person_add: Create Case
 The **Create Case** page is where every new scenario begins.
 It controls the creation of scenarios as the `Case selector` drop-down menu contains
 two additional items:
@@ -159,7 +158,7 @@ can be reloaded at a later time.
 Case parameter files can have any name but when saving from the interface,
 their name will start with *case_* followed by the case name.
 
-#### Wages and Contributions
+#### :material/work_history: Wages and Contributions
 This page allows to enter an optional Excel file containing future wages and contributions.
 Alternatively, values can be entered and/or edited directly into the corresponding tables.
 Values in these tables are all in nominal values, and in \\$, not thousands (\\$k).
@@ -237,7 +236,7 @@ the `Download Wages and Contributions` on the
 [Output Files](#output-files) page. This allows to rerun the same case at a later time
 by reloading the same Wages and Contributions file.
 
-#### Fixed Income
+#### :material/currency_exchange: Fixed Income
 This page is for entering anticipated fixed income from pensions and social security.
 Amounts are in thousands (\\$k) in today's \\$. While
 social security is always adjusted for inflation, pensions can optionally be
@@ -256,7 +255,7 @@ A great website for guidance on when to start taking social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
 And obviously there is [ssa.gov](https://ssa.gov).
 
-#### Current Assets
+#### :material/savings: Current Assets
 This page allows to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
@@ -292,7 +291,7 @@ varying rates and not so common when using fixed rates.
 When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
 
-#### Asset Allocation
+#### :material/percent: Asset Allocation
 This page allows you to select how to partition your assets between 4 investment options,
 one equity and three fixed-income securities:
 - S&P 500,
@@ -326,7 +325,7 @@ When an `s-curve` is selected, two additional parameters controlling the shape o
 will appear, one for the timing of the inflection point measured in years from now,
 and the other for the width of the transition, measured in +/- years from the inflection point.
 
-#### Rates Selection
+#### :material/monitoring: Rates Selection
 This page allows you to select the return rates over the
 time span of the plan. All rates are nominal and annual.
 There are two major types of rates:
@@ -346,7 +345,7 @@ Rates for the S&P 500 equities include dividends.
 A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition) for 2025.
 
-#### Optimization Parameters
+#### :material/tune: Optimization Parameters
 This page allows you to select the objective function to optimize.
 One can choose between maximizing the net spending amount subject to the constraint
 of a desired bequest, or maximizing a bequest, subject to the constraint of providing
@@ -409,7 +408,7 @@ for that reason they do not start at 1.
 --------------------------------------------------------------------------------------
 ### :orange[Single Scenario]
 
-#### Graphs
+#### :material/stacked_line_chart: Graphs
 This page displays various plots from a single scenario based on the selections made
 in the [Case Setup](#case-setup) section.
 This simulation uses a single instance of a series of rates, either fixed or varying,
@@ -425,7 +424,7 @@ in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the [Settings](#settings) section described below.
 
-#### Worksheets
+#### :material/data_table: Worksheets
 This page shows the various worksheets containing annual transactions
 and savings account balances in nominal \\$.
 Savings balances are values at the beginning of the year, while other quantities
@@ -437,7 +436,7 @@ Note that all values here (worksheets and workbook) are in \\$, not in thousands
 The first few lines of the **Sources** worksheets are the most important
 as these lines are the only ones that are actionable in the near term.
 
-#### Output Files
+#### :material/description: Output Files
 This page allows to compare cases and save files for future use.
 First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the plan.
@@ -474,7 +473,7 @@ respectively.
 There are two different ways to run multiple scenarios and generate a histogram
 of results.
 
-#### Historical Range
+#### :material/history: Historical Range
 This page allows the user to run multiple simulations over a range of historical years.
 Each simulation assumes that the rates follow a sequence that happened in the past,
 starting from each selected year in the past, and then offset by one year, and so on.
@@ -489,7 +488,7 @@ and the other for the distribution of values of the objective being optimized,
 either maximum net spending or maximum bequest left at the passing
 of the surviving spouse.
 
-#### Monte Carlo
+#### :material/finance: Monte Carlo
 This page runs a Monte Carlo simulation using time sequences of
 annual rates of return that are generated
 using statistical methods. At the end of the run,
@@ -518,18 +517,18 @@ Most likely, this will not happen unless you devise unusually long Monte Carlo r
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
-#### Logs
+#### :material/error: Logs
 Messages coming from the underlying Owl calculation engine are displayed on this page.
 This page is mainly used for debugging purposes.
 
-#### Quick Start
+#### :material/rocket_launch: Quick Start
 This page is the landing page of the application.
 It shows new users how to quickly get started by using an example case file.
 
-#### Documentation
+#### :material/help: Documentation
 These very pages.
 
-#### Settings
+#### :material/settings: Settings
 This page allows to select different backends for plotting the graphs.
 The `plotly` package is currently the default as the graphs generated are interactive
 while `matplotlib` graphs are not.
@@ -542,7 +541,35 @@ selects only this item. Double-clicking on a disabled item restores all traces.
 A copy of the plot can also be saved as a *png* file. Both `matplotlib` and `plotly`
 graphs can be seen in full-screen mode.
 
-#### About Owl
+###### Streamlit App and Theme
+If you are accessing Owl remotely on the Streamlit Community Server through the Chrome browser,
+the Chrome performance manager might disable hidden or inactive tabs.
+This could cause your Owl session to inadvertently reset when idling for too long,
+and losing the state of the calculator.
+The best way to avoid this situation is to run the web page through the Streamlit app on your device.
+This is done by clicking the '+" icon shown at the right end of the browser URL bar,
+showing *App available: Install Streamlit*.
+The app provides more screen space as it doesn't have a navigation bar.
+A similar thing can happen if your simulations
+(Monte Carlo) are extremely long.
+The Streamlit community server has a hard resource limit
+on CPU time that might stop your calculations before completion.
+I could successfully run 1,000 simulations using the Streamlit app while
+being hosted on the Streamlit community server.
+However, if you are contemplating running Monte Carlo simulations
+with thousands of cases routinely,
+you should definitely consider installing and running Owl
+locally on your computer, either natively or through a container.
+See instructions on the GitHub repository for how to proceed.
+
+Going full screen by hitting F11 while in your browser
+can greatly improve the visualization of graphs and worksheets.
+The side menu can also be collapsed.
+Owl's default theme is the *Dark* mode but a *Light* theme is also available by
+clicking on the three vertical dots located on the upper right of the app
+and selecting the **Settings** option.
+
+#### :material/info: About Owl
 Credits and disclaimers.
 
 --------------------------------------------------------------------------------------
@@ -580,39 +607,10 @@ Let's say this case allows for Roth conversions up to \\$100k.
 2) Duplicate the base case, call it *May 2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
 3) Duplicate the base case again, call it *May 2025 - No Roth limit* and
-set maximum Roth conversions to a vary large number, say, \\$800k.
+set maximum Roth conversions to a very large number, say, \\$800k.
 4) Compare all cases on the [Output Files](#output-files) page.
 
 As mentionned above, the most actionable information is located on the first few lines
 of the **Sources** tables on the [Worksheets](#worksheets) pages.
 This is where withdrawals and conversions are displayed for this year and the next few years.
-
-#### Streamlit App and Theme
-If you are accessing Owl remotely on the Streamlit Community Server through the Chrome browser,
-the Chrome performance manager might disable hidden or inactive tabs.
-This could cause your Owl session to inadvertently reset when idling for too long,
-and losing the state of the calculator.
-The best way to avoid this situation is to run the web page through the Streamlit app on your device.
-This is done by clicking the '+" icon shown at the right end of the browser URL bar,
-showing *App available: Install Streamlit*.
-The app provides more screen space as it doesn't have a navigation bar.
-A similar thing can happen if your simulations
-(Monte Carlo) are extremely long.
-The Streamlit community server has a hard resource limit
-on CPU time that might stop your calculations before completion.
-I could successfully run 1,000 simulations using the Streamlit app while
-being hosted on the Streamlit community server.
-However, if you are contemplating running Monte Carlo simulations
-with thousands of cases routinely,
-you should definitely consider installing and running Owl
-locally on your computer, either natively or through a container.
-See instructions on the GitHub repository for how to proceed.
-
-In general, collapsing the side menu and going full screen by hitting F11 while in your browser
-can greatly improve the visualization of graphs and worksheets.
-I also recommend using the *dark* mode as Streamlit's default theme, but a Light theme is
-also available.
-This selection is accessed through the **Settings** option
-after clicking on the three vertical dots
-located on the upper right of the app.
 """)
