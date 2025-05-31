@@ -1077,8 +1077,6 @@ class Plan(object):
         Utility function that builds constraint matrix and vectors.
         Refactored for clarity and maintainability.
         """
-        self._setup_constraint_shortcuts(options)
-
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
 
@@ -1100,12 +1098,6 @@ class Plan(object):
         self._build_objective_vector(objective)
 
         return None
-
-    def _setup_constraint_shortcuts(self, options):
-        # Set up all the local variables as attributes for use in helpers.
-        oppCostX = options.get("oppCostX", 0.)
-        self.xnet = 1 - oppCostX / 100.
-        self.optionsUnits = u.getUnits(options.get("units", "k"))
 
     def _add_rmd_inequalities(self):
         for i in range(self.N_i):
@@ -1582,14 +1574,18 @@ class Plan(object):
         if objective == "maxSpending" and "bequest" not in myoptions:
             self.mylog.vprint("Using bequest of $1.")
 
+        self.optionsUnits = u.getUnits(myoptions.get("units", "k"))
+
+        oppCostX = options.get("oppCostX", 0.)
+        self.xnet = 1 - oppCostX / 100.
+
         self.prevMAGI = np.zeros(2)
         if "previousMAGIs" in myoptions:
             magi = myoptions["previousMAGIs"]
             if 3 < len(magi) < 2:
                 raise ValueError("previousMAGIs must have 2 values.")
 
-            units = u.getUnits(options.get("units", "k"))
-            self.prevMAGI = units * np.array(magi)
+            self.prevMAGI = self.optionsUnits * np.array(magi)
 
         lambdha = myoptions.get("spendingSlack", 0)
         if lambdha < 0 or lambdha > 50:
@@ -2061,7 +2057,7 @@ class Plan(object):
         dic = {}
         # Results
         dic["Plan name"] = self._name
-        dic["Net yearly spending basis"] = u.d(self.g_n[0] / self.xi_n[0])
+        dic["Net yearly spending basis" + 26*" ."] = u.d(self.g_n[0] / self.xi_n[0])
         dic[f"Net spending for year {now}"] = u.d(self.g_n[0])
         dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0] * self.yearFracLeft)
 
