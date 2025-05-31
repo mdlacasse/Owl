@@ -578,10 +578,10 @@ Credits and disclaimers.
 Owl does not explicitly optimize for Medicare costs. While this approach
 is possible and was tested,
 it is not practical due to the unpredictable computing time
-required by the additional amount of binary variables involved.
+required by the additional number of binary variables involved.
 The current approach is to add
 Medicare costs after the optimization step.
-As a reult, the suggested Roth conversions can sometimes lead to
+As a result, the suggested Roth conversions can sometimes lead to
 smaller net spending or bequest than when no conversions are made.
 This is due to higher Medicare costs triggered by the increased MAGI
 resulting from Roth conversions
