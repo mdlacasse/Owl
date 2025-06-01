@@ -17,7 +17,7 @@ else:
         caseName = kz.getKey("name")
         df = kz.compareSummaries()
         if df is not None:
-            st.write("#### Synopsis\n"
+            st.write("#### :orange[Synopsis]\n"
                      "This table provides a summary of the current case and"
                      " compares it with other similar cases that ran successfully.")
             styledDf = df[1:].style.map(kz.colorBySign)
@@ -34,7 +34,7 @@ else:
             col2.button("Rerun all cases", on_click=owb.runAllCases, help=helpmsg)
 
         st.divider()
-        st.write("#### Excel Workbooks\n"
+        st.write("#### :orange[Excel Workbooks]\n"
                  "These workbooks contain time tables describing the flow of money,"
                  " the first one as input to the case, and the second as its output.")
         col1, col2 = st.columns(2, gap="large")
@@ -61,7 +61,7 @@ else:
         lines = kz.getKey("casetoml")
         if lines != "":
             st.divider()
-            st.write("#### Case Parameter File\n"
+            st.write("#### :orange[Case Parameter File]\n"
                      "This file contains the parameters characterizing the current case"
                      " and can be used, along with the *Wages and Contributions* file, to reproduce it in the future.")
             st.code(lines, height=400, language="toml")

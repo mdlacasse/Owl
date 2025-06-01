@@ -72,7 +72,7 @@ Unless historical, S&P 500 can represent any mix of equities
 
         ro = fxType != "user"
 
-        st.write("#### Fixed Rate Values (%)")
+        st.write("#### :orange[Fixed Rate Values (%)]")
         rates = FXRATES[fxType]
         for j in range(4):
             kz.initKey("fxRate" + str(j), rates[j])
@@ -128,7 +128,7 @@ Unless historical, S&P 500 can represent any mix of equities
 
     if kz.getKey("rateType") == "varying":
         st.divider()
-        st.write("#### Stochastic Parameters")
+        st.write("#### :orange[Stochastic Parameters]")
         ro = kz.getKey("varyingType") != "stochastic"
         st.write("##### Means (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
@@ -215,7 +215,7 @@ Unless historical, S&P 500 can represent any mix of equities
     owb.showRates(col1)
 
     st.divider()
-    st.write("### Other Rates")
+    st.write("### :orange[Other Rates]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initKey("divRate", 1.8)

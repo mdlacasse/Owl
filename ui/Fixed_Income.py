@@ -41,7 +41,7 @@ ret = kz.titleBar(":material/currency_exchange: Fixed Income")
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
-    st.write("#### Social Security")
+    st.write("#### :orange[Social Security]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         getFloatInput(0, "ssAmt", "social security annual amount (\\$k)")
@@ -53,7 +53,7 @@ else:
             getIntInput(1, "ssAge", "social security age", 67)
 
     st.divider()
-    st.write("#### Pension")
+    st.write("#### :orange[Pension]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         getFloatInput(0, "pAmt", "pension annual amount (\\$k)")

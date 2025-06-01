@@ -26,14 +26,14 @@ elif ret == kz.loadCaseFile:
         " Alternatively, you can select `New Case...` in the top selector box to start a case from scratch.\n\n"
         "Look at the :material/help: [Documentation](Documentation) for more details."
     )
-    st.write("#### Upload your own case file")
+    st.write("#### :orange[Upload your own case file]")
     file = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])
     if file is not None:
         mystringio = StringIO(file.read().decode("utf-8"))
         if kz.createCaseFromFile(mystringio):
             st.rerun()
 
-    st.write("#### Load a case example")
+    st.write("#### :orange[Load a case example]")
     case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None, placeholder="Select a case")
     if case is not None:
         mystringio = tomlex.loadExample(case)

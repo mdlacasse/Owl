@@ -7,9 +7,9 @@ with col3:
     st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")
     st.caption("Retirement planner with great wisdom")
 with col1:
-    st.write("# Owl Retirement Planner\nA retirement financial exploration tool based on linear programming")
+    st.write("# :orange[Owl Retirement Planner]\nA retirement financial exploration tool based on linear programming")
     kz.divider("orange")
-    st.write("### :orange[:material/rocket_launch: Quick Start]")
+    st.write("### :material/rocket_launch: Quick Start")
     st.markdown(
         """
 Owl does not store any information related to a case:
