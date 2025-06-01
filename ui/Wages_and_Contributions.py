@@ -27,14 +27,14 @@ else:
             )
         elif original != "edited values":
             st.info(
-                f"Case *'{kz.currentCaseName()}'* refers to wages and contributions file *'{original}'*"
+                f"Case *'{kz.currentCaseName()}'* refers to Wages and Contributions file *'{original}'*"
                 " that has not yet been uploaded."
             )
 
     st.write("#### :orange[Upload a *Wages and Contributions* File]")
     kz.initKey("_xlsx", 0)
     stTimeLists = st.file_uploader(
-        "Upload values from a wages and contributions file...",
+        "Upload values from a Wages and Contributions file...",
         key="_stTimeLists" + str(kz.getKey("_xlsx")),
         type=["xlsx", "ods"],
     )
