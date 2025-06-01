@@ -62,8 +62,8 @@ formulation of the optimization problem can be found
 - [:material/info: About Owl](#about-owl)
 
 [Tips](#tips)
-- [Advice on Optimization and Roth Conversions](#advice-on-optimization-and-roth-conversions)
-- [Typical Workflow](#typical-workflow)
+- [:material/lightbulb_2: Advice on Optimization and Roth Conversions](#advice-on-optimization-and-roth-conversions)
+- [:material/rule_settings: Typical Workflow](#typical-workflow)
 
 --------------------------------------------------------------------------------------
 ### :orange[Getting Started with User Interface]
@@ -574,7 +574,7 @@ Credits and disclaimers.
 
 --------------------------------------------------------------------------------------
 ### :orange[Tips]
-#### Advice on Optimization and Roth Conversions
+#### :material/lightbulb_2: Advice on Optimization and Roth Conversions
 Owl does not explicitly optimize for Medicare costs. While this approach
 is possible and was tested,
 it is not practical due to the unpredictable computing time
@@ -590,7 +590,7 @@ This is why one should **always** run comparisons between cases with and without
 Also keep in mind that these cases only consider current assumptions and obviously
 do not take into account future income tax rate increases.
 
-#### Typical Workflow
+#### :material/rule_settings: Typical Workflow
 A typical workflow would look like the following:
 1) Create a base case representing your basic scenario;
 2) Duplicate the base case and modify the parameter you want to investigate;
