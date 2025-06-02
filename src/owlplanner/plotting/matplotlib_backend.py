@@ -372,17 +372,19 @@ class MatplotlibBackend(PlotBackend):
             raise ValueError(f"Unknown coordination {ARCoord}.")
         figures = []
         assetDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
+        blank = ["", ""]
         for i in range(count):
             y2stack = {}
             for acType in acList:
                 stackNames = []
                 for key in assetDic:
-                    aname = key + " / " + acType
+                    # aname = key + " / " + acType
+                    aname = key
                     stackNames.append(aname)
                     y2stack[aname] = np.zeros((count, len(year_n)))
                     y2stack[aname][i][:] = alpha_ijkn[i, acList.index(acType), assetDic[key], : len(year_n)]
-                t = title + f" - {acType}"
-                fig, ax = self._stack_plot(year_n, inames, t, [i], y2stack, stackNames, "upper left", "percent")
+                t = title + f" - {acType} {inames[i]}"
+                fig, ax = self._stack_plot(year_n, blank, t, [i], y2stack, stackNames, "upper left", "percent")
                 figures.append(fig)
 
         return figures

@@ -815,7 +815,8 @@ class PlotlyBackend(PlotBackend):
                 stack_data = []
                 stack_names = []
                 for key in assetDic:
-                    aname = f"{key} / {acType}"
+                    # aname = f"{key} / {acType}"
+                    aname = key
                     stack_names.append(aname)
 
                     # Get allocation data
@@ -834,7 +835,7 @@ class PlotlyBackend(PlotBackend):
                     ))
 
                 # Update layout
-                plot_title = f"{title} - {acType}"
+                plot_title = f"{title} - {acType} {inames[i]}"
                 fig.update_layout(
                     title=plot_title,
                     # xaxis_title="year",
