@@ -9,7 +9,7 @@ if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
     st.write("#### :orange[Savings Account Balances]")
-    accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-exempt"}
+    accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-free"}
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         iname = kz.getKey("iname0")

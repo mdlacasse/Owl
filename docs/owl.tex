@@ -81,7 +81,7 @@ index name as a subscript, e.g., $N_i$ for index $i$.
 		is denoted by $i_d$ while the survivor is $i_s$.
 \item [$j$]
 	Type of savings account. $j$ goes from 0 to $N_j - 1$, for taxable, tax-deferred,
-	and tax-exempt accounts respectively. Therefore $N_j = 3$.
+	and tax-free accounts respectively. Therefore $N_j = 3$.
 \item[$k$]
 	Type of asset class. $k$ goes from 0 to $N_k -1 $, for S\&P 500,
 	Baa corporate bonds, Treasury notes, and cash, respectively. $N_k = 4$.
@@ -583,7 +583,7 @@ add the market returns to the savings balances.
 	Changes include contributions $\kappa$, distributions and withdrawals $w$,
 	conversions $x$, surplus deposits $d$, and growth $\tau$ on the account through the year.
 	For each spouse $i$, we track each savings account $j$ separately, and tax-deferred accounts
-	are coupled to the corresponding tax-exempt account through Roth conversions.
+	are coupled to the corresponding tax-free account through Roth conversions.
 
 	The timing of Roth conversions, withdrawals, and deposits brings
 	additional coupling between these variables, and is worth a detailed discussion.
@@ -605,7 +605,7 @@ add the market returns to the savings balances.
 	a direct withdrawal from the tax-deferred account at mid-year will always
 	be unfavorable when compared to a Roth conversion
 	at the beginning of the year, followed
-	by a tax-exempt withdrawal later in the same year.
+	by a tax-free withdrawal later in the same year.
 	This is because the second
 	scenario involves gains which are tax-free over the half-year, while
 	the first one does not. Moving account withdrawals at the beginning
@@ -620,7 +620,7 @@ add the market returns to the savings balances.
 	\end{eqnarray*}
 	for $j \neq 1$, i.e., for all withdrawals except those from tax-deferred accounts.
 	For example, to favor tax-deferred withdrawals in most reasonable situations,
-	it is desirable to make Roth conversions and tax-exempt distributions exclusive events
+	it is desirable to make Roth conversions and tax-free distributions exclusive events
 	by introducing binary variables $z_{in} \in \{0, 1\}$ with the following constraints:
 	\begin{alignat}{2}
 		\label{Eq:Binary}
@@ -1087,9 +1087,9 @@ with
 
 \section{Other considerations}
 \paragraph*{Beneficiaries}
-Tax-exempt and tax-deferred accounts have special tax rules that allow giving part
+Tax-free and tax-deferred accounts have special tax rules that allow giving part
 or the entire value of
-tax-exempt accounts to a spouse who can then consider it as his/her own.
+tax-free accounts to a spouse who can then consider it as his/her own.
 These accounts typically use percentages to designate beneficiaries.
 Let $\phi_j$ be the fraction of the account $j$ that a spouse $i_d$ wishes
 to leave to his/her surviving spouse $i_s$

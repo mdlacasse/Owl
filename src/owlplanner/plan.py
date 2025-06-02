@@ -498,7 +498,7 @@ class Plan(object):
     def setBeneficiaryFractions(self, phi):
         """
         Set fractions of savings accounts that is left to surviving spouse.
-        Default is [1, 1, 1] for taxable, tax-deferred, adn tax-exempt accounts.
+        Default is [1, 1, 1] for taxable, tax-deferred, and tax-free accounts.
         """
         if len(phi) != self.N_j:
             raise ValueError(f"Fractions must have {self.N_j} entries.")

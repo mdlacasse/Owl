@@ -133,7 +133,7 @@ an Excel spreadsheet that contains future wages, contributions
 to savings accounts, and planned *big-ticket items* such as the purchase of a lake house,
 the sale of a boat, large gifts, or inheritance.
 
-Three types of savings accounts are considered: taxable, tax-deferred, and tax-exempt,
+Three types of savings accounts are considered: taxable, tax-deferred, and tax-free,
 which are all tracked separately for married individuals. Asset transition to the surviving spouse
 is done according to beneficiary fractions for each type of savings account.
 Tax status covers married filing jointly and single, depending on the number of individuals reported.

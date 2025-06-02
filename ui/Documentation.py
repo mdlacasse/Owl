@@ -262,7 +262,7 @@ Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 Three types of savings accounts are considered and are tracked separately for spouses:
 - Taxable savings accounts (e.g., investment accounts, CDs),
 - Tax-deferred savings accounts (e.g., 401k, 403b, IRA),
-- Tax-exempt savings accounts (e.g., Roth 401k, Roth IRA).
+- Tax-free savings accounts (e.g., Roth 401k, Roth IRA).
 
 Account values are assumed to be known at the beginning of the current year,
 which is not always possible. For that purpose,

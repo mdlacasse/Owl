@@ -20,7 +20,7 @@ import owlplanner as owl
 # Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to age 92.
 # Plan starts on Jan 1st of this year.
 plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='01-01')
-# Jack has $90.5k in a taxable investment account, $600.5k in a tax-deferred account and $70k from 2 tax-exempt accounts.
+# Jack has $90.5k in a taxable investment account, $600.5k in a tax-deferred account and $70k from 2 tax-free accounts.
 # Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
 plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50.6 + 20, 40.8])
 # An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
