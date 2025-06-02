@@ -40,6 +40,7 @@ elif ret == kz.loadCaseFile:
         if kz.createCaseFromFile(mystringio):
             st.rerun()
 else:
+    st.write("#### :orange[Description and Life Parameters]")
     helpmsg = "Case name can be changed by editing it directly."
     col1, col2 = st.columns(2, gap="large")
     with col1:

@@ -56,20 +56,26 @@ else:
     kz.runOncePerCase(initRates)
     kz.initKey("yfrm", owb.FROM)
     kz.initKey("yto", owb.TO)
-
-    kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates)
     helpmsgSP500 = """Rate also includes dividends.
 Unless historical, S&P 500 can represent any mix of equities
 (domestic, international, emerging, ...).
 """
-    helpFixed = """A 2025 roundup of expert opinions on stock and bond return forecasts for the next decade can be found
+    helpFixed = """A 2025 roundup of expert opinions on stock and bond return
+forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition)."""
     helpCash = """Here, "Cash Assets" are TIPS-like securities assumed to track inflation."""
 
-    if kz.getKey("rateType") == "fixed":
-        fxType = kz.getRadio("Select fixed rates", fixedChoices, "fixedType", updateFixedRates,
-                             help=helpFixed)
+    st.write("#### :orange[Type of Rates]")
+    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    with col1:
+        kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates)
 
+    if kz.getKey("rateType") == "fixed":
+        with col2:
+            fxType = kz.getRadio("Select fixed rates", fixedChoices, "fixedType", updateFixedRates,
+                                 help=helpFixed)
+
+        st.divider()
         ro = fxType != "user"
 
         st.write("#### :orange[Fixed Rate Values (%)]")
@@ -91,7 +97,8 @@ Unless historical, S&P 500 can represent any mix of equities
             kz.getNum("Cash Assets/Inflation", "fxRate3", ro, step=1.0, help=helpCash, callback=updateRates)
 
     elif kz.getKey("rateType") == "varying":
-        kz.getRadio("Select varying rates", varyingChoices, "varyingType", callback=updateRates)
+        with col2:
+            kz.getRadio("Select varying rates", varyingChoices, "varyingType", callback=updateRates)
 
     else:
         st.error("Logic error")
@@ -101,7 +108,7 @@ Unless historical, S&P 500 can represent any mix of equities
     ):
 
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
-        with col1:
+        with col3:
             maxValue = owb.TO if kz.getKey("varyingType") == "historical" else kz.getKey("yto") - 1
             st.number_input(
                 "Starting year",
@@ -113,7 +120,7 @@ Unless historical, S&P 500 can represent any mix of equities
                 key="_yfrm",
             )
 
-        with col2:
+        with col4:
             ishistorical = kz.getKey("rateType") == "varying" and kz.getKey("varyingType") == "historical"
             st.number_input(
                 "Ending year",
@@ -214,7 +221,7 @@ Unless historical, S&P 500 can represent any mix of equities
 
     owb.showRates(col1)
 
-    st.divider()
+    # st.divider()
     st.write("### :orange[Other Rates]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
