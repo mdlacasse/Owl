@@ -41,18 +41,18 @@ Copyright &copy; 2025 - Martin-D. Lacasse
 - Owl image is from [freepik](https://freepik.com).
 
 #### :orange[Bugs and Feature Requests]
-- Please submit bugs and feature requests through
+Please submit bugs and feature requests through
 [GitHub](https://github.com/mdlacasse/owl/issues) if you have a GitHub account
 or directly by [email](mailto://martin.d.lacasse@gmail.com).
 Or just drop me a line to report your experience with the tool. :thumbsup:
 
 #### :orange[Privacy]
-- This app does not store or forward any information. All data entered is lost
+This app does not store or forward any information. All data entered is lost
 after a session is closed. You can choose to download selected parts of your
 own data to your computer before closing the session.
 
 #### :orange[License]
-- This software is released under the
+This software is released under the
 [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
 #### :orange[Disclaimer]

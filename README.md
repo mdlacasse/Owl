@@ -188,7 +188,7 @@ Copyright &copy; 2024 - Martin-D. Lacasse
 Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
 
 Code output has been verified with analytical solutions and other approaches.
-Nevertheless, accuracy of results are not guaranteed.
+Nevertheless, accuracy of results is not guaranteed.
 
 --------------------------------------------------------
 
