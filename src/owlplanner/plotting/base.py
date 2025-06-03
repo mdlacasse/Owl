@@ -1,5 +1,10 @@
 """
 Base classes for plot backends.
+
+Copyright &copy; 2025 - Martin-D. Lacasse
+
+Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+
 """
 
 from abc import ABC, abstractmethod

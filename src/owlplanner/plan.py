@@ -8,9 +8,10 @@ A retirement planner using linear programming optimization.
 See companion PDF document for an explanation of the underlying
 mathematical model and a description of all variables and parameters.
 
-Copyright (C) 2024 -- Martin-D. Lacasse
+Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimer: This program comes with no guarantee. Use at your own risk.
+Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+
 """
 
 ###########################################################################

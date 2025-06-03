@@ -16,9 +16,9 @@ solvers for comparison.
 This approach has been successful with the MOSEK and the HiGHS solvers.
 A for matrix, B for bounds, C for constraints. Thus the name ABCAPI.
 
-Copyright (C) 2024 -- Martin-D. Lacasse
+Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimer: This program comes with no guarantee. Use at your own risk.
+Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
 
 """
 

@@ -56,6 +56,7 @@ own data to your computer before closing the session.
 [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
 #### :orange[Disclaimer]
-- This program is provided for educational purposes and comes with no guarantee. Use at your own risk.
+This program is for educatonal purposes only and does not constitute financial advice.
+
 """
 )

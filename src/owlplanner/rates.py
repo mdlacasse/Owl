@@ -21,11 +21,10 @@ Rate lists will need to be updated with values for current year.
 When doing so, the TO bound defined below will need to be adjusted
 to the last current data year.
 
-Copyright (C) 2024 -- Martin-D. Lacasse
+Copyright &copy; 2024 - Martin-D. Lacasse
 
-Last updated: Jan 2025
+Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
 
-Disclaimer: This program comes with no guarantee. Use at your own risk.
 """
 
 ###################################################################

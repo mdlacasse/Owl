@@ -42,13 +42,6 @@ This is exactly where this tool fits it. Given your savings capabilities and spe
 it can generate different future realizations of
 your strategy under different market assumptions, helping to better understand your financial situation.
 
-Disclaimers: I am not a financial planner. You make your own decisions.
-This program comes with no guarantee. Use at your own risk.
-
-More disclaimers: While some output of the code has been verified with other approaches,
-this code is still under development and I cannot guarantee the accuracy of the results.
-Use at your own risk.
-
 -------------------------------------------------------------------------------------
 ## Purpose and vision
 The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities,
@@ -192,8 +185,10 @@ assets to support, even with no estate being left.
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: I am not a financial planner. You make your own decisions.
-This program comes with no guarantee. Use at your own risk.
+Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+
+Code output has been verified with analytical solutions and other approaches.
+Nevertheless, accuracy of results are not guaranteed.
 
 --------------------------------------------------------
 

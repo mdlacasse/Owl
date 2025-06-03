@@ -4,9 +4,9 @@ Owl/utils
 
 This file contains functions for handling data.
 
-Copyright (C) 2024 -- Martin-D. Lacasse
+Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimer: This program comes with no guarantee. Use at your own risk.
+Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
 
 """
 
