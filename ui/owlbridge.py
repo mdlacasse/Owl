@@ -550,7 +550,7 @@ def showWorkbook(plan):
                 else:
                     colfor[col] = st.column_config.NumberColumn(None, format="%.3f")
 
-        st.write(f"##### :orange[{name}]")
+        st.write(f"#### :orange[{name}]")
         st.dataframe(df.astype(str), use_container_width=True, column_config=colfor, hide_index=True)
 
         if dollars:

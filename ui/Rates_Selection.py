@@ -222,7 +222,7 @@ forecasts for the next decade can be found
     owb.showRates(col1)
 
     # st.divider()
-    st.write("### :orange[Other Rates]")
+    st.write("#### :orange[Other Rates]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initKey("divRate", 1.8)
@@ -230,7 +230,7 @@ forecasts for the next decade can be found
         ret = kz.getNum("Dividend rate (%)", "divRate", max_value=100.0, format="%.2f", help=helpmsg, step=1.0)
 
     st.write("#####")
-    st.write("##### :orange[Income taxes]")
+    st.write("#### :orange[Income taxes]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initKey("gainTx", 15)

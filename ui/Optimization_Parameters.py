@@ -24,7 +24,7 @@ if ret is None or kz.caseHasNoPlan():
 else:
     kz.runOncePerCase(initProfile)
 
-    st.write("##### :orange[Objective]")
+    st.write("#### :orange[Objective]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         choices = ["Net spending", "Bequest"]
@@ -42,7 +42,7 @@ else:
             ret = kz.getNum("Desired annual net spending (\\$k)", "netSpending", help=helpmsg)
 
     st.divider()
-    st.write("##### :orange[Roth Conversions]")
+    st.write("#### :orange[Roth Conversions]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         iname0 = kz.getKey("iname0")
@@ -72,7 +72,7 @@ else:
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg)
 
     st.divider()
-    st.write("##### :orange[Medicare]")
+    st.write("#### :orange[Medicare]")
     kz.initKey("withMedicare", True)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
@@ -88,7 +88,7 @@ else:
                     ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
-    st.write("##### :orange[Solver]")
+    st.write("#### :orange[Solver]")
     choices = ["HiGHS", "PuLP/CBC"]
     if owb.hasMOSEK():
         choices += ["MOSEK"]
@@ -97,7 +97,7 @@ else:
     ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
 
     st.divider()
-    st.write("##### :orange[Spending Profile]")
+    st.write("#### :orange[Spending Profile]")
     col1, col2, col3 = st.columns(3, gap="medium", vertical_alignment="top")
     with col1:
         ret = kz.getRadio("Type of profile", profileChoices, "spendingProfile", callback=owb.setProfile)

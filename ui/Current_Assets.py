@@ -36,7 +36,7 @@ else:
 
     if kz.getKey("status") == "married":
         st.divider()
-        st.write("##### :orange[Survivor's Spousal Beneficiary Fractions]")
+        st.write("#### :orange[Survivor's Spousal Beneficiary Fractions]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
             nkey = "benf" + str(0)
@@ -57,7 +57,7 @@ else:
             )
 
         st.write("#####")
-        st.write("##### :orange[Surplus Deposit Fraction]")
+        st.write("#### :orange[Surplus Deposit Fraction]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
             kz.initKey("surplusFraction", 0.5)
