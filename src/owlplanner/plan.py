@@ -2370,7 +2370,7 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-        title = self._name + "\nIncome Tax"
+        title = self._name + "\nFederal Income Tax"
         if tag:
             title += " - " + tag
         # All taxes: ordinary income and dividends.

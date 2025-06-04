@@ -463,7 +463,7 @@ def plotSingleResults(plan):
 
     fig = plan.showTaxes(figure=True)
     if fig:
-        cols[c].write("#### :orange[Taxes and Medicare (+IRMAA)]")
+        cols[c].write("#### :orange[Federal Taxes and Medicare (+IRMAA)]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
