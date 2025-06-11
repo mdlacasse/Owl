@@ -43,7 +43,7 @@ Copyright &copy; 2025 - Martin-D. Lacasse
 #### :orange[Bugs and Feature Requests]
 Please submit bugs and feature requests through
 [GitHub](https://github.com/mdlacasse/owl/issues) if you have a GitHub account
-or directly by [email](mailto://martin.d.lacasse@gmail.com).
+or directly by [email](mailto:martin.d.lacasse@gmail.com).
 Or just drop me a line to report your experience with the tool. :thumbsup:
 
 #### :orange[Privacy]
