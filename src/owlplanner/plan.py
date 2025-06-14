@@ -1139,7 +1139,7 @@ class Plan(object):
                 row = self.A.newRow()
                 row.addElem(_q3(self.C["b"], i, 2, n, self.N_i, self.N_j, self.N_n + 1), 1)
                 row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)
-                for nn in range(n-5, 0):
+                for nn in range(n-5, n):
                     rhs += self.kappa_ijn[i, 2, nn]
                     if nn >= 0:
                         row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), -1)
