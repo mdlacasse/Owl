@@ -37,33 +37,33 @@ formulation of the optimization problem can be found
 [Getting Started with User Interface](#getting-started-with-user-interface)
 
 [Case Setup](#case-setup)
-- [:material/person_add: Create Case](#create-case)
-- [:material/work_history: Wages and Contributions](#wages-and-contributions)
-- [:material/currency_exchange: Fixed Income](#fixed-income)
-- [:material/savings: Current Assets](#current-assets)
-- [:material/percent: Asset Allocation](#asset-allocation)
-- [:material/monitoring: Rates Selection](#rates-selection)
-- [:material/tune: Optimization Parameters](#optimization-parameters)
+- [:material/person_add: Create Case](#person-add-create-case)
+- [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
+- [:material/currency_exchange: Fixed Income](#currency-exchange-fixed-income)
+- [:material/savings: Current Assets](#saving-current-assets)
+- [:material/percent: Asset Allocation](#percent-asset-allocation)
+- [:material/monitoring: Rates Selection](#monitoring-rates-selection)
+- [:material/tune: Optimization Parameters](#tune-optimization-parameters)
 
 [Single Scenario](#single-scenario)
-- [:material/stacked_line_chart: Graphs](#graphs)
-- [:material/data_table: Worksheets](#worksheets)
-- [:material/description: Output Files](#output-files)
+- [:material/stacked_line_chart: Graphs](#stacked-line-chart-graphs)
+- [:material/data_table: Worksheets](#data-table-worksheets)
+- [:material/description: Output Files](#description-output-files)
 
 [Multiple Scenarios](#multiple-scenarios)
-- [:material/history: Historical Range](#historical-range)
-- [:material/finance: Monte Carlo](#monte-carlo)
+- [:material/history: Historical Range](#history-historical-range)
+- [:material/finance: Monte Carlo](#finance-monte-carlo)
 
 [Resources](#resources)
-- [:material/error: Logs](#logs)
-- [:material/rocket_launch: Quick Start](#quick-start)
-- [:material/help: Documentation](#documentation)
-- [:material/settings: Settings](#settings)
-- [:material/info: About Owl](#about-owl)
+- [:material/error: Logs](#error-logs)
+- [:material/rocket_launch: Quick Start](#rocket-launch-quick-start)
+- [:material/help: Documentation](#help-documentation)
+- [:material/settings: Settings](#settings-settings)
+- [:material/info: About Owl](#info-about-owl)
 
 [Tips](#tips)
-- [:material/lightbulb_2: Advice on Optimization and Roth Conversions](#advice-on-optimization-and-roth-conversions)
-- [:material/rule_settings: Typical Workflow](#typical-workflow)
+- [:material/lightbulb_2: Advice on Optimization and Roth Conversions](#lightbulb-2-advice-on-optimization-and-roth-conversions)
+- [:material/rule_settings: Typical Workflow](#rule-settings-typical-workflow)
 
 --------------------------------------------------------------------------------------
 ### :orange[Getting Started with User Interface]
@@ -72,7 +72,7 @@ Typically, pages would be accessed in order, starting from the top.
 
 A `Case selector` box located at the top of the page allows to
 navigate between the different scenarios created.
-When on the [Create Case](#create-case) page, however, the selector box offers two more options:
+When on the [Create Case](#person-add-create-case) page, however, the selector box offers two more options:
 one to create a new case from scratch, and one to create a case
 from a *case* parameter file, which
 would then populate values of all parameters found
@@ -83,7 +83,7 @@ The case being currently displayed is marked with a small red triangle.
 A typical workflow for exploring different scenarios involves starting with a base
 case and then duplicating/creating derived scenarios with slight changes in the parameters.
 A comparison between the
-different resulting outcomes can be found on the [Output Files](#output-files) page.
+different resulting outcomes can be found on the [Output Files](#description-output-files) page.
 The [Typical Workflow](#typical-workflow) section below
 goes through a more specific example.
 
@@ -124,7 +124,7 @@ When duplicating a scenario, make sure to visit all pages in the [Case Setup](#c
 section and verify that all parameters are as intended.
 When all cases have successfully run,
 results of related cases are compared side-by-side with differences
-in the [Output Files](#output-files) section.
+in the [Output Files](#description-output-files) section.
 Related cases are determined by having the same individual's names:
 anything else can change between cases.
 
@@ -153,7 +153,7 @@ Using a *case* file
 will populate all the fields in the [Case Setup](#case-setup) section.
 
 A *case* file for the case being developed
-can be saved under the [Output Files](#output-files) page and
+can be saved under the [Output Files](#description-output-files) page and
 can be reloaded at a later time.
 Case parameter files can have any name but when saving from the interface,
 their name will start with *case_* followed by the case name.
@@ -204,7 +204,7 @@ however, from which you will stop having anticipated income, or diminished incom
 work load. This transition can be gradual or sudden, and can be explored through these wages
 and contributions tables. The only *hard* dates are the years when you intend to receive
 a pension or collect social security, and these years are entered elsewhere on the
-[Fixed Income](#fixed-income) page.
+[Fixed Income](#currency-exchange-fixed-income) page.
 
 Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term that includes
 contributions to 403b as well or any other tax-deferred account, with the exception
@@ -220,7 +220,7 @@ the needed values can be derived. These extra columns will be ignored when the f
 Manual Roth conversions can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in Owl.
 When the option `Convert as in contribution file` is toggled
-in the [Optimization Parameters](#optimization-parameters) page,
+in the [Optimization Parameters](#tune-optimization-parameters) page,
 values from the **Wages and Contributions** file will be used and no optimization on Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guesses.
@@ -244,7 +244,7 @@ If a file was originally associated with a *case* file, a message will remind th
 If values were entered or edited directly in the table,
 values can be saved directly in Excel format by clicking
 the `Download Wages and Contributions` on the
-[Output Files](#output-files) page. This allows to rerun the same case at a later time
+[Output Files](#description-output-files) page. This allows to rerun the same case at a later time
 by reloading the same **Wages and Contributions** file.
 
 #### :material/currency_exchange: Fixed Income
@@ -370,7 +370,7 @@ unless the `Convert from contributions file`
 button is toggled, in which case Roth conversions will not be optimized,
 but will rather be performed according to
 the *Roth conv* column on the
-[Wages and Contributions](#wages-and-contributions) page.
+[Wages and Contributions](#work-history-wages-and-contributions) page.
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
 
@@ -433,7 +433,7 @@ A button allows to re-run the case which would generate a different result
 if the chosen rates are `histochastic` or `stochastic`. Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
-selected in the [Settings](#settings) section described below.
+selected in the [Settings](#settings-settings) section described below.
 
 #### :material/data_table: Worksheets
 This page shows the various worksheets containing annual transactions
@@ -442,7 +442,7 @@ Savings balances are values at the beginning of the year, while other quantities
 are for the full year.
 Each table can be downloaded separately in csv format, or all tables can be downloaded
 jointly as a single Excel workbook by clicking on the `Download Worksheets` on the
-[Output Files](#output-files) page.
+[Output Files](#description-output-files) page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 The first few lines of the **Sources** worksheets are the most important
 as these lines are the only ones that are actionable in the near term.
@@ -465,9 +465,9 @@ of the parameters selected for each case.
 Another section called **Excel Workbooks** allows
 to save the contents of the tables on corresponding pages as a single Excel workbook.
 The `Download Wages and Contributions file` will save the data displayed on the
-[Wages and Contributions](#wages-and-contributions) page while the
+[Wages and Contributions](#work-history-wages-and-contributions) page while the
 `Download Worksheets` will save all tables displayed
-on the [Worksheets](#worksheets) page as a single Excel file.
+on the [Worksheets](#data-table-worksheets) page as a single Excel file.
 
 Similarly, all parameters used to generate the case are collected in *toml* format and displayed.
 The `Download case parameter file...` button allows to save the parameters of the selected scenario
@@ -475,8 +475,8 @@ to a *case* file for future use.
 
 With the case parameter file and the **Wages and Contributions** worksheet,
 the same case can be reproduced at a later time by uploading
-them through the widgets on the [Create Case](#create-case)
-and [Wages and Contributions](#wages-and-contributions) pages,
+them through the widgets on the [Create Case](#person-add-create-case)
+and [Wages and Contributions](#work-history-wages-and-contributions) pages,
 respectively.
 
 --------------------------------------------------------------------------------------
@@ -510,7 +510,7 @@ of cases $N$ and the probability of success $P$, which is the percentage of case
 Cases that failed are termed infeasible, as the optimizer could not find
 values that could satisty all constraints.
 
-As is the case for [Historical Range](#historical-range),
+As is the case for [Historical Range](#history-historical-range),
 if the `Beneficiary fractions` are not all unity, two histograms will also be displayed:
 one for the partial bequest left at the passing of the first spouse
 and the other for the distribution of values of the objective being optimized,
@@ -606,7 +606,7 @@ A typical workflow would look like the following:
 1) Create a base case representing your basic scenario;
 2) Duplicate the base case and modify the parameter you want to investigate;
 3) Repeat 2) with other end-member values of the parameter you would like to consider;
-4) Run all cases and compare them on the [Output Files](#output-files) page.
+4) Run all cases and compare them on the [Output Files](#description-output-files) page.
 
 To make it more concrete, here is an example
 where one would like to investigate the effects of Roth conversions
@@ -619,9 +619,9 @@ Let's say this case allows for Roth conversions up to \\$100k.
 set maximum Roth conversions to 0.
 3) Duplicate the base case again, call it *May 2025 - No Roth limit* and
 set maximum Roth conversions to a very large number, say, \\$800k.
-4) Compare all cases on the [Output Files](#output-files) page.
+4) Compare all cases on the [Output Files](#description-output-files) page.
 
 As mentionned above, the most actionable information is located on the first few lines
-of the **Sources** tables on the [Worksheets](#worksheets) pages.
+of the **Sources** tables on the [Worksheets](#data-table-worksheets) pages.
 This is where withdrawals and conversions are displayed for this year and the next few years.
 """)

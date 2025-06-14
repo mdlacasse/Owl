@@ -131,6 +131,8 @@ which are all tracked separately for married individuals. Asset transition to th
 is done according to beneficiary fractions for each type of savings account.
 Tax status covers married filing jointly and single, depending on the number of individuals reported.
 
+Maturation rules for Roth contributions and conversions are implemented as constraints
+limiting withdrawal amounts to cover Roth account balances for 5 years after the events.
 Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints.
 Future values are simple projections of current values with the assumed inflation rates.
 
