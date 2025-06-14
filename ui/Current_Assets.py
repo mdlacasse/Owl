@@ -10,13 +10,17 @@ if ret is None or kz.caseHasNoPlan():
 else:
     st.write("#### :orange[Savings Account Balances]")
     accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-free"}
+    hdetails = {"txbl": "Brokerage and savings accounts excluding emergency fund. ",
+                "txDef": "IRA, 401k, 403b and the like. ",
+                "txFree": "Roth IRA, Roth 401k, Roth 403b and the like. "}
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         iname = kz.getKey("iname0")
         for key in accounts:
             nkey = key + str(0)
             kz.initKey(nkey, 0)
-            ret = kz.getNum(f"{iname}'s {accounts[key]} account ($k)", nkey, help=kz.help1000)
+            ret = kz.getNum(f"{iname}'s {accounts[key]} account ($k)", nkey,
+                            help=hdetails[key]+kz.help1000)
 
         today = date.today()
         thisyear = today.year
@@ -32,7 +36,8 @@ else:
             for key in accounts:
                 nkey = key + str(1)
                 kz.initKey(nkey, 0)
-                ret = kz.getNum(f"{iname1}'s {accounts[key]} account ($k)", nkey, help=kz.help1000)
+                ret = kz.getNum(f"{iname1}'s {accounts[key]} account ($k)", nkey,
+                                help=hdetails[key]+kz.help1000)
 
     if kz.getKey("status") == "married":
         st.divider()
@@ -42,19 +47,20 @@ else:
             nkey = "benf" + str(0)
             kz.initKey(nkey, 1)
             helpmsg = "Fraction of account left to surviving spouse."
-            ret = kz.getNum(accounts["txbl"].capitalize(), nkey, format="%.2f", max_value=1.0, step=0.05, help=helpmsg)
+            ret = kz.getNum(accounts["txbl"].capitalize(), nkey, format="%.2f", max_value=1.0,
+                            step=0.05, help=helpmsg)
 
         with col2:
             nkey = "benf" + str(1)
             kz.initKey(nkey, 1)
-            ret = kz.getNum(accounts["txDef"].capitalize(), nkey, format="%.2f", max_value=1.0, step=0.05, help=helpmsg)
+            ret = kz.getNum(accounts["txDef"].capitalize(), nkey, format="%.2f", max_value=1.0,
+                            step=0.05, help=helpmsg)
 
         with col3:
             nkey = "benf" + str(2)
             kz.initKey(nkey, 1)
-            ret = kz.getNum(
-                accounts["txFree"].capitalize(), nkey, format="%.2f", max_value=1.0, step=0.05, help=helpmsg
-            )
+            ret = kz.getNum(accounts["txFree"].capitalize(), nkey, format="%.2f", max_value=1.0,
+                            step=0.05, help=helpmsg)
 
         st.write("#####")
         st.write("#### :orange[Surplus Deposit Fraction]")

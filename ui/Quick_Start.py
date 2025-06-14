@@ -20,7 +20,7 @@ at a later time:
 specifying account balances, asset allocation, social security and pension, rates,
 optimization parameters and related assumptions.
 This file is in *toml* format which is editable with a simple text editor.
-- A *wages and contributions* file containing a
+- A *Wages and Contributions* file containing a
 time table with anticipated wages, future contributions
 to savings accounts, and anticipated big-ticket items, which can be either expenses or income.
 This file is in Excel or LibreOffice format, and has one tab per individual in the plan.
@@ -30,17 +30,17 @@ With these two files, a scenario can be created and solved with only a few steps
 of Jack and Jill provided here as an example:
 1) Download these two files from the GitHub repository
  (right-click on the link and select `Save link as...`):
-    - Case parameter file named
+    - *Case* parameter file named
     [case_jack+jill.toml](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
     in editable *toml* format.
-    - Wages and contributions file named
+    - *Wages and Contributions* file named
     [jack+jill.xlsx](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
     in Excel format.
 1) Navigate to the **Create Case** page and drag and drop the case parameter file
 you just downloaded (*case_jack+jill.toml*).
 Alternatively, you can directly select the case of *jack+jill* among the GitHub examples.
 1) Navigate to the **Wages and Contributions** page and
-drag and drop the wages and contributions file you downloaded (*jack+jill.xlsx*).
+drag and drop the *Wages and Contributions* file you downloaded (*jack+jill.xlsx*).
 1) Move to any page in the **Single Scenario** section to browse the simulation results.
 
 Congratulations! :balloon: You just ran your first case. :medal: You can now explore each page and

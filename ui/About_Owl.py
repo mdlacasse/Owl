@@ -37,7 +37,8 @@ Copyright &copy; 2025 - Martin-D. Lacasse
  and [Streamlit](https://streamlit.io) for the front-end.
 - Contributors: Josh Williams (noimjosh) for Docker image code,
  Dale Seng (sengsational) for great insights and suggestions,
- Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions.
+ Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
+ Clark Jefcoat (hubcity) for fruitful interactions.
 - Owl image is from [freepik](https://freepik.com).
 
 #### :orange[Bugs and Feature Requests]

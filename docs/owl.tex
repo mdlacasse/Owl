@@ -32,7 +32,7 @@
 \begin{document}
 \title{Formulation of the optimization model in Owl}
 \author{Martin-D. Lacasse}
-\date{March 14, 2025}
+\date{June 13, 2025}
 \maketitle
 \thispagestyle{fancy}
 \fancyfoot[R]{\copyright\ 2024 - Martin-D. Lacasse}
@@ -707,6 +707,24 @@ add the market returns to the savings balances.
 	then the previous equation becomes
 	\begin{equation}
 		x_{in} \le \min(b_{i1n}, x_{max}).
+	\end{equation}
+
+	Roth conversions are also governed by a 5-year maturation rule for withdrawals. This means
+	that withdrawals will need to be smaller than the balance minus the sum of all contributions
+	and conversions that happened over the last 5 years. For that purpose, the Wages and Contributions
+	file which stores $\omega_{in}, \kappa_{ijn}, \ldots$, will go back 5 years, and the Roth
+	conversions in that year range will be interpreted as having happened. We will use
+	these arrays to store previous conversions and contributions at the end of the array so that
+	they can be retrieved with negative indices in Python. Mathematically, we want that
+	\begin{equation}
+		w_{i2n} \le b_{i2n} - \sum_{n'=n-5}^n [ \kappa{i2n'} + x_{in'}.
+	\end{equation}
+	However, conversions are sometimes a variable $x_{in}$
+	and sometimes a parameter $X_{in}$, depending on the sign of $n$.
+	This leads to
+	\begin{equation}
+		b_{i2n} - w_{i2n} - \sum_{n'=\max(n-5, 0}^{n-1} x_{in'}
+		\ge \sum_{n'=n-5}^{\min(-1, n-1)} X_{in} + \sum_{n'=n-5}^{n-1} \kappa{i2n'}.
 	\end{equation}
 
 \paragraph*{Net spending}

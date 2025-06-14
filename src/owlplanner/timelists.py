@@ -21,7 +21,7 @@ import pandas as pd
 
 
 # Expected headers in each excel sheet, one per individual.
-timeHorizonItems = [
+_timeHorizonItems = [
     "year",
     "anticipated wages",
     "taxable ctrb",
@@ -59,14 +59,14 @@ def read(finput, inames, horizons, mylog):
             raise Exception(f"Could not read file {finput}: {e}.") from e
         streamName = f"file '{finput}'"
 
-    timeLists = condition(dfDict, inames, horizons, mylog)
+    timeLists = _condition(dfDict, inames, horizons, mylog)
 
     mylog.vprint(f"Successfully read time horizons from {streamName}.")
 
     return finput, timeLists
 
 
-def condition(dfDict, inames, horizons, mylog):
+def _condition(dfDict, inames, horizons, mylog):
     """
     Make sure that time horizons contain all years up to life expectancy,
     and that values are positive (except big-ticket items).
@@ -83,24 +83,24 @@ def condition(dfDict, inames, horizons, mylog):
 
         df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
         for col in df.columns:
-            if col == "" or col not in timeHorizonItems:
+            if col == "" or col not in _timeHorizonItems:
                 df.drop(col, axis=1, inplace=True)
 
-        for item in timeHorizonItems:
+        for item in _timeHorizonItems:
             if item not in df.columns:
                 raise ValueError(f"Item {item} not found for {iname}.")
 
-        # Only consider lines in proper year range.
-        df = df[df["year"] >= thisyear]
+        # Only consider lines in proper year range. Go back 5 years for Roth maturation.
+        df = df[df["year"] >= (thisyear - 5)]
         df = df[df["year"] < endyear]
         missing = []
-        for n in range(horizons[i]):
+        for n in range(-5, horizons[i]):
             year = thisyear + n
             if not (df[df["year"] == year]).any(axis=None):
                 df.loc[len(df)] = [year, 0, 0, 0, 0, 0, 0, 0, 0]
                 missing.append(year)
             else:
-                for item in timeHorizonItems:
+                for item in _timeHorizonItems:
                     if item != "big-ticket items" and df[item].iloc[n] < 0:
                         raise ValueError(f"Item {item} for {iname} in year {df['year'].iloc[n]} is < 0.")
 

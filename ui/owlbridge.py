@@ -383,7 +383,7 @@ def readContributions(plan, stFile):
             kz.setKey("_timeList1", plan.timeLists[kz.getKey("iname1")])
         plan.timeListsFileName = stFile.name
     except Exception as e:
-        st.error(f"Failed to parse contributions file 'stFile.name': {e}")
+        st.error(f"Failed to parse Wages and Contributions file 'stFile.name': {e}")
         return False
 
     return True

@@ -159,13 +159,16 @@ Case parameter files can have any name but when saving from the interface,
 their name will start with *case_* followed by the case name.
 
 #### :material/work_history: Wages and Contributions
-This page allows to enter an optional Excel file containing future wages and contributions.
+This page allows to enter an optional Excel file containing future wages and contributions,
+and past Roth contributions and conversions.
 Alternatively, values can be entered and/or edited directly into the corresponding tables.
 Values in these tables are all in nominal values, and in \\$, not thousands (\\$k).
 The **Wages and Contributions** table contains 9 columns titled as follows:
 
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
+|2020 | | | | | | | | |
+| ... | | | | | | | | |
 |2025 | | | | | | | | |
 |2026 | | | | | | | | |
 | ... | | | | | | | | |
@@ -177,10 +180,18 @@ file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template
 to fill in the values using the user interface, but this last approach does not provide
 Excel capabilities for cross-column calculations.
 
+This file goes 5 year back in time in order to capture previous contributions and
+conversions to Roth accounts. This information is required for implementing
+constraints restricting withdrawals from Roth accounts that would violate
+the 5-year maturation rule before withdrawals.
+Entries in columns others than contributions or conversions to Roth accounts
+for past years will be ignored by Owl but can be left there for documentation pruposes.
+
 Here, year 20XX represents the last row which could be the last year based on the life
 expectancy values provided.
 While loading an Excel workbook, missing years or empty cells will be filled with zero values,
-while years outside the time span of the plan will simply be ignored.
+while years outside the time span of the plan will simply be ignored with the exception
+of 5-year back history.
 
 The column *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment
@@ -234,7 +245,7 @@ If values were entered or edited directly in the table,
 values can be saved directly in Excel format by clicking
 the `Download Wages and Contributions` on the
 [Output Files](#output-files) page. This allows to rerun the same case at a later time
-by reloading the same Wages and Contributions file.
+by reloading the same **Wages and Contributions** file.
 
 #### :material/currency_exchange: Fixed Income
 This page is for entering anticipated fixed income from pensions and social security.
