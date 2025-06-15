@@ -1134,17 +1134,19 @@ class Plan(object):
 
     def _add_roth_maturation_constraints(self):
         for i in range(self.N_i):
-            for n in range(self.horizons[i]):
+            h = self.horizons[i]
+            for n in range(h):
                 rhs = 0
                 row = self.A.newRow()
                 row.addElem(_q3(self.C["b"], i, 2, n, self.N_i, self.N_j, self.N_n + 1), 1)
                 row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)
                 for nn in range(n-5, n):
-                    rhs += self.kappa_ijn[i, 2, nn]
-                    if nn >= 0:
-                        row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), -1)
-                    else:
-                        rhs += self.myRothX_in[i, nn]
+                    if nn < 0:  # Parameter from the past stored at the end of array.
+                        rhs += self.kappa_ijn[i, 2, h+nn] + self.myRothX_in[i, h+nn]
+                    else:       # Future variables and parameters.
+                        rhs += self.kappa_ijn[i, 2, nn]
+                        row.addElem(_q2(self.C["x"], i, nn, self.N_i, self.N_n), -1)
+
                 self.A.addRow(row, rhs, np.inf)
 
     def _add_roth_conversion_constraints(self, options):
