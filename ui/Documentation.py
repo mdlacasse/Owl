@@ -181,11 +181,25 @@ to fill in the values using the user interface, but this last approach does not 
 Excel capabilities for cross-column calculations.
 
 This file goes 5 year back in time in order to capture previous contributions and
-conversions to Roth accounts. This information is required for implementing
-constraints restricting withdrawals from Roth accounts that would violate
-the 5-year maturation rule before withdrawals.
+conversions to Roth accounts.
 Entries in columns others than contributions or conversions to Roth accounts
-for past years will be ignored by Owl but can be left there for documentation pruposes.
+for past years will be ignored by Owl but can be left there for documentation purposes.
+Past contributions and conversions are required for implementing
+constraints restricting withdrawals from Roth accounts, thus avoiding 
+penalties resulting from breaking the 5-year maturation rule.
+For that purpose, a retainer on the tax-free account
+is put as the sum of all Roth conversions performed
+during the last 5 years plus an additional amount for potential
+compounded gains. These gains are assumed to be 10% per year for the past
+years, and use the predicted returns for future years.
+Unlike conversions, contributions can be withdrawn, but a retainer is
+put covering the sum of all potential gains resulting from contributions
+made over the last 5 years. While this approach is somehow more restrictive than
+the actual rules, it avoids unnecessary penalties while being a somehow simple approach.
+An exact calculation would require to know (and input) the annual rates of return for
+the last 5 years and asset allocation ratios, and the same for all future years.
+Note that in certain cases, constraints on Roth withdrawals can make a zero bequest impossible
+if Roth conversions took place in the 5 years before passing.
 
 Here, year 20XX represents the last row which could be the last year based on the life
 expectancy values provided.
