@@ -181,7 +181,7 @@ assets to support, even with no estate being left.
 - Streamlit Community Cloud [Streamlit](https://streamlit.io)
 - Contributors: Josh (noimjosh@gmail.com) for Docker image code,
  Dale Seng (sengsational) for great insights and suggestions,
- Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions.
+ Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions, Clark Jefcoat (hubcity) for fruitful interactions.
 
 ---------------------------------------------------------------------
 
@@ -189,7 +189,7 @@ Copyright &copy; 2024 - Martin-D. Lacasse
 
 Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
 
-Code output has been verified with analytical solutions and other approaches.
+Code output has been verified with analytical solutions when applicable, and comparative approaches otherwise.
 Nevertheless, accuracy of results is not guaranteed.
 
 --------------------------------------------------------
