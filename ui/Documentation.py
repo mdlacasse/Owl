@@ -62,7 +62,8 @@ formulation of the optimization problem can be found
 - [:material/info: About Owl](#info-about-owl)
 
 [Tips](#tips)
-- [:material/lightbulb_2: Advice on Optimization and Roth Conversions](#lightbulb-2-advice-on-optimization-and-roth-conversions)
+- [:material/lightbulb_2: Advice on Optimization and Roth Conversions]\
+(#lightbulb-2-advice-on-optimization-and-roth-conversions)
 - [:material/rule_settings: Typical Workflow](#rule-settings-typical-workflow)
 
 --------------------------------------------------------------------------------------
@@ -185,7 +186,7 @@ conversions to Roth accounts.
 Entries in columns others than contributions or conversions to Roth accounts
 for past years will be ignored by Owl but can be left there for documentation purposes.
 Past contributions and conversions are required for implementing
-constraints restricting withdrawals from Roth accounts, thus avoiding 
+constraints restricting withdrawals from Roth accounts, thus avoiding
 penalties resulting from breaking the 5-year maturation rule.
 For that purpose, a retainer on the tax-free account
 is put as the sum of all Roth conversions performed

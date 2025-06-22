@@ -1141,7 +1141,7 @@ class Plan(object):
         A retainer is put on all conversions and associated gains, and gains on all recent contributions.
         """
         # Assume 10% per year for contributions and conversions for past 5 years.
-        # Future years will use the assumed returns. 
+        # Future years will use the assumed returns.
         oldTau1 = 1.10
         for i in range(self.N_i):
             h = self.horizons[i]
@@ -1154,10 +1154,10 @@ class Plan(object):
                 row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)
                 for dn in range(1, 6):
                     nn = n - dn
-                    if nn < 0:  # Past of future is in the past: 
+                    if nn < 0:  # Past of future is in the past:
                         # Parameters are stored at the end of contributions and conversions arrays.
                         cgains *= oldTau1
-                        # If only an contribution - without conversion. 
+                        # If only an contribution - without conversion.
                         # rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
                         rhs += cgains * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
                     else:       # Past of future is in the future: use variables and parameters.
@@ -1165,7 +1165,7 @@ class Plan(object):
                         Tau1 = 1 + ksum2
                         cgains *= Tau1
                         row.addElem(_q2(self.C["x"], i, nn, self.N_i, self.N_n), -cgains)
-                        # If only a contribution - without conversion. 
+                        # If only a contribution - without conversion.
                         # rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn]
                         rhs += cgains * self.kappa_ijn[i, 2, nn]
 

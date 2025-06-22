@@ -7,5 +7,5 @@ odfpy
 plotly
 pulp
 scipy
-streamlit
+streamlit >= 1.46
 toml
