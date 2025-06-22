@@ -1147,6 +1147,7 @@ class Plan(object):
             h = self.horizons[i]
             for n in range(h):
                 rhs = 0
+                # To add compounded gains to original amount.
                 cgains = 1
                 row = self.A.newRow()
                 row.addElem(_q3(self.C["b"], i, 2, n, self.N_i, self.N_j, self.N_n + 1), 1)
@@ -1156,13 +1157,17 @@ class Plan(object):
                     if nn < 0:  # Past of future is in the past: 
                         # Parameters are stored at the end of contributions and conversions arrays.
                         cgains *= oldTau1
-                        rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
+                        # If only an contribution - without conversion. 
+                        # rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
+                        rhs += cgains * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
                     else:       # Past of future is in the future: use variables and parameters.
                         ksum2 = np.sum(self.alpha_ijkn[i, 2, :, nn] * self.tau_kn[:, nn], axis=0)
                         Tau1 = 1 + ksum2
                         cgains *= Tau1
                         row.addElem(_q2(self.C["x"], i, nn, self.N_i, self.N_n), -cgains)
-                        rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn]
+                        # If only a contribution - without conversion. 
+                        # rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn]
+                        rhs += cgains * self.kappa_ijn[i, 2, nn]
 
                 self.A.addRow(row, rhs, np.inf)
 

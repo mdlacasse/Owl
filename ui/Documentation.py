@@ -194,7 +194,10 @@ compounded gains. These gains are assumed to be 10% per year for the past
 years, and use the predicted returns for future years.
 Unlike conversions, contributions can be withdrawn, but a retainer is
 put covering the sum of all potential gains resulting from contributions
-made over the last 5 years. While this approach is somehow more restrictive than
+made over the last 5 years.
+However, if funds were converted through a Roth backdoor, this is
+still considered as a conversion, and retainer will include contribution amount.
+While this approach is somehow more restrictive than
 the actual rules, it avoids unnecessary penalties while being a somehow simple approach.
 An exact calculation would require to know (and input) the annual rates of return for
 the last 5 years and asset allocation ratios, and the same for all future years.

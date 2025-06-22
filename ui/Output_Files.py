@@ -33,6 +33,19 @@ else:
             helpmsg = "Rerun all other cases defined in the case selector."
             col2.button("Rerun all cases", on_click=owb.runAllCases, help=helpmsg)
 
+        lines = kz.getKey("casetoml")
+        if lines != "":
+            st.divider()
+            st.write("#### :orange[Case Parameter File]\n"
+                     "This file contains the parameters characterizing the current case"
+                     " and can be used, along with the *Wages and Contributions* file, to reproduce it in the future.")
+            st.code(lines, height=400, language="toml")
+
+            st.download_button(
+                "Download case parameter file", data=lines,
+                file_name=f"case_{caseName}.toml", mime="application/toml"
+            )
+
         st.divider()
         st.write("#### :orange[Excel Workbooks]\n"
                  "These workbooks contain time tables describing the flow of money,"
@@ -56,17 +69,4 @@ else:
                 file_name=f"Workbook_{caseName}.xlsx",
                 mime="application/vnd.ms-excel",
                 disabled=kz.isCaseUnsolved(),
-            )
-
-        lines = kz.getKey("casetoml")
-        if lines != "":
-            st.divider()
-            st.write("#### :orange[Case Parameter File]\n"
-                     "This file contains the parameters characterizing the current case"
-                     " and can be used, along with the *Wages and Contributions* file, to reproduce it in the future.")
-            st.code(lines, height=400, language="toml")
-
-            st.download_button(
-                "Download case parameter file", data=lines,
-                file_name=f"case_{caseName}.toml", mime="application/toml"
             )
