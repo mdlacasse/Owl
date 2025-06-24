@@ -43,8 +43,8 @@ Alternatively, you can directly select the case of *jack+jill* among the GitHub 
 drag and drop the *Wages and Contributions* file you downloaded (*jack+jill.xlsx*).
 1) Move to any page in the **Single Scenario** section to browse the simulation results.
 
-Congratulations! :balloon: You just ran your first case. :medal: You can now explore each page and
-experiment with different parameters.
+Congratulations! :balloon: You just ran your first case.
+:trophy: You can now explore each page and experiment with different parameters.
 
 For creating your own cases, you can start
 from scratch by selecting `New Case...` in the selection box while on the **Create Case** page,
