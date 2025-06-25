@@ -3,10 +3,12 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 
+
 def setMenu(key):
     menu = kz.getGlobalKey("_"+key)
     if menu is not None:
         kz.storeGlobalKey("menuLocation", menu)
+
 
 st.write("# :material/settings: Settings")
 kz.divider("orange")

@@ -233,9 +233,13 @@ forecasts for the next decade can be found
     st.write("#### :orange[Income taxes]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
-        kz.initKey("gainTx", 15)
+        gkey = "gainTx"
+        kz.initKey(gkey, 15)
         helpmsg = "Choose 0, 15, or 20% depending on anticipated total income."
-        ret = kz.getNum("Long-term capital gains tax rate (%)", "gainTx", max_value=20.0, help=helpmsg, step=5.0)
+        choices = [0, 15, 20]
+        ret = st.selectbox("Long-term capital gains tax rate (%)", options=choices, args=[gkey],
+                           index=choices.index(kz.getKey(gkey)), key="_"+gkey, on_change=kz.setpull, help=helpmsg)
+        # ret = kz.getNum("Long-term capital gains tax rate (%)", "gainTx", max_value=20.0, help=helpmsg, step=5.0)
 
     with col2:
         kz.initKey("heirsTx", 30)

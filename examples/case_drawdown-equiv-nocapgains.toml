@@ -1,5 +1,5 @@
 "Plan Name" = "drawdown-equiv-nocapgains"
-Description = "This is a case involving a single individual Used to compare with @hugcity's DrawdownCalc. For max bequest, it should yield 90,762 while an $80k net spending should leave $673,156 as bequest."
+Description = "This is a case involving a single individual. Case is used for comparing with @hugcity's DrawdownCalc. For max bequest, it should yield $90,762, while an $80k net spending should leave $673,156 as a bequest."
 
 ["Basic Info"]
 Status = "single"
