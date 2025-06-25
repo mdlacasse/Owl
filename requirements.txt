@@ -1,3 +1,4 @@
+highspy
 numpy
 matplotlib
 seaborn

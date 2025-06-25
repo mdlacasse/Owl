@@ -4,7 +4,7 @@ from io import StringIO
 
 
 cases = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam-bequest",
-         "kim+sam-spending", "drawdown-equiv-nocapgains"]
+         "kim+sam-spending", "drawdown-comparison-1"]
 
 
 def loadExample(case):
