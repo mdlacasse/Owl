@@ -402,13 +402,15 @@ past 1 or 2 years, whichever applies. Values default to zero.
 These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
 
 Different mixed-integer linear programming solvers can be selected.
-This option is mostly for verification purposes. All solvers
-tested (HiGHS, COIN-OR Branch-and-Cut solver, and MOSEK) provided very similar results.
+This option is mostly for verification purposes.
+All solvers tested
+(HiGHS, COIN-OR Branch-and-Cut solver through PuLP, HiGHS through PuLP, and MOSEK)
+provided very similar results.
 Due to the mixed-integer formulation, solver performance is sometimes unpredictable.
 In general, CBC tends to be slower, partly because of the algorithm,
 and partly because it solves the problem through a model description saved in
 a temporary file requiring I/O.
-Selecting `HiGHS` for most cases provides very good results.
+In most cases, selecting `HiGHS` will provide good results and the shortest time.
 
 The time profile modulating the net spending amount
 can be selected to either be `flat` or follow a `smile` shape.

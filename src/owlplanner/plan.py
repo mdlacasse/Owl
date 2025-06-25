@@ -1578,7 +1578,7 @@ class Plan(object):
 
         # Check objective and required options.
         knownObjectives = ["maxBequest", "maxSpending"]
-        knownSolvers = ["HiGHS", "PuLP/CBC", "MOSEK"]
+        knownSolvers = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS", "MOSEK"]
 
         knownOptions = [
             "bequest",
@@ -1645,10 +1645,10 @@ class Plan(object):
 
         if solver == "HiGHS":
             solverMethod = self._milpSolve
-        elif solver == "PuLP/CBC":
-            solverMethod = self._pulpSolve
         elif solver == "MOSEK":
             solverMethod = self._mosekSolve
+        elif "PuLP" in solver:
+            solverMethod = self._pulpSolve
         else:
             raise RuntimeError("Internal error in defining solverMethod.")
 
@@ -1806,7 +1806,13 @@ class Plan(object):
         # solver = pulp.getSolver("MOSEK")
         # prob.solve(solver)
 
-        prob.solve(pulp.PULP_CBC_CMD(msg=False))
+        if "HiGHS" in options["solver"]:
+            solver = pulp.getSolver("HiGHS", msg=False)
+        else:
+            solver = pulp.getSolver("PULP_CBC_CMD", msg=False)
+
+        prob.solve(solver)
+
         # Filter out None values and convert to array.
         xx = np.array([0 if x[i].varValue is None else x[i].varValue for i in range(self.nvars)])
         solution = np.dot(c, xx)

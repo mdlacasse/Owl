@@ -89,7 +89,7 @@ else:
 
     st.divider()
     st.write("#### :orange[Solver]")
-    choices = ["HiGHS", "PuLP/CBC"]
+    choices = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
     if owb.hasMOSEK():
         choices += ["MOSEK"]
     kz.initKey("solver", choices[0])
