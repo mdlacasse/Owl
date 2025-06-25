@@ -41,7 +41,7 @@ st.write("""
 #### :orange[Full Screen]
 Running Owl in full screen provides a more immersive user experience.
 Use the F11 key to toggle your browser in full screen mode. Or better, use the Streamlit app on your device.
-See documentation for details.
+See [documentation](Documentation#settings-settings) for details.
 """)
 
 st.divider()

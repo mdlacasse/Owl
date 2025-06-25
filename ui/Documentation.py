@@ -570,6 +570,10 @@ selects only this item. Double-clicking on a disabled item restores all traces.
 A copy of the plot can also be saved as a *png* file. Both `matplotlib` and `plotly`
 graphs can be seen in full-screen mode.
 
+The position of the menubar can be selected to be at the top or as a sidebar.
+The sidebar menu can also be collapsed if needed.
+Default behavior is to have the menubar at the top, unless on a mobile device.
+
 ###### Streamlit App and Theme
 If you are accessing Owl remotely on the Streamlit Community Server through the Chrome browser,
 the Chrome performance manager might disable hidden or inactive tabs.
@@ -579,7 +583,8 @@ The best way to avoid this situation is to run the web page through the Streamli
 This is done by clicking the '+" icon shown at the right end of the browser URL bar,
 showing *App available: Install Streamlit*.
 The app provides more screen space as it doesn't have a navigation bar.
-A similar thing can happen if your simulations
+On a mobile device, saving the page to the home screen will achieve the same result.
+A similar timing problem can happen if your simulations
 (Monte Carlo) are extremely long.
 The Streamlit community server has a hard resource limit
 on CPU time that might stop your calculations before completion.
@@ -591,9 +596,9 @@ you should definitely consider installing and running Owl
 locally on your computer, either natively or through a container.
 See instructions on the GitHub repository for how to proceed.
 
-Going full screen by hitting F11 while in your browser
-can greatly improve the visualization of graphs and worksheets.
-The side menu can also be collapsed.
+If not using the Streamlit app, going full screen by hitting F11 in your browser
+can also greatly improve the visualization of graphs and worksheets.
+
 Owl's default theme is the *Dark* mode but a *Light* theme is also available by
 clicking on the three vertical dots located on the upper right of the app
 and selecting the **Settings** option.
