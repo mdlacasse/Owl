@@ -7,6 +7,7 @@ st.set_page_config(layout="wide", page_title="Owl Retirement Planner")
 # st.set_page_config(layout="centered", page_title="Owl Retirement Planner")
 
 kz.init()
+kz.initGlobalKey("menuLocation", "top")
 
 st.logo("https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png", size="large")
 
@@ -30,14 +31,14 @@ pages = {
         st.Page("Monte_Carlo.py", icon=":material/finance:"),
     ],
     "Resources": [
-        st.Page("Logs.py", icon=":material/error:"),
         st.Page("Quick_Start.py", icon=":material/rocket_launch:", default=True),
         st.Page("Documentation.py", icon=":material/help:"),
         st.Page("Settings.py", icon=":material/settings:"),
+        st.Page("Logs.py", icon=":material/error:"),
         st.Page("About_Owl.py", icon=":material/info:"),
     ],
 }
 
-pg = st.navigation(pages, position="top")
+pg = st.navigation(pages, position=kz.getGlobalKey("menuLocation"))
 
 pg.run()
