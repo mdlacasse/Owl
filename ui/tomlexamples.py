@@ -3,7 +3,8 @@ import streamlit as st
 from io import StringIO
 
 
-cases = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam-bequest", "kim+sam-spending"]
+cases = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam-bequest",
+         "kim+sam-spending", "drawdown-equiv-nocapgains"]
 
 
 def loadExample(case):
