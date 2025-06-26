@@ -552,7 +552,7 @@ def titleBar(txt, allCases=False):
     div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
         border-radius: 10px;
         position: sticky;
-        background: linear-gradient(to right, #551b1b, #909090);
+        background: linear-gradient(to right, #551b1b, #EFB761);
         /* background-color: %s; */
         color: %s;
         top: 2.875rem;
