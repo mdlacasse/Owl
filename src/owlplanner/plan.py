@@ -283,7 +283,7 @@ class Plan(object):
             self.i_s = -1
 
         # Default parameters:
-        self.psi = 0.15  # Long-term income tax rate on capital gains (decimal)
+        self.psi_n = np.zeros(self.N_n)  # Long-term income tax rate on capital gains (decimal)
         self.chi = 0.6   # Survivor fraction
         self.mu = 0.018  # Dividend rate (decimal)
         self.nu = 0.30   # Heirs tax rate (decimal)
@@ -484,17 +484,6 @@ class Plan(object):
         self.yTCJA = yTCJA
         self.caseStatus = "modified"
         self._adjustedParameters = False
-
-    def setLongTermCapitalTaxRate(self, psi):
-        """
-        Set long-term income tax rate. Rate is in percent. Default 15%.
-        """
-        if not (0 <= psi <= 100):
-            raise ValueError("Rate must be between 0 and 100.")
-        psi /= 100
-        self.mylog.vprint(f"Long-term capital gain income tax set to {u.pc(psi, f=0)}.")
-        self.psi = psi
-        self.caseStatus = "modified"
 
     def setBeneficiaryFractions(self, phi):
         """
@@ -1327,7 +1316,7 @@ class Plan(object):
             row = self.A.newRow({_q1(self.C["g"], n, self.N_n): 1})
             row.addElem(_q1(self.C["s"], n, self.N_n), 1)
             for i in range(self.N_i):
-                fac = self.psi * self.alpha_ijkn[i, 0, 0, n]
+                fac = self.psi_n[n] * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
                     self.omega_in[i, n]
                     + self.zetaBar_in[i, n]
@@ -1637,7 +1626,11 @@ class Plan(object):
             raise ValueError(f"Slack value out of range {lambdha}.")
         self.lambdha = lambdha / 100
 
+        # Ensure parameters are adjusted for inflation.
         self._adjustParameters()
+
+        # Reset long-term capital gain tax rate to zero.
+        self.psi_n[:] = 0
 
         solver = myoptions.get("solver", self.defaultSolver)
         if solver not in knownSolvers:
@@ -1710,7 +1703,7 @@ class Plan(object):
             old_x = xx
 
         if solverSuccess:
-            self.mylog.vprint(f"Self-consistent Medicare loop returned after {it} iterations.")
+            self.mylog.vprint(f"Self-consistent Medicare loop returned after {it+1} iterations.")
             self.mylog.vprint(solverMsg)
             self.mylog.vprint(f"Objective: {u.d(solution * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
@@ -1898,6 +1891,7 @@ class Plan(object):
             MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C["e"] : self.C["F"]])
 
         self.M_n = tx.mediCosts(self.yobs, self.horizons, MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
+        self.psi_n = tx.capitalGainTaxRate(self.N_i, MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
 
         return None
 
@@ -2005,7 +1999,7 @@ class Plan(object):
             * self.alpha_ijkn[:, 0, 0, :-1],
             axis=0,
         )
-        self.U_n = self.psi * self.Q_n
+        self.U_n = self.psi_n * self.Q_n
 
         # Make derivative variables.
         # Putting it all together in a dictionary.

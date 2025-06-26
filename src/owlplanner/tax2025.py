@@ -65,22 +65,51 @@ irmaaFees = 12 * np.array([185.00, 74.00, 111.00, 110.90, 111.00, 37.00])
 # These are speculated.
 taxBrackets_nonTCJA = np.array(
     [
-        [12150, 49550, 119950, 250200, 544000, 546200, 9999999],
-        [24350, 99100, 199850, 304600, 543950, 614450, 9999999],
+        [12150, 49550, 119950, 250200, 544000, 546200, 9999999],  # Single
+        [24350, 99100, 199850, 304600, 543950, 614450, 9999999],  # MFJ
     ]
 )
 
-# These are current.
-stdDeduction_TCJA = np.array([15000, 30000])
-# These are speculated.
-stdDeduction_nonTCJA = np.array([8300, 16600])
+# These are current (adjusted for inflation).
+stdDeduction_TCJA = np.array([15000, 30000])    # Single, MFJ
+# These are speculated (adjusted for inflation).
+stdDeduction_nonTCJA = np.array([8300, 16600])  # Single, MFJ
 
-# These are current.
-extra65Deduction = np.array([2000, 1600])
+# These are current (adjusted for inflation).
+extra65Deduction = np.array([2000, 1600])       # Single, MFJ
+
+# Thresholds for capital gains (adjusted for inflation).
+capGainRates = np.array(
+    [
+        [48350, 533400],
+        [96700, 600050],
+    ]
+)
 
 ###############################################################################
 # End of section where rates need to be actualized every year.
 ###############################################################################
+
+
+def capitalGainTaxRate(Ni, magi_n, gamma_n, nd, Nn):
+    """
+    Return an array of decimal rates for capital gains.
+    Parameter nd is the index year of first passing of a spouse, if applicable,
+    nd == Nn for single individuals.
+    """
+    status = Ni - 1
+    cgRate_n = np.zeros(Nn)
+
+    for n in range(Nn):
+        if n == nd:
+            status -= 1
+
+        if magi_n[n] > gamma_n[n] * capGainRates[status][1]:
+            cgRate_n[n] = 0.20
+        elif magi_n[n] > gamma_n[n] * capGainRates[status][0]:
+            cgRate_n[n] = 0.15
+
+    return cgRate_n
 
 
 def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):

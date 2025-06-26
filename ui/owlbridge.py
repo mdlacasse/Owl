@@ -123,7 +123,6 @@ def prepareRun(plan):
 
     plan.setDescription(kz.getKey("description"))
     plan.setHeirsTaxRate(kz.getKey("heirsTx"))
-    plan.setLongTermCapitalTaxRate(kz.getKey("gainTx"))
     plan.setDividendRate(kz.getKey("divRate"))
     plan.setExpirationYearTCJA(kz.getKey("yTCJA"))
 
@@ -659,7 +658,6 @@ def genDic(plan):
         dic["smileIncrease"] = 12
         dic["smileDelay"] = 0
     dic["survivor"] = 100 * plan.chi
-    dic["gainTx"] = 100 * plan.psi
     dic["divRate"] = 100 * plan.mu
     dic["heirsTx"] = 100 * plan.nu
     dic["yTCJA"] = plan.yTCJA

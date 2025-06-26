@@ -24,7 +24,8 @@ Copyright &copy; 2025 - Martin-D. Lacasse
 - Linear programming optimization solvers are from
 [HiGHS](https://highs.dev) and [PuLP](https://coin-or.github.io/pulp/).
 - Owl planner relies on the following [Python](https://python.org) packages:
-    - [Matplotlib](https://matplotlib.org),
+    - [highspy](https://highs.dev),
+    [Matplotlib](https://matplotlib.org),
     [Numpy](https://numpy.org),
     [odfpy](https://https://pypi.org/project/odfpy),
     [openpyxl](https://openpyxl.readthedocs.io),
@@ -49,8 +50,9 @@ Or just drop me a line to report your experience with the tool. &#x1F44D;
 
 #### :orange[Privacy]
 This app does not store or forward any information. All data entered is lost
-after a session is closed. You can choose to download selected parts of your
-own data to your computer before closing the session.
+after a session is closed. However, you can choose to download selected parts of your
+own data to your computer before closing the session. These data will be stored on
+your computer and can be used to reproduce a case at a later time.
 
 #### :orange[License]
 This software is released under the

@@ -55,10 +55,10 @@ formulation of the optimization problem can be found
 - [:material/finance: Monte Carlo](#finance-monte-carlo)
 
 [Resources](#resources)
-- [:material/error: Logs](#error-logs)
 - [:material/rocket_launch: Quick Start](#rocket-launch-quick-start)
 - [:material/help: Documentation](#help-documentation)
 - [:material/settings: Settings](#settings-settings)
+- [:material/error: Logs](#error-logs)
 - [:material/info: About Owl](#info-about-owl)
 
 [Tips](#tips)
@@ -374,6 +374,10 @@ Rates for the S&P 500 equities include dividends.
 A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition) for 2025.
 
+This page also includes some adjustments related to future tax rates. One is the anticipated
+tax rate that heirs will pay on the tax-deferred portion of the bequest. Another setting is related
+to the year when the Tax Cut and Job Act rates is anticipated to be expired.
+
 #### :material/tune: Optimization Parameters
 This page allows you to select the objective function to optimize.
 One can choose between maximizing the net spending amount subject to the constraint
@@ -393,8 +397,12 @@ A year from which Roth conversions can begin to be considered can also be select
 no Roth conversions will be allowed before the year specified.
 
 Medicare premiums start automatically in the year each individual reach age 65.
-Calculations of Medicare and IRMAA can be turned on or off. This will typically speed up
+Calculations of Medicare and IRMAA can be turned on or off.
+This will also make the capital gain tax rate to default of zero instead
+of being adjusted (0, 15, or 20%) depending on MAGI.
+Turning Medicare calculation off will typically speed up
 the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
+But this is done at the cost of ignoring Medicare costs and lon-term capital gain tax rates adjustments.
 If the current age of any individual in the plan makes them eligible
 for Medicare within the next three years,
 additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for the
@@ -548,10 +556,6 @@ Most likely, this will not happen unless you devise unusually long Monte Carlo r
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
-#### :material/error: Logs
-Messages coming from the underlying Owl calculation engine are displayed on this page.
-This page is mainly used for debugging purposes.
-
 #### :material/rocket_launch: Quick Start
 This page is the landing page of the application.
 It shows new users how to quickly get started by using an example case file.
@@ -604,6 +608,10 @@ can also greatly improve the visualization of graphs and worksheets.
 Owl's default theme is the *Dark* mode but a *Light* theme is also available by
 clicking on the three vertical dots located on the upper right of the app
 and selecting the **Settings** option.
+
+#### :material/error: Logs
+Messages coming from the underlying Owl calculation engine are displayed on this page.
+This page is mainly used for debugging purposes.
 
 #### :material/info: About Owl
 Credits and disclaimers.

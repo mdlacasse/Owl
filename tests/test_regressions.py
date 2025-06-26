@@ -538,7 +538,6 @@ def test_Historical2():
     p.setPension([0, 10], [65, 65])
     p.setSocialSecurity([28, 25], [70, 70])
     p.setHeirsTaxRate(33)
-    p.setLongTermCapitalTaxRate(15)
 
     options = {'maxRothConversion': 100, 'noRothConversions': 'Jill', 'withMedicare': True}
     p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=False)

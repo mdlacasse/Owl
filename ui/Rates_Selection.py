@@ -233,20 +233,11 @@ forecasts for the next decade can be found
     st.write("#### :orange[Income taxes]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
-        gkey = "gainTx"
-        kz.initKey(gkey, 15)
-        helpmsg = "Choose 0, 15, or 20% depending on anticipated total income."
-        choices = [0, 15, 20]
-        ret = st.selectbox("Long-term capital gains tax rate (%)", options=choices, args=[gkey],
-                           index=choices.index(kz.getKey(gkey)), key="_"+gkey, on_change=kz.setpull, help=helpmsg)
-        # ret = kz.getNum("Long-term capital gains tax rate (%)", "gainTx", max_value=20.0, help=helpmsg, step=5.0)
-
-    with col2:
         kz.initKey("heirsTx", 30)
         helpmsg = "Marginal tax rate that heirs would have to pay on inherited tax-deferred balance."
         ret = kz.getNum("Heirs marginal tax rate (%)", "heirsTx", max_value=100.0, help=helpmsg, step=1.0)
 
-    with col3:
+    with col2:
         kz.initKey("yTCJA", 2026)
         helpmsg = "Year at which the Tax Cut And Job Act tax rates are speculated to be expired."
         ret = kz.getIntNum("TCJA expiration year", "yTCJA", help=helpmsg)

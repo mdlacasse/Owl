@@ -1,5 +1,5 @@
-"Plan Name" = "drawdown_comparison-1"
-Description = "This is a case involving a single individual. Case is used for comparing with @hugcity's DrawdownCalc. For max bequest, it should yield $90,762, while an $80k net spending should leave $673,156 as a bequest."
+"Plan Name" = "drawdowncalc-comparison-1"
+Description = "This is a case involving a single individual. Case is used for comparing with @hugcity's DrawdownCalc. For max bequest, it should yield $90,792, while an $80k net spending should leave $673,156 as a bequest."
 
 ["Basic Info"]
 Status = "single"
@@ -25,7 +25,6 @@ Names = [ "Charles",]
 
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 0.0
-"Long-term capital gain tax rate" = 0.0
 "Dividend rate" = 0.0
 "TCJA expiration year" = 2099
 Method = "user"
