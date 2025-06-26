@@ -398,14 +398,18 @@ no Roth conversions will be allowed before the year specified.
 
 Medicare premiums start automatically in the year each individual reach age 65.
 Calculations of Medicare and IRMAA can be turned on or off.
-This will also make the capital gain tax rate to default of zero instead
-of being adjusted (0, 15, or 20%) depending on MAGI.
-Turning Medicare calculation off will typically speed up
-the calculations by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
-But this is done at the cost of ignoring Medicare costs and lon-term capital gain tax rates adjustments.
+Turning off these calculations will also make the capital gain income tax rate
+to default to zero instead
+of being automatically adjusted (0, 15, or 20%) depending on the
+Modified Adjusted Gross Income (MAGI) used for the Medicare calculations.
+Turning Medicare calculations off will typically speed up
+the computation by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
+But be mindful that this is done at the cost of ignoring Medicare costs
+and long-term capital gain income tax rates adjustments.
+
 If the current age of any individual in the plan makes them eligible
 for Medicare within the next three years,
-additional cells will appear for entering the Modified Adjusted Gross Income (MAGI) for the
+additional cells will appear for entering the MAGI's for the
 past 1 or 2 years, whichever applies. Values default to zero.
 These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
 
@@ -418,7 +422,7 @@ Due to the mixed-integer formulation, solver performance is sometimes unpredicta
 In general, CBC tends to be slower, partly because of the algorithm,
 and partly because it solves the problem through a model description saved in
 a temporary file requiring I/O.
-In most cases, selecting `HiGHS` will provide good results and the shortest time.
+In most cases, selecting `HiGHS` will provide great results in the shortest time.
 
 The time profile modulating the net spending amount
 can be selected to either be `flat` or follow a `smile` shape.
