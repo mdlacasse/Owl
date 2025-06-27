@@ -546,18 +546,19 @@ def titleBar(txt, allCases=False):
 
     bc, fc = getColors()
 
+    position = getGlobalKey("position")
     # Custom CSS for the sticky header
     st.markdown(
-        """<style>
-    div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
+        f"""<style>
+    div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {{
         border-radius: 10px;
-        position: sticky;
+        position: {position};
         background: linear-gradient(to right, #551b1b, #EFB761);
         /* background-color: %s; */
         color: %s;
         top: 2.875rem;
         z-index: 100;
-    }
+    }}
 </style>""" % (bc, fc), unsafe_allow_html=True
     )
     with header:

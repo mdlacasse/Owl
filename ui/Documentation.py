@@ -405,7 +405,7 @@ Modified Adjusted Gross Income (MAGI) used for the Medicare calculations.
 Turning Medicare calculations off will typically speed up
 the computation by a factor of 2 to 3, which can be useful when running Monte Carlo simulations.
 But be mindful that this is done at the cost of ignoring Medicare costs
-and long-term capital gain income tax rates adjustments.
+and long-term capital gain income tax rate adjustments.
 
 If the current age of any individual in the plan makes them eligible
 for Medicare within the next three years,

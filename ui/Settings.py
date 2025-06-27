@@ -4,10 +4,10 @@ import sskeys as kz
 import owlbridge as owb
 
 
-def setMenu(key):
+def setKey(key):
     menu = kz.getGlobalKey("_"+key)
     if menu is not None:
-        kz.storeGlobalKey("menuLocation", menu)
+        kz.storeGlobalKey(key, menu)
 
 
 st.write("# :material/settings: Settings")
@@ -28,13 +28,22 @@ with col1:
 with col2:
     choices = ("sidebar", "top")
     mkey = "menuLocation"
-    # This should point to the default behavior. No point to call back.
     kz.initGlobalKey(mkey, choices[1])
     st.write("#### :orange[Menu]")
     helpmsg = "Select menu appearance."
     index = choices.index(kz.getGlobalKey(mkey))
     ret = st.radio("Menu location", options=choices, index=index, args=[mkey],
-                   key="_"+mkey, on_change=setMenu, help=helpmsg, horizontal=True)
+                   key="_"+mkey, on_change=setKey, help=helpmsg, horizontal=True)
+
+with col3:
+    choices = ("sticky", "static")
+    pkey = "position"
+    kz.initGlobalKey(pkey, choices[0])
+    st.write("#### :orange[Header]")
+    helpmsg = "Select header behavior."
+    index = choices.index(kz.getGlobalKey(pkey))
+    ret = st.radio("Header behavior", options=choices, index=index, args=[pkey],
+                   key="_"+pkey, on_change=setKey, help=helpmsg, horizontal=True)
 
 st.divider()
 st.write("""

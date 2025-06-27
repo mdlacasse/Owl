@@ -8,6 +8,7 @@ st.set_page_config(layout="wide", page_title="Owl Retirement Planner")
 
 kz.init()
 kz.initGlobalKey("menuLocation", "top")
+kz.initGlobalKey("position", "sticky")
 
 st.logo("https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png", size="large")
 
