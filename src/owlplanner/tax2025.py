@@ -33,7 +33,7 @@ rates_nonTCJA = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 ###############################################################################
 # Single [0] and married filing jointly [1].
 
-# These are current.
+# These are 2025 current.
 taxBrackets_TCJA = np.array(
     [
         [11925, 48475, 103350, 197300, 250525, 626350, 9999999],
@@ -70,7 +70,7 @@ taxBrackets_nonTCJA = np.array(
     ]
 )
 
-# These are current (adjusted for inflation).
+# These are 2025 current (adjusted for inflation).
 stdDeduction_TCJA = np.array([15000, 30000])    # Single, MFJ
 # These are speculated (adjusted for inflation).
 stdDeduction_nonTCJA = np.array([8300, 16600])  # Single, MFJ
@@ -85,6 +85,10 @@ capGainRates = np.array(
         [96700, 600050],
     ]
 )
+
+# Thresholds for net investment income tax (not adjusted for inflation).
+niitThreshold = np.array([200000, 250000])
+niitRate = 0.038
 
 ###############################################################################
 # End of section where rates need to be actualized every year.

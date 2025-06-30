@@ -1143,20 +1143,18 @@ class Plan(object):
                 row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)
                 for dn in range(1, 6):
                     nn = n - dn
-                    if nn < 0:  # Past of future is in the past:
-                        # Parameters are stored at the end of contributions and conversions arrays.
-                        cgains *= oldTau1
-                        # If only an contribution - without conversion.
-                        # rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
-                        rhs += cgains * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
-                    else:       # Past of future is in the future: use variables and parameters.
-                        ksum2 = np.sum(self.alpha_ijkn[i, 2, :, nn] * self.tau_kn[:, nn], axis=0)
-                        Tau1 = 1 + ksum2
+                    if nn >= 0:       # Past of future is now or in the future: use variables and parameters.
+                        Tau1 = 1 + np.sum(self.alpha_ijkn[i, 2, :, nn] * self.tau_kn[:, nn], axis=0)
                         cgains *= Tau1
                         row.addElem(_q2(self.C["x"], i, nn, self.N_i, self.N_n), -cgains)
-                        # If only a contribution - without conversion.
-                        # rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn]
-                        rhs += cgains * self.kappa_ijn[i, 2, nn]
+                        # If a contribution - it can be withdrawn but not the gains.
+                        rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn]
+                    else:  # Past of future is in the past:
+                        # Parameters are stored at the end of contributions and conversions arrays.
+                        cgains *= oldTau1
+                        # If a contribution, it has no penalty, but assume a conversion.
+                        # rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
+                        rhs += cgains * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
 
                 self.A.addRow(row, rhs, np.inf)
 
@@ -1312,7 +1310,7 @@ class Plan(object):
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
         tau_0prev[tau_0prev < 0] = 0
         for n in range(self.N_n):
-            rhs = -self.M_n[n]
+            rhs = -self.M_n[n] - self.J_n[n]
             row = self.A.newRow({_q1(self.C["g"], n, self.N_n): 1})
             row.addElem(_q1(self.C["s"], n, self.N_n), 1)
             for i in range(self.N_i):
@@ -1875,27 +1873,48 @@ class Plan(object):
 
         return solution, xx, solverSuccess, solverMsg
 
+    def _computeNIIT(self):
+        """
+        Compute Wages (W), Dividends (Q), Interests (I), and exemption(e).
+        """
+        J_n = np.zeros(self.N_n)
+        status = len(self.yobs) - 1
+
+        for n in range(self.N_n):
+            if status and n == self.n_d:
+                status -= 1
+
+            Gmax = tx.niitThreshold[status]
+            if self.MAGI_n[n] > Gmax:
+                J_n[n] = tx.niitRate * min(self.MAGI_n[n] - Gmax, self.I_n[n] + self.Q_n[n])
+
+        return J_n
+
     def _estimateMedicare(self, x=None, withMedicare=True):
         """
         Compute rough MAGI and Medicare costs.
         """
         if withMedicare is False:
             self.M_n = np.zeros(self.N_n)
+            self.J_n = np.zeros(self.N_n)
             return
 
         if x is None:
-            MAGI_n = np.zeros(self.N_n)
-        else:
-            self.F_tn = np.array(x[self.C["F"] : self.C["g"]])
-            self.F_tn = self.F_tn.reshape((self.N_t, self.N_n))
-            MAGI_n = np.sum(self.F_tn, axis=0) + np.array(x[self.C["e"] : self.C["F"]])
+            self.MAGI_n = np.zeros(self.N_n)
+            self.J_n = np.zeros(self.N_n)
+            self.M_n = np.zeros(self.N_n)
+            self.psi_n = np.zeros(self.N_n)
+            return
 
-        self.M_n = tx.mediCosts(self.yobs, self.horizons, MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
-        self.psi_n = tx.capitalGainTaxRate(self.N_i, MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
+        self._aggregateResults(x, short=True)
+
+        self.J_n = self._computeNIIT()
+        self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
+        self.psi_n = tx.capitalGainTaxRate(self.N_i, self.MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
 
         return None
 
-    def _aggregateResults(self, x):
+    def _aggregateResults(self, x, short=False):
         """
         Utility function to aggregate results from solver.
         Process all results from solution vector.
@@ -1950,7 +1969,42 @@ class Plan(object):
         # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
         # print(self.z_inz)
 
-        # Partial distribution at the passing of first spouse.
+        self.G_n = np.sum(self.F_tn, axis=0)
+
+        tau_0 = np.array(self.tau_kn[0, :])
+        tau_0[tau_0 < 0] = 0
+        # Last year's rates.
+        tau_0prev = np.roll(tau_0, 1)
+        self.Q_n = np.sum(
+            (
+                self.mu
+                * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :Nn])
+                + tau_0prev * self.w_ijn[:, 0, :]
+            )
+            * self.alpha_ijkn[:, 0, 0, :-1],
+            axis=0,
+        )
+        self.U_n = self.psi_n * self.Q_n
+
+        self.MAGI_n = self.G_n + self.e_n + self.Q_n
+
+        I_in = ((self.b_ijn[:, 0, :-1] + self.d_in - self.w_ijn[:, 0, :])
+                * np.sum(self.alpha_ijkn[:, 0, 1:, :-1] * self.tau_kn[1:, :], axis=1))
+        self.I_n = np.sum(I_in, axis=0)
+
+        # Stop after building minimu required for self-consistent loop.
+        if short:
+            return
+
+        self.T_tn = self.F_tn * self.theta_tn
+        self.T_n = np.sum(self.T_tn, axis=0)
+        self.P_n = np.zeros(Nn)
+        # Add early withdrawal penalty if any.
+        for i in range(Ni):
+            self.P_n[0:self.n59[i]] += 0.1*(self.w_ijn[i, 1, 0:self.n59[i]] + self.w_ijn[i, 2, 0:self.n59[i]])
+
+        self.T_n += self.P_n
+        # Compute partial distribution at the passing of first spouse.
         if Ni == 2 and n_d < Nn:
             nx = n_d - 1
             i_d = self.i_d
@@ -1976,30 +2030,6 @@ class Plan(object):
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
         self.dist_in[self.dist_in < 0] = 0
-        self.G_n = np.sum(self.F_tn, axis=0)
-        self.T_tn = self.F_tn * self.theta_tn
-        self.T_n = np.sum(self.T_tn, axis=0)
-        self.P_n = np.zeros(Nn)
-        # Add early withdrawal penalty if any.
-        for i in range(Ni):
-            self.P_n[0:self.n59[i]] += 0.1*(self.w_ijn[i, 1, 0:self.n59[i]] + self.w_ijn[i, 2, 0:self.n59[i]])
-
-        self.T_n += self.P_n
-
-        tau_0 = np.array(self.tau_kn[0, :])
-        tau_0[tau_0 < 0] = 0
-        # Last year's rates.
-        tau_0prev = np.roll(tau_0, 1)
-        self.Q_n = np.sum(
-            (
-                self.mu
-                * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :Nn])
-                + tau_0prev * self.w_ijn[:, 0, :]
-            )
-            * self.alpha_ijkn[:, 0, 0, :-1],
-            axis=0,
-        )
-        self.U_n = self.psi_n * self.Q_n
 
         # Make derivative variables.
         # Putting it all together in a dictionary.
@@ -2136,6 +2166,11 @@ class Plan(object):
         taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
         dic[" Total tax paid on gains and dividends"] = f"{u.d(taxPaidNow)}"
         dic["[Total tax paid on gains and dividends]"] = f"{u.d(taxPaid)}"
+
+        taxPaid = np.sum(self.J_n, axis=0)
+        taxPaidNow = np.sum(self.J_n / self.gamma_n[:-1], axis=0)
+        dic[" Total net investment income tax paid"] = f"{u.d(taxPaidNow)}"
+        dic["[Total net investment income tax paid]"] = f"{u.d(taxPaid)}"
 
         taxPaid = np.sum(self.M_n, axis=0)
         taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
@@ -2417,8 +2452,8 @@ class Plan(object):
         title = self._name + "\nFederal Income Tax"
         if tag:
             title += " - " + tag
-        # All taxes: ordinary income and dividends.
-        allTaxes = self.T_n + self.U_n
+        # All taxes: ordinary income, dividends, and NIIT.
+        allTaxes = self.T_n + self.U_n + self.J_n
         fig = self._plotter.plot_taxes(self.year_n, allTaxes, self.M_n, self.gamma_n,
                                        value, title, self.inames)
         if figure:
@@ -2490,7 +2525,7 @@ class Plan(object):
             "net spending": self.g_n,
             "taxable ord. income": self.G_n,
             "taxable gains/divs": self.Q_n,
-            "Tax bills + Med.": self.T_n + self.U_n + self.M_n,
+            "Tax bills + Med.": self.T_n + self.U_n + self.M_n + self.J_n,
         }
 
         fillsheet(ws, incomeDic, "currency")
@@ -2504,7 +2539,7 @@ class Plan(object):
             "all BTI's": np.sum(self.Lambda_in, axis=0),
             "all wdrwls": np.sum(self.w_ijn, axis=(0, 1)),
             "all deposits": -np.sum(self.d_in, axis=0),
-            "ord taxes": -self.T_n,
+            "ord taxes": -self.T_n - self.J_n,
             "div taxes": -self.U_n,
             "Medicare": -self.M_n,
         }

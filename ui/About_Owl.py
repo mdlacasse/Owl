@@ -51,7 +51,7 @@ Or just drop me a line to report your experience with the tool. &#x1F44D;
 #### :orange[Privacy]
 This app does not store or forward any information. All data entered is lost
 after a session is closed. However, you can choose to download selected parts of your
-own data to your computer before closing the session. These data will be stored on
+own data to your computer before closing the session. These data will be stored strictly on
 your computer and can be used to reproduce a case at a later time.
 
 #### :orange[License]

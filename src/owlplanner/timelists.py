@@ -42,7 +42,7 @@ def read(finput, inames, horizons, mylog):
     year, anticipated wages, taxable ctrb, 401k ctrb, Roth 401k ctrb,
     IRA ctrb, Roth IRA ctrb, Roth conv, and big-ticket items.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
-    Returs a dictionary of dataframes by individual's names.
+    Return a dictionary of dataframes by individual's names.
     """
 
     mylog.vprint("Reading wages, contributions, conversions, and big-ticket items over time...")
@@ -93,6 +93,7 @@ def _condition(dfDict, inames, horizons, mylog):
         # Only consider lines in proper year range. Go back 5 years for Roth maturation.
         df = df[df["year"] >= (thisyear - 5)]
         df = df[df["year"] < endyear]
+        df = df.drop_duplicates("year")
         missing = []
         for n in range(-5, horizons[i]):
             year = thisyear + n

@@ -41,6 +41,7 @@ you just downloaded (*case_jack+jill.toml*).
 Alternatively, you can directly select the case of *jack+jill* among the GitHub examples.
 1) Navigate to the **Wages and Contributions** page and
 drag and drop the *Wages and Contributions* file you downloaded (*jack+jill.xlsx*).
+Alternatively, you can directly load the *Wages and Contributions* file from GitHub using the button.
 1) Move to any page in the **Single Scenario** section to browse the simulation results.
 
 Congratulations! :balloon: You just ran your first case.

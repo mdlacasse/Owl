@@ -9,9 +9,9 @@ Names = [ "Jack", "Jill",]
 "Start date" = "01-01"
 
 [Assets]
-"taxable savings balances" = [ 90.5, 60.2,]
+"taxable savings balances" = [ 120.5, 60.2,]
 "tax-deferred savings balances" = [ 600.2, 150.0,]
-"tax-free savings balances" = [ 70.6, 40.8,]
+"tax-free savings balances" = [ 280.6, 260.8,]
 "Beneficiary fractions" = [ 1, 1, 1,]
 "Spousal surplus deposit fraction" = 0.0
 

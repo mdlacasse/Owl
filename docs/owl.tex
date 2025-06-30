@@ -1,5 +1,6 @@
 \documentclass{report}[fleqn,12pt]
 \usepackage{amsmath}
+\usepackage{amsfonts}
 \usepackage{enumitem}
 \usepackage{bm}
 \usepackage{blindtext}
@@ -115,12 +116,12 @@ to take only non-negative values ($\ge 0$ inequality).
         sometimes be less that the standard exemption $\bar{\sigma}_n$, leading to a
 	negative taxable income if the inflation-adjusted standard exemption is simply subtracted
 	from the gross taxable income $G_n$.
-\item [$f_{t n}$]
+\item [$f_{tn}$]
 	Fraction of tax bracket $t$ filled, so that taxable ordinary income $G_n$ can be expressed as
 	\begin{eqnarray}
 		\label{Eq:Tx1}
-		G_n = \sum_t f_{t n}\bar{\Delta}_{t n},\\
-		0 \leq f_{t n} \leq 1.
+		G_n = \sum_t f_{tn}\bar{\Delta}_{tn},\\
+		0 \leq f_{tn} \leq 1.
 	\end{eqnarray}
 	A definition of $\Delta$ can be found in the section describing the parameters below. 
 \item [$g_n$]
@@ -135,11 +136,12 @@ to take only non-negative values ($\ge 0$ inequality).
 \item [$x_{in}$]
 	Roth conversion performed by individual $i$ during year $n$.
 	These events are taxable as ordinary income.
+\item [$z_{xn}$]
+	Variables denoted $z$ are reserved for binary variables.
 \end{description}
 
 \section{Parameters}
-For more easily distinguishing parameters from variables, all parameters will be expressed either in Greek letters
-or using caligraphic fonts.
+For more easily distinguishing parameters from variables, all parameters will be expressed either in Greek letters.
 Parameter values are either set by the user, historical data, or by the tax code.
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$\beta_{ij}$]
@@ -155,9 +157,8 @@ Parameter values are either set by the user, historical data, or by the tax code
 		\gamma_n = \prod_{n' = 0}^{n-1} (1 + \tau_{3n'}),
 	\end{equation}
 	with $\gamma_0 := 1$, and where $n'$ is a dummy index.
-	As the time span of interest goes from the first year to the beginning
-        of the year following the last year,
-        variable $\gamma_n$ will have $N_n + 1$ elements.
+	As the time span of interest goes from the beginning of the first year to the beginning
+        of the year following the last year, variable $\gamma_n$ will have $N_n + 1$ elements.
 	Parameters indexed for inflation will be indicated by a bar on top as in $\bar{\sigma}_n$.
 \item [$\sigma_n$]
 	Standard deduction. It can be adjusted for inflation as follows
@@ -177,7 +178,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 	The {\em smile} can be implemented using a cosine superimposed over a gentle linear increase
 	such as in
 	\begin{equation}
-		\xi_n = 1 + a_1*cos(2n\pi/(N_n-1)) + a_2n/(N_n-1),
+		\xi_n = 1 + a_1*\cos(2n\pi/(N_n-1)) + a_2n/(N_n-1),
 	\end{equation}
 	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum-neutral with respect to a flat profile.
 	Values of $a_1 = 15\%$ and $a_2=12\%$ provide curves that are similar to realistic
@@ -229,9 +230,10 @@ Parameter values are either set by the user, historical data, or by the tax code
         Then, intermediate values are interpolated either using
 	a linear relation,
 \begin{equation}
-	\alpha_{ijkn} = a + \frac{n}{N_n - 1} (b - a),
+	\alpha_{ijkn} = a + \frac{n}{N - 1} (b - a),
 \end{equation}
-or an s-curve as in
+where $N$ is either $n_d$ or $N_n$,
+or using an s-curve as in
 \begin{equation}
 	\alpha_{ijkn} = a + \frac{(b - a)}{2}
 	(\tanh((n-n_1)/n_2) + 1),
@@ -252,8 +254,8 @@ or an s-curve as in
 	\begin{eqnarray}
 		k_{11} &=& \frac{1}{2}(1 + \tanh(n_1/n_2)) \nonumber \\
 		k_{12} &=& \frac{1}{2}(1 - \tanh(n_1/n_2)) \nonumber \\
-		k_{21} &=& \frac{1}{2}(1 - \tanh((N_n-1-n_1)/n_2)) \nonumber \\
-		k_{22} &=& \frac{1}{2}(1 + \tanh((N_n-1-n_1)/n_2)).
+		k_{21} &=& \frac{1}{2}(1 - \tanh((N-1-n_1)/n_2)) \nonumber \\
+		k_{22} &=& \frac{1}{2}(1 + \tanh((N-1-n_1)/n_2)).
 	\end{eqnarray}
 	These interpolation functions allow the allocation ratios to gradually change
 	or {\em glide} during retirement. Fig.~(\ref{Fig:allocations}) provides an example
@@ -318,7 +320,7 @@ or an s-curve as in
 	Sum of wages obtained by individual $i$ during year $n$.
 	Do not confuse wages $\omega$ with withdrawals $w$.
 \item [$\mu$]
-	Dividend return rate for equities in taxable accounts. Average is little above 2\% for S\&P 500.
+	Dividend return rate for equities in taxable accounts. Average is little below 2\% for S\&P 500.
 \item [$\nu$]
 	Heirs income tax rate to be applied on the tax-deferred portion of the estate. This is not an estate tax
 	but rather the federal income marginal tax rate for the heirs.
@@ -343,80 +345,49 @@ or an s-curve as in
 	when $\phi_j \neq 1, \forall j$, it is recommended that $\eta$ be set to $i_d$ so that
 	all surplus get deposited to $i_d$'s accounts,
 	thus avoid loopholes when optimizing for the final bequest.
-\item [$\mathcal{M}_n$]
-	Costs of Medicare and its Income Related Monthly Adjusted Adjustment (IRMAA).
-	As this additional adjustment
-	is a step function, it would have to be computed using binary variables and mixed-integer linear
-	programming. In the current tax code, this adjustment
-	depends on the modified adjusted gross income (MAGI) from 2 years earlier. For the
-	MAGI, we simply use $G_{n-2} + e_{n-2}$ (i.e., gross taxable income
-	plus standard deduction (exemption) from 2 years ago) and ignore the additional IRS
-	rules around tax-free interests which are insignificant in most cases. If the plan
-        has individuals above 63 years old, values of MAGI for previous years are requested from the user.
 
-	There are $q=5$ levels
-	of step adjustments adjusted for inflation,
-	$\bar{L}_{qn} = L_q\gamma_n$ and each of them introduces
-	an annual additional Medicare
-	cost of $\bar{C}_{qn} = C_q\gamma_n$, also adjusted for inflation.
-	One could use binary variables $z_{inq}$ and the following {\em big M} constraint
-	\begin{equation}
-		e_{n-2} -\bar{L}_{qn} \le z_{inq} M - G_{n-2}
-		 \le M - \bar{L}_{qn} + e_{n-2},
-	\end{equation}
-	so that the IRMAA adjustments can be computed as
-	\begin{equation}
-		\label{Eq:IRMAA}
-		\mathcal{M}_n = \sum_{iq} z_{iqn} \bar{C}_{qn}.
-	\end{equation}
-	If the plan needs data from 1 or 2 years ago as Medicare has already started or will in the next years,
-        values for years before current year need to be provided.
-
-	While this approach has been implemented and tested, the robustness of the {\em big M} approach
-	is not guaranteed. Moreover, the introduction of a large number ($5\times N_i\times N_m$,
-        where $N_m$ is the number of years eligible for Medicare) of integer variables with
-        disjonctive constraints makes the
-	convergence to a solution very slow in most situations.
-
-        A more practical approach is to implement a self-consistent loop that
-	optimizes the spending or bequest, and updates the Medicare/IRMAA premiums accordingly.
-	Therefore, the value will be computed from the MAGI
-	as $\mathcal{M}_n^\ell(G_{n-2} + e_{n-2})$, where the value is at iteration $\ell$.
-	After only a few iterations, the solution is converging to within a dollar over the
-	sum of all variables in the plan. This approach, however, does not guarantee convergence
-	as there can be cases where the premiums affect the solution which can oscillate between
-	two solutions, but these cases are detected and a slight change in parameters
-	solves this issue. As these premiums are introduced as parameters in the constraints,
-	there is no direct optimization being performed on Medicare costs.
 \end{description}
 
 \section{Intermediate variables}
 We use intermediate variables for conciseness or clarity,
 but they are ultimately replaced in the final formulation.
-All intermediate variables are in uppercase letters.
+All intermediate variables are in uppercase letters or in double-struck fonts.
 \begin{description}[leftmargin=4em,style=multiline]
-\item [$G_n$]
-	Taxable ordinary income in year $n$. Sum of wages, pension, social security benefits, all withdrawals
-	from tax-deferred accounts, including Roth conversions, and gains from securities
-	(i.e., all gains except those from the $(k=0)$ equities)
-	in the ($j=0$) taxable account, including contributions $\kappa$, minus the standard deduction,
+\item [$W_n$]
+	Taxable wages and withdrawals in year $n$. Sum of wages, pensions, social security benefits,
+	all withdrawals from tax-deferred accounts, including Roth conversions:
 	\begin{eqnarray}
-		\label{Eq:Tx2}
-		G_n &=& 
-		\sum_{i} [\omega_{in} + .85\bar\zeta_{in} + \pi_{in}]
-		- e_n +
-		\nonumber \\
-		&& \sum_{i} [w_{i1n} + x_{in}] +
-		\nonumber \\
-		&& \sum_{ik} 
-		[(1-\delta(k, 0))(b_{i0n} - w_{i0n} + d_{in} + .5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
+		\label{Eq:Wn}
+		W_n &=& 
+		\sum_{i} [\omega_{in} + .85\bar\zeta_{in} + \pi_{in} + w_{i1n} + x_{in}].
 	\end{eqnarray}
 	Social security is indexed for inflation and is assumed to be taxed at 85\%.
 	Pensions can optionally be indexed for inflation.
-	We use a discrete Kronecker $\delta$ function for selecting gains from non-equity assets in
-	taxable accounts. These gains are all taxed as ordinary income. Here, we assumed that
+	All these are taxed as ordinary income.
+
+\item [$I_n$]
+	Income from interests obtained in year $n$. This only involves gains from securities
+	in the taxable account:
+	\begin{eqnarray}
+		\label{Eq:In}
+		I_n &=& \sum_{ik} 
+		[(1-\delta(k, 0))(b_{i0n} - w_{i0n} + d_{in} + .5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}].
+	\end{eqnarray}
+	Here, we assumed that
 	withdrawals and deposits in the taxable account are taking place at the beginning of the year, while
 	contributions, if any, are taking place in mid-year.
+	We use a discrete Kronecker $\delta$ function for selecting gains from non-equity assets in
+	taxable accounts. 
+	All these are also taxed as ordinary income.
+
+\item [$G_n$]
+	Taxable ordinary income in year $n$. Sum of wages, pension, social security benefits,
+	all withdrawals from tax-deferred accounts, including Roth conversions and gains from securities,
+	minus the standard deduction,
+	\begin{eqnarray}
+		\label{Eq:Tx2}
+		G_n &=& W_n + I_n - e_n.
+	\end{eqnarray}
 
 \item [$Q_n$]
 	Qualified dividends and long-term capital gains obtained in year $n$.
@@ -443,6 +414,17 @@ All intermediate variables are in uppercase letters.
 	selling the most recent stocks which would not be accurate in situations where
 	the taxable savings account is being depleted slowly. An implementation keeping track
 	of stock purchases and sales is beyond the goal of providing a guide for retirement decisions.
+
+\item [$\mathbb{G}_n$]
+	For Owl, we define the Modified Adjusted Gross Income (MAGI) as
+	\begin{eqnarray}
+	\label{Eq:MAGI}
+		\mathbb{G}_n &=& G_n + Q_n + e_n, \nonumber \\
+		              &=& W_n + I_n + Q_n + e_n. 
+	\end{eqnarray}
+	It includes all wages, social security benefits, pensions,
+	withdrawals, Roth conversions, interests, and dividends, plus
+	the standard deduction for that year.
 
 \item [$P_n$]
 	Amount of 10\% early withdrawal penalty in year $n$,
@@ -492,6 +474,93 @@ All intermediate variables are in uppercase letters.
 	capital gains are taxed at the same preferential rate $\psi$.
 
 \end{description}
+
+\section{Derived variables}
+These variables could be additional variables in the original formulation. However, their
+calculations involve the use of binary variables that can considerably impact the solution
+performance. For that reason, these variables are currently computed after the optimization
+step and reintroduced as constraints in the next, self-consistent solution.
+We will use caligraphic letters to represent these variables.
+\begin{description}[leftmargin=4em,style=multiline]
+\item [$\mathcal{M}_n$]
+	Costs of Medicare and its Income Related Monthly Adjusted Adjustment (IRMAA).
+	As this additional adjustment
+	is a step function, it would have to be computed using binary variables and mixed-integer linear
+	programming. In the current tax code, this adjustment
+	depends on the modified adjusted gross income (MAGI) from 2 years earlier. The
+	MAGI $\mathbb{G}_{n-2}$ from 2 years ago as defined below. It ignores the additional IRS
+	rules around tax-free interests which are insignificant in most cases. If the plan
+        has individuals above 63 years old, values of MAGI for previous years are requested from the user.
+
+	There are $q=5$ levels
+	of step adjustments adjusted for inflation,
+	$\bar{L}_{qn} = L_q\gamma_n$ and each of them introduces
+	an annual additional Medicare
+	cost of $\bar{C}_{qn} = C_q\gamma_n$, also adjusted for inflation.
+	One could use binary variables $z_{inq}$ and the following {\em big M} constraint
+	\begin{equation}
+		e_{n-2} -\bar{L}_{qn} \le z_{inq} M - \mathbb{G}_{n-2}
+		 \le M - \bar{L}_{qn} + e_{n-2},
+	\end{equation}
+	so that the IRMAA adjustments can be computed as
+	\begin{equation}
+		\label{Eq:IRMAA}
+		\mathcal{M}_n = \sum_{iq} z_{iqn} \bar{C}_{qn}.
+	\end{equation}
+	If the plan needs data from 1 or 2 years ago as Medicare has already started or will in the next years,
+        values for years before current year need to be provided.
+
+	While this approach has been implemented and tested, the robustness of the {\em big M} approach
+	is not guaranteed. Moreover, the introduction of a large number ($5\times N_i\times N_m$,
+        where $N_m$ is the number of years eligible for Medicare) of integer variables with
+        disjonctive constraints makes the
+	convergence to a solution very slow in most situations.
+
+        A more practical approach is to implement a self-consistent loop that
+	optimizes the spending or bequest, and updates the Medicare/IRMAA premiums accordingly.
+	Therefore, the value will be computed from the MAGI
+	as $\mathcal{M}_n^\ell(\mathbb{G}_{n-2})$, where the value is at iteration $\ell$.
+	After only a few iterations, the solution is converging to within a dollar over the
+	sum of all variables in the plan. This approach, however, does not guarantee convergence
+	as there can be cases where the premiums affect the solution which can oscillate between
+	two solutions, but these cases are detected and a slight change in parameters
+	solves this issue. As these premiums are introduced as parameters in the constraints,
+	there is no direct optimization being performed on Medicare costs.
+
+\item [$\mathcal{J}_n$]
+	This variable represents the Net Investment Income Tax (NIIT) that was introduced in 2013.
+	This additional tax is meant to finance the Affordable Care Act though a 3.8\% tax on
+	income that does not involve direct work.
+	These include dividends, interests, rents, and the like.
+	This tax is applied on individuals having a MAGI ($\mathbb{G}_n$)
+	more than $\mathbb{G}_{\max}$ = \$200k (single)
+	or $\mathbb{G}_{\max}$ = \$250k for couples (married filing jointly).
+	These threshold values are not adjusted for inflation.
+	This additional tax can be implemented using binary variables $z_n$ and
+	the big $M$ method through the following constraints:
+	\begin{eqnarray}
+		\label{Eq:bigMAGI}
+		\mathbb{G}_n - \mathbb{G}_{\max} &\leq& M z_n, \nonumber\\ 
+		\mathbb{G}_n - \mathbb{G}_{\max} &>& -M (1 - z_n),
+	\end{eqnarray}
+	where $M$ is a number larger than any possible MAGI.
+	The twist of this rule is that the taxable amount is the smallest between the MAGI excedent and
+	the investment income per se. Therefore, another decision needs to be made on the object
+	on which the tax should be applied:
+	\begin{eqnarray}
+		\mathcal{J}_n &=& 0.038 * z_n \min(I_n + Q_n, \mathbb{G}_n - \mathbb{G}_{\max}).
+	\end{eqnarray}
+	This requires the introduction of another binary variable, and $2N_n$ more constraints as
+	in Eq.~\ref{Eq:bigMAGI} to linearize the $\min$ function. Alternatively, $\mathcal{J}^\ell_n$
+	can also be computed self-consistently as its (optimization) impact will be small
+	in most cases, unless near the MAGI threshold.
+	The NIIT amount is relevant for those with large taxable investments
+	or rent income, both has little to no room for optimization.
+	Current code does not account for rent income, but that could be easily added in the
+	future through an additional column in the {\em Wages and Contributions} input file.
+
+\end{description}
+
 
 \chapter{Formulation with imposed asset allocation ratios}
 We first present the case where the sums of assets in each savings accounts $b_{ijn}$ are known
@@ -709,23 +778,40 @@ add the market returns to the savings balances.
 		x_{in} \le \min(b_{i1n}, x_{max}).
 	\end{equation}
 
-	Roth conversions are also governed by a 5-year maturation rule for withdrawals. This means
-	that withdrawals will need to be smaller than the balance minus the sum of all contributions
-	and conversions that happened over the last 5 years. For that purpose, the Wages and Contributions
-	file which stores $\omega_{in}, \kappa_{ijn}, \ldots$, will go back 5 years, and the Roth
-	conversions in that year range will be interpreted as having happened. We will use
-	these arrays to store previous conversions and contributions at the end of the array so that
+	Gains on Roth contributions are governed by a 5-year maturation rule for withdrawals.
+	Roth conversions are also governed by a 5-year maturation rule for withdrawals covering
+	both conversions and gains.
+	Some Roth contributions can sometimes be done through a backdoor
+	by converting from an IRA, therefore requiring a hold on both the contributions and their gains.
+	To stay on the safe side, we impose that
+	withdrawals need to be smaller than the balance minus the sum of all contributions
+	and conversions that happened over the last 5 years.
+	For that purpose, the {\em Wages and Contributions}
+	file which stores $\omega_{in}, \kappa_{ijn}, \ldots$, goes back 5 years, and the Roth
+	conversions in that year range are interpreted as having actually happened. We use
+	the same arrays and store previous conversions and contributions at the end of the array so that
 	they can be retrieved with negative indices in Python. Mathematically, we want that
 	\begin{equation}
-		w_{i2n} \le b_{i2n} - \sum_{n'=n-5}^n [ \kappa{i2n'} + x_{in'}.
+		w_{i2n} \le b_{i2n} - 
+		\sum_{n'=n-5}^{n-1} [ \kappa_{i2n'} + x_{in'}] \prod_{n''=n'}^{n-1}\mathcal{T}^1_{in''}
 	\end{equation}
-	However, conversions are sometimes a variable $x_{in}$
+	where the compounded gain is computed from
+	\begin{equation}
+		\mathcal{T}^1_{in} = 1 + \sum_k \alpha_{i2kn}\tau_{kn}.
+	\end{equation}
+	However, conversions are sometimes a decision variable $x_{in}$
 	and sometimes a parameter $X_{in}$, depending on the sign of $n$.
 	This leads to
-	\begin{equation}
-		b_{i2n} - w_{i2n} - \sum_{n'=\max(n-5, 0}^{n-1} x_{in'}
-		\ge \sum_{n'=n-5}^{\min(-1, n-1)} X_{in} + \sum_{n'=n-5}^{n-1} \kappa{i2n'}.
-	\end{equation}
+	\begin{eqnarray}
+		b_{i2n} - w_{i2n} -
+		\sum_{n'=\max(n-5, 0)}^{n-1} x_{in'}
+		\prod_{n''=n'}^{n-1}\mathcal{T}^1_{in''}
+		&\ge&
+		\sum_{n'=n-5}^{n-1} \kappa_{i2n'}
+		\prod_{n''=n'}^{n-1} \mathcal{T}^1_{in''} \nonumber \\
+		&& + \sum_{n'=n-5}^{\min(-1, n-1)} X_{in'}
+		\prod_{n''=n'}^{\min(-1, n-1)}\mathcal{T}^1_{in''}.
+	\end{eqnarray}
 
 \paragraph*{Net spending}
 	For calculating the net spending $g_n$, we consider the cash flow of all withdrawals,
@@ -734,7 +820,7 @@ add the market returns to the savings balances.
 	\begin{eqnarray}
 		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
 		+ \sum_{ij} w_{ijn} + \sum_i \Lambda^\pm_{in} - s_{n}
-		- P_n - T_n - U_n - \mathcal{M}^\ell_n.
+		- P_n - T_n - U_n - \mathcal{M}^\ell_n - \mathcal{J}^\ell_n.
 	\end{eqnarray}
 	When both spouses are alive, surplus $s_n$ gets deposited in the taxable accounts
 	according to variable $\eta$ as described in Eq.~(\ref{Eq:eta}),
@@ -754,13 +840,13 @@ add the market returns to the savings balances.
 		+ w_{i0n}\max(0, \tau_{0n-1})\right] 
 		&=& \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] \nonumber\\
 		&& + \sum_i [\Lambda^\pm_{in} - .5\psi\alpha_{i00n}\mu\kappa_{i0n}] \nonumber\\
-		&& - \mathcal{M}_n^\ell.
+		&& - \mathcal{M}_n^\ell - \mathcal{J}^\ell_n.
 	\end{eqnarray}
 	Notice that we do not consider market losses as we use $\max(0, \tau)$, and that
 	rates from only the previous year are used. Tax-loss
 	harvesting is beyond the scope of this model, as is the tracking of stocks
 	purchased over the years.
-	For clarity, we did not express $\mathcal{M}_n^\ell(G_n+e_n)$ in terms of the modified
+	For clarity, we did not express $\mathcal{M}_n^\ell(G_n+Q_n+e_n)$ in terms of the modified
 	adjusted gross income (MAGI), but this term is there to indicate that there is a self-consistent
 	loop solving for it and that we are at iteration $\ell$.
 
@@ -1068,7 +1154,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 where $v$ is
 \begin{equation}
 	v[J_2(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
-	+ \Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - \mathcal{M}_n^\ell.
+	+ \Lambda^\pm_{in} - .5\psi\mu\alpha_{i00n}\kappa_{i0n}] - \mathcal{M}_n^\ell - \mathcal{J}^\ell_n.
 \end{equation}
 
 The condition of having a predictable net spending expressed as an

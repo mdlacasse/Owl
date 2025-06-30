@@ -2,6 +2,13 @@ import streamlit as st
 
 import sskeys as kz
 import owlbridge as owb
+import tomlexamples as tomlex
+
+
+def loadWCExample(file):
+    if file:
+        mybytesio = tomlex.loadWagesExample(file)
+        owb.readContributions(mybytesio, file=file)
 
 
 ret = kz.titleBar(":material/work_history: Wages and Contributions")
@@ -31,19 +38,29 @@ else:
                 " that has not yet been uploaded."
             )
 
-    st.write("#### :orange[Upload a *Wages and Contributions* File]")
-    kz.initKey("_xlsx", 0)
-    stTimeLists = st.file_uploader(
-        "Upload values from a Wages and Contributions file...",
-        key="_stTimeLists" + str(kz.getKey("_xlsx")),
-        type=["xlsx", "ods"],
-    )
-    if stTimeLists is not None:
-        if owb.readContributions(stTimeLists):
-            kz.setKey("stTimeLists", stTimeLists)
-            # Change key to reset uploader.
-            kz.storeKey("_xlsx", kz.getKey("_xlsx") + 1)
-            st.rerun()
+    col1, col2 = st.columns(2, gap="large")
+    with col1:
+        st.write("#### :orange[Upload a *Wages and Contributions* File]")
+        kz.initKey("_xlsx", 0)
+        stTimeLists = st.file_uploader(
+            "Upload values from a Wages and Contributions file...",
+            key="_stTimeLists" + str(kz.getKey("_xlsx")),
+            type=["xlsx", "ods"],
+        )
+        if stTimeLists is not None:
+            if owb.readContributions(stTimeLists):
+                kz.setKey("stTimeLists", stTimeLists)
+                # Change key to reset uploader.
+                kz.storeKey("_xlsx", kz.getKey("_xlsx") + 1)
+                st.rerun()
+    with col2:
+        tomlexcase = kz.getKey("tomlexcase")
+        if tomlexcase in tomlex.wages:
+            st.write("#### :orange[Load Example File]")
+            st.write("Read associated Wages and Contributions file.")
+            helpmsg = "Load associated Wages and Contributions File from GitHub"
+            st.button("Load File from GitHub", help=helpmsg,
+                      on_click=loadWCExample, args=[tomlexcase])
 
     st.divider()
     for i in range(n):

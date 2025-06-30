@@ -19,26 +19,29 @@ if ret == kz.newCase:
         placeholder="Enter a case name...",
     )
 elif ret == kz.loadCaseFile:
-    # "<a href="Documentation" target="_self">Documentation</a>", unsafe_allow_html=True)
     st.info(
         "#### Starting a case from a *case* parameter file.\n\n"
         "Upload your own case or select one from multiple examples."
         " Alternatively, you can select `New Case...` in the top selector box to start a case from scratch.\n\n"
         "Look at the :material/help: [Documentation](Documentation) for more details."
     )
-    st.write("#### :orange[Upload your own case file]")
-    file = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])
-    if file is not None:
-        mystringio = StringIO(file.read().decode("utf-8"))
-        if kz.createCaseFromFile(mystringio):
-            st.rerun()
+    col1, col2 = st.columns(2, gap="large")
+    with col1:
+        st.write("#### :orange[Upload Your Own Case File]")
+        file = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])
+        if file is not None:
+            mystringio = StringIO(file.read().decode("utf-8"))
+            if kz.createCaseFromFile(mystringio):
+                st.rerun()
 
-    st.write("#### :orange[Load a case example]")
-    case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None, placeholder="Select a case")
-    if case is not None:
-        mystringio = tomlex.loadExample(case)
-        if kz.createCaseFromFile(mystringio):
-            st.rerun()
+    with col2:
+        st.write("#### :orange[Load a Case Example]")
+        case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None, placeholder="Select a case")
+        if case:
+            mystringio = tomlex.loadCaseExample(case)
+            if kz.createCaseFromFile(mystringio):
+                kz.initKey("tomlexcase", case)
+                st.rerun()
 else:
     st.write("#### :orange[Description and Life Parameters]")
     helpmsg = "Case name can be changed by editing it directly."

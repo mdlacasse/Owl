@@ -16,7 +16,7 @@ Names = [ "Jon", "Jane",]
 "Spousal surplus deposit fraction" = 0.0
 
 ["Wages and Contributions"]
-"Contributions file name" = "edited values"
+"Contributions file name" = "jon+jane.xslx"
 
 ["Fixed Income"]
 "Pension amounts" = [ 0.0, 0.0,]

@@ -16,7 +16,7 @@ Names = [ "Kim", "Sam",]
 "Spousal surplus deposit fraction" = 0.5
 
 ["Wages and Contributions"]
-"Contributions file name" = "template.xlsx"
+"Contributions file name" = "kim+sam.xlsx"
 
 ["Fixed Income"]
 "Pension amounts" = [ 0.0, 0.0,]

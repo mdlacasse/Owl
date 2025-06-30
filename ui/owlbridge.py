@@ -365,7 +365,7 @@ def _setContributions(plan, action):
 
 
 @_checkPlan
-def readContributions(plan, stFile):
+def readContributions(plan, stFile, file=None):
     """
     Set from file -> Plan -> UI.
     """
@@ -374,16 +374,25 @@ def readContributions(plan, stFile):
 
     try:
         plan.readContributions(stFile)
-        kz.setKey("timeListsFileName", stFile.name)
-        kz.setKey("timeList0", plan.timeLists[kz.getKey("iname0")])
-        kz.setKey("_timeList0", plan.timeLists[kz.getKey("iname0")])
-        if kz.getKey("status") == "married":
-            kz.setKey("timeList1", plan.timeLists[kz.getKey("iname1")])
-            kz.setKey("_timeList1", plan.timeLists[kz.getKey("iname1")])
-        plan.timeListsFileName = stFile.name
     except Exception as e:
         st.error(f"Failed to parse Wages and Contributions file 'stFile.name': {e}")
         return False
+
+    if file:
+        name = file
+    elif hasattr(stFile, "name"):
+        name = stFile.name
+    else:
+        name = "unknown"
+
+    kz.setKey("stTimeLists", name)
+    kz.setKey("timeListsFileName", name)
+    kz.setKey("timeList0", plan.timeLists[kz.getKey("iname0")])
+    kz.setKey("_timeList0", plan.timeLists[kz.getKey("iname0")])
+    if kz.getKey("status") == "married":
+        kz.setKey("timeList1", plan.timeLists[kz.getKey("iname1")])
+        kz.setKey("_timeList1", plan.timeLists[kz.getKey("iname1")])
+    plan.timeListsFileName = name
 
     return True
 
