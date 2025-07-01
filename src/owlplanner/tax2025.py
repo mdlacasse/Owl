@@ -105,7 +105,7 @@ def capitalGainTaxRate(Ni, magi_n, gamma_n, nd, Nn):
     cgRate_n = np.zeros(Nn)
 
     for n in range(Nn):
-        if n == nd:
+        if status and n == nd:
             status -= 1
 
         if magi_n[n] > gamma_n[n] * capGainRates[status][1]:
