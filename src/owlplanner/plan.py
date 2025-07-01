@@ -1876,6 +1876,8 @@ class Plan(object):
     def _computeNIIT(self):
         """
         Compute Wages (W), Dividends (Q), Interests (I), and exemption(e).
+        For accounting for rent and trust income, one can easily add a column
+        to the Wages and Contributions file and add yearly amount to Q_n + I_n below.
         """
         J_n = np.zeros(self.N_n)
         status = len(self.yobs) - 1
@@ -1892,14 +1894,10 @@ class Plan(object):
 
     def _estimateMedicare(self, x=None, withMedicare=True):
         """
-        Compute rough MAGI and Medicare costs.
+        Compute MAGI, Medicare costs, long-term capital gain tax rate, and
+        net investment income tax (NIIT).
         """
-        if withMedicare is False:
-            self.M_n = np.zeros(self.N_n)
-            self.J_n = np.zeros(self.N_n)
-            return
-
-        if x is None:
+        if x is None or withMedicare is False:
             self.MAGI_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
