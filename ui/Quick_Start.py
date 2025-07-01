@@ -22,7 +22,8 @@ optimization parameters and related assumptions.
 This file is in *toml* format which is editable with a simple text editor.
 - A *Wages and Contributions* file containing a
 time table with anticipated wages, future contributions
-to savings accounts, and anticipated big-ticket items, which can be either expenses or income.
+to savings accounts, Roth conversions and contributions for the last 5 years,
+and anticipated big-ticket items, which can be either expenses or income.
 This file is in Excel or LibreOffice format, and has one tab per individual in the plan.
 If no file is provided, values will default to zero, but these values can be edited in the app.
 
