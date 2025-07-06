@@ -27,7 +27,7 @@ Then go (`cd`) to the directory where you installed Owl.
 From the top directory of the source code run:
 The following command will install the current version of owlplanner and all its dependencies:
 ```shell
-pip install -r ui/requirements.txt
+pip install --upgrade -r requirements.txt
 ```
 
 You can also install the Owl package directly from the [Python Package Index](http://pypi.org).
