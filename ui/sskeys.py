@@ -113,6 +113,10 @@ def isIncomplete():
     )
 
 
+def caseHasNotRun():
+    return getKey("caseStatus") not in ["solved", "unsuccessful"]
+
+
 def isCaseUnsolved():
     if caseHasNoPlan():
         return True

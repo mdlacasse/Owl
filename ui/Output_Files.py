@@ -10,7 +10,7 @@ if ret is None or kz.caseHasNoPlan():
 else:
     if kz.caseIsRunReady():
         owb.runPlan()
-    else:
+    elif kz.caseHasNotRun():
         st.info("Case definition is not yet complete. Please visit all pages in *Case Setup*.")
 
     if kz.isCaseUnsolved():
