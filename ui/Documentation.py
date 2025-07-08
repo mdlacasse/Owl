@@ -688,6 +688,6 @@ and that common sense will always be the best ally. Plans need to be revisited
 as new information is obtained, allowing to make regular corrections to
 the best estimates.
 Understanding the limitations of any retirement financial planning tool is absolutely critical
-to interpreting the results they provides.
+to interpreting the results they provide.
  
 """)
