@@ -65,6 +65,7 @@ formulation of the optimization problem can be found
 - [:material/lightbulb_2: Advice on Optimization and Roth Conversions]\
 (#lightbulb-2-advice-on-optimization-and-roth-conversions)
 - [:material/rule_settings: Typical Workflow](#rule-settings-typical-workflow)
+- [:material/mindfulness: Scope of Use](#mindfulness-scope-of-use)
 
 --------------------------------------------------------------------------------------
 ### :orange[Getting Started with User Interface]
@@ -661,4 +662,32 @@ set maximum Roth conversions to a very large number, say, \\$800k.
 As mentionned above, the most actionable information is located on the first few lines
 of the **Sources** tables on the [Worksheets](#data-table-worksheets) pages.
 This is where withdrawals and conversions are displayed for this year and the next few years.
+
+#### :material/mindfulness: Scope of Use
+In general, computer modeling is not about predicting the future,
+but rather about exploring possibilities.
+Owl has been designed to allow users to explore multiple parameters
+and their effects on their future financial situation while avoiding the trap of overmodeling.
+Overmodeling happens when a computer model has a level of detail
+far beyond the uncertainty of the problem, which can lead some users to assume
+an unjustified level of certainty in the results.
+
+The main goal of retirement financial planning is to characterize
+uncertainty and translate this uncertainty into actionable, near-term decisions.
+Therefore, as a deliberate choice in design, state tax and complex federal tax rules were
+not included into Owl. As can be seen from this
+[graph](https://marottaonmoney.com/wp-content/uploads/2023/04/Historical-Effective-Rates-Through-2023.jpg),
+income tax rates have varied a lot over the last century. Assuming that current rates will
+stay fixed for the next 30 years is just unrealistic. But the best assumption
+we have is to predict rates from what we currently know,
+or by projecting historical data into the future.
+This approach allows us to frame the problem within a range of likely scenarios.
+
+Users must always keep in mind that retirement financial planning tools have inherent limitations
+and that common sense will always be the best ally. Plans need to be revisited
+as new information is obtained, allowing to make regular corrections to
+the best estimates.
+Understanding the limitations of any retirement financial planning tool is absolutely critical
+to interpreting the results they provides.
+ 
 """)
