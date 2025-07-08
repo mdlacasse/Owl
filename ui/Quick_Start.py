@@ -9,9 +9,16 @@ with col3:
 with col1:
     st.write("# :orange[Owl Retirement Planner]\nA retirement financial exploration tool based on linear programming")
     kz.divider("orange")
+    st.write("### :material/campaign: News")
+    st.markdown("""
+Current version fo Owl does not yet include the major tax code changes resulting from the OBBB.
+Until the dust settles, and changes included in Owl's federal tax calculations,
+the TCJA expiration year can be used to capture some of the upcoming changes. 
+""")
+
+    kz.divider("orange")
     st.write("### :material/rocket_launch: Quick Start")
-    st.markdown(
-        """
+    st.markdown("""
 Owl does not store any information related to a case:
 all is lost after a session is closed. For this reason,
 two files can be used to store the specifications of a case so that it can be reproduced
