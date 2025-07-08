@@ -13,7 +13,7 @@ with col1:
     st.markdown("""
 Current version fo Owl does not yet include the major tax code changes resulting from the OBBB.
 Until the dust settles, and changes included in Owl's federal tax calculations,
-the TCJA expiration year can be used to capture some of the upcoming changes. 
+the TCJA expiration year can be used to capture some of the upcoming changes.
 """)
 
     kz.divider("orange")
@@ -68,5 +68,4 @@ at the top of the page.
 
 More information can be found on the :material/help: **[Documentation](Documentation)**
 page located in the **Resources** section.
-"""
-    )
+""")
