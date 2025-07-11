@@ -811,15 +811,16 @@ is determined.
 	is a piecewise constant function,
         it can be computed using binary variables and mixed-integer linear
 	programming. In the current tax code, this adjustment
-	depends on the modified adjusted gross income (MAGI) from 2 years earlier. For the
-	MAGI, we simply use $G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}$, i.e., gross taxable ordinary income
+	depends on the modified adjusted gross income (MAGI) $\mathcal{G}$ from 2 years earlier. For the
+	MAGI, we simply use $\mathcal{G}_{(n-2)} = G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}$, i.e.,
+        gross taxable ordinary income
 	plus dividends plus standard exemption from 2 years ago. This approach ignores the additional IRS
 	rules around tax-free interests which are insignificant in most cases. If the plan
         has its oldest individual currently either 64 or 65 years old, MAGI values for previous years
 	must be provided by the user.
 	\begin{figure}[t]
 	    \center\includegraphics[width=10cm]{piecewiseConstant.png}
-	    \caption{\small Modeling a piecewise constant function with special ordered set of type 1 (SOS1).
+	    \caption{\small Modeling a piecewise constant monotinically increasing function.
 	    The $x$-axis represents the MAGI from two years ago, while $m_n$ is the Medicare adjusted premiums.
 	    A binary variable $z_q^m$ is associated with each segment $q$.
 	    \label{Fig:piecewise}}
@@ -835,47 +836,45 @@ is determined.
 	bounding the last bracket.
         Points $(\bar{\mathcal{L}}_{qn}, \bar{\mathcal{C}}_{qn})$ form a piecewise
 	constant function that can be modeled using a special ordered set of type 1 (SOS1).
-	These points are shown in Fig.~\ref{Fig:piecewise}. When $q=0$, 
-	the value $\bar{\mathcal{C}}_{qn}$
-	represents the inflation-adjusted base premium for Medicare part B in year $n$, while
+        But because the function is monotonically increasing, we will use a simpler approach
+        exploiting the fact that $\mathcal{C}_{q+1} > \mathcal{C}_q$.
+	These points are shown in Fig.~\ref{Fig:piecewise}.
+        When $\bar{\mathcal{G}}_{(n-2)} \leq \bar{\mathcal{L}}_{0n}$,
+	the value $\bar{\mathcal{C}}_{0n}$
+	represents the (inflation-adjusted) base premium for Medicare part B in year $n$, while
 	higher $q$ values include the IRMAA additional costs.
 
-	We use binary variables $z_{qn}^m \in \{0, 1\}$ with the constraints
-	\begin{equation}
-		\label{Eq:SOS1}
-		\sum_q z_{qn}^m = 1,
-	\end{equation}
-	valid  for all $n \in \{n_m, \ldots, N_n\}$, where $n_m$ is the index year when
-	Medicare starts.
-        For each of these years, we can then express Medicare costs $m_n$ as
-	\begin{equation}
-		m_n = \sum_q z_{qn}^m \bar{\mathcal{C}}_{qn},
-	\end{equation}
-	as only one $z_{qn}^m$ can be non-zero for a given $n$.
-        The determination of which $z_{qn}^m$ is active is achieved by enforcing the following
-	$(N_n - n_m +1)$ constraints
-	\begin{equation}
+	We use binary variables $z_{qn}^m \in \{0, 1\}$ with the big-$\mathcal{M}$ constraints
+	\begin{eqnarray}
 		\label{Eq:MedBracket}
-		\sum_{q\neq 0} z_{qn}^m \bar{\mathcal{L}}_{qn} \le G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}
-		   < \sum_{q\neq N_q -1} z_{qn}^m \bar{\mathcal{L}}_{(q+1)n},
+                \mathcal{G}_{(n-2)} - \bar{\mathcal{L}}_{qn} & \geq & -(1 - z_{qn}^m) \mathcal{M}, \nonumber\\
+                \mathcal{G}_{(n-2)} - \bar{\mathcal{L}}_{qn} & \leq & z_{qn}^m \mathcal{M},
+	\end{eqnarray}
+	for all $n \in \{n_m, \ldots, N_n\}$, where $n_m$ is the index year when
+	Medicare starts.
+        These inequalities make $z_{nq}^m$ be 1 if
+        the MAGI is larger than the bracket value $\bar{\mathcal{L}}_{qn}$, and 0 otherwise.
+        For each of these years, we can then express the Medicare costs $m_n$ as
+	\begin{equation}
+		m_n = \bar{\mathcal{C}}_{0n} + \sum_q z_{qn}^m (\bar{\mathcal{C}}_{q+1,n} - \bar{\mathcal{C}}_{qn}),
 	\end{equation}
-        for all years $n \ge n_m$ when Medicare is required.
-	The end points $\mathcal{L}_0 = 0$ and $\mathcal{L}_{N_q} = \mathcal{M}$ are not included
+	as each $z_{qn}^m$ will be unity if the MAGI from 2 years ago, $\mathcal{G}_{n-2}$,
+        is larger that the bracket $\bar{\mathcal{L}}_{qn}$.
+	The end points $\mathcal{L} = 0$ and $\mathcal{L} = \mathcal{M}$ are not included
         as they generate constraints
 	that are true for all values considered and do not bring additional information.
-	Eq.~(\ref{Eq:MedBracket}) merely states that the MAGI from two years before
-	must fall into the interval associated with the right premium. For plans where $n_m<2$, we will request
+	For plans where the year index when Medicare starts $n_m<2$, we will request
 	and use user-provided values for the first years MAGIs.
-	Eq.~(\ref{Eq:MedBracket}) constraints can also be implemented individually
+	Eq.~(\ref{Eq:MedBracket}) constraints are implemented
 	with $(N_q -1)(N_n - n_m + 1)$ constraints as
 	\begin{eqnarray}
 		\label{Eq:MedBracket2}
-		z_{qn}^m \bar{\mathcal{L}}_{qn} &\le& G_{(n-2)} + Q_{(n-2)} + e_{(n-2)},
-			\qquad q\neq 0, \nonumber\\
-		z_{qn}^m \bar{\mathcal{L}}_{(q+1)n} + (1 - z_{qn}^m)\mathcal{M} &>& G_{(n-2)} + Q_{(n-2)} + e_{(n-2)},
-			\qquad q \neq N_q-1, \nonumber\\
+		G_{(n-2)} + Q_{(n-2)} + e_{(n-2)} - z_{qn}^m \mathcal{M}
+                & \geq & \bar{\mathcal{L}}_{qn} - \mathcal{M}, \nonumber\\
+		G_{(n-2)} + Q_{(n-2)} + e_{(n-2)} - z_{qn}^m \mathcal{M}
+                & \leq & \bar{\mathcal{L}}_{qn}, \nonumber\\
 		&&\forall q \in {0, \ldots, N_q},\nonumber \\
-		&&\forall n \in {n_m, \ldots, N_n}.
+		&&\forall n \in {n_m, \ldots, n_d}.
 	\end{eqnarray}
 
 	As $G$ and $Q$ are intermediate variables, we need to expand the first inequality of Eq.~(\ref{Eq:MedBracket})
