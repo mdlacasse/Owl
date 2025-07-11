@@ -69,7 +69,7 @@ formulation of the optimization problem can be found
 
 --------------------------------------------------------------------------------------
 ### :orange[Getting Started with User Interface]
-Functions of each page are described below in the same order as they appear in the left sidebar.
+Functions of each page are described below in the same order as they appear in the menu bar:
 Typically, pages would be accessed in order, starting from the top.
 
 A `Case selector` box located at the top of the page allows to
@@ -95,7 +95,7 @@ Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars.
 Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
 
-There are four sections in the left sidebar:
+There are four sections in the menu bar:
 [Case Setup](#case-setup), [Single Scenario](#single-scenario),
 [Multiple Scenarios](#multiple-scenarios), and [Resources](#resources).
 The sections below follow the same logical order.
