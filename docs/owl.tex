@@ -140,8 +140,8 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	the product $\bar{\Delta}_{tn}\theta_{tn}$ does not guarantee to
 	be ordered monotonically. It is therefore more appropriate to use the combined variable
 	$\bar{f}_{tn} = f'_{tn}\bar{\Delta}_{tn}$ in the optimization. Given that the rates on
-	tax brackets $\theta_{tn}$ are always increasing monotonically, the lower brackets
-	will be filled in first when optimizing. The ordinary taxable income is then expressed as
+	tax brackets $\theta_{tn}$ are increasing monotonically with income, the lower brackets
+	will be filled in first when optimizing. The ordinary taxable income can then be expressed as
 	\begin{equation}
 		\label{Eq:Tx1}
 		G_n = \sum_t \bar{f}_{tn},
@@ -164,13 +164,13 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	Roth conversion performed by individual $i$ during year $n$.
 	These events are taxable as ordinary income.
 \item [$z_{*}^*$]
-	Binary variables will all be designated by the letter $z$, but a superscript will be
-	used to distinguish the different families. For example, $z_{qn}^m$ will be used
-	for binary variables associated with Medicare calculations.
+	Binary variables will all be designated by the letter $z$, but a superscript is
+	used to distinguish the different families. For example, $z_{qn}^m$ represents
+	binary variables associated with Medicare calculations.
 \end{description}
 
 \section{Parameters}
-For more easily distinguishing parameters from variables, all parameters will be expressed
+For more easily distinguishing parameters from variables, all parameters are expressed
 either in Greek letters or using caligraphic fonts.
 Parameter values are either set by the user, historical data, or by the tax code.
 \begin{description}[leftmargin=4em,style=multiline]
@@ -215,7 +215,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 	\end{equation}
 	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum-neutral with respect to a flat profile.
 	Values of $a_1 = 15\%$ and $a_2=12\%$ provide curves that are similar to realistic
-		spending profiles reported in the literature. See Fig.~\ref{Fig:profile} for an example.
+	spending profiles reported in the literature. See Fig.~\ref{Fig:profile} for an example.
 	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n \ge n_d$,
 	and the normalizing factor is adjusted accordingly.
 	\begin{figure}[t]
@@ -226,7 +226,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 \item [$\chi$]
 	Factor to reduce spending profile after the passing of one spouse. It is typically
 	assumed to be 0.6. That is, we are assuming that the surviving spouse can live with
-	60\% of the net spending amount.
+	60\% of the net spending amount that was available to the couple.
 \item [$\rho_{in}$]
 	Required minimum distribution for individual $i$ in year $n$. Expressed in fractions
 	which are determined from IRS tables. These tables are simple if spouses are less than 10 years apart,
@@ -334,7 +334,7 @@ or an s-curve as in
 \item [$\pi_{in}$]
 	Sum of pension benefits for individual $i$ in year $n$. These amounts are typically
 	specified along with the ages at which these benefits begin.
-	Pensions can optionally be indexed for inflation.
+	Pensions can optionally be indexed for inflation and then represented as $\bar{\pi}_{in}$.
 \item [$\zeta_{in}$]
 	Social security benefits for individual $i$ in year $n$. Starting age and the passing
 	of one individual for spouses will determine the time series. $\bar{\zeta}_{in}$ is
@@ -381,7 +381,13 @@ or an s-curve as in
 	at the death of individual $i_d$, the first spouse to pass.
 \item [$\psi$]
 	Income tax rate on long-term capital gain and qualified dividends. Rate $\psi$ is 0, 15, or 20\%
-	depending on gross income.
+	depending on gross income. If adjusted self-consistently for income, then $\psi$ becomes
+ 	time series $\psi_n$.
+\item [$\Psi$]
+	Fraction of social security that is taxed, which depends on gross income and maxes out at 85\%.
+        If adjusted self-consistently for income, then $\Psi$ becomes time series $\Psi_n$. However,
+	given how low the threshold (around \$44k the married couples) is for reaching the
+	maximum taxation level of 85\%, it is fixed at this value in Owl.
 \item [$\eta$]
 	Spousal ratio for surplus deposits, which goes from 0 to 1, as the fraction
 	that goes to the $i = 1$ spouse's account. Therefore, a surplus $s_n$ in year $n$
@@ -407,7 +413,7 @@ or an s-curve as in
 \section{Intermediate variables}
 We use intermediate variables for conciseness or clarity,
 but they are ultimately replaced in the final formulation.
-Intermediate variables are indicated by being in roman uppercase letters, or double stroke uppercase letters.
+Intermediate variables are represented in roman uppercase letters, or in double stroke uppercase letters.
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$G_n$]
 	Taxable ordinary income in year $n$. Sum of wages, pension, social security benefits, all withdrawals
@@ -417,7 +423,7 @@ Intermediate variables are indicated by being in roman uppercase letters, or dou
 	\begin{eqnarray}
 		\label{Eq:Tx2}
 		G_n &=& 
-		\sum_i [\omega_{in} + 0.85\bar\zeta_{in} + \pi_{in}]
+		\sum_i [\omega_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]
 		- e_n
 		\nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in}]
@@ -425,7 +431,7 @@ Intermediate variables are indicated by being in roman uppercase letters, or dou
 		&& + \sum_{i,k} 
 		[(1-\delta(k, 0))(b_{i0n} - w_{i0n} + d_{in} + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
 	\end{eqnarray}
-	Social security is indexed for inflation and is assumed to be taxed at 85\%.
+	Social security is indexed for inflation and is assumed to be taxed at $\Psi_n$\%.
 	Pensions can optionally be indexed for inflation.
 	We use a discrete Kronecker $\delta$ function for selecting gains from non-equity assets in
 	taxable accounts, but we could have equivalently excluded $k \neq 0$ in the sum.
@@ -457,7 +463,7 @@ Intermediate variables are indicated by being in roman uppercase letters, or dou
 	For withdrawals, we make the assumption of
 	selling the most recent stocks which would not be accurate in situations where
 	the taxable savings account is being depleted slowly. An implementation keeping track
-	of stock purchases and sales is beyond the goal of providing a guide for retirement decisions.
+	of stock purchases and sales is beyond the scope of providing a guide for retirement decisions.
 
 \item [$\mathbb{G}_n$]
 	Modified Gross Adjusted Income or MAGI for year $n$. We approximate it as
@@ -507,16 +513,16 @@ Intermediate variables are indicated by being in roman uppercase letters, or dou
 \item [$U_n$]
 	Amount of income tax paid on long-term capital gains and qualified dividends in year $n$,
 	\begin{equation}
-		U_n = \psi Q_n.
+		U_n = \psi_n Q_n.
 	\end{equation}
-	Although it is not always the case, we assume that qualified dividends and long-term
-	capital gains are taxed at the same preferential rate $\psi$.
+	We assume that qualified dividends and long-term
+	capital gains are taxed at the same preferential rate $\psi_n$, which is the case for most situations.
 
 \end{description}
 
 \chapter{Formulation with imposed asset allocation ratios}
 We first present the case where the sums of assets in each savings accounts $b_{ijn}$ are known
-over which we assume a prescribed asset allocation ratios.
+and for which we assume a prescribed asset allocation ratios.
 The amount in each asset class $k$ for $b_{ijkn}$ is simply obtained
 from $\alpha_{ijkn} b_{ijn}$ in this case.
 This formulation assumes that the accounts are always balanced. This is
@@ -573,8 +579,9 @@ add the market returns to the savings balances.
 	and therefore
 	\begin{equation}
 		\label{Eq:C2}
-		0 \le \bar{f}_{tn} \le \bar{\Delta}_{tn}.
+		0 \le \bar{f}_{tn} \le \bar{\Delta}_{tn},
 	\end{equation}
+	where each income tax bracket width $\Delta_{tn}$ has been adjusted for inflation.
 
 \paragraph*{Standard exemption}
 	The standard exemption is constrained by
@@ -621,7 +628,7 @@ add the market returns to the savings balances.
 
 \paragraph*{Initial balances}
 	The initial balances $\beta_{ij}$ are one of the main inputs of the model.
-	The initial savings account balances are imposed through constraints
+	The initial savings account balances are imposed through the constraints
 	\begin{eqnarray}
 		\label{Eq:InitialBalance}
 		b_{ij0} = \beta_{ij}.
@@ -736,7 +743,7 @@ add the market returns to the savings balances.
 	A much simpler approach, while not so natural,
 	is to move all transactions to be synchronous at the beginning or at the end of the year
 	thus avoiding undesirable movements of funds.
-	If we select the beginning of the year, this leads to
+	If we select the beginning of the year, except for contributions, this leads to
 	\begin{eqnarray}
 		\label{Eq:C3b}
 		b_{ij(n+1)}
@@ -753,9 +760,9 @@ simultaneous Roth conversions and withdrawals from tax-exempt accounts.
 \paragraph*{Net spending}
 	For calculating the net spending $g_n$, we consider the cash flow of all withdrawals,
 	wages, social security and pension benefits, and big-ticket items. 
-	Then we subtract potential surplus $s_{n}$ and all taxes and Medicare premiums paid:
+	Then we subtract potential surplus $s_{n}$ and all taxes, penalties, and Medicare premiums paid:
 	\begin{eqnarray}
-		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ] 
+		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] 
 		+ \sum_{i,j} w_{ijn} + \sum_i \Lambda^\pm_{in} - s_{n}
 		- P_n - T_n - U_n - m_n.
 	\end{eqnarray}
@@ -766,10 +773,10 @@ simultaneous Roth conversions and withdrawals from tax-exempt accounts.
 		\label{Eq:C4}
 		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_{i,j\neq0} (1-\mathcal{H}(n - n_{i, 59})) w_{ijn}\nonumber\\
                 + m_n + s_n + \sum_t \bar{f}_{tn} \theta_{t n} &&\nonumber \\
-		+ \psi\sum_i \alpha_{i00n} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
+		+ \psi_n\sum_i \alpha_{i00n} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0(n-1)})\right] 
-		&=& \sum_i [\Lambda^\pm_{in} - 0.5\psi\mu\alpha_{i00n}\kappa_{i0n}] \nonumber\\
-                && + \sum_i [\omega_{in} + \bar{\zeta}_{in} + \pi_{in} ].
+		&=& \sum_i [\Lambda^\pm_{in} - 0.5\psi_n\mu\alpha_{i00n}\kappa_{i0n}] \nonumber\\
+                && + \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ].
 	\end{eqnarray}
 	Notice that we do not consider market losses as we use $\max(0, \tau)$, and that
 	rates from only the previous year are used. Tax-loss
@@ -805,7 +812,7 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:Tx1}) and (\ref{Eq:Tx2}),
 	\begin{eqnarray}
 		\sum_t \bar{f}_{tn} &=&
-		\sum_i [\omega_{in} + 0.85\bar\zeta_{in} + \pi_{in}]  \nonumber \\
+		\sum_i [\omega_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]  \nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in} ]
 		\nonumber\\
 		&& + \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
@@ -818,12 +825,12 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
-		\sum_i [\omega_{in} + 0.85\bar\zeta_{in} + \pi_{in} ]
+		\sum_i [\omega_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in} ]
 		\nonumber \\
 		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n}.
 	\end{eqnarray}
 
-\paragraph*{Medicare Costs}
+\paragraph*{Medicare brackets and costs}
 	Annual Medicare costs $m_n$ include the Income-Related Monthly Adjusted Amount
 	commonly known as IRMAA.
 	As this additional adjustment
@@ -836,16 +843,16 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 	plus standard exemption from 2 years ago.
 	If the plan
         has its oldest individual currently either 64 or 65 years old, MAGI values for previous years
-	must be provided by the user.
+	must be provided by the user to complete the calculations.
 	\begin{figure}[t]
 	    \center\includegraphics[width=10cm]{piecewiseConstant.png}
-	    \caption{\small Modeling a piecewise constant monotinically increasing function.
+	    \caption{\small Modeling a piecewise constant monotonically increasing function.
 	    The $x$-axis represents the MAGI from two years ago, while $m_n$ is the Medicare adjusted premiums.
 	    A binary variable $z_q^m$ is associated with each segment $q$.
 	    \label{Fig:piecewise}}
 	\end{figure}
 
-	Including regular premiums, there are $N_q$ brackets
+	Including regular premiums, there are $N_q=6$ brackets
 	of MAGI indexed for inflation defined with annual Medicare costs of
 	$\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$ adjusted for inflation.
         These segments are separated by $N_q -1$ thresholds
@@ -867,16 +874,18 @@ When using slack variable $\lambda$, the spending profile is then implemented as
                 \mathbb{G}_{(n-2)} - \bar{\mathcal{L}}_{qn} & \geq & -(1 - z_{qn}^m) \mathcal{M}, \nonumber\\
                 \mathbb{G}_{(n-2)} - \bar{\mathcal{L}}_{qn} & \leq & z_{qn}^m \mathcal{M},
 	\end{eqnarray}
-	for all $n \in \{n_m, \ldots, N_n\}$, where $n_{im}$ is the index year when
-	Medicare starts, for individual $i$ and $q \in \{0, \ldots, N_q -2\}$.
-        As this applies to each individual eligible for Medicare, it can just be doubled
-        when both spouses are eligible.
+	for all $n \in \{n_m, \ldots, N_n-1\}$, where $n_{m}$ is the index year when
+	Medicare starts, for any individual $i$ and $q \in \{0, \ldots, N_q -2\}$.
+        As this applies to each individual eligible for Medicare, values
+	$\bar{\mathcal{L}}_{qn}$ and  $\bar{\mathcal{C}}_{qn}$
+	can include the accounting details for when both spouses are eligible and/or alive.
         These inequalities make $z_{nq}^m$ be 1 if
         the MAGI is larger than the bracket value $\bar{\mathcal{L}}_{qn}$, and 0 otherwise.
         For each year, we can then express the Medicare costs $m_n$ as
 	\begin{equation}
+		\label{Eq:MediCosts}
 		m_n = \bar{\mathcal{C}}_{0n}
-                + \sum_q^{N_q -2} z_{qn}^m (\bar{\mathcal{C}}_{(q+1)n} - \bar{\mathcal{C}}_{qn}),
+                + \sum_{q=0}^{N_q -2} z_{qn}^m (\bar{\mathcal{C}}_{(q+1)n} - \bar{\mathcal{C}}_{qn}),
 	\end{equation}
 	as each $z_{qn}^m$ will be unity if the MAGI from 2 years ago, $\mathbb{G}_{n-2}$,
         is larger that the bracket $\bar{\mathcal{L}}_{qn}$.
@@ -885,7 +894,7 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 	For plans where the year index when Medicare first starts $n_m<2$, we will request
 	and use user-provided values for the first-years MAGIs.
 	Eq.~(\ref{Eq:MedBracket}) constraints are implemented
-	with $(N_q -1)(N_n - n_m + 1)$ constraints as
+	with $(N_q -1)(N_n - n_m)$ constraints as
 	\begin{eqnarray}
 		\label{Eq:MedBracket2}
 		G_{(n-2)} + Q_{(n-2)} + e_{(n-2)} - z_{qn}^m \mathcal{M}
@@ -893,7 +902,7 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 		G_{(n-2)} + Q_{(n-2)} + e_{(n-2)} - z_{qn}^m \mathcal{M}
                 & \leq & \bar{\mathcal{L}}_{qn}, \nonumber\\
 		&&\forall q \in {0, \ldots, N_q-2},\nonumber \\
-		&&\forall n \in {n_m, \ldots, N_n}.
+		&&\forall n \in {n_m, \ldots, N_n-1}.
 	\end{eqnarray}
 
 	As $G$ and $Q$ are intermediate variables, we can expand the first inequality of Eq.~(\ref{Eq:MedBracket})
@@ -907,14 +916,14 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 		- \sum_i [w_{i0(n-2)}\max(0, \tau_{0(n-3)})] + z_{qn}^m \mathcal{M}
 		& \leq& \nonumber \\
                 - \bar{\mathcal{L}}_{qn} + \mathcal{M}
-		+ \sum_i [\omega_{i(n-2)} + 0.85\bar\zeta_{i(n-2)} + \pi_{i(n-2)}] && \nonumber\\
+		+ \sum_i [\omega_{i(n-2)} + \Psi_n\bar\zeta_{i(n-2)} + \bar{\pi}_{i(n-2)}] && \nonumber\\
 		+ 0.5\sum_{i} \left[\kappa_{i0(n-2)} \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right]. && 
 	\end{eqnarray}
 	The first term on the left-hand side represents withdrawals and conversions from tax-deferred accounts,
         the second captures interests and dividends earned from the taxable account,
         and the third accounts for long-term capital gains incurred from taxable-account stock withdrawals.
 	For indices at the beginning of the time sequence, we use $\tau_{0, \max(0, n-x)}$, when $x>n$.
-	In the last equation variables were left on the left-hand side
+	Sign was flipped to make the equation an upper bound and variables were left on the left-hand side
         while parameters were moved to the RHS. The second inequality of Eq.(\ref{Eq:MedBracket})
         is obtained similarly
 	\begin{eqnarray}
@@ -926,10 +935,10 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 		+ \sum_i [w_{i0(n-2)}\max(0, \tau_{0(n-3)})] - z_{qn}^m \mathcal{M}
 		& \leq& \nonumber \\
                  \bar{\mathcal{L}}_{qn}
-		- \sum_i [\omega_{i(n-2)} + 0.85\bar\zeta_{i(n-2)} + \pi_{i(n-2)}] && \nonumber\\
+		- \sum_i [\omega_{i(n-2)} + \Psi_n\bar\zeta_{i(n-2)} + \bar{\pi}_{i(n-2)}] && \nonumber\\
 		- 0.5\sum_{i} \left[\kappa_{i0(n-2)} \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right], && 
 	\end{eqnarray}
-	for all $n \in \{n_m, \ldots, N_n\}$, and $n_m \ge 2$,
+	for all $n \in \{n_m, \ldots, N_n-1\}$, and $n_m \ge 2$,
 	otherwise using numbers provided by user if $n_m < 2$, and $q \in \{0,\ldots,N_q - 2\}$.
 
 \chapter{Mapping of decision variables}
@@ -1003,9 +1012,9 @@ with $q_d$ running from $C_d$ to $C_f - 1$, where
 \]
 
 \paragraph*{Tax bracket fractions (\boldmath$f$)}
-For tax bracket fractions $f_{t n}$ we will use
+For tax bracket fractions $\bar{f}_{tn}$ we will use
 \begin{equation}
-	y[q_f(t, n)] = f_{t n},
+	y[q_f(t, n)] = \bar{f}_{tn},
 \end{equation}
 where
 \begin{equation}
@@ -1136,7 +1145,7 @@ Additional indices found in columns and not in rows implies the existence of mul
 \section{Inequality constraints}
 Inequality constraints can be upper or lower bounds expressed in matrix form as
 $\ell \le A_{u}y \le u$. When $\ell$ is not specified it is assumed 0, and
-an unspecified $u$ implies $\infty$.
+an unspecified $u$ implies $\infty$. Most if not all inequalities will be expressed as upper bounds.
 
 \paragraph*{Required minimum distributions (RMDs)}
 We rewrite the inequality constraint on required minimum distributions
@@ -1183,7 +1192,7 @@ For each bracket we set
 	    - \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)}), \nonumber \\
 	A_u[I_2(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
 	u[I_2(q, n)] &=& -\bar{\mathcal{L}}_{qn} + \mathcal{M}
-         + \sum_i \left[\omega_{i(n-2)} + 0.85\bar{\zeta}_{i(n-2)} + \pi_{i(n-2)} \right]\nonumber \\
+         + \sum_i \left[\omega_{i(n-2)} + \Psi_n\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
 	&& + 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
 	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	  \right)\right],\nonumber\\
@@ -1231,11 +1240,10 @@ The initial account balances expressed in Eq.~(\ref{Eq:InitialBalance}) are impo
 \end{eqnarray}
 leading to $N_i N_j$ additional rows to $A_e$.
 
-\paragraph*{Medicare brackets and costs}
-Binary variables $z_{qn}^m$ express
-all active IRMAA brackets.
+\paragraph*{Medicare costs}
+Binary variables $z_{qn}^m$ express all active IRMAA brackets.
 The costs for Medicare are easily obtained once the binary variables
-$z^m_{qn}$ are determined.
+$z^m_{qn}$ are determined using Eq.~(\ref{Eq:MediCosts}).
 \begin{eqnarray}
 	A_u[J_3(n), q_{m}(n)] &=& 1, \nonumber \\
 	A_u[J_3(n), q_{z^m}(q, n)] &=& -(\bar{\mathcal{C}}_{(q+1)n} - \bar{\mathcal{C}}_{qn}), \nonumber \\
@@ -1250,10 +1258,10 @@ we add $N_n$ more rows to $A_ey = v$ as
 \begin{eqnarray}
 	A_e[J_4(n), q_g(n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_m(n)] &=& 1, \nonumber \\
-	A_e[J_4(n), q_b(i, 0, n)] &=& \psi\mu\alpha_{i00n}, \nonumber \\
-	A_e[J_4(n), q_d(i, n)] &=& 1 + \psi\mu\alpha_{i00n}, \nonumber \\
+	A_e[J_4(n), q_b(i, 0, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
+	A_e[J_4(n), q_d(i, n)] &=& 1 + \psi_n\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_4(n), q_{\bar{f}}(t, n)] &=& \theta_{t n}, \nonumber \\
-	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59})) + \delta(j, 0)\psi\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
+	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59})) + \delta(j, 0)\psi_n\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -1261,8 +1269,8 @@ we add $N_n$ more rows to $A_ey = v$ as
 \end{eqnarray}
 where $v$ is
 \begin{equation}
-	v[J_4(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \pi_{in}
-	+ \Lambda^\pm_{in} - 0.5\psi\mu\alpha_{i00n}\kappa_{i0n}].
+	v[J_4(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \bar{\pi}_{in}
+	+ \Lambda^\pm_{in} - 0.5\psi_n\mu\alpha_{i00n}\kappa_{i0n}].
 \end{equation}
 Here we used Eq.~(\ref{Eq:eta2}) reflecting the fact that the sum of all deposits $d_{in}$ must equal the surplus $s_n$,
 \[
@@ -1297,7 +1305,7 @@ ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 with
 \begin{eqnarray}
 	v[J_6(n)] &=& 
-	\sum_i [\omega_{in} + 0.85\bar\zeta_{in}  + \pi_{in}]
+	\sum_i [\omega_{in} + \Psi_n\bar\zeta_{in}  + \bar{\pi}_{in}]
 	+ 0.5\sum_{i} \kappa_{i0n} \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}.
 \end{eqnarray}
 
@@ -1471,18 +1479,18 @@ of the plan, in today's dollars. The quantity to optimize is then
 \begin{eqnarray}
 	c[q_g(n)] &=& -1/\gamma_n,
 \end{eqnarray}
-and 0 otherwise.
+$\forall n \in \{0, \ldots, N_n-1\}$ and 0 otherwise.
 In that case, constraint equality Eq.~(\ref{Eq:C5}) will need to be changed to an inequality. 
 Instead of obeying 
 \begin{equation}
 	g_n \xi_0 - g_0 \bar{\xi}_n = 0,
 \end{equation}
-we now impose the following inequality constraint
+we now impose the following inequality constraint:
 \begin{equation}
         \label{Eq:C15}
-	(1 - \lambda/100) g_0 \bar{\xi}_n/\xi_0 <= g_n <= (1 + \lambda/100) g_0 \bar{\xi}_n/\xi_0 ,
+	(1 - \lambda) g_0 \bar{\xi}_n/\xi_0 <= g_n <= (1 + \lambda) g_0 \bar{\xi}_n/\xi_0 ,
 \end{equation}
-where $\lambda$ is the percentage that the annual net spending is allowed to deviate
+where $\lambda$ is the percentage expressed in decimal that the annual net spending is allowed to deviate
 from the desired profile. It should be noticed that when $\lambda = 0$ the two
 last equations are equivalent.
 

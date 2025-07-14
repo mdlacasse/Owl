@@ -230,9 +230,9 @@ class Plan(object):
         self._name = name
         self.setLogstreams(verbose, logstreams)
 
-        # 7 tax brackets, 6 Medicare levels, 3 types of accounts, 4 classes of assets.
+        # 7 tax brackets, 5 Medicare steps, 3 types of accounts, 4 classes of assets.
         self.N_t = 7
-        self.N_q = 6
+        self.N_q = 5
         self.N_j = 3
         self.N_k = 4
         # 2 binary variables per year per invididual.
@@ -1018,6 +1018,8 @@ class Plan(object):
                 if self.pensionIsIndexed[i]:
                     self.piBar_in[i] *= self.gamma_n[:-1]
 
+            self.nm, self.L_nq, self.C_nq = tx.mediVals(self.yobs, self.horizons, self.gamma_n, self.N_n, self.N_q)
+
             self._adjustedParameters = True
 
         return None
@@ -1042,7 +1044,7 @@ class Plan(object):
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
         C["zx"] = _qC(C["x"], self.N_i, self.N_n)
         C["zm"] = _qC(C["zx"], self.N_i, self.N_n, self.N_z)
-        self.nvars = _qC(C["zm"], self.N_n, self.N_q) if medi else C["zm"]
+        self.nvars = _qC(C["zm"], self.N_n - self.nm, self.N_q - 1) if medi else C["zm"]
 
         self.C = C
         self.mylog.vprint(f"Problem has {len(C)} distinct time series forming {self.nvars} decision variables.")
@@ -1343,22 +1345,24 @@ class Plan(object):
 
         # Medicare calculations.
         if options.get("withMedicare", True):
-            nm, L_nq, C_nq = tx.mediVals(self.yobs, self.horizons, self.gamma_n, Nn, Nq)
-            for n in range(Nn):
-                # SOS1 constraint: 1 for n < nm otherwise all zero.
-                row = A.newRow()
-                for q in range(Nq):
-                    B.setBinary(_q2(Czm, n, q, Nn, Nq))
-                    row.addElem(_q2(Czm, n, q, Nn, Nq), 1)
-                val = 0 if n < nm else 1
-                A.addRow(row, val, val)
+            # nm, L_nq, C_nq = tx.mediVals(self.yobs, self.horizons, self.gamma_n, Nn, Nq)
+            Nmed = Nn - self.nm
+            # Fix years without Medicare to zero costs.
+            for n in range(Nmed):
+                B.set0_Ub(_q1(Cm, n, Nn), zero)
+            
+            # For the following years:
+            for n in range(Nmed):
+                # Create binary variables.
+                for q in range(Nq - 1):
+                    B.setBinary(_q2(Czm, n, q, Nmed, Nq-1))
 
                 # Medicare costs calculations.
                 row = A.newRow()
                 row.addElem(_q1(Cm, n, Nn), 1)
-                for q in range(Nq):
-                    row.addElem(_q2(Czm, n, q, Nn, Nq), -C_nq[n, q])
-                A.addRow(row, zero, zero)
+                for q in range(Nq - 1):
+                    row.addElem(_q2(Czm, n, q, Nmed, Nq-1), -C_nq[n, q+1])
+                A.addRow(row, C_nq[n, 0], C_nq[n, 0])
 
                 largeM = 2*L_nq[n, Nq]
                 # Medicare brackets calculations.

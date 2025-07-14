@@ -89,24 +89,31 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
     defining end points of constant piecewise linear functions representing IRMAA fees.
     """
     thisyear = date.today().year
-    assert Nq == len(irmaaCosts), f"Inconsistent value of Nq: {Nq}."
-    assert Nq+1 == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
+    assert Nq == len(irmaaFees), f"Inconsistent value of Nq: {Nq}."
+    assert Nq == len(irmaaBrackets[0]) - 1, "Inconsistent IRMAA brackets array."
     Ni = len(yobs)
-    L = np.zeros((Nn, Nq+1))
-    C = np.zeros((Nn, Nq))
-    nm = 0
-    for n in range(Nn):
-        icount = 0
-        if thisyear + n - yobs[0] >= 65 and n < horizons[0]:
-            icount += 1
-        if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
-            icount += 1
-        if icount > 0:
-            status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
-            L[n] = gamma_n[n] * irmaaBrackets[status]
-            C[n] = icount * gamma_n[n] * irmaaCosts
+    nm = 65 - (thisyear - yobs)
+    nm = np.min(nm)
+    # Avoid negative values if already started.
+    nm = max(0, nm)
+    Nmed = Nn - nm
+
+    L = np.zeros((Nmed, Nq-1))
+    C = np.zeros((Nmed, Nq))
+
+    # Year starts at nm in the plan.
+    for n in range(Nmed):
+        imed = 0
+        if thisyear + nm + n - yobs[0] >= 65 and nm + n < horizons[0]:
+            imed += 1
+        if Ni == 2 and thisyear + nm + n - yobs[1] >= 65 and nm + n < horizons[1]:
+            imed += 1
+        if imed > 0:
+            status = 0 if Ni == 1 else 1 if n + nm < horizons[0] and n + nm < horizons[1] else 0
+            L[n] = gamma_n[n] * irmaaBrackets[status][1:-1]
+            C[n] = imed * gamma_n[n] * irmaaFees
         else:
-            nm = n + 1
+            assert false, "This should never happen."
 
     return nm, L, C
 
