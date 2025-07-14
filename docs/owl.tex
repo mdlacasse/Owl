@@ -164,7 +164,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	Roth conversion performed by individual $i$ during year $n$.
 	These events are taxable as ordinary income.
 \item [$z_{*}^*$]
-	Binary variables will all be designated by the letter $z$, but a superscript is
+	Binary variables are all designated by the letter $z$, but a superscript is
 	used to distinguish the different families. For example, $z_{qn}^m$ represents
 	binary variables associated with Medicare calculations.
 \end{description}
@@ -276,7 +276,7 @@ where $N$ is either $n_d$ or $N_n$,or using an s-curve as in
 	width (in years) of the transition. Constants $n_1$ and $n_2$ can be adjusted by the user.
 	Default values are $n_1 = 15$, and $n_2 = 5$, meaning that the transition center will occur
 	in 15 years, taking place from $15-5$ years to $15+5$ years from now.
-	Using $a = \alpha_{ijk0}$ and $b = \alpha_{ijkN_n-1}$ is an approximation as values of $\pm 1$
+	Using $a = \alpha_{ijk0}$ and $b = \alpha_{ijk(N-1)}$ is an approximation as values of $\pm 1$
 	are only reached at $\pm \infty$ for a hyperbolic tangent.
 	More precise bounds $a'$ and $b'$ for matching the desired start and end values
 	can be determined by solving a $2\times 2$ system of equations leading to
@@ -368,7 +368,7 @@ where $N$ is either $n_d$ or $N_n$,or using an s-curve as in
         While there are 6 brackets for IRMAA adjustments forming a piecewise constant function,
 	$\mathcal{L}_q$ has $N_q - 1$ distinct thresholds as the last element is an arbitrary large
         number bounding the last bracket. See Fig.~\ref{Fig:piecewise} for a visual representation.
-        Note that $\bar{\mathcal{L}}_{qn}$ will need to be adjusted for inflation and marital status,
+        Note that $\bar{\mathcal{L}}_{qn}$ needs to be adjusted for inflation and marital status,
         including adjustments due to the passing of one spouse.
 \item [$\mu$]
 	Dividend return rate for equities in taxable accounts. Average is near 2\% for S\&P 500.
@@ -653,7 +653,7 @@ add the market returns to the savings balances.
 	Changes include contributions $\kappa$, distributions and withdrawals $w$,
 	conversions $x$, surplus deposits $d$, and growth $\tau$ on the account through the year.
 	For each spouse $i$, we track each savings account $j$ separately, and tax-deferred accounts
-	are coupled with the corresponding tax-exempt account through Roth conversions.
+	are coupled with the corresponding tax-free account through Roth conversions.
 
 	The timing of Roth conversions, withdrawals, and deposits brings
 	additional coupling between these variables, and is worth a detailed discussion.
@@ -754,7 +754,7 @@ add the market returns to the savings balances.
 	\end{eqnarray}
 This is the current approach used in Owl, coupled with
 binary variables excluding simultaneous overwithdrawals and deposits, and
-simultaneous Roth conversions and withdrawals from tax-exempt accounts.
+simultaneous Roth conversions and withdrawals from tax-free accounts.
 
 \paragraph*{Net spending}
 	For calculating the net spending $g_n$, we consider the cash flow of all withdrawals,
@@ -805,6 +805,7 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 	g_n \bar{\xi}_0 - g_0 (1 - \lambda) \bar{\xi}_n &\geq&  0, \nonumber\\
 	-g_n \bar{\xi}_0 + g_0 (1 + \lambda) \bar{\xi}_n &\geq&  0.
 \end{eqnarray}
+In this case, the objective function will need to consider all years when optimizing net spending.
 
 \paragraph*{Taxable ordinary income}
 	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:Tx1}) and (\ref{Eq:Tx2}),
@@ -852,7 +853,7 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 
 	Including regular premiums, there are $N_q=6$ brackets
 	of MAGI indexed for inflation defined with annual Medicare costs of
-	$\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$ adjusted for inflation.
+	$\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$ also adjusted for inflation.
         These segments are separated by $N_q -1$ thresholds
 	$\bar{\mathcal{L}}_{qn} = \gamma_n\mathcal{L}_q$.
         Points $(\bar{\mathcal{L}}_{qn}, \bar{\mathcal{C}}_{qn})$ form a piecewise
@@ -873,13 +874,13 @@ When using slack variable $\lambda$, the spending profile is then implemented as
                 \mathbb{G}_{(n-2)} - \bar{\mathcal{L}}_{qn} & \leq & z_{qn}^m \mathcal{M},
 	\end{eqnarray}
 	for all $n \in \{n_m, \ldots, N_n-1\}$, where $n_{m}$ is the index year when
-	Medicare starts, for any individual $i$ and $q \in \{0, \ldots, N_q -2\}$.
+	Medicare starts for any individual $i$ in the plan, and $q \in \{0, \ldots, N_q -2\}$.
         As this applies to each individual eligible for Medicare, values
 	$\bar{\mathcal{L}}_{qn}$ and  $\bar{\mathcal{C}}_{qn}$
 	can include the accounting details for when both spouses are eligible and/or alive.
         These inequalities make $z_{nq}^m$ be 1 if
         the MAGI is larger than the bracket value $\bar{\mathcal{L}}_{qn}$, and 0 otherwise.
-        For each year, we can then express the Medicare costs $m_n$ as
+        For each year $n \geq n_m$, we can then express the Medicare costs $m_n$ as
 	\begin{equation}
 		\label{Eq:MediCosts}
 		m_n = \bar{\mathcal{C}}_{0n}
