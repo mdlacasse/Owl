@@ -912,7 +912,7 @@ In this case, the objective function will need to consider all years when optimi
 		- \sum_i \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})
                 \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] &&
 		\nonumber \\
-		- \sum_i [w_{i0(n-2)}\max(0, \tau_{0(n-3)})] + z_{qn}^m \mathcal{M}
+		- \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0(n-3)})] + z_{qn}^m \mathcal{M}
 		& \leq& \nonumber \\
                 - \bar{\mathcal{L}}_{qn} + \mathcal{M}
 		+ \sum_i [\omega_{i(n-2)} + \Psi_n\bar\zeta_{i(n-2)} + \bar{\pi}_{i(n-2)}] && \nonumber\\
@@ -931,7 +931,7 @@ In this case, the objective function will need to consider all years when optimi
 		+ \sum_i \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})
                 \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] &&
 		\nonumber \\
-		+ \sum_i [w_{i0(n-2)}\max(0, \tau_{0(n-3)})] - z_{qn}^m \mathcal{M}
+		+ \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0(n-3)})] - z_{qn}^m \mathcal{M}
 		& \leq& \nonumber \\
                  \bar{\mathcal{L}}_{qn}
 		- \sum_i [\omega_{i(n-2)} + \Psi_n\bar\zeta_{i(n-2)} + \bar{\pi}_{i(n-2)}] && \nonumber\\
