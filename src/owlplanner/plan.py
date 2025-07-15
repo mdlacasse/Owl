@@ -1413,7 +1413,7 @@ class Plan(object):
 
     def _configure_Medicare_binary_variables(self, options):
         medi = options.get("withMedicare", True)
-	if not medi:
+        if not medi:
             return
 
         bigM = options.get("bigM", 5e6)
@@ -1446,11 +1446,11 @@ class Plan(object):
                     row1.addElem(_q2(self.C["x"], i, n-2, self.N_i, self.N_n), -1)
                     row2.addElem(_q2(self.C["x"], i, n-2, self.N_i, self.N_n), +1)
 
-                    fac1 = (self.mu*self.alpha_ijkn[i, 0, 0, n-2])
-                            + np.sum(self.alpha_ijkn[i, 0, 1:, n-2]*self.tau_kn[1:, n-2])
+                    fac1 = (self.mu*self.alpha_ijkn[i, 0, 0, n-2]
+                            + np.sum(self.alpha_ijkn[i, 0, 1:, n-2]*self.tau_kn[1:, n-2]))
                     row1.addElem(_q3(self.C["b"], i, 0, n-2, self.N_i, self.N_j, self.N_n + 1), -fac1)
                     row2.addElem(_q3(self.C["b"], i, 0, n-2, self.N_i, self.N_j, self.N_n + 1), +fac1)
-            
+
                     row1.addElem(_q2(self.C["d"], i, n-2, self.N_i, self.N_n), -fac1)
                     row2.addElem(_q2(self.C["d"], i, n-2, self.N_i, self.N_n), +fac1)
 
@@ -1462,23 +1462,21 @@ class Plan(object):
                     row2.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM)
 
                     sumoni = (self.omega_in[i, n] + self.psi * self.zetaBar_in[i, n] + self.piBar_in[i, n]
-                              + 0.5 * self.kappa_ijn[i, 0, n-2] * fac1
+                              + 0.5 * self.kappa_ijn[i, 0, n-2] * fac1)
                     rhs1 += sumoni
                     rhs2 -= sumoni
 
     def _add_Medicare_costs(self, options):
         medi = options.get("withMedicare", True)
-	if not medi:
+        if not medi:
             return
 
-XXXXXXXXXXXXXXXXXXXXXXXXX
+        # XXXXXXXXXXXXXXXXXXXXXXXXX
         for nn in range(self.N_n - self.nm):
             n = self.nm + nn
             self.m_n[n] = self.C_nq[nn, 0]
             for q in range(self.N_q - 1):
                 self.m_n[n] += self.C_nq[nn, q]*self.C
-             
-        
 
     def _build_objective_vector(self, objective):
         c = abc.Objective(self.nvars)
