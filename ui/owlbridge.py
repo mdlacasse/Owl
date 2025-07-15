@@ -757,7 +757,7 @@ def backYearsMAGI(plan):
         backyears[0] = thisyear - 2
         backyears[1] = thisyear - 1
     elif thisyear - goatyear >= 64:
-        backyears[0] = thisyear - 1
+        backyears[1] = thisyear - 1
 
     return backyears
 

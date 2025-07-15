@@ -3,7 +3,7 @@ A simple object to display progress.
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+Disclaimers: This code is for educational purposes only and does not constitute financial advice.
 
 """
 

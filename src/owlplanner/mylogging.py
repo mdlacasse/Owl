@@ -6,7 +6,7 @@ This file contains routines for handling error messages.
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+Disclaimers: This code is for educational purposes only and does not constitute financial advice.
 
 """
 

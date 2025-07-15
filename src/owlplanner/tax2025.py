@@ -12,7 +12,7 @@ Module to handle all tax calculations.
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+Disclaimers: This code is for educational purposes only and does not constitute financial advice.
 
 """
 
@@ -93,6 +93,44 @@ niitRate = 0.038
 ###############################################################################
 # End of section where rates need to be actualized every year.
 ###############################################################################
+
+
+def mediVals(yobs, horizons, gamma_n, Nn, Nq):
+    """
+    Return tuple (nm, L, C) of year index when Medicare starts and vectors L, and C
+    defining end points of constant piecewise linear functions representing IRMAA fees.
+    """
+    thisyear = date.today().year
+    assert Nq == len(irmaaFees), f"Inconsistent value of Nq: {Nq}."
+    assert Nq == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
+    Ni = len(yobs)
+    # What index year will Medicare start? 65 - age.
+    nm = 65 - (thisyear - yobs)
+    nm = np.min(nm)
+    # Has it already started?
+    nm = max(0, nm)
+    Nmed = Nn - nm
+
+    L = np.zeros((Nmed, Nq-1))
+    C = np.zeros((Nmed, Nq))
+
+    # Year starts at offset nm in the plan.
+    for nn in range(Nmed):
+        imed = 0
+        n = nm + nn
+        if thisyear + n - yobs[0] >= 65 and n < horizons[0]:
+            imed += 1
+        if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
+            imed += 1
+        if imed:
+            status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
+            L[nn] = gamma_n[n] * irmaaBrackets[status][1:]
+            C[nn] = imed * gamma_n[n] * irmaaFees
+        else:
+            raise RuntimeError("mediVals: This should never happen.")
+
+    return nm, L, C
+
 
 
 def capitalGainTaxRate(Ni, magi_n, gamma_n, nd, Nn):

@@ -10,7 +10,7 @@ mathematical model and a description of all variables and parameters.
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+Disclaimers: This code is for educational purposes only and does not constitute financial advice.
 
 """
 
@@ -226,12 +226,13 @@ class Plan(object):
         self._name = name
         self.setLogstreams(verbose, logstreams)
 
-        # 7 tax brackets, 3 types of accounts, 4 classes of assets.
+        # 7 tax brackets, 6 Medicare brackets, 3 types of accounts, 4 classes of assets.
         self.N_t = 7
+        self.N_q = 6
         self.N_j = 3
         self.N_k = 4
         # 2 binary variables.
-        self.N_z = 2
+        self.N_zx = 2
 
         # Default interpolation parameters for allocation ratios.
         self.interpMethod = "linear"
@@ -307,7 +308,7 @@ class Plan(object):
         self.myRothX_in = np.zeros((self.N_i, self.N_n + 5))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n + 5))
 
-        # Previous 3 years for Medicare.
+        # Previous 2 years for Medicare.
         self.prevMAGI = np.zeros((2))
 
         # Init previous balance to none.
@@ -327,7 +328,7 @@ class Plan(object):
         # Prepare RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
 
-        self._buildOffsetMap()
+        # self._buildOffsetMap()
 
         # Initialize guardrails to ensure proper configuration.
         self._adjustedParameters = False
@@ -1035,30 +1036,35 @@ class Plan(object):
                 if self.pensionIsIndexed[i]:
                     self.piBar_in[i] *= self.gamma_n[:-1]
 
+            self.nm, self.L_nq, self.C_nq = tx.mediVals(self.yobs, self.horizons, self.gamma_n, self.N_n, self.N_q)
+
             self._adjustedParameters = True
 
         return None
 
-    def _buildOffsetMap(self):
+    def _buildOffsetMap(self, options):
         """
         Utility function to map variables to a block vector.
         Refer to companion document for explanations.
+        All binary variables must be lumped at the end of the vector.
         """
+        medi = options.get("withMedicare", True)
+
         # Stack all variables in a single block vector with all binary variables at the end.
         C = {}
         C["b"] = 0
         C["d"] = _qC(C["b"], self.N_i, self.N_j, self.N_n + 1)
         C["e"] = _qC(C["d"], self.N_i, self.N_n)
-        C["F"] = _qC(C["e"], self.N_n)
-        C["g"] = _qC(C["F"], self.N_t, self.N_n)
-        C["s"] = _qC(C["g"], self.N_n)
+        C["f"] = _qC(C["e"], self.N_n)
+        C["g"] = _qC(C["f"], self.N_t, self.N_n)
+        C["m"] = _qC(C["g"], self.N_n)
+        C["s"] = _qC(C["m"], self.N_n)
         C["w"] = _qC(C["s"], self.N_n)
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
-        C["z"] = _qC(C["x"], self.N_i, self.N_n)
-        self.nvars = _qC(C["z"], self.N_i, self.N_n, self.N_z)
-        self.nbins = self.nvars - C["z"]
-        # # self.nvars = _qC(C["x"], self.N_i, self.N_n)
-        # # self.nbins = 0
+        C["zx"] = _qC(C["x"], self.N_i, self.N_n)
+        C["zm"] = _qC(C["zx"], self.N_i, self.N_n, self.N_zx)
+        self.nvars = _qC(C["zm"], self.N_n - self.nm, self.N_q - 1) if medi else C["zm"]
+        self.nbins = self.nvars - C["zx"]
 
         self.C = C
         self.mylog.vprint(
@@ -1071,6 +1077,8 @@ class Plan(object):
         Utility function that builds constraint matrix and vectors.
         Refactored for clarity and maintainability.
         """
+        self._buildOffsetMap(options)
+
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
 
@@ -1089,7 +1097,9 @@ class Plan(object):
         self._add_net_cash_flow()
         self._add_income_profile()
         self._add_taxable_income()
-        self._configure_binary_variables(options)
+        self._add_Medicare_costs()
+        self._configure_exclusion_binary_variables(options)
+        self._configure_Medicare_binary_variables(options)
         self._build_objective_vector(objective)
 
         return None
@@ -1107,7 +1117,7 @@ class Plan(object):
     def _add_tax_bracket_bounds(self):
         for t in range(self.N_t):
             for n in range(self.N_n):
-                self.B.setRange(_q2(self.C["F"], t, n, self.N_t, self.N_n), 0, self.DeltaBar_tn[t, n])
+                self.B.setRange(_q2(self.C["f"], t, n, self.N_t, self.N_n), 0, self.DeltaBar_tn[t, n])
 
     def _add_standard_exemption_bounds(self):
         for n in range(self.N_n):
@@ -1330,7 +1340,7 @@ class Plan(object):
                 row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), fac * self.mu)
 
             for t in range(self.N_t):
-                row.addElem(_q2(self.C["F"], t, n, self.N_t, self.N_n), self.theta_tn[t, n])
+                row.addElem(_q2(self.C["f"], t, n, self.N_t, self.N_n), self.theta_tn[t, n])
 
             self.A.addRow(row, rhs, rhs)
 
@@ -1360,10 +1370,10 @@ class Plan(object):
                 row.addElem(_q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n), fak)
                 row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), -fak)
             for t in range(self.N_t):
-                row.addElem(_q2(self.C["F"], t, n, self.N_t, self.N_n), 1)
+                row.addElem(_q2(self.C["f"], t, n, self.N_t, self.N_n), 1)
             self.A.addRow(row, rhs, rhs)
 
-    def _configure_binary_variables(self, options):
+    def _configure_exclusion_binary_variables(self, options):
         bigM = options.get("bigM", 5e6)
         if not isinstance(bigM, (int, float)):
             raise ValueError(f"bigM {bigM} is not a number.")
@@ -1371,14 +1381,14 @@ class Plan(object):
         for i in range(self.N_i):
             for n in range(self.horizons[i]):
                 self.A.addNewRow(
-                    {_q3(self.C["z"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
+                    {_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx): bigM,
                      _q1(self.C["s"], n, self.N_n): -1},
                     0,
                     bigM,
                 )
                 self.A.addNewRow(
                     {
-                        _q3(self.C["z"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
+                        _q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx): bigM,
                         _q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n): 1,
                         _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1,
                     },
@@ -1386,20 +1396,89 @@ class Plan(object):
                     bigM,
                 )
                 self.A.addNewRow(
-                    {_q3(self.C["z"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
+                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx): bigM,
                      _q2(self.C["x"], i, n, self.N_i, self.N_n): -1},
                     0,
                     bigM,
                 )
                 self.A.addNewRow(
-                    {_q3(self.C["z"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
+                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx): bigM,
                      _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1},
                     0,
                     bigM,
                 )
             for n in range(self.horizons[i], self.N_n):
-                self.B.setRange(_q3(self.C["z"], i, n, 0, self.N_i, self.N_n, self.N_z), 0, 0)
-                self.B.setRange(_q3(self.C["z"], i, n, 1, self.N_i, self.N_n, self.N_z), 0, 0)
+                self.B.setRange(_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx), 0, 0)
+                self.B.setRange(_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx), 0, 0)
+
+    def _configure_Medicare_binary_variables(self, options):
+        medi = options.get("withMedicare", True)
+	if not medi:
+            return
+
+        bigM = options.get("bigM", 5e6)
+        if not isinstance(bigM, (int, float)):
+            raise ValueError(f"bigM {bigM} is not a number.")
+
+        Nmed = self.N_n - self.nm
+        offset = 0
+        if self.nm < 2:
+            offset = 2 - self.nm
+            for nn in range(offset):
+                n = self.nm + nn
+                for q in range(self.N_q - 1):
+                    self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): bigM},
+                                     -np.inf, -self.L_nq[nn, q] + self.prevMAGI[n])
+                    self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): -bigM},
+                                     -np.inf, -self.L_nq[nn, q] + self.prevMAGI[n])
+
+        for nn in range(offset, Nmed):
+            n = self.nm + nn
+            for q in range(self.N_q - 1):
+                rhs1 = bigM - self.L_nq[nn, q]
+                rhs2 = self.L_nq[nn, q]
+                row1 = self.A.newRow()
+                row2 = self.A.newRow()
+                for i in range(self.N_i):
+                    row1.addElem(_q3(self.C["w"], i, 1, n-2, self.N_i, self.N_j, self.N_n), -1)
+                    row2.addElem(_q3(self.C["w"], i, 1, n-2, self.N_i, self.N_j, self.N_n), +1)
+
+                    row1.addElem(_q2(self.C["x"], i, n-2, self.N_i, self.N_n), -1)
+                    row2.addElem(_q2(self.C["x"], i, n-2, self.N_i, self.N_n), +1)
+
+                    fac1 = (self.mu*self.alpha_ijkn[i, 0, 0, n-2])
+                            + np.sum(self.alpha_ijkn[i, 0, 1:, n-2]*self.tau_kn[1:, n-2])
+                    row1.addElem(_q3(self.C["b"], i, 0, n-2, self.N_i, self.N_j, self.N_n + 1), -fac1)
+                    row2.addElem(_q3(self.C["b"], i, 0, n-2, self.N_i, self.N_j, self.N_n + 1), +fac1)
+            
+                    row1.addElem(_q2(self.C["d"], i, n-2, self.N_i, self.N_n), -fac1)
+                    row2.addElem(_q2(self.C["d"], i, n-2, self.N_i, self.N_n), +fac1)
+
+                    fac2 = self.alpha_ijkn[i, 0, 0, n-2] * max(0, self.tau_kn[0, max(0, n-3)])
+                    row1.addElem(_q3(self.C["w"], i, 0, n-2, self.N_i, self.N_j, self.N_n), +fac1 - fac2)
+                    row2.addElem(_q3(self.C["w"], i, 0, n-2, self.N_i, self.N_j, self.N_n), -fac1 + fac2)
+
+                    row1.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), +bigM)
+                    row2.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM)
+
+                    sumoni = (self.omega_in[i, n] + self.psi * self.zetaBar_in[i, n] + self.piBar_in[i, n]
+                              + 0.5 * self.kappa_ijn[i, 0, n-2] * fac1
+                    rhs1 += sumoni
+                    rhs2 -= sumoni
+
+    def _add_Medicare_costs(self, options):
+        medi = options.get("withMedicare", True)
+	if not medi:
+            return
+
+XXXXXXXXXXXXXXXXXXXXXXXXX
+        for nn in range(self.N_n - self.nm):
+            n = self.nm + nn
+            self.m_n[n] = self.C_nq[nn, 0]
+            for q in range(self.N_q - 1):
+                self.m_n[n] += self.C_nq[nn, q]*self.C
+             
+        
 
     def _build_objective_vector(self, objective):
         c = abc.Objective(self.nvars)
@@ -1923,18 +2002,18 @@ class Plan(object):
         Nk = self.N_k
         Nn = self.N_n
         Nt = self.N_t
-        # Nz = self.N_z
+        # Nzx = self.N_zx
         n_d = self.n_d
 
         Cb = self.C["b"]
         Cd = self.C["d"]
         Ce = self.C["e"]
-        CF = self.C["F"]
+        CF = self.C["f"]
         Cg = self.C["g"]
         Cs = self.C["s"]
         Cw = self.C["w"]
         Cx = self.C["x"]
-        Cz = self.C["z"]
+        Czx = self.C["zx"]
 
         x = u.roundCents(x)
 
@@ -1960,11 +2039,11 @@ class Plan(object):
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
 
-        self.x_in = np.array(x[Cx:Cz])
+        self.x_in = np.array(x[Cx:Czx])
         self.x_in = self.x_in.reshape((Ni, Nn))
 
-        # self.z_inz = np.array(x[Cz:])
-        # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
+        # self.z_inz = np.array(x[Czx:])
+        # self.z_inz = self.z_inz.reshape((Ni, Nn, Nzx))
         # print(self.z_inz)
 
         self.G_n = np.sum(self.F_tn, axis=0)

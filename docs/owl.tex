@@ -1181,14 +1181,15 @@ For each bracket we set
 	A_u[I_2(q, n), q_{w}(i, 1, n-2)] &=& -1, \nonumber \\
 	A_u[I_2(q, n), q_{x}(i, n-2)] &=& -1, \nonumber \\
 	A_u[I_2(q, n), q_{b}(i, 0, n-2)] &=&
-	    -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)} - \mu \alpha_{i00(n-2)},
+	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
 	A_u[I_2(q, n), q_{d}(i, n-2)] &=&
-	    -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)} - \mu \alpha_{i00(n-2)},
+	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
 	A_u[I_2(q, n), q_{w}(i, 0, n-2)] &=&
-	    \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)} + \mu \alpha_{i00(n-2)}
-	    - \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)}), \nonumber \\
+	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
+	    \nonumber \\
+	    && - \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)}), \nonumber \\
 	A_u[I_2(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
 	u[I_2(q, n)] &=& -\bar{\mathcal{L}}_{qn} + \mathcal{M}
          + \sum_i \left[\omega_{i(n-2)} + \Psi_n\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
@@ -1200,14 +1201,48 @@ For each bracket we set
 	&&\qquad\forall q \in \{1,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{\max(n_m, 2),\ldots, N_n - 1\}.
 \end{eqnarray}
-If $n_m < 2$, we must enforce these additional rows
+When $n_m < 2$, we use these additional rows
 \begin{eqnarray}
 	A_u[I_2(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
-	u[I_2(q, n)] &=& -\bar{\mathcal{L}}_{qn} + \mathcal{A}_{n} + \mathcal{M}, \nonumber \\
+	u[I_2(q, n)] &=& \mathcal{M} + \mathcal{A}_{n} -\bar{\mathcal{L}}_{qn}, \nonumber \\
 	&&\qquad\forall q \in \{1,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{n_m,\ldots, 2\},
 \end{eqnarray}
-where $\mathcal{A}_n$ is a user-provided array of MAGI values for the last two years in chronological order.
+where $\mathcal{A}_n$ is a user-provided array of MAGI values for (up to) the last two years in chronological order.
+
+For Eq.~(\ref{Eq:Med2}) we obtain
+\begin{eqnarray}
+	A_u[I_2(q, n), q_{w}(i, 1, n-2)] &=& 1, \nonumber \\
+	A_u[I_2(q, n), q_{x}(i, n-2)] &=& 1, \nonumber \\
+	A_u[I_2(q, n), q_{b}(i, 0, n-2)] &=&
+	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
+	    \nonumber \\
+	A_u[I_2(q, n), q_{d}(i, n-2)] &=&
+	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
+	    \nonumber \\
+	A_u[I_2(q, n), q_{w}(i, 0, n-2)] &=&
+	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
+	    \nonumber \\
+	    && + \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)}), \nonumber \\
+	A_u[I_2(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
+	u[I_2(q, n)] &=& \bar{\mathcal{L}}_{qn}
+         - \sum_i \left[\omega_{i(n-2)} + \Psi_n\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
+	&& - 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
+	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
+	  \right)\right],\nonumber\\
+	&&\qquad\forall i \in \{0,\ldots, N_i - 1\}, \nonumber\\
+	&&\qquad\forall k \in \{0,\ldots, N_k - 1\}, \nonumber\\
+	&&\qquad\forall q \in \{1,\ldots, N_q - 2\}, \nonumber\\
+	&&\qquad\forall n \in \{\max(n_m, 2),\ldots, N_n - 1\}.
+\end{eqnarray}
+When $n_m < 2$, we enforce these additional rows
+\begin{eqnarray}
+	A_u[I_2(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
+	u[I_2(q, n)] &=& \bar{\mathcal{L}}_{qn} - \mathcal{A}_{n} , \nonumber \\
+	&&\qquad\forall q \in \{1,\ldots, N_q - 2\}, \nonumber\\
+	&&\qquad\forall n \in \{n_m,\ldots, 2\},
+\end{eqnarray}
+where $\mathcal{A}_n$ is a user-provided array of MAGI values for (up to) the last two years in chronological order.
 
 \section{Equality constraints}
 
