@@ -10,7 +10,7 @@ mathematical model and a description of all variables and parameters.
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+Disclaimers: This code is for educational purposes only and does not constitute financial advice.
 
 """
 
@@ -1024,9 +1024,10 @@ class Plan(object):
 
         if not self._adjustedParameters:
             self.mylog.vprint("Adjusting parameters for inflation.")
-            self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
-                                                                      self.N_n, self.yTCJA)
-            self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
+            self.sigmaBar_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
+                                                                         self.N_n, self.gamma_n,
+                                                                         self.MAGI_n, self.yTCJA)
+            # self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
             self.xiBar_n = self.xi_n * self.gamma_n[:-1]
@@ -1089,7 +1090,8 @@ class Plan(object):
         self._add_net_cash_flow()
         self._add_income_profile()
         self._add_taxable_income()
-        self._configure_binary_variables(options)
+        # Turn off as an option?
+        # self._configure_binary_variables(options)
         self._build_objective_vector(objective)
 
         return None
@@ -1624,11 +1626,9 @@ class Plan(object):
             raise ValueError(f"Slack value out of range {lambdha}.")
         self.lambdha = lambdha / 100
 
-        # Ensure parameters are adjusted for inflation.
-        self._adjustParameters()
-
-        # Reset long-term capital gain tax rate to zero.
+        # Reset long-term capital gain tax rate and MAGIs to zero.
         self.psi_n[:] = 0
+        self.MAGI_n = np.zeros(self.N_n)
 
         solver = myoptions.get("solver", self.defaultSolver)
         if solver not in knownSolvers:
@@ -1665,7 +1665,7 @@ class Plan(object):
         absdiff = np.inf
         old_x = np.zeros(self.nvars)
         old_solutions = [np.inf]
-        self._estimateMedicare(None, withMedicare)
+        self._computeNLstuff(None, withMedicare)
         while True:
             solution, xx, solverSuccess, solverMsg = solverMethod(objective, options)
 
@@ -1676,7 +1676,7 @@ class Plan(object):
             if not withMedicare:
                 break
 
-            self._estimateMedicare(xx)
+            self._computeNLstuff(xx)
 
             self.mylog.vprint(f"Iteration: {it} objective: {u.d(solution * objFac, f=2)}")
 
@@ -1892,19 +1892,23 @@ class Plan(object):
 
         return J_n
 
-    def _estimateMedicare(self, x=None, withMedicare=True):
+    def _computeNLstuff(self, x=None, withMedicare=True):
         """
         Compute MAGI, Medicare costs, long-term capital gain tax rate, and
         net investment income tax (NIIT).
         """
         if x is None or withMedicare is False:
             self.MAGI_n = np.zeros(self.N_n)
+            self._adjustParameters()
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
             self.psi_n = np.zeros(self.N_n)
             return
 
         self._aggregateResults(x, short=True)
+
+        # Ensure parameters are re-adjusted for inflation and MAGI.
+        self._adjustParameters()
 
         self.J_n = self._computeNIIT()
         self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)

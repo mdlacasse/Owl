@@ -18,7 +18,7 @@ A for matrix, B for bounds, C for constraints. Thus the name ABCAPI.
 
 Copyright &copy; 2024 - Martin-D. Lacasse
 
-Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+Disclaimers: This code is for educational purposes only and does not constitute financial advice.
 
 """
 

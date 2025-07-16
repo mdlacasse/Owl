@@ -76,8 +76,8 @@ else:
     kz.initKey("withMedicare", True)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        helpmsg = "Do or do not perform additional Medicare and IRMAA calculations."
-        ret = kz.getToggle("Medicare and IRMAA calculations", "withMedicare", help=helpmsg)
+        helpmsg = "Perform additional loop treating non-linear parameters such as bonus exemption and IRMAA calculations."
+        ret = kz.getToggle("Medicare and IRMAA calculations loop ", "withMedicare", help=helpmsg)
     with col2:
         if kz.getKey("withMedicare"):
             helpmsg = "MAGI in nominal $k for current and previous years."
