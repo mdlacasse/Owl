@@ -132,7 +132,6 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
     return nm, L, C
 
 
-
 def capitalGainTaxRate(Ni, magi_n, gamma_n, nd, Nn):
     """
     Return an array of decimal rates for capital gains.
