@@ -1077,8 +1077,6 @@ class Plan(object):
         Utility function that builds constraint matrix and vectors.
         Refactored for clarity and maintainability.
         """
-        self._buildOffsetMap(options)
-
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
 
@@ -1097,9 +1095,9 @@ class Plan(object):
         self._add_net_cash_flow()
         self._add_income_profile()
         self._add_taxable_income()
-        self._add_Medicare_costs()
-        self._configure_exclusion_binary_variables(options)
         self._configure_Medicare_binary_variables(options)
+        self._add_Medicare_costs(options)
+        # self._configure_exclusion_binary_variables(options)
         self._build_objective_vector(objective)
 
         return None
@@ -1320,9 +1318,10 @@ class Plan(object):
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
         tau_0prev[tau_0prev < 0] = 0
         for n in range(self.N_n):
-            rhs = -self.M_n[n] - self.J_n[n]
+            rhs = -self.J_n[n]
             row = self.A.newRow({_q1(self.C["g"], n, self.N_n): 1})
             row.addElem(_q1(self.C["s"], n, self.N_n), 1)
+            row.addElem(_q1(self.C["m"], n, self.N_n), 1)
             for i in range(self.N_i):
                 fac = self.psi_n[n] * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
@@ -1428,55 +1427,64 @@ class Plan(object):
                 n = self.nm + nn
                 for q in range(self.N_q - 1):
                     self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): bigM},
-                                     -np.inf, -self.L_nq[nn, q] + self.prevMAGI[n])
+                                     -np.inf, bigM - self.L_nq[nn, q] + self.prevMAGI[n])
                     self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): -bigM},
-                                     -np.inf, -self.L_nq[nn, q] + self.prevMAGI[n])
+                                     -np.inf, self.L_nq[nn, q] - self.prevMAGI[n])
 
         for nn in range(offset, Nmed):
-            n = self.nm + nn
+            n2 = self.nm + nn - 2  # n - 2
             for q in range(self.N_q - 1):
                 rhs1 = bigM - self.L_nq[nn, q]
                 rhs2 = self.L_nq[nn, q]
                 row1 = self.A.newRow()
                 row2 = self.A.newRow()
+
+                row1.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), +bigM)
+                row2.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM)
                 for i in range(self.N_i):
-                    row1.addElem(_q3(self.C["w"], i, 1, n-2, self.N_i, self.N_j, self.N_n), -1)
-                    row2.addElem(_q3(self.C["w"], i, 1, n-2, self.N_i, self.N_j, self.N_n), +1)
+                    row1.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), -1)
+                    row2.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), +1)
 
-                    row1.addElem(_q2(self.C["x"], i, n-2, self.N_i, self.N_n), -1)
-                    row2.addElem(_q2(self.C["x"], i, n-2, self.N_i, self.N_n), +1)
+                    row1.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), -1)
+                    row2.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), +1)
 
-                    fac1 = (self.mu*self.alpha_ijkn[i, 0, 0, n-2]
-                            + np.sum(self.alpha_ijkn[i, 0, 1:, n-2]*self.tau_kn[1:, n-2]))
-                    row1.addElem(_q3(self.C["b"], i, 0, n-2, self.N_i, self.N_j, self.N_n + 1), -fac1)
-                    row2.addElem(_q3(self.C["b"], i, 0, n-2, self.N_i, self.N_j, self.N_n + 1), +fac1)
+                    afac = (self.mu*self.alpha_ijkn[i, 0, 0, n2]
+                            + np.sum(self.alpha_ijkn[i, 0, 1:, n2]*self.tau_kn[1:, n2]))
+                    afac = 0
+                    row1.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), -afac)
+                    row2.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), +afac)
 
-                    row1.addElem(_q2(self.C["d"], i, n-2, self.N_i, self.N_n), -fac1)
-                    row2.addElem(_q2(self.C["d"], i, n-2, self.N_i, self.N_n), +fac1)
+                    row1.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), -afac)
+                    row2.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), +afac)
 
-                    fac2 = self.alpha_ijkn[i, 0, 0, n-2] * max(0, self.tau_kn[0, max(0, n-3)])
-                    row1.addElem(_q3(self.C["w"], i, 0, n-2, self.N_i, self.N_j, self.N_n), +fac1 - fac2)
-                    row2.addElem(_q3(self.C["w"], i, 0, n-2, self.N_i, self.N_j, self.N_n), -fac1 + fac2)
+                    bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, self.tau_kn[0, max(0, n2-1)])
+                    row1.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), +afac - bfac)
+                    row2.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
 
-                    row1.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), +bigM)
-                    row2.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM)
-
-                    sumoni = (self.omega_in[i, n] + self.psi * self.zetaBar_in[i, n] + self.piBar_in[i, n]
-                              + 0.5 * self.kappa_ijn[i, 0, n-2] * fac1)
+                    sumoni = (self.omega_in[i, n2] + self.psi_n[n2] * self.zetaBar_in[i, n2] + self.piBar_in[i, n2]
+                              + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
                     rhs1 += sumoni
                     rhs2 -= sumoni
+
+                self.A.addRow(row1, -np.inf, rhs1)
+                self.A.addRow(row2, -np.inf, rhs2)
 
     def _add_Medicare_costs(self, options):
         medi = options.get("withMedicare", True)
         if not medi:
             return
 
-        # XXXXXXXXXXXXXXXXXXXXXXXXX
-        for nn in range(self.N_n - self.nm):
+        for n in range(self.nm):
+            self.B.setRange(_q1(self.C["m"], n, self.N_n), 0, 0)
+
+        Nmed = self.N_n - self.nm
+        for nn in range(Nmed):
             n = self.nm + nn
-            self.m_n[n] = self.C_nq[nn, 0]
+            row = self.A.newRow()
+            row.addElem(_q1(self.C["m"], n, self.N_n), 1)
             for q in range(self.N_q - 1):
-                self.m_n[n] += self.C_nq[nn, q]*self.C
+                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -self.C_nq[nn, q+1])
+            self.A.addRow(row, self.C_nq[nn, 0], self.C_nq[nn, 0])
 
     def _build_objective_vector(self, objective):
         c = abc.Objective(self.nvars)
@@ -1703,6 +1711,7 @@ class Plan(object):
 
         # Ensure parameters are adjusted for inflation.
         self._adjustParameters()
+        self._buildOffsetMap(options)
 
         # Reset long-term capital gain tax rate to zero.
         self.psi_n[:] = 0
@@ -1778,7 +1787,7 @@ class Plan(object):
             old_x = xx
 
         if solverSuccess:
-            self.mylog.vprint(f"Self-consistent Medicare loop returned after {it+1} iterations.")
+            self.mylog.vprint(f"Self-consistent loop returned after {it+1} iterations.")
             self.mylog.vprint(solverMsg)
             self.mylog.vprint(f"Objective: {u.d(solution * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
@@ -1802,7 +1811,7 @@ class Plan(object):
             "disp": False,
             "mip_rel_gap": 1e-7,
             "presolve": True,
-            "node_limit": 10000  # Limit search nodes for faster solutions
+            # "node_limit": 10000  # Limit search nodes for faster solutions
         }
 
         self._buildConstraints(objective, options)
@@ -1977,14 +1986,13 @@ class Plan(object):
         if x is None or withMedicare is False:
             self.MAGI_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
-            self.M_n = np.zeros(self.N_n)
             self.psi_n = np.zeros(self.N_n)
             return
 
         self._aggregateResults(x, short=True)
 
         self.J_n = self._computeNIIT()
-        self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
+        # self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
         self.psi_n = tx.capitalGainTaxRate(self.N_i, self.MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
 
         return None
@@ -2006,8 +2014,9 @@ class Plan(object):
         Cb = self.C["b"]
         Cd = self.C["d"]
         Ce = self.C["e"]
-        CF = self.C["f"]
+        Cf = self.C["f"]
         Cg = self.C["g"]
+        Cm = self.C["m"]
         Cs = self.C["s"]
         Cw = self.C["w"]
         Cx = self.C["x"]
@@ -2025,12 +2034,14 @@ class Plan(object):
         self.d_in = np.array(x[Cd:Ce])
         self.d_in = self.d_in.reshape((Ni, Nn))
 
-        self.e_n = np.array(x[Ce:CF])
+        self.e_n = np.array(x[Ce:Cf])
 
-        self.F_tn = np.array(x[CF:Cg])
-        self.F_tn = self.F_tn.reshape((Nt, Nn))
+        self.f_tn = np.array(x[Cf:Cg])
+        self.f_tn = self.f_tn.reshape((Nt, Nn))
 
-        self.g_n = np.array(x[Cg:Cs])
+        self.g_n = np.array(x[Cg:Cm])
+
+        self.m_n = np.array(x[Cm:Cs])
 
         self.s_n = np.array(x[Cs:Cw])
 
@@ -2044,7 +2055,7 @@ class Plan(object):
         # self.z_inz = self.z_inz.reshape((Ni, Nn, Nzx))
         # print(self.z_inz)
 
-        self.G_n = np.sum(self.F_tn, axis=0)
+        self.G_n = np.sum(self.f_tn, axis=0)
 
         tau_0 = np.array(self.tau_kn[0, :])
         tau_0[tau_0 < 0] = 0
@@ -2071,7 +2082,7 @@ class Plan(object):
         if short:
             return
 
-        self.T_tn = self.F_tn * self.theta_tn
+        self.T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(self.T_tn, axis=0)
         self.P_n = np.zeros(Nn)
         # Add early withdrawal penalty if any.
@@ -2247,8 +2258,8 @@ class Plan(object):
         dic[" Total net investment income tax paid"] = f"{u.d(taxPaidNow)}"
         dic["[Total net investment income tax paid]"] = f"{u.d(taxPaid)}"
 
-        taxPaid = np.sum(self.M_n, axis=0)
-        taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
+        taxPaid = np.sum(self.m_n, axis=0)
+        taxPaidNow = np.sum(self.m_n / self.gamma_n[:-1], axis=0)
         dic[" Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
         dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
 
@@ -2529,7 +2540,7 @@ class Plan(object):
             title += " - " + tag
         # All taxes: ordinary income, dividends, and NIIT.
         allTaxes = self.T_n + self.U_n + self.J_n
-        fig = self._plotter.plot_taxes(self.year_n, allTaxes, self.M_n, self.gamma_n,
+        fig = self._plotter.plot_taxes(self.year_n, allTaxes, self.m_n, self.gamma_n,
                                        value, title, self.inames)
         if figure:
             return fig
@@ -2600,7 +2611,7 @@ class Plan(object):
             "net spending": self.g_n,
             "taxable ord. income": self.G_n,
             "taxable gains/divs": self.Q_n,
-            "Tax bills + Med.": self.T_n + self.U_n + self.M_n + self.J_n,
+            "Tax bills + Med.": self.T_n + self.U_n + self.m_n + self.J_n,
         }
 
         fillsheet(ws, incomeDic, "currency")
@@ -2616,7 +2627,7 @@ class Plan(object):
             "all deposits": -np.sum(self.d_in, axis=0),
             "ord taxes": -self.T_n - self.J_n,
             "div taxes": -self.U_n,
-            "Medicare": -self.M_n,
+            "Medicare": -self.m_n,
         }
         sname = "Cash Flow"
         ws = wb.create_sheet(sname)

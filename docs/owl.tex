@@ -770,7 +770,7 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 	\begin{eqnarray}
 		\label{Eq:C4}
 		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_{i,j\neq0} (1-\mathcal{H}(n - n_{i, 59})) w_{ijn}\nonumber\\
-                + m_n + s_n + \sum_t \bar{f}_{tn} \theta_{t n} &&\nonumber \\
+                + m_n + s_n + \sum_t \bar{f}_{tn} \theta_{tn} &&\nonumber \\
 		+ \psi_n\sum_i \alpha_{i00n} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0(n-1)})\right] 
 		&=& \sum_i [\Lambda^\pm_{in} - 0.5\psi_n\mu\alpha_{i00n}\kappa_{i0n}] \nonumber\\
@@ -914,7 +914,7 @@ In this case, the objective function will need to consider all years when optimi
 		\nonumber \\
 		- \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0(n-3)})] + z_{qn}^m \mathcal{M}
 		& \leq& \nonumber \\
-                - \bar{\mathcal{L}}_{qn} + \mathcal{M}
+                \mathcal{M} - \bar{\mathcal{L}}_{qn}
 		+ \sum_i [\omega_{i(n-2)} + \Psi_n\bar\zeta_{i(n-2)} + \bar{\pi}_{i(n-2)}] && \nonumber\\
 		+ 0.5\sum_{i} \left[\kappa_{i0(n-2)} \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right]. && 
 	\end{eqnarray}
@@ -927,7 +927,7 @@ In this case, the objective function will need to consider all years when optimi
         is obtained similarly
 	\begin{eqnarray}
 		\label{Eq:Med2}
-		\sum_i [w_{i1(n-2)} + x_{i(n-2)}] && \nonumber \\
+		+ \sum_i [w_{i1(n-2)} + x_{i(n-2)}] && \nonumber \\
 		+ \sum_i \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})
                 \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] &&
 		\nonumber \\
@@ -1294,7 +1294,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 	A_e[J_4(n), q_m(n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_b(i, 0, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_4(n), q_d(i, n)] &=& 1 + \psi_n\mu\alpha_{i00n}, \nonumber \\
-	A_e[J_4(n), q_{\bar{f}}(t, n)] &=& \theta_{t n}, \nonumber \\
+	A_e[J_4(n), q_{\bar{f}}(t, n)] &=& \theta_{tn}, \nonumber \\
 	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59})) + \delta(j, 0)\psi_n\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
