@@ -11,9 +11,11 @@ with col1:
     kz.divider("orange")
     st.write("### :material/campaign: News")
     st.markdown("""
-:tada: This Owl version includes some tax changes resulting from the OBBBA, such as the additional $6k :gift: exemption
-for 65+ individuals. This exemption is set to be expired in 2029. 
-An option to revert to pre-TCJA tax rates in a given future year can be used to model longer-term horizons. :cyclone:
+:tada: This Owl version includes some tax changes resulting from the OBBBA,
+such as the additional $6k :gift: exemption
+for 65+ individuals. This exemption is set to expire at the end of 2028.
+For considering potential future tax increases, option to revert to pre-TCJA tax rates
+in the future is available and can be used to model longer-term horizons. :cyclone:
 
 Report bugs / suggestions through GitHub channel or email.
 """)

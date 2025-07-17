@@ -1050,14 +1050,14 @@ class Plan(object):
         C["b"] = 0
         C["d"] = _qC(C["b"], self.N_i, self.N_j, self.N_n + 1)
         C["e"] = _qC(C["d"], self.N_i, self.N_n)
-        C["F"] = _qC(C["e"], self.N_n)
-        C["g"] = _qC(C["F"], self.N_t, self.N_n)
+        C["f"] = _qC(C["e"], self.N_n)
+        C["g"] = _qC(C["f"], self.N_t, self.N_n)
         C["s"] = _qC(C["g"], self.N_n)
         C["w"] = _qC(C["s"], self.N_n)
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
-        C["z"] = _qC(C["x"], self.N_i, self.N_n)
-        self.nvars = _qC(C["z"], self.N_i, self.N_n, self.N_z)
-        self.nbins = self.nvars - C["z"]
+        C["zx"] = _qC(C["x"], self.N_i, self.N_n)
+        self.nvars = _qC(C["zx"], self.N_i, self.N_n, self.N_z)
+        self.nbins = self.nvars - C["zx"]
         # # self.nvars = _qC(C["x"], self.N_i, self.N_n)
         # # self.nbins = 0
 
@@ -1109,7 +1109,7 @@ class Plan(object):
     def _add_tax_bracket_bounds(self):
         for t in range(self.N_t):
             for n in range(self.N_n):
-                self.B.setRange(_q2(self.C["F"], t, n, self.N_t, self.N_n), 0, self.DeltaBar_tn[t, n])
+                self.B.setRange(_q2(self.C["f"], t, n, self.N_t, self.N_n), 0, self.DeltaBar_tn[t, n])
 
     def _add_standard_exemption_bounds(self):
         for n in range(self.N_n):
@@ -1332,7 +1332,7 @@ class Plan(object):
                 row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), fac * self.mu)
 
             for t in range(self.N_t):
-                row.addElem(_q2(self.C["F"], t, n, self.N_t, self.N_n), self.theta_tn[t, n])
+                row.addElem(_q2(self.C["f"], t, n, self.N_t, self.N_n), self.theta_tn[t, n])
 
             self.A.addRow(row, rhs, rhs)
 
@@ -1362,7 +1362,7 @@ class Plan(object):
                 row.addElem(_q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n), fak)
                 row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), -fak)
             for t in range(self.N_t):
-                row.addElem(_q2(self.C["F"], t, n, self.N_t, self.N_n), 1)
+                row.addElem(_q2(self.C["f"], t, n, self.N_t, self.N_n), 1)
             self.A.addRow(row, rhs, rhs)
 
     def _configure_binary_variables(self, options):
@@ -1373,14 +1373,14 @@ class Plan(object):
         for i in range(self.N_i):
             for n in range(self.horizons[i]):
                 self.A.addNewRow(
-                    {_q3(self.C["z"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
+                    {_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
                      _q1(self.C["s"], n, self.N_n): -1},
                     0,
                     bigM,
                 )
                 self.A.addNewRow(
                     {
-                        _q3(self.C["z"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
+                        _q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
                         _q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n): 1,
                         _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1,
                     },
@@ -1388,20 +1388,20 @@ class Plan(object):
                     bigM,
                 )
                 self.A.addNewRow(
-                    {_q3(self.C["z"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
+                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
                      _q2(self.C["x"], i, n, self.N_i, self.N_n): -1},
                     0,
                     bigM,
                 )
                 self.A.addNewRow(
-                    {_q3(self.C["z"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
+                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
                      _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1},
                     0,
                     bigM,
                 )
             for n in range(self.horizons[i], self.N_n):
-                self.B.setRange(_q3(self.C["z"], i, n, 0, self.N_i, self.N_n, self.N_z), 0, 0)
-                self.B.setRange(_q3(self.C["z"], i, n, 1, self.N_i, self.N_n, self.N_z), 0, 0)
+                self.B.setRange(_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_z), 0, 0)
+                self.B.setRange(_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_z), 0, 0)
 
     def _build_objective_vector(self, objective):
         c = abc.Objective(self.nvars)
@@ -1933,12 +1933,12 @@ class Plan(object):
         Cb = self.C["b"]
         Cd = self.C["d"]
         Ce = self.C["e"]
-        CF = self.C["F"]
+        Cf = self.C["f"]
         Cg = self.C["g"]
         Cs = self.C["s"]
         Cw = self.C["w"]
         Cx = self.C["x"]
-        Cz = self.C["z"]
+        Czx = self.C["zx"]
 
         x = u.roundCents(x)
 
@@ -1952,9 +1952,9 @@ class Plan(object):
         self.d_in = np.array(x[Cd:Ce])
         self.d_in = self.d_in.reshape((Ni, Nn))
 
-        self.e_n = np.array(x[Ce:CF])
+        self.e_n = np.array(x[Ce:Cf])
 
-        self.F_tn = np.array(x[CF:Cg])
+        self.F_tn = np.array(x[Cf:Cg])
         self.F_tn = self.F_tn.reshape((Nt, Nn))
 
         self.g_n = np.array(x[Cg:Cs])
@@ -1964,10 +1964,10 @@ class Plan(object):
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
 
-        self.x_in = np.array(x[Cx:Cz])
+        self.x_in = np.array(x[Cx:Czx])
         self.x_in = self.x_in.reshape((Ni, Nn))
 
-        # self.z_inz = np.array(x[Cz:])
+        # self.z_inz = np.array(x[Czx:])
         # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
         # print(self.z_inz)
 
