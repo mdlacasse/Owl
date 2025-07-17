@@ -1751,7 +1751,7 @@ class Plan(object):
         absdiff = np.inf
         old_x = np.zeros(self.nvars)
         old_solutions = [np.inf]
-        self._estimateMedicare(None, withMedicare)
+        self._computeNLstuff(None, withMedicare)
         while True:
             solution, xx, solverSuccess, solverMsg = solverMethod(objective, options)
 
@@ -1762,7 +1762,7 @@ class Plan(object):
             if not withMedicare:
                 break
 
-            self._estimateMedicare(xx)
+            self._computeNLstuff(xx)
 
             self.mylog.vprint(f"Iteration: {it} objective: {u.d(solution * objFac, f=2)}")
 
@@ -1978,7 +1978,7 @@ class Plan(object):
 
         return J_n
 
-    def _estimateMedicare(self, x=None, withMedicare=True):
+    def _computeNLstuff(self, x=None, withMedicare=True):
         """
         Compute MAGI, Medicare costs, long-term capital gain tax rate, and
         net investment income tax (NIIT).
