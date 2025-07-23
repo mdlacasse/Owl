@@ -52,7 +52,7 @@ irmaaBrackets = np.array(
 # Following values are incremental IRMAA part B monthly fees.
 irmaaFees = 12 * np.array([185.00, 74.00, 111.00, 110.90, 111.00, 37.00])
 
-# Make projection for non-TCJA using 2017 to current year.
+# Make projection for pre-TCJA using 2017 to current year.
 # taxBrackets_2017 = np.array(
 #    [ [9325, 37950, 91900, 191650, 416700, 418400, 9999999],
 #      [18650, 75900, 153100, 233350, 416700, 470700, 9999999],
@@ -75,10 +75,10 @@ stdDeduction_OBBA = np.array([15750, 31500])    # Single, MFJ
 # These are speculated (adjusted for inflation).
 stdDeduction_preTCJA = np.array([8300, 16600])  # Single, MFJ
 
-# These are current (adjusted for inflation).
+# These are current (adjusted for inflation), per individual.
 extra65Deduction = np.array([2000, 1600])       # Single, MFJ
 
-# Thresholds for capital gains (adjusted for inflation), per individual.
+# Thresholds for capital gains (adjusted for inflation).
 capGainRates = np.array(
     [
         [48350, 533400],
@@ -262,7 +262,7 @@ def taxBrackets(N_i, n_d, N_n, y_TCJA):
         array = np.zeros(N_n)
         for n in range(N_n):
             stat = status if n < n_d else 0
-            array[n] = taxBrackets_TCJA[stat][t] if n < ytc else taxBrackets_nonTCJA[stat][t]
+            array[n] = taxBrackets_TCJA[stat][t] if n < ytc else taxBrackets_preTCJA[stat][t]
 
         data[taxBracketNames[t]] = array
 
