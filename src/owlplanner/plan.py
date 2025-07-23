@@ -1025,9 +1025,9 @@ class Plan(object):
 
         if not self._adjustedParameters:
             self.mylog.vprint("Adjusting parameters for inflation.")
-            self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
-                                                                      self.N_n, self.yTCJA)
-            self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
+            self.sigmaBar_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
+                                                                         self.N_n, self.gamma_n,
+                                                                         self.MAGI_n, self.yTCJA)
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
             self.xiBar_n = self.xi_n * self.gamma_n[:-1]

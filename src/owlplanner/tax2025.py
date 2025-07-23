@@ -75,7 +75,7 @@ stdDeduction_OBBA = np.array([15750, 31500])    # Single, MFJ
 # These are speculated (adjusted for inflation).
 stdDeduction_preTCJA = np.array([8300, 16600])  # Single, MFJ
 
-# These are current (adjusted for inflation), per individual.
+# These are current (adjusted for inflation) per individual.
 extra65Deduction = np.array([2000, 1600])       # Single, MFJ
 
 # Thresholds for capital gains (adjusted for inflation).
@@ -180,11 +180,11 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     return costs
 
 
-def taxParams(yobs, i_d, n_d, N_n, MAGI_n, y_postOBBA=2099):
+def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
     """
     Input is year of birth, index of shortest-lived individual,
     lifespan of shortest-lived individual, total number of years
-    in the plan, and the year that TCJA might expire.
+    in the plan, and the year that preTCJA rates might come back.
 
     It returns 3 time series:
     1) Standard deductions at year n (sigma_n).
@@ -218,9 +218,9 @@ def taxParams(yobs, i_d, n_d, N_n, MAGI_n, y_postOBBA=2099):
 
         if thisyear + n < y_postOBBA:
             sigmaBar[n] = stdDeduction_OBBA[filingStatus] * gamma_n[n]
-            Delta[n, :] = deltaBrackets_TCJA[filingStatus, :]
+            Delta[n, :] = deltaBrackets_OBBA[filingStatus, :]
         else:
-            sigmaBar[n] = stdDeduction_preTCJA[filingStatus]
+            sigmaBar[n] = stdDeduction_preTCJA[filingStatus] * gamma_n[n]
             Delta[n, :] = deltaBrackets_preTCJA[filingStatus, :]
 
         # Add 65+ additional exemption(s).
@@ -239,11 +239,11 @@ def taxParams(yobs, i_d, n_d, N_n, MAGI_n, y_postOBBA=2099):
     Delta = Delta.transpose()
     theta = theta.transpose()
 
-    # Return series unadjusted for inflation, in STD order.
+    # Return series unadjusted for inflation, except for sigmaBar, in STD order.
     return sigmaBar, theta, Delta
 
 
-def taxBrackets(N_i, n_d, N_n, y_TCJA):
+def taxBrackets(N_i, n_d, N_n, y_postOBBA=2099):
     """
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
@@ -253,16 +253,16 @@ def taxBrackets(N_i, n_d, N_n, y_TCJA):
     n_d = min(n_d, N_n)
     status = N_i - 1
 
-    # Number of years left in TCJA from this year.
+    # Number of years left in OBBA from this year.
     thisyear = date.today().year
-    ytc = y_TCJA - thisyear
+    ytc = max(0, y_postOBBA - thisyear)
 
     data = {}
     for t in range(len(taxBracketNames) - 1):
         array = np.zeros(N_n)
         for n in range(N_n):
             stat = status if n < n_d else 0
-            array[n] = taxBrackets_TCJA[stat][t] if n < ytc else taxBrackets_preTCJA[stat][t]
+            array[n] = taxBrackets_OBBA[stat][t] if n < ytc else taxBrackets_preTCJA[stat][t]
 
         data[taxBracketNames[t]] = array
 
