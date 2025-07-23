@@ -1954,8 +1954,8 @@ class Plan(object):
 
         self.e_n = np.array(x[Ce:Cf])
 
-        self.F_tn = np.array(x[Cf:Cg])
-        self.F_tn = self.F_tn.reshape((Nt, Nn))
+        self.f_tn = np.array(x[Cf:Cg])
+        self.f_tn = self.f_tn.reshape((Nt, Nn))
 
         self.g_n = np.array(x[Cg:Cs])
 
@@ -1971,7 +1971,7 @@ class Plan(object):
         # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
         # print(self.z_inz)
 
-        self.G_n = np.sum(self.F_tn, axis=0)
+        self.G_n = np.sum(self.f_tn, axis=0)
 
         tau_0 = np.array(self.tau_kn[0, :])
         tau_0[tau_0 < 0] = 0
@@ -1998,7 +1998,7 @@ class Plan(object):
         if short:
             return
 
-        self.T_tn = self.F_tn * self.theta_tn
+        self.T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(self.T_tn, axis=0)
         self.P_n = np.zeros(Nn)
         # Add early withdrawal penalty if any.

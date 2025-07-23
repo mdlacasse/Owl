@@ -179,16 +179,16 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
             filingStatus -= 1
 
         if thisyear + n < y_postOBBA:
-            sigmaBar[n] = stdDeduction_OBBA[filingStatus]*gamma_n[n]
+            sigmaBar[n] = stdDeduction_OBBA[filingStatus] * gamma_n[n]
             Delta[n, :] = deltaBrackets_OBBA[filingStatus, :]
         else:
-            sigmaBar[n] = stdDeduction_preTCJA[filingStatus]*gamma_n[n]
+            sigmaBar[n] = stdDeduction_preTCJA[filingStatus] * gamma_n[n]
             Delta[n, :] = deltaBrackets_preTCJA[filingStatus, :]
 
         # Add 65+ additional exemption(s) and "bonus" phasing out.
         for i in souls:
             if thisyear + n - yobs[i] >= 65:
-                sigmaBar[n] += extra65Deduction[filingStatus]*gamma_n[n]
+                sigmaBar[n] += extra65Deduction[filingStatus] * gamma_n[n]
                 if thisyear + n <= 2028:
                     sigmaBar[n] += 6000 * max(0, 1 - 0.06*max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
 
