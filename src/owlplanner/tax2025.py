@@ -25,8 +25,8 @@ from datetime import date
 
 taxBracketNames = ["10%", "12/15%", "22/25%", "24/28%", "32/33%", "35%", "37/40%"]
 
-rates_TCJA = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
-rates_nonTCJA = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
+rates_OBBA = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
+rates_preTCJA = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 
 ###############################################################################
 # Start of section where rates need to be actualized every year.
@@ -34,7 +34,7 @@ rates_nonTCJA = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 # Single [0] and married filing jointly [1].
 
 # These are 2025 current.
-taxBrackets_TCJA = np.array(
+taxBrackets_OBBA = np.array(
     [
         [11925, 48475, 103350, 197300, 250525, 626350, 9999999],
         [23850, 96950, 206700, 394600, 501050, 751600, 9999999],
@@ -63,7 +63,7 @@ irmaaFees = 12 * np.array([185.00, 74.00, 111.00, 110.90, 111.00, 37.00])
 # For 2025, I used a 30.5% adjustment from 2017, rounded to closest 50.
 #
 # These are speculated.
-taxBrackets_nonTCJA = np.array(
+taxBrackets_preTCJA = np.array(
     [
         [12150, 49550, 119950, 250200, 544000, 546200, 9999999],  # Single
         [24350, 99100, 199850, 304600, 543950, 614450, 9999999],  # MFJ
@@ -71,14 +71,14 @@ taxBrackets_nonTCJA = np.array(
 )
 
 # These are 2025 current (adjusted for inflation).
-stdDeduction_TCJA = np.array([15000, 30000])    # Single, MFJ
+stdDeduction_OBBA = np.array([15750, 31500])    # Single, MFJ
 # These are speculated (adjusted for inflation).
-stdDeduction_nonTCJA = np.array([8300, 16600])  # Single, MFJ
+stdDeduction_preTCJA = np.array([8300, 16600])  # Single, MFJ
 
 # These are current (adjusted for inflation).
 extra65Deduction = np.array([2000, 1600])       # Single, MFJ
 
-# Thresholds for capital gains (adjusted for inflation).
+# Thresholds for capital gains (adjusted for inflation), per individual.
 capGainRates = np.array(
     [
         [48350, 533400],
@@ -89,6 +89,9 @@ capGainRates = np.array(
 # Thresholds for net investment income tax (not adjusted for inflation).
 niitThreshold = np.array([200000, 250000])
 niitRate = 0.038
+
+# Thresholds for 65+ bonus for circumventing tax on social security.
+bonusThreshold = np.array([75000, 150000])
 
 ###############################################################################
 # End of section where rates need to be actualized every year.
@@ -177,7 +180,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     return costs
 
 
-def taxParams(yobs, i_d, n_d, N_n, y_TCJA=2026):
+def taxParams(yobs, i_d, n_d, N_n, MAGI_n, y_postOBBA=2099):
     """
     Input is year of birth, index of shortest-lived individual,
     lifespan of shortest-lived individual, total number of years
@@ -191,15 +194,15 @@ def taxParams(yobs, i_d, n_d, N_n, y_TCJA=2026):
     Returned values are not indexed for inflation.
     """
     # Compute the deltas in-place between brackets, starting from the end.
-    deltaBrackets_TCJA = np.array(taxBrackets_TCJA)
-    deltaBrackets_nonTCJA = np.array(taxBrackets_nonTCJA)
+    deltaBrackets_OBBA = np.array(taxBrackets_OBBA)
+    deltaBrackets_preTCJA = np.array(taxBrackets_preTCJA)
     for t in range(6, 0, -1):
         for i in range(2):
-            deltaBrackets_TCJA[i, t] -= deltaBrackets_TCJA[i, t - 1]
-            deltaBrackets_nonTCJA[i, t] -= deltaBrackets_nonTCJA[i, t - 1]
+            deltaBrackets_OBBA[i, t] -= deltaBrackets_OBBA[i, t - 1]
+            deltaBrackets_preTCJA[i, t] -= deltaBrackets_preTCJA[i, t - 1]
 
     # Prepare the 3 arrays to return - use transpose for easy slicing.
-    sigma = np.zeros((N_n))
+    sigmaBar = np.zeros((N_n))
     Delta = np.zeros((N_n, 7))
     theta = np.zeros((N_n, 7))
 
@@ -213,29 +216,31 @@ def taxParams(yobs, i_d, n_d, N_n, y_TCJA=2026):
             souls.remove(i_d)
             filingStatus -= 1
 
-        if thisyear + n < y_TCJA:
-            sigma[n] = stdDeduction_TCJA[filingStatus]
+        if thisyear + n < y_postOBBA:
+            sigmaBar[n] = stdDeduction_OBBA[filingStatus] * gamma_n[n]
             Delta[n, :] = deltaBrackets_TCJA[filingStatus, :]
         else:
-            sigma[n] = stdDeduction_nonTCJA[filingStatus]
-            Delta[n, :] = deltaBrackets_nonTCJA[filingStatus, :]
+            sigmaBar[n] = stdDeduction_preTCJA[filingStatus]
+            Delta[n, :] = deltaBrackets_preTCJA[filingStatus, :]
 
         # Add 65+ additional exemption(s).
         for i in souls:
             if thisyear + n - yobs[i] >= 65:
-                sigma[n] += extra65Deduction[filingStatus]
+                sigmaBar[n] += extra65Deduction[filingStatus] * gamma_n[n]
+                if thisyear + n <= 2028:
+                    sigmaBar[n] += 6000 * max(0, 1 - 0.06*max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
 
         # Fill in future tax rates for year n.
-        if thisyear + n < y_TCJA:
-            theta[n, :] = rates_TCJA[:]
+        if thisyear + n < y_postOBBA:
+            theta[n, :] = rates_OBBA[:]
         else:
-            theta[n, :] = rates_nonTCJA[:]
+            theta[n, :] = rates_preTCJA[:]
 
     Delta = Delta.transpose()
     theta = theta.transpose()
 
     # Return series unadjusted for inflation, in STD order.
-    return sigma, theta, Delta
+    return sigmaBar, theta, Delta
 
 
 def taxBrackets(N_i, n_d, N_n, y_TCJA):
