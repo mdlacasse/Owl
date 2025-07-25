@@ -231,7 +231,7 @@ class Plan(object):
         self.N_j = 3
         self.N_k = 4
         # 2 binary variables.
-        self.N_z = 2
+        self.N_zx = 2
 
         # Default interpolation parameters for allocation ratios.
         self.interpMethod = "linear"
@@ -1056,7 +1056,7 @@ class Plan(object):
         C["w"] = _qC(C["s"], self.N_n)
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
         C["zx"] = _qC(C["x"], self.N_i, self.N_n)
-        self.nvars = _qC(C["zx"], self.N_i, self.N_n, self.N_z)
+        self.nvars = _qC(C["zx"], self.N_i, self.N_n, self.N_zx)
         self.nbins = self.nvars - C["zx"]
         # # self.nvars = _qC(C["x"], self.N_i, self.N_n)
         # # self.nbins = 0
@@ -1373,14 +1373,14 @@ class Plan(object):
         for i in range(self.N_i):
             for n in range(self.horizons[i]):
                 self.A.addNewRow(
-                    {_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
+                    {_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx): bigM,
                      _q1(self.C["s"], n, self.N_n): -1},
                     0,
                     bigM,
                 )
                 self.A.addNewRow(
                     {
-                        _q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_z): bigM,
+                        _q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx): bigM,
                         _q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n): 1,
                         _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1,
                     },
@@ -1388,20 +1388,20 @@ class Plan(object):
                     bigM,
                 )
                 self.A.addNewRow(
-                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
+                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx): bigM,
                      _q2(self.C["x"], i, n, self.N_i, self.N_n): -1},
                     0,
                     bigM,
                 )
                 self.A.addNewRow(
-                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_z): bigM,
+                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx): bigM,
                      _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1},
                     0,
                     bigM,
                 )
             for n in range(self.horizons[i], self.N_n):
-                self.B.setRange(_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_z), 0, 0)
-                self.B.setRange(_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_z), 0, 0)
+                self.B.setRange(_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx), 0, 0)
+                self.B.setRange(_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx), 0, 0)
 
     def _build_objective_vector(self, objective):
         c = abc.Objective(self.nvars)
@@ -1927,7 +1927,7 @@ class Plan(object):
         Nk = self.N_k
         Nn = self.N_n
         Nt = self.N_t
-        # Nz = self.N_z
+        # Nz = self.N_zx
         n_d = self.n_d
 
         Cb = self.C["b"]

@@ -11,7 +11,7 @@ with col1:
     kz.divider("orange")
     st.write("### :material/campaign: News")
     st.markdown("""
-:tada: This Owl version includes some tax changes resulting from the OBBBA,
+:tada: This version includes some relevant tax changes resulting from the OBBBA,
 such as the additional $6k :gift: exemption
 for 65+ individuals. This exemption is set to expire at the end of 2028.
 For considering potential future tax increases, option to revert to pre-TCJA tax rates
