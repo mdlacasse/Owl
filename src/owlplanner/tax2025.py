@@ -90,6 +90,7 @@ capGainRates = np.array(
 niitThreshold = np.array([200000, 250000])
 niitRate = 0.038
 
+# Thresholds for 65+ bonus for circumventing tax on social security.the
 bonusThreshold = np.array([75000, 150000])
 
 ###############################################################################
@@ -192,7 +193,7 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
                 if thisyear + n <= 2028:
                     sigmaBar[n] += 6000 * max(0, 1 - 0.06*max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
 
-        # Fill in tax rates for year n.
+        # Fill in future tax rates for year n.
         if thisyear + n < y_postOBBA:
             theta[n, :] = rates_OBBA[:]
         else:
@@ -201,22 +202,26 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
     Delta = Delta.transpose()
     theta = theta.transpose()
 
-    # Return series unadjusted for inflation, except of sigmaBar, in STD order.
+    # Return series unadjusted for inflation, except for sigmaBar, in STD order.
     return sigmaBar, theta, Delta
 
 
-def taxBrackets(N_i, n_d, N_n, y_postOBBA):
+def taxBrackets(N_i, n_d, N_n, y_postOBBA=2099):
     """
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
     """
     if not (0 < N_i <= 2):
         raise ValueError(f"Cannot process {N_i} individuals.")
+
     n_d = min(n_d, N_n)
     status = N_i - 1
 
     # Number of years left in OBBA from this year.
     thisyear = date.today().year
+    if y_postOBBA < thisyear:
+        raise ValueError(f"Expiration year {y_postOBBA} cannot be in the past.")
+
     ytc = y_postOBBA - thisyear
 
     data = {}
