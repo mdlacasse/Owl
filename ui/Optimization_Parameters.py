@@ -72,6 +72,15 @@ else:
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg)
 
     st.divider()
+    st.write("#### :orange[Calculations]")
+    kz.initKey("xorConstraints", True)
+    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    with col1:
+        helpmsg = "Turn on XOR constraints on surplus, conversions, and related withdrawals."
+        ret = kz.getToggle("Mutually exclusive constraints on surplus, conversions, and withdrawals.",
+                           "xorConstraints", help=helpmsg)
+
+    st.divider()
     st.write("#### :orange[Medicare]")
     kz.initKey("withMedicare", True)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")

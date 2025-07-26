@@ -397,6 +397,14 @@ the *Roth conv* column on the
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
 
+Mutually exclusive constraints can be imposed between Roth conversions and
+withdrawals from tax-free accounts. Similarly, withdrawals from taxable
+and tax-free accounts should not exist if there is a surplus.
+Enabling these mutually exclusive constraints avoids both these situations.
+Enabling these constraints will slightly increase the computation time due to the
+binary variables involved. Also, the resulting optimized values will be slightly
+different between cases with the constraints on or off for reasons that escape me.
+
 Medicare premiums start automatically in the year each individual reach age 65.
 Calculations of Medicare and IRMAA can be turned on or off.
 Turning off these calculations will also make the capital gain income tax rate

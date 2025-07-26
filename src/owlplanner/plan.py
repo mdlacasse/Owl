@@ -1090,8 +1090,7 @@ class Plan(object):
         self._add_net_cash_flow()
         self._add_income_profile()
         self._add_taxable_income()
-        # Turn off as an option?
-        # self._configure_binary_variables(options)
+        self._configure_binary_variables(options)
         self._build_objective_vector(objective)
 
         return None
@@ -1366,6 +1365,9 @@ class Plan(object):
             self.A.addRow(row, rhs, rhs)
 
     def _configure_binary_variables(self, options):
+        if not options.get("xorConstraints", True):
+            return
+
         bigM = options.get("bigM", 5e6)
         if not isinstance(bigM, (int, float)):
             raise ValueError(f"bigM {bigM} is not a number.")
@@ -1582,6 +1584,7 @@ class Plan(object):
             "units",
             "withMedicare",
             "oppCostX",
+            "xorConstraints",
         ]
         # We might modify options if required.
         options = {} if options is None else options
