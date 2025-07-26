@@ -259,8 +259,8 @@ class Plan(object):
             raise ValueError("Name for each individual must be provided.")
 
         self.filingStatus = ("single", "married")[self.N_i - 1]
-        # Default year TCJA is speculated to expire.
-        self.yTCJA = 2026
+        # Default year OBBA is speculated to expire.
+        self.yOBBA = 2032
         self.inames = inames
         self.yobs = np.array(yobs, dtype=np.int32)
         self.expectancy = np.array(expectancy, dtype=np.int32)
@@ -310,6 +310,7 @@ class Plan(object):
 
         # Previous 2 years for Medicare.
         self.prevMAGI = np.zeros((2))
+        self.MAGI_n = np.zeros(self.N_n)
 
         # Init previous balance to none.
         self.beta_ij = None
@@ -477,12 +478,12 @@ class Plan(object):
         self.mu = mu
         self.caseStatus = "modified"
 
-    def setExpirationYearTCJA(self, yTCJA):
+    def setExpirationYearOBBA(self, yOBBA):
         """
-        Set year at which TCJA is speculated to expire.
+        Set year at which OBBA is speculated to expire.
         """
-        self.mylog.vprint(f"Setting TCJA expiration year to {yTCJA}.")
-        self.yTCJA = yTCJA
+        self.mylog.vprint(f"Setting OBBA expiration year to {yOBBA}.")
+        self.yOBBA = yOBBA
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
@@ -1027,7 +1028,7 @@ class Plan(object):
             self.mylog.vprint("Adjusting parameters for inflation.")
             self.sigmaBar_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
                                                                          self.N_n, self.gamma_n,
-                                                                         self.MAGI_n, self.yTCJA)
+                                                                         self.MAGI_n, self.yOBBA)
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
             self.xiBar_n = self.xi_n * self.gamma_n[:-1]
@@ -1097,7 +1098,7 @@ class Plan(object):
         self._add_taxable_income()
         self._configure_Medicare_binary_variables(options)
         self._add_Medicare_costs(options)
-        # self._configure_exclusion_binary_variables(options)
+        self._configure_exclusion_binary_variables(options)
         self._build_objective_vector(objective)
 
         return None
@@ -1373,6 +1374,9 @@ class Plan(object):
             self.A.addRow(row, rhs, rhs)
 
     def _configure_exclusion_binary_variables(self, options):
+        if not options.get("xorConstraints", True):
+            return
+
         bigM = options.get("bigM", 5e6)
         if not isinstance(bigM, (int, float)):
             raise ValueError(f"bigM {bigM} is not a number.")
@@ -1658,13 +1662,15 @@ class Plan(object):
             "maxRothConversion",
             "netSpending",
             "noRothConversions",
+            "oppCostX",
             "previousMAGIs",
+            "scLoop",
             "solver",
             "spendingSlack",
             "startRothConversions",
             "units",
             "withMedicare",
-            "oppCostX",
+            "xorConstraints",
         ]
         # We might modify options if required.
         options = {} if options is None else options
@@ -1978,12 +1984,12 @@ class Plan(object):
 
         return J_n
 
-    def _computeNLstuff(self, x=None, withMedicare=True):
+    def _computeNLstuff(self, x=None, withMedicare=True, loop=True):
         """
         Compute MAGI, Medicare costs, long-term capital gain tax rate, and
         net investment income tax (NIIT).
         """
-        if x is None or withMedicare is False:
+        if x is None or loop is False:
             self.MAGI_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
             self.psi_n = np.zeros(self.N_n)
@@ -1992,8 +1998,10 @@ class Plan(object):
         self._aggregateResults(x, short=True)
 
         self.J_n = self._computeNIIT()
-        # self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
         self.psi_n = tx.capitalGainTaxRate(self.N_i, self.MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
+        # Compute Medicare through self-consistent loop.
+        if withMedicare != "optimize":
+            self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
 
         return None
 
@@ -2447,7 +2455,7 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-        tax_brackets = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yTCJA)
+        tax_brackets = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yOBBA)
         title = self._name + "\nTaxable Ordinary Income vs. Tax Brackets"
         if tag:
             title += " - " + tag

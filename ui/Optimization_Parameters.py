@@ -72,12 +72,24 @@ else:
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg)
 
     st.divider()
+    st.write("#### :orange[Calculations]")
+    kz.initKey("scLoop", True)
+    kz.initKey("xorConstraints", True)
+    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    with col1:
+        helpmsg = "Do or do not perform additional self-consistent calculations, (capital gain tax rate, NIIT, exact exemptions, and Medicare if not optimized)."
+        ret = kz.getToggle("Self-consistent calculations", "scLoop", help=helpmsg)
+    with col2:
+        helpmsg = "Do or do not use XOR constraints between deposits, conversions, and withdrawals."
+        ret = kz.getToggle("XOR constraints on deposits, conversions, and withdrawals", "xorConstraints", help=helpmsg)
+
+    st.divider()
     st.write("#### :orange[Medicare]")
     kz.initKey("withMedicare", True)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        helpmsg = "Do or do not perform additional Medicare and IRMAA calculations."
-        ret = kz.getToggle("Medicare and IRMAA calculations", "withMedicare", help=helpmsg)
+        helpmsg = "Do or do not include Medicare and IRMAA in optimization."
+        ret = kz.getToggle("Optimize Medicare and IRMAA", "withMedicare", help=helpmsg)
     with col2:
         if kz.getKey("withMedicare"):
             helpmsg = "MAGI in nominal $k for current and previous years."

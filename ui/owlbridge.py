@@ -124,7 +124,7 @@ def prepareRun(plan):
     plan.setDescription(kz.getKey("description"))
     plan.setHeirsTaxRate(kz.getKey("heirsTx"))
     plan.setDividendRate(kz.getKey("divRate"))
-    plan.setExpirationYearTCJA(kz.getKey("yTCJA"))
+    plan.setExpirationYearOBBA(kz.getKey("yOBBA"))
 
     _setInterpolationMethod(plan)
     _setAllocationRatios(plan)
@@ -669,7 +669,7 @@ def genDic(plan):
     dic["survivor"] = 100 * plan.chi
     dic["divRate"] = 100 * plan.mu
     dic["heirsTx"] = 100 * plan.nu
-    dic["yTCJA"] = plan.yTCJA
+    dic["yOBBA"] = plan.yOBBA
     dic["surplusFraction"] = plan.eta
     dic["plots"] = plan.defaultPlots
     dic["allocType"] = plan.ARCoord

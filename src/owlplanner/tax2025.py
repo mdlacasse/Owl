@@ -180,7 +180,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     return costs
 
 
-def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
+def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBA=2099):
     """
     Input is year of birth, index of shortest-lived individual,
     lifespan of shortest-lived individual, total number of years
@@ -216,14 +216,14 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
             souls.remove(i_d)
             filingStatus -= 1
 
-        if thisyear + n < y_postOBBA:
+        if thisyear + n < yOBBA:
             sigmaBar[n] = stdDeduction_OBBA[filingStatus] * gamma_n[n]
             Delta[n, :] = deltaBrackets_OBBA[filingStatus, :]
         else:
             sigmaBar[n] = stdDeduction_preTCJA[filingStatus] * gamma_n[n]
             Delta[n, :] = deltaBrackets_preTCJA[filingStatus, :]
 
-        # Add 65+ additional exemption(s).
+        # Add 65+ additional exemption(s) and "bonus" phasing out.
         for i in souls:
             if thisyear + n - yobs[i] >= 65:
                 sigmaBar[n] += extra65Deduction[filingStatus] * gamma_n[n]
@@ -231,7 +231,7 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
                     sigmaBar[n] += 6000 * max(0, 1 - 0.06*max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
 
         # Fill in future tax rates for year n.
-        if thisyear + n < y_postOBBA:
+        if thisyear + n < yOBBA:
             theta[n, :] = rates_OBBA[:]
         else:
             theta[n, :] = rates_preTCJA[:]
@@ -243,19 +243,23 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
     return sigmaBar, theta, Delta
 
 
-def taxBrackets(N_i, n_d, N_n, y_postOBBA=2099):
+def taxBrackets(N_i, n_d, N_n, yOBBA=2099):
     """
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
     """
     if not (0 < N_i <= 2):
         raise ValueError(f"Cannot process {N_i} individuals.")
+
     n_d = min(n_d, N_n)
     status = N_i - 1
 
     # Number of years left in OBBA from this year.
     thisyear = date.today().year
-    ytc = max(0, y_postOBBA - thisyear)
+    if yOBBA < thisyear:
+        raise ValueError(f"Expiration year {yOBBA} cannot be in the past.")
+
+    ytc = yOBBA - thisyear
 
     data = {}
     for t in range(len(taxBracketNames) - 1):

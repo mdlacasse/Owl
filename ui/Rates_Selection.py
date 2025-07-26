@@ -238,6 +238,6 @@ forecasts for the next decade can be found
         ret = kz.getNum("Heirs marginal tax rate (%)", "heirsTx", max_value=100.0, help=helpmsg, step=1.0)
 
     with col2:
-        kz.initKey("yTCJA", 2026)
-        helpmsg = "Year at which the Tax Cut And Job Act tax rates are speculated to be expired."
-        ret = kz.getIntNum("TCJA expiration year", "yTCJA", help=helpmsg)
+        kz.initKey("yOBBA", 2032)
+        helpmsg = "Year at which the OBBA tax rates are speculated to be expired and return to pre-TCJA rates."
+        ret = kz.getIntNum("OBBA expiration year", "yOBBA", help=helpmsg)
