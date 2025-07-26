@@ -1,2 +1,3 @@
 [theme]
 base = "dark"
+dataframeHeaderBackgroundColor = "#692f24"
