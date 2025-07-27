@@ -11,7 +11,7 @@ with col1:
     kz.divider("orange")
     st.write("### :material/campaign: News")
     st.markdown("""
-Current Owl version does not yet include the major tax code changes resulting from the OBBA.
+Current Owl version does not yet include the major tax code changes resulting from the OBBBA.
 Until the dust settles, and changes included in Owl's federal tax calculations,
 the TCJA expiration year can be used to capture some of the upcoming changes.
 """)

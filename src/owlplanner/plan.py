@@ -1774,7 +1774,7 @@ class Plan(object):
 
             delta = xx - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
-            if absdiff < 1:
+            if absdiff < 2:
                 self.mylog.vprint("Converged on full solution.")
                 break
 
