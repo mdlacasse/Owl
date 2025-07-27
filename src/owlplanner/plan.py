@@ -258,8 +258,8 @@ class Plan(object):
             raise ValueError("Name for each individual must be provided.")
 
         self.filingStatus = ("single", "married")[self.N_i - 1]
-        # Default year TCJA is speculated to expire.
-        self.yTCJA = 2026
+        # Default year OBBBA is speculated to expire.
+        self.yOBBBA = 2032
         self.inames = inames
         self.yobs = np.array(yobs, dtype=np.int32)
         self.expectancy = np.array(expectancy, dtype=np.int32)
@@ -476,12 +476,12 @@ class Plan(object):
         self.mu = mu
         self.caseStatus = "modified"
 
-    def setExpirationYearTCJA(self, yTCJA):
+    def setExpirationYearOBBBA(self, yOBBBA):
         """
-        Set year at which TCJA is speculated to expire.
+        Set year at which OBBBA is speculated to expire.
         """
-        self.mylog.vprint(f"Setting TCJA expiration year to {yTCJA}.")
-        self.yTCJA = yTCJA
+        self.mylog.vprint(f"Setting OBBBA expiration year to {yOBBBA}.")
+        self.yOBBBA = yOBBBA
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
@@ -1026,7 +1026,7 @@ class Plan(object):
             self.mylog.vprint("Adjusting parameters for inflation.")
             self.sigmaBar_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
                                                                          self.N_n, self.gamma_n,
-                                                                         self.MAGI_n, self.yTCJA)
+                                                                         self.MAGI_n, self.yOBBBA)
             # self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
@@ -2366,7 +2366,7 @@ class Plan(object):
         the default behavior of setDefaultPlots().
         """
         value = self._checkValue(value)
-        tax_brackets = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yTCJA)
+        tax_brackets = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yOBBBA)
         title = self._name + "\nTaxable Ordinary Income vs. Tax Brackets"
         if tag:
             title += " - " + tag

@@ -28,7 +28,7 @@ Names = [ "Jon", "Jane",]
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 30.0
 "Dividend rate" = 1.8
-"TCJA expiration year" = 2026
+"OBBBA expiration year" = 2032
 Method = "user"
 Values = [ 10.0, 6.0, 5.0, 3.5000000000000004,]
 From = 1928

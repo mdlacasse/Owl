@@ -238,6 +238,6 @@ forecasts for the next decade can be found
         ret = kz.getNum("Heirs marginal tax rate (%)", "heirsTx", max_value=100.0, help=helpmsg, step=1.0)
 
     with col2:
-        kz.initKey("yTCJA", 2032)
+        kz.initKey("yOBBBA", 2032)
         helpmsg = "Year at which rates similar to the pre-Tax Cut And Job Act tax rates are speculated to return."
-        ret = kz.getIntNum("pre-TCJA rates returning", "yTCJA", help=helpmsg)
+        ret = kz.getIntNum("pre-TCJA rates returning", "yOBBBA", help=helpmsg)

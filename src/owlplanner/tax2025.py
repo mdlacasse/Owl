@@ -25,7 +25,7 @@ from datetime import date
 
 taxBracketNames = ["10%", "12/15%", "22/25%", "24/28%", "32/33%", "35%", "37/40%"]
 
-rates_OBBA = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
+rates_OBBBA = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
 rates_preTCJA = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 
 ###############################################################################
@@ -34,7 +34,7 @@ rates_preTCJA = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 # Single [0] and married filing jointly [1].
 
 # These are 2025 current.
-taxBrackets_OBBA = np.array(
+taxBrackets_OBBBA = np.array(
     [
         [11925, 48475, 103350, 197300, 250525, 626350, 9999999],
         [23850, 96950, 206700, 394600, 501050, 751600, 9999999],
@@ -71,7 +71,7 @@ taxBrackets_preTCJA = np.array(
 )
 
 # These are 2025 current (adjusted for inflation).
-stdDeduction_OBBA = np.array([15750, 31500])    # Single, MFJ
+stdDeduction_OBBBA = np.array([15750, 31500])    # Single, MFJ
 # These are speculated (adjusted for inflation).
 stdDeduction_preTCJA = np.array([8300, 16600])  # Single, MFJ
 
@@ -90,7 +90,7 @@ capGainRates = np.array(
 niitThreshold = np.array([200000, 250000])
 niitRate = 0.038
 
-# Thresholds for 65+ bonus for circumventing tax on social security.the
+# Thresholds for 65+ bonus for circumventing tax on social security.
 bonusThreshold = np.array([75000, 150000])
 
 ###############################################################################
@@ -143,7 +143,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     return costs
 
 
-def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
+def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=2099):
     """
     Input is year of birth, index of shortest-lived individual,
     lifespan of shortest-lived individual, total number of years
@@ -157,11 +157,11 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
     Returned values are not indexed for inflation.
     """
     # Compute the deltas in-place between brackets, starting from the end.
-    deltaBrackets_OBBA = np.array(taxBrackets_OBBA)
+    deltaBrackets_OBBBA = np.array(taxBrackets_OBBBA)
     deltaBrackets_preTCJA = np.array(taxBrackets_preTCJA)
     for t in range(6, 0, -1):
         for i in range(2):
-            deltaBrackets_OBBA[i, t] -= deltaBrackets_OBBA[i, t - 1]
+            deltaBrackets_OBBBA[i, t] -= deltaBrackets_OBBBA[i, t - 1]
             deltaBrackets_preTCJA[i, t] -= deltaBrackets_preTCJA[i, t - 1]
 
     # Prepare the 3 arrays to return - use transpose for easy slicing.
@@ -179,9 +179,9 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
             souls.remove(i_d)
             filingStatus -= 1
 
-        if thisyear + n < y_postOBBA:
-            sigmaBar[n] = stdDeduction_OBBA[filingStatus] * gamma_n[n]
-            Delta[n, :] = deltaBrackets_OBBA[filingStatus, :]
+        if thisyear + n < yOBBBA:
+            sigmaBar[n] = stdDeduction_OBBBA[filingStatus] * gamma_n[n]
+            Delta[n, :] = deltaBrackets_OBBBA[filingStatus, :]
         else:
             sigmaBar[n] = stdDeduction_preTCJA[filingStatus] * gamma_n[n]
             Delta[n, :] = deltaBrackets_preTCJA[filingStatus, :]
@@ -194,8 +194,8 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
                     sigmaBar[n] += 6000 * max(0, 1 - 0.06*max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
 
         # Fill in future tax rates for year n.
-        if thisyear + n < y_postOBBA:
-            theta[n, :] = rates_OBBA[:]
+        if thisyear + n < yOBBBA:
+            theta[n, :] = rates_OBBBA[:]
         else:
             theta[n, :] = rates_preTCJA[:]
 
@@ -206,7 +206,7 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, y_postOBBA=2099):
     return sigmaBar, theta, Delta
 
 
-def taxBrackets(N_i, n_d, N_n, y_postOBBA=2099):
+def taxBrackets(N_i, n_d, N_n, yOBBBA=2099):
     """
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.
@@ -217,19 +217,19 @@ def taxBrackets(N_i, n_d, N_n, y_postOBBA=2099):
     n_d = min(n_d, N_n)
     status = N_i - 1
 
-    # Number of years left in OBBA from this year.
+    # Number of years left in OBBBA from this year.
     thisyear = date.today().year
-    if y_postOBBA < thisyear:
-        raise ValueError(f"Expiration year {y_postOBBA} cannot be in the past.")
+    if yOBBBA < thisyear:
+        raise ValueError(f"Expiration year {yOBBBA} cannot be in the past.")
 
-    ytc = y_postOBBA - thisyear
+    ytc = yOBBBA - thisyear
 
     data = {}
     for t in range(len(taxBracketNames) - 1):
         array = np.zeros(N_n)
         for n in range(N_n):
             stat = status if n < n_d else 0
-            array[n] = taxBrackets_OBBA[stat][t] if n < ytc else taxBrackets_preTCJA[stat][t]
+            array[n] = taxBrackets_OBBBA[stat][t] if n < ytc else taxBrackets_preTCJA[stat][t]
 
         data[taxBracketNames[t]] = array
 
@@ -289,12 +289,12 @@ def rho_in(yobs, N_n):
     thisyear = date.today().year
     for i in range(N_i):
         agenow = thisyear - yobs[i]
+        # Account for increase of RMD age between 2023 and 2032.
+        yrmd = 70 if yobs[i] < 1949 else 72 if 1949 <= yobs[i] <= 1950 else 73 if 1951 <= yobs[i] <= 1959 else 75
         for n in range(N_n):
-            year = thisyear + n
             yage = agenow + n
 
-            # Account for increase of RMD age between 2023 and 2032.
-            if (yage < 73) or (year > 2032 and yage < 75):
+            if yage < yrmd:
                 pass  # rho[i][n] = 0
             else:
                 rho[i][n] = 1.0 / rmdTable[yage - 72]

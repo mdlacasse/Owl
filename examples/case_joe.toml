@@ -26,7 +26,7 @@ Names = [ "Joe",]
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 30.0
 "Dividend rate" = 1.8
-"TCJA expiration year" = 2026
+"OBBBA expiration year" = 2032
 Method = "historical average"
 From = 1969
 To = 2002
