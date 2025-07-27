@@ -255,8 +255,8 @@ class Plan(object):
         assert inames[0] != "" or (self.N_i == 2 and inames[1] == ""), "Name for each individual must be provided."
 
         self.filingStatus = ["single", "married"][self.N_i - 1]
-        # Default year TCJA is speculated to expire.
-        self.yTCJA = 2026
+        # Default year OBBBA is speculated to expire.
+        self.yOBBBA = 2032
         self.inames = inames
         self.yobs = np.array(yobs, dtype=np.int32)
         self.expectancy = np.array(expectancy, dtype=np.int32)
@@ -461,12 +461,12 @@ class Plan(object):
         self.mu = mu
         self.caseStatus = "modified"
 
-    def setExpirationYearTCJA(self, yTCJA):
+    def setExpirationYearOBBBA(self, yOBBBA):
         """
-        Set year at which TCJA is speculated to expire.
+        Set year at which OBBBA is speculated to expire.
         """
-        self.mylog.vprint(f"Setting TCJA expiration year to {yTCJA}.")
-        self.yTCJA = yTCJA
+        self.mylog.vprint(f"Setting OBBBA expiration year to {yOBBBA}.")
+        self.yOBBBA = yOBBBA
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
@@ -1008,7 +1008,7 @@ class Plan(object):
         if not self._adjustedParameters:
             self.mylog.vprint("Adjusting parameters for inflation.")
             self.sigma_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
-                                                                      self.N_n, self.yTCJA)
+                                                                      self.N_n, self.yOBBBA)
             self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
             self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
@@ -1350,7 +1350,7 @@ class Plan(object):
             # Fix years without Medicare to zero costs.
             for n in range(Nmed):
                 B.set0_Ub(_q1(Cm, n, Nn), zero)
-            
+
             # For the following years:
             for n in range(Nmed):
                 # Create binary variables.
@@ -2665,7 +2665,7 @@ class Plan(object):
 
         fig, ax = _lineIncomePlot(self.year_n, series, style, title, yformat)
 
-        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yTCJA)
+        data = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yOBBBA)
         for key in data:
             data_adj = data[key] * infladjust
             ax.plot(self.year_n, data_adj, label=key, ls=":")
