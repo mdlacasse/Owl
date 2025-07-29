@@ -49,7 +49,7 @@ Objective = "maxSpending"
 ["Solver Options"]
 maxRothConversion = 0.0
 noRothConversions = "None"
-withMedicare = true
+withSCLoop = true
 bequest = 30.0
 
 [Results]

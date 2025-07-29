@@ -48,7 +48,7 @@ Objective = "maxBequest"
 netSpending = 80.0
 maxRothConversion = 50
 startRothConversions = 2025
-withMedicare = false
+withSCLoop = false
 solver = "HiGHS"
 spendingSlack = 0
 
