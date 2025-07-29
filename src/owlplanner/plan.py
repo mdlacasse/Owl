@@ -990,15 +990,17 @@ class Plan(object):
     def _adjustParameters(self, gamma_n, MAGI_n):
         """
         Adjust parameters that follow inflation or depend on MAGI.
+        Separate variables depending on MAGI (exemptions now depends on MAGI).
         """
         if self.rateMethod is None:
             raise RuntimeError("A rate method needs to be first selected using setRates(...).")
 
+        self.sigmaBar_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
+                                                                     self.N_n, gamma_n,
+                                                                     MAGI_n, self.yOBBBA)
+
         if not self._adjustedParameters:
             self.mylog.vprint("Adjusting parameters for inflation.")
-            self.sigmaBar_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
-                                                                         self.N_n, gamma_n,
-                                                                         MAGI_n, self.yOBBBA)
             self.DeltaBar_tn = self.Delta_tn * gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * gamma_n[:-1]
             self.xiBar_n = self.xi_n * gamma_n[:-1]
@@ -1046,8 +1048,9 @@ class Plan(object):
         Utility function that builds constraint matrix and vectors.
         Refactored for clarity and maintainability.
         """
-        self.adjustParameters(self.gamma_n, self.MAGI_n)
-        
+        # Ensure parameters are adjusted for inflation and MAGI.
+        self._adjustParameters(self.gamma_n, self.MAGI_n)
+
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
 
@@ -1683,8 +1686,6 @@ class Plan(object):
         self.J_n = np.zeros(self.N_n)
         self.M_n = np.zeros(self.N_n)
 
-        # Ensure parameters are adjusted for inflation.
-        self._adjustParameters(self.gamma_n, self.MAGI_n)
         self._buildOffsetMap(options)
 
         solver = myoptions.get("solver", self.defaultSolver)
