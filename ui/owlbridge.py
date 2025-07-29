@@ -124,7 +124,7 @@ def prepareRun(plan):
     plan.setDescription(kz.getKey("description"))
     plan.setHeirsTaxRate(kz.getKey("heirsTx"))
     plan.setDividendRate(kz.getKey("divRate"))
-    plan.setExpirationYearOBBA(kz.getKey("yOBBA"))
+    plan.setExpirationYearOBBBA(kz.getKey("yOBBBA"))
 
     _setInterpolationMethod(plan)
     _setAllocationRatios(plan)
@@ -669,7 +669,7 @@ def genDic(plan):
     dic["survivor"] = 100 * plan.chi
     dic["divRate"] = 100 * plan.mu
     dic["heirsTx"] = 100 * plan.nu
-    dic["yOBBA"] = plan.yOBBA
+    dic["yOBBBA"] = plan.yOBBBA
     dic["surplusFraction"] = plan.eta
     dic["plots"] = plan.defaultPlots
     dic["allocType"] = plan.ARCoord
@@ -704,7 +704,10 @@ def genDic(plan):
             return None
 
     optionKeys = list(plan.solverOptions)
-    for key in ["maxRothConversion", "noRothConversions", "withMedicare", "netSpending", "bequest"]:
+    optList = ["netSpending", "maxRothConversion", "noRothConversions",
+               "startRothConversions", "optimizeMedicare", "bequest", "solver",
+               "spendingSlack", "oppCostX", "xorConstraints", "withSCLoop",]
+    for key in optList:
         if key in optionKeys:
             dic[key] = plan.solverOptions[key]
 

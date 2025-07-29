@@ -32,7 +32,6 @@ import numpy as np
 import pandas as pd
 import os
 import sys
-from datetime import date
 
 from owlplanner import mylogging as log
 from owlplanner import utils as u
@@ -118,27 +117,6 @@ def getRatesDistributions(frm, to, mylog=None):
     mylog.print("correlation matrix: \n\t\t%s" % str(corr).replace("\n", "\n\t\t"))
 
     return means, stdev, corr, covar
-
-
-def historicalValue(amount, year):
-    """
-    Return the deflated value of amount given in this year's dollars as
-    valued at the beginning of the year specified.
-    """
-    thisyear = date.today().year
-    if TO != thisyear - 1:
-        raise RuntimeError(f"Rates file needs to be updated to be current to {thisyear}.")
-    if year < FROM:
-        raise ValueError(f"Only data from {FROM} is available.")
-    if year > thisyear:
-        raise ValueError(f"Year must be < {thisyear} for historical data.")
-
-    span = thisyear - year
-    ub = len(Inflation)
-    for n in range(ub - span, ub):
-        amount /= 1 + Inflation[n] / 100
-
-    return amount
 
 
 class Rates(object):

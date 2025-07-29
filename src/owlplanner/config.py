@@ -66,7 +66,7 @@ def saveConfig(myplan, file, mylog):
     diconf["Rates Selection"] = {
         "Heirs rate on tax-deferred estate": float(100 * myplan.nu),
         "Dividend rate": float(100 * myplan.mu),
-        "TCJA expiration year": myplan.yTCJA,
+        "OBBBA expiration year": myplan.yOBBBA,
         "Method": myplan.rateMethod,
     }
     if myplan.rateMethod in ["user", "stochastic"]:
@@ -228,7 +228,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     # Rates Selection.
     p.setDividendRate(float(diconf["Rates Selection"].get("Dividend rate", 1.8)))    # Fix for mod.
     p.setHeirsTaxRate(float(diconf["Rates Selection"]["Heirs rate on tax-deferred estate"]))
-    p.yTCJA = int(diconf["Rates Selection"]["TCJA expiration year"])
+    p.yOBBBA = int(diconf["Rates Selection"].get("OBBBA expiration year", 2032))
 
     frm = None
     to = None

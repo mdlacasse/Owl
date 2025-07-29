@@ -73,25 +73,31 @@ else:
 
     st.divider()
     st.write("#### :orange[Calculations]")
-    kz.initKey("scLoop", True)
+    kz.initKey("withSCLoop", True)
     kz.initKey("xorConstraints", True)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        helpmsg = "Do or do not perform additional self-consistent calculations, (capital gain tax rate, NIIT, exact exemptions, and Medicare if not optimized)."
-        ret = kz.getToggle("Self-consistent calculations", "scLoop", help=helpmsg)
+        helpmsg = ("Option to use a self-consistent loop to adjust additional values such as the net"
+                   " investment income tax (NIIT), and adjust capital gain tax rates."
+                   "  This loop also computes Medicare and IRMAA if not optimized.")
+        ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
     with col2:
-        helpmsg = "Do or do not use XOR constraints between deposits, conversions, and withdrawals."
-        ret = kz.getToggle("XOR constraints on deposits, conversions, and withdrawals", "xorConstraints", help=helpmsg)
+        helpmsg = ("Enable mutually exclusive constraints between surplus deposits,"
+                   " Roth conversions, and withdrawals from taxable and/or tax-free accounts.")
+        ret = kz.getToggle("XOR constraints on deposits, conversions, and withdrawals",
+                           "xorConstraints", help=helpmsg)
 
     st.divider()
     st.write("#### :orange[Medicare]")
-    kz.initKey("withMedicare", True)
+    kz.initKey("optimizeMedicare", False)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        helpmsg = "Do or do not include Medicare and IRMAA in optimization."
-        ret = kz.getToggle("Optimize Medicare and IRMAA", "withMedicare", help=helpmsg)
+        helpmsg = ("Optimize for Medicare and IRMAA."
+                   "  Due to the binary variables involved, this requires a few minutes of computation."
+                   "  Be patient.")
+        ret = kz.getToggle("Optimize Medicare and IRMAA", "optimizeMedicare", help=helpmsg)
     with col2:
-        if kz.getKey("withMedicare"):
+        if kz.getKey("optimizeMedicare") or kz.getKey("withSCLoop"):
             helpmsg = "MAGI in nominal $k for current and previous years."
             years = owb.backYearsMAGI()
             for ii in range(2):

@@ -11,9 +11,15 @@ with col1:
     kz.divider("orange")
     st.write("### :material/campaign: News")
     st.markdown("""
-Current Owl version does not yet include the major tax code changes resulting from the OBBBA.
-Until the dust settles, and changes included in Owl's federal tax calculations,
-the TCJA expiration year can be used to capture some of the upcoming changes.
+- This version includes major tax code changes resulting from the OBBBA :mega:.
+To model long-term changes in federal tax calculations,
+an OBBBA expiration year can be set to return to pre-TCJA rates.
+
+- New capability :sparkles: to optimize for Medicare and IRMAA instead of using a self-consistent loop.
+Use with patience :hourglass: (~5 min) as these calculations can take longer time due to the number
+of binary variables involved.
+
+Report bugs :bug: and suggestions through GitHub channel or email :incoming_envelope:.
 """)
 
     kz.divider("orange")
