@@ -1721,14 +1721,13 @@ class Plan(object):
             objFac = -1 / self.gamma_n[-1]
 
         it = 0
-        absdiff = np.inf
         old_x = np.zeros(self.nvars)
-        old_solutions = [np.inf]
+        old_objfns = [np.inf]
         self._computeNLstuff(None, optimizeMedicare)
         while True:
-            solution, xx, solverSuccess, solverMsg = solverMethod(objective, options)
+            objfn, xx, solverSuccess, solverMsg = solverMethod(objective, options)
 
-            if not solverSuccess or solution is None:
+            if not solverSuccess or objfn is None:
                 self.mylog.vprint("Solver failed:", solverMsg, solverSuccess)
                 break
 
@@ -1737,16 +1736,19 @@ class Plan(object):
 
             self._computeNLstuff(xx, optimizeMedicare)
 
-            self.mylog.vprint(f"Iteration: {it} objective: {u.d(solution * objFac, f=2)}")
-
             delta = xx - old_x
-            absdiff = np.sum(np.abs(delta), axis=0)
-            if absdiff < 3:
+            absSolDiff = np.sum(np.abs(delta), axis=0)/100
+            absObjDiff = abs(objFac*(objfn + old_objfns[-1]))/100
+            self.mylog.vprint(f"Iteration: {it} objective: {u.d(objfn * objFac, f=2)},"
+                              f" |dX|: {absSolDiff:.2f}, |df|: {u.d(absObjDiff, f=2)}")
+
+            # 50 cents accuracy.
+            if absSolDiff < .5 and absObjDiff < .5:
                 self.mylog.vprint("Converged on full solution.")
                 break
 
             # Avoid oscillatory solutions. Look only at most recent solutions. Within $10.
-            isclosenough = abs(-solution - min(old_solutions[int(it / 2) :])) < 10 * self.xi_n[0]
+            isclosenough = abs(-objfn - min(old_objfns[int(it / 2) :])) < 10 * self.xi_n[0]
             if isclosenough:
                 self.mylog.vprint("Converged through selecting minimum oscillating objective.")
                 break
@@ -1756,13 +1758,13 @@ class Plan(object):
                 break
 
             it += 1
-            old_solutions.append(-solution)
+            old_objfns.append(-objfn)
             old_x = xx
 
         if solverSuccess:
             self.mylog.vprint(f"Self-consistent loop returned after {it+1} iterations.")
             self.mylog.vprint(solverMsg)
-            self.mylog.vprint(f"Objective: {u.d(solution * objFac)}")
+            self.mylog.vprint(f"Objective: {u.d(objfn * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(xx)
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
