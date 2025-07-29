@@ -1686,6 +1686,7 @@ class Plan(object):
         self.J_n = np.zeros(self.N_n)
         self.M_n = np.zeros(self.N_n)
 
+        self._adjustParameters(self.gamma_n, self.MAGI_n)
         self._buildOffsetMap(options)
 
         solver = myoptions.get("solver", self.defaultSolver)

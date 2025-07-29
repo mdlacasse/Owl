@@ -92,7 +92,7 @@ else:
     kz.initKey("optimizeMedicare", False)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col2:
-        st.markdown("##### :material/warning: Slow convergence - use carefully.")
+        st.markdown("##### :material/warning: Slow convergence - maybe time for a coffee :coffee:?")
         helpmsg = ("Optimize for Medicare and IRMAA."
                    "  Due to the binary variables involved, this requires a few minutes of computation."
                    "  Be patient.")
