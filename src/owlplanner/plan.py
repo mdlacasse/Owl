@@ -259,6 +259,7 @@ class Plan(object):
             raise ValueError("Name for each individual must be provided.")
 
         self.filingStatus = ("single", "married")[self.N_i - 1]
+
         # Default year OBBBA speculated to be expired and replaced by pre-TCJA rates.
         self.yOBBBA = 2032
         self.inames = inames
@@ -1045,6 +1046,8 @@ class Plan(object):
         Utility function that builds constraint matrix and vectors.
         Refactored for clarity and maintainability.
         """
+        self.adjustParameters(self.gamma_n, self.MAGI_n)
+        
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
 
