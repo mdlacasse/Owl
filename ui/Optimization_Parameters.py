@@ -91,12 +91,13 @@ else:
     st.write("#### :orange[Medicare]")
     kz.initKey("optimizeMedicare", False)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
-    with col1:
+    with col2:
+        st.markdown("##### :material/warning: Slow convergence - use carefully.")
         helpmsg = ("Optimize for Medicare and IRMAA."
                    "  Due to the binary variables involved, this requires a few minutes of computation."
                    "  Be patient.")
         ret = kz.getToggle("Optimize Medicare and IRMAA", "optimizeMedicare", help=helpmsg)
-    with col2:
+    with col1:
         if kz.getKey("optimizeMedicare") or kz.getKey("withSCLoop"):
             helpmsg = "MAGI in nominal $k for current and previous years."
             years = owb.backYearsMAGI()
