@@ -226,8 +226,9 @@ class Plan(object):
         self._name = name
         self.setLogstreams(verbose, logstreams)
 
-        # 7 tax brackets, 3 types of accounts, 4 classes of assets.
+        # 7 tax brackets, 6 Medicare brackets, 3 types of accounts, 4 classes of assets.
         self.N_t = 7
+        self.N_q = 6
         self.N_j = 3
         self.N_k = 4
         # 2 binary variables.
@@ -258,7 +259,8 @@ class Plan(object):
             raise ValueError("Name for each individual must be provided.")
 
         self.filingStatus = ("single", "married")[self.N_i - 1]
-        # Default year OBBBA is speculated to expire.
+
+        # Default year OBBBA speculated to be expired and replaced by pre-TCJA rates.
         self.yOBBBA = 2032
         self.inames = inames
         self.yobs = np.array(yobs, dtype=np.int32)
@@ -297,20 +299,22 @@ class Plan(object):
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         self.pensionAmounts = np.zeros(self.N_i)
         self.pensionAges = 65 * np.ones(self.N_i, dtype=np.int32)
-        self.pensionIsIndexed = [False, False]
+        self.pensionIsIndexed = [False] * self.N_i
         self.ssecAmounts = np.zeros(self.N_i)
         self.ssecAges = 67 * np.ones(self.N_i, dtype=np.int32)
 
         # Parameters from timeLists initialized to zero.
         self.omega_in = np.zeros((self.N_i, self.N_n))
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
+        # Go back 5 years for maturation rules on IRA and Roth.
         self.myRothX_in = np.zeros((self.N_i, self.N_n + 5))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n + 5))
 
-        # Previous 3 years for Medicare.
+        # Previous 2 years of MAGI needed for Medicare.
         self.prevMAGI = np.zeros((2))
+        self.MAGI_n = np.zeros(self.N_n)
 
-        # Init previous balance to none.
+        # Init current balances to none.
         self.beta_ij = None
         self.startDate = None
 
@@ -327,8 +331,6 @@ class Plan(object):
         # Prepare RMD time series.
         self.rho_in = tx.rho_in(self.yobs, self.N_n)
 
-        self._buildOffsetMap()
-
         # Initialize guardrails to ensure proper configuration.
         self._adjustedParameters = False
         self.timeListsFileName = "None"
@@ -340,7 +342,7 @@ class Plan(object):
         self.ARCoord = None
         self.objective = "unknown"
 
-        # Placeholders to check if properly configured.
+        # Placeholders values used to check if properly configured.
         self.xi_n = None
         self.alpha_ijkn = None
 
@@ -368,7 +370,7 @@ class Plan(object):
         """
         Set the date when the plan starts in the current year.
         This is mostly for reproducibility purposes and back projecting known balances to Jan 1st.
-        String format of mydate is 'month/day'.
+        String format of mydate is 'MM/DD', 'MM-DD', 'YYYY-MM-DD', or 'YYYY/MM/DD'. Year is ignored.
         """
         import calendar
 
@@ -397,7 +399,7 @@ class Plan(object):
 
         return None
 
-    def _checkValue(self, value):
+    def _checkValueType(self, value):
         """
         Short utility function to parse and check arguments for plotting.
         """
@@ -450,7 +452,7 @@ class Plan(object):
         Set plots between nominal values or today's $.
         """
 
-        self.defaultPlots = self._checkValue(value)
+        self.defaultPlots = self._checkValueType(value)
         self.mylog.vprint(f"Setting plots default value to {value}.")
 
     def setPlotBackend(self, backend: str):
@@ -463,14 +465,15 @@ class Plan(object):
 
         if backend != self._plotterName:
             self._plotter = PlotFactory.createBackend(backend)
+            self._plotterName = backend
             self.mylog.vprint(f"Setting plotting backend to {backend}.")
 
     def setDividendRate(self, mu):
         """
         Set dividend tax rate. Rate is in percent. Default 1.8%.
         """
-        if not (0 <= mu <= 100):
-            raise ValueError("Rate must be between 0 and 100.")
+        if not (0 <= mu <= 5):
+            raise ValueError("Rate must be between 0 and 5.")
         mu /= 100
         self.mylog.vprint(f"Dividend tax rate set to {u.pc(mu, f=0)}.")
         self.mu = mu
@@ -478,7 +481,7 @@ class Plan(object):
 
     def setExpirationYearOBBBA(self, yOBBBA):
         """
-        Set year at which OBBBA is speculated to expire.
+        Set year at which OBBBA is speculated to expire and rates go back to something like pre-TCJA.
         """
         self.mylog.vprint(f"Setting OBBBA expiration year to {yOBBBA}.")
         self.yOBBBA = yOBBBA
@@ -516,7 +519,7 @@ class Plan(object):
         self.nu = nu
         self.caseStatus = "modified"
 
-    def setPension(self, amounts, ages, indexed=(False, False), units="k"):
+    def setPension(self, amounts, ages, indexed=None, units="k"):
         """
         Set value of pension for each individual and commencement age.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
@@ -525,8 +528,8 @@ class Plan(object):
             raise ValueError(f"Amounts must have {self.N_i} entries.")
         if len(ages) != self.N_i:
             raise ValueError(f"Ages must have {self.N_i} entries.")
-        if len(indexed) < self.N_i:
-            raise ValueError(f"Indexed list must have at least {self.N_i} entries.")
+        if indexed is None:
+            indexed = [False] * self.N_i
 
         fac = u.getUnits(units)
         amounts = u.rescale(amounts, fac)
@@ -539,7 +542,7 @@ class Plan(object):
         self.pi_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
             if amounts[i] != 0:
-                ns = max(0, self.yobs[i] + ages[i] - thisyear)
+                ns = max(0, ages[i] - thisyear + self.yobs[i])
                 nd = self.horizons[i]
                 self.pi_in[i, ns:nd] = amounts[i]
 
@@ -570,13 +573,13 @@ class Plan(object):
         thisyear = date.today().year
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
-            ns = max(0, self.yobs[i] + ages[i] - thisyear)
+            ns = max(0, ages[i] - thisyear + self.yobs[i])
             nd = self.horizons[i]
             self.zeta_in[i, ns:nd] = amounts[i]
 
         if self.N_i == 2:
-            # Approximate calculation for spousal benefit (only valid at FRA).
-            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], amounts[self.i_d])
+            # Approximate calculation for spousal benefit (only valid at FRA, and if of similar ages).
+            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], 0.5*amounts[self.i_d])
 
         self.ssecAmounts = np.array(amounts)
         self.ssecAges = np.array(ages, dtype=np.int32)
@@ -657,36 +660,6 @@ class Plan(object):
             stdev=100 * self.rateStdev,
             corr=self.rateCorr,
         )
-
-    def value(self, amount, year):
-        """
-        Return value of amount deflated or inflated at the beginning
-        of the year specified.
-        If year is in the past, value is made at the beginning of this year.
-        If year is in the future, amount is adjusted from a reference time
-        aligned with the beginning of the plan to the beginning of the
-        year specified.
-        """
-        thisyear = date.today().year
-        if year <= thisyear:
-            return rates.historicalValue(amount, year)
-        else:
-            return self.forwardValue(amount, year)
-
-    def forwardValue(self, amount, year):
-        """
-        Return the value of amount inflated from beginning of the plan
-        to the beginning of the year provided.
-        """
-        if self.rateMethod is None:
-            raise RuntimeError("A rate method needs to be first selected using setRates(...).")
-
-        thisyear = date.today().year
-        if year <= thisyear:
-            raise RuntimeError("Internal error in forwardValue().")
-        span = year - thisyear
-
-        return amount * self.gamma_n[span]
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, startDate=None, units="k"):
         """
@@ -977,7 +950,6 @@ class Plan(object):
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
             df = pd.DataFrame(0, index=np.arange(0, h+5), columns=cols)
-            # df["year"] = self.year_n[:h]
             df["year"] = np.arange(self.year_n[0] - 5, self.year_n[h-1]+1)
             self.timeLists[iname] = df
 
@@ -1015,36 +987,42 @@ class Plan(object):
 
         return dat
 
-    def _adjustParameters(self):
+    def _adjustParameters(self, gamma_n, MAGI_n):
         """
-        Adjust parameters that follow inflation.
+        Adjust parameters that follow inflation or depend on MAGI.
+        Separate variables depending on MAGI (exemptions now depends on MAGI).
         """
         if self.rateMethod is None:
             raise RuntimeError("A rate method needs to be first selected using setRates(...).")
 
+        self.sigmaBar_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
+                                                                     self.N_n, gamma_n,
+                                                                     MAGI_n, self.yOBBBA)
+
         if not self._adjustedParameters:
             self.mylog.vprint("Adjusting parameters for inflation.")
-            self.sigmaBar_n, self.theta_tn, self.Delta_tn = tx.taxParams(self.yobs, self.i_d, self.n_d,
-                                                                         self.N_n, self.gamma_n,
-                                                                         self.MAGI_n, self.yOBBBA)
-            # self.sigmaBar_n = self.sigma_n * self.gamma_n[:-1]
-            self.DeltaBar_tn = self.Delta_tn * self.gamma_n[:-1]
-            self.zetaBar_in = self.zeta_in * self.gamma_n[:-1]
-            self.xiBar_n = self.xi_n * self.gamma_n[:-1]
+            self.DeltaBar_tn = self.Delta_tn * gamma_n[:-1]
+            self.zetaBar_in = self.zeta_in * gamma_n[:-1]
+            self.xiBar_n = self.xi_n * gamma_n[:-1]
             self.piBar_in = np.array(self.pi_in)
             for i in range(self.N_i):
                 if self.pensionIsIndexed[i]:
-                    self.piBar_in[i] *= self.gamma_n[:-1]
+                    self.piBar_in[i] *= gamma_n[:-1]
+
+            self.nm, self.L_nq, self.C_nq = tx.mediVals(self.yobs, self.horizons, gamma_n, self.N_n, self.N_q)
 
             self._adjustedParameters = True
 
-        return None
+        # return None
 
-    def _buildOffsetMap(self):
+    def _buildOffsetMap(self, options):
         """
         Utility function to map variables to a block vector.
         Refer to companion document for explanations.
+        All binary variables must be lumped at the end of the vector.
         """
+        medi = options.get("optimizeMedicare", False)
+
         # Stack all variables in a single block vector with all binary variables at the end.
         C = {}
         C["b"] = 0
@@ -1052,26 +1030,27 @@ class Plan(object):
         C["e"] = _qC(C["d"], self.N_i, self.N_n)
         C["f"] = _qC(C["e"], self.N_n)
         C["g"] = _qC(C["f"], self.N_t, self.N_n)
-        C["s"] = _qC(C["g"], self.N_n)
+        C["m"] = _qC(C["g"], self.N_n)
+        C["s"] = _qC(C["m"], self.N_n)
         C["w"] = _qC(C["s"], self.N_n)
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
         C["zx"] = _qC(C["x"], self.N_i, self.N_n)
-        self.nvars = _qC(C["zx"], self.N_i, self.N_n, self.N_zx)
+        C["zm"] = _qC(C["zx"], self.N_i, self.N_n, self.N_zx)
+        self.nvars = _qC(C["zm"], self.N_n - self.nm, self.N_q - 1) if medi else C["zm"]
         self.nbins = self.nvars - C["zx"]
-        # # self.nvars = _qC(C["x"], self.N_i, self.N_n)
-        # # self.nbins = 0
 
         self.C = C
         self.mylog.vprint(
             f"Problem has {len(C)} distinct series, {self.nvars} decision variables (including {self.nbins} binary).")
-
-        return None
 
     def _buildConstraints(self, objective, options):
         """
         Utility function that builds constraint matrix and vectors.
         Refactored for clarity and maintainability.
         """
+        # Ensure parameters are adjusted for inflation and MAGI.
+        self._adjustParameters(self.gamma_n, self.MAGI_n)
+
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
 
@@ -1090,10 +1069,10 @@ class Plan(object):
         self._add_net_cash_flow()
         self._add_income_profile()
         self._add_taxable_income()
-        self._configure_binary_variables(options)
+        self._configure_Medicare_binary_variables(options)
+        self._add_Medicare_costs(options)
+        self._configure_exclusion_binary_variables(options)
         self._build_objective_vector(objective)
-
-        return None
 
     def _add_rmd_inequalities(self):
         for i in range(self.N_i):
@@ -1314,6 +1293,7 @@ class Plan(object):
             rhs = -self.M_n[n] - self.J_n[n]
             row = self.A.newRow({_q1(self.C["g"], n, self.N_n): 1})
             row.addElem(_q1(self.C["s"], n, self.N_n), 1)
+            row.addElem(_q1(self.C["m"], n, self.N_n), 1)
             for i in range(self.N_i):
                 fac = self.psi_n[n] * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
@@ -1364,7 +1344,7 @@ class Plan(object):
                 row.addElem(_q2(self.C["f"], t, n, self.N_t, self.N_n), 1)
             self.A.addRow(row, rhs, rhs)
 
-    def _configure_binary_variables(self, options):
+    def _configure_exclusion_binary_variables(self, options):
         if not options.get("xorConstraints", True):
             return
 
@@ -1404,6 +1384,80 @@ class Plan(object):
             for n in range(self.horizons[i], self.N_n):
                 self.B.setRange(_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx), 0, 0)
                 self.B.setRange(_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx), 0, 0)
+
+    def _configure_Medicare_binary_variables(self, options):
+        if not options.get("optimizeMedicare", False):
+            return
+
+        bigM = options.get("bigM", 5e6)
+        if not isinstance(bigM, (int, float)):
+            raise ValueError(f"bigM {bigM} is not a number.")
+
+        Nmed = self.N_n - self.nm
+        offset = 0
+        if self.nm < 2:
+            offset = 2 - self.nm
+            for nn in range(offset):
+                n = self.nm + nn
+                for q in range(self.N_q - 1):
+                    self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): bigM},
+                                     -np.inf, bigM - self.L_nq[nn, q] + self.prevMAGI[n])
+                    self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): -bigM},
+                                     -np.inf, self.L_nq[nn, q] - self.prevMAGI[n])
+
+        for nn in range(offset, Nmed):
+            n2 = self.nm + nn - 2  # n - 2
+            for q in range(self.N_q - 1):
+                rhs1 = bigM - self.L_nq[nn, q]
+                rhs2 = self.L_nq[nn, q]
+                row1 = self.A.newRow()
+                row2 = self.A.newRow()
+
+                row1.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), +bigM)
+                row2.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM)
+                for i in range(self.N_i):
+                    row1.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), -1)
+                    row2.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), +1)
+
+                    row1.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), -1)
+                    row2.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), +1)
+
+                    afac = (self.mu*self.alpha_ijkn[i, 0, 0, n2]
+                            + np.sum(self.alpha_ijkn[i, 0, 1:, n2]*self.tau_kn[1:, n2]))
+                    afac = 0
+                    row1.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), -afac)
+                    row2.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), +afac)
+
+                    row1.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), -afac)
+                    row2.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), +afac)
+
+                    bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, self.tau_kn[0, max(0, n2-1)])
+                    row1.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), +afac - bfac)
+                    row2.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
+
+                    sumoni = (self.omega_in[i, n2] + self.psi_n[n2] * self.zetaBar_in[i, n2] + self.piBar_in[i, n2]
+                              + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
+                    rhs1 += sumoni
+                    rhs2 -= sumoni
+
+                self.A.addRow(row1, -np.inf, rhs1)
+                self.A.addRow(row2, -np.inf, rhs2)
+
+    def _add_Medicare_costs(self, options):
+        if not options.get("optimizeMedicare", False):
+            return
+
+        for n in range(self.nm):
+            self.B.setRange(_q1(self.C["m"], n, self.N_n), 0, 0)
+
+        Nmed = self.N_n - self.nm
+        for nn in range(Nmed):
+            n = self.nm + nn
+            row = self.A.newRow()
+            row.addElem(_q1(self.C["m"], n, self.N_n), 1)
+            for q in range(self.N_q - 1):
+                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -self.C_nq[nn, q+1])
+            self.A.addRow(row, self.C_nq[nn, 0], self.C_nq[nn, 0])
 
     def _build_objective_vector(self, objective):
         c = abc.Objective(self.nvars)
@@ -1488,12 +1542,7 @@ class Plan(object):
         self.mylog.vprint(f"Running {N} Monte Carlo simulations.")
         self.mylog.setVerbose(verbose)
 
-        # Turn off Medicare by default, unless specified in options.
-        if "withMedicare" not in options:
-            myoptions = dict(options)
-            myoptions["withMedicare"] = False
-        else:
-            myoptions = options
+        myoptions = options
 
         if objective == "maxSpending":
             columns = ["partial", objective]
@@ -1577,14 +1626,16 @@ class Plan(object):
             "maxRothConversion",
             "netSpending",
             "noRothConversions",
+            "oppCostX",
+            "optimizeMedicare",
             "previousMAGIs",
             "solver",
             "spendingSlack",
             "startRothConversions",
             "units",
-            "withMedicare",
-            "oppCostX",
             "xorConstraints",
+            "withSCLoop",
+            "withMedicare",    # Ignore keyword.
         ]
         # We might modify options if required.
         options = {} if options is None else options
@@ -1629,9 +1680,13 @@ class Plan(object):
             raise ValueError(f"Slack value out of range {lambdha}.")
         self.lambdha = lambdha / 100
 
-        # Reset long-term capital gain tax rate and MAGIs to zero.
-        self.psi_n[:] = 0
+        # Reset long-term capital gain tax rate and MAGI to zero.
+        self.psi_n = np.zeros(self.N_n)
         self.MAGI_n = np.zeros(self.N_n)
+        self.J_n = np.zeros(self.N_n)
+        self.M_n = np.zeros(self.N_n)
+
+        self._buildOffsetMap(options)
 
         solver = myoptions.get("solver", self.defaultSolver)
         if solver not in knownSolvers:
@@ -1657,7 +1712,8 @@ class Plan(object):
         """
         Self-consistent loop, regardless of solver.
         """
-        withMedicare = options.get("withMedicare", True)
+        optimizeMedicare = options.get("optimizeMedicare", False)
+        withSCLoop = options.get("withSCLoop", True)
 
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
@@ -1668,7 +1724,7 @@ class Plan(object):
         absdiff = np.inf
         old_x = np.zeros(self.nvars)
         old_solutions = [np.inf]
-        self._computeNLstuff(None, withMedicare)
+        self._computeNLstuff(None, optimizeMedicare)
         while True:
             solution, xx, solverSuccess, solverMsg = solverMethod(objective, options)
 
@@ -1676,16 +1732,16 @@ class Plan(object):
                 self.mylog.vprint("Solver failed:", solverMsg, solverSuccess)
                 break
 
-            if not withMedicare:
+            if not withSCLoop:
                 break
 
-            self._computeNLstuff(xx)
+            self._computeNLstuff(xx, optimizeMedicare)
 
             self.mylog.vprint(f"Iteration: {it} objective: {u.d(solution * objFac, f=2)}")
 
             delta = xx - old_x
             absdiff = np.sum(np.abs(delta), axis=0)
-            if absdiff < 1:
+            if absdiff < 3:
                 self.mylog.vprint("Converged on full solution.")
                 break
 
@@ -1704,7 +1760,7 @@ class Plan(object):
             old_x = xx
 
         if solverSuccess:
-            self.mylog.vprint(f"Self-consistent Medicare loop returned after {it+1} iterations.")
+            self.mylog.vprint(f"Self-consistent loop returned after {it+1} iterations.")
             self.mylog.vprint(solverMsg)
             self.mylog.vprint(f"Objective: {u.d(solution * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
@@ -1728,7 +1784,7 @@ class Plan(object):
             "disp": False,
             "mip_rel_gap": 1e-7,
             "presolve": True,
-            "node_limit": 10000  # Limit search nodes for faster solutions
+            # "node_limit": 10000  # Limit search nodes for faster solutions
         }
 
         self._buildConstraints(objective, options)
@@ -1876,10 +1932,11 @@ class Plan(object):
 
         return solution, xx, solverSuccess, solverMsg
 
-    def _computeNIIT(self):
+    def _computeNIIT(self, MAGI_n, I_n, Q_n):
         """
-        Compute Wages (W), Dividends (Q), Interests (I), and exemption(e).
-        For accounting for rent and trust income, one can easily add a column
+        Compute ACA tax on Dividends (Q) and Interests (I).
+        Pass arguments to better understand dependencies.
+        For accounting for rent and/or trust income, one can easily add a column
         to the Wages and Contributions file and add yearly amount to Q_n + I_n below.
         """
         J_n = np.zeros(self.N_n)
@@ -1890,19 +1947,18 @@ class Plan(object):
                 status -= 1
 
             Gmax = tx.niitThreshold[status]
-            if self.MAGI_n[n] > Gmax:
-                J_n[n] = tx.niitRate * min(self.MAGI_n[n] - Gmax, self.I_n[n] + self.Q_n[n])
+            if MAGI_n[n] > Gmax:
+                J_n[n] = tx.niitRate * min(MAGI_n[n] - Gmax, I_n[n] + Q_n[n])
 
         return J_n
 
-    def _computeNLstuff(self, x=None, withMedicare=True):
+    def _computeNLstuff(self, x, optimizeMedicare):
         """
         Compute MAGI, Medicare costs, long-term capital gain tax rate, and
         net investment income tax (NIIT).
         """
-        if x is None or withMedicare is False:
+        if x is None:
             self.MAGI_n = np.zeros(self.N_n)
-            self._adjustParameters()
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
             self.psi_n = np.zeros(self.N_n)
@@ -1910,12 +1966,11 @@ class Plan(object):
 
         self._aggregateResults(x, short=True)
 
-        # Ensure parameters are re-adjusted for inflation and MAGI.
-        self._adjustParameters()
-
-        self.J_n = self._computeNIIT()
-        self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
+        self.J_n = self._computeNIIT(self.MAGI_n, self.I_n, self.Q_n)
         self.psi_n = tx.capitalGainTaxRate(self.N_i, self.MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
+        # Compute Medicare through self-consistent loop.
+        if not optimizeMedicare:
+            self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
 
         return None
 
@@ -1930,7 +1985,7 @@ class Plan(object):
         Nk = self.N_k
         Nn = self.N_n
         Nt = self.N_t
-        # Nz = self.N_zx
+        # Nzx = self.N_zx
         n_d = self.n_d
 
         Cb = self.C["b"]
@@ -1938,6 +1993,7 @@ class Plan(object):
         Ce = self.C["e"]
         Cf = self.C["f"]
         Cg = self.C["g"]
+        Cm = self.C["m"]
         Cs = self.C["s"]
         Cw = self.C["w"]
         Cx = self.C["x"]
@@ -1960,7 +2016,9 @@ class Plan(object):
         self.f_tn = np.array(x[Cf:Cg])
         self.f_tn = self.f_tn.reshape((Nt, Nn))
 
-        self.g_n = np.array(x[Cg:Cs])
+        self.g_n = np.array(x[Cg:Cm])
+
+        self.m_n = np.array(x[Cm:Cs])
 
         self.s_n = np.array(x[Cs:Cw])
 
@@ -1971,7 +2029,7 @@ class Plan(object):
         self.x_in = self.x_in.reshape((Ni, Nn))
 
         # self.z_inz = np.array(x[Czx:])
-        # self.z_inz = self.z_inz.reshape((Ni, Nn, Nz))
+        # self.z_inz = self.z_inz.reshape((Ni, Nn, Nzx))
         # print(self.z_inz)
 
         self.G_n = np.sum(self.f_tn, axis=0)
@@ -1983,10 +2041,10 @@ class Plan(object):
         self.Q_n = np.sum(
             (
                 self.mu
-                * (self.b_ijn[:, 0, :-1] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :Nn])
+                * (self.b_ijn[:, 0, :Nn] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :Nn])
                 + tau_0prev * self.w_ijn[:, 0, :]
             )
-            * self.alpha_ijkn[:, 0, 0, :-1],
+            * self.alpha_ijkn[:, 0, 0, :Nn],
             axis=0,
         )
         self.U_n = self.psi_n * self.Q_n
@@ -1994,7 +2052,7 @@ class Plan(object):
         self.MAGI_n = self.G_n + self.e_n + self.Q_n
 
         I_in = ((self.b_ijn[:, 0, :-1] + self.d_in - self.w_ijn[:, 0, :])
-                * np.sum(self.alpha_ijkn[:, 0, 1:, :-1] * self.tau_kn[1:, :], axis=1))
+                * np.sum(self.alpha_ijkn[:, 0, 1:, :Nn] * self.tau_kn[1:, :], axis=1))
         self.I_n = np.sum(I_in, axis=0)
 
         # Stop after building minimu required for self-consistent loop.
@@ -2177,8 +2235,8 @@ class Plan(object):
         dic[" Total net investment income tax paid"] = f"{u.d(taxPaidNow)}"
         dic["[Total net investment income tax paid]"] = f"{u.d(taxPaid)}"
 
-        taxPaid = np.sum(self.M_n, axis=0)
-        taxPaidNow = np.sum(self.M_n / self.gamma_n[:-1], axis=0)
+        taxPaid = np.sum(self.m_n + self.M_n, axis=0)
+        taxPaidNow = np.sum((self.m_n + self.M_n) / self.gamma_n[:-1], axis=0)
         dic[" Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
         dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
 
@@ -2320,7 +2378,7 @@ class Plan(object):
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         """
-        value = self._checkValue(value)
+        value = self._checkValueType(value)
         title = self._name + "\nNet Available Spending"
         if tag:
             title += " - " + tag
@@ -2345,7 +2403,7 @@ class Plan(object):
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         """
-        value = self._checkValue(value)
+        value = self._checkValueType(value)
         figures = self._plotter.plot_asset_composition(self.year_n, self.inames, self.b_ijkn,
                                                        self.gamma_n, value, self._name, tag)
         if figure:
@@ -2365,7 +2423,7 @@ class Plan(object):
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         """
-        value = self._checkValue(value)
+        value = self._checkValueType(value)
         tax_brackets = tx.taxBrackets(self.N_i, self.n_d, self.N_n, self.yOBBBA)
         title = self._name + "\nTaxable Ordinary Income vs. Tax Brackets"
         if tag:
@@ -2409,7 +2467,7 @@ class Plan(object):
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         """
-        value = self._checkValue(value)
+        value = self._checkValueType(value)
         title = self._name + "\nSavings Balance"
         if tag:
             title += " - " + tag
@@ -2431,7 +2489,7 @@ class Plan(object):
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         """
-        value = self._checkValue(value)
+        value = self._checkValueType(value)
         title = self._name + "\nRaw Income Sources"
         if tag:
             title += " - " + tag
@@ -2453,13 +2511,13 @@ class Plan(object):
         The value parameter can be set to *nominal* or *today*, overriding
         the default behavior of setDefaultPlots().
         """
-        value = self._checkValue(value)
+        value = self._checkValueType(value)
         title = self._name + "\nFederal Income Tax"
         if tag:
             title += " - " + tag
         # All taxes: ordinary income, dividends, and NIIT.
         allTaxes = self.T_n + self.U_n + self.J_n
-        fig = self._plotter.plot_taxes(self.year_n, allTaxes, self.M_n, self.gamma_n,
+        fig = self._plotter.plot_taxes(self.year_n, allTaxes, self.m_n + self.M_n, self.gamma_n,
                                        value, title, self.inames)
         if figure:
             return fig
@@ -2530,7 +2588,7 @@ class Plan(object):
             "net spending": self.g_n,
             "taxable ord. income": self.G_n,
             "taxable gains/divs": self.Q_n,
-            "Tax bills + Med.": self.T_n + self.U_n + self.M_n + self.J_n,
+            "Tax bills + Med.": self.T_n + self.U_n + self.m_n + self.M_n + self.J_n,
         }
 
         fillsheet(ws, incomeDic, "currency")
@@ -2546,7 +2604,7 @@ class Plan(object):
             "all deposits": -np.sum(self.d_in, axis=0),
             "ord taxes": -self.T_n - self.J_n,
             "div taxes": -self.U_n,
-            "Medicare": -self.M_n,
+            "Medicare": -self.m_n - self.M_n,
         }
         sname = "Cash Flow"
         ws = wb.create_sheet(sname)
@@ -2733,7 +2791,7 @@ def _saveWorkbook(wb, basename, overwrite, mylog):
     else:
         fname = basename
 
-    if overwrite is False and isfile(fname):
+    if not overwrite and isfile(fname):
         mylog.print(f'File "{fname}" already exists.')
         key = input("Overwrite? [Ny] ")
         if key != "y":

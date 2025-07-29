@@ -704,8 +704,9 @@ def genDic(plan):
             return None
 
     optionKeys = list(plan.solverOptions)
-    optList = ["netSpending", "maxRothConversion", "noRothConversions", "startRothConversions",
-               "withMedicare", "bequest", "solver", "spendingSlack", "oppCostX", "xorConstraints"]
+    optList = ["netSpending", "maxRothConversion", "noRothConversions",
+               "startRothConversions", "optimizeMedicare", "bequest", "solver",
+               "spendingSlack", "oppCostX", "xorConstraints", "withSCLoop",]
     for key in optList:
         if key in optionKeys:
             dic[key] = plan.solverOptions[key]
@@ -759,7 +760,7 @@ def backYearsMAGI(plan):
         backyears[0] = thisyear - 2
         backyears[1] = thisyear - 1
     elif thisyear - goatyear >= 64:
-        backyears[0] = thisyear - 1
+        backyears[1] = thisyear - 1
 
     return backyears
 

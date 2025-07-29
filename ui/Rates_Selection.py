@@ -239,5 +239,5 @@ forecasts for the next decade can be found
 
     with col2:
         kz.initKey("yOBBBA", 2032)
-        helpmsg = "Year at which rates similar to the pre-Tax Cut And Job Act tax rates are speculated to return."
-        ret = kz.getIntNum("pre-TCJA rates returning", "yOBBBA", help=helpmsg)
+        helpmsg = "Year at which the OBBBA tax rates are speculated to be expired and return to pre-TCJA rates."
+        ret = kz.getIntNum("OBBBA expiration year", "yOBBBA", help=helpmsg)

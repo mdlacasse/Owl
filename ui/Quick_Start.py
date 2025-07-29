@@ -11,13 +11,15 @@ with col1:
     kz.divider("orange")
     st.write("### :material/campaign: News")
     st.markdown("""
-:tada: This version includes some relevant tax changes resulting from the OBBBA,
-such as the additional $6k :gift: exemption
-for 65+ individuals. This exemption is set to expire at the end of 2028.
-For considering potential future tax increases, option to revert to pre-TCJA tax rates
-in the future is available and can be used to model longer-term horizons. :cyclone:
+- This version includes major tax code changes resulting from the OBBBA :mega:.
+To model long-term changes in federal tax calculations,
+an OBBBA expiration year can be set to return to pre-TCJA rates.
 
-Report bugs / suggestions through GitHub channel or email.
+- New capability :sparkles: to optimize for Medicare and IRMAA instead of using a self-consistent loop.
+Use with patience :hourglass: (~5 min) as these calculations can take longer time due to the number
+of binary variables involved.
+
+Report bugs :bug: and suggestions through GitHub channel or email :incoming_envelope:.
 """)
 
     kz.divider("orange")
