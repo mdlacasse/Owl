@@ -705,7 +705,7 @@ def genDic(plan):
 
     optionKeys = list(plan.solverOptions)
     optList = ["netSpending", "maxRothConversion", "noRothConversions",
-               "startRothConversions", "optimizeMedicare", "bequest", "solver",
+               "startRothConversions", "withMedicare", "bequest", "solver",
                "spendingSlack", "oppCostX", "xorConstraints", "withSCLoop",]
     for key in optList:
         if key in optionKeys:

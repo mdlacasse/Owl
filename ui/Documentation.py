@@ -400,27 +400,23 @@ no Roth conversions will be allowed before the year specified.
 A self-consistent loop is used to compute values that are difficult
 to integrate into a linear program. These includes the net investment income tax (NIIT),
 the rate on capital gains (0, 15, or 20%), the phase out of the additional exemption for seniors,
-and the Medicare and IRMAA premiums.
+and potentially the Medicare and IRMAA premiums.
 Turning off the self-consistent loop will default all these values to zero.
+
 An additional setting allows to turn off mutually exclusive operations,
 such as Roth conversions and withdrawals from the tax-free account.
-Surprinsingly, dropping these constraints can lead to slightly different optimal points.
-
-Mutually exclusive constraints can be imposed between Roth conversions and
-withdrawals from tax-free accounts. Similarly, withdrawals from taxable
-and tax-free accounts should not exist if there is a surplus.
 Enabling these mutually exclusive constraints avoids both these situations.
-Enabling these constraints will slightly increase the computation time due to the
-binary variables involved. Also, the resulting optimized values will be slightly
-different between cases with the constraints on or off for reasons that escape me.
+Surprinsingly, dropping these constraints can lead to slightly different optimal points
+for reasons that escape me.
 
 Medicare premiums start automatically in the year each individual reach age 65.
-Calculations of Medicare and IRMAA can either be optimized or be calculated through
-the self-consistent loop.
-Optimizing (as opposed to calculating) Medicare and IRMAA is slower given
+Calculations of Medicare and IRMAA can be turned off, calculated through
+the self-consistent loop, or be integrated into the optimization.
+Optimizing (as opposed to calculating) Medicare and IRMAA can sometimes be much slower given
 the additional number of binary variables involved. This option should be used
-for a single case, and compared with results obtained from the self-consistent calculations.
-Medicare optimization should not be used when running Monte Carlo simulations.
+for a single case, and compared with results obtained from self-consistent calculations.
+Medicare optimization should not be used when running multiple scenarios such
+as in Monte Carlo simulations.
 
 If the current age of any individual in the plan makes them eligible
 for Medicare within the next two years,

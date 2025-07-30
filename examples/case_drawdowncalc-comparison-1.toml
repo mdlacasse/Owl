@@ -1,5 +1,5 @@
 "Plan Name" = "drawdowncalc-comparison-1"
-Description = "This is a case involving a single individual. Case is used for comparing with @hugcity's DrawdownCalc. For max bequest, it should yield $90,792, while an $80k net spending should leave $673,156 as a bequest."
+Description = "This is a case involving a single individual. Case is used for comparing with @hugcity's DrawdownCalc. For max bequest, it should yield $90,882, while an $80k net spending should leave $678,625 as a bequest."
 
 ["Basic Info"]
 Status = "single"
@@ -51,6 +51,7 @@ startRothConversions = 2025
 withSCLoop = false
 solver = "HiGHS"
 spendingSlack = 0
+withMedicare = "None"
 
 [Results]
 "Default plots" = "today"

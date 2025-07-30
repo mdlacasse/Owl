@@ -1021,7 +1021,7 @@ class Plan(object):
         Refer to companion document for explanations.
         All binary variables must be lumped at the end of the vector.
         """
-        medi = options.get("optimizeMedicare", False)
+        medi = options.get("withMedicare", "loop") == "optimize"
 
         # Stack all variables in a single block vector with all binary variables at the end.
         C = {}
@@ -1386,7 +1386,7 @@ class Plan(object):
                 self.B.setRange(_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx), 0, 0)
 
     def _configure_Medicare_binary_variables(self, options):
-        if not options.get("optimizeMedicare", False):
+        if options.get("withMedicare", "loop") != "optimize":
             return
 
         bigM = options.get("bigM", 5e6)
@@ -1444,7 +1444,7 @@ class Plan(object):
                 self.A.addRow(row2, -np.inf, rhs2)
 
     def _add_Medicare_costs(self, options):
-        if not options.get("optimizeMedicare", False):
+        if options.get("withMedicare", "loop") != "optimize":
             return
 
         for n in range(self.nm):
@@ -1627,7 +1627,7 @@ class Plan(object):
             "netSpending",
             "noRothConversions",
             "oppCostX",
-            "optimizeMedicare",
+            "withMedicare",
             "previousMAGIs",
             "solver",
             "spendingSlack",
@@ -1635,7 +1635,6 @@ class Plan(object):
             "units",
             "xorConstraints",
             "withSCLoop",
-            "withMedicare",    # Ignore keyword.
         ]
         # We might modify options if required.
         options = {} if options is None else options
@@ -1713,7 +1712,7 @@ class Plan(object):
         """
         Self-consistent loop, regardless of solver.
         """
-        optimizeMedicare = options.get("optimizeMedicare", False)
+        includeMedicare = options.get("withMedicare", "loop") == "loop"
         withSCLoop = options.get("withSCLoop", True)
 
         if objective == "maxSpending":
@@ -1724,7 +1723,7 @@ class Plan(object):
         it = 0
         old_x = np.zeros(self.nvars)
         old_objfns = [np.inf]
-        self._computeNLstuff(None, optimizeMedicare)
+        self._computeNLstuff(None, includeMedicare)
         while True:
             objfn, xx, solverSuccess, solverMsg = solverMethod(objective, options)
 
@@ -1735,7 +1734,7 @@ class Plan(object):
             if not withSCLoop:
                 break
 
-            self._computeNLstuff(xx, optimizeMedicare)
+            self._computeNLstuff(xx, includeMedicare)
 
             delta = xx - old_x
             absSolDiff = np.sum(np.abs(delta), axis=0)/100
@@ -1955,7 +1954,7 @@ class Plan(object):
 
         return J_n
 
-    def _computeNLstuff(self, x, optimizeMedicare):
+    def _computeNLstuff(self, x, includeMedicare):
         """
         Compute MAGI, Medicare costs, long-term capital gain tax rate, and
         net investment income tax (NIIT).
@@ -1972,7 +1971,7 @@ class Plan(object):
         self.J_n = self._computeNIIT(self.MAGI_n, self.I_n, self.Q_n)
         self.psi_n = tx.capitalGainTaxRate(self.N_i, self.MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
         # Compute Medicare through self-consistent loop.
-        if not optimizeMedicare:
+        if includeMedicare:
             self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
 
         return None

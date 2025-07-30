@@ -79,7 +79,7 @@ else:
     with col1:
         helpmsg = ("Option to use a self-consistent loop to adjust additional values such as the net"
                    " investment income tax (NIIT), and adjust capital gain tax rates."
-                   "  This loop also computes Medicare and IRMAA if not optimized.")
+                   "  If selected below, this loop will also compute Medicare and IRMAA.")
         ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
     with col2:
         helpmsg = ("Enable mutually exclusive constraints between surplus deposits,"
@@ -89,16 +89,19 @@ else:
 
     st.divider()
     st.write("#### :orange[Medicare]")
-    kz.initKey("optimizeMedicare", False)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
-    with col2:
-        st.markdown("##### :material/warning: Slow convergence - maybe time for a coffee :coffee:?")
-        helpmsg = ("Optimize for Medicare and IRMAA."
-                   "  Due to the binary variables involved, this requires a few minutes of computation."
-                   "  Be patient.")
-        ret = kz.getToggle("Optimize Medicare and IRMAA", "optimizeMedicare", help=helpmsg)
     with col1:
-        if kz.getKey("optimizeMedicare") or kz.getKey("withSCLoop"):
+        choices = ["None", "loop", "optimize"]
+        kz.initKey("withMedicare", choices[1])
+        helpmsg = "How to compute for Medicare and IRMAA premiums."
+        ret = kz.getRadio("Medicare and IRMAA calculations", choices, "withMedicare", help=helpmsg)
+        if ret == "optimize":
+            st.markdown(":material/warning: Medicare optimization can sometimes have slow convergence - time for :coffee: ?")
+        elif ret == "loop" and not kz.getKey("withSCLoop"):
+            st.markdown(":material/warning: Medicare set to 'loop' while self-consistent loop is off.")
+    with col2:
+        medi = kz.getKey("withMedicare")
+        if medi == "optimize" or (medi == "loop" and kz.getKey("withSCLoop")):
             helpmsg = "MAGI in nominal $k for current and previous years."
             years = owb.backYearsMAGI()
             for ii in range(2):
