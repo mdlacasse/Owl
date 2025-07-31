@@ -78,7 +78,7 @@ else:
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         helpmsg = ("Option to use a self-consistent loop to adjust additional values such as the net"
-                   " investment income tax (NIIT), and adjust capital gain tax rates."
+                   " investment income tax (NIIT), and capital gain tax rates."
                    "  If selected below, this loop will also compute Medicare and IRMAA.")
         ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
     with col2:
@@ -93,10 +93,12 @@ else:
     with col1:
         choices = ["None", "loop", "optimize"]
         kz.initKey("withMedicare", choices[1])
-        helpmsg = "How to compute for Medicare and IRMAA premiums."
+        helpmsg = ("How to compute Medicare and IRMAA premiums:"
+                   " ignore, use self-consistent loop, or use additional variables in optimization.")
         ret = kz.getRadio("Medicare and IRMAA calculations", choices, "withMedicare", help=helpmsg)
         if ret == "optimize":
-            st.markdown(":material/warning: Medicare optimization can sometimes have slow convergence - time for :coffee: ?")
+            st.markdown(":material/warning: Medicare optimization can sometimes have slow convergence -"
+                        " time for :coffee: ?")
         elif ret == "loop" and not kz.getKey("withSCLoop"):
             st.markdown(":material/warning: Medicare set to 'loop' while self-consistent loop is off.")
     with col2:
