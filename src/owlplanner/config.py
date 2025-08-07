@@ -296,6 +296,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     # Solver Options.
     p.solverOptions = diconf["Solver Options"]
 
+    # Address legacy case files.
+    if diconf["Solver Options"].get("withMedicare", None) is True:
+        p.solverOptions["withMedicare"] = "loop"
+
     # Check consistency of noRothConversions.
     name = p.solverOptions.get("noRothConversions", "None")
     if name != "None" and name not in p.inames:

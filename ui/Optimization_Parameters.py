@@ -11,6 +11,8 @@ kz.initKey("survivor", 60)
 kz.initKey("smileDip", 15)
 kz.initKey("smileIncrease", 12)
 kz.initKey("smileDelay", 0)
+mediChoices = ["None", "loop", "optimize"]
+kz.initKey("withMedicare", mediChoices[1])
 
 
 def initProfile():
@@ -91,11 +93,9 @@ else:
     st.write("#### :orange[Medicare]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        choices = ["None", "loop", "optimize"]
-        kz.initKey("withMedicare", choices[1])
         helpmsg = ("How to compute Medicare and IRMAA premiums:"
                    " ignore, use self-consistent loop, or use additional variables in optimization.")
-        ret = kz.getRadio("Medicare and IRMAA calculations", choices, "withMedicare", help=helpmsg)
+        ret = kz.getRadio("Medicare and IRMAA calculations", mediChoices, "withMedicare", help=helpmsg)
         if ret == "optimize":
             st.markdown(":material/warning: Medicare optimization can sometimes have slow convergence -"
                         " time for :coffee: ?")
