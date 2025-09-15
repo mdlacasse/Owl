@@ -559,7 +559,7 @@ def showWorkbook(plan):
                     colfor[col] = st.column_config.NumberColumn(None, format="%.3f")
 
         st.write(f"#### :orange[{name}]")
-        st.dataframe(df.astype(str), use_container_width=True, column_config=colfor, hide_index=True)
+        st.dataframe(df.astype(str), width="stretch", column_config=colfor, hide_index=True)
 
         if dollars:
             st.caption("Values are in nominal $, rounded to the nearest dollar.")
@@ -779,9 +779,9 @@ def renderPlot(fig, col=None):
     # Check if it's a plotly figure.
     if hasattr(fig, 'to_dict'):  # plotly figures have to_dict method.
         if col:
-            col.plotly_chart(fig, use_container_width=True)
+            col.plotly_chart(fig, width="stretch")
         else:
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
     else:  # matplotlib figure.
         if col:
             col.pyplot(fig)
