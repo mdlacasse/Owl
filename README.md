@@ -38,7 +38,7 @@ Look at *Basic capabilities* below for more detail.
 One can certainly have a savings plan, but due to the volatility of financial investments,
 it is impossible to have a certain asset earnings plan. This does not mean one cannot make decisions.
 These decisions need to be guided with an understanding of the sensitivity of the parameters.
-This is exactly where this tool fits it. Given your savings capabilities and spending desires,
+This is exactly where this tool fits in. Given your savings capabilities and spending desires,
 it can generate different future realizations of
 your strategy under different market assumptions, helping to better understand your financial situation.
 
