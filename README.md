@@ -181,7 +181,9 @@ assets to support, even with no estate being left.
 - Streamlit Community Cloud [Streamlit](https://streamlit.io)
 - Contributors: Josh (noimjosh@gmail.com) for Docker image code,
  Dale Seng (sengsational) for great insights and suggestions,
- Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions, Clark Jefcoat (hubcity) for fruitful interactions.
+ Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
+ Clark Jefcoat (hubcity) for fruitful interactions,
+ Benjamin Quinn (blquinn) for bug fixes.
 
 ---------------------------------------------------------------------
 

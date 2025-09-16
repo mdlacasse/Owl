@@ -39,7 +39,7 @@ Copyright &copy; 2025 - Martin-D. Lacasse
 - Contributors: Josh Williams (noimjosh) for Docker image code,
  Dale Seng (sengsational) for great insights and suggestions,
  Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
- Clark Jefcoat (hubcity) for fruitful interactions.
+ Clark Jefcoat (hubcity) for fruitful interactions, Benjamin Quinn (blquinn) for bug fixes.
 - Owl image is from [freepik](https://freepik.com).
 
 #### :orange[Bugs and Feature Requests]
