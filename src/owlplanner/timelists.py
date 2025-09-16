@@ -54,7 +54,7 @@ def read(finput, inames, horizons, mylog):
     else:
         # Read all worksheets in memory but only process those with proper names.
         try:
-            dfDict = pd.read_excel(finput, sheet_name=None)
+            dfDict = pd.read_excel(finput, sheet_name=None, usecols=_timeHorizonItems)
         except Exception as e:
             raise Exception(f"Could not read file {finput}: {e}.") from e
         streamName = f"file '{finput}'"
