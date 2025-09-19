@@ -3,7 +3,7 @@
 
 ## A retirement exploration tool based on linear programming
 
-<img align=right src="https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png" width="250">
+<img align=right src="https://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true" width="250">
 
 -------------------------------------------------------------------------------------
 
