@@ -29,7 +29,7 @@ else:
                 "You can build your own file by directly filling the table(s) below. "
                 "Once a case has been successfully run, values can be saved on the **Output Files** page. "
                 "Alternatively, you can start from this Excel "
-                "[template](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx) "
+                "[template](https://github.com/mdlacasse/Owl/blob/main/examples/template.xlsx?raw=true) "
                 "and upload the file using the widget below."
             )
         elif original != "edited values":

@@ -8,7 +8,7 @@ with col1:
     kz.divider("orange")
     st.write("## :orange[Owl Retirement Planner]\n-------")
 with col3:
-    st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")
+    st.image("http://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true")
     st.caption("Retirement planner with great wisdom")
 
 col1, col2 = st.columns([0.80, 0.20], gap="large")
@@ -30,7 +30,7 @@ while federal income tax and Medicare premiums (including IRMAA) are calculated.
 A full description of the package can be found on the GitHub
 open [repository](https://github.com/mdlacasse/Owl), and the mathematical
 formulation of the optimization problem can be found
-[here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
+[here](https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf).
 
 -------------------------------------------------
 ### :orange[Table of Contents]
@@ -149,7 +149,7 @@ If `Upload case file...` is selected, a *case* file must be uploaded.
 These files end with the *.toml* extension, are human readable (and therefore editable),
 and contain all the parameters required to characterize a scenario.
 An example is provided
-[here](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml) and more
+[here](https://github.com/mdlacasse/Owl/main/blob/examples/case_jack+jill.toml?raw=true) and more
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
 will populate all the fields in the [Case Setup](#case-setup) section.
@@ -178,7 +178,7 @@ The **Wages and Contributions** table contains 9 columns titled as follows:
 
 Note that column names are case sensitive and all entries are in lower case.
 The easiest way to complete the process of filling this file is either to start from the template
-file provided [here](https://raw.github.com/mdlacasse/Owl/main/examples/template.xlsx) or
+file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/template.xlsx?raw=true) or
 to fill in the values using the user interface, but this last approach does not provide
 Excel capabilities for cross-column calculations.
 

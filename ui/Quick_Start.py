@@ -4,7 +4,7 @@ import sskeys as kz
 
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col3:
-    st.image("http://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png")
+    st.image("http://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true")
     st.caption("Retirement planner with great wisdom")
 with col1:
     st.write("# :orange[Owl Retirement Planner]\nA retirement financial exploration tool based on linear programming")
@@ -45,10 +45,10 @@ of Jack and Jill provided here as an example:
 1) Download these two files from the GitHub repository
  (right-click on the link and select `Save link as...`):
     - *Case* parameter file named
-    [case_jack+jill.toml](https://raw.github.com/mdlacasse/Owl/main/examples/case_jack+jill.toml)
+    [case_jack+jill.toml](https://github.com/mdlacasse/Owl/blob/main/examples/case_jack+jill.toml?raw=true)
     in editable *toml* format.
     - *Wages and Contributions* file named
-    [jack+jill.xlsx](https://raw.github.com/mdlacasse/Owl/main/examples/jack+jill.xlsx)
+    [jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/jack+jill.xlsx?raw=true)
     in Excel format.
 1) Navigate to the **Create Case** page and drag and drop the case parameter file
 you just downloaded (*case_jack+jill.toml*).

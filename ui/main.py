@@ -8,7 +8,7 @@ st.set_page_config(layout="wide", page_title="Owl Retirement Planner")
 
 kz.init()
 
-st.logo("https://raw.github.com/mdlacasse/Owl/main/docs/images/owl.png", size="large")
+st.logo("https://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true", size="large")
 
 pages = {
     "Case Setup": [

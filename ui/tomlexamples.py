@@ -12,7 +12,7 @@ wages = ["jack+jill", "joe", "john+sally", "jon+jane",
 
 
 def loadCaseExample(case):
-    url = f"https://raw.github.com/mdlacasse/owl/main/examples/case_{case}.toml"
+    url = f"https://github.com/mdlacasse/owl/blob/main/examples/case_{case}.toml?raw=true"
     response = requests.get(url)
     if response.ok:
         return StringIO(response.text)
@@ -22,7 +22,7 @@ def loadCaseExample(case):
 
 
 def loadWagesExample(case):
-    url = f"https://raw.github.com/mdlacasse/owl/main/examples/{case}.xlsx"
+    url = f"https://github.com/mdlacasse/owl/blob/main/examples/{case}.xlsx?raw=true"
     response = requests.get(url)
     if response.ok:
         return BytesIO(response.content)

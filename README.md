@@ -52,7 +52,7 @@ collecting your data, or academic papers that share the results without really s
 the underlying mathematical models.
 The algorithms in Owl rely on the open-source HiGHS linear programming solver. The complete formulation and
 detailed description of the underlying
-mathematical model can be found [here](https://raw.github.com/mdlacasse/Owl/main/docs/owl.pdf).
+mathematical model can be found [here](https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf).
 
 It is anticipated that most end users will use Owl through the graphical interface
 either at [owlplanner.streamlit.app](https://owlplanner.streamlit.app)
