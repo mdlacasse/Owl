@@ -70,15 +70,15 @@ taxBrackets_preTCJA = np.array(
     ]
 )
 
-# These are 2025 current (adjusted for inflation).
-stdDeduction_OBBBA = np.array([15750, 31500])    # Single, MFJ
+# These are 2025 current.
+stdDeduction_OBBBA = np.array([15000, 30000])    # Single, MFJ
 # These are speculated (adjusted for inflation).
 stdDeduction_preTCJA = np.array([8300, 16600])  # Single, MFJ
 
 # These are current (adjusted for inflation) per individual.
 extra65Deduction = np.array([2000, 1600])       # Single, MFJ
 
-# Thresholds for capital gains (adjusted for inflation).
+# Thresholds setting capital gains brackets 0%, 15%, 20% (adjusted for inflation).
 capGainRates = np.array(
     [
         [48350, 533400],

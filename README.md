@@ -33,7 +33,7 @@ Strictly speaking, it is not a planning tool, but more an environment for explor
 It provides different realizations of a financial strategy through the rigorous
 mathematical optimization of relevant decision variables. Two major objective goals can be set: either
 maximize net spending, or after-tax bequest under various constraints.
-Look at *Basic capabilities* below for more detail.
+Look at the *Capabilities* section below for more detail.
 
 One can certainly have a savings plan, but due to the volatility of financial investments,
 it is impossible to have a certain asset earnings plan. This does not mean one cannot make decisions.
