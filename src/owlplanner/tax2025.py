@@ -71,7 +71,7 @@ taxBrackets_preTCJA = np.array(
 )
 
 # These are 2025 current.
-stdDeduction_OBBBA = np.array([15000, 30000])    # Single, MFJ
+stdDeduction_OBBBA = np.array([15750, 31500])    # Single, MFJ
 # These are speculated (adjusted for inflation).
 stdDeduction_preTCJA = np.array([8300, 16600])  # Single, MFJ
 
