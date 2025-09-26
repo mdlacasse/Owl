@@ -5,7 +5,7 @@ seaborn
 pandas
 openpyxl
 odfpy
-plotly
+plotly >= 6.3
 pulp
 scipy
 streamlit >= 1.49

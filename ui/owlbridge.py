@@ -778,10 +778,11 @@ def renderPlot(fig, col=None):
 
     # Check if it's a plotly figure.
     if hasattr(fig, 'to_dict'):  # plotly figures have to_dict method.
+        config = {"width": "stretch"}
         if col:
-            col.plotly_chart(fig, width="stretch")
+            col.plotly_chart(fig, config=config)
         else:
-            st.plotly_chart(fig, width="stretch")
+            st.plotly_chart(fig, config=config)
     else:  # matplotlib figure.
         if col:
             col.pyplot(fig)
