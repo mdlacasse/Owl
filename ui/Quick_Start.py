@@ -19,13 +19,15 @@ an OBBBA expiration year can be set to return to pre-TCJA rates.
 Use with patience :hourglass: (~5 min) as these calculations can take longer time due to the number
 of binary variables involved.
 
-Report bugs :bug: and suggestions through GitHub channel or email :incoming_envelope:.
+Report bugs :bug: and suggestions through the
+GitHub [channel](http://github.com/mdlacasse/Owl/issues)
+or by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
 """)
 
     kz.divider("orange")
     st.write("### :material/rocket_launch: Quick Start")
     st.markdown("""
-Owl does not store any information related to a case:
+To respect your privacy, Owl does not store any information related to a case:
 all is lost after a session is closed. For this reason,
 two files can be used to store the specifications of a case so that it can be reproduced
 at a later time:
@@ -55,7 +57,7 @@ you just downloaded (*case_jack+jill.toml*).
 Alternatively, you can directly select the case of *jack+jill* among the GitHub examples.
 1) Navigate to the **Wages and Contributions** page and
 drag and drop the *Wages and Contributions* file you downloaded (*jack+jill.xlsx*).
-Alternatively, you can directly load the *Wages and Contributions* file from GitHub using the button.
+Alternatively, you can directly load the *Wages and Contributions* file from GitHub using the marked button.
 1) Move to any page in the **Single Scenario** section to browse the simulation results.
 
 Congratulations! :balloon: You just ran your first case.
