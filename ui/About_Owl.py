@@ -23,6 +23,7 @@ Copyright &copy; 2025 - Martin-D. Lacasse
 - Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
 - Linear programming optimization solvers are from
 [HiGHS](https://highs.dev) and [PuLP](https://coin-or.github.io/pulp/).
+It can also run on [MOSEK](https://mosek.com) if available on your computer.
 - Owl planner relies on the following [Python](https://python.org) packages:
     - [highspy](https://highs.dev),
     [Matplotlib](https://matplotlib.org),
