@@ -23,9 +23,12 @@ def init():
     ss = st.session_state
     if "cases" not in ss:
         ss.cases = {
-            newCase: {"iname0": "", "status": "unkown", "caseStatus": "new"},
-            loadCaseFile: {"iname0": "", "status": "unkown", "caseStatus": "new"},
+            newCase: {"iname0": "", "status": "unkown", "caseStatus": "new", "id": 0},
+            loadCaseFile: {"iname0": "", "status": "unkown", "caseStatus": "new", "id": 1},
         }
+
+    if "nextid" not in ss:
+        ss.nextid = 2
 
     # Variable for storing name of current case.
     if "currentCase" not in ss:
@@ -34,6 +37,16 @@ def init():
 
 
 init()
+
+
+def genCaseKey(key):
+    return f"{getKey('id')}_{key}"
+
+
+def setCaseId(casename):
+    if casename in ss.cases:
+        ss.cases[casename]["id"] = ss.nextid
+        ss.nextid = ss.nextid + 1
 
 
 def getKeyInCase(key, casename):
@@ -183,6 +196,7 @@ def duplicateCase():
     for key in ["summaryDf", "histoPlot", "histoSummary", "monteCarloPlot", "monteCarloSummary"]:
         ss.cases[dupname][key] = None
 
+    setCaseId(dupname)
     ss.cases[dupname]["duplicate"] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
@@ -200,6 +214,7 @@ def createCaseFromFile(strio):
         return False
 
     ss.cases[name] = dic
+    setCaseId(name)
     setCurrentCase(name)
     return True
 
@@ -220,7 +235,8 @@ def createNewCase(case):
         return
 
     ss.cases[casename] = {"name": casename, "caseStatus": "unknown", "logs": None}
-    setCurrentCase(ss._newcase)
+    setCaseId(casename)
+    setCurrentCase(casename)
 
 
 def renameCase(key):
@@ -258,11 +274,11 @@ def dumpCase(case=None):
 
 
 def setpull(key):
-    return setKey(key, ss["_" + key])
+    return setKey(key, ss[genCaseKey(key)])
 
 
 def storepull(key):
-    return storeKey(key, ss["_" + key])
+    return storeKey(key, ss[genCaseKey(key)])
 
 
 def setKey(key, val):
@@ -451,7 +467,7 @@ def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, m
         help=help,
         on_change=callback,
         args=[nkey],
-        key="_" + nkey,
+        key=genCaseKey(nkey),
     )
 
 
@@ -468,7 +484,7 @@ def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.
         format=format,
         on_change=callback,
         args=[nkey],
-        key="_" + nkey,
+        key=genCaseKey(nkey),
     )
 
 
@@ -479,7 +495,7 @@ def getText(text, nkey, disabled=False, callback=setpull, placeholder=None, help
         disabled=disabled,
         on_change=callback,
         args=[nkey],
-        key="_" + nkey,
+        key=genCaseKey(nkey),
         placeholder=placeholder,
         help=help,
     )
@@ -492,7 +508,7 @@ def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, 
         disabled=disabled,
         on_change=callback,
         args=[nkey],
-        key="_" + nkey,
+        key=genCaseKey(nkey),
         placeholder=placeholder,
         help=help,
     )
@@ -505,7 +521,7 @@ def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
         index=choices.index(getKey(nkey)),
         on_change=callback,
         args=[nkey],
-        key="_" + nkey,
+        key=genCaseKey(nkey),
         disabled=disabled,
         horizontal=True,
         help=help,
@@ -514,7 +530,8 @@ def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
 
 def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
     return st.toggle(
-        text, value=getKey(nkey), on_change=callback, args=[nkey], disabled=disabled, key="_" + nkey, help=help
+        text, value=getKey(nkey), on_change=callback, args=[nkey], disabled=disabled,
+        key=genCaseKey(nkey), help=help
     )
 
 

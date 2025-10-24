@@ -19,9 +19,13 @@ an OBBBA expiration year can be set to return to pre-TCJA rates.
 Use with patience :hourglass: (~5 min) as these calculations can take longer time due to the number
 of binary variables involved.
 
-Report bugs :bug: and suggestions through the
+- Ported code to Streamlit 1.50 which had major changes in widget identification.
+
+Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
-or by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
+or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
+
+Take the time to give it a :star: on GitHub if you use the code. That's all you have to give!
 """)
 
     kz.divider("orange")

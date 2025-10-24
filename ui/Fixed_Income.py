@@ -8,7 +8,8 @@ def getIntInput(i, key, thing, defval=0):
     kz.initKey(nkey, defval)
     inamex = kz.getKey("iname" + str(i))
     st.number_input(
-        f"{inamex}'s {thing}", min_value=0, value=kz.getKey(nkey), on_change=kz.setpull, args=[nkey], key="_" + nkey
+        f"{inamex}'s {thing}", min_value=0, value=kz.getKey(nkey),
+        on_change=kz.setpull, args=[nkey], key=kz.genCaseKey(nkey),
     )
 
 
@@ -25,7 +26,7 @@ def getFloatInput(i, key, thing, defval=0.0):
         step=10.0,
         on_change=kz.setpull,
         args=[nkey],
-        key="_" + nkey,
+        key=kz.genCaseKey(nkey),
     )
 
 
@@ -33,7 +34,7 @@ def getToggleInput(i, key, thing):
     nkey = key + str(i)
     kz.initKey(nkey, False)
     defval = kz.getKey(nkey)
-    st.toggle(thing, on_change=kz.setpull, value=defval, args=[nkey], key="_" + nkey)
+    st.toggle(thing, on_change=kz.setpull, value=defval, args=[nkey], key=kz.genCaseKey(nkey))
 
 
 ret = kz.titleBar(":material/currency_exchange: Fixed Income")

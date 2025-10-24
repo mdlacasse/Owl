@@ -117,7 +117,7 @@ forecasts for the next decade can be found
                 value=kz.getKey("yfrm"),
                 on_change=updateRates,
                 args=["yfrm"],
-                key="_yfrm",
+                key=kz.genCaseKey("yfrm"),
             )
 
         with col4:
@@ -130,7 +130,7 @@ forecasts for the next decade can be found
                 disabled=ishistorical,
                 on_change=updateRates,
                 args=["yto"],
-                key="_yto",
+                key=kz.genCaseKey("yto"),
             )
 
     if kz.getKey("rateType") == "varying":

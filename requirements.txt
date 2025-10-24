@@ -8,5 +8,5 @@ odfpy
 plotly >= 6.3
 pulp
 scipy
-streamlit == 1.49.1
+streamlit
 toml

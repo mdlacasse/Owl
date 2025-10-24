@@ -27,7 +27,7 @@ else:
             value=kz.getKey("hyfrm"),
             on_change=kz.storepull,
             args=["hyfrm"],
-            key="_hyfrm",
+            key=kz.genCaseKey("hyfrm"),
         )
 
     with col2:
@@ -38,7 +38,7 @@ else:
             value=kz.getKey("hyto"),
             on_change=kz.storepull,
             args=["hyto"],
-            key="_hyto",
+            key=kz.genCaseKey("hyto"),
         )
 
     # st.divider()

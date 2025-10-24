@@ -15,7 +15,7 @@ def getPercentInput(i, j, keybase, text, defval=0):
         value=kz.getKey(nkey),
         on_change=kz.setpull,
         args=[nkey],
-        key="_" + nkey,
+        key=kz.genCaseKey(nkey),
     )
 
 
