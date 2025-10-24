@@ -515,10 +515,17 @@ def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, 
 
 
 def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
+    try:
+        index = choices.index(getKey(nkey))
+    except ValueError:
+        st.error(f"Value '{getKey(nkey)}' not available. Defaulting to '{choices[0]}'.")
+        setKey(nkey, choices[0])
+        index = 0
+
     return st.radio(
         text,
         choices,
-        index=choices.index(getKey(nkey)),
+        index=index,
         on_change=callback,
         args=[nkey],
         key=genCaseKey(nkey),
