@@ -1223,8 +1223,8 @@ class Plan(object):
 
         for i in range(self.N_i):
             for j in range(self.N_j):
-                backTau = 1 - yearSpent * np.sum(self.tau_kn[:, 0] * self.alpha_ijkn[i, j, :, 0])
-                rhs = self.beta_ij[i, j] * backTau
+                backTau = 1 + yearSpent * np.sum(self.tau_kn[:, 0] * self.alpha_ijkn[i, j, :, 0])
+                rhs = self.beta_ij[i, j] / backTau
                 self.B.setRange(_q3(self.C["b"], i, j, 0, self.N_i, self.N_j, self.N_n + 1), rhs, rhs)
 
     def _add_surplus_deposit_linking(self):
