@@ -16,11 +16,11 @@ application installed on your computer.
 
 Downloading the Docker image from the command line:
 ```
-docker pull owlplanner/owldocker
+docker pull owlplanner/owldocker.run
 ```
 Then the container can be started (and stopped) from the command line:
 ```
-docker run -p 8501:8501 --rm owlplanner/owldocker
+docker run -p 8501:8501 --rm owlplanner/owldocker.run
 ```
 
 Just point your browser to http://localhost:8501 to access the Owl user interface.
