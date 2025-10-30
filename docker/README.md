@@ -15,19 +15,22 @@ the [Docker Hub](http://hub.docker.com) and having the [Docker](http://docker.co
 application installed on your computer.
 
 Downloading the Docker image from the command line:
+There are two versions for the images: one that contains all the Python module
+named 'owldocker.run' and one that will build the Python environment named 'owldocker.build'
 ```
-docker pull owlplanner/owldocker.run
+docker pull owlplanner/owldocker.{run or build}
 ```
 Then the container can be started (and stopped) from the command line:
 ```
-docker run -p 8501:8501 --rm owlplanner/owldocker.run
+docker run -p 8501:8501 --rm owlplanner/owldocker.{run or build}
 ```
+Note that the 'run' version, while being larger than the 'build' version, will start much faster.
 
 Just point your browser to http://localhost:8501 to access the Owl user interface.
 Owl will run locally and safely through a container on your computer.
 
 One can also use the Docker Desktop graphical user interface for performing the same steps.
-The image *owlplanner/owldocker* can be searched for and downloaded in the 
+The image *owlplanner/owldocker.{run or build}* can be searched for and downloaded in the 
 *Docker Hub* section of Docker Desktop. Then, on the *Images* section,
 click on the run icon for the image, and use host port 8501 to map to container port 8501.
 
@@ -44,7 +47,7 @@ These two approaches trade startup time for image space
 First build the Docker image from the `docker` directory:
 ```shell
 cd docker
-docker build --no-cache -f Dockerfile.{build or run} -t owldocker .
+docker build --no-cache -f Dockerfile.{build or run} -t owldocker.{build or run} .
 ```
 
 #### Running the container
@@ -52,7 +55,7 @@ The container can be run directly from the command line,
 with the desired port mapping.
 
 ```shell
-docker run -p 8501:8501 --rm owldocker
+docker run -p 8501:8501 --rm owldocker.{build or run}
 ```
 
 #### Running with docker-compose
@@ -76,3 +79,4 @@ As before, just point your browser to http://localhost:8501 to access the Owl us
 
 #### Credits
 Josh (noimjosh@gmail.com)
+kg333 (matthew@kyengineer.com)
