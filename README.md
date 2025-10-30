@@ -180,7 +180,7 @@ assets to support, even with no estate being left.
 - Optimization solver from [HiGHS](https://highs.dev)
 - Streamlit Community Cloud [Streamlit](https://streamlit.io)
 - Contributors: Josh (noimjosh@gmail.com) for Docker image code,
- kg333 for fixing error in Docker instructions,
+ kg333 for fixing an error in Docker's instructions,
  Dale Seng (sengsational) for great insights and suggestions,
  Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
  Clark Jefcoat (hubcity) for fruitful interactions,

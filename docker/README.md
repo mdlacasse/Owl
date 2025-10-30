@@ -14,9 +14,16 @@ Using this approach only requires downloading the Docker image from
 the [Docker Hub](http://hub.docker.com) and having the [Docker](http://docker.com)
 application installed on your computer.
 
-Downloading the Docker image from the command line:
-There are two versions for the images: one that contains all the Python module
-named 'owldocker.run' and one that will build the Python environment named 'owldocker.build'
+There are two versions of the Docker image: one that contains all the necessary Python modules
+named 'owldocker.run' and one bare image that self-installs the Owl application named 'owldocker.build'.
+The 'run' version, while being larger than the 'build' version (1.5 GB vs 300 MB),
+will start much faster as all the required code is contained in the image. Conversely,
+the 'build' version will clone Owl from GitHub and download/install all its requirements.
+This leading to a slower start, but this approach guarantees
+to have Owl's latest version.
+
+For downloading the Docker image from the command line (select one from 'run' or 'build'):
+
 ```
 docker pull owlplanner/owldocker.{run or build}
 ```
@@ -24,7 +31,6 @@ Then the container can be started (and stopped) from the command line:
 ```
 docker run -p 8501:8501 --rm owlplanner/owldocker.{run or build}
 ```
-Note that the 'run' version, while being larger than the 'build' version, will start much faster.
 
 Just point your browser to http://localhost:8501 to access the Owl user interface.
 Owl will run locally and safely through a container on your computer.
