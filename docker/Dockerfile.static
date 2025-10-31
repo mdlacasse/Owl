@@ -1,16 +1,10 @@
 # docker/Dockerfile
 
-FROM python:3.13-slim
+FROM python:3.13-alpine
 
 WORKDIR /app
 
-RUN apt-get update; \
-    apt-get upgrade; \
-    apt-get install -y --no-install-recommends \
-        curl \
-        git \
-    ; \
-    rm -rf /var/lib/apt/lists/*
+RUN apk update; apk upgrade; apk add bash curl git
 
 COPY runentrypoint.sh /usr/bin/entrypoint.sh
 
