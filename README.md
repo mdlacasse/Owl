@@ -134,7 +134,9 @@ Tax status covers married filing jointly and single, depending on the number of 
 Maturation rules for Roth contributions and conversions are implemented as constraints
 limiting withdrawal amounts to cover Roth account balances for 5 years after the events.
 Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints.
-Future values are simple projections of current values with the assumed inflation rates.
+They can also be optimized explicitly as an option, but this choice can lead to longer calculations
+due to the use of the many additional binary variables required by the formulation.
+Future Medicare and IRMAA values are simple projections of current values with the assumed inflation rates.
 
 ### Limitations
 Owl is work in progress. At the current time:
@@ -145,15 +147,16 @@ These cases are detected and will generate an error message.
 - Social security rule for surviving spouse assumes that benefits were taken at full retirement age.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
-- In the current implementation, social securiy is always taxed at 85%.
-- Medicare calculations are done through a self-consistent loop.
-This means that the Medicare premiums are calculated after an initial solution is generated,
+- In the current implementation, social securiy is always taxed at 85%, assuming that your taxable income will be larger than 34 k$ (single) or 44 k$ (married filing jointly).
+- When Medicare calculations are done through a self-consistent loop,
+the Medicare premiums are calculated after an initial solution is generated,
 and then a new solution is re-generated with these premiums as a constraint.
 In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise.
 While the solutions generated are very close to one another, Owl will pick the smallest solution
-for being conservative.
-- Part D is not included in the IRMAA calculations. Being considerably more significant,
-only Part B is taken into account. 
+for being conservative. While sometimes computationally costly,
+a comparison with a full Medicare optimization should always be performed.
+- Part D is not included in the IRMAA calculations. Only Part B is taken into account, 
+which is considerably more significant.
 - Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years.
 Your guesses are as good as mine.
 
