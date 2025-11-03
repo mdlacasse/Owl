@@ -106,7 +106,8 @@ def resetTimeLists():
 def getIndex(item, choices):
     try:
         i = choices.index(item)
-    except ValueError(f"Value {item} not found in {choices}."):
+    except ValueError:
+        st.error(f"Value {item} not found in {choices}.")
         return None
 
     return i

@@ -10,7 +10,7 @@ def test_compareSummaries(monkeypatch):
         "case1": {"summaryDf": df1},
         "case2": {"summaryDf": df2},
     }
-    monkeypatch.setattr(sskeys, "getKey", lambda key: df1 if key == "summaryDf" else None)
+    monkeypatch.setattr(sskeys, "getCaseKey", lambda key: df1 if key == "summaryDf" else None)
     monkeypatch.setattr(sskeys, "onlyCaseNames", lambda: ["case2"])
     monkeypatch.setattr(sskeys, "currentCaseName", lambda: "case1")
     sskeys.ss = type("SS", (), {"cases": cases})()
