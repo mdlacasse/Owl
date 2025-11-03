@@ -309,9 +309,6 @@ def initCaseKey(key, val):
     """
     Only set the case local key if unset.
     """
-    # decoKey = genCaseKey(key)
-    # if decoKey not in ss:
-        # ss[decoKey] = val
     if key not in ss.cases[ss.currentCase]:
         setCaseKey(key, val)
 
