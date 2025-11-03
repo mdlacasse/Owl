@@ -17,7 +17,7 @@ else:
         st.write("Generate a histogram of results obtained from running mutliple scenarios with stochastic rates.")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
-            kz.initKey("MC_cases", 100)
+            kz.initCaseKey("MC_cases", 100)
             kz.getIntNum("Number of random instances", "MC_cases", step=10, max_value=10000)
         with col4:
             st.button("Run Simulation", on_click=owb.runMC, disabled=kz.caseIsNotMCReady())
