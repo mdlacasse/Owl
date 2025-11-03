@@ -511,7 +511,8 @@ def setDefaultPlots(plan, key):
 
 
 def setGlobalPlotBackend(key):
-    val = kz.getGlobalKey(key)
+    val = kz.getGlobalKey("_"+key)
+    kz.storeGlobalKey(key, val)
     # Apply to all existing cases.
     for casename in kz.onlyCaseNames():
         plan = kz.getKeyInCase("plan", casename)

@@ -4,6 +4,12 @@ import sskeys as kz
 import owlbridge as owb
 
 
+def setKey(key):
+    val = kz.getGlobalKey("_"+key)
+    if val is not None:
+        kz.storeGlobalKey(key, val)
+
+
 st.write("# :material/settings: Settings")
 kz.divider("orange")
 
@@ -17,7 +23,7 @@ with col1:
     helpmsg = "Select the plotting library to use."
     index = choices.index(kz.getGlobalKey(gkey))
     ret = st.radio("Plotting backend", options=choices, index=index, args=[gkey],
-                   key=gkey, on_change=owb.setGlobalPlotBackend, help=helpmsg, horizontal=True)
+                   key="_"+gkey, on_change=owb.setGlobalPlotBackend, help=helpmsg, horizontal=True)
 
 with col2:
     choices = ("sidebar", "top")
@@ -26,8 +32,8 @@ with col2:
     st.write("#### :orange[Menu]")
     helpmsg = "Select menu appearance."
     index = choices.index(kz.getGlobalKey(mkey))
-    ret = st.radio("Menu location", options=choices, index=index,
-                   key=mkey, help=helpmsg, horizontal=True)
+    ret = st.radio("Menu location", options=choices, index=index, args=[mkey],
+                   key="_"+mkey, on_change=setKey, help=helpmsg, horizontal=True)
 
 with col3:
     choices = ("sticky", "static")
@@ -36,8 +42,8 @@ with col3:
     st.write("#### :orange[Header]")
     helpmsg = "Select header behavior."
     index = choices.index(kz.getGlobalKey(pkey))
-    ret = st.radio("Header behavior", options=choices, index=index,
-                   key=pkey, help=helpmsg, horizontal=True)
+    ret = st.radio("Header behavior", options=choices, index=index, args=[pkey],
+                   key="_"+pkey, on_change=setKey, help=helpmsg, horizontal=True)
 
 st.divider()
 st.write("""
