@@ -40,19 +40,25 @@ init()
 
 
 def genCaseKey(key):
-    return f"{getKey('id')}_{key}"
+    """
+    This function is to generate global keys that are uniquely associated with a case.
+    """
+    return f"{getCaseKey('id')}_{key}"
 
 
 def setCaseId(casename):
     if casename in ss.cases:
-        ss.cases[casename]["id"] = ss.nextid
-        ss.nextid = ss.nextid + 1
+        myid = ss.nextid
+        ss.cases[casename]["id"] = myid
+        ss.nextid = myid + 1
+        return myid
+    else:
+        raise RuntimeError(f"{casename} not found.")
 
 
 def getKeyInCase(key, casename):
-    if casename in ss.cases:
-        if key in ss.cases[casename]:
-            return ss.cases[casename][key]
+    if casename in ss.cases and key in ss.cases[casename]:
+        return ss.cases[casename][key]
     return None
 
 
@@ -76,9 +82,9 @@ def runOncePerSession(func):
 
 def runOncePerCase(func):
     key = "oNcE_" + func.__name__
-    if getKey(key) is None:
+    if key not in ss.cases[ss.currentCase]:
         func()
-        storeKey(key, 1)
+        storeCaseKey(key, 1)
 
 
 def refreshCase(adic):
@@ -91,16 +97,16 @@ def refreshCase(adic):
 
 
 def resetTimeLists():
-    setKey("stTimeLists", None)
-    setKey("timeList0", None)
-    if getKey("status") == "married":
-        setKey("timeList1", None)
+    setCaseKey("stTimeLists", None)
+    setCaseKey("timeList0", None)
+    if getCaseKey("status") == "married":
+        setCaseKey("timeList1", None)
 
 
 def getIndex(item, choices):
     try:
         i = choices.index(item)
-    except ValueError:
+    except ValueError(f"Value {item} not found in {choices}."):
         return None
 
     return i
@@ -111,51 +117,53 @@ def currentCaseName() -> str:
 
 
 def switchToCase(key):
-    ss.currentCase = ss["_" + key]
+    ss.currentCase = ss[key]
 
 
 def switchToCaseName(casename):
+    if casename not in ss.cases:
+        raise RuntimeError(f"No such case {casename}.")
     ss.currentCase = casename
 
 
 def isIncomplete():
     return (
         currentCaseName() == ""
-        or getKey("iname0") in [None, ""]
-        or (getKey("status") == "married" and getKey("iname1") in [None, ""])
+        or getCaseKey("iname0") in [None, ""]
+        or (getCaseKey("status") == "married" and getCaseKey("iname1") in [None, ""])
     )
 
 
 def caseHasNotRun():
-    return getKey("caseStatus") not in ["solved", "unsuccessful"]
+    return getCaseKey("caseStatus") not in ["solved", "unsuccessful"]
 
 
 def isCaseUnsolved():
     if caseHasNoPlan():
         return True
-    return getKey("caseStatus") != "solved"
+    return getCaseKey("caseStatus") != "solved"
 
 
 def caseHasNoPlan():
-    return getKey("plan") is None
+    return getCaseKey("plan") is None
 
 
 def caseHasPlan():
-    return getKey("plan") is not None
+    return getCaseKey("plan") is not None
 
 
 def caseIsRunReady():
-    return not caseIsNotRunReady() and getKey("caseStatus") in ["modified", "new"]
+    return not caseIsNotRunReady() and getCaseKey("caseStatus") in ["modified", "new"]
 
 
 def caseIsNotRunReady():
     return (
-        getKey("plan") is None
-        or getKey("objective") is None
-        or getKey("rateType") is None
-        or getKey("interpMethod") is None
-        or getKey("spendingProfile") is None
-        or getKey("allocType") is None
+        getCaseKey("plan") is None
+        or getCaseKey("objective") is None
+        or getCaseKey("rateType") is None
+        or getCaseKey("interpMethod") is None
+        or getCaseKey("spendingProfile") is None
+        or getCaseKey("allocType") is None
     )
 
 
@@ -163,7 +171,7 @@ def caseIsNotMCReady():
     """
     Check that rates are  set to some stochastic method before MC run.
     """
-    return caseIsNotRunReady() or getKey("rateType") != "varying" or "tochastic" not in getKey("varyingType")
+    return caseIsNotRunReady() or getCaseKey("rateType") != "varying" or "tochastic" not in getCaseKey("varyingType")
 
 
 def currentCaseDic() -> dict:
@@ -224,7 +232,7 @@ def createNewCase(case):
         st.error(f"Expected 'newcase' but got '{case}'.")
         return
 
-    # Widget stored case name in _newname.
+    # Widget stored case name in _newcase.
     casename = ss._newcase
 
     if casename == "":
@@ -242,12 +250,12 @@ def createNewCase(case):
 def renameCase(key):
     if ss.currentCase == newCase or ss.currentCase == loadCaseFile:
         return
-    newname = ss["_" + key]
+    newname = ss[key]
     if newname in ss.cases:
         st.error(f"Case name '{newname}' already exists.")
         return
 
-    plan = getKey("plan")
+    plan = getCaseKey("plan")
     ss.cases[newname] = ss.cases.pop(ss.currentCase)
     ss.cases[newname]["name"] = newname
     if plan:
@@ -274,14 +282,14 @@ def dumpCase(case=None):
 
 
 def setpull(key):
-    return setKey(key, ss[genCaseKey(key)])
+    return setCaseKey(key, ss[genCaseKey(key)])
 
 
 def storepull(key):
-    return storeKey(key, ss[genCaseKey(key)])
+    return storeCaseKey(key, ss[genCaseKey(key)])
 
 
-def setKey(key, val):
+def setCaseKey(key, val):
     ss.cases[ss.currentCase][key] = val
     flagModified()
     return val
@@ -292,15 +300,20 @@ def flagModified():
     ss.cases[ss.currentCase]["summaryDf"] = None
 
 
-def storeKey(key, val):
+def storeCaseKey(key, val):
     ss.cases[ss.currentCase][key] = val
     return val
 
 
-def initKey(key, val):
+def initCaseKey(key, val):
+    """
+    Only set the case local key if unset.
+    """
+    # decoKey = genCaseKey(key)
+    # if decoKey not in ss:
+        # ss[decoKey] = val
     if key not in ss.cases[ss.currentCase]:
-        ss.cases[ss.currentCase][key] = val
-        # print("initKey", key, val)
+        setCaseKey(key, val)
 
 
 def initGlobalKey(key, val):
@@ -308,11 +321,8 @@ def initGlobalKey(key, val):
         ss[key] = val
 
 
-def getKey(key):
-    if key in ss.cases[ss.currentCase]:
-        return ss.cases[ss.currentCase][key]
-    else:
-        return None
+def getCaseKey(key):
+    return ss.cases[ss.currentCase].get(key)
 
 
 def storeGlobalKey(key, val):
@@ -321,10 +331,7 @@ def storeGlobalKey(key, val):
 
 
 def getGlobalKey(key):
-    if key in ss:
-        return ss[key]
-    else:
-        return None
+    return ss.get(key)
 
 
 def getDict(key=ss.currentCase):
@@ -336,7 +343,7 @@ def getAccountBalances(ni):
     accounts = ["txbl", "txDef", "txFree"]
     for j, acc in enumerate(accounts):
         for i in range(ni):
-            bal[j].append(getKey(acc + str(i)))
+            bal[j].append(getCaseKey(acc + str(i)))
 
     return bal
 
@@ -348,7 +355,7 @@ def colorBySign(val):
 
 
 def compareSummaries():
-    df = getKey("summaryDf")
+    df = getCaseKey("summaryDf")
     if df is None:
         return None
     for case in onlyCaseNames():
@@ -375,7 +382,7 @@ def compareSummaries():
 
 
 def getSolveParameters():
-    maximize = getKey("objective")
+    maximize = getCaseKey("objective")
     if maximize is None:
         return None
     if "spending" in maximize:
@@ -388,11 +395,11 @@ def getSolveParameters():
                "startRothConversions", "withMedicare", "bequest", "solver",
                "spendingSlack", "oppCostX", "xorConstraints", "withSCLoop",]
     for opt in optList:
-        val = getKey(opt)
+        val = getCaseKey(opt)
         if val is not None:
             options[opt] = val
 
-    if getKey("readRothX"):
+    if getCaseKey("readRothX"):
         options["maxRothConversion"] = "file"
 
     previousMAGIs = getPreviousMAGIs()
@@ -404,13 +411,13 @@ def getSolveParameters():
 
 def getIndividualAllocationRatios():
     generic = []
-    ni = 2 if getKey("status") == "married" else 1
+    ni = 2 if getCaseKey("status") == "married" else 1
     for i in range(ni):
         initial = []
         final = []
         for k1 in range(4):
-            initial.append(int(getKey(f"j3_init%{k1}_{i}")))
-            final.append(int(getKey(f"j3_fin%{k1}_{i}")))
+            initial.append(int(getCaseKey(f"j3_init%{k1}_{i}")))
+            final.append(int(getCaseKey(f"j3_fin%{k1}_{i}")))
         gen = [initial, final]
         generic.append(gen)
 
@@ -419,14 +426,14 @@ def getIndividualAllocationRatios():
 
 def getAccountAllocationRatios():
     accounts = [[], [], []]
-    ni = 2 if getKey("status") == "married" else 1
+    ni = 2 if getCaseKey("status") == "married" else 1
     for i in range(ni):
         for j1 in range(3):
             initial = []
             final = []
             for k1 in range(4):
-                initial.append(int(getKey(f"j{j1}_init%{k1}_{i}")))
-                final.append(int(getKey(f"j{j1}_fin%{k1}_{i}")))
+                initial.append(int(getCaseKey(f"j{j1}_init%{k1}_{i}")))
+                final.append(int(getCaseKey(f"j{j1}_fin%{k1}_{i}")))
             tmp = [initial, final]
             accounts[j1].append(tmp)
 
@@ -436,7 +443,7 @@ def getAccountAllocationRatios():
 def getPreviousMAGIs():
     backMAGIs = [0., 0.]
     for ii in range(2):
-        val = getKey(f"MAGI{ii}")
+        val = getCaseKey(f"MAGI{ii}")
         if val:
             backMAGIs[ii] = float(val)
 
@@ -448,10 +455,10 @@ def getFixedIncome(ni, what):
     ages = []
     indexed = []
     for i in range(ni):
-        amounts.append(getKey(what + "Amt" + str(i)))
-        ages.append(getKey(what + "Age" + str(i)))
+        amounts.append(getCaseKey(what + "Amt" + str(i)))
+        ages.append(getCaseKey(what + "Age" + str(i)))
         if what == "p":
-            indexed.append(getKey(what + "Idx" + str(i)))
+            indexed.append(getCaseKey(what + "Idx" + str(i)))
 
     return amounts, ages, indexed
 
@@ -459,7 +466,7 @@ def getFixedIncome(ni, what):
 def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, min_value=0, max_value=None):
     return st.number_input(
         text,
-        value=int(getKey(nkey)),
+        value=int(getCaseKey(nkey)),
         disabled=disabled,
         min_value=min_value,
         max_value=max_value,
@@ -475,7 +482,7 @@ def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.
            max_value=None, format="%.1f", help=None):
     return st.number_input(
         text,
-        value=float(getKey(nkey)),
+        value=float(getCaseKey(nkey)),
         disabled=disabled,
         step=step,
         help=help,
@@ -491,7 +498,7 @@ def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.
 def getText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None):
     return st.text_input(
         text,
-        value=getKey(nkey),
+        value=getCaseKey(nkey),
         disabled=disabled,
         on_change=callback,
         args=[nkey],
@@ -504,7 +511,7 @@ def getText(text, nkey, disabled=False, callback=setpull, placeholder=None, help
 def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None):
     return st.text_area(
         text,
-        value=getKey(nkey),
+        value=getCaseKey(nkey),
         disabled=disabled,
         on_change=callback,
         args=[nkey],
@@ -516,10 +523,10 @@ def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, 
 
 def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
     try:
-        index = choices.index(getKey(nkey))
+        index = choices.index(getCaseKey(nkey))
     except ValueError:
-        st.error(f"Value '{getKey(nkey)}' not available. Defaulting to '{choices[0]}'.")
-        setKey(nkey, choices[0])
+        st.error(f"Value '{getCaseKey(nkey)}' not available. Defaulting to '{choices[0]}'.")
+        setCaseKey(nkey, choices[0])
         index = 0
 
     return st.radio(
@@ -537,7 +544,9 @@ def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
 
 def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
     return st.toggle(
-        text, value=getKey(nkey), on_change=callback, args=[nkey], disabled=disabled,
+        text,
+        value=getCaseKey(nkey),
+        on_change=callback, args=[nkey], disabled=disabled,
         key=genCaseKey(nkey), help=help
     )
 
@@ -602,7 +611,7 @@ def titleBar(txt, allCases=False):
                 help=helpmsg,
                 index=getIndex(currentCaseName(), choices),
                 format_func=flagCurrentCase,
-                key="_" + nkey,
+                key=nkey,
                 on_change=switchToCase,
                 args=[nkey],
             )

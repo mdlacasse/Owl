@@ -18,7 +18,7 @@ else:
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
     with col1:
         choices = ["nominal", "today"]
-        kz.initKey("plots", choices[0])
+        kz.initCaseKey("plots", choices[0])
         helpmsg = "Plot can be in today's dollars or in nominal value."
         ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg,
                           callback=owb.setDefaultPlots)
@@ -34,6 +34,6 @@ else:
 
     st.divider()
     if kz.isCaseUnsolved():
-        st.info("Case status is currently '%s'." % kz.getKey("caseStatus"))
+        st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
     else:
         owb.plotSingleResults()

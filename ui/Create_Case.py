@@ -40,7 +40,7 @@ elif ret == kz.loadCaseFile:
         if case:
             mystringio = tomlex.loadCaseExample(case)
             if kz.createCaseFromFile(mystringio):
-                kz.initKey("tomlexcase", case)
+                kz.initCaseKey("tomlexcase", case)
                 st.rerun()
 else:
     st.write("#### :orange[Description and Life Parameters]")
@@ -52,65 +52,66 @@ else:
             value=kz.currentCaseName(),
             on_change=kz.renameCase,
             args=["caseNewName"],
-            key="_caseNewName",
+            key="caseNewName",
             help=helpmsg,
         )
 
-    diz1 = kz.getKey("plan") is not None
+    diz1 = kz.getCaseKey("plan") is not None
     diz2 = diz1
     # diz2 = (diz1 or len(kz.allCaseNames()) > 3)
     with col2:
         statusChoices = ["single", "married"]
-        kz.initKey("status", statusChoices[0])
+        kz.initCaseKey("status", statusChoices[0])
         st.radio(
             "Marital status",
             statusChoices,
             disabled=diz2,
-            index=statusChoices.index(kz.getKey("status")),
-            key="_status",
+            index=statusChoices.index(kz.getCaseKey("status")),
+            key=kz.genCaseKey("status"),
             on_change=kz.setpull,
             args=["status"],
             horizontal=True,
         )
 
-    kz.initKey("description", "")
+    kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."
     description = kz.getLongText("Brief description", "description", help=helpmsg,
                                  placeholder="Enter a brief description...")
 
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        kz.initKey("iname0", "")
-        if kz.getKey("iname0") == "":
+        kz.initCaseKey("iname0", "")
+        if kz.getCaseKey("iname0") == "":
             st.info("First name must be provided.")
 
-        iname0 = kz.getText("Your first name", "iname0", disabled=diz2, placeholder="Enter name...")
+        iname0 = kz.getText("Your first name", "iname0",
+                            disabled=diz2, placeholder="Enter name...")
 
         if iname0:
-            kz.initKey("yob0", 1965)
+            kz.initCaseKey("yob0", 1965)
             ret = kz.getIntNum(f"{iname0}'s birth year", "yob0", disabled=diz2)
 
-            kz.initKey("life0", 80)
+            kz.initCaseKey("life0", 80)
             ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", disabled=diz1)
 
     with col2:
-        if kz.getKey("status") == "married":
-            kz.initKey("iname1", "")
-            if kz.getKey("iname1") == "":
+        if kz.getCaseKey("status") == "married":
+            kz.initCaseKey("iname1", "")
+            if kz.getCaseKey("iname1") == "":
                 st.info("First name must be provided.")
 
             iname1 = kz.getText("Your spouse's first name", "iname1", disabled=diz2, placeholder="Enter a name...")
 
             if iname1:
-                kz.initKey("yob1", 1965)
+                kz.initCaseKey("yob1", 1965)
                 ret = kz.getIntNum(f"{iname1}'s birth year", "yob1", disabled=diz2)
 
-                kz.initKey("life1", 80)
+                kz.initCaseKey("life1", 80)
                 ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1", disabled=diz1)
 
     st.divider()
     cantcreate = kz.isIncomplete() or diz1
-    if not cantcreate and kz.getKey("plan") is None:
+    if not cantcreate and kz.getCaseKey("plan") is None:
         st.info("Plan needs to be created once desired changes are completed.")
 
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile

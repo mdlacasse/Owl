@@ -5,23 +5,23 @@ import sskeys as kz
 
 def getIntInput(i, key, thing, defval=0):
     nkey = key + str(i)
-    kz.initKey(nkey, defval)
-    inamex = kz.getKey("iname" + str(i))
+    kz.initCaseKey(nkey, defval)
+    inamex = kz.getCaseKey("iname" + str(i))
     st.number_input(
-        f"{inamex}'s {thing}", min_value=0, value=kz.getKey(nkey),
+        f"{inamex}'s {thing}", min_value=0, value=kz.getCaseKey(nkey),
         on_change=kz.setpull, args=[nkey], key=kz.genCaseKey(nkey),
     )
 
 
 def getFloatInput(i, key, thing, defval=0.0):
     nkey = key + str(i)
-    kz.initKey(nkey, defval)
-    inamex = kz.getKey("iname" + str(i))
+    kz.initCaseKey(nkey, defval)
+    inamex = kz.getCaseKey("iname" + str(i))
     st.number_input(
         f"{inamex}'s {thing}",
         min_value=0.0,
         help=kz.help1000,
-        value=float(kz.getKey(nkey)),
+        value=float(kz.getCaseKey(nkey)),
         format="%.1f",
         step=10.0,
         on_change=kz.setpull,
@@ -32,8 +32,8 @@ def getFloatInput(i, key, thing, defval=0.0):
 
 def getToggleInput(i, key, thing):
     nkey = key + str(i)
-    kz.initKey(nkey, False)
-    defval = kz.getKey(nkey)
+    kz.initCaseKey(nkey, False)
+    defval = kz.getCaseKey(nkey)
     st.toggle(thing, on_change=kz.setpull, value=defval, args=[nkey], key=kz.genCaseKey(nkey))
 
 
@@ -49,7 +49,7 @@ else:
         getIntInput(0, "ssAge", "social security age", 67)
 
     with col2:
-        if kz.getKey("status") == "married":
+        if kz.getCaseKey("status") == "married":
             getFloatInput(1, "ssAmt", "social security annual amount (\\$k)")
             getIntInput(1, "ssAge", "social security age", 67)
 
@@ -62,7 +62,7 @@ else:
         getToggleInput(0, "pIdx", "Inflafion adjusted")
 
     with col2:
-        if kz.getKey("status") == "married":
+        if kz.getCaseKey("status") == "married":
             getFloatInput(1, "pAmt", "pension annual amount (\\$k)")
             getIntInput(1, "pAge", "pension age", 65)
             getToggleInput(1, "pIdx", "Inflafion adjusted")

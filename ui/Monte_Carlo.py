@@ -9,8 +9,8 @@ ret = kz.titleBar(":material/finance: Monte Carlo")
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
-    if kz.getKey("rateType") != "varying" or (
-        kz.getKey("varyingType") is None or "stochastic" not in kz.getKey("varyingType")
+    if kz.getCaseKey("rateType") != "varying" or (
+        kz.getCaseKey("varyingType") is None or "stochastic" not in kz.getCaseKey("varyingType")
     ):
         st.info("Rates must be set to *stochastic* or *histochastic* to run Monte Carlo simulations.")
     else:
@@ -23,8 +23,8 @@ else:
             st.button("Run Simulation", on_click=owb.runMC, disabled=kz.caseIsNotMCReady())
 
     st.divider()
-    fig = kz.getKey("monteCarloPlot")
+    fig = kz.getCaseKey("monteCarloPlot")
     if fig:
         col1, col2 = st.columns(2, gap="medium")
         owb.renderPlot(fig, col1)
-        col2.code(kz.getKey("monteCarloSummary"), language=None)
+        col2.code(kz.getCaseKey("monteCarloSummary"), language=None)

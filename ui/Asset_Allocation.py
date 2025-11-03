@@ -6,13 +6,13 @@ import owlbridge as owb
 
 def getPercentInput(i, j, keybase, text, defval=0):
     nkey = f"{keybase}{j}_{i}"
-    kz.initKey(nkey, defval)
+    kz.initCaseKey(nkey, defval)
     st.number_input(
         text,
         min_value=0,
         step=1,
         max_value=100,
-        value=kz.getKey(nkey),
+        value=kz.getCaseKey(nkey),
         on_change=kz.setpull,
         args=[nkey],
         key=kz.genCaseKey(nkey),
@@ -47,7 +47,7 @@ def getAccountAllocs(i, iname, j, title, deco):
 def checkAccountAllocs(i, deco):
     tot = 0
     for k1 in range(4):
-        tot += int(kz.getKey(f"{deco}{k1}_{i}"))
+        tot += int(kz.getCaseKey(f"{deco}{k1}_{i}"))
     if abs(100 - tot) > 0:
         st.error("Percentages must add to 100%.")
         return False
@@ -57,7 +57,7 @@ def checkAccountAllocs(i, deco):
 def checkIndividualAllocs(i, deco):
     tot = 0
     for k1 in range(4):
-        tot += int(kz.getKey(f"{deco}{k1}_{i}"))
+        tot += int(kz.getCaseKey(f"{deco}{k1}_{i}"))
     if abs(100 - tot) > 0:
         st.error("Percentages must add to 100%.")
         return False
@@ -65,12 +65,12 @@ def checkIndividualAllocs(i, deco):
 
 
 def checkAllAllocs():
-    if kz.getKey("allocType") == "individual":
+    if kz.getCaseKey("allocType") == "individual":
         decos = ["j3_init%", "j3_fin%"]
     else:
         decos = ["j0_init%", "j0_fin%", "j1_init%", "j1_fin%", "j2_init%", "j2_fin%"]
     Ni = 1
-    if kz.getKey("status") == "married":
+    if kz.getCaseKey("status") == "married":
         Ni += 1
     result = True
     for i in range(Ni):
@@ -87,32 +87,32 @@ else:
     st.write("#### :orange[Type of Allocation]")
     choices = ["individual", "account"]
     key = "allocType"
-    kz.initKey(key, choices[0])
+    kz.initCaseKey(key, choices[0])
     helpmsg = "Allocation ratios can be equal across all accounts or not."
     ret = kz.getRadio("Asset allocation method", choices, key, help=helpmsg)
     st.divider()
     if ret == "individual":
-        iname0 = kz.getKey("iname0")
+        iname0 = kz.getCaseKey("iname0")
         st.write(f"#### :orange[Individual Asset Allocation ({iname0})]")
         getIndividualAllocs(0, iname0, "initial", "init%")
         getIndividualAllocs(0, iname0, "final", "fin%")
         st.divider()
 
-        if kz.getKey("status") == "married":
-            iname1 = kz.getKey("iname1")
+        if kz.getCaseKey("status") == "married":
+            iname1 = kz.getCaseKey("iname1")
             st.write(f"#### :orange[Individual Asset Allocation ({iname1})]")
             getIndividualAllocs(1, iname1, "initial", "init%")
             getIndividualAllocs(1, iname1, "final", "fin%")
             st.divider()
     else:
-        iname0 = kz.getKey("iname0")
+        iname0 = kz.getCaseKey("iname0")
         st.write(f"#### :orange[Account Asset Allocation ({iname0})]")
         for j in range(3):
             getAccountAllocs(0, iname0, j, "initial", "init%")
             getAccountAllocs(0, iname0, j, "final", "fin%")
             st.divider()
-        if kz.getKey("status") == "married":
-            iname1 = kz.getKey("iname1")
+        if kz.getCaseKey("status") == "married":
+            iname1 = kz.getCaseKey("iname1")
             st.write(f"#### :orange[Account Asset Allocation ({iname1})]")
             for j in range(3):
                 getAccountAllocs(1, iname1, j, "initial", "init%")
@@ -122,27 +122,27 @@ else:
     st.write("#### :orange[Interpolation]")
     choices = ["linear", "s-curve"]
     key = "interpMethod"
-    kz.initKey(key, choices[0])
+    kz.initCaseKey(key, choices[0])
     col1, col2, col3 = st.columns(3, gap="large")
     with col1:
         kz.getRadio("Gliding interpolation method", choices, key)
 
-    if kz.getKey(key) == choices[1]:
+    if kz.getCaseKey(key) == choices[1]:
         with col2:
             key = "interpCenter"
-            kz.initKey("interpCenter", 15.0)
+            kz.initCaseKey("interpCenter", 15.0)
             helpmsg = "Time in future years to the transition's inflection point."
             ret = kz.getNum("Center (in years from now)", key, step=1.0, help=helpmsg, max_value=30.0, format="%.0f")
         with col3:
             key = "interpWidth"
-            kz.initKey("interpWidth", 5.0)
+            kz.initCaseKey("interpWidth", 5.0)
             helpmsg = "Half width in years over which the transition happens."
             ret = kz.getNum(
                 "Width (in +/- years from center)", key, step=1.0, help=helpmsg, max_value=15.0, format="%.0f"
             )
 
     if checkAllAllocs():
-        if kz.getKey("caseStatus") != "solved":
+        if kz.getCaseKey("caseStatus") != "solved":
             owb.setInterpolationMethod()
             owb.setAllocationRatios()
         owb.showAllocations()

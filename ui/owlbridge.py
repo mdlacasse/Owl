@@ -23,21 +23,21 @@ def hasMOSEK():
 
 def createPlan():
     name = kz.currentCaseName()
-    inames = [kz.getKey("iname0")]
-    description = kz.getKey("description")
-    yobs = [kz.getKey("yob0")]
-    life = [kz.getKey("life0")]
-    if kz.getKey("status") == "married":
-        inames.append(kz.getKey("iname1"))
-        yobs.append(kz.getKey("yob1"))
-        life.append(kz.getKey("life1"))
+    inames = [kz.getCaseKey("iname0")]
+    description = kz.getCaseKey("description")
+    yobs = [kz.getCaseKey("yob0")]
+    life = [kz.getCaseKey("life0")]
+    if kz.getCaseKey("status") == "married":
+        inames.append(kz.getCaseKey("iname1"))
+        yobs.append(kz.getCaseKey("yob1"))
+        life.append(kz.getCaseKey("life1"))
 
     strio = StringIO()
-    kz.storeKey("logs", strio)
+    kz.storeCaseKey("logs", strio)
     try:
         plan = owl.Plan(inames, yobs, life, name,
                         verbose=True, logstreams=[strio, strio])
-        kz.setKey("plan", plan)
+        kz.setCaseKey("plan", plan)
     except Exception as e:
         st.error(f"Failed creation of plan '{name}': {e}")
         return
@@ -49,15 +49,15 @@ def createPlan():
         plan.setPlotBackend(val)
 
     # Set default plot value from case settings.
-    plot_val = kz.getKey("plots")
+    plot_val = kz.getCaseKey("plots")
     if plot_val:
         plan.setDefaultPlots(plot_val)
 
     # Force to pull key and set profile if key was defined.
-    if kz.getKey("spendingProfile"):
+    if kz.getCaseKey("spendingProfile"):
         setProfile(None)
 
-    if kz.getKey("duplicate"):
+    if kz.getCaseKey("duplicate"):
         _setContributions(plan, "copy")
     else:
         resetTimeLists()
@@ -72,7 +72,7 @@ def _checkPlan(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        plan = kz.getKey("plan")
+        plan = kz.getCaseKey("plan")
         if plan is None:
             st.error(f"Plan not yet created. Preventing to execute method {func.__name__}().")
             return None
@@ -82,9 +82,9 @@ def _checkPlan(func):
 
 
 def prepareRun(plan):
-    ni = 2 if kz.getKey("status") == "married" else 1
+    ni = 2 if kz.getCaseKey("status") == "married" else 1
 
-    startDate = kz.getKey("startDate")
+    startDate = kz.getCaseKey("startDate")
     bal = kz.getAccountBalances(ni)
     try:
         plan.setAccountBalances(taxable=bal[0], taxDeferred=bal[1], taxFree=bal[2], startDate=startDate)
@@ -107,24 +107,24 @@ def prepareRun(plan):
         return
 
     if ni == 2:
-        benfrac = [kz.getKey("benf0"), kz.getKey("benf1"), kz.getKey("benf2")]
+        benfrac = [kz.getCaseKey("benf0"), kz.getCaseKey("benf1"), kz.getCaseKey("benf2")]
         try:
             plan.setBeneficiaryFractions(benfrac)
         except Exception as e:
             st.error(f"Failed setting beneficiary fractions: {e}")
             return
 
-        surplusFrac = kz.getKey("surplusFraction")
+        surplusFrac = kz.getCaseKey("surplusFraction")
         try:
             plan.setSpousalDepositFraction(surplusFrac)
         except Exception as e:
             st.error(f"Failed setting beneficiary fractions: {e}")
             return
 
-    plan.setDescription(kz.getKey("description"))
-    plan.setHeirsTaxRate(kz.getKey("heirsTx"))
-    plan.setDividendRate(kz.getKey("divRate"))
-    plan.setExpirationYearOBBBA(kz.getKey("yOBBBA"))
+    plan.setDescription(kz.getCaseKey("description"))
+    plan.setHeirsTaxRate(kz.getCaseKey("heirsTx"))
+    plan.setDividendRate(kz.getCaseKey("divRate"))
+    plan.setExpirationYearOBBBA(kz.getCaseKey("yOBBBA"))
 
     _setInterpolationMethod(plan)
     _setAllocationRatios(plan)
@@ -151,17 +151,17 @@ def runPlan(plan):
         plan.solve(objective, options=options)
     except Exception as e:
         st.error(f"Solution failed: {e}")
-        kz.storeKey("caseStatus", "exception")
-        kz.storeKey("summaryDf", None)
+        kz.storeCaseKey("caseStatus", "exception")
+        kz.storeCaseKey("summaryDf", None)
         return
 
-    kz.storeKey("caseStatus", plan.caseStatus)
+    kz.storeCaseKey("caseStatus", plan.caseStatus)
     if plan.caseStatus == "solved":
-        kz.storeKey("summaryDf", plan.summaryDf())
-        kz.storeKey("casetoml", getCaseString().getvalue())
+        kz.storeCaseKey("summaryDf", plan.summaryDf())
+        kz.storeCaseKey("casetoml", getCaseString().getvalue())
     else:
-        kz.storeKey("summaryDf", None)
-        kz.storeKey("casetoml", "")
+        kz.storeCaseKey("summaryDf", None)
+        kz.storeCaseKey("casetoml", "")
 
 
 @_checkPlan
@@ -169,18 +169,18 @@ def runHistorical(plan):
     plan1 = owl.clone(plan)
     prepareRun(plan1)
 
-    hyfrm = kz.getKey("hyfrm")
-    hyto = kz.getKey("hyto")
+    hyfrm = kz.getCaseKey("hyfrm")
+    hyto = kz.getCaseKey("hyto")
 
     objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress(None)
         fig, summary = plan1.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, progcall=mybar)
-        kz.storeKey("histoPlot", fig)
-        kz.storeKey("histoSummary", summary)
+        kz.storeCaseKey("histoPlot", fig)
+        kz.storeCaseKey("histoSummary", summary)
     except Exception as e:
-        kz.storeKey("histoPlot", None)
-        kz.storeKey("histoSummary", None)
+        kz.storeCaseKey("histoPlot", None)
+        kz.storeCaseKey("histoSummary", None)
         st.error(f"Historical solution failed: {e}")
         return
 
@@ -190,17 +190,17 @@ def runMC(plan):
     plan1 = owl.clone(plan)
     prepareRun(plan1)
 
-    N = kz.getKey("MC_cases")
+    N = kz.getCaseKey("MC_cases")
 
     objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress(None)
         fig, summary = plan1.runMC(objective, options, N, figure=True, progcall=mybar)
-        kz.storeKey("monteCarloPlot", fig)
-        kz.storeKey("monteCarloSummary", summary)
+        kz.storeCaseKey("monteCarloPlot", fig)
+        kz.storeCaseKey("monteCarloSummary", summary)
     except Exception as e:
-        kz.storeKey("monteCarloPlot", None)
-        kz.storeKey("monteCarloSummary", None)
+        kz.storeCaseKey("monteCarloPlot", None)
+        kz.storeCaseKey("monteCarloSummary", None)
         st.error(f"Monte Carlo solution failed: {e}")
 
 
@@ -210,45 +210,45 @@ def setRates(plan):
 
 
 def _setRates(plan):
-    yfrm = kz.getKey("yfrm")
-    yto = kz.getKey("yto")
+    yfrm = kz.getCaseKey("yfrm")
+    yto = kz.getCaseKey("yto")
 
-    if kz.getKey("rateType") == "fixed":
-        if kz.getKey("fixedType") == "historical average":
+    if kz.getCaseKey("rateType") == "fixed":
+        if kz.getCaseKey("fixedType") == "historical average":
             plan.setRates("historical average", yfrm, yto)
             # Set fxRates back to computed values.
             for j in range(4):
-                kz.storeKey("fxRate" + str(j), 100 * plan.tau_kn[j, -1])
+                kz.storeCaseKey("fxRate" + str(j), 100 * plan.tau_kn[j, -1])
         else:
             plan.setRates(
                 "user",
                 values=[
-                    float(kz.getKey("fxRate0")),
-                    float(kz.getKey("fxRate1")),
-                    float(kz.getKey("fxRate2")),
-                    float(kz.getKey("fxRate3")),
+                    float(kz.getCaseKey("fxRate0")),
+                    float(kz.getCaseKey("fxRate1")),
+                    float(kz.getCaseKey("fxRate2")),
+                    float(kz.getCaseKey("fxRate3")),
                 ],
             )
     else:
-        varyingType = kz.getKey("varyingType")
+        varyingType = kz.getCaseKey("varyingType")
         if varyingType.startswith("histo"):
             if varyingType == "historical":
                 yfrm2 = min(yfrm, TO - plan.N_n + 1)
-                kz.storeKey("yfrm", yfrm2)
+                kz.storeCaseKey("yfrm", yfrm2)
                 if yfrm != yfrm2:
                     yfrm = yfrm2
                     st.warning(f"Using {yfrm} as starting year.")
                 yto = min(TO, yfrm + plan.N_n - 1)
-                kz.storeKey("yto", yto)
+                kz.storeCaseKey("yto", yto)
             plan.setRates(varyingType, yfrm, yto)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
-                kz.storeKey("mean" + str(j), 100 * mean[j])
-                kz.storeKey("stdev" + str(j), 100 * stdev[j])
+                kz.storeCaseKey("mean" + str(j), 100 * mean[j])
+                kz.storeCaseKey("stdev" + str(j), 100 * stdev[j])
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1 + 1, plan.N_k):
-                    kz.storeKey("corr" + str(q), corr[k1, k2])
+                    kz.storeCaseKey("corr" + str(q), corr[k1, k2])
                     q += 1
 
         elif varyingType == "stochastic":
@@ -256,10 +256,10 @@ def _setRates(plan):
             stdev = []
             corr = []
             for kk in range(plan.N_k):
-                means.append(kz.getKey("mean" + str(kk)))
-                stdev.append(kz.getKey("stdev" + str(kk)))
+                means.append(kz.getCaseKey("mean" + str(kk)))
+                stdev.append(kz.getCaseKey("stdev" + str(kk)))
             for q in range(1, 7):
-                corr.append(kz.getKey("corr" + str(q)))
+                corr.append(kz.getCaseKey("corr" + str(q)))
             plan.setRates(varyingType, values=means, stdev=stdev, corr=corr)
         else:
             raise RuntimeError("Logic error in setRates()")
@@ -272,7 +272,7 @@ def showAllocations(plan):
     figures = plan.showAllocations(figure=True)
     st.divider()
     st.markdown("#### :orange[Asset Allocation]")
-    # n = 3 if kz.getKey("allocType") == "account" else 2
+    # n = 3 if kz.getCaseKey("allocType") == "account" else 2
     n = 2
     c = 0
     cols = st.columns(n, gap="medium")
@@ -325,8 +325,8 @@ def setInterpolationMethod(plan):
 
 
 def _setInterpolationMethod(plan):
-    plan.setInterpolationMethod(kz.getKey("interpMethod"), kz.getKey("interpCenter"),
-                                kz.getKey("interpWidth"))
+    plan.setInterpolationMethod(kz.getCaseKey("interpMethod"), kz.getCaseKey("interpCenter"),
+                                kz.getCaseKey("interpWidth"))
 
 
 @_checkPlan
@@ -338,12 +338,12 @@ def _setContributions(plan, action):
     """
     Set from UI -> Plan.
     """
-    if kz.getKey("timeList0") is None:
+    if kz.getCaseKey("timeList0") is None:
         return
 
-    dicDf = {kz.getKey("iname0"): kz.getKey("timeList0")}
-    if kz.getKey("status") == "married":
-        dicDf[kz.getKey("iname1")] = kz.getKey("timeList1")
+    dicDf = {kz.getCaseKey("iname0"): kz.getCaseKey("timeList0")}
+    if kz.getCaseKey("status") == "married":
+        dicDf[kz.getCaseKey("iname1")] = kz.getCaseKey("timeList1")
 
     try:
         plan.readContributions(dicDf)
@@ -353,13 +353,13 @@ def _setContributions(plan, action):
 
     if action == "copy":
         # Possible reconditionned data due to delta in year span.
-        kz.setKey("timeList0", plan.timeLists[kz.getKey("iname0")])
-        if kz.getKey("status") == "married":
-            kz.setKey("timeList1", plan.timeLists[kz.getKey("iname1")])
+        kz.setCaseKey("timeList0", plan.timeLists[kz.getCaseKey("iname0")])
+        if kz.getCaseKey("status") == "married":
+            kz.setCaseKey("timeList1", plan.timeLists[kz.getCaseKey("iname1")])
     elif action == "reset":
-        kz.setKey("timeListsFileName", "edited values")
+        kz.setCaseKey("timeListsFileName", "edited values")
     elif action == "set":
-        kz.storeKey("timeListsFileName", "edited values")
+        kz.storeCaseKey("timeListsFileName", "edited values")
 
     plan.timeListsFileName = "edited values"
 
@@ -385,13 +385,13 @@ def readContributions(plan, stFile, file=None):
     else:
         name = "unknown"
 
-    kz.setKey("stTimeLists", name)
-    kz.setKey("timeListsFileName", name)
-    kz.setKey("timeList0", plan.timeLists[kz.getKey("iname0")])
-    kz.setKey("_timeList0", plan.timeLists[kz.getKey("iname0")])
-    if kz.getKey("status") == "married":
-        kz.setKey("timeList1", plan.timeLists[kz.getKey("iname1")])
-        kz.setKey("_timeList1", plan.timeLists[kz.getKey("iname1")])
+    kz.setCaseKey("stTimeLists", name)
+    kz.setCaseKey("timeListsFileName", name)
+    kz.setCaseKey("timeList0", plan.timeLists[kz.getCaseKey("iname0")])
+    kz.setCaseKey("_timeList0", plan.timeLists[kz.getCaseKey("iname0")])
+    if kz.getCaseKey("status") == "married":
+        kz.setCaseKey("timeList1", plan.timeLists[kz.getCaseKey("iname1")])
+        kz.setCaseKey("_timeList1", plan.timeLists[kz.getCaseKey("iname1")])
     plan.timeListsFileName = name
 
     return True
@@ -405,7 +405,7 @@ def resetContributions(plan):
 def resetTimeLists():
     tlists = resetContributions()
     for i, iname in enumerate(tlists):
-        kz.setKey("timeList" + str(i), tlists[iname])
+        kz.setCaseKey("timeList" + str(i), tlists[iname])
 
 
 @_checkPlan
@@ -414,14 +414,14 @@ def setAllocationRatios(plan):
 
 
 def _setAllocationRatios(plan):
-    if kz.getKey("allocType") == "individual":
+    if kz.getCaseKey("allocType") == "individual":
         try:
             generic = kz.getIndividualAllocationRatios()
             plan.setAllocationRatios("individual", generic=generic)
         except Exception as e:
             st.error(f"Setting asset allocation failed: {e}")
             return
-    elif kz.getKey("allocType") == "account":
+    elif kz.getCaseKey("allocType") == "account":
         try:
             acc = kz.getAccountAllocationRatios()
             plan.setAllocationRatios("account", taxable=acc[0], taxDeferred=acc[1], taxFree=acc[2])
@@ -429,7 +429,7 @@ def _setAllocationRatios(plan):
             st.error(f"Setting asset allocation failed: {e}")
             return
     else:
-        st.error(f"Internal error: Unknown account type {kz.getKey('allocType')}.")
+        st.error(f"Internal error: Unknown account type {kz.getCaseKey('allocType')}.")
 
 
 @_checkPlan
@@ -496,11 +496,11 @@ def setProfile(plan, key):
         kz.setpull(key)
     else:
         kz.flagModified()
-    profile = kz.getKey("spendingProfile")
-    survivor = kz.getKey("survivor")
-    dip = kz.getKey("smileDip")
-    increase = kz.getKey("smileIncrease")
-    delay = kz.getKey("smileDelay")
+    profile = kz.getCaseKey("spendingProfile")
+    survivor = kz.getCaseKey("survivor")
+    dip = kz.getCaseKey("smileDip")
+    increase = kz.getCaseKey("smileIncrease")
+    delay = kz.getCaseKey("smileDelay")
     plan.setSpendingProfile(profile, survivor, dip, increase, delay)
 
 
@@ -511,8 +511,7 @@ def setDefaultPlots(plan, key):
 
 
 def setGlobalPlotBackend(key):
-    val = kz.getGlobalKey("_"+key)
-    kz.storeGlobalKey(key, val)
+    val = kz.getGlobalKey(key)
     # Apply to all existing cases.
     for casename in kz.onlyCaseNames():
         plan = kz.getKeyInCase("plan", casename)

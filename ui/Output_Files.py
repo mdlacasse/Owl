@@ -14,9 +14,9 @@ else:
         st.info("Case definition is not yet complete. Please visit all pages in *Case Setup*.")
 
     if kz.isCaseUnsolved():
-        st.info("Case status is currently '%s'." % kz.getKey("caseStatus"))
+        st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
     else:
-        caseName = kz.getKey("name")
+        caseName = kz.getCaseKey("name")
         df = kz.compareSummaries()
         if df is not None:
             st.write("#### :orange[Synopsis]\n"
@@ -35,7 +35,7 @@ else:
             helpmsg = "Rerun all other cases defined in the case selector."
             col2.button("Rerun all cases", on_click=owb.runAllCases, help=helpmsg)
 
-        lines = kz.getKey("casetoml")
+        lines = kz.getCaseKey("casetoml")
         if lines != "":
             st.divider()
             st.write("#### :orange[Case Parameter File]\n"

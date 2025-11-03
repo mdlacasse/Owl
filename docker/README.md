@@ -64,7 +64,7 @@ The container can be run directly from the command line,
 with the desired port mapping.
 
 ```shell
-docker run -p 8501:8501 --rm owldocker.{static or bare}
+docker run -p 8501:8501 --rm owlplanner/owldocker.{static or bare}
 ```
 
 #### Running with docker-compose
@@ -87,5 +87,4 @@ As before, just point your browser to http://localhost:8501 to access the Owl us
 ------------------------------------------------------------------------------------
 
 #### Credits
-Josh (noimjosh@gmail.com)
-kg333 (matthew@kyengineer.com)
+Josh (noimjosh@gmail.com), kg333 (matthew@kyengineer.com)
