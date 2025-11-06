@@ -1,5 +1,5 @@
 
-# Owl   
+# Owl - Optimal Wealth Lab
 
 ## A retirement exploration tool based on linear programming
 

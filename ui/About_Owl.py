@@ -4,7 +4,7 @@ import sskeys as kz
 import owlbridge as owb
 
 
-st.write("# :material/info: About Owl 🦉")
+st.write("# :material/info: About Owl - Optimal Wealth Lab🦉")
 kz.divider("orange")
 
 st.write(f"This is Owl version {owb.version()} running on Streamlit {st.__version__}.")

@@ -14,6 +14,7 @@ with col3:
 col1, col2 = st.columns([0.80, 0.20], gap="large")
 with col1:
     st.markdown("""
+### Owl - Optimal Wealth Lab
 #### A retirement financial exploration tool based on linear programming
 
 The goal of Owl is to provide a free and open-source ecosystem that has cutting-edge

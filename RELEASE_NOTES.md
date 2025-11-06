@@ -1,3 +1,9 @@
+### Version 2025.11.05
+- Mentioning Owl as Optimal Wealth Lab
+- Port to Streamlit 1.50 which broke many widgets
+- Rework backprojection of assets to beginning of the year
+- Rework Docker to smaller Alpine image and fix docs
+
 ### Version 2025.07.01
 
 Added:
