@@ -20,6 +20,10 @@ with col1:
 The goal of Owl is to provide a free and open-source ecosystem that has cutting-edge
 optimization capabilities, allowing for the new generation of computer-literate retirees
 to experiment with their own financial future while providing a codebase where they can learn and contribute.
+At the same time, Streamlit provides an intuitive and easy-to-use
+interface which allows a broad set of users to benefit from the application
+as it only requires basic financial knowledge.
+
 Strictly speaking, Owl is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy through the rigorous
 mathematical optimization of relevant decision variables. Using a linear programming approach,
