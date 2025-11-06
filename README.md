@@ -44,13 +44,17 @@ your strategy under different market assumptions, helping to better understand y
 
 -------------------------------------------------------------------------------------
 ## Purpose and vision
-The goal of Owl is to create a free and open-source ecosystem that has cutting-edge optimization capabilities,
+One goal of Owl is to provide a free and open-source ecosystem that has cutting-edge optimization capabilities,
 allowing for the next generation of Python-literate retirees to experiment with their own financial future
-while providing a codebase where they can learn and contribute. There are and were
+while providing a codebase where they can learn and contribute. At the same time, an intuitive and easy-to-use
+user interface based on Streamlit allows a broad set of users to benefit from the application as it only requires basic financial knowledge.
+
+There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
 collecting your data, or academic papers that share the results without really sharing the details of
 the underlying mathematical models.
-The algorithms in Owl rely on the open-source HiGHS linear programming solver. The complete formulation and
+The algorithms in Owl rely on the open-source HiGHS linear programming solver and but they have also been ported to
+other platforms such as Mosek and COIN-OR. The complete formulation and
 detailed description of the underlying
 mathematical model can be found [here](https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf).
 
