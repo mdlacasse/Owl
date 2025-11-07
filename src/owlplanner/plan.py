@@ -1669,7 +1669,7 @@ class Plan(object):
         self.prevMAGI = np.zeros(2)
         if "previousMAGIs" in myoptions:
             magi = myoptions["previousMAGIs"]
-            if 3 < len(magi) < 2:
+            if len(magi) != 2:
                 raise ValueError("previousMAGIs must have 2 values.")
 
             self.prevMAGI = self.optionsUnits * np.array(magi)
