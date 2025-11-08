@@ -1786,7 +1786,7 @@ class Plan(object):
             "disp": False,
             "mip_rel_gap": 1e-7,
             "presolve": True,
-            # "node_limit": 10000  # Limit search nodes for faster solutions
+            "node_limit": 1000000  # Limit search nodes for faster solutions
         }
 
         self._buildConstraints(objective, options)
