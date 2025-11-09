@@ -2,20 +2,23 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+path = "src/owlplanner/version.py"
+
 [project]
 name = "owlplanner"
-version = "2025.11.05"
+dynamic = ["version"]
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
 maintainers = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
-description = "Owl: Retirement planner with great wisdom"
+description = "Owl - Optimal Wealth Lab: Retirement planner with great wisdom"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
     "Intended Audience :: End Users/Desktop",
     "Topic :: Office/Business :: Financial :: Investment",
@@ -24,12 +27,13 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
+    "highspy",
     "matplotlib",
     "numpy",
     "odfpy",
     "openpyxl",
     "pandas",
-    "plotly",
+    "plotly>=6.3",
     "pulp",
     "seaborn",
     "scipy",

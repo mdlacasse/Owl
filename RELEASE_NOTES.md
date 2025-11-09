@@ -1,3 +1,8 @@
+### Version 2025.11.09
+- Moved development status to production/stable in pyproject
+- Made version propagate everywhere needed
+- Added node limit on milp to avoid Streamlit server shutdown on memory consumption
+
 ### Version 2025.11.05
 - Mentioning Owl as Optimal Wealth Lab
 - Port to Streamlit 1.50 which broke many widgets
@@ -5,7 +10,6 @@
 - Rework Docker to smaller Alpine image and fix docs
 
 ### Version 2025.07.01
-
 Added:
 - Settings option for menu position thanks to Streamlit 1.46 top and sidebar capabilities. Default is top.
 - Net Investment Income Tax calculations in self-consistent loop.
