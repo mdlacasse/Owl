@@ -567,7 +567,7 @@ of the surviving spouse.
 
 Linear programming solutions are more expensive than event-driven forward simulators.
 Therefore, when considering Monte Carlo simulations, consider:
-- Turning off Medicare calculations,
+- Turning off Medicare calculations completely,
 - Installing Owl and running on your local computer as it can sometimes be
 faster than running on the Streamlit host, depending on your hardware.
 Moreover, the community server has a
@@ -639,20 +639,27 @@ Credits and disclaimers.
 --------------------------------------------------------------------------------------
 ### :orange[Tips]
 #### :material/lightbulb_2: Advice on Optimization and Roth Conversions
-Owl does not explicitly optimize for Medicare costs. While this approach
-is possible and was tested,
-it is not practical due to the unpredictable computing time
-required by the additional number of binary variables involved.
-The current approach is to add
-Medicare costs after the optimization step.
-As a result, the suggested Roth conversions can sometimes lead to
-smaller net spending or bequest than when no conversions are made.
+Owl can optimize explicitly for Medicare costs but these can sometimes be
+costly computations. This approach is included in the current version but
+be aware that computing time can be unpredictable
+due to the additional complexity and the number of binary variables involved.
+As a second option, a self-consistent loop is provided which consists in adding
+Medicare costs after the optimization step, and then iterate to convergence.
+In this case, the suggested Roth conversions can sometimes lead to
+smaller net spending or bequest than when no Roth conversions are made.
 This is due to higher Medicare costs triggered by the increased MAGI
 resulting from Roth conversions
 which are factored in during the optimization step.
-This is why one should **always** run comparisons between cases with and without Roth conversions.
-Also keep in mind that these cases only consider current assumptions and obviously
-do not take into account future income tax rate increases.
+
+In general, one should **always** run comparisons between cases
+with and without Roth conversions. These comparisons will help quatify
+the effects of the suggested conversions. Optimizers will give the "best" approach
+even if it means only generating one more dollar.
+
+While considering Roth conversions,
+always keep in mind that all projections rely on our current best assumptions.
+To account for the effects of potential changes in future income tax rates,
+one can use a termination year for current tax rates to revert to higher rates.
 
 #### :material/rule_settings: Typical Workflow
 A typical workflow would look like the following:
