@@ -187,35 +187,35 @@ file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/templat
 to fill in the values using the user interface, but this last approach does not provide
 Excel capabilities for cross-column calculations.
 
-This file goes 5 year back in time in order to capture previous contributions and
+This file goes five year back in time in order to capture previous contributions and
 conversions to Roth accounts.
 Entries in columns others than contributions or conversions to Roth accounts
 for past years will be ignored by Owl but can be left there for documentation purposes.
 Past contributions and conversions are required for implementing
 constraints restricting withdrawals from Roth accounts, thus avoiding
-penalties resulting from breaking the 5-year maturation rule.
+penalties resulting from breaking the five-year maturation rule.
 For that purpose, a retainer on the tax-free account
 is put as the sum of all Roth conversions performed
-during the last 5 years plus an additional amount for potential
+during the last five years plus an additional amount for potential
 compounded gains. These gains are assumed to be 10% per year for the past
 years, and use the predicted returns for future years.
 Unlike conversions, contributions can be withdrawn, but a retainer is
 put covering the sum of all potential gains resulting from contributions
-made over the last 5 years.
+made over the last five years.
 However, if funds were converted through a Roth backdoor, this is
 still considered as a conversion, and retainer will include contribution amount.
 While this approach is somehow more restrictive than
 the actual rules, it avoids unnecessary penalties while being a somehow simple approach.
 An exact calculation would require to know (and input) the annual rates of return for
-the last 5 years and asset allocation ratios, and the same for all future years.
+the last five years and asset allocation ratios, and the same for all future years.
 Note that in certain cases, constraints on Roth withdrawals can make a zero bequest impossible
-if Roth conversions took place in the 5 years before passing.
+if Roth conversions took place in the five years before passing.
 
 Here, year 20XX represents the last row which could be the last year based on the life
 expectancy values provided.
 While loading an Excel workbook, missing years or empty cells will be filled with zero values,
 while years outside the time span of the plan will simply be ignored with the exception
-of 5-year back history.
+of five-year back history.
 
 The column *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment

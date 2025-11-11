@@ -65,8 +65,8 @@ else:
     st.divider()
     for i in range(n):
         st.write("#### :orange[" + kz.getCaseKey("iname" + str(i)) + "'s Timetable]")
-        st.write("""Previous 5 years are used to input past contributions and conversions to Roth accounts.
- This information is needed to enforce the 5-year maturation rule in Roth savings accounts.""")
+        st.write("""Previous five years are used to input past contributions and conversions to Roth accounts.
+ This information is needed to enforce the five-year maturation rule in Roth savings accounts.""")
         df = kz.getCaseKey("timeList" + str(i))
         formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
         cols = list(df.columns)
