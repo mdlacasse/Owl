@@ -9,7 +9,7 @@
 This document describes how to run Owl using a Docker container.
 
 ------------------------------------------------------------------------------------
-### Run Owl without the source code
+### Running Owl without the source code
 Using this approach only requires downloading the Docker image from
 the [Docker Hub](http://hub.docker.com) and having the [Docker](http://docker.com)
 application installed on your computer.
