@@ -15,16 +15,16 @@ Users can select varying return rates to perform historical back testing,
 stochastic rates for performing Monte Carlo analyses,
 or fixed rates either derived from historical averages, or set by the user.
 
-There are a few ways to run Owl:
+There are three ways to run Owl:
 
-- Run Owl directly on the Streamlit Community Server at
+- **Streamlit Hub:** Run Owl remotely as hosted on the Streamlit Community Server at
 [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
 
-- Run locally on your computer using a Docker image.
-Follow these [instructions](docker/README.md) for this option.
+- **Docker Container:** Run Owl locally on your computer using a Docker image.
+Follow these [instructions](docker/README.md) for using this option.
 
-- Run locally on your computer using Python code and libraries.
-Follow these [instructions](INSTALL.md) to install Owl from the source code and run it on your computer.
+- **Self-hosting:** Run Owl locally on your computer using Python code and libraries.
+Follow these [instructions](INSTALL.md) to install from the source code and self-host on your own computer.
 
 -------------------------------------------------------------------------------------
 ## Overview
