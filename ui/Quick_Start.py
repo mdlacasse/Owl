@@ -25,7 +25,7 @@ Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
 or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
 
-Take the time to give it a :star: on GitHub if you use the code. That's all you have to give!
+Take the time to give a :star: on GitHub if you use Owl. That's all you have to give!
 """)
 
     kz.divider("orange")
