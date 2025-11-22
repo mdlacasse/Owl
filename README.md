@@ -53,7 +53,7 @@ There are and were
 good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms
 collecting your data, or academic papers that share the results without really sharing the details of
 the underlying mathematical models.
-The algorithms in Owl rely on the open-source HiGHS linear programming solver and but they have also been ported to
+The algorithms in Owl rely on the open-source HiGHS linear programming solver but they have also been ported and tested on
 other platforms such as Mosek and COIN-OR. The complete formulation and
 detailed description of the underlying
 mathematical model can be found [here](https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf).
