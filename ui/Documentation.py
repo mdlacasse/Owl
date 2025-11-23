@@ -346,14 +346,23 @@ considered to merely track inflation and therefore remain at constant value.
 Two choices of asset allocations are possible:
 `account` and `individual`. For `account` type, each type
 of individual savings account is associated with its own asset allocation ratios.
+It is wise to be more aggresive in tax-exempt accounts and more conservative in
+taxable investment accounts. This choice will naturally push the optimizer
+to load more assets into the tax-exempt accounts through Roth conversions.
+These Roth conversions can be artificially driven by the better return rates
+provided by the tax-exempt accounts. A more neutral approach is to select `individual`.
 For `individual`, it is assumed that all savings accounts of a given
-individual follow the same allocation ratios.
+individual follow the same allocation ratios. You should experiment with both.
+A smarter approach would be to optimize allocation ratios in the different accounts
+subject to the constraint of a global allocation ratio that includes all assets.
+This, howver, creates a quadratic problem that cannot be simply solved by a linear
+programming solver. A future version of Owl might tackle this issue using a different strategy.
+
 Allocation ratios can vary over the duration of the plan, starting
 from an `initial` allocation ratio at the beginning of the plan
 to a `final` allocation ratio at the passing of the individual.
 It is assumed that the accounts are regularly
 rebalanced to maintain the prescribed allocation ratios.
-
 A gliding function (either `linear` or an `s-curve`) interpolates the values
 of the allocation ratios from the `initial` values to the `final` values as the plan progresses in time.
 When an `s-curve` is selected, two additional parameters controlling the shape of the transition
@@ -567,7 +576,7 @@ of the surviving spouse.
 
 Linear programming solutions are more expensive than event-driven forward simulators.
 Therefore, when considering Monte Carlo simulations, consider:
-- Turning off Medicare calculations completely,
+- Turning off Medicare calculations completely, or at least using self-consistent loop,
 - Installing Owl and running on your local computer as it can sometimes be
 faster than running on the Streamlit host, depending on your hardware.
 Moreover, the community server has a
@@ -671,13 +680,13 @@ A typical workflow would look like the following:
 To make it more concrete, here is an example
 where one would like to investigate the effects of Roth conversions
 on total net spending.
-1) Create a case called, say, *May 2025 - Base case*.
+1) Create a case called, say, *2025 - Base case*.
 Fill in all parameters representing your goals and situation.
 Upload file or fill-in values for Wages and Contributions.
 Let's say this case allows for Roth conversions up to \\$100k.
-2) Duplicate the base case, call it *May 2025 - No Roth conversions* and
+2) Duplicate the base case, call it *2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
-3) Duplicate the base case again, call it *May 2025 - No Roth limit* and
+3) Duplicate the base case again, call it *2025 - No Roth limit* and
 set maximum Roth conversions to a very large number, say, \\$800k.
 4) Compare all cases on the [Output Files](#description-output-files) page.
 
