@@ -391,7 +391,8 @@ A roundup of expert opinions on stock and bond return forecasts for the next dec
 
 This page also includes some adjustments related to future tax rates. One is the anticipated
 tax rate that heirs will pay on the tax-deferred portion of the bequest. Another setting is related
-to the year when the Tax Cut and Job Act rates is anticipated to be expired.
+to the year when the OBBBA rates are anticipated to return to pre-Tax Cut and Job Act
+rates.
 
 #### :material/tune: Optimization Parameters
 This page allows you to select the objective function to optimize.
