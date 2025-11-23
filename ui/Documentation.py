@@ -45,7 +45,7 @@ formulation of the optimization problem can be found
 - [:material/person_add: Create Case](#person-add-create-case)
 - [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
 - [:material/currency_exchange: Fixed Income](#currency-exchange-fixed-income)
-- [:material/savings: Current Assets](#saving-current-assets)
+- [:material/savings: Current Assets](#savings-current-assets)
 - [:material/percent: Asset Allocation](#percent-asset-allocation)
 - [:material/monitoring: Rates Selection](#monitoring-rates-selection)
 - [:material/tune: Optimization Parameters](#tune-optimization-parameters)
