@@ -355,7 +355,7 @@ For `individual`, it is assumed that all savings accounts of a given
 individual follow the same allocation ratios. You should experiment with both.
 A smarter approach would be to optimize allocation ratios in the different accounts
 subject to the constraint of a global allocation ratio that includes all assets.
-This, howver, creates a quadratic problem that cannot be simply solved by a linear
+This, however, creates a quadratic problem that cannot be simply solved by a linear
 programming solver. A future version of Owl might tackle this issue using a different strategy.
 
 Allocation ratios can vary over the duration of the plan, starting
