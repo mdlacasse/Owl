@@ -578,8 +578,8 @@ class Plan(object):
             self.zeta_in[i, ns:nd] = amounts[i]
 
         if self.N_i == 2:
-            # Approximate calculation for spousal benefit (only valid at FRA, and if of similar ages).
-            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], 0.5*amounts[self.i_d])
+            # Switch survivor to spousal survivor benefits. Assumes survivor is passed FRA.
+            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], amounts[self.i_d])
 
         self.ssecAmounts = np.array(amounts)
         self.ssecAges = np.array(ages, dtype=np.int32)
