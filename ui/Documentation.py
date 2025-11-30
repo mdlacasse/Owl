@@ -273,7 +273,7 @@ by reloading the same **Wages and Contributions** file.
 
 #### :material/currency_exchange: Fixed Income
 This page is for entering anticipated fixed income from pensions and social security.
-Amounts are in thousands (\\$k) in today's \\$. While
+Amounts on this page are in thousands (\\$k) in today's \\$. While
 social security is always adjusted for inflation, pensions can optionally be
 by selecting the corresponding button.
 The amounts provided should be as if the benefits start on
@@ -285,6 +285,14 @@ If born in November, for example, and planning to take social security at age
 67, it is more accurate to provide age 68 as a starting age,
 as January 1st of the following year is closer to a November birthday.
 The amount would then be for taking social security at age 67 and two months.
+
+For entering the annual amount, use the monthly projection on your statement
+from the Social Security Administration (SSA). As this amount is a monthly amount,
+just multiply by 12 and divide by 1,000 to get annual amount in \\$k.
+This works well if you are close to retirement. If far from retirement,
+this number will change as you continue to make contributions.
+In this case, it is more advisable to use a benefit calculator such
+as the one provided by [SSA](https://www.ssa.gov/OACT/quickcalc/).
 
 A great website for guidance on when to start taking social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).

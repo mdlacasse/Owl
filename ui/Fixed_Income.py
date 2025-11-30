@@ -45,24 +45,24 @@ else:
     st.write("#### :orange[Social Security]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
-        getFloatInput(0, "ssAmt", "social security annual amount (\\$k)")
+        getFloatInput(0, "ssAmt", "social security annual amount (in today's \\$k)")
         getIntInput(0, "ssAge", "social security age", 67)
 
     with col2:
         if kz.getCaseKey("status") == "married":
-            getFloatInput(1, "ssAmt", "social security annual amount (\\$k)")
+            getFloatInput(1, "ssAmt", "social security annual amount (in today's \\$k)")
             getIntInput(1, "ssAge", "social security age", 67)
 
     st.divider()
     st.write("#### :orange[Pension]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
-        getFloatInput(0, "pAmt", "pension annual amount (\\$k)")
+        getFloatInput(0, "pAmt", "pension annual amount (in today's \\$k)")
         getIntInput(0, "pAge", "pension age", 65)
         getToggleInput(0, "pIdx", "Inflafion adjusted")
 
     with col2:
         if kz.getCaseKey("status") == "married":
-            getFloatInput(1, "pAmt", "pension annual amount (\\$k)")
+            getFloatInput(1, "pAmt", "pension annual amount (in today's \\$k)")
             getIntInput(1, "pAge", "pension age", 65)
             getToggleInput(1, "pIdx", "Inflafion adjusted")

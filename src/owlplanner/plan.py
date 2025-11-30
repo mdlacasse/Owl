@@ -578,8 +578,15 @@ class Plan(object):
             self.zeta_in[i, ns:nd] = amounts[i]
 
         if self.N_i == 2:
-            # Switch survivor to spousal survivor benefits. Assumes survivor is passed FRA.
-            self.zeta_in[self.i_s, self.n_d :] = max(amounts[self.i_s], amounts[self.i_d])
+            # Switch survivor to spousal survivor benefits. Assumes survivor is passed FRA at n_d.
+            self.zeta_in[self.i_s, self.n_d : self.horizons[self.i_s]] = max(amounts[self.i_s], amounts[self.i_d])
+
+            # Apply 50% spousal rule. Approximation without explicitly using PIA.
+            for n in range(self.N_n):
+                if self.zeta_in[0, n] != 0 and self.zeta_in[0, n] < self.zeta_in[1, n]:
+                    self.zeta_in[0, n] = max(self.zeta_in[0, n], 0.5*self.zeta_in[1, n])
+                elif self.zeta_in[1, n] != 0 and self.zeta_in[1, n] < self.zeta_in[0, n]:
+                    self.zeta_in[1, n] = max(self.zeta_in[1, n], 0.5*self.zeta_in[0, n])
 
         self.ssecAmounts = np.array(amounts)
         self.ssecAges = np.array(ages, dtype=np.int32)
