@@ -7,21 +7,22 @@ with col3:
     st.image("http://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true")
     st.caption("Retirement planner with great wisdom")
 with col1:
-    st.write("# :orange[Owl - Optimal Wealth Lab]\nA retirement financial exploration tool based on linear programming")
+    st.write("# :orange[Welcome to Owl - Optimal Wealth Lab]\nA retirement financial exploration tool based on linear programming")
     kz.divider("orange")
     st.write("### :material/campaign: News")
     st.markdown("""
-- This version includes tax code changes resulting from the OBBBA :mega:.
-To model long-term changes in federal tax calculations,
-an OBBBA expiration year can be set to return to pre-TCJA rates.
+This version :mega: includes:
+- A much improved social security calculator.
+New approach is to use the monthly Primary Insurance Amount as reported in statements from
+the Social Security Administration.
+- Month granularity for birthday and fixed income claiming age. This approach enables
+more precise calculations for determining benefits and for representing potentially partial
+years when social security starts.
 
-- New capability :sparkles: to optimize for Medicare and IRMAA instead of using a self-consistent loop.
-Use with patience :hourglass: (~5 min) as these calculations can take longer time due to the number
-of binary variables involved.
+Older case files can be read, but please verify your birthday month
+and the `Fixed Income` page to ensure your information is correctly entered.
 
-- Ported code to Streamlit 1.50 which had major changes in widget identification.
-
-Please report bugs :bug: and suggestions through the
+As always, please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
 or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
 

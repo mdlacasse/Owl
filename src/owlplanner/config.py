@@ -37,6 +37,7 @@ def saveConfig(myplan, file, mylog):
         "Status": ["unknown", "single", "married"][myplan.N_i],
         "Names": myplan.inames,
         "Birth year": myplan.yobs.tolist(),
+        "Birth month": myplan.mobs.tolist(),
         "Life expectancy": myplan.expectancy.tolist(),
         "Start date": myplan.startDate,
     }
@@ -55,10 +56,10 @@ def saveConfig(myplan, file, mylog):
 
     # Fixed Income.
     diconf["Fixed Income"] = {
-        "Pension amounts": (myplan.pensionAmounts / 1000).tolist(),
+        "Pension monthly amounts": (myplan.pensionAmounts).tolist(),
         "Pension ages": myplan.pensionAges.tolist(),
         "Pension indexed": myplan.pensionIsIndexed,
-        "Social security amounts": (myplan.ssecAmounts / 1000).tolist(),
+        "Social security PIA amounts": (myplan.ssecAmounts).tolist(),
         "Social security ages": myplan.ssecAges.tolist(),
     }
 
@@ -181,11 +182,13 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     inames = diconf["Basic Info"]["Names"]
     # status = diconf['Basic Info']['Status']
     yobs = diconf["Basic Info"]["Birth year"]
-    expectancy = diconf["Basic Info"]["Life expectancy"]
     icount = len(yobs)
+    # Default to January if no month entry found.
+    mobs = diconf["Basic Info"].get("Birth month", [1]*icount)
+    expectancy = diconf["Basic Info"]["Life expectancy"]
     s = ["", "s"][icount - 1]
     mylog.vprint(f"Plan for {icount} individual{s}: {inames}.")
-    p = plan.Plan(inames, yobs, expectancy, name, verbose=True, logstreams=logstreams)
+    p = plan.Plan(inames, yobs, mobs, expectancy, name, verbose=True, logstreams=logstreams)
     p._description = diconf.get("Description", "")
 
     # Assets.
@@ -217,11 +220,11 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             mylog.vprint(f"Ignoring to read contributions file {timeListsFileName}.")
 
     # Fixed Income.
-    ssecAmounts = np.array(diconf["Fixed Income"]["Social security amounts"], dtype=np.float32)
-    ssecAges = np.array(diconf["Fixed Income"]["Social security ages"], dtype=np.int32)
+    ssecAmounts = np.array(diconf["Fixed Income"].get("Social security PIA amounts", [0]*icount), dtype=np.int32)
+    ssecAges = np.array(diconf["Fixed Income"]["Social security ages"])
     p.setSocialSecurity(ssecAmounts, ssecAges)
-    pensionAmounts = np.array(diconf["Fixed Income"]["Pension amounts"], dtype=np.float32)
-    pensionAges = np.array(diconf["Fixed Income"]["Pension ages"], dtype=np.int32)
+    pensionAmounts = np.array(diconf["Fixed Income"].get("Pension monthly amounts", [0]*icount), dtype=np.float32)
+    pensionAges = np.array(diconf["Fixed Income"]["Pension ages"])
     pensionIsIndexed = diconf["Fixed Income"]["Pension indexed"]
     p.setPension(pensionAmounts, pensionAges, pensionIsIndexed)
 

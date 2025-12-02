@@ -116,7 +116,8 @@ two additional items:
 one to create new cases, and the other to create cases from a *case* parameter file.
 This page also allows you to duplicate and/or rename scenarios, as well as deleting them.
 
-For creating a scenario from scratch, (first) name(s), marital status, birth year(s),
+For creating a scenario from scratch, (first) name(s), marital status,
+birth year(s) amd month(s),
 and life expectancies are required.
 Plan starts on Jan 1st of this year and ends on December 31st of the year when all individuals
 have passed according to the specified life expectancies.
@@ -141,7 +142,7 @@ click on the `Case selector` box and choose one of `New case...` or `Upload case
 
 ##### Creating a case from scratch
 When starting from `New case...`,
-one must provide the year of birth of each spouse(s) and their expected lifespan(s).
+one must provide the year and month of birth of each spouse(s) and their expected lifespan(s).
 For selecting your own numbers, there are plenty of longevity predictors on the Internet.
 Pick your favorite:
 - [longevityillustrator](https://longevityillustrator.org),
@@ -272,31 +273,43 @@ the `Download Wages and Contributions` on the
 by reloading the same **Wages and Contributions** file.
 
 #### :material/currency_exchange: Fixed Income
-This page is for entering anticipated fixed income from pensions and social security.
-Amounts on this page are in thousands (\\$k) in today's \\$. While
-social security is always adjusted for inflation, pensions can optionally be
-by selecting the corresponding button.
-The amounts provided should be as if the benefits start on
-January 1st, i.e., before the month when individuals will actually reach the age selected.
-This is because Owl uses a full year as time unit and
-therefore fixed income starts on the first day of the year during which
-the individual reaches the age selected, with the amount provided adjusted for inflation.
-If born in November, for example, and planning to take social security at age
-67, it is more accurate to provide age 68 as a starting age,
-as January 1st of the following year is closer to a November birthday.
-The amount would then be for taking social security at age 67 and two months.
-
-For entering the annual amount, use the monthly projection on your statement
-from the Social Security Administration (SSA). As this amount is a monthly amount,
-just multiply by 12 and divide by 1,000 to get annual amount in \\$k.
-This works well if you are close to retirement. If far from retirement,
-this number will change as you continue to make contributions.
-In this case, it is more advisable to use a benefit calculator such
+This page is for entering data related to the individual's anticipated fixed income
+from pensions and social security.
+Unlike other parts of the interface, amounts on this page are
+monthly amounts in today's \\$ and not in thousands.
+The monthly amounts to be entered for social security are the Primary Insurance Amounts (PIA)
+as reported on annual statements issued by the Social Security Administration (SSA).
+The PIA monthly amounts are always reported in today's \\$ by the SSA.
+Before the full retirement age (FRA),
+the current value of the PIA is close to the amount reported for disability benefits.
+The SSA also provides a future estimate of the PIA at FRA by projecting current
+earnings until reaching FRA. For individuals planning to continue to work, use the projection at FRA
+or use a future benefit calculator such
 as the one provided by [SSA](https://www.ssa.gov/OACT/quickcalc/).
+For those part of the FIRE crowd and planning to retire early,
+the number reported for disability benefits should be used instead.
 
+Owl considers the exact FRA associated with the individual's birth year and adjusts the PIA
+according to the age (year and month) when benefits are claimed. Total amount received
+during the first year (if in the future) is adjusted for situations when benefits do not cover
+the full year. This is important for bridging the transition to retirement.
+Spousal benefits are calculated under the assumption that those benefits
+are claimed at the latest date at which both spouses have claimed benefits.
+Survivor benefits rule provides the largest of both benefits to the survivor. Complex
+cases involving divorce or deceased spouses are not considered.
+
+Owl does not optimize social security benefits.
+You have to design (and explore) your own strategy.
 A great website for guidance on when to start taking social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
 And obviously there is [ssa.gov](https://ssa.gov).
+
+Pensions amounts, if any, are also entered on this page.
+While social security is always adjusted for inflation, pensions can optionally be
+indexed for inflation by selecting the corresponding button.
+As for social security, the selected month age, combined with your birth month,
+determines the exact time benefits start in the first year and the total
+annual amount for the first year is adjusted accordingly.
 
 #### :material/savings: Current Assets
 This page allows to enter account balances in all savings accounts.

@@ -5,6 +5,7 @@ Description = "This example reproduces the case of John and Sally, discussed by 
 Status = "married"
 Names = [ "John", "Sally",]
 "Birth year" = [ 1962, 1962,]
+"Birth month" = [ 1, 1,]
 "Life expectancy" = [ 92, 92,]
 "Start date" = "01-01"
 
@@ -22,7 +23,7 @@ Names = [ "John", "Sally",]
 "Pension amounts" = [ 0.0, 0.0,]
 "Pension ages" = [ 65, 65,]
 "Pension indexed" = [ false, false,]
-"Social security amounts" = [ 36.0, 21.6,]
+"Social security PIA amounts" = [ 3000, 1800,]
 "Social security ages" = [ 67, 67,]
 
 ["Rates Selection"]

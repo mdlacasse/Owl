@@ -5,6 +5,7 @@ Description = "This example aims to demonstrate some of Owl's capabilities. Jack
 Status = "married"
 Names = [ "Jack", "Jill",]
 "Birth year" = [ 1962, 1965,]
+"Birth month" = [ 1, 1,]
 "Life expectancy" = [ 89, 92,]
 "Start date" = "01-01"
 
@@ -22,7 +23,7 @@ Names = [ "Jack", "Jill",]
 "Pension amounts" = [ 0.0, 10.5,]
 "Pension ages" = [ 65, 65,]
 "Pension indexed" = [ false, false,]
-"Social security amounts" = [ 28.4, 19.7,]
+"Social security PIA amounts" = [ 2360, 1642,]
 "Social security ages" = [ 70, 62,]
 
 ["Rates Selection"]

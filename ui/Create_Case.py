@@ -88,8 +88,14 @@ else:
                             disabled=diz2, placeholder="Enter name...")
 
         if iname0:
-            kz.initCaseKey("yob0", 1965)
-            ret = kz.getIntNum(f"{iname0}'s birth year", "yob0", disabled=diz2)
+            incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
+            with incol1:
+                kz.initCaseKey("yob0", 1965)
+                ret = kz.getIntNum(f"{iname0}'s birth year", "yob0", disabled=diz2)
+
+            with incol2:
+                kz.initCaseKey("mob0", 1)
+                ret = kz.getIntNum(f"{iname0}'s birth month", "mob0", min_value=1, max_value=12, disabled=diz2)
 
             kz.initCaseKey("life0", 80)
             ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", disabled=diz1)
@@ -103,8 +109,14 @@ else:
             iname1 = kz.getText("Your spouse's first name", "iname1", disabled=diz2, placeholder="Enter a name...")
 
             if iname1:
-                kz.initCaseKey("yob1", 1965)
-                ret = kz.getIntNum(f"{iname1}'s birth year", "yob1", disabled=diz2)
+                incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
+                with incol1:
+                    kz.initCaseKey("yob1", 1965)
+                    ret = kz.getIntNum(f"{iname1}'s birth year", "yob1", disabled=diz2)
+
+                with incol2:
+                    kz.initCaseKey("mob1", 1)
+                    ret = kz.getIntNum(f"{iname1}'s birth month", "mob1", min_value=1, max_value=12, disabled=diz2)
 
                 kz.initCaseKey("life1", 80)
                 ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1", disabled=diz1)

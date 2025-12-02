@@ -26,16 +26,18 @@ def createPlan():
     inames = [kz.getCaseKey("iname0")]
     description = kz.getCaseKey("description")
     yobs = [kz.getCaseKey("yob0")]
+    mobs = [kz.getCaseKey("mob0")]
     life = [kz.getCaseKey("life0")]
     if kz.getCaseKey("status") == "married":
         inames.append(kz.getCaseKey("iname1"))
         yobs.append(kz.getCaseKey("yob1"))
+        mobs.append(kz.getCaseKey("mob1"))
         life.append(kz.getCaseKey("life1"))
 
     strio = StringIO()
     kz.storeCaseKey("logs", strio)
     try:
-        plan = owl.Plan(inames, yobs, life, name,
+        plan = owl.Plan(inames, yobs, mobs, life, name,
                         verbose=True, logstreams=[strio, strio])
         kz.setCaseKey("plan", plan)
     except Exception as e:
@@ -680,11 +682,14 @@ def genDic(plan):
     for i in range(plan.N_i):
         dic["iname" + str(i)] = plan.inames[i]
         dic["yob" + str(i)] = plan.yobs[i]
+        dic["mob" + str(i)] = plan.mobs[i]
         dic["life" + str(i)] = plan.expectancy[i]
-        dic["ssAge" + str(i)] = plan.ssecAges[i]
-        dic["ssAmt" + str(i)] = plan.ssecAmounts[i] / 1000
-        dic["pAge" + str(i)] = plan.pensionAges[i]
-        dic["pAmt" + str(i)] = plan.pensionAmounts[i] / 1000
+        dic["ssAge_y" + str(i)] = int(plan.ssecAges[i])
+        dic["ssAge_m" + str(i)] = int((plan.ssecAges[i] % 1.) * 12)
+        dic["ssAmt" + str(i)] = plan.ssecAmounts[i]
+        dic["pAge_y" + str(i)] = int(plan.pensionAges[i])
+        dic["pAge_m" + str(i)] = int((plan.pensionAges[i] % 1.) * 12)
+        dic["pAmt" + str(i)] = plan.pensionAmounts[i]
         dic["pIdx" + str(i)] = plan.pensionIsIndexed[i]
         for j1 in range(plan.N_j):
             dic[accName[j1] + str(i)] = plan.beta_ij[i, j1] / 1000

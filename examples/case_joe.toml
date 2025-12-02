@@ -5,6 +5,7 @@ Description = "This is an example of a case involving a single individual. Joe i
 Status = "single"
 Names = [ "Joe",]
 "Birth year" = [ 1966,]
+"Birth month" = [ 1,]
 "Life expectancy" = [ 89,]
 "Start date" = "01-01"
 
@@ -20,7 +21,7 @@ Names = [ "Joe",]
 "Pension amounts" = [ 18.0,]
 "Pension ages" = [ 65,]
 "Pension indexed" = [ true,]
-"Social security amounts" = [ 28.4,]
+"Social security PIA amounts" = [ 2360,]
 "Social security ages" = [ 67,]
 
 ["Rates Selection"]

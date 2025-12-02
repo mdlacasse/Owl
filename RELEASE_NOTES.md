@@ -1,3 +1,15 @@
+### Version 2025.12.03
+- Coded social security to use monthly PIA instead of annual amount
+    - Added exact routines for FRA and increase/decrease factors due to claiming age
+    - Added exact spousal benefits
+- Adjusted documentation for social security
+- Added birth month for more precise calculation on first year of social security
+- Added month to age for claiming social security 
+
+### Version 2025.11.29
+- Fixed social security for survivor
+- Enhanced documentation for SS amounts
+
 ### Version 2025.11.09
 - Moved development status to production/stable in pyproject
 - Made version propagate everywhere needed

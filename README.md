@@ -142,13 +142,16 @@ They can also be optimized explicitly as an option, but this choice can lead to 
 due to the use of the many additional binary variables required by the formulation.
 Future Medicare and IRMAA values are simple projections of current values with the assumed inflation rates.
 
+Owl has a basic social security calculator that determines the actual benefits based on the individual's
+primary insurance amount (PIA), full retirement age (FRA), and claiming age. Both
+spousal's benefits and survivor's benefits are calculated for non-complex cases.
+
 ### Limitations
 Owl is work in progress. At the current time:
 - Only the US federal income tax is considered (and minimized through the optimization algorithm).
 Head of household filing status has not been added but can easily be.
 - Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not included.
 These cases are detected and will generate an error message.
-- Social security rule for surviving spouse assumes that benefits were taken at full retirement age.
 - Current version has no optimization of asset allocations between individuals and/or types of savings accounts.
 If there is interest, that could be added in the future.
 - In the current implementation, social securiy is always taxed at 85%, assuming that your taxable income will be larger than 34 k$ (single) or 44 k$ (married filing jointly).

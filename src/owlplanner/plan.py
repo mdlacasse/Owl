@@ -29,6 +29,7 @@ from . import abcapi as abc
 from . import rates
 from . import config
 from . import timelists
+from . import socialsecurity as socsec
 from . import mylogging as log
 from . import progress
 from .plotting.factory import PlotFactory
@@ -212,7 +213,7 @@ class Plan(object):
     This is the main class of the Owl Project.
     """
 
-    def __init__(self, inames, yobs, expectancy, name, *, verbose=False, logstreams=None):
+    def __init__(self, inames, yobs, mobs, expectancy, name, *, verbose=False, logstreams=None):
         """
         Constructor requires three lists: the first
         one contains the name(s) of the individual(s),
@@ -251,6 +252,10 @@ class Plan(object):
         self.N_i = len(yobs)
         if not (0 <= self.N_i <= 2):
             raise ValueError(f"Cannot support {self.N_i} individuals.")
+        if len(mobs) != len(yobs):
+            raise ValueError("Months and years arrays should have same length.")
+        if min(mobs) < 1 or max(mobs) > 12:
+            raise ValueError("Months must be between 1 and 12.")
         if self.N_i != len(expectancy):
             raise ValueError(f"Expectancy must have {self.N_i} entries.")
         if self.N_i != len(inames):
@@ -264,6 +269,7 @@ class Plan(object):
         self.yOBBBA = 2032
         self.inames = inames
         self.yobs = np.array(yobs, dtype=np.int32)
+        self.mobs = np.array(mobs, dtype=np.int32)
         self.expectancy = np.array(expectancy, dtype=np.int32)
 
         # Reference time is starting date in the current year and all passings are assumed at the end.
@@ -297,10 +303,10 @@ class Plan(object):
         # Default to zero pension and social security.
         self.pi_in = np.zeros((self.N_i, self.N_n))
         self.zeta_in = np.zeros((self.N_i, self.N_n))
-        self.pensionAmounts = np.zeros(self.N_i)
+        self.pensionAmounts = np.zeros(self.N_i, dtype=np.int32)
         self.pensionAges = 65 * np.ones(self.N_i, dtype=np.int32)
         self.pensionIsIndexed = [False] * self.N_i
-        self.ssecAmounts = np.zeros(self.N_i)
+        self.ssecAmounts = np.zeros(self.N_i, dtype=np.int32)
         self.ssecAges = 67 * np.ones(self.N_i, dtype=np.int32)
 
         # Parameters from timeLists initialized to zero.
@@ -519,10 +525,10 @@ class Plan(object):
         self.nu = nu
         self.caseStatus = "modified"
 
-    def setPension(self, amounts, ages, indexed=None, units="k"):
+    def setPension(self, amounts, ages, indexed=None):
         """
         Set value of pension for each individual and commencement age.
-        Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
+        Units are in $.
         """
         if len(amounts) != self.N_i:
             raise ValueError(f"Amounts must have {self.N_i} entries.")
@@ -531,10 +537,7 @@ class Plan(object):
         if indexed is None:
             indexed = [False] * self.N_i
 
-        fac = u.getUnits(units)
-        amounts = u.rescale(amounts, fac)
-
-        self.mylog.vprint("Setting pension of", [u.d(amounts[i]) for i in range(self.N_i)],
+        self.mylog.vprint("Setting monthly pension of", [u.d(amounts[i]) for i in range(self.N_i)],
                           "at age(s)", [int(ages[i]) for i in range(self.N_i)])
 
         thisyear = date.today().year
@@ -542,54 +545,88 @@ class Plan(object):
         self.pi_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
             if amounts[i] != 0:
-                ns = max(0, ages[i] - thisyear + self.yobs[i])
+                # Check if claim age added to birth month falls next year.
+                realage = ages[i] + (self.mobs[i] - 1)/12
+                iage = int(realage)
+                fraction = 1 - (realage % 1.)
+                realns = iage - thisyear + self.yobs[i]
+                ns = max(0, realns)
                 nd = self.horizons[i]
                 self.pi_in[i, ns:nd] = amounts[i]
+                # Reduce starting year due to birth month. If realns < 0, this has happened already.
+                if realns >= 0:
+                    self.pi_in[i, ns] *= fraction
 
-        self.pensionAmounts = np.array(amounts)
-        self.pensionAges = np.array(ages, dtype=np.int32)
+        # Convert all to annual numbers.
+        self.pi_in *= 12
+
+        self.pensionAmounts = np.array(amounts, dtype=np.int32)
+        self.pensionAges = np.array(ages)
         self.pensionIsIndexed = indexed
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
-    def setSocialSecurity(self, amounts, ages, units="k"):
+    def setSocialSecurity(self, pias, ages):
         """
-        Set value of social security for each individual and commencement age.
-        Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
+        Set value of social security for each individual and claiming age.
         """
-        if len(amounts) != self.N_i:
-            raise ValueError(f"Amounts must have {self.N_i} entries.")
+        if len(pias) != self.N_i:
+            raise ValueError(f"Principal Insurance Amount must have {self.N_i} entries.")
         if len(ages) != self.N_i:
             raise ValueError(f"Ages must have {self.N_i} entries.")
 
-        fac = u.getUnits(units)
-        amounts = u.rescale(amounts, fac)
+        # Just make sure we are dealing with arrays if lists were passed.
+        pias = np.array(pias, dtype=np.int32)
+        ages = np.array(ages)
+
+        fras = socsec.getFRAs(self.yobs)
+        spousalBenefits = socsec.getSpousalBenefits(pias)
 
         self.mylog.vprint(
-            "Setting social security benefits of", [u.d(amounts[i]) for i in range(self.N_i)],
-            "at age(s)", [int(ages[i]) for i in range(self.N_i)],
+            "Social security monthly benefits set to", [u.d(pias[i]) for i in range(self.N_i)],
+            "at FRAs(s)", [fras[i] for i in range(self.N_i)],
+        )
+        self.mylog.vprint(
+            "Benefits requested to start at age(s)", [ages[i] for i in range(self.N_i)],
         )
 
         thisyear = date.today().year
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
-            ns = max(0, ages[i] - thisyear + self.yobs[i])
+            # Check if claim age added to birth month falls next year.
+            realage = ages[i] + (self.mobs[i] - 1)/12
+            iage = int(realage)
+            realns = iage - thisyear + self.yobs[i]
+            ns = max(0, realns)
             nd = self.horizons[i]
-            self.zeta_in[i, ns:nd] = amounts[i]
+            self.zeta_in[i, ns:nd] = pias[i]
+            # Reduce starting year due to month offset. If realns < 0, this has happened already.
+            if realns >= 0:
+                self.zeta_in[i, ns] *= 1 - (realage % 1.)
+            # Increase/decrease PIA due to claiming age.
+            self.zeta_in[i, :] *= socsec.getSelfFactor(fras[i], ages[i])
 
-        if self.N_i == 2:
-            # Switch survivor to spousal survivor benefits. Assumes survivor is passed FRA at n_d.
-            self.zeta_in[self.i_s, self.n_d : self.horizons[self.i_s]] = max(amounts[self.i_s], amounts[self.i_d])
+            # Add spousal benefits if applicable.
+            if self.N_i == 2 and spousalBenefits[i] > 0:
+                # The latest of the two spouses to claim.
+                claimYear = max(self.yobs + (self.mobs - 1)/12 + ages)
+                claimAge = claimYear - self.yobs[i] - (self.mobs[i] - 1)/12
+                ns2 = max(0, int(claimYear) - thisyear)
+                spousalFactor = socsec.getSpousalFactor(fras[i], claimAge)
+                self.zeta_in[i, ns2:nd] += spousalBenefits[i] * spousalFactor
+                # Reduce first year of benefit by month offset.
+                self.zeta_in[i, ns2] -= spousalBenefits[i] * spousalFactor * (claimYear % 1.)
 
-            # Apply 50% spousal rule. Approximation without explicitly using PIA.
-            for n in range(self.N_n):
-                if self.zeta_in[0, n] != 0 and self.zeta_in[0, n] < self.zeta_in[1, n]:
-                    self.zeta_in[0, n] = max(self.zeta_in[0, n], 0.5*self.zeta_in[1, n])
-                elif self.zeta_in[1, n] != 0 and self.zeta_in[1, n] < self.zeta_in[0, n]:
-                    self.zeta_in[1, n] = max(self.zeta_in[1, n], 0.5*self.zeta_in[0, n])
+        # Switch survivor to spousal survivor benefits.
+        # Assumes both deceased and survivor already have claimed last year before passing (at n_d - 1).
+        if self.N_i == 2 and self.zeta_in[self.i_d, self.n_d - 1] > self.zeta_in[self.i_s, self.n_d - 1]:
+            self.zeta_in[self.i_s, self.n_d : self.horizons[self.i_s]] = self.zeta_in[self.i_d, self.n_d - 1]
 
-        self.ssecAmounts = np.array(amounts)
-        self.ssecAges = np.array(ages, dtype=np.int32)
+        # Convert all to annual numbers.
+        self.zeta_in *= 12
+
+        self.ssecAmounts = pias
+        self.ssecAges = ages
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
@@ -1682,7 +1719,7 @@ class Plan(object):
             self.prevMAGI = self.optionsUnits * np.array(magi)
 
         lambdha = myoptions.get("spendingSlack", 0)
-        if lambdha < 0 or lambdha > 50:
+        if not (0 <= lambdha <= 50):
             raise ValueError(f"Slack value out of range {lambdha}.")
         self.lambdha = lambdha / 100
 

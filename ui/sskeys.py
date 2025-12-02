@@ -454,7 +454,10 @@ def getFixedIncome(ni, what):
     indexed = []
     for i in range(ni):
         amounts.append(getCaseKey(what + "Amt" + str(i)))
-        ages.append(getCaseKey(what + "Age" + str(i)))
+        age_y = getCaseKey(what + "Age_y" + str(i))
+        age_m = getCaseKey(what + "Age_m" + str(i))
+        age = age_y + age_m/12
+        ages.append(age)
         if what == "p":
             indexed.append(getCaseKey(what + "Idx" + str(i)))
 
