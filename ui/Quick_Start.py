@@ -15,12 +15,13 @@ This version :mega: includes:
 - A much improved social security calculator.
 New approach is to use the monthly Primary Insurance Amount as reported in statements from
 the Social Security Administration.
-- Month granularity for birthday and fixed income claiming age. This approach enables
+- Month granularity birth and fixed-income claiming age. This approach enables
 more precise calculations for determining benefits and for representing potentially partial
 years when social security starts.
 
-Older case files can be read, but please verify your birthday month
-and the `Fixed Income` page to ensure your information is correctly entered.
+Older case files can be read, but please verify your birth month
+and the `Fixed Income` page to ensure your information is correctly entered
+(Hint: Use duplicate for updating birth month).
 
 As always, please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
