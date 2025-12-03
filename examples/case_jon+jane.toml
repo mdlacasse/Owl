@@ -12,7 +12,7 @@ Names = [ "Jon", "Jane",]
 [Assets]
 "taxable savings balances" = [ 50.0, 0.0,]
 "tax-deferred savings balances" = [ 900.0, 500.0,]
-"tax-free savings balances" = [ 0.0, 0.0,]
+"tax-free savings balances" = [ 0.0, 50.0,]
 "Beneficiary fractions" = [ 1.0, 1.0, 1.0,]
 "Spousal surplus deposit fraction" = 0.0
 

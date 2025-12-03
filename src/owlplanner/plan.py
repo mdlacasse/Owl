@@ -1103,7 +1103,7 @@ class Plan(object):
         self._add_standard_exemption_bounds()
         self._add_defunct_constraints()
         self._add_roth_conversion_constraints(options)
-        # self._add_roth_maturation_constraints()
+        self._add_roth_maturation_constraints()
         self._add_withdrawal_limits()
         self._add_conversion_limits()
         self._add_objective_constraints(objective, options)
@@ -1160,25 +1160,26 @@ class Plan(object):
             h = self.horizons[i]
             for n in range(h):
                 rhs = 0
-                # To add compounded gains to original amount.
+                # To add compounded gains to cumulative amounts. Always keep cgains >= 1.
                 cgains = 1
                 row = self.A.newRow()
                 row.addElem(_q3(self.C["b"], i, 2, n, self.N_i, self.N_j, self.N_n + 1), 1)
                 row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)
                 for dn in range(1, 6):
                     nn = n - dn
-                    if nn >= 0:       # Past of future is now or in the future: use variables and parameters.
+                    if nn >= 0:   # Past of future is now or in the future: use variables or parameters.
                         Tau1 = 1 + np.sum(self.alpha_ijkn[i, 2, :, nn] * self.tau_kn[:, nn], axis=0)
-                        cgains *= Tau1
+                        # Ignore market downs.
+                        cgains *= max(1, Tau1)
                         row.addElem(_q2(self.C["x"], i, nn, self.N_i, self.N_n), -cgains)
-                        # If a contribution - it can be withdrawn but not the gains.
+                        # If a contribution, it has only penalty on gains, not on deposited amount.
                         rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn]
                     else:  # Past of future is in the past:
-                        # Parameters are stored at the end of contributions and conversions arrays.
                         cgains *= oldTau1
-                        # If a contribution, it has no penalty, but assume a conversion.
-                        # rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
-                        rhs += cgains * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
+                        # Past years are stored at the end of contributions and conversions arrays.
+                        # Use negative index to access tail of array.
+                        rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
+                        # rhs += cgains * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
 
                 self.A.addRow(row, rhs, np.inf)
 
