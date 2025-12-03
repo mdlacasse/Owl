@@ -1103,7 +1103,7 @@ class Plan(object):
         self._add_standard_exemption_bounds()
         self._add_defunct_constraints()
         self._add_roth_conversion_constraints(options)
-        self._add_roth_maturation_constraints()
+        # self._add_roth_maturation_constraints()
         self._add_withdrawal_limits()
         self._add_conversion_limits()
         self._add_objective_constraints(objective, options)
