@@ -42,7 +42,7 @@ It can also run on [MOSEK](https://mosek.com) if available on your computer.
  Dale Seng (sengsational) for great insights and suggestions,
  Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
  Clark Jefcoat (hubcity) for fruitful interactions,
- Benjamin Quinn (blquinn) and Gene Wood (gene1wood) for improvements and for bug fixes.
+ Benjamin Quinn (blquinn) and Gene Wood (gene1wood) for improvements and bug fixes.
 - Owl image is from [freepik](https://freepik.com).
 
 #### :orange[Bugs and Feature Requests]

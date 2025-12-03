@@ -13,15 +13,15 @@ with col1:
     st.markdown("""
 This version :mega: includes:
 - A much improved social security calculator.
-New approach is to use the monthly Primary Insurance Amount as reported in statements from
-the Social Security Administration.
-- Month granularity birth and fixed-income claiming age. This approach enables
-more precise calculations for determining benefits and for representing potentially partial
-years when social security starts.
+New approach uses the monthly Primary Insurance Amount as reported in
+personal statements issued by the Social Security Administration.
+- Month granularity for birth and fixed-income claiming age. This addition enables
+more accurate calculations for determining benefits and for capturing partial
+year of benefits when social security starts.
 
 Older case files can be read, but please verify your birth month
 and the `Fixed Income` page to ensure your information is correctly entered
-(Hint: Use duplicate for updating birth month).
+(Hint: Use `duplicate` for updating birth month).
 
 As always, please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
@@ -34,8 +34,8 @@ Take the time to give a :star: on GitHub if you use Owl. That's all you have to 
     st.write("### :material/rocket_launch: Quick Start")
     st.markdown("""
 To respect your privacy, Owl does not store any information related to a case:
-all is lost after a session is closed. For this reason,
-two files can be used to store the specifications of a case so that it can be reproduced
+all informattion is lost after a session is closed. For this reason,
+two ancillary files can be used to store the specifications of a case so that it can be reproduced
 at a later time:
 - A *case* parameter file
 specifying account balances, asset allocation, social security and pension, rates,
