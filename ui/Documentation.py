@@ -283,11 +283,15 @@ The PIA monthly amounts are always reported in today's \\$ by the SSA.
 Before the full retirement age (FRA),
 the current value of the PIA is close to the amount reported for disability benefits.
 The SSA also provides a future estimate of the PIA at FRA by projecting current
-earnings until reaching FRA. For individuals planning to continue to work, use the projection at FRA
+earnings until reaching FRA.
+For individuals planning to continue to work, use the projection at FRA
 or use a future benefit calculator such
 as the one provided by [SSA](https://www.ssa.gov/OACT/quickcalc/).
 For those part of the FIRE crowd and planning to retire early,
 the number reported for disability benefits should be used instead.
+For individuals who have already claimed benefits, this [tool](https://ssa.tools/calculator)
+on the SSA website has detailed instructions on how to get your PIA from
+your past earnings.
 
 Owl considers the exact FRA associated with the individual's birth year and adjusts the PIA
 according to the age (year and month) when benefits are claimed. Total amount received
