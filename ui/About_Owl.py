@@ -20,6 +20,16 @@ found in this [document](https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf
 Copyright &copy; 2025 - Martin-D. Lacasse
 
 #### :orange[Credits]
+- Contributors:
+ Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
+ Clark Jefcoat (hubcity) for fruitful interactions,
+ kg333 for fixing an error in Docker's instructions,
+ Benjamin Quinn (blquinn) for improvements and bug fixes,
+ Dale Seng (sengsational) for great insights, testing, and suggestions,
+ Josh Williams (noimjosh) for Docker image code,
+ Gene Wood (gene1wood) for improvements and bug fixes.
+- Greg Grothaus for [ssa.tools](https://ssa.tools).
+- Owl image is from [freepik](https://freepik.com).
 - Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
 - Linear programming optimization solvers are from
 [HiGHS](https://highs.dev) and [PuLP](https://coin-or.github.io/pulp/).
@@ -37,13 +47,6 @@ It can also run on [MOSEK](https://mosek.com) if available on your computer.
     [Seaborn](https://seaborn.pydata.org),
     [toml](https://toml.io),
  and [Streamlit](https://streamlit.io) for the front-end.
-- Contributors: Josh Williams (noimjosh) for Docker image code,
- kg333 for fixing an error in Docker's instructions,
- Dale Seng (sengsational) for great insights and suggestions,
- Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
- Clark Jefcoat (hubcity) for fruitful interactions,
- Benjamin Quinn (blquinn) and Gene Wood (gene1wood) for improvements and bug fixes.
-- Owl image is from [freepik](https://freepik.com).
 
 #### :orange[Bugs and Feature Requests]
 Please submit bugs and feature requests through

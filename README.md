@@ -185,16 +185,45 @@ assets to support, even with no estate being left.
 ---------------------------------------------------------------------
 
 ## Credits
-- Historical rates from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/)
-- Image from [freepik](https://freepik.com)
-- Optimization solver from [HiGHS](https://highs.dev)
-- Streamlit Community Cloud [Streamlit](https://streamlit.io)
-- Contributors: Josh (noimjosh@gmail.com) for Docker image code,
- kg333 for fixing an error in Docker's instructions,
- Dale Seng (sengsational) for great insights and suggestions,
+- Contributors:
  Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
  Clark Jefcoat (hubcity) for fruitful interactions,
- Benjamin Quinn (blquinn) and Gene Wood (gene1wood) for improvements and bug fixes.
+ kg333 for fixing an error in Docker's instructions,
+ Benjamin Quinn (blquinn) for improvements and bug fixes,
+ Dale Seng (sengsational) for great insights, testing, and suggestions,
+ Josh Williams (noimjosh) for Docker image code,
+ Gene Wood (gene1wood) for improvements and bug fixes.
+- Greg Grothaus for [ssa.tools](https://ssa.tools).
+- Owl image is from [freepik](https://freepik.com).
+- Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
+- Linear programming optimization solvers are from
+[HiGHS](https://highs.dev) and [PuLP](https://coin-or.github.io/pulp/).
+It can also run on [MOSEK](https://mosek.com) if available on your computer.
+- Owl planner relies on the following [Python](https://python.org) packages:
+    - [highspy](https://highs.dev),
+    [Matplotlib](https://matplotlib.org),
+    [Numpy](https://numpy.org),
+    [odfpy](https://https://pypi.org/project/odfpy),
+    [openpyxl](https://openpyxl.readthedocs.io),
+    [Pandas](https://pandas.pydata.org),
+    [Plotly](https://plotly.com),
+    [PuLP](https://coin-or.github.io/pulp),
+    [Scipy](https://scipy.org),
+    [Seaborn](https://seaborn.pydata.org),
+    [toml](https://toml.io),
+ and [Streamlit](https://streamlit.io) for the front-end.
+
+## Bugs and Feature Requests
+Please submit bugs and feature requests through
+[GitHub](https://github.com/mdlacasse/owl/issues) if you have a GitHub account
+or directly by [email](mailto:martin.d.lacasse@gmail.com).
+Or just drop me a line to report your experience with the tool.
+
+## Privacy
+This app does not store or forward any information. All data entered is lost
+after a session is closed. However, you can choose to download selected parts of your
+own data to your computer before closing the session. These data will be stored strictly on
+your computer and can be used to reproduce a case at a later time.
 
 ---------------------------------------------------------------------
 
