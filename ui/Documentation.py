@@ -290,7 +290,10 @@ A way to get a more robust PIA estimate
 is to use an online calculator such as [ssa.tools](https://ssa.tools/calculator).
 To use this tool, you will need to get your full earning records from your personal account
 on the SSA website. Copy the table listing your records from the SSA web page and paste
-into a Word or Excel document. Make sure that the records have one year per line
+into the tool. Follow instructions carefully and do not cut from the PDF version
+ias it can contain aggregated years. Please see
+[this page](https://ssa.tools/guides/earnings-record-paste) for common input errors.
+Make sure that the records have one year per line
 and do not contain aggregated years such as *2001 - 2006*,
 otherwise, the calculated PIA will be wrong.
 After making sure that all entries are valid, paste in the tool.

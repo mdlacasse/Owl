@@ -67,7 +67,7 @@ else:
                 ret = getIntInput(1, "ssAge_y", "claiming at age...", 67, msg2, max_val=70)
             with incol2:
                 maxmonth = 0 if ret == 70 else 11
-                getIntInput(-1, "ssAge_m", "...and month(s)", 0, msg2, max_val=maxmonth, prompt=False)
+                getIntInput(1, "ssAge_m", "...and month(s)", 0, msg2, max_val=maxmonth, prompt=False)
 
     st.divider()
     st.write("#### :orange[Pension]")
