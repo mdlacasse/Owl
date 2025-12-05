@@ -1,3 +1,7 @@
+### Version 2025.12.05
+- Added instructions for obtaining PIA
+- Bug fix in Fixed Income UI
+
 ### Version 2025.12.03
 - Coded social security to use monthly PIA instead of annual amount
     - Added exact routines for FRA and increase/decrease factors due to claiming age

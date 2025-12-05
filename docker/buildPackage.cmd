@@ -2,6 +2,6 @@
 :: A simple script to build Python package
 ::
 cd ..
-del dist/*
+del /Q dist\*
 python -m build .
-twine upload --repository pypi dist/*
+twine upload --repository pypi dist\*

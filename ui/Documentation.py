@@ -278,24 +278,27 @@ from pensions and social security.
 Unlike other parts of the user interface, amounts on this page are
 monthly amounts in today's \\$ and not in thousands.
 The monthly amounts to be entered for social security are the Primary Insurance Amounts (PIA)
-which are a critical part used for calculating benefits by the Social Security Administration (SSA).
-The PIA monthly amounts are always in today's \\$. It is equivalent to the monthly benefit
-that you would receive at full retirement age (FRA), which varies between 65 and 67 depending
-on your birth year.
+which are a critical part used by the Social Security Administration (SSA) for calculating benefits.
+The PIA monthly amounts are always in today's \\$: this means that PIA numbers need to
+be updated every year as they are modified by cost of living adjustments (COLA).
+The PIA is equivalent to the monthly benefit
+that one would receive at full retirement age (FRA), which varies between 65 and 67 depending
+on the birth year.
 The SSA also provides a future estimate of benefits at FRA by projecting current
 earnings until reaching FRA. You can use this number if you are comfortable
 with the underlying assumption that you will continue to work until FRA, at a salary
 similar to last year's.
 A way to get a more robust PIA estimate
 is to use an online calculator such as [ssa.tools](https://ssa.tools/calculator).
-To use this tool, you will need to get your full earning records from your personal account
-on the SSA website. Copy the table listing your records from the SSA web page and paste
-into the tool. Follow instructions carefully and do not cut from the PDF version
+This tool requires the full earning records from one's personal account
+on the SSA website. The table listing all earning records from the SSA web page needs
+to be copied and pasted as instructed.
+Follow instructions carefully and do not cut from the PDF version
 as it can contain aggregated years.
 Please see
 [this page](https://ssa.tools/guides/earnings-record-paste) for common input errors.
-After making sure that all entries are valid, paste in the tool.
-Enter your birth year and month and the number of years you are planning
+After making sure that all entries are valid, paste these data into the tool.
+Enter birth year and month and number of years the individual is planning
 to continue to work, if any.
 
 Owl considers the exact FRA associated with the individual's birth year and adjusts the PIA
