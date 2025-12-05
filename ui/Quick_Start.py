@@ -7,7 +7,8 @@ with col3:
     st.image("http://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true")
     st.caption("Retirement planner with great wisdom")
 with col1:
-    st.write("# :orange[Welcome to Owl - Optimal Wealth Lab]\nA retirement financial exploration tool based on linear programming")
+    st.write("""# :orange[Welcome to Owl - Optimal Wealth Lab]
+\nA retirement financial exploration tool based on linear programming""")
     kz.divider("orange")
     st.write("### :material/campaign: News")
     st.markdown("""

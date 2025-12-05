@@ -52,6 +52,7 @@ else:
         msg1 = "This is the **monthly** amount at Full Retirement Age (FRA)."
         msg2 = "Starting age of benefits in years and months."
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", helpmsg=msg1)
+        st.markdown(f"Use this [tool](https://ssa.tools/calculator) to get {kz.getCaseKey('iname0')}'s PIA.")
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
             ret = getIntInput(0, "ssAge_y", "claiming at age...", 67, msg2, max_val=70)
@@ -62,6 +63,7 @@ else:
     with col2:
         if kz.getCaseKey("status") == "married":
             getIntInput(1, "ssAmt", "**monthly** PIA amount (in today's \\$)", helpmsg=msg1)
+            st.markdown(f"Use this [tool](https://ssa.tools/calculator) to get {kz.getCaseKey('iname1')}'s PIA.")
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 ret = getIntInput(1, "ssAge_y", "claiming at age...", 67, msg2, max_val=70)
