@@ -275,23 +275,27 @@ by reloading the same **Wages and Contributions** file.
 #### :material/currency_exchange: Fixed Income
 This page is for entering data related to the individual's anticipated fixed income
 from pensions and social security.
-Unlike other parts of the interface, amounts on this page are
+Unlike other parts of the user interface, amounts on this page are
 monthly amounts in today's \\$ and not in thousands.
 The monthly amounts to be entered for social security are the Primary Insurance Amounts (PIA)
-as reported on annual statements issued by the Social Security Administration (SSA).
-The PIA monthly amounts are always reported in today's \\$ by the SSA.
-Before the full retirement age (FRA),
-the current value of the PIA is close to the amount reported for disability benefits.
-The SSA also provides a future estimate of the PIA at FRA by projecting current
-earnings until reaching FRA.
-For individuals planning to continue to work, use the projection at FRA
-or use a future benefit calculator such
-as the one provided by [SSA](https://www.ssa.gov/OACT/quickcalc/).
-For those part of the FIRE crowd and planning to retire early,
-the number reported for disability benefits should be used instead.
-For individuals who have already claimed benefits, this [tool](https://ssa.tools/calculator)
-on the SSA website has detailed instructions on how to get your PIA from
-your past earnings.
+which are a critical part used for calculating benefits by the Social Security Administration (SSA).
+The PIA monthly amounts are always in today's \\$. It is equivalent to the monthly benefit
+that you would receive at full retirement age (FRA), which varies between 65 and 67 depending
+on your birth year.
+The SSA also provides a future estimate of benefits at FRA by projecting current
+earnings until reaching FRA. You can use this number if you are comfortable
+with the underlying assumption that you will continue to work until FRA, at a salary
+similar to last year's.
+A way to get a more robust PIA estimate
+is to use an online calculator such as [ssa.tools](https://ssa.tools/calculator).
+To use this tool, you will need to get your full earning records from your personal account
+on the SSA website. Copy the table listing your records from the SSA web page and paste
+into a Word or Excel document. Make sure that the records have one year per line
+and do not contain aggregated years such as *2001 - 2006*,
+otherwise, the calculated PIA will be wrong.
+After making sure that all entries are valid, paste in the tool.
+Enter your birth year and month and the number of years you are planning
+to continue to work, if any.
 
 Owl considers the exact FRA associated with the individual's birth year and adjusts the PIA
 according to the age (year and month) when benefits are claimed. Total amount received
