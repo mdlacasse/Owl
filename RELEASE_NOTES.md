@@ -1,3 +1,6 @@
+- Improved instructions for developers
+- Added link to ssa.tools on `Fixed Income` page
+
 ### Version 2025.12.05
 - Added instructions for obtaining PIA
 - Bug fix in Fixed Income UI

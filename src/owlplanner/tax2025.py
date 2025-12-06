@@ -273,6 +273,26 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=2099):
     return data
 
 
+def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
+    """
+    Compute ACA tax on Dividends (Q) and Interests (I).
+    For accounting for rent and/or trust income, one can easily add a column
+    to the Wages and Contributions file and add yearly amount to Q_n + I_n below.
+    """
+    J_n = np.zeros(N_n)
+    status = N_i - 1
+
+    for n in range(N_n):
+        if status and n == n_d:
+            status -= 1
+
+        Gmax = niitThreshold[status]
+        if MAGI_n[n] > Gmax:
+            J_n[n] = niitRate * min(MAGI_n[n] - Gmax, I_n[n] + Q_n[n])
+
+    return J_n
+
+
 def rho_in(yobs, N_n):
     """
     Return Required Minimum Distribution fractions for each individual.

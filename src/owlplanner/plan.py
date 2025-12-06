@@ -1979,26 +1979,6 @@ class Plan(object):
 
         return solution, xx, solverSuccess, solverMsg
 
-    def _computeNIIT(self, MAGI_n, I_n, Q_n):
-        """
-        Compute ACA tax on Dividends (Q) and Interests (I).
-        Pass arguments to better understand dependencies.
-        For accounting for rent and/or trust income, one can easily add a column
-        to the Wages and Contributions file and add yearly amount to Q_n + I_n below.
-        """
-        J_n = np.zeros(self.N_n)
-        status = len(self.yobs) - 1
-
-        for n in range(self.N_n):
-            if status and n == self.n_d:
-                status -= 1
-
-            Gmax = tx.niitThreshold[status]
-            if MAGI_n[n] > Gmax:
-                J_n[n] = tx.niitRate * min(MAGI_n[n] - Gmax, I_n[n] + Q_n[n])
-
-        return J_n
-
     def _computeNLstuff(self, x, includeMedicare):
         """
         Compute MAGI, Medicare costs, long-term capital gain tax rate, and
@@ -2013,7 +1993,7 @@ class Plan(object):
 
         self._aggregateResults(x, short=True)
 
-        self.J_n = self._computeNIIT(self.MAGI_n, self.I_n, self.Q_n)
+        self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
         self.psi_n = tx.capitalGainTaxRate(self.N_i, self.MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
         # Compute Medicare through self-consistent loop.
         if includeMedicare:
