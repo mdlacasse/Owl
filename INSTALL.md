@@ -9,50 +9,103 @@
 This document is aimed at software developers desiring to install the Owl source code
 and run it locally on their computer.
 
-For end-users, we suggest accessing Owl from the [Streamlit Community Server](http://owlplanner.streamlit.app)
+For end-users, we suggest accessing Owl from the
+[Streamlit Community Server](http://owlplanner.streamlit.app)
 or, if one prefers to have everything on their own computer,
 to install and run a Docker image as described in these [instructions](docker/README.md).
 
 ### Requirements
-You will need Python and `pip` installed on your computer for completing the installation.
-These instructions are command-line instructions run from a terminal window.
+You will need a Python environment, and the `pip` module installed on your
+computer for completing the installation. The `build` module will be required
+for developers. You will also need `git` to manage the source code from GitHub
+which is found [here](https://git-scm.com/install/windows) for Windows,
+and by installing developer tools on MacOS and Linux.
 
-### Installation steps for Python package only
-You will need the latest version of Owl from GitHub.
+
+A good option for a comprehensive Python environment is to use the *Anaconda* distribution
+that can be found [here](https://repo.anaconda.com/archive/) for various operating systems.
+Installation of *Anaconda* can be done by downloading and running the installation
+file corresponding to your operating system and hardware.
+
+Instructions given here are command-line instructions to be entered from a terminal window.
+
+If using *Anaconda*, `pip` can be installed as follows
+```
+conda install pip
+```
+otherwise, your distribution will most likely include `pip` already.
+
+The `build` module is included in *Anaconda*.
+Command `pip install build` will install it in other distributions.
+
+### Creating a virtual environment
+It is common practice to create a virtual environment for a specific project.
+This is to avoid making changes in the base ditribution that could break dependencies.
+Creating and activating a new environment called *owlenv* in *Anaconda*
+is achieved by the following commands: 
+```
+conda create --name owlenv
+conda activate owlenv
+```
+A cheat sheet for *Anaconda* can be found
+[here](https://docs.conda.io/projects/conda/en/latest/user-guide/cheatsheet.html).
+
+When not using `conda`, creating and activating an environment can be done by
+using the module `venv` as follows:
+```
+python -m venv owlenv
+```
+This will create subdirectory *owlenv* in the current directory.
+For activating this environment:
+```
+# in MS command
+.\owlenv\Scripts\activate.bat
+
+# in MS PowerShell
+./owlenv/Scripts/activate.ps1
+
+# MacOS or Linux
+source ./owlenv/Scripts/activate
+```
+More details on how to create a virtual environment using *venv* can be found
+[here](https://python.land/virtual-environments/virtualenv).
+
+### Obtaining Owl's source code
+We assume that you have created and activated a virtual environment
+at this point. From there, we install the latest version of Owl from GitHub.
 ```shell
 git clone https://github.com/mdlacasse/Owl.git
 
 ```
 Then go (`cd`) to the directory where you installed Owl.
+```
+cd Owl
+```
 From the top directory of the source code run:
-The following command will install the current version of owlplanner and all its dependencies:
+The following command will install the current version of Owl and all its dependencies:
 ```shell
 pip install --upgrade -r requirements.txt
 ```
-
 You can also install the Owl package directly from the [Python Package Index](http://pypi.org).
 
-
-### Running the streamlit frontend locally
-Running the Owl user interface locally from Windows:
+### Running the Streamlit frontend locally
+Once Owl's source code and all its dependencies as been installed,
+one can run the Owl user interface locally:
 ```shell
+# From Windows
 ./owlplanner.cmd
-```
-Running the Owl user interface locally from Linux or MacOS:
-```shell
+
+# From MacOS or Linux
 ./owlplanner.sh
 ```
 This will open a tab on your default browser.
 
 ### Installation steps for developers
-These instructions are command-line instructions.
-You will need the latest version of Owl from GitHub.
-```shell
-git clone https://github.com/mdlacasse/Owl.git
+First use the same steps as above to create and activate a virtual environment
+and install the source code from GitHub.
+Then make sure that the `build` module is installed (`pip install build`).
 
-```
-Go (`cd`) to the directory where you installed Owl.
-From the top directory of the source code run:
+The next commands will build and install the Owl module in "edit mode"
 ```shell
 python -m build
 pip install -e .
@@ -66,7 +119,10 @@ Run checks before all commits:
 flake8 ui src tests
 pytest
 ```
-Edit version number in `src/owlplanner/version.py` and in `pyproject.toml`. Then,
+To update version, edit number in `src/owlplanner/version.py`.
+
+To update package on pypi or testpypi,
+
 ```shell
 rm dist/*
 python -m build
