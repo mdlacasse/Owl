@@ -2082,7 +2082,7 @@ class Plan(object):
                 * np.sum(self.alpha_ijkn[:, 0, 1:, :Nn] * self.tau_kn[1:, :], axis=1))
         self.I_n = np.sum(I_in, axis=0)
 
-        # Stop after building minimu required for self-consistent loop.
+        # Stop after building minimum required for self-consistent loop.
         if short:
             return
 
@@ -2692,6 +2692,18 @@ class Plan(object):
             ]
             ws.append(lastRow)
             _formatSpreadsheet(ws, "currency")
+
+        # Federal income tax brackets.
+        TxDic = {}
+        for t in range(self.N_t):
+            TxDic[tx.taxBracketNames[t]] = self.T_tn[t, :]
+
+        TxDic["penalty"] = self.P_n
+        TxDic["total"] = self.T_n
+
+        sname = "Federal Income Tax"
+        ws = wb.create_sheet(sname)
+        fillsheet(ws, TxDic, "currency")
 
         # Allocations.
         jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}

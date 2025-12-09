@@ -1,6 +1,7 @@
 - Improved instructions for developers
 - Added link to ssa.tools on `Fixed Income` page
 - Fixed bug on max age range for SS when month != 0
+- Added table of federal income tax itemized by bracket
 
 ### Version 2025.12.05
 - Added instructions for obtaining PIA
