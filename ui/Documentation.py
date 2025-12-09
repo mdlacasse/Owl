@@ -303,18 +303,22 @@ to continue to work, if any.
 
 Owl considers the exact FRA associated with the individual's birth year and adjusts the PIA
 according to the age (year and month) when benefits are claimed. Total amount received
-during the first year (if in the future) is adjusted for situations when benefits do not cover
-the full year. This is important for bridging the transition to retirement.
+during the first year of benefits (if in the future) is adjusted for situations
+when benefits do not cover the full year.
+This is important for bridging the transition to retirement.
 Spousal benefits are calculated under the assumption that those benefits
 are claimed at the latest date at which both spouses have claimed benefits.
 Survivor benefits rule provides the largest of both benefits to the survivor. Complex
 cases involving divorce or deceased spouses are not considered.
 
 Owl does not optimize social security benefits.
-You have to design (and explore) your own strategy.
+You have to design (and explore) your own strategy, which
+might often involves personal goals such as ensuring maximum
+survivor benefits, or maximum lifetime benefits.
 A great website for guidance on when to start taking social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
-And obviously there is [ssa.gov](https://ssa.gov).
+And obviously there are
+[ssa.tools](https://ssa.tools), and [ssa.gov](https://ssa.gov).
 
 Pensions amounts, if any, are also entered on this page.
 While social security is always adjusted for inflation, pensions can optionally be
@@ -576,9 +580,12 @@ There are two different ways to run multiple scenarios and generate a histogram
 of results.
 
 #### :material/history: Historical Range
-This page allows the user to run multiple simulations over a range of historical years.
-Each simulation assumes that the rates follow a sequence that happened in the past,
-starting from each selected year in the past, and then offset by one year, and so on.
+This page is for backtesting your scenario over a selected range of past years,
+and generate a histogram of results.
+User can run multiple simulations,
+each starting at a different year within a range of historical years.
+Each simulation assumes that the rates follow the same sequence that happened in the past,
+starting from a selected year in the past, and then offset by one year, and so on.
 A histogram of results and a success rate is displayed at the end of the run.
 $N$ is the number of runs that could fit in the year range selected,
 $P$ the probability of success,
@@ -588,7 +595,7 @@ If the `Beneficiary fractions` are not all unity, two histograms will be display
 one for the partial bequest left at the passing of the first spouse
 and the other for the distribution of values of the objective being optimized,
 either maximum net spending or maximum bequest left at the passing
-of the surviving spouse.
+of the surviving spouse, depending on the objective function being optimized.
 
 #### :material/finance: Monte Carlo
 This page runs a Monte Carlo simulation using time sequences of

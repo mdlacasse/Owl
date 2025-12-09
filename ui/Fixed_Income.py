@@ -55,7 +55,9 @@ else:
         st.markdown(f"Use this [tool](https://ssa.tools/calculator) to get {kz.getCaseKey('iname0')}'s PIA.")
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
-            ret = getIntInput(0, "ssAge_y", "claiming at age...", 67, msg2, max_val=70)
+            kz.initCaseKey("ssAge_m0", 0)
+            maxyear = 70 if kz.getCaseKey("ssAge_m0") == 0 else 69
+            ret = getIntInput(0, "ssAge_y", "claiming at age...", 67, msg2, max_val=maxyear)
         with incol2:
             maxmonth = 0 if ret == 70 else 11
             getIntInput(0, "ssAge_m", "...and month(s)", 0, msg2, max_val=maxmonth, prompt=False)
@@ -66,7 +68,9 @@ else:
             st.markdown(f"Use this [tool](https://ssa.tools/calculator) to get {kz.getCaseKey('iname1')}'s PIA.")
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
-                ret = getIntInput(1, "ssAge_y", "claiming at age...", 67, msg2, max_val=70)
+                kz.initCaseKey("ssAge_m1", 0)
+                maxyear = 70 if kz.getCaseKey("ssAge_m1") == 0 else 69
+                ret = getIntInput(1, "ssAge_y", "claiming at age...", 67, msg2, max_val=maxyear)
             with incol2:
                 maxmonth = 0 if ret == 70 else 11
                 getIntInput(1, "ssAge_m", "...and month(s)", 0, msg2, max_val=maxmonth, prompt=False)
