@@ -1,5 +1,7 @@
+### Version 2025.12.10
 - Added date of birth due to funny social security rules when birthday on 1st and 2nd
 - Modified FRA calculations accordingly 
+- Added integration to ssa.tools
 
 ### Version 2025.12.09
 - Improved instructions for developers
