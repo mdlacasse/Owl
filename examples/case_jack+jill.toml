@@ -4,8 +4,7 @@ Description = "This example aims to demonstrate some of Owl's capabilities. Jack
 ["Basic Info"]
 Status = "married"
 Names = [ "Jack", "Jill",]
-"Birth year" = [ 1962, 1965,]
-"Birth month" = [ 1, 1,]
+"Date of birth" = [ "1962-01-15", "1965-01-15",]
 "Life expectancy" = [ 89, 92,]
 "Start date" = "01-01"
 

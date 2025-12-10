@@ -213,7 +213,7 @@ class Plan(object):
     This is the main class of the Owl Project.
     """
 
-    def __init__(self, inames, yobs, mobs, expectancy, name, *, verbose=False, logstreams=None):
+    def __init__(self, inames, dobs, expectancy, name, *, verbose=False, logstreams=None):
         """
         Constructor requires three lists: the first
         one contains the name(s) of the individual(s),
@@ -249,13 +249,9 @@ class Plan(object):
         # self.setPlotBackend("matplotlib")
         self.setPlotBackend("plotly")
 
-        self.N_i = len(yobs)
+        self.N_i = len(dobs)
         if not (0 <= self.N_i <= 2):
             raise ValueError(f"Cannot support {self.N_i} individuals.")
-        if len(mobs) != len(yobs):
-            raise ValueError("Months and years arrays should have same length.")
-        if min(mobs) < 1 or max(mobs) > 12:
-            raise ValueError("Months must be between 1 and 12.")
         if self.N_i != len(expectancy):
             raise ValueError(f"Expectancy must have {self.N_i} entries.")
         if self.N_i != len(inames):
@@ -268,8 +264,8 @@ class Plan(object):
         # Default year OBBBA speculated to be expired and replaced by pre-TCJA rates.
         self.yOBBBA = 2032
         self.inames = inames
-        self.yobs = np.array(yobs, dtype=np.int32)
-        self.mobs = np.array(mobs, dtype=np.int32)
+        self.yobs, self.mobs, self.tobs = u.parseDobs(dobs)
+        self.dobs = dobs
         self.expectancy = np.array(expectancy, dtype=np.int32)
 
         # Reference time is starting date in the current year and all passings are assumed at the end.
@@ -593,18 +589,29 @@ class Plan(object):
         thisyear = date.today().year
         self.zeta_in = np.zeros((self.N_i, self.N_n))
         for i in range(self.N_i):
+            # Check if age is in bound.
+            bornOnFirstDays = (self.tobs[i] <= 2)
+            bornOnFirst = (self.tobs[i] == 1)
+
+            eligible = 62 if bornOnFirstDays else 62 + 1/12
+            if ages[i] < eligible:
+                self.mylog.vprint(f"Resetting starting age of {self.inames[i]} to {eligible}.")
+                ages[i] = eligible
+
             # Check if claim age added to birth month falls next year.
-            realage = ages[i] + (self.mobs[i] - 1)/12
-            iage = int(realage)
-            realns = iage - thisyear + self.yobs[i]
+            # janage is age with reference to Jan 1 of yob.
+            janage = ages[i] + (self.mobs[i] - 1)/12
+            iage = int(janage)
+            realns = self.yobs[i] + iage - thisyear
             ns = max(0, realns)
             nd = self.horizons[i]
             self.zeta_in[i, ns:nd] = pias[i]
             # Reduce starting year due to month offset. If realns < 0, this has happened already.
             if realns >= 0:
-                self.zeta_in[i, ns] *= 1 - (realage % 1.)
+                self.zeta_in[i, ns] *= 1 - (janage % 1.)
+
             # Increase/decrease PIA due to claiming age.
-            self.zeta_in[i, :] *= socsec.getSelfFactor(fras[i], ages[i])
+            self.zeta_in[i, :] *= socsec.getSelfFactor(fras[i], ages[i], bornOnFirst)
 
             # Add spousal benefits if applicable.
             if self.N_i == 2 and spousalBenefits[i] > 0:
@@ -612,7 +619,7 @@ class Plan(object):
                 claimYear = max(self.yobs + (self.mobs - 1)/12 + ages)
                 claimAge = claimYear - self.yobs[i] - (self.mobs[i] - 1)/12
                 ns2 = max(0, int(claimYear) - thisyear)
-                spousalFactor = socsec.getSpousalFactor(fras[i], claimAge)
+                spousalFactor = socsec.getSpousalFactor(fras[i], claimAge, bornOnFirst)
                 self.zeta_in[i, ns2:nd] += spousalBenefits[i] * spousalFactor
                 # Reduce first year of benefit by month offset.
                 self.zeta_in[i, ns2] -= spousalBenefits[i] * spousalFactor * (claimYear % 1.)
@@ -2698,8 +2705,10 @@ class Plan(object):
         for t in range(self.N_t):
             TxDic[tx.taxBracketNames[t]] = self.T_tn[t, :]
 
-        TxDic["penalty"] = self.P_n
         TxDic["total"] = self.T_n
+        TxDic["NIIT"] = self.J_n
+        TxDic["LTCG"] = self.U_n
+        TxDic["10% penalty"] = self.P_n
 
         sname = "Federal Income Tax"
         ws = wb.create_sheet(sname)

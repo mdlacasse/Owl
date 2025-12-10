@@ -12,17 +12,25 @@ with col1:
     kz.divider("orange")
     st.write("### :material/campaign: News")
     st.markdown("""
-This version :mega: includes:
-- A much improved social security calculator.
-New approach uses the monthly Primary Insurance Amount as reported in
-personal statements issued by the Social Security Administration.
-- Month granularity for birth and fixed-income claiming age. This addition enables
-more accurate calculations for determining benefits and for capturing partial
-year of benefits when social security starts.
+:mega:
+This version includes an improved social security calculator.
+As rules for social security can change depending on which
+specific day of the month an individual is born,
+the full date of birth is now considered in the calculations.
 
-Older case files can be read, but please verify your birth month
-and the `Fixed Income` page to ensure your information is correctly entered
-(Hint: Use `duplicate` for updating birth month).
+:warning:
+**Older case files will generate wrong dates of birth.**
+
+Either edit the *toml* case files to contain the correct dates of birth in the following format.
+```
+"Date of birth" = [ "1962-01-15", "1966-06-23",]
+```
+The current entries for year and month are no longer needed and are ignored.
+Alternatively, you can
+1) `duplicate` the case,
+1) update dates of birth in the interface,
+1) run the case,
+1) and then save the case file on the `Output` page.
 
 As always, please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)

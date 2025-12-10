@@ -4,8 +4,7 @@ Description = "This example reproduces the case of John and Sally, discussed by 
 ["Basic Info"]
 Status = "married"
 Names = [ "John", "Sally",]
-"Birth year" = [ 1962, 1962,]
-"Birth month" = [ 1, 1,]
+"Date of birth" = [ "1962-01-15", "1962-01-15",]
 "Life expectancy" = [ 92, 92,]
 "Start date" = "01-01"
 

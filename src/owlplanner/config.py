@@ -36,8 +36,7 @@ def saveConfig(myplan, file, mylog):
     diconf["Basic Info"] = {
         "Status": ["unknown", "single", "married"][myplan.N_i],
         "Names": myplan.inames,
-        "Birth year": myplan.yobs.tolist(),
-        "Birth month": myplan.mobs.tolist(),
+        "Date of birth": myplan.dobs,
         "Life expectancy": myplan.expectancy.tolist(),
         "Start date": myplan.startDate,
     }
@@ -180,15 +179,13 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     # Basic Info.
     name = diconf["Plan Name"]
     inames = diconf["Basic Info"]["Names"]
-    # status = diconf['Basic Info']['Status']
-    yobs = diconf["Basic Info"]["Birth year"]
-    icount = len(yobs)
-    # Default to January if no month entry found.
-    mobs = diconf["Basic Info"].get("Birth month", [1]*icount)
+    icount = len(inames)
+    # Default to January 15, 1965 if no entry is found.
+    dobs = diconf["Basic Info"].get("Date of birth", ["1965-01-15"]*icount)
     expectancy = diconf["Basic Info"]["Life expectancy"]
     s = ["", "s"][icount - 1]
     mylog.vprint(f"Plan for {icount} individual{s}: {inames}.")
-    p = plan.Plan(inames, yobs, mobs, expectancy, name, verbose=True, logstreams=logstreams)
+    p = plan.Plan(inames, dobs, expectancy, name, verbose=True, logstreams=logstreams)
     p._description = diconf.get("Description", "")
 
     # Assets.

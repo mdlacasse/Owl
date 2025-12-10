@@ -117,8 +117,12 @@ one to create new cases, and the other to create cases from a *case* parameter f
 This page also allows you to duplicate and/or rename scenarios, as well as deleting them.
 
 For creating a scenario from scratch, (first) name(s), marital status,
-birth year(s) amd month(s),
-and life expectancies are required.
+birth date(s), and life expectancies are required.
+The reason for asking the birth date is that social security rules
+have special considerations when born on the first days of the month.
+If you're not born on a 1st or 2nd day of the month, any other day of the
+month will generate the same results.
+
 Plan starts on Jan 1st of this year and ends on December 31st of the year when all individuals
 have passed according to the specified life expectancies.
 

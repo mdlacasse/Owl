@@ -25,19 +25,17 @@ def createPlan():
     name = kz.currentCaseName()
     inames = [kz.getCaseKey("iname0")]
     description = kz.getCaseKey("description")
-    yobs = [kz.getCaseKey("yob0")]
-    mobs = [kz.getCaseKey("mob0")]
+    dobs = [kz.getCaseKey("dob0")]
     life = [kz.getCaseKey("life0")]
     if kz.getCaseKey("status") == "married":
         inames.append(kz.getCaseKey("iname1"))
-        yobs.append(kz.getCaseKey("yob1"))
-        mobs.append(kz.getCaseKey("mob1"))
+        dobs.append(kz.getCaseKey("dob1"))
         life.append(kz.getCaseKey("life1"))
 
     strio = StringIO()
     kz.storeCaseKey("logs", strio)
     try:
-        plan = owl.Plan(inames, yobs, mobs, life, name,
+        plan = owl.Plan(inames, dobs, life, name,
                         verbose=True, logstreams=[strio, strio])
         kz.setCaseKey("plan", plan)
     except Exception as e:
@@ -681,8 +679,7 @@ def genDic(plan):
 
     for i in range(plan.N_i):
         dic["iname" + str(i)] = plan.inames[i]
-        dic["yob" + str(i)] = plan.yobs[i]
-        dic["mob" + str(i)] = plan.mobs[i]
+        dic["dob" + str(i)] = plan.dobs[i]
         dic["life" + str(i)] = plan.expectancy[i]
         dic["ssAge_y" + str(i)] = int(plan.ssecAges[i])
         dic["ssAge_m" + str(i)] = int((plan.ssecAges[i] % 1.) * 12)

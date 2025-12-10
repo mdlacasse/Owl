@@ -1,3 +1,6 @@
+- Added date of birth due to funny social security rules when birthday on 1st and 2nd
+- Modified FRA calculations accordingly 
+
 ### Version 2025.12.09
 - Improved instructions for developers
 - Added link to ssa.tools on `Fixed Income` page

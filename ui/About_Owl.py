@@ -28,7 +28,7 @@ Copyright &copy; 2025 - Martin-D. Lacasse
  Dale Seng (sengsational) for great insights, testing, and suggestions,
  Josh Williams (noimjosh) for Docker image code,
  Gene Wood (gene1wood) for improvements and bug fixes.
-- Greg Grothaus for [ssa.tools](https://ssa.tools).
+- Greg Grothaus for developing [ssa.tools](https://ssa.tools) and providing an integration with Owl.
 - Owl image is from [freepik](https://freepik.com).
 - Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
 - Linear programming optimization solvers are from

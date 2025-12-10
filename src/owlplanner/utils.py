@@ -101,3 +101,27 @@ def roundCents(values, decimals=2):
     arr = np.where((-0.009 < arr) & (arr <= 0), 0, arr)
 
     return arr
+
+
+def parseDobs(dobs):
+    """
+    Parse a list of dates and return int32 arrays of year, months, days.
+    """
+    icount = len(dobs)
+    yobs = []
+    mobs = []
+    tobs = []
+    for i in range(icount):
+        ls = dobs[i].split("-")
+        if len(ls) != 3:
+            raise ValueError(f"Date {dobs[i]} not in ISO format.")
+        if not 1 <= int(ls[1]) <= 12:
+            raise ValueError(f"Month in date {dobs[i]} not valid.")
+        if not 1 <= int(ls[1]) <= 31:
+            raise ValueError(f"Day in date {dobs[i]} not valid.")
+
+        yobs.append(ls[0])
+        mobs.append(ls[1])
+        tobs.append(ls[2])
+
+    return np.array(yobs, dtype=np.int32), np.array(mobs, dtype=np.int32), np.array(tobs, dtype=np.int32)

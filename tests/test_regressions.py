@@ -10,14 +10,13 @@ solver = 'HiGHS'
 
 def test_constructor1():
     inames = ['Joe']
-    yobs = [1961]
-    mobs = [1]
+    dobs = ["1961-01-15"]
     expectancy = [80]
     name = 'test_1'
-    p = owl.Plan(inames, yobs, mobs, expectancy, name)
+    p = owl.Plan(inames, dobs, expectancy, name)
     assert p.inames == inames
-    assert np.array_equal(p.yobs, yobs)
-    assert np.array_equal(p.mobs, mobs)
+    assert np.array_equal(p.dobs, dobs)
+    assert np.array_equal(p.mobs, [1])
     assert np.array_equal(p.expectancy, expectancy)
     assert p.N_i == 1
     assert p._name == name
@@ -25,14 +24,13 @@ def test_constructor1():
 
 def test_constructor1_2():
     inames = ['Joe', 'Jane']
-    yobs = [1961, 1962]
-    mobs = [1, 1]
+    dobs = ["1961-01-15", "1962-01-15"]
     expectancy = [80, 82]
     name = 'test_2'
-    p = owl.Plan(inames, yobs, mobs, expectancy, name)
+    p = owl.Plan(inames, dobs, expectancy, name)
     assert p.inames == inames
-    assert np.array_equal(p.yobs, yobs)
-    assert np.array_equal(p.mobs, mobs)
+    assert np.array_equal(p.dobs, dobs)
+    assert np.array_equal(p.mobs, [1, 1])
     assert np.array_equal(p.expectancy, expectancy)
     assert p.N_i == 2
     assert p._name == name
@@ -47,15 +45,15 @@ def createPlan(ni, name, ny, topAge):
         inames = ['Joe']
         expectancy = [topAge]
         yobs = [thisyear - topAge + ny]
-        mobs = [1]
+        dobs = [f"{yobs[0]}-01-15"]
     else:
         inames = ['Joe', 'Jane']
         # Make Jane pass 2 years before Joe.
         expectancy = [topAge - 2, topAge]
         yobs = [thisyear - topAge + ny, thisyear - topAge + ny]
-        mobs = [1, 1]
+        dobs = [f"{yobs[0]}-01-15", f"{yobs[1]}-01-16"]
 
-    p = owl.Plan(inames, yobs, mobs, expectancy, name)
+    p = owl.Plan(inames, dobs, expectancy, name)
     # Use a flat profile for simplicity.
     p.setSpendingProfile('flat', 100)
 
@@ -64,14 +62,14 @@ def createPlan(ni, name, ny, topAge):
 
 def test_date_1():
     inames = ['Joe', 'Jane']
-    yobs = [1961, 1962]
-    mobs = [1, 1]
+    dobs = ["1961-01-15", "1962-01-16"]
     expectancy = [80, 82]
     name = 'test_3'
-    p = owl.Plan(inames, yobs, mobs, expectancy, name)
+    p = owl.Plan(inames, dobs, expectancy, name)
     assert p.inames == inames
-    assert np.array_equal(p.yobs, yobs)
-    assert np.array_equal(p.mobs, mobs)
+    assert np.array_equal(p.dobs, dobs)
+    assert np.array_equal(p.mobs, [1, 1])
+    assert np.array_equal(p.tobs, [15, 16])
     assert np.array_equal(p.expectancy, expectancy)
     assert p.N_i == 2
     assert p._name == name
@@ -519,10 +517,9 @@ def test_annuity3_2():
 def test_Historical1():
     name = 'historical1'
     inames = ['Joe']
-    yobs = [1962]
-    mobs = [1]
+    dobs = ["1962-01-15"]
     expectancy = [89]
-    p = owl.Plan(inames, yobs, mobs, expectancy, name)
+    p = owl.Plan(inames, dobs, expectancy, name)
     p.setSpendingProfile('smile', 60)
 
     p.setAccountBalances(taxable=[90.5], taxDeferred=[600.2],
@@ -536,10 +533,9 @@ def test_Historical1():
 def test_Historical2():
     name = 'historical2'
     inames = ['Jack', 'Jill']
-    yobs = [1962, 1965]
-    mobs = [1, 1]
+    dobs = ["1962-01-15", "1965-01-16"]
     expectancy = [89, 92]
-    p = owl.Plan(inames, yobs, mobs, expectancy, name)
+    p = owl.Plan(inames, dobs, expectancy, name)
     p.setSpendingProfile('smile', 60)
     p.setAccountBalances(taxable=[90.5, 60], taxDeferred=[600.2, 150],
                          taxFree=[50 + 20.6, 40.8], startDate="1-1")

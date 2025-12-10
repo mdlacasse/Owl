@@ -464,6 +464,20 @@ def getFixedIncome(ni, what):
     return amounts, ages, indexed
 
 
+def getDate(text, nkey, disabled=False, callback=setpull, help=None, min_value=None, max_value=None):
+    return st.date_input(
+        text,
+        value=getCaseKey(nkey),
+        disabled=disabled,
+        min_value=min_value,
+        max_value=max_value,
+        help=help,
+        on_change=callback,
+        args=[nkey],
+        key=genCaseKey(nkey),
+    )
+
+
 def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, min_value=0, max_value=None):
     return st.number_input(
         text,
