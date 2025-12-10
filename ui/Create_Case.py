@@ -44,7 +44,7 @@ elif ret == kz.loadCaseFile:
                 st.rerun()
 else:
     st.write("#### :orange[Description and Life Parameters]")
-    helpmsg = "Case name can be changed by editing it directly."
+    casemsg = "Case name can be changed by editing it directly."
     col1, col2 = st.columns(2, gap="large")
     with col1:
         name = st.text_input(
@@ -53,7 +53,7 @@ else:
             on_change=kz.renameCase,
             args=["caseNewName"],
             key="caseNewName",
-            help=helpmsg,
+            help=casemsg,
         )
 
     diz1 = kz.getCaseKey("plan") is not None
@@ -78,20 +78,26 @@ else:
     description = kz.getLongText("Brief description", "description", help=helpmsg,
                                  placeholder="Enter a brief description...")
 
+    namehelp = "Use first name or just a nick name."
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("iname0", "")
         if kz.getCaseKey("iname0") == "":
             st.info("First name must be provided.")
 
-        iname0 = kz.getText("Your first name", "iname0",
+        iname0 = kz.getText("Your first name", "iname0", help=namehelp,
                             disabled=diz2, placeholder="Enter name...")
 
         if iname0:
+            datemsg = """
+Calculations are the same if you were born any time after the 2nd of the month.
+SS has edge cases for those born on the 1st or the 2nd.
+Ask your favorite AI about it if you're curious.
+"""
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("dob0", "1965-01-15")
-                ret = kz.getDate(f"{iname0}'s date of birth", "dob0", disabled=diz2)
+                ret = kz.getDate(f"{iname0}'s date of birth", "dob0", helpmsg=datemsg, disabled=diz2)
 
             with incol2:
                 kz.initCaseKey("life0", 80)
@@ -103,13 +109,14 @@ else:
             if kz.getCaseKey("iname1") == "":
                 st.info("First name must be provided.")
 
-            iname1 = kz.getText("Your spouse's first name", "iname1", disabled=diz2, placeholder="Enter a name...")
+            iname1 = kz.getText("Your spouse's first name", "iname1", help=namehelp,
+                                disabled=diz2, placeholder="Enter a name...")
 
             if iname1:
                 incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
                 with incol1:
                     kz.initCaseKey("dob1", "1965-01-15")
-                    ret = kz.getDate(f"{iname1}'s date of birth", "dob1", disabled=diz2)
+                    ret = kz.getDate(f"{iname1}'s date of birth", "dob1", helpmsg=datemsg, disabled=diz2)
 
                 with incol2:
                     kz.initCaseKey("life1", 80)
