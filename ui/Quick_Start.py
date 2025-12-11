@@ -1,10 +1,13 @@
 import streamlit as st
+import os
 
 import sskeys as kz
 
+logofile = os.path.join(os.path.dirname(__file__), "../docs/images/owl.png")
+
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col3:
-    st.image("http://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true")
+    st.image(logofile)
     st.caption("Retirement planner with great wisdom")
 with col1:
     st.write("""# :orange[Welcome to Owl - Optimal Wealth Lab]

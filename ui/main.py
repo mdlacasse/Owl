@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 
 import sskeys as kz
 
@@ -8,7 +9,9 @@ st.set_page_config(layout="wide", page_title="Owl Retirement Planner")
 
 kz.init()
 
-st.logo("https://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true", size="large")
+# st.logo("https://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true", size="large")
+logofile = os.path.join(os.path.dirname(__file__), "../docs/images/owl.png")
+st.logo(logofile, size="large")
 
 pages = {
     "Case Setup": [
