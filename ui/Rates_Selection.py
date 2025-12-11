@@ -35,6 +35,7 @@ def updateRates(key):
     else:
         owb.setRates()
 
+
 def initRates():
     if kz.getCaseKey("rateType") == rateChoices[0] and kz.getCaseKey("fixedType") == fixedChoices[0]:
         updateFixedRates(fixedChoices[0], False)
@@ -181,35 +182,35 @@ forecasts for the next decade can be found
         with col2:
             kz.initCaseKey("corr1", 0.0)
             kz.getRateNum("(1,2)", "corr1", ro, step=0.1, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                          min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("diag2", 1.0)
             kz.getRateNum("Corporate Bonds Baa", "diag2", True, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=None)
+                          min_value=-1.0, max_value=1.0, callback=None)
 
         with col3:
             kz.initCaseKey("corr2", 0.0)
             kz.getRateNum("(1,3)", "corr2", ro, step=0.1, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                          min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("corr4", 0.0)
             kz.getRateNum("(2,3)", "corr4", ro, step=0.1, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                          min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("diag3", 1.0)
             kz.getRateNum("10-y Treasury Notes", "diag3", True, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=None)
+                          min_value=-1.0, max_value=1.0, callback=None)
 
         with col4:
             kz.initCaseKey("corr3", 0.0)
             kz.getRateNum("(1,4)", "corr3", ro, step=0.1, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                          min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("corr5", 0.0)
             kz.getRateNum("(2,4)", "corr5", ro, step=0.1, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                          min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("corr6", 0.0)
             kz.getRateNum("(3,4)", "corr6", ro, step=0.1, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                          min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("diag4", 1.0)
             kz.getRateNum("Cash Assets/Inflation", "diag4", True, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=None)
+                          min_value=-1.0, max_value=1.0, callback=None)
 
     st.divider()
     if kz.getCaseKey("rateType") == "varying":

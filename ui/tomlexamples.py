@@ -14,6 +14,7 @@ wages = ["jack+jill", "joe", "john+sally", "jon+jane",
 
 whereami = os.path.dirname(__file__)
 
+
 def loadCaseExample(case):
     file = os.path.join(whereami, f"../examples/case_{case}.toml")
     with open(file, "r") as f:
@@ -30,5 +31,5 @@ def loadWagesExample(case):
         data = f.read()
         return BytesIO(data)
 
-    st.error(f"Failed to load Wages and Contributions file from GitHub: {response.status_code}.")
+    st.error(f"Failed to load Wages and Contributions file case_{case}.xlsx.")
     return None

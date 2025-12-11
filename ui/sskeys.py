@@ -6,7 +6,6 @@ import streamlit as st
 import pandas as pd
 import copy
 import re
-from datetime import date
 
 
 ss = st.session_state
@@ -472,7 +471,7 @@ def getFixedIncome(ni, what):
 
 
 def getDate(text, nkey, disabled=False, callback=setpull, helpmsg=None, min_value=None, max_value=None):
-    date = st.date_input(
+    mydate = st.date_input(
         text,
         value=getCaseKey(nkey),
         disabled=disabled,
@@ -483,7 +482,7 @@ def getDate(text, nkey, disabled=False, callback=setpull, helpmsg=None, min_valu
         args=[nkey],
         key=genCaseKey(nkey),
     )
-    isodate = date.strftime("%Y-%m-%d")
+    isodate = mydate.strftime("%Y-%m-%d")
     setCaseKey(nkey, isodate)
 
     return isodate
@@ -522,7 +521,7 @@ def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.
 
 
 def getRateNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0,
-           max_value=None, format="%.1f", help=None):
+               max_value=None, format="%.1f", help=None):
     return st.number_input(
         text,
         # value=float(getCaseKey(nkey)),
