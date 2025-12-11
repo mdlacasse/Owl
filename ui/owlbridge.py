@@ -218,7 +218,7 @@ def _setRates(plan):
             plan.setRates("historical average", yfrm, yto)
             # Set fxRates back to computed values.
             for j in range(4):
-                kz.storeCaseKey("fxRate" + str(j), 100 * plan.tau_kn[j, -1])
+                kz.pushCaseKey("fxRate" + str(j), 100 * plan.tau_kn[j, -1])
         else:
             plan.setRates(
                 "user",
@@ -243,12 +243,12 @@ def _setRates(plan):
             plan.setRates(varyingType, yfrm, yto)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
-                kz.storeCaseKey("mean" + str(j), 100 * mean[j])
-                kz.storeCaseKey("stdev" + str(j), 100 * stdev[j])
+                kz.pushCaseKey("mean" + str(j), 100 * mean[j])
+                kz.pushCaseKey("stdev" + str(j), 100 * stdev[j])
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1 + 1, plan.N_k):
-                    kz.storeCaseKey("corr" + str(q), corr[k1, k2])
+                    kz.pushCaseKey("corr" + str(q), corr[k1, k2])
                     q += 1
 
         elif varyingType == "stochastic":

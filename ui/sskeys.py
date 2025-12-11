@@ -291,6 +291,12 @@ def storepull(key):
     return storeCaseKey(key, ss[genCaseKey(key)])
 
 
+def pushCaseKey(key, val):
+    ss.cases[ss.currentCase][key] = val
+    ss[genCaseKey(key)] = val
+    return val
+
+
 def setCaseKey(key, val):
     ss.cases[ss.currentCase][key] = val
     flagModified()
@@ -503,6 +509,23 @@ def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.
     return st.number_input(
         text,
         value=float(getCaseKey(nkey)),
+        disabled=disabled,
+        step=step,
+        help=help,
+        min_value=min_value,
+        max_value=max_value,
+        format=format,
+        on_change=callback,
+        args=[nkey],
+        key=genCaseKey(nkey),
+    )
+
+
+def getRateNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0,
+           max_value=None, format="%.1f", help=None):
+    return st.number_input(
+        text,
+        # value=float(getCaseKey(nkey)),
         disabled=disabled,
         step=step,
         help=help,

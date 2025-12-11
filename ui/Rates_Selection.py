@@ -24,7 +24,7 @@ def updateFixedRates(key, pull=True):
 
     rates = FXRATES[fxType]
     for j in range(4):
-        kz.setCaseKey("fxRate" + str(j), rates[j])
+        kz.pushCaseKey("fxRate" + str(j), rates[j])
     owb.setRates()
 
 
@@ -34,7 +34,6 @@ def updateRates(key):
         updateFixedRates(kz.getCaseKey("fixedType"), False)
     else:
         owb.setRates()
-
 
 def initRates():
     if kz.getCaseKey("rateType") == rateChoices[0] and kz.getCaseKey("fixedType") == fixedChoices[0]:
@@ -85,16 +84,16 @@ forecasts for the next decade can be found
 
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
-            kz.getNum("S&P 500", "fxRate0", ro, step=1.0, help=helpmsgSP500, callback=updateRates)
+            kz.getRateNum("S&P 500", "fxRate0", ro, step=1.0, help=helpmsgSP500, callback=updateRates)
 
         with col2:
-            kz.getNum("Corporate Bonds Baa", "fxRate1", ro, step=1.0, callback=updateRates)
+            kz.getRateNum("Corporate Bonds Baa", "fxRate1", ro, step=1.0, callback=updateRates)
 
         with col3:
-            kz.getNum("10-y Treasury Notes", "fxRate2", ro, step=1.0, callback=updateRates)
+            kz.getRateNum("10-y Treasury Notes", "fxRate2", ro, step=1.0, callback=updateRates)
 
         with col4:
-            kz.getNum("Cash Assets/Inflation", "fxRate3", ro, step=1.0, help=helpCash, callback=updateRates)
+            kz.getRateNum("Cash Assets/Inflation", "fxRate3", ro, step=1.0, help=helpCash, callback=updateRates)
 
     elif kz.getCaseKey("rateType") == "varying":
         with col2:
@@ -141,75 +140,75 @@ forecasts for the next decade can be found
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("mean0", 0)
-            kz.getNum("S&P 500", "mean0", ro, step=1.0, help=helpmsgSP500, min_value=-9.0, callback=updateRates)
+            kz.getRateNum("S&P 500", "mean0", ro, step=1.0, help=helpmsgSP500, min_value=-9.0, callback=updateRates)
 
         with col2:
             kz.initCaseKey("mean1", 0)
-            kz.getNum("Corporate Bonds Baa", "mean1", ro, step=1.0, min_value=-9.0, callback=updateRates)
+            kz.getRateNum("Corporate Bonds Baa", "mean1", ro, step=1.0, min_value=-9.0, callback=updateRates)
 
         with col3:
             kz.initCaseKey("mean2", 0)
-            kz.getNum("10-y Treasury Notes", "mean2", ro, step=1.0, min_value=-9.0, callback=updateRates)
+            kz.getRateNum("10-y Treasury Notes", "mean2", ro, step=1.0, min_value=-9.0, callback=updateRates)
 
         with col4:
             kz.initCaseKey("mean3", 0)
-            kz.getNum("Cash Assets/Inflation", "mean3", ro, step=1.0, min_value=-9.0, callback=updateRates)
+            kz.getRateNum("Cash Assets/Inflation", "mean3", ro, step=1.0, min_value=-9.0, callback=updateRates)
 
         st.write("##### Volatility (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("stdev0", 0)
-            kz.getNum("S&P 500", "stdev0", ro, step=1.0, callback=updateRates)
+            kz.getRateNum("S&P 500", "stdev0", ro, step=1.0, callback=updateRates)
 
         with col2:
             kz.initCaseKey("stdev1", 0)
-            kz.getNum("Corporate Bonds Baa", "stdev1", ro, step=1.0, callback=updateRates)
+            kz.getRateNum("Corporate Bonds Baa", "stdev1", ro, step=1.0, callback=updateRates)
 
         with col3:
             kz.initCaseKey("stdev2", 0)
-            kz.getNum("10-y Treasury Notes", "stdev2", ro, step=1.0, callback=updateRates)
+            kz.getRateNum("10-y Treasury Notes", "stdev2", ro, step=1.0, callback=updateRates)
 
         with col4:
             kz.initCaseKey("stdev3", 0)
-            kz.getNum("Cash Assets/Inflation", "stdev3", ro, step=1.0, callback=updateRates)
+            kz.getRateNum("Cash Assets/Inflation", "stdev3", ro, step=1.0, callback=updateRates)
 
         st.write("##### Correlation matrix")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("diag1", 1)
-            kz.getNum("S&P 500", "diag1", True, format="%.2f", callback=None)
+            kz.getRateNum("S&P 500", "diag1", True, format="%.2f", callback=None)
 
         with col2:
             kz.initCaseKey("corr1", 0.0)
-            kz.getNum("(1,2)", "corr1", ro, step=0.1, format="%.2f",
+            kz.getRateNum("(1,2)", "corr1", ro, step=0.1, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("diag2", 1.0)
-            kz.getNum("Corporate Bonds Baa", "diag2", True, format="%.2f",
+            kz.getRateNum("Corporate Bonds Baa", "diag2", True, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=None)
 
         with col3:
             kz.initCaseKey("corr2", 0.0)
-            kz.getNum("(1,3)", "corr2", ro, step=0.1, format="%.2f",
+            kz.getRateNum("(1,3)", "corr2", ro, step=0.1, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("corr4", 0.0)
-            kz.getNum("(2,3)", "corr4", ro, step=0.1, format="%.2f",
+            kz.getRateNum("(2,3)", "corr4", ro, step=0.1, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("diag3", 1.0)
-            kz.getNum("10-y Treasury Notes", "diag3", True, format="%.2f",
+            kz.getRateNum("10-y Treasury Notes", "diag3", True, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=None)
 
         with col4:
             kz.initCaseKey("corr3", 0.0)
-            kz.getNum("(1,4)", "corr3", ro, step=0.1, format="%.2f",
+            kz.getRateNum("(1,4)", "corr3", ro, step=0.1, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("corr5", 0.0)
-            kz.getNum("(2,4)", "corr5", ro, step=0.1, format="%.2f",
+            kz.getRateNum("(2,4)", "corr5", ro, step=0.1, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("corr6", 0.0)
-            kz.getNum("(3,4)", "corr6", ro, step=0.1, format="%.2f",
+            kz.getRateNum("(3,4)", "corr6", ro, step=0.1, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("diag4", 1.0)
-            kz.getNum("Cash Assets/Inflation", "diag4", True, format="%.2f",
+            kz.getRateNum("Cash Assets/Inflation", "diag4", True, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=None)
 
     st.divider()
@@ -226,8 +225,8 @@ forecasts for the next decade can be found
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("divRate", 1.8)
-        helpmsg = "Average annual (qualified) dividend return rate on stock portfolio for income tax purposes."
-        ret = kz.getNum("Dividend rate (%)", "divRate", max_value=100.0, format="%.2f", help=helpmsg, step=1.0)
+        helpmsg = "Average annual (qualified) dividend return rate on stock portfolio in taxable account."
+        ret = kz.getNum("Dividend rate (%)", "divRate", max_value=5.0, format="%.2f", help=helpmsg, step=1.0)
 
     st.write("#####")
     st.write("#### :orange[Income taxes]")
