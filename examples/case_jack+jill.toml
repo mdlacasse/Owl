@@ -23,7 +23,7 @@ Names = [ "Jack", "Jill",]
 "Pension ages" = [ 65, 65,]
 "Pension indexed" = [ false, false,]
 "Social security PIA amounts" = [ 2360, 1642,]
-"Social security ages" = [ 70, 62.083,]
+"Social security ages" = [ 70.000, 62.083,]
 
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 30.0
