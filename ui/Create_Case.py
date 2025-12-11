@@ -12,7 +12,7 @@ if ret == kz.newCase:
     st.info("#### Starting a new case from scratch.\n\n" "A name for the scenario must first be provided.")
     st.text_input(
         "Case name",
-        value="",
+        # value="",
         key="_newcase",
         on_change=kz.createNewCase,
         args=["newcase"],
@@ -48,9 +48,9 @@ else:
     casemsg = "Case name can be changed by editing it directly."
     col1, col2 = st.columns(2, gap="large")
     with col1:
+        kz.storeGlobalKey("caseNewName", kz.currentCaseName())
         name = st.text_input(
             "Case name",
-            value=kz.currentCaseName(),
             on_change=kz.renameCase,
             args=["caseNewName"],
             key="caseNewName",
