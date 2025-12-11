@@ -1,5 +1,6 @@
-import requests
+# import requests
 import streamlit as st
+import os
 from io import StringIO, BytesIO
 
 
@@ -11,21 +12,23 @@ wages = ["jack+jill", "joe", "john+sally", "jon+jane",
          "kim+sam", "charles"]
 
 
+whereami = os.path.dirname(__file__)
+
 def loadCaseExample(case):
-    url = f"https://github.com/mdlacasse/owl/blob/main/examples/case_{case}.toml?raw=true"
-    response = requests.get(url)
-    if response.ok:
-        return StringIO(response.text)
-    else:
-        st.error(f"Failed to load case parameter file from GitHub: {response.status_code}.")
-        return None
+    file = os.path.join(whereami, f"../examples/case_{case}.toml")
+    with open(file, "r") as f:
+        text = f.read()
+        return StringIO(text)
+
+    st.error(f"Failed to load case parameter file: {case}.")
+    return None
 
 
 def loadWagesExample(case):
-    url = f"https://github.com/mdlacasse/owl/blob/main/examples/{case}.xlsx?raw=true"
-    response = requests.get(url)
-    if response.ok:
-        return BytesIO(response.content)
-    else:
-        st.error(f"Failed to load Wages and Contributions file from GitHub: {response.status_code}.")
-        return None
+    file = os.path.join(whereami, f"../examples/case_{case}.xlsx")
+    with open(file, "rb") as f:
+        data = f.read()
+        return BytesIO(data)
+
+    st.error(f"Failed to load Wages and Contributions file from GitHub: {response.status_code}.")
+    return None
