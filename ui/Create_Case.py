@@ -36,7 +36,8 @@ elif ret == kz.loadCaseFile:
 
     with col2:
         st.write("#### :orange[Load a Case Example]")
-        case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None, placeholder="Select a case")
+        case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None,
+                            placeholder="Select an example case")
         if case:
             mystringio = tomlex.loadCaseExample(case)
             if kz.createCaseFromFile(mystringio):

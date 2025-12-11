@@ -22,9 +22,14 @@ def updateFixedRates(key, pull=True):
     else:
         fxType = key
 
-    rates = FXRATES[fxType]
-    for j in range(4):
-        kz.pushCaseKey("fxRate" + str(j), rates[j])
+    if fxType in ["conservative", "optimistic"]:
+        rates = FXRATES[fxType]
+        for j in range(4):
+            kz.pushCaseKey(f"fxRate{j}", rates[j])
+    else:
+        for j in range(4):
+            rname = f"fxRate{j}"
+            kz.pushCaseKey(rname, kz.getCaseKey(rname))
     owb.setRates()
 
 
@@ -37,8 +42,8 @@ def updateRates(key):
 
 
 def initRates():
-    if kz.getCaseKey("rateType") == rateChoices[0] and kz.getCaseKey("fixedType") == fixedChoices[0]:
-        updateFixedRates(fixedChoices[0], False)
+    if kz.getCaseKey("rateType") == "fixed" and kz.getCaseKey("fixedType") != "historical":
+        updateFixedRates(kz.getCaseKey("fixedType"), False)
     else:
         owb.setRates()
     kz.flagModified()
@@ -81,7 +86,7 @@ forecasts for the next decade can be found
         st.write("#### :orange[Fixed Rate Values (%)]")
         rates = FXRATES[fxType]
         for j in range(4):
-            kz.initCaseKey("fxRate" + str(j), rates[j])
+            kz.initCaseKey(f"fxRate{j}", rates[j])
 
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:

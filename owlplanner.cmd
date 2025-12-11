@@ -11,7 +11,7 @@ if ERRORLEVEL 1 (
         exit /B
     ) else (
         echo Hit Ctrl-C to terminate the server.
-        call python3 -m streamlit run main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost
+        call python3 -m streamlit run .\ui\main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost
     )
 ) else (
     echo Hit Ctrl-C to terminate the Streamlit server.

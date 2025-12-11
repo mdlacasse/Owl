@@ -1,5 +1,7 @@
-### Version 2025.12.XX
+### Version 2025.12.11
 - Add more bubble help messages in Create Case
+- Fixed bug in rates selection UI
+- Remove reliance on GitHub for graphics and example files
 
 ### Version 2025.12.10
 - Added date of birth due to funny social security rules when birthday on 1st and 2nd

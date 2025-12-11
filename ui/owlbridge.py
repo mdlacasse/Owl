@@ -218,7 +218,7 @@ def _setRates(plan):
             plan.setRates("historical average", yfrm, yto)
             # Set fxRates back to computed values.
             for j in range(4):
-                kz.pushCaseKey("fxRate" + str(j), 100 * plan.tau_kn[j, -1])
+                kz.pushCaseKey(f"fxRate{j}", 100 * plan.tau_kn[j, -1])
         else:
             plan.setRates(
                 "user",
@@ -243,12 +243,12 @@ def _setRates(plan):
             plan.setRates(varyingType, yfrm, yto)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
-                kz.pushCaseKey("mean" + str(j), 100 * mean[j])
-                kz.pushCaseKey("stdev" + str(j), 100 * stdev[j])
+                kz.pushCaseKey(f"mean{j}", 100 * mean[j])
+                kz.pushCaseKey(f"stdev{j}", 100 * stdev[j])
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1 + 1, plan.N_k):
-                    kz.pushCaseKey("corr" + str(q), corr[k1, k2])
+                    kz.pushCaseKey(f"corr{q}", corr[k1, k2])
                     q += 1
 
         elif varyingType == "stochastic":
@@ -256,10 +256,10 @@ def _setRates(plan):
             stdev = []
             corr = []
             for kk in range(plan.N_k):
-                means.append(kz.getCaseKey("mean" + str(kk)))
-                stdev.append(kz.getCaseKey("stdev" + str(kk)))
+                means.append(kz.getCaseKey(f"mean{kk}"))
+                stdev.append(kz.getCaseKey(f"stdev{kk}"))
             for q in range(1, 7):
-                corr.append(kz.getCaseKey("corr" + str(q)))
+                corr.append(kz.getCaseKey(f"corr{q}"))
             plan.setRates(varyingType, values=means, stdev=stdev, corr=corr)
         else:
             raise RuntimeError("Logic error in setRates()")
@@ -405,7 +405,7 @@ def resetContributions(plan):
 def resetTimeLists():
     tlists = resetContributions()
     for i, iname in enumerate(tlists):
-        kz.setCaseKey("timeList" + str(i), tlists[iname])
+        kz.setCaseKey(f"timeList{i}", tlists[iname])
 
 
 @_checkPlan
@@ -675,19 +675,19 @@ def genDic(plan):
     dic["allocType"] = plan.ARCoord
     dic["timeListsFileName"] = plan.timeListsFileName
     for j1 in range(plan.N_j):
-        dic["benf" + str(j1)] = plan.phi_j[j1]
+        dic[f"benf{j1}"] = plan.phi_j[j1]
 
     for i in range(plan.N_i):
-        dic["iname" + str(i)] = plan.inames[i]
-        dic["dob" + str(i)] = plan.dobs[i]
-        dic["life" + str(i)] = plan.expectancy[i]
-        dic["ssAge_y" + str(i)] = int(plan.ssecAges[i])
-        dic["ssAge_m" + str(i)] = int((plan.ssecAges[i] % 1.) * 12)
-        dic["ssAmt" + str(i)] = plan.ssecAmounts[i]
-        dic["pAge_y" + str(i)] = int(plan.pensionAges[i])
-        dic["pAge_m" + str(i)] = int((plan.pensionAges[i] % 1.) * 12)
-        dic["pAmt" + str(i)] = plan.pensionAmounts[i]
-        dic["pIdx" + str(i)] = plan.pensionIsIndexed[i]
+        dic[f"iname{i}"] = plan.inames[i]
+        dic[f"dob{i}"] = plan.dobs[i]
+        dic[f"life{i}"] = plan.expectancy[i]
+        dic[f"ssAge_y{i}"] = int(plan.ssecAges[i])
+        dic[f"ssAge_m{i}"] = round((plan.ssecAges[i] % 1.) * 12)
+        dic[f"ssAmt{i}"] = plan.ssecAmounts[i]
+        dic[f"pAge_y{i}"] = int(plan.pensionAges[i])
+        dic[f"pAge_m{i}"] = round((plan.pensionAges[i] % 1.) * 12)
+        dic[f"pAmt{i}"] = plan.pensionAmounts[i]
+        dic[f"pIdx{i}"] = plan.pensionIsIndexed[i]
         for j1 in range(plan.N_j):
             dic[accName[j1] + str(i)] = plan.beta_ij[i, j1] / 1000
 
@@ -731,7 +731,7 @@ def genDic(plan):
 
     # Initialize in both cases.
     for k1 in range(plan.N_k):
-        dic["fxRate" + str(k1)] = 100 * plan.rateValues[k1]
+        dic[f"fxRate{k1}"] = 100 * plan.rateValues[k1]
 
     if plan.rateMethod in ["historical average", "histochastic", "historical"]:
         dic["yfrm"] = plan.rateFrm
@@ -744,10 +744,10 @@ def genDic(plan):
     if plan.rateMethod in ["stochastic", "histochastic"]:
         qq = 1
         for k1 in range(plan.N_k):
-            dic["mean" + str(k1)] = 100 * plan.rateValues[k1]
-            dic["stdev" + str(k1)] = 100 * plan.rateStdev[k1]
+            dic[f"mean{k1}"] = 100 * plan.rateValues[k1]
+            dic[f"stdev{k1}"] = 100 * plan.rateStdev[k1]
             for k2 in range(k1 + 1, plan.N_k):
-                dic["corr" + str(qq)] = plan.rateCorr[k1, k2]
+                dic[f"corr{qq}"] = plan.rateCorr[k1, k2]
                 qq += 1
 
     return plan._name, dic

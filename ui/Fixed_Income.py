@@ -61,8 +61,9 @@ to get {iname0}'s PIA.""")
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
             kz.initCaseKey("ssAge_m0", 0)
-            maxyear = 70 if kz.getCaseKey("ssAge_m0") == 0 else 69
-            minyear = 62 if kz.getCaseKey("ssAge_m0") > 0 or specialcase0 else 63
+            m0 = kz.getCaseKey("ssAge_m0")
+            maxyear = 70 if m0 == 0 else 69
+            minyear = 62 if m0 > 0 or specialcase0 else 63
             ret = getIntInput(0, "ssAge_y", "claiming at age...", 67, msg2, min_val=minyear, max_val=maxyear)
         with incol2:
             maxmonth = 0 if ret == 70 else 11
@@ -81,8 +82,9 @@ to get {iname1}'s PIA.""")
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("ssAge_m1", 0)
-                maxyear = 70 if kz.getCaseKey("ssAge_m1") == 0 else 69
-                minyear = 62 if kz.getCaseKey("ssAge_m0") > 0 or specialcase1 else 63
+                m1 = kz.getCaseKey("ssAge_m1")
+                maxyear = 70 if m1 == 0 else 69
+                minyear = 62 if m1 > 0 or specialcase1 else 63
                 ret = getIntInput(1, "ssAge_y", "claiming at age...", 67, msg2, min_val=minyear, max_val=maxyear)
             with incol2:
                 maxmonth = 0 if ret == 70 else 11

@@ -59,7 +59,7 @@ else:
             st.write("#### :orange[Load Example File]")
             st.write("Read associated Wages and Contributions file.")
             helpmsg = "Load associated Wages and Contributions file from GitHub"
-            st.button("Load file from GitHub", help=helpmsg,
+            st.button("Load associated example file", help=helpmsg,
                       on_click=loadWCExample, args=[tomlexcase])
 
     st.divider()

@@ -26,10 +26,10 @@ def loadCaseExample(case):
 
 
 def loadWagesExample(case):
-    file = os.path.join(whereami, f"../examples/case_{case}.xlsx")
+    file = os.path.join(whereami, f"../examples/{case}.xlsx")
     with open(file, "rb") as f:
         data = f.read()
         return BytesIO(data)
 
-    st.error(f"Failed to load Wages and Contributions file case_{case}.xlsx.")
+    st.error(f"Failed to load Wages and Contributions file {case}.xlsx.")
     return None
