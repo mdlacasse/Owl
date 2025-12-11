@@ -29,7 +29,7 @@ The current entries for year and month are no longer needed and are ignored.
 Alternatively, you can
 1) `duplicate` the case,
 1) update dates of birth in the interface,
-1) run the case,
+1) run the case by going to any page under the `Single Scenario` tab,
 1) and then save the case file on the `Output` page.
 
 As always, please report bugs :bug: and suggestions through the
@@ -43,7 +43,7 @@ Take the time to give a :star: on GitHub if you use Owl. That's all you have to 
     st.write("### :material/rocket_launch: Quick Start")
     st.markdown("""
 To respect your privacy, Owl does not store any information related to a case:
-all informattion is lost after a session is closed. For this reason,
+all information is lost after a session is closed. For this reason,
 two ancillary files can be used to store the specifications of a case so that it can be reproduced
 at a later time:
 - A *case* parameter file
