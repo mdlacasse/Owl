@@ -234,12 +234,13 @@ def _setRates(plan):
         if varyingType.startswith("histo"):
             if varyingType == "historical":
                 yfrm2 = min(yfrm, TO - plan.N_n + 1)
-                kz.storeCaseKey("yfrm", yfrm2)
+                kz.pushCaseKey("yfrm", yfrm2)
                 if yfrm != yfrm2:
                     yfrm = yfrm2
                     st.warning(f"Using {yfrm} as starting year.")
                 yto = min(TO, yfrm + plan.N_n - 1)
-                kz.storeCaseKey("yto", yto)
+                kz.pushCaseKey("yto", yto)
+
             plan.setRates(varyingType, yfrm, yto)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):

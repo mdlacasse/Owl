@@ -290,9 +290,14 @@ def storepull(key):
     return storeCaseKey(key, ss[genCaseKey(key)])
 
 
-def pushCaseKey(key, val):
-    ss.cases[ss.currentCase][key] = val
-    ss[genCaseKey(key)] = val
+def pushCaseKey(key, val=None):
+    if val:
+        ss.cases[ss.currentCase][key] = val
+        ss[genCaseKey(key)] = val
+    else:
+        val = ss.cases[ss.currentCase][key]
+        ss[genCaseKey(key)] = val
+
     return val
 
 

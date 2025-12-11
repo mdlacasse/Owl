@@ -119,11 +119,11 @@ forecasts for the next decade can be found
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col3:
             maxValue = owb.TO if kz.getCaseKey("varyingType") == "historical" else kz.getCaseKey("yto") - 1
+            kz.pushCaseKey("yfrm")
             st.number_input(
                 "Starting year",
                 min_value=owb.FROM,
                 max_value=maxValue,
-                value=kz.getCaseKey("yfrm"),
                 on_change=updateRates,
                 args=["yfrm"],
                 key=kz.genCaseKey("yfrm"),
@@ -131,11 +131,11 @@ forecasts for the next decade can be found
 
         with col4:
             ishistorical = kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "historical"
+            kz.pushCaseKey("yto")
             st.number_input(
                 "Ending year",
                 max_value=owb.TO,
                 min_value=kz.getCaseKey("yfrm") + 1,
-                value=kz.getCaseKey("yto"),
                 disabled=ishistorical,
                 on_change=updateRates,
                 args=["yto"],
