@@ -76,6 +76,10 @@ forecasts for the next decade can be found
         kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates)
 
     if kz.getCaseKey("rateType") == "fixed":
+        fxType = kz.getCaseKey("fixedType")
+        if fxType != "historical":
+            updateFixedRates(fxType, False)
+
         with col2:
             fxType = kz.getRadio("Select fixed rates", fixedChoices, "fixedType", updateFixedRates,
                                  help=helpFixed)
