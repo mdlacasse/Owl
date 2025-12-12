@@ -54,10 +54,6 @@ else:
         msg1 = "This is the **monthly** amount at Full Retirement Age (FRA)."
         msg2 = "Starting age of benefits in years and months."
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
-        iname0 = kz.getCaseKey("iname0")
-        st.markdown(f"""Use this
-[tool](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob0}&useridx={iname0})
-to get {iname0}'s PIA.""")
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
             kz.initCaseKey("ssAge_m0", 0)
@@ -75,10 +71,6 @@ to get {iname0}'s PIA.""")
             dob1 = kz.getCaseKey("dob1")
             specialcase1 = dob1.endswith("01") or dob1.endswith("02")
             getIntInput(1, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
-            iname1 = kz.getCaseKey("iname1")
-            st.markdown(f"""Use this
-[tool](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&useridx={iname1})
-to get {iname1}'s PIA.""")
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("ssAge_m1", 0)
@@ -90,6 +82,36 @@ to get {iname1}'s PIA.""")
                 maxmonth = 0 if ret == 70 else 11
                 minmonth = 1 if ret == 62 else 0
                 getIntInput(1, "ssAge_m", "...and month(s)", 0, msg2, min_val=minmonth, max_val=maxmonth, prompt=False)
+
+    col1, col2 = st.columns([.67, .33], gap="large", vertical_alignment="top")
+    with col1:
+        with st.expander("Instructions to obtain your monthly Primary Insurance Amount (PIA)"):
+            st.markdown("""
+The Primary Insurance Amount is the monthly benefit that one would receive at full retirement age.
+It is calculated from the contributions made over the years to the social security program.
+The social security administration (SSA) keeps a record of your earnings, which can be retrieved
+from the SSA [website](https://ssa.gov). To access your own records, you will need to sign up and
+login to their website. Once you have access to your record, you can use the link to ssa.tools below to
+calculate your PIA from your earnings record. This website allows you to include predictions of
+your future earnings (salary and number of years to work) to make better future estimates of your PIA.
+
+Owl's philosophy is to respect the user privacy and not to collect any information at all.
+The ssa.tools developer also follows the same philosophy: it is a safe website that makes
+the calculations within your own browser.
+""")
+
+            col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+            with col1:
+                iname0 = kz.getCaseKey("iname0")
+                st.markdown(f"""Use this
+[tool](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob0}&useridx={iname0})
+to get {iname0}'s PIA.""")
+            if kz.getCaseKey("status") == "married":
+                with col2:
+                    iname1 = kz.getCaseKey("iname1")
+                    st.markdown(f"""Use this
+[tool](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&useridx={iname1})
+to get {iname1}'s PIA.""")
 
     st.divider()
     st.write("#### :orange[Pension]")
