@@ -124,7 +124,8 @@ else:
     st.write("#### :orange[Spending Profile]")
     col1, col2, col3 = st.columns(3, gap="medium", vertical_alignment="top")
     with col1:
-        ret = kz.getRadio("Type of profile", profileChoices, "spendingProfile", callback=owb.setProfile)
+        helpmsg = "Spending can be constant during the duration of the plan or be adjusted for lifestyle."
+        ret = kz.getRadio("Type of profile", profileChoices, "spendingProfile", help=helpmsg, callback=owb.setProfile)
         if kz.getCaseKey("spendingProfile") == "smile":
             helpmsg = "Time in year before spending starts decreasing."
             ret = kz.getIntNum("Smile delay (in years from now)", "smileDelay", max_value=30,

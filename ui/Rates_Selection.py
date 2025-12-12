@@ -65,15 +65,18 @@ else:
 Unless historical, S&P 500 can represent any mix of equities
 (domestic, international, emerging, ...).
 """
+    helpmsgBaa = "Investment-grade corporate debt from issuers with a moderate risk of default."
+    helpmsgTnote = "T-Notes are medium-term, low-risk U.S. government debt, offering state/local tax-exempt interest."
+    helpmsgCash = """Here, "Cash Assets" are TIPS-like securities assumed to track inflation."""
     helpFixed = """A 2025 roundup of expert opinions on stock and bond return
 forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition)."""
-    helpCash = """Here, "Cash Assets" are TIPS-like securities assumed to track inflation."""
 
     st.write("#### :orange[Type of Rates]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates)
+        helpmsg = "Rates can be fixed for the duration of the plan or change annually."
+        kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates, help=helpmsg)
 
     if kz.getCaseKey("rateType") == "fixed":
         fxType = kz.getCaseKey("fixedType")
@@ -97,13 +100,13 @@ forecasts for the next decade can be found
             kz.getRateNum("S&P 500", "fxRate0", ro, step=1.0, help=helpmsgSP500, callback=updateRates)
 
         with col2:
-            kz.getRateNum("Corporate Bonds Baa", "fxRate1", ro, step=1.0, callback=updateRates)
+            kz.getRateNum("Corporate Bonds Baa", "fxRate1", ro, step=1.0, help=helpmsgBaa, callback=updateRates)
 
         with col3:
-            kz.getRateNum("10-y Treasury Notes", "fxRate2", ro, step=1.0, callback=updateRates)
+            kz.getRateNum("10-y Treasury Notes", "fxRate2", ro, step=1.0, help=helpmsgTnote, callback=updateRates)
 
         with col4:
-            kz.getRateNum("Cash Assets/Inflation", "fxRate3", ro, step=1.0, help=helpCash, callback=updateRates)
+            kz.getRateNum("Cash Assets/Inflation", "fxRate3", ro, step=1.0, help=helpmsgCash, callback=updateRates)
 
     elif kz.getCaseKey("rateType") == "varying":
         with col2:
@@ -150,19 +153,22 @@ forecasts for the next decade can be found
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("mean0", 0)
-            kz.getRateNum("S&P 500", "mean0", ro, step=1.0, help=helpmsgSP500, min_value=-9.0, callback=updateRates)
+            kz.getRateNum("S&P 500", "mean0", ro, help=helpmsgSP500, step=1.0, min_value=-9.0, callback=updateRates)
 
         with col2:
             kz.initCaseKey("mean1", 0)
-            kz.getRateNum("Corporate Bonds Baa", "mean1", ro, step=1.0, min_value=-9.0, callback=updateRates)
+            kz.getRateNum("Corporate Bonds Baa", "mean1", ro, help=helpmsgBaa,
+                          step=1.0, min_value=-9.0, callback=updateRates)
 
         with col3:
             kz.initCaseKey("mean2", 0)
-            kz.getRateNum("10-y Treasury Notes", "mean2", ro, step=1.0, min_value=-9.0, callback=updateRates)
+            kz.getRateNum("10-y Treasury Notes", "mean2", ro, step=1.0, help=helpmsgTnote,
+                          min_value=-9.0, callback=updateRates)
 
         with col4:
             kz.initCaseKey("mean3", 0)
-            kz.getRateNum("Cash Assets/Inflation", "mean3", ro, step=1.0, min_value=-9.0, callback=updateRates)
+            kz.getRateNum("Cash Assets/Inflation", "mean3", ro, help=helpmsgCash,
+                          step=1.0, min_value=-9.0, callback=updateRates)
 
         st.write("##### Volatility (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")

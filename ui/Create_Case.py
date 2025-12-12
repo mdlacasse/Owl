@@ -95,14 +95,16 @@ Calculations are the same if you were born any time after the 2nd of the month.
 SS has edge cases for those born on the 1st or the 2nd.
 Ask your favorite AI about it if you're curious.
 """
+            longmsg = """There are good resources for estimating longevity on the internet.
+Look at the documentation for some suggestions."""
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("dob0", "1965-01-15")
-                ret = kz.getDate(f"{iname0}'s date of birth", "dob0", helpmsg=datemsg, disabled=diz2)
+                ret = kz.getDate(f"{iname0}'s date of birth", "dob0", help=datemsg, disabled=diz2)
 
             with incol2:
                 kz.initCaseKey("life0", 80)
-                ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", disabled=diz1)
+                ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", help=longmsg, disabled=diz1)
 
     with col2:
         if kz.getCaseKey("status") == "married":
@@ -117,16 +119,23 @@ Ask your favorite AI about it if you're curious.
                 incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
                 with incol1:
                     kz.initCaseKey("dob1", "1965-01-15")
-                    ret = kz.getDate(f"{iname1}'s date of birth", "dob1", helpmsg=datemsg, disabled=diz2)
+                    ret = kz.getDate(f"{iname1}'s date of birth", "dob1", help=datemsg, disabled=diz2)
 
                 with incol2:
                     kz.initCaseKey("life1", 80)
-                    ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1", disabled=diz1)
+                    ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1", help=longmsg, disabled=diz1)
 
     st.divider()
     cantcreate = kz.isIncomplete() or diz1
     if not cantcreate and kz.getCaseKey("plan") is None:
-        st.info("Plan needs to be created once desired changes are completed.")
+        st.info("""
+Any parameter on this page can now be changed (including the case name).
+Once changes are complete hit the `Create case` button.
+
+After creation, the new case is pre-populated with all
+parameters—including the *Wages and Contributions* table(s)—from the original case.
+You can then modify them independently and compare results in the *Single Scenario* tab."""
+                )
 
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
     cantcopy = cantmodify or kz.caseHasNoPlan()
