@@ -90,28 +90,34 @@ else:
 The Primary Insurance Amount is the monthly benefit that one would receive at full retirement age.
 It is calculated from the contributions made over the years to the social security program.
 The social security administration (SSA) keeps a record of your earnings, which can be retrieved
-from the SSA [website](https://ssa.gov). To access your own records, you will need to sign up and
+from the SSA [website](https://ssa.gov). To access your own earnings record, you will need to sign up and
 login to their website. Once you have access to your record, you can use the link to ssa.tools below to
-calculate your PIA from your earnings record. This website allows you to include predictions of
-your future earnings (salary and number of years to work) to make better future estimates of your PIA.
+calculate your PIA from your data. This website allows you to include predictions of
+your future earnings (salary and number of years to work) to make better estimates of your PIA.
 
 Owl's philosophy is to respect the user privacy and not to collect any information at all.
 The ssa.tools developer also follows the same philosophy: it is a safe website that makes
-the calculations within your own browser.
+the calculations within your own browser. As links will open on another tab in your browser,
+just note the value of your PIA and enter it back on this page.
+
+As the SSA updates its parameters every year, and PIA calculations are always reported in today's $,
+PIA estimates are valid for this whole year only. Therefore, this procedure will need to
+be repeated once again next year.
+
 """)
 
             col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
             with col1:
                 iname0 = kz.getCaseKey("iname0")
-                st.markdown(f"""Use this
-[tool](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob0}&useridx={iname0})
-to get {iname0}'s PIA.""")
+                st.markdown(f"""Click
+[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob0}&useridx={iname0})
+to estimate {iname0}'s PIA.""")
             if kz.getCaseKey("status") == "married":
                 with col2:
                     iname1 = kz.getCaseKey("iname1")
-                    st.markdown(f"""Use this
-[tool](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&useridx={iname1})
-to get {iname1}'s PIA.""")
+                    st.markdown(f"""Click
+[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&useridx={iname1})
+to estimate {iname1}'s PIA.""")
 
     st.divider()
     st.write("#### :orange[Pension]")

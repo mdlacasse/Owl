@@ -30,10 +30,10 @@ Either edit the *toml* case files to contain the correct dates of birth in the f
 ```
 The current entries for year and month are no longer needed and are ignored.
 Alternatively, you can
-1) `duplicate` the case,
-1) update dates of birth in the interface,
-1) run the case by going to any page under the `Single Scenario` tab,
-1) and then save the case file on the `Output` page.
+1) `Duplicate` the case,
+1) update dates of birth in the interface, then `Create` the case,
+1) run the case by going to any page under the **Single Scenario** tab,
+1) and then save the case file on the **Output Files** page.
 
 As always, please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
