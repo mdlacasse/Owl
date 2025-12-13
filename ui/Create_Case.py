@@ -141,8 +141,12 @@ You can then modify them independently and compare results in the *Single Scenar
     cantcopy = cantmodify or kz.caseHasNoPlan()
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
-        st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate)
+        helpmsg = "`Create case` opens up all other pages in the **Case Setup** section."
+        st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate, help=helpmsg)
     with col2:
-        st.button("Duplicate case :material/content_copy:", on_click=kz.duplicateCase, disabled=cantcopy)
+        helpmsg = "`Duplicate case` carries over all parameters to a new case. Hit the `Create case` button once all parameters on this page are right."
+        st.button("Duplicate case :material/content_copy:", on_click=kz.duplicateCase,
+                  disabled=cantcopy, help=helpmsg)
     with col3:
-        st.button("Delete case :material/delete:", on_click=kz.deleteCurrentCase, disabled=cantmodify)
+        helpmsg = ":warning: Caution: The `Delete case` operation cannot be undone."
+        st.button("Delete case :material/delete:", on_click=kz.deleteCurrentCase, disabled=cantmodify, help=helpmsg)
