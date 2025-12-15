@@ -21,6 +21,7 @@ pages = {
         st.Page("Current_Assets.py", icon=":material/savings:"),
         st.Page("Asset_Allocation.py", icon=":material/percent:"),
         st.Page("Rates_Selection.py", icon=":material/monitoring:"),
+        st.Page("Illiquid_Assets.py", icon=":material/home:"),
         st.Page("Optimization_Parameters.py", icon=":material/tune:"),
     ],
     "Single Scenario": [
