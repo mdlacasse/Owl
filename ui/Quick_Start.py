@@ -35,7 +35,7 @@ Alternatively, you can
 1) run the case by going to any page under the **Single Scenario** tab,
 1) and then save the case file on the **Output Files** page.
 
-As always, please report bugs :bug: and suggestions through the
+Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
 or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
 

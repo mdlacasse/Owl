@@ -45,7 +45,7 @@ formulation of the optimization problem can be found
 - [:material/person_add: Create Case](#person-add-create-case)
 - [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
 - [:material/currency_exchange: Fixed Income](#currency-exchange-fixed-income)
-- [:material/savings: Current Assets](#savings-current-assets)
+- [:material/savings: Savings Assets](#savings-current-assets)
 - [:material/percent: Asset Allocation](#percent-asset-allocation)
 - [:material/monitoring: Rates Selection](#monitoring-rates-selection)
 - [:material/tune: Optimization Parameters](#tune-optimization-parameters)
@@ -331,7 +331,7 @@ As for social security, the selected month age, combined with your birth month,
 determines the exact time benefits start in the first year and the total
 annual amount for the first year is adjusted accordingly.
 
-#### :material/savings: Current Assets
+#### :material/savings: Savings Assets
 This page allows to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
