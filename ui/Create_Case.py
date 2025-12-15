@@ -144,7 +144,8 @@ You can then modify them independently and compare results in the *Single Scenar
         helpmsg = "`Create case` opens up all other pages in the **Case Setup** section."
         st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate, help=helpmsg)
     with col2:
-        helpmsg = "`Duplicate case` carries over all parameters to a new case. Hit the `Create case` button once all parameters on this page are right."
+        helpmsg = """`Duplicate case` carries over all parameters to a new case.
+Hit the `Create case` button once all parameters on this page are right."""
         st.button("Duplicate case :material/content_copy:", on_click=kz.duplicateCase,
                   disabled=cantcopy, help=helpmsg)
     with col3:
