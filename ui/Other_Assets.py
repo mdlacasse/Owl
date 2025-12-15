@@ -12,7 +12,7 @@ ret = kz.titleBar(":material/home: Illiquid Assets")
 if True:
     st.write("#### :orange[Assets]")
 
-    alltypes = ["residence", "stocks", "precious metal", "art", "annuity"]
+    alltypes = ["residence", "real estate", "precious metals", "stocks", "collectibles", "annuity"]
 
     df = pd.DataFrame([
                    {"name": "house",

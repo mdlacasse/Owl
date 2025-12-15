@@ -19,7 +19,7 @@ with col1:
 This version is the development version.
 **Not all features might be completely functional at this point.**
 
-As always, please report bugs :bug: and suggestions through the
+Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
 or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
 """)
