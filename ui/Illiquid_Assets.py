@@ -12,20 +12,22 @@ ret = kz.titleBar(":material/home: Illiquid Assets")
 if True:
     st.write("#### :orange[Assets]")
 
-    alltypes = ["residence", "stocks", "precious metal", "art"]
+    alltypes = ["residence", "stocks", "precious metal", "art", "annuity"]
 
     df = pd.DataFrame([
                    {"name": "house",
                     "type": "residence",
-                   "basis": 200,
-                   "value": 500,
-                  "growth": 2,
-                     "yod": 2050}
+                   "basis": 200.0,
+                   "value": 500.0,
+                  "growth": 2.0,
+                     "yod": 2050,
+              "commission": 5.0,}
                       ])
 
     conf = {
         "name": st.column_config.TextColumn(
             "Name of asset",
+            help="Give a unique name to your asset",
             required=True,
         ),
         "type": st.column_config.SelectboxColumn(
@@ -37,31 +39,39 @@ if True:
         ),
         "basis": st.column_config.NumberColumn(
             "basis",
-            help="Enter number in k$",
-            min_value=0,
-            default=0,
-            step=1.,
+            help="Enter cost basis (k$)",
+            min_value=0.0,
+            default=0.0,
+            step=0.1,
         ),
         "value": st.column_config.NumberColumn(
             "value",
-            help="Enter number in k$",
-            default=0,
-            min_value=0,
-            step=1.,
+            help="Enter current value (k$)",
+            default=0.0,
+            min_value=0.0,
+            step=0.1,
         ),
         "growth": st.column_config.NumberColumn(
             "growth",
-            help="Enter growth (%)",
-            default="3",
-            min_value=0,
-            step=.1,
+            help="Enter growth rate (%)",
+            default=3.0,
+            min_value=0.0,
+            step=0.1,
         ),
         "yod": st.column_config.NumberColumn(
             "yod",
-            help="Year of disposition",
+            help="Year of disposition, or time frame (y)",
             min_value=0,
             default=2025,
             step=1,
+        ),
+        "commission": st.column_config.NumberColumn(
+            "commission",
+            help="Sale commission (%)",
+            min_value=0.0,
+            max_value=10.0,
+            default=0.0,
+            step=0.1,
         ),
     }
 

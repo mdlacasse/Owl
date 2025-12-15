@@ -15,31 +15,13 @@ with col1:
     kz.divider("orange")
     st.write("### :material/campaign: News")
     st.markdown("""
-:mega:
-This version includes an improved social security calculator.
-As rules for social security can change depending on which
-specific day of the month an individual is born,
-the full date of birth is now considered in the calculations.
-
 :warning:
-**Older case files will generate wrong dates of birth.**
-
-Either edit the *toml* case files to contain the correct dates of birth in the following format.
-```
-"Date of birth" = [ "1962-01-15", "1966-06-23",]
-```
-The current entries for year and month are no longer needed and are ignored.
-Alternatively, you can
-1) `Duplicate` the case,
-1) update dates of birth in the interface, then `Create` the case,
-1) run the case by going to any page under the **Single Scenario** tab,
-1) and then save the case file on the **Output Files** page.
+This version is the development version.
+**Not all features might be completely functional at this point.**
 
 As always, please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
 or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
-
-Take the time to give a :star: on GitHub if you use Owl. That's all you have to give!
 """)
 
     kz.divider("orange")
