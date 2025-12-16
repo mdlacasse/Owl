@@ -238,7 +238,7 @@ class Rates(object):
                 if corrarr.shape == (Nk, Nk):
                     pass
                 # Only off-diagonal elements were provided: build full matrix.
-                elif corrarr.shape == ((Nk * Nk - Nk) / 2,):
+                elif corrarr.shape == ((Nk * (Nk - 1)) // 2,):
                     newcorr = np.identity(Nk)
                     x = 0
                     for i in range(Nk):

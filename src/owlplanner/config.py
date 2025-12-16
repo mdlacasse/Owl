@@ -10,7 +10,7 @@ Disclaimers: This code is for educational purposes only and does not constitute 
 
 """
 
-import toml as toml
+import toml
 from io import StringIO, BytesIO
 import numpy as np
 from datetime import date
@@ -21,12 +21,13 @@ from owlplanner import mylogging as log
 from owlplanner.rates import FROM, TO
 
 
+AccountTypes = ["taxable", "tax-deferred", "tax-free"]
+
+
 def saveConfig(myplan, file, mylog):
     """
     Save case parameters and return a dictionary containing all parameters.
     """
-    # np.set_printoptions(legacy='1.21')
-    accountTypes = ["taxable", "tax-deferred", "tax-free"]
 
     diconf = {}
     diconf["Plan Name"] = myplan._name
@@ -45,7 +46,7 @@ def saveConfig(myplan, file, mylog):
     diconf["Assets"] = {}
     for j in range(myplan.N_j):
         amounts = myplan.beta_ij[:, j] / 1000
-        diconf["Assets"][f"{accountTypes[j]} savings balances"] = amounts.tolist()
+        diconf["Assets"][f"{AccountTypes[j]} savings balances"] = amounts.tolist()
     if myplan.N_i == 2:
         diconf["Assets"]["Beneficiary fractions"] = myplan.phi_j.tolist()
         diconf["Assets"]["Spousal surplus deposit fraction"] = myplan.eta
@@ -89,7 +90,7 @@ def saveConfig(myplan, file, mylog):
         "Type": myplan.ARCoord,
     }
     if myplan.ARCoord == "account":
-        for accType in accountTypes:
+        for accType in AccountTypes:
             diconf["Asset Allocation"][accType] = myplan.boundsAR[accType]
     else:
         diconf["Asset Allocation"]["generic"] = myplan.boundsAR["generic"]
@@ -145,8 +146,6 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     """
     mylog = log.Logger(verbose, logstreams)
 
-    accountTypes = ["taxable", "tax-deferred", "tax-free"]
-
     dirname = ""
     if isinstance(file, str):
         filename = file
@@ -191,7 +190,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     # Assets.
     startDate = diconf["Basic Info"].get("Start date", "today")
     balances = {}
-    for acc in accountTypes:
+    for acc in AccountTypes:
         balances[acc] = diconf["Assets"][f"{acc} savings balances"]
     p.setAccountBalances(taxable=balances["taxable"], taxDeferred=balances["tax-deferred"],
                          taxFree=balances["tax-free"], startDate=startDate)
@@ -207,8 +206,8 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         if readContributions:
             if os.path.exists(timeListsFileName):
                 myfile = timeListsFileName
-            elif dirname != "" and os.path.exists(dirname + "/" + timeListsFileName):
-                myfile = dirname + "/" + timeListsFileName
+            elif dirname != "" and os.path.exists(os.path.join(dirname, timeListsFileName)):
+                myfile = os.path.join(dirname, timeListsFileName)
             else:
                 raise FileNotFoundError(f"File '{timeListsFileName}' not found.")
             p.readContributions(myfile)
@@ -240,7 +239,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         frm = diconf["Rates Selection"]["From"]
         if not isinstance(frm, int):
             frm = int(frm)
-        to = int(diconf["Rates Selection"]["To"])
+        to = diconf["Rates Selection"]["To"]
         if not isinstance(to, int):
             to = int(to)
     if rateMethod in ["user", "stochastic"]:
@@ -259,7 +258,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     )
     allocType = diconf["Asset Allocation"]["Type"]
     if allocType == "account":
-        for aType in accountTypes:
+        for aType in AccountTypes:
             boundsAR[aType] = np.array(diconf["Asset Allocation"][aType], dtype=np.float32)
 
         p.setAllocationRatios(
@@ -297,7 +296,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     p.solverOptions = diconf["Solver Options"]
 
     # Address legacy case files.
-    if diconf["Solver Options"].get("withMedicare", None) is True:
+    if diconf["Solver Options"].get("withMedicare"):
         p.solverOptions["withMedicare"] = "loop"
 
     # Check consistency of noRothConversions.
@@ -308,7 +307,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     # Rebase startRothConversions on year change.
     thisyear = date.today().year
     year = p.solverOptions.get("startRothConversions", thisyear)
-    diconf["Solver Options"]["startRothConversions"] = max(year, thisyear)
+    p.solverOptions["startRothConversions"] = max(year, thisyear)
 
     # Results.
     p.setDefaultPlots(diconf["Results"]["Default plots"])

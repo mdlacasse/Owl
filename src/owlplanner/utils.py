@@ -70,7 +70,7 @@ def getUnits(units) -> int:
     return fac
 
 
-# Next two functins could be a one-line lambda functions.
+# Next two functions could be a one-line lambda functions.
 # e.g., krond = lambda a, b: 1 if a == b else 0
 def krond(a, b) -> int:
     """
@@ -117,7 +117,7 @@ def parseDobs(dobs):
             raise ValueError(f"Date {dobs[i]} not in ISO format.")
         if not 1 <= int(ls[1]) <= 12:
             raise ValueError(f"Month in date {dobs[i]} not valid.")
-        if not 1 <= int(ls[1]) <= 31:
+        if not 1 <= int(ls[2]) <= 31:
             raise ValueError(f"Day in date {dobs[i]} not valid.")
 
         yobs.append(ls[0])

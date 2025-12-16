@@ -4,12 +4,11 @@ import pandas as pd
 import sskeys as kz
 import owlbridge as owb
 
-ret = kz.titleBar(":material/home: Illiquid Assets")
+ret = kz.titleBar(":material/home: Other Assets")
 
-# if ret is None or kz.caseHasNoPlan():
-    # st.info("Case(s) must be first created before running this page.")
-# else:
-if True:
+if ret is None or kz.caseHasNoPlan():
+    st.info("Case(s) must be first created before running this page.")
+else:
     st.write("#### :orange[Assets]")
 
     alltypes = ["residence", "real estate", "precious metals", "stocks", "collectibles", "annuity"]

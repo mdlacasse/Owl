@@ -25,10 +25,10 @@ Disclaimers: This code is for educational purposes only and does not constitute 
 import numpy as np
 
 
-class Row(object):
+class Row:
     """
-    Solver-neutral API to accomodate Mosek/HiGHS.
-    A Row represent a row in matrix A.
+    Solver-neutral API to accommodate Mosek/HiGHS.
+    A Row represents a row in matrix A.
     """
 
     def __init__(self, nvars):
@@ -58,7 +58,7 @@ class Row(object):
         return self
 
 
-class ConstraintMatrix(object):
+class ConstraintMatrix:
     """
     Solver-neutral API for expressing constraints.
     """
@@ -143,7 +143,7 @@ class ConstraintMatrix(object):
         return Alu, lb, ub
 
 
-class Bounds(object):
+class Bounds:
     """
     Solver-neutral API for bounds on variables.
     """
@@ -214,7 +214,7 @@ class Bounds(object):
         return self.integrality
 
 
-class Objective(object):
+class Objective:
     """
     Solver-neutral objective function.
     """
