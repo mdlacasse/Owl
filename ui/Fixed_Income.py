@@ -85,25 +85,28 @@ else:
 
     col1, col2 = st.columns([.67, .33], gap="large", vertical_alignment="top")
     with col1:
-        with st.expander("Instructions to obtain your monthly Primary Insurance Amount (PIA)"):
+        with st.expander("Instructions for determining your monthly Primary Insurance Amount (PIA)"):
             st.markdown("""
-The Primary Insurance Amount is the monthly benefit that one would receive at full retirement age.
-It is calculated from the contributions made over the years to the social security program.
-The social security administration (SSA) keeps a record of your earnings, which can be retrieved
-from the SSA [website](https://ssa.gov). To access your own earnings record, you will need to sign up and
-login to their website. Once you have access to your record, you can use the link to ssa.tools below to
-calculate your PIA from your data. This website allows you to include predictions of
-your future earnings (salary and number of years to work) to make better estimates of your PIA.
+The Primary Insurance Amount (PIA) is the monthly Social Security benefit you would receive if
+you claim benefits at your full retirement age. It is calculated based on your lifetime
+earnings and the contributions you have made to the Social Security program.
 
-Owl's philosophy is to respect the user privacy and not to collect any information at all.
-The ssa.tools developer also follows the same philosophy: it is a safe website that makes
-the calculations within your own browser. As links will open on another tab in your browser,
-just note the value of your PIA and enter it back on this page.
+The Social Security Administration (SSA) maintains a record of your earnings,
+which you can access through the SSA [website](ssa.gov).
+To view your personal earnings record, you must create an account and sign in.
+Once logged in, you can use the link to ssa.tools below to calculate your PIA using your earnings data.
+This tool also allows you to include projections of future earnings
+(such as expected salary and remaining years of work), resulting in a more accurate estimate of your PIA.
 
-As the SSA updates its parameters every year, and PIA calculations are always reported in today's $,
-PIA estimates are valid for this whole year only. Therefore, this procedure will need to
-be repeated once again next year.
+Owl is designed with a strong commitment to user privacy and does not collect or store any
+personal information. The developer of ssa.tools follows the same philosophy:
+all calculations are performed locally in your browser, and no data is transmitted
+or saved. Since the links will open in a new browser tab,
+simply note your calculated PIA and enter it back on this page.
 
+Because the SSA updates its parameters annually and PIA values are expressed in today’s dollars,
+PIA estimates are valid for the current year only.
+As a result, this process should be repeated each year to maintain accurate estimates.
 """)
 
             col1, col2 = st.columns(2, gap="large", vertical_alignment="top")

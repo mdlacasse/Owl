@@ -1,3 +1,6 @@
+### Version 2025.12.16
+- Fix error message when dates are empty in Create_Case
+- Carry minor fixes from dev version
 
 ### Version 2025.12.11
 - Add more bubble help messages in Create Case

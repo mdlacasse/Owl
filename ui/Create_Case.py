@@ -100,7 +100,8 @@ Look at the documentation for some suggestions."""
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("dob0", "1965-01-15")
-                ret = kz.getDate(f"{iname0}'s date of birth", "dob0", help=datemsg, disabled=diz2)
+                ret = kz.getDate(f"{iname0}'s date of birth", "dob0",
+                                 min_value="1945-01-01", max_value="2000-12-31", help=datemsg, disabled=diz2)
 
             with incol2:
                 kz.initCaseKey("life0", 80)
@@ -119,7 +120,8 @@ Look at the documentation for some suggestions."""
                 incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
                 with incol1:
                     kz.initCaseKey("dob1", "1965-01-15")
-                    ret = kz.getDate(f"{iname1}'s date of birth", "dob1", help=datemsg, disabled=diz2)
+                    ret = kz.getDate(f"{iname1}'s date of birth", "dob1",
+                                     min_value="1945-01-01", max_value="2000-12-31", help=datemsg, disabled=diz2)
 
                 with incol2:
                     kz.initCaseKey("life1", 80)
@@ -128,13 +130,8 @@ Look at the documentation for some suggestions."""
     st.divider()
     cantcreate = kz.isIncomplete() or diz1
     if not cantcreate and kz.getCaseKey("plan") is None:
-        st.info("""
-Any parameter on this page can now be changed (including the case name).
-Once changes are complete hit the `Create case` button.
-
-After creation, the new case is pre-populated with all
-parameters—including the *Wages and Contributions* table(s)—from the original case.
-You can then modify them independently and compare results in the *Single Scenario* tab."""
+        st.info("""Any parameter on this page can be changed (including the case name).
+Once changes are complete hit the `Create case` button."""
                 )
 
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
@@ -144,7 +141,8 @@ You can then modify them independently and compare results in the *Single Scenar
         helpmsg = "`Create case` opens up all other pages in the **Case Setup** section."
         st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate, help=helpmsg)
     with col2:
-        helpmsg = "`Duplicate case` carries over all parameters to a new case. Hit the `Create case` button once all parameters on this page are right."
+        helpmsg = """`Duplicate case` carries over all parameters to a new case.
+Hit the `Create case` button once all parameters on this page are right."""
         st.button("Duplicate case :material/content_copy:", on_click=kz.duplicateCase,
                   disabled=cantcopy, help=helpmsg)
     with col3:

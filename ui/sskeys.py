@@ -487,10 +487,13 @@ def getDate(text, nkey, disabled=False, callback=setpull, help=None, min_value=N
         args=[nkey],
         key=genCaseKey(nkey),
     )
-    isodate = mydate.strftime("%Y-%m-%d")
-    setCaseKey(nkey, isodate)
-
-    return isodate
+    if mydate is None:
+        st.error("A date must be set.")
+        return None
+    else:
+        isodate = mydate.strftime("%Y-%m-%d")
+        setCaseKey(nkey, isodate)
+        return isodate
 
 
 def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, min_value=0, max_value=None):
