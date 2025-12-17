@@ -208,7 +208,7 @@ def _timer(func):
     return wrapper
 
 
-class Plan(object):
+class Plan:
     """
     This is the main class of the Owl Project.
     """
@@ -1185,8 +1185,8 @@ class Plan(object):
                         cgains *= oldTau1
                         # Past years are stored at the end of contributions and conversions arrays.
                         # Use negative index to access tail of array.
+                        # Past years are stored at the end of arrays, accessed via negative indexing
                         rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
-                        # rhs += cgains * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
 
                 self.A.addRow(row, rhs, np.inf)
 
@@ -1474,16 +1474,19 @@ class Plan(object):
                     row1.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), -1)
                     row2.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), +1)
 
+                    # Dividends and interest gains for year n2.
                     afac = (self.mu*self.alpha_ijkn[i, 0, 0, n2]
                             + np.sum(self.alpha_ijkn[i, 0, 1:, n2]*self.tau_kn[1:, n2]))
-                    afac = 0
+
                     row1.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), -afac)
                     row2.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), +afac)
 
                     row1.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), -afac)
                     row2.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), +afac)
 
+                    # Capital gains on stocks sold from taxable account accrued in year n2 - 1.
                     bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, self.tau_kn[0, max(0, n2-1)])
+
                     row1.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), +afac - bfac)
                     row2.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
 
@@ -1888,7 +1891,7 @@ class Plan(object):
             elif vkeys[i] == "fx":
                 x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=Lb[i], upBound=Ub[i])]
             else:
-                raise RuntimeError(f"Internal error: Variable with wierd bound f{vkeys[i]}.")
+                raise RuntimeError(f"Internal error: Variable with weird bound {vkeys[i]}.")
 
         x.extend([pulp.LpVariable(f"z_{i}", cat="Binary") for i in range(self.nbins)])
 
@@ -2250,7 +2253,10 @@ class Plan(object):
         for t in range(self.N_t):
             taxPaid = np.sum(self.T_tn[t], axis=0)
             taxPaidNow = np.sum(self.T_tn[t] / self.gamma_n[:-1], axis=0)
-            tname = tx.taxBracketNames[t]
+            if t >= len(tx.taxBracketNames):
+                tname = f"Bracket {t}"
+            else:
+                tname = tx.taxBracketNames[t]
             dic[f"»  Subtotal in tax bracket {tname}"] = f"{u.d(taxPaidNow)}"
             dic[f"» [Subtotal in tax bracket {tname}]"] = f"{u.d(taxPaid)}"
 

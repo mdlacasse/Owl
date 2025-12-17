@@ -97,13 +97,14 @@ def _condition(dfDict, inames, horizons, mylog):
         missing = []
         for n in range(-5, horizons[i]):
             year = thisyear + n
-            if not (df[df["year"] == year]).any(axis=None):
+            year_rows = df[df["year"] == year]
+            if year_rows.empty:
                 df.loc[len(df)] = [year, 0, 0, 0, 0, 0, 0, 0, 0]
                 missing.append(year)
             else:
                 for item in _timeHorizonItems:
-                    if item != "big-ticket items" and df[item].iloc[n] < 0:
-                        raise ValueError(f"Item {item} for {iname} in year {df['year'].iloc[n]} is < 0.")
+                    if item != "big-ticket items" and year_rows[item].iloc[0] < 0:
+                        raise ValueError(f"Item {item} for {iname} in year {year} is < 0.")
 
         if len(missing) > 0:
             mylog.vprint(f"Adding {len(missing)} missing years for {iname}: {missing}.")

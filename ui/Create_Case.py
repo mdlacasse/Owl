@@ -128,13 +128,8 @@ Look at the documentation for some suggestions."""
     st.divider()
     cantcreate = kz.isIncomplete() or diz1
     if not cantcreate and kz.getCaseKey("plan") is None:
-        st.info("""
-Any parameter on this page can now be changed (including the case name).
-Once changes are complete hit the `Create case` button.
-
-After creation, the new case is pre-populated with all
-parameters—including the *Wages and Contributions* table(s)—from the original case.
-You can then modify them independently and compare results in the *Single Scenario* tab."""
+        st.info("""Any parameter on this page can be changed (including the case name).
+Once changes are complete hit the `Create case` button."""
                 )
 
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
