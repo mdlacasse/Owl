@@ -100,7 +100,8 @@ Look at the documentation for some suggestions."""
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("dob0", "1965-01-15")
-                ret = kz.getDate(f"{iname0}'s date of birth", "dob0", help=datemsg, disabled=diz2)
+                ret = kz.getDate(f"{iname0}'s date of birth", "dob0",
+                                 min_value="1945-01-01", max_value="2000-12-31", help=datemsg, disabled=diz2)
 
             with incol2:
                 kz.initCaseKey("life0", 80)
@@ -119,7 +120,8 @@ Look at the documentation for some suggestions."""
                 incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
                 with incol1:
                     kz.initCaseKey("dob1", "1965-01-15")
-                    ret = kz.getDate(f"{iname1}'s date of birth", "dob1", help=datemsg, disabled=diz2)
+                    ret = kz.getDate(f"{iname1}'s date of birth", "dob1",
+                                     min_value="1945-01-01", max_value="2000-12-31", help=datemsg, disabled=diz2)
 
                 with incol2:
                     kz.initCaseKey("life1", 80)
