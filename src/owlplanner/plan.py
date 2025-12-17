@@ -1474,16 +1474,19 @@ class Plan:
                     row1.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), -1)
                     row2.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), +1)
 
+                    # Dividends and interest gains for year n2.
                     afac = (self.mu*self.alpha_ijkn[i, 0, 0, n2]
                             + np.sum(self.alpha_ijkn[i, 0, 1:, n2]*self.tau_kn[1:, n2]))
-                    # afac = 0
+
                     row1.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), -afac)
                     row2.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), +afac)
 
                     row1.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), -afac)
                     row2.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), +afac)
 
+                    # Capital gains on stocks sold from taxable account accrued in year n2 - 1.
                     bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, self.tau_kn[0, max(0, n2-1)])
+
                     row1.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), +afac - bfac)
                     row2.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
 
