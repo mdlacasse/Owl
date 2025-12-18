@@ -26,7 +26,7 @@ if ret is None or kz.caseHasNoPlan():
 else:
     kz.runOncePerCase(initProfile)
 
-    st.write("#### :orange[Objective]")
+    st.markdown("#### :orange[Objective]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         choices = ["Net spending", "Bequest"]
@@ -44,7 +44,7 @@ else:
             ret = kz.getNum("Desired annual net spending (\\$k)", "netSpending", help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Roth Conversions]")
+    st.markdown("#### :orange[Roth Conversions]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         iname0 = kz.getCaseKey("iname0")
@@ -74,7 +74,7 @@ else:
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Calculations]")
+    st.markdown("#### :orange[Calculations]")
     kz.initCaseKey("withSCLoop", True)
     kz.initCaseKey("xorConstraints", True)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
@@ -90,7 +90,7 @@ else:
                            "xorConstraints", help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Medicare]")
+    st.markdown("#### :orange[Medicare]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         helpmsg = ("How to compute Medicare and IRMAA premiums:"
@@ -112,7 +112,7 @@ else:
                     ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Solver]")
+    st.markdown("#### :orange[Solver]")
     choices = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
     if owb.hasMOSEK():
         choices += ["MOSEK"]
@@ -121,7 +121,7 @@ else:
     ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Spending Profile]")
+    st.markdown("#### :orange[Spending Profile]")
     col1, col2, col3 = st.columns(3, gap="medium", vertical_alignment="top")
     with col1:
         helpmsg = "Spending can be constant during the duration of the plan or be adjusted for lifestyle."

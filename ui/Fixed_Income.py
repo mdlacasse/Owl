@@ -46,7 +46,7 @@ ret = kz.titleBar(":material/currency_exchange: Fixed Income")
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
-    st.write("#### :orange[Social Security]")
+    st.markdown("#### :orange[Social Security]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         dob0 = kz.getCaseKey("dob0")
@@ -123,7 +123,7 @@ to estimate {iname0}'s PIA.""")
 to estimate {iname1}'s PIA.""")
 
     st.divider()
-    st.write("#### :orange[Pension]")
+    st.markdown("#### :orange[Pension]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         getIntInput(0, "pAmt", "**monthly** amount (in today's \\$)", help=msg1)

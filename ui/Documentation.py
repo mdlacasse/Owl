@@ -4,9 +4,9 @@ import sskeys as kz
 
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col1:
-    st.write("# :material/help: Documentation")
+    st.markdown("# :material/help: Documentation")
     kz.divider("orange")
-    st.write("## :orange[Owl Retirement Planner]\n-------")
+    st.markdown("## :orange[Owl Retirement Planner]\n-------")
 with col3:
     st.image("http://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true")
     st.caption("Retirement planner with great wisdom")

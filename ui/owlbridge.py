@@ -286,7 +286,7 @@ def showAllocations(plan):
 def showProfile(plan, col):
     fig = plan.showProfile(figure=True)
     if fig:
-        col.write("#### :orange[Spending Profile]")
+        col.markdown("#### :orange[Spending Profile]")
         renderPlot(fig, col)
 
 
@@ -294,7 +294,7 @@ def showProfile(plan, col):
 def showRates(plan, col):
     fig = plan.showRates(figure=True)
     if fig:
-        col.write("#### :orange[Selected Rates Over Time Horizon]")
+        col.markdown("#### :orange[Selected Rates Over Time Horizon]")
         renderPlot(fig, col)
 
 
@@ -302,7 +302,7 @@ def showRates(plan, col):
 def showRatesCorrelations(plan, col):
     fig = plan.showRatesCorrelations(figure=True)
     if fig:
-        col.write("#### :orange[Correlations Between Return Rates]")
+        col.markdown("#### :orange[Correlations Between Return Rates]")
         renderPlot(fig, col)
 
 
@@ -440,19 +440,19 @@ def plotSingleResults(plan):
     cols = st.columns(n, gap="medium")
     fig = plan.showRates(figure=True)
     if fig:
-        cols[c].write("#### :orange[Annual Rates]")
+        cols[c].markdown("#### :orange[Annual Rates]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showNetSpending(figure=True)
     if fig:
-        cols[c].write("#### :orange[Net Available Spending]")
+        cols[c].markdown("#### :orange[Net Available Spending]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showGrossIncome(figure=True)
     if fig:
-        cols[c].write("#### :orange[Taxable Ordinary Income]")
+        cols[c].markdown("#### :orange[Taxable Ordinary Income]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
@@ -460,19 +460,19 @@ def plotSingleResults(plan):
     # cols = st.columns(n, gap="medium")
     fig = plan.showSources(figure=True)
     if fig:
-        cols[c].write("#### :orange[Raw Income Sources]")
+        cols[c].markdown("#### :orange[Raw Income Sources]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showAccounts(figure=True)
     if fig:
-        cols[c].write("#### :orange[Savings Balance]")
+        cols[c].markdown("#### :orange[Savings Balance]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showTaxes(figure=True)
     if fig:
-        cols[c].write("#### :orange[Federal Taxes and Medicare (+IRMAA)]")
+        cols[c].markdown("#### :orange[Federal Taxes and Medicare (+IRMAA)]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
@@ -480,14 +480,14 @@ def plotSingleResults(plan):
     figs = plan.showAssetComposition(figure=True)
     if figs:
         # st.divider()
-        st.write("#### :orange[Asset Composition]")
+        st.markdown("#### :orange[Asset Composition]")
         col1, col2, _ = st.columns([0.6, 0.2, 0.2], gap="medium")
         for fig in figs:
             if fig:
                 renderPlot(fig, col1)
             else:
-                col1.write("#\n<div style='text-align: center'> This plot is empty </div>",
-                           unsafe_allow_html=True)
+                col1.markdown("#\n<div style='text-align: center'> This plot is empty </div>",
+                              unsafe_allow_html=True)
             # c = (c + 1) % n
 
 
@@ -559,7 +559,7 @@ def showWorkbook(plan):
                 else:
                     colfor[col] = st.column_config.NumberColumn(None, format="%.3f")
 
-        st.write(f"#### :orange[{name}]")
+        st.markdown(f"#### :orange[{name}]")
         st.dataframe(df.astype(str), width="stretch", column_config=colfor, hide_index=True)
 
         if dollars:
@@ -794,11 +794,11 @@ def renderPlot(fig, col=None):
 
     # Add a space below each figure
     if col:
-        # col.write("####")
+        # col.markdown("####")
         col.divider()
     else:
         st.divider()
-        # st.write("####")
+        # st.markdown("####")
 
 
 def version():

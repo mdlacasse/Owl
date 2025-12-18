@@ -630,7 +630,7 @@ def titleBar(txt, allCases=False):
 
     header = st.container()
     # header.title("Here is a sticky header")
-    header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
+    header.markdown("""<div class='fixed-header'/>""", unsafe_allow_html=True)
 
     bc, fc = getColors()
 
@@ -652,7 +652,7 @@ def titleBar(txt, allCases=False):
     with header:
         col1, col2, col3, col4 = st.columns([0.005, 0.6, 0.4, 0.01], gap="small")
         with col2:
-            st.write("## " + txt)
+            st.markdown("## " + txt)
         with col3:
             nkey = txt
             ret = st.selectbox(

@@ -26,7 +26,7 @@ DEFALLOC = [60, 20, 10, 10]
 
 def getIndividualAllocs(i, iname, title, deco):
     mydeco = "j3_" + deco
-    st.write(f"###### {iname}'s {title} allocation for all accounts (%)")
+    st.markdown(f"###### {iname}'s {title} allocation for all accounts (%)")
     cols = st.columns(4, gap="large", vertical_alignment="top")
     for k1 in range(4):
         with cols[k1]:
@@ -36,7 +36,7 @@ def getIndividualAllocs(i, iname, title, deco):
 
 def getAccountAllocs(i, iname, j, title, deco):
     mydeco = f"j{j}_" + deco
-    st.write(f"###### {iname}'s {title} allocation for {ACC[j]} account (%)")
+    st.markdown(f"###### {iname}'s {title} allocation for {ACC[j]} account (%)")
     cols = st.columns(4, gap="large", vertical_alignment="top")
     for k1 in range(4):
         with cols[k1]:
@@ -84,7 +84,7 @@ ret = kz.titleBar(":material/percent: Asset Allocation")
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
-    st.write("#### :orange[Type of Allocation]")
+    st.markdown("#### :orange[Type of Allocation]")
     choices = ["individual", "account"]
     key = "allocType"
     kz.initCaseKey(key, choices[0])
@@ -93,33 +93,33 @@ else:
     st.divider()
     if ret == "individual":
         iname0 = kz.getCaseKey("iname0")
-        st.write(f"#### :orange[Individual Asset Allocation ({iname0})]")
+        st.markdown(f"#### :orange[Individual Asset Allocation ({iname0})]")
         getIndividualAllocs(0, iname0, "initial", "init%")
         getIndividualAllocs(0, iname0, "final", "fin%")
         st.divider()
 
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
-            st.write(f"#### :orange[Individual Asset Allocation ({iname1})]")
+            st.markdown(f"#### :orange[Individual Asset Allocation ({iname1})]")
             getIndividualAllocs(1, iname1, "initial", "init%")
             getIndividualAllocs(1, iname1, "final", "fin%")
             st.divider()
     else:
         iname0 = kz.getCaseKey("iname0")
-        st.write(f"#### :orange[Account Asset Allocation ({iname0})]")
+        st.markdown(f"#### :orange[Account Asset Allocation ({iname0})]")
         for j in range(3):
             getAccountAllocs(0, iname0, j, "initial", "init%")
             getAccountAllocs(0, iname0, j, "final", "fin%")
             st.divider()
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
-            st.write(f"#### :orange[Account Asset Allocation ({iname1})]")
+            st.markdown(f"#### :orange[Account Asset Allocation ({iname1})]")
             for j in range(3):
                 getAccountAllocs(1, iname1, j, "initial", "init%")
                 getAccountAllocs(1, iname1, j, "final", "fin%")
                 st.divider()
 
-    st.write("#### :orange[Interpolation]")
+    st.markdown("#### :orange[Interpolation]")
     choices = ["linear", "s-curve"]
     key = "interpMethod"
     kz.initCaseKey(key, choices[0])

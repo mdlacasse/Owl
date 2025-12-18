@@ -14,10 +14,8 @@ else:
     kz.initCaseKey("histoPlot", None)
     kz.initCaseKey("histoSummary", None)
 
-    st.write(
-        "Generate a histogram of results obtained from backtesting "
-        "current scenario with historical data over selected year range."
-    )
+    st.markdown("""Generate a histogram of results obtained from backtesting
+current scenario with historical data over selected year range.""")
     col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
     with col1:
         st.number_input(

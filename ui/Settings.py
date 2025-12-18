@@ -10,7 +10,7 @@ def setKey(key):
         kz.storeGlobalKey(key, val)
 
 
-st.write("# :material/settings: Settings")
+st.markdown("# :material/settings: Settings")
 kz.divider("orange")
 
 col1, col2, col3 = st.columns(3, gap="large")
@@ -19,7 +19,7 @@ with col1:
     gkey = "plotGlobalBackend"
     # This should point to the default behavior. No point to call back.
     kz.initGlobalKey(gkey, choices[1])
-    st.write("#### :orange[Graph Appearance]")
+    st.markdown("#### :orange[Graph Appearance]")
     helpmsg = "Select the plotting library to use."
     index = choices.index(kz.getGlobalKey(gkey))
     ret = st.radio("Plotting backend", options=choices, index=index, args=[gkey],
@@ -29,7 +29,7 @@ with col2:
     choices = ("sidebar", "top")
     mkey = "menuLocation"
     kz.initGlobalKey(mkey, choices[1])
-    st.write("#### :orange[Menu]")
+    st.markdown("#### :orange[Menu]")
     helpmsg = "Select menu appearance."
     index = choices.index(kz.getGlobalKey(mkey))
     ret = st.radio("Menu location", options=choices, index=index, args=[mkey],
@@ -39,14 +39,14 @@ with col3:
     choices = ("sticky", "static")
     pkey = "position"
     kz.initGlobalKey(pkey, choices[0])
-    st.write("#### :orange[Header]")
+    st.markdown("#### :orange[Header]")
     helpmsg = "Select header behavior."
     index = choices.index(kz.getGlobalKey(pkey))
     ret = st.radio("Header behavior", options=choices, index=index, args=[pkey],
                    key="_"+pkey, on_change=setKey, help=helpmsg, horizontal=True)
 
 st.divider()
-st.write("""
+st.markdown("""
 #### :orange[Full Screen]
 Running Owl in full screen provides a more immersive user experience.
 Use the F11 key to toggle your browser in full screen mode. Or better, use the Streamlit app on your device.
@@ -54,7 +54,7 @@ See [documentation](Documentation#settings-settings) for details.
 """)
 
 st.divider()
-st.write("""
+st.markdown("""
 #### :orange[App Theme]
 The color theme for the whole app can be adjusted using the *Settings* options in the dropdown
 menu under the three dots in the upper right corner of the page. Choose *Light* or *Dark*.

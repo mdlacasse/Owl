@@ -27,7 +27,7 @@ elif ret == kz.loadCaseFile:
     )
     col1, col2 = st.columns(2, gap="large")
     with col1:
-        st.write("#### :orange[Upload Your Own Case File]")
+        st.markdown("#### :orange[Upload Your Own Case File]")
         file = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])
         if file is not None:
             mystringio = StringIO(file.read().decode("utf-8"))
@@ -35,7 +35,7 @@ elif ret == kz.loadCaseFile:
                 st.rerun()
 
     with col2:
-        st.write("#### :orange[Load a Case Example]")
+        st.markdown("#### :orange[Load a Case Example]")
         case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None,
                             placeholder="Select an example case")
         if case:
@@ -44,7 +44,7 @@ elif ret == kz.loadCaseFile:
                 kz.initCaseKey("tomlexcase", case)
                 st.rerun()
 else:
-    st.write("#### :orange[Description and Life Parameters]")
+    st.markdown("#### :orange[Description and Life Parameters]")
     casemsg = "Case name can be changed by editing it directly."
     col1, col2 = st.columns(2, gap="large")
     with col1:

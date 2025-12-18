@@ -10,10 +10,10 @@ with col3:
     st.image(logofile)
     st.caption("Retirement planner with great wisdom")
 with col1:
-    st.write("""# :orange[Welcome to Owl - Optimal Wealth Lab]
+    st.markdown("""# :orange[Welcome to Owl - Optimal Wealth Lab]
 \nA retirement financial exploration tool based on linear programming""")
     kz.divider("orange")
-    st.write("### :material/campaign: News")
+    st.markdown("### :material/campaign: News")
     st.markdown("""
 :warning:
 This version is the development version.
@@ -25,7 +25,7 @@ or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
 """)
 
     kz.divider("orange")
-    st.write("### :material/rocket_launch: Quick Start")
+    st.markdown("### :material/rocket_launch: Quick Start")
     st.markdown("""
 To respect your privacy, Owl does not store any information related to a case:
 all information is lost after a session is closed. For this reason,

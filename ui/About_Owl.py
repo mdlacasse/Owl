@@ -4,13 +4,13 @@ import sskeys as kz
 import owlbridge as owb
 
 
-st.write("# :material/info: About Owl - Optimal Wealth Lab🦉")
+st.markdown("# :material/info: About Owl - Optimal Wealth Lab🦉")
 kz.divider("orange")
 
-st.write(f"This is Owl version {owb.version()} running on Streamlit {st.__version__}.")
+st.markdown(f"This is Owl version {owb.version()} running on Streamlit {st.__version__}.")
 # st.balloons()
 
-st.write(
+st.markdown(
     """
 - Owl is an open-source retirement financial planner capable of optimization through linear programming.
 - Source code is available from a repository on [GitHub](https://github.com/mdlacasse/owl).
