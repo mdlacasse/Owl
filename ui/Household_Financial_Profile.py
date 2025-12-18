@@ -28,24 +28,22 @@ else:
         if original is None or original == "None":
             st.info(
                 f"Case *'{kz.currentCaseName()}'* makes no reference to a Household Financial Profile.\n\n"
-                "You can build your own file by directly filling the table(s) below. "
+                "You can build your own HPF by directly filling the table(s) below. "
                 "Once a case has been successfully run, values can be saved on the **Output Files** page. "
                 "Alternatively, you can start from this Excel "
                 "[template](https://github.com/mdlacasse/Owl/blob/main/examples/template.xlsx?raw=true) "
                 "and upload the file using the widget below."
             )
         elif original != "edited values":
-            st.info(
-                f"Case *'{kz.currentCaseName()}'* refers to file *'{original}'*"
-                " that has not yet been uploaded."
-            )
+            st.info(f"""Case *'{kz.currentCaseName()}'* refers to file *'{original}'*
+that has not yet been uploaded.""")
 
     col1, col2 = st.columns(2, gap="large")
     with col1:
-        st.markdown("#### :orange[Upload a *Household Financial Profile* (HFP)]")
+        st.markdown("#### :orange[Upload *Household Financial Profile* (HFP) Workbook]")
         kz.initCaseKey("_xlsx", 0)
         stTimeLists = st.file_uploader(
-            "Upload values from a HFP file...",
+            "Upload values from a HFP workbook...",
             key="_stTimeLists" + str(kz.getCaseKey("_xlsx")),
             type=["xlsx", "ods"],
         )
@@ -58,10 +56,10 @@ else:
     with col2:
         tomlexcase = kz.getCaseKey("tomlexcase")
         if tomlexcase in tomlex.wages:
-            st.markdown("#### :orange[Load Example HFP File]")
-            st.markdown("Read associated HFP file.")
-            helpmsg = "Load associated HFP file from GitHub"
-            st.button("Load file associated with example case", help=helpmsg,
+            st.markdown("#### :orange[Load Example HFP Workbook]")
+            st.markdown("Read associated HFP workbook.")
+            helpmsg = "Load associated HFP workbook from GitHub"
+            st.button("Load workbook associated with example case", help=helpmsg,
                       on_click=loadWCExample, args=[tomlexcase])
 
     st.divider()
@@ -102,7 +100,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
 
     st.markdown("#### :orange[Debts]")
 
-    debttypes = ["PR mortgage", "mortgage", "loan"]
+    debtTypes = ["PR mortgage", "mortgage", "loan"]
 
     # Just an example
     debtdf = pd.DataFrame([
@@ -110,7 +108,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
                     "type": "PR mortgage",
                     "year": 2020,
                     "term": 15,
-                    "amount": 500.0,
+                    "amount": 200000,
                     "rate": 2.0}
                       ])
 
@@ -125,7 +123,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
             "type of debt",
             help="Select the type of debt from dropdown menu",
             required=True,
-            options=debttypes,
+            options=debtTypes,
         ),
         "year": st.column_config.NumberColumn(
             "start year",
@@ -145,10 +143,11 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         ),
         "amount": st.column_config.NumberColumn(
             "amount",
-            help="Enter original load amount (k$)",
-            default=0.0,
-            min_value=0.0,
-            step=0.1,
+            help="Enter original load amount $",
+            default=0,
+            format="dollar",
+            min_value=0,
+            step=1,
         ),
         "rate": st.column_config.NumberColumn(
             "rate",
@@ -164,15 +163,15 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
     st.divider()
     st.markdown("#### :orange[Fixed Assets]")
 
-    fixedtypes = ["residence", "real estate", "precious metals", "stocks", "collectibles", "annuity"]
+    fixedTypes = ["residence", "real estate", "precious metals", "stocks", "collectibles", "annuity"]
 
     # Just an example
     fixeddf = pd.DataFrame([
                    {"name": "house",
                     "type": "residence",
-                    "basis": 200.0,
-                    "value": 500.0,
-                    "growth": 2.0,
+                    "basis": 250000,
+                    "value": 500000,
+                    "rate": 2.0,
                     "yod": 2050,
                     "commission": 5.0}
                       ])
@@ -188,25 +187,27 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
             help="Select the type of fixed asset from dropdown menu",
             # default=1,
             required=True,
-            options=fixedtypes,
+            options=fixedTypes,
         ),
         "basis": st.column_config.NumberColumn(
             "basis",
-            help="Enter cost basis (k$)",
-            min_value=0.0,
-            default=0.0,
-            step=0.1,
+            help="Enter cost basis $",
+            min_value=0,
+            required=True,
+            format="dollar",
+            step=1,
         ),
         "value": st.column_config.NumberColumn(
             "value",
-            help="Enter current value (k$)",
-            default=0.0,
-            min_value=0.0,
-            step=0.1,
+            help="Enter current value $",
+            default=0,
+            min_value=0,
+            format="dollar",
+            step=1,
         ),
-        "growth": st.column_config.NumberColumn(
-            "growth",
-            help="Enter growth rate (%)",
+        "rate": st.column_config.NumberColumn(
+            "rate",
+            help="Return rate (%)",
             default=3.0,
             min_value=0.0,
             step=0.1,
@@ -215,7 +216,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
             "yod",
             help="Year or time frame for disposition (y)",
             min_value=0,
-            default=2025,
+            required=True,
             step=1,
         ),
         "commission": st.column_config.NumberColumn(

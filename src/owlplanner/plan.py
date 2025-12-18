@@ -337,6 +337,7 @@ class Plan:
         self._adjustedParameters = False
         self.timeListsFileName = "None"
         self.timeLists = {}
+        self.houseLists = {}
         self.zeroContributions()
         self.caseStatus = "unsolved"
         self.rateMethod = None
@@ -913,9 +914,9 @@ class Plan:
         Missing rows (years) are populated with zero values.
         """
         try:
-            filename, self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
+            filename, self.timeLists, self.houseLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
         except Exception as e:
-            raise Exception(f"Unsuccessful read of Wages and Contributions: {e}") from e
+            raise Exception(f"Unsuccessful read of Household Financial Profile: {e}") from e
 
         self.timeListsFileName = filename
         self.setContributions()

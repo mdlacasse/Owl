@@ -38,8 +38,8 @@ case and compares it with other similar cases that ran successfully.""")
         if lines != "":
             st.divider()
             st.markdown("""#### :orange[Case Parameter File]\nThis file contains the parameters
-characterizing the current case and can be used, along with the *Wages and Contributions*
-file, to reproduce it in the future.""")
+characterizing the current case and can be used, along with the *Household Financial Profile*
+workbook, to reproduce it in the future.""")
             st.code(lines, height=400, language="toml")
 
             st.download_button(
@@ -53,8 +53,8 @@ describing the flow of money, the first one as input to the case, and the follow
         col1, col2 = st.columns(2, gap="large")
         with col1:
             download2 = st.download_button(
-                label="Download Wages and Contributions file",
-                help="Download Wages and Contributions as an Excel workbook.",
+                label="Download Household Financial Profile workbook",
+                help="Download Household Financial Profile as an Excel workbook.",
                 data=owb.saveContributions(),
                 file_name=f"{caseName}.xlsx",
                 disabled=kz.isCaseUnsolved(),

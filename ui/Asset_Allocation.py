@@ -26,7 +26,7 @@ DEFALLOC = [60, 20, 10, 10]
 
 def getIndividualAllocs(i, iname, title, deco):
     mydeco = "j3_" + deco
-    st.markdown(f"###### {iname}'s {title} allocation for all accounts (%)")
+    st.markdown(f"###### {iname}'s {title} allocation for all savings accounts (%)")
     cols = st.columns(4, gap="large", vertical_alignment="top")
     for k1 in range(4):
         with cols[k1]:
@@ -88,8 +88,8 @@ else:
     choices = ["individual", "account"]
     key = "allocType"
     kz.initCaseKey(key, choices[0])
-    helpmsg = "Allocation ratios can be equal across all accounts or not."
-    ret = kz.getRadio("Asset allocation method", choices, key, help=helpmsg)
+    helpmsg = "Allocation ratios can be equal across all individual's savings accounts or not."
+    ret = kz.getRadio("Savings asset allocation method", choices, key, help=helpmsg)
     st.divider()
     if ret == "individual":
         iname0 = kz.getCaseKey("iname0")
