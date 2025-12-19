@@ -423,7 +423,7 @@ def resetTimeLists():
     #               pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"]))
 
 
-@_checkPlan
+# @_checkPlan
 def syncHouseLists(plan):
     """
     Sync houseLists from UI case keys to Plan object.
