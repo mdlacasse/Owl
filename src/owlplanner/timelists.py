@@ -62,8 +62,8 @@ _fixedAssetItems = [
 
 
 _fixedAssetTypes = [
-    "annuity",
     "collectibles",
+    "fixed annuity",
     "precious metals",
     "real estate",
     "residence",

@@ -115,7 +115,7 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
         # Calculate gain (or loss)
         gain = proceeds - basis
 
-        if asset_type == "annuity":
+        if asset_type == "fixed annuity":
             # Annuities are taxed as ordinary income
             if gain > 0:
                 ordinary_income_n[n] += gain

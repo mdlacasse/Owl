@@ -82,10 +82,10 @@ class TestGetFixedAssetsArrays:
         assert np.all(tax_free == 0)
 
     def test_annuity_asset(self):
-        """Test annuity asset (ordinary income)."""
+        """Test fixed annuity asset (ordinary income)."""
         df = pd.DataFrame([{
             "name": "annuity",
-            "type": "annuity",
+            "type": "fixed annuity",
             "basis": 100000,
             "value": 120000,
             "rate": 3.0,
@@ -332,7 +332,7 @@ class TestGetFixedAssetsArrays:
             },
             {
                 "name": "annuity",
-                "type": "annuity",
+                "type": "fixed annuity",
                 "basis": 50000,
                 "value": 60000,
                 "rate": 0.0,
