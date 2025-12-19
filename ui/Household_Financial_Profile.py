@@ -129,7 +129,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
             "start year",
             help="Enter the origination year",
             min_value=1950,
-            max_value=thisyear-1,
+            # max_value=thisyear-1,
             required=True,
             step=1,
         ),

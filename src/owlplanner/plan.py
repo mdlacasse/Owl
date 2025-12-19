@@ -2396,6 +2396,11 @@ class Plan:
         dic[" Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
         dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
 
+        totDebtPayments = np.sum(self.debt_payments_n, axis=0)
+        totDebtPaymentsNow = np.sum(self.debt_payments_n / self.gamma_n[:-1], axis=0)
+        dic[" Total debt payments"] = f"{u.d(totDebtPaymentsNow)}"
+        dic["[Total debt payments]"] = f"{u.d(totDebtPayments)}"
+
         if self.N_i == 2 and self.n_d < self.N_n:
             p_j = self.partialEstate_j * (1 - self.phi_j)
             p_j[1] *= 1 - self.nu
@@ -2430,9 +2435,11 @@ class Plan:
         estate[1] *= 1 - self.nu
         endyear = self.year_n[-1]
         lyNow = 1./self.gamma_n[-1]
-        totEstate = np.sum(estate)
+        debts = self.remaining_debt_balance
+        totEstate = np.sum(estate) - debts
         dic["Year of final bequest"] = (f"{endyear}")
         dic[" Total value of final bequest"] = (f"{u.d(lyNow*totEstate)}")
+        dic[" After paying remaining debts"] = (f"{u.d(lyNow*debts)}")
         dic["[Total value of final bequest]"] = (f"{u.d(totEstate)}")
         dic["»  Post-tax final bequest account value - taxable"] = (f"{u.d(lyNow*estate[0])}")
         dic["» [Post-tax final bequest account value - taxable]"] = (f"{u.d(estate[0])}")
@@ -2440,6 +2447,7 @@ class Plan:
         dic["» [Post-tax final bequest account value - tax-def]"] = (f"{u.d(estate[1])}")
         dic["»  Post-tax final bequest account value - tax-free"] = (f"{u.d(lyNow*estate[2])}")
         dic["» [Post-tax final bequest account value - tax-free]"] = (f"{u.d(estate[2])}")
+        dic["» [Remaining debt balance]"] = (f"{u.d(debts)}")
 
         dic["Plan starting date"] = str(self.startDate)
         dic["Cumulative inflation factor at end of final year"] = (f"{self.gamma_n[-1]:.2f}")
