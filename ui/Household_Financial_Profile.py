@@ -215,7 +215,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         ),
         "yod": st.column_config.NumberColumn(
             "yod",
-            help="Year or time frame for disposition (y)",
+            help="Year of disposition (y)",
             min_value=0,
             required=True,
             step=1,

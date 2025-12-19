@@ -159,3 +159,56 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
                 tax_free_n[n] += proceeds
 
     return tax_free_n, ordinary_income_n, capital_gains_n
+
+
+def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
+    """
+    Calculate the total bequest value from fixed assets that have a yod
+    (year of disposition) past the end of the plan. These assets are assumed
+    to be liquidated at the end of the plan and added to the bequest.
+
+    Parameters:
+    -----------
+    fixed_assets_df : pd.DataFrame
+        DataFrame with columns: name, type, basis, value, rate, yod, commission
+    N_n : int
+        Number of years in the plan
+    thisyear : int, optional
+        Starting year of the plan (defaults to date.today().year)
+
+    Returns:
+    --------
+    float
+        Total proceeds (after commission) from assets liquidated at end of plan.
+        This represents the total value added to the bequest. No taxes are applied
+        as assets are assumed to pass to heirs with step-up in basis.
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+
+    if fixed_assets_df is None or fixed_assets_df.empty:
+        return 0.0
+
+    years_to_end = N_n - 1  # Years from start to end of plan
+    total_bequest_value = 0.0
+
+    for _, asset in fixed_assets_df.iterrows():
+        yod = int(asset["yod"])  # Year of disposition
+
+        # Only consider assets with yod past the end of the plan
+        if yod >= thisyear + N_n:
+            current_value = float(asset["value"])
+            annual_rate = float(asset["rate"])
+            commission_pct = float(asset["commission"]) / 100.0
+
+            # Calculate future value at the end of the plan
+            future_value = calculate_future_value(current_value, annual_rate, years_to_end)
+
+            # Calculate proceeds after commission
+            commission_amount = future_value * commission_pct
+            proceeds = future_value - commission_amount
+
+            # Add to total bequest value (full proceeds, no tax)
+            total_bequest_value += proceeds
+
+    return total_bequest_value

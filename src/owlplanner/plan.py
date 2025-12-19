@@ -321,6 +321,8 @@ class Plan:
         self.fixed_assets_tax_free_n = np.zeros(self.N_n)
         self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
         self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
+        # Fixed assets bequest value (assets with yod past plan end)
+        self.fixed_assets_bequest_value = 0.0
 
         # Remaining debt balance at end of plan
         self.remaining_debt_balance = 0.0
@@ -990,10 +992,15 @@ class Plan:
              self.fixed_assets_capital_gains_n) = fxasst.get_fixed_assets_arrays(
                 self.houseLists["Fixed Assets"], self.N_n, thisyear, filing_status
             )
+            # Calculate bequest value for assets with yod past plan end
+            self.fixed_assets_bequest_value = fxasst.get_fixed_assets_bequest_value(
+                self.houseLists["Fixed Assets"], self.N_n, thisyear
+            )
         else:
             self.fixed_assets_tax_free_n = np.zeros(self.N_n)
             self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
             self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
+            self.fixed_assets_bequest_value = 0.0
 
     def saveContributions(self):
         """
@@ -1332,12 +1339,18 @@ class Plan:
             else:
                 bequest = 1
 
+            # Adjust desired bequest for fixed assets and remaining debts
+            # Total bequest = accounts - debts + fixed_assets
+            # So: accounts >= desired_bequest - fixed_assets + debts
+            total_bequest_value = (bequest - self.fixed_assets_bequest_value
+                                   + self.remaining_debt_balance)
+
             row = self.A.newRow()
             for i in range(self.N_i):
                 row.addElem(_q3(self.C["b"], i, 0, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
                 row.addElem(_q3(self.C["b"], i, 1, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1 - self.nu)
                 row.addElem(_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
-            self.A.addRow(row, bequest, bequest)
+            self.A.addRow(row, total_bequest_value, total_bequest_value)
         elif objective == "maxBequest":
             spending = options["netSpending"]
             if not isinstance(spending, (int, float)):
@@ -2436,10 +2449,14 @@ class Plan:
         endyear = self.year_n[-1]
         lyNow = 1./self.gamma_n[-1]
         debts = self.remaining_debt_balance
-        totEstate = np.sum(estate) - debts
+        # Add fixed assets bequest value (assets with yod past plan end)
+        totEstate = np.sum(estate) - debts + self.fixed_assets_bequest_value
         dic["Year of final bequest"] = (f"{endyear}")
         dic[" Total value of final bequest"] = (f"{u.d(lyNow*totEstate)}")
         dic[" After paying remaining debts of"] = (f"{u.d(lyNow*debts)}")
+        if self.fixed_assets_bequest_value > 0:
+            dic[" Fixed assets liquidated at end of plan"] = (f"{u.d(lyNow*self.fixed_assets_bequest_value)}")
+            dic["[Fixed assets liquidated at end of plan]"] = (f"{u.d(self.fixed_assets_bequest_value)}")
         dic["[Total value of final bequest]"] = (f"{u.d(totEstate)}")
         dic["»  Post-tax final bequest account value - taxable"] = (f"{u.d(lyNow*estate[0])}")
         dic["» [Post-tax final bequest account value - taxable]"] = (f"{u.d(estate[0])}")
@@ -3054,8 +3071,8 @@ def _formatDebtsSheet(ws):
             # Integer format
             fstring = "#,##0"
         elif col_name in ["rate"]:
-            # Number format (1 decimal place for percentages stored as numbers)
-            fstring = "#,##0.0"
+            # Number format (2 decimal places for percentages stored as numbers)
+            fstring = "#,##0.00"
         elif col_name in ["amount"]:
             # Currency format
             fstring = "$#,##0_);[Red]($#,##0)"
@@ -3100,7 +3117,7 @@ def _formatFixedAssetsSheet(ws):
             fstring = "#,##0"
         elif col_name in ["rate", "commission"]:
             # Number format (1 decimal place for percentages stored as numbers)
-            fstring = "#,##0.0"
+            fstring = "#,##0.00"
         elif col_name in ["basis", "value"]:
             # Currency format
             fstring = "$#,##0_);[Red]($#,##0)"
