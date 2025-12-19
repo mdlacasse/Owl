@@ -21,6 +21,10 @@ else:
     if kz.getCaseKey("timeList0") is None:
         kz.runOncePerCase(owb.resetTimeLists)
     kz.initCaseKey("stTimeLists", None)
+    # Initialize houseLists if they don't exist
+    kz.initCaseKey("houseListDebts", pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"]))
+    kz.initCaseKey("houseListFixedAssets", pd.DataFrame(columns=["name", "type", "basis",
+                                                                 "value", "rate", "yod", "commission"]))
     n = 2 if kz.getCaseKey("status") == "married" else 1
 
     if kz.getCaseKey("stTimeLists") is None:
@@ -102,15 +106,10 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
 
     debtTypes = ["PR mortgage", "mortgage", "loan"]
 
-    # Just an example
-    debtdf = pd.DataFrame([
-                   {"name": "mortgage",
-                    "type": "PR mortgage",
-                    "year": 2020,
-                    "term": 15,
-                    "amount": 200000,
-                    "rate": 2.0}
-                      ])
+    # Get existing debts or create empty DataFrame
+    debtdf = kz.getCaseKey("houseListDebts")
+    if debtdf is None or debtdf.empty:
+        debtdf = pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"])
 
     thisyear = date.today().year
     debtconf = {
@@ -158,23 +157,23 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         )
     }
 
-    edited_df = st.data_editor(debtdf, column_config=debtconf, num_rows="dynamic", hide_index=True)
+    edited_debtdf = st.data_editor(debtdf, column_config=debtconf, num_rows="dynamic", hide_index=True)
+
+    # Store edited debts if changed
+    if not debtdf.equals(edited_debtdf):
+        edited_debtdf.fillna(0, inplace=True)
+        kz.setCaseKey("houseListDebts", edited_debtdf)
+        st.rerun()
 
     st.divider()
     st.markdown("#### :orange[Fixed Assets]")
 
     fixedTypes = ["residence", "real estate", "precious metals", "stocks", "collectibles", "annuity"]
 
-    # Just an example
-    fixeddf = pd.DataFrame([
-                   {"name": "house",
-                    "type": "residence",
-                    "basis": 250000,
-                    "value": 500000,
-                    "rate": 2.0,
-                    "yod": 2050,
-                    "commission": 5.0}
-                      ])
+    # Get existing fixed assets or create empty DataFrame
+    fixeddf = kz.getCaseKey("houseListFixedAssets")
+    if fixeddf is None or fixeddf.empty:
+        fixeddf = pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"])
 
     fixedconf = {
         "name": st.column_config.TextColumn(
@@ -229,4 +228,10 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         ),
     }
 
-    edited_df = st.data_editor(fixeddf, column_config=fixedconf, num_rows="dynamic", hide_index=True)
+    edited_fixeddf = st.data_editor(fixeddf, column_config=fixedconf, num_rows="dynamic", hide_index=True)
+
+    # Store edited fixed assets if changed
+    if not fixeddf.equals(edited_fixeddf):
+        edited_fixeddf.fillna(0, inplace=True)
+        kz.setCaseKey("houseListFixedAssets", edited_fixeddf)
+        st.rerun()

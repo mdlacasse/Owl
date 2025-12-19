@@ -349,7 +349,7 @@ def _setContributions(plan, action):
     try:
         plan.readContributions(dicDf)
     except Exception as e:
-        st.error(f"Failed to parse Wages and Contributions: {e}")
+        st.error(f"Failed to parse Household Financial Profile Workbook: {e}")
         return False
 
     if action == "copy":
@@ -364,6 +364,9 @@ def _setContributions(plan, action):
 
     plan.timeListsFileName = "edited values"
 
+    # Sync houseLists from UI to Plan
+    syncHouseLists(plan)
+
 
 @_checkPlan
 def readContributions(plan, stFile, file=None):
@@ -376,7 +379,7 @@ def readContributions(plan, stFile, file=None):
     try:
         plan.readContributions(stFile)
     except Exception as e:
-        st.error(f"Failed to parse Wages and Contributions file 'stFile.name': {e}")
+        st.error(f"Failed to parse Household Financial Profile Workbook'stFile.name': {e}")
         return False
 
     if file:
@@ -393,6 +396,11 @@ def readContributions(plan, stFile, file=None):
     if kz.getCaseKey("status") == "married":
         kz.setCaseKey("timeList1", plan.timeLists[kz.getCaseKey("iname1")])
         kz.setCaseKey("_timeList1", plan.timeLists[kz.getCaseKey("iname1")])
+
+    # Store houseLists (Debts and Fixed Assets). These are guaranteed to be present in the plan object.
+    kz.setCaseKey("houseListDebts", plan.houseLists["Debts"])
+    kz.setCaseKey("houseListFixedAssets", plan.houseLists["Fixed Assets"])
+
     plan.timeListsFileName = name
 
     return True
@@ -407,6 +415,35 @@ def resetTimeLists():
     tlists = resetContributions()
     for i, iname in enumerate(tlists):
         kz.setCaseKey(f"timeList{i}", tlists[iname])
+
+    # Reset houseLists to empty DataFrames
+    # kz.setCaseKey("houseListDebts",
+    #               pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"]))
+    # kz.setCaseKey("houseListFixedAssets",
+    #               pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"]))
+
+
+@_checkPlan
+def syncHouseLists(plan):
+    """
+    Sync houseLists from UI case keys to Plan object.
+    """
+    plan.houseLists = {}
+    debts = kz.getCaseKey("houseListDebts")
+    fixedAssets = kz.getCaseKey("houseListFixedAssets")
+
+    if debts is not None:
+        plan.houseLists["Debts"] = debts.copy()
+    else:
+        plan.houseLists["Debts"] = pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"])
+
+    if fixedAssets is not None:
+        plan.houseLists["Fixed Assets"] = fixedAssets.copy()
+    else:
+        plan.houseLists["Fixed Assets"] = pd.DataFrame(columns=["name", "type", "basis", "value",
+                                                                "rate", "yod", "commission"])
+
+    return True
 
 
 @_checkPlan

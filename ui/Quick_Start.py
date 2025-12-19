@@ -35,11 +35,13 @@ at a later time:
 specifying account balances, asset allocation, social security and pension, rates,
 optimization parameters and related assumptions.
 This file is in *toml* format which is editable with a simple text editor.
-- A *Wages and Contributions* file containing a
-time table with anticipated wages, future contributions
+- A *Household Financial Profile* Workbook containing
+a time table for each individual with anticipated wages, future contributions
 to savings accounts, Roth conversions and contributions for future and last five years,
 and anticipated big-ticket items, which can be either expenses or income.
-This file is in Excel or LibreOffice format, and has one tab per individual in the plan.
+Two other optional sheets describe debts and fixed assets respectively.
+This file is in Excel or LibreOffice format, and must have one tab per individual in the plan,
+and optionally one for the household debts, and one for fixed assets.
 If no file is provided, values will default to zero, but these values can be edited in the app.
 
 With these two files, a scenario can be created and solved with only a few steps. We will use the case
@@ -49,15 +51,15 @@ of Jack and Jill provided here as an example:
     - *Case* parameter file named
     [case_jack+jill.toml](https://github.com/mdlacasse/Owl/blob/main/examples/case_jack+jill.toml?raw=true)
     in editable *toml* format.
-    - *Wages and Contributions* file named
+    - *Household FInancial Profile* workbook named
     [jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/jack+jill.xlsx?raw=true)
     in Excel format.
 1) Navigate to the **Create Case** page and drag and drop the case parameter file
 you just downloaded (*case_jack+jill.toml*).
 Alternatively, you can directly select the case of *jack+jill* among the GitHub examples.
-1) Navigate to the **Wages and Contributions** page and
-drag and drop the *Wages and Contributions* file you downloaded (*jack+jill.xlsx*).
-Alternatively, you can directly load the *Wages and Contributions* file from GitHub using the marked button.
+1) Navigate to the **Household Financial Profile** page and
+drag and drop the *Household Financial Profile* workbook you downloaded (*jack+jill.xlsx*).
+Alternatively, you can load the *Household Financial Profile* workbook directly by using the marked button.
 1) Move to any page in the **Single Scenario** section to browse the simulation results.
 
 Congratulations! :balloon: You just ran your first case.

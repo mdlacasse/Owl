@@ -30,6 +30,8 @@ from . import rates
 from . import config
 from . import timelists
 from . import socialsecurity as socsec
+from . import debts as debts
+from . import fixedassets as fxasst
 from . import mylogging as log
 from . import progress
 from .plotting.factory import PlotFactory
@@ -311,6 +313,17 @@ class Plan:
         # Go back 5 years for maturation rules on IRA and Roth.
         self.myRothX_in = np.zeros((self.N_i, self.N_n + 5))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n + 5))
+
+        # Debt payments array (length N_n)
+        self.debt_payments_n = np.zeros(self.N_n)
+
+        # Fixed assets arrays (length N_n)
+        self.fixed_assets_tax_free_n = np.zeros(self.N_n)
+        self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
+        self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
+
+        # Remaining debt balance at end of plan
+        self.remaining_debt_balance = 0.0
 
         # Previous 2 years of MAGI needed for Medicare.
         self.prevMAGI = np.zeros((2))
@@ -950,6 +963,38 @@ class Plan:
 
         return self.timeLists
 
+    def processDebtsAndFixedAssets(self):
+        """
+        Process debts and fixed assets from houseLists and populate arrays.
+        Should be called after setContributions() and before solve().
+        """
+        thisyear = date.today().year
+
+        # Process debts
+        if "Debts" in self.houseLists and not self.houseLists["Debts"].empty:
+            self.debt_payments_n = debts.get_debt_payments_array(
+                self.houseLists["Debts"], self.N_n, thisyear
+            )
+            self.remaining_debt_balance = debts.get_remaining_debt_balance(
+                self.houseLists["Debts"], self.N_n, thisyear
+            )
+        else:
+            self.debt_payments_n = np.zeros(self.N_n)
+            self.remaining_debt_balance = 0.0
+
+        # Process fixed assets
+        if "Fixed Assets" in self.houseLists and not self.houseLists["Fixed Assets"].empty:
+            filing_status = "married" if self.N_i == 2 else "single"
+            (self.fixed_assets_tax_free_n,
+             self.fixed_assets_ordinary_income_n,
+             self.fixed_assets_capital_gains_n) = fxasst.get_fixed_assets_arrays(
+                self.houseLists["Fixed Assets"], self.N_n, thisyear, filing_status
+            )
+        else:
+            self.fixed_assets_tax_free_n = np.zeros(self.N_n)
+            self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
+            self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
+
     def saveContributions(self):
         """
         Return workbook on wages and contributions.
@@ -1344,6 +1389,10 @@ class Plan:
         tau_0prev[tau_0prev < 0] = 0
         for n in range(self.N_n):
             rhs = -self.M_n[n] - self.J_n[n]
+            # Add fixed assets tax-free money (positive cash flow)
+            rhs += self.fixed_assets_tax_free_n[n]
+            # Subtract debt payments (negative cash flow)
+            rhs -= self.debt_payments_n[n]
             row = self.A.newRow({_q1(self.C["g"], n, self.N_n): 1})
             row.addElem(_q1(self.C["s"], n, self.N_n), 1)
             row.addElem(_q1(self.C["m"], n, self.N_n), 1)
@@ -1381,7 +1430,8 @@ class Plan:
 
     def _add_taxable_income(self):
         for n in range(self.N_n):
-            rhs = 0
+            # Add fixed assets ordinary income
+            rhs = self.fixed_assets_ordinary_income_n[n]
             row = self.A.newRow()
             row.addElem(_q1(self.C["e"], n, self.N_n), 1)
             for i in range(self.N_i):
@@ -1744,6 +1794,9 @@ class Plan:
         self._adjustParameters(self.gamma_n, self.MAGI_n)
         self._buildOffsetMap(options)
 
+        # Process debts and fixed assets
+        self.processDebtsAndFixedAssets()
+
         solver = myoptions.get("solver", self.defaultSolver)
         if solver not in knownSolvers:
             raise ValueError(f"Unknown solver {solver}.")
@@ -2085,6 +2138,8 @@ class Plan:
             * self.alpha_ijkn[:, 0, 0, :Nn],
             axis=0,
         )
+        # Add fixed assets capital gains
+        self.Q_n += self.fixed_assets_capital_gains_n
         self.U_n = self.psi_n * self.Q_n
 
         self.MAGI_n = self.G_n + self.e_n + self.Q_n
@@ -2156,6 +2211,34 @@ class Plan:
         sources["RothX"] = self.x_in
         sources["tax-free wdrwl"] = self.w_ijn[:, 2, :]
         sources["BTI"] = self.Lambda_in
+        # Debts and fixed assets (debts are negative as expenses)
+        # Reshape 1D arrays to match shape of other sources (N_i x N_n)
+        if self.N_i == 1:
+            sources["debt payments"] = -self.debt_payments_n.reshape(1, -1)
+            sources["fixed assets tax-free"] = self.fixed_assets_tax_free_n.reshape(1, -1)
+            sources["fixed assets ordinary"] = self.fixed_assets_ordinary_income_n.reshape(1, -1)
+            sources["fixed assets capital gains"] = self.fixed_assets_capital_gains_n.reshape(1, -1)
+        else:
+            # For married couples, split using eta between individuals.
+            debt_array = np.zeros((self.N_i, self.N_n))
+            debt_array[0, :] = -self.debt_payments_n * (1 - self.eta)
+            debt_array[1, :] = -self.debt_payments_n * self.eta
+            sources["debt payments"] = debt_array
+
+            fa_tax_free = np.zeros((self.N_i, self.N_n))
+            fa_tax_free[0, :] = self.fixed_assets_tax_free_n * (1 - self.eta)
+            fa_tax_free[1, :] = self.fixed_assets_tax_free_n * self.eta
+            sources["fixed assets tax-free"] = fa_tax_free
+
+            fa_ordinary = np.zeros((self.N_i, self.N_n))
+            fa_ordinary[0, :] = self.fixed_assets_ordinary_income_n * (1 - self.eta)
+            fa_ordinary[1, :] = self.fixed_assets_ordinary_income_n * self.eta
+            sources["fixed assets ordinary"] = fa_ordinary
+
+            fa_capital = np.zeros((self.N_i, self.N_n))
+            fa_capital[0, :] = self.fixed_assets_capital_gains_n * (1 - self.eta)
+            fa_capital[1, :] = self.fixed_assets_capital_gains_n * self.eta
+            sources["fixed assets capital gains"] = fa_capital
 
         savings = {}
         savings["taxable"] = self.b_ijn[:, 0, :]
@@ -2167,7 +2250,9 @@ class Plan:
 
         estate_j = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate_j[1] *= 1 - self.nu
-        self.bequest = np.sum(estate_j) / self.gamma_n[-1]
+        # Subtract remaining debt balance from estate
+        total_estate = np.sum(estate_j) - self.remaining_debt_balance
+        self.bequest = max(0.0, total_estate) / self.gamma_n[-1]
 
         self.basis = self.g_n[0] / self.xi_n[0]
 

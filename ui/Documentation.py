@@ -43,7 +43,9 @@ formulation of the optimization problem can be found
 
 [Case Setup](#case-setup)
 - [:material/person_add: Create Case](#person-add-create-case)
-- [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
+- [:material/home: Household Financial Profile](#home-household-financial-profile)
+    - [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
+    - [:material/account_balance: Debts and Fixed Assets](#account-balance-debts-and-fixed-assets)
 - [:material/currency_exchange: Fixed Income](#currency-exchange-fixed-income)
 - [:material/savings: Savings Assets](#savings-savings-assets)
 - [:material/percent: Asset Allocation](#percent-asset-allocation)
@@ -170,7 +172,8 @@ can be reloaded at a later time.
 Case parameter files can have any name but when saving from the interface,
 their name will start with *case_* followed by the case name.
 
-#### :material/work_history: Wages and Contributions
+#### :material/home: Household Financial Profile
+##### :material/work_history: Wages and Contributions
 This page allows to enter an optional Excel file containing future wages and contributions,
 and past Roth contributions and conversions.
 Alternatively, values can be entered and/or edited directly into the corresponding tables.
@@ -275,6 +278,8 @@ values can be saved directly in Excel format by clicking
 the `Download Wages and Contributions` on the
 [Output Files](#description-output-files) page. This allows to rerun the same case at a later time
 by reloading the same **Wages and Contributions** file.
+
+##### :material/account_balance: Debts and Fixed Assets
 
 #### :material/currency_exchange: Fixed Income
 This page is for entering data related to the individual's anticipated fixed income

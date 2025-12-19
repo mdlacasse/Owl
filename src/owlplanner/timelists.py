@@ -47,7 +47,6 @@ _debtItems = [
 _debtTypes = [
     "loan",
     "mortgage",
-    "PR mortgage",
 ]
 
 
@@ -185,13 +184,13 @@ def _conditionHouseTables(dfDict, mylog):
     for page in items.keys():
         if page in dfDict:
             df = dfDict[page]
-            df = _checkColumns(df, "household", items[page])
+            df = _checkColumns(df, page, items[page])
             # Check categorical variables.
             isInList = df["type"].isin(types[page])
             houseDic[page] = df[isInList]
             mylog.vprint(f"Found {len(df)} valid row(s) in {page} table.")
         else:
-            houseDic[page] = None
+            houseDic[page] = pd.DataFrame(columns=items[page])
             mylog.vprint(f"Table for {page} not found. Assuming empty table.")
 
     return houseDic
