@@ -423,11 +423,16 @@ def resetTimeLists():
     #               pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"]))
 
 
-# @_checkPlan
 def syncHouseLists(plan):
     """
     Sync houseLists from UI case keys to Plan object.
+    Note: This function does NOT use @_checkPlan decorator because it's called
+    from _setContributions which already has the plan object. The decorator would
+    cause a conflict by trying to inject the plan from case keys.
     """
+    if plan is None:
+        return False
+
     plan.houseLists = {}
     debts = kz.getCaseKey("houseListDebts")
     fixedAssets = kz.getCaseKey("houseListFixedAssets")
