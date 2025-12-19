@@ -3046,8 +3046,8 @@ def _formatDebtsSheet(ws):
             # Integer format
             fstring = "#,##0"
         elif col_name in ["rate"]:
-            # Percentage format (2 decimal places)
-            fstring = "#.00%"
+            # Number format (1 decimal place for percentages stored as numbers)
+            fstring = "#,##0.0"
         elif col_name in ["amount"]:
             # Currency format
             fstring = "$#,##0_);[Red]($#,##0)"
@@ -3091,8 +3091,8 @@ def _formatFixedAssetsSheet(ws):
             # Integer format
             fstring = "#,##0"
         elif col_name in ["rate", "commission"]:
-            # Percentage format (2 decimal places)
-            fstring = "#.00%"
+            # Number format (1 decimal place for percentages stored as numbers)
+            fstring = "#,##0.0"
         elif col_name in ["basis", "value"]:
             # Currency format
             fstring = "$#,##0_);[Red]($#,##0)"

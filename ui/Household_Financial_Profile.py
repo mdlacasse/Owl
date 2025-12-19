@@ -104,7 +104,8 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
 
     st.markdown("#### :orange[Debts]")
 
-    debtTypes = ["PR mortgage", "mortgage", "loan"]
+    # Get debt types from owlbridge to ensure consistency with validation logic
+    debtTypes = owb.getDebtTypes()
 
     # Get existing debts or create empty DataFrame
     debtdf = kz.getCaseKey("houseListDebts")
@@ -157,7 +158,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         )
     }
 
-    edited_debtdf = st.data_editor(debtdf, column_config=debtconf, num_rows="dynamic", hide_index=True)
+    edited_debtdf = st.data_editor(debtdf, column_config=debtconf, num_rows="dynamic")
 
     # Store edited debts if changed
     if not debtdf.equals(edited_debtdf):
@@ -168,7 +169,8 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
     st.divider()
     st.markdown("#### :orange[Fixed Assets]")
 
-    fixedTypes = ["residence", "real estate", "precious metals", "stocks", "collectibles", "annuity"]
+    # Get fixed asset types from owlbridge to ensure consistency with validation logic
+    fixedTypes = owb.getFixedAssetTypes()
 
     # Get existing fixed assets or create empty DataFrame
     fixeddf = kz.getCaseKey("houseListFixedAssets")
@@ -228,7 +230,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         ),
     }
 
-    edited_fixeddf = st.data_editor(fixeddf, column_config=fixedconf, num_rows="dynamic", hide_index=True)
+    edited_fixeddf = st.data_editor(fixeddf, column_config=fixedconf, num_rows="dynamic")
 
     # Store edited fixed assets if changed
     if not fixeddf.equals(edited_fixeddf):

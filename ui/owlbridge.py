@@ -11,6 +11,7 @@ sys.path.insert(0, "../src")
 
 import owlplanner as owl                      # noqa: E402
 from owlplanner.rates import FROM, TO         # noqa: E402
+from owlplanner.timelists import _debtTypes, _fixedAssetTypes  # noqa: E402
 
 import sskeys as kz         # noqa: E402
 import progress             # noqa: E402
@@ -845,3 +846,19 @@ def renderPlot(fig, col=None):
 
 def version():
     return owl.__version__
+
+
+def getDebtTypes():
+    """
+    Return the list of valid debt types.
+    This ensures consistency between UI and validation logic.
+    """
+    return _debtTypes
+
+
+def getFixedAssetTypes():
+    """
+    Return the list of valid fixed asset types.
+    This ensures consistency between UI and validation logic.
+    """
+    return _fixedAssetTypes

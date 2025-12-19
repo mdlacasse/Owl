@@ -187,7 +187,41 @@ def _conditionHouseTables(dfDict, mylog):
             df = _checkColumns(df, page, items[page])
             # Check categorical variables.
             isInList = df["type"].isin(types[page])
-            houseDic[page] = df[isInList]
+            df = df[isInList]
+
+            # Convert percentage columns from decimal to percentage if needed
+            # UI uses 0-100 range for percentages (e.g., 4.5 = 4.5%)
+            # If Excel read percentage-formatted cells, values might be decimals (0.045)
+            # Convert values < 1.0 to percentage format (multiply by 100)
+            if page == "Debts" and "rate" in df.columns:
+                # If rate values are less than 1, assume they're decimals (0.045 = 4.5%)
+                # and convert to percentages (4.5) to match UI format (0-100 range)
+                mask = (df["rate"] < 1.0) & (df["rate"] > 0)
+                if mask.any():
+                    df.loc[mask, "rate"] = df.loc[mask, "rate"] * 100.0
+                    mylog.vprint(f"Converted {mask.sum()} rate value(s) from decimal to percentage in Debts table.")
+
+            elif page == "Fixed Assets":
+                # Convert rate and commission if they're decimals
+                # Both should be in 0-100 range to match UI format
+                if "rate" in df.columns:
+                    mask = (df["rate"] < 1.0) & (df["rate"] > 0)
+                    if mask.any():
+                        df.loc[mask, "rate"] = df.loc[mask, "rate"] * 100.0
+                        mylog.vprint(
+                            f"Converted {mask.sum()} rate value(s) from decimal "
+                            f"to percentage in Fixed Assets table."
+                        )
+                if "commission" in df.columns:
+                    mask = (df["commission"] < 1.0) & (df["commission"] > 0)
+                    if mask.any():
+                        df.loc[mask, "commission"] = df.loc[mask, "commission"] * 100.0
+                        mylog.vprint(
+                            f"Converted {mask.sum()} commission value(s) from decimal "
+                            f"to percentage in Fixed Assets table."
+                        )
+
+            houseDic[page] = df
             mylog.vprint(f"Found {len(df)} valid row(s) in {page} table.")
         else:
             houseDic[page] = pd.DataFrame(columns=items[page])
