@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 import pandas as pd
-from datetime import date
 
 from owlplanner import debts
 
@@ -424,4 +423,3 @@ class TestGetRemainingDebtBalance:
         assert balance > 0
         # Should be less than full mortgage principal
         assert balance < 200000
-

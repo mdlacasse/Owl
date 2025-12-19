@@ -1,6 +1,6 @@
 """
 
-Owl/debts
+Owl/debts:r
 
 This file contains functions for handling debts.
 
@@ -12,14 +12,15 @@ Disclaimers: This code is for educational purposes only and does not constitute 
 
 ######################################################################
 import numpy as np
-import pandas as pd
+import pandas as pd  # noqa: F401
 from datetime import date
 
 
 def calculate_monthly_payment(principal, annual_rate, term_years):
     """
     Calculate monthly payment for an amortizing loan. This is a constant payment amount for a fixed-rate loan.
-    monthly payment = principal * (monthly_rate * (1 + monthly_rate)**num_payments) / ((1 + monthly_rate)**num_payments - 1)
+    monthly payment = principal * (monthly_rate * (1 + monthly_rate)**num_payments) /
+                      ((1 + monthly_rate)**num_payments - 1)
     where monthly_rate = annual_rate / 100.0 / 12.0 and num_payments = term_years * 12.0.
 
     This formula is derived from the formula for the present value of an annuity.

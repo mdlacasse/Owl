@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 import pandas as pd
-from datetime import date
 
 from owlplanner import fixedassets
 
@@ -417,4 +416,3 @@ class TestGetFixedAssetsArrays:
         # Should work the same as lowercase
         assert capital[0] > 0
         assert tax_free[0] == pytest.approx(100000, abs=1.0)
-

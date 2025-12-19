@@ -13,7 +13,7 @@ Disclaimers: This code is for educational purposes only and does not constitute 
 
 ######################################################################
 import numpy as np
-import pandas as pd
+import pandas as pd  # noqa: F401
 from datetime import date
 
 
@@ -159,4 +159,3 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
                 tax_free_n[n] += proceeds
 
     return tax_free_n, ordinary_income_n, capital_gains_n
-

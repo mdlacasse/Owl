@@ -997,7 +997,7 @@ class Plan:
 
     def saveContributions(self):
         """
-        Return workbook on wages and contributions.
+        Return workbook on wages and contributions, including Debts and Fixed Assets.
         """
         if self.timeLists is None:
             return None
@@ -1018,6 +1018,36 @@ class Plan:
         if self.N_i == 2:
             ws = wb.create_sheet(self.inames[1])
             fillsheet(ws, 1)
+
+        # Add Debts sheet if available
+        if "Debts" in self.houseLists and not self.houseLists["Debts"].empty:
+            ws = wb.create_sheet("Debts")
+            df = self.houseLists["Debts"]
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            _formatDebtsSheet(ws)
+        else:
+            # Create empty Debts sheet with proper columns
+            ws = wb.create_sheet("Debts")
+            df = pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"])
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            _formatDebtsSheet(ws)
+
+        # Add Fixed Assets sheet if available
+        if "Fixed Assets" in self.houseLists and not self.houseLists["Fixed Assets"].empty:
+            ws = wb.create_sheet("Fixed Assets")
+            df = self.houseLists["Fixed Assets"]
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            _formatFixedAssetsSheet(ws)
+        else:
+            # Create empty Fixed Assets sheet with proper columns
+            ws = wb.create_sheet("Fixed Assets")
+            df = pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"])
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            _formatFixedAssetsSheet(ws)
 
         return wb
 
@@ -2985,5 +3015,95 @@ def _formatSpreadsheet(ws, ftype):
         if column != "A":
             for cell in col:
                 cell.number_format = fstring
+
+    return None
+
+
+def _formatDebtsSheet(ws):
+    """
+    Format Debts sheet with appropriate column formatting.
+    """
+    from openpyxl.utils import get_column_letter
+
+    # Format header row
+    for cell in ws[1]:
+        cell.style = "Pandas"
+
+    # Get column mapping from header
+    header_row = ws[1]
+    col_map = {}
+    for idx, cell in enumerate(header_row, start=1):
+        col_letter = get_column_letter(idx)
+        col_name = str(cell.value).lower() if cell.value else ""
+        col_map[col_letter] = col_name
+        # Set column width
+        width = max(len(str(cell.value)) + 4, 10)
+        ws.column_dimensions[col_letter].width = width
+
+    # Apply formatting based on column name
+    for col_letter, col_name in col_map.items():
+        if col_name in ["year", "term"]:
+            # Integer format
+            fstring = "#,##0"
+        elif col_name in ["rate"]:
+            # Percentage format (2 decimal places)
+            fstring = "#.00%"
+        elif col_name in ["amount"]:
+            # Currency format
+            fstring = "$#,##0_);[Red]($#,##0)"
+        else:
+            # Text columns (name, type) - no number formatting
+            continue
+
+        # Apply formatting to all data rows (skip header row 1)
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                if cell.column_letter == col_letter:
+                    cell.number_format = fstring
+
+    return None
+
+
+def _formatFixedAssetsSheet(ws):
+    """
+    Format Fixed Assets sheet with appropriate column formatting.
+    """
+    from openpyxl.utils import get_column_letter
+
+    # Format header row
+    for cell in ws[1]:
+        cell.style = "Pandas"
+
+    # Get column mapping from header
+    header_row = ws[1]
+    col_map = {}
+    for idx, cell in enumerate(header_row, start=1):
+        col_letter = get_column_letter(idx)
+        col_name = str(cell.value).lower() if cell.value else ""
+        col_map[col_letter] = col_name
+        # Set column width
+        width = max(len(str(cell.value)) + 4, 10)
+        ws.column_dimensions[col_letter].width = width
+
+    # Apply formatting based on column name
+    for col_letter, col_name in col_map.items():
+        if col_name in ["yod"]:
+            # Integer format
+            fstring = "#,##0"
+        elif col_name in ["rate", "commission"]:
+            # Percentage format (2 decimal places)
+            fstring = "#.00%"
+        elif col_name in ["basis", "value"]:
+            # Currency format
+            fstring = "$#,##0_);[Red]($#,##0)"
+        else:
+            # Text columns (name, type) - no number formatting
+            continue
+
+        # Apply formatting to all data rows (skip header row 1)
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                if cell.column_letter == col_letter:
+                    cell.number_format = fstring
 
     return None
