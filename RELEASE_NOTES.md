@@ -1,8 +1,8 @@
-### Version 2025.12.18-dev
+### Version 2025.12.XX-dev
 - Implemented Debts and Fixed Assets capabilities
     - Mortgages and annuities can now be modeled
 - Extended Wages and Contributions page which was renamed Household Financial Profile
-- Added debt reporting to Synopsis
+- Added debt payment reporting to Synopsis
 
 ### Version 2025.12.16
 - Fix error message when dates are empty in Create_Case

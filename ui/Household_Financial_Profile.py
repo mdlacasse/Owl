@@ -154,7 +154,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
             help="Enter annual rate (%)",
             default=4.0,
             min_value=0.0,
-            step=0.1,
+            step=0.01,
         )
     }
 
@@ -211,7 +211,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
             help="Return rate (%)",
             default=3.0,
             min_value=0.0,
-            step=0.1,
+            step=0.01,
         ),
         "yod": st.column_config.NumberColumn(
             "yod",
@@ -226,7 +226,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
             min_value=0.0,
             max_value=10.0,
             default=0.0,
-            step=0.1,
+            step=0.01,
         ),
     }
 

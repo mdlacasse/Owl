@@ -829,7 +829,7 @@ class PlotlyBackend(PlotBackend):
                     stack_data.append(data)
 
                 # Add stacked area traces
-                for data, name in zip(stack_data, stack_names):
+                for data, name in zip(stack_data, stack_names, strict=True):
                     fig.add_trace(go.Scatter(
                         x=year_n,
                         y=data,

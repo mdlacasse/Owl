@@ -2439,7 +2439,7 @@ class Plan:
         totEstate = np.sum(estate) - debts
         dic["Year of final bequest"] = (f"{endyear}")
         dic[" Total value of final bequest"] = (f"{u.d(lyNow*totEstate)}")
-        dic[" After paying remaining debts"] = (f"{u.d(lyNow*debts)}")
+        dic[" After paying remaining debts of"] = (f"{u.d(lyNow*debts)}")
         dic["[Total value of final bequest]"] = (f"{u.d(totEstate)}")
         dic["»  Post-tax final bequest account value - taxable"] = (f"{u.d(lyNow*estate[0])}")
         dic["» [Post-tax final bequest account value - taxable]"] = (f"{u.d(estate[0])}")
