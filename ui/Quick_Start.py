@@ -15,10 +15,16 @@ with col1:
     kz.divider("orange")
     st.markdown("### :material/campaign: News")
     st.markdown("""
-:warning:
-This version is the development version.
-**Not all features might be completely functional at this point.**
+This version introduces several new capabilities:
+- Page *Household Financial Profile* now includes *Wages and Contributions*, 
+*Debts*, and *Fixed Assets*.
+- *Debts* support tracking loans and mortgages over time.
+- *Fixed Assets* can represent primary residence, other real estate, precious metals,
+                    restricted stocks, collectibles, and fixed lump-sum annuities.
+- These additions allow assets to be modeled through their expected disposition date.
+- Debts and fixed assets remaining at the end of the plan are incorporated into bequest calculations.
 
+This part of the code is still evolving and has not yet received the same level of testing as the rest.
 Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
 or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
