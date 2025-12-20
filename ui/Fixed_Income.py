@@ -6,12 +6,23 @@ import sskeys as kz
 def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, prompt=True):
     nkey = key + str(i)
     kz.initCaseKey(nkey, defval)
+    stored_value = kz.getCaseKey(nkey)
+    # Clamp stored value to valid range if it's outside
+    if stored_value is not None:
+        if min_val is not None and stored_value < min_val:
+            stored_value = min_val
+            kz.setCaseKey(nkey, stored_value)
+        if max_val is not None and stored_value > max_val:
+            stored_value = max_val
+            kz.setCaseKey(nkey, stored_value)
+    else:
+        stored_value = defval
     if prompt:
         own = f"{kz.getCaseKey('iname' + str(i))}'s "
     else:
         own = ""
     return st.number_input(
-        f"{own}{thing}", min_value=min_val, value=kz.getCaseKey(nkey),
+        f"{own}{thing}", min_value=min_val, value=stored_value,
         on_change=kz.setpull, help=help, args=[nkey], key=kz.genCaseKey(nkey),
         max_value=max_val,
     )
