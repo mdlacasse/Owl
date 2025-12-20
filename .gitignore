@@ -8,3 +8,4 @@ dist
 otherFiles
 myfiles
 secrets
+uv.lock
