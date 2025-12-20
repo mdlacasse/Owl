@@ -58,7 +58,7 @@ def createPlan():
     if kz.getCaseKey("spendingProfile"):
         setProfile(None)
 
-    if kz.getCaseKey("duplicate"):
+    if kz.getCaseKey("copy"):
         _setContributions(plan, "copy")
     else:
         resetTimeLists()

@@ -16,7 +16,7 @@ with col1:
     st.markdown("### :material/campaign: News")
     st.markdown("""
 This version introduces several new capabilities:
-- Page *Household Financial Profile* now includes *Wages and Contributions*, 
+- Page *Household Financial Profile* now includes *Wages and Contributions*,
 *Debts*, and *Fixed Assets*.
 - *Debts* support tracking loans and mortgages over time.
 - *Fixed Assets* can represent primary residence, other real estate, precious metals,

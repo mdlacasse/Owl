@@ -116,7 +116,7 @@ The **Create Case** page is where every new scenario begins.
 It controls the creation of scenarios as the `Case selector` drop-down menu contains
 two additional items:
 one to create new cases, and the other to create cases from a *case* parameter file.
-This page also allows you to duplicate and/or rename scenarios, as well as deleting them.
+This page also allows you to copy and/or rename scenarios, as well as deleting them.
 
 For creating a scenario from scratch, (first) name(s), marital status,
 birth date(s), and life expectancies are required.
@@ -723,7 +723,7 @@ one can use a termination year for current tax rates to revert to higher rates.
 #### :material/rule_settings: Typical Workflow
 A typical workflow would look like the following:
 1) Create a base case representing your basic scenario;
-2) Duplicate the base case and modify the parameter you want to investigate;
+2) Copy the base case and modify the parameter you want to investigate;
 3) Repeat 2) with other end-member values of the parameter you would like to consider;
 4) Run all cases and compare them on the [Output Files](#description-output-files) page.
 
@@ -734,9 +734,9 @@ on total net spending.
 Fill in all parameters representing your goals and situation.
 Upload file or fill-in values for Wages and Contributions.
 Let's say this case allows for Roth conversions up to \\$100k.
-2) Duplicate the base case, call it *2025 - No Roth conversions* and
+2) Copy the base case, call it *2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
-3) Duplicate the base case again, call it *2025 - No Roth limit* and
+3) Copy the base case again, call it *2025 - No Roth limit* and
 set maximum Roth conversions to a very large number, say, \\$800k.
 4) Compare all cases on the [Output Files](#description-output-files) page.
 

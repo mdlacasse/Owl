@@ -89,7 +89,7 @@ def runOncePerCase(func):
 
 def refreshCase(adic):
     """
-    When a case is duplicated, reset all the runOnce functions.
+    When a case is copied, reset all the runOnce functions.
     """
     for key in list(adic):
         if key.startswith("oNcE_"):
@@ -185,14 +185,14 @@ def setCurrentCase(case):
     ss.currentCase = case
 
 
-def duplicateCase():
+def copyCase():
     baseName = re.sub(r"\s*\(\d+\)$", "", ss.currentCase)
     for i in range(1, 10):
         dupname = baseName + f" ({i})"
         if dupname not in ss.cases:
             break
     else:
-        raise RuntimeError("Exhausted number of duplicates")
+        raise RuntimeError("Exhausted number of copies")
 
     # Copy everything except the plan itself.
     # print(ss.currentCase, "->", ss.cases[ss.currentCase])
@@ -206,10 +206,10 @@ def duplicateCase():
         ss.cases[dupname][key] = None
 
     setCaseId(dupname)
-    ss.cases[dupname]["duplicate"] = True
+    ss.cases[dupname]["copy"] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
-    st.toast("Case duplicated.")
+    st.toast("Case copied.")
 
 
 def createCaseFromFile(strio):
