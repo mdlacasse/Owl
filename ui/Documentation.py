@@ -1,5 +1,5 @@
 import streamlit as st
-
+import os
 import sskeys as kz
 
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
@@ -7,12 +7,6 @@ with col1:
     st.write("# :material/help: Documentation")
     kz.divider("orange")
     st.write("## :orange[Owl Retirement Planner]\n-------")
-with col3:
-    st.image("http://github.com/mdlacasse/Owl/blob/main/docs/images/owl.png?raw=true")
-    st.caption("Retirement planner with great wisdom")
-
-col1, col2 = st.columns([0.80, 0.20], gap="large")
-with col1:
     st.markdown("""
 ### Owl - Optimal Wealth Lab
 #### A retirement financial exploration tool based on linear programming
@@ -35,7 +29,16 @@ while federal income tax and Medicare premiums (including IRMAA) are calculated.
 A full description of the package can be found on the GitHub
 open [repository](https://github.com/mdlacasse/Owl), and the mathematical
 formulation of the optimization problem can be found
-[here](https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf).
+[here](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf).
+""")
+with col3:
+    logofile = os.path.join(os.path.dirname(__file__), "./owl.png")
+    st.image(logofile)
+    st.caption("Retirement planner with great wisdom")
+
+col1, col2 = st.columns([0.80, 0.20], gap="large")
+with col1:
+    st.markdown("""
 
 -------------------------------------------------
 ### :orange[Table of Contents]

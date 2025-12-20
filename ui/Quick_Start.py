@@ -3,7 +3,7 @@ import os
 
 import sskeys as kz
 
-logofile = os.path.join(os.path.dirname(__file__), "../docs/images/owl.png")
+logofile = os.path.join(os.path.dirname(__file__), "./owl.png")
 
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col3:

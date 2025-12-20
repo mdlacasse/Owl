@@ -1,0 +1,108 @@
+---
+title: Installation - OWL using UV on WSL
+---
+
+This installation guide uses the [UV](https://docs.astral.sh/uv/) family of tools to install [OWL](https://github.com/mdlacasse/OWN).
+
+This installation guide assumes that you're working with the code using WSL/Ubuntu (Windows Subsystem for Linux, Ubuntu distro).  Separate guides are available for [Conda on Powershell](installation.qmd) and UV on powershell.
+
+This installation guide is OPINIONATED.
+
+To use this guide, copy/paste the blocks of code below directly into a WSL terminal.  Hover your mouse over any `code block` and a clipboard icon should appear.  Clicking the clipboard will copy the block of code for pasting into a WSL terminal.
+
+## Requirements
+
+The following code ensures that you've got all the necessary underlying tools.  Copy/paste into a WSL terminal.  The code is intended to install missing tools.  These commands should not negatively impact any tools already installed.
+
+### Install / verify WSL tools
+
+```bash
+sudo apt update
+sudo apt install make
+sudo apt install git
+sudo apt install gh
+sudo apt install curl
+```
+
+### Install UV
+
+UV is a very fast tool that combines many tools into a single framework.  UV manages python versions (like pyenv), virtual environments (like venv), modules (like pip), packaging (like setuptools), and does it very fast.  UV is a replacement for other tools like `conda`, `pyenv` and `poetry`.
+
+I HIGHLY recommend switching to UV when using OWL.
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+UV offers a very extensive list of installation options and optional tools.  See the [UV install guide](https://docs.astral.sh/uv/getting-started/installation/)
+
+### Testing the tools
+
+If everything is all set, the following block of commands should run without errors.
+
+```bash
+make --version
+git --version
+gh --version
+curl --version
+uv --version
+```
+
+## Installing OWL
+
+With the backup tools installed, we can now install OWL and get it running locally.
+
+I keep my GITHUB projects in a local projects folder under my personal home directory.  The following
+block of code will clone the `owlplanner` project under your `~/projects` project folder.
+
+```bash
+cd ~/projects
+git clone https://github.com/mdlacasse/Owl.git owlplanner
+cd owlplanner
+```
+
+## Setting up to run
+
+The following command will download and install python (if you don't already have it), create
+a virtual environment, and download all the necessary python modules to run OWL.  One step ... boom!
+
+```bash
+uv sync
+```
+
+## Running OWL
+
+The following command starts the streamlit server on your local computer and automatically opens
+a chromium browser.  You're ready to go!
+
+Remember - you don't need to type it in ... use the copy-to-clipboard icon and paste into your WSL terminal.
+
+*Note:* this command assumes that your in the project root directory: `~/projects/owlplanner` if you've been following along.
+
+```bash
+uv run python -m streamlit run ./ui/main.py \
+  --browser.gatherUsageStats=false \
+  --browser.serverAddress=localhost \
+  --browser.serverPort=8501
+```
+
+*NOTE:* There are TWO things going on at the same time:
+
+1. A streamlit webserver running from the terminal,
+2. A web browser started up, too, and is probably blocking you from seeing your terminal.
+
+Closing the browser *DOES NOT* close the streamlit web server.  If you close the browser, streamlit is still running.
+
+You need to enter *CTRL-C* in the terminal to kill/close streamlit.  THIS IS NORMAL!
+
+
+## Updating OWL
+
+OWL is under active development.  You'll want to work with the latest changes.  The command below will
+fetch the latest changes to your local machine and update the libraries.  You can then use the command above to run these changes.
+
+```bash
+git fetch
+uv sync
+```
+
