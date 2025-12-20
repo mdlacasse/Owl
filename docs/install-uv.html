@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>OWL - Optimal Wealth Lab – OWL</title>
+<title>Installation - OWL using UV on WSL – OWL</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -19,6 +19,41 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -91,7 +126,7 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
@@ -114,11 +149,15 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
-  <li><a href="#purpose-and-vision" id="toc-purpose-and-vision" class="nav-link" data-scroll-target="#purpose-and-vision">Purpose and vision</a></li>
-  <li><a href="#capabilities" id="toc-capabilities" class="nav-link" data-scroll-target="#capabilities">Capabilities</a></li>
-  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations">Limitations</a></li>
-  <li><a href="#disclaimers" id="toc-disclaimers" class="nav-link" data-scroll-target="#disclaimers">Disclaimers</a></li>
+  <li><a href="#requirements" id="toc-requirements" class="nav-link active" data-scroll-target="#requirements">Requirements</a>
+  <ul class="collapse">
+  <li><a href="#install-verify-wsl-tools" id="toc-install-verify-wsl-tools" class="nav-link" data-scroll-target="#install-verify-wsl-tools">Install / verify WSL tools</a></li>
+  <li><a href="#install-uv" id="toc-install-uv" class="nav-link" data-scroll-target="#install-uv">Install UV</a></li>
+  <li><a href="#testing-the-tools" id="toc-testing-the-tools" class="nav-link" data-scroll-target="#testing-the-tools">Testing the tools</a></li>
+  </ul></li>
+  <li><a href="#installing-owl" id="toc-installing-owl" class="nav-link" data-scroll-target="#installing-owl">Installing OWL</a></li>
+  <li><a href="#running-owl" id="toc-running-owl" class="nav-link" data-scroll-target="#running-owl">Running OWL</a></li>
+  <li><a href="#updating-owl" id="toc-updating-owl" class="nav-link" data-scroll-target="#updating-owl">Updating OWL</a></li>
   </ul>
 </nav>
     </div>
@@ -127,7 +166,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">OWL - Optimal Wealth Lab</h1>
+<h1 class="title">Installation - OWL using UV on WSL</h1>
 </div>
 
 
@@ -144,64 +183,68 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="overview" class="level2">
-<h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p>This package is a modeling framework for exploring the sensitivity of retirement financial decisions. Strictly speaking, it is not a planning tool, but more an environment for exploring <em>what if</em> scenarios. It provides different realizations of a financial strategy through the rigorous mathematical optimization of relevant decision variables. Two major objective goals can be set: either maximize net spending, or after-tax bequest under various constraints. Look at the <em>Capabilities</em> section below for more detail.</p>
-<p>One can certainly have a savings plan, but due to the volatility of financial investments, it is impossible to have a certain asset earnings plan. This does not mean one cannot make decisions. These decisions need to be guided with an understanding of the sensitivity of the parameters. This is exactly where this tool fits in. Given your savings capabilities and spending desires, it can generate different future realizations of your strategy under different market assumptions, helping to better understand your financial situation.</p>
+<p>This installation guide uses the <a href="https://docs.astral.sh/uv/">UV</a> family of tools to install <a href="https://github.com/mdlacasse/OWN">OWL</a>.</p>
+<p>This installation guide assumes that you’re working with the code using WSL/Ubuntu (Windows Subsystem for Linux, Ubuntu distro). Separate guides are available for <a href="./installation.html">Conda on Powershell</a> and UV on powershell.</p>
+<p>This installation guide is OPINIONATED.</p>
+<p>To use this guide, copy/paste the blocks of code below directly into a WSL terminal. Hover your mouse over any <code>code block</code> and a clipboard icon should appear. Clicking the clipboard will copy the block of code for pasting into a WSL terminal.</p>
+<section id="requirements" class="level2">
+<h2 class="anchored" data-anchor-id="requirements">Requirements</h2>
+<p>The following code ensures that you’ve got all the necessary underlying tools. Copy/paste into a WSL terminal. The code is intended to install missing tools. These commands should not negatively impact any tools already installed.</p>
+<section id="install-verify-wsl-tools" class="level3">
+<h3 class="anchored" data-anchor-id="install-verify-wsl-tools">Install / verify WSL tools</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt update</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install make</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install git</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install gh</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install curl</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="purpose-and-vision" class="level2">
-<h2 class="anchored" data-anchor-id="purpose-and-vision">Purpose and vision</h2>
-<p>One goal of Owl is to provide a free and open-source ecosystem that has cutting-edge optimization capabilities, allowing for the next generation of Python-literate retirees to experiment with their own financial future while providing a codebase where they can learn and contribute. At the same time, an intuitive and easy-to-use user interface based on Streamlit allows a broad set of users to benefit from the application as it only requires basic financial knowledge.</p>
-<p>There are and were good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms collecting your data, or academic papers that share the results without really sharing the details of the underlying mathematical models. The algorithms in Owl rely on the open-source HiGHS linear programming solver but they have also been ported and tested on other platforms such as Mosek and COIN-OR. The complete formulation and detailed description of the underlying mathematical model can be found <a href="papers/owl.pdf">here</a>.</p>
-<p>It is anticipated that most end users will use Owl through the graphical interface either at <a href="https://owlplanner.streamlit.app">owlplanner.streamlit.app</a> or <a href="./installation.html">installed</a> on their own computer. The underlying Python package can also be used directly through Python scripts or Jupyter Notebooks as described <a href="./users_guide.html">here</a>.</p>
-<p>A separate <a href="./install-uv.html">installation guide is available for OWL on WSL using UV</a>.</p>
-<p>Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one is interested in comparing different withdrawal strategies, <a href="https://ficalc.app">FI Calc</a> is an elegant application that addresses this need. If, however, you also want to optimize spending, bequest, and Roth conversions, with an approach also considering Medicare and federal income tax over the next few years, then Owl is definitely a tool that can help guide your decisions.</p>
+<section id="install-uv" class="level3">
+<h3 class="anchored" data-anchor-id="install-uv">Install UV</h3>
+<p>UV is a very fast tool that combines many tools into a single framework. UV manages python versions (like pyenv), virtual environments (like venv), modules (like pip), packaging (like setuptools), and does it very fast. UV is a replacement for other tools like <code>conda</code>, <code>pyenv</code> and <code>poetry</code>.</p>
+<p>I HIGHLY recommend switching to UV when using OWL.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-LsSf</span> https://astral.sh/uv/install.sh <span class="kw">|</span> <span class="fu">sh</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>UV offers a very extensive list of installation options and optional tools. See the <a href="https://docs.astral.sh/uv/getting-started/installation/">UV install guide</a></p>
 </section>
-<section id="capabilities" class="level2">
-<h2 class="anchored" data-anchor-id="capabilities">Capabilities</h2>
-<p>Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero), or maximize the after-tax value of a bequest under the constraint of a desired net spending profile, and under the assumption of a heirs marginal tax rate.</p>
-<p>Roth conversions are also considered, subject to an optional maximum conversion amount, and optimized to suit the goals of the selected objective function.</p>
-<p>All calculations are indexed for inflation, which is either provided as a fixed rate, or through historical values, as are all other rates used for the calculations. These rates can be used for backtesting different scenarios by choosing <em>historical</em> rates, or by choosing <em>historical average</em> rates over a historical year range, or what I coined “<em>histochastic</em>” rates which are generated using the statistical distribution of observed historical rates.</p>
-<p>Portfolios available for experimenting include assets from the S&amp;P 500, Corporate Bonds Baa, Treasury 10-y Notes, and cash assets assumed to just follow inflation which is represented by the Consumer Price Index. Other asset classes can easily be added, but would add complexity while only providing diminishing insights.</p>
-<p>Historical data used are from <a href="https://pages.stern.nyu.edu/~adamodar/">Aswath Damodaran</a> at the Stern School of Business.</p>
-<p>Asset allocations are selected for the duration of the plan, and these can glide linearly or along a configurable s-curve over the lifespan of the individual.</p>
-<p>Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be flat or follow a <em>smile</em> curve which is also adjustable through three simple parameters.</p>
-<ul>
-<li><p>Available rates are from 1928 to last year and can be used to test historical performance.</p></li>
-<li><p>Fixed rates can also be provided, as well as <em>histochastic</em> rates, which are generated using the statistical characteristics (means and covariance matrix) of a selected historical year range.</p></li>
-<li><p>Pure <em>stochastic</em> rates can also be generated if the user provides means, volatility (expressed as standard deviation), and optionally the correlations between the different assets return rates provided as a matrix, or a list of the off-diagonal elements (see documentation for details).</p></li>
-<li><p>Average rates calculated over a historical data period can also be chosen.</p></li>
-</ul>
-<p>Monte Carlo simulations capabilities are included and provide a probability of success and a histogram of outcomes. These simulations can be used for either determining the probability distribution of the maximum net spending amount under the constraint of a desired bequest, or the probability distribution of the maximum bequest under the constraint of a desired net spending amount.</p>
-<p>Unlike discrete-event simulators, Owl uses an optimization algorithm for every new scenario, which results in more calculations being performed. As a result, the number of cases to be considered should be kept to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates and reliable probability distributions.</p>
-<p>Optimizing each solution is more representative than event-base simulators in the sense that optimal solutions will naturally adjust to the return scenarios being considered. This is more realistic as retirees would certainly re-evaluate their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulators, which maintain a distribution strategy either fixed, or within guardrails for capturing the retirees’ reactions to the market.</p>
-<p>Basic input parameters can be entered through the user interface while optional additional time series can be read from an Excel spreadsheet that contains future wages, contributions to savings accounts, and planned <em>big-ticket items</em> such as the purchase of a lake house, the sale of a boat, large gifts, or inheritance.</p>
-<p>Three types of savings accounts are considered: taxable, tax-deferred, and tax-free, which are all tracked separately for married individuals. Asset transition to the surviving spouse is done according to beneficiary fractions for each type of savings account. Tax status covers married filing jointly and single, depending on the number of individuals reported.</p>
-<p>Maturation rules for Roth contributions and conversions are implemented as constraints limiting withdrawal amounts to cover Roth account balances for 5 years after the events. Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints. They can also be optimized explicitly as an option, but this choice can lead to longer calculations due to the use of the many additional binary variables required by the formulation. Future Medicare and IRMAA values are simple projections of current values with the assumed inflation rates.</p>
-<p>Owl has a basic social security calculator that determines the actual benefits based on the individual’s primary insurance amount (PIA), full retirement age (FRA), and claiming age. Both spousal’s benefits and survivor’s benefits are calculated for non-complex cases.</p>
+<section id="testing-the-tools" class="level3">
+<h3 class="anchored" data-anchor-id="testing-the-tools">Testing the tools</h3>
+<p>If everything is all set, the following block of commands should run without errors.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> <span class="at">--version</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> <span class="at">--version</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">--version</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> <span class="at">--version</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="limitations" class="level2">
-<h2 class="anchored" data-anchor-id="limitations">Limitations</h2>
-<p>Owl is work in progress. At the current time:</p>
-<ul>
-<li><p>Only the US federal income tax is considered (and minimized through the optimization algorithm). Head of household filing status has not been added but can easily be.</p></li>
-<li><p>Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not included. These cases are detected and will generate an error message.</p></li>
-<li><p>Current version has no optimization of asset allocations between individuals and/or types of savings accounts. If there is interest, that could be added in the future.</p></li>
-<li><p>In the current implementation, social securiy is always taxed at 85%, assuming that your taxable income will be larger than 34 k$ (single) or 44 k$ (married filing jointly).</p></li>
-<li><p>When Medicare calculations are done through a self-consistent loop, the Medicare premiums are calculated after an initial solution is generated, and then a new solution is re-generated with these premiums as a constraint. In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise. While the solutions generated are very close to one another, Owl will pick the smallest solution for being conservative. While sometimes computationally costly, a comparison with a full Medicare optimization should always be performed.</p></li>
-<li><p>Part D is not included in the IRMAA calculations. Only Part B is taken into account, which is considerably more significant.</p></li>
-<li><p>Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.</p></li>
-</ul>
-<p>The solution from an optimization algorithm has only two states: feasible and infeasible. Therefore, unlike event-driven simulators that can tell you that your distribution strategy runs out of money in year 20, an optimization-based solver can only tell you that a solution does or does not exist for the plan being considered. Examples of infeasible solutions include requesting a bequeathed estate value too large for the savings assets to support, even with zero net spending basis, or maximizing the bequest subject to a net spending basis that is already too large for the savings assets to support, even with no estate being left.</p>
 </section>
-<section id="disclaimers" class="level2">
-<h2 class="anchored" data-anchor-id="disclaimers">Disclaimers</h2>
-<ul>
-<li>I am not a financial planner.</li>
-<li>You make your own decisions.</li>
-<li>This program comes with no guarantees.</li>
-<li>Use at your own risk.</li>
-</ul>
+<section id="installing-owl" class="level2">
+<h2 class="anchored" data-anchor-id="installing-owl">Installing OWL</h2>
+<p>With the backup tools installed, we can now install OWL and get it running locally.</p>
+<p>I keep my GITHUB projects in a local projects folder under my personal home directory. The following block of code will clone the <code>owlplanner</code> project under your <code>~/projects</code> project folder.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/projects</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/mdlacasse/Owl.git owlplanner</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> owlplanner</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="running-owl" class="level2">
+<h2 class="anchored" data-anchor-id="running-owl">Running OWL</h2>
+<p>The following command starts the streamlit server on your local computer and automatically opens a chromium browser. You’re ready to go!</p>
+<p><em>Note:</em> this command assumes that your in the project root directory: <code>~/projects/owlplanner</code> if you’ve been following along.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run python <span class="at">-m</span> streamlit run ./ui/main.py <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--browser.gatherUsageStats</span><span class="op">=</span>false <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--browser.serverAddress</span><span class="op">=</span>localhost <span class="dt">\</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--browser.serverPort</span><span class="op">=</span>8501</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>NOTE:</em> There are TWO things going on at the same time:</p>
+<ol type="1">
+<li>A streamlit webserver running from the terminal,</li>
+<li>A web browser started up, too, and is probably blocking you from seeing your terminal.</li>
+</ol>
+<p>Closing the browser <em>DOES NOT</em> close the streamlit web server. If you close the browser, streamlit is still running.</p>
+<p>You need to enter <em>CTRL-C</em> in the terminal to kill/close streamlit. THIS IS NORMAL!</p>
+</section>
+<section id="updating-owl" class="level2">
+<h2 class="anchored" data-anchor-id="updating-owl">Updating OWL</h2>
+<p>OWL is under active development. You’ll want to work with the latest changes. The command below will fetch the latest changes to your local machine and update the libraries. You can then use the command above to run these changes.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> fetch</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>

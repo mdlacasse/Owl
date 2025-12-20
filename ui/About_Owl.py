@@ -15,7 +15,7 @@ st.write(
 - Owl is an open-source retirement financial planner capable of optimization through linear programming.
 - Source code is available from a repository on [GitHub](https://github.com/mdlacasse/owl).
 - Mathematical formulation of the linear optimization problem can be
-found in this [document](https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf?raw=true).
+found in this [document](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf?raw=true).
 
 Copyright &copy; 2025 - Martin-D. Lacasse
 

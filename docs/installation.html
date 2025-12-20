@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>OWL - Optimal Wealth Lab – OWL</title>
+<title>Installation – OWL</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -91,7 +91,7 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
@@ -114,11 +114,13 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
-  <li><a href="#purpose-and-vision" id="toc-purpose-and-vision" class="nav-link" data-scroll-target="#purpose-and-vision">Purpose and vision</a></li>
-  <li><a href="#capabilities" id="toc-capabilities" class="nav-link" data-scroll-target="#capabilities">Capabilities</a></li>
-  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations">Limitations</a></li>
-  <li><a href="#disclaimers" id="toc-disclaimers" class="nav-link" data-scroll-target="#disclaimers">Disclaimers</a></li>
+  <li><a href="#about" id="toc-about" class="nav-link active" data-scroll-target="#about">About</a></li>
+  <li><a href="#requirements" id="toc-requirements" class="nav-link" data-scroll-target="#requirements">Requirements</a></li>
+  <li><a href="#creating-a-virtual-environment" id="toc-creating-a-virtual-environment" class="nav-link" data-scroll-target="#creating-a-virtual-environment">Creating a virtual environment</a></li>
+  <li><a href="#obtaining-owls-source-code" id="toc-obtaining-owls-source-code" class="nav-link" data-scroll-target="#obtaining-owls-source-code">Obtaining Owl’s source code</a></li>
+  <li><a href="#running-the-streamlit-frontend-locally" id="toc-running-the-streamlit-frontend-locally" class="nav-link" data-scroll-target="#running-the-streamlit-frontend-locally">Running the Streamlit frontend locally</a></li>
+  <li><a href="#installation-steps-for-developers" id="toc-installation-steps-for-developers" class="nav-link" data-scroll-target="#installation-steps-for-developers">Installation steps for developers</a></li>
+  <li><a href="#publishing-a-version-for-reference-only" id="toc-publishing-a-version-for-reference-only" class="nav-link" data-scroll-target="#publishing-a-version-for-reference-only">Publishing a version (for reference only)</a></li>
   </ul>
 </nav>
     </div>
@@ -127,7 +129,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">OWL - Optimal Wealth Lab</h1>
+<h1 class="title">Installation</h1>
 </div>
 
 
@@ -144,64 +146,80 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="overview" class="level2">
-<h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p>This package is a modeling framework for exploring the sensitivity of retirement financial decisions. Strictly speaking, it is not a planning tool, but more an environment for exploring <em>what if</em> scenarios. It provides different realizations of a financial strategy through the rigorous mathematical optimization of relevant decision variables. Two major objective goals can be set: either maximize net spending, or after-tax bequest under various constraints. Look at the <em>Capabilities</em> section below for more detail.</p>
-<p>One can certainly have a savings plan, but due to the volatility of financial investments, it is impossible to have a certain asset earnings plan. This does not mean one cannot make decisions. These decisions need to be guided with an understanding of the sensitivity of the parameters. This is exactly where this tool fits in. Given your savings capabilities and spending desires, it can generate different future realizations of your strategy under different market assumptions, helping to better understand your financial situation.</p>
+<section id="about" class="level2">
+<h2 class="anchored" data-anchor-id="about">About</h2>
+<p>This document is aimed at software developers desiring to install the Owl source code and run it locally on their computer.</p>
+<p>For end-users, we suggest accessing Owl from the <a href="http://owlplanner.streamlit.app">Streamlit Community Server</a> or, if one prefers to have everything on their own computer, to install and run a Docker image as described in these <a href="https://github.com/mdlacasse/OWL/docker/README.md">instructions</a>.</p>
 </section>
-<section id="purpose-and-vision" class="level2">
-<h2 class="anchored" data-anchor-id="purpose-and-vision">Purpose and vision</h2>
-<p>One goal of Owl is to provide a free and open-source ecosystem that has cutting-edge optimization capabilities, allowing for the next generation of Python-literate retirees to experiment with their own financial future while providing a codebase where they can learn and contribute. At the same time, an intuitive and easy-to-use user interface based on Streamlit allows a broad set of users to benefit from the application as it only requires basic financial knowledge.</p>
-<p>There are and were good retirement optimizers in the recent past, but the vast majority of them are either proprietary platforms collecting your data, or academic papers that share the results without really sharing the details of the underlying mathematical models. The algorithms in Owl rely on the open-source HiGHS linear programming solver but they have also been ported and tested on other platforms such as Mosek and COIN-OR. The complete formulation and detailed description of the underlying mathematical model can be found <a href="papers/owl.pdf">here</a>.</p>
-<p>It is anticipated that most end users will use Owl through the graphical interface either at <a href="https://owlplanner.streamlit.app">owlplanner.streamlit.app</a> or <a href="./installation.html">installed</a> on their own computer. The underlying Python package can also be used directly through Python scripts or Jupyter Notebooks as described <a href="./users_guide.html">here</a>.</p>
-<p>A separate <a href="./install-uv.html">installation guide is available for OWL on WSL using UV</a>.</p>
-<p>Not every retirement decision strategy can be framed as an easy-to-solve optimization problem. In particular, if one is interested in comparing different withdrawal strategies, <a href="https://ficalc.app">FI Calc</a> is an elegant application that addresses this need. If, however, you also want to optimize spending, bequest, and Roth conversions, with an approach also considering Medicare and federal income tax over the next few years, then Owl is definitely a tool that can help guide your decisions.</p>
+<section id="requirements" class="level2">
+<h2 class="anchored" data-anchor-id="requirements">Requirements</h2>
+<p>You will need a Python environment, and the <code>pip</code> module installed on your computer for completing the installation. The <code>build</code> module will be required for developers. You will also need <code>git</code> to manage the source code from GitHub which is found <a href="https://git-scm.com/install/windows">here</a> for Windows, and by installing developer tools on MacOS and Linux.</p>
+<p>A good option for a comprehensive Python environment is to use the <em>Anaconda</em> distribution that can be found <a href="https://repo.anaconda.com/archive/">here</a> for various operating systems. Installation of <em>Anaconda</em> can be done by downloading and running the installation file corresponding to your operating system and hardware.</p>
+<p>Instructions given here are command-line instructions to be entered from a terminal window.</p>
+<p>If using <em>Anaconda</em>, <code>pip</code> can be installed as follows</p>
+<pre><code>conda install pip</code></pre>
+<p>otherwise, your distribution will most likely include <code>pip</code> already.</p>
+<p>The <code>build</code> module is included in <em>Anaconda</em>. Command <code>pip install build</code> will install it in other distributions.</p>
 </section>
-<section id="capabilities" class="level2">
-<h2 class="anchored" data-anchor-id="capabilities">Capabilities</h2>
-<p>Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero), or maximize the after-tax value of a bequest under the constraint of a desired net spending profile, and under the assumption of a heirs marginal tax rate.</p>
-<p>Roth conversions are also considered, subject to an optional maximum conversion amount, and optimized to suit the goals of the selected objective function.</p>
-<p>All calculations are indexed for inflation, which is either provided as a fixed rate, or through historical values, as are all other rates used for the calculations. These rates can be used for backtesting different scenarios by choosing <em>historical</em> rates, or by choosing <em>historical average</em> rates over a historical year range, or what I coined “<em>histochastic</em>” rates which are generated using the statistical distribution of observed historical rates.</p>
-<p>Portfolios available for experimenting include assets from the S&amp;P 500, Corporate Bonds Baa, Treasury 10-y Notes, and cash assets assumed to just follow inflation which is represented by the Consumer Price Index. Other asset classes can easily be added, but would add complexity while only providing diminishing insights.</p>
-<p>Historical data used are from <a href="https://pages.stern.nyu.edu/~adamodar/">Aswath Damodaran</a> at the Stern School of Business.</p>
-<p>Asset allocations are selected for the duration of the plan, and these can glide linearly or along a configurable s-curve over the lifespan of the individual.</p>
-<p>Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be flat or follow a <em>smile</em> curve which is also adjustable through three simple parameters.</p>
-<ul>
-<li><p>Available rates are from 1928 to last year and can be used to test historical performance.</p></li>
-<li><p>Fixed rates can also be provided, as well as <em>histochastic</em> rates, which are generated using the statistical characteristics (means and covariance matrix) of a selected historical year range.</p></li>
-<li><p>Pure <em>stochastic</em> rates can also be generated if the user provides means, volatility (expressed as standard deviation), and optionally the correlations between the different assets return rates provided as a matrix, or a list of the off-diagonal elements (see documentation for details).</p></li>
-<li><p>Average rates calculated over a historical data period can also be chosen.</p></li>
-</ul>
-<p>Monte Carlo simulations capabilities are included and provide a probability of success and a histogram of outcomes. These simulations can be used for either determining the probability distribution of the maximum net spending amount under the constraint of a desired bequest, or the probability distribution of the maximum bequest under the constraint of a desired net spending amount.</p>
-<p>Unlike discrete-event simulators, Owl uses an optimization algorithm for every new scenario, which results in more calculations being performed. As a result, the number of cases to be considered should be kept to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates and reliable probability distributions.</p>
-<p>Optimizing each solution is more representative than event-base simulators in the sense that optimal solutions will naturally adjust to the return scenarios being considered. This is more realistic as retirees would certainly re-evaluate their expectations under severe market drops or gains. This optimal approach provides a net benefit over event-based simulators, which maintain a distribution strategy either fixed, or within guardrails for capturing the retirees’ reactions to the market.</p>
-<p>Basic input parameters can be entered through the user interface while optional additional time series can be read from an Excel spreadsheet that contains future wages, contributions to savings accounts, and planned <em>big-ticket items</em> such as the purchase of a lake house, the sale of a boat, large gifts, or inheritance.</p>
-<p>Three types of savings accounts are considered: taxable, tax-deferred, and tax-free, which are all tracked separately for married individuals. Asset transition to the surviving spouse is done according to beneficiary fractions for each type of savings account. Tax status covers married filing jointly and single, depending on the number of individuals reported.</p>
-<p>Maturation rules for Roth contributions and conversions are implemented as constraints limiting withdrawal amounts to cover Roth account balances for 5 years after the events. Medicare and IRMAA calculations are performed through a self-consistent loop on cash flow constraints. They can also be optimized explicitly as an option, but this choice can lead to longer calculations due to the use of the many additional binary variables required by the formulation. Future Medicare and IRMAA values are simple projections of current values with the assumed inflation rates.</p>
-<p>Owl has a basic social security calculator that determines the actual benefits based on the individual’s primary insurance amount (PIA), full retirement age (FRA), and claiming age. Both spousal’s benefits and survivor’s benefits are calculated for non-complex cases.</p>
+<section id="creating-a-virtual-environment" class="level2">
+<h2 class="anchored" data-anchor-id="creating-a-virtual-environment">Creating a virtual environment</h2>
+<p>It is common practice to create a virtual environment for a specific project. This is to avoid making changes in the base ditribution that could break dependencies. Creating and activating a new environment called <em>owlenv</em> in <em>Anaconda</em> is achieved by the following commands:</p>
+<pre><code>conda create --name owlenv
+conda activate owlenv</code></pre>
+<p>A cheat sheet for <em>Anaconda</em> can be found <a href="https://docs.conda.io/projects/conda/en/latest/user-guide/cheatsheet.html">here</a>.</p>
+<p>When not using <code>conda</code>, creating and activating an environment can be done by using the module <code>venv</code> as follows:</p>
+<pre><code>python -m venv owlenv</code></pre>
+<p>This will create subdirectory <em>owlenv</em> in the current directory. For activating this environment:</p>
+<pre><code># in MS command
+.\owlenv\Scripts\activate.bat
+
+# in MS PowerShell
+./owlenv/Scripts/activate.ps1
+
+# MacOS or Linux
+source ./owlenv/Scripts/activate</code></pre>
+<p>More details on how to create a virtual environment using <em>venv</em> can be found <a href="https://python.land/virtual-environments/virtualenv">here</a>.</p>
 </section>
-<section id="limitations" class="level2">
-<h2 class="anchored" data-anchor-id="limitations">Limitations</h2>
-<p>Owl is work in progress. At the current time:</p>
-<ul>
-<li><p>Only the US federal income tax is considered (and minimized through the optimization algorithm). Head of household filing status has not been added but can easily be.</p></li>
-<li><p>Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not included. These cases are detected and will generate an error message.</p></li>
-<li><p>Current version has no optimization of asset allocations between individuals and/or types of savings accounts. If there is interest, that could be added in the future.</p></li>
-<li><p>In the current implementation, social securiy is always taxed at 85%, assuming that your taxable income will be larger than 34 k$ (single) or 44 k$ (married filing jointly).</p></li>
-<li><p>When Medicare calculations are done through a self-consistent loop, the Medicare premiums are calculated after an initial solution is generated, and then a new solution is re-generated with these premiums as a constraint. In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise. While the solutions generated are very close to one another, Owl will pick the smallest solution for being conservative. While sometimes computationally costly, a comparison with a full Medicare optimization should always be performed.</p></li>
-<li><p>Part D is not included in the IRMAA calculations. Only Part B is taken into account, which is considerably more significant.</p></li>
-<li><p>Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.</p></li>
-</ul>
-<p>The solution from an optimization algorithm has only two states: feasible and infeasible. Therefore, unlike event-driven simulators that can tell you that your distribution strategy runs out of money in year 20, an optimization-based solver can only tell you that a solution does or does not exist for the plan being considered. Examples of infeasible solutions include requesting a bequeathed estate value too large for the savings assets to support, even with zero net spending basis, or maximizing the bequest subject to a net spending basis that is already too large for the savings assets to support, even with no estate being left.</p>
+<section id="obtaining-owls-source-code" class="level2">
+<h2 class="anchored" data-anchor-id="obtaining-owls-source-code">Obtaining Owl’s source code</h2>
+<p>We assume that you have created and activated a virtual environment at this point. From there, we install the latest version of Owl from GitHub.</p>
+<pre class="shell"><code>git clone https://github.com/mdlacasse/Owl.git
+</code></pre>
+<p>Then go (<code>cd</code>) to the directory where you installed Owl.</p>
+<pre><code>cd Owl</code></pre>
+<p>From the top directory of the source code run: The following command will install the current version of Owl and all its dependencies:</p>
+<pre class="shell"><code>pip install --upgrade -r requirements.txt</code></pre>
+<p>You can also install the Owl package directly from the <a href="http://pypi.org">Python Package Index</a>.</p>
 </section>
-<section id="disclaimers" class="level2">
-<h2 class="anchored" data-anchor-id="disclaimers">Disclaimers</h2>
-<ul>
-<li>I am not a financial planner.</li>
-<li>You make your own decisions.</li>
-<li>This program comes with no guarantees.</li>
-<li>Use at your own risk.</li>
-</ul>
+<section id="running-the-streamlit-frontend-locally" class="level2">
+<h2 class="anchored" data-anchor-id="running-the-streamlit-frontend-locally">Running the Streamlit frontend locally</h2>
+<p>Once Owl’s source code and all its dependencies as been installed, one can run the Owl user interface locally:</p>
+<pre class="shell"><code># From Windows
+./owlplanner.cmd
+
+# From MacOS or Linux
+./owlplanner.sh</code></pre>
+<p>This will open a tab on your default browser.</p>
+</section>
+<section id="installation-steps-for-developers" class="level2">
+<h2 class="anchored" data-anchor-id="installation-steps-for-developers">Installation steps for developers</h2>
+<p>First use the same steps as above to create and activate a virtual environment and install the source code from GitHub. Then make sure that the <code>build</code> module is installed (<code>pip install build</code>).</p>
+<p>The next commands will build and install the Owl module in “edit mode”</p>
+<pre class="shell"><code>python -m build
+pip install -e .</code></pre>
+<p>The -e instructs <code>pip</code> to install in <em>editable</em> mode and use the live version in the current directory tree.</p>
+</section>
+<section id="publishing-a-version-for-reference-only" class="level2">
+<h2 class="anchored" data-anchor-id="publishing-a-version-for-reference-only">Publishing a version (for reference only)</h2>
+<p>Run checks before all commits:</p>
+<pre><code>flake8 ui src tests
+pytest</code></pre>
+<p>To update version, edit number in <code>src/owlplanner/version.py</code>.</p>
+<p>To update package on pypi or testpypi,</p>
+<pre class="shell"><code>rm dist/*
+python -m build
+twine upload --repository [repo] dist/*</code></pre>
+<p>where [repo] is <em>testpypi</em> or <em>pypi</em> depending on the type of release.</p>
 
 
 </section>

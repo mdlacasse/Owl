@@ -32,13 +32,15 @@ the underlying mathematical models.
 The algorithms in Owl rely on the open-source HiGHS linear programming solver but they have also been ported and tested on
 other platforms such as Mosek and COIN-OR. The complete formulation and
 detailed description of the underlying
-mathematical model can be found [here](https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf).
+mathematical model can be found [here](papers/owl.pdf).
 
 It is anticipated that most end users will use Owl through the graphical interface
 either at [owlplanner.streamlit.app](https://owlplanner.streamlit.app)
-or [installed](INSTALL.md) on their own computer.
+or [installed](installation.qmd) on their own computer.
 The underlying Python package can also be used directly through Python scripts or Jupyter Notebooks
-as described [here](USER_GUIDE.md).
+as described [here](users_guide.qmd).
+
+A separate [installation guide is available for OWL on WSL using UV](./install-uv.qmd).
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem.
 In particular, if one is interested in comparing different withdrawal strategies,
@@ -52,8 +54,10 @@ then Owl is definitely a tool that can help guide your decisions.
 Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero),
 or maximize the after-tax value of a bequest under the constraint of a desired net spending profile,
 and under the assumption of a heirs marginal tax rate.
+
 Roth conversions are also considered, subject to an optional maximum conversion amount,
 and optimized to suit the goals of the selected objective function.
+
 All calculations are indexed for inflation, which is either provided as a fixed rate,
 or through historical values, as are all other rates used for the calculations.
 These rates can be used for backtesting different scenarios by choosing
@@ -64,28 +68,36 @@ generated using the statistical distribution of observed historical rates.
 Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
 and cash assets assumed to just follow inflation which is represented by the Consumer Price Index.
 Other asset classes can easily be added, but would add complexity while only providing diminishing insights.
+
 Historical data used are from
 [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) at the Stern School of Business.
+
 Asset allocations are selected for the duration of the plan, and these can glide linearly
 or along a configurable s-curve over the lifespan of the individual.
 
 Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be
 flat or follow a *smile* curve which is also adjustable through three simple parameters.
 
-Available rates are from 1928 to last year and can be used to test historical performance.
-Fixed rates can also be provided, as well as *histochastic* rates, which are generated using
+* Available rates are from 1928 to last year and can be used to test historical performance.
+
+* Fixed rates can also be provided, as well as *histochastic* rates, which are generated using
 the statistical characteristics (means and covariance matrix) of
-a selected historical year range. Pure *stochastic* rates can also be generated
+a selected historical year range.
+
+* Pure *stochastic* rates can also be generated
 if the user provides means, volatility (expressed as standard deviation), and optionally
 the correlations between the different assets return rates provided as a matrix, or a list of
 the off-diagonal elements (see documentation for details).
-Average rates calculated over a historical data period can also be chosen.
+
+* Average rates calculated over a historical data period can also be chosen.
 
 Monte Carlo simulations capabilities are included and provide a probability of success and a histogram of
 outcomes. These simulations can be used for either determining the probability distribution of the
 maximum net spending amount under
 the constraint of a desired bequest, or the probability distribution of the maximum
-bequest under the constraint of a desired net spending amount. Unlike discrete-event
+bequest under the constraint of a desired net spending amount.
+
+Unlike discrete-event
 simulators, Owl uses an optimization algorithm for every new scenario, which results in more
 calculations being performed. As a result, the number of cases to be considered should be kept
 to a reasonable number. For a few hundred cases, a few minutes of calculations can provide very good estimates
@@ -152,3 +164,11 @@ exist for the plan being considered. Examples of infeasible solutions include re
 estate value too large for the savings assets to support, even with zero net spending basis,
 or maximizing the bequest subject to a net spending basis that is already too large for the savings
 assets to support, even with no estate being left.
+
+## Disclaimers
+
+* I am not a financial planner.
+* You make your own decisions.
+* This program comes with no guarantees.
+* Use at your own risk.
+
