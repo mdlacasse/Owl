@@ -13,11 +13,10 @@ if ret == kz.newCase:
     st.info("#### Starting a new case from scratch.\n\n" "A name for the scenario must first be provided.")
     st.text_input(
         "Case name",
-        # value="",
         key="_newcase",
         on_change=kz.createNewCase,
         args=["newcase"],
-        placeholder="Enter a case name...",
+        placeholder="Select an option...",
     )
 elif ret == kz.loadCaseFile:
     st.info(

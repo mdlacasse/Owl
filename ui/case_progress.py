@@ -151,7 +151,7 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
 
     total_pages = len(CASE_SETUP_PAGES)
     visited_count = sum(1 for page_info in CASE_SETUP_PAGES
-                       if is_page_visited(page_info["key"]))
+                        if is_page_visited(page_info["key"]))
 
     # Calculate progress
     progress = visited_count / total_pages
@@ -215,7 +215,7 @@ def show_simple_progress_bar():
 
     total_pages = len(CASE_SETUP_PAGES)
     visited_count = sum(1 for page_info in CASE_SETUP_PAGES
-                       if is_page_visited(page_info["key"]))
+                        if is_page_visited(page_info["key"]))
 
     progress = visited_count / total_pages
     current_page_name = CASE_SETUP_PAGES[current_idx]["name"]
@@ -242,4 +242,3 @@ def show_minimal_progress():
     # Compact display
     st.markdown(f"**Case Setup Progress:** {visited}/{total} pages visited")
     st.progress(visited / total)
-

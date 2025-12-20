@@ -63,7 +63,7 @@ else:
     kz.initCaseKey("yfrm", owb.FROM)
     kz.initCaseKey("yto", owb.TO)
     helpmsgSP500 = """Rate also includes dividends.
-Unless historical, S&P 500 can represent any mix of equities
+Unless historical, S&P 500 can be used to represent any mix of equities
 (domestic, international, emerging, ...).
 """
     helpmsgBaa = "Investment-grade corporate debt from issuers with a moderate risk of default."

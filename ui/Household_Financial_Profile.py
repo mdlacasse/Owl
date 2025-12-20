@@ -85,7 +85,7 @@ This information is needed to enforce the five-year maturation rule in Roth savi
             df,
             column_config=formatdic,
             hide_index=True,
-            key=kz.currentCaseName() + "_wages" + str(i),
+            key=kz.genCaseKey("wages" + str(i)),
         )
         st.caption("Values are in nominal $.")
         newdf.fillna(0, inplace=True)
@@ -112,6 +112,8 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
     debtdf = kz.getCaseKey("houseListDebts")
     if debtdf is None or debtdf.empty:
         debtdf = pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"])
+
+    debtdf.reset_index(drop=True, inplace=True)
 
     thisyear = date.today().year
     debtconf = {
@@ -163,6 +165,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         debtdf,
         column_config=debtconf,
         num_rows="dynamic",
+        hide_index=True,
         key=kz.genCaseKey("debts")
     )
 
@@ -182,6 +185,8 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
     fixeddf = kz.getCaseKey("houseListFixedAssets")
     if fixeddf is None or fixeddf.empty:
         fixeddf = pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"])
+
+    fixeddf.reset_index(drop=True, inplace=True)
 
     fixedconf = {
         "name": st.column_config.TextColumn(
@@ -239,6 +244,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
     edited_fixeddf = st.data_editor(
         fixeddf,
         column_config=fixedconf,
+        hide_index=True,
         num_rows="dynamic",
         key=kz.genCaseKey("fixed_assets")
     )
