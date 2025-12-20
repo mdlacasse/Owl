@@ -141,7 +141,7 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
     if current_idx is None:
         return
 
-    # Add space before progress bar
+    # Add divider before progress bar
     if divider:
         st.divider()
 

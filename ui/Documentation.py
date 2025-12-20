@@ -110,6 +110,10 @@ The sections below follow the same logical order.
 -------------------------------------------------
 ### :orange[Case Setup]
 This section contains the steps for creating and configuring case scenarios.
+For new cases, every page of this section should be visited and parameters
+entered according to your personal situation. To make this process easier,
+a progress bar tracking which page
+has been visited is shown at the bottom of the page.
 
 #### :material/person_add: Create Case
 The **Create Case** page is where every new scenario begins.

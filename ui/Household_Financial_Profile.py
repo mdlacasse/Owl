@@ -159,7 +159,12 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         )
     }
 
-    edited_debtdf = st.data_editor(debtdf, column_config=debtconf, num_rows="dynamic")
+    edited_debtdf = st.data_editor(
+        debtdf,
+        column_config=debtconf,
+        num_rows="dynamic",
+        key=kz.genCaseKey("debts")
+    )
 
     # Store edited debts if changed
     if not debtdf.equals(edited_debtdf):
@@ -202,8 +207,8 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         "value": st.column_config.NumberColumn(
             "value",
             help="Enter current value $",
-            default=0,
             min_value=0,
+            required=True,
             format="dollar",
             step=1,
         ),
@@ -231,7 +236,12 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         ),
     }
 
-    edited_fixeddf = st.data_editor(fixeddf, column_config=fixedconf, num_rows="dynamic")
+    edited_fixeddf = st.data_editor(
+        fixeddf,
+        column_config=fixedconf,
+        num_rows="dynamic",
+        key=kz.genCaseKey("fixed_assets")
+    )
 
     # Store edited fixed assets if changed
     if not fixeddf.equals(edited_fixeddf):
