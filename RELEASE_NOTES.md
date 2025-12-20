@@ -4,6 +4,8 @@
     - Debts and fixed assets at end of plan included in bequest
 - Extended Wages and Contributions page which was renamed Household Financial Profile
 - Added debt payment and fixed assets bequest reporting to Synopsis
+- Improved user interface
+- Improved integration with ssa.tools
 
 ### Version 2025.12.16
 - Fix error message when dates are empty in Create_Case

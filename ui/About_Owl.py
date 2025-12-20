@@ -24,6 +24,7 @@ Copyright &copy; 2025 - Martin-D. Lacasse
  Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
  Clark Jefcoat (hubcity) for fruitful interactions,
  kg333 for fixing an error in Docker's instructions,
+ John Leonard (jleonard99) for great suggestions and contributions,
  Benjamin Quinn (blquinn) for improvements and bug fixes,
  Dale Seng (sengsational) for great insights, testing, and suggestions,
  Josh Williams (noimjosh) for Docker image code,

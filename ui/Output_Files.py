@@ -44,7 +44,7 @@ workbook, to reproduce it in the future.""")
 
             st.download_button(
                 "Download case parameter file", data=lines,
-                file_name=f"case_{caseName}.toml", mime="application/toml"
+                file_name=f"Case_{caseName}.toml", mime="application/toml"
             )
 
         st.divider()
@@ -56,7 +56,7 @@ describing the flow of money, the first one as input to the case, and the follow
                 label="Download Household Financial Profile workbook",
                 help="Download Household Financial Profile as an Excel workbook.",
                 data=owb.saveContributions(),
-                file_name=f"{caseName}.xlsx",
+                file_name=f"HFP_{caseName}.xlsx",
                 disabled=kz.isCaseUnsolved(),
                 mime="application/vnd.ms-excel",
             )

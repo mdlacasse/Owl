@@ -127,13 +127,13 @@ As a result, this process should be repeated each year to maintain accurate esti
             with col1:
                 iname0 = kz.getCaseKey("iname0")
                 st.markdown(f"""Click
-[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob0}&useridx={iname0})
+[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob0}&name={iname0})
 to estimate {iname0}'s PIA.""")
             if kz.getCaseKey("status") == "married":
                 with col2:
                     iname1 = kz.getCaseKey("iname1")
                     st.markdown(f"""Click
-[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&useridx={iname1})
+[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&name={iname1})
 to estimate {iname1}'s PIA.""")
 
     st.divider()
