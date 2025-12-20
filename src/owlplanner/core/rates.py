@@ -33,8 +33,8 @@ import pandas as pd
 import os
 import sys
 
-from owlplanner import mylogging as log
-from owlplanner import utils as u
+from . import mylogging as log
+from . import utils as u
 
 # All data goes from 1928 to 2024. Update the TO value when data
 # becomes available for subsequent years.

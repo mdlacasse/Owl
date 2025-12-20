@@ -16,9 +16,9 @@ import numpy as np
 from datetime import date
 import os
 
-from owlplanner import plan
-from owlplanner import mylogging as log
-from owlplanner.rates import FROM, TO
+from . import plan
+from . import mylogging as log
+from .rates import FROM, TO
 
 
 AccountTypes = ["taxable", "tax-deferred", "tax-free"]

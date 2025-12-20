@@ -32,7 +32,7 @@ from . import timelists
 from . import socialsecurity as socsec
 from . import mylogging as log
 from . import progress
-from .plotting.factory import PlotFactory
+from ..plotting.factory import PlotFactory
 
 
 def _genGamma_n(tau):

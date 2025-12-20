@@ -19,7 +19,7 @@ os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
 import seaborn as sbn           # Noqa: E402
 
 from .base import PlotBackend   # Noqa: E402
-from .. import utils as u       # Noqa: E402
+from ..core import utils as u       # Noqa: E402
 
 
 class MatplotlibBackend(PlotBackend):

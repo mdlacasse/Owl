@@ -17,7 +17,7 @@ import io
 from scipy import stats
 
 from .base import PlotBackend
-from .. import utils as u
+from ..core import utils as u
 
 
 class PlotlyBackend(PlotBackend):

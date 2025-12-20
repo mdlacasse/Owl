@@ -8,7 +8,7 @@ Disclaimers: This code is for educational purposes only and does not constitute 
 """
 
 from typing import Optional
-from owlplanner import utils as u
+from . import utils as u
 
 
 class Progress:
