@@ -8,15 +8,16 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - href: users_guide.qmd
-        text: Users guide
+      - href: ./examples/example-1.qmd
+        text: Worked example
       - href: installation.qmd
         text: Installation
       - href: install-uv.qmd
         text: UV Install    
       - href: https://github.com/mdlacasse/OWL
         text: Repository
-
+      - href: https://owlplanner.streamlit.app/
+        text: Streamlit App
 format:
   html:
     theme: cosmo

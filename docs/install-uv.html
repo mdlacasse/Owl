@@ -130,8 +130,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./users_guide.html"> 
-<span class="menu-text">Users guide</span></a>
+    <a class="nav-link" href="./examples/example-1.html"> 
+<span class="menu-text">Worked example</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./installation.html"> 
@@ -144,6 +144,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li class="nav-item">
     <a class="nav-link" href="https://github.com/mdlacasse/OWL"> 
 <span class="menu-text">Repository</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://owlplanner.streamlit.app/"> 
+<span class="menu-text">Streamlit App</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -168,6 +172,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#testing-the-tools" id="toc-testing-the-tools" class="nav-link" data-scroll-target="#testing-the-tools">Testing the tools</a></li>
   </ul></li>
   <li><a href="#installing-owl" id="toc-installing-owl" class="nav-link" data-scroll-target="#installing-owl">Installing OWL</a></li>
+  <li><a href="#setting-up-to-run" id="toc-setting-up-to-run" class="nav-link" data-scroll-target="#setting-up-to-run">Setting up to run</a></li>
   <li><a href="#running-owl" id="toc-running-owl" class="nav-link" data-scroll-target="#running-owl">Running OWL</a></li>
   <li><a href="#updating-owl" id="toc-updating-owl" class="nav-link" data-scroll-target="#updating-owl">Updating OWL</a></li>
   </ul>
@@ -233,17 +238,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>I keep my GITHUB projects in a local projects folder under my personal home directory. The following block of code will clone the <code>owlplanner</code> project under your <code>~/projects</code> project folder.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/projects</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/mdlacasse/Owl.git owlplanner</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> owlplanner</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> owlplanner</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="setting-up-to-run" class="level2">
+<h2 class="anchored" data-anchor-id="setting-up-to-run">Setting up to run</h2>
+<p>The following command will download and install python (if you don’t already have it), create a virtual environment, and download all the necessary python modules to run OWL. One step … boom!</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="running-owl" class="level2">
 <h2 class="anchored" data-anchor-id="running-owl">Running OWL</h2>
 <p>The following command starts the streamlit server on your local computer and automatically opens a chromium browser. You’re ready to go!</p>
+<p>Remember - you don’t need to type it in … use the copy-to-clipboard icon and paste into your WSL terminal.</p>
 <p><em>Note:</em> this command assumes that your in the project root directory: <code>~/projects/owlplanner</code> if you’ve been following along.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run python <span class="at">-m</span> streamlit run ./ui/main.py <span class="dt">\</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--browser.gatherUsageStats</span><span class="op">=</span>false <span class="dt">\</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--browser.serverAddress</span><span class="op">=</span>localhost <span class="dt">\</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--browser.serverPort</span><span class="op">=</span>8501</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run python <span class="at">-m</span> streamlit run ./ui/main.py <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--browser.gatherUsageStats</span><span class="op">=</span>false <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--browser.serverAddress</span><span class="op">=</span>localhost <span class="dt">\</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--browser.serverPort</span><span class="op">=</span>8501</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><em>NOTE:</em> There are TWO things going on at the same time:</p>
 <ol type="1">
 <li>A streamlit webserver running from the terminal,</li>
@@ -255,8 +265,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="updating-owl" class="level2">
 <h2 class="anchored" data-anchor-id="updating-owl">Updating OWL</h2>
 <p>OWL is under active development. You’ll want to work with the latest changes. The command below will fetch the latest changes to your local machine and update the libraries. You can then use the command above to run these changes.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> fetch</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> fetch</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>
