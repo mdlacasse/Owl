@@ -8,6 +8,12 @@ website:
     left:
       - href: index.qmd
         text: Home
+      - href: users_guide.qmd
+        text: Users guide
+      - href: installation.qmd
+        text: Installation
+      - href: install-uv.qmd
+        text: UV Install    
       - href: https://github.com/mdlacasse/OWL
         text: Repository
 

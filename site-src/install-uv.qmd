@@ -59,6 +59,14 @@ block of code will clone the `owlplanner` project under your `~/projects` projec
 cd ~/projects
 git clone https://github.com/mdlacasse/Owl.git owlplanner
 cd owlplanner
+```
+
+## Setting up to run
+
+The following command will download and install python (if you don't already have it), create
+a virtual environment, and download all the necessary python modules to run OWL.  One step ... boom!
+
+```bash
 uv sync
 ```
 
@@ -66,6 +74,8 @@ uv sync
 
 The following command starts the streamlit server on your local computer and automatically opens
 a chromium browser.  You're ready to go!
+
+Remember - you don't need to type it in ... use the copy-to-clipboard icon and paste into your WSL terminal.
 
 *Note:* this command assumes that your in the project root directory: `~/projects/owlplanner` if you've been following along.
 
@@ -95,3 +105,4 @@ fetch the latest changes to your local machine and update the libraries.  You ca
 git fetch
 uv sync
 ```
+
