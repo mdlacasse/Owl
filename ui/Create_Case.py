@@ -130,12 +130,15 @@ Look at the documentation for some suggestions."""
     st.divider()
     cantcreate = kz.isIncomplete() or diz1
     if not cantcreate and kz.getCaseKey("plan") is None:
-        st.info("""Any parameter on this page can be changed (including the case name).
+        st.info("""Any parameter on this page can now be changed (including the case name).
 Once changes are complete hit the `Create case` button."""
                 )
 
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
     cantcopy = cantmodify or kz.caseHasNoPlan()
+    if not cantcopy and kz.getCaseKey("stTimeLists") is None:
+        st.info("Reminder to upload the *Household Financial Profile* (if any) before creating a copy.")
+
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
         helpmsg = """`Copy case` carries over all parameters to a new case.

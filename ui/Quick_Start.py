@@ -74,8 +74,10 @@ Congratulations! :balloon: You just ran your first case.
 For creating your own cases, you can start
 from scratch by selecting `New Case...` in the selection box while on the **Create Case** page,
 and fill in the information needed on each page in the **Case Setup** section.
-Alternatively, you can duplicate any existing case by using
-the `Duplicate case` button, and then edit its values to fit your situation.
+Alternatively, you can copy any existing case by using
+the `Copy case` button, and then edit its values to fit your situation.
+Make sure that the *Household Financial Profile* has been loaded in the
+original case before creating a copy.
 
 Once a case has been fully parameterized and successfully optimized,
 its parameters can be saved by using the `Download case file...` button on the **Output Files** page.
