@@ -2,6 +2,7 @@ import streamlit as st
 
 import sskeys as kz
 import owlbridge as owb
+import case_progress as cp
 
 
 def getPercentInput(i, j, keybase, text, defval=0):
@@ -146,3 +147,6 @@ else:
             owb.setInterpolationMethod()
             owb.setAllocationRatios()
         owb.showAllocations()
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar(divider=False)

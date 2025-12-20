@@ -5,6 +5,7 @@ from datetime import date
 import sskeys as kz
 import owlbridge as owb
 import tomlexamples as tomlex
+import case_progress as cp
 
 
 def loadWCExample(file):
@@ -237,3 +238,6 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         edited_fixeddf.fillna(0, inplace=True)
         kz.setCaseKey("houseListFixedAssets", edited_fixeddf)
         st.rerun()
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar()

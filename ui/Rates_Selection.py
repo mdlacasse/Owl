@@ -2,6 +2,7 @@ import streamlit as st
 
 import sskeys as kz
 import owlbridge as owb
+import case_progress as cp
 
 
 FXRATES = {
@@ -256,3 +257,6 @@ forecasts for the next decade can be found
         kz.initCaseKey("yOBBBA", 2032)
         helpmsg = "Year at which the OBBBA tax rates are speculated to be expired and return to pre-TCJA rates."
         ret = kz.getIntNum("OBBBA expiration year", "yOBBBA", help=helpmsg)
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar()

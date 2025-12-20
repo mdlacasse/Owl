@@ -1,6 +1,7 @@
 import streamlit as st
 
 import sskeys as kz
+import case_progress as cp
 
 
 def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, prompt=True):
@@ -160,3 +161,6 @@ to estimate {iname1}'s PIA.""")
             with incol2:
                 getIntInput(1, "pAge_m", "...and month(s)", 0, msg2, max_val=11, prompt=False)
             getToggleInput(1, "pIdx", "Inflafion adjusted")
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar()

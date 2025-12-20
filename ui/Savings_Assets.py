@@ -2,6 +2,7 @@ from datetime import date
 import streamlit as st
 
 import sskeys as kz
+import case_progress as cp
 
 ret = kz.titleBar(":material/savings: Savings Assets")
 
@@ -77,3 +78,6 @@ else:
                 max_value=1.0,
                 step=0.05,
             )
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar()

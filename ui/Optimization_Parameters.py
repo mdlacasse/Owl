@@ -3,6 +3,7 @@ from datetime import date
 
 import sskeys as kz
 import owlbridge as owb
+import case_progress as cp
 
 
 profileChoices = ["flat", "smile"]
@@ -163,3 +164,6 @@ else:
     col1, col2 = st.columns([0.6, 0.4], gap="small")
     with col1:
         owb.showProfile(col1)
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar(divider=False)

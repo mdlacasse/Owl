@@ -4,6 +4,7 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 import tomlexamples as tomlex
+import case_progress as cp
 
 
 ret = kz.titleBar(":material/person_add: Create Case", allCases=True)
@@ -149,3 +150,6 @@ Hit the `Create case` button once all parameters on this page are right."""
     with col3:
         helpmsg = ":warning: Caution: The `Delete case` operation cannot be undone."
         st.button("Delete case :material/delete:", on_click=kz.deleteCurrentCase, disabled=cantmodify, help=helpmsg)
+
+# Show progress bar at bottom (always shown on Create Case page)
+cp.show_progress_bar()
