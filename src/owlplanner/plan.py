@@ -2410,9 +2410,10 @@ class Plan:
         dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
 
         totDebtPayments = np.sum(self.debt_payments_n, axis=0)
-        totDebtPaymentsNow = np.sum(self.debt_payments_n / self.gamma_n[:-1], axis=0)
-        dic[" Total debt payments"] = f"{u.d(totDebtPaymentsNow)}"
-        dic["[Total debt payments]"] = f"{u.d(totDebtPayments)}"
+        if totDebtPayments > 0:
+            totDebtPaymentsNow = np.sum(self.debt_payments_n / self.gamma_n[:-1], axis=0)
+            dic[" Total debt payments"] = f"{u.d(totDebtPaymentsNow)}"
+            dic["[Total debt payments]"] = f"{u.d(totDebtPayments)}"
 
         if self.N_i == 2 and self.n_d < self.N_n:
             p_j = self.partialEstate_j * (1 - self.phi_j)
@@ -2453,7 +2454,8 @@ class Plan:
         totEstate = np.sum(estate) - debts + self.fixed_assets_bequest_value
         dic["Year of final bequest"] = (f"{endyear}")
         dic[" Total value of final bequest"] = (f"{u.d(lyNow*totEstate)}")
-        dic[" After paying remaining debts of"] = (f"{u.d(lyNow*debts)}")
+        if debts > 0:
+            dic[" After paying remaining debts of"] = (f"{u.d(lyNow*debts)}")
         if self.fixed_assets_bequest_value > 0:
             dic[" Fixed assets liquidated at end of plan"] = (f"{u.d(lyNow*self.fixed_assets_bequest_value)}")
             dic["[Fixed assets liquidated at end of plan]"] = (f"{u.d(self.fixed_assets_bequest_value)}")
@@ -2464,7 +2466,8 @@ class Plan:
         dic["» [Post-tax final bequest account value - tax-def]"] = (f"{u.d(estate[1])}")
         dic["»  Post-tax final bequest account value - tax-free"] = (f"{u.d(lyNow*estate[2])}")
         dic["» [Post-tax final bequest account value - tax-free]"] = (f"{u.d(estate[2])}")
-        dic["» [Remaining debt balance]"] = (f"{u.d(debts)}")
+        if debts > 0:
+            dic["» [Remaining debt balance]"] = (f"{u.d(debts)}")
 
         dic["Plan starting date"] = str(self.startDate)
         dic["Cumulative inflation factor at end of final year"] = (f"{self.gamma_n[-1]:.2f}")

@@ -67,6 +67,7 @@ else:
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
+            kz.initCaseKey("ssAge_y0", 65)
             kz.initCaseKey("ssAge_m0", 0)
             m0 = kz.getCaseKey("ssAge_m0")
             maxyear = 70 if m0 == 0 else 69
@@ -84,6 +85,7 @@ else:
             getIntInput(1, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
+                kz.initCaseKey("ssAge_y1", 65)
                 kz.initCaseKey("ssAge_m1", 0)
                 m1 = kz.getCaseKey("ssAge_m1")
                 maxyear = 70 if m1 == 0 else 69
@@ -137,6 +139,8 @@ to estimate {iname1}'s PIA.""")
     st.markdown("#### :orange[Pension]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
+        kz.initCaseKey("pAge_y0", 65)
+        kz.initCaseKey("pAge_m0", 0)
         getIntInput(0, "pAmt", "**monthly** amount (in today's \\$)", help=msg1)
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
@@ -147,6 +151,8 @@ to estimate {iname1}'s PIA.""")
 
     with col2:
         if kz.getCaseKey("status") == "married":
+            kz.initCaseKey("pAge_y1", 65)
+            kz.initCaseKey("pAge_m1", 0)
             getIntInput(1, "pAmt", "**monthly** amount (in today's \\$)", help=msg1)
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:

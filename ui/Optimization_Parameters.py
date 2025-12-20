@@ -54,7 +54,8 @@ else:
         kz.initCaseKey("maxRothConversion", 50)
         ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion",
                         disabled=fromFile, help=helpmsg)
-        ret = kz.getToggle("Convert as in Wages and Contributions tables", "readRothX")
+        helpmsg = "Use the Roth conversion values in the *Wages and Contributions* file to override"
+        ret = kz.getToggle("Convert as in Wages and Contributions tables", "readRothX", help=helpmsg)
         # kz.initCaseKey("oppCostX", 0.)
         # helpmsg = "Estimated opportunity cost for paying estimated tax on Roth conversions."
         # ret = kz.getNum("Opportunity cost for conversion (%)", "oppCostX", step=0.01, format="%.2f",
