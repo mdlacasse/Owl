@@ -1,0 +1,5 @@
+# YAML configuration file for the CLI
+
+param: "dummy parameter" # for testing
+seed: 42
+
