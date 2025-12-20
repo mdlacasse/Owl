@@ -36,8 +36,18 @@ else:
 
     with col2:
         if kz.getCaseKey("objective") == "Net spending":
+            # Get fixed assets bequest value in today's dollars to inform the user
+            fixed_assets_bequest = owb.getFixedAssetsBequestValue(in_todays_dollars=True)
+            fixed_assets_bequest_k = fixed_assets_bequest / 1000.0
+
+            if fixed_assets_bequest_k > 0:
+                st.info(f"Fixed assets will contribute ${fixed_assets_bequest_k:,.0f}k to bequest")
+
             kz.initCaseKey("bequest", 0)
-            ret = kz.getNum("Desired bequest (\\$k)", "bequest", help=helpmsg)
+            helpmsg_bequest = ("Desired bequest from savings accounts only (in today's \\$k). "
+                               "Fixed assets liquidated at end of plan are added separately.")
+            ret = kz.getNum("Desired bequest from savings accounts (\\$k)", "bequest",
+                            help=helpmsg_bequest)
 
         else:
             kz.initCaseKey("netSpending", 0)

@@ -1002,6 +1002,32 @@ class Plan:
             self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
             self.fixed_assets_bequest_value = 0.0
 
+    def getFixedAssetsBequestValueInTodaysDollars(self):
+        """
+        Return the fixed assets bequest value in today's dollars.
+        This requires rates to be set to calculate gamma_n (inflation factor).
+
+        Returns:
+        --------
+        float
+            Fixed assets bequest value in today's dollars.
+            Returns 0.0 if rates not set, gamma_n not calculated, or no fixed assets.
+        """
+        if self.fixed_assets_bequest_value == 0.0:
+            return 0.0
+
+        # Check if we can calculate gamma_n
+        if self.rateMethod is None or not hasattr(self, 'tau_kn'):
+            # Rates not set yet - return 0
+            return 0.0
+
+        # Calculate gamma_n if not already calculated
+        if not hasattr(self, 'gamma_n') or self.gamma_n is None:
+            self.gamma_n = _genGamma_n(self.tau_kn)
+
+        # Convert: today's dollars = nominal dollars / inflation_factor
+        return self.fixed_assets_bequest_value / self.gamma_n[-1]
+
     def saveContributions(self):
         """
         Return workbook on wages and contributions, including Debts and Fixed Assets.
@@ -1339,13 +1365,12 @@ class Plan:
             else:
                 bequest = 1
 
-            # Adjust desired bequest for fixed assets and remaining debts
+            # Bequest constraint now refers only to savings accounts
+            # User specifies desired bequest from accounts (fixed assets are separate)
             # Total bequest = accounts - debts + fixed_assets
-            # So: accounts >= desired_bequest - fixed_assets + debts
-            # Clamp to non-negative: if fixed_assets > desired_bequest + debts,
-            # the constraint is automatically satisfied (accounts can't be negative)
-            total_bequest_value = max(0, (bequest - self.fixed_assets_bequest_value
-                                         + self.remaining_debt_balance))
+            # So: accounts >= desired_bequest_from_accounts + debts
+            # (fixed_assets are added separately in the total bequest calculation)
+            total_bequest_value = bequest + self.remaining_debt_balance
 
             row = self.A.newRow()
             for i in range(self.N_i):

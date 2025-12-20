@@ -862,3 +862,44 @@ def getFixedAssetTypes():
     This ensures consistency between UI and validation logic.
     """
     return _fixedAssetTypes
+
+
+@_checkPlan
+def getFixedAssetsBequestValue(plan, in_todays_dollars=False):
+    """
+    Calculate and return the fixed assets bequest value (assets with yod past plan end).
+    This value represents assets that will be liquidated at the end of the plan.
+    The plan is automatically retrieved via the @_checkPlan decorator.
+
+    Parameters:
+    -----------
+    in_todays_dollars : bool, optional
+        If True, returns value in today's dollars (requires rates to be set).
+        If False, returns value in nominal dollars (default).
+
+    Returns:
+    --------
+    float
+        Total proceeds (after commission) from fixed assets with yod past plan end.
+        Returns 0.0 if no plan exists or no such assets.
+        If in_todays_dollars=True and rates not set, returns 0.0.
+    """
+    # Ensure houseLists are synced
+    syncHouseLists(plan)
+
+    if "Fixed Assets" in plan.houseLists and not plan.houseLists["Fixed Assets"].empty:
+        # First ensure the bequest value is calculated
+        plan.processDebtsAndFixedAssets()
+
+        if in_todays_dollars:
+            # Ensure rates are set (needed for conversion to today's dollars)
+            if plan.rateMethod is None or not hasattr(plan, 'tau_kn'):
+                _setRates(plan)
+
+            # Convert to today's dollars using plan method
+            return plan.getFixedAssetsBequestValueInTodaysDollars()
+        else:
+            # Return nominal value
+            return plan.fixed_assets_bequest_value
+    else:
+        return 0.0
