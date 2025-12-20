@@ -30,6 +30,8 @@ from . import rates
 from . import config
 from . import timelists
 from . import socialsecurity as socsec
+from . import debts as debts
+from . import fixedassets as fxasst
 from . import mylogging as log
 from . import progress
 from .plotting.factory import PlotFactory
@@ -312,6 +314,19 @@ class Plan:
         self.myRothX_in = np.zeros((self.N_i, self.N_n + 5))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n + 5))
 
+        # Debt payments array (length N_n)
+        self.debt_payments_n = np.zeros(self.N_n)
+
+        # Fixed assets arrays (length N_n)
+        self.fixed_assets_tax_free_n = np.zeros(self.N_n)
+        self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
+        self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
+        # Fixed assets bequest value (assets with yod past plan end)
+        self.fixed_assets_bequest_value = 0.0
+
+        # Remaining debt balance at end of plan
+        self.remaining_debt_balance = 0.0
+
         # Previous 2 years of MAGI needed for Medicare.
         self.prevMAGI = np.zeros((2))
         self.MAGI_n = np.zeros(self.N_n)
@@ -337,6 +352,7 @@ class Plan:
         self._adjustedParameters = False
         self.timeListsFileName = "None"
         self.timeLists = {}
+        self.houseLists = {}
         self.zeroContributions()
         self.caseStatus = "unsolved"
         self.rateMethod = None
@@ -913,9 +929,9 @@ class Plan:
         Missing rows (years) are populated with zero values.
         """
         try:
-            filename, self.timeLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
+            filename, self.timeLists, self.houseLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
         except Exception as e:
-            raise Exception(f"Unsuccessful read of Wages and Contributions: {e}") from e
+            raise Exception(f"Unsuccessful read of Household Financial Profile: {e}") from e
 
         self.timeListsFileName = filename
         self.setContributions()
@@ -949,9 +965,72 @@ class Plan:
 
         return self.timeLists
 
+    def processDebtsAndFixedAssets(self):
+        """
+        Process debts and fixed assets from houseLists and populate arrays.
+        Should be called after setContributions() and before solve().
+        """
+        thisyear = date.today().year
+
+        # Process debts
+        if "Debts" in self.houseLists and not self.houseLists["Debts"].empty:
+            self.debt_payments_n = debts.get_debt_payments_array(
+                self.houseLists["Debts"], self.N_n, thisyear
+            )
+            self.remaining_debt_balance = debts.get_remaining_debt_balance(
+                self.houseLists["Debts"], self.N_n, thisyear
+            )
+        else:
+            self.debt_payments_n = np.zeros(self.N_n)
+            self.remaining_debt_balance = 0.0
+
+        # Process fixed assets
+        if "Fixed Assets" in self.houseLists and not self.houseLists["Fixed Assets"].empty:
+            filing_status = "married" if self.N_i == 2 else "single"
+            (self.fixed_assets_tax_free_n,
+             self.fixed_assets_ordinary_income_n,
+             self.fixed_assets_capital_gains_n) = fxasst.get_fixed_assets_arrays(
+                self.houseLists["Fixed Assets"], self.N_n, thisyear, filing_status
+            )
+            # Calculate bequest value for assets with yod past plan end
+            self.fixed_assets_bequest_value = fxasst.get_fixed_assets_bequest_value(
+                self.houseLists["Fixed Assets"], self.N_n, thisyear
+            )
+        else:
+            self.fixed_assets_tax_free_n = np.zeros(self.N_n)
+            self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
+            self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
+            self.fixed_assets_bequest_value = 0.0
+
+    def getFixedAssetsBequestValueInTodaysDollars(self):
+        """
+        Return the fixed assets bequest value in today's dollars.
+        This requires rates to be set to calculate gamma_n (inflation factor).
+
+        Returns:
+        --------
+        float
+            Fixed assets bequest value in today's dollars.
+            Returns 0.0 if rates not set, gamma_n not calculated, or no fixed assets.
+        """
+        if self.fixed_assets_bequest_value == 0.0:
+            return 0.0
+
+        # Check if we can calculate gamma_n
+        if self.rateMethod is None or not hasattr(self, 'tau_kn'):
+            # Rates not set yet - return 0
+            return 0.0
+
+        # Calculate gamma_n if not already calculated
+        if not hasattr(self, 'gamma_n') or self.gamma_n is None:
+            self.gamma_n = _genGamma_n(self.tau_kn)
+
+        # Convert: today's dollars = nominal dollars / inflation_factor
+        return self.fixed_assets_bequest_value / self.gamma_n[-1]
+
     def saveContributions(self):
         """
-        Return workbook on wages and contributions.
+        Return workbook on wages and contributions, including Debts and Fixed Assets.
         """
         if self.timeLists is None:
             return None
@@ -972,6 +1051,36 @@ class Plan:
         if self.N_i == 2:
             ws = wb.create_sheet(self.inames[1])
             fillsheet(ws, 1)
+
+        # Add Debts sheet if available
+        if "Debts" in self.houseLists and not self.houseLists["Debts"].empty:
+            ws = wb.create_sheet("Debts")
+            df = self.houseLists["Debts"]
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            _formatDebtsSheet(ws)
+        else:
+            # Create empty Debts sheet with proper columns
+            ws = wb.create_sheet("Debts")
+            df = pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"])
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            _formatDebtsSheet(ws)
+
+        # Add Fixed Assets sheet if available
+        if "Fixed Assets" in self.houseLists and not self.houseLists["Fixed Assets"].empty:
+            ws = wb.create_sheet("Fixed Assets")
+            df = self.houseLists["Fixed Assets"]
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            _formatFixedAssetsSheet(ws)
+        else:
+            # Create empty Fixed Assets sheet with proper columns
+            ws = wb.create_sheet("Fixed Assets")
+            df = pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"])
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            _formatFixedAssetsSheet(ws)
 
         return wb
 
@@ -1256,12 +1365,19 @@ class Plan:
             else:
                 bequest = 1
 
+            # Bequest constraint now refers only to savings accounts
+            # User specifies desired bequest from accounts (fixed assets are separate)
+            # Total bequest = accounts - debts + fixed_assets
+            # So: accounts >= desired_bequest_from_accounts + debts
+            # (fixed_assets are added separately in the total bequest calculation)
+            total_bequest_value = bequest + self.remaining_debt_balance
+
             row = self.A.newRow()
             for i in range(self.N_i):
                 row.addElem(_q3(self.C["b"], i, 0, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
                 row.addElem(_q3(self.C["b"], i, 1, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1 - self.nu)
                 row.addElem(_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
-            self.A.addRow(row, bequest, bequest)
+            self.A.addRow(row, total_bequest_value, total_bequest_value)
         elif objective == "maxBequest":
             spending = options["netSpending"]
             if not isinstance(spending, (int, float)):
@@ -1343,6 +1459,10 @@ class Plan:
         tau_0prev[tau_0prev < 0] = 0
         for n in range(self.N_n):
             rhs = -self.M_n[n] - self.J_n[n]
+            # Add fixed assets tax-free money (positive cash flow)
+            rhs += self.fixed_assets_tax_free_n[n]
+            # Subtract debt payments (negative cash flow)
+            rhs -= self.debt_payments_n[n]
             row = self.A.newRow({_q1(self.C["g"], n, self.N_n): 1})
             row.addElem(_q1(self.C["s"], n, self.N_n), 1)
             row.addElem(_q1(self.C["m"], n, self.N_n), 1)
@@ -1380,7 +1500,8 @@ class Plan:
 
     def _add_taxable_income(self):
         for n in range(self.N_n):
-            rhs = 0
+            # Add fixed assets ordinary income
+            rhs = self.fixed_assets_ordinary_income_n[n]
             row = self.A.newRow()
             row.addElem(_q1(self.C["e"], n, self.N_n), 1)
             for i in range(self.N_i):
@@ -1743,6 +1864,9 @@ class Plan:
         self._adjustParameters(self.gamma_n, self.MAGI_n)
         self._buildOffsetMap(options)
 
+        # Process debts and fixed assets
+        self.processDebtsAndFixedAssets()
+
         solver = myoptions.get("solver", self.defaultSolver)
         if solver not in knownSolvers:
             raise ValueError(f"Unknown solver {solver}.")
@@ -2084,6 +2208,8 @@ class Plan:
             * self.alpha_ijkn[:, 0, 0, :Nn],
             axis=0,
         )
+        # Add fixed assets capital gains
+        self.Q_n += self.fixed_assets_capital_gains_n
         self.U_n = self.psi_n * self.Q_n
 
         self.MAGI_n = self.G_n + self.e_n + self.Q_n
@@ -2155,6 +2281,34 @@ class Plan:
         sources["RothX"] = self.x_in
         sources["tax-free wdrwl"] = self.w_ijn[:, 2, :]
         sources["BTI"] = self.Lambda_in
+        # Debts and fixed assets (debts are negative as expenses)
+        # Reshape 1D arrays to match shape of other sources (N_i x N_n)
+        if self.N_i == 1:
+            sources["debt payments"] = -self.debt_payments_n.reshape(1, -1)
+            sources["fixed assets tax-free"] = self.fixed_assets_tax_free_n.reshape(1, -1)
+            sources["fixed assets ordinary"] = self.fixed_assets_ordinary_income_n.reshape(1, -1)
+            sources["fixed assets capital gains"] = self.fixed_assets_capital_gains_n.reshape(1, -1)
+        else:
+            # For married couples, split using eta between individuals.
+            debt_array = np.zeros((self.N_i, self.N_n))
+            debt_array[0, :] = -self.debt_payments_n * (1 - self.eta)
+            debt_array[1, :] = -self.debt_payments_n * self.eta
+            sources["debt payments"] = debt_array
+
+            fa_tax_free = np.zeros((self.N_i, self.N_n))
+            fa_tax_free[0, :] = self.fixed_assets_tax_free_n * (1 - self.eta)
+            fa_tax_free[1, :] = self.fixed_assets_tax_free_n * self.eta
+            sources["fixed assets tax-free"] = fa_tax_free
+
+            fa_ordinary = np.zeros((self.N_i, self.N_n))
+            fa_ordinary[0, :] = self.fixed_assets_ordinary_income_n * (1 - self.eta)
+            fa_ordinary[1, :] = self.fixed_assets_ordinary_income_n * self.eta
+            sources["fixed assets ordinary"] = fa_ordinary
+
+            fa_capital = np.zeros((self.N_i, self.N_n))
+            fa_capital[0, :] = self.fixed_assets_capital_gains_n * (1 - self.eta)
+            fa_capital[1, :] = self.fixed_assets_capital_gains_n * self.eta
+            sources["fixed assets capital gains"] = fa_capital
 
         savings = {}
         savings["taxable"] = self.b_ijn[:, 0, :]
@@ -2166,7 +2320,9 @@ class Plan:
 
         estate_j = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         estate_j[1] *= 1 - self.nu
-        self.bequest = np.sum(estate_j) / self.gamma_n[-1]
+        # Subtract remaining debt balance from estate
+        total_estate = np.sum(estate_j) - self.remaining_debt_balance
+        self.bequest = max(0.0, total_estate) / self.gamma_n[-1]
 
         self.basis = self.g_n[0] / self.xi_n[0]
 
@@ -2280,6 +2436,12 @@ class Plan:
         dic[" Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
         dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
 
+        totDebtPayments = np.sum(self.debt_payments_n, axis=0)
+        if totDebtPayments > 0:
+            totDebtPaymentsNow = np.sum(self.debt_payments_n / self.gamma_n[:-1], axis=0)
+            dic[" Total debt payments"] = f"{u.d(totDebtPaymentsNow)}"
+            dic["[Total debt payments]"] = f"{u.d(totDebtPayments)}"
+
         if self.N_i == 2 and self.n_d < self.N_n:
             p_j = self.partialEstate_j * (1 - self.phi_j)
             p_j[1] *= 1 - self.nu
@@ -2314,9 +2476,16 @@ class Plan:
         estate[1] *= 1 - self.nu
         endyear = self.year_n[-1]
         lyNow = 1./self.gamma_n[-1]
-        totEstate = np.sum(estate)
+        debts = self.remaining_debt_balance
+        # Add fixed assets bequest value (assets with yod past plan end)
+        totEstate = np.sum(estate) - debts + self.fixed_assets_bequest_value
         dic["Year of final bequest"] = (f"{endyear}")
         dic[" Total value of final bequest"] = (f"{u.d(lyNow*totEstate)}")
+        if debts > 0:
+            dic[" After paying remaining debts of"] = (f"{u.d(lyNow*debts)}")
+        if self.fixed_assets_bequest_value > 0:
+            dic[" Fixed assets liquidated at end of plan"] = (f"{u.d(lyNow*self.fixed_assets_bequest_value)}")
+            dic["[Fixed assets liquidated at end of plan]"] = (f"{u.d(self.fixed_assets_bequest_value)}")
         dic["[Total value of final bequest]"] = (f"{u.d(totEstate)}")
         dic["»  Post-tax final bequest account value - taxable"] = (f"{u.d(lyNow*estate[0])}")
         dic["» [Post-tax final bequest account value - taxable]"] = (f"{u.d(estate[0])}")
@@ -2324,6 +2493,8 @@ class Plan:
         dic["» [Post-tax final bequest account value - tax-def]"] = (f"{u.d(estate[1])}")
         dic["»  Post-tax final bequest account value - tax-free"] = (f"{u.d(lyNow*estate[2])}")
         dic["» [Post-tax final bequest account value - tax-free]"] = (f"{u.d(estate[2])}")
+        if debts > 0:
+            dic["» [Remaining debt balance]"] = (f"{u.d(debts)}")
 
         dic["Plan starting date"] = str(self.startDate)
         dic["Cumulative inflation factor at end of final year"] = (f"{self.gamma_n[-1]:.2f}")
@@ -2899,5 +3070,95 @@ def _formatSpreadsheet(ws, ftype):
         if column != "A":
             for cell in col:
                 cell.number_format = fstring
+
+    return None
+
+
+def _formatDebtsSheet(ws):
+    """
+    Format Debts sheet with appropriate column formatting.
+    """
+    from openpyxl.utils import get_column_letter
+
+    # Format header row
+    for cell in ws[1]:
+        cell.style = "Pandas"
+
+    # Get column mapping from header
+    header_row = ws[1]
+    col_map = {}
+    for idx, cell in enumerate(header_row, start=1):
+        col_letter = get_column_letter(idx)
+        col_name = str(cell.value).lower() if cell.value else ""
+        col_map[col_letter] = col_name
+        # Set column width
+        width = max(len(str(cell.value)) + 4, 10)
+        ws.column_dimensions[col_letter].width = width
+
+    # Apply formatting based on column name
+    for col_letter, col_name in col_map.items():
+        if col_name in ["year", "term"]:
+            # Integer format
+            fstring = "#,##0"
+        elif col_name in ["rate"]:
+            # Number format (2 decimal places for percentages stored as numbers)
+            fstring = "#,##0.00"
+        elif col_name in ["amount"]:
+            # Currency format
+            fstring = "$#,##0_);[Red]($#,##0)"
+        else:
+            # Text columns (name, type) - no number formatting
+            continue
+
+        # Apply formatting to all data rows (skip header row 1)
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                if cell.column_letter == col_letter:
+                    cell.number_format = fstring
+
+    return None
+
+
+def _formatFixedAssetsSheet(ws):
+    """
+    Format Fixed Assets sheet with appropriate column formatting.
+    """
+    from openpyxl.utils import get_column_letter
+
+    # Format header row
+    for cell in ws[1]:
+        cell.style = "Pandas"
+
+    # Get column mapping from header
+    header_row = ws[1]
+    col_map = {}
+    for idx, cell in enumerate(header_row, start=1):
+        col_letter = get_column_letter(idx)
+        col_name = str(cell.value).lower() if cell.value else ""
+        col_map[col_letter] = col_name
+        # Set column width
+        width = max(len(str(cell.value)) + 4, 10)
+        ws.column_dimensions[col_letter].width = width
+
+    # Apply formatting based on column name
+    for col_letter, col_name in col_map.items():
+        if col_name in ["yod"]:
+            # Integer format
+            fstring = "#,##0"
+        elif col_name in ["rate", "commission"]:
+            # Number format (1 decimal place for percentages stored as numbers)
+            fstring = "#,##0.00"
+        elif col_name in ["basis", "value"]:
+            # Currency format
+            fstring = "$#,##0_);[Red]($#,##0)"
+        else:
+            # Text columns (name, type) - no number formatting
+            continue
+
+        # Apply formatting to all data rows (skip header row 1)
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                if cell.column_letter == col_letter:
+                    cell.number_format = fstring
 
     return None

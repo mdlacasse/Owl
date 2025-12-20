@@ -2,6 +2,7 @@ import streamlit as st
 
 import sskeys as kz
 import owlbridge as owb
+import case_progress as cp
 
 
 FXRATES = {
@@ -62,7 +63,7 @@ else:
     kz.initCaseKey("yfrm", owb.FROM)
     kz.initCaseKey("yto", owb.TO)
     helpmsgSP500 = """Rate also includes dividends.
-Unless historical, S&P 500 can represent any mix of equities
+Unless historical, S&P 500 can be used to represent any mix of equities
 (domestic, international, emerging, ...).
 """
     helpmsgBaa = "Investment-grade corporate debt from issuers with a moderate risk of default."
@@ -72,7 +73,7 @@ Unless historical, S&P 500 can represent any mix of equities
 forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition)."""
 
-    st.write("#### :orange[Type of Rates]")
+    st.markdown("#### :orange[Type of Rates]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         helpmsg = "Rates can be fixed for the duration of the plan or change annually."
@@ -90,7 +91,7 @@ forecasts for the next decade can be found
         st.divider()
         ro = fxType != "user"
 
-        st.write("#### :orange[Fixed Rate Values (%)]")
+        st.markdown("#### :orange[Fixed Rate Values (%)]")
         rates = FXRATES[fxType]
         for j in range(4):
             kz.initCaseKey(f"fxRate{j}", rates[j])
@@ -147,9 +148,9 @@ forecasts for the next decade can be found
 
     if kz.getCaseKey("rateType") == "varying":
         st.divider()
-        st.write("#### :orange[Stochastic Parameters]")
+        st.markdown("#### :orange[Stochastic Parameters]")
         ro = kz.getCaseKey("varyingType") != "stochastic"
-        st.write("##### Means (%)")
+        st.markdown("##### Means (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("mean0", 0)
@@ -170,7 +171,7 @@ forecasts for the next decade can be found
             kz.getRateNum("Cash Assets/Inflation", "mean3", ro, help=helpmsgCash,
                           step=1.0, min_value=-9.0, callback=updateRates)
 
-        st.write("##### Volatility (%)")
+        st.markdown("##### Volatility (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("stdev0", 0)
@@ -188,7 +189,7 @@ forecasts for the next decade can be found
             kz.initCaseKey("stdev3", 0)
             kz.getRateNum("Cash Assets/Inflation", "stdev3", ro, step=1.0, callback=updateRates)
 
-        st.write("##### Correlation matrix")
+        st.markdown("##### Correlation matrix")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("diag1", 1)
@@ -237,15 +238,15 @@ forecasts for the next decade can be found
     owb.showRates(col1)
 
     # st.divider()
-    st.write("#### :orange[Other Rates]")
+    st.markdown("#### :orange[Other Rates]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("divRate", 1.8)
         helpmsg = "Average annual (qualified) dividend return rate on stock portfolio in taxable account."
         ret = kz.getNum("Dividend rate (%)", "divRate", max_value=5.0, format="%.2f", help=helpmsg, step=1.0)
 
-    st.write("#####")
-    st.write("#### :orange[Income taxes]")
+    st.markdown("#####")
+    st.markdown("#### :orange[Income taxes]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("heirsTx", 30)
@@ -256,3 +257,6 @@ forecasts for the next decade can be found
         kz.initCaseKey("yOBBBA", 2032)
         helpmsg = "Year at which the OBBBA tax rates are speculated to be expired and return to pre-TCJA rates."
         ret = kz.getIntNum("OBBBA expiration year", "yOBBBA", help=helpmsg)
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar()

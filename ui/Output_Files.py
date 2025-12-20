@@ -19,9 +19,8 @@ else:
         caseName = kz.getCaseKey("name")
         df = kz.compareSummaries()
         if df is not None:
-            st.write("#### :orange[Synopsis]\n"
-                     "This table provides a summary of the current case and"
-                     " compares it with other similar cases that ran successfully.")
+            st.markdown("""#### :orange[Synopsis]\nThis table provides a summary of the current
+case and compares it with other similar cases that ran successfully.""")
             styledDf = df[1:].style.map(kz.colorBySign)
             st.dataframe(styledDf, width="stretch")
             st.caption("Values with [legend] are nominal, otherwise in today's \\$. "
@@ -38,27 +37,26 @@ else:
         lines = kz.getCaseKey("casetoml")
         if lines != "":
             st.divider()
-            st.write("#### :orange[Case Parameter File]\n"
-                     "This file contains the parameters characterizing the current case"
-                     " and can be used, along with the *Wages and Contributions* file, to reproduce it in the future.")
+            st.markdown("""#### :orange[Case Parameter File]\nThis file contains the parameters
+characterizing the current case and can be used, along with the *Household Financial Profile*
+workbook, to reproduce it in the future.""")
             st.code(lines, height=400, language="toml")
 
             st.download_button(
                 "Download case parameter file", data=lines,
-                file_name=f"case_{caseName}.toml", mime="application/toml"
+                file_name=f"Case_{caseName}.toml", mime="application/toml"
             )
 
         st.divider()
-        st.write("#### :orange[Excel Workbooks]\n"
-                 "These workbooks contain time tables describing the flow of money,"
-                 " the first one as input to the case, and the second as its output.")
+        st.markdown("""#### :orange[Excel Workbooks]\nThese workbooks contain time tables
+describing the flow of money, the first one as input to the case, and the following as its output.""")
         col1, col2 = st.columns(2, gap="large")
         with col1:
             download2 = st.download_button(
-                label="Download Wages and Contributions file",
-                help="Download Wages and Contributions as an Excel workbook.",
+                label="Download Household Financial Profile workbook",
+                help="Download Household Financial Profile as an Excel workbook.",
                 data=owb.saveContributions(),
-                file_name=f"{caseName}.xlsx",
+                file_name=f"HFP_{caseName}.xlsx",
                 disabled=kz.isCaseUnsolved(),
                 mime="application/vnd.ms-excel",
             )

@@ -4,9 +4,9 @@ import sskeys as kz
 
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col1:
-    st.write("# :material/help: Documentation")
+    st.markdown("# :material/help: Documentation")
     kz.divider("orange")
-    st.write("## :orange[Owl Retirement Planner]\n-------")
+    st.markdown("## :orange[Owl Retirement Planner]\n-------")
     st.markdown("""
 ### Owl - Optimal Wealth Lab
 #### A retirement financial exploration tool based on linear programming
@@ -46,7 +46,9 @@ with col1:
 
 [Case Setup](#case-setup)
 - [:material/person_add: Create Case](#person-add-create-case)
-- [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
+- [:material/home: Household Financial Profile](#home-household-financial-profile)
+    - [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
+    - [:material/account_balance: Debts and Fixed Assets](#account-balance-debts-and-fixed-assets)
 - [:material/currency_exchange: Fixed Income](#currency-exchange-fixed-income)
 - [:material/savings: Savings Assets](#savings-savings-assets)
 - [:material/percent: Asset Allocation](#percent-asset-allocation)
@@ -91,7 +93,7 @@ This box is present on all pages except those in the [Resources](#resource) sect
 The case being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
-case and then duplicating/creating derived scenarios with slight changes in the parameters.
+case and then copying/creating derived scenarios with slight changes in the parameters.
 A comparison between the
 different resulting outcomes can be found on the [Output Files](#description-output-files) page.
 The [Typical Workflow](#typical-workflow) section below
@@ -111,13 +113,17 @@ The sections below follow the same logical order.
 -------------------------------------------------
 ### :orange[Case Setup]
 This section contains the steps for creating and configuring case scenarios.
+For new cases, every page of this section should be visited and parameters
+entered according to your personal situation. To make this process easier,
+a progress bar tracking which page
+has been visited is shown at the bottom of the page.
 
 #### :material/person_add: Create Case
 The **Create Case** page is where every new scenario begins.
 It controls the creation of scenarios as the `Case selector` drop-down menu contains
 two additional items:
 one to create new cases, and the other to create cases from a *case* parameter file.
-This page also allows you to duplicate and/or rename scenarios, as well as deleting them.
+This page also allows you to copy and/or rename scenarios, as well as deleting them.
 
 For creating a scenario from scratch, (first) name(s), marital status,
 birth date(s), and life expectancies are required.
@@ -130,12 +136,12 @@ Plan starts on Jan 1st of this year and ends on December 31st of the year when a
 have passed according to the specified life expectancies.
 
 A typical workflow will involve creating
-a base case, and duplicating it a few times with slight changes in its parameters
+a base case, and copying it a few times with slight changes in its parameters
 in order to investigate their effects.
-Duplication renames the case by appending a number counter in parenthesis, just as creating
+Copy renames the case by appending a number counter in parenthesis, just as creating
 a copy of a file on Windows.
 It is recommended to rename each case to reflect the change in parameters.
-When duplicating a scenario, make sure to visit all pages in the [Case Setup](#case-setup)
+When copying a scenario, make sure to visit all pages in the [Case Setup](#case-setup)
 section and verify that all parameters are as intended.
 When all cases have successfully run,
 results of related cases are compared side-by-side with differences
@@ -169,15 +175,21 @@ will populate all the fields in the [Case Setup](#case-setup) section.
 
 A *case* file for the case being developed
 can be saved under the [Output Files](#description-output-files) page and
-can be reloaded at a later time.
+can be reloaded at a later time.t
 Case parameter files can have any name but when saving from the interface,
 their name will start with *case_* followed by the case name.
 
-#### :material/work_history: Wages and Contributions
-This page allows to enter an optional Excel file containing future wages and contributions,
-and past Roth contributions and conversions.
-Alternatively, values can be entered and/or edited directly into the corresponding tables.
-Values in these tables are all in nominal values, and in \\$, not thousands (\\$k).
+#### :material/home: Household Financial Profile
+The *Household Financial Profile* contains two major sections,
+one representing *Wages and Contributions* for each individual, and
+the other capturing the household *Debts and Fixed Assets*.
+While the values can be entered in each table,
+an option is given to upload an Excel file containing all the data.
+These include future wages and contributions,
+past and future Roth contributions and conversions, debts, and fixed assets.
+
+##### :material/work_history: Wages and Contributions
+Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
 The **Wages and Contributions** table contains 9 columns titled as follows:
 
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
@@ -278,6 +290,44 @@ values can be saved directly in Excel format by clicking
 the `Download Wages and Contributions` on the
 [Output Files](#description-output-files) page. This allows to rerun the same case at a later time
 by reloading the same **Wages and Contributions** file.
+
+##### :material/account_balance: Debts and Fixed Assets
+These tables contain existing debts and fixed assets.
+Note that no optimization is taking place on debts, as the question
+*"Should I pay my mortgage or leave my money invested?"* has to consider risk,
+and therefore risk tolerance, and not only compare interest rates.
+
+*Debts* is used to track mortgage and loan payments which are not included
+in the net spending amount.
+*Debts* remaining at the end of the plan will be taken out of the savings accounts.
+A bequest of zero will therefore leave sufficient money from the savings accounts
+to pay the remaining debts. Mortgage interest is not deducted for income tax purposes,
+as Owl assumes taking the standard tax deduction.
+
+The *Household Financial Profile* workbook can optionally contain a *Debts* sheet and
+a *Fixed Assets* sheet to store these data.
+The *Debts* worksheet looks like the following:
+
+|name|type|year|term|amount|rate|
+|--|--|--|--|--|--|
+| | | | | | |
+
+where *type* is one of *loan* or *mortgage*.
+
+*Fixed Assets* are used to track illiquid assets such as a house, real estate, collectibles,
+or restricted stocks. Fixed-rate annuities with a lump sum can also be modeled. In the
+year of disposition (yod), the proceeds will be separated in three portions: tax-free, ordinary income,
+and capital gains, depending on the asset, and be taxed appropriately.
+
+The *Fixed Assets* worksheet looks like the following:
+
+|name|type|basis|value|rate|yod|commission|
+|--|--|--|--|--|--|--|
+| | | | | | | |
+
+where *yod* is the year of disposition and *type* is one of *residence*,
+*real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*. In the
+current version, only fixed-rate lump-sum annuities can be represented.
 
 #### :material/currency_exchange: Fixed Income
 This page is for entering data related to the individual's anticipated fixed income
@@ -554,7 +604,7 @@ This page allows to compare cases and save files for future use.
 First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the plan.
 Note that all tables are scrollable and can be seen in full-screen mode.
-If multiple cases were configured and run (most likely through duplication and
+If multiple cases were configured and run (most likely through copying and
 modifying the parameters), they will be compared in that panel provided they were made
 for the same individuals and years spans. Column on the left shows the values for the selected case
 while those on the right shows the differences.
@@ -721,7 +771,7 @@ one can use a termination year for current tax rates to revert to higher rates.
 #### :material/rule_settings: Typical Workflow
 A typical workflow would look like the following:
 1) Create a base case representing your basic scenario;
-2) Duplicate the base case and modify the parameter you want to investigate;
+2) Copy the base case and modify the parameter you want to investigate;
 3) Repeat 2) with other end-member values of the parameter you would like to consider;
 4) Run all cases and compare them on the [Output Files](#description-output-files) page.
 
@@ -732,9 +782,9 @@ on total net spending.
 Fill in all parameters representing your goals and situation.
 Upload file or fill-in values for Wages and Contributions.
 Let's say this case allows for Roth conversions up to \\$100k.
-2) Duplicate the base case, call it *2025 - No Roth conversions* and
+2) Copy the base case, call it *2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
-3) Duplicate the base case again, call it *2025 - No Roth limit* and
+3) Copy the base case again, call it *2025 - No Roth limit* and
 set maximum Roth conversions to a very large number, say, \\$800k.
 4) Compare all cases on the [Output Files](#description-output-files) page.
 

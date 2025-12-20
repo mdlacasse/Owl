@@ -34,6 +34,43 @@ _timeHorizonItems = [
 ]
 
 
+_debtItems = [
+    "name",
+    "type",
+    "year",
+    "term",
+    "amount",
+    "rate",
+]
+
+
+_debtTypes = [
+    "loan",
+    "mortgage",
+]
+
+
+_fixedAssetItems = [
+    "name",
+    "type",
+    "basis",
+    "value",
+    "rate",
+    "yod",
+    "commission",
+]
+
+
+_fixedAssetTypes = [
+    "collectibles",
+    "fixed annuity",
+    "precious metals",
+    "real estate",
+    "residence",
+    "stocks",
+]
+
+
 def read(finput, inames, horizons, mylog):
     """
     Read listed parameters from an excel spreadsheet or through
@@ -54,19 +91,40 @@ def read(finput, inames, horizons, mylog):
     else:
         # Read all worksheets in memory but only process those with proper names.
         try:
-            dfDict = pd.read_excel(finput, sheet_name=None, usecols=_timeHorizonItems)
+            # dfDict = pd.read_excel(finput, sheet_name=None, usecols=_timeHorizonItems)
+            dfDict = pd.read_excel(finput, sheet_name=None)
         except Exception as e:
             raise Exception(f"Could not read file {finput}: {e}.") from e
         streamName = f"file '{finput}'"
 
-    timeLists = _condition(dfDict, inames, horizons, mylog)
-
+    timeLists = _conditionTimetables(dfDict, inames, horizons, mylog)
     mylog.vprint(f"Successfully read time horizons from {streamName}.")
 
-    return finput, timeLists
+    houseLists = _conditionHouseTables(dfDict, mylog)
+    mylog.vprint(f"Successfully read household tables from {streamName}.")
+
+    return finput, timeLists, houseLists
 
 
-def _condition(dfDict, inames, horizons, mylog):
+def _checkColumns(df, iname, colList):
+    """
+    Ensure all columns in colList are present. Remove others.
+    """
+    # Drop all columns not in the list.
+    df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
+    for col in df.columns:
+        if col == "" or col not in colList:
+            df.drop(col, axis=1, inplace=True)
+
+    # Check that all columns in the list are present.
+    for item in colList:
+        if item not in df.columns:
+            raise ValueError(f"Column {item} not found for {iname}.")
+
+    return df
+
+
+def _conditionTimetables(dfDict, inames, horizons, mylog):
     """
     Make sure that time horizons contain all years up to life expectancy,
     and that values are positive (except big-ticket items).
@@ -81,14 +139,7 @@ def _condition(dfDict, inames, horizons, mylog):
 
         df = dfDict[iname]
 
-        df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
-        for col in df.columns:
-            if col == "" or col not in _timeHorizonItems:
-                df.drop(col, axis=1, inplace=True)
-
-        for item in _timeHorizonItems:
-            if item not in df.columns:
-                raise ValueError(f"Item {item} not found for {iname}.")
+        df = _checkColumns(df, iname, _timeHorizonItems)
 
         # Only consider lines in proper year range. Go back 5 years for Roth maturation.
         df = df[df["year"] >= (thisyear - 5)]
@@ -116,8 +167,64 @@ def _condition(dfDict, inames, horizons, mylog):
         timeLists[iname] = df
 
         if df["year"].iloc[-1] != endyear - 1:
-            raise ValueError(
-                f"Time horizon for {iname} too short.\n\tIt should end in {endyear}, not {df['year'].iloc[-1]}"
-            )
+            raise ValueError(f"""Time horizon for {iname} too short.\n\t
+It should end in {endyear}, not {df['year'].iloc[-1]}""")
 
     return timeLists
+
+
+def _conditionHouseTables(dfDict, mylog):
+    """
+    Read debts and fixed assets from Household Financial Profile workbook.
+    """
+    houseDic = {}
+
+    items = {"Debts" : _debtItems, "Fixed Assets": _fixedAssetItems}
+    types = {"Debts" : _debtTypes, "Fixed Assets": _fixedAssetTypes}
+    for page in items.keys():
+        if page in dfDict:
+            df = dfDict[page]
+            df = _checkColumns(df, page, items[page])
+            # Check categorical variables.
+            isInList = df["type"].isin(types[page])
+            df = df[isInList]
+
+            # Convert percentage columns from decimal to percentage if needed
+            # UI uses 0-100 range for percentages (e.g., 4.5 = 4.5%)
+            # If Excel read percentage-formatted cells, values might be decimals (0.045)
+            # Convert values < 1.0 to percentage format (multiply by 100)
+            if page == "Debts" and "rate" in df.columns:
+                # If rate values are less than 1, assume they're decimals (0.045 = 4.5%)
+                # and convert to percentages (4.5) to match UI format (0-100 range)
+                mask = (df["rate"] < 1.0) & (df["rate"] > 0)
+                if mask.any():
+                    df.loc[mask, "rate"] = df.loc[mask, "rate"] * 100.0
+                    mylog.vprint(f"Converted {mask.sum()} rate value(s) from decimal to percentage in Debts table.")
+
+            elif page == "Fixed Assets":
+                # Convert rate and commission if they're decimals
+                # Both should be in 0-100 range to match UI format
+                if "rate" in df.columns:
+                    mask = (df["rate"] < 1.0) & (df["rate"] > 0)
+                    if mask.any():
+                        df.loc[mask, "rate"] = df.loc[mask, "rate"] * 100.0
+                        mylog.vprint(
+                            f"Converted {mask.sum()} rate value(s) from decimal "
+                            f"to percentage in Fixed Assets table."
+                        )
+                if "commission" in df.columns:
+                    mask = (df["commission"] < 1.0) & (df["commission"] > 0)
+                    if mask.any():
+                        df.loc[mask, "commission"] = df.loc[mask, "commission"] * 100.0
+                        mylog.vprint(
+                            f"Converted {mask.sum()} commission value(s) from decimal "
+                            f"to percentage in Fixed Assets table."
+                        )
+
+            houseDic[page] = df
+            mylog.vprint(f"Found {len(df)} valid row(s) in {page} table.")
+        else:
+            houseDic[page] = pd.DataFrame(columns=items[page])
+            mylog.vprint(f"Table for {page} not found. Assuming empty table.")
+
+    return houseDic

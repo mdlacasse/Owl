@@ -14,7 +14,7 @@ else:
     ):
         st.info("Rates must be set to *stochastic* or *histochastic* to run Monte Carlo simulations.")
     else:
-        st.write("Generate a histogram of results obtained from running mutliple scenarios with stochastic rates.")
+        st.markdown("Generate a histogram of results obtained from running mutliple scenarios with stochastic rates.")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
             kz.initCaseKey("MC_cases", 100)

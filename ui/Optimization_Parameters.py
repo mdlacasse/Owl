@@ -3,6 +3,7 @@ from datetime import date
 
 import sskeys as kz
 import owlbridge as owb
+import case_progress as cp
 
 
 profileChoices = ["flat", "smile"]
@@ -26,7 +27,7 @@ if ret is None or kz.caseHasNoPlan():
 else:
     kz.runOncePerCase(initProfile)
 
-    st.write("#### :orange[Objective]")
+    st.markdown("#### :orange[Objective]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         choices = ["Net spending", "Bequest"]
@@ -37,14 +38,24 @@ else:
     with col2:
         if kz.getCaseKey("objective") == "Net spending":
             kz.initCaseKey("bequest", 0)
-            ret = kz.getNum("Desired bequest (\\$k)", "bequest", help=helpmsg)
+            helpmsg_bequest = ("Desired bequest from savings accounts only (in today's \\$k). "
+                               "Fixed assets liquidated at end of plan are added separately.")
+            ret = kz.getNum("Desired bequest from savings accounts (\\$k)", "bequest",
+                            help=helpmsg_bequest)
+
+            # Get fixed assets bequest value in today's dollars to inform the user
+            fixed_assets_bequest = owb.getFixedAssetsBequestValue(in_todays_dollars=True)
+            fixed_assets_bequest_k = fixed_assets_bequest / 1000.0
+
+            if fixed_assets_bequest_k > 0:
+                st.info(f"Fixed assets will contribute ${fixed_assets_bequest_k:,.0f}k to bequest")
 
         else:
             kz.initCaseKey("netSpending", 0)
             ret = kz.getNum("Desired annual net spending (\\$k)", "netSpending", help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Roth Conversions]")
+    st.markdown("#### :orange[Roth Conversions]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         iname0 = kz.getCaseKey("iname0")
@@ -54,7 +65,8 @@ else:
         kz.initCaseKey("maxRothConversion", 50)
         ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion",
                         disabled=fromFile, help=helpmsg)
-        ret = kz.getToggle("Convert as in Wages and Contributions tables", "readRothX")
+        helpmsg = "Use the Roth conversion values in the *Wages and Contributions* file to override"
+        ret = kz.getToggle("Convert as in Wages and Contributions tables", "readRothX", help=helpmsg)
         # kz.initCaseKey("oppCostX", 0.)
         # helpmsg = "Estimated opportunity cost for paying estimated tax on Roth conversions."
         # ret = kz.getNum("Opportunity cost for conversion (%)", "oppCostX", step=0.01, format="%.2f",
@@ -74,7 +86,7 @@ else:
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Calculations]")
+    st.markdown("#### :orange[Calculations]")
     kz.initCaseKey("withSCLoop", True)
     kz.initCaseKey("xorConstraints", True)
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
@@ -90,7 +102,7 @@ else:
                            "xorConstraints", help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Medicare]")
+    st.markdown("#### :orange[Medicare]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         helpmsg = ("How to compute Medicare and IRMAA premiums:"
@@ -112,7 +124,7 @@ else:
                     ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Solver]")
+    st.markdown("#### :orange[Solver]")
     choices = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
     if owb.hasMOSEK():
         choices += ["MOSEK"]
@@ -121,7 +133,7 @@ else:
     ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
 
     st.divider()
-    st.write("#### :orange[Spending Profile]")
+    st.markdown("#### :orange[Spending Profile]")
     col1, col2, col3 = st.columns(3, gap="medium", vertical_alignment="top")
     with col1:
         helpmsg = "Spending can be constant during the duration of the plan or be adjusted for lifestyle."
@@ -152,3 +164,6 @@ else:
     col1, col2 = st.columns([0.6, 0.4], gap="small")
     with col1:
         owb.showProfile(col1)
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar(divider=False)

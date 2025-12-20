@@ -1,17 +1,29 @@
 import streamlit as st
 
 import sskeys as kz
+import case_progress as cp
 
 
 def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, prompt=True):
     nkey = key + str(i)
     kz.initCaseKey(nkey, defval)
+    stored_value = kz.getCaseKey(nkey)
+    # Clamp stored value to valid range if it's outside
+    if stored_value is not None:
+        if min_val is not None and stored_value < min_val:
+            stored_value = min_val
+            kz.setCaseKey(nkey, stored_value)
+        if max_val is not None and stored_value > max_val:
+            stored_value = max_val
+            kz.setCaseKey(nkey, stored_value)
+    else:
+        stored_value = defval
     if prompt:
         own = f"{kz.getCaseKey('iname' + str(i))}'s "
     else:
         own = ""
     return st.number_input(
-        f"{own}{thing}", min_value=min_val, value=kz.getCaseKey(nkey),
+        f"{own}{thing}", min_value=min_val, value=stored_value,
         on_change=kz.setpull, help=help, args=[nkey], key=kz.genCaseKey(nkey),
         max_value=max_val,
     )
@@ -46,7 +58,7 @@ ret = kz.titleBar(":material/currency_exchange: Fixed Income")
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
-    st.write("#### :orange[Social Security]")
+    st.markdown("#### :orange[Social Security]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         dob0 = kz.getCaseKey("dob0")
@@ -56,6 +68,7 @@ else:
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
+            kz.initCaseKey("ssAge_y0", 65)
             kz.initCaseKey("ssAge_m0", 0)
             m0 = kz.getCaseKey("ssAge_m0")
             maxyear = 70 if m0 == 0 else 69
@@ -73,6 +86,7 @@ else:
             getIntInput(1, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
+                kz.initCaseKey("ssAge_y1", 65)
                 kz.initCaseKey("ssAge_m1", 0)
                 m1 = kz.getCaseKey("ssAge_m1")
                 maxyear = 70 if m1 == 0 else 69
@@ -113,19 +127,21 @@ As a result, this process should be repeated each year to maintain accurate esti
             with col1:
                 iname0 = kz.getCaseKey("iname0")
                 st.markdown(f"""Click
-[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob0}&useridx={iname0})
+[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob0}&name={iname0})
 to estimate {iname0}'s PIA.""")
             if kz.getCaseKey("status") == "married":
                 with col2:
                     iname1 = kz.getCaseKey("iname1")
                     st.markdown(f"""Click
-[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&useridx={iname1})
+[here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&name={iname1})
 to estimate {iname1}'s PIA.""")
 
     st.divider()
-    st.write("#### :orange[Pension]")
+    st.markdown("#### :orange[Pension]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
+        kz.initCaseKey("pAge_y0", 65)
+        kz.initCaseKey("pAge_m0", 0)
         getIntInput(0, "pAmt", "**monthly** amount (in today's \\$)", help=msg1)
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
@@ -136,6 +152,8 @@ to estimate {iname1}'s PIA.""")
 
     with col2:
         if kz.getCaseKey("status") == "married":
+            kz.initCaseKey("pAge_y1", 65)
+            kz.initCaseKey("pAge_m1", 0)
             getIntInput(1, "pAmt", "**monthly** amount (in today's \\$)", help=msg1)
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
@@ -143,3 +161,6 @@ to estimate {iname1}'s PIA.""")
             with incol2:
                 getIntInput(1, "pAge_m", "...and month(s)", 0, msg2, max_val=11, prompt=False)
             getToggleInput(1, "pIdx", "Inflafion adjusted")
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar()

@@ -4,6 +4,7 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 import tomlexamples as tomlex
+import case_progress as cp
 
 
 ret = kz.titleBar(":material/person_add: Create Case", allCases=True)
@@ -12,11 +13,10 @@ if ret == kz.newCase:
     st.info("#### Starting a new case from scratch.\n\n" "A name for the scenario must first be provided.")
     st.text_input(
         "Case name",
-        # value="",
         key="_newcase",
         on_change=kz.createNewCase,
         args=["newcase"],
-        placeholder="Enter a case name...",
+        placeholder="Select an option...",
     )
 elif ret == kz.loadCaseFile:
     st.info(
@@ -27,7 +27,7 @@ elif ret == kz.loadCaseFile:
     )
     col1, col2 = st.columns(2, gap="large")
     with col1:
-        st.write("#### :orange[Upload Your Own Case File]")
+        st.markdown("#### :orange[Upload Your Own Case File]")
         file = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])
         if file is not None:
             mystringio = StringIO(file.read().decode("utf-8"))
@@ -35,7 +35,7 @@ elif ret == kz.loadCaseFile:
                 st.rerun()
 
     with col2:
-        st.write("#### :orange[Load a Case Example]")
+        st.markdown("#### :orange[Load a Case Example]")
         case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None,
                             placeholder="Select an example case")
         if case:
@@ -44,7 +44,7 @@ elif ret == kz.loadCaseFile:
                 kz.initCaseKey("tomlexcase", case)
                 st.rerun()
 else:
-    st.write("#### :orange[Description and Life Parameters]")
+    st.markdown("#### :orange[Description and Life Parameters]")
     casemsg = "Case name can be changed by editing it directly."
     col1, col2 = st.columns(2, gap="large")
     with col1:
@@ -130,21 +130,28 @@ Look at the documentation for some suggestions."""
     st.divider()
     cantcreate = kz.isIncomplete() or diz1
     if not cantcreate and kz.getCaseKey("plan") is None:
-        st.info("""Any parameter on this page can be changed (including the case name).
+        st.info("""Any parameter on this page can now be changed, including the case name.
 Once changes are complete hit the `Create case` button."""
                 )
 
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
     cantcopy = cantmodify or kz.caseHasNoPlan()
+    if not cantcopy and kz.getCaseKey("stTimeLists") is None:
+        st.info("Reminder to upload the *Household Financial Profile* (if any) before creating a copy.")
+
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
+        helpmsg = """`Copy case` carries over all parameters to a new case.
+Hit the `Create case` button once all parameters on this page are right."""
+        st.button("Copy case :material/content_copy:", on_click=kz.copyCase,
+                  disabled=cantcopy, help=helpmsg)
+    with col2:
         helpmsg = "`Create case` opens up all other pages in the **Case Setup** section."
         st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate, help=helpmsg)
-    with col2:
-        helpmsg = """`Duplicate case` carries over all parameters to a new case.
-Hit the `Create case` button once all parameters on this page are right."""
-        st.button("Duplicate case :material/content_copy:", on_click=kz.duplicateCase,
-                  disabled=cantcopy, help=helpmsg)
+
     with col3:
         helpmsg = ":warning: Caution: The `Delete case` operation cannot be undone."
         st.button("Delete case :material/delete:", on_click=kz.deleteCurrentCase, disabled=cantmodify, help=helpmsg)
+
+# Show progress bar at bottom (always shown on Create Case page)
+cp.show_progress_bar()

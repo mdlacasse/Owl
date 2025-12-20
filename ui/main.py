@@ -16,7 +16,7 @@ st.logo(logofile, size="large")
 pages = {
     "Case Setup": [
         st.Page("Create_Case.py", icon=":material/person_add:"),
-        st.Page("Wages_and_Contributions.py", icon=":material/work_history:"),
+        st.Page("Household_Financial_Profile.py", icon=":material/home:"),
         st.Page("Fixed_Income.py", icon=":material/currency_exchange:"),
         st.Page("Savings_Assets.py", icon=":material/savings:"),
         st.Page("Asset_Allocation.py", icon=":material/percent:"),

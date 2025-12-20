@@ -2,13 +2,14 @@ from datetime import date
 import streamlit as st
 
 import sskeys as kz
+import case_progress as cp
 
 ret = kz.titleBar(":material/savings: Savings Assets")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
 else:
-    st.write("#### :orange[Savings Account Balances]")
+    st.markdown("#### :orange[Savings Account Balances]")
     accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-free"}
     hdetails = {"txbl": "Brokerage and savings accounts excluding emergency fund. ",
                 "txDef": "IRA, 401k, 403b and the like. ",
@@ -41,7 +42,7 @@ else:
 
     if kz.getCaseKey("status") == "married":
         st.divider()
-        st.write("#### :orange[Survivor's Spousal Beneficiary Fractions]")
+        st.markdown("#### :orange[Survivor's Spousal Beneficiary Fractions]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
             nkey = "benf" + str(0)
@@ -62,13 +63,13 @@ else:
             ret = kz.getNum(accounts["txFree"].capitalize(), nkey, format="%.2f", max_value=1.0,
                             step=0.05, help=helpmsg)
 
-        st.write("#####")
-        st.write("#### :orange[Surplus Deposit Fraction]")
+        st.markdown("#####")
+        st.markdown("#### :orange[Surplus Deposit Fraction]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("surplusFraction", 0.5)
-            helpmsg = ("When beneficiary fractions not all 1, "
-                       "set surplus deposits to all go to account of first spouse to pass.")
+            helpmsg = ("When beneficiary fractions are not all 1, "
+                       "set cash-flow surplus deposits to entirely go to the account of first spouse to pass.")
             ret = kz.getNum(
                 f"Fraction deposited in {iname1}'s taxable account",
                 "surplusFraction",
@@ -77,3 +78,6 @@ else:
                 max_value=1.0,
                 step=0.05,
             )
+
+    # Show progress bar at bottom (only when case is defined)
+    cp.show_progress_bar()

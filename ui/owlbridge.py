@@ -11,6 +11,7 @@ sys.path.insert(0, "../src")
 
 import owlplanner as owl                      # noqa: E402
 from owlplanner.rates import FROM, TO         # noqa: E402
+from owlplanner.timelists import _debtTypes, _fixedAssetTypes  # noqa: E402
 
 import sskeys as kz         # noqa: E402
 import progress             # noqa: E402
@@ -57,7 +58,7 @@ def createPlan():
     if kz.getCaseKey("spendingProfile"):
         setProfile(None)
 
-    if kz.getCaseKey("duplicate"):
+    if kz.getCaseKey("copy"):
         _setContributions(plan, "copy")
     else:
         resetTimeLists()
@@ -286,7 +287,7 @@ def showAllocations(plan):
 def showProfile(plan, col):
     fig = plan.showProfile(figure=True)
     if fig:
-        col.write("#### :orange[Spending Profile]")
+        col.markdown("#### :orange[Spending Profile]")
         renderPlot(fig, col)
 
 
@@ -294,7 +295,7 @@ def showProfile(plan, col):
 def showRates(plan, col):
     fig = plan.showRates(figure=True)
     if fig:
-        col.write("#### :orange[Selected Rates Over Time Horizon]")
+        col.markdown("#### :orange[Selected Rates Over Time Horizon]")
         renderPlot(fig, col)
 
 
@@ -302,7 +303,7 @@ def showRates(plan, col):
 def showRatesCorrelations(plan, col):
     fig = plan.showRatesCorrelations(figure=True)
     if fig:
-        col.write("#### :orange[Correlations Between Return Rates]")
+        col.markdown("#### :orange[Correlations Between Return Rates]")
         renderPlot(fig, col)
 
 
@@ -349,7 +350,7 @@ def _setContributions(plan, action):
     try:
         plan.readContributions(dicDf)
     except Exception as e:
-        st.error(f"Failed to parse Wages and Contributions: {e}")
+        st.error(f"Failed to parse Household Financial Profile Workbook: {e}")
         return False
 
     if action == "copy":
@@ -364,6 +365,9 @@ def _setContributions(plan, action):
 
     plan.timeListsFileName = "edited values"
 
+    # Sync houseLists from UI to Plan
+    syncHouseLists(plan)
+
 
 @_checkPlan
 def readContributions(plan, stFile, file=None):
@@ -376,7 +380,7 @@ def readContributions(plan, stFile, file=None):
     try:
         plan.readContributions(stFile)
     except Exception as e:
-        st.error(f"Failed to parse Wages and Contributions file 'stFile.name': {e}")
+        st.error(f"Failed to parse Household Financial Profile Workbook'stFile.name': {e}")
         return False
 
     if file:
@@ -393,6 +397,11 @@ def readContributions(plan, stFile, file=None):
     if kz.getCaseKey("status") == "married":
         kz.setCaseKey("timeList1", plan.timeLists[kz.getCaseKey("iname1")])
         kz.setCaseKey("_timeList1", plan.timeLists[kz.getCaseKey("iname1")])
+
+    # Store houseLists (Debts and Fixed Assets). These are guaranteed to be present in the plan object.
+    kz.setCaseKey("houseListDebts", plan.houseLists["Debts"])
+    kz.setCaseKey("houseListFixedAssets", plan.houseLists["Fixed Assets"])
+
     plan.timeListsFileName = name
 
     return True
@@ -407,6 +416,40 @@ def resetTimeLists():
     tlists = resetContributions()
     for i, iname in enumerate(tlists):
         kz.setCaseKey(f"timeList{i}", tlists[iname])
+
+    # Reset houseLists to empty DataFrames
+    # kz.setCaseKey("houseListDebts",
+    #               pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"]))
+    # kz.setCaseKey("houseListFixedAssets",
+    #               pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"]))
+
+
+def syncHouseLists(plan):
+    """
+    Sync houseLists from UI case keys to Plan object.
+    Note: This function does NOT use @_checkPlan decorator because it's called
+    from _setContributions which already has the plan object. The decorator would
+    cause a conflict by trying to inject the plan from case keys.
+    """
+    if plan is None:
+        return False
+
+    plan.houseLists = {}
+    debts = kz.getCaseKey("houseListDebts")
+    fixedAssets = kz.getCaseKey("houseListFixedAssets")
+
+    if debts is not None:
+        plan.houseLists["Debts"] = debts.copy()
+    else:
+        plan.houseLists["Debts"] = pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"])
+
+    if fixedAssets is not None:
+        plan.houseLists["Fixed Assets"] = fixedAssets.copy()
+    else:
+        plan.houseLists["Fixed Assets"] = pd.DataFrame(columns=["name", "type", "basis", "value",
+                                                                "rate", "yod", "commission"])
+
+    return True
 
 
 @_checkPlan
@@ -440,19 +483,19 @@ def plotSingleResults(plan):
     cols = st.columns(n, gap="medium")
     fig = plan.showRates(figure=True)
     if fig:
-        cols[c].write("#### :orange[Annual Rates]")
+        cols[c].markdown("#### :orange[Annual Rates]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showNetSpending(figure=True)
     if fig:
-        cols[c].write("#### :orange[Net Available Spending]")
+        cols[c].markdown("#### :orange[Net Available Spending]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showGrossIncome(figure=True)
     if fig:
-        cols[c].write("#### :orange[Taxable Ordinary Income]")
+        cols[c].markdown("#### :orange[Taxable Ordinary Income]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
@@ -460,19 +503,19 @@ def plotSingleResults(plan):
     # cols = st.columns(n, gap="medium")
     fig = plan.showSources(figure=True)
     if fig:
-        cols[c].write("#### :orange[Raw Income Sources]")
+        cols[c].markdown("#### :orange[Raw Income Sources]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showAccounts(figure=True)
     if fig:
-        cols[c].write("#### :orange[Savings Balance]")
+        cols[c].markdown("#### :orange[Savings Balance]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
     fig = plan.showTaxes(figure=True)
     if fig:
-        cols[c].write("#### :orange[Federal Taxes and Medicare (+IRMAA)]")
+        cols[c].markdown("#### :orange[Federal Taxes and Medicare (+IRMAA)]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
@@ -480,14 +523,14 @@ def plotSingleResults(plan):
     figs = plan.showAssetComposition(figure=True)
     if figs:
         # st.divider()
-        st.write("#### :orange[Asset Composition]")
+        st.markdown("#### :orange[Asset Composition]")
         col1, col2, _ = st.columns([0.6, 0.2, 0.2], gap="medium")
         for fig in figs:
             if fig:
                 renderPlot(fig, col1)
             else:
-                col1.write("#\n<div style='text-align: center'> This plot is empty </div>",
-                           unsafe_allow_html=True)
+                col1.markdown("#\n<div style='text-align: center'> This plot is empty </div>",
+                              unsafe_allow_html=True)
             # c = (c + 1) % n
 
 
@@ -559,7 +602,7 @@ def showWorkbook(plan):
                 else:
                     colfor[col] = st.column_config.NumberColumn(None, format="%.3f")
 
-        st.write(f"#### :orange[{name}]")
+        st.markdown(f"#### :orange[{name}]")
         st.dataframe(df.astype(str), width="stretch", column_config=colfor, hide_index=True)
 
         if dollars:
@@ -794,12 +837,69 @@ def renderPlot(fig, col=None):
 
     # Add a space below each figure
     if col:
-        # col.write("####")
+        # col.markdown("####")
         col.divider()
     else:
         st.divider()
-        # st.write("####")
+        # st.markdown("####")
 
 
 def version():
     return owl.__version__
+
+
+def getDebtTypes():
+    """
+    Return the list of valid debt types.
+    This ensures consistency between UI and validation logic.
+    """
+    return _debtTypes
+
+
+def getFixedAssetTypes():
+    """
+    Return the list of valid fixed asset types.
+    This ensures consistency between UI and validation logic.
+    """
+    return _fixedAssetTypes
+
+
+@_checkPlan
+def getFixedAssetsBequestValue(plan, in_todays_dollars=False):
+    """
+    Calculate and return the fixed assets bequest value (assets with yod past plan end).
+    This value represents assets that will be liquidated at the end of the plan.
+    The plan is automatically retrieved via the @_checkPlan decorator.
+
+    Parameters:
+    -----------
+    in_todays_dollars : bool, optional
+        If True, returns value in today's dollars (requires rates to be set).
+        If False, returns value in nominal dollars (default).
+
+    Returns:
+    --------
+    float
+        Total proceeds (after commission) from fixed assets with yod past plan end.
+        Returns 0.0 if no plan exists or no such assets.
+        If in_todays_dollars=True and rates not set, returns 0.0.
+    """
+    # Ensure houseLists are synced
+    syncHouseLists(plan)
+
+    if "Fixed Assets" in plan.houseLists and not plan.houseLists["Fixed Assets"].empty:
+        # First ensure the bequest value is calculated
+        plan.processDebtsAndFixedAssets()
+
+        if in_todays_dollars:
+            # Ensure rates are set (needed for conversion to today's dollars)
+            if plan.rateMethod is None or not hasattr(plan, 'tau_kn'):
+                _setRates(plan)
+
+            # Convert to today's dollars using plan method
+            return plan.getFixedAssetsBequestValueInTodaysDollars()
+        else:
+            # Return nominal value
+            return plan.fixed_assets_bequest_value
+    else:
+        return 0.0

@@ -89,7 +89,7 @@ def runOncePerCase(func):
 
 def refreshCase(adic):
     """
-    When a case is duplicated, reset all the runOnce functions.
+    When a case is copied, reset all the runOnce functions.
     """
     for key in list(adic):
         if key.startswith("oNcE_"):
@@ -185,14 +185,14 @@ def setCurrentCase(case):
     ss.currentCase = case
 
 
-def duplicateCase():
+def copyCase():
     baseName = re.sub(r"\s*\(\d+\)$", "", ss.currentCase)
     for i in range(1, 10):
         dupname = baseName + f" ({i})"
         if dupname not in ss.cases:
             break
     else:
-        raise RuntimeError("Exhausted number of duplicates")
+        raise RuntimeError("Exhausted number of copies")
 
     # Copy everything except the plan itself.
     # print(ss.currentCase, "->", ss.cases[ss.currentCase])
@@ -206,10 +206,10 @@ def duplicateCase():
         ss.cases[dupname][key] = None
 
     setCaseId(dupname)
-    ss.cases[dupname]["duplicate"] = True
+    ss.cases[dupname]["copy"] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
-    st.toast("Case duplicated.")
+    st.toast("Case copied.")
 
 
 def createCaseFromFile(strio):
@@ -630,7 +630,7 @@ def titleBar(txt, allCases=False):
 
     header = st.container()
     # header.title("Here is a sticky header")
-    header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
+    header.markdown("""<div class='fixed-header'/>""", unsafe_allow_html=True)
 
     bc, fc = getColors()
 
@@ -652,7 +652,7 @@ def titleBar(txt, allCases=False):
     with header:
         col1, col2, col3, col4 = st.columns([0.005, 0.6, 0.4, 0.01], gap="small")
         with col2:
-            st.write("## " + txt)
+            st.markdown("## " + txt)
         with col3:
             nkey = txt
             ret = st.selectbox(

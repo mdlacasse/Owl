@@ -8,15 +8,14 @@ cases = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam-bequest",
          "kim+sam-spending", "drawdowncalc-comparison-1"]
 
 
-wages = ["jack+jill", "joe", "john+sally", "jon+jane",
-         "kim+sam", "charles"]
+wages = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam"]
 
 
 whereami = os.path.dirname(__file__)
 
 
 def loadCaseExample(case):
-    file = os.path.join(whereami, f"../examples/case_{case}.toml")
+    file = os.path.join(whereami, f"../examples/Case_{case}.toml")
     with open(file, "r") as f:
         text = f.read()
         return StringIO(text)
@@ -26,10 +25,10 @@ def loadCaseExample(case):
 
 
 def loadWagesExample(case):
-    file = os.path.join(whereami, f"../examples/{case}.xlsx")
+    file = os.path.join(whereami, f"../examples/HFP_{case}.xlsx")
     with open(file, "rb") as f:
         data = f.read()
         return BytesIO(data)
 
-    st.error(f"Failed to load Wages and Contributions file {case}.xlsx.")
+    st.error(f"Failed to load Household Financial Profile {case}.xlsx.")
     return None
