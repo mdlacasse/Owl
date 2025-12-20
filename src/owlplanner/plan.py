@@ -1342,8 +1342,10 @@ class Plan:
             # Adjust desired bequest for fixed assets and remaining debts
             # Total bequest = accounts - debts + fixed_assets
             # So: accounts >= desired_bequest - fixed_assets + debts
-            total_bequest_value = (bequest - self.fixed_assets_bequest_value
-                                   + self.remaining_debt_balance)
+            # Clamp to non-negative: if fixed_assets > desired_bequest + debts,
+            # the constraint is automatically satisfied (accounts can't be negative)
+            total_bequest_value = max(0, (bequest - self.fixed_assets_bequest_value
+                                         + self.remaining_debt_balance))
 
             row = self.A.newRow()
             for i in range(self.N_i):
