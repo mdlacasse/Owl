@@ -189,7 +189,7 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
     if fixed_assets_df is None or fixed_assets_df.empty:
         return 0.0
 
-    years_to_end = N_n - 1  # Years from start to end of plan
+    years_to_end = N_n  # Years from start to last year of plan, inclusively
     total_bequest_value = 0.0
 
     for _, asset in fixed_assets_df.iterrows():
