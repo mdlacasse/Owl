@@ -34,7 +34,10 @@ build/
 *.egg-info/
 
 # IMPORTANT:
-# uv.lock IS TRACKED (do not ignore)
+# uv.lock IS TRACKED (do not ignore) but...
+# Left there for now to prevent Streamlit lock down
+# Added before building packages in docker/scripts
+uv.lock
 
 # --------------------------------------------------
 # Quarto
