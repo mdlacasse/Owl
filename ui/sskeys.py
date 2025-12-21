@@ -530,9 +530,12 @@ def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.
 
 def getRateNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0,
                max_value=None, format="%.1f", help=None):
+    widget_key = genCaseKey(nkey)
+    # Initialize widget state from case key if it doesn't exist
+    initGlobalKey(widget_key, float(getCaseKey(nkey)))
+
     return st.number_input(
         text,
-        # value=float(getCaseKey(nkey)),
         disabled=disabled,
         step=step,
         help=help,
@@ -541,7 +544,7 @@ def getRateNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_valu
         format=format,
         on_change=callback,
         args=[nkey],
-        key=genCaseKey(nkey),
+        key=widget_key,
     )
 
 
