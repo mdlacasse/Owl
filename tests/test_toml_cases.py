@@ -27,7 +27,7 @@ def test_allcases():
         if wac != "":
             p.readContributions(wac)
         else:
-             assert False
+            assert False
         p.resolve()
 
 

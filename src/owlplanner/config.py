@@ -201,7 +201,8 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         p.setSpousalDepositFraction(eta)
 
     # Household Financial Profile
-    timeListsFileName = diconf["Household Financial Profile"]["HFP file name"]
+    hfp_section = diconf.get("Household Financial Profile", {})
+    timeListsFileName = hfp_section.get("HFP file name", "None")
     if timeListsFileName != "None":
         if readContributions:
             if os.path.exists(timeListsFileName):

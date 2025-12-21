@@ -503,7 +503,9 @@ def getDate(text, nkey, disabled=False, callback=setpull, help=None, min_value=N
 
 def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, min_value=0, max_value=None):
     widget_key = genCaseKey(nkey)
-    initGlobalKey(widget_key, getCaseKey(nkey))
+    kval = getCaseKey(nkey)
+    value = 0 if kval is None else int(kval)
+    initGlobalKey(widget_key, value)
 
     return st.number_input(
         text,
@@ -536,27 +538,6 @@ def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.
         on_change=callback,
         args=[nkey],
         key=widget_key
-    )
-
-
-def getRateNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0,
-               max_value=None, format="%.1f", help=None):
-    widget_key = genCaseKey(nkey)
-    kval = getCaseKey(nkey)
-    value = 0.0 if kval is None else float(kval)
-    initGlobalKey(widget_key, value)
-
-    return st.number_input(
-        text,
-        disabled=disabled,
-        step=step,
-        help=help,
-        min_value=min_value,
-        max_value=max_value,
-        format=format,
-        on_change=callback,
-        args=[nkey],
-        key=widget_key,
     )
 
 
