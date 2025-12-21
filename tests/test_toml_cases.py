@@ -16,11 +16,11 @@ def getWaC(exdir, base):
 
 def test_allcases():
     exdir = './examples/'
-    for case in ['case_john+sally',
-                 'case_jack+jill',
-                 'case_joe',
-                 'case_kim+sam-spending',
-                 'case_kim+sam-bequest']:
+    for case in ['Case_john+sally',
+                 'Case_jack+jill',
+                 'Case_joe',
+                 'Case_kim+sam-spending',
+                 'Case_kim+sam-bequest']:
         p = owl.readConfig(exdir + case)
         wac = getWaC(exdir, case)
         if wac != '':
@@ -30,7 +30,7 @@ def test_allcases():
 
 def test_historical():
     exdir = './examples/'
-    case = 'case_jack+jill'
+    case = 'Case_jack+jill'
     p = owl.readConfig(exdir + case)
     wac = getWaC(exdir, case)
     if wac != '':
@@ -42,7 +42,7 @@ def test_historical():
 
 def test_MC():
     exdir = './examples/'
-    case = 'case_jack+jill'
+    case = 'Case_jack+jill'
     p = owl.readConfig(exdir + case)
     wac = getWaC(exdir, case)
     if wac != '':
