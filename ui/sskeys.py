@@ -572,15 +572,27 @@ def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, 
 
 
 def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
-    try:
-        index = choices.index(getCaseKey(nkey))
-    except ValueError:
-        st.error(f"Value '{getCaseKey(nkey)}' not available. Defaulting to '{choices[0]}'.")
-        setCaseKey(nkey, choices[0])
-        index = 0
-
     widget_key = genCaseKey(nkey)
-    initGlobalKey(widget_key, getCaseKey(nkey))
+    case_value = getCaseKey(nkey)
+
+    # Determine the value to use: widget state (if exists) > case key > default
+    if widget_key in ss:
+        # Widget state exists, use it
+        widget_value = ss[widget_key]
+    elif case_value is not None:
+        # No widget state, use case key value
+        widget_value = case_value
+    else:
+        # No value anywhere, use default
+        widget_value = choices[0]
+
+    # Find the index for the determined value
+    try:
+        index = choices.index(widget_value)
+    except ValueError:
+        st.error(f"Value '{widget_value}' not available. Defaulting to '{choices[0]}'.")
+        widget_value = choices[0]
+        index = 0
 
     return st.radio(
         text,
