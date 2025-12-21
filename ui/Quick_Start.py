@@ -55,16 +55,16 @@ of Jack and Jill provided here as an example:
 1) Download these two files from the GitHub repository
  (right-click on the link and select `Save link as...`):
     - *Case* parameter file named
-    [case_jack+jill.toml](https://github.com/mdlacasse/Owl/blob/main/examples/case_jack+jill.toml?raw=true)
+    [Case_jack+jill.toml](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true)
     in editable *toml* format.
     - *Household FInancial Profile* workbook named
-    [jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/jack+jill.xlsx?raw=true)
+    [HFP_jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_jack+jill.xlsx?raw=true)
     in Excel format.
 1) Navigate to the **Create Case** page and drag and drop the case parameter file
-you just downloaded (*case_jack+jill.toml*).
+you just downloaded (*Case_jack+jill.toml*).
 Alternatively, you can directly select the case of *jack+jill* among the GitHub examples.
 1) Navigate to the **Household Financial Profile** page and
-drag and drop the *Household Financial Profile* workbook you downloaded (*jack+jill.xlsx*).
+drag and drop the *Household Financial Profile* workbook you downloaded (*HFP_jack+jill.xlsx*).
 Alternatively, you can load the *Household Financial Profile* workbook directly by using the marked button.
 1) Move to any page in the **Single Scenario** section to browse the simulation results.
 
