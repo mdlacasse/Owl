@@ -16,7 +16,7 @@ if ret == kz.newCase:
         key="_newcase",
         on_change=kz.createNewCase,
         args=["newcase"],
-        placeholder="Select an option...",
+        placeholder="Enter a short case name...",
     )
 elif ret == kz.loadCaseFile:
     st.info(

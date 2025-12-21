@@ -4,6 +4,7 @@ Module for storing keys in Streamlit session state.
 
 import streamlit as st
 import pandas as pd
+from datetime import date
 import copy
 import re
 
@@ -476,16 +477,20 @@ def getFixedIncome(ni, what):
 
 
 def getDate(text, nkey, disabled=False, callback=setpull, help=None, min_value=None, max_value=None):
+    widget_key = genCaseKey(nkey)
+    kval = getCaseKey(nkey)
+    value = date.fromisoformat(kval) if isinstance(kval, str) else date.today()
+    initGlobalKey(widget_key, value)
+
     mydate = st.date_input(
         text,
-        value=getCaseKey(nkey),
         disabled=disabled,
         min_value=min_value,
         max_value=max_value,
         help=help,
         on_change=callback,
         args=[nkey],
-        key=genCaseKey(nkey),
+        key=widget_key
     )
     if mydate is None:
         st.error("A date must be set.")
@@ -497,9 +502,11 @@ def getDate(text, nkey, disabled=False, callback=setpull, help=None, min_value=N
 
 
 def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, min_value=0, max_value=None):
+    widget_key = genCaseKey(nkey)
+    initGlobalKey(widget_key, getCaseKey(nkey))
+
     return st.number_input(
         text,
-        value=int(getCaseKey(nkey)),
         disabled=disabled,
         min_value=min_value,
         max_value=max_value,
@@ -507,15 +514,19 @@ def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, m
         help=help,
         on_change=callback,
         args=[nkey],
-        key=genCaseKey(nkey),
+        key=widget_key,
     )
 
 
 def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0,
            max_value=None, format="%.1f", help=None):
+    widget_key = genCaseKey(nkey)
+    kval = getCaseKey(nkey)
+    value = 0.0 if kval is None else float(kval)
+    initGlobalKey(widget_key, value)
+
     return st.number_input(
         text,
-        value=float(getCaseKey(nkey)),
         disabled=disabled,
         step=step,
         help=help,
@@ -524,15 +535,16 @@ def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.
         format=format,
         on_change=callback,
         args=[nkey],
-        key=genCaseKey(nkey),
+        key=widget_key
     )
 
 
 def getRateNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0,
                max_value=None, format="%.1f", help=None):
     widget_key = genCaseKey(nkey)
-    # Initialize widget state from case key if it doesn't exist
-    initGlobalKey(widget_key, float(getCaseKey(nkey)))
+    kval = getCaseKey(nkey)
+    value = 0.0 if kval is None else float(kval)
+    initGlobalKey(widget_key, value)
 
     return st.number_input(
         text,
@@ -549,28 +561,32 @@ def getRateNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_valu
 
 
 def getText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None):
+    widget_key = genCaseKey(nkey)
+    initGlobalKey(widget_key, getCaseKey(nkey))
+
     return st.text_input(
         text,
-        value=getCaseKey(nkey),
         disabled=disabled,
         on_change=callback,
         args=[nkey],
-        key=genCaseKey(nkey),
         placeholder=placeholder,
         help=help,
+        key=widget_key
     )
 
 
 def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None):
+    widget_key = genCaseKey(nkey)
+    initGlobalKey(widget_key, getCaseKey(nkey))
+
     return st.text_area(
         text,
-        value=getCaseKey(nkey),
         disabled=disabled,
         on_change=callback,
         args=[nkey],
-        key=genCaseKey(nkey),
         placeholder=placeholder,
         help=help,
+        key=widget_key
     )
 
 
@@ -582,25 +598,31 @@ def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
         setCaseKey(nkey, choices[0])
         index = 0
 
+    widget_key = genCaseKey(nkey)
+    initGlobalKey(widget_key, getCaseKey(nkey))
+
     return st.radio(
         text,
         choices,
         index=index,
         on_change=callback,
         args=[nkey],
-        key=genCaseKey(nkey),
         disabled=disabled,
         horizontal=True,
         help=help,
+        key=widget_key
     )
 
 
 def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
+    widget_key = genCaseKey(nkey)
+    initGlobalKey(widget_key, getCaseKey(nkey))
+
     return st.toggle(
         text,
-        value=getCaseKey(nkey),
         on_change=callback, args=[nkey], disabled=disabled,
-        key=genCaseKey(nkey), help=help
+        help=help,
+        key=widget_key
     )
 
 
