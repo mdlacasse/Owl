@@ -13,8 +13,8 @@ Names = [ "Charles",]
 "tax-deferred savings balances" = [ 600.0,]
 "tax-free savings balances" = [ 600.0,]
 
-["Wages and Contributions"]
-"Contributions file name" = "edited values"
+["Household Financial Profile"]
+"HFP file name" = "edited values"
 
 ["Fixed Income"]
 "Pension amounts" = [ 0.0,]

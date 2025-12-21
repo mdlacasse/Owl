@@ -51,8 +51,8 @@ def saveConfig(myplan, file, mylog):
         diconf["Assets"]["Beneficiary fractions"] = myplan.phi_j.tolist()
         diconf["Assets"]["Spousal surplus deposit fraction"] = myplan.eta
 
-    # Wages and Contributions.
-    diconf["Wages and Contributions"] = {"Contributions file name": myplan.timeListsFileName}
+    # Household Financial Profile
+    diconf["Household Financial Profile"] = {"HFP file name": myplan.timeListsFileName}
 
     # Fixed Income.
     diconf["Fixed Income"] = {
@@ -200,8 +200,8 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         eta = diconf["Assets"]["Spousal surplus deposit fraction"]
         p.setSpousalDepositFraction(eta)
 
-    # Wages and Contributions.
-    timeListsFileName = diconf["Wages and Contributions"]["Contributions file name"]
+    # Household Financial Profile
+    timeListsFileName = diconf["Household Financial Profile"]["HFP file name"]
     if timeListsFileName != "None":
         if readContributions:
             if os.path.exists(timeListsFileName):

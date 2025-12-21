@@ -15,8 +15,8 @@ Names = [ "Jon", "Jane",]
 "Beneficiary fractions" = [ 1.0, 1.0, 1.0,]
 "Spousal surplus deposit fraction" = 0.0
 
-["Wages and Contributions"]
-"Contributions file name" = "jon+jane.xslx"
+["Household Financial Profile"]
+"HFP file name" = "HFP_jon+jane.xslx"
 
 ["Fixed Income"]
 "Pension amounts" = [ 0.0, 0.0,]
