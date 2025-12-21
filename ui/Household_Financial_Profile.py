@@ -45,10 +45,10 @@ that has not yet been uploaded.""")
 
     col1, col2 = st.columns(2, gap="large")
     with col1:
-        st.markdown("#### :orange[Upload *Household Financial Profile* (HFP) Workbook]")
+        st.markdown("#### :orange[Upload *Household Financial Profile* Workbook]")
         kz.initCaseKey("_xlsx", 0)
         stTimeLists = st.file_uploader(
-            "Upload values from a HFP workbook...",
+            "Upload values from a Household Financial Profile (HFP) workbook...",
             key="_stTimeLists" + str(kz.getCaseKey("_xlsx")),
             type=["xlsx", "ods"],
         )
