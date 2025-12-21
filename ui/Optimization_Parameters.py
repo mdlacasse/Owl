@@ -33,7 +33,8 @@ else:
         choices = ["Net spending", "Bequest"]
         helpmsg = "Value is in today's \\$k."
         kz.initCaseKey("objective", choices[0])
-        ret = kz.getRadio("Maximize", choices, "objective")
+        helpmsg = "Pick one value to optimize. By choosing one of the two, the other becomes a constraint."
+        ret = kz.getRadio("Maximize", choices, "objective", help=helpmsg)
 
     with col2:
         if kz.getCaseKey("objective") == "Net spending":
@@ -86,27 +87,13 @@ else:
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg)
 
     st.divider()
-    st.markdown("#### :orange[Calculations]")
-    kz.initCaseKey("withSCLoop", True)
-    kz.initCaseKey("xorConstraints", True)
-    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
-    with col1:
-        helpmsg = ("Option to use a self-consistent loop to adjust additional values such as the net"
-                   " investment income tax (NIIT), and capital gain tax rates."
-                   "  If selected below, this loop will also compute Medicare and IRMAA.")
-        ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
-    with col2:
-        helpmsg = ("Enable mutually exclusive constraints between surplus deposits,"
-                   " Roth conversions, and withdrawals from taxable and/or tax-free accounts.")
-        ret = kz.getToggle("XOR constraints on deposits, conversions, and withdrawals",
-                           "xorConstraints", help=helpmsg)
-
-    st.divider()
     st.markdown("#### :orange[Medicare]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         helpmsg = ("How to compute Medicare and IRMAA premiums:"
-                   " ignore, use self-consistent loop, or use additional variables in optimization.")
+                   " ignore, use self-consistent loop, or use additional variables in optimization."
+                   "In increasing order of accuracy: `None` is fast but inaccurate while `optimize`"
+                   " is slow but accurate.")
         ret = kz.getRadio("Medicare and IRMAA calculations", mediChoices, "withMedicare", help=helpmsg)
         if ret == "optimize":
             st.markdown(":material/warning: Medicare optimization can sometimes have slow convergence -"
@@ -124,13 +111,30 @@ else:
                     ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
-    st.markdown("#### :orange[Solver]")
-    choices = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
-    if owb.hasMOSEK():
-        choices += ["MOSEK"]
-    kz.initCaseKey("solver", choices[0])
-    helpmsg = "Select different solvers for comparison purposes. Use HiGHS for best performance."
-    ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
+    with st.expander("Advanced Options"):
+        st.markdown("#### :orange[Calculations]")
+        kz.initCaseKey("withSCLoop", True)
+        kz.initCaseKey("xorConstraints", True)
+        col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+        with col1:
+            helpmsg = ("Option to use a self-consistent loop to adjust additional values such as the net"
+                       " investment income tax (NIIT), and capital gain tax rates."
+                       "  If selected below, this loop will also compute Medicare and IRMAA.")
+            ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
+        with col2:
+            helpmsg = ("Enable mutually exclusive constraints between surplus deposits,"
+                       " Roth conversions, and withdrawals from taxable and/or tax-free accounts.")
+            ret = kz.getToggle("XOR constraints on deposits, conversions, and withdrawals",
+                               "xorConstraints", help=helpmsg)
+
+        st.divider()
+        st.markdown("#### :orange[Solver]")
+        choices = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
+        if owb.hasMOSEK():
+            choices += ["MOSEK"]
+        kz.initCaseKey("solver", choices[0])
+        helpmsg = "Select different solvers for comparison purposes. Use HiGHS for best performance."
+        ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
 
     st.divider()
     st.markdown("#### :orange[Spending Profile]")
