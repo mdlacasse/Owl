@@ -43,7 +43,7 @@ workbook, to reproduce it in the future.""")
             st.code(lines, height=400, language="toml")
 
             st.download_button(
-                "Download case parameter file", data=lines,
+                "Download Case parameter file", data=lines,
                 file_name=f"Case_{caseName}.toml", mime="application/toml"
             )
 

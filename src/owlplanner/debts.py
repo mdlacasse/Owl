@@ -136,6 +136,17 @@ def get_debt_payments_for_year(debts_df, year):
     total_payments = 0.0
 
     for _, debt in debts_df.iterrows():
+        # Skip if active column exists and is False (treat NaN/None as True)
+        if "active" in debt.index:
+            active_value = debt["active"]
+            # Check if value is explicitly False (not NaN, None, or True)
+            if pd.isna(active_value) or active_value is None:
+                # NaN/None means active (default behavior)
+                pass
+            elif not bool(active_value):
+                # Explicitly False means inactive
+                continue
+
         start_year = int(debt["year"])
         term = int(debt["term"])
         end_year = start_year + term
@@ -174,6 +185,17 @@ def get_debt_balances_for_year(debts_df, year):
     total_balance = 0.0
 
     for _, debt in debts_df.iterrows():
+        # Skip if active column exists and is False (treat NaN/None as True)
+        if "active" in debt.index:
+            active_value = debt["active"]
+            # Check if value is explicitly False (not NaN, None, or True)
+            if pd.isna(active_value) or active_value is None:
+                # NaN/None means active (default behavior)
+                pass
+            elif not bool(active_value):
+                # Explicitly False means inactive
+                continue
+
         start_year = int(debt["year"])
         term = int(debt["term"])
         end_year = start_year + term
@@ -222,6 +244,17 @@ def get_debt_payments_array(debts_df, N_n, thisyear=None):
     payments_n = np.zeros(N_n)
 
     for _, debt in debts_df.iterrows():
+        # Skip if active column exists and is False (treat NaN/None as True)
+        if "active" in debt.index:
+            active_value = debt["active"]
+            # Check if value is explicitly False (not NaN, None, or True)
+            if pd.isna(active_value) or active_value is None:
+                # NaN/None means active (default behavior)
+                pass
+            elif not bool(active_value):
+                # Explicitly False means inactive
+                continue
+
         start_year = int(debt["year"])
         term = int(debt["term"])
         end_year = start_year + term
@@ -271,6 +304,17 @@ def get_remaining_debt_balance(debts_df, N_n, thisyear=None):
     total_balance = 0.0
 
     for _, debt in debts_df.iterrows():
+        # Skip if active column exists and is False (treat NaN/None as True)
+        if "active" in debt.index:
+            active_value = debt["active"]
+            # Check if value is explicitly False (not NaN, None, or True)
+            if pd.isna(active_value) or active_value is None:
+                # NaN/None means active (default behavior)
+                pass
+            elif not bool(active_value):
+                # Explicitly False means inactive
+                continue
+
         start_year = int(debt["year"])
         term = int(debt["term"])
         loan_end_year = start_year + term

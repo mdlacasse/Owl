@@ -90,6 +90,17 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
         residence_exclusion = RESIDENCE_EXCLUSION_SINGLE
 
     for _, asset in fixed_assets_df.iterrows():
+        # Skip if active column exists and is False (treat NaN/None as True)
+        if "active" in asset.index:
+            active_value = asset["active"]
+            # Check if value is explicitly False (not NaN, None, or True)
+            if pd.isna(active_value) or active_value is None:
+                # NaN/None means active (default behavior)
+                pass
+            elif not bool(active_value):
+                # Explicitly False means inactive
+                continue
+
         asset_type = str(asset["type"]).lower()
         basis = float(asset["basis"])
         current_value = float(asset["value"])
@@ -193,6 +204,17 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
     total_bequest_value = 0.0
 
     for _, asset in fixed_assets_df.iterrows():
+        # Skip if active column exists and is False (treat NaN/None as True)
+        if "active" in asset.index:
+            active_value = asset["active"]
+            # Check if value is explicitly False (not NaN, None, or True)
+            if pd.isna(active_value) or active_value is None:
+                # NaN/None means active (default behavior)
+                pass
+            elif not bool(active_value):
+                # Explicitly False means inactive
+                continue
+
         yod = int(asset["yod"])  # Year of disposition
 
         # Only consider assets with yod past the end of the plan

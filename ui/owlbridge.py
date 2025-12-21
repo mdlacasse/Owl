@@ -11,7 +11,7 @@ sys.path.insert(0, "../src")
 
 import owlplanner as owl                      # noqa: E402
 from owlplanner.rates import FROM, TO         # noqa: E402
-from owlplanner.timelists import _debtTypes, _fixedAssetTypes  # noqa: E402
+from owlplanner.timelists import _debtTypes, _fixedAssetTypes, _debtItems, _fixedAssetItems  # noqa: E402
 
 import sskeys as kz         # noqa: E402
 import progress             # noqa: E402
@@ -441,13 +441,12 @@ def syncHouseLists(plan):
     if debts is not None:
         plan.houseLists["Debts"] = debts.copy()
     else:
-        plan.houseLists["Debts"] = pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"])
+        plan.houseLists["Debts"] = pd.DataFrame(columns=getDebtColumnItems())
 
     if fixedAssets is not None:
         plan.houseLists["Fixed Assets"] = fixedAssets.copy()
     else:
-        plan.houseLists["Fixed Assets"] = pd.DataFrame(columns=["name", "type", "basis", "value",
-                                                                "rate", "yod", "commission"])
+        plan.houseLists["Fixed Assets"] = pd.DataFrame(columns=getFixedAssetColumnItems())
 
     return True
 
@@ -862,6 +861,32 @@ def getFixedAssetTypes():
     This ensures consistency between UI and validation logic.
     """
     return _fixedAssetTypes
+
+
+def getDebtColumnItems():
+    """
+    Get the list of column names for Debts DataFrames.
+    Always includes the "active" column.
+
+    Returns:
+    --------
+    list
+        List of column names for Debts DataFrames.
+    """
+    return list(_debtItems)
+
+
+def getFixedAssetColumnItems():
+    """
+    Get the list of column names for Fixed Assets DataFrames.
+    Always includes the "active" column.
+
+    Returns:
+    --------
+    list
+        List of column names for Fixed Assets DataFrames.
+    """
+    return list(_fixedAssetItems)
 
 
 @_checkPlan

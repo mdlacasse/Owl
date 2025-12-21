@@ -35,6 +35,7 @@ _timeHorizonItems = [
 
 
 _debtItems = [
+    "active",
     "name",
     "type",
     "year",
@@ -51,6 +52,7 @@ _debtTypes = [
 
 
 _fixedAssetItems = [
+    "active",
     "name",
     "type",
     "basis",

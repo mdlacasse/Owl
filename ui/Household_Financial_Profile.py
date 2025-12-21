@@ -23,9 +23,8 @@ else:
         kz.runOncePerCase(owb.resetTimeLists)
     kz.initCaseKey("stTimeLists", None)
     # Initialize houseLists if they don't exist
-    kz.initCaseKey("houseListDebts", pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"]))
-    kz.initCaseKey("houseListFixedAssets", pd.DataFrame(columns=["name", "type", "basis",
-                                                                 "value", "rate", "yod", "commission"]))
+    kz.initCaseKey("houseListDebts", pd.DataFrame(columns=owb.getDebtColumnItems()))
+    kz.initCaseKey("houseListFixedAssets", pd.DataFrame(columns=owb.getFixedAssetColumnItems()))
     n = 2 if kz.getCaseKey("status") == "married" else 1
 
     if kz.getCaseKey("stTimeLists") is None:
@@ -88,7 +87,7 @@ This information is needed to enforce the five-year maturation rule in Roth savi
             key=kz.genCaseKey("wages" + str(i)),
         )
         st.caption("Values are in nominal $.")
-        newdf.fillna(0, inplace=True)
+        newdf = newdf.fillna(0)
         kz.storeCaseKey("_timeList" + str(i), newdf)
 
         if not df.equals(newdf):
@@ -111,12 +110,17 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
     # Get existing debts or create empty DataFrame
     debtdf = kz.getCaseKey("houseListDebts")
     if debtdf is None or debtdf.empty:
-        debtdf = pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"])
+        debtdf = pd.DataFrame(columns=owb.getDebtColumnItems())
 
     debtdf.reset_index(drop=True, inplace=True)
 
     thisyear = date.today().year
     debtconf = {
+        "active": st.column_config.CheckboxColumn(
+            "On/Off",
+            help="Check box for item to be considered in plan",
+            required=True,
+        ),
         "name": st.column_config.TextColumn(
             "Name of debt",
             help="Give a unique name to your debt",
@@ -171,7 +175,13 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
 
     # Store edited debts if changed
     if not debtdf.equals(edited_debtdf):
-        edited_debtdf.fillna(0, inplace=True)
+        # Fill NaN values, but preserve boolean columns (like "active")
+        for col in edited_debtdf.columns:
+            if col == "active":
+                # Ensure "active" column is boolean, defaulting to True for NaN
+                edited_debtdf[col] = edited_debtdf[col].fillna(True).astype(bool)
+            elif edited_debtdf[col].dtype != bool:
+                edited_debtdf[col] = edited_debtdf[col].fillna(0)
         kz.setCaseKey("houseListDebts", edited_debtdf)
         st.rerun()
 
@@ -184,11 +194,16 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
     # Get existing fixed assets or create empty DataFrame
     fixeddf = kz.getCaseKey("houseListFixedAssets")
     if fixeddf is None or fixeddf.empty:
-        fixeddf = pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"])
+        fixeddf = pd.DataFrame(columns=owb.getFixedAssetColumnItems())
 
     fixeddf.reset_index(drop=True, inplace=True)
 
     fixedconf = {
+        "active": st.column_config.CheckboxColumn(
+            "On/Off",
+            help="Check box for item to be considered in plan",
+            required=True,
+        ),
         "name": st.column_config.TextColumn(
             "Name of fixed asset",
             help="Give a unique name to your fixed asset",
@@ -251,7 +266,13 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
 
     # Store edited fixed assets if changed
     if not fixeddf.equals(edited_fixeddf):
-        edited_fixeddf.fillna(0, inplace=True)
+        # Fill NaN values, but preserve boolean columns (like "active")
+        for col in edited_fixeddf.columns:
+            if col == "active":
+                # Ensure "active" column is boolean, defaulting to True for NaN
+                edited_fixeddf[col] = edited_fixeddf[col].fillna(True).astype(bool)
+            elif edited_fixeddf[col].dtype != bool:
+                edited_fixeddf[col] = edited_fixeddf[col].fillna(0)
         kz.setCaseKey("houseListFixedAssets", edited_fixeddf)
         st.rerun()
 

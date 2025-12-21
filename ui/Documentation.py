@@ -308,11 +308,12 @@ The *Household Financial Profile* workbook can optionally contain a *Debts* shee
 a *Fixed Assets* sheet to store these data.
 The *Debts* worksheet looks like the following:
 
-|name|type|year|term|amount|rate|
-|--|--|--|--|--|--|
-| | | | | | |
+|active|name|type|year|term|amount|rate|
+|--|--|--|--|--|--|--|
+| | | | | | | |
 
-where *type* is one of *loan* or *mortgage*.
+where *type* is one of *loan* or *mortgage*. The *active* field allows to turn
+debts or fixed assets on or off in the calculations for comparison purposes.
 
 *Fixed Assets* are used to track illiquid assets such as a house, real estate, collectibles,
 or restricted stocks. Fixed-rate annuities with a lump sum can also be modeled. In the
@@ -321,9 +322,9 @@ and capital gains, depending on the asset, and be taxed appropriately.
 
 The *Fixed Assets* worksheet looks like the following:
 
-|name|type|basis|value|rate|yod|commission|
-|--|--|--|--|--|--|--|
-| | | | | | | |
+|active|name|type|basis|value|rate|yod|commission|
+|--|--|--|--|--|--|--|--|
+| | | | | | | | |
 
 where *yod* is the year of disposition and *type* is one of *residence*,
 *real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*. In the
