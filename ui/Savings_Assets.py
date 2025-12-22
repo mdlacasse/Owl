@@ -42,42 +42,43 @@ else:
 
     if kz.getCaseKey("status") == "married":
         st.divider()
-        st.markdown("#### :orange[Survivor's Spousal Beneficiary Fractions]")
-        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-        with col1:
-            nkey = "benf" + str(0)
-            kz.initCaseKey(nkey, 1)
-            helpmsg = "Fraction of account left to surviving spouse."
-            ret = kz.getNum(accounts["txbl"].capitalize(), nkey, format="%.2f", max_value=1.0,
-                            step=0.05, help=helpmsg)
+        with st.expander("*Advanced Options*"):
+            st.markdown("#### :orange[Survivor's Spousal Beneficiary Fractions]")
+            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+            with col1:
+                nkey = "benf" + str(0)
+                kz.initCaseKey(nkey, 1)
+                helpmsg = "Fraction of account left to surviving spouse."
+                ret = kz.getNum(accounts["txbl"].capitalize(), nkey, format="%.2f", max_value=1.0,
+                                step=0.05, help=helpmsg)
 
-        with col2:
-            nkey = "benf" + str(1)
-            kz.initCaseKey(nkey, 1)
-            ret = kz.getNum(accounts["txDef"].capitalize(), nkey, format="%.2f", max_value=1.0,
-                            step=0.05, help=helpmsg)
+            with col2:
+                nkey = "benf" + str(1)
+                kz.initCaseKey(nkey, 1)
+                ret = kz.getNum(accounts["txDef"].capitalize(), nkey, format="%.2f", max_value=1.0,
+                                step=0.05, help=helpmsg)
 
-        with col3:
-            nkey = "benf" + str(2)
-            kz.initCaseKey(nkey, 1)
-            ret = kz.getNum(accounts["txFree"].capitalize(), nkey, format="%.2f", max_value=1.0,
-                            step=0.05, help=helpmsg)
+            with col3:
+                nkey = "benf" + str(2)
+                kz.initCaseKey(nkey, 1)
+                ret = kz.getNum(accounts["txFree"].capitalize(), nkey, format="%.2f", max_value=1.0,
+                                step=0.05, help=helpmsg)
 
-        st.markdown("#####")
-        st.markdown("#### :orange[Surplus Deposit Fraction]")
-        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-        with col1:
-            kz.initCaseKey("surplusFraction", 0.5)
-            helpmsg = ("When beneficiary fractions are not all 1, "
-                       "set cash-flow surplus deposits to entirely go to the account of first spouse to pass.")
-            ret = kz.getNum(
-                f"Fraction deposited in {iname1}'s taxable account",
-                "surplusFraction",
-                format="%.2f",
-                help=helpmsg,
-                max_value=1.0,
-                step=0.05,
-            )
+            st.markdown("#####")
+            st.markdown("#### :orange[Surplus Deposit Fraction]")
+            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+            with col1:
+                kz.initCaseKey("surplusFraction", 0.5)
+                helpmsg = ("When beneficiary fractions are not all 1, "
+                           "set cash-flow surplus deposits to entirely go to the account of first spouse to pass.")
+                ret = kz.getNum(
+                    f"Fraction deposited in {iname1}'s taxable account",
+                    "surplusFraction",
+                    format="%.2f",
+                    help=helpmsg,
+                    max_value=1.0,
+                    step=0.05,
+                )
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()

@@ -239,25 +239,26 @@ forecasts for the next decade can be found
     owb.showRates(col1)
 
     # st.divider()
-    st.markdown("#### :orange[Other Rates]")
-    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-    with col1:
-        kz.initCaseKey("divRate", 1.8)
-        helpmsg = "Average annual (qualified) dividend return rate on stock portfolio in taxable account."
-        ret = kz.getNum("Dividend rate (%)", "divRate", max_value=5.0, format="%.2f", help=helpmsg, step=1.0)
+    with st.expander("*Advanced Options*"):
+        st.markdown("#### :orange[Other Rates]")
+        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+        with col1:
+            kz.initCaseKey("divRate", 1.8)
+            helpmsg = "Average annual (qualified) dividend return rate on stock portfolio in taxable account."
+            ret = kz.getNum("Dividend rate (%)", "divRate", max_value=5.0, format="%.2f", help=helpmsg, step=1.0)
 
-    st.markdown("#####")
-    st.markdown("#### :orange[Income taxes]")
-    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-    with col1:
-        kz.initCaseKey("heirsTx", 30)
-        helpmsg = "Marginal tax rate that heirs would have to pay on inherited tax-deferred balance."
-        ret = kz.getNum("Heirs marginal tax rate (%)", "heirsTx", max_value=100.0, help=helpmsg, step=1.0)
+        st.markdown("#####")
+        st.markdown("#### :orange[Income taxes]")
+        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+        with col1:
+            kz.initCaseKey("heirsTx", 30)
+            helpmsg = "Marginal tax rate that heirs would have to pay on inherited tax-deferred balance."
+            ret = kz.getNum("Heirs marginal tax rate (%)", "heirsTx", max_value=100.0, help=helpmsg, step=1.0)
 
-    with col2:
-        kz.initCaseKey("yOBBBA", 2032)
-        helpmsg = "Year at which the OBBBA tax rates are speculated to be expired and return to pre-TCJA rates."
-        ret = kz.getIntNum("OBBBA expiration year", "yOBBBA", help=helpmsg)
+        with col2:
+            kz.initCaseKey("yOBBBA", 2032)
+            helpmsg = "Year at which the OBBBA tax rates are speculated to be expired and return to pre-TCJA rates."
+            ret = kz.getIntNum("OBBBA expiration year", "yOBBBA", help=helpmsg)
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()
