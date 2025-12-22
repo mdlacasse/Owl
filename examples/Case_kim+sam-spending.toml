@@ -6,51 +6,59 @@ Status = "married"
 Names = [ "Kim", "Sam",]
 "Date of birth" = [ "1966-01-15", "1967-01-15",]
 "Life expectancy" = [ 86, 89,]
-"Start date" = "01-01"
+"Start date" = "2025-01-01"
 
 [Assets]
 "taxable savings balances" = [ 1000.0, 0.0,]
 "tax-deferred savings balances" = [ 2000.0, 800.0,]
 "tax-free savings balances" = [ 500.0, 25.0,]
-"Beneficiary fractions" = [ 1, 1, 1,]
+"Beneficiary fractions" = [ 1.0, 1.0, 1.0,]
 "Spousal surplus deposit fraction" = 0.5
 
 ["Household Financial Profile"]
 "HFP file name" = "HFP_kim+sam.xlsx"
 
 ["Fixed Income"]
-"Pension amounts" = [ 0.0, 0.0,]
-"Pension ages" = [ 65, 65,]
+"Pension monthly amounts" = [ 0, 0,]
+"Pension ages" = [ 65.0, 65.0,]
 "Pension indexed" = [ false, false,]
 "Social security PIA amounts" = [ 3750, 2083,]
-"Social security ages" = [ 70, 68,]
+"Social security ages" = [ 70.0, 68.0,]
 
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 33.0
-"Dividend rate" = 1.8
+"Dividend rate" = 1.8000000000000003
 "OBBBA expiration year" = 2032
-Method = "conservative"
-From = 1922
-To = 2023
+Method = "user"
+Values = [ 6.0, 4.0, 3.3000000000000003, 2.8000000000000003,]
+From = 1928
+To = 2024
 
 ["Asset Allocation"]
 "Interpolation method" = "s-curve"
-"Interpolation center" = 15
-"Interpolation width" = 5
+"Interpolation center" = 15.0
+"Interpolation width" = 5.0
 Type = "individual"
 generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],],]
 
 ["Optimization Parameters"]
 "Spending profile" = "smile"
+"Surviving spouse spending percent" = 60
 "Smile dip" = 15
 "Smile increase" = 12
 "Smile delay" = 0
-"Surviving spouse spending percent" = 60
 Objective = "maxSpending"
 
 ["Solver Options"]
 maxRothConversion = 300
+noRothConversions = "None"
+startRothConversions = 2025
+withMedicare = "loop"
 bequest = 2000
+solver = "HiGHS"
+spendingSlack = 0
+xorConstraints = true
+withSCLoop = true
 
 [Results]
 "Default plots" = "nominal"

@@ -17,18 +17,18 @@ Names = [ "Charles",]
 "HFP file name" = "edited values"
 
 ["Fixed Income"]
-"Pension amounts" = [ 0.0,]
-"Pension ages" = [ 65,]
+"Pension monthly amounts" = [ 0,]
+"Pension ages" = [ 65.0,]
 "Pension indexed" = [ true,]
 "Social security PIA amounts" = [ 3000,]
-"Social security ages" = [ 70,]
+"Social security ages" = [ 70.0,]
 
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 0.0
 "Dividend rate" = 0.0
 "OBBBA expiration year" = 2099
 Method = "user"
-Values = [ 6.5, 0.0, 0.0, 2.8,]
+Values = [ 6.5, 0.0, 0.0, 2.799999952316284,]
 From = 1928
 To = 2024
 
@@ -48,10 +48,11 @@ Objective = "maxBequest"
 netSpending = 80.0
 maxRothConversion = 50
 startRothConversions = 2025
-withSCLoop = false
+withMedicare = "None"
 solver = "HiGHS"
 spendingSlack = 0
-withMedicare = "None"
+xorConstraints = true
+withSCLoop = false
 
 [Results]
 "Default plots" = "today"
