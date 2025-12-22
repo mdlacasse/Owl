@@ -203,7 +203,7 @@ The **Wages and Contributions** table contains 9 columns titled as follows:
 
 Note that column names are case sensitive and all entries are in lower case.
 The easiest way to complete the process of filling this file is either to start from the template
-file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/template.xlsx?raw=true) or
+file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) or
 to fill in the values using the user interface, but this last approach does not provide
 Excel capabilities for cross-column calculations.
 
