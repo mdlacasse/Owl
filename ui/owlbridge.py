@@ -685,6 +685,17 @@ def saveContributions(plan):
     except Exception as e:
         raise Exception(f"Unanticipated exception: {e}.") from e
 
+    # Update filename if it's currently "edited values" - this indicates the file
+    # was edited and is now being saved, so we should update the reference
+    current_filename = kz.getCaseKey("timeListsFileName")
+    if current_filename == "edited values":
+        # Use the suggested download filename format
+        case_name = kz.getCaseKey("name")
+        if case_name:
+            suggested_filename = f"HFP_{case_name}.xlsx"
+            kz.storeCaseKey("timeListsFileName", suggested_filename)
+            plan.timeListsFileName = suggested_filename
+
     return buffer
 
 
