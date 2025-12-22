@@ -99,7 +99,7 @@ else:
 
     col1, col2 = st.columns([.67, .33], gap="large", vertical_alignment="top")
     with col1:
-        with st.expander("Instructions for determining your monthly Primary Insurance Amount (PIA)"):
+        with st.expander("*Instructions for determining your monthly Primary Insurance Amount (PIA)*"):
             st.markdown("""
 The Primary Insurance Amount (PIA) is the monthly Social Security benefit you would receive if
 you claim benefits at your full retirement age. It is calculated based on your lifetime
