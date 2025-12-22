@@ -111,7 +111,7 @@ else:
                     ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
-    with st.expander("Advanced Options"):
+    with st.expander("*Advanced Options*"):
         st.markdown("#### :orange[Calculations]")
         kz.initCaseKey("withSCLoop", True)
         kz.initCaseKey("xorConstraints", True)

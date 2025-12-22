@@ -71,210 +71,217 @@ that has not yet been uploaded.""")
     st.markdown("""Previous five years are used to input past contributions and conversions to Roth accounts.
 This information is needed to enforce the five-year maturation rule in Roth savings accounts.""")
 
-    for i in range(n):
-        st.markdown("#### :orange[" + kz.getCaseKey("iname" + str(i)) + "'s Timetable]")
-        df = kz.getCaseKey("timeList" + str(i))
-        formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
-        cols = list(df.columns)
-        for col in cols[1:-1]:
-            formatdic[col] = st.column_config.NumberColumn(None, min_value=0.0, format="accounting")
-        formatdic[cols[-1]] = st.column_config.NumberColumn(None, format="accounting")
+    with st.expander("*Expand Wages and Contributions Timetables*"):
+        for i in range(n):
+            st.markdown("#### :orange[" + kz.getCaseKey("iname" + str(i)) + "'s Timetable]")
+            df = kz.getCaseKey("timeList" + str(i))
+            formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
+            cols = list(df.columns)
+            for col in cols[1:-1]:
+                formatdic[col] = st.column_config.NumberColumn(None, min_value=0.0, format="accounting")
+            formatdic[cols[-1]] = st.column_config.NumberColumn(None, format="accounting")
 
-        newdf = st.data_editor(
-            df,
-            column_config=formatdic,
-            hide_index=True,
-            key=kz.genCaseKey("wages" + str(i)),
-        )
-        st.caption("Values are in nominal $.")
-        newdf = newdf.fillna(0)
-        kz.storeCaseKey("_timeList" + str(i), newdf)
+            newdf = st.data_editor(
+                df,
+                column_config=formatdic,
+                hide_index=True,
+                key=kz.genCaseKey("wages" + str(i)),
+            )
+            st.caption("Values are in nominal $.")
+            newdf = newdf.fillna(0)
+            kz.storeCaseKey("_timeList" + str(i), newdf)
 
-        if not df.equals(newdf):
-            kz.setCaseKey("timeList" + str(i), newdf)
-            st.rerun()
+            if not df.equals(newdf):
+                kz.setCaseKey("timeList" + str(i), newdf)
+                st.rerun()
 
-    st.button("Reset Timetables to zero", help="Reset all values to zero.", on_click=owb.resetTimeLists)
+        st.button("Reset Timetables to zero", help="Reset all values to zero.", on_click=owb.resetTimeLists)
 
     st.divider()
     st.markdown("### :material/account_balance: :orange[Debts and Fixed Assets]")
-    st.markdown("""Debts and fixed assets are associated with the household.
-Additional items can be directly entered in the tables below by clicking :material/add: on the last row.
-Items can be deleted by selecting them in the left column and hitting *Delete*.""")
+    st.markdown("""Debts and fixed assets are associated with the household.""")
 
-    st.markdown("#### :orange[Debts]")
+    with st.expander("*Expand Debts and Fixed Assets Tables*"):
+        st.markdown("#### :orange[Debts]")
 
-    # Get debt types from owlbridge to ensure consistency with validation logic
-    debtTypes = owb.getDebtTypes()
+        # Get debt types from owlbridge to ensure consistency with validation logic
+        debtTypes = owb.getDebtTypes()
 
-    # Get existing debts or create empty DataFrame
-    debtdf = kz.getCaseKey("houseListDebts")
-    if debtdf is None or debtdf.empty:
-        debtdf = pd.DataFrame(columns=owb.getDebtColumnItems())
+        # Get existing debts or create empty DataFrame
+        debtdf = kz.getCaseKey("houseListDebts")
+        if debtdf is None or debtdf.empty:
+            debtdf = pd.DataFrame(columns=owb.getDebtColumnItems())
 
-    debtdf.reset_index(drop=True, inplace=True)
+        debtdf.reset_index(drop=True, inplace=True)
 
-    thisyear = date.today().year
-    debtconf = {
-        "active": st.column_config.CheckboxColumn(
-            "On/Off",
-            help="Check box for item to be considered in plan",
-            default=True,
-        ),
-        "name": st.column_config.TextColumn(
-            "Name of debt",
-            help="Give a unique name to your debt",
-            required=True,
-        ),
-        "type": st.column_config.SelectboxColumn(
-            "type of debt",
-            help="Select the type of debt from dropdown menu",
-            required=True,
-            options=debtTypes,
-        ),
-        "year": st.column_config.NumberColumn(
-            "start year",
-            help="Enter the origination year",
-            min_value=1950,
-            # max_value=thisyear-1,
-            required=True,
-            step=1,
-        ),
-        "term": st.column_config.NumberColumn(
-            "term",
-            help="Enter loan term (y)",
-            min_value=1,
-            max_value=30,
-            required=True,
-            step=1,
-        ),
-        "amount": st.column_config.NumberColumn(
-            "amount",
-            help="Enter original load amount $",
-            default=0,
-            format="dollar",
-            min_value=0,
-            step=1,
-        ),
-        "rate": st.column_config.NumberColumn(
-            "rate",
-            help="Enter annual rate (%)",
-            default=4.0,
-            min_value=0.0,
-            step=0.01,
+        thisyear = date.today().year
+        debtconf = {
+            "active": st.column_config.CheckboxColumn(
+                "On/Off",
+                help="Check box for item to be considered in plan",
+                default=True,
+                required=True,
+            ),
+            "name": st.column_config.TextColumn(
+                "Name of debt",
+                help="Give a unique name to your debt",
+                required=True,
+            ),
+            "type": st.column_config.SelectboxColumn(
+                "type of debt",
+                help="Select the type of debt from dropdown menu",
+                required=True,
+                options=debtTypes,
+            ),
+            "year": st.column_config.NumberColumn(
+                "start year",
+                help="Enter the origination year",
+                min_value=1950,
+                required=True,
+                step=1,
+            ),
+            "term": st.column_config.NumberColumn(
+                "term",
+                help="Enter loan term (y)",
+                min_value=1,
+                max_value=30,
+                required=True,
+                step=1,
+            ),
+            "amount": st.column_config.NumberColumn(
+                "amount",
+                help="Enter original load amount $",
+                format="dollar",
+                required=True,
+                min_value=0,
+                step=1,
+            ),
+            "rate": st.column_config.NumberColumn(
+                "rate",
+                help="Enter annual rate (%)",
+                required=True,
+                min_value=0.0,
+                step=0.01,
+            )
+        }
+
+        edited_debtdf = st.data_editor(
+            debtdf,
+            column_config=debtconf,
+            num_rows="dynamic",
+            hide_index=True,
+            key=kz.genCaseKey("debts")
         )
-    }
+        tableCaption="""Values are in nominal $. Additional items can be directly entered
+in the tables by clicking :material/add: on the last row.
+Items can be deleted by selecting rows in the left margin and hitting *Delete*."""
+        st.caption(tableCaption)
 
-    edited_debtdf = st.data_editor(
-        debtdf,
-        column_config=debtconf,
-        num_rows="dynamic",
-        hide_index=True,
-        key=kz.genCaseKey("debts")
-    )
+        # Store edited debts if changed
+        if not debtdf.equals(edited_debtdf):
+            # Fill NaN values, but preserve boolean columns (like "active")
+            for col in edited_debtdf.columns:
+                if col == "active":
+                    # Ensure "active" column is boolean, defaulting to True for NaN
+                    edited_debtdf[col] = edited_debtdf[col].fillna(True).astype(bool)
+                elif edited_debtdf[col].dtype != bool:
+                    edited_debtdf[col] = edited_debtdf[col].fillna(0)
+            kz.setCaseKey("houseListDebts", edited_debtdf)
+            st.rerun()
 
-    # Store edited debts if changed
-    if not debtdf.equals(edited_debtdf):
-        # Fill NaN values, but preserve boolean columns (like "active")
-        for col in edited_debtdf.columns:
-            if col == "active":
-                # Ensure "active" column is boolean, defaulting to True for NaN
-                edited_debtdf[col] = edited_debtdf[col].fillna(True).astype(bool)
-            elif edited_debtdf[col].dtype != bool:
-                edited_debtdf[col] = edited_debtdf[col].fillna(0)
-        kz.setCaseKey("houseListDebts", edited_debtdf)
-        st.rerun()
+        st.divider()
+        st.markdown("#### :orange[Fixed Assets]")
 
-    st.divider()
-    st.markdown("#### :orange[Fixed Assets]")
+        # Get fixed asset types from owlbridge to ensure consistency with validation logic
+        fixedTypes = owb.getFixedAssetTypes()
 
-    # Get fixed asset types from owlbridge to ensure consistency with validation logic
-    fixedTypes = owb.getFixedAssetTypes()
+        # Get existing fixed assets or create empty DataFrame
+        fixeddf = kz.getCaseKey("houseListFixedAssets")
+        if fixeddf is None or fixeddf.empty:
+            fixeddf = pd.DataFrame(columns=owb.getFixedAssetColumnItems())
 
-    # Get existing fixed assets or create empty DataFrame
-    fixeddf = kz.getCaseKey("houseListFixedAssets")
-    if fixeddf is None or fixeddf.empty:
-        fixeddf = pd.DataFrame(columns=owb.getFixedAssetColumnItems())
+        fixeddf.reset_index(drop=True, inplace=True)
 
-    fixeddf.reset_index(drop=True, inplace=True)
+        fixedconf = {
+            "active": st.column_config.CheckboxColumn(
+                "On/Off",
+                help="Check box for item to be considered in plan",
+                default=True,
+                required=True,
+            ),
+            "name": st.column_config.TextColumn(
+                "Name of fixed asset",
+                help="Give a unique name to your fixed asset",
+                required=True,
+            ),
+            "type": st.column_config.SelectboxColumn(
+                "type of asset",
+                help="Select the type of fixed asset from dropdown menu",
+                required=True,
+                options=fixedTypes,
+            ),
+            "basis": st.column_config.NumberColumn(
+                "basis",
+                help="Enter cost basis $",
+                min_value=0,
+                required=True,
+                format="dollar",
+                step=1,
+            ),
+            "value": st.column_config.NumberColumn(
+                "value",
+                help="Enter current value $",
+                min_value=0,
+                required=True,
+                format="dollar",
+                step=1,
+            ),
+            "rate": st.column_config.NumberColumn(
+                "rate",
+                help="Return rate (%)",
+                # default=3.0,
+                required=True,
+                min_value=0.0,
+                step=0.01,
+            ),
+            "yod": st.column_config.NumberColumn(
+                "yod",
+                help="Year of disposition (y)",
+                min_value=thisyear,
+                required=True,
+                step=1,
+            ),
+            "commission": st.column_config.NumberColumn(
+                "commission",
+                help="Sale commission (%)",
+                min_value=0.0,
+                max_value=10.0,
+                required=True,
+                default=0.0,
+                step=0.01,
+            ),
+        }
 
-    fixedconf = {
-        "active": st.column_config.CheckboxColumn(
-            "On/Off",
-            help="Check box for item to be considered in plan",
-            default=True,
-        ),
-        "name": st.column_config.TextColumn(
-            "Name of fixed asset",
-            help="Give a unique name to your fixed asset",
-            required=True,
-        ),
-        "type": st.column_config.SelectboxColumn(
-            "type of asset",
-            help="Select the type of fixed asset from dropdown menu",
-            # default=1,
-            required=True,
-            options=fixedTypes,
-        ),
-        "basis": st.column_config.NumberColumn(
-            "basis",
-            help="Enter cost basis $",
-            min_value=0,
-            required=True,
-            format="dollar",
-            step=1,
-        ),
-        "value": st.column_config.NumberColumn(
-            "value",
-            help="Enter current value $",
-            min_value=0,
-            required=True,
-            format="dollar",
-            step=1,
-        ),
-        "rate": st.column_config.NumberColumn(
-            "rate",
-            help="Return rate (%)",
-            default=3.0,
-            min_value=0.0,
-            step=0.01,
-        ),
-        "yod": st.column_config.NumberColumn(
-            "yod",
-            help="Year of disposition (y)",
-            min_value=0,
-            required=True,
-            step=1,
-        ),
-        "commission": st.column_config.NumberColumn(
-            "commission",
-            help="Sale commission (%)",
-            min_value=0.0,
-            max_value=10.0,
-            default=0.0,
-            step=0.01,
-        ),
-    }
+        edited_fixeddf = st.data_editor(
+            fixeddf,
+            column_config=fixedconf,
+            hide_index=True,
+            num_rows="dynamic",
+            key=kz.genCaseKey("fixed_assets")
+        )
+        st.caption(tableCaption)
 
-    edited_fixeddf = st.data_editor(
-        fixeddf,
-        column_config=fixedconf,
-        hide_index=True,
-        num_rows="dynamic",
-        key=kz.genCaseKey("fixed_assets")
-    )
-
-    # Store edited fixed assets if changed
-    if not fixeddf.equals(edited_fixeddf):
-        # Fill NaN values, but preserve boolean columns (like "active")
-        for col in edited_fixeddf.columns:
-            if col == "active":
-                # Ensure "active" column is boolean, defaulting to True for NaN
-                edited_fixeddf[col] = edited_fixeddf[col].fillna(True).astype(bool)
-            elif edited_fixeddf[col].dtype != bool:
-                edited_fixeddf[col] = edited_fixeddf[col].fillna(0)
-        kz.setCaseKey("houseListFixedAssets", edited_fixeddf)
-        st.rerun()
+        # Store edited fixed assets if changed
+        if not fixeddf.equals(edited_fixeddf):
+            # Fill NaN values, but preserve boolean columns (like "active")
+            for col in edited_fixeddf.columns:
+                if col == "active":
+                    # Ensure "active" column is boolean, defaulting to True for NaN
+                    edited_fixeddf[col] = edited_fixeddf[col].fillna(True).astype(bool)
+                elif edited_fixeddf[col].dtype != bool:
+                    edited_fixeddf[col] = edited_fixeddf[col].fillna(0)
+            kz.setCaseKey("houseListFixedAssets", edited_fixeddf)
+            st.rerun()
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()
