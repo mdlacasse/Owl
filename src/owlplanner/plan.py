@@ -2945,11 +2945,29 @@ class Plan:
 
         planData = {}
         planData["year"] = self.year_n
+
+        # Income data
         planData["net spending"] = self.g_n
         planData["taxable ord. income"] = self.G_n
         planData["taxable gains/divs"] = self.Q_n
-        planData["tax bill"] = self.T_n
+        planData["Tax bills + Med."] = self.T_n + self.U_n + self.m_n + self.M_n + self.J_n
 
+        # Cash flow data (matching Cash Flow worksheet)
+        planData["all wages"] = np.sum(self.omega_in, axis=0)
+        planData["all pensions"] = np.sum(self.piBar_in, axis=0)
+        planData["all soc sec"] = np.sum(self.zetaBar_in, axis=0)
+        planData["all BTI's"] = np.sum(self.Lambda_in, axis=0)
+        planData["FA tax-free"] = self.fixed_assets_tax_free_n
+        planData["FA ord inc"] = self.fixed_assets_ordinary_income_n
+        planData["FA cap gains"] = self.fixed_assets_capital_gains_n
+        planData["debt pmts"] = -self.debt_payments_n
+        planData["all wdrwls"] = np.sum(self.w_ijn, axis=(0, 1))
+        planData["all deposits"] = -np.sum(self.d_in, axis=0)
+        planData["ord taxes"] = -self.T_n - self.J_n
+        planData["div taxes"] = -self.U_n
+        planData["Medicare"] = -self.m_n - self.M_n
+
+        # Individual account data
         for i in range(self.N_i):
             planData[self.inames[i] + " txbl bal"] = self.b_ijn[i, 0, :-1]
             planData[self.inames[i] + " txbl dep"] = self.d_in[i, :]
@@ -2964,6 +2982,7 @@ class Plan:
             planData[self.inames[i] + " tax-free wdrwl"] = self.w_ijn[i, 2, :]
             planData[self.inames[i] + " big-ticket items"] = self.Lambda_in[i, :]
 
+        # Rates
         ratesDic = {"S&P 500": 0, "Corporate Baa": 1, "T Bonds": 2, "inflation": 3}
         for key in ratesDic:
             planData[key] = self.tau_kn[ratesDic[key]]
