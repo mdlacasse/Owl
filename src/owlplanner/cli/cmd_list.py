@@ -45,7 +45,7 @@ def cmd_list(directory):
     CHECK = "✓"
     CROSS = "✗"
 
-    cwd = Path.cwd()
+    plan_dir = directory
 
     for stem, plan in plans:
         # Truncate plan name if needed
@@ -55,7 +55,7 @@ def cmd_list(directory):
 
         # Check if timeListsFileName exists in current directory
         tl_name = plan.timeListsFileName
-        exists = (cwd / tl_name).exists() if tl_name else False
+        exists = (plan_dir / tl_name).exists() if tl_name else False
         mark = CHECK if exists else CROSS
 
         click.echo(f"{stem:<30} {plan_name:<20}  {mark}{tl_name:<30}")
