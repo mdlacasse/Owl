@@ -119,7 +119,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         "active": st.column_config.CheckboxColumn(
             "On/Off",
             help="Check box for item to be considered in plan",
-            required=True,
+            default=True,
         ),
         "name": st.column_config.TextColumn(
             "Name of debt",
@@ -202,7 +202,7 @@ Items can be deleted by selecting them in the left column and hitting *Delete*."
         "active": st.column_config.CheckboxColumn(
             "On/Off",
             help="Check box for item to be considered in plan",
-            required=True,
+            default=True,
         ),
         "name": st.column_config.TextColumn(
             "Name of fixed asset",
