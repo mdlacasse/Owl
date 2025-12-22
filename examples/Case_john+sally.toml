@@ -6,28 +6,28 @@ Status = "married"
 Names = [ "John", "Sally",]
 "Date of birth" = [ "1962-01-15", "1962-01-15",]
 "Life expectancy" = [ 92, 92,]
-"Start date" = "01-01"
+"Start date" = "2025-01-01"
 
 [Assets]
 "taxable savings balances" = [ 200.0, 200.0,]
 "tax-deferred savings balances" = [ 750.0, 750.0,]
 "tax-free savings balances" = [ 50.0, 50.0,]
-"Beneficiary fractions" = [ 1, 1, 1,]
+"Beneficiary fractions" = [ 1.0, 1.0, 1.0,]
 "Spousal surplus deposit fraction" = 0.5
 
 ["Household Financial Profile"]
 "HFP file name" = "HFP_john+sally.xlsx"
 
 ["Fixed Income"]
-"Pension amounts" = [ 0.0, 0.0,]
-"Pension ages" = [ 65, 65,]
+"Pension monthly amounts" = [ 0, 0,]
+"Pension ages" = [ 65.0, 65.0,]
 "Pension indexed" = [ false, false,]
 "Social security PIA amounts" = [ 3000, 1800,]
-"Social security ages" = [ 67, 67,]
+"Social security ages" = [ 67.0, 67.0,]
 
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 30.0
-"Dividend rate" = 1.8
+"Dividend rate" = 1.8000000000000003
 "OBBBA expiration year" = 2032
 Method = "historical average"
 From = 1990
@@ -35,8 +35,8 @@ To = 2023
 
 ["Asset Allocation"]
 "Interpolation method" = "linear"
-"Interpolation center" = 15
-"Interpolation width" = 5
+"Interpolation center" = 15.0
+"Interpolation width" = 5.0
 Type = "individual"
 generic = [ [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],], [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],],]
 
@@ -46,8 +46,15 @@ generic = [ [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],], [ [ 60, 40, 0, 0,], [ 60, 40
 Objective = "maxBequest"
 
 ["Solver Options"]
-maxRothConversion = 200
 netSpending = 100
+maxRothConversion = 200
+noRothConversions = "None"
+startRothConversions = 2025
+withMedicare = "loop"
+solver = "HiGHS"
+spendingSlack = 0
+xorConstraints = true
+withSCLoop = true
 
 [Results]
 "Default plots" = "today"

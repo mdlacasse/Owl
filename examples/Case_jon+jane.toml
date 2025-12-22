@@ -6,7 +6,7 @@ Status = "married"
 Names = [ "Jon", "Jane",]
 "Date of birth" = [ "1965-01-15", "1968-01-15",]
 "Life expectancy" = [ 92, 92,]
-"Start date" = "01-01"
+"Start date" = "2025-01-01"
 
 [Assets]
 "taxable savings balances" = [ 50.0, 0.0,]
@@ -19,15 +19,15 @@ Names = [ "Jon", "Jane",]
 "HFP file name" = "HFP_jon+jane.xslx"
 
 ["Fixed Income"]
-"Pension amounts" = [ 0.0, 0.0,]
-"Pension ages" = [ 65, 65,]
+"Pension monthly amounts" = [ 0, 0,]
+"Pension ages" = [ 65.0, 65.0,]
 "Pension indexed" = [ false, false,]
 "Social security PIA amounts" = [ 1750, 1750,]
-"Social security ages" = [ 65, 65,]
+"Social security ages" = [ 65.0, 65.0,]
 
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 30.0
-"Dividend rate" = 1.8
+"Dividend rate" = 1.8000000000000003
 "OBBBA expiration year" = 2032
 Method = "user"
 Values = [ 10.0, 6.0, 5.0, 3.5000000000000004,]
@@ -49,8 +49,13 @@ Objective = "maxSpending"
 ["Solver Options"]
 maxRothConversion = 0.0
 noRothConversions = "None"
-withSCLoop = true
+startRothConversions = 2025
+withMedicare = "loop"
 bequest = 30.0
+solver = "HiGHS"
+spendingSlack = 0
+xorConstraints = true
+withSCLoop = true
 
 [Results]
 "Default plots" = "today"

@@ -6,52 +6,58 @@ Status = "married"
 Names = [ "Jack", "Jill",]
 "Date of birth" = [ "1962-01-15", "1965-01-15",]
 "Life expectancy" = [ 89, 92,]
-"Start date" = "01-01"
+"Start date" = "2025-01-01"
 
 [Assets]
 "taxable savings balances" = [ 120.5, 60.2,]
 "tax-deferred savings balances" = [ 600.2, 150.0,]
 "tax-free savings balances" = [ 280.6, 260.8,]
-"Beneficiary fractions" = [ 1, 1, 1,]
+"Beneficiary fractions" = [ 1.0, 1.0, 1.0,]
 "Spousal surplus deposit fraction" = 0.0
 
 ["Household Financial Profile"]
-"HFP file name" = "HFP_jack+jill.xlsx"
+"HFP file name" = "edited values"
 
 ["Fixed Income"]
-"Pension amounts" = [ 0.0, 10.5,]
-"Pension ages" = [ 65, 65,]
+"Pension monthly amounts" = [ 0, 0,]
+"Pension ages" = [ 65.0, 65.0,]
 "Pension indexed" = [ false, false,]
 "Social security PIA amounts" = [ 2360, 1642,]
-"Social security ages" = [ 70.0, 62.083,]
+"Social security ages" = [ 70.0, 62.083333333333336,]
 
 ["Rates Selection"]
 "Heirs rate on tax-deferred estate" = 30.0
-"Dividend rate" = 1.8
+"Dividend rate" = 1.8000000000000003
 "OBBBA expiration year" = 2032
 Method = "historical"
 From = 1969
-To = 2002
+To = 2001
 
 ["Asset Allocation"]
 "Interpolation method" = "s-curve"
-"Interpolation center" = 15
-"Interpolation width" = 5
+"Interpolation center" = 15.0
+"Interpolation width" = 5.0
 Type = "individual"
 generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 60, 40, 0, 0,], [ 80, 0, 10, 10,],],]
 
 ["Optimization Parameters"]
 "Spending profile" = "smile"
+"Surviving spouse spending percent" = 60
 "Smile dip" = 15
 "Smile increase" = 12
 "Smile delay" = 0
-"Surviving spouse spending percent" = 60
 Objective = "maxSpending"
 
 ["Solver Options"]
 maxRothConversion = 100
-bequest = 500
 noRothConversions = "Jill"
+startRothConversions = 2025
+withMedicare = "loop"
+bequest = 500
+solver = "HiGHS"
+spendingSlack = 0
+xorConstraints = true
+withSCLoop = true
 
 [Results]
 "Default plots" = "today"

@@ -14,6 +14,7 @@ kz.initCaseKey("smileIncrease", 12)
 kz.initCaseKey("smileDelay", 0)
 mediChoices = ["None", "loop", "optimize"]
 kz.initCaseKey("withMedicare", mediChoices[1])
+kz.initCaseKey("withSCLoop", True)
 
 
 def initProfile():
@@ -113,7 +114,6 @@ else:
     st.divider()
     with st.expander("*Advanced Options*"):
         st.markdown("#### :orange[Calculations]")
-        kz.initCaseKey("withSCLoop", True)
         kz.initCaseKey("xorConstraints", True)
         col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
         with col1:
