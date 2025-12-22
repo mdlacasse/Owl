@@ -1,0 +1,193 @@
+---
+title: Template 0
+execute:
+    echo: false
+    output: asis
+---
+
+This report summarizes a TOML file run.
+
+```{python}
+# Load owlplanner
+import sys
+import json
+import numpy as np
+from loguru import logger
+import owlplanner as owl
+
+x=logger.remove()  # remove all existing sinks
+x=logger.add(sys.stderr, level="SUCCESS")
+
+```
+
+```{python}
+# Load plan then save plan to dictionary.
+plan = owl.readConfig("Case_joe.toml",logstreams="loguru", readContributions=True)
+data = owl.saveConfig( plan, None, None )
+```
+
+## Plan Description
+
+```{python}
+print(data["Description"])
+```
+
+## Basic info
+
+```{python}
+bi = data["Basic Info"]
+print( f"* Number of plan participants: {len(bi['Names'])}")
+print( f"* {bi['Names'][0]} was born on {bi['Date of birth'][0]} and expects to live to age {bi['Life expectancy'][0]}." )
+if len(bi["Names"])==2:
+    print( f"* {bi['Names'][1]} was born on {bi['Date of birth'][1]} and expects to live to age {bi['Life expectancy'][1]}." )
+print(f"* Plan starts on {bi['Start date']}")
+```
+
+```{python}
+def family_section_to_markdown( data, section_name, column_name=None, description = None ):
+    "return markdown"
+    section = data[section_name]
+    if not column_name:
+        column_name = section_name
+    lines = []
+    lines.append(f"\n\n## {section_name}\n")
+    if description:
+        lines.append(f"\n\n{description}\n")
+    lines.append(f"\n| {column_name} | {'|'.join(data['Basic Info']["Names"])} |")
+    lines.append(f"|{'---|' * (1 + len(data['Basic Info']['Names']))}")
+    for key, value in section.items():
+        if isinstance(value, list):
+            values = " | ".join(str(v) for v in value)
+        else:
+            values = str(value)
+        lines.append(f"| {key} | {values} |")
+
+    return "\n".join(lines)
+
+def single_section_to_markdown( data, section_name, column_name=None, description = None ):
+    "return markdown"
+    section = data[section_name]
+    if not column_name:
+        column_name = section_name
+    lines = []
+    lines.append(f"\n\n## {section_name}\n")
+    if description:
+        lines.append(f"\n\n{description}\n")
+    lines.append(f"\n| {column_name} | value |")
+    lines.append(f"|---|---|")
+    for key, value in section.items():
+        if isinstance(value, list):
+            values = "[" + ",".join(str(v) for v in value) + "]"
+        else:
+            values = str(value)
+        lines.append(f"| {key} | {values} |")
+
+    return "\n".join(lines)
+
+print( family_section_to_markdown(data,"Assets",column_name="Asset type") )
+print( family_section_to_markdown(data,"Fixed Income"))
+```
+
+
+```{python}
+sections = ["Rates Selection","Asset Allocation",
+        "Optimization Parameters","Solver Options","Results"]
+for section in sections:
+        print(single_section_to_markdown(data,section))
+```
+
+
+```{python}
+print(single_section_to_markdown(data,"Optimization Parameters"))
+result = plan.solve(data["Optimization Parameters"]["Objective"])
+```
+
+## Results
+
+Once we set our goals and solve, OWL can tell us more about what's happening
+
+The output can be seen using the following commands that display various plots of the decision variables in time.
+
+### Net Spending
+
+```{python}
+plan.showNetSpending()
+```
+
+### Accounts and balances
+
+```{python}
+plan.showAccounts()
+```
+
+### Asset distributions
+
+```{python}
+plan.showAssetComposition()
+```
+
+### Gross Income vs Tax Brackets
+
+```{python}
+plan.showGrossIncome(value='nominal')
+```
+
+### Optimal Spending Profile
+
+```{python}
+plan.showProfile('today')
+```
+
+### Account balances
+
+```{python}
+plan.showAccounts(value='nominal')
+```
+
+### Cash flows and sources
+
+```{python}
+plan.showSources(value='nominal')
+```
+
+### Tax liabilities
+
+
+```{python}
+plan.showTaxes(value='nominal')
+```
+
+### Asset distributions
+
+```{python}
+plan.showAssetComposition(value='today')
+```
+
+### Rates
+
+```{python}
+plan.showRates()
+```
+
+#### Correlations
+
+```{python}
+plan.showRatesCorrelations()
+```
+
+### Summary
+
+A short text summary of the outcome of the optimization can be displayed through using:
+
+```{python}
+plan.summary()
+```
+
+### Saving results
+
+And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
+
+```{python}
+plan.saveWorkbook(overwrite=True)
+```
+

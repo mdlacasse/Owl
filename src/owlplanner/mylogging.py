@@ -1,22 +1,22 @@
-"""
-
-Owl/logging
-
-This file contains routines for handling error messages.
-
-Copyright &copy; 2024 - Martin-D. Lacasse
-
-Disclaimers: This code is for educational purposes only and does not constitute financial advice.
-
-"""
-
 import sys
+from loguru import logger
 
 
 class Logger(object):
     def __init__(self, verbose=True, logstreams=None):
         self._verbose = verbose
         self._prevState = self._verbose
+        self._use_loguru = False
+
+        # --- Detect loguru backend ---------------------------------
+        if logstreams == "loguru" or logstreams == ["loguru"]:
+            self._use_loguru = True
+            self._logstreams = None
+
+            logger.debug("Using loguru as logging backend.")
+            return
+
+        # --- Existing stream-based behavior ------------------------
         if logstreams is None or logstreams == [] or len(logstreams) > 2:
             self._logstreams = [sys.stdout, sys.stderr]
             self.vprint("Using stdout and stderr as stream loggers.")
@@ -30,27 +30,26 @@ class Logger(object):
             raise ValueError(f"Log streams {logstreams} must be a list.")
 
     def setVerbose(self, verbose=True):
-        """
-        Set verbose to True if you want the module to be chatty,
-        or False to make it silent.
-        """
         self._prevState = self._verbose
         self._verbose = verbose
         self.vprint("Setting verbose to", verbose)
-
         return self._prevState
 
     def resetVerbose(self):
-        """
-        Reset verbose to previous state.
-        """
         self._verbose = self._prevState
+
+    # ------------------------------------------------------------
+    # Printing methods
+    # ------------------------------------------------------------
 
     def print(self, *args, **kwargs):
         """
-        Unconditional printing regardless of the value of the verbose variable
-        previously set.
+        Unconditional printing regardless of verbosity.
         """
+        if self._use_loguru:
+            logger.debug(" ".join(map(str, args)))
+            return
+
         if "file" not in kwargs:
             file = self._logstreams[0]
             kwargs["file"] = file
@@ -60,17 +59,20 @@ class Logger(object):
 
     def vprint(self, *args, **kwargs):
         """
-        Conditional printing depending on the value of the verbose variable
-        previously set.
+        Conditional printing depending on verbose flag.
         """
         if self._verbose:
             self.print(*args, **kwargs)
 
     def xprint(self, *args, **kwargs):
         """
-        Print message and exit. Use to print error messages on stderr.
-        The exit() used throws an exception in an interactive environment.
+        Print message and exit. Used for fatal errors.
         """
+        if self._use_loguru:
+            logger.debug("ERROR: " + " ".join(map(str, args)))
+            logger.debug("Exiting...")
+            raise Exception("Fatal error.")
+
         if "file" not in kwargs:
             file = self._logstreams[1]
             kwargs["file"] = file
@@ -81,4 +83,3 @@ class Logger(object):
             file.flush()
 
         raise Exception("Fatal error.")
-        # sys.exit(-1)
