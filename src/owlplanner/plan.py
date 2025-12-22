@@ -2282,33 +2282,12 @@ class Plan:
         sources["tax-free wdrwl"] = self.w_ijn[:, 2, :]
         sources["BTI"] = self.Lambda_in
         # Debts and fixed assets (debts are negative as expenses)
-        # Reshape 1D arrays to match shape of other sources (N_i x N_n)
-        if self.N_i == 1:
-            sources["debt payments"] = -self.debt_payments_n.reshape(1, -1)
-            sources["fixed assets tax-free"] = self.fixed_assets_tax_free_n.reshape(1, -1)
-            sources["fixed assets ordinary"] = self.fixed_assets_ordinary_income_n.reshape(1, -1)
-            sources["fixed assets capital gains"] = self.fixed_assets_capital_gains_n.reshape(1, -1)
-        else:
-            # For married couples, split using eta between individuals.
-            debt_array = np.zeros((self.N_i, self.N_n))
-            debt_array[0, :] = -self.debt_payments_n * (1 - self.eta)
-            debt_array[1, :] = -self.debt_payments_n * self.eta
-            sources["debt payments"] = debt_array
-
-            fa_tax_free = np.zeros((self.N_i, self.N_n))
-            fa_tax_free[0, :] = self.fixed_assets_tax_free_n * (1 - self.eta)
-            fa_tax_free[1, :] = self.fixed_assets_tax_free_n * self.eta
-            sources["fixed assets tax-free"] = fa_tax_free
-
-            fa_ordinary = np.zeros((self.N_i, self.N_n))
-            fa_ordinary[0, :] = self.fixed_assets_ordinary_income_n * (1 - self.eta)
-            fa_ordinary[1, :] = self.fixed_assets_ordinary_income_n * self.eta
-            sources["fixed assets ordinary"] = fa_ordinary
-
-            fa_capital = np.zeros((self.N_i, self.N_n))
-            fa_capital[0, :] = self.fixed_assets_capital_gains_n * (1 - self.eta)
-            fa_capital[1, :] = self.fixed_assets_capital_gains_n * self.eta
-            sources["fixed assets capital gains"] = fa_capital
+        # Show as household totals, not split between individuals
+        # Reshape to (1, N_n) to indicate household-level source
+        sources["debt pmts"] = -self.debt_payments_n.reshape(1, -1)
+        sources["FA tax-free"] = self.fixed_assets_tax_free_n.reshape(1, -1)
+        sources["FA ord inc"] = self.fixed_assets_ordinary_income_n.reshape(1, -1)
+        sources["FA cap gains"] = self.fixed_assets_capital_gains_n.reshape(1, -1)
 
         savings = {}
         savings["taxable"] = self.b_ijn[:, 0, :]
@@ -2811,6 +2790,10 @@ class Plan:
             "all pensions": np.sum(self.piBar_in, axis=0),
             "all soc sec": np.sum(self.zetaBar_in, axis=0),
             "all BTI's": np.sum(self.Lambda_in, axis=0),
+            "FA tax-free": self.fixed_assets_tax_free_n,
+            "FA ord inc": self.fixed_assets_ordinary_income_n,
+            "FA cap gains": self.fixed_assets_capital_gains_n,
+            "debt pmts": -self.debt_payments_n,
             "all wdrwls": np.sum(self.w_ijn, axis=(0, 1)),
             "all deposits": -np.sum(self.d_in, axis=0),
             "ord taxes": -self.T_n - self.J_n,
@@ -2838,6 +2821,16 @@ class Plan:
             sname = self.inames[i] + "'s Sources"
             ws = wb.create_sheet(sname)
             fillsheet(ws, srcDic, "currency", op=lambda x: x[i])   # noqa: B023
+
+        # Household sources (debts and fixed assets)
+        householdSrcDic = {
+            "debt pmts": self.sources_in["debt pmts"],
+            "FA tax-free": self.sources_in["FA tax-free"],
+            "FA ord inc": self.sources_in["FA ord inc"],
+            "FA cap gains": self.sources_in["FA cap gains"],
+        }
+        ws = wb.create_sheet("Household Sources")
+        fillsheet(ws, householdSrcDic, "currency", op=lambda x: x[0])
 
         # Account balances except final year.
         accDic = {

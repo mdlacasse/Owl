@@ -207,14 +207,19 @@ def runMC(plan):
 
 @_checkPlan
 def setRates(plan):
-    _setRates(plan)
+    return _setRates(plan)
 
 
 def _setRates(plan):
+    rateType = kz.getCaseKey("rateType")
     yfrm = kz.getCaseKey("yfrm")
     yto = kz.getCaseKey("yto")
 
-    if kz.getCaseKey("rateType") == "fixed":
+    if rateType is None:
+        st.info("Rate type not selected yet.")
+        return False
+
+    if rateType == "fixed":
         if kz.getCaseKey("fixedType") == "historical average":
             plan.setRates("historical average", yfrm, yto)
             # Set fxRates back to computed values.
@@ -232,6 +237,10 @@ def _setRates(plan):
             )
     else:
         varyingType = kz.getCaseKey("varyingType")
+        if varyingType is None:
+            st.info("Varying rate type not selected yet.")
+            return False
+
         if varyingType.startswith("histo"):
             if varyingType == "historical":
                 yfrm2 = min(yfrm, TO - plan.N_n + 1)
@@ -343,6 +352,20 @@ def _setContributions(plan, action):
     if kz.getCaseKey("timeList0") is None:
         return
 
+    # Save current state to detect changes
+    original_timeLists = {}
+    for i, iname in enumerate(plan.inames):
+        if iname in plan.timeLists:
+            original_timeLists[iname] = plan.timeLists[iname].copy()
+
+    original_houseLists = {}
+    if "Debts" in plan.houseLists:
+        original_houseLists["Debts"] = plan.houseLists["Debts"].copy()
+    if "Fixed Assets" in plan.houseLists:
+        original_houseLists["Fixed Assets"] = plan.houseLists["Fixed Assets"].copy()
+
+    original_filename = kz.getCaseKey("timeListsFileName")
+
     dicDf = {kz.getCaseKey("iname0"): kz.getCaseKey("timeList0")}
     if kz.getCaseKey("status") == "married":
         dicDf[kz.getCaseKey("iname1")] = kz.getCaseKey("timeList1")
@@ -353,6 +376,36 @@ def _setContributions(plan, action):
         st.error(f"Failed to parse Household Financial Profile Workbook: {e}")
         return False
 
+    # Sync houseLists from UI to Plan
+    syncHouseLists(plan)
+
+    # Check if data actually changed
+    data_changed = False
+
+    # Compare timeLists
+    for iname in plan.inames:
+        if iname not in original_timeLists:
+            data_changed = True
+            break
+        if not plan.timeLists[iname].equals(original_timeLists[iname]):
+            data_changed = True
+            break
+
+    # Compare houseLists if timeLists haven't changed
+    if not data_changed:
+        for key in ["Debts", "Fixed Assets"]:
+            if key not in original_houseLists:
+                if key in plan.houseLists and not plan.houseLists[key].empty:
+                    data_changed = True
+                    break
+            elif key not in plan.houseLists:
+                if not original_houseLists[key].empty:
+                    data_changed = True
+                    break
+            elif not plan.houseLists[key].equals(original_houseLists[key]):
+                data_changed = True
+                break
+
     if action == "copy":
         # Possible reconditionned data due to delta in year span.
         kz.setCaseKey("timeList0", plan.timeLists[kz.getCaseKey("iname0")])
@@ -360,13 +413,17 @@ def _setContributions(plan, action):
             kz.setCaseKey("timeList1", plan.timeLists[kz.getCaseKey("iname1")])
     elif action == "reset":
         kz.setCaseKey("timeListsFileName", "edited values")
+        plan.timeListsFileName = "edited values"
     elif action == "set":
-        kz.storeCaseKey("timeListsFileName", "edited values")
-
-    plan.timeListsFileName = "edited values"
-
-    # Sync houseLists from UI to Plan
-    syncHouseLists(plan)
+        # Only set to "edited values" if data actually changed
+        if data_changed:
+            kz.storeCaseKey("timeListsFileName", "edited values")
+            plan.timeListsFileName = "edited values"
+        else:
+            # Preserve original filename if nothing changed
+            if original_filename and original_filename != "edited values" and original_filename != "None":
+                kz.storeCaseKey("timeListsFileName", original_filename)
+                plan.timeListsFileName = original_filename
 
 
 @_checkPlan
@@ -627,6 +684,17 @@ def saveContributions(plan):
         wb.save(buffer)
     except Exception as e:
         raise Exception(f"Unanticipated exception: {e}.") from e
+
+    # Update filename if it's currently "edited values" - this indicates the file
+    # was edited and is now being saved, so we should update the reference
+    current_filename = kz.getCaseKey("timeListsFileName")
+    if current_filename == "edited values":
+        # Use the suggested download filename format
+        case_name = kz.getCaseKey("name")
+        if case_name:
+            suggested_filename = f"HFP_{case_name}.xlsx"
+            kz.storeCaseKey("timeListsFileName", suggested_filename)
+            plan.timeListsFileName = suggested_filename
 
     return buffer
 

@@ -34,7 +34,7 @@ else:
                 "You can build your own HPF by directly filling the table(s) below. "
                 "Once a case has been successfully run, values can be saved on the **Output Files** page. "
                 "Alternatively, you can start from this Excel "
-                "[template](https://github.com/mdlacasse/Owl/blob/main/examples/HPF_template.xlsx?raw=true) "
+                "[template](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) "
                 "and upload the file using the widget below."
             )
         elif original != "edited values":

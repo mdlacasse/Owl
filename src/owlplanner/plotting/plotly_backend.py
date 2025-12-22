@@ -942,10 +942,20 @@ class PlotlyBackend(PlotBackend):
         # Filter out zero series and create individual series names
         nonzero_series = {}
         for sname in sources:
-            for i in range(len(inames)):
-                data = sources[sname][i] / 1000
+            source_data = sources[sname]
+            # Check if this is a household-level source (shape (1, N_n) when N_i > 1)
+            is_household = source_data.shape[0] == 1 and len(inames) > 1
+            if is_household:
+                # Show household total once without individual name
+                data = source_data[0] / 1000
                 if np.sum(data) > 1.0e-3:  # Only show non-zero series
-                    nonzero_series[f"{sname} {inames[i]}"] = data
+                    nonzero_series[sname] = data
+            else:
+                # Show per individual
+                for i in range(len(inames)):
+                    data = source_data[i] / 1000
+                    if np.sum(data) > 1.0e-3:  # Only show non-zero series
+                        nonzero_series[f"{sname} {inames[i]}"] = data
 
         # Add stacked area traces for each source type
         for source_name, data in nonzero_series.items():

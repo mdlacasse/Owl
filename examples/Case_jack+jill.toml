@@ -16,7 +16,7 @@ Names = [ "Jack", "Jill",]
 "Spousal surplus deposit fraction" = 0.0
 
 ["Household Financial Profile"]
-"HFP file name" = "edited values"
+"HFP file name" = "HFP_jack+jill.xlsx"
 
 ["Fixed Income"]
 "Pension monthly amounts" = [ 0, 0,]
