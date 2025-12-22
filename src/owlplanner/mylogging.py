@@ -1,5 +1,5 @@
 import sys
-from loguru import logger
+from loguru import logger as loguru_logger
 
 
 class Logger(object):
@@ -13,7 +13,7 @@ class Logger(object):
             self._use_loguru = True
             self._logstreams = None
 
-            logger.debug("Using loguru as logging backend.")
+            loguru_logger.debug("Using loguru as logging backend.")
             return
 
         # --- Existing stream-based behavior ------------------------
@@ -47,7 +47,7 @@ class Logger(object):
         Unconditional printing regardless of verbosity.
         """
         if self._use_loguru:
-            logger.debug(" ".join(map(str, args)))
+            loguru_logger.debug(" ".join(map(str, args)))
             return
 
         if "file" not in kwargs:
@@ -69,8 +69,8 @@ class Logger(object):
         Print message and exit. Used for fatal errors.
         """
         if self._use_loguru:
-            logger.debug("ERROR: " + " ".join(map(str, args)))
-            logger.debug("Exiting...")
+            loguru_logger.debug("ERROR: " + " ".join(map(str, args)))
+            loguru_logger.debug("Exiting...")
             raise Exception("Fatal error.")
 
         if "file" not in kwargs:

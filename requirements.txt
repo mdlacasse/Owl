@@ -3,6 +3,7 @@ matplotlib
 numpy
 odfpy
 openpyxl
+loguru
 pandas
 plotly >= 6.3
 pulp

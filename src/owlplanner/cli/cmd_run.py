@@ -4,6 +4,7 @@ import owlplanner as owl
 from pathlib import Path
 from openpyxl import load_workbook
 
+
 def insert_text_file_as_first_sheet(
     xlsx_path: Path,
     text_path: Path,
@@ -46,6 +47,7 @@ def validate_toml(ctx, param, value: Path):
 
     return value
 
+
 @click.command(name="run")
 @click.argument(
     "filename",
@@ -54,22 +56,22 @@ def validate_toml(ctx, param, value: Path):
 )
 def cmd_run(filename: Path):
     """Run the solver for an input OWL plan file.
-    
+
     FILENAME is the OWL plan file to run. If no extension is provided,
     .toml will be appended. The file must exist.
 
     An output Excel file with results will be created in the current directory.
     The output filename is derived from the input filename by appending
-    '_results.xlsx' to the stem of the input filename.  
+    '_results.xlsx' to the stem of the input filename.
 
     The input TOML file will be inserted as the first worksheet in the output Excel file
     for reference.
-    
+
     """
     logger.debug(f"Executing the run command with file: {filename}")
 
-    plan = owl.readConfig( str(filename), logstreams="loguru", readContributions=False)
-    result = plan.solve( plan.objective, plan.solverOptions)
+    plan = owl.readConfig(str(filename), logstreams="loguru", readContributions=False)
+    plan.solve(plan.objective, plan.solverOptions)
     click.echo(f"Case status: {plan.caseStatus}")
     if plan.caseStatus == "solved":
         output_filename = filename.with_name(filename.stem + "_results.xlsx")

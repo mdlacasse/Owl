@@ -6,8 +6,10 @@ from hydra.errors import HydraException
 from omegaconf import OmegaConf
 from omegaconf.errors import OmegaConfBaseException
 
-@click.command(name="hydra",
-               context_settings=dict(
+
+@click.command(
+    name="hydra",
+    context_settings=dict(
         ignore_unknown_options=True,
         allow_extra_args=True,
     ),
@@ -34,4 +36,3 @@ def cmd_hydra(ctx):
 
         except (HydraException, OmegaConfBaseException) as e:
             raise click.ClickException(str(e)) from None
-        
