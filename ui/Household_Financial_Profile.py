@@ -172,7 +172,7 @@ This information is needed to enforce the five-year maturation rule in Roth savi
             hide_index=True,
             key=kz.genCaseKey("debts")
         )
-        tableCaption="""Values are in nominal $. Additional items can be directly entered
+        tableCaption = """Values are in nominal $. Additional items can be directly entered
 in the tables by clicking :material/add: on the last row.
 Items can be deleted by selecting rows in the left margin and hitting *Delete*."""
         st.caption(tableCaption)
