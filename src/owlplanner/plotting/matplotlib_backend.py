@@ -65,10 +65,20 @@ class MatplotlibBackend(PlotBackend):
         """Core function for stacked plots."""
         nonzeroSeries = {}
         for sname in snames:
-            for i in irange:
-                tmp = series[sname][i]
+            source_data = series[sname]
+            # Check if this is a household-level source (shape (1, N_n) when N_i > 1)
+            is_household = source_data.shape[0] == 1 and len(inames) > 1
+            if is_household:
+                # Show household total once without individual name
+                tmp = source_data[0]
                 if sum(tmp) > 1.0:
-                    nonzeroSeries[sname + " " + inames[i]] = tmp
+                    nonzeroSeries[sname] = tmp
+            else:
+                # Show per individual
+                for i in irange:
+                    tmp = source_data[i]
+                    if sum(tmp) > 1.0:
+                        nonzeroSeries[sname + " " + inames[i]] = tmp
 
         if len(nonzeroSeries) == 0:
             return None, None
