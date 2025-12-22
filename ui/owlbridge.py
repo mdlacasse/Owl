@@ -11,7 +11,7 @@ sys.path.insert(0, "../src")
 
 import owlplanner as owl                      # noqa: E402
 from owlplanner.rates import FROM, TO         # noqa: E402
-from owlplanner.timelists import _debtTypes, _fixedAssetTypes, _debtItems, _fixedAssetItems  # noqa: E402
+from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes  # noqa: E402, F401
 
 import sskeys as kz         # noqa: E402
 import progress             # noqa: E402
@@ -438,15 +438,8 @@ def syncHouseLists(plan):
     debts = kz.getCaseKey("houseListDebts")
     fixedAssets = kz.getCaseKey("houseListFixedAssets")
 
-    if debts is not None:
-        plan.houseLists["Debts"] = debts.copy()
-    else:
-        plan.houseLists["Debts"] = pd.DataFrame(columns=getDebtColumnItems())
-
-    if fixedAssets is not None:
-        plan.houseLists["Fixed Assets"] = fixedAssets.copy()
-    else:
-        plan.houseLists["Fixed Assets"] = pd.DataFrame(columns=getFixedAssetColumnItems())
+    plan.houseLists["Debts"] = conditionDebtsAndFixedAssetsDF(debts, "Debts")
+    plan.houseLists["Fixed Assets"] = conditionDebtsAndFixedAssetsDF(fixedAssets, "Fixed Assets")
 
     return True
 
@@ -845,48 +838,6 @@ def renderPlot(fig, col=None):
 
 def version():
     return owl.__version__
-
-
-def getDebtTypes():
-    """
-    Return the list of valid debt types.
-    This ensures consistency between UI and validation logic.
-    """
-    return _debtTypes
-
-
-def getFixedAssetTypes():
-    """
-    Return the list of valid fixed asset types.
-    This ensures consistency between UI and validation logic.
-    """
-    return _fixedAssetTypes
-
-
-def getDebtColumnItems():
-    """
-    Get the list of column names for Debts DataFrames.
-    Always includes the "active" column.
-
-    Returns:
-    --------
-    list
-        List of column names for Debts DataFrames.
-    """
-    return list(_debtItems)
-
-
-def getFixedAssetColumnItems():
-    """
-    Get the list of column names for Fixed Assets DataFrames.
-    Always includes the "active" column.
-
-    Returns:
-    --------
-    list
-        List of column names for Fixed Assets DataFrames.
-    """
-    return list(_fixedAssetItems)
 
 
 @_checkPlan

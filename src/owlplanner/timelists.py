@@ -230,3 +230,67 @@ def _conditionHouseTables(dfDict, mylog):
             mylog.vprint(f"Table for {page} not found. Assuming empty table.")
 
     return houseDic
+
+
+def conditionDebtsAndFixedAssetsDF(df, tableType):
+    """
+    Condition a DataFrame for Debts or Fixed Assets by:
+    - Creating an empty DataFrame with proper columns if df is None or empty
+    - Resetting the index
+    - Filling NaN values with 0 while preserving boolean columns (like "active")
+
+    Parameters
+    ----------
+    df : pandas.DataFrame or None
+        The DataFrame to condition, or None/empty to create a new empty DataFrame
+    tableType : str
+        Type of table: "Debts" or "Fixed Assets"
+
+    Returns
+    -------
+    pandas.DataFrame
+        Conditioned DataFrame with proper columns and no NaN values (except boolean columns default to True)
+    """
+    # Map table type to column items
+    items = {"Debts": _debtItems, "Fixed Assets": _fixedAssetItems}
+    if tableType not in items:
+        raise ValueError(f"tableType must be 'Debts' or 'Fixed Assets', got '{tableType}'")
+
+    columnItems = items[tableType]
+
+    if df is None or df.empty:
+        df = pd.DataFrame(columns=columnItems)
+
+    df = df.copy()
+    df.reset_index(drop=True, inplace=True)
+
+    # Fill NaN values, but preserve boolean columns (like "active")
+    for col in df.columns:
+        if col == "active":
+            # Ensure "active" column is boolean, defaulting to True for NaN
+            df[col] = df[col].fillna(True).astype(bool)
+        elif df[col].dtype != bool:
+            df[col] = df[col].fillna(0)
+
+    return df
+
+
+def getTableTypes(tableType):
+    """
+    Get the list of valid types for a given table type.
+
+    Parameters
+    ----------
+    tableType : str
+        Type of table: "Debts" or "Fixed Assets"
+
+    Returns
+    -------
+    list
+        List of valid types for the specified table
+    """
+    types = {"Debts": _debtTypes, "Fixed Assets": _fixedAssetTypes}
+    if tableType not in types:
+        raise ValueError(f"tableType must be 'Debts' or 'Fixed Assets', got '{tableType}'")
+
+    return types[tableType]

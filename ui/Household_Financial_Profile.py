@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from datetime import date
 
 import sskeys as kz
@@ -23,8 +22,8 @@ else:
         kz.runOncePerCase(owb.resetTimeLists)
     kz.initCaseKey("stTimeLists", None)
     # Initialize houseLists if they don't exist
-    kz.initCaseKey("houseListDebts", pd.DataFrame(columns=owb.getDebtColumnItems()))
-    kz.initCaseKey("houseListFixedAssets", pd.DataFrame(columns=owb.getFixedAssetColumnItems()))
+    kz.initCaseKey("houseListDebts", None)
+    kz.initCaseKey("houseListFixedAssets", None)
     n = 2 if kz.getCaseKey("status") == "married" else 1
 
     if kz.getCaseKey("stTimeLists") is None:
@@ -105,14 +104,10 @@ This information is needed to enforce the five-year maturation rule in Roth savi
         st.markdown("#### :orange[Debts]")
 
         # Get debt types from owlbridge to ensure consistency with validation logic
-        debtTypes = owb.getDebtTypes()
+        debtTypes = owb.getTableTypes("Debts")
 
         # Get existing debts or create empty DataFrame
-        debtdf = kz.getCaseKey("houseListDebts")
-        if debtdf is None or debtdf.empty:
-            debtdf = pd.DataFrame(columns=owb.getDebtColumnItems())
-
-        debtdf.reset_index(drop=True, inplace=True)
+        debtdf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListDebts"), "Debts")
 
         thisyear = date.today().year
         debtconf = {
@@ -179,13 +174,7 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
 
         # Store edited debts if changed
         if not debtdf.equals(edited_debtdf):
-            # Fill NaN values, but preserve boolean columns (like "active")
-            for col in edited_debtdf.columns:
-                if col == "active":
-                    # Ensure "active" column is boolean, defaulting to True for NaN
-                    edited_debtdf[col] = edited_debtdf[col].fillna(True).astype(bool)
-                elif edited_debtdf[col].dtype != bool:
-                    edited_debtdf[col] = edited_debtdf[col].fillna(0)
+            edited_debtdf = owb.conditionDebtsAndFixedAssetsDF(edited_debtdf, "Debts")
             kz.setCaseKey("houseListDebts", edited_debtdf)
             st.rerun()
 
@@ -193,14 +182,10 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
         st.markdown("#### :orange[Fixed Assets]")
 
         # Get fixed asset types from owlbridge to ensure consistency with validation logic
-        fixedTypes = owb.getFixedAssetTypes()
+        fixedTypes = owb.getTableTypes("Fixed Assets")
 
         # Get existing fixed assets or create empty DataFrame
-        fixeddf = kz.getCaseKey("houseListFixedAssets")
-        if fixeddf is None or fixeddf.empty:
-            fixeddf = pd.DataFrame(columns=owb.getFixedAssetColumnItems())
-
-        fixeddf.reset_index(drop=True, inplace=True)
+        fixeddf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListFixedAssets"), "Fixed Assets")
 
         fixedconf = {
             "active": st.column_config.CheckboxColumn(
@@ -273,13 +258,7 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
 
         # Store edited fixed assets if changed
         if not fixeddf.equals(edited_fixeddf):
-            # Fill NaN values, but preserve boolean columns (like "active")
-            for col in edited_fixeddf.columns:
-                if col == "active":
-                    # Ensure "active" column is boolean, defaulting to True for NaN
-                    edited_fixeddf[col] = edited_fixeddf[col].fillna(True).astype(bool)
-                elif edited_fixeddf[col].dtype != bool:
-                    edited_fixeddf[col] = edited_fixeddf[col].fillna(0)
+            edited_fixeddf = owb.conditionDebtsAndFixedAssetsDF(edited_fixeddf, "Fixed Assets")
             kz.setCaseKey("houseListFixedAssets", edited_fixeddf)
             st.rerun()
 
