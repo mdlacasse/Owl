@@ -50,7 +50,8 @@ else:
             fixed_assets_bequest_k = fixed_assets_bequest / 1000.0
 
             if fixed_assets_bequest_k > 0:
-                st.info(f"Fixed assets will contribute ${fixed_assets_bequest_k:,.0f}k to bequest")
+                st.info(f"Fixed assets contribute an additional"
+                        f" ${fixed_assets_bequest_k:,.0f}k to bequest (in today's $)")
 
         else:
             kz.initCaseKey("netSpending", 0)

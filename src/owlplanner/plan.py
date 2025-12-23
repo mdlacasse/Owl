@@ -2285,9 +2285,9 @@ class Plan:
         # Show as household totals, not split between individuals
         # Reshape to (1, N_n) to indicate household-level source
         sources["debt pmts"] = -self.debt_payments_n.reshape(1, -1)
-        sources["FA tax-free"] = self.fixed_assets_tax_free_n.reshape(1, -1)
         sources["FA ord inc"] = self.fixed_assets_ordinary_income_n.reshape(1, -1)
         sources["FA cap gains"] = self.fixed_assets_capital_gains_n.reshape(1, -1)
+        sources["FA tax-free"] = self.fixed_assets_tax_free_n.reshape(1, -1)
 
         savings = {}
         savings["taxable"] = self.b_ijn[:, 0, :]
@@ -2790,9 +2790,9 @@ class Plan:
             "all pensions": np.sum(self.piBar_in, axis=0),
             "all soc sec": np.sum(self.zetaBar_in, axis=0),
             "all BTI's": np.sum(self.Lambda_in, axis=0),
-            "FA tax-free": self.fixed_assets_tax_free_n,
             "FA ord inc": self.fixed_assets_ordinary_income_n,
             "FA cap gains": self.fixed_assets_capital_gains_n,
+            "FA tax-free": self.fixed_assets_tax_free_n,
             "debt pmts": -self.debt_payments_n,
             "all wdrwls": np.sum(self.w_ijn, axis=(0, 1)),
             "all deposits": -np.sum(self.d_in, axis=0),
@@ -2825,9 +2825,9 @@ class Plan:
         # Household sources (debts and fixed assets)
         householdSrcDic = {
             "debt pmts": self.sources_in["debt pmts"],
-            "FA tax-free": self.sources_in["FA tax-free"],
             "FA ord inc": self.sources_in["FA ord inc"],
             "FA cap gains": self.sources_in["FA cap gains"],
+            "FA tax-free": self.sources_in["FA tax-free"],
         }
         ws = wb.create_sheet("Household Sources")
         fillsheet(ws, householdSrcDic, "currency", op=lambda x: x[0])
@@ -2957,9 +2957,9 @@ class Plan:
         planData["all pensions"] = np.sum(self.piBar_in, axis=0)
         planData["all soc sec"] = np.sum(self.zetaBar_in, axis=0)
         planData["all BTI's"] = np.sum(self.Lambda_in, axis=0)
-        planData["FA tax-free"] = self.fixed_assets_tax_free_n
         planData["FA ord inc"] = self.fixed_assets_ordinary_income_n
         planData["FA cap gains"] = self.fixed_assets_capital_gains_n
+        planData["FA tax-free"] = self.fixed_assets_tax_free_n
         planData["debt pmts"] = -self.debt_payments_n
         planData["all wdrwls"] = np.sum(self.w_ijn, axis=(0, 1))
         planData["all deposits"] = -np.sum(self.d_in, axis=0)
