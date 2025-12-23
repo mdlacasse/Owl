@@ -19,6 +19,8 @@ Disclaimers: This code is for educational purposes only and does not constitute 
 from datetime import date
 import pandas as pd
 
+from . import utils as u
+
 
 # Expected headers in each excel sheet, one per individual.
 _timeHorizonItems = [
@@ -223,6 +225,11 @@ def _conditionHouseTables(dfDict, mylog):
                             f"to percentage in Fixed Assets table."
                         )
 
+            # Convert "active" column to boolean if it exists.
+            # Excel may read booleans as strings ("True"/"False") or numbers (1/0).
+            if "active" in df.columns:
+                df["active"] = df["active"].apply(u.convert_to_bool).astype(bool)
+
             houseDic[page] = df
             mylog.vprint(f"Found {len(df)} valid row(s) in {page} table.")
         else:
@@ -267,8 +274,8 @@ def conditionDebtsAndFixedAssetsDF(df, tableType):
     # Fill NaN values, but preserve boolean columns (like "active")
     for col in df.columns:
         if col == "active":
-            # Ensure "active" column is boolean, defaulting to True for NaN
-            df[col] = df[col].fillna(True).astype(bool)
+            # Ensure "active" column is boolean, handling strings/numbers from Excel
+            df[col] = df[col].apply(u.convert_to_bool).astype(bool)
         elif df[col].dtype != bool:
             df[col] = df[col].fillna(0)
 

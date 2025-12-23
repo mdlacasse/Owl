@@ -125,3 +125,50 @@ def parseDobs(dobs):
         tobs.append(ls[2])
 
     return np.array(yobs, dtype=np.int32), np.array(mobs, dtype=np.int32), np.array(tobs, dtype=np.int32)
+
+
+def convert_to_bool(val):
+    """
+    Convert various input types to boolean.
+
+    Handles conversion from strings, numbers, booleans, and NaN values.
+    Excel may read booleans as strings ("True"/"False") or numbers (1/0),
+    so this function provides robust conversion.
+
+    Parameters
+    ----------
+    val : any
+        Value to convert to boolean. Can be:
+        - bool: returned as-is
+        - str: "True", "False", "1", "0", "yes", "no", etc.
+        - numeric: 1/0 or other numeric values
+        - None/NaN: defaults to True
+
+    Returns
+    -------
+    bool
+        Boolean value. NaN/None and unknown values default to True.
+    """
+    import pandas as pd
+
+    if pd.isna(val) or val is None:
+        return True  # Default to True for NaN/None
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        # Handle string representations
+        val_lower = val.lower().strip()
+        if val_lower in ("true", "1", "yes", "y"):
+            return True
+        elif val_lower in ("false", "0", "no", "n"):
+            return False
+        else:
+            # Unknown string, default to True
+            return True
+    # Handle numeric values (1/0)
+    try:
+        num_val = float(val)
+        return bool(num_val) if num_val != 0 else False
+    except (ValueError, TypeError):
+        # Can't convert, default to True
+        return True
