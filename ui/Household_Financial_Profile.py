@@ -67,7 +67,8 @@ that has not yet been uploaded.""")
 
     st.divider()
     st.markdown("### :material/work_history: :orange[Wages and Contributions]")
-    st.markdown("""Previous five years are used to input past contributions and conversions to Roth accounts.
+    st.markdown("""Wages and contributions for each individual.
+Previous five years are only used to track past Roth account contributions and conversions.
 This information is needed to enforce the five-year maturation rule in Roth savings accounts.""")
 
     with st.expander("*Expand Wages and Contributions Timetables*"):

@@ -6,11 +6,9 @@ saved and read back correctly, with special attention to the "active"
 column which must be preserved as boolean values.
 """
 
-import pytest
 import pandas as pd
 import tempfile
 import os
-from io import BytesIO
 from datetime import date
 
 import owlplanner as owl
@@ -111,7 +109,6 @@ class TestHFPWriteRead:
         ])
 
         # Set up houseLists
-        from owlplanner import timelists
         p.houseLists = {"Debts": debts_df}
         p.zeroContributions()
 
@@ -141,13 +138,13 @@ class TestHFPWriteRead:
             # Verify active column is boolean
             assert debts_df2["active"].dtype == bool
 
-            # Verify values are correct (use == instead of is for numpy booleans)
+            # Verify values are correct
             mortgage = debts_df2[debts_df2["name"] == "Mortgage"].iloc[0]
-            assert mortgage["active"] == True
+            assert mortgage["active"]
             assert mortgage["amount"] == 200000
 
             old_loan = debts_df2[debts_df2["name"] == "Old Loan"].iloc[0]
-            assert old_loan["active"] == False
+            assert not old_loan["active"]
             assert old_loan["amount"] == 50000
 
         finally:
@@ -222,13 +219,13 @@ class TestHFPWriteRead:
             # Verify active column is boolean
             assert assets_df2["active"].dtype == bool
 
-            # Verify values are correct (use == instead of is for numpy booleans)
+            # Verify values are correct
             house = assets_df2[assets_df2["name"] == "House"].iloc[0]
-            assert house["active"] == True
+            assert house["active"]
             assert house["value"] == 300000
 
             collectible = assets_df2[assets_df2["name"] == "Collectible"].iloc[0]
-            assert collectible["active"] == False
+            assert not collectible["active"]
             assert collectible["value"] == 15000
 
         finally:
@@ -237,18 +234,6 @@ class TestHFPWriteRead:
 
     def test_active_column_string_conversion(self):
         """Test that active column is correctly converted from strings."""
-        # This test doesn't actually need a Plan, but create one for consistency
-        birth_year = 1985
-        remaining_years = 20
-        expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Dave"],
-            ["1985-01-15"],
-            [expectancy],
-            "Test String Conversion",
-            verbose=False
-        )
-
         # Create debts with string values for active (simulating Excel reading)
         debts_data = {
             "active": ["True", "False", "true", "false", "1", "0"],
@@ -268,28 +253,16 @@ class TestHFPWriteRead:
         # Verify all active values are boolean
         assert processed_df["active"].dtype == bool
 
-        # Verify conversions (use == instead of is for numpy booleans)
-        assert processed_df.loc[0, "active"] == True  # "True"
-        assert processed_df.loc[1, "active"] == False  # "False"
-        assert processed_df.loc[2, "active"] == True  # "true"
-        assert processed_df.loc[3, "active"] == False  # "false"
-        assert processed_df.loc[4, "active"] == True  # "1"
-        assert processed_df.loc[5, "active"] == False  # "0"
+        # Verify conversions
+        assert processed_df.loc[0, "active"]  # "True"
+        assert not processed_df.loc[1, "active"]  # "False"
+        assert processed_df.loc[2, "active"]  # "true"
+        assert not processed_df.loc[3, "active"]  # "false"
+        assert processed_df.loc[4, "active"]  # "1"
+        assert not processed_df.loc[5, "active"]  # "0"
 
     def test_active_column_numeric_conversion(self):
         """Test that active column is correctly converted from numbers."""
-        # This test doesn't actually need a Plan, but create one for consistency
-        birth_year = 1990
-        remaining_years = 20
-        expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Eve"],
-            ["1990-01-15"],
-            [expectancy],
-            "Test Numeric Conversion",
-            verbose=False
-        )
-
         # Create debts with numeric values for active (simulating Excel reading)
         debts_data = {
             "active": [1, 0, 1.0, 0.0],
@@ -309,26 +282,14 @@ class TestHFPWriteRead:
         # Verify all active values are boolean
         assert processed_df["active"].dtype == bool
 
-        # Verify conversions (use == instead of is for numpy booleans)
-        assert processed_df.loc[0, "active"] == True  # 1
-        assert processed_df.loc[1, "active"] == False  # 0
-        assert processed_df.loc[2, "active"] == True  # 1.0
-        assert processed_df.loc[3, "active"] == False  # 0.0
+        # Verify conversions
+        assert processed_df.loc[0, "active"]  # 1
+        assert not processed_df.loc[1, "active"]  # 0
+        assert processed_df.loc[2, "active"]  # 1.0
+        assert not processed_df.loc[3, "active"]  # 0.0
 
     def test_active_column_nan_defaults_to_true(self):
         """Test that NaN values in active column default to True."""
-        # This test doesn't actually need a Plan, but create one for consistency
-        birth_year = 1988
-        remaining_years = 20
-        expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Frank"],
-            ["1988-01-15"],
-            [expectancy],
-            "Test NaN Default",
-            verbose=False
-        )
-
         # Create debts with NaN values for active
         debts_data = {
             "active": [True, None, pd.NA, False],
@@ -348,11 +309,11 @@ class TestHFPWriteRead:
         # Verify all active values are boolean
         assert processed_df["active"].dtype == bool
 
-        # Verify NaN/None default to True (use == instead of is for numpy booleans)
-        assert processed_df.loc[0, "active"] == True  # True
-        assert processed_df.loc[1, "active"] == True  # None -> True
-        assert processed_df.loc[2, "active"] == True  # pd.NA -> True
-        assert processed_df.loc[3, "active"] == False  # False
+        # Verify NaN/None default to True
+        assert processed_df.loc[0, "active"]  # True
+        assert processed_df.loc[1, "active"]  # None -> True
+        assert processed_df.loc[2, "active"]  # pd.NA -> True
+        assert not processed_df.loc[3, "active"]  # False
 
     def test_write_read_married_couple(self):
         """Test write and read for married couple with both having data."""
@@ -428,4 +389,3 @@ class TestHFPWriteRead:
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
-

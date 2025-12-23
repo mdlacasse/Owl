@@ -65,14 +65,14 @@ else:
                                 step=0.05, help=helpmsg)
 
             st.markdown("#####")
-            st.markdown("#### :orange[Surplus Deposit Fraction]")
+            st.markdown("#### :orange[Cash Flow Surplus Deposit Fraction]")
             col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
             with col1:
                 kz.initCaseKey("surplusFraction", 0.5)
                 helpmsg = ("When beneficiary fractions are not all 1, "
                            "set cash-flow surplus deposits to entirely go to the account of first spouse to pass.")
                 ret = kz.getNum(
-                    f"Fraction deposited in {iname1}'s taxable account",
+                    f"Fraction of cash flow surplus deposited in {iname1}'s taxable account",
                     "surplusFraction",
                     format="%.2f",
                     help=helpmsg,

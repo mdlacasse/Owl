@@ -2284,10 +2284,10 @@ class Plan:
         # Debts and fixed assets (debts are negative as expenses)
         # Show as household totals, not split between individuals
         # Reshape to (1, N_n) to indicate household-level source
-        sources["debt pmts"] = -self.debt_payments_n.reshape(1, -1)
         sources["FA ord inc"] = self.fixed_assets_ordinary_income_n.reshape(1, -1)
         sources["FA cap gains"] = self.fixed_assets_capital_gains_n.reshape(1, -1)
         sources["FA tax-free"] = self.fixed_assets_tax_free_n.reshape(1, -1)
+        sources["debt pmts"] = -self.debt_payments_n.reshape(1, -1)
 
         savings = {}
         savings["taxable"] = self.b_ijn[:, 0, :]
@@ -2824,10 +2824,10 @@ class Plan:
 
         # Household sources (debts and fixed assets)
         householdSrcDic = {
-            "debt pmts": self.sources_in["debt pmts"],
             "FA ord inc": self.sources_in["FA ord inc"],
             "FA cap gains": self.sources_in["FA cap gains"],
             "FA tax-free": self.sources_in["FA tax-free"],
+            "debt pmts": self.sources_in["debt pmts"],
         }
         ws = wb.create_sheet("Household Sources")
         fillsheet(ws, householdSrcDic, "currency", op=lambda x: x[0])

@@ -89,7 +89,8 @@ else:
     choices = ["individual", "account"]
     key = "allocType"
     kz.initCaseKey(key, choices[0])
-    helpmsg = "Allocation ratios can be equal across all individual's savings accounts or not."
+    helpmsg = """Allocation ratios can be equal across all individual's savings accounts or not.
+Using `individual` avoids creating an artificial bias in Roth conversions."""
     ret = kz.getRadio("Savings asset allocation method", choices, key, help=helpmsg)
     st.divider()
     if ret == "individual":
