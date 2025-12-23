@@ -145,7 +145,7 @@ This information is needed to enforce the five-year maturation rule in Roth savi
             ),
             "amount": st.column_config.NumberColumn(
                 "amount",
-                help="Enter original load amount $",
+                help="Enter original load amount ($)",
                 format="dollar",
                 required=True,
                 min_value=0,
@@ -207,7 +207,7 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
             ),
             "basis": st.column_config.NumberColumn(
                 "basis",
-                help="Enter cost basis $",
+                help="Enter cost basis ($)",
                 min_value=0,
                 required=True,
                 format="dollar",
@@ -215,7 +215,7 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
             ),
             "value": st.column_config.NumberColumn(
                 "value",
-                help="Enter current value $",
+                help="Enter current value ($)",
                 min_value=0,
                 required=True,
                 format="dollar",
