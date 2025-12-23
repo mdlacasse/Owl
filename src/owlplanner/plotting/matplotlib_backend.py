@@ -71,13 +71,13 @@ class MatplotlibBackend(PlotBackend):
             if is_household:
                 # Show household total once without individual name
                 tmp = source_data[0]
-                if sum(tmp) > 1.0:
+                if abs(sum(tmp)) > 1.0:  # Use abs for debts
                     nonzeroSeries[sname] = tmp
             else:
                 # Show per individual
                 for i in irange:
                     tmp = source_data[i]
-                    if sum(tmp) > 1.0:
+                    if abs(sum(tmp)) > 1.0:  # Use abs for debts
                         nonzeroSeries[sname + " " + inames[i]] = tmp
 
         if len(nonzeroSeries) == 0:

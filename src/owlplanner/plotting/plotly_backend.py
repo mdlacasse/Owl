@@ -749,7 +749,7 @@ class PlotlyBackend(PlotBackend):
 
                 # Add each individual's data as a separate series
                 for i in range(len(inames)):
-                    if np.sum(values[i]) > 1.0:  # Only show non-zero series
+                    if np.abs(np.sum(values[i])) > 1.0:  # Only show non-zero series (use abs for debts)
                         stack_data.append((values[i], f"{namek} {inames[i]}"))
 
             # Add stacked area traces
@@ -887,7 +887,7 @@ class PlotlyBackend(PlotBackend):
         for sname in savings:
             for i in range(len(inames)):
                 data = savings[sname][i] / 1000
-                if np.sum(data) > 1.0e-3:  # Only show non-zero series
+                if np.abs(np.sum(data)) > 1.0e-3:  # Only show non-zero series (use abs for debts)
                     nonzero_series[f"{sname} {inames[i]}"] = data
 
         # Add stacked area traces for each account type
@@ -948,13 +948,13 @@ class PlotlyBackend(PlotBackend):
             if is_household:
                 # Show household total once without individual name
                 data = source_data[0] / 1000
-                if np.sum(data) > 1.0e-3:  # Only show non-zero series
+                if np.abs(np.sum(data)) > 1.0e-3:  # Only show non-zero series (use abs for debts)
                     nonzero_series[sname] = data
             else:
                 # Show per individual
                 for i in range(len(inames)):
                     data = source_data[i] / 1000
-                    if np.sum(data) > 1.0e-3:  # Only show non-zero series
+                    if np.abs(np.sum(data)) > 1.0e-3:  # Only show non-zero series (use abs for debts)
                         nonzero_series[f"{sname} {inames[i]}"] = data
 
         # Add stacked area traces for each source type

@@ -26,7 +26,7 @@ Copyright &copy; 2025 - Martin-D. Lacasse
  kg333 for fixing an error in Docker's instructions,
  John Leonard (jleonard99) for great suggestions, website, and more to come,
  Benjamin Quinn (blquinn) for improvements and bug fixes,
- Dale Seng (sengsational) for great insights, testing, and suggestions,
+ Dale Seng (sengsational) for great insights, testing, bug fixes, and suggestions,
  Josh Williams (noimjosh) for Docker image code,
  Gene Wood (gene1wood) for improvements and bug fixes.
 - Greg Grothaus for developing [ssa.tools](https://ssa.tools) and providing an integration with Owl.
@@ -37,6 +37,7 @@ Copyright &copy; 2025 - Martin-D. Lacasse
 It can also run on [MOSEK](https://mosek.com) if available on your computer.
 - Owl planner relies on the following [Python](https://python.org) packages:
     - [highspy](https://highs.dev),
+    [loguru](https://github.com/Delgan/loguru),
     [Matplotlib](https://matplotlib.org),
     [Numpy](https://numpy.org),
     [odfpy](https://https://pypi.org/project/odfpy),
