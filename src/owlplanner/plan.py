@@ -1062,7 +1062,7 @@ class Plan:
         else:
             # Create empty Debts sheet with proper columns
             ws = wb.create_sheet("Debts")
-            df = pd.DataFrame(columns=timelists._debtsItems)
+            df = pd.DataFrame(columns=timelists._debtItems)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
             _formatDebtsSheet(ws)
@@ -1077,7 +1077,7 @@ class Plan:
         else:
             # Create empty Fixed Assets sheet with proper columns
             ws = wb.create_sheet("Fixed Assets")
-            df = pd.DataFrame(columns=timelists._FixedAssetsItems)
+            df = pd.DataFrame(columns=timelists._fixedAssetItems)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
             _formatFixedAssetsSheet(ws)
