@@ -144,8 +144,10 @@ forecasts for the next decade can be found
                     kz.setCaseKey("rateDisplayNames", display_names)
                     # Debug: show what was loaded (can be removed later)
                     if len(descriptions) == 0 and len(rate_sheets) > 0:
-                        st.info(f"Debug: Found {len(rate_sheets)} rate sheets but no descriptions. "
-                               f"Rate sheets: {rate_sheets}, Descriptions keys: {list(descriptions.keys())}")
+                        st.info(
+                            f"Debug: Found {len(rate_sheets)} rate sheets but no descriptions. "
+                            f"Rate sheets: {rate_sheets}, Descriptions keys: {list(descriptions.keys())}"
+                        )
                 except Exception as e:
                     st.error(f"Error reading Excel file: {e}")
                     rate_sheets, display_names, descriptions = [], {}, {}
@@ -215,7 +217,10 @@ forecasts for the next decade can be found
                     display_list = [display_names.get(sheet, sheet) for sheet in rate_sheets]
                     # Find current display name index
                     current_display = display_names.get(current_sheet, current_sheet) if current_sheet else None
-                    current_index = display_list.index(current_display) if current_display and current_display in display_list else 0
+                    if current_display and current_display in display_list:
+                        current_index = display_list.index(current_display)
+                    else:
+                        current_index = 0
 
                     # Use radio buttons for sheet selection (showing display names)
                     selected_display = st.radio(
@@ -286,7 +291,12 @@ forecasts for the next decade can be found
                         kz.setCaseKey("ratesLoaded", True)
                         # Show display name in success message
                         current_sheet_for_msg = kz.getCaseKey("rateSheetName")
-                        display_name = display_names.get(current_sheet_for_msg, current_sheet_for_msg) if current_sheet_for_msg else "selected sheet"
+                        if current_sheet_for_msg:
+                            display_name = display_names.get(
+                                current_sheet_for_msg, current_sheet_for_msg
+                            )
+                        else:
+                            display_name = "selected sheet"
                         st.success(f"Rates loaded from '{display_name}'.")
 
             # Check if sheet is selected

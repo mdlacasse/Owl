@@ -734,7 +734,9 @@ class Plan:
         if self.rateMethod == "file" and hasattr(self, 'rateRates') and self.rateRates is not None:
             # Just regenerate the series from the already-loaded data
             self.tau_kn = self.rateRates.genSeries(self.N_n).transpose()
-            self.mylog.vprint(f"Regenerating rate series of {len(self.tau_kn[0])} years using {self.rateMethod} method.")
+            self.mylog.vprint(
+                f"Regenerating rate series of {len(self.tau_kn[0])} years using {self.rateMethod} method."
+            )
             # Rebuild cumulative inflation multipliers
             self.gamma_n = _genGamma_n(self.tau_kn)
             self._adjustedParameters = False
