@@ -12,7 +12,7 @@ FXRATES = {
     "user": [7, 4, 3.3, 2.8],
 }
 
-rateChoices = ["fixed", "varying"]
+rateChoices = ["fixed", "varying", "file"]
 fixedChoices = list(FXRATES)
 varyingChoices = ["historical", "histochastic", "stochastic"]
 
@@ -53,6 +53,7 @@ def initRates():
 kz.initCaseKey("rateType", rateChoices[0])
 kz.initCaseKey("fixedType", fixedChoices[0])
 kz.initCaseKey("varyingType", varyingChoices[0])
+kz.initCaseKey("ratesLoaded", False)
 
 ret = kz.titleBar(":material/monitoring: Rates Selection")
 
@@ -112,6 +113,185 @@ forecasts for the next decade can be found
     elif kz.getCaseKey("rateType") == "varying":
         with col2:
             kz.getRadio("Select varying rates", varyingChoices, "varyingType", callback=updateRates)
+
+    elif kz.getCaseKey("rateType") == "file":
+        with col2:
+            st.markdown("##### Upload Rates Workbook")
+            helpmsgFile = """Upload an Excel workbook containing rate scenarios.
+            Sheets starting with 'Rates - ' contain rate data with columns: year, S&P 500, Bonds Baa, TNotes, Inflation.
+            A 'Descriptions' sheet can provide descriptions for each rate sheet."""
+            uploaded_file = st.file_uploader(
+                "Upload rates workbook...",
+                type=["xlsx", "xls"],
+                key=kz.genCaseKey("rateFileUpload"),
+                help=helpmsgFile,
+            )
+
+            if uploaded_file is None:
+                if kz.getCaseKey("rateFile") is None:
+                    st.info("Rate file not uploaded yet.")
+                kz.setCaseKey("rateFile", None)
+                kz.setCaseKey("rateSheetName", None)
+                kz.setCaseKey("ratesLoaded", False)
+            elif uploaded_file is not None:
+                kz.setCaseKey("rateFile", uploaded_file)
+                # Clear rates loaded flag when new file is uploaded
+                kz.setCaseKey("ratesLoaded", False)
+                try:
+                    rate_sheets, display_names, descriptions = owb.loadRateSheets(uploaded_file)
+                    # Store descriptions and display names in session state for later use
+                    kz.setCaseKey("rateDescriptions", descriptions)
+                    kz.setCaseKey("rateDisplayNames", display_names)
+                    # Debug: show what was loaded (can be removed later)
+                    if len(descriptions) == 0 and len(rate_sheets) > 0:
+                        st.info(f"Debug: Found {len(rate_sheets)} rate sheets but no descriptions. "
+                               f"Rate sheets: {rate_sheets}, Descriptions keys: {list(descriptions.keys())}")
+                except Exception as e:
+                    st.error(f"Error reading Excel file: {e}")
+                    rate_sheets, display_names, descriptions = [], {}, {}
+                    kz.setCaseKey("rateDescriptions", {})
+                    kz.setCaseKey("rateDisplayNames", {})
+
+                if len(rate_sheets) == 0:
+                    st.warning("No sheets starting with 'Rates - ' found in the workbook.")
+                    kz.setCaseKey("rateSheetName", None)
+                else:
+                    # Initialize with first sheet if not set
+                    if kz.getCaseKey("rateSheetName") not in rate_sheets:
+                        kz.setCaseKey("rateSheetName", rate_sheets[0])
+
+        # Display sheet selection UI outside col2 to take full width
+        # Check if we have rate_sheets available (from uploaded file)
+        if kz.getCaseKey("rateFile") is not None:
+            # Get rate_sheets from the uploaded file if not already loaded
+            rate_file = kz.getCaseKey("rateFile")
+            if rate_file is not None:
+                try:
+                    rate_sheets, display_names, descriptions = owb.loadRateSheets(rate_file)
+                    # Update stored descriptions and display names
+                    kz.setCaseKey("rateDescriptions", descriptions)
+                    kz.setCaseKey("rateDisplayNames", display_names)
+                except Exception:
+                    rate_sheets, display_names, descriptions = [], {}, {}
+            else:
+                # Use stored descriptions and display names if available
+                descriptions = kz.getCaseKey("rateDescriptions") or {}
+                display_names = kz.getCaseKey("rateDisplayNames") or {}
+                rate_sheets = []
+
+            if len(rate_sheets) > 0:
+                # Display sheet selection UI - full width
+                col1, col2, col3 = st.columns([0.3, 0.5, 0.2], gap="large", vertical_alignment="top")
+                with col1:
+                    # Display sheet selection with descriptions
+                    st.markdown("#### Select Rate Sheet")
+                    current_sheet = kz.getCaseKey("rateSheetName")  # Full sheet name
+                    kz.initCaseKey("rateSheetName", current_sheet)  # Ensure key is initialized
+                    # Initialize widget key for rateSheetName so setpull can access it
+                    kz.initGlobalKey(kz.genCaseKey("rateSheetName"), current_sheet)
+                    widget_key = kz.genCaseKey("rateSheetSelect")
+                    # Use display name for widget initialization
+                    current_display = display_names.get(current_sheet, current_sheet) if current_sheet else None
+                    kz.initGlobalKey(widget_key, current_display)  # Initialize session state key
+
+                    def updateSheetSelection():
+                        # Get the selected display name from session state
+                        # Streamlit updates the session state before calling on_change
+                        selected_display = kz.getGlobalKey(widget_key)
+                        if selected_display is not None:
+                            # Find the full sheet name from display name
+                            full_sheet_name = None
+                            for full_name, disp_name in display_names.items():
+                                if disp_name == selected_display:
+                                    full_sheet_name = full_name
+                                    break
+                            if full_sheet_name:
+                                kz.setCaseKey("rateSheetName", full_sheet_name)
+                                # Update the widget key so setpull can access it
+                                kz.storeGlobalKey(kz.genCaseKey("rateSheetName"), full_sheet_name)
+                            # Don't auto-load rates, just update the selection
+
+                    # Create list of display names for radio buttons
+                    display_list = [display_names.get(sheet, sheet) for sheet in rate_sheets]
+                    # Find current display name index
+                    current_display = display_names.get(current_sheet, current_sheet) if current_sheet else None
+                    current_index = display_list.index(current_display) if current_display and current_display in display_list else 0
+
+                    # Use radio buttons for sheet selection (showing display names)
+                    selected_display = st.radio(
+                        "Available rate sheets:",
+                        display_list,
+                        index=current_index,
+                        key=widget_key,
+                        on_change=updateSheetSelection,
+                    )
+
+                    # Find full sheet name from selected display name
+                    selected_sheet = None
+                    for full_name, disp_name in display_names.items():
+                        if disp_name == selected_display:
+                            selected_sheet = full_name
+                            break
+                    if selected_sheet is None:
+                        selected_sheet = selected_display  # Fallback
+
+                    if selected_sheet != current_sheet:
+                        kz.setCaseKey("rateSheetName", selected_sheet)
+                        # Update the widget key so setpull can access it
+                        kz.storeGlobalKey(kz.genCaseKey("rateSheetName"), selected_sheet)
+                        # Clear any previously loaded rates when sheet changes
+                        # (user will need to click Select button to load new sheet)
+                        # Also clear the rates loaded flag
+                        kz.setCaseKey("ratesLoaded", False)
+
+                with col2:
+                    # Display description in a text box if available
+                    # Get the current selection from the radio widget (most up-to-date)
+                    current_radio_value = kz.getGlobalKey(widget_key) or selected_display
+                    # Find the full sheet name for the currently selected display name
+                    sheet_for_desc = None
+                    for full_name, disp_name in display_names.items():
+                        if disp_name == current_radio_value:
+                            sheet_for_desc = full_name
+                            break
+                    if sheet_for_desc is None:
+                        # Fallback to current sheet name from session state
+                        sheet_for_desc = kz.getCaseKey("rateSheetName") or current_sheet
+
+                    st.markdown("**Description:**")
+                    # Get descriptions from session state if available
+                    stored_descriptions = kz.getCaseKey("rateDescriptions") or descriptions
+                    if sheet_for_desc and sheet_for_desc in stored_descriptions and stored_descriptions[sheet_for_desc]:
+                        desc_text = stored_descriptions[sheet_for_desc]
+                    else:
+                        desc_text = "(No description available)"
+                    # Make the key depend on the selected sheet so it updates when selection changes
+                    desc_key = f"{kz.genCaseKey('rateDescription')}_{sheet_for_desc}"
+                    st.text_area(
+                        "Description text",
+                        desc_text,
+                        disabled=True,
+                        key=desc_key,
+                        height=100,
+                        label_visibility="collapsed",
+                    )
+
+                with col3:
+                    # Add Select button to load rates
+                    st.markdown("#### Load Rates")
+                    if st.button("Select", key=kz.genCaseKey("rateSelectButton"), type="primary"):
+                        # Load the rates into memory
+                        owb.setRates()
+                        # Set flag that rates have been loaded
+                        kz.setCaseKey("ratesLoaded", True)
+                        # Show display name in success message
+                        current_sheet_for_msg = kz.getCaseKey("rateSheetName")
+                        display_name = display_names.get(current_sheet_for_msg, current_sheet_for_msg) if current_sheet_for_msg else "selected sheet"
+                        st.success(f"Rates loaded from '{display_name}'.")
+
+            # Check if sheet is selected
+            if kz.getCaseKey("rateSheetName") is None:
+                st.info("Rate sheet not selected yet.")
 
     else:
         st.error("Logic error")
@@ -230,13 +410,24 @@ forecasts for the next decade can be found
                       min_value=-1.0, max_value=1.0, callback=None)
 
     st.divider()
-    if kz.getCaseKey("rateType") == "varying":
-        col1, col2 = st.columns(2, gap="medium")
-        owb.showRatesCorrelations(col2)
-    else:
-        col1, col2 = st.columns([0.6, 0.4], gap="medium")
+    # Only show rates graph if conditions are met
+    show_rates_graph = True
+    if kz.getCaseKey("rateType") == "file":
+        # For file type, only show graph if file is uploaded, sheet is selected, AND rates have been loaded
+        if kz.getCaseKey("rateFile") is None or kz.getCaseKey("rateSheetName") is None:
+            show_rates_graph = False
+        elif not kz.getCaseKey("ratesLoaded"):
+            # Rates haven't been loaded yet via Select button
+            show_rates_graph = False
 
-    owb.showRates(col1)
+    if show_rates_graph:
+        if kz.getCaseKey("rateType") == "varying":
+            col1, col2 = st.columns(2, gap="medium")
+            owb.showRatesCorrelations(col2)
+        else:
+            col1, col2 = st.columns([0.6, 0.4], gap="medium")
+
+        owb.showRates(col1)
 
     # st.divider()
     with st.expander("*Advanced Options*"):

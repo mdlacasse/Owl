@@ -11,6 +11,7 @@ sys.path.insert(0, "../src")
 
 import owlplanner as owl                      # noqa: E402
 from owlplanner.rates import FROM, TO         # noqa: E402
+import owlplanner.rates as rates_module       # noqa: E402
 from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes  # noqa: E402, F401
 
 import sskeys as kz         # noqa: E402
@@ -205,6 +206,14 @@ def runMC(plan):
         st.error(f"Monte Carlo solution failed: {e}")
 
 
+def loadRateSheets(file):
+    """
+    Wrapper function to load rate sheets from Excel file.
+    This function provides UI access to the rates module functionality.
+    """
+    return rates_module.loadRateSheets(file)
+
+
 @_checkPlan
 def setRates(plan):
     return _setRates(plan)
@@ -235,6 +244,49 @@ def _setRates(plan):
                     float(kz.getCaseKey("fxRate3")),
                 ],
             )
+    elif rateType == "file":
+        rate_file = kz.getCaseKey("rateFile")
+        sheet_name = kz.getCaseKey("rateSheetName")
+
+        if rate_file is None:
+            # Message is displayed in UI, just return False
+            return False
+
+        if sheet_name is None:
+            # Message is displayed in UI, just return False
+            return False
+
+        # Calculate to (current year + N_n - 1), frm will default to current year in setRates
+        from datetime import date
+        thisyear = date.today().year
+        to = thisyear + plan.N_n - 1
+
+        # Save uploaded file to a temporary location if it's a streamlit UploadedFile
+        import tempfile
+        import os
+        if hasattr(rate_file, 'read'):
+            # It's a Streamlit UploadedFile object - need to reset file pointer
+            rate_file.seek(0)
+
+            # Create temp file - will be deleted after data is loaded into memory
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                tmp_file.write(rate_file.read())
+                tmp_path = os.path.abspath(tmp_file.name)  # Use absolute path
+
+            try:
+                # File is read immediately in setMethod and data is stored in memory
+                # The Rates object stores the data, so we can delete the temp file
+                plan.setRates("file", to=to, file=tmp_path, sheet_name=sheet_name)
+            finally:
+                # Clean up temp file immediately after loading (data is in memory)
+                try:
+                    if os.path.exists(tmp_path):
+                        os.unlink(tmp_path)
+                except Exception:
+                    pass
+        else:
+            # Assume it's already a file path
+            plan.setRates("file", to=to, file=rate_file, sheet_name=sheet_name)
     else:
         varyingType = kz.getCaseKey("varyingType")
         if varyingType is None:

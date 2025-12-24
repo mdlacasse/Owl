@@ -119,6 +119,152 @@ def getRatesDistributions(frm, to, mylog=None):
     return means, stdev, corr, covar
 
 
+def loadRateSheets(file):
+    """
+    Load rate sheet names and descriptions from Excel file.
+
+    Sheets must start with "Rates - " (case-insensitive) to be considered rate sheets.
+    The display name is the part after "Rates - ".
+
+    Parameters:
+    -----------
+    file : str or file-like object
+        Path to Excel file or file-like object (e.g., Streamlit UploadedFile)
+
+    Returns:
+    --------
+    tuple : (list, dict, dict)
+        A tuple containing:
+        - List of full sheet names (with "Rates - " prefix) that start with "Rates - "
+        - Dictionary mapping full sheet names to their display names (without prefix)
+        - Dictionary mapping full sheet names to their descriptions (from Descriptions sheet)
+    """
+    if file is None:
+        return [], {}, {}
+
+    try:
+        # Reset file pointer if it's a file-like object
+        if hasattr(file, 'seek'):
+            file.seek(0)
+
+        # Read all sheet names
+        xl_file = pd.ExcelFile(file)
+        all_sheets = xl_file.sheet_names
+
+        # Find sheets starting with "Rates - " (case-insensitive)
+        prefix = "Rates - "
+        rate_sheets = []
+        display_names = {}
+        for sheet in all_sheets:
+            if sheet.lower().startswith(prefix.lower()):
+                rate_sheets.append(sheet)
+                # Extract display name (part after "Rates - ")
+                display_name = sheet[len(prefix):].strip() if len(sheet) > len(prefix) else sheet
+                display_names[sheet] = display_name
+
+        # Try to read Descriptions sheet
+        descriptions = {}
+        if "Descriptions" in all_sheets:
+            try:
+                # Reset file pointer again before reading
+                if hasattr(file, 'seek'):
+                    file.seek(0)
+                df_desc = pd.read_excel(file, sheet_name="Descriptions")
+                # Check if required columns exist
+                if "sheet name" in df_desc.columns.str.lower().values:
+                    sheet_col = [c for c in df_desc.columns if c.lower() == "sheet name"][0]
+                    desc_col = [c for c in df_desc.columns if c.lower() == "description"][0]
+                    for _, row in df_desc.iterrows():
+                        sheet_name_from_desc = str(row[sheet_col]).strip()
+                        desc = str(row[desc_col]).strip() if pd.notna(row[desc_col]) else ""
+                        if not desc:
+                            continue
+
+                        # Try to match the sheet name from Descriptions to our rate sheets
+                        # It could be either the full name (with "Rates - " prefix) or display name (without prefix)
+                        matched = False
+                        for full_sheet_name in rate_sheets:
+                            display_name = display_names.get(full_sheet_name, full_sheet_name)
+                            # Match if it's the full name or the display name
+                            if sheet_name_from_desc == full_sheet_name or sheet_name_from_desc == display_name:
+                                descriptions[full_sheet_name] = desc
+                                matched = True
+                                break
+
+                        # If no match found, store it as-is (might be used for other purposes)
+                        if not matched:
+                            descriptions[sheet_name_from_desc] = desc
+            except Exception:
+                # Log warning but don't fail - descriptions are optional
+                pass
+
+        # Reset file pointer after reading
+        if hasattr(file, 'seek'):
+            file.seek(0)
+
+        return rate_sheets, display_names, descriptions
+    except Exception:
+        # Return empty lists on error - let caller handle error display
+        return [], {}, {}
+
+
+def _validateFileRates(df_rates, frm, to, sheet_name):
+    """
+    Quality assurance function for file-based rates.
+
+    Validates that:
+    1. Data is sorted by year
+    2. Year entries are unique (no duplicates)
+    3. All years from frm to to (inclusive) exist in the data
+
+    Parameters:
+    -----------
+    df_rates : pandas.DataFrame
+        DataFrame with 'year' column and rate columns
+    frm : int
+        Starting year (inclusive)
+    to : int
+        Ending year (inclusive)
+    sheet_name : str
+        Name of the sheet being validated (for error messages)
+
+    Returns:
+    --------
+    pandas.DataFrame
+        Validated and sorted DataFrame
+
+    Raises:
+    -------
+    ValueError
+        If validation fails
+    """
+    # Sort by year
+    df_rates = df_rates.sort_values('year').reset_index(drop=True)
+
+    # Check for duplicate years
+    duplicate_years = df_rates[df_rates['year'].duplicated()]['year'].unique()
+    if len(duplicate_years) > 0:
+        raise ValueError(f"Sheet '{sheet_name}' contains duplicate years: {list(duplicate_years)}")
+
+    # Check that all required years exist
+    required_years = set(range(frm, to + 1))
+    available_years = set(df_rates['year'].astype(int))
+    missing_years = required_years - available_years
+
+    if missing_years:
+        missing_sorted = sorted(missing_years)
+        raise ValueError(
+            f"Sheet '{sheet_name}' is missing required years from {frm} to {to}. "
+            f"Missing years: {missing_sorted[:10]}{'...' if len(missing_sorted) > 10 else ''}"
+        )
+
+    # Filter to only required years
+    df_rates = df_rates[df_rates['year'].astype(int).isin(required_years)].copy()
+    df_rates = df_rates.sort_values('year').reset_index(drop=True)
+
+    return df_rates
+
+
 class Rates(object):
     """
     Rates are stored in a 4-array in the following order:
@@ -158,10 +304,14 @@ class Rates(object):
         self.frm = FROM
         self.to = TO
 
+        # For file-based rates
+        self._fileData = None
+        self._fileSheetName = None
+
         # Default values for rates.
         self.setMethod("default")
 
-    def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None):
+    def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None, file=None, sheet_name=None):
         """
         Select the method to generate the annual rates of return
         for the different classes of assets.  Different methods include:
@@ -173,10 +323,18 @@ class Rates(object):
         - historical average or means: average over historical data.
         - histochastic: randomly generated from the statistical properties of a historical range.
         - stochastic: randomly generated from means, standard deviation and optionally a correlation matrix.
+        - file: read rates from an Excel workbook sheet.
         The correlation matrix can be provided as a full matrix or
         by only specifying the off-diagonal elements as a simple list
         of (Nk*Nk - Nk)/2 values for Nk assets.
         For 4 assets, this represents a list of 6 off-diagonal values.
+
+        For the 'file' method:
+        - 'file' (path to Excel file) and 'sheet_name' are required.
+        - 'frm' (starting year) and 'to' (ending year) are required for validation.
+        - The sheet must have columns: year, S&P 500, Bonds Baa, TNotes, Inflation.
+        - All years from frm to to (inclusive) must exist in the sheet.
+        - Year entries must be unique and the data will be sorted by year.
         """
         if method not in [
             "default",
@@ -188,6 +346,7 @@ class Rates(object):
             "mean",
             "stochastic",
             "histochastic",
+            "file",
         ]:
             raise ValueError(f"Unknown rate selection method {method}.")
 
@@ -261,6 +420,70 @@ class Rates(object):
             self.mylog.vprint("Setting rates using stochastic method with means:", *[u.pc(k) for k in self.means])
             self.mylog.vprint("\t standard deviations:", *[u.pc(k) for k in self.stdev])
             self.mylog.vprint("\t and correlation matrix:\n\t\t", str(self.corr).replace("\n", "\n\t\t"))
+        elif method == "file":
+            # File-based rates from Excel workbook
+            if file is None:
+                raise ValueError("File path must be provided with the file option.")
+            if sheet_name is None:
+                raise ValueError("Sheet name must be provided with the file option.")
+            if frm is None:
+                from datetime import date
+                frm = date.today().year
+            if to is None:
+                raise ValueError("Ending year (to) must be provided with the file option for validation.")
+            if frm >= to:
+                raise ValueError(f"Starting year {frm} must be less than ending year {to}.")
+
+            # Read the Excel file
+            try:
+                df_file = pd.read_excel(file, sheet_name=sheet_name)
+            except Exception as e:
+                raise RuntimeError(f"Could not read Excel file '{file}' sheet '{sheet_name}': {e}") from e
+
+            # Expected column names matching the CSV format
+            expected_cols = ["year", "S&P 500", "Bonds Baa", "TNotes", "Inflation"]
+
+            # Check if required columns exist (case-insensitive matching)
+            df_cols_lower = {col.lower(): col for col in df_file.columns}
+            required_cols = {}
+            for exp_col in expected_cols:
+                if exp_col.lower() not in df_cols_lower:
+                    raise ValueError(
+                        f"Required column '{exp_col}' not found in sheet '{sheet_name}'. "
+                        f"Found columns: {list(df_file.columns)}"
+                    )
+                required_cols[exp_col] = df_cols_lower[exp_col.lower()]
+
+            # Extract only the required columns
+            df_rates = df_file[[
+                required_cols["year"],
+                required_cols["S&P 500"],
+                required_cols["Bonds Baa"],
+                required_cols["TNotes"],
+                required_cols["Inflation"]
+            ]].copy()
+            df_rates.columns = expected_cols  # Rename to standard names
+
+            # Remove any rows with missing values
+            df_rates = df_rates.dropna()
+
+            if len(df_rates) == 0:
+                raise ValueError(f"No valid data rows found in sheet '{sheet_name}'.")
+
+            # Validate the data using QA function
+            df_rates = _validateFileRates(df_rates, frm, to, sheet_name)
+
+            # Store the data indexed by year
+            self._fileData = df_rates.set_index("year")
+            self._fileSheetName = sheet_name
+            self.frm = frm
+            self.to = to
+
+            self._rateMethod = self._fileRates
+            self.mylog.vprint(
+                f"Using rates from Excel file '{file}', sheet '{sheet_name}', "
+                f"for years {frm} to {to}."
+            )
         else:
             # Then methods relying on historical data range.
             if frm is None:
@@ -311,16 +534,23 @@ class Rates(object):
         """
         rateSeries = np.zeros((N, 4))
 
-        # Convert years to indices.
-        ifrm = self.frm - FROM
-        ito = self.to - FROM
+        # For file-based rates, use year-based lookup
+        if self.method == "file":
+            # Assign 4 values at the time, looking up by year
+            for n in range(N):
+                year = self.frm + n
+                rateSeries[n][:] = self._rateMethod(year)[:]
+        else:
+            # Convert years to indices for historical data.
+            ifrm = self.frm - FROM
+            ito = self.to - FROM
 
-        # Add one since bounds are inclusive.
-        span = ito - ifrm + 1
+            # Add one since bounds are inclusive.
+            span = ito - ifrm + 1
 
-        # Assign 4 values at the time.
-        for n in range(N):
-            rateSeries[n][:] = self._rateMethod((ifrm + (n % span)))[:]
+            # Assign 4 values at the time.
+            for n in range(N):
+                rateSeries[n][:] = self._rateMethod((ifrm + (n % span)))[:]
 
         return rateSeries
 
@@ -359,3 +589,28 @@ class Rates(object):
         srates = np.random.multivariate_normal(self.means, self.covar)
 
         return srates
+
+    def _fileRates(self, year):
+        """
+        Return a list of 4 values representing the rates from Excel file
+        for the specified year. The rates are for:
+        S&P 500, Bonds Baa, TNotes, and Inflation, respectively.
+
+        Argument 'year' is the year to look up in the file data.
+        """
+        if self._fileData is None:
+            raise RuntimeError("File data not loaded. Call setMethod('file', ...) first.")
+
+        if year not in self._fileData.index:
+            raise ValueError(f"Year {year} not found in file data. Expected years {self.frm} to {self.to}.")
+
+        row = self._fileData.loc[year]
+        hrates = np.array([
+            row["S&P 500"],
+            row["Bonds Baa"],
+            row["TNotes"],
+            row["Inflation"]
+        ])
+
+        # Convert from percent to decimal.
+        return hrates / 100.0

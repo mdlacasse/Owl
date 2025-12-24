@@ -682,30 +682,41 @@ class Plan:
         self.smileDelay = delay
         self.caseStatus = "modified"
 
-    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None):
+    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None, file=None, sheet_name=None):
         """
         Generate rates for return and inflation based on the method and
         years selected. Note that last bound is included.
 
         The following methods are available:
         default, user, realistic, conservative, historical average, stochastic,
-        histochastic, and historical.
+        histochastic, historical, and file.
 
         - For 'user', fixed rate values must be provided.
         - For 'stochastic', means, stdev, and optional correlation matrix must be provided.
         - For 'historical average', 'histochastic', and 'historical', a starting year
           must be provided, and optionally an ending year.
+        - For 'file', file path and sheet_name must be provided. The starting year (frm)
+          defaults to current year if not provided, and ending year (to) defaults to
+          frm + N_n - 1 if not provided.
 
-        Valid year range is from 1928 to last year.
+        Valid year range is from 1928 to last year for historical methods.
         """
+        if method == "file" and frm is None:
+            frm = date.today().year
         if frm is not None and to is None:
             to = frm + self.N_n - 1  # 'to' is inclusive.
 
         dr = rates.Rates(self.mylog)
-        self.rateValues, self.rateStdev, self.rateCorr = dr.setMethod(method, frm, to, values, stdev, corr)
+        self.rateValues, self.rateStdev, self.rateCorr = dr.setMethod(
+            method, frm, to, values, stdev, corr, file, sheet_name
+        )
         self.rateMethod = method
         self.rateFrm = frm
         self.rateTo = to
+        self.rateFile = file
+        self.rateSheetName = sheet_name
+        # Store the Rates object for reuse in regenRates()
+        self.rateRates = dr
         self.tau_kn = dr.genSeries(self.N_n).transpose()
         self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using {method} method.")
 
@@ -719,14 +730,30 @@ class Plan:
         Regenerate the rates using the arguments specified during last setRates() call.
         This method is used to regenerate stochastic time series.
         """
-        self.setRates(
-            self.rateMethod,
-            frm=self.rateFrm,
-            to=self.rateTo,
-            values=100 * self.rateValues,
-            stdev=100 * self.rateStdev,
-            corr=self.rateCorr,
-        )
+        # For file method, reuse the stored Rates object (data already loaded in memory)
+        if self.rateMethod == "file" and hasattr(self, 'rateRates') and self.rateRates is not None:
+            # Just regenerate the series from the already-loaded data
+            self.tau_kn = self.rateRates.genSeries(self.N_n).transpose()
+            self.mylog.vprint(f"Regenerating rate series of {len(self.tau_kn[0])} years using {self.rateMethod} method.")
+            # Rebuild cumulative inflation multipliers
+            self.gamma_n = _genGamma_n(self.tau_kn)
+            self._adjustedParameters = False
+            self.caseStatus = "modified"
+            return
+
+        # For other methods, use the original approach
+        kwargs = {
+            "frm": self.rateFrm,
+            "to": self.rateTo,
+            "corr": self.rateCorr,
+        }
+        if self.rateMethod == "stochastic" or self.rateMethod == "histochastic":
+            kwargs["values"] = 100 * self.rateValues if self.rateValues is not None else None
+            kwargs["stdev"] = 100 * self.rateStdev if self.rateStdev is not None else None
+        elif self.rateMethod == "user":
+            kwargs["values"] = 100 * self.rateValues if self.rateValues is not None else None
+
+        self.setRates(self.rateMethod, **kwargs)
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, startDate=None, units="k"):
         """
