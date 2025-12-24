@@ -3,10 +3,11 @@ from loguru import logger as loguru_logger
 
 
 class Logger(object):
-    def __init__(self, verbose=True, logstreams=None):
+    def __init__(self, verbose=True, logstreams=None, stream_id=None):
         self._verbose = verbose
         self._prevState = self._verbose
         self._use_loguru = False
+        self._stream_id = stream_id
 
         # --- Detect loguru backend ---------------------------------
         if logstreams == "loguru" or logstreams == ["loguru"]:
@@ -46,10 +47,16 @@ class Logger(object):
         """
         Unconditional printing regardless of verbosity.
         """
+
         if self._use_loguru:
             loguru_logger.debug(" ".join(map(str, args)))
             return
 
+        tag = self._stream_id + " | " if self._stream_id else "Global |"
+        #loguru_logger.info(tag+(" ".join(map(str, args))))
+        loguru_logger.opt(depth=1).info(
+            tag + (" ".join(map(str, args)))
+        )
         if "file" not in kwargs:
             file = self._logstreams[0]
             kwargs["file"] = file
@@ -62,7 +69,22 @@ class Logger(object):
         Conditional printing depending on verbose flag.
         """
         if self._verbose:
-            self.print(*args, **kwargs)
+            if self._use_loguru:
+                loguru_logger.debug(" ".join(map(str, args)))
+                return
+
+            tag = self._stream_id + " | " if self._stream_id else "Global |"
+            #loguru_logger.debug(tag+(" ".join(map(str, args))))
+            loguru_logger.opt(depth=1).debug(
+                tag + (" ".join(map(str, args)))
+            )            
+
+            if "file" not in kwargs:
+                file = self._logstreams[0]
+                kwargs["file"] = file
+
+            print(*args, **kwargs)
+            file.flush()
 
     def xprint(self, *args, **kwargs):
         """

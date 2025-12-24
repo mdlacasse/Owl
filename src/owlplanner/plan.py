@@ -370,7 +370,7 @@ class Plan:
         self.mylog = logger
 
     def setLogstreams(self, verbose, logstreams):
-        self.mylog = log.Logger(verbose, logstreams)
+        self.mylog = log.Logger(verbose, logstreams,stream_id=self._name)
         # self.mylog.vprint(f"Setting logstreams to {logstreams}.")
 
     def logger(self):
