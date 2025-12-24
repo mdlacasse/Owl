@@ -41,7 +41,7 @@ at a later time:
 specifying account balances, asset allocation, social security and pension, rates,
 optimization parameters and related assumptions.
 This file is in *toml* format which is editable with a simple text editor.
-- A *Household Financial Profile* Workbook containing
+- A *Household Financial Profile* (HFP) Workbook containing
 a time table for each individual with anticipated wages, future contributions
 to savings accounts, Roth conversions and contributions for future and last five years,
 and anticipated big-ticket items, which can be either expenses or income.
