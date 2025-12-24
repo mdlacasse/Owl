@@ -832,6 +832,17 @@ def genDic(plan):
     elif plan.rateMethod in ["histochastic", "historical", "stochastic"]:
         dic["rateType"] = "varying"
         dic["varyingType"] = plan.rateMethod
+    elif plan.rateMethod == "file":
+        dic["rateType"] = "file"
+        # Store workbook file and worksheet name for file method
+        if hasattr(plan, 'rateFile') and plan.rateFile is not None:
+            dic["rateFile"] = str(plan.rateFile)
+        else:
+            dic["rateFile"] = None
+        if hasattr(plan, 'rateSheetName') and plan.rateSheetName is not None:
+            dic["rateSheetName"] = str(plan.rateSheetName)
+        else:
+            dic["rateSheetName"] = None
 
     # Initialize in both cases.
     for k1 in range(plan.N_k):
@@ -840,6 +851,17 @@ def genDic(plan):
     if plan.rateMethod in ["historical average", "histochastic", "historical"]:
         dic["yfrm"] = plan.rateFrm
         dic["yto"] = plan.rateTo
+    elif plan.rateMethod == "file":
+        # File method also needs frm and to for validation
+        if plan.rateFrm is not None:
+            dic["yfrm"] = plan.rateFrm
+        else:
+            dic["yfrm"] = FROM
+        if plan.rateTo is not None:
+            dic["yto"] = plan.rateTo
+        else:
+            # Rates availability are trailing by 1 year.
+            dic["yto"] = date.today().year - 1
     else:
         dic["yfrm"] = FROM
         # Rates availability are trailing by 1 year.

@@ -78,6 +78,17 @@ def saveConfig(myplan, file, mylog):
     if myplan.rateMethod in ["historical average", "historical", "histochastic"]:
         diconf["Rates Selection"]["From"] = int(myplan.rateFrm)
         diconf["Rates Selection"]["To"] = int(myplan.rateTo)
+    elif myplan.rateMethod == "file":
+        # Store workbook file and worksheet name for file method
+        if hasattr(myplan, 'rateFile') and myplan.rateFile is not None:
+            diconf["Rates Selection"]["Workbook file"] = str(myplan.rateFile)
+        if hasattr(myplan, 'rateSheetName') and myplan.rateSheetName is not None:
+            diconf["Rates Selection"]["Worksheet name"] = str(myplan.rateSheetName)
+        # File method also needs frm and to for validation
+        if myplan.rateFrm is not None:
+            diconf["Rates Selection"]["From"] = int(myplan.rateFrm)
+        if myplan.rateTo is not None:
+            diconf["Rates Selection"]["To"] = int(myplan.rateTo)
     else:
         diconf["Rates Selection"]["From"] = int(FROM)
         diconf["Rates Selection"]["To"] = int(TO)
@@ -248,6 +259,14 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     if rateMethod in ["stochastic"]:
         stdev = np.array(diconf["Rates Selection"]["Standard deviations"], dtype=np.float32)
         rateCorr = np.array(diconf["Rates Selection"]["Correlations"], dtype=np.float32)
+    if rateMethod == "file":
+        # Load workbook file and worksheet name for file method
+        rateFile = diconf["Rates Selection"].get("Workbook file")
+        rateSheetName = diconf["Rates Selection"].get("Worksheet name")
+        if rateFile:
+            p.rateFile = rateFile
+        if rateSheetName:
+            p.rateSheetName = rateSheetName
     p.setRates(rateMethod, frm, to, rateValues, stdev, rateCorr)
 
     # Asset Allocation.

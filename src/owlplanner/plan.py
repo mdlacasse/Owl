@@ -327,6 +327,10 @@ class Plan:
         # Remaining debt balance at end of plan
         self.remaining_debt_balance = 0.0
 
+        # File-based rates attributes (for "file" method)
+        self.rateFile = None
+        self.rateSheetName = None
+
         # Previous 2 years of MAGI needed for Medicare.
         self.prevMAGI = np.zeros((2))
         self.MAGI_n = np.zeros(self.N_n)

@@ -53,6 +53,8 @@ def initRates():
 kz.initCaseKey("rateType", rateChoices[0])
 kz.initCaseKey("fixedType", fixedChoices[0])
 kz.initCaseKey("varyingType", varyingChoices[0])
+kz.initCaseKey("rateFile", None)
+kz.initCaseKey("rateSheetName", None)
 
 ret = kz.titleBar(":material/monitoring: Rates Selection")
 
