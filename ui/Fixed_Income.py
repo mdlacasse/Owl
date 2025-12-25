@@ -65,7 +65,8 @@ else:
         specialcase0 = dob0.endswith("01") or dob0.endswith("02")
         msg1 = "This is the **monthly** amount at Full Retirement Age (FRA)."
         if specialcase0:
-            msg2 = "Claiming age in years and months. Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd)."
+            msg2 = ("Claiming age in years and months. "
+                    "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd).")
         else:
             msg2 = "Claiming age in years and months. Minimum: 62 years."
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
@@ -88,7 +89,8 @@ else:
             specialcase1 = dob1.endswith("01") or dob1.endswith("02")
             getIntInput(1, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
             if specialcase1:
-                msg2_spouse = "Claiming age in years and months. Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd)."
+                msg2_spouse = ("Claiming age in years and months. "
+                               "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd).")
             else:
                 msg2_spouse = "Claiming age in years and months. Minimum: 62 years."
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
@@ -102,7 +104,10 @@ else:
             with incol2:
                 maxmonth = 0 if ret == 70 else 11
                 minmonth = 11 if (ret == 61 and specialcase1) else 0
-                getIntInput(1, "ssAge_m", "...and month(s)", 0, msg2_spouse, min_val=minmonth, max_val=maxmonth, prompt=False)
+                getIntInput(
+                    1, "ssAge_m", "...and month(s)", 0, msg2_spouse,
+                    min_val=minmonth, max_val=maxmonth, prompt=False
+                )
 
     col1, col2 = st.columns([.67, .33], gap="large", vertical_alignment="top")
     with col1:

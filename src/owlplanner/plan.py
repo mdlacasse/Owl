@@ -623,8 +623,6 @@ class Plan:
             # Check if claim age added to birth month falls next year.
             # janage is age with reference to Jan 1 of yob when eligibility starts.
             janage = ages[i] + (self.mobs[i] - 1)/12
-            iage = int(janage)
-            realns = self.yobs[i] + iage - thisyear
 
             # Social Security benefits are paid in arrears (one month after eligibility).
             # Calculate when payments actually start (checks arrive).
