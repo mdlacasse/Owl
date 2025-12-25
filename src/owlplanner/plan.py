@@ -585,6 +585,9 @@ class Plan:
     def setSocialSecurity(self, pias, ages):
         """
         Set value of social security for each individual and claiming age.
+
+        Note: Social Security benefits are paid in arrears (one month after eligibility).
+        The zeta_in array represents when checks actually arrive, not when eligibility starts.
         """
         if len(pias) != self.N_i:
             raise ValueError(f"Principal Insurance Amount must have {self.N_i} entries.")
@@ -611,7 +614,6 @@ class Plan:
         for i in range(self.N_i):
             # Check if age is in bound.
             bornOnFirstDays = (self.tobs[i] <= 2)
-            bornOnFirst = (self.tobs[i] == 1)
 
             eligible = 62 if bornOnFirstDays else 62 + 1/12
             if ages[i] < eligible:
@@ -619,30 +621,38 @@ class Plan:
                 ages[i] = eligible
 
             # Check if claim age added to birth month falls next year.
-            # janage is age with reference to Jan 1 of yob.
+            # janage is age with reference to Jan 1 of yob when eligibility starts.
             janage = ages[i] + (self.mobs[i] - 1)/12
             iage = int(janage)
             realns = self.yobs[i] + iage - thisyear
-            ns = max(0, realns)
+
+            # Social Security benefits are paid in arrears (one month after eligibility).
+            # Calculate when payments actually start (checks arrive).
+            paymentJanage = janage + 1/12
+            paymentIage = int(paymentJanage)
+            paymentRealns = self.yobs[i] + paymentIage - thisyear
+            ns = max(0, paymentRealns)
             nd = self.horizons[i]
             self.zeta_in[i, ns:nd] = pias[i]
-            # Reduce starting year due to month offset. If realns < 0, this has happened already.
-            if realns >= 0:
-                self.zeta_in[i, ns] *= 1 - (janage % 1.)
+            # Reduce starting year due to month offset. If paymentRealns < 0, this has happened already.
+            if paymentRealns >= 0:
+                self.zeta_in[i, ns] *= 1 - (paymentJanage % 1.)
 
             # Increase/decrease PIA due to claiming age.
-            self.zeta_in[i, :] *= socsec.getSelfFactor(fras[i], ages[i], bornOnFirst)
+            self.zeta_in[i, :] *= socsec.getSelfFactor(fras[i], ages[i], bornOnFirstDays)
 
             # Add spousal benefits if applicable.
             if self.N_i == 2 and spousalBenefits[i] > 0:
-                # The latest of the two spouses to claim.
+                # The latest of the two spouses to claim (eligibility start).
                 claimYear = max(self.yobs + (self.mobs - 1)/12 + ages)
                 claimAge = claimYear - self.yobs[i] - (self.mobs[i] - 1)/12
-                ns2 = max(0, int(claimYear) - thisyear)
-                spousalFactor = socsec.getSpousalFactor(fras[i], claimAge, bornOnFirst)
+                # Spousal benefits are also paid in arrears (one month after eligibility).
+                paymentClaimYear = claimYear + 1/12
+                ns2 = max(0, int(paymentClaimYear) - thisyear)
+                spousalFactor = socsec.getSpousalFactor(fras[i], claimAge, bornOnFirstDays)
                 self.zeta_in[i, ns2:nd] += spousalBenefits[i] * spousalFactor
                 # Reduce first year of benefit by month offset.
-                self.zeta_in[i, ns2] -= spousalBenefits[i] * spousalFactor * (claimYear % 1.)
+                self.zeta_in[i, ns2] -= spousalBenefits[i] * spousalFactor * (paymentClaimYear % 1.)
 
         # Switch survivor to spousal survivor benefits.
         # Assumes both deceased and survivor already have claimed last year before passing (at n_d - 1).

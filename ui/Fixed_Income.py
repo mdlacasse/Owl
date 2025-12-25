@@ -72,11 +72,11 @@ else:
             kz.initCaseKey("ssAge_m0", 0)
             m0 = kz.getCaseKey("ssAge_m0")
             maxyear = 70 if m0 == 0 else 69
-            minyear = 62 if m0 > 0 or specialcase0 else 63
+            minyear = 61 if specialcase0 else 62
             ret = getIntInput(0, "ssAge_y", "claiming at age...", 67, msg2, min_val=minyear, max_val=maxyear)
         with incol2:
             maxmonth = 0 if ret == 70 else 11
-            minmonth = 1 if ret == 62 else 0
+            minmonth = 11 if (ret == 61 and specialcase0) else 0
             getIntInput(0, "ssAge_m", "...and month(s)", 0, msg2, min_val=minmonth, max_val=maxmonth, prompt=False)
 
     with col2:
@@ -90,11 +90,11 @@ else:
                 kz.initCaseKey("ssAge_m1", 0)
                 m1 = kz.getCaseKey("ssAge_m1")
                 maxyear = 70 if m1 == 0 else 69
-                minyear = 62 if m1 > 0 or specialcase1 else 63
+                minyear = 61 if specialcase1 else 62
                 ret = getIntInput(1, "ssAge_y", "claiming at age...", 67, msg2, min_val=minyear, max_val=maxyear)
             with incol2:
                 maxmonth = 0 if ret == 70 else 11
-                minmonth = 1 if ret == 62 else 0
+                minmonth = 11 if (ret == 61 and specialcase1) else 0
                 getIntInput(1, "ssAge_m", "...and month(s)", 0, msg2, min_val=minmonth, max_val=maxmonth, prompt=False)
 
     col1, col2 = st.columns([.67, .33], gap="large", vertical_alignment="top")
