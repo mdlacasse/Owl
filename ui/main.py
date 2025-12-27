@@ -1,5 +1,7 @@
 import streamlit as st
 import os
+from io import StringIO
+from loguru import logger
 
 import sskeys as kz
 
@@ -37,12 +39,22 @@ pages = {
         st.Page("Documentation.py", icon=":material/help:"),
         st.Page("Settings.py", icon=":material/settings:"),
         st.Page("Logs.py", icon=":material/error:"),
+        st.Page("Logs2.py", icon=":material/error:"),
         st.Page("About_Owl.py", icon=":material/info:"),
     ],
 }
 
 kz.initGlobalKey("menuLocation", "top")
 kz.initGlobalKey("position", "sticky")
+
+if kz.getGlobalKey("loguruLogger") is None:
+    loguruLogger = StringIO()
+    kz.initGlobalKey("loguruLogger", loguruLogger)
+    logger.remove()
+    fmt1 = "{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {module}:{line} | {message}"
+    logger.add(loguruLogger, format=fmt1, level="DEBUG")
+    logger.info("Global logging started.")
+
 
 pg = st.navigation(pages, position=kz.getGlobalKey("menuLocation"))
 
