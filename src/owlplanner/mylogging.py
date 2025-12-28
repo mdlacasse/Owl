@@ -53,7 +53,7 @@ class Logger(object):
             return
 
         tag = self._stream_id + " | " if self._stream_id else "Global |"
-        #loguru_logger.info(tag+(" ".join(map(str, args))))
+        # loguru_logger.info(tag+(" ".join(map(str, args))))
         loguru_logger.opt(depth=1).info(
             tag + (" ".join(map(str, args)))
         )
@@ -73,11 +73,11 @@ class Logger(object):
                 loguru_logger.debug(" ".join(map(str, args)))
                 return
 
-            tag = self._stream_id + " | " if self._stream_id else "Global |"
-            #loguru_logger.debug(tag+(" ".join(map(str, args))))
+            tag = self._stream_id + " | " if self._stream_id else "Global | "
+            # loguru_logger.debug(tag+(" ".join(map(str, args))))
             loguru_logger.opt(depth=1).debug(
                 tag + (" ".join(map(str, args)))
-            )            
+            )
 
             if "file" not in kwargs:
                 file = self._logstreams[0]

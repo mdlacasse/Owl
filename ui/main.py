@@ -39,7 +39,6 @@ pages = {
         st.Page("Documentation.py", icon=":material/help:"),
         st.Page("Settings.py", icon=":material/settings:"),
         st.Page("Logs.py", icon=":material/error:"),
-        st.Page("Logs2.py", icon=":material/error:"),
         st.Page("About_Owl.py", icon=":material/info:"),
     ],
 }

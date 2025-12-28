@@ -159,4 +159,3 @@ Hit the `Create case` button once all parameters on this page are right."""
 
 # Show progress bar at bottom (always shown on Create Case page)
 cp.show_progress_bar()
-
