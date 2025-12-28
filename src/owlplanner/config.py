@@ -324,10 +324,11 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     if name != "None" and name not in p.inames:
         raise ValueError(f"Unknown name {name} for noRothConversions.")
 
-    # Rebase startRothConversions on year change.
+    # Rebase startRothConversions and yOBBBA on year change.
     thisyear = date.today().year
     year = p.solverOptions.get("startRothConversions", thisyear)
     p.solverOptions["startRothConversions"] = max(year, thisyear)
+    p.yOBBBA = max(p.yOBBBA, thisyear)
 
     # Results.
     p.setDefaultPlots(diconf["Results"]["Default plots"])

@@ -13,7 +13,7 @@ kz.initGlobalKey("text_filter", "")
 # -------------------------------
 # Text controls
 # -------------------------------
-ctrl_cols = st.columns([4, 1], vertical_alignment="bottom", gap="large")
+ctrl_cols = st.columns([4, 2, 1], vertical_alignment="bottom", gap="large")
 
 # Get current filter value for widget initialization
 current_filter = kz.getGlobalKey("text_filter") or ""
@@ -31,11 +31,11 @@ if text_input_value != current_filter:
     kz.storeGlobalKey("text_filter", text_input_value)
 
 # ---- Clear log button (resets StringIO) ----
-if ctrl_cols[1].button(
+if ctrl_cols[2].button(
     "Clear logs",
     type="secondary",
     use_container_width=True,
-    help="Clear all logs"
+    help=":warning: This action cannot be undone."
 ):
     strio = kz.getGlobalKey("loguruLogger")
     if strio is not None:
@@ -78,3 +78,5 @@ if strio is not None:
         lines = [line for line in lines if actfilter in line]
 
     st.code("\n".join(lines), language=None)
+
+st.caption("These logs are stored in memory and are only available to you. They are solely for debugging purposes and disappear after a session is closed.")
