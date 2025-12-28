@@ -1,4 +1,5 @@
 import streamlit as st
+from datetime import date
 
 import sskeys as kz
 import owlbridge as owb
@@ -259,8 +260,10 @@ forecasts for the next decade can be found
 
         with col2:
             kz.initCaseKey("yOBBBA", 2032)
+            thisyear = date.today().year
             helpmsg = "Year at which the OBBBA tax rates are speculated to be expired and return to pre-TCJA rates."
-            ret = kz.getIntNum("OBBBA expiration year", "yOBBBA", help=helpmsg)
+            ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
+                               min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()
