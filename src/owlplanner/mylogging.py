@@ -6,6 +6,7 @@ class Logger(object):
     def __init__(self, verbose=True, logstreams=None, stream_id=None):
         self._verbose = verbose
         self._prevState = self._verbose
+        self._verboseStack = []  # Stack to track verbose states for proper restoration
         self._use_loguru = False
         self._stream_id = stream_id
 
@@ -31,13 +32,21 @@ class Logger(object):
             raise ValueError(f"Log streams {logstreams} must be a list.")
 
     def setVerbose(self, verbose=True):
+        # Push current state onto stack before changing it
+        self._verboseStack.append(self._verbose)
         self._prevState = self._verbose
         self._verbose = verbose
         self.vprint("Setting verbose to", verbose)
         return self._prevState
 
     def resetVerbose(self):
-        self._verbose = self._prevState
+        # Pop the previous state from the stack if available
+        if self._verboseStack:
+            self._verbose = self._verboseStack.pop()
+            self._prevState = self._verbose
+        else:
+            # Fallback to _prevState if stack is empty (shouldn't happen in normal usage)
+            self._verbose = self._prevState
 
     def setStreamId(self, stream_id):
         """
