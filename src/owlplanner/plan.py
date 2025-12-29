@@ -730,15 +730,29 @@ class Plan:
         """
         Regenerate the rates using the arguments specified during last setRates() call.
         This method is used to regenerate stochastic time series.
+        Only stochastic and histochastic methods need regeneration.
+        All fixed rate methods (default, optimistic, conservative, user, historical average,
+        historical) don't need regeneration as they produce the same values.
         """
-        self.setRates(
-            self.rateMethod,
-            frm=self.rateFrm,
-            to=self.rateTo,
-            values=100 * self.rateValues,
-            stdev=100 * self.rateStdev,
-            corr=self.rateCorr,
-        )
+        # Fixed rate methods don't need regeneration - they produce the same values
+        fixed_methods = ["default", "optimistic", "conservative", "user",
+                         "historical average", "historical"]
+        if self.rateMethod in fixed_methods:
+            return
+
+        # Only stochastic methods need regeneration to get new random values
+        if self.rateMethod == "stochastic" or self.rateMethod == "histochastic":
+            self.setRates(
+                self.rateMethod,
+                frm=self.rateFrm,
+                to=self.rateTo,
+                values=100 * self.rateValues,
+                stdev=100 * self.rateStdev,
+                corr=self.rateCorr,
+            )
+        else:
+            # Unknown method - shouldn't happen, but log a warning
+            self.mylog.vprint(f"Warning: Unknown rate method '{self.rateMethod}' in regenRates().")
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, startDate=None, units="k"):
         """
@@ -2509,6 +2523,23 @@ class Plan:
         if self.rateMethod in [None, "user", "historical average", "conservative"]:
             self.mylog.vprint(f"Warning: Cannot plot correlations for {self.rateMethod} rate method.")
             return None
+
+        # Check if rates are constant (all values are the same for each rate type)
+        # This can happen with fixed rates
+        if self.tau_kn is not None:
+            # Check if all rates are constant (no variation)
+            rates_are_constant = True
+            for k in range(self.N_k):
+                # Check if all values in this rate series are (approximately) the same
+                rate_std = np.std(self.tau_kn[k])
+                # Use a small threshold to account for floating point precision
+                if rate_std > 1e-10:  # If standard deviation is non-zero, rates vary
+                    rates_are_constant = False
+                    break
+
+            if rates_are_constant:
+                self.mylog.vprint("Warning: Cannot plot correlations for constant rates (no variation in rate values).")
+                return None
 
         fig = self._plotter.plot_rates_correlations(self._name, self.tau_kn, self.N_n, self.rateMethod,
                                                     self.rateFrm, self.rateTo, tag, shareRange)
