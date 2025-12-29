@@ -79,4 +79,5 @@ if strio is not None:
 
     st.code("\n".join(lines), language=None)
 
-st.caption("These logs are stored in memory and are only available to you. They are solely for debugging purposes and disappear after a session is closed.")
+st.caption("""These logs are stored in memory and are only available to you.
+They are solely for debugging purposes and disappear after a session is closed.""")
