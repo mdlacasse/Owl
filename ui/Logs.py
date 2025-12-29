@@ -1,5 +1,6 @@
 import streamlit as st
 import sskeys as kz
+import owlbridge as owb
 
 st.markdown("# :material/error: Logs")
 kz.divider("orange")
@@ -64,20 +65,22 @@ kz.storeGlobalKey("active_case_filter", name)
 strio = kz.getGlobalKey("loguruLogger")
 if strio is not None:
     logmsg = strio.getvalue()
-    lines = logmsg.splitlines()
 
-    # Single case filter. Include separators for better separation.
+    # Parse log entries into message groups
+    message_groups = owb.parseLogGroups(logmsg)
+
+    # Apply filters
     actcase = kz.getGlobalKey("active_case_filter")
-    if actcase:
-        casestr = "| " + actcase + " |"
-        lines = [line for line in lines if casestr in line]
-
-    # Text filter
     actfilter = kz.getGlobalKey("text_filter")
-    if actfilter:
-        lines = [line for line in lines if actfilter in line]
+    filtered_groups = owb.filterLogGroups(
+        message_groups,
+        case_filter=actcase,
+        text_filter=actfilter
+    )
 
-    st.code("\n".join(lines), language=None)
+    # Format and display
+    filtered_logs = owb.formatFilteredLogs(filtered_groups)
+    st.code(filtered_logs, language=None)
 
 st.caption("""These logs are stored in memory and are only available to you.
 They are solely for debugging purposes and disappear after a session is closed.""")

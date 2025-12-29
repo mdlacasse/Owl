@@ -12,6 +12,11 @@ sys.path.insert(0, "../src")
 import owlplanner as owl                      # noqa: E402
 from owlplanner.rates import FROM, TO         # noqa: E402
 from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes  # noqa: E402, F401
+from owlplanner.mylogging import (            # noqa: E402
+    parse_log_groups,
+    filter_log_groups,
+    format_filtered_logs
+)
 
 import sskeys as kz         # noqa: E402
 import progress             # noqa: E402
@@ -969,3 +974,13 @@ def getFixedAssetsBequestValue(plan, in_todays_dollars=False):
             return plan.fixed_assets_bequest_value
     else:
         return 0.0
+
+
+# -------------------------------
+# Log filtering functions - re-exported from mylogging
+# -------------------------------
+
+# Re-export log filtering functions for owlbridge interface
+parseLogGroups = parse_log_groups
+filterLogGroups = filter_log_groups
+formatFilteredLogs = format_filtered_logs

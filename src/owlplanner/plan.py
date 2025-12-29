@@ -133,14 +133,11 @@ def clone(plan, newname=None, *, verbose=True, logstreams=None):
     """
     import copy
 
-    # Can't deepcopy variables containing file descriptors.
-    mylogger = plan.logger()
-    plan.setLogger(None)
     newplan = copy.deepcopy(plan)
-    plan.setLogger(mylogger)
 
     if logstreams is None:
-        newplan.setLogger(mylogger)
+        # Share the same logger instance
+        newplan.setLogger(plan.logger())
     else:
         newplan.setLogstreams(verbose, logstreams)
 

@@ -1,4 +1,6 @@
 import sys
+import copy
+import re
 from loguru import logger as loguru_logger
 
 
@@ -54,6 +56,37 @@ class Logger(object):
         """
         self._stream_id = stream_id
 
+    def __deepcopy__(self, memo):
+        """
+        Custom deepcopy implementation to handle file descriptors properly.
+        Creates a new Logger instance with the same settings instead of
+        attempting to copy file descriptors (sys.stdout, sys.stderr, etc.).
+        """
+        # Determine logstreams parameter for new instance
+        if self._use_loguru:
+            logstreams = "loguru"
+        elif self._logstreams is None:
+            logstreams = None
+        elif self._logstreams == [sys.stdout, sys.stderr]:
+            # Default case - will be recreated as [sys.stdout, sys.stderr]
+            logstreams = None
+        else:
+            # Custom streams - preserve them (they might be StringIO or similar)
+            logstreams = self._logstreams
+
+        # Create a new Logger instance with the same settings
+        new_logger = Logger(
+            verbose=self._verbose,
+            logstreams=logstreams,
+            stream_id=self._stream_id
+        )
+
+        # Copy the verbose stack state
+        new_logger._verboseStack = copy.deepcopy(self._verboseStack, memo)
+        new_logger._prevState = self._prevState
+
+        return new_logger
+
     # ------------------------------------------------------------
     # Printing methods
     # ------------------------------------------------------------
@@ -68,10 +101,8 @@ class Logger(object):
             return
 
         tag = self._stream_id + " | " if self._stream_id else "Global |"
-        # loguru_logger.info(tag+(" ".join(map(str, args))))
-        loguru_logger.opt(depth=1).info(
-            tag + (" ".join(map(str, args)))
-        )
+        loguru_logger.opt(depth=1).info(tag + (" ".join(map(str, args))))
+
         if "file" not in kwargs:
             file = self._logstreams[0]
             kwargs["file"] = file
@@ -89,10 +120,7 @@ class Logger(object):
                 return
 
             tag = self._stream_id + " | " if self._stream_id else "Global | "
-            # loguru_logger.debug(tag+(" ".join(map(str, args))))
-            loguru_logger.opt(depth=1).debug(
-                tag + (" ".join(map(str, args)))
-            )
+            loguru_logger.opt(depth=1).debug(tag + (" ".join(map(str, args))))
 
             if "file" not in kwargs:
                 file = self._logstreams[0]
@@ -120,3 +148,105 @@ class Logger(object):
             file.flush()
 
         raise Exception("Fatal error.")
+
+
+# -------------------------------
+# Log filtering utility functions
+# -------------------------------
+
+
+def parse_log_groups(log_content):
+    """
+    Parse log content into message groups.
+
+    Groups multi-line log messages together. A log entry starts with a timestamp
+    pattern (YYYY-MM-DD HH:mm:ss), and continuation lines (without timestamps)
+    are grouped with the preceding entry.
+
+    Args:
+        log_content (str): Raw log content from StringIO or similar
+
+    Returns:
+        list: List of message groups, where each group is a list of lines
+    """
+    lines = log_content.splitlines()
+    # Pattern to detect log entry start: timestamp at beginning of line
+    # Log format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {module}:{line} | {message}"
+    timestamp_pattern = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+
+    message_groups = []
+    current_group = []
+
+    for line in lines:
+        # Check if this line starts a new log entry
+        if timestamp_pattern.match(line):
+            # Save previous group if it exists
+            if current_group:
+                message_groups.append(current_group)
+            # Start new group
+            current_group = [line]
+        else:
+            # Continuation line - add to current group
+            if current_group:
+                current_group.append(line)
+            else:
+                # Orphaned continuation line (shouldn't happen, but handle gracefully)
+                current_group = [line]
+
+    # Don't forget the last group
+    if current_group:
+        message_groups.append(current_group)
+
+    return message_groups
+
+
+def filter_log_groups(message_groups, case_filter=None, text_filter=None):
+    """
+    Filter message groups by case name and/or text content.
+
+    A message group is included if any line in the group matches the filters.
+    This ensures multi-line messages are preserved when filtering.
+
+    Args:
+        message_groups (list): List of message groups (from parse_log_groups)
+        case_filter (str, optional): Case name to filter by (looks for "| {case} |")
+        text_filter (str, optional): Text substring to search for
+
+    Returns:
+        list: Filtered list of message groups
+    """
+    filtered_groups = []
+
+    for group in message_groups:
+        # Check if any line in the group matches the filters
+        matches_case = True
+        matches_text = True
+
+        if case_filter:
+            casestr = "| " + case_filter + " |"
+            matches_case = any(casestr in line for line in group)
+
+        if text_filter:
+            matches_text = any(text_filter in line for line in group)
+
+        # Include group if it matches all active filters
+        if matches_case and matches_text:
+            filtered_groups.append(group)
+
+    return filtered_groups
+
+
+def format_filtered_logs(filtered_groups):
+    """
+    Format filtered message groups back into a single string.
+
+    Args:
+        filtered_groups (list): List of filtered message groups
+
+    Returns:
+        str: Formatted log content with newlines between lines
+    """
+    filtered_lines = []
+    for group in filtered_groups:
+        filtered_lines.extend(group)
+    return "\n".join(filtered_lines)

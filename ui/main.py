@@ -50,7 +50,7 @@ if kz.getGlobalKey("loguruLogger") is None:
     loguruLogger = StringIO()
     kz.initGlobalKey("loguruLogger", loguruLogger)
     logger.remove()
-    fmt1 = "{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {module}:{line} | {message}"
+    fmt1 = "{time:YYYY-MM-DD HH:mm:ss} | {level} | {module}:{line} | {message}"
     logger.add(loguruLogger, format=fmt1, level="DEBUG")
     logger.info("Global logging started.")
 

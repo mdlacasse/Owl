@@ -335,18 +335,18 @@ class Rates(object):
 
     def _histRates(self, n):
         """
-        Return a list of 4 values representing the historical rates
+        Return an array of 4 values representing the historical rates
         of stock, Corporate Baa bonds, Treasury notes, and inflation,
         respectively.
         """
         hrates = np.array([SP500[n], BondsBaa[n], TNotes[n], Inflation[n]])
 
-        # Convert from percent to decimal.
+        # Historical rates are stored in percent. Convert from percent to decimal.
         return hrates / 100
 
     def _stochRates(self, n):
         """
-        Return a list of 4 values representing the historical rates
+        Return an array of 4 values representing the historical rates
         of stock, Corporate Baa bonds, Treasury notes, and inflation,
         respectively. Values are pulled from normal distributions
         having the same characteristics as the historical data for
@@ -354,7 +354,7 @@ class Rates(object):
 
         But these variables need to be looked at together
         through multivariate analysis. Code below accounts for
-        covariance between stocks, bonds, and inflation.
+        covariance between stocks, corp bonds, t-notes, and inflation.
         """
         srates = np.random.multivariate_normal(self.means, self.covar)
 
