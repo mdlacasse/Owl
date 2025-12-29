@@ -369,6 +369,20 @@ def showRatesCorrelations(plan, col):
 
 
 @_checkPlan
+def hasFileRatesLoaded(plan):
+    """
+    Check if rates are loaded from a file.
+
+    Returns:
+    --------
+    bool or None
+        True if rates are loaded from a file, False otherwise.
+        Returns None if plan doesn't exist (decorator handles this).
+    """
+    return plan.hasFileRatesLoaded()
+
+
+@_checkPlan
 def showIncome(plan):
     fig = plan.showIncome(figure=True)
     if fig:

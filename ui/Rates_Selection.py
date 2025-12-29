@@ -56,6 +56,7 @@ kz.initCaseKey("fixedType", fixedChoices[0])
 kz.initCaseKey("varyingType", varyingChoices[0])
 kz.initCaseKey("ratesLoaded", False)
 kz.initCaseKey("rateFile", None)
+kz.initCaseKey("rateFileName", None)  # Store original filename separately
 kz.initCaseKey("rateSheetName", None)
 
 ret = kz.titleBar(":material/monitoring: Rates Selection")
@@ -134,10 +135,14 @@ forecasts for the next decade can be found
                 if kz.getCaseKey("rateFile") is None:
                     st.info("Rate file not uploaded yet.")
                 kz.setCaseKey("rateFile", None)
+                kz.setCaseKey("rateFileName", None)
                 kz.setCaseKey("rateSheetName", None)
                 kz.setCaseKey("ratesLoaded", False)
             elif uploaded_file is not None:
                 kz.setCaseKey("rateFile", uploaded_file)
+                # Store the original filename for later display
+                if hasattr(uploaded_file, 'name'):
+                    kz.setCaseKey("rateFileName", uploaded_file.name)
                 # Clear rates loaded flag when new file is uploaded
                 kz.setCaseKey("ratesLoaded", False)
                 try:
@@ -300,11 +305,48 @@ forecasts for the next decade can be found
                             )
                         else:
                             display_name = "selected sheet"
-                        st.success(f"Rates loaded from '{display_name}'.")
+                        st.success(f"Rates loaded from sheet '{display_name}'.")
 
             # Check if sheet is selected
             if kz.getCaseKey("rateSheetName") is None:
                 st.info("Rate sheet not selected yet.")
+
+        # Display currently active sheet name if rates are loaded
+        # Get the sheet name from the plan (what's actually loaded), not from UI selection
+        if owb.hasFileRatesLoaded():
+            plan = kz.getCaseKey("plan")
+            if plan is not None and hasattr(plan, 'rateSheetName') and plan.rateSheetName:
+                current_sheet = plan.rateSheetName
+                # Get display name if available
+                display_names = kz.getCaseKey("rateDisplayNames") or {}
+                display_name = display_names.get(current_sheet, current_sheet)
+                # Remove "Rates - " prefix if present for cleaner display
+                if display_name.startswith("Rates - "):
+                    display_name = display_name[8:]
+
+                # Get file name from stored filename in session state (preserved across page reloads)
+                file_name = kz.getCaseKey("rateFileName")
+
+                # Fallback: try to get from current rateFile if stored filename not available
+                if not file_name:
+                    rate_file = kz.getCaseKey("rateFile")
+                    if rate_file:
+                        if hasattr(rate_file, 'name'):
+                            # Streamlit UploadedFile object - has original filename
+                            file_name = rate_file.name
+                            # Store it for next time
+                            kz.setCaseKey("rateFileName", file_name)
+                        elif isinstance(rate_file, str):
+                            # File path string
+                            import os
+                            file_name = os.path.basename(rate_file)
+                            kz.setCaseKey("rateFileName", file_name)
+
+                # Display with file name if available
+                if file_name:
+                    st.info(f"**Current rates in effect:** {display_name} from file *{file_name}*")
+                else:
+                    st.info(f"**Current rates in effect:** {display_name}")
 
     else:
         st.error("Logic error")
@@ -426,15 +468,25 @@ forecasts for the next decade can be found
     # Only show rates graph if conditions are met
     show_rates_graph = True
     if kz.getCaseKey("rateType") == "file":
-        # For file type, only show graph if file is uploaded, sheet is selected, AND rates have been loaded
-        if kz.getCaseKey("rateFile") is None or kz.getCaseKey("rateSheetName") is None:
+        # Check if rates have been loaded in plan (this works even when returning to page)
+        # Use bridge function to avoid direct dependency on plan structure
+        rates_loaded_in_plan = owb.hasFileRatesLoaded()
+        # If rates are already loaded in plan, set the flag for consistency
+        if rates_loaded_in_plan:
+            if not kz.getCaseKey("ratesLoaded"):
+                kz.setCaseKey("ratesLoaded", True)
+            # Rates are loaded, show the graph
+            show_rates_graph = True
+        elif kz.getCaseKey("rateFile") is None or kz.getCaseKey("rateSheetName") is None:
+            # No file uploaded and rates not loaded
             show_rates_graph = False
         elif not kz.getCaseKey("ratesLoaded"):
-            # Rates haven't been loaded yet via Select button
+            # File is uploaded but rates haven't been loaded yet via Select button
             show_rates_graph = False
 
     if show_rates_graph:
-        if kz.getCaseKey("rateType") == "varying":
+        # Show correlations for both varying and file rate types
+        if kz.getCaseKey("rateType") in ["varying", "file"]:
             col1, col2 = st.columns(2, gap="medium")
             owb.showRatesCorrelations(col2)
         else:

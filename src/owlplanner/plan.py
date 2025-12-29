@@ -366,6 +366,7 @@ class Plan:
         # Placeholders values used to check if properly configured.
         self.xi_n = None
         self.alpha_ijkn = None
+        self.tau_kn = None
 
         return None
 
@@ -726,47 +727,73 @@ class Plan:
         self.rateTo = to
         self.rateFile = file
         self.rateSheetName = sheet_name
-        # Store the Rates object for reuse in regenRates()
-        self.rateRates = dr
-        self.tau_kn = dr.genSeries(self.N_n).transpose()
-        self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using {method} method.")
+
+        # For file method, directly extract data from DataFrame instead of looping
+        if method == "file" and hasattr(dr, '_fileData') and dr._fileData is not None:
+            # Extract all data at once from the DataFrame
+            # Get years from frm to frm + N_n - 1 (inclusive)
+            years = np.arange(frm, frm + self.N_n)
+            # Extract data for all years at once
+            file_data = dr._fileData.loc[years]
+            # Convert to numpy array and transpose to match tau_kn shape (N_k x N_n)
+            # File data columns: S&P 500, Bonds Baa, TNotes, Inflation
+            rates_array = file_data[["S&P 500", "Bonds Baa", "TNotes", "Inflation"]].values.T
+            # Convert from percent to decimal
+            self.tau_kn = rates_array / 100.0
+            self.mylog.vprint(f"Loaded rate series of {len(self.tau_kn[0])} years directly from file '{file}' sheet '{sheet_name}'.")
+        else:
+            # For other methods, use genSeries
+            self.tau_kn = dr.genSeries(self.N_n).transpose()
+            self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using {method} method.")
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = _genGamma_n(self.tau_kn)
         self._adjustedParameters = False
         self.caseStatus = "modified"
 
+    def hasFileRatesLoaded(self):
+        """
+        Check if rates are loaded from a file.
+
+        Returns:
+        --------
+        bool
+            True if rates are loaded from a file, False otherwise.
+        """
+        return (self.rateMethod == "file" and
+                self.tau_kn is not None and
+                hasattr(self, 'rateFile') and
+                self.rateFile is not None and
+                hasattr(self, 'rateSheetName') and
+                self.rateSheetName is not None)
+
     def regenRates(self):
         """
         Regenerate the rates using the arguments specified during last setRates() call.
         This method is used to regenerate stochastic time series.
+        Only stochastic and histochastic methods need regeneration.
+        All fixed rate methods (default, optimistic, conservative, user, historical average,
+        historical, file) don't need regeneration as they produce the same values.
         """
-        # For file method, reuse the stored Rates object (data already loaded in memory)
-        if self.rateMethod == "file" and hasattr(self, 'rateRates') and self.rateRates is not None:
-            # Just regenerate the series from the already-loaded data
-            self.tau_kn = self.rateRates.genSeries(self.N_n).transpose()
-            self.mylog.vprint(
-                f"Regenerating rate series of {len(self.tau_kn[0])} years using {self.rateMethod} method."
-            )
-            # Rebuild cumulative inflation multipliers
-            self.gamma_n = _genGamma_n(self.tau_kn)
-            self._adjustedParameters = False
-            self.caseStatus = "modified"
+        # Fixed rate methods don't need regeneration - they produce the same values
+        fixed_methods = ["default", "optimistic", "conservative", "user",
+                        "historical average", "historical", "file"]
+        if self.rateMethod in fixed_methods:
             return
 
-        # For other methods, use the original approach
-        kwargs = {
-            "frm": self.rateFrm,
-            "to": self.rateTo,
-            "corr": self.rateCorr,
-        }
+        # Only stochastic methods need regeneration to get new random values
         if self.rateMethod == "stochastic" or self.rateMethod == "histochastic":
-            kwargs["values"] = 100 * self.rateValues if self.rateValues is not None else None
-            kwargs["stdev"] = 100 * self.rateStdev if self.rateStdev is not None else None
-        elif self.rateMethod == "user":
-            kwargs["values"] = 100 * self.rateValues if self.rateValues is not None else None
-
-        self.setRates(self.rateMethod, **kwargs)
+            kwargs = {
+                "frm": self.rateFrm,
+                "to": self.rateTo,
+                "corr": self.rateCorr,
+                "values": 100 * self.rateValues if self.rateValues is not None else None,
+                "stdev": 100 * self.rateStdev if self.rateStdev is not None else None,
+            }
+            self.setRates(self.rateMethod, **kwargs)
+        else:
+            # Unknown method - shouldn't happen, but log a warning
+            self.mylog.vprint(f"Warning: Unknown rate method '{self.rateMethod}' in regenRates().")
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, startDate=None, units="k"):
         """
@@ -2537,6 +2564,24 @@ class Plan:
         if self.rateMethod in [None, "user", "historical average", "conservative"]:
             self.mylog.vprint(f"Warning: Cannot plot correlations for {self.rateMethod} rate method.")
             return None
+
+        # Check if rates are constant (all values are the same for each rate type)
+        # This can happen with file-based rates or fixed rates
+        if self.tau_kn is not None:
+            # Check if all rates are constant (no variation)
+            rates_are_constant = True
+            for k in range(self.N_k):
+                if k < len(self.tau_kn) and len(self.tau_kn[k]) > 0:
+                    # Check if all values in this rate series are (approximately) the same
+                    rate_std = np.std(self.tau_kn[k])
+                    # Use a small threshold to account for floating point precision
+                    if rate_std > 1e-10:  # If standard deviation is non-zero, rates vary
+                        rates_are_constant = False
+                        break
+
+            if rates_are_constant:
+                self.mylog.vprint("Warning: Cannot plot correlations for constant rates (no variation in rate values).")
+                return None
 
         fig = self._plotter.plot_rates_correlations(self._name, self.tau_kn, self.N_n, self.rateMethod,
                                                     self.rateFrm, self.rateTo, tag, shareRange)
