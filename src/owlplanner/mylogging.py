@@ -1,4 +1,5 @@
 import sys
+import copy
 from loguru import logger as loguru_logger
 
 
@@ -105,3 +106,22 @@ class Logger(object):
             file.flush()
 
         raise Exception("Fatal error.")
+
+    def __deepcopy__(self, memo):
+        """
+        Custom deepcopy implementation to avoid copying file descriptors.
+        Creates a new Logger instance with the same configuration but without
+        file stream references.
+        """
+        # Create a new Logger instance with the same configuration
+        new_logger = Logger.__new__(Logger)
+        new_logger._verbose = copy.deepcopy(self._verbose, memo)
+        new_logger._prevState = copy.deepcopy(self._prevState, memo)
+        new_logger._use_loguru = copy.deepcopy(self._use_loguru, memo)
+        new_logger._stream_id = copy.deepcopy(self._stream_id, memo)
+
+        # Don't copy file descriptors - set to None
+        # The clone function will handle setting up the logger properly
+        new_logger._logstreams = None
+
+        return new_logger
