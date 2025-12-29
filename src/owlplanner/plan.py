@@ -442,6 +442,9 @@ class Plan:
         """
         self.mylog.vprint(f"Renaming plan {self._name} -> {newname}.")
         self._name = newname
+        # Update logger's stream_id to match the new plan name
+        if hasattr(self.mylog, 'setStreamId'):
+            self.mylog.setStreamId(newname)
 
     def setDescription(self, description):
         """

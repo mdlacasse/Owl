@@ -39,6 +39,12 @@ class Logger(object):
     def resetVerbose(self):
         self._verbose = self._prevState
 
+    def setStreamId(self, stream_id):
+        """
+        Update the stream_id used for tagging log messages.
+        """
+        self._stream_id = stream_id
+
     # ------------------------------------------------------------
     # Printing methods
     # ------------------------------------------------------------
