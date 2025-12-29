@@ -359,6 +359,10 @@ After making sure that all entries are valid, paste these data into the tool.
 Enter birth year and month and number of years the individual is planning
 to continue to work, if any.
 
+Note that the year and month entered are the month when you receive your first
+benefits. Most likely, you will have claimed a month earlier as the first
+check follows the month when you claim benefits.
+
 Owl considers the exact FRA associated with the individual's birth year and adjusts the PIA
 according to the age (year and month) when benefits are claimed. Total amount received
 during the first year of benefits (if in the future) is adjusted for situations

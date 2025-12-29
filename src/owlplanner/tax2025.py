@@ -257,7 +257,7 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=2099):
     # Number of years left in OBBBA from this year.
     thisyear = date.today().year
     if yOBBBA < thisyear:
-        raise ValueError(f"Expiration year {yOBBBA} cannot be in the past.")
+        raise ValueError(f"OBBBA expiration year {yOBBBA} cannot be in the past.")
 
     ytc = yOBBBA - thisyear
 

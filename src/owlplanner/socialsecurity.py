@@ -91,7 +91,7 @@ def getSpousalBenefits(pias):
     return benefits
 
 
-def getSelfFactor(fra, convage, bornOnFirst):
+def getSelfFactor(fra, convage, bornOnFirstDays):
     """
     Return the reduction/increase factor to multiply PIA based on claiming age.
 
@@ -102,7 +102,8 @@ def getSelfFactor(fra, convage, bornOnFirst):
     - After FRA: Benefits are increased by 8% per year (up to 132% at age 70)
 
     The function automatically adjusts for Social Security age if the birthday is on
-    the first day of the month (adds 1/12 year to conventional age).
+    the 1st or 2nd day of the month (adds 1/12 year to conventional age), consistent
+    with SSA rules that treat both days the same for age calculation purposes.
 
     Parameters
     ----------
@@ -111,8 +112,8 @@ def getSelfFactor(fra, convage, bornOnFirst):
     convage : float
         Conventional age when benefits start, in years (can be fractional with 1/12 increments).
         Must be between 62 and 70 inclusive.
-    bornOnFirst : bool
-        True if birthday is on the first day of the month, False otherwise.
+    bornOnFirstDays : bool
+        True if birthday is on the 1st or 2nd day of the month, False otherwise.
         If True, the function adds 1/12 year to convert to Social Security age.
 
     Returns
@@ -131,8 +132,8 @@ def getSelfFactor(fra, convage, bornOnFirst):
     if convage < 62 or convage > 70:
         raise ValueError(f"Age {convage} out of range.")
 
-    # Add a month to conventional age if born on the first.
-    offset = 0 if not bornOnFirst else 1/12
+    # Add a month to conventional age if born on the 1st or 2nd (SSA treats both the same).
+    offset = 0 if not bornOnFirstDays else 1/12
     ssage = convage + offset
 
     diff = fra - ssage
@@ -146,7 +147,7 @@ def getSelfFactor(fra, convage, bornOnFirst):
         return .8 - 0.05 * (diff - 3)
 
 
-def getSpousalFactor(fra, convage, bornOnFirst):
+def getSpousalFactor(fra, convage, bornOnFirstDays):
     """
     Return the reduction factor to multiply spousal benefits based on claiming age.
 
@@ -156,7 +157,8 @@ def getSpousalFactor(fra, convage, bornOnFirst):
     - At or after FRA: Full spousal benefit (50% of spouse's PIA, no increase for delay)
 
     The function automatically adjusts for Social Security age if the birthday is on
-    the first day of the month (adds 1/12 year to conventional age).
+    the 1st or 2nd day of the month (adds 1/12 year to conventional age), consistent
+    with SSA rules that treat both days the same for age calculation purposes.
 
     Parameters
     ----------
@@ -165,8 +167,8 @@ def getSpousalFactor(fra, convage, bornOnFirst):
     convage : float
         Conventional age when benefits start, in years (can be fractional with 1/12 increments).
         Must be at least 62 (no maximum, but no increase beyond FRA).
-    bornOnFirst : bool
-        True if birthday is on the first day of the month, False otherwise.
+    bornOnFirstDays : bool
+        True if birthday is on the 1st or 2nd day of the month, False otherwise.
         If True, the function adds 1/12 year to convert to Social Security age.
 
     Returns
@@ -185,8 +187,8 @@ def getSpousalFactor(fra, convage, bornOnFirst):
     if convage < 62:
         raise ValueError(f"Age {convage} out of range.")
 
-    # Add a month to conventional age if born on the first.
-    offset = 0 if not bornOnFirst else 1/12
+    # Add a month to conventional age if born on the 1st or 2nd (SSA treats both the same).
+    offset = 0 if not bornOnFirstDays else 1/12
     ssage = convage + offset
 
     diff = fra - ssage

@@ -6,6 +6,8 @@ import owlbridge as owb
 import tomlexamples as tomlex
 import case_progress as cp
 
+from loguru import logger
+
 
 ret = kz.titleBar(":material/person_add: Create Case", allCases=True)
 
@@ -30,6 +32,7 @@ elif ret == kz.loadCaseFile:
         st.markdown("#### :orange[Upload Your Own Case File]")
         file = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])
         if file is not None:
+            logger.info(f"Loading case file: '{file.name}'")
             mystringio = StringIO(file.read().decode("utf-8"))
             if kz.createCaseFromFile(mystringio):
                 st.rerun()
@@ -39,6 +42,7 @@ elif ret == kz.loadCaseFile:
         case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None,
                             placeholder="Select an example case")
         if case:
+            logger.info(f"Loading example: '{case}'")
             mystringio = tomlex.loadCaseExample(case)
             if kz.createCaseFromFile(mystringio):
                 kz.initCaseKey("tomlexcase", case)
