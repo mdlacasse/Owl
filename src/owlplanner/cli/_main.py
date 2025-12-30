@@ -4,7 +4,6 @@ import click
 from .cli_logging import configure_logging, LOG_LEVELS
 from .cmd_list import cmd_list
 from .cmd_run import cmd_run
-from .cmd_hydra import cmd_hydra
 
 
 @click.group()
@@ -26,7 +25,6 @@ def cli(ctx, log_level: str):
 
 cli.add_command(cmd_list)
 cli.add_command(cmd_run)
-cli.add_command(cmd_hydra)
 
 if __name__ == "__main__":
     cli()
