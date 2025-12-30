@@ -28,9 +28,6 @@ def init():
             loadCaseFile: {"iname0": "", "status": "unknown", "caseStatus": "new", "id": 1},
         }
 
-    if "nextid" not in ss:
-        ss.nextid = 2
-
     # Variable for storing name of current case.
     if "currentCase" not in ss:
         ss.currentCase = loadCaseFile
@@ -48,13 +45,23 @@ def genCaseKey(key):
 
 
 def setCaseId(casename):
+    """
+    Set case ID using Plan's ID counter to ensure synchronization.
+    If the case already has a Plan, use the Plan's ID.
+    Otherwise, get the next ID from Plan's counter.
+    """
     if casename in ss.cases:
-        myid = ss.nextid
-        ss.cases[casename]["id"] = myid
-        ss.nextid = myid + 1
-        return myid
+        # Check if case already has a Plan with an ID
+        plan = ss.cases[casename].get("plan")
+        if plan is not None:
+            myid = plan._plan_id
+        else:
+            raise RuntimeError(f"Case {casename} has no Plan.")
     else:
-        raise RuntimeError(f"{casename} not found.")
+        raise RuntimeError(f"Case {casename} not found.")
+
+    ss.cases[casename]["id"] = myid
+    return myid
 
 
 def getKeyInCase(key, casename):
@@ -206,11 +213,11 @@ def copyCase():
     for key in ["summaryDf", "histoPlot", "histoSummary", "monteCarloPlot", "monteCarloSummary"]:
         ss.cases[dupname][key] = None
 
-    setCaseId(dupname)
     ss.cases[dupname]["copy"] = True
+    ss.cases[dupname]["id"] = None
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
-    st.toast("Case copied.")
+    st.toast("Case copied but not created.")
 
 
 def createCaseFromFile(strio):
@@ -244,8 +251,7 @@ def createNewCase(case):
         st.error(f"Case name '{casename}' already exists.")
         return
 
-    ss.cases[casename] = {"name": casename, "caseStatus": "unknown", "logs": None}
-    setCaseId(casename)
+    ss.cases[casename] = {"name": casename, "caseStatus": "unknown", "logs": None, "id": None}
     setCurrentCase(casename)
 
 

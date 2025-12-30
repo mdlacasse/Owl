@@ -43,6 +43,8 @@ def createPlan():
     try:
         plan = owl.Plan(inames, dobs, life, name,
                         verbose=True, logstreams=[strio, strio])
+        # Copy the Plan's unique ID to session_state case dictionary
+        kz.setCaseKey("id", plan._plan_id)
         kz.setCaseKey("plan", plan)
     except Exception as e:
         st.error(f"Failed creation of plan '{name}': {e}")
@@ -744,6 +746,7 @@ def genDic(plan):
     accName = ["txbl", "txDef", "txFree"]
     dic = {}
     dic["plan"] = plan
+    dic["id"] = plan._plan_id  # Sync case ID with Plan ID
     dic["name"] = plan._name
     dic["description"] = plan._description
     dic["summaryDf"] = None

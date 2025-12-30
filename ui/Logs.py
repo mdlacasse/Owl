@@ -72,9 +72,17 @@ if strio is not None:
     # Apply filters
     actcase = kz.getGlobalKey("active_case_filter")
     actfilter = kz.getGlobalKey("text_filter")
+
+    # We use ID-based filtering instead of name-based to handle case renames correctly
+    case_id_filter = None
+    if actcase:
+        case_id = kz.getKeyInCase("id", actcase)
+        if case_id is not None:
+            case_id_filter = case_id
+
     filtered_groups = owb.filterLogGroups(
         message_groups,
-        case_filter=actcase,
+        case_id_filter=case_id_filter,
         text_filter=actfilter
     )
 

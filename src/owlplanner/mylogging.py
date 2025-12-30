@@ -200,18 +200,22 @@ def parse_log_groups(log_content):
     return message_groups
 
 
-def filter_log_groups(message_groups, case_filter=None, text_filter=None):
+def filter_log_groups(message_groups, text_filter=None, case_id_filter=None):
     """
-    Filter message groups by case name and/or text content.
+    Filter message groups by case ID and/or text content.
 
-    A message group is included if it matches the filters. The case filter
+    A message group is included if it matches the filters. The case ID filter
     is only checked in the first line (which contains the loguru format with
     the case tag), while the text filter is checked across all lines in the group.
     This ensures multi-line messages are preserved when filtering.
 
+    Note: Filtering by case ID is used because case names can change, but IDs
+    remain constant. This allows filtering logs from before and after a case rename.
+
     Args:
         message_groups (list): List of message groups (from parse_log_groups)
-        case_filter (str, optional): Case name to filter by (looks for "| {case} |")
+        case_id_filter (int or str, optional): Case ID to filter by (looks for "| {id}_" pattern).
+            This is the recommended way to filter by case.
         text_filter (str, optional): Text substring to search for
 
     Returns:
@@ -221,20 +225,24 @@ def filter_log_groups(message_groups, case_filter=None, text_filter=None):
 
     for group in message_groups:
         # Check if the group matches the filters
-        matches_case = True
+        matches_id = True
         matches_text = True
 
-        if case_filter:
-            # Case tag only appears in the first line (the loguru-formatted line)
-            casestr = "| " + case_filter + " |"
-            matches_case = casestr in group[0]
+        # Filter by case ID (works even after case rename)
+        if case_id_filter is not None:
+            # Filter by ID: look for "| {id}_" pattern in the log line
+            # The log format includes "| {id}_{name} |", so we match the full pattern
+            # This is more selective and avoids false matches
+            id_str = str(case_id_filter)
+            id_pattern = " | id" + id_str + ":"
+            matches_id = id_pattern in group[0]
 
         if text_filter:
             # Text filter can match any line in the group
             matches_text = any(text_filter in line for line in group)
 
         # Include group if it matches all active filters
-        if matches_case and matches_text:
+        if matches_id and matches_text:
             filtered_groups.append(group)
 
     return filtered_groups
