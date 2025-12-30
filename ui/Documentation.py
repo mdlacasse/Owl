@@ -312,8 +312,10 @@ The *Debts* worksheet looks like the following:
 |--|--|--|--|--|--|--|
 | | | | | | | |
 
-where *type* is one of *loan* or *mortgage*. The *active* field allows to turn
-debts or fixed assets on or off in the calculations for comparison purposes.
+where *type* is one of *loan* or *mortgage*. The *active* field is a Boolean value
+that allows to turn debts or fixed assets on or off in the calculations.
+This is useful for case comparison purposes.
+Boolean values are marked in all caps as `TRUE` or `FALSE` in Excel.
 
 *Fixed Assets* are used to track illiquid assets such as a house, real estate, collectibles,
 or restricted stocks. Fixed-rate annuities with a lump sum can also be modeled. In the

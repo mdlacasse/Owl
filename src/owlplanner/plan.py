@@ -1020,12 +1020,20 @@ class Plan:
 
             # Values for last 5 years of Roth conversion and contributions stored at the end
             # of array and accessed with negative index.
-            self.kappa_ijn[i, 0, :h+5] = np.roll(self.timeLists[iname]["taxable ctrb"], -5)
-            self.kappa_ijn[i, 1, :h+5] = np.roll(self.timeLists[iname]["401k ctrb"], -5)
-            self.kappa_ijn[i, 1, :h+5] += np.roll(self.timeLists[iname]["IRA ctrb"], -5)
-            self.kappa_ijn[i, 2, :h+5] = np.roll(self.timeLists[iname]["Roth 401k ctrb"], -5)
-            self.kappa_ijn[i, 2, :h+5] += np.roll(self.timeLists[iname]["Roth IRA ctrb"], -5)
-            self.myRothX_in[i, :h+5] = np.roll(self.timeLists[iname]["Roth conv"], -5)
+            self.kappa_ijn[i, 0, :h] = self.timeLists[iname]["taxable ctrb"][5:h+5]
+            self.kappa_ijn[i, 1, :h] = self.timeLists[iname]["401k ctrb"][5:h+5]
+            self.kappa_ijn[i, 1, :h] += self.timeLists[iname]["IRA ctrb"][5:h+5]
+            self.kappa_ijn[i, 2, :h] = self.timeLists[iname]["Roth 401k ctrb"][5:h+5]
+            self.kappa_ijn[i, 2, :h] += self.timeLists[iname]["Roth IRA ctrb"][5:h+5]
+            self.myRothX_in[i, :h] = self.timeLists[iname]["Roth conv"][5:h+5]
+
+            # Last 5 years are at the end of the N_n array.
+            self.kappa_ijn[i, 0, -5:] = self.timeLists[iname]["taxable ctrb"][:5]
+            self.kappa_ijn[i, 1, -5:] = self.timeLists[iname]["401k ctrb"][:5]
+            self.kappa_ijn[i, 1, -5:] += self.timeLists[iname]["IRA ctrb"][:5]
+            self.kappa_ijn[i, 2, -5:] = self.timeLists[iname]["Roth 401k ctrb"][:5]
+            self.kappa_ijn[i, 2, -5:] += self.timeLists[iname]["Roth IRA ctrb"][:5]
+            self.myRothX_in[i, -5:] = self.timeLists[iname]["Roth conv"][:5]
 
         self.caseStatus = "modified"
 
