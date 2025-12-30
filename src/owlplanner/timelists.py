@@ -99,6 +99,10 @@ def read(finput, inames, horizons, mylog):
             dfDict = pd.read_excel(finput, sheet_name=None)
         except Exception as e:
             raise Exception(f"Could not read file {finput}: {e}.") from e
+
+        if hasattr(finput, "name"):
+            finput = finput.name
+
         streamName = f"file '{finput}'"
 
     timeLists = _conditionTimetables(dfDict, inames, horizons, mylog)

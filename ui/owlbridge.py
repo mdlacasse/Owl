@@ -391,9 +391,6 @@ def _setContributions(plan, action):
 
     # Compare timeLists
     for iname in plan.inames:
-        if iname not in original_timeLists:
-            data_changed = True
-            break
         if not plan.timeLists[iname].equals(original_timeLists[iname]):
             data_changed = True
             break
@@ -444,7 +441,7 @@ def readContributions(plan, stFile, file=None):
     try:
         plan.readContributions(stFile)
     except Exception as e:
-        st.error(f"Failed to parse Household Financial Profile Workbook'stFile.name': {e}")
+        st.error(f"Failed to parse Household Financial Profile Workbook 'stFile.name': {e}")
         return False
 
     if file:
