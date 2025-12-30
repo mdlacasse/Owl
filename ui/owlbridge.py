@@ -398,14 +398,8 @@ def _setContributions(plan, action):
     # Compare houseLists if timeLists haven't changed
     if not data_changed:
         for key in ["Debts", "Fixed Assets"]:
-            if key not in original_houseLists:
-                if key in plan.houseLists and not plan.houseLists[key].empty:
-                    data_changed = True
-                    break
-            elif key not in plan.houseLists:
-                if not original_houseLists[key].empty:
-                    data_changed = True
-                    break
+            if len(plan.houseLists[key]) == 0 and len(original_houseLists[key]) == 0:
+                continue
             elif not plan.houseLists[key].equals(original_houseLists[key]):
                 data_changed = True
                 break
@@ -438,12 +432,6 @@ def readContributions(plan, stFile, file=None):
     if stFile is None:
         return False
 
-    try:
-        plan.readContributions(stFile)
-    except Exception as e:
-        st.error(f"Failed to parse Household Financial Profile Workbook 'stFile.name': {e}")
-        return False
-
     if file:
         name = file
     elif hasattr(stFile, "name"):
@@ -451,8 +439,18 @@ def readContributions(plan, stFile, file=None):
     else:
         name = "unknown"
 
+    try:
+        plan.readContributions(stFile)
+    except Exception as e:
+        st.error(f"Failed to parse Household Financial Profile Workbook 'name': {e}")
+        return False
+
+    # Set the filename in both case dictionary and plan object
+    # This ensures the value is reset even if it was previously "edited values"
     kz.setCaseKey("stTimeLists", name)
     kz.setCaseKey("timeListsFileName", name)
+    plan.timeListsFileName = name
+
     kz.setCaseKey("timeList0", plan.timeLists[kz.getCaseKey("iname0")])
     kz.setCaseKey("_timeList0", plan.timeLists[kz.getCaseKey("iname0")])
     if kz.getCaseKey("status") == "married":
@@ -462,8 +460,6 @@ def readContributions(plan, stFile, file=None):
     # Store houseLists (Debts and Fixed Assets). These are guaranteed to be present in the plan object.
     kz.setCaseKey("houseListDebts", plan.houseLists["Debts"])
     kz.setCaseKey("houseListFixedAssets", plan.houseLists["Fixed Assets"])
-
-    plan.timeListsFileName = name
 
     return True
 

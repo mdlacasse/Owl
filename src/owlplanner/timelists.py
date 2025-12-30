@@ -280,8 +280,9 @@ def conditionDebtsAndFixedAssetsDF(df, tableType):
         if col == "active":
             # Ensure "active" column is boolean, handling strings/numbers from Excel
             df[col] = df[col].apply(u.convert_to_bool).astype(bool)
-        elif df[col].dtype != bool:
-            df[col] = df[col].fillna(0)
+        elif col != "index" and col != "type" and col != "name":
+            # df[col] = df[col].fillna(0).infer_objects(copy=False)
+            pass
 
     return df
 
