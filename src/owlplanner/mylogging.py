@@ -204,7 +204,9 @@ def filter_log_groups(message_groups, case_filter=None, text_filter=None):
     """
     Filter message groups by case name and/or text content.
 
-    A message group is included if any line in the group matches the filters.
+    A message group is included if it matches the filters. The case filter
+    is only checked in the first line (which contains the loguru format with
+    the case tag), while the text filter is checked across all lines in the group.
     This ensures multi-line messages are preserved when filtering.
 
     Args:
@@ -218,15 +220,17 @@ def filter_log_groups(message_groups, case_filter=None, text_filter=None):
     filtered_groups = []
 
     for group in message_groups:
-        # Check if any line in the group matches the filters
+        # Check if the group matches the filters
         matches_case = True
         matches_text = True
 
         if case_filter:
+            # Case tag only appears in the first line (the loguru-formatted line)
             casestr = "| " + case_filter + " |"
-            matches_case = any(casestr in line for line in group)
+            matches_case = casestr in group[0]
 
         if text_filter:
+            # Text filter can match any line in the group
             matches_text = any(text_filter in line for line in group)
 
         # Include group if it matches all active filters
