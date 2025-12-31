@@ -34,7 +34,7 @@ current_filter = kz.getGlobalKey("active_text_filter")
 
 text_input_value = ctrl_cols[0].text_input(
     "Search logs – Enter string to filter log messages.",
-    placeholder="Substring match (e.g., error, warning)",
+    placeholder="Substring match (e.g., warning)",
     value=current_filter,
     key="text_filter_input"
 )
@@ -54,7 +54,7 @@ if ctrl_cols[2].button(
         strio = kz.getKeyInCase("logs", selected_case)
         if strio is not None:
             strio.seek(0)
-            strio.truncate(0)
+            strio.truncate()
 
 # Get logs from the selected case
 if selected_case:
@@ -83,4 +83,4 @@ else:
     st.info(f"No logs available for case '{selected_case}'. Logs will appear here as you use the application.")
 
 st.caption("""These logs are stored in memory and are only available to you.
-They are solely for debugging purposes and disappear after the session is closed.""")
+They are solely for debugging purposes and disappear after this session is closed.""")
