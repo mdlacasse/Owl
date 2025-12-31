@@ -135,10 +135,13 @@ def _checkColumns(df, iname, colList):
     Ensure all columns in colList are present. Remove others.
     """
     # Drop all columns not in the list.
-    df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
-    for col in df.columns:
-        if col == "" or col not in colList:
-            df.drop(col, axis=1, inplace=True)
+    # Make an explicit copy to avoid SettingWithCopyWarning
+    df = df.loc[:, ~df.columns.str.contains("^Unnamed")].copy()
+
+    # Collect columns to drop
+    cols_to_drop = [col for col in df.columns if col == "" or col not in colList]
+    if cols_to_drop:
+        df = df.drop(cols_to_drop, axis=1)
 
     # Check that all columns in the list are present.
     for item in colList:
