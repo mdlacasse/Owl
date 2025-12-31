@@ -222,6 +222,7 @@ def copyCase():
 
 def createCaseFromFile(strio):
     import owlbridge as owb
+    from io import StringIO
 
     name, dic = owb.createCaseFromFile(strio)
     if name == "":
@@ -229,6 +230,10 @@ def createCaseFromFile(strio):
     elif name in ss.cases:
         st.error(f"Case name '{name}' already exists.")
         return False
+
+    # Create logs StringIO when case is created from file
+    if "logs" not in dic or dic["logs"] is None:
+        dic["logs"] = StringIO()
 
     ss.cases[name] = dic
     setCaseId(name)
@@ -251,7 +256,10 @@ def createNewCase(case):
         st.error(f"Case name '{casename}' already exists.")
         return
 
-    ss.cases[casename] = {"name": casename, "caseStatus": "unknown", "logs": None, "id": None}
+    # Create logs StringIO when case is created
+    from io import StringIO
+    logs_strio = StringIO()
+    ss.cases[casename] = {"name": casename, "caseStatus": "unknown", "logs": logs_strio, "id": None}
     setCurrentCase(casename)
 
 

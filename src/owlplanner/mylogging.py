@@ -1,6 +1,5 @@
 import sys
 import copy
-import re
 from loguru import logger as loguru_logger
 
 
@@ -100,14 +99,18 @@ class Logger(object):
             loguru_logger.debug(" ".join(map(str, args)))
             return
 
+        # Format message with timestamp and tag
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         tag = self._stream_id + " | " if self._stream_id else "Global |"
-        loguru_logger.opt(depth=1).info(tag + (" ".join(map(str, args))))
+        message = " ".join(map(str, args))
+        formatted_message = f"{timestamp} | INFO | {tag}{message}"
 
         if "file" not in kwargs:
             file = self._logstreams[0]
             kwargs["file"] = file
 
-        print(*args, **kwargs)
+        print(formatted_message, **kwargs)
         file.flush()
 
     def vprint(self, *args, **kwargs):
@@ -119,14 +122,18 @@ class Logger(object):
                 loguru_logger.debug(" ".join(map(str, args)))
                 return
 
+            # Format message with timestamp and tag
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             tag = self._stream_id + " | " if self._stream_id else "Global | "
-            loguru_logger.opt(depth=1).debug(tag + (" ".join(map(str, args))))
+            message = " ".join(map(str, args))
+            formatted_message = f"{timestamp} | DEBUG | {tag}{message}"
 
             if "file" not in kwargs:
                 file = self._logstreams[0]
                 kwargs["file"] = file
 
-            print(*args, **kwargs)
+            print(formatted_message, **kwargs)
             file.flush()
 
     def xprint(self, *args, **kwargs):
@@ -150,115 +157,4 @@ class Logger(object):
         raise Exception("Fatal error.")
 
 
-# -------------------------------
-# Log filtering utility functions
-# -------------------------------
-
-
-def parse_log_groups(log_content):
-    """
-    Parse log content into message groups.
-
-    Groups multi-line log messages together. A log entry starts with a timestamp
-    pattern (YYYY-MM-DD HH:mm:ss), and continuation lines (without timestamps)
-    are grouped with the preceding entry.
-
-    Args:
-        log_content (str): Raw log content from StringIO or similar
-
-    Returns:
-        list: List of message groups, where each group is a list of lines
-    """
-    lines = log_content.splitlines()
-    # Pattern to detect log entry start: timestamp at beginning of line
-    # Log format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {module}:{line} | {message}"
-    timestamp_pattern = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
-
-    message_groups = []
-    current_group = []
-
-    for line in lines:
-        # Check if this line starts a new log entry
-        if timestamp_pattern.match(line):
-            # Save previous group if it exists
-            if current_group:
-                message_groups.append(current_group)
-            # Start new group
-            current_group = [line]
-        else:
-            # Continuation line - add to current group
-            if current_group:
-                current_group.append(line)
-            else:
-                # Orphaned continuation line (shouldn't happen, but handle gracefully)
-                current_group = [line]
-
-    # Don't forget the last group
-    if current_group:
-        message_groups.append(current_group)
-
-    return message_groups
-
-
-def filter_log_groups(message_groups, text_filter=None, case_id_filter=None):
-    """
-    Filter message groups by case ID and/or text content.
-
-    A message group is included if it matches the filters. The case ID filter
-    is only checked in the first line (which contains the loguru format with
-    the case tag), while the text filter is checked across all lines in the group.
-    This ensures multi-line messages are preserved when filtering.
-
-    Note: Filtering by case ID is used because case names can change, but IDs
-    remain constant. This allows filtering logs from before and after a case rename.
-
-    Args:
-        message_groups (list): List of message groups (from parse_log_groups)
-        case_id_filter (int or str, optional): Case ID to filter by (looks for "| {id}_" pattern).
-            This is the recommended way to filter by case.
-        text_filter (str, optional): Text substring to search for
-
-    Returns:
-        list: Filtered list of message groups
-    """
-    filtered_groups = []
-
-    for group in message_groups:
-        # Check if the group matches the filters
-        matches_id = True
-        matches_text = True
-
-        # Filter by case ID (works even after case rename)
-        if case_id_filter is not None:
-            # Filter by ID: look for "| {id}_" pattern in the log line
-            # The log format includes "| {id}_{name} |", so we match the full pattern
-            # This is more selective and avoids false matches
-            id_str = str(case_id_filter)
-            id_pattern = " | id" + id_str + ":"
-            matches_id = id_pattern in group[0]
-
-        if text_filter:
-            # Text filter can match any line in the group
-            matches_text = any(text_filter in line for line in group)
-
-        # Include group if it matches all active filters
-        if matches_id and matches_text:
-            filtered_groups.append(group)
-
-    return filtered_groups
-
-
-def format_filtered_logs(filtered_groups):
-    """
-    Format filtered message groups back into a single string.
-
-    Args:
-        filtered_groups (list): List of filtered message groups
-
-    Returns:
-        str: Formatted log content with newlines between lines
-    """
-    filtered_lines = []
-    for group in filtered_groups:
-        filtered_lines.extend(group)
-    return "\n".join(filtered_lines)
+# Log filtering utility functions removed - no longer needed since StringIO guarantees ordered messages

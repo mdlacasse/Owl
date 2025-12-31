@@ -9,7 +9,11 @@ def test_logger1():
     msg1 = 'Hello'
     mylog.vprint(msg1)
     msg2 = strio.getvalue().splitlines()
-    assert msg1 == msg2[-1]
+    # Logger now includes timestamp and level, so check that the message is in the last line
+    assert msg1 in msg2[-1]
+    # Verify the format: timestamp | level | tag | message
+    assert '| DEBUG |' in msg2[-1]
+    assert 'Global |' in msg2[-1]
 
 
 def test_logger2():
