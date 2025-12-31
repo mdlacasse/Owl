@@ -37,7 +37,6 @@ Copyright &copy; 2025 - Martin-D. Lacasse
 It can also run on [MOSEK](https://mosek.com) if available on your computer.
 - Owl planner relies on the following [Python](https://python.org) packages:
     - [highspy](https://highs.dev),
-    [loguru](https://github.com/Delgan/loguru),
     [Matplotlib](https://matplotlib.org),
     [Numpy](https://numpy.org),
     [odfpy](https://https://pypi.org/project/odfpy),

@@ -36,10 +36,10 @@ import sys
 from owlplanner import mylogging as log
 from owlplanner import utils as u
 
-# All data goes from 1928 to 2024. Update the TO value when data
+# All data goes from 1928 to 2025. Update the TO value when data
 # becomes available for subsequent years.
 FROM = 1928
-TO = 2024
+TO = 2025
 
 where = os.path.dirname(sys.modules["owlplanner"].__file__)
 file = os.path.join(where, "data/rates.csv")

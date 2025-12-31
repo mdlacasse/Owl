@@ -2,7 +2,14 @@ import sys
 import copy
 import inspect
 import os
-from loguru import logger as loguru_logger
+
+# Conditional import of loguru - only available if package is installed
+try:
+    from loguru import logger as loguru_logger
+    HAS_LOGURU = True
+except ImportError:
+    loguru_logger = None
+    HAS_LOGURU = False
 
 
 class Logger(object):
@@ -14,6 +21,11 @@ class Logger(object):
 
         # --- Detect loguru backend ---------------------------------
         if logstreams == "loguru" or logstreams == ["loguru"]:
+            if not HAS_LOGURU:
+                raise ImportError(
+                    "loguru is required when using loguru logging backend. "
+                    "Install it with: pip install loguru"
+                )
             self._use_loguru = True
             self._logstreams = None
 
@@ -90,7 +102,7 @@ class Logger(object):
         """
 
         if self._use_loguru:
-            loguru_logger.debug(" ".join(map(str, args)))
+            loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
             return
 
         # Get caller information (loguru style: name:function:line)
@@ -123,7 +135,7 @@ class Logger(object):
         """
         if self._verbose:
             if self._use_loguru:
-                loguru_logger.debug(" ".join(map(str, args)))
+                loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
                 return
 
             # Get caller information (loguru style: name:function:line)
@@ -155,8 +167,8 @@ class Logger(object):
         Print message and exit. Used for fatal errors.
         """
         if self._use_loguru:
-            loguru_logger.debug("ERROR: " + " ".join(map(str, args)))
-            loguru_logger.debug("Exiting...")
+            loguru_logger.opt(depth=1).debug("ERROR: " + " ".join(map(str, args)))
+            loguru_logger.opt(depth=1).debug("Exiting...")
             raise Exception("Fatal error.")
 
         if "file" not in kwargs:
