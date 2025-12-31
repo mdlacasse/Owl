@@ -45,6 +45,7 @@ with col1:
 [Getting Started with User Interface](#getting-started-with-user-interface)
 
 [Case Setup](#case-setup)
+- [Case Definition](#case-definition)
 - [:material/person_add: Create Case](#person-add-create-case)
 - [:material/home: Household Financial Profile](#home-household-financial-profile)
     - [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
@@ -85,12 +86,12 @@ Typically, pages would be accessed in order, starting from the top.
 A `Case selector` box located at the top of the page allows to
 navigate between the different scenarios created.
 When on the [Create Case](#person-add-create-case) page, however, the selector box offers two more options:
-one to create a new case from scratch, and one to create a case
+one to create a new *case* from scratch, and one to create a case
 from a *case* parameter file, which
 would then populate values of all parameters found
 in the [Case Setup](#case-setup) section.
 This box is present on all pages except those in the [Resources](#resource) section.
-The case being currently displayed is marked with a small red triangle.
+The *case* being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
 case and then copying/creating derived scenarios with slight changes in the parameters.
@@ -112,17 +113,28 @@ The sections below follow the same logical order.
 
 -------------------------------------------------
 ### :orange[Case Setup]
-This section contains the steps for creating and configuring case scenarios.
-For new cases, every page of this section should be visited and parameters
+This section contains the steps for creating and configuring *case* scenarios.
+For new *cases*, every page of this section should be visited and parameters
 entered according to your personal situation. To make this process easier,
-a progress bar tracking which page
-has been visited is shown at the bottom of the page.
+a progress bar tracking which page has been visited is shown at the bottom of the page.
+                
+#### Case Definition
+                
+A *case* is a collection of parameters that fully defines a retirement scenario. A *case* contains
+individual's life parameters, financial profile, fixed income sources, savings account balances,
+asset allocation ratios, anticipated rates of return, and optimization parameters.
+                
+A *run* is the execution of a *case* using a single instance of rates, either fixed or varying.
+                
+*OWL* helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
+the planner can explore the impacts of differing assumptions and strategies on their portfolio 
+at the end of their planning period.
 
 #### :material/person_add: Create Case
 The **Create Case** page is where every new scenario begins.
 It controls the creation of scenarios as the `Case selector` drop-down menu contains
 two additional items:
-one to create new cases, and the other to create cases from a *case* parameter file.
+one to create new *cases*, and the other to create  *cases*from a *case* parameter file.
 This page also allows you to copy and/or rename scenarios, as well as deleting them.
 
 For creating a scenario from scratch, (first) name(s), marital status,
@@ -132,22 +144,22 @@ have special considerations when born on the first days of the month.
 If you're not born on a 1st or 2nd day of the month, any other day of the
 month will generate the same results.
 
-Plan starts on Jan 1st of this year and ends on December 31st of the year when all individuals
+*Cases* start on Jan 1st of this year and ends on December 31st of the year when all individuals
 have passed according to the specified life expectancies.
 
 A typical workflow will involve creating
-a base case, and copying it a few times with slight changes in its parameters
+a base *case*, and copying it a few times with slight changes in its parameters
 in order to investigate their effects.
-Copy renames the case by appending a number counter in parenthesis, just as creating
+Copy renames the *case* by appending a number counter in parenthesis, just as creating
 a copy of a file on Windows.
-It is recommended to rename each case to reflect the change in parameters.
+It is recommended to rename each *case* to reflect the change in parameters.
 When copying a scenario, make sure to visit all pages in the [Case Setup](#case-setup)
 section and verify that all parameters are as intended.
-When all cases have successfully run,
-results of related cases are compared side-by-side with differences
+When all *cases* have successfully run,
+results of related *cases* are compared side-by-side with differences
 in the [Output Files](#description-output-files) section.
-Related cases are determined by having the same individual's names:
-anything else can change between cases.
+Related *cases* are determined by having the same individual's names:
+anything else can change between *cases*.
 
 ##### Initializing the life parameters of a scenario
 While on the **Create Case** page,
@@ -173,11 +185,11 @@ can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/exam
 Using a *case* file
 will populate all the fields in the [Case Setup](#case-setup) section.
 
-A *case* file for the case being developed
+A *case* file for the *case* being developed
 can be saved under the [Output Files](#description-output-files) page and
 can be reloaded at a later time.t
 Case parameter files can have any name but when saving from the interface,
-their name will start with *case_* followed by the case name.
+their name will start with *case_* followed by the *case* name.
 
 #### :material/home: Household Financial Profile
 The *Household Financial Profile* contains two major sections,
@@ -228,13 +240,13 @@ While this approach is somehow more restrictive than
 the actual rules, it avoids unnecessary penalties while being a somehow simple approach.
 An exact calculation would require to know (and input) the annual rates of return for
 the last five years and asset allocation ratios, and the same for all future years.
-Note that in certain cases, constraints on Roth withdrawals can make a zero bequest impossible
+Note that in certain *cases*, constraints on Roth withdrawals can make a zero bequest impossible
 if Roth conversions took place in the five years before passing.
 
 Here, year 20XX represents the last row which could be the last year based on the life
 expectancy values provided.
 While loading an Excel workbook, missing years or empty cells will be filled with zero values,
-while years outside the time span of the plan will simply be ignored with the exception
+while years outside the time span of the *case* will simply be ignored with the exception
 of five-year back history.
 
 The column *anticipated wages* is the annual amount
@@ -277,18 +289,18 @@ deposited in the taxable savings accounts. Negative numbers will potentially gen
 withdrawals and distributions from retirement accounts. This is the only column that can contain
 negative numbers: all other column entries must be positive.
 
-When loading an Excel workbook, each individual in the plan must have an associated sheet
-for reporting yearly transactions affecting the plan. The association is made by having
+When loading an Excel workbook, each individual in the *case* must have an associated sheet
+for reporting yearly transactions affecting the *case*. The association is made by having
 the individual's name as the sheet name in the workbook.
-Therefore, if preparing your own case using a template, you will need to rename the tabs in the file to
-match the names used when creating the plan
+Therefore, if preparing your own *case* using a template, you will need to rename the tabs in the file to
+match the names used when creating the case
 (i.e., *Jack* and *Jill* in the example files provided).
 If a file was originally associated with a *case* file, a message will remind the user to upload the file.
 
 If values were entered or edited directly in the table,
 values can be saved directly in Excel format by clicking
 the `Download Wages and Contributions` on the
-[Output Files](#description-output-files) page. This allows to rerun the same case at a later time
+[Output Files](#description-output-files) page. This allows to rerun the same *case* at a later time
 by reloading the same **Wages and Contributions** file.
 
 ##### :material/account_balance: Debts and Fixed Assets
@@ -299,7 +311,7 @@ and therefore risk tolerance, and not only compare interest rates.
 
 *Debts* is used to track mortgage and loan payments which are not included
 in the net spending amount.
-*Debts* remaining at the end of the plan will be taken out of the savings accounts.
+*Debts* remaining at the end of the *case* will be taken out of the savings accounts.
 A bequest of zero will therefore leave sufficient money from the savings accounts
 to pay the remaining debts. Mortgage interest is not deducted for income tax purposes,
 as Owl assumes taking the standard tax deduction.
@@ -314,7 +326,7 @@ The *Debts* worksheet looks like the following:
 
 where *type* is one of *loan* or *mortgage*. The *active* field is a Boolean value
 that allows to turn debts or fixed assets on or off in the calculations.
-This is useful for case comparison purposes.
+This is useful for *case* comparison purposes.
 Boolean values are marked in all caps as `TRUE` or `FALSE` in Excel.
 
 *Fixed Assets* are used to track illiquid assets such as a house, real estate, collectibles,
@@ -416,7 +428,7 @@ When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
 surplus moneys in the taxable account of the first individual to pass. Otherwise,
 the optimizer will find creative solutions that can generate surpluses in order
 to maximize the final bequest. Finally, when fractions between accounts are not all equal,
-it can take longer to solve (minutes) as these cases trigger the use
+it can take longer to solve (minutes) as these *cases* trigger the use
 of binary variables which involves more complex algorithms.
 In some situations, creative transfers from tax-deferred savings accounts to taxable
 savings accounts, through surpluses and deposits, can be part of the optimal solution.
@@ -459,20 +471,20 @@ subject to the constraint of a global allocation ratio that includes all assets.
 This, however, creates a quadratic problem that cannot be simply solved by a linear
 programming solver. A future version of Owl might tackle this issue using a different strategy.
 
-Allocation ratios can vary over the duration of the plan, starting
-from an `initial` allocation ratio at the beginning of the plan
+Allocation ratios can vary over the duration of the *case*, starting
+from an `initial` allocation ratio at the beginning of the *case*
 to a `final` allocation ratio at the passing of the individual.
 It is assumed that the accounts are regularly
 rebalanced to maintain the prescribed allocation ratios.
 A gliding function (either `linear` or an `s-curve`) interpolates the values
-of the allocation ratios from the `initial` values to the `final` values as the plan progresses in time.
+of the allocation ratios from the `initial` values to the `final` values as the *case* progresses in time.
 When an `s-curve` is selected, two additional parameters controlling the shape of the transition
 will appear, one for the timing of the inflection point measured in years from now,
 and the other for the width of the transition, measured in +/- years from the inflection point.
 
 #### :material/monitoring: Rates Selection
 This page allows you to select the return rates over the
-time span of the plan. All rates are nominal and annual.
+time span of the *case*. All rates are nominal and annual.
 There are two major types of rates:
 - `Fixed` - staying the same from one year to another:
     - `conservative`,
@@ -534,7 +546,7 @@ for a single case, and compared with results obtained from self-consistent calcu
 Medicare optimization should not be used when running multiple scenarios such
 as in Monte Carlo simulations.
 
-If the current age of any individual in the plan makes them eligible
+If the current age of any individual in the *case* makes them eligible
 for Medicare within the next two years,
 additional cells will appear for entering the MAGI's for the
 past 1 or 2 years, whichever applies. Values default to zero.
@@ -562,7 +574,7 @@ for experimentation and to fit your anticipated lifestyle.
 A `slack` variable can also be adjusted. This variable allows the net spending to deviate from
 the desired profile in order to maximize the objective. This is provided mostly for educational purpose
 as maximizing the total net spending will involve leaving the savings invested for as long as possible,
-and therefore this will favor smaller spending early in the plan and larger towards the end.
+and therefore this will favor smaller spending early in the *case* and larger towards the end.
 This tension between maximizing a dollar amount and the utility of money then becomes evident.
 While the health of the individuals and therefore the utility of money is higher at the beginning
 of retirement, maximizing the total spending or bequest will pull in the opposite direction.
@@ -571,7 +583,7 @@ For married couples, the survivor's
 net spending percentage is also configurable. A value of 60% is typically used.
 The selected profile multiplies
 the net spending *basis* which sets the resulting spending
-amounts over the duration of the plan.
+amounts over the duration of the *case*.
 Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
 for that reason they do not start at 1.
 
@@ -588,7 +600,7 @@ net spending, of maximize the bequest under the constraint of a net spending amo
 Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
-A button allows to re-run the case which would generate a different result
+A button allows to re-run the *case* which would generate a different result
 if the chosen rates are `histochastic` or `stochastic`. Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
@@ -607,17 +619,17 @@ The first few lines of the **Sources** worksheets are the most important
 as these lines are the only ones that are actionable in the near term.
 
 #### :material/description: Output Files
-This page allows to compare cases and save files for future use.
+This page allows to compare *cases* and save files for future use.
 First, it shows a synopsis of the computed scenario by
-displaying sums of income, bequest, and spending values over the duration of the plan.
+displaying sums of income, bequest, and spending values over the duration of the *case*.
 Note that all tables are scrollable and can be seen in full-screen mode.
-If multiple cases were configured and run (most likely through copying and
+If multiple *cases* were configured and run (most likely through copying and
 modifying the parameters), they will be compared in that panel provided they were made
 for the same individuals and years spans. Column on the left shows the values for the selected case
 while those on the right shows the differences.
 The contents of the synopsis can be downloaded as a plain text file by
 clicking the button below it.
-An additional button allows to rerun all cases,
+An additional button allows to rerun all *cases*,
 ensuring that the table provides an accurate comparison
 of the parameters selected for each case.
 
@@ -628,12 +640,12 @@ The `Download Wages and Contributions file` will save the data displayed on the
 `Download Worksheets` will save all tables displayed
 on the [Worksheets](#data-table-worksheets) page as a single Excel file.
 
-Similarly, all parameters used to generate the case are collected in *toml* format and displayed.
+Similarly, all parameters used to generate the *case* are collected in *toml* format and displayed.
 The `Download case parameter file...` button allows to save the parameters of the selected scenario
 to a *case* file for future use.
 
-With the case parameter file and the **Wages and Contributions** worksheet,
-the same case can be reproduced at a later time by uploading
+With the *case* parameter file and the **Wages and Contributions** worksheet,
+the same *case* can be reproduced at a later time by uploading
 them through the widgets on the [Create Case](#person-add-create-case)
 and [Wages and Contributions](#work-history-wages-and-contributions) pages,
 respectively.
@@ -692,7 +704,7 @@ Most likely, this will not happen unless you devise unusually long Monte Carlo r
 ### :orange[Resources]
 #### :material/rocket_launch: Quick Start
 This page is the landing page of the application.
-It shows new users how to quickly get started by using an example case file.
+It shows new users how to quickly get started by using an example *case* file.
 
 #### :material/help: Documentation
 These very pages.
@@ -731,7 +743,7 @@ on CPU time that might stop your calculations before completion.
 I could successfully run 1,000 simulations using the Streamlit app while
 being hosted on the Streamlit community server.
 However, if you are contemplating running Monte Carlo simulations
-with thousands of cases routinely,
+with thousands of *cases* routinely,
 you should definitely consider installing and running Owl
 locally on your computer, either natively or through a container.
 See instructions on the GitHub repository for how to proceed.
@@ -765,8 +777,8 @@ This is due to higher Medicare costs triggered by the increased MAGI
 resulting from Roth conversions
 which are factored in during the optimization step.
 
-In general, one should **always** run comparisons between cases
-with and without Roth conversions. These comparisons will help quatify
+In general, one should **always** run comparisons between *cases*
+with and without Roth conversions. These comparisons will help quantify
 the effects of the suggested conversions. Optimizers will give the "best" approach
 even if it means only generating one more dollar.
 
@@ -777,23 +789,23 @@ one can use a termination year for current tax rates to revert to higher rates.
 
 #### :material/rule_settings: Typical Workflow
 A typical workflow would look like the following:
-1) Create a base case representing your basic scenario;
-2) Copy the base case and modify the parameter you want to investigate;
+1) Create a base *case* representing your basic scenario;
+2) Copy the base *case* and modify the parameter you want to investigate;
 3) Repeat 2) with other end-member values of the parameter you would like to consider;
-4) Run all cases and compare them on the [Output Files](#description-output-files) page.
+4) Run all *cases* and compare them on the [Output Files](#description-output-files) page.
 
 To make it more concrete, here is an example
 where one would like to investigate the effects of Roth conversions
 on total net spending.
-1) Create a case called, say, *2025 - Base case*.
+1) Create a *case* called, say, *2025 - Base case*.
 Fill in all parameters representing your goals and situation.
 Upload file or fill-in values for Wages and Contributions.
-Let's say this case allows for Roth conversions up to \\$100k.
+Let's say this *case* allows for Roth conversions up to \\$100k.
 2) Copy the base case, call it *2025 - No Roth conversions* and
 set maximum Roth conversions to 0.
-3) Copy the base case again, call it *2025 - No Roth limit* and
+3) Copy the base *case* again, call it *2025 - No Roth limit* and
 set maximum Roth conversions to a very large number, say, \\$800k.
-4) Compare all cases on the [Output Files](#description-output-files) page.
+4) Compare all *cases* on the [Output Files](#description-output-files) page.
 
 As mentionned above, the most actionable information is located on the first few lines
 of the **Sources** tables on the [Worksheets](#data-table-worksheets) pages.
@@ -820,7 +832,7 @@ or by projecting historical data into the future.
 This approach allows us to frame the problem within a range of likely scenarios.
 
 Users must always keep in mind that retirement financial planning tools have inherent limitations
-and that common sense will always be the best ally. Plans need to be revisited
+and that common sense will always be the best ally. *Cases* need to be revisited
 as new information is obtained, allowing to make regular corrections to
 the best estimates.
 Understanding the limitations of any retirement financial planning tool is absolutely critical
