@@ -14,17 +14,13 @@ with col1:
 \nA retirement financial exploration tool based on linear programming""")
     kz.divider("orange")
     st.markdown("### :material/campaign: News")
+    # st.snow()
     st.markdown("""
-This version introduces several new capabilities:
-- Page *Household Financial Profile* now includes *Wages and Contributions*,
-*Debts*, and *Fixed Assets*.
-- *Debts* support tracking loans and mortgages over time.
-- *Fixed Assets* can represent primary residence, other real estate, precious metals,
-                    restricted stocks, collectibles, and fixed lump-sum annuities.
-- These additions allow assets to be modeled through their expected disposition date.
-- Debts and fixed assets remaining at the end of the plan are incorporated into bequest calculations.
+## :fireworks: :rainbow[Happy New Year!!!] :fireworks:
 
-This part of the code is still evolving and has not yet received the same level of testing as the rest.
+This version has updated tax laws for year 2026 (TY2025).
+Exact historical gains for 2025 will be entered as soon as available.
+
 Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
 or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
@@ -37,11 +33,11 @@ To respect your privacy, Owl does not store any information related to a case:
 all information is lost after a session is closed. For this reason,
 two ancillary files can be used to store the specifications of a case so that it can be reproduced
 at a later time:
-- A *case* parameter file
+1) A ***case parameter file***
 specifying account balances, asset allocation, social security and pension, rates,
 optimization parameters and related assumptions.
 This file is in *toml* format which is editable with a simple text editor.
-- A *Household Financial Profile* (HFP) Workbook containing
+1) A ***Household Financial Profile (HFP) Workbook*** containing
 a time table for each individual with anticipated wages, future contributions
 to savings accounts, Roth conversions and contributions for future and last five years,
 and anticipated big-ticket items, which can be either expenses or income.
@@ -60,16 +56,17 @@ of Jack and Jill provided here as an example:
     - *Household FInancial Profile* workbook named
     [HFP_jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_jack+jill.xlsx?raw=true)
     in Excel format.
-1) Navigate to the **Create Case** page and drag and drop the case parameter file
+1) Navigate to the **Create Case** page (under **Case Setup**) and drag and drop the case parameter file
 you just downloaded (*Case_jack+jill.toml*).
-Alternatively, you can directly select the case of *jack+jill* among the GitHub examples.
+Alternatively, you can directly select the case of *jack+jill* in the dropdown menu for GitHub examples.
 1) Navigate to the **Household Financial Profile** page and
 drag and drop the *Household Financial Profile* workbook you downloaded (*HFP_jack+jill.xlsx*).
 Alternatively, you can load the *Household Financial Profile* workbook directly by using the marked button.
 1) Move to any page in the **Single Scenario** section to browse the simulation results.
+These pages will display **Graphs**, **Worksheets**, or **Output Files** respectively.
 
 Congratulations! :balloon: You just ran your first case.
-:trophy: You can now explore each page and experiment with different parameters.
+:trophy: You can now explore each page in the **Case Setup** section and experiment with different parameters.
 
 For creating your own cases, you can start
 from scratch by selecting `New Case...` in the selection box while on the **Create Case** page,
@@ -84,6 +81,11 @@ its parameters can be saved by using the `Download case file...` button on the *
 Multiple cases can coexist and can be called and compared using the `Case selector` box
 at the top of the page.
 
+To run a comparison between different cases, just copy/create a new case and modify the parameters on
+the new case. The **Output Files** will show a side-by-side comparison between the cases.
+
 More information can be found on the :material/help: **[Documentation](Documentation)**
 page located in the **Resources** section.
 """)
+    st.balloons()
+    st.balloons()

@@ -24,7 +24,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import time
 
 from . import utils as u
-from . import tax2025 as tx
+from . import tax2026 as tx
 from . import abcapi as abc
 from . import rates
 from . import config

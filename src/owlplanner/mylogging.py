@@ -2,7 +2,14 @@ import sys
 import copy
 import inspect
 import os
-from loguru import logger as loguru_logger
+
+# Conditional import of loguru - only available if package is installed
+try:
+    from loguru import logger as loguru_logger
+    HAS_LOGURU = True
+except ImportError:
+    loguru_logger = None
+    HAS_LOGURU = False
 
 
 class Logger(object):
@@ -14,6 +21,11 @@ class Logger(object):
 
         # --- Detect loguru backend ---------------------------------
         if logstreams == "loguru" or logstreams == ["loguru"]:
+            if not HAS_LOGURU:
+                raise ImportError(
+                    "loguru is required when using loguru logging backend. "
+                    "Install it with: pip install loguru"
+                )
             self._use_loguru = True
             self._logstreams = None
 
