@@ -70,7 +70,7 @@ def cmd_run(filename: Path):
     """
     logger.debug(f"Executing the run command with file: {filename}")
 
-    plan = owl.readConfig(str(filename), logstreams="loguru", readContributions=False)
+    plan = owl.readConfig(str(filename), logstreams="loguru", readContributions=True)
     plan.solve(plan.objective, plan.solverOptions)
     click.echo(f"Case status: {plan.caseStatus}")
     if plan.caseStatus == "solved":

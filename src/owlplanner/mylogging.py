@@ -102,7 +102,7 @@ class Logger(object):
         """
 
         if self._use_loguru:
-            loguru_logger.debug(" ".join(map(str, args)))
+            loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
             return
 
         # Get caller information (loguru style: name:function:line)
@@ -135,7 +135,7 @@ class Logger(object):
         """
         if self._verbose:
             if self._use_loguru:
-                loguru_logger.debug(" ".join(map(str, args)))
+                loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
                 return
 
             # Get caller information (loguru style: name:function:line)
@@ -167,8 +167,8 @@ class Logger(object):
         Print message and exit. Used for fatal errors.
         """
         if self._use_loguru:
-            loguru_logger.debug("ERROR: " + " ".join(map(str, args)))
-            loguru_logger.debug("Exiting...")
+            loguru_logger.opt(depth=1).debug("ERROR: " + " ".join(map(str, args)))
+            loguru_logger.opt(depth=1).debug("Exiting...")
             raise Exception("Fatal error.")
 
         if "file" not in kwargs:
