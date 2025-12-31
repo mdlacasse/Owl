@@ -113,24 +113,24 @@ This information is needed to enforce the five-year maturation rule in Roth savi
         thisyear = date.today().year
         debtconf = {
             "active": st.column_config.CheckboxColumn(
-                "On/Off",
+                "active",
                 help="Check box for item to be considered in plan",
                 default=True,
                 required=True,
             ),
             "name": st.column_config.TextColumn(
-                "Name of debt",
+                "name",
                 help="Give a unique name to your debt",
                 required=True,
             ),
             "type": st.column_config.SelectboxColumn(
-                "type of debt",
+                "type",
                 help="Select the type of debt from dropdown menu",
                 required=True,
                 options=debtTypes,
             ),
             "year": st.column_config.NumberColumn(
-                "start year",
+                "year",
                 help="Enter the origination year",
                 min_value=1950,
                 required=True,
@@ -190,18 +190,18 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
 
         fixedconf = {
             "active": st.column_config.CheckboxColumn(
-                "On/Off",
+                "active",
                 help="Check box for item to be considered in plan",
                 default=True,
                 required=True,
             ),
             "name": st.column_config.TextColumn(
-                "Name of fixed asset",
+                "name",
                 help="Give a unique name to your fixed asset",
                 required=True,
             ),
             "type": st.column_config.SelectboxColumn(
-                "type of asset",
+                "type",
                 help="Select the type of fixed asset from dropdown menu",
                 required=True,
                 options=fixedTypes,
