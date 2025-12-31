@@ -133,27 +133,12 @@ def clone(plan, newname=None, *, verbose=True, logstreams=None):
     """
     import copy
 
+    # logger __deepcopy__ sets the logstreams of new logger to None
     newplan = copy.deepcopy(plan)
 
-    # Generate a new unique ID for the cloned plan using the class method
-    newplan._plan_id = Plan.get_next_id()
-
     if logstreams is None:
-        # Create a new logger instance with the same settings but new stream_id
-        # We can't share the logger because changing stream_id would affect the original plan
         original_logger = plan.logger()
-        # Get the original logger's settings
-        original_verbose = original_logger._verbose
-        # Get logstreams - deepcopy already created a new logger, so we can use its logstreams
-        # or get from original if needed
-        if hasattr(original_logger, '_logstreams') and original_logger._logstreams is not None:
-            original_logstreams = original_logger._logstreams
-        else:
-            original_logstreams = None
-        # Create a new logger with the same settings but new stream_id
-        newplan.setLogstreams(original_verbose, original_logstreams)
-        # The stream_id is already set by setLogstreams, but we need to update it with the new ID
-        # (setLogstreams uses newplan._plan_id which we just set)
+        newplan.setLogger(original_logger)
     else:
         newplan.setLogstreams(verbose, logstreams)
 
@@ -228,23 +213,16 @@ class Plan:
     This is the main class of the Owl Project.
     """
     # Class-level counter for unique Plan IDs
-    _plan_id_counter = 2
+    _id_counter = 0
 
     @classmethod
     def get_next_id(cls):
-        """
-        Get the next available Plan ID without creating a Plan instance.
-        This is used to synchronize case IDs with Plan IDs.
-        """
-        cls._plan_id_counter += 1
-        return cls._plan_id_counter
+        cls._id_counter += 1
+        return cls._id_counter
 
     @classmethod
-    def get_current_id_counter(cls):
-        """
-        Get the current value of the Plan ID counter without incrementing it.
-        """
-        return cls._plan_id_counter
+    def get_current_id(cls):
+        return cls._id_counter
 
     def __init__(self, inames, dobs, expectancy, name, *, verbose=False, logstreams=None):
         """
@@ -258,7 +236,7 @@ class Plan:
             raise ValueError("Plan must have a name")
 
         # Generate unique ID for this Plan instance using the class method
-        self._plan_id = Plan.get_next_id()
+        self._id = Plan.get_next_id()
 
         self._name = name
         self.setLogstreams(verbose, logstreams)
@@ -378,7 +356,7 @@ class Plan:
 
         # Scenario starts at the beginning of this year and ends at the end of the last year.
         s = ("", "s")[self.N_i - 1]
-        self.mylog.vprint(f"Preparing scenario of {self.N_n} years for {self.N_i} individual{s}.")
+        self.mylog.vprint(f"Preparing scenario {self._id} of {self.N_n} years for {self.N_i} individual{s}.")
         for i in range(self.N_i):
             endyear = thisyear + self.horizons[i] - 1
             self.mylog.vprint(f"{self.inames[i]:>14}: life horizon from {thisyear} -> {endyear}.")
@@ -408,10 +386,8 @@ class Plan:
         self.mylog = logger
 
     def setLogstreams(self, verbose, logstreams):
-        # Use both ID and name for stream_id to allow filtering by ID even after rename
-        stream_id = f"id{self._plan_id}:{self._name}"
-        self.mylog = log.Logger(verbose, logstreams, stream_id=stream_id)
-        self.mylog.vprint(f"Setting logger with stream ID {stream_id}.")
+        self.mylog = log.Logger(verbose, logstreams)
+        self.mylog.vprint(f"Setting logger with logstreams {logstreams}.")
 
     def logger(self):
         return self.mylog
@@ -478,10 +454,6 @@ class Plan:
         """
         self.mylog.vprint(f"Renaming plan {self._name} -> {newname}.")
         self._name = newname
-        # Update logger's stream_id to include both ID and new name
-        # This preserves the ID so logs can still be filtered after rename
-        if hasattr(self.mylog, 'setStreamId'):
-            self.mylog.setStreamId(f"id{self._plan_id}:{newname}")
 
     def setDescription(self, description):
         """
@@ -973,7 +945,7 @@ class Plan:
 
         self.mylog.vprint(f"Interpolating assets allocation ratios using {self.interpMethod} method.")
 
-    def readContributions(self, filename):
+    def readContributions(self, filename, filename_for_logging=None):
         """
         Provide the name of the file containing the financial events
         over the anticipated life span determined by the
@@ -993,13 +965,24 @@ class Plan:
 
         in any order. A template is provided as an example.
         Missing rows (years) are populated with zero values.
+
+        Parameters
+        ----------
+        filename : file-like object, str, or dict
+            Input file or dictionary of DataFrames
+        filename_for_logging : str, optional
+            Explicit filename for logging purposes. If provided, this will be used
+            in log messages instead of trying to extract it from filename.
         """
         try:
-            filename, self.timeLists, self.houseLists = timelists.read(filename, self.inames, self.horizons, self.mylog)
+            returned_filename, self.timeLists, self.houseLists = timelists.read(
+                filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging
+            )
         except Exception as e:
             raise Exception(f"Unsuccessful read of Household Financial Profile: {e}") from e
 
-        self.timeListsFileName = filename
+        # Use filename_for_logging if provided, otherwise use returned filename
+        self.timeListsFileName = filename_for_logging if filename_for_logging is not None else returned_filename
         self.setContributions()
 
         return True

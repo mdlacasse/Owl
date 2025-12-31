@@ -14,7 +14,6 @@ if not case_names:
 
 # Initialize the radio button key with the current case
 default_index = case_names.index(current_case)
-kz.initGlobalKey("logs_case_selector", current_case)
 
 selected_case = st.radio("View logs for case",
                          case_names,

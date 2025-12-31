@@ -1,15 +1,16 @@
 import sys
 import copy
+import inspect
+import os
 from loguru import logger as loguru_logger
 
 
 class Logger(object):
-    def __init__(self, verbose=True, logstreams=None, stream_id=None):
+    def __init__(self, verbose=True, logstreams=None):
         self._verbose = verbose
         self._prevState = self._verbose
         self._verboseStack = []  # Stack to track verbose states for proper restoration
         self._use_loguru = False
-        self._stream_id = stream_id
 
         # --- Detect loguru backend ---------------------------------
         if logstreams == "loguru" or logstreams == ["loguru"]:
@@ -49,12 +50,6 @@ class Logger(object):
             # Fallback to _prevState if stack is empty (shouldn't happen in normal usage)
             self._verbose = self._prevState
 
-    def setStreamId(self, stream_id):
-        """
-        Update the stream_id used for tagging log messages.
-        """
-        self._stream_id = stream_id
-
     def __deepcopy__(self, memo):
         """
         Custom deepcopy implementation to handle file descriptors properly.
@@ -76,8 +71,7 @@ class Logger(object):
         # Create a new Logger instance with the same settings
         new_logger = Logger(
             verbose=self._verbose,
-            logstreams=logstreams,
-            stream_id=self._stream_id
+            logstreams=logstreams
         )
 
         # Copy the verbose stack state
@@ -99,12 +93,22 @@ class Logger(object):
             loguru_logger.debug(" ".join(map(str, args)))
             return
 
-        # Format message with timestamp and tag
+        # Get caller information (loguru style: name:function:line)
+        frame = inspect.currentframe()
+        caller_frame = frame.f_back
+        filename = os.path.basename(caller_frame.f_code.co_filename)
+        # Remove .py extension if present
+        if filename.endswith('.py'):
+            filename = filename[:-3]
+        function_name = caller_frame.f_code.co_name
+        line_number = caller_frame.f_lineno
+        location = f"{filename}:{function_name}:{line_number}"
+
+        # Format message with timestamp, location, and tag
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        tag = self._stream_id + " | " if self._stream_id else "Global |"
         message = " ".join(map(str, args))
-        formatted_message = f"{timestamp} | INFO | {tag}{message}"
+        formatted_message = f"{timestamp} | INFO | {location} | {message}"
 
         if "file" not in kwargs:
             file = self._logstreams[0]
@@ -122,12 +126,22 @@ class Logger(object):
                 loguru_logger.debug(" ".join(map(str, args)))
                 return
 
-            # Format message with timestamp and tag
+            # Get caller information (loguru style: name:function:line)
+            frame = inspect.currentframe()
+            caller_frame = frame.f_back
+            filename = os.path.basename(caller_frame.f_code.co_filename)
+            # Remove .py extension if present
+            if filename.endswith('.py'):
+                filename = filename[:-3]
+            function_name = caller_frame.f_code.co_name
+            line_number = caller_frame.f_lineno
+            location = f"{filename}:{function_name}:{line_number}"
+
+            # Format message with timestamp, location, and tag
             from datetime import datetime
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            tag = self._stream_id + " | " if self._stream_id else "Global | "
             message = " ".join(map(str, args))
-            formatted_message = f"{timestamp} | DEBUG | {tag}{message}"
+            formatted_message = f"{timestamp} | DEBUG | {location} | {message}"
 
             if "file" not in kwargs:
                 file = self._logstreams[0]

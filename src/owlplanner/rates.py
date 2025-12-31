@@ -101,8 +101,8 @@ def getRatesDistributions(frm, to, mylog=None):
     stdev = df.std()
     covar = df.cov()
 
-    mylog.print("means: (%)\n", means)
-    mylog.print("standard deviation: (%)\n", stdev)
+    mylog.vprint("means: (%)\n", means)
+    mylog.vprint("standard deviation: (%)\n", stdev)
 
     # Convert to NumPy array and from percent to decimal.
     means = np.array(means) / 100.0
@@ -114,7 +114,7 @@ def getRatesDistributions(frm, to, mylog=None):
     # Fold round-off errors in proper bounds.
     corr[corr > 1] = 1
     corr[corr < -1] = -1
-    mylog.print("correlation matrix: \n\t\t%s" % str(corr).replace("\n", "\n\t\t"))
+    mylog.vprint("correlation matrix: \n\t\t%s" % str(corr).replace("\n", "\n\t\t"))
 
     return means, stdev, corr, covar
 

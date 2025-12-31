@@ -44,26 +44,6 @@ def genCaseKey(key):
     return f"{getCaseKey('id')}_{key}"
 
 
-def setCaseId(casename):
-    """
-    Set case ID using Plan's ID counter to ensure synchronization.
-    If the case already has a Plan, use the Plan's ID.
-    Otherwise, get the next ID from Plan's counter.
-    """
-    if casename in ss.cases:
-        # Check if case already has a Plan with an ID
-        plan = ss.cases[casename].get("plan")
-        if plan is not None:
-            myid = plan._plan_id
-        else:
-            raise RuntimeError(f"Case {casename} has no Plan.")
-    else:
-        raise RuntimeError(f"Case {casename} not found.")
-
-    ss.cases[casename]["id"] = myid
-    return myid
-
-
 def getKeyInCase(key, casename):
     if casename in ss.cases and key in ss.cases[casename]:
         return ss.cases[casename][key]
@@ -213,8 +193,13 @@ def copyCase():
     for key in ["summaryDf", "histoPlot", "histoSummary", "monteCarloPlot", "monteCarloSummary"]:
         ss.cases[dupname][key] = None
 
+    # Create a new StringIO for logs to separate them from the original case
+    from io import StringIO
+    ss.cases[dupname]["logs"] = StringIO()
+    # Reset the logger so a new one gets created when needed
+    ss.cases[dupname]["_ui_logger"] = None
+
     ss.cases[dupname]["copy"] = True
-    ss.cases[dupname]["id"] = None
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
     st.toast("Case copied but not created.")
@@ -236,7 +221,6 @@ def createCaseFromFile(strio):
         dic["logs"] = StringIO()
 
     ss.cases[name] = dic
-    setCaseId(name)
     setCurrentCase(name)
     return True
 

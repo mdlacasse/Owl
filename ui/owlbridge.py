@@ -42,9 +42,8 @@ def createPlan():
     try:
         plan = owl.Plan(inames, dobs, life, name,
                         verbose=True, logstreams=[strio, strio])
-        # Copy the Plan's unique ID to session_state case dictionary
-        kz.setCaseKey("id", plan._plan_id)
         kz.setCaseKey("plan", plan)
+        kz.setCaseKey("id", plan._id)
     except Exception as e:
         st.error(f"Failed creation of plan '{name}': {e}")
         return
@@ -439,7 +438,7 @@ def readContributions(plan, stFile, file=None):
         name = "unknown"
 
     try:
-        plan.readContributions(stFile)
+        plan.readContributions(stFile, filename_for_logging=name)
     except Exception as e:
         st.error(f"Failed to parse Household Financial Profile Workbook 'name': {e}")
         return False
@@ -738,8 +737,8 @@ def genDic(plan):
     accName = ["txbl", "txDef", "txFree"]
     dic = {}
     dic["plan"] = plan
-    dic["id"] = plan._plan_id  # Sync case ID with Plan ID
     dic["name"] = plan._name
+    dic["id"] = plan._id
     dic["description"] = plan._description
     dic["summaryDf"] = None
     dic["casetoml"] = ""
@@ -971,9 +970,6 @@ def getFixedAssetsBequestValue(plan, in_todays_dollars=False):
         return 0.0
 
 
-# Log filtering functions removed - no longer needed since StringIO guarantees ordered messages
-
-
 # -------------------------------
 # UI-level logging helper
 # -------------------------------
@@ -982,32 +978,34 @@ def _get_case_logger():
     """
     Get or create a Logger instance for the current case.
     Returns None if no valid case exists.
-    Uses a fixed key "_ui_logger" so it persists through case renames.
+
+    If a plan exists, uses the plan's logger (which writes to the case's logs StringIO).
+    Otherwise, creates/uses a UI logger that writes to the case's logs StringIO.
+    This ensures both plan and UI logging use the same StringIO per case.
     """
     # Check if we have a valid case (not the special "New Case..." or "Upload Case File..." cases)
     case_name = kz.currentCaseName()
     if case_name in [kz.newCase, kz.loadCaseFile]:
         return None
 
-    # Get or create the current case's log stream
+    # If a plan exists, use its logger (which already writes to the case's logs StringIO)
+    plan = kz.getCaseKey("plan")
+    if plan is not None:
+        return plan.logger()
+
+    # No plan exists yet - get or create the current case's log stream
     log_stream = kz.getCaseKey("logs")
     if log_stream is None:
         # Create a new StringIO for this case if it doesn't exist
         log_stream = StringIO()
         kz.storeCaseKey("logs", log_stream)
 
-    # Get or create a Logger instance for this case
+    # Get or create a Logger instance for this case (only used before plan is created)
     # Use a fixed key so it persists through case renames
     logger = kz.getCaseKey("_ui_logger")
     if logger is None:
-        # Create a new Logger instance pointing to the case's StringIO
-        stream_id = f"UI | {case_name}"
-        logger = Logger(verbose=True, logstreams=[log_stream, log_stream], stream_id=stream_id)
+        logger = Logger(verbose=True, logstreams=[log_stream, log_stream])
         kz.storeCaseKey("_ui_logger", logger)
-    else:
-        # Update stream_id if case name changed (e.g., after rename)
-        if logger._stream_id != f"UI | {case_name}":
-            logger.setStreamId(f"UI | {case_name}")
 
     return logger
 

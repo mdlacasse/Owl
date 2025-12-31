@@ -9,11 +9,13 @@ def test_logger1():
     msg1 = 'Hello'
     mylog.vprint(msg1)
     msg2 = strio.getvalue().splitlines()
-    # Logger now includes timestamp and level, so check that the message is in the last line
+    # Logger now includes timestamp, location (file:function:line), and level
+    # Check that the message is in the last line
     assert msg1 in msg2[-1]
-    # Verify the format: timestamp | level | tag | message
+    # Verify the format: timestamp | level | location | message
     assert '| DEBUG |' in msg2[-1]
-    assert 'Global |' in msg2[-1]
+    # Verify loguru-style location format (filename:function:line, without .py extension)
+    assert 'test_logger:test_logger1:' in msg2[-1] or ':test_logger1:' in msg2[-1]
 
 
 def test_logger2():

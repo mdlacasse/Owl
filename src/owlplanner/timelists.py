@@ -75,7 +75,7 @@ _fixedAssetTypes = [
 ]
 
 
-def read(finput, inames, horizons, mylog):
+def read(finput, inames, horizons, mylog, filename=None):
     """
     Read listed parameters from an excel spreadsheet or through
     a dictionary of dataframes through Pandas.
@@ -84,6 +84,20 @@ def read(finput, inames, horizons, mylog):
     IRA ctrb, Roth IRA ctrb, Roth conv, and big-ticket items.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     Return a dictionary of dataframes by individual's names.
+
+    Parameters
+    ----------
+    finput : file-like object, str, or dict
+        Input file or dictionary of DataFrames
+    inames : list
+        List of individual names
+    horizons : list
+        List of time horizons
+    mylog : logger
+        Logger instance
+    filename : str, optional
+        Explicit filename for logging purposes. If provided, this will be used
+        instead of trying to extract it from finput.
     """
 
     mylog.vprint("Reading wages, contributions, conversions, and big-ticket items over time...")
@@ -93,17 +107,19 @@ def read(finput, inames, horizons, mylog):
         finput = "dictionary of DataFrames"
         streamName = "dictionary of DataFrames"
     else:
+        if filename is not None:
+            streamName = f"file '{filename}'"
+        elif hasattr(finput, "name"):
+            streamName = f"file '{finput.name}'"
+        else:
+            streamName = finput
+
         # Read all worksheets in memory but only process those with proper names.
         try:
             # dfDict = pd.read_excel(finput, sheet_name=None, usecols=_timeHorizonItems)
             dfDict = pd.read_excel(finput, sheet_name=None)
         except Exception as e:
-            raise Exception(f"Could not read file {finput}: {e}.") from e
-
-        if hasattr(finput, "name"):
-            finput = finput.name
-
-        streamName = f"file '{finput}'"
+            raise Exception(f"Could not read file {streamName}: {e}.") from e
 
     timeLists = _conditionTimetables(dfDict, inames, horizons, mylog)
     mylog.vprint(f"Successfully read time horizons from {streamName}.")
