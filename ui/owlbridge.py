@@ -322,13 +322,6 @@ def showRatesCorrelations(plan, col):
 
 
 @_checkPlan
-def showIncome(plan):
-    fig = plan.showIncome(figure=True)
-    if fig:
-        renderPlot(fig)
-
-
-@_checkPlan
 def showSources(plan):
     fig = plan.showSources(figure=True)
     if fig:
