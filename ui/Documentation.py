@@ -6,19 +6,19 @@ col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col1:
     st.markdown("# :material/help: Documentation")
     kz.divider("orange")
-    st.markdown("## :orange[Owl Retirement Planner]\n-------")
+    st.markdown("## :orange[The *Owl* Retirement Planner]\n-------")
     st.markdown("""
-### Owl - Optimal Wealth Lab
+### *Owl* - Optimal Wealth Lab
 #### A retirement financial exploration tool based on linear programming
 
-The goal of Owl is to provide a free and open-source ecosystem that has cutting-edge
+The goal of *Owl* is to provide a free and open-source ecosystem that has cutting-edge
 optimization capabilities, allowing for the new generation of computer-literate retirees
 to experiment with their own financial future while providing a codebase where they can learn and contribute.
 At the same time, Streamlit provides an intuitive and easy-to-use
 interface which allows a broad set of users to benefit from the application
 as it only requires basic financial knowledge.
 
-Strictly speaking, Owl is not a planning tool, but more an environment for exploring *what if* scenarios.
+Strictly speaking, *Owl* is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy through the rigorous
 mathematical optimization of relevant decision variables. Using a linear programming approach,
 two different objectives can currently be optimized: either
@@ -70,7 +70,7 @@ with col1:
 - [:material/help: Documentation](#help-documentation)
 - [:material/settings: Settings](#settings-settings)
 - [:material/error: Logs](#error-logs)
-- [:material/info: About Owl](#info-about-owl)
+- [:material/info: About *Owl*](#info-about-owl)
 
 [Tips](#tips)
 - [:material/lightbulb_2: Advice on Optimization and Roth Conversions]\
@@ -100,7 +100,7 @@ different resulting outcomes can be found on the [Output Files](#description-out
 The [Typical Workflow](#typical-workflow) section below
 goes through a more specific example.
 
-Owl uses a full year as the standard unit of time. All values are therefore entered and
+*Owl* uses a full year as the standard unit of time. All values are therefore entered and
 reported as yearly values. These include wages, income, rates, social security, etc.
 Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars.
@@ -126,7 +126,7 @@ asset allocation ratios, anticipated rates of return, and optimization parameter
                 
 A *run* is the execution of a *case* using a single instance of rates, either fixed or varying.
                 
-*OWL* helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
+*Owl* helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
 the planner can explore the impacts of differing assumptions and strategies on their portfolio 
 at the end of their planning period.
 
@@ -222,7 +222,7 @@ Excel capabilities for cross-column calculations.
 This file goes five year back in time in order to capture previous contributions and
 conversions to Roth accounts.
 Entries in columns others than contributions or conversions to Roth accounts
-for past years will be ignored by Owl but can be left there for documentation purposes.
+for past years will be ignored by *Owl* but can be left there for documentation purposes.
 Past contributions and conversions are required for implementing
 constraints restricting withdrawals from Roth accounts, thus avoiding
 penalties resulting from breaking the five-year maturation rule.
@@ -274,7 +274,7 @@ and can be used for tracking other quantities from which
 the needed values can be derived. These extra columns will be ignored when the file is processed.
 
 Manual Roth conversions can be specified in the column marked *Roth conv*.
-This column is provided to override the Roth conversion optimization in Owl.
+This column is provided to override the Roth conversion optimization in *Owl*.
 When the option `Convert as in contribution file` is toggled
 in the [Optimization Parameters](#tune-optimization-parameters) page,
 values from the **Wages and Contributions** file will be used and no optimization on Roth conversions
@@ -314,7 +314,7 @@ in the net spending amount.
 *Debts* remaining at the end of the *case* will be taken out of the savings accounts.
 A bequest of zero will therefore leave sufficient money from the savings accounts
 to pay the remaining debts. Mortgage interest is not deducted for income tax purposes,
-as Owl assumes taking the standard tax deduction.
+as *Owl* assumes taking the standard tax deduction.
 
 The *Household Financial Profile* workbook can optionally contain a *Debts* sheet and
 a *Fixed Assets* sheet to store these data.
@@ -377,7 +377,7 @@ Note that the year and month entered are the month when you receive your first
 benefits. Most likely, you will have claimed a month earlier as the first
 check follows the month when you claim benefits.
 
-Owl considers the exact FRA associated with the individual's birth year and adjusts the PIA
+*Owl* considers the exact FRA associated with the individual's birth year and adjusts the PIA
 according to the age (year and month) when benefits are claimed. Total amount received
 during the first year of benefits (if in the future) is adjusted for situations
 when benefits do not cover the full year.
@@ -387,7 +387,7 @@ are claimed at the latest date at which both spouses have claimed benefits.
 Survivor benefits rule provides the largest of both benefits to the survivor. Complex
 cases involving divorce or deceased spouses are not considered.
 
-Owl does not optimize social security benefits.
+*Owl* does not optimize social security benefits.
 You have to design (and explore) your own strategy, which
 might often involves personal goals such as ensuring maximum
 survivor benefits, or maximum lifetime benefits.
@@ -469,7 +469,7 @@ individual follow the same allocation ratios. You should experiment with both.
 A smarter approach would be to optimize allocation ratios in the different accounts
 subject to the constraint of a global allocation ratio that includes all assets.
 This, however, creates a quadratic problem that cannot be simply solved by a linear
-programming solver. A future version of Owl might tackle this issue using a different strategy.
+programming solver. A future version of *Owl* might tackle this issue using a different strategy.
 
 Allocation ratios can vary over the duration of the *case*, starting
 from an `initial` allocation ratio at the beginning of the *case*
@@ -694,7 +694,7 @@ of the surviving spouse.
 Linear programming solutions are more expensive than event-driven forward simulators.
 Therefore, when considering Monte Carlo simulations, consider:
 - Turning off Medicare calculations completely, or at least using self-consistent loop,
-- Installing Owl and running on your local computer as it can sometimes be
+- Installing *Owl* and running on your local computer as it can sometimes be
 faster than running on the Streamlit host, depending on your hardware.
 Moreover, the community server has a
 CPU time limit that will stop a session after the quota is reached.
@@ -727,9 +727,9 @@ The sidebar menu can also be collapsed if needed.
 Default behavior is to have the menubar at the top, unless on a mobile device.
 
 ###### Streamlit App and Theme
-If you are accessing Owl remotely on the Streamlit Community Server through the Chrome browser,
+If you are accessing *Owl* remotely on the Streamlit Community Server through the Chrome browser,
 the Chrome performance manager might disable hidden or inactive tabs.
-This could cause your Owl session to inadvertently reset when idling for too long,
+This could cause your *Owl* session to inadvertently reset when idling for too long,
 and losing the state of the calculator.
 The best way to avoid this situation is to run the web page through the Streamlit app on your device.
 This is done by clicking the '+" icon shown at the right end of the browser URL bar,
@@ -744,28 +744,28 @@ I could successfully run 1,000 simulations using the Streamlit app while
 being hosted on the Streamlit community server.
 However, if you are contemplating running Monte Carlo simulations
 with thousands of *cases* routinely,
-you should definitely consider installing and running Owl
+you should definitely consider installing and running *Owl*
 locally on your computer, either natively or through a container.
 See instructions on the GitHub repository for how to proceed.
 
 If not using the Streamlit app, going full screen by hitting F11 in your browser
 can also greatly improve the visualization of graphs and worksheets.
 
-Owl's default theme is the *Dark* mode but a *Light* theme is also available by
+*Owl*'s default theme is the *Dark* mode but a *Light* theme is also available by
 clicking on the three vertical dots located on the upper right of the app
 and selecting the **Settings** option.
 
 #### :material/error: Logs
-Messages coming from the underlying Owl calculation engine are displayed on this page.
+Messages coming from the underlying *Owl* calculation engine are displayed on this page.
 This page is mainly used for debugging purposes.
 
-#### :material/info: About Owl
+#### :material/info: About *Owl*
 Credits and disclaimers.
 
 --------------------------------------------------------------------------------------
 ### :orange[Tips]
 #### :material/lightbulb_2: Advice on Optimization and Roth Conversions
-Owl can optimize explicitly for Medicare costs but these can sometimes be
+*Owl* can optimize explicitly for Medicare costs but these can sometimes be
 costly computations. This approach is included in the current version but
 be aware that computing time can be unpredictable
 due to the additional complexity and the number of binary variables involved.
@@ -814,7 +814,7 @@ This is where withdrawals and conversions are displayed for this year and the ne
 #### :material/mindfulness: Scope of Use
 In general, computer modeling is not about predicting the future,
 but rather about exploring possibilities.
-Owl has been designed to allow users to explore multiple parameters
+*Owl* has been designed to allow users to explore multiple parameters
 and their effects on their future financial situation while avoiding the trap of overmodeling.
 Overmodeling happens when a computer model has a level of detail
 far beyond the uncertainty of the problem, which can lead some users to assume
@@ -823,7 +823,7 @@ an unjustified level of certainty in the results.
 The main goal of retirement financial planning is to characterize
 uncertainty and translate this uncertainty into actionable, near-term decisions.
 Therefore, as a deliberate choice in design, state tax and complex federal tax rules were
-not included into Owl. As can be seen from this
+not included into *Owl*. As can be seen from this
 [graph](https://marottaonmoney.com/wp-content/uploads/2023/04/Historical-Effective-Rates-Through-2023.jpg),
 income tax rates have varied a lot over the last century. Assuming that current rates will
 stay fixed for the next 30 years is just unrealistic. But the best assumption
