@@ -1,8 +1,8 @@
 ---
-title: Installation - OWL using UV on WSL
+title: Installation - Owl using UV on WSL
 ---
 
-This installation guide uses the [UV](https://docs.astral.sh/uv/) family of tools to install [OWL](https://github.com/mdlacasse/OWN).
+This installation guide uses the [UV](https://docs.astral.sh/uv/) family of tools to install [Owl](https://github.com/mdlacasse/OWN).
 
 This installation guide assumes that you're working with the code using WSL/Ubuntu (Windows Subsystem for Linux, Ubuntu distro).  Separate guides are available for [Conda on Powershell](installation.qmd) and UV on powershell.
 
@@ -28,7 +28,7 @@ sudo apt install curl
 
 UV is a very fast tool that combines many tools into a single framework.  UV manages python versions (like pyenv), virtual environments (like venv), modules (like pip), packaging (like setuptools), and does it very fast.  UV is a replacement for other tools like `conda`, `pyenv` and `poetry`.
 
-I HIGHLY recommend switching to UV when using OWL.
+I HIGHLY recommend switching to UV when using Owl.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -48,9 +48,9 @@ curl --version
 uv --version
 ```
 
-## Installing OWL
+## Installing Owl
 
-With the backup tools installed, we can now install OWL and get it running locally.
+With the backup tools installed, we can now install Owl and get it running locally.
 
 I keep my GITHUB projects in a local projects folder under my personal home directory.  The following
 block of code will clone the `owlplanner` project under your `~/projects` project folder.
@@ -64,13 +64,13 @@ cd owlplanner
 ## Setting up to run
 
 The following command will download and install python (if you don't already have it), create
-a virtual environment, and download all the necessary python modules to run OWL.  One step ... boom!
+a virtual environment, and download all the necessary python modules to run Owl.  One step ... boom!
 
 ```bash
 uv sync
 ```
 
-## Running OWL
+## Running Owl
 
 The following command starts the streamlit server on your local computer and automatically opens
 a chromium browser.  You're ready to go!
@@ -96,9 +96,9 @@ Closing the browser *DOES NOT* close the streamlit web server.  If you close the
 You need to enter *CTRL-C* in the terminal to kill/close streamlit.  THIS IS NORMAL!
 
 
-## Updating OWL
+## Updating Owl
 
-OWL is under active development.  You'll want to work with the latest changes.  The command below will
+Owl is under active development.  You'll want to work with the latest changes.  The command below will
 fetch the latest changes to your local machine and update the libraries.  You can then use the command above to run these changes.
 
 ```bash

@@ -11,15 +11,15 @@ import owlplanner as owl
 solver = 'HiGHS'
 thisyear = date.today().year
 
-SPENDING1 = 81488.0
-BEQUEST1 = 572095.4
-SPENDING2 = 91597.6
+SPENDING1 = 84420.2
+BEQUEST1 = 713035.2
+SPENDING2 = 94565.7
 
 
 def createJackAndJillPlan(name):
     inames = ['Jack', 'Jill']
-    dobs = ["1963-01-15", "1966-01-16"]
-    expectancy = [thisyear - 1963 + 20, thisyear - 1966 + 20]
+    dobs = ["1964-01-15", "1967-01-16"]
+    expectancy = [thisyear - 1964 + 20, thisyear - 1967 + 20]
     p = owl.Plan(inames, dobs, expectancy, name)
     p.setSpendingProfile('flat', 60)
 

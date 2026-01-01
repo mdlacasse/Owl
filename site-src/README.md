@@ -1,6 +1,6 @@
 # Website source
 
-This folder contains the source code for the website hosted at [https://mdlacasse.github.io/OWL/](https://mdlacasse.github.io/OWL/).
+This folder contains the source code for the website hosted at [https://mdlacasse.github.io/OWL/](https://mdlacasse.github.io/Owl/).
 
 The website is built using [Quarto](https://quarto.org/) and hosted using GitHub Pages.
 
