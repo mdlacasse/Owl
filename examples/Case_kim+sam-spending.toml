@@ -4,9 +4,9 @@ Description = "This is the case of Kim and Sam used as an example case for optim
 ["Basic Info"]
 Status = "married"
 Names = [ "Kim", "Sam",]
-"Date of birth" = [ "1966-01-15", "1967-01-15",]
+"Date of birth" = [ "1967-01-15", "1968-01-15",]
 "Life expectancy" = [ 86, 89,]
-"Start date" = "2025-01-01"
+"Start date" = "2026-01-01"
 
 [Assets]
 "taxable savings balances" = [ 1000.0, 0.0,]

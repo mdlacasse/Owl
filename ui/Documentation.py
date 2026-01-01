@@ -117,17 +117,17 @@ This section contains the steps for creating and configuring *case* scenarios.
 For new *cases*, every page of this section should be visited and parameters
 entered according to your personal situation. To make this process easier,
 a progress bar tracking which page has been visited is shown at the bottom of the page.
-                
+
 #### Case Definition
-                
+
 A *case* is a collection of parameters that fully defines a retirement scenario. A *case* contains
 individual's life parameters, financial profile, fixed income sources, savings account balances,
 asset allocation ratios, anticipated rates of return, and optimization parameters.
-                
+
 A *run* is the execution of a *case* using a single instance of rates, either fixed or varying.
-                
+
 *Owl* helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
-the planner can explore the impacts of differing assumptions and strategies on their portfolio 
+the planner can explore the impacts of differing assumptions and strategies on their portfolio
 at the end of their planning period.
 
 #### :material/person_add: Create Case

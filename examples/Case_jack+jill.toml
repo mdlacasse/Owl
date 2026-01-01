@@ -4,9 +4,9 @@ Description = "This example aims to demonstrate some of Owl's capabilities. Jack
 ["Basic Info"]
 Status = "married"
 Names = [ "Jack", "Jill",]
-"Date of birth" = [ "1962-01-15", "1965-01-15",]
+"Date of birth" = [ "1963-01-15", "1966-01-15",]
 "Life expectancy" = [ 89, 92,]
-"Start date" = "2025-01-01"
+"Start date" = "2026-01-01"
 
 [Assets]
 "taxable savings balances" = [ 120.5, 60.2,]
