@@ -11,9 +11,9 @@ import owlplanner as owl
 solver = 'HiGHS'
 thisyear = date.today().year
 
-SPENDING1 = 87008.9
-BEQUEST1 = 837617.4
-SPENDING2 = 97191.5
+SPENDING1 = 81488.0
+BEQUEST1 = 572095.4
+SPENDING2 = 91597.6
 
 
 def createJackAndJillPlan(name):
