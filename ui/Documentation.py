@@ -134,7 +134,7 @@ at the end of their planning period.
 The **Create Case** page is where every new scenario begins.
 It controls the creation of scenarios as the `Case selector` drop-down menu contains
 two additional items:
-one to create new *cases*, and the other to create  *cases*from a *case* parameter file.
+one to create new *cases*, and the other to create  *cases* from a *case* parameter file.
 This page also allows you to copy and/or rename scenarios, as well as deleting them.
 
 For creating a scenario from scratch, (first) name(s), marital status,
@@ -167,8 +167,8 @@ click on the `Case selector` box and choose one of `New case...` or `Upload case
 
 ##### Creating a case from scratch
 When starting from `New case...`,
-one must provide the year and month of birth of each spouse(s) and their expected lifespan(s).
-For selecting your own numbers, there are plenty of longevity predictors on the Internet.
+one must provide the birth date of each spouse(s) and their expected lifespan(s).
+For selecting your own longevity numbers, there are plenty of predictors on the Internet.
 Pick your favorite:
 - [longevityillustrator](https://longevityillustrator.org),
 - [livingto100](https://www.livingto100.com/calculator),
@@ -183,22 +183,26 @@ An example is provided
 [here](https://github.com/mdlacasse/Owl/main/blob/examples/case_jack+jill.toml?raw=true) and more
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
-will populate all the fields in the [Case Setup](#case-setup) section.
+will populate all the fields in the [Case Setup](#case-setup) section,
+except those in the *Household Financial Profile* which get populated
+separately by an Excel workbook (see next section).
 
-A *case* file for the *case* being developed
+Once a *case* was successfully run, the *case* file for the *case* being developed
 can be saved under the [Output Files](#description-output-files) page and
-can be reloaded at a later time.t
+can be reloaded at a later time.
 Case parameter files can have any name but when saving from the interface,
 their name will start with *case_* followed by the *case* name.
 
 #### :material/home: Household Financial Profile
 The *Household Financial Profile* contains two major sections,
 one representing *Wages and Contributions* for each individual, and
-the other capturing the household *Debts and Fixed Assets*.
-While the values can be entered in each table,
-an option is given to upload an Excel file containing all the data.
-These include future wages and contributions,
-past and future Roth contributions and conversions, debts, and fixed assets.
+the other capturing the household's *Debts and Fixed Assets*.
+While the values can be entered manually in each table,
+an option is given to upload an Excel file containing all the data,
+thus avoiding this tedious exercise.
+These data include future wages and contributions,
+past and future Roth contributions and conversions, large expenses
+or large influx of after-tax money, debts, and fixed assets.
 
 ##### :material/work_history: Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
@@ -206,10 +210,10 @@ The **Wages and Contributions** table contains 9 columns titled as follows:
 
 |year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
-|2020 | | | | | | | | |
+|2021 | | | | | | | | |
 | ... | | | | | | | | |
-|2025 | | | | | | | | |
 |2026 | | | | | | | | |
+|2027 | | | | | | | | |
 | ... | | | | | | | | |
 |20XX | | | | | | | | |
 
@@ -235,7 +239,7 @@ Unlike conversions, contributions can be withdrawn, but a retainer is
 put covering the sum of all potential gains resulting from contributions
 made over the last five years.
 However, if funds were converted through a Roth backdoor, this is
-still considered as a conversion, and retainer will include contribution amount.
+still considered as a conversion, and retainer will include the contribution amount.
 While this approach is somehow more restrictive than
 the actual rules, it avoids unnecessary penalties while being a somehow simple approach.
 An exact calculation would require to know (and input) the annual rates of return for
@@ -243,7 +247,7 @@ the last five years and asset allocation ratios, and the same for all future yea
 Note that in certain *cases*, constraints on Roth withdrawals can make a zero bequest impossible
 if Roth conversions took place in the five years before passing.
 
-Here, year 20XX represents the last row which could be the last year based on the life
+In the table above, year 20XX represents the last row which could be the last year based on the life
 expectancy values provided.
 While loading an Excel workbook, missing years or empty cells will be filled with zero values,
 while years outside the time span of the *case* will simply be ignored with the exception
@@ -304,12 +308,12 @@ the `Download Wages and Contributions` on the
 by reloading the same **Wages and Contributions** file.
 
 ##### :material/account_balance: Debts and Fixed Assets
-These tables contain existing debts and fixed assets.
+These tables contain current or future debts and existing fixed assets.
 Note that no optimization is taking place on debts, as the question
 *"Should I pay my mortgage or leave my money invested?"* has to consider risk,
 and therefore risk tolerance, and not only compare interest rates.
 
-*Debts* is used to track mortgage and loan payments which are not included
+The *Debts* table is used to track mortgage and loan payments which are not included
 in the net spending amount.
 *Debts* remaining at the end of the *case* will be taken out of the savings accounts.
 A bequest of zero will therefore leave sufficient money from the savings accounts
