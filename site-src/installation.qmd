@@ -10,7 +10,7 @@ and run it locally on their computer.
 For end-users, we suggest accessing Owl from the
 [Streamlit Community Server](http://owlplanner.streamlit.app)
 or, if one prefers to have everything on their own computer,
-to install and run a Docker image as described in these [instructions](https://github.com/mdlacasse/OWL/docker/README.md).
+to install and run a Docker image as described in these [instructions](https://github.com/mdlacasse/OwL/docker/README.md).
 
 ## Requirements
 

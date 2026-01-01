@@ -79,12 +79,12 @@ with col1:
 - [:material/mindfulness: Scope of Use](#mindfulness-scope-of-use)
 
 --------------------------------------------------------------------------------------
-### :orange[Getting Started with User Interface]
-Functions of each page are described below in the same order as they appear in the menu bar:
-Typically, pages would be accessed in order, starting from the top.
+### :orange[Getting Started with the User Interface]
+The functions of each page are described below in the same order as they appear in the menu bar:
+Typically, pages would be accessed in order, starting from left to right and from the top down.
 
-A `Case selector` box located at the top of the page allows to
-navigate between the different scenarios created.
+A `Case selector` box located at the top of each page allows
+to navigate between the different scenarios created.
 When on the [Create Case](#person-add-create-case) page, however, the selector box offers two more options:
 one to create a new *case* from scratch, and one to create a case
 from a *case* parameter file, which
