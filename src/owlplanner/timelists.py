@@ -167,6 +167,9 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
         df = dfDict[iname]
 
         df = _checkColumns(df, iname, _timeHorizonItems)
+        
+        # Ensure columns are in the correct order
+        df = df[_timeHorizonItems].copy()
 
         # Only consider lines in proper year range. Go back 5 years for Roth maturation.
         df = df[df["year"] >= (thisyear - 5)]
@@ -177,7 +180,10 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
             year = thisyear + n
             year_rows = df[df["year"] == year]
             if year_rows.empty:
-                df.loc[len(df)] = [year, 0, 0, 0, 0, 0, 0, 0, 0]
+                # Create a new row as a dictionary to ensure correct column mapping
+                new_row = {col: 0 for col in _timeHorizonItems}
+                new_row["year"] = year
+                df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                 missing.append(year)
             else:
                 for item in _timeHorizonItems:
