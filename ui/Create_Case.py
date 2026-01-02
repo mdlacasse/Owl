@@ -152,8 +152,26 @@ Hit the `Create case` button once all parameters on this page are right."""
         st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate, help=helpmsg)
 
     with col3:
-        helpmsg = ":warning: Caution: The `Delete case` operation cannot be undone."
-        st.button("Delete case :material/delete:", on_click=kz.deleteCurrentCase, disabled=cantmodify, help=helpmsg)
+        kz.initGlobalKey("delete_confirmation_active", False)
+
+        # Show confirmation buttons if delete was activated
+        if kz.getGlobalKey("delete_confirmation_active"):
+            conf_col1, conf_col2 = st.columns(2, gap="small")
+            with conf_col1:
+                if st.button("Delete :material/delete:", type="primary", disabled=cantmodify):
+                    kz.storeGlobalKey("delete_confirmation_active", False)
+                    kz.deleteCurrentCase()
+                    st.rerun()
+            with conf_col2:
+                if st.button("Cancel", disabled=cantmodify):
+                    kz.storeGlobalKey("delete_confirmation_active", False)
+                    st.rerun()
+        else:
+            # Show initial delete button
+            helpmsg = ":warning: Caution: The `Delete case` operation cannot be undone."
+            if st.button("Delete case :material/delete:", disabled=cantmodify, help=helpmsg):
+                kz.storeGlobalKey("delete_confirmation_active", True)
+                st.rerun()
 
 # Show progress bar at bottom (always shown on Create Case page)
 cp.show_progress_bar()
