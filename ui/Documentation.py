@@ -1,5 +1,4 @@
 import streamlit as st
-import os
 import sskeys as kz
 
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
@@ -32,7 +31,8 @@ formulation of the optimization problem can be found
 [here](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf).
 """)
 with col3:
-    logofile = os.path.join(os.path.dirname(__file__), "./owl.png")
+    # Use URL-based logo to avoid race conditions with local file access
+    logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
     st.image(logofile)
     st.caption("Retirement planner with great wisdom")
 
@@ -506,6 +506,9 @@ Rates for the S&P 500 equities include dividends.
 A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition) for 2025.
 
+An option to set the dividend rate for your stock portfolio is available.
+This [reference](https://us500.com/tools/data/sp500-dividend-yield) provides
+historical S&P 500 dividend yields over different periods.
 This page also includes some adjustments related to future tax rates. One is the anticipated
 tax rate that heirs will pay on the tax-deferred portion of the bequest. Another setting is related
 to the year when the OBBBA rates are anticipated to return to pre-Tax Cut and Job Act

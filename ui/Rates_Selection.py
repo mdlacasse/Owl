@@ -246,8 +246,9 @@ forecasts for the next decade can be found
         st.markdown("#### :orange[Other Rates]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
-            kz.initCaseKey("divRate", 1.8)
-            helpmsg = "Average annual (qualified) dividend return rate on stock portfolio in taxable account."
+            kz.initCaseKey("divRate", 1.7)
+            helpmsg = """Average annual (qualified) dividend yield on stock portfolio in taxable account.
+See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             ret = kz.getNum("Dividend rate (%)", "divRate", max_value=5.0, format="%.2f", help=helpmsg, step=1.0)
 
         st.markdown("#####")

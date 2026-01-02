@@ -294,14 +294,61 @@ def conditionDebtsAndFixedAssetsDF(df, tableType):
     df = df.copy()
     df.reset_index(drop=True, inplace=True)
 
-    # Fill NaN values, but preserve boolean columns (like "active")
-    for col in df.columns:
-        if col == "active":
-            # Ensure "active" column is boolean, handling strings/numbers from Excel
-            df[col] = df[col].apply(u.convert_to_bool).astype(bool)
-        elif col != "index" and col != "type" and col != "name":
-            # df[col] = df[col].fillna(0).infer_objects(copy=False)
-            pass
+    # Ensure all required columns exist
+    for col in columnItems:
+        if col not in df.columns:
+            df[col] = None
+
+    # Only keep the columns we need, in the correct order
+    df = df[columnItems].copy()
+
+    # Define which columns are integers vs floats
+    if tableType == "Debts":
+        int_cols = ["year", "term"]
+        float_cols = ["amount", "rate"]
+    else:  # Fixed Assets
+        int_cols = ["yod"]
+        float_cols = ["basis", "value", "rate", "commission"]
+
+    # Handle empty DataFrame by setting dtypes directly
+    if len(df) == 0:
+        dtype_dict = {}
+        dtype_dict["active"] = bool
+        for col in ["name", "type"]:
+            dtype_dict[col] = "object"  # string columns
+        for col in int_cols:
+            dtype_dict[col] = "int64"
+        for col in float_cols:
+            dtype_dict[col] = "float64"
+        df = df.astype(dtype_dict)
+    else:
+        # Fill NaN values and ensure proper types for non-empty DataFrame
+        for col in df.columns:
+            if col == "active":
+                # Ensure "active" column is boolean, handling strings/numbers from Excel
+                df[col] = df[col].apply(u.convert_to_bool).astype(bool)
+            elif col in ["name", "type"]:
+                # String columns: ensure they are strings, not lists
+                # Streamlit data_editor can return lists for string columns in some cases
+                def convert_to_string(val):
+                    if pd.isna(val) or val is None:
+                        return ""
+                    if isinstance(val, list):
+                        # If it's a list, join the elements (handles Streamlit data_editor edge cases)
+                        # Filter out None/NaN values before joining
+                        cleaned = [str(x) for x in val if x is not None and not pd.isna(x)]
+                        return " ".join(cleaned) if cleaned else ""
+                    return str(val)
+
+                df[col] = df[col].apply(convert_to_string).astype(str)
+                # Replace "nan" string with empty string
+                df[col] = df[col].replace("nan", "").replace("None", "")
+            elif col in int_cols:
+                # Integer columns: convert to int64, fill NaN with 0
+                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype("int64")
+            elif col in float_cols:
+                # Float columns: convert to float64, fill NaN with 0.0
+                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0).astype("float64")
 
     return df
 

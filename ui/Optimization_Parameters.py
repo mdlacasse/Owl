@@ -99,7 +99,7 @@ else:
         ret = kz.getRadio("Medicare and IRMAA calculations", mediChoices, "withMedicare", help=helpmsg)
         if ret == "optimize":
             st.markdown(":material/warning: Medicare optimization can sometimes have slow convergence -"
-                        " time for :coffee: ?")
+                        " time for coffee :coffee: ?")
         elif ret == "loop" and not kz.getCaseKey("withSCLoop"):
             st.markdown(":material/warning: Medicare set to 'loop' while self-consistent loop is off.")
     with col2:
@@ -131,9 +131,13 @@ else:
         st.divider()
         st.markdown("#### :orange[Solver]")
         choices = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
+        kz.initCaseKey("solver", choices[0])
+
         if owb.hasMOSEK():
             choices += ["MOSEK"]
-        kz.initCaseKey("solver", choices[0])
+        elif kz.getCaseKey("solver") == "MOSEK":
+            kz.setCaseKey("solver", choices[0])
+
         helpmsg = "Select different solvers for comparison purposes. Use HiGHS for best performance."
         ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
 
