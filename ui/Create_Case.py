@@ -10,7 +10,13 @@ import case_progress as cp
 ret = kz.titleBar(":material/person_add: Create Case", allCases=True)
 
 if ret == kz.newCase:
-    st.info("#### Starting a new case from scratch.\n\n" "A name for the scenario must first be provided.")
+    st.info(
+        "#### Starting a new case from scratch.\n\n"
+        "(Alternatively, you can choose `Upload Case File...` in the top selector box to upload your own"
+        " case or select one from multiple examples."
+        " Look at the :material/help: [Documentation](Documentation) for more details.)\n\n"
+        "A name for the scenario must first be provided."
+    )
     st.text_input(
         "Case name",
         key="_newcase",
@@ -21,9 +27,9 @@ if ret == kz.newCase:
 elif ret == kz.loadCaseFile:
     st.info(
         "#### Starting a case from a *case* parameter file.\n\n"
+        "(Alternatively, you can choose `New Case...` in the top selector box to start a case from scratch."
+        " Look at the :material/help: [Documentation](Documentation) for more details.)\n\n"
         "Upload your own case or select one from multiple examples."
-        " Alternatively, you can select `New Case...` in the top selector box to start a case from scratch.\n\n"
-        "Look at the :material/help: [Documentation](Documentation) for more details."
     )
     col1, col2 = st.columns(2, gap="large")
     with col1:
@@ -139,7 +145,7 @@ Once changes are complete hit the `Create case` button."""
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
     cantcopy = cantmodify or kz.caseHasNoPlan()
     if not cantcopy and kz.getCaseKey("stTimeLists") is None:
-        st.info("Reminder to upload the *Household Financial Profile* (if any) before creating a copy.")
+        st.info("Reminder to upload the *Household Financial Profile* (if any) before copying.")
 
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
