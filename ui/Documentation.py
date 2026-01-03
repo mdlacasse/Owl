@@ -334,19 +334,35 @@ This is useful for *case* comparison purposes.
 Boolean values are marked in all caps as `TRUE` or `FALSE` in Excel.
 
 *Fixed Assets* are used to track illiquid assets such as a house, real estate, collectibles,
-or restricted stocks. Fixed-rate annuities with a lump sum can also be modeled. In the
-year of disposition (yod), the proceeds will be separated in three portions: tax-free, ordinary income,
-and capital gains, depending on the asset, and be taxed appropriately.
+or restricted stocks. Fixed-rate annuities with a lump sum can also be modeled. Assets can be
+acquired in the current year or in future years. In the year of disposition (yod), the proceeds
+will be separated in three portions: tax-free, ordinary income, and capital gains, depending on
+the asset, and be taxed appropriately.
 
 The *Fixed Assets* worksheet looks like the following:
 
-|active|name|type|basis|value|rate|yod|commission|
-|--|--|--|--|--|--|--|--|
-| | | | | | | | |
+|active|name|type|year|basis|value|rate|yod|commission|
+|--|--|--|--|--|--|--|--|--|
+| | | | | | | | | |
 
-where *yod* is the year of disposition and *type* is one of *residence*,
-*real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*. In the
-current version, only fixed-rate lump-sum annuities can be represented.
+where:
+- *year* is the **acquisition year** (this year or after). If the year is in the past, it will be
+  automatically reset to the current year when reading from the HFP file.
+- *value* is the **value at acquisition** (in current dollars at the time of acquisition).
+- *yod* is the **year of disposition**. Assets are disposed at the beginning of the year specified.
+  If the disposition year is beyond the plan duration, the asset is liquidated at the end of the
+  last year of the plan and added to the bequest (no taxes applied, step-up in basis for heirs).
+- *rate* is the annual growth rate (percentage) applied from the acquisition year to the disposition year.
+- *type* is one of *residence*, *real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*.
+  In the current version, only fixed-rate lump-sum annuities can be represented.
+
+**Asset Lifecycle:**
+- Assets are **acquired at the beginning** of the year specified in the *year* column.
+- Assets are **disposed at the beginning** of the year specified in *yod* (if within the plan duration).
+- The asset value grows from the acquisition year to the disposition year using the specified growth rate.
+- If *yod* is beyond the plan duration, the asset is **liquidated at the end of the last year** of the plan
+  and added to the bequest value (no taxes, as assets pass to heirs with step-up in basis).
+- Assets disposed during the plan (yod within plan duration) generate taxable proceeds in the year of disposition.
 
 #### :material/currency_exchange: Fixed Income
 This page is for entering data related to the individual's anticipated fixed income

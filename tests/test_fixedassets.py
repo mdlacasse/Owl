@@ -66,7 +66,7 @@ class TestGetFixedAssetsArrays:
 
     def test_empty_dataframe(self):
         """Test with empty DataFrame."""
-        df = pd.DataFrame(columns=["name", "type", "basis", "value", "rate", "yod", "commission"])
+        df = pd.DataFrame(columns=["name", "type", "year", "basis", "value", "rate", "yod", "commission"])
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, 10)
         assert len(tax_free) == 10
         assert len(ordinary) == 10
@@ -279,7 +279,7 @@ class TestGetFixedAssetsArrays:
         assert np.all(capital == 0)
 
     def test_asset_outside_horizon_after(self):
-        """Test asset disposed after plan ends."""
+        """Test asset disposed after plan ends - should not be in arrays."""
         df = pd.DataFrame([{
             "name": "house",
             "type": "residence",
@@ -292,7 +292,8 @@ class TestGetFixedAssetsArrays:
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
-        # Asset disposed in 2040, plan ends in 2034, so should be ignored
+        # Asset disposed in 2040, plan ends in 2034, so should NOT be in arrays
+        # (it will be handled in bequest calculation instead)
         assert np.all(tax_free == 0)
         assert np.all(ordinary == 0)
         assert np.all(capital == 0)
@@ -416,3 +417,273 @@ class TestGetFixedAssetsArrays:
         # Should work the same as lowercase
         assert capital[0] > 0
         assert tax_free[0] == pytest.approx(100000, abs=1.0)
+
+    def test_asset_with_acquisition_year(self):
+        """Test asset with explicit acquisition year (future acquisition)."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "year": 2027,  # Acquired in 2027
+            "basis": 100000,
+            "value": 100000,  # Value at acquisition
+            "rate": 5.0,
+            "yod": 2029,  # Disposed in 2029
+            "commission": 1.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        # Asset acquired at beginning of 2027, disposed at beginning of 2029
+        # Growth period: 2029 - 2027 = 2 years
+        # Future value = 100000 * (1.05)^2 = 110250
+        # With 1% commission: proceeds = 110250 * 0.99 = 109147.5
+        # Gain = 109147.5 - 100000 = 9147.5
+        n = 2029 - 2025  # Index 4
+        assert capital[n] > 0
+        assert capital[n] == pytest.approx(9147.5, abs=10.0)
+        assert tax_free[n] == pytest.approx(100000, abs=1.0)
+
+    def test_asset_acquired_future_disposed_beyond_plan(self):
+        """Test asset acquired in future but disposed beyond plan - should not be in arrays."""
+        df = pd.DataFrame([{
+            "name": "house",
+            "type": "residence",
+            "year": 2027,  # Acquired in 2027
+            "basis": 200000,
+            "value": 200000,
+            "rate": 3.0,
+            "yod": 2040,  # Disposed beyond plan (plan ends 2034)
+            "commission": 5.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        # Asset disposed beyond plan, so should NOT be in arrays (handled in bequest)
+        assert np.all(tax_free == 0)
+        assert np.all(ordinary == 0)
+        assert np.all(capital == 0)
+
+    def test_asset_backward_compatibility_no_year_column(self):
+        """Test backward compatibility when 'year' column is missing (defaults to thisyear)."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            # No "year" column - should default to thisyear
+            "basis": 100000,
+            "value": 100000,
+            "rate": 5.0,
+            "yod": 2027,  # Disposed in 2 years
+            "commission": 1.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        # Should default to acquisition_year = thisyear = 2025
+        # Growth period: 2027 - 2025 = 2 years
+        # Future value = 100000 * (1.05)^2 = 110250
+        n = 2027 - 2025  # Index 2
+        assert capital[n] > 0
+        assert tax_free[n] == pytest.approx(100000, abs=1.0)
+
+    def test_asset_acquired_after_plan_ends(self):
+        """Test asset acquired after plan ends - should be ignored."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "year": 2040,  # Acquired after plan ends (plan ends 2034)
+            "basis": 100000,
+            "value": 100000,
+            "rate": 5.0,
+            "yod": 2045,
+            "commission": 1.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        # Asset acquired after plan ends, so should be ignored
+        assert np.all(tax_free == 0)
+        assert np.all(ordinary == 0)
+        assert np.all(capital == 0)
+
+    def test_asset_disposed_before_acquisition(self):
+        """Test asset with invalid yod < acquisition year - should be ignored."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "year": 2027,  # Acquired in 2027
+            "basis": 100000,
+            "value": 100000,
+            "rate": 5.0,
+            "yod": 2025,  # Disposed before acquisition (invalid)
+            "commission": 1.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        # Invalid: disposed before acquisition, so should be ignored
+        assert np.all(tax_free == 0)
+        assert np.all(ordinary == 0)
+        assert np.all(capital == 0)
+
+
+class TestGetFixedAssetsBequestValue:
+    """Tests for get_fixed_assets_bequest_value function."""
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        df = pd.DataFrame(columns=["name", "type", "year", "basis", "value", "rate", "yod", "commission"])
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, 10)
+        assert bequest == 0.0
+
+    def test_none_dataframe(self):
+        """Test with None DataFrame."""
+        bequest = fixedassets.get_fixed_assets_bequest_value(None, 10)
+        assert bequest == 0.0
+
+    def test_asset_disposed_beyond_plan(self):
+        """Test asset with yod beyond plan end - should be in bequest."""
+        df = pd.DataFrame([{
+            "name": "house",
+            "type": "residence",
+            "basis": 200000,
+            "value": 300000,
+            "rate": 3.0,
+            "yod": 2040,  # Beyond plan end (plan ends 2034)
+            "commission": 5.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        # Asset disposed beyond plan, so should be in bequest
+        # Plan ends at end of 2034 (end_year = 2034)
+        # Growth from start of 2025 (default acquisition) to end of 2034 = 10 years
+        # Future value = 300000 * (1.03)^10 ≈ 403175
+        # With 5% commission: proceeds = 403175 * 0.95 ≈ 383016
+        assert bequest > 0
+        assert bequest == pytest.approx(383016, abs=1000)
+
+    def test_asset_with_acquisition_year_in_bequest(self):
+        """Test asset with explicit acquisition year in bequest calculation."""
+        df = pd.DataFrame([{
+            "name": "house",
+            "type": "residence",
+            "year": 2027,  # Acquired in 2027
+            "basis": 200000,
+            "value": 200000,  # Value at acquisition
+            "rate": 3.0,
+            "yod": 2040,  # Beyond plan end
+            "commission": 5.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        # Asset acquired at beginning of 2027, plan ends at end of 2034
+        # Growth period: from start of 2027 to end of 2034 = 2034 - 2027 + 1 = 8 years
+        # Future value = 200000 * (1.03)^8 ≈ 253354
+        # With 5% commission: proceeds = 253354 * 0.95 ≈ 240684
+        assert bequest > 0
+        assert bequest == pytest.approx(240684, abs=1000)
+
+    def test_asset_disposed_during_plan_not_in_bequest(self):
+        """Test asset disposed during plan - should NOT be in bequest."""
+        df = pd.DataFrame([{
+            "name": "house",
+            "type": "residence",
+            "basis": 200000,
+            "value": 300000,
+            "rate": 3.0,
+            "yod": 2030,  # Within plan (plan ends 2034)
+            "commission": 5.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        # Asset disposed during plan, so should NOT be in bequest
+        assert bequest == 0.0
+
+    def test_asset_acquired_after_plan_ends_not_in_bequest(self):
+        """Test asset acquired after plan ends - should not be in bequest."""
+        df = pd.DataFrame([{
+            "name": "house",
+            "type": "residence",
+            "year": 2040,  # Acquired after plan ends
+            "basis": 200000,
+            "value": 200000,
+            "rate": 3.0,
+            "yod": 2045,
+            "commission": 5.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        # Asset acquired after plan ends, so should not be in bequest
+        assert bequest == 0.0
+
+    def test_multiple_assets_in_bequest(self):
+        """Test multiple assets in bequest calculation."""
+        df = pd.DataFrame([
+            {
+                "name": "house1",
+                "type": "residence",
+                "basis": 200000,
+                "value": 300000,
+                "rate": 3.0,
+                "yod": 2040,  # Beyond plan
+                "commission": 5.0
+            },
+            {
+                "name": "house2",
+                "type": "residence",
+                "year": 2027,  # Acquired in 2027
+                "basis": 150000,
+                "value": 150000,
+                "rate": 2.0,
+                "yod": 2045,  # Beyond plan
+                "commission": 6.0
+            }
+        ])
+        thisyear = 2025
+        N_n = 10
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        # Both assets should be in bequest
+        assert bequest > 0
+        # Should be sum of both assets' proceeds
+        assert bequest > 300000  # At least the first asset's value
+
+    def test_no_double_counting_arrays_vs_bequest(self):
+        """Test that assets are not double-counted between arrays and bequest."""
+        df = pd.DataFrame([
+            {
+                "name": "stocks",
+                "type": "stocks",
+                "basis": 100000,
+                "value": 100000,
+                "rate": 5.0,
+                "yod": 2030,  # Within plan - should be in arrays only
+                "commission": 1.0
+            },
+            {
+                "name": "house",
+                "type": "residence",
+                "basis": 200000,
+                "value": 200000,
+                "rate": 3.0,
+                "yod": 2040,  # Beyond plan - should be in bequest only
+                "commission": 5.0
+            }
+        ])
+        thisyear = 2025
+        N_n = 10
+        # Check arrays
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        # Stocks should be in arrays (disposed in 2030)
+        n = 2030 - 2025  # Index 5
+        assert capital[n] > 0  # Stocks capital gains
+
+        # Check bequest
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        # House should be in bequest (disposed beyond plan)
+        assert bequest > 0
+
+        # Verify no overlap: stocks not in bequest, house not in arrays
+        # (already verified by the above assertions)

@@ -127,7 +127,7 @@ def _q4(C, l1, l2, l3, l4, N1, N2, N3, N4):
 
 def clone(plan, newname=None, *, verbose=True, logstreams=None):
     """
-    Return an almost identical copy of plan: only the name of the plan
+    Return an almost identical copy of plan: only the name of the case
     has been modified and appended the string '(copy)',
     unless a new name is provided as an argument.
     """
@@ -230,7 +230,7 @@ class Plan:
         one contains the name(s) of the individual(s),
         the second one is the year of birth of each individual,
         and the third the life expectancy. Last argument is a name for
-        the plan.
+        the case.
         """
         if name == "":
             raise ValueError("Plan must have a name")
@@ -287,7 +287,7 @@ class Plan:
         self.horizons = self.yobs + self.expectancy - thisyear + 1
         self.N_n = np.max(self.horizons)
         self.year_n = np.linspace(thisyear, thisyear + self.N_n - 1, self.N_n, dtype=np.int32)
-        # Year index in the plan (if any) where individuals turn 59. For 10% withdrawal penalty.
+        # Year index in the case (if any) where individuals turn 59. For 10% withdrawal penalty.
         self.n59 = 59 - thisyear + self.yobs
         self.n59[self.n59 < 0] = 0
         # Handle passing of one spouse before the other.
@@ -402,7 +402,7 @@ class Plan:
 
     def _setStartingDate(self, mydate):
         """
-        Set the date when the plan starts in the current year.
+        Set the date when the case starts in the current year.
         This is mostly for reproducibility purposes and back projecting known balances to Jan 1st.
         String format of mydate is 'MM/DD', 'MM-DD', 'YYYY-MM-DD', or 'YYYY/MM/DD'. Year is ignored.
         """
@@ -448,16 +448,16 @@ class Plan:
 
     def rename(self, newname):
         """
-        Override name of the plan. Plan name is used
+        Override name of the case. Case name is used
         to distinguish graph outputs and as base name for
         saving configurations and workbooks.
         """
-        self.mylog.vprint(f"Renaming plan {self._name} -> {newname}.")
+        self.mylog.vprint(f"Renaming case {self._name} -> {newname}.")
         self._name = newname
 
     def setDescription(self, description):
         """
-        Set a text description of the plan.
+        Set a text description of the case.
         """
         self._description = description
 
@@ -2423,7 +2423,7 @@ class Plan:
         now = self.year_n[0]
         dic = {}
         # Results
-        dic["Plan name"] = self._name
+        dic["Case name"] = self._name
         dic["Net yearly spending basis" + 26*" ."] = u.d(self.g_n[0] / self.xi_n[0])
         dic[f"Net spending for year {now}"] = u.d(self.g_n[0])
         dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0] * self.yearFracLeft)
@@ -2509,36 +2509,37 @@ class Plan:
             dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-free]"] = (f"{u.d(p_j[2])}")
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
+        heirsTaxLiability = estate[1] * self.nu
         estate[1] *= 1 - self.nu
         endyear = self.year_n[-1]
         lyNow = 1./self.gamma_n[-1]
-        debts = self.remaining_debt_balance
         # Add fixed assets bequest value (assets with yod past plan end)
+        debts = self.remaining_debt_balance
         totEstate = np.sum(estate) - debts + self.fixed_assets_bequest_value
+
         dic["Year of final bequest"] = (f"{endyear}")
-        dic[" Total value of final bequest"] = (f"{u.d(lyNow*totEstate)}")
-        if debts > 0:
-            dic[" After paying remaining debts of"] = (f"{u.d(lyNow*debts)}")
-        if self.fixed_assets_bequest_value > 0:
-            dic[" Fixed assets liquidated at end of plan"] = (f"{u.d(lyNow*self.fixed_assets_bequest_value)}")
-            dic["[Fixed assets liquidated at end of plan]"] = (f"{u.d(self.fixed_assets_bequest_value)}")
-        dic["[Total value of final bequest]"] = (f"{u.d(totEstate)}")
+        dic[" Total after-tax value of final bequest"] = (f"{u.d(lyNow*totEstate)}")
+        dic[" Fixed assets liquidated at end of plan"] = (f"{u.d(lyNow*self.fixed_assets_bequest_value)}")
+        dic[" After paying remaining debts of"] = (f"{u.d(lyNow*debts)}")
+        dic[" With heirs assuming tax liability of"] = (f"{u.d(lyNow*heirsTaxLiability)}")
+        dic["[Total after-tax value of final bequest]"] = (f"{u.d(totEstate)}")
+        dic["[Fixed assets liquidated at end of plan]"] = (f"{u.d(self.fixed_assets_bequest_value)}")
+        dic["[After paying remaining debts of]"] = (f"{u.d(debts)}")
+        dic["[With heirs assuming tax liability of"] = (f"{u.d(heirsTaxLiability)}")
         dic["»  Post-tax final bequest account value - taxable"] = (f"{u.d(lyNow*estate[0])}")
         dic["» [Post-tax final bequest account value - taxable]"] = (f"{u.d(estate[0])}")
         dic["»  Post-tax final bequest account value - tax-def"] = (f"{u.d(lyNow*estate[1])}")
         dic["» [Post-tax final bequest account value - tax-def]"] = (f"{u.d(estate[1])}")
         dic["»  Post-tax final bequest account value - tax-free"] = (f"{u.d(lyNow*estate[2])}")
         dic["» [Post-tax final bequest account value - tax-free]"] = (f"{u.d(estate[2])}")
-        if debts > 0:
-            dic["» [Remaining debt balance]"] = (f"{u.d(debts)}")
 
-        dic["Plan starting date"] = str(self.startDate)
+        dic["Case starting date"] = str(self.startDate)
         dic["Cumulative inflation factor at end of final year"] = (f"{self.gamma_n[-1]:.2f}")
         for i in range(self.N_i):
             dic[f"{self.inames[i]:>14}'s life horizon"] = (f"{now} -> {now + self.horizons[i] - 1}")
             dic[f"{self.inames[i]:>14}'s years planned"] = (f"{self.horizons[i]}")
 
-        dic["Plan name"] = self._name
+        dic["Case name"] = self._name
         dic["Number of decision variables"] = str(self.A.nvars)
         dic["Number of constraints"] = str(self.A.ncons)
         dic["Case executed on"] = str(self._timestamp)
@@ -2798,10 +2799,10 @@ class Plan:
         - taxable ordinary income
         - taxable dividends
         - tax bills (federal only, including IRMAA)
-        for all the years for the time span of the plan.
+        for all the years for the time span of the case.
 
         The second worksheet contains the rates
-        used for the plan as follows:
+        used for the case as follows:
         - S&P 500
         - Corporate Baa bonds
         - Treasury notes (10y)

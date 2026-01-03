@@ -206,6 +206,13 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
                 required=True,
                 options=fixedTypes,
             ),
+            "year": st.column_config.NumberColumn(
+                "year",
+                help="Year of acquisition (this year or after)",
+                min_value=thisyear,
+                required=True,
+                step=1,
+            ),
             "basis": st.column_config.NumberColumn(
                 "basis",
                 help="Enter cost basis ($)",
@@ -216,7 +223,7 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
             ),
             "value": st.column_config.NumberColumn(
                 "value",
-                help="Enter current value ($)",
+                help="Enter value at acquisition ($)",
                 min_value=0,
                 required=True,
                 format="dollar",

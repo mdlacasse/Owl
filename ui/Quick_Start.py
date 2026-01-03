@@ -18,8 +18,9 @@ with col1:
     st.markdown("""
 ## :fireworks: :rainbow[Happy New Year!!!] :fireworks:
 
-This version has updated tax laws for year 2026 (TY2025).
-Exact historical gains for 2025 will be entered as soon as available.
+- This version includes updated tax laws for year 2026 (TY2025).
+- :warning: Fixed Assets table now needs a *year* column allowing the acquisition of assets in the future.
+- Historical gains for 2025 are still preliminary: exact values will be entered as soon as available.
 
 Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
@@ -87,5 +88,4 @@ the new case. The **Output Files** will show a side-by-side comparison between t
 More information can be found on the :material/help: **[Documentation](Documentation)**
 page located in the **Resources** section.
 """)
-    st.balloons()
     st.balloons()

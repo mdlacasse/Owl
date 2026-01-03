@@ -433,7 +433,7 @@ def readContributions(plan, stFile, file=None):
     try:
         plan.readContributions(stFile, filename_for_logging=name)
     except Exception as e:
-        st.error(f"Failed to parse Household Financial Profile Workbook 'name': {e}")
+        st.error(f"Failed to parse Household Financial Profile Workbook '{name}': {e}")
         return False
 
     # Set the filename in both case dictionary and plan object

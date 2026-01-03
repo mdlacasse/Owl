@@ -165,12 +165,13 @@ class TestHFPWriteRead:
             verbose=False
         )
 
-        # Create fixed assets DataFrame with active column
+        # Create fixed assets DataFrame with active column and year (acquisition year)
         assets_df = pd.DataFrame([
             {
                 "active": True,
                 "name": "House",
                 "type": "residence",
+                "year": thisyear,  # Acquired in current year
                 "basis": 150000,
                 "value": 300000,
                 "rate": 3.0,
@@ -181,6 +182,7 @@ class TestHFPWriteRead:
                 "active": False,
                 "name": "Collectible",
                 "type": "collectibles",
+                "year": thisyear + 2,  # Acquired in future year
                 "basis": 10000,
                 "value": 15000,
                 "rate": 2.0,
@@ -223,10 +225,12 @@ class TestHFPWriteRead:
             house = assets_df2[assets_df2["name"] == "House"].iloc[0]
             assert house["active"]
             assert house["value"] == 300000
+            assert house["year"] == thisyear  # Verify year column is preserved
 
             collectible = assets_df2[assets_df2["name"] == "Collectible"].iloc[0]
             assert not collectible["active"]
             assert collectible["value"] == 15000
+            assert collectible["year"] == thisyear + 2  # Verify year column is preserved
 
         finally:
             if os.path.exists(tmp_path):

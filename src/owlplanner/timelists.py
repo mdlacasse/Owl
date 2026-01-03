@@ -57,6 +57,7 @@ _fixedAssetItems = [
     "active",
     "name",
     "type",
+    "year",
     "basis",
     "value",
     "rate",
@@ -253,6 +254,16 @@ def _conditionHouseTables(dfDict, mylog):
                             f"Converted {mask.sum()} commission value(s) from decimal "
                             f"to percentage in Fixed Assets table."
                         )
+                # Validate and reset "year" column (acquisition year) if in the past
+                if "year" in df.columns:
+                    thisyear = date.today().year
+                    mask = df["year"] < thisyear
+                    if mask.any():
+                        df.loc[mask, "year"] = thisyear
+                        mylog.vprint(
+                            f"Reset {mask.sum()} acquisition year value(s) to {thisyear} "
+                            f"in Fixed Assets table (years cannot be in the past)."
+                        )
 
             # Convert "active" column to boolean if it exists.
             # Excel may read booleans as strings ("True"/"False") or numbers (1/0).
@@ -313,7 +324,7 @@ def conditionDebtsAndFixedAssetsDF(df, tableType):
         int_cols = ["year", "term"]
         float_cols = ["amount", "rate"]
     else:  # Fixed Assets
-        int_cols = ["yod"]
+        int_cols = ["year", "yod"]
         float_cols = ["basis", "value", "rate", "commission"]
 
     # Handle empty DataFrame by setting dtypes directly
@@ -355,6 +366,13 @@ def conditionDebtsAndFixedAssetsDF(df, tableType):
             elif col in float_cols:
                 # Float columns: convert to float64, fill NaN with 0.0
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0).astype("float64")
+
+    # For Fixed Assets, validate and reset "year" column if in the past
+    if tableType == "Fixed Assets" and "year" in df.columns and len(df) > 0:
+        thisyear = date.today().year
+        mask = df["year"] < thisyear
+        if mask.any():
+            df.loc[mask, "year"] = thisyear
 
     return df
 

@@ -55,7 +55,8 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
     Parameters:
     -----------
     fixed_assets_df : pd.DataFrame
-        DataFrame with columns: name, type, basis, value, rate, yod, commission
+        DataFrame with columns: name, type, year, basis, value, rate, yod, commission
+        where 'year' is the acquisition year (this year or after)
     N_n : int
         Number of years in the plan (length of output arrays)
     thisyear : int, optional
@@ -103,21 +104,44 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
 
         asset_type = str(asset["type"]).lower()
         basis = float(asset["basis"])
-        current_value = float(asset["value"])
+        value_at_acquisition = float(asset["value"])  # Value at acquisition year
         annual_rate = float(asset["rate"])
+        # Get acquisition year, defaulting to thisyear for backward compatibility
+        if "year" in asset.index and not pd.isna(asset["year"]):
+            acquisition_year = int(asset["year"])
+        else:
+            acquisition_year = thisyear
         yod = int(asset["yod"])  # Year of disposition
         commission_pct = float(asset["commission"]) / 100.0
 
-        # Find the year index in the plan
-        if yod < thisyear or yod >= thisyear + N_n:
-            # Asset disposition is outside the plan horizon
+        end_year = thisyear + N_n - 1  # Last year of the plan
+
+        # Skip if asset is acquired after the plan ends
+        if acquisition_year > end_year:
             continue
 
+        # Skip if disposition is before acquisition (invalid)
+        if yod < acquisition_year:
+            continue
+
+        # Skip if disposition is before the plan starts
+        if yod < thisyear:
+            continue
+
+        # Only process assets disposed during the plan (yod <= end_year)
+        # IMPORTANT: Assets with yod > end_year are NOT processed here to avoid double counting.
+        # They are handled separately in get_fixed_assets_bequest_value().
+        if yod > end_year:
+            continue
+
+        # Disposition at beginning of yod (within plan duration)
         n = yod - thisyear
+        # Asset acquired at beginning of acquisition_year, disposed at beginning of yod
+        # Growth period: from start of acquisition_year to start of yod = (yod - acquisition_year) years
+        years_from_acquisition_to_disposition = yod - acquisition_year
 
         # Calculate future value at disposition
-        years_to_disposition = yod - thisyear
-        future_value = calculate_future_value(current_value, annual_rate, years_to_disposition)
+        future_value = calculate_future_value(value_at_acquisition, annual_rate, years_from_acquisition_to_disposition)
 
         # Calculate proceeds after commission
         commission_amount = future_value * commission_pct
@@ -181,7 +205,8 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
     Parameters:
     -----------
     fixed_assets_df : pd.DataFrame
-        DataFrame with columns: name, type, basis, value, rate, yod, commission
+        DataFrame with columns: name, type, year, basis, value, rate, yod, commission
+        where 'year' is the acquisition year (this year or after)
     N_n : int
         Number of years in the plan
     thisyear : int, optional
@@ -200,7 +225,7 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
     if fixed_assets_df is None or fixed_assets_df.empty:
         return 0.0
 
-    years_to_end = N_n  # Years from start to last year of plan, inclusively
+    end_year = thisyear + N_n - 1  # Last year of the plan
     total_bequest_value = 0.0
 
     for _, asset in fixed_assets_df.iterrows():
@@ -215,22 +240,41 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
                 # Explicitly False means inactive
                 continue
 
+        # Get acquisition year, defaulting to thisyear for backward compatibility
+        if "year" in asset.index and not pd.isna(asset["year"]):
+            acquisition_year = int(asset["year"])
+        else:
+            acquisition_year = thisyear
         yod = int(asset["yod"])  # Year of disposition
 
-        # Only consider assets with yod past the end of the plan
-        if yod >= thisyear + N_n:
-            current_value = float(asset["value"])
+        # Skip if asset is acquired after the plan ends
+        if acquisition_year > end_year:
+            continue
+
+        # Skip if disposition is before acquisition (invalid)
+        if yod < acquisition_year:
+            continue
+
+        # Only consider assets with yod past the end of the plan (not disposed during the plan)
+        # IMPORTANT: Assets with yod <= end_year are NOT processed here to avoid double counting.
+        # They are handled separately in get_fixed_assets_arrays() where they are disposed during the plan.
+        # These assets (yod > end_year) are assumed to be liquidated at the end of the plan and added to the bequest
+        if yod > end_year:
+            value_at_acquisition = float(asset["value"])  # Value at acquisition year
             annual_rate = float(asset["rate"])
             commission_pct = float(asset["commission"]) / 100.0
 
             # Calculate future value at the end of the plan
-            future_value = calculate_future_value(current_value, annual_rate, years_to_end)
+            # Asset acquired at beginning of acquisition_year, liquidated at end of end_year
+            # Growth period: from start of acquisition_year to end of end_year = (end_year - acquisition_year + 1) years
+            years_from_acquisition_to_end = end_year - acquisition_year + 1
+            future_value = calculate_future_value(value_at_acquisition, annual_rate, years_from_acquisition_to_end)
 
             # Calculate proceeds after commission
             commission_amount = future_value * commission_pct
             proceeds = future_value - commission_amount
 
-            # Add to total bequest value (full proceeds, no tax)
+            # Add to total bequest value (full proceeds, no tax - step-up in basis for heirs)
             total_bequest_value += proceeds
 
     return total_bequest_value
