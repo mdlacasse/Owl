@@ -328,14 +328,36 @@ The *Debts* worksheet looks like the following:
 |--|--|--|--|--|--|--|
 | | | | | | | |
 
-where *type* is one of *loan* or *mortgage*. The *active* field is a Boolean value
-that allows to turn debts or fixed assets on or off in the calculations.
-This is useful for *case* comparison purposes.
-Boolean values are marked in all caps as `TRUE` or `FALSE` in Excel.
+where:
+- *active* is a Boolean value (`TRUE` or `FALSE`) that allows to turn debts on or off in the
+  calculations. This is useful for *case* comparison purposes. If not specified or set to `TRUE`,
+  the debt is included in calculations. Boolean values are marked in all caps as `TRUE` or `FALSE` in Excel.
+- *name* is a unique identifier for the debt (e.g., "Primary Mortgage", "Car Loan", "HELOC").
+- *type* is one of *loan* or *mortgage*. This classification helps organize different types of debts,
+  though both are treated the same way in calculations.
+- *year* is the **start year** when the debt begins (the year the loan was taken out or when payments
+  start). Payments are calculated from this year forward for the duration of the term.
+- *term* is the **loan term in years** (the total number of years over which the debt will be repaid).
+  The loan ends in year + term. For example, a loan starting in 2025 with a 30-year term ends in 2055.
+- *amount* is the **principal amount** of the debt (in dollars) at the start year. This is the initial
+  loan balance that will be amortized over the term.
+- *rate* is the **annual interest rate** (percentage) for the debt. This rate is used to calculate
+  the fixed annual payment amount based on standard amortization formulas. The payment amount remains
+  constant throughout the loan term.
+
+**Debt Payment Calculation:**
+- Debt payments are calculated using standard amortization formulas based on the principal amount,
+  interest rate, and term.
+- Annual payments are made each year from the start year until the loan is fully paid off
+  (start year + term).
+- Debt payments are **not included** in the net spending amount and are treated as separate expenses.
+- Any remaining debt balance at the end of the plan will be deducted from savings accounts.
+- If a bequest of zero is specified, the optimizer will ensure sufficient funds remain in savings
+  accounts to pay off all remaining debts.
 
 *Fixed Assets* are used to track illiquid assets such as a house, real estate, collectibles,
 or restricted stocks. Fixed-rate annuities with a lump sum can also be modeled. Assets can be
-acquired in the current year or in future years. In the year of disposition (yod), the proceeds
+reported in the current year or acquired in future years. In the year of disposition (yod), the proceeds
 will be separated in three portions: tax-free, ordinary income, and capital gains, depending on
 the asset, and be taxed appropriately.
 
@@ -346,15 +368,29 @@ The *Fixed Assets* worksheet looks like the following:
 | | | | | | | | | |
 
 where:
-- *year* is the **acquisition year** (this year or after). If the year is in the past, it will be
-  automatically reset to the current year when reading from the HFP file.
-- *value* is the **value at acquisition** (in current dollars at the time of acquisition).
+- *active* is a Boolean value (`TRUE` or `FALSE`) that allows to turn fixed assets on or off in the
+  calculations. This is useful for *case* comparison purposes. If not specified or set to `TRUE`,
+  the asset is included in calculations.
+- *name* is a unique identifier for the fixed asset (e.g., "Primary Residence", "Rental Property").
+- *type* is one of *residence*, *real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*.
+  In the current version, only fixed-rate lump-sum annuities can be represented. The asset type determines
+  the tax treatment upon disposition (see Asset Lifecycle section below).
+- *year* is the **reference year** (this year or after). If the year is in the past, it will be
+  automatically reset to the current year when reading from the HFP file. Assets acquired in
+  the future have a future reference year. The asset is considered assessed (current) or acquired (future)
+  at the beginning of the year.
+- *basis* is the **cost basis** of the asset (in dollars). This is typically the original purchase price
+  or adjusted basis for tax purposes. The basis is used to calculate capital gains or losses upon disposition.
+- *value* is the **value at reference** (in dollars, current at the time of reference). This value
+  represents the asset's worth when it is acquired in the specified year. The value will grow from
+  the reference year to the disposition year using the specified growth rate.
+- *rate* is the **annual growth rate** (percentage) applied from the acquisition year to the disposition year.
+  This rate is used to calculate the future value of the asset at the time of disposition.
 - *yod* is the **year of disposition**. Assets are disposed at the beginning of the year specified.
   If the disposition year is beyond the plan duration, the asset is liquidated at the end of the
   last year of the plan and added to the bequest (no taxes applied, step-up in basis for heirs).
-- *rate* is the annual growth rate (percentage) applied from the acquisition year to the disposition year.
-- *type* is one of *residence*, *real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*.
-  In the current version, only fixed-rate lump-sum annuities can be represented.
+- *commission* is the **sale commission** (percentage) charged when the asset is disposed. This percentage
+  is applied to the future value of the asset at disposition to calculate the net proceeds after commission.
 
 **Asset Lifecycle:**
 - Assets are **acquired at the beginning** of the year specified in the *year* column.

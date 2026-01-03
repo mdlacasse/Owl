@@ -56,7 +56,7 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
     -----------
     fixed_assets_df : pd.DataFrame
         DataFrame with columns: name, type, year, basis, value, rate, yod, commission
-        where 'year' is the acquisition year (this year or after)
+        where 'year' is the reference year (this year or after)
     N_n : int
         Number of years in the plan (length of output arrays)
     thisyear : int, optional
@@ -104,24 +104,24 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
 
         asset_type = str(asset["type"]).lower()
         basis = float(asset["basis"])
-        value_at_acquisition = float(asset["value"])  # Value at acquisition year
+        value_at_reference = float(asset["value"])  # Value at reference year
         annual_rate = float(asset["rate"])
-        # Get acquisition year, defaulting to thisyear for backward compatibility
+        # Get reference year, defaulting to thisyear for backward compatibility
         if "year" in asset.index and not pd.isna(asset["year"]):
-            acquisition_year = int(asset["year"])
+            reference_year = int(asset["year"])
         else:
-            acquisition_year = thisyear
+            reference_year = thisyear
         yod = int(asset["yod"])  # Year of disposition
         commission_pct = float(asset["commission"]) / 100.0
 
         end_year = thisyear + N_n - 1  # Last year of the plan
 
-        # Skip if asset is acquired after the plan ends
-        if acquisition_year > end_year:
+        # Skip if asset reference year is after the plan ends
+        if reference_year > end_year:
             continue
 
-        # Skip if disposition is before acquisition (invalid)
-        if yod < acquisition_year:
+        # Skip if disposition is before reference year (invalid)
+        if yod < reference_year:
             continue
 
         # Skip if disposition is before the plan starts
@@ -136,12 +136,12 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
 
         # Disposition at beginning of yod (within plan duration)
         n = yod - thisyear
-        # Asset acquired at beginning of acquisition_year, disposed at beginning of yod
-        # Growth period: from start of acquisition_year to start of yod = (yod - acquisition_year) years
-        years_from_acquisition_to_disposition = yod - acquisition_year
+        # Asset assessed at beginning of reference_year, disposed at beginning of yod
+        # Growth period: from start of reference_year to start of yod = (yod - reference_year) years
+        years_from_reference_to_disposition = yod - reference_year
 
         # Calculate future value at disposition
-        future_value = calculate_future_value(value_at_acquisition, annual_rate, years_from_acquisition_to_disposition)
+        future_value = calculate_future_value(value_at_reference, annual_rate, years_from_reference_to_disposition)
 
         # Calculate proceeds after commission
         commission_amount = future_value * commission_pct
@@ -206,7 +206,7 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
     -----------
     fixed_assets_df : pd.DataFrame
         DataFrame with columns: name, type, year, basis, value, rate, yod, commission
-        where 'year' is the acquisition year (this year or after)
+        where 'year' is the reference year (this year or after)
     N_n : int
         Number of years in the plan
     thisyear : int, optional
@@ -240,19 +240,19 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
                 # Explicitly False means inactive
                 continue
 
-        # Get acquisition year, defaulting to thisyear for backward compatibility
+        # Get reference year, defaulting to thisyear for backward compatibility
         if "year" in asset.index and not pd.isna(asset["year"]):
-            acquisition_year = int(asset["year"])
+            reference_year = int(asset["year"])
         else:
-            acquisition_year = thisyear
+            reference_year = thisyear
         yod = int(asset["yod"])  # Year of disposition
 
-        # Skip if asset is acquired after the plan ends
-        if acquisition_year > end_year:
+        # Skip if asset reference year is after the plan ends
+        if reference_year > end_year:
             continue
 
-        # Skip if disposition is before acquisition (invalid)
-        if yod < acquisition_year:
+        # Skip if disposition is before reference year (invalid)
+        if yod < reference_year:
             continue
 
         # Only consider assets with yod past the end of the plan (not disposed during the plan)
@@ -260,15 +260,15 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
         # They are handled separately in get_fixed_assets_arrays() where they are disposed during the plan.
         # These assets (yod > end_year) are assumed to be liquidated at the end of the plan and added to the bequest
         if yod > end_year:
-            value_at_acquisition = float(asset["value"])  # Value at acquisition year
+            value_at_reference = float(asset["value"])  # Value at reference year
             annual_rate = float(asset["rate"])
             commission_pct = float(asset["commission"]) / 100.0
 
             # Calculate future value at the end of the plan
-            # Asset acquired at beginning of acquisition_year, liquidated at end of end_year
-            # Growth period: from start of acquisition_year to end of end_year = (end_year - acquisition_year + 1) years
-            years_from_acquisition_to_end = end_year - acquisition_year + 1
-            future_value = calculate_future_value(value_at_acquisition, annual_rate, years_from_acquisition_to_end)
+            # Asset assessed at beginning of reference_year, liquidated at end of end_year
+            # Growth period: from start of reference_year to end of end_year = (end_year - reference_year + 1) years
+            years_from_reference_to_end = end_year - reference_year + 1
+            future_value = calculate_future_value(value_at_reference, annual_rate, years_from_reference_to_end)
 
             # Calculate proceeds after commission
             commission_amount = future_value * commission_pct

@@ -254,14 +254,14 @@ def _conditionHouseTables(dfDict, mylog):
                             f"Converted {mask.sum()} commission value(s) from decimal "
                             f"to percentage in Fixed Assets table."
                         )
-                # Validate and reset "year" column (acquisition year) if in the past
+                # Validate and reset "year" column (reference year) if in the past
                 if "year" in df.columns:
                     thisyear = date.today().year
                     mask = df["year"] < thisyear
                     if mask.any():
                         df.loc[mask, "year"] = thisyear
                         mylog.vprint(
-                            f"Reset {mask.sum()} acquisition year value(s) to {thisyear} "
+                            f"Reset {mask.sum()} reference year value(s) to {thisyear} "
                             f"in Fixed Assets table (years cannot be in the past)."
                         )
 

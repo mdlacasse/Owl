@@ -208,7 +208,7 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
             ),
             "year": st.column_config.NumberColumn(
                 "year",
-                help="Year of acquisition (this year or after)",
+                help="Reference year (this year or after)",
                 min_value=thisyear,
                 required=True,
                 step=1,
@@ -223,7 +223,7 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
             ),
             "value": st.column_config.NumberColumn(
                 "value",
-                help="Enter value at acquisition ($)",
+                help="Enter value at reference year ($)",
                 min_value=0,
                 required=True,
                 format="dollar",
