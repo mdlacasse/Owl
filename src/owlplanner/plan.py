@@ -1937,6 +1937,7 @@ class Plan:
         else:
             raise RuntimeError("Internal error in defining solverMethod.")
 
+        self.mylog.vprint(f"Using {solver} solver.")
         self._scSolve(objective, options, solverMethod)
 
         self.objective = objective
@@ -2489,24 +2490,24 @@ class Plan:
             totSpousal = np.sum(q_j)
             iname_s = self.inames[self.i_s]
             iname_d = self.inames[self.i_d]
-            dic["Year of partial bequest"] = (f"{ynx}")
-            dic[f" Sum of spousal transfer to {iname_s}"] = (f"{u.d(ynxNow*totSpousal)}")
-            dic[f"[Sum of spousal transfer to {iname_s}]"] = (f"{u.d(totSpousal)}")
-            dic[f"»  Spousal transfer to {iname_s} - taxable"] = (f"{u.d(ynxNow*q_j[0])}")
-            dic[f"» [Spousal transfer to {iname_s} - taxable]"] = (f"{u.d(q_j[0])}")
-            dic[f"»  Spousal transfer to {iname_s} - tax-def"] = (f"{u.d(ynxNow*q_j[1])}")
-            dic[f"» [Spousal transfer to {iname_s} - tax-def]"] = (f"{u.d(q_j[1])}")
-            dic[f"»  Spousal transfer to {iname_s} - tax-free"] = (f"{u.d(ynxNow*q_j[2])}")
-            dic[f"» [Spousal transfer to {iname_s} - tax-free]"] = (f"{u.d(q_j[2])}")
+            dic["Year of partial bequest"] = f"{ynx}"
+            dic[f" Sum of spousal transfer to {iname_s}"] = f"{u.d(ynxNow*totSpousal)}"
+            dic[f"[Sum of spousal transfer to {iname_s}]"] = f"{u.d(totSpousal)}"
+            dic[f"»  Spousal transfer to {iname_s} - taxable"] = f"{u.d(ynxNow*q_j[0])}"
+            dic[f"» [Spousal transfer to {iname_s} - taxable]"] = f"{u.d(q_j[0])}"
+            dic[f"»  Spousal transfer to {iname_s} - tax-def"] = f"{u.d(ynxNow*q_j[1])}"
+            dic[f"» [Spousal transfer to {iname_s} - tax-def]"] = f"{u.d(q_j[1])}"
+            dic[f"»  Spousal transfer to {iname_s} - tax-free"] = f"{u.d(ynxNow*q_j[2])}"
+            dic[f"» [Spousal transfer to {iname_s} - tax-free]"] = f"{u.d(q_j[2])}"
 
-            dic[f" Sum of post-tax non-spousal bequest from {iname_d}"] = (f"{u.d(ynxNow*totOthers)}")
-            dic[f"[Sum of post-tax non-spousal bequest from {iname_d}]"] = (f"{u.d(totOthers)}")
-            dic[f"»  Post-tax non-spousal bequest from {iname_d} - taxable"] = (f"{u.d(ynxNow*p_j[0])}")
-            dic[f"» [Post-tax non-spousal bequest from {iname_d} - taxable]"] = (f"{u.d(p_j[0])}")
-            dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-def"] = (f"{u.d(ynxNow*p_j[1])}")
-            dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-def]"] = (f"{u.d(p_j[1])}")
-            dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-free"] = (f"{u.d(ynxNow*p_j[2])}")
-            dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-free]"] = (f"{u.d(p_j[2])}")
+            dic[f" Sum of post-tax non-spousal bequest from {iname_d}"] = f"{u.d(ynxNow*totOthers)}"
+            dic[f"[Sum of post-tax non-spousal bequest from {iname_d}]"] = f"{u.d(totOthers)}"
+            dic[f"»  Post-tax non-spousal bequest from {iname_d} - taxable"] = f"{u.d(ynxNow*p_j[0])}"
+            dic[f"» [Post-tax non-spousal bequest from {iname_d} - taxable]"] = f"{u.d(p_j[0])}"
+            dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-def"] = f"{u.d(ynxNow*p_j[1])}"
+            dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-def]"] = f"{u.d(p_j[1])}"
+            dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-free"] = f"{u.d(ynxNow*p_j[2])}"
+            dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-free]"] = f"{u.d(p_j[2])}"
 
         estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         heirsTaxLiability = estate[1] * self.nu
@@ -2515,29 +2516,32 @@ class Plan:
         lyNow = 1./self.gamma_n[-1]
         # Add fixed assets bequest value (assets with yod past plan end)
         debts = self.remaining_debt_balance
-        totEstate = np.sum(estate) - debts + self.fixed_assets_bequest_value
+        savingsEstate = np.sum(estate)
+        totEstate = savingsEstate - debts + self.fixed_assets_bequest_value
 
-        dic["Year of final bequest"] = (f"{endyear}")
-        dic[" Total after-tax value of final bequest"] = (f"{u.d(lyNow*totEstate)}")
-        dic[" Fixed assets liquidated at end of plan"] = (f"{u.d(lyNow*self.fixed_assets_bequest_value)}")
-        dic[" After paying remaining debts of"] = (f"{u.d(lyNow*debts)}")
-        dic[" With heirs assuming tax liability of"] = (f"{u.d(lyNow*heirsTaxLiability)}")
-        dic["[Total after-tax value of final bequest]"] = (f"{u.d(totEstate)}")
-        dic["[Fixed assets liquidated at end of plan]"] = (f"{u.d(self.fixed_assets_bequest_value)}")
-        dic["[After paying remaining debts of]"] = (f"{u.d(debts)}")
-        dic["[With heirs assuming tax liability of"] = (f"{u.d(heirsTaxLiability)}")
-        dic["»  Post-tax final bequest account value - taxable"] = (f"{u.d(lyNow*estate[0])}")
-        dic["» [Post-tax final bequest account value - taxable]"] = (f"{u.d(estate[0])}")
-        dic["»  Post-tax final bequest account value - tax-def"] = (f"{u.d(lyNow*estate[1])}")
-        dic["» [Post-tax final bequest account value - tax-def]"] = (f"{u.d(estate[1])}")
-        dic["»  Post-tax final bequest account value - tax-free"] = (f"{u.d(lyNow*estate[2])}")
-        dic["» [Post-tax final bequest account value - tax-free]"] = (f"{u.d(estate[2])}")
+        dic["Year of final bequest"] = f"{endyear}"
+        dic[" Total after-tax value of final bequest"] = f"{u.d(lyNow*totEstate)}"
+        dic[" After-tax value of savings assets"] = f"{u.d(lyNow*savingsEstate)}"
+        dic[" Fixed assets liquidated at end of plan"] = f"{u.d(lyNow*self.fixed_assets_bequest_value)}"
+        dic[" After paying remaining debts of"] = f"{u.d(lyNow*debts)}"
+        dic[" With heirs assuming tax liability of"] = f"{u.d(lyNow*heirsTaxLiability)}"
+        dic["[Total after-tax value of final bequest]"] = f"{u.d(totEstate)}"
+        dic["[[After-tax value of savings assets]"] = f"{u.d(savingsEstate)}"
+        dic["[Fixed assets liquidated at end of plan]"] = f"{u.d(self.fixed_assets_bequest_value)}"
+        dic["[After paying remaining debts of]"] = f"{u.d(debts)}"
+        dic["[With heirs assuming tax liability of"] = f"{u.d(heirsTaxLiability)}"
+        dic["»  Post-tax final bequest account value - taxable"] = f"{u.d(lyNow*estate[0])}"
+        dic["» [Post-tax final bequest account value - taxable]"] = f"{u.d(estate[0])}"
+        dic["»  Post-tax final bequest account value - tax-def"] = f"{u.d(lyNow*estate[1])}"
+        dic["» [Post-tax final bequest account value - tax-def]"] = f"{u.d(estate[1])}"
+        dic["»  Post-tax final bequest account value - tax-free"] = f"{u.d(lyNow*estate[2])}"
+        dic["» [Post-tax final bequest account value - tax-free]"] = f"{u.d(estate[2])}"
 
         dic["Case starting date"] = str(self.startDate)
-        dic["Cumulative inflation factor at end of final year"] = (f"{self.gamma_n[-1]:.2f}")
+        dic["Cumulative inflation factor at end of final year"] = f"{self.gamma_n[-1]:.2f}"
         for i in range(self.N_i):
-            dic[f"{self.inames[i]:>14}'s life horizon"] = (f"{now} -> {now + self.horizons[i] - 1}")
-            dic[f"{self.inames[i]:>14}'s years planned"] = (f"{self.horizons[i]}")
+            dic[f"{self.inames[i]:>14}'s life horizon"] = f"{now} -> {now + self.horizons[i] - 1}"
+            dic[f"{self.inames[i]:>14}'s years planned"] = f"{self.horizons[i]}"
 
         dic["Case name"] = self._name
         dic["Number of decision variables"] = str(self.A.nvars)
