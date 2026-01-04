@@ -584,26 +584,43 @@ the *Roth conv* column on the
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
 
-A self-consistent loop is used to compute values that are difficult
-to integrate into a linear program. These includes the net investment income tax (NIIT),
+A **self-consistent loop** is an iterative calculation method used to compute values that are difficult
+to integrate directly into a linear program. The loop works by:
+1. Solving the optimization problem with initial estimates for these values
+2. Calculating the actual values based on the solution
+3. Re-solving the problem with the updated values
+4. Repeating until the values converge (stop changing significantly)
+
+This method is used for the net investment income tax (NIIT),
 the rate on capital gains (0, 15, or 20%), the phase out of the additional exemption for seniors,
 and potentially the Medicare and IRMAA premiums.
 Turning off the self-consistent loop will default all these values to zero.
+
+**Medicare and IRMAA calculations** can be handled in three ways:
+
+- **`None`**: Medicare premiums are ignored (set to zero). This is the fastest option but least accurate.
+
+- **`loop` (self-consistent loop)**: Medicare premiums are calculated iteratively after each optimization solution.
+  The optimizer finds the best strategy, then Medicare premiums are computed based on that strategy's income (MAGI),
+  and the problem is re-solved with those premiums as fixed costs. This process repeats until the premiums stabilize.
+  This is the **recommended default** as it provides good accuracy with reasonable computation time.
+  However, when income is near an IRMAA bracket boundary, the solution may oscillate slightly between iterations.
+
+- **`optimize` (full optimization)**: Medicare premiums are integrated directly into the optimization problem
+  as decision variables. The optimizer simultaneously finds the best financial strategy AND the optimal Medicare
+  premium bracket, considering all trade-offs. This is the **most accurate** method but can be significantly slower
+  (sometimes taking many minutes) due to the additional binary variables required. Use this option for single-case
+  analysis when you want the most precise results, and compare with self-consistent loop results to verify.
+  **Do not use this option** when running multiple scenarios such as Monte Carlo simulations, as the computation
+  time would be prohibitive.
+
+Medicare premiums start automatically in the year each individual reaches age 65.
 
 An additional setting allows to turn off mutually exclusive operations,
 such as Roth conversions and withdrawals from the tax-free account.
 Enabling these mutually exclusive constraints avoids both these situations.
 Surprinsingly, dropping these constraints can lead to slightly different optimal points
 for reasons that escape me.
-
-Medicare premiums start automatically in the year each individual reach age 65.
-Calculations of Medicare and IRMAA can be turned off, calculated through
-the self-consistent loop, or be integrated into the optimization.
-Optimizing (as opposed to calculating) Medicare and IRMAA can sometimes be much slower given
-the additional number of binary variables involved. This option should be used
-for a single case, and compared with results obtained from self-consistent calculations.
-Medicare optimization should not be used when running multiple scenarios such
-as in Monte Carlo simulations.
 
 If the current age of any individual in the *case* makes them eligible
 for Medicare within the next two years,
