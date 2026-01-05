@@ -1,52 +1,52 @@
-"Plan Name" = "Jon+Jane"
-Description = "This case reproduces a similar case discussed a while back on i-orp. It involves Jon and Jane close to retirement, and assumes a base case of optimistic returns of 10% with an inflation of 3.5%. A wages and contributions file called 'jon+jane.xlsx' is associated with this case."
+case_name = "Jon+Jane"
+description = "This case reproduces a similar case discussed a while back on i-orp. It involves Jon and Jane close to retirement, and assumes a base case of optimistic returns of 10% with an inflation of 3.5%. A wages and contributions file called 'jon+jane.xlsx' is associated with this case."
 
-["Basic Info"]
-Status = "married"
-Names = [ "Jon", "Jane",]
-"Date of birth" = [ "1966-01-15", "1969-01-15",]
-"Life expectancy" = [ 92, 92,]
-"Start date" = "2026-01-01"
+[basic_info]
+status = "married"
+names = [ "Jon", "Jane",]
+date_of_birth = [ "1966-01-15", "1969-01-15",]
+life_expectancy = [ 92, 92,]
+start_date = "2026-01-01"
 
-[Assets]
-"taxable savings balances" = [ 50.0, 0.0,]
-"tax-deferred savings balances" = [ 900.0, 500.0,]
-"tax-free savings balances" = [ 0.0, 50.0,]
-"Beneficiary fractions" = [ 1.0, 1.0, 1.0,]
-"Spousal surplus deposit fraction" = 0.0
+[savings_assets]
+taxable_savings_balances = [ 50.0, 0.0,]
+tax_deferred_savings_balances = [ 900.0, 500.0,]
+tax_free_savings_balances = [ 0.0, 50.0,]
+beneficiary_fractions = [ 1.0, 1.0, 1.0,]
+spousal_surplus_deposit_fraction = 0.0
 
-["Household Financial Profile"]
-"HFP file name" = "HFP_jon+jane.xlsx"
+[household_financial_profile]
+HFP_file_name = "HFP_jon+jane.xlsx"
 
-["Fixed Income"]
-"Pension monthly amounts" = [ 0, 0,]
-"Pension ages" = [ 65.0, 65.0,]
-"Pension indexed" = [ false, false,]
-"Social security PIA amounts" = [ 1750, 1750,]
-"Social security ages" = [ 65.0, 65.0,]
+[fixed_income]
+pension_monthly_amounts = [ 0, 0,]
+pension_ages = [ 65.0, 65.0,]
+pension_indexed = [ false, false,]
+social_security_pia_amounts = [ 1750, 1750,]
+social_security_ages = [ 65.0, 65.0,]
 
-["Rates Selection"]
-"Heirs rate on tax-deferred estate" = 30.0
-"Dividend rate" = 1.8000000000000003
-"OBBBA expiration year" = 2032
-Method = "user"
-Values = [ 10.0, 6.0, 5.0, 3.5000000000000004,]
-From = 1928
-To = 2024
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 30.0
+dividend_rate = 1.8000000000000003
+obbba_expiration_year = 2032
+method = "user"
+values = [ 10.0, 6.0, 5.0, 3.5000000000000004,]
+from = 1928
+to = 2024
 
-["Asset Allocation"]
-"Interpolation method" = "linear"
-"Interpolation center" = 15.0
-"Interpolation width" = 5.0
-Type = "individual"
+[asset_allocation]
+interpolation_method = "linear"
+interpolation_center = 15.0
+interpolation_width = 5.0
+type = "individual"
 generic = [ [ [ 100, 0, 0, 0,], [ 100, 0, 0, 0,],], [ [ 100, 0, 0, 0,], [ 100, 0, 0, 0,],],]
 
-["Optimization Parameters"]
-"Spending profile" = "flat"
-"Surviving spouse spending percent" = 60
-Objective = "maxSpending"
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 60
+objective = "maxSpending"
 
-["Solver Options"]
+[solver_options]
 maxRothConversion = 0.0
 noRothConversions = "None"
 startRothConversions = 2025
@@ -57,5 +57,5 @@ spendingSlack = 0
 xorConstraints = true
 withSCLoop = true
 
-[Results]
-"Default plots" = "today"
+[results]
+default_plots = "today"
