@@ -376,11 +376,14 @@ def _setContributions(plan, action):
         if iname in plan.timeLists:
             original_timeLists[iname] = plan.timeLists[iname].copy()
 
+    # Ensure original_houseLists always has both keys
     original_houseLists = {}
-    if "Debts" in plan.houseLists:
-        original_houseLists["Debts"] = plan.houseLists["Debts"].copy()
-    if "Fixed Assets" in plan.houseLists:
-        original_houseLists["Fixed Assets"] = plan.houseLists["Fixed Assets"].copy()
+    for key in ["Debts", "Fixed Assets"]:
+        if key in plan.houseLists:
+            original_houseLists[key] = plan.houseLists[key].copy()
+        else:
+            # Initialize with empty DataFrame if key doesn't exist
+            original_houseLists[key] = conditionDebtsAndFixedAssetsDF(None, key)
 
     original_filename = kz.getCaseKey("timeListsFileName")
 
@@ -406,7 +409,8 @@ def _setContributions(plan, action):
             data_changed = True
             break
 
-    # Compare houseLists if timeLists haven't changed
+    # Compare houseLists if timeLists haven't changed.
+    # Both plan.houseLists and original_houseLists are guaranteed to have both keys.
     if not data_changed:
         for key in ["Debts", "Fixed Assets"]:
             if len(plan.houseLists[key]) == 0 and len(original_houseLists[key]) == 0:
@@ -424,12 +428,12 @@ def _setContributions(plan, action):
         kz.setCaseKey("timeListsFileName", "edited values")
         plan.timeListsFileName = "edited values"
     elif action == "set":
-        # Only set to "edited values" if data actually changed
+        # Only set to "edited values" if data actually changed.
         if data_changed:
             kz.storeCaseKey("timeListsFileName", "edited values")
             plan.timeListsFileName = "edited values"
         else:
-            # Preserve original filename if nothing changed
+            # Preserve original filename if nothing changed.
             if original_filename and original_filename != "edited values" and original_filename != "None":
                 kz.storeCaseKey("timeListsFileName", original_filename)
                 plan.timeListsFileName = original_filename
