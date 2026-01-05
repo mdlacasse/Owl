@@ -189,6 +189,12 @@ def copyCase():
     ss.cases[dupname] = copy.deepcopy(ss.cases[ss.currentCase])
     ss.cases[ss.currentCase]["plan"] = currentPlan
 
+    # If reproducibility is enabled, copy the seed; otherwise generate a new one. Token be False or missing.
+    if not ss.cases[dupname].get("reproducibleRates", False):
+        # Generate a new seed for non-reproducible rates.
+        import time
+        ss.cases[dupname]["rateSeed"] = int(time.time() * 1000000) % (2**31)
+
     ss.cases[dupname]["name"] = dupname
     for key in ["summaryDf", "histoPlot", "histoSummary", "monteCarloPlot", "monteCarloSummary"]:
         ss.cases[dupname][key] = None
@@ -290,7 +296,7 @@ def storepull(key):
 
 
 def pushCaseKey(key, val=None):
-    if val:
+    if val is not None:
         ss.cases[ss.currentCase][key] = val
         ss[genCaseKey(key)] = val
     else:

@@ -131,14 +131,24 @@ class Rates(object):
     then ``mySeries = r.genSeries()``
     """
 
-    def __init__(self, mylog=None):
+    def __init__(self, mylog=None, seed=None):
         """
         Default constructor.
+
+        Args:
+            mylog: Logger instance (optional)
+            seed: Random seed for reproducible stochastic rates (optional)
         """
         if mylog is None:
             self.mylog = log.Logger()
         else:
             self.mylog = mylog
+
+        # Store seed for stochastic rate generation
+        # Always use a Generator instance for thread safety and modern API
+        # If seed is None, default_rng() will use entropy/current time
+        self._seed = seed
+        self._rng = np.random.default_rng(seed)
 
         # Default rates are average over last 30 years.
         self._defRates = np.array([0.1101, 0.0736, 0.0503, 0.0251])
@@ -356,6 +366,6 @@ class Rates(object):
         through multivariate analysis. Code below accounts for
         covariance between stocks, corp bonds, t-notes, and inflation.
         """
-        srates = np.random.multivariate_normal(self.means, self.covar)
+        srates = self._rng.multivariate_normal(self.means, self.covar)
 
         return srates

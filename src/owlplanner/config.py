@@ -70,6 +70,11 @@ def saveConfig(myplan, file, mylog):
         "OBBBA expiration year": myplan.yOBBBA,
         "Method": myplan.rateMethod,
     }
+    # Store seed and reproducibility flag for stochastic methods
+    if myplan.rateMethod in ["stochastic", "histochastic"]:
+        if myplan.rateSeed is not None:
+            diconf["Rates Selection"]["Rate seed"] = int(myplan.rateSeed)
+        diconf["Rates Selection"]["Reproducible rates"] = bool(myplan.reproducibleRates)
     if myplan.rateMethod in ["user", "stochastic"]:
         diconf["Rates Selection"]["Values"] = (100 * myplan.rateValues).tolist()
     if myplan.rateMethod in ["stochastic"]:
@@ -246,6 +251,8 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     rateValues = None
     stdev = None
     rateCorr = None
+    rateSeed = None
+    reproducibleRates = False
     rateMethod = diconf["Rates Selection"]["Method"]
     if rateMethod in ["historical average", "historical", "histochastic"]:
         frm = diconf["Rates Selection"]["From"]
@@ -267,6 +274,13 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             p.rateFile = rateFile
         if rateSheetName:
             p.rateSheetName = rateSheetName
+    # Load seed and reproducibility flag for stochastic methods
+    if rateMethod in ["stochastic", "histochastic"]:
+        rateSeed = diconf["Rates Selection"].get("Rate seed")
+        if rateSeed is not None:
+            rateSeed = int(rateSeed)
+        reproducibleRates = diconf["Rates Selection"].get("Reproducible rates", False)
+        p.setReproducible(reproducibleRates, seed=rateSeed)
     p.setRates(rateMethod, frm, to, rateValues, stdev, rateCorr)
 
     # Asset Allocation.

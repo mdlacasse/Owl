@@ -372,6 +372,8 @@ class Plan:
         self.zeroContributions()
         self.caseStatus = "unsolved"
         self.rateMethod = None
+        self.reproducibleRates = False
+        self.rateSeed = None
 
         self.ARCoord = None
         self.objective = "unknown"
@@ -706,7 +708,34 @@ class Plan:
         self.smileDelay = delay
         self.caseStatus = "modified"
 
-    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None):
+    def setReproducible(self, reproducible, seed=None):
+        """
+        Set whether rates should be reproducible for stochastic methods.
+        This should be called before setting rates. It only sets configuration
+        and does not regenerate existing rates.
+
+        Args:
+            reproducible: Boolean indicating if rates should be reproducible.
+            seed: Optional seed value. If None and reproducible is True,
+                  generates a new seed from current time. If None and
+                  reproducible is False, generates a seed but won't reuse it.
+        """
+        self.reproducibleRates = bool(reproducible)
+        if reproducible:
+            if seed is None:
+                if self.rateSeed is not None:
+                    # Reuse existing seed if available
+                    seed = self.rateSeed
+                else:
+                    # Generate new seed from current time
+                    seed = int(time.time() * 1000000) % (2**31)  # Use microseconds, fit in 32-bit int
+            self.rateSeed = seed
+        else:
+            # For non-reproducible rates, clear the seed
+            # setRates() will generate a new seed each time it's called
+            self.rateSeed = None
+
+    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None, override_reproducible=False):
         """
         Generate rates for return and inflation based on the method and
         years selected. Note that last bound is included.
@@ -721,30 +750,63 @@ class Plan:
           must be provided, and optionally an ending year.
 
         Valid year range is from 1928 to last year.
+
+        Note: For stochastic methods, setReproducible() should be called before
+        setRates() to set the reproducibility flag and seed. If not called,
+        defaults to non-reproducible behavior.
+
+        Args:
+            override_reproducible: If True, override reproducibility setting and always generate new rates.
+                                 Used by Monte-Carlo runs to ensure different rates each time.
         """
         if frm is not None and to is None:
             to = frm + self.N_n - 1  # 'to' is inclusive.
 
-        dr = rates.Rates(self.mylog)
+        # Handle seed for stochastic methods
+        if method in ["stochastic", "histochastic"]:
+            if self.reproducibleRates and not override_reproducible:
+                if self.rateSeed is None:
+                    raise RuntimeError("Config error: reproducibleRates is True but rateSeed is None.")
+
+                seed = self.rateSeed
+            else:
+                # For non-reproducible rates or when overriding reproducibility, generate a new seed from time.
+                # This ensures we always have a seed stored in config, but it won't be reused.
+                seed = int(time.time() * 1000000) % (2**31)
+                if not override_reproducible:
+                    self.rateSeed = seed
+        else:
+            # For non-stochastic methods, seed is not used but we preserve it
+            # so that if user switches back to stochastic, their reproducibility settings are maintained.
+            seed = None
+
+        dr = rates.Rates(self.mylog, seed=seed)
         self.rateValues, self.rateStdev, self.rateCorr = dr.setMethod(method, frm, to, values, stdev, corr)
         self.rateMethod = method
         self.rateFrm = frm
         self.rateTo = to
         self.tau_kn = dr.genSeries(self.N_n).transpose()
         self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using {method} method.")
+        if method in ["stochastic", "histochastic"]:
+            repro_status = 'reproducible' if self.reproducibleRates else 'non-reproducible'
+            self.mylog.vprint(f"Using seed {seed} for {repro_status} rates.")
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = _genGamma_n(self.tau_kn)
         self._adjustedParameters = False
         self.caseStatus = "modified"
 
-    def regenRates(self):
+    def regenRates(self, override_reproducible=False):
         """
         Regenerate the rates using the arguments specified during last setRates() call.
         This method is used to regenerate stochastic time series.
         Only stochastic and histochastic methods need regeneration.
         All fixed rate methods (default, optimistic, conservative, user, historical average,
         historical) don't need regeneration as they produce the same values.
+
+        Args:
+            override_reproducible: If True, override reproducibility setting and always generate new rates.
+                                 Used by Monte-Carlo runs to ensure each run gets different rates.
         """
         # Fixed rate methods don't need regeneration - they produce the same values
         fixed_methods = ["default", "optimistic", "conservative", "user",
@@ -752,19 +814,22 @@ class Plan:
         if self.rateMethod in fixed_methods:
             return
 
-        # Only stochastic methods need regeneration to get new random values
-        if self.rateMethod == "stochastic" or self.rateMethod == "histochastic":
-            self.setRates(
-                self.rateMethod,
-                frm=self.rateFrm,
-                to=self.rateTo,
-                values=100 * self.rateValues,
-                stdev=100 * self.rateStdev,
-                corr=self.rateCorr,
-            )
-        else:
-            # Unknown method - shouldn't happen, but log a warning
-            self.mylog.vprint(f"Warning: Unknown rate method '{self.rateMethod}' in regenRates().")
+        # Only stochastic methods reach here
+        # If reproducibility is enabled and we're not overriding it, don't regenerate
+        # (rates should stay the same for reproducibility)
+        if self.reproducibleRates and not override_reproducible:
+            return
+
+        # Regenerate with new random values
+        self.setRates(
+            self.rateMethod,
+            frm=self.rateFrm,
+            to=self.rateTo,
+            values=100 * self.rateValues,
+            stdev=100 * self.rateStdev,
+            corr=self.rateCorr,
+            override_reproducible=override_reproducible,
+        )
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, startDate=None, units="k"):
         """
@@ -1794,7 +1859,7 @@ class Plan:
             progcall.start()
 
         for n in range(N):
-            self.regenRates()
+            self.regenRates(override_reproducible=True)
             self.solve(objective, myoptions)
             if not verbose:
                 progcall.show((n + 1) / N)

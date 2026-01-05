@@ -256,7 +256,18 @@ def _setRates(plan):
                 yto = min(TO, yfrm + plan.N_n - 1)
                 kz.pushCaseKey("yto", yto)
 
+            # Set reproducibility for histochastic methods
+            if varyingType == "histochastic":
+                reproducible = kz.getCaseKey("reproducibleRates")
+                seed = kz.getCaseKey("rateSeed") if reproducible else None
+                plan.setReproducible(reproducible, seed=seed)
+
             plan.setRates(varyingType, yfrm, yto)
+
+            # Store seed and reproducibility flag back to case keys
+            if varyingType == "histochastic":
+                kz.setCaseKey("rateSeed", plan.rateSeed)
+                kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
                 kz.pushCaseKey(f"mean{j}", 100 * mean[j])
@@ -276,7 +287,16 @@ def _setRates(plan):
                 stdev.append(kz.getCaseKey(f"stdev{kk}"))
             for q in range(1, 7):
                 corr.append(kz.getCaseKey(f"corr{q}"))
+            # Set reproducibility for stochastic methods
+            reproducible = kz.getCaseKey("reproducibleRates")
+            seed = kz.getCaseKey("rateSeed") if reproducible else None
+            plan.setReproducible(reproducible, seed=seed)
+
             plan.setRates(varyingType, values=means, stdev=stdev, corr=corr)
+
+            # Store seed and reproducibility flag back to case keys
+            kz.setCaseKey("rateSeed", plan.rateSeed)
+            kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
         else:
             raise RuntimeError("Logic error in setRates()")
 
@@ -867,6 +887,10 @@ def genDic(plan):
             for k2 in range(k1 + 1, plan.N_k):
                 dic[f"corr{qq}"] = plan.rateCorr[k1, k2]
                 qq += 1
+        # Include reproducibility settings
+        dic["reproducibleRates"] = plan.reproducibleRates
+        if plan.rateSeed is not None:
+            dic["rateSeed"] = plan.rateSeed
 
     return plan._name, dic
 
