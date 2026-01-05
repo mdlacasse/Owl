@@ -266,5 +266,23 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
+        # Reproducibility checkbox - only for stochastic and histochastic methods.
+        if kz.getCaseKey("varyingType") in ["stochastic", "histochastic"]:
+            st.markdown("#####")
+            st.markdown("#### :orange[Rate Generation]")
+            kz.initCaseKey("reproducibleRates", False)
+            kz.initCaseKey("rateSeed", None)
+            helpmsgRepro = """When enabled, the same random seed will be used to generate rates,
+ensuring reproducible results across case runs. This is useful for comparing
+other parameters while keeping rates constant."""
+            st.checkbox(
+                "Enable reproducible rates",
+                value=kz.getCaseKey("reproducibleRates"),
+                on_change=updateRates,
+                args=["reproducibleRates"],
+                key=kz.genCaseKey("reproducibleRates"),
+                help=helpmsgRepro,
+            )
+
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()
