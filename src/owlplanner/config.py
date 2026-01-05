@@ -457,8 +457,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     p.solverOptions = diconf["solver_options"]
 
     # Address legacy case files.
-    if diconf["solver_options"].get("withMedicare"):
-        p.solverOptions["withMedicare"] = "loop"
+    # Convert boolean values (True/False) to string format, but preserve string values
+    withMedicare = diconf["solver_options"].get("withMedicare")
+    if isinstance(withMedicare, bool):
+        p.solverOptions["withMedicare"] = "loop" if withMedicare else "None"
 
     # Check consistency of noRothConversions.
     name = p.solverOptions.get("noRothConversions", "None")

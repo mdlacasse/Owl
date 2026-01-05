@@ -1,50 +1,50 @@
-"Plan Name" = "drawdowncalc-comparison-1"
-Description = "This is a case involving a single individual. Case is used for comparing with @hugcity's DrawdownCalc. For max bequest, it should yield $90,882, while an $80k net spending should leave $678,625 as a bequest."
+case_name = "drawdowncalc-comparison-1"
+description = "This is a case involving a single individual. Case is used for comparing with @hugcity's DrawdownCalc. For max bequest, it should yield $90,882, while an $80k net spending should leave $678,625 as a bequest."
 
-["Basic Info"]
-Status = "single"
-Names = [ "Charles",]
-"Date of birth" = [ "1967-01-15",]
-"Life expectancy" = [ 89,]
-"Start date" = "2026-01-01"
+[basic_info]
+status = "single"
+names = [ "Charles",]
+date_of_birth = [ "1967-01-15",]
+life_expectancy = [ 89,]
+start_date = "2026-01-01"
 
-[Assets]
-"taxable savings balances" = [ 250.0,]
-"tax-deferred savings balances" = [ 600.0,]
-"tax-free savings balances" = [ 600.0,]
+[savings_assets]
+taxable_savings_balances = [ 250.0,]
+tax_deferred_savings_balances = [ 600.0,]
+tax_free_savings_balances = [ 600.0,]
 
-["Household Financial Profile"]
-"HFP file name" = "edited values"
+[household_financial_profile]
+HFP_file_name = "edited values"
 
-["Fixed Income"]
-"Pension monthly amounts" = [ 0,]
-"Pension ages" = [ 65.0,]
-"Pension indexed" = [ true,]
-"Social security PIA amounts" = [ 3000,]
-"Social security ages" = [ 70.0,]
+[fixed_income]
+pension_monthly_amounts = [ 0,]
+pension_ages = [ 65.0,]
+pension_indexed = [ true,]
+social_security_pia_amounts = [ 3000,]
+social_security_ages = [ 70.0,]
 
-["Rates Selection"]
-"Heirs rate on tax-deferred estate" = 0.0
-"Dividend rate" = 0.0
-"OBBBA expiration year" = 2099
-Method = "user"
-Values = [ 6.5, 0.0, 0.0, 2.799999952316284,]
-From = 1928
-To = 2024
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 0.0
+dividend_rate = 0.0
+obbba_expiration_year = 2099
+method = "user"
+values = [ 6.5, 0.0, 0.0, 2.799999952316284,]
+from = 1928
+to = 2024
 
-["Asset Allocation"]
-"Interpolation method" = "s-curve"
-"Interpolation center" = 15.0
-"Interpolation width" = 5.0
-Type = "individual"
+[asset_allocation]
+interpolation_method = "s-curve"
+interpolation_center = 15.0
+interpolation_width = 5.0
+type = "individual"
 generic = [ [ [ 100, 0, 0, 0,], [ 100, 0, 0, 0,],],]
 
-["Optimization Parameters"]
-"Spending profile" = "flat"
-"Surviving spouse spending percent" = 60
-Objective = "maxBequest"
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 60
+objective = "maxBequest"
 
-["Solver Options"]
+[solver_options]
 netSpending = 80.0
 maxRothConversion = 50
 startRothConversions = 2025
@@ -54,5 +54,5 @@ spendingSlack = 0
 xorConstraints = true
 withSCLoop = false
 
-[Results]
-"Default plots" = "today"
+[results]
+default_plots = "today"
