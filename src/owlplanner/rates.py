@@ -1,30 +1,25 @@
 """
+Historical and statistical rate of return data for asset classes.
 
-Owl/rates
----
+This module provides historical annual rates of return for different asset
+classes: S&P500, Aaa and Baa corporate bonds, 3-mo T-Bills, 10-year Treasury
+notes, and inflation as measured by CPI from 1928 to present. Values were
+extracted from NYU's Stern School of business historical returns data.
 
-A retirement planner using linear programming optimization.
+Copyright (C) 2025-2026 The Owlplanner Authors
 
-See companion document for a complete explanation and description
-of all variables and parameters.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-This class provides the historical annual rate of returns for different
-classes of assets: S&P500, Aaa and Baa corporate bonds, 3-mo T-Bills,
-10-year Treasury notes, and inflation as measured by CPI all from
-1928 until now.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-Values were extracted from NYU's Stern School of business:
-https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html
-from references therein.
-
-Rate lists will need to be updated with values for current year.
-When doing so, the TO bound defined below will need to be adjusted
-to the last current data year.
-
-Copyright &copy; 2024 - Martin-D. Lacasse
-
-Disclaimers: This code is for educational purposes only and does not constitute financial advice.
-
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 ###################################################################

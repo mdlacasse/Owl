@@ -1,25 +1,25 @@
 """
+Abstract API for building linear programming constraint matrices.
 
-Owl/abcapi
----
+This module provides a solver-neutral API to build constraint matrices and
+objective functions line by line, abstracting the building process to enable
+use of various solvers (MOSEK, HiGHS, etc.) for comparison. The name ABCAPI
+refers to A (matrix), B (bounds), C (constraints).
 
-A retirement planner using linear programming optimization.
+Copyright (C) 2025-2026 The Owlplanner Authors
 
-See companion document for a complete explanation and description
-of all variables and parameters.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-This file contains basic functions to build a constraint matrix and
-objective function line by line. This is used to abstract the
-building of the constraint matrix in order to be able to use various
-solvers for comparison.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-This approach has been successful with the MOSEK and the HiGHS solvers.
-A for matrix, B for bounds, C for constraints. Thus the name ABCAPI.
-
-Copyright &copy; 2024 - Martin-D. Lacasse
-
-Disclaimers: This code is for educational purposes only and does not constitute financial advice.
-
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import numpy as np

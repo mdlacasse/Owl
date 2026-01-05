@@ -1,19 +1,23 @@
 """
+Tax calculation module for 2026 tax year rules.
 
-Owl/tax2026
----
+This module handles all tax calculations including income tax brackets,
+capital gains tax, and other tax-related computations based on 2026 tax rules.
 
-A retirement planner using linear programming optimization.
+Copyright (C) 2025-2026 The Owlplanner Authors
 
-See companion document for a complete explanation and description
-of all variables and parameters.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Module to handle all tax calculations.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-Copyright &copy; 2026 - Martin-D. Lacasse
-
-Disclaimers: This code is for educational purposes only and does not constitute financial advice.
-
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import numpy as np
