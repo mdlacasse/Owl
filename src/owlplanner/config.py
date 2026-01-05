@@ -34,108 +34,216 @@ from owlplanner.rates import FROM, TO
 AccountTypes = ["taxable", "tax-deferred", "tax-free"]
 
 
+# Translation dictionary for backward compatibility: old keys -> new snake_case keys
+_KEY_TRANSLATION = {
+    # Root level keys
+    "Plan Name": "case_name",
+    "Description": "description",
+    # Section names
+    "Basic Info": "basic_info",
+    "Assets": "savings_assets",
+    "Household Financial Profile": "household_financial_profile",
+    "Fixed Income": "fixed_income",
+    "Rates Selection": "rates_selection",
+    "Asset Allocation": "asset_allocation",
+    "Optimization Parameters": "optimization_parameters",
+    "Solver Options": "solver_options",
+    "Results": "results",
+    # Basic Info keys
+    "Status": "status",
+    "Names": "names",
+    "Date of birth": "date_of_birth",
+    "Life expectancy": "life_expectancy",
+    "Start date": "start_date",
+    # Assets keys
+    "taxable savings balances": "taxable_savings_balances",
+    "tax-deferred savings balances": "tax_deferred_savings_balances",
+    "tax-free savings balances": "tax_free_savings_balances",
+    "Beneficiary fractions": "beneficiary_fractions",
+    "Spousal surplus deposit fraction": "spousal_surplus_deposit_fraction",
+    # Household Financial Profile keys
+    "HFP file name": "HFP_file_name",
+    # Fixed Income keys
+    "Pension monthly amounts": "pension_monthly_amounts",
+    "Pension ages": "pension_ages",
+    "Pension indexed": "pension_indexed",
+    "Social security PIA amounts": "social_security_pia_amounts",
+    "Social security ages": "social_security_ages",
+    # Rates Selection keys
+    "Heirs rate on tax-deferred estate": "heirs_rate_on_tax_deferred_estate",
+    "Dividend rate": "dividend_rate",
+    "OBBBA expiration year": "obbba_expiration_year",
+    "Method": "method",
+    "Rate seed": "rate_seed",
+    "Reproducible rates": "reproducible_rates",
+    "Values": "values",
+    "Standard deviations": "standard_deviations",
+    "Correlations": "correlations",
+    "From": "from",
+    "To": "to",
+    "Workbook file": "workbook_file",
+    "Worksheet name": "worksheet_name",
+    # Asset Allocation keys
+    "Interpolation method": "interpolation_method",
+    "Interpolation center": "interpolation_center",
+    "Interpolation width": "interpolation_width",
+    "Type": "type",
+    # Optimization Parameters keys
+    "Spending profile": "spending_profile",
+    "Surviving spouse spending percent": "surviving_spouse_spending_percent",
+    "Smile dip": "smile_dip",
+    "Smile increase": "smile_increase",
+    "Smile delay": "smile_delay",
+    "Objective": "objective",
+    # Results keys
+    "Default plots": "default_plots",
+}
+
+
+def translate_old_keys(diconf):
+    """
+    Translate old TOML keys to new snake_case keys for backward compatibility.
+    This function recursively processes the configuration dictionary and replaces
+    old keys with new snake_case keys.
+
+    Args:
+        diconf: Configuration dictionary (may be modified in place)
+
+    Returns:
+        Dictionary with translated keys
+    """
+    if not isinstance(diconf, dict):
+        return diconf
+
+    translated = {}
+
+    # First, translate section names at the top level
+    for key, value in diconf.items():
+        new_key = _KEY_TRANSLATION.get(key, key)
+
+        if isinstance(value, dict):
+            # Recursively translate keys within sections
+            translated[new_key] = {}
+            for sub_key, sub_value in value.items():
+                new_sub_key = _KEY_TRANSLATION.get(sub_key, sub_key)
+                if isinstance(sub_value, dict):
+                    translated[new_key][new_sub_key] = translate_old_keys(sub_value)
+                else:
+                    translated[new_key][new_sub_key] = sub_value
+        else:
+            translated[new_key] = value
+
+    return translated
+
+
 def saveConfig(myplan, file, mylog):
     """
     Save case parameters and return a dictionary containing all parameters.
     """
 
     diconf = {}
-    diconf["Plan Name"] = myplan._name
-    diconf["Description"] = myplan._description
+    diconf["case_name"] = myplan._name
+    diconf["description"] = myplan._description
 
     # Basic Info.
-    diconf["Basic Info"] = {
-        "Status": ["unknown", "single", "married"][myplan.N_i],
-        "Names": myplan.inames,
-        "Date of birth": myplan.dobs,
-        "Life expectancy": myplan.expectancy.tolist(),
-        "Start date": myplan.startDate,
+    diconf["basic_info"] = {
+        "status": ["unknown", "single", "married"][myplan.N_i],
+        "names": myplan.inames,
+        "date_of_birth": myplan.dobs,
+        "life_expectancy": myplan.expectancy.tolist(),
+        "start_date": myplan.startDate,
     }
 
     # Assets.
-    diconf["Assets"] = {}
+    diconf["savings_assets"] = {}
     for j in range(myplan.N_j):
         amounts = myplan.beta_ij[:, j] / 1000
-        diconf["Assets"][f"{AccountTypes[j]} savings balances"] = amounts.tolist()
+        # Map account type names to snake_case keys
+        account_key_map = {
+            "taxable": "taxable_savings_balances",
+            "tax-deferred": "tax_deferred_savings_balances",
+            "tax-free": "tax_free_savings_balances"
+        }
+        diconf["savings_assets"][account_key_map[AccountTypes[j]]] = amounts.tolist()
     if myplan.N_i == 2:
-        diconf["Assets"]["Beneficiary fractions"] = myplan.phi_j.tolist()
-        diconf["Assets"]["Spousal surplus deposit fraction"] = myplan.eta
+        diconf["savings_assets"]["beneficiary_fractions"] = myplan.phi_j.tolist()
+        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = myplan.eta
 
     # Household Financial Profile
-    diconf["Household Financial Profile"] = {"HFP file name": myplan.timeListsFileName}
+    diconf["household_financial_profile"] = {"HFP_file_name": myplan.timeListsFileName}
 
     # Fixed Income.
-    diconf["Fixed Income"] = {
-        "Pension monthly amounts": (myplan.pensionAmounts).tolist(),
-        "Pension ages": myplan.pensionAges.tolist(),
-        "Pension indexed": myplan.pensionIsIndexed,
-        "Social security PIA amounts": (myplan.ssecAmounts).tolist(),
-        "Social security ages": myplan.ssecAges.tolist(),
+    diconf["fixed_income"] = {
+        "pension_monthly_amounts": (myplan.pensionAmounts).tolist(),
+        "pension_ages": myplan.pensionAges.tolist(),
+        "pension_indexed": myplan.pensionIsIndexed,
+        "social_security_pia_amounts": (myplan.ssecAmounts).tolist(),
+        "social_security_ages": myplan.ssecAges.tolist(),
     }
 
     # Rates Selection.
-    diconf["Rates Selection"] = {
-        "Heirs rate on tax-deferred estate": float(100 * myplan.nu),
-        "Dividend rate": float(100 * myplan.mu),
-        "OBBBA expiration year": myplan.yOBBBA,
-        "Method": myplan.rateMethod,
+    diconf["rates_selection"] = {
+        "heirs_rate_on_tax_deferred_estate": float(100 * myplan.nu),
+        "dividend_rate": float(100 * myplan.mu),
+        "obbba_expiration_year": myplan.yOBBBA,
+        "method": myplan.rateMethod,
     }
     # Store seed and reproducibility flag for stochastic methods
     if myplan.rateMethod in ["stochastic", "histochastic"]:
         if myplan.rateSeed is not None:
-            diconf["Rates Selection"]["Rate seed"] = int(myplan.rateSeed)
-        diconf["Rates Selection"]["Reproducible rates"] = bool(myplan.reproducibleRates)
+            diconf["rates_selection"]["rate_seed"] = int(myplan.rateSeed)
+        diconf["rates_selection"]["reproducible_rates"] = bool(myplan.reproducibleRates)
     if myplan.rateMethod in ["user", "stochastic"]:
-        diconf["Rates Selection"]["Values"] = (100 * myplan.rateValues).tolist()
+        diconf["rates_selection"]["values"] = (100 * myplan.rateValues).tolist()
     if myplan.rateMethod in ["stochastic"]:
-        diconf["Rates Selection"]["Standard deviations"] = (100 * myplan.rateStdev).tolist()
-        diconf["Rates Selection"]["Correlations"] = myplan.rateCorr.tolist()
+        diconf["rates_selection"]["standard_deviations"] = (100 * myplan.rateStdev).tolist()
+        diconf["rates_selection"]["correlations"] = myplan.rateCorr.tolist()
     if myplan.rateMethod in ["historical average", "historical", "histochastic"]:
-        diconf["Rates Selection"]["From"] = int(myplan.rateFrm)
-        diconf["Rates Selection"]["To"] = int(myplan.rateTo)
+        diconf["rates_selection"]["from"] = int(myplan.rateFrm)
+        diconf["rates_selection"]["to"] = int(myplan.rateTo)
     elif myplan.rateMethod == "file":
         # Store workbook file and worksheet name for file method
         if hasattr(myplan, 'rateFile') and myplan.rateFile is not None:
-            diconf["Rates Selection"]["Workbook file"] = str(myplan.rateFile)
+            diconf["rates_selection"]["workbook_file"] = str(myplan.rateFile)
         if hasattr(myplan, 'rateSheetName') and myplan.rateSheetName is not None:
-            diconf["Rates Selection"]["Worksheet name"] = str(myplan.rateSheetName)
+            diconf["rates_selection"]["worksheet_name"] = str(myplan.rateSheetName)
         # File method also needs frm and to for validation
         if myplan.rateFrm is not None:
-            diconf["Rates Selection"]["From"] = int(myplan.rateFrm)
+            diconf["rates_selection"]["from"] = int(myplan.rateFrm)
         if myplan.rateTo is not None:
-            diconf["Rates Selection"]["To"] = int(myplan.rateTo)
+            diconf["rates_selection"]["to"] = int(myplan.rateTo)
     else:
-        diconf["Rates Selection"]["From"] = int(FROM)
-        diconf["Rates Selection"]["To"] = int(TO)
+        diconf["rates_selection"]["from"] = int(FROM)
+        diconf["rates_selection"]["to"] = int(TO)
 
     # Asset Allocation.
-    diconf["Asset Allocation"] = {
-        "Interpolation method": myplan.interpMethod,
-        "Interpolation center": float(myplan.interpCenter),
-        "Interpolation width": float(myplan.interpWidth),
-        "Type": myplan.ARCoord,
+    diconf["asset_allocation"] = {
+        "interpolation_method": myplan.interpMethod,
+        "interpolation_center": float(myplan.interpCenter),
+        "interpolation_width": float(myplan.interpWidth),
+        "type": myplan.ARCoord,
     }
     if myplan.ARCoord == "account":
         for accType in AccountTypes:
-            diconf["Asset Allocation"][accType] = myplan.boundsAR[accType]
+            diconf["asset_allocation"][accType] = myplan.boundsAR[accType]
     else:
-        diconf["Asset Allocation"]["generic"] = myplan.boundsAR["generic"]
+        diconf["asset_allocation"]["generic"] = myplan.boundsAR["generic"]
 
     # Optimization Parameters.
-    diconf["Optimization Parameters"] = {
-        "Spending profile": myplan.spendingProfile,
-        "Surviving spouse spending percent": int(100 * myplan.chi),
+    diconf["optimization_parameters"] = {
+        "spending_profile": myplan.spendingProfile,
+        "surviving_spouse_spending_percent": int(100 * myplan.chi),
     }
     if myplan.spendingProfile == "smile":
-        diconf["Optimization Parameters"]["Smile dip"] = int(myplan.smileDip)
-        diconf["Optimization Parameters"]["Smile increase"] = int(myplan.smileIncrease)
-        diconf["Optimization Parameters"]["Smile delay"] = int(myplan.smileDelay)
+        diconf["optimization_parameters"]["smile_dip"] = int(myplan.smileDip)
+        diconf["optimization_parameters"]["smile_increase"] = int(myplan.smileIncrease)
+        diconf["optimization_parameters"]["smile_delay"] = int(myplan.smileDelay)
 
-    diconf["Optimization Parameters"]["Objective"] = myplan.objective
-    diconf["Solver Options"] = myplan.solverOptions
+    diconf["optimization_parameters"]["objective"] = myplan.objective
+    diconf["solver_options"] = myplan.solverOptions
 
     # Results.
-    diconf["Results"] = {"Default plots": myplan.defaultPlots}
+    diconf["results"] = {"default_plots": myplan.defaultPlots}
 
     if isinstance(file, str):
         filename = file
@@ -201,34 +309,43 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     else:
         raise ValueError(f"Type {type(file)} not a valid type")
 
+    # Translate old keys to new snake_case keys for backward compatibility
+    diconf = translate_old_keys(diconf)
+
     # Basic Info.
-    name = diconf["Plan Name"]
-    inames = diconf["Basic Info"]["Names"]
+    name = diconf["case_name"]
+    inames = diconf["basic_info"]["names"]
     icount = len(inames)
     # Default to January 15, 1965 if no entry is found.
-    dobs = diconf["Basic Info"].get("Date of birth", ["1965-01-15"]*icount)
-    expectancy = diconf["Basic Info"]["Life expectancy"]
+    dobs = diconf["basic_info"].get("date_of_birth", ["1965-01-15"]*icount)
+    expectancy = diconf["basic_info"]["life_expectancy"]
     s = ["", "s"][icount - 1]
     mylog.vprint(f"Plan for {icount} individual{s}: {inames}.")
     p = plan.Plan(inames, dobs, expectancy, name, verbose=True, logstreams=logstreams)
-    p._description = diconf.get("Description", "")
+    p._description = diconf.get("description", "")
 
     # Assets.
-    startDate = diconf["Basic Info"].get("Start date", "today")
+    startDate = diconf["basic_info"].get("start_date", "today")
     balances = {}
+    # Map account type names to snake_case keys
+    account_key_map = {
+        "taxable": "taxable_savings_balances",
+        "tax-deferred": "tax_deferred_savings_balances",
+        "tax-free": "tax_free_savings_balances"
+    }
     for acc in AccountTypes:
-        balances[acc] = diconf["Assets"][f"{acc} savings balances"]
+        balances[acc] = diconf["savings_assets"][account_key_map[acc]]
     p.setAccountBalances(taxable=balances["taxable"], taxDeferred=balances["tax-deferred"],
                          taxFree=balances["tax-free"], startDate=startDate)
     if icount == 2:
-        phi_j = diconf["Assets"]["Beneficiary fractions"]
+        phi_j = diconf["savings_assets"]["beneficiary_fractions"]
         p.setBeneficiaryFractions(phi_j)
-        eta = diconf["Assets"]["Spousal surplus deposit fraction"]
+        eta = diconf["savings_assets"]["spousal_surplus_deposit_fraction"]
         p.setSpousalDepositFraction(eta)
 
     # Household Financial Profile
-    hfp_section = diconf.get("Household Financial Profile", {})
-    timeListsFileName = hfp_section.get("HFP file name", "None")
+    hfp_section = diconf.get("household_financial_profile", {})
+    timeListsFileName = hfp_section.get("HFP_file_name", "None")
     if timeListsFileName != "None":
         if readContributions:
             if os.path.exists(timeListsFileName):
@@ -243,18 +360,18 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             mylog.vprint(f"Ignoring to read contributions file {timeListsFileName}.")
 
     # Fixed Income.
-    ssecAmounts = np.array(diconf["Fixed Income"].get("Social security PIA amounts", [0]*icount), dtype=np.int32)
-    ssecAges = np.array(diconf["Fixed Income"]["Social security ages"])
+    ssecAmounts = np.array(diconf["fixed_income"].get("social_security_pia_amounts", [0]*icount), dtype=np.int32)
+    ssecAges = np.array(diconf["fixed_income"]["social_security_ages"])
     p.setSocialSecurity(ssecAmounts, ssecAges)
-    pensionAmounts = np.array(diconf["Fixed Income"].get("Pension monthly amounts", [0]*icount), dtype=np.float32)
-    pensionAges = np.array(diconf["Fixed Income"]["Pension ages"])
-    pensionIsIndexed = diconf["Fixed Income"]["Pension indexed"]
+    pensionAmounts = np.array(diconf["fixed_income"].get("pension_monthly_amounts", [0]*icount), dtype=np.float32)
+    pensionAges = np.array(diconf["fixed_income"]["pension_ages"])
+    pensionIsIndexed = diconf["fixed_income"]["pension_indexed"]
     p.setPension(pensionAmounts, pensionAges, pensionIsIndexed)
 
     # Rates Selection.
-    p.setDividendRate(float(diconf["Rates Selection"].get("Dividend rate", 1.8)))    # Fix for mod.
-    p.setHeirsTaxRate(float(diconf["Rates Selection"]["Heirs rate on tax-deferred estate"]))
-    p.yOBBBA = int(diconf["Rates Selection"].get("OBBBA expiration year", 2032))
+    p.setDividendRate(float(diconf["rates_selection"].get("dividend_rate", 1.8)))    # Fix for mod.
+    p.setHeirsTaxRate(float(diconf["rates_selection"]["heirs_rate_on_tax_deferred_estate"]))
+    p.yOBBBA = int(diconf["rates_selection"].get("obbba_expiration_year", 2032))
 
     frm = None
     to = None
@@ -263,47 +380,47 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     rateCorr = None
     rateSeed = None
     reproducibleRates = False
-    rateMethod = diconf["Rates Selection"]["Method"]
+    rateMethod = diconf["rates_selection"]["method"]
     if rateMethod in ["historical average", "historical", "histochastic"]:
-        frm = diconf["Rates Selection"]["From"]
+        frm = diconf["rates_selection"]["from"]
         if not isinstance(frm, int):
             frm = int(frm)
-        to = diconf["Rates Selection"]["To"]
+        to = diconf["rates_selection"]["to"]
         if not isinstance(to, int):
             to = int(to)
     if rateMethod in ["user", "stochastic"]:
-        rateValues = np.array(diconf["Rates Selection"]["Values"], dtype=np.float32)
+        rateValues = np.array(diconf["rates_selection"]["values"], dtype=np.float32)
     if rateMethod in ["stochastic"]:
-        stdev = np.array(diconf["Rates Selection"]["Standard deviations"], dtype=np.float32)
-        rateCorr = np.array(diconf["Rates Selection"]["Correlations"], dtype=np.float32)
+        stdev = np.array(diconf["rates_selection"]["standard_deviations"], dtype=np.float32)
+        rateCorr = np.array(diconf["rates_selection"]["correlations"], dtype=np.float32)
     if rateMethod == "file":
         # Load workbook file and worksheet name for file method
-        rateFile = diconf["Rates Selection"].get("Workbook file")
-        rateSheetName = diconf["Rates Selection"].get("Worksheet name")
+        rateFile = diconf["rates_selection"].get("workbook_file")
+        rateSheetName = diconf["rates_selection"].get("worksheet_name")
         if rateFile:
             p.rateFile = rateFile
         if rateSheetName:
             p.rateSheetName = rateSheetName
     # Load seed and reproducibility flag for stochastic methods
     if rateMethod in ["stochastic", "histochastic"]:
-        rateSeed = diconf["Rates Selection"].get("Rate seed")
+        rateSeed = diconf["rates_selection"].get("rate_seed")
         if rateSeed is not None:
             rateSeed = int(rateSeed)
-        reproducibleRates = diconf["Rates Selection"].get("Reproducible rates", False)
+        reproducibleRates = diconf["rates_selection"].get("reproducible_rates", False)
         p.setReproducible(reproducibleRates, seed=rateSeed)
     p.setRates(rateMethod, frm, to, rateValues, stdev, rateCorr)
 
     # Asset Allocation.
     boundsAR = {}
     p.setInterpolationMethod(
-        diconf["Asset Allocation"]["Interpolation method"],
-        float(diconf["Asset Allocation"]["Interpolation center"]),
-        float(diconf["Asset Allocation"]["Interpolation width"]),
+        diconf["asset_allocation"]["interpolation_method"],
+        float(diconf["asset_allocation"]["interpolation_center"]),
+        float(diconf["asset_allocation"]["interpolation_width"]),
     )
-    allocType = diconf["Asset Allocation"]["Type"]
+    allocType = diconf["asset_allocation"]["type"]
     if allocType == "account":
         for aType in AccountTypes:
-            boundsAR[aType] = np.array(diconf["Asset Allocation"][aType], dtype=np.float32)
+            boundsAR[aType] = np.array(diconf["asset_allocation"][aType], dtype=np.float32)
 
         p.setAllocationRatios(
             allocType,
@@ -312,7 +429,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             taxFree=boundsAR["tax-free"],
         )
     elif allocType == "individual" or allocType == "spouses":
-        boundsAR["generic"] = np.array(diconf["Asset Allocation"]["generic"], dtype=np.float32)
+        boundsAR["generic"] = np.array(diconf["asset_allocation"]["generic"], dtype=np.float32)
         p.setAllocationRatios(
             allocType,
             generic=boundsAR["generic"],
@@ -321,14 +438,14 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         raise ValueError(f"Unknown asset allocation type {allocType}.")
 
     # Optimization Parameters.
-    p.objective = diconf["Optimization Parameters"]["Objective"]
+    p.objective = diconf["optimization_parameters"]["objective"]
 
-    profile = diconf["Optimization Parameters"]["Spending profile"]
-    survivor = int(diconf["Optimization Parameters"]["Surviving spouse spending percent"])
+    profile = diconf["optimization_parameters"]["spending_profile"]
+    survivor = int(diconf["optimization_parameters"]["surviving_spouse_spending_percent"])
     if profile == "smile":
-        dip = int(diconf["Optimization Parameters"]["Smile dip"])
-        increase = int(diconf["Optimization Parameters"]["Smile increase"])
-        delay = int(diconf["Optimization Parameters"]["Smile delay"])
+        dip = int(diconf["optimization_parameters"]["smile_dip"])
+        increase = int(diconf["optimization_parameters"]["smile_increase"])
+        delay = int(diconf["optimization_parameters"]["smile_delay"])
     else:
         dip = 15
         increase = 12
@@ -337,10 +454,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     p.setSpendingProfile(profile, survivor, dip, increase, delay)
 
     # Solver Options.
-    p.solverOptions = diconf["Solver Options"]
+    p.solverOptions = diconf["solver_options"]
 
     # Address legacy case files.
-    if diconf["Solver Options"].get("withMedicare"):
+    if diconf["solver_options"].get("withMedicare"):
         p.solverOptions["withMedicare"] = "loop"
 
     # Check consistency of noRothConversions.
@@ -355,6 +472,6 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     p.yOBBBA = max(p.yOBBBA, thisyear)
 
     # Results.
-    p.setDefaultPlots(diconf["Results"]["Default plots"])
+    p.setDefaultPlots(diconf["results"]["default_plots"])
 
     return p
