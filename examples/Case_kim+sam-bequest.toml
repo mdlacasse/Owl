@@ -1,17 +1,17 @@
 case_name = "kim+sam-bequest"
-description = "This is the case of Kim and Sam used as an example case for optimizing bequest and Roth conversions. No wages and contributions file is associated with this case."
+description = "This is the case of Kim and Sam used as an example case for optimizing bequest and Roth conversions. A HFP file is associated with this case."
 
 [basic_info]
 status = "married"
 names = [ "Kim", "Sam",]
-date_of_birth = [ "1967-01-15", "1968-01-15",]
-life_expectancy = [ 86, 89,]
+date_of_birth = [ "1964-01-15", "1965-01-15",]
+life_expectancy = [ 89, 93,]
 start_date = "2026-01-01"
 
 [savings_assets]
-taxable_savings_balances = [ 1000.0, 0.0,]
-tax_deferred_savings_balances = [ 2000.0, 800.0,]
-tax_free_savings_balances = [ 500.0, 25.0,]
+taxable_savings_balances = [ 650.0, 250.0,]
+tax_deferred_savings_balances = [ 1500.0, 500.0,]
+tax_free_savings_balances = [ 60.0, 40.0,]
 beneficiary_fractions = [ 1.0, 1.0, 1.0,]
 spousal_surplus_deposit_fraction = 0.5
 
@@ -22,12 +22,12 @@ HFP_file_name = "HFP_kim+sam.xlsx"
 pension_monthly_amounts = [ 0, 0,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ false, false,]
-social_security_pia_amounts = [ 3750, 2083,]
+social_security_pia_amounts = [ 3500, 2000,]
 social_security_ages = [ 70.0, 68.0,]
 
 [rates_selection]
 heirs_rate_on_tax_deferred_estate = 33.0
-dividend_rate = 1.8000000000000003
+dividend_rate = 1.75
 obbba_expiration_year = 2032
 method = "user"
 values = [ 6.0, 4.0, 3.3000000000000003, 2.8000000000000003,]
@@ -39,10 +39,10 @@ interpolation_method = "s-curve"
 interpolation_center = 15.0
 interpolation_width = 5.0
 type = "individual"
-generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],],]
+generic = [ [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],], [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],],]
 
 [optimization_parameters]
-spending_profile = "smile"
+spending_profile = "flat"
 surviving_spouse_spending_percent = 60
 smile_dip = 15
 smile_increase = 12
@@ -51,10 +51,10 @@ objective = "maxBequest"
 
 [solver_options]
 netSpending = 180
-maxRothConversion = 300
+maxRothConversion = 250
 noRothConversions = "None"
-startRothConversions = 2025
-withMedicare = "loop"
+startRothConversions = 2026
+withMedicare = "optimize"
 solver = "HiGHS"
 spendingSlack = 0
 xorConstraints = true

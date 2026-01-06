@@ -2093,7 +2093,7 @@ class Plan:
         # Optimize solver parameters
         milpOptions = {
             "disp": False,
-            "mip_rel_gap": 1e-7,
+            "mip_rel_gap": 1e-7,    # Default 1e-4
             "presolve": True,
             "node_limit": 1000000  # Limit search nodes for faster solutions
         }
@@ -2209,8 +2209,11 @@ class Plan:
         cind, cval = self.c.lists()
 
         task = mosek.Task()
-        # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)
-        # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 1e-4)
+        task.putdouparam(mosek.dparam.mio_max_time, 900.0)           # Default -1
+        # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)       # Default 1e-10
+        task.putdouparam(mosek.dparam.mio_tol_rel_gap, 2e-3)         # Default 1e-4
+        task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-4)   # Default 1e-5
+        # task.putdouparam(mosek.iparam.mio_heuristic_level, 3)      # Default -1
         # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
         task.appendcons(self.A.ncons)
         task.appendvars(self.A.nvars)
