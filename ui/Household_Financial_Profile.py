@@ -31,8 +31,11 @@ import case_progress as cp
 
 def loadWCExample(file):
     if file:
+        # Use normalized HFP name for the file parameter to match the actual filename
+        hfp_name = tomlex.getHFPName(file)
         mybytesio = tomlex.loadWagesExample(file)
-        owb.readContributions(mybytesio, file=file)
+        if mybytesio is not None:
+            owb.readContributions(mybytesio, file=hfp_name)
 
 
 ret = kz.titleBar(":material/home: Household Financial Profile")
@@ -80,7 +83,7 @@ that has not yet been uploaded.""")
                 st.rerun()
     with col2:
         tomlexcase = kz.getCaseKey("tomlexcase")
-        if tomlexcase in tomlex.wages:
+        if tomlexcase is not None and tomlex.hasHFPExample(tomlexcase):
             st.markdown("#### :orange[Load Example HFP Workbook]")
             st.markdown("Read associated HFP workbook.")
             helpmsg = "Load associated HFP workbook from GitHub"

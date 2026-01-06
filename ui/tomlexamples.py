@@ -36,6 +36,28 @@ wages = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam"]
 whereami = os.path.dirname(__file__)
 
 
+def getHFPName(case):
+    """
+    Normalize case name to HFP file name by removing common suffixes.
+    
+    This function maps case names like 'kim+sam-bequest' or 'kim+sam-spending'
+    to their corresponding HFP file name 'kim+sam'. It removes suffixes
+    like '-bequest' and '-spending' that are used to distinguish different
+    case variants that share the same HFP file.
+    
+    Args:
+        case: Case name (e.g., 'kim+sam-bequest', 'kim+sam-spending', 'jack+jill')
+        
+    Returns:
+        Normalized HFP name (e.g., 'kim+sam', 'jack+jill')
+    """
+    hfp_name = case
+    # Remove common suffixes that distinguish case variants
+    hfp_name = hfp_name.replace("-spending", "")
+    hfp_name = hfp_name.replace("-bequest", "")
+    return hfp_name
+
+
 def loadCaseExample(case):
     file = os.path.join(whereami, f"../examples/Case_{case}.toml")
     with open(file, "r") as f:
@@ -47,10 +69,37 @@ def loadCaseExample(case):
 
 
 def loadWagesExample(case):
-    file = os.path.join(whereami, f"../examples/HFP_{case}.xlsx")
-    with open(file, "rb") as f:
-        data = f.read()
-        return BytesIO(data)
+    """
+    Load HFP workbook example file.
+    
+    Args:
+        case: Case name (will be normalized to HFP name if needed)
+        
+    Returns:
+        BytesIO object containing the HFP file data, or None if file not found
+    """
+    # Normalize case name to get the correct HFP file name
+    hfp_name = getHFPName(case)
+    file = os.path.join(whereami, f"../examples/HFP_{hfp_name}.xlsx")
+    if os.path.exists(file):
+        with open(file, "rb") as f:
+            data = f.read()
+            return BytesIO(data)
+    else:
+        st.error(f"Failed to load Household Financial Profile {hfp_name}.xlsx.")
+        return None
 
-    st.error(f"Failed to load Household Financial Profile {case}.xlsx.")
-    return None
+
+def hasHFPExample(case):
+    """
+    Check if an HFP example file exists for the given case name.
+    
+    Args:
+        case: Case name (will be normalized to HFP name if needed)
+        
+    Returns:
+        True if HFP file exists, False otherwise
+    """
+    hfp_name = getHFPName(case)
+    file = os.path.join(whereami, f"../examples/HFP_{hfp_name}.xlsx")
+    return os.path.exists(file)
