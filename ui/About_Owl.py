@@ -39,7 +39,7 @@ st.markdown(
 - Mathematical formulation of the linear optimization problem can be
 found in this [document](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf?raw=true).
 
-Copyright &copy; 2025 - Martin-D. Lacasse
+Copyright &copy; 2025-2026 - The Owlplanner [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 
 #### :orange[Credits]
 - Contributors:
