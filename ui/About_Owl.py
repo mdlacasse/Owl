@@ -42,7 +42,10 @@ found in this [document](https://github.com/mdlacasse/Owl/blob/main/papers/owl.p
 Copyright &copy; 2025-2026 - The Owlplanner [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 
 #### :orange[Credits]
-- Contributors:
+- Original author:
+Martin-D. Lacasse (mdlacasse)
+
+- Contributors (alphabetical order):
  Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
  Clark Jefcoat (hubcity) for fruitful interactions,
  kg333 for fixing an error in Docker's instructions,
@@ -51,6 +54,7 @@ Copyright &copy; 2025-2026 - The Owlplanner [Authors](https://github.com/mdlacas
  Dale Seng (sengsational) for great insights, testing, bug fixes, and suggestions,
  Josh Williams (noimjosh) for Docker image code,
  Gene Wood (gene1wood) for improvements and bug fixes.
+
 - Greg Grothaus for developing [ssa.tools](https://ssa.tools) and providing an integration with Owl.
 - Owl image is from [freepik](https://freepik.com).
 - Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
