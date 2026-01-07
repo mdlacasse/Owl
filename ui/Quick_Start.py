@@ -107,4 +107,3 @@ the new case. The **Output Files** will show a side-by-side comparison between t
 More information can be found on the :material/help: **[Documentation](Documentation)**
 page located in the **Resources** section.
 """)
-    st.balloons()
