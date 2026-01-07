@@ -39,15 +39,15 @@ whereami = os.path.dirname(__file__)
 def getHFPName(case):
     """
     Normalize case name to HFP file name by removing common suffixes.
-    
+
     This function maps case names like 'kim+sam-bequest' or 'kim+sam-spending'
     to their corresponding HFP file name 'kim+sam'. It removes suffixes
     like '-bequest' and '-spending' that are used to distinguish different
     case variants that share the same HFP file.
-    
+
     Args:
         case: Case name (e.g., 'kim+sam-bequest', 'kim+sam-spending', 'jack+jill')
-        
+
     Returns:
         Normalized HFP name (e.g., 'kim+sam', 'jack+jill')
     """
@@ -71,10 +71,10 @@ def loadCaseExample(case):
 def loadWagesExample(case):
     """
     Load HFP workbook example file.
-    
+
     Args:
         case: Case name (will be normalized to HFP name if needed)
-        
+
     Returns:
         BytesIO object containing the HFP file data, or None if file not found
     """
@@ -93,10 +93,10 @@ def loadWagesExample(case):
 def hasHFPExample(case):
     """
     Check if an HFP example file exists for the given case name.
-    
+
     Args:
         case: Case name (will be normalized to HFP name if needed)
-        
+
     Returns:
         True if HFP file exists, False otherwise
     """

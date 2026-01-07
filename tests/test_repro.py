@@ -32,9 +32,11 @@ import owlplanner as owl
 solver = 'HiGHS'
 thisyear = date.today().year
 
-SPENDING1 = 86773.2
-BEQUEST1 = 826553.0
+SPENDING1 = 86787.3
+BEQUEST1 = 827690.6
 SPENDING2 = 96940.4
+SPENDING1_FIXED = 92411.51
+BEQUEST1_FIXED = 500000
 
 
 def createJackAndJillPlan(name):
@@ -64,6 +66,15 @@ def test_case1():
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(SPENDING1, abs=0.5)
     assert p.bequest == pytest.approx(500000, abs=0.5)
+
+
+def test_case1_fixed_rates():
+    p = createJackAndJillPlan('case1_fixed')
+    p.setRates('user', values=[6.0, 4.0, 3.3, 2.8])
+    p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500})
+    assert p.caseStatus == "solved"
+    assert p.basis == pytest.approx(SPENDING1_FIXED, abs=0.5)
+    assert p.bequest == pytest.approx(BEQUEST1_FIXED, abs=0.5)
 
 
 def test_case2():

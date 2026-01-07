@@ -36,13 +36,10 @@ with col1:
 \nA retirement financial exploration tool based on linear programming""")
     kz.divider("orange")
     st.markdown("### :material/campaign: News")
-    # st.snow()
     st.markdown("""
-## :fireworks: :rainbow[Happy New Year!!!] :fireworks:
-
+- Historical gains for 2025 have been updated.
 - This version includes updated tax laws for year 2026 (TY2025).
 - :warning: Fixed Assets table now needs a *year* column allowing the acquisition of assets in the future.
-- Historical gains for 2025 are still preliminary: exact values will be entered as soon as available.
 
 Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)

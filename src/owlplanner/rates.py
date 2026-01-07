@@ -2,7 +2,7 @@
 Historical and statistical rate of return data for asset classes.
 
 This module provides historical annual rates of return for different asset
-classes: S&P500, Aaa and Baa corporate bonds, 3-mo T-Bills, 10-year Treasury
+classes: S&P500, Baa corporate bonds, real estate, 3-mo T-Bills, 10-year Treasury
 notes, and inflation as measured by CPI from 1928 to present. Values were
 extracted from NYU's Stern School of business historical returns data.
 
@@ -50,8 +50,8 @@ SP500 = df["S&P 500"]
 # Annual rate of return (%) of Baa Corporate Bonds since 1928.
 BondsBaa = df["Bonds Baa"]
 
-# Annual rate of return (%) of Aaa Corporate Bonds since 1928.
-BondsAaa = df["Bonds Aaa"]
+# Annual rate of return (%) of Real Estate since 1928.
+RealEstate = df["real estate"]
 
 # Annual rate of return (%) for 10-y Treasury notes since 1928.
 TNotes = df["TNotes"]
