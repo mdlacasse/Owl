@@ -50,7 +50,7 @@ smile_delay = 0
 objective = "maxSpending"
 
 [solver_options]
-maxRothConversion = 250
+maxRothConversion = 100
 noRothConversions = "None"
 startRothConversions = 2026
 withMedicare = "optimize"
