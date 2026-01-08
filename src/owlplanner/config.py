@@ -81,8 +81,6 @@ _KEY_TRANSLATION = {
     "Correlations": "correlations",
     "From": "from",
     "To": "to",
-    "Workbook file": "workbook_file",
-    "Worksheet name": "worksheet_name",
     # Asset Allocation keys
     "Interpolation method": "interpolation_method",
     "Interpolation center": "interpolation_center",
@@ -201,17 +199,6 @@ def saveConfig(myplan, file, mylog):
     if myplan.rateMethod in ["historical average", "historical", "histochastic"]:
         diconf["rates_selection"]["from"] = int(myplan.rateFrm)
         diconf["rates_selection"]["to"] = int(myplan.rateTo)
-    elif myplan.rateMethod == "file":
-        # Store workbook file and worksheet name for file method
-        if hasattr(myplan, 'rateFile') and myplan.rateFile is not None:
-            diconf["rates_selection"]["workbook_file"] = str(myplan.rateFile)
-        if hasattr(myplan, 'rateSheetName') and myplan.rateSheetName is not None:
-            diconf["rates_selection"]["worksheet_name"] = str(myplan.rateSheetName)
-        # File method also needs frm and to for validation
-        if myplan.rateFrm is not None:
-            diconf["rates_selection"]["from"] = int(myplan.rateFrm)
-        if myplan.rateTo is not None:
-            diconf["rates_selection"]["to"] = int(myplan.rateTo)
     else:
         diconf["rates_selection"]["from"] = int(FROM)
         diconf["rates_selection"]["to"] = int(TO)
@@ -393,14 +380,6 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     if rateMethod in ["stochastic"]:
         stdev = np.array(diconf["rates_selection"]["standard_deviations"], dtype=np.float32)
         rateCorr = np.array(diconf["rates_selection"]["correlations"], dtype=np.float32)
-    if rateMethod == "file":
-        # Load workbook file and worksheet name for file method
-        rateFile = diconf["rates_selection"].get("workbook_file")
-        rateSheetName = diconf["rates_selection"].get("worksheet_name")
-        if rateFile:
-            p.rateFile = rateFile
-        if rateSheetName:
-            p.rateSheetName = rateSheetName
     # Load seed and reproducibility flag for stochastic methods
     if rateMethod in ["stochastic", "histochastic"]:
         rateSeed = diconf["rates_selection"].get("rate_seed")

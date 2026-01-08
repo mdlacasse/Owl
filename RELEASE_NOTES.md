@@ -1,3 +1,9 @@
+### Version 2026.01.08
+- Removed unused file-based rates parameters (rateFile, rateSheetName, workbook_file, worksheet_name)
+  - Cleaned up leftover code from deprecated file method for reading rates
+  - Removed from plan.py, config.py, owlbridge.py, and Rates_Selection.py
+  - Updated PARAMETERS.md to remove file method documentation
+
 ### Version 2026.01.07
 - Normalized seed to fit in signed int32 (issue #59)
 - Removed animation

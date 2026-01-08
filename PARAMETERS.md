@@ -80,7 +80,7 @@ Investment return rates and inflation assumptions.
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred accounts |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
-| `method` | string | Method for determining rates. Valid values: `"user"`, `"stochastic"`, `"historical"`, `"historical average"`, `"histochastic"`, `"optimistic"`, `"conservative"`, `"file"` |
+| `method` | string | Method for determining rates. Valid values: `"user"`, `"stochastic"`, `"historical"`, `"historical average"`, `"histochastic"`, `"optimistic"`, `"conservative"` |
 
 ### Conditional Parameters Based on `method`
 
@@ -100,14 +100,6 @@ Investment return rates and inflation assumptions.
 |-----------|------|-------------|
 | `from` | integer | Starting year for historical data range (must be between 1928 and 2024) |
 | `to` | integer | Ending year for historical data range (must be between 1928 and 2024, and greater than `from`) |
-
-#### For `method = "file"`:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `workbook_file` | string | Path to Excel workbook containing rate data |
-| `worksheet_name` | string | Name of the worksheet within the workbook |
-| `from` | integer | *(Optional)* Starting year for validation |
-| `to` | integer | *(Optional)* Ending year for validation |
 
 **Note:** If `from` and `to` are not specified for methods that don't require them, they default to the full available range (1928-2025).
 
