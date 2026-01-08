@@ -186,17 +186,19 @@ Hit the `Create case` button once all parameters on this page are right."""
         if kz.getGlobalKey("delete_confirmation_active"):
             conf_col1, conf_col2 = st.columns(2, gap="small")
             with conf_col1:
-                if st.button("Delete :material/delete:", type="primary", disabled=cantmodify):
+                helpmsg = ":warning: Caution: The `Delete case` operation cannot be undone."
+                if st.button("Delete :material/delete:", type="primary", disabled=cantmodify, help=helpmsg):
                     kz.storeGlobalKey("delete_confirmation_active", False)
                     kz.deleteCurrentCase()
                     st.rerun()
             with conf_col2:
-                if st.button("Cancel", disabled=cantmodify):
+                helpmsg = "Click to cancel `Delete` operation."
+                if st.button("Cancel", disabled=cantmodify, help=helpmsg):
                     kz.storeGlobalKey("delete_confirmation_active", False)
                     st.rerun()
         else:
             # Show initial delete button
-            helpmsg = ":warning: Caution: The `Delete case` operation cannot be undone."
+            helpmsg = "Click to delete current case."
             if st.button("Delete case :material/delete:", disabled=cantmodify, help=helpmsg):
                 kz.storeGlobalKey("delete_confirmation_active", True)
                 st.rerun()
