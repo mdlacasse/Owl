@@ -735,15 +735,9 @@ class Plan:
                     seed = self.rateSeed
                 else:
                     # Generate new seed from current time
-                    seed = int(time.time() * 1000000) % (2**31)  # Use microseconds, fit in 32-bit int
+                    seed = int(time.time() * 1000000)  # Use microseconds
             else:
-                # Normalize seed to 32-bit range for consistency with auto-generated seeds.
-                # Auto-generated seeds are limited to 2^31, so normalizing external seeds
-                # (from config files, UI, etc.) ensures consistent behavior across all code paths.
-                original_seed = seed
-                seed = int(seed) % (2**31)
-                if original_seed != seed:
-                    self.mylog.vprint(f"Note: Seed {original_seed} normalized to {seed} for consistency.")
+                seed = int(seed)
             self.rateSeed = seed
         else:
             # For non-reproducible rates, clear the seed
@@ -787,7 +781,7 @@ class Plan:
             else:
                 # For non-reproducible rates or when overriding reproducibility, generate a new seed from time.
                 # This ensures we always have a seed stored in config, but it won't be reused.
-                seed = int(time.time() * 1000000) % (2**31)
+                seed = int(time.time() * 1000000)
                 if not override_reproducible:
                     self.rateSeed = seed
         else:

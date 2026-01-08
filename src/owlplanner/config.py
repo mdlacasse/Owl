@@ -406,15 +406,6 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         rateSeed = diconf["rates_selection"].get("rate_seed")
         if rateSeed is not None:
             rateSeed = int(rateSeed)
-            # Normalize seed to 32-bit range for consistency with generated seeds.
-            # Auto-generated seeds are limited to 2^31 to fit in 32-bit signed integers.
-            # Normalizing config seeds ensures consistent behavior and prevents potential
-            # issues with seeds that exceed this range. NumPy's default_rng can handle
-            # larger seeds, but normalizing ensures all seeds are treated consistently.
-            original_seed = rateSeed
-            rateSeed = rateSeed % (2**31)
-            if original_seed != rateSeed:
-                mylog.vprint(f"Note: Seed {original_seed} normalized to {rateSeed} for consistency.")
         reproducibleRates = diconf["rates_selection"].get("reproducible_rates", False)
         p.setReproducible(reproducibleRates, seed=rateSeed)
     p.setRates(rateMethod, frm, to, rateValues, stdev, rateCorr)
