@@ -736,6 +736,14 @@ class Plan:
                 else:
                     # Generate new seed from current time
                     seed = int(time.time() * 1000000) % (2**31)  # Use microseconds, fit in 32-bit int
+            else:
+                # Normalize seed to 32-bit range for consistency with auto-generated seeds.
+                # Auto-generated seeds are limited to 2^31, so normalizing external seeds
+                # (from config files, UI, etc.) ensures consistent behavior across all code paths.
+                original_seed = seed
+                seed = int(seed) % (2**31)
+                if original_seed != seed:
+                    self.mylog.vprint(f"Note: Seed {original_seed} normalized to {seed} for consistency.")
             self.rateSeed = seed
         else:
             # For non-reproducible rates, clear the seed

@@ -78,8 +78,8 @@ Investment return rates and inflation assumptions.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred accounts |
-| `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.8` for 1.8%) |
-| `obbba_expiration_year` | integer | Year when the OBBBA (Omnibus Budget Reconciliation Act) provisions expire. Default is `2032` |
+| `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
+| `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
 | `method` | string | Method for determining rates. Valid values: `"user"`, `"stochastic"`, `"historical"`, `"historical average"`, `"histochastic"`, `"optimistic"`, `"conservative"`, `"file"` |
 
 ### Conditional Parameters Based on `method`
@@ -109,7 +109,7 @@ Investment return rates and inflation assumptions.
 | `from` | integer | *(Optional)* Starting year for validation |
 | `to` | integer | *(Optional)* Ending year for validation |
 
-**Note:** If `from` and `to` are not specified for methods that don't require them, they default to the full available range (1928-2024).
+**Note:** If `from` and `to` are not specified for methods that don't require them, they default to the full available range (1928-2025).
 
 ---
 
