@@ -1733,7 +1733,10 @@ class Plan:
                     row2.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), +afac)
 
                     # Capital gains on stocks sold from taxable account accrued in year n2 - 1.
-                    bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, self.tau_kn[0, max(0, n2-1)])
+                    # Capital gains = price appreciation only (total return - dividend rate)
+                    # to avoid double taxation of dividends
+                    tau_prev = self.tau_kn[0, max(0, n2-1)]
+                    bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, tau_prev - self.mu)
 
                     row1.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), +afac - bfac)
                     row2.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
@@ -2330,11 +2333,14 @@ class Plan:
         tau_0[tau_0 < 0] = 0
         # Last year's rates.
         tau_0prev = np.roll(tau_0, 1)
+        # Capital gains = price appreciation only (total return - dividend rate)
+        # to avoid double taxation of dividends
+        capital_gains_rate = np.maximum(0, tau_0prev - self.mu)
         self.Q_n = np.sum(
             (
                 self.mu
                 * (self.b_ijn[:, 0, :Nn] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :Nn])
-                + tau_0prev * self.w_ijn[:, 0, :]
+                + capital_gains_rate * self.w_ijn[:, 0, :]
             )
             * self.alpha_ijkn[:, 0, 0, :Nn],
             axis=0,
