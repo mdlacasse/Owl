@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ######################################################################
 import numpy as np
+import pandas as pd
 
 
 def d(value, f=0, latex=False) -> str:
@@ -137,6 +138,106 @@ def parseDobs(dobs):
     return np.array(yobs, dtype=np.int32), np.array(mobs, dtype=np.int32), np.array(tobs, dtype=np.int32)
 
 
+def is_row_active(row):
+    """
+    Check if a DataFrame row should be processed based on 'active' column.
+
+    This function handles the common pattern of checking whether a row in a DataFrame
+    should be processed based on its 'active' column value. The logic is:
+    - If 'active' column doesn't exist, the row is considered active (default behavior)
+    - If 'active' value is NaN or None, the row is considered active (default behavior)
+    - If 'active' value is explicitly False (or falsy), the row is considered inactive
+    - Otherwise (True or truthy), the row is considered active
+
+    Parameters
+    ----------
+    row : pd.Series
+        A pandas Series representing a row from a DataFrame. The row should have
+        an 'active' column (or index entry) if the active/inactive status is to be checked.
+
+    Returns
+    -------
+    bool
+        True if the row should be processed (is active), False if it should be skipped (is inactive).
+    """
+    if "active" not in row.index:
+        return True  # Default to active if column doesn't exist
+    active_value = row["active"]
+    if pd.isna(active_value) or active_value is None:
+        return True  # NaN/None means active
+    return bool(active_value)
+
+
+def is_dataframe_empty(df):
+    """
+    Check if a DataFrame is None or empty.
+
+    This function consolidates the common pattern of checking
+    `df is None or df.empty` throughout the codebase.
+
+    Parameters
+    ----------
+    df : pd.DataFrame or None
+        The DataFrame to check. Can be None or an empty DataFrame.
+
+    Returns
+    -------
+    bool
+        True if df is None or empty, False otherwise.
+    """
+    return df is None or df.empty
+
+
+def ensure_dataframe(df, default_empty=None):
+    """
+    Ensure DataFrame is not None or empty, return default if needed.
+
+    This function checks if a DataFrame is None or empty and returns a default
+    value if so. This consolidates the common pattern of checking
+    `df is None or df.empty` throughout the codebase.
+
+    Parameters
+    ----------
+    df : pd.DataFrame or None
+        The DataFrame to check. Can be None or an empty DataFrame.
+    default_empty : any, optional
+        The value to return if df is None or empty. Default is None.
+        Common values are 0.0, np.zeros(N_n), or a default DataFrame.
+
+    Returns
+    -------
+    any
+        Returns default_empty if df is None or empty, otherwise returns df.
+    """
+    if is_dataframe_empty(df):
+        return default_empty
+    return df
+
+
+def get_empty_array_or_value(N_n, default_value=0.0):
+    """
+    Return empty array or single value based on context.
+
+    This helper function returns either a numpy array of zeros with length N_n
+    if N_n is provided, or a single default value if N_n is None.
+
+    Parameters
+    ----------
+    N_n : int or None
+        Length of the array to create. If None, returns default_value instead.
+    default_value : float, optional
+        Default value to return if N_n is None. Default is 0.0.
+
+    Returns
+    -------
+    np.ndarray or float
+        Returns np.zeros(N_n) if N_n is not None, otherwise returns default_value.
+    """
+    if N_n is not None:
+        return np.zeros(N_n)
+    return default_value
+
+
 def convert_to_bool(val):
     """
     Convert various input types to boolean.
@@ -159,8 +260,6 @@ def convert_to_bool(val):
     bool
         Boolean value. NaN/None and unknown values default to True.
     """
-    import pandas as pd
-
     # Check for None first (before pd.isna which can fail on some types)
     if val is None:
         return True  # Default to True for None

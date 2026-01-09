@@ -309,8 +309,7 @@ def conditionDebtsAndFixedAssetsDF(df, tableType):
 
     columnItems = items[tableType]
 
-    if df is None or df.empty:
-        df = pd.DataFrame(columns=columnItems)
+    df = u.ensure_dataframe(df, pd.DataFrame(columns=columnItems))
 
     df = df.copy()
     df.reset_index(drop=True, inplace=True)

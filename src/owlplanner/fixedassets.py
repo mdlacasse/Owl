@@ -26,6 +26,8 @@ import numpy as np
 import pandas as pd  # noqa: F401
 from datetime import date
 
+from . import utils as u
+
 
 # Primary residence exclusion limits (2025 tax year)
 RESIDENCE_EXCLUSION_SINGLE = 250000
@@ -87,7 +89,7 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
     if thisyear is None:
         thisyear = date.today().year
 
-    if fixed_assets_df is None or fixed_assets_df.empty:
+    if u.is_dataframe_empty(fixed_assets_df):
         return np.zeros(N_n), np.zeros(N_n), np.zeros(N_n)
 
     tax_free_n = np.zeros(N_n)
@@ -102,15 +104,8 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
 
     for _, asset in fixed_assets_df.iterrows():
         # Skip if active column exists and is False (treat NaN/None as True)
-        if "active" in asset.index:
-            active_value = asset["active"]
-            # Check if value is explicitly False (not NaN, None, or True)
-            if pd.isna(active_value) or active_value is None:
-                # NaN/None means active (default behavior)
-                pass
-            elif not bool(active_value):
-                # Explicitly False means inactive
-                continue
+        if not u.is_row_active(asset):
+            continue
 
         asset_type = str(asset["type"]).lower()
         basis = float(asset["basis"])
@@ -232,7 +227,7 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
     if thisyear is None:
         thisyear = date.today().year
 
-    if fixed_assets_df is None or fixed_assets_df.empty:
+    if u.is_dataframe_empty(fixed_assets_df):
         return 0.0
 
     end_year = thisyear + N_n - 1  # Last year of the plan
@@ -240,15 +235,8 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
 
     for _, asset in fixed_assets_df.iterrows():
         # Skip if active column exists and is False (treat NaN/None as True)
-        if "active" in asset.index:
-            active_value = asset["active"]
-            # Check if value is explicitly False (not NaN, None, or True)
-            if pd.isna(active_value) or active_value is None:
-                # NaN/None means active (default behavior)
-                pass
-            elif not bool(active_value):
-                # Explicitly False means inactive
-                continue
+        if not u.is_row_active(asset):
+            continue
 
         # Get reference year, defaulting to thisyear for backward compatibility
         if "year" in asset.index and not pd.isna(asset["year"]):

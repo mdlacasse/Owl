@@ -134,6 +134,70 @@ def translate_old_keys(diconf):
     return translated
 
 
+def _read_toml_file(file):
+    """
+    Unified TOML file reading for different input types.
+
+    This function handles reading TOML content from three different input types:
+    - str: File path (reads from filesystem)
+    - BytesIO: Binary stream (decodes to UTF-8 string)
+    - StringIO: Text stream (reads string directly)
+
+    Parameters
+    ----------
+    file : str, BytesIO, or StringIO
+        The file source to read from. Can be a file path string, BytesIO object,
+        or StringIO object.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+        - diconf (dict): The loaded TOML configuration dictionary
+        - dirname (str): The directory name if file is a string path, empty string otherwise
+        - filename (str): The filename if file is a string path, None otherwise
+
+    Raises
+    ------
+    FileNotFoundError
+        If file is a string path and the file cannot be found.
+    RuntimeError
+        If file is BytesIO or StringIO and reading fails.
+    ValueError
+        If file is not one of the supported types.
+    """
+    dirname = ""
+    filename = None
+
+    if isinstance(file, str):
+        filename = file
+        dirname = os.path.dirname(filename)
+        if not filename.endswith(".toml"):
+            filename = filename + ".toml"
+
+        try:
+            with open(filename, "r") as f:
+                diconf = toml.load(f)
+        except Exception as e:
+            raise FileNotFoundError(f"File {filename} not found: {e}") from e
+    elif isinstance(file, BytesIO):
+        try:
+            string = file.getvalue().decode("utf-8")
+            diconf = toml.loads(string)
+        except Exception as e:
+            raise RuntimeError(f"Cannot read from BytesIO: {e}") from e
+    elif isinstance(file, StringIO):
+        try:
+            string = file.getvalue()
+            diconf = toml.loads(string)
+        except Exception as e:
+            raise RuntimeError(f"Cannot read from StringIO: {e}") from e
+    else:
+        raise ValueError(f"Type {type(file)} not a valid type")
+
+    return diconf, dirname, filename
+
+
 def saveConfig(myplan, file, mylog):
     """
     Save case parameters and return a dictionary containing all parameters.
@@ -267,34 +331,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     """
     mylog = log.Logger(verbose, logstreams)
 
-    dirname = ""
-    if isinstance(file, str):
-        filename = file
-        dirname = os.path.dirname(filename)
-        if not filename.endswith(".toml"):
-            filename = filename + ".toml"
+    diconf, dirname, filename = _read_toml_file(file)
 
+    if filename is not None:
         mylog.vprint(f"Reading plan from case file '{filename}'.")
-
-        try:
-            with open(filename, "r") as f:
-                diconf = toml.load(f)
-        except Exception as e:
-            raise FileNotFoundError(f"File {filename} not found: {e}") from e
-    elif isinstance(file, BytesIO):
-        try:
-            string = file.getvalue().decode("utf-8")
-            diconf = toml.loads(string)
-        except Exception as e:
-            raise RuntimeError(f"Cannot read from BytesIO: {e}") from e
-    elif isinstance(file, StringIO):
-        try:
-            string = file.getvalue()
-            diconf = toml.loads(string)
-        except Exception as e:
-            raise RuntimeError(f"Cannot read from StringIO: {e}") from e
-    else:
-        raise ValueError(f"Type {type(file)} not a valid type")
 
     # Translate old keys to new snake_case keys for backward compatibility
     diconf = translate_old_keys(diconf)

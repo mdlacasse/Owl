@@ -25,6 +25,8 @@ import numpy as np
 import pandas as pd  # noqa: F401
 from datetime import date
 
+from . import utils as u
+
 
 def calculate_monthly_payment(principal, annual_rate, term_years):
     """
@@ -140,22 +142,15 @@ def get_debt_payments_for_year(debts_df, year):
     float
         Total annual debt payments for the year
     """
-    if debts_df is None or debts_df.empty:
+    if u.is_dataframe_empty(debts_df):
         return 0.0
 
     total_payments = 0.0
 
     for _, debt in debts_df.iterrows():
         # Skip if active column exists and is False (treat NaN/None as True)
-        if "active" in debt.index:
-            active_value = debt["active"]
-            # Check if value is explicitly False (not NaN, None, or True)
-            if pd.isna(active_value) or active_value is None:
-                # NaN/None means active (default behavior)
-                pass
-            elif not bool(active_value):
-                # Explicitly False means inactive
-                continue
+        if not u.is_row_active(debt):
+            continue
 
         start_year = int(debt["year"])
         term = int(debt["term"])
@@ -189,22 +184,15 @@ def get_debt_balances_for_year(debts_df, year):
     float
         Total remaining debt balances at end of year
     """
-    if debts_df is None or debts_df.empty:
+    if u.is_dataframe_empty(debts_df):
         return 0.0
 
     total_balance = 0.0
 
     for _, debt in debts_df.iterrows():
         # Skip if active column exists and is False (treat NaN/None as True)
-        if "active" in debt.index:
-            active_value = debt["active"]
-            # Check if value is explicitly False (not NaN, None, or True)
-            if pd.isna(active_value) or active_value is None:
-                # NaN/None means active (default behavior)
-                pass
-            elif not bool(active_value):
-                # Explicitly False means inactive
-                continue
+        if not u.is_row_active(debt):
+            continue
 
         start_year = int(debt["year"])
         term = int(debt["term"])
@@ -248,22 +236,15 @@ def get_debt_payments_array(debts_df, N_n, thisyear=None):
     if thisyear is None:
         thisyear = date.today().year
 
-    if debts_df is None or debts_df.empty:
+    if u.is_dataframe_empty(debts_df):
         return np.zeros(N_n)
 
     payments_n = np.zeros(N_n)
 
     for _, debt in debts_df.iterrows():
         # Skip if active column exists and is False (treat NaN/None as True)
-        if "active" in debt.index:
-            active_value = debt["active"]
-            # Check if value is explicitly False (not NaN, None, or True)
-            if pd.isna(active_value) or active_value is None:
-                # NaN/None means active (default behavior)
-                pass
-            elif not bool(active_value):
-                # Explicitly False means inactive
-                continue
+        if not u.is_row_active(debt):
+            continue
 
         start_year = int(debt["year"])
         term = int(debt["term"])
@@ -307,7 +288,7 @@ def get_remaining_debt_balance(debts_df, N_n, thisyear=None):
     if thisyear is None:
         thisyear = date.today().year
 
-    if debts_df is None or debts_df.empty:
+    if u.is_dataframe_empty(debts_df):
         return 0.0
 
     end_year = thisyear + N_n - 1
@@ -315,15 +296,8 @@ def get_remaining_debt_balance(debts_df, N_n, thisyear=None):
 
     for _, debt in debts_df.iterrows():
         # Skip if active column exists and is False (treat NaN/None as True)
-        if "active" in debt.index:
-            active_value = debt["active"]
-            # Check if value is explicitly False (not NaN, None, or True)
-            if pd.isna(active_value) or active_value is None:
-                # NaN/None means active (default behavior)
-                pass
-            elif not bool(active_value):
-                # Explicitly False means inactive
-                continue
+        if not u.is_row_active(debt):
+            continue
 
         start_year = int(debt["year"])
         term = int(debt["term"])
