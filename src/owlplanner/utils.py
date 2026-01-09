@@ -161,8 +161,18 @@ def convert_to_bool(val):
     """
     import pandas as pd
 
-    if pd.isna(val) or val is None:
-        return True  # Default to True for NaN/None
+    # Check for None first (before pd.isna which can fail on some types)
+    if val is None:
+        return True  # Default to True for None
+
+    # Check for NaN, but handle cases where pd.isna might fail (e.g., empty lists)
+    try:
+        if pd.isna(val):
+            return True  # Default to True for NaN
+    except (ValueError, TypeError):
+        # pd.isna can raise ValueError for empty arrays/lists
+        # or TypeError for unhashable types - treat as non-NaN and continue
+        pass
     if isinstance(val, bool):
         return val
     if isinstance(val, str):

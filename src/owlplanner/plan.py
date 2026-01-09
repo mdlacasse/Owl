@@ -349,6 +349,7 @@ class Plan:
         # Previous 2 years of MAGI needed for Medicare.
         self.prevMAGI = np.zeros((2))
         self.MAGI_n = np.zeros(self.N_n)
+        self.solverOptions = {}
 
         # Init current balances to none.
         self.beta_ij = None
@@ -923,6 +924,11 @@ class Plan:
         generic = [[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]]
         as assets are coordinated between accounts and spouses.
         """
+        # Validate allocType parameter
+        validTypes = ["account", "individual", "spouses"]
+        if allocType not in validTypes:
+            raise ValueError(f"allocType must be one of {validTypes}, got '{allocType}'")
+
         self.boundsAR = {}
         self.alpha_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n + 1))
         if allocType == "account":

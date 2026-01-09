@@ -55,6 +55,10 @@ class Logger(object):
             return
 
         # --- Existing stream-based behavior ------------------------
+        # First check if logstreams is a valid type (list or None)
+        if logstreams is not None and not isinstance(logstreams, list):
+            raise ValueError(f"Log streams {logstreams} must be a list.")
+
         if logstreams is None or logstreams == [] or len(logstreams) > 2:
             self._logstreams = [sys.stdout, sys.stderr]
             self.vprint("Using stdout and stderr as stream loggers.")
@@ -64,8 +68,6 @@ class Logger(object):
         elif len(logstreams) == 1:
             self._logstreams = 2 * logstreams
             self.vprint("Using logstream as stream logger.")
-        else:
-            raise ValueError(f"Log streams {logstreams} must be a list.")
 
     def setVerbose(self, verbose=True):
         # Push current state onto stack before changing it
@@ -147,6 +149,8 @@ class Logger(object):
         if "file" not in kwargs:
             file = self._logstreams[0]
             kwargs["file"] = file
+        else:
+            file = kwargs["file"]
 
         print(formatted_message, **kwargs)
         file.flush()
@@ -180,6 +184,8 @@ class Logger(object):
             if "file" not in kwargs:
                 file = self._logstreams[0]
                 kwargs["file"] = file
+            else:
+                file = kwargs["file"]
 
             print(formatted_message, **kwargs)
             file.flush()
@@ -196,10 +202,12 @@ class Logger(object):
         if "file" not in kwargs:
             file = self._logstreams[1]
             kwargs["file"] = file
+        else:
+            file = kwargs["file"]
 
         if self._verbose:
             print("ERROR:", *args, **kwargs)
-            print("Exiting...")
+            print("Exiting...", file=file)
             file.flush()
 
         raise Exception("Fatal error.")
