@@ -35,7 +35,12 @@ if not case_names:
     st.stop()
 
 # Initialize the radio button key with the current case
-default_index = case_names.index(current_case)
+# If current_case is not in case_names (e.g., "Upload Case File..." or "New Case..."),
+# default to the first case (index 0)
+try:
+    default_index = case_names.index(current_case)
+except ValueError:
+    default_index = 0
 
 selected_case = st.radio("View logs for case",
                          case_names,

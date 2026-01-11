@@ -32,7 +32,7 @@ import owlplanner as owl
 solver = 'HiGHS'
 thisyear = date.today().year
 
-SPENDING1 = 86787.3
+SPENDING1 = 86827.3
 BEQUEST1 = 827690.6
 SPENDING2 = 96940.4
 SPENDING1_FIXED = 92411.51

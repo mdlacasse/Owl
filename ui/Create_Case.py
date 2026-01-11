@@ -37,7 +37,7 @@ if ret == kz.newCase:
         "(Alternatively, you can choose `Upload Case File...` in the top selector box to upload your own"
         " case or select one from multiple examples."
         " Look at the :material/help: [Documentation](Documentation) for more details.)\n\n"
-        "A name for the scenario must first be provided."
+        "A name for the case must first be provided."
     )
     st.text_input(
         "Case name",

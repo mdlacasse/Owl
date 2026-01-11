@@ -1,3 +1,7 @@
+- Fixed rare condition in UI to start from Upload case and hop to Logs
+- Changed convergence criteria to only consider objective function
+- Split bigM between xom and irmaa conditions
+
 ### Version 2026.01.08
 - Removed unused file-based rates parameters (rateFile, rateSheetName, workbook_file, worksheet_name)
   - Cleaned up leftover code from deprecated file method for reading rates

@@ -171,7 +171,8 @@ Options controlling the optimization solver and constraints.
 | `spendingSlack` | integer | Percentage allowed to deviate from the spending profile (0-50). Default is `0` | Optional |
 | `xorConstraints` | boolean | Whether to use XOR constraints in the optimization. Default is `true` | Optional |
 | `withSCLoop` | boolean | Whether to use self-consistent loop for solving. Default is `true` | Optional |
-| `bigM` | float | *(Advanced)* Big-M value for constraint formulation | Optional |
+| `bigM_xor` | float | *(Advanced)* Big-M value for XOR constraints (mutually exclusive operations). Default is `1e7` (10 million). Should be larger than any individual withdrawal, conversion, or surplus deposit. | Optional |
+| `bigM_irmaa` | float | *(Advanced)* Big-M value for Medicare IRMAA bracket constraints. Default is `1e8` (100 million). Should be larger than any possible MAGI value. Typically larger than `bigM_xor` since it bounds aggregate income. | Optional |
 | `oppCostX` | float | *(Advanced)* Opportunity cost parameter | Optional |
 | `previousMAGIs` | array | *(Advanced)* Previous MAGI values for Medicare calculations | Optional |
 | `units` | string | Units for amounts. Valid values: `"1"` (dollars), `"k"` (thousands), `"M"` (millions). Default is `"k"` | Optional |

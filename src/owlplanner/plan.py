@@ -375,6 +375,8 @@ class Plan:
         self.houseLists = {}
         self.zeroContributions()
         self.caseStatus = "unsolved"
+        # "uniform", "oscillatory", "max iteration", or "undefined" - how solution was obtained
+        self.convergenceType = "undefined"
         self.rateMethod = None
         self.reproducibleRates = False
         self.rateSeed = None
@@ -1654,9 +1656,10 @@ class Plan:
         if not options.get("xorConstraints", True):
             return
 
-        bigM = options.get("bigM", 5e6)
+        # Default: 1e7 (10 million) - bounds individual operations
+        bigM = options.get("bigM_xor", 1e7)
         if not isinstance(bigM, (int, float)):
-            raise ValueError(f"bigM {bigM} is not a number.")
+            raise ValueError(f"bigM_xor {bigM} is not a number.")
 
         for i in range(self.N_i):
             for n in range(self.horizons[i]):
@@ -1695,9 +1698,10 @@ class Plan:
         if options.get("withMedicare", "loop") != "optimize":
             return
 
-        bigM = options.get("bigM", 5e6)
+        # Default: 1e8 (100 million) - bounds aggregate MAGI, typically larger than bigM_xor
+        bigM = options.get("bigM_irmaa", 1e8)
         if not isinstance(bigM, (int, float)):
-            raise ValueError(f"bigM {bigM} is not a number.")
+            raise ValueError(f"bigM_irmaa {bigM} is not a number.")
 
         Nmed = self.N_n - self.nm
         offset = 0
@@ -1927,6 +1931,7 @@ class Plan:
 
         # Assume unsuccessful until problem solved.
         self.caseStatus = "unsuccessful"
+        self.convergenceType = "undefined"
 
         # Check objective and required options.
         knownObjectives = ["maxBequest", "maxSpending"]
@@ -1934,7 +1939,8 @@ class Plan:
 
         knownOptions = [
             "bequest",
-            "bigM",
+            "bigM_xor",  # Big-M value for XOR constraints (default: 5e6)
+            "bigM_irmaa",  # Big-M value for Medicare IRMAA constraints (default: 1e7)
             "maxRothConversion",
             "netSpending",
             "noRothConversions",
@@ -2053,23 +2059,21 @@ class Plan:
             self._computeNLstuff(xx, includeMedicare)
 
             delta = xx - old_x
-            absSolDiff = np.sum(np.abs(delta), axis=0)/100
-            absObjDiff = abs(objFac*(objfn + old_objfns[-1]))/100
+            absSolDiff = np.sum(np.abs(delta), axis=0)
+            absObjDiff = abs(objFac*(objfn + old_objfns[-1]))
             self.mylog.vprint(f"Iteration: {it} objective: {u.d(objfn * objFac, f=2)},"
                               f" |dX|: {absSolDiff:.2f}, |df|: {u.d(absObjDiff, f=2)}")
 
-            # 50 cents accuracy.
-            if absSolDiff < .5 and absObjDiff < .5:
+            # Convergence based on objective function only (+/- 5$ accuracy).
+            # Solution difference is calculated and reported but not used for convergence
+            # since it scales with problem size and can prevent convergence for large cases.
+            if absObjDiff <= 5.0:
+                self.convergenceType = "uniform"
                 self.mylog.vprint("Converged on full solution.")
                 break
 
-            # Avoid oscillatory solutions. Look only at most recent solutions. Within $10.
-            isclosenough = abs(-objfn - min(old_objfns[int(it / 2) :])) < 10 * self.xi_n[0]
-            if isclosenough:
-                self.mylog.vprint("Converged through selecting minimum oscillating objective.")
-                break
-
             if it > 59:
+                self.convergenceType = "max iteration"
                 self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
                 break
 
@@ -2218,8 +2222,8 @@ class Plan:
         task = mosek.Task()
         task.putdouparam(mosek.dparam.mio_max_time, 900.0)           # Default -1
         # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)       # Default 1e-10
-        task.putdouparam(mosek.dparam.mio_tol_rel_gap, 2e-3)         # Default 1e-4
-        task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-4)   # Default 1e-5
+        task.putdouparam(mosek.dparam.mio_tol_rel_gap, 2e-4)         # Default 1e-4
+        task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-5)   # Default 1e-5
         # task.putdouparam(mosek.iparam.mio_heuristic_level, 3)      # Default -1
         # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
         task.appendcons(self.A.ncons)
@@ -2633,6 +2637,7 @@ class Plan:
         dic["Case name"] = self._name
         dic["Number of decision variables"] = str(self.A.nvars)
         dic["Number of constraints"] = str(self.A.ncons)
+        dic["Convergence"] = self.convergenceType
         dic["Case executed on"] = str(self._timestamp)
 
         return dic
@@ -3245,7 +3250,11 @@ def _formatSpreadsheet(ws, ftype):
         # col[0].style = 'Title'
         width = max(len(str(col[0].value)) + 4, 10)
         ws.column_dimensions[column].width = width
-        if column != "A":
+        if column == "A":
+            # Format year column as integer without commas
+            for cell in col:
+                cell.number_format = "0"
+        else:
             for cell in col:
                 cell.number_format = fstring
 
@@ -3276,8 +3285,8 @@ def _formatDebtsSheet(ws):
     # Apply formatting based on column name
     for col_letter, col_name in col_map.items():
         if col_name in ["year", "term"]:
-            # Integer format
-            fstring = "#,##0"
+            # Integer format without commas
+            fstring = "0"
         elif col_name in ["rate"]:
             # Number format (2 decimal places for percentages stored as numbers)
             fstring = "#,##0.00"
@@ -3321,8 +3330,8 @@ def _formatFixedAssetsSheet(ws):
     # Apply formatting based on column name
     for col_letter, col_name in col_map.items():
         if col_name in ["yod"]:
-            # Integer format
-            fstring = "#,##0"
+            # Integer format without commas
+            fstring = "0"
         elif col_name in ["rate", "commission"]:
             # Number format (1 decimal place for percentages stored as numbers)
             fstring = "#,##0.00"
