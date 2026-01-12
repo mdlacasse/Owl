@@ -142,7 +142,7 @@ else:
         with col1:
             helpmsg = ("Option to use a self-consistent loop to adjust additional values such as the net"
                        " investment income tax (NIIT), and capital gain tax rates."
-                       "  If selected below, this loop will also compute Medicare and IRMAA.")
+                       "  When Medicare is selected to *loop(, this will also compute Medicare and IRMAA.")
             ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
         with col2:
             helpmsg = ("Enable mutually exclusive constraints between surplus deposits,"
