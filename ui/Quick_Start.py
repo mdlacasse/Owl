@@ -37,8 +37,8 @@ with col1:
     kz.divider("orange")
     st.markdown("### :material/campaign: News")
     st.markdown("""
-- Historical gains for 2025 have been updated.
-- This version includes updated tax laws for year 2026 (TY2025).
+- This version includes updated tax laws for year 2026 (TY2025) and historical gains for 2025.
+- Inversion formulation of binary variables improved for robustness.
 - :warning: Fixed Assets table now needs a *year* column allowing the acquisition of assets in the future.
 
 Please report bugs :bug: and suggestions through the

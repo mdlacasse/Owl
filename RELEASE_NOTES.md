@@ -1,12 +1,26 @@
-- Fixed rare condition in UI to start from Upload case and hop to Logs
-- Changed convergence criteria to only consider objective function
-- Split bigM between xom and irmaa conditions
+### Version 2026.01.12
+- Merged binary exclusion constraints for both spouses (one set per year instead of per individual)
+  - Updated paper to reflect that binary variables $z_{nz}$ are shared across both spouses
+  - Reduced binary variable count from $4N_iN_n$ to $4N_n$ for married couples
+- Improved loop detection for oscillatory solutions
+- Exposed tolerance and bigM parameters for experimenting with solver
+- Added time limit of 15 min for solution
+- Fixed rare condition in UI when starting Upload case and hopping to Logs
+- Changed convergence criteria to only consider objective function (not solution vector)
+- Split bigM between XOR exclusion constraints and IRMAA Medicare conditions
 
 ### Version 2026.01.08
+- Fixed dividends being taxed twice on taxable account withdrawals
+- Removed int32 normalization of seed (reverted from 2026.01.07)
 - Removed unused file-based rates parameters (rateFile, rateSheetName, workbook_file, worksheet_name)
   - Cleaned up leftover code from deprecated file method for reading rates
   - Removed from plan.py, config.py, owlbridge.py, and Rates_Selection.py
   - Updated PARAMETERS.md to remove file method documentation
+- Added tip help to case Delete operation in UI
+- Updated paper PDF to reflect change in dividend tax calculation
+- Replaced duplicate owl.tex and images with symlinks to avoid duplication
+- Refactored code in config.py, debts.py, fixedassets.py, and utils.py
+- Added tests to increase coverage and harden code
 
 ### Version 2026.01.07
 - Normalized seed to fit in signed int32 (issue #59)

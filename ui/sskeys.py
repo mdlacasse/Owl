@@ -25,6 +25,7 @@ import pandas as pd
 from datetime import date
 import copy
 import re
+import json
 
 
 ss = st.session_state
@@ -437,6 +438,18 @@ def getSolveParameters():
     previousMAGIs = getPreviousMAGIs()
     if previousMAGIs[0] > 0 or previousMAGIs[1] > 0:
         options["previousMAGIs"] = previousMAGIs
+
+    # Process extra solver options from JSON string
+    xtra_options_str = getCaseKey("xtra_options")
+    if xtra_options_str and xtra_options_str.strip():
+        try:
+            xtra_options = json.loads(xtra_options_str)
+            if isinstance(xtra_options, dict):
+                options.update(xtra_options)
+            else:
+                st.warning("Extra solver options must be a JSON object (dictionary).")
+        except json.JSONDecodeError as e:
+            st.warning(f"Invalid JSON in extra solver options: {e}")
 
     return objective, options
 

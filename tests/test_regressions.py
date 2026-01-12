@@ -131,6 +131,7 @@ def test_withdrawal1():
     p.setRates('user', values=[0, 0, 0, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withSCLoop': False}
     p.solve('maxSpending', options=options)
+    assert p.caseStatus == "solved", f"Solve failed with status: {p.caseStatus}"
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
     assert p.bequest == pytest.approx(0, abs=0.5)
 
@@ -145,6 +146,7 @@ def test_withdrawal2():
     p.setRates('user', values=[0, 0, 0, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withSCLoop': False}
     p.solve('maxSpending', options=options)
+    assert p.caseStatus == "solved", f"Solve failed with status: {p.caseStatus}"
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
     assert p.bequest == pytest.approx(0, abs=0.5)
 
@@ -160,6 +162,7 @@ def test_withdrawal2_2():
     p.setRates('user', values=[0, 0, 0, 0])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withSCLoop': False}
     p.solve('maxSpending', options=options)
+    assert p.caseStatus == "solved", f"Solve failed with status: {p.caseStatus}"
     assert p.basis == pytest.approx(1000*amount/n, abs=0.5)
     assert p.bequest == pytest.approx(0, abs=0.5)
 

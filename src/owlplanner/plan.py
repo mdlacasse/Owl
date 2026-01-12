@@ -44,6 +44,11 @@ from . import progress
 from .plotting.factory import PlotFactory
 
 
+# Default values
+BIGM_XOR = 1e7     # 100 times maximum withdrawals or conversions
+BIGM_IRMAA = 1e7   # 100 times maximum MAGI
+
+
 def _genGamma_n(tau):
     """
     Utility function to generate a cumulative inflation multiplier
@@ -253,8 +258,8 @@ class Plan:
         self.N_q = 6
         self.N_j = 3
         self.N_k = 4
-        # 2 binary variables.
-        self.N_zx = 2
+        # 4 binary variables for exclusions.
+        self.N_zx = 4
 
         # Default interpolation parameters for allocation ratios.
         self.interpMethod = "linear"
@@ -375,7 +380,7 @@ class Plan:
         self.houseLists = {}
         self.zeroContributions()
         self.caseStatus = "unsolved"
-        # "uniform", "oscillatory", "max iteration", or "undefined" - how solution was obtained
+        # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
         self.convergenceType = "undefined"
         self.rateMethod = None
         self.reproducibleRates = False
@@ -1330,7 +1335,7 @@ class Plan:
         C["w"] = _qC(C["s"], self.N_n)
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
         C["zx"] = _qC(C["x"], self.N_i, self.N_n)
-        C["zm"] = _qC(C["zx"], self.N_i, self.N_n, self.N_zx)
+        C["zm"] = _qC(C["zx"], self.N_n, self.N_zx)
         self.nvars = _qC(C["zm"], self.N_n - self.nm, self.N_q - 1) if medi else C["zm"]
         self.nbins = self.nvars - C["zx"]
 
@@ -1471,6 +1476,10 @@ class Plan:
                     raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:") from e
                 for n in range(self.N_n):
                     self.B.setRange(_q2(self.C["x"], i_x, n, self.N_i, self.N_n), 0, 0)
+
+            # Disallow Roth conversions in last year alive.
+            for i in range(self.N_i):
+                self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 1, self.N_i, self.N_n), 0, 0)
 
     def _add_withdrawal_limits(self):
         for i in range(self.N_i):
@@ -1656,50 +1665,63 @@ class Plan:
         if not options.get("xorConstraints", True):
             return
 
-        # Default: 1e7 (10 million) - bounds individual operations
-        bigM = options.get("bigM_xor", 1e7)
+        bigM = options.get("bigM_xor", BIGM_XOR)
         if not isinstance(bigM, (int, float)):
             raise ValueError(f"bigM_xor {bigM} is not a number.")
 
-        for i in range(self.N_i):
-            for n in range(self.horizons[i]):
-                self.A.addNewRow(
-                    {_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx): bigM,
-                     _q1(self.C["s"], n, self.N_n): -1},
-                    0,
-                    bigM,
-                )
-                self.A.addNewRow(
-                    {
-                        _q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx): bigM,
-                        _q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n): 1,
-                        _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1,
-                    },
-                    0,
-                    bigM,
-                )
-                self.A.addNewRow(
-                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx): bigM,
-                     _q2(self.C["x"], i, n, self.N_i, self.N_n): -1},
-                    0,
-                    bigM,
-                )
-                self.A.addNewRow(
-                    {_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx): bigM,
-                     _q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n): 1},
-                    0,
-                    bigM,
-                )
-            for n in range(self.horizons[i], self.N_n):
-                self.B.setRange(_q3(self.C["zx"], i, n, 0, self.N_i, self.N_n, self.N_zx), 0, 0)
-                self.B.setRange(_q3(self.C["zx"], i, n, 1, self.N_i, self.N_n, self.N_zx), 0, 0)
+        for n in range(self.N_n):
+            # Make z_0 and z_1 exclusive binary variables.
+            dic0 = {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): bigM,
+                    _q3(self.C["w"], 0, 0, n, self.N_i, self.N_j, self.N_n): -1,
+                    _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
+            if self.N_i == 2:
+                dic1 = {_q3(self.C["w"], 1, 0, n, self.N_i, self.N_j, self.N_n): -1,
+                        _q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                dic0.update(dic1)
+
+            self.A.addNewRow(dic0, 0, np.inf)
+
+            self.A.addNewRow(
+                {_q2(self.C["zx"], n, 1, self.N_n, self.N_zx): bigM,
+                 _q1(self.C["s"], n, self.N_n): -1},
+                0, np.inf)
+
+            # As both can be zero, bound as z_0 + z_1 <= 1
+            self.A.addNewRow(
+                {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): +1,
+                 _q2(self.C["zx"], n, 1, self.N_n, self.N_zx): +1},
+                0, 1
+            )
+
+            # Make z_2 and z_3 exclusive binary variables.
+            dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM,
+                    _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
+            if self.N_i == 2:
+                dic1 = {_q2(self.C["x"], 1, n, self.N_i, self.N_n): -1}
+                dic0.update(dic1)
+
+            self.A.addNewRow(dic0, 0, np.inf)
+
+            dic0 = {_q2(self.C["zx"], n, 3, self.N_n, self.N_zx): bigM,
+                    _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
+            if self.N_i == 2:
+                dic1 = {_q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                dic0.update(dic1)
+
+            self.A.addNewRow(dic0, 0, np.inf)
+
+            self.A.addNewRow(
+                {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): +1,
+                 _q2(self.C["zx"], n, 3, self.N_n, self.N_zx): +1},
+                0, 1
+            )
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":
             return
 
         # Default: 1e8 (100 million) - bounds aggregate MAGI, typically larger than bigM_xor
-        bigM = options.get("bigM_irmaa", 1e8)
+        bigM = options.get("bigM_irmaa", BIGM_IRMAA)
         if not isinstance(bigM, (int, float)):
             raise ValueError(f"bigM_irmaa {bigM} is not a number.")
 
@@ -1711,53 +1733,38 @@ class Plan:
                 n = self.nm + nn
                 for q in range(self.N_q - 1):
                     self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): bigM},
-                                     -np.inf, bigM - self.L_nq[nn, q] + self.prevMAGI[n])
-                    self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): -bigM},
-                                     -np.inf, self.L_nq[nn, q] - self.prevMAGI[n])
+                                     self.prevMAGI[n] - self.L_nq[nn, q], np.inf)
 
         for nn in range(offset, Nmed):
             n2 = self.nm + nn - 2  # n - 2
             for q in range(self.N_q - 1):
-                rhs1 = bigM - self.L_nq[nn, q]
-                rhs2 = self.L_nq[nn, q]
-                row1 = self.A.newRow()
-                row2 = self.A.newRow()
+                rhs = self.L_nq[nn, q]
+                row = self.A.newRow()
 
-                row1.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), +bigM)
-                row2.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM)
+                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM)
                 for i in range(self.N_i):
-                    row1.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), -1)
-                    row2.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), +1)
-
-                    row1.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), -1)
-                    row2.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), +1)
+                    row.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), +1)
+                    row.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), +1)
 
                     # Dividends and interest gains for year n2.
                     afac = (self.mu*self.alpha_ijkn[i, 0, 0, n2]
                             + np.sum(self.alpha_ijkn[i, 0, 1:, n2]*self.tau_kn[1:, n2]))
 
-                    row1.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), -afac)
-                    row2.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), +afac)
-
-                    row1.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), -afac)
-                    row2.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), +afac)
+                    row.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), +afac)
+                    row.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), +afac)
 
                     # Capital gains on stocks sold from taxable account accrued in year n2 - 1.
                     # Capital gains = price appreciation only (total return - dividend rate)
-                    # to avoid double taxation of dividends
+                    #  to avoid double taxation of dividends.
                     tau_prev = self.tau_kn[0, max(0, n2-1)]
                     bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, tau_prev - self.mu)
-
-                    row1.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), +afac - bfac)
-                    row2.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
+                    row.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
 
                     sumoni = (self.omega_in[i, n2] + self.psi_n[n2] * self.zetaBar_in[i, n2] + self.piBar_in[i, n2]
                               + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
-                    rhs1 += sumoni
-                    rhs2 -= sumoni
+                    rhs -= sumoni
 
-                self.A.addRow(row1, -np.inf, rhs1)
-                self.A.addRow(row2, -np.inf, rhs2)
+                self.A.addRow(row, -np.inf, rhs)
 
     def _add_Medicare_costs(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -1941,6 +1948,7 @@ class Plan:
             "bequest",
             "bigM_xor",  # Big-M value for XOR constraints (default: 5e6)
             "bigM_irmaa",  # Big-M value for Medicare IRMAA constraints (default: 1e7)
+            "gap",
             "maxRothConversion",
             "netSpending",
             "noRothConversions",
@@ -1950,6 +1958,7 @@ class Plan:
             "solver",
             "spendingSlack",
             "startRothConversions",
+            "tolerance",
             "units",
             "xorConstraints",
             "withSCLoop",
@@ -2037,6 +2046,11 @@ class Plan:
         includeMedicare = options.get("withMedicare", "loop") == "loop"
         withSCLoop = options.get("withSCLoop", True)
 
+        # Convergence based on objective function only (+/- 10$ accuracy).
+        tolerance = options.get("tolerance", 10)
+        if not isinstance(tolerance, (int, float)):
+            raise ValueError(f"tolerance {tolerance} is not a number.")
+
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
         else:
@@ -2045,6 +2059,7 @@ class Plan:
         it = 0
         old_x = np.zeros(self.nvars)
         old_objfns = [np.inf]
+        scaled_obj_history = []  # Track scaled objective values for oscillation detection
         self._computeNLstuff(None, includeMedicare)
         while True:
             objfn, xx, solverSuccess, solverMsg = solverMethod(objective, options)
@@ -2061,16 +2076,64 @@ class Plan:
             delta = xx - old_x
             absSolDiff = np.sum(np.abs(delta), axis=0)
             absObjDiff = abs(objFac*(objfn + old_objfns[-1]))
-            self.mylog.vprint(f"Iteration: {it} objective: {u.d(objfn * objFac, f=2)},"
+            scaled_obj = objfn * objFac
+            scaled_obj_history.append(scaled_obj)
+            self.mylog.vprint(f"Iteration: {it} objective: {u.d(scaled_obj, f=2)},"
                               f" |dX|: {absSolDiff:.2f}, |df|: {u.d(absObjDiff, f=2)}")
 
-            # Convergence based on objective function only (+/- 5$ accuracy).
             # Solution difference is calculated and reported but not used for convergence
             # since it scales with problem size and can prevent convergence for large cases.
-            if absObjDiff <= 5.0:
-                self.convergenceType = "uniform"
-                self.mylog.vprint("Converged on full solution.")
+            if absObjDiff <= tolerance:
+                # Check if convergence was monotonic or oscillatory
+                # old_objfns stores -objfn values, so we need to scale them to match displayed values
+                # For monotonic convergence, the scaled objective (objfn * objFac) should be non-increasing
+                # Include current iteration's scaled objfn value
+                scaled_objfns = [(-val) * objFac for val in old_objfns[1:]] + [scaled_obj]
+                # Check if scaled objective function is non-increasing (monotonic convergence)
+                is_monotonic = all(scaled_objfns[i] <= scaled_objfns[i-1] + tolerance
+                                   for i in range(1, len(scaled_objfns)))
+                if is_monotonic:
+                    self.convergenceType = "monotonic"
+                else:
+                    self.convergenceType = "oscillatory"
+                self.mylog.vprint(f"Converged on full solution with {self.convergenceType} behavior.")
                 break
+
+            # Check for oscillation (need at least 4 iterations to detect a 2-cycle)
+            if it >= 3:
+                cycle_len = self._detectOscillation(scaled_obj_history, tolerance)
+                if cycle_len is not None:
+                    # Find the best (minimum) objective in the cycle
+                    cycle_values = scaled_obj_history[-cycle_len:]
+                    best_idx = np.argmin(cycle_values)
+                    best_obj = cycle_values[best_idx]
+                    self.convergenceType = f"oscillatory (cycle length {cycle_len})"
+                    self.mylog.vprint(f"Oscillation detected: {cycle_len}-cycle pattern identified.")
+                    self.mylog.vprint(f"Best objective in cycle: {u.d(best_obj, f=2)}")
+
+                    # For 2-cycles, we can select the better solution since we have both available
+                    if cycle_len == 2:
+                        # best_idx is 0 (current) or 1 (previous)
+                        if best_idx == 1:  # Previous solution is better
+                            # Use previous solution
+                            xx = old_x
+                            objfn = -old_objfns[-1]  # Convert back from stored -objfn
+                            self.mylog.vprint("Using previous solution (better objective).")
+                        else:
+                            self.mylog.vprint("Using current solution (better objective).")
+                    else:
+                        # For longer cycles, we only have current and previous solutions available
+                        # Use whichever is better between current and previous
+                        prev_obj = (-old_objfns[-1]) * objFac if len(old_objfns) > 1 else scaled_obj
+                        if prev_obj < scaled_obj:
+                            xx = old_x
+                            objfn = -old_objfns[-1]
+                            self.mylog.vprint("Using previous solution (better than current).")
+                        else:
+                            self.mylog.vprint("Using current solution.")
+
+                    self.mylog.vprint("Accepting solution from cycle and terminating.")
+                    break
 
             if it > 59:
                 self.convergenceType = "max iteration"
@@ -2101,12 +2164,20 @@ class Plan:
         """
         from scipy import optimize
 
+        bigM = options.get("bigM_xor", BIGM_XOR)
+        if not isinstance(bigM, (int, float)):
+            raise ValueError(f"bigM_xor {bigM} is not a number.")
+        mygap = options.get("gap", 100/bigM)
+        if not isinstance(mygap, (int, float)):
+            raise ValueError(f"gap {mygap} is not a number.")
+
         # Optimize solver parameters
         milpOptions = {
             "disp": False,
-            "mip_rel_gap": 1e-7,    # Default 1e-4
+            "mip_rel_gap": mygap,    # Default 1e-4
             "presolve": True,
-            "node_limit": 1000000  # Limit search nodes for faster solutions
+            "time_limit": 900,     # No more that 15 minutes
+            "node_limit": 4000000  # Limit search nodes for faster solutions
         }
 
         self._buildConstraints(objective, options)
@@ -2219,11 +2290,13 @@ class Plan:
         vkeys = self.B.keys()
         cind, cval = self.c.lists()
 
+        mygap = options.get("gap", 1e-4)
+
         task = mosek.Task()
         task.putdouparam(mosek.dparam.mio_max_time, 900.0)           # Default -1
         # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)       # Default 1e-10
-        task.putdouparam(mosek.dparam.mio_tol_rel_gap, 2e-4)         # Default 1e-4
-        task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-5)   # Default 1e-5
+        task.putdouparam(mosek.dparam.mio_tol_rel_gap, mygap)         # Default 1e-4
+        # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-5)   # Default 1e-5
         # task.putdouparam(mosek.iparam.mio_heuristic_level, 3)      # Default -1
         # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
         task.appendcons(self.A.ncons)
@@ -2257,6 +2330,59 @@ class Plan:
 
         return solution, xx, solverSuccess, solverMsg
 
+    def _detectOscillation(self, obj_history, tolerance, max_cycle_length=15):
+        """
+        Detect if the objective function is oscillating in a repeating cycle.
+
+        This function checks for repeating patterns of any length (2, 3, 4, etc.)
+        in the recent objective function history. It handles numerical precision
+        by using a tolerance for "close enough" matching.
+
+        Parameters
+        ----------
+        obj_history : list
+            List of recent objective function values (most recent last)
+        tolerance : float
+            Tolerance for considering two values "equal" (same as convergence tolerance)
+        max_cycle_length : int
+            Maximum cycle length to check for (default 15)
+
+        Returns
+        -------
+        int or None
+            Cycle length if oscillation detected, None otherwise
+        """
+        if len(obj_history) < 4:  # Need at least 4 values to detect a 2-cycle
+            return None
+
+        # Check for cycles of length 2, 3, 4, ... up to max_cycle_length
+        # We need at least 2*cycle_length values to confirm a cycle
+        for cycle_len in range(2, min(max_cycle_length + 1, len(obj_history) // 2 + 1)):
+            # Check if the last cycle_len values match the previous cycle_len values
+            if len(obj_history) < 2 * cycle_len:
+                continue
+
+            recent = obj_history[-cycle_len:]
+            previous = obj_history[-2*cycle_len:-cycle_len]
+
+            # Check if all pairs match within tolerance
+            matches = all(abs(recent[i] - previous[i]) <= tolerance
+                          for i in range(cycle_len))
+
+            if matches:
+                # Verify it's a true cycle by checking one more period back if available
+                if len(obj_history) >= 3 * cycle_len:
+                    earlier = obj_history[-3*cycle_len:-2*cycle_len]
+                    if all(abs(recent[i] - earlier[i]) <= tolerance
+                           for i in range(cycle_len)):
+                        return cycle_len
+                else:
+                    # If we don't have enough history, still report the cycle
+                    # but it's less certain
+                    return cycle_len
+
+        return None
+
     def _computeNLstuff(self, x, includeMedicare):
         """
         Compute MAGI, Medicare costs, long-term capital gain tax rate, and
@@ -2272,6 +2398,8 @@ class Plan:
         self._aggregateResults(x, short=True)
 
         self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
+        # THIS FIX IS TEMPORARY AS TO TEST WHAT CAUSES OSCILLATING SOLUTIONS. MOVE TO OPTIMIZATION?
+        # self.psi_n = np.ones(self.N_n) * 0.15
         self.psi_n = tx.capitalGainTaxRate(self.N_i, self.MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
         # Compute Medicare through self-consistent loop.
         if includeMedicare:
