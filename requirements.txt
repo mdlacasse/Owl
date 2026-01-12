@@ -1,5 +1,4 @@
 highspy
-json
 matplotlib
 numpy
 odfpy
