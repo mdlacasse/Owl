@@ -163,6 +163,13 @@ else:
         helpmsg = "Select different solvers for comparison purposes. Use HiGHS for best performance."
         ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
 
+        kz.initCaseKey("xtra_options", "")
+        helpmsg = ("Additional solver options as a dictionary (e.g., '{\"key1\": \"value1\", \"key2\": 123}'). "
+                   "These options will be merged into the solver options dictionary. "
+                   "Leave empty unless experimenting with solver.")
+        ret = kz.getText("Extra solver options (expert)", "xtra_options",
+                         placeholder='{"key": "value"}', help=helpmsg)
+
     st.divider()
     st.markdown("#### :orange[Spending Profile]")
     col1, col2, col3 = st.columns(3, gap="medium", vertical_alignment="top")

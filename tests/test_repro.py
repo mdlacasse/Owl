@@ -32,10 +32,10 @@ import owlplanner as owl
 solver = 'HiGHS'
 thisyear = date.today().year
 
-SPENDING1 = 86827.3
-BEQUEST1 = 827690.6
-SPENDING2 = 96940.4
-SPENDING1_FIXED = 92411.51
+SPENDING1 = 86807.62
+BEQUEST1 = 829120.86
+SPENDING2 = 96922.11
+SPENDING1_FIXED = 92424.65
 BEQUEST1_FIXED = 500000
 
 
@@ -185,7 +185,7 @@ def test_stochastic_reproducibility():
 
     # Solve the case
     p1.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
-    assert p1.caseStatus == "solved"
+    assert p1.caseStatus == "solved", f"Solve failed with status: {p1.caseStatus}"
 
     # Save key results for comparison
     basis1 = p1.basis

@@ -56,10 +56,10 @@ def getHFP(exdir, case, check_exists=True):
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
         "net_spending_basis": 100000.0,
-        "bequest": 8056427.4,
+        "bequest": 8051993.2,
     },
     "Case_jack+jill": {
-        "net_spending_basis": 108630.65251483572,
+        "net_spending_basis": 108626.32917234315,
         "bequest": 500000.0,
     },
     "Case_joe": {

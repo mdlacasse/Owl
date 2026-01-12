@@ -687,22 +687,34 @@ add the market returns to the savings balances.
 	To solve these spurious scenarios, it would be desirable to make the following exclusions
 	between surplus $s_n$, withdrawals $w_{ijn}$, and conversions $x_{in}$:
 	\begin{eqnarray*}
-		s_n &\texttt{XOR} & w_{i0n}, \\
-		s_n &\texttt{XOR} & w_{i2n}, \\
-		x_{in} &\texttt{XOR} & w_{i2n},
+		\left(\sum_i w_{i0n} + \sum_i w_{i2n}\right) &\texttt{XOR} & s_n, \\
+		\sum_i x_{in} &\texttt{XOR} & \sum_i w_{i2n},
 	\end{eqnarray*}
 	for $j \neq 1$, i.e., for all withdrawals except those from tax-deferred accounts.
-	For example, to favor tax-deferred withdrawals in most reasonable situations,
-	it is desirable to make Roth conversions and tax-free distributions exclusive events
-	by introducing binary variables $z_{in}^x \in \{0, 1\}$ with the following big-$\mathcal{M}$
-	constraints:
+	The first exclusion prevents surplus deposits when withdrawals from taxable or tax-free accounts occur
+	from either spouse, while the second exclusion prevents simultaneous Roth conversions and tax-free withdrawals
+	from either spouse.
+	To favor tax-deferred withdrawals in most reasonable situations,
+	we implement these exclusions by introducing binary variables $z_{nz} \in \{0, 1\}$ 
+	with $z \in \{0, 1, 2, 3\}$ for each year $n$ (shared across both spouses).
+	The first pair of binary variables $(z_{n0}, z_{n1})$ enforces the surplus-withdrawal exclusion:
 	\begin{alignat}{2}
-		\label{Eq:Binary}
-		0 & \le \; z_{in}^x \mathcal{M} - x_{in} &\le \mathcal{M}, \nonumber \\
-		0 & \le \; z_{in}^x \mathcal{M} + w_{i2n} &\le \mathcal{M}.
+		\label{Eq:Binary1}
+		\epsilon z_{n0} & \le \; \sum_i (w_{i0n} + w_{i2n}) \le \mathcal{M} z_{n0}, \nonumber \\
+		\epsilon z_{n1} & \le \; s_n \le \mathcal{M} z_{n1}, \nonumber \\
+		z_{n0} + z_{n1} &=& 1,
 	\end{alignat}
-	Here, $\mathcal{M}$ is a large number such as $10^7$, just slightly
-	larger than what $x$ and $w$ can possibly be.
+	where $\epsilon$ is a small positive number (e.g., $0.001$) to ensure that when a binary variable
+	is active, the corresponding continuous variable is non-zero.
+	The second pair of binary variables $(z_{n2}, z_{n3})$ enforces the Roth conversion-tax-free withdrawal exclusion:
+	\begin{alignat}{2}
+		\label{Eq:Binary2}
+		\epsilon z_{n2} & \le \; \sum_i x_{in} \le \mathcal{M} z_{n2}, \nonumber \\
+		\epsilon z_{n3} & \le \; \sum_i w_{i2n} \le \mathcal{M} z_{n3}, \nonumber \\
+		z_{n2} + z_{n3} &=& 1.
+	\end{alignat}
+	Here, $\mathcal{M}$ is a large number such as $10^9$, just slightly
+	larger than what $x$, $w$, and $s$ can possibly be.
 
 	Another approach could be to perform Roth conversions at mid-year, while withdrawals
 	could be made at the beginning of the year, and surplus deposits,
@@ -739,7 +751,7 @@ add the market returns to the savings balances.
 	account at the beginning of the year followed by a deposit in the
 	same account at the end of the year. This can 
 	be removed by using another binary variable, thus making these events exclusive by using
-	the same strategy as Eq.~(\ref{Eq:Binary}).
+	the same strategy as Eqs.~(\ref{Eq:Binary1}) and (\ref{Eq:Binary2}).
 
 	A much simpler approach, while not so natural,
 	is to move all transactions to be synchronous at the beginning or at the end of the year
@@ -1103,8 +1115,8 @@ With $N_i = 2, N_j = 3, N_k = 4, N_t = 7$ we have $24 N_n + 6$ variables. For
 a 30-year plan, this results in 726 non-integer decision variables.
 If the time resolution is increased to
 months, that would result in 8,646 variables which is still solvable by today's standards.
-Adding binary variables $z^x_{inz}$ can adds $N_zN_iN_n$ more decision variables,
-while adding $z^m_{qn}$ adds $6N_n$ more, resulting in $34 N_n + 6$, or 1,026 for 30 years.
+Adding binary variables $z_{nz}$ with $z \in \{0, 1, 2, 3\}$ can add $4N_n$ more decision variables,
+while adding $z^m_{qn}$ adds $6N_n$ more, resulting in $(24 + 4 + 6) N_n + 6 = 34 N_n + 6$, or 1,026 for 30 years.
 
 \section{Reverse mapping of indices}
 The inverse functions for the index-mapping functions will be derived for the

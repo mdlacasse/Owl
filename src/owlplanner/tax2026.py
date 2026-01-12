@@ -120,25 +120,26 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
     """
     Return tuple (nm, L, C) of year index when Medicare starts and vectors L, and C
     defining end points of constant piecewise linear functions representing IRMAA fees.
+    Costs C include the fact that one or two indivuals have to pay. Eligibility is built-in.
     """
     thisyear = date.today().year
     assert Nq == len(irmaaFees), f"Inconsistent value of Nq: {Nq}."
     assert Nq == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
     Ni = len(yobs)
-    # What index year will Medicare start? 65 - age.
-    nm = 65 - (thisyear - yobs)
-    nm = np.min(nm)
+    # What index year will Medicare start? 65 - age for each individual.
+    nm = yobs + 65 - thisyear
+    nm = np.maximum(0, nm)
+    nmstart = np.min(nm)
     # Has it already started?
-    nm = max(0, nm)
-    Nmed = Nn - nm
+    Nmed = Nn - nmstart
 
     L = np.zeros((Nmed, Nq-1))
     C = np.zeros((Nmed, Nq))
 
-    # Year starts at offset nm in the plan.
+    # Year starts at offset nmstart in the plan. L and C arrays are shorter.
     for nn in range(Nmed):
         imed = 0
-        n = nm + nn
+        n = nmstart + nn
         if thisyear + n - yobs[0] >= 65 and n < horizons[0]:
             imed += 1
         if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
@@ -150,7 +151,7 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
         else:
             raise RuntimeError("mediVals: This should never happen.")
 
-    return nm, L, C
+    return nmstart, L, C
 
 
 def capitalGainTaxRate(Ni, magi_n, gamma_n, nd, Nn):
@@ -166,9 +167,9 @@ def capitalGainTaxRate(Ni, magi_n, gamma_n, nd, Nn):
         if status and n == nd:
             status -= 1
 
-        if magi_n[n] > gamma_n[n] * capGainRates[status][1]:
+        if magi_n[n] >= gamma_n[n] * capGainRates[status][1]:
             cgRate_n[n] = 0.20
-        elif magi_n[n] > gamma_n[n] * capGainRates[status][0]:
+        elif magi_n[n] >= gamma_n[n] * capGainRates[status][0]:
             cgRate_n[n] = 0.15
 
     return cgRate_n
