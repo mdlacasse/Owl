@@ -45,8 +45,8 @@ from .plotting.factory import PlotFactory
 
 
 # Default values
-BIGM_XOR = 1e7     # 100 times maximum withdrawals or conversions
-BIGM_IRMAA = 1e7   # 100 times maximum MAGI
+BIGM_XOR = 5e7     # 100 times maximum withdrawals or conversions
+BIGM_IRMAA = 5e7   # 100 times maximum MAGI
 
 
 def _genGamma_n(tau):
@@ -1671,7 +1671,7 @@ class Plan:
 
         for n in range(self.N_n):
             # Make z_0 and z_1 exclusive binary variables.
-            dic0 = {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): bigM,
+            dic0 = {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): bigM*self.gamma_n[n],
                     _q3(self.C["w"], 0, 0, n, self.N_i, self.N_j, self.N_n): -1,
                     _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
             if self.N_i == 2:
@@ -1682,7 +1682,7 @@ class Plan:
             self.A.addNewRow(dic0, 0, np.inf)
 
             self.A.addNewRow(
-                {_q2(self.C["zx"], n, 1, self.N_n, self.N_zx): bigM,
+                {_q2(self.C["zx"], n, 1, self.N_n, self.N_zx): bigM*self.gamma_n[n],
                  _q1(self.C["s"], n, self.N_n): -1},
                 0, np.inf)
 
@@ -1694,7 +1694,7 @@ class Plan:
             )
 
             # Make z_2 and z_3 exclusive binary variables.
-            dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM,
+            dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
                     _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
             if self.N_i == 2:
                 dic1 = {_q2(self.C["x"], 1, n, self.N_i, self.N_n): -1}
@@ -1702,7 +1702,7 @@ class Plan:
 
             self.A.addNewRow(dic0, 0, np.inf)
 
-            dic0 = {_q2(self.C["zx"], n, 3, self.N_n, self.N_zx): bigM,
+            dic0 = {_q2(self.C["zx"], n, 3, self.N_n, self.N_zx): bigM*self.gamma_n[n],
                     _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
             if self.N_i == 2:
                 dic1 = {_q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
@@ -1741,7 +1741,7 @@ class Plan:
                 rhs = self.L_nq[nn, q]
                 row = self.A.newRow()
 
-                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM)
+                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM*self.gamma_n[nn])
                 for i in range(self.N_i):
                     row.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), +1)
                     row.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), +1)
