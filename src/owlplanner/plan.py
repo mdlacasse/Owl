@@ -1456,10 +1456,9 @@ class Plan:
                 if rhsopt >= 0:
                     rhsopt *= self.optionsUnits
                     for n in range(self.N_n):
-                        row = self.A.newRow()
                         for i in range(self.N_i):
-                            row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), 1)
-                        self.A.addRow(row, 0, rhsopt + 0.01)
+                            # Apply the cap per individual (legacy behavior).
+                            self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, rhsopt + 0.01)
 
             if "startRothConversions" in options:
                 rhsopt = options["startRothConversions"]

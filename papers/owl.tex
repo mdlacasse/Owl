@@ -641,9 +641,9 @@ add the market returns to the savings balances.
 	\begin{equation}
 		x_{in} \le \min(b_{i1n}, x_{max}).
 	\end{equation}
-	For couples, the cap applies to the combined conversions:
+	For couples, the cap applies to each individual's conversions:
 	\begin{equation}
-		x_{0n} + x_{1n} \le x_{max}.
+		x_{in} \le x_{max}, \quad i \in \{0,1\}.
 	\end{equation}
 	As these equations involve a variable and a parameter in the $\min$ function,
 	they are coded as separate constraints.
