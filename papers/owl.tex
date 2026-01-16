@@ -447,7 +447,7 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 		&& + \sum_{i,k\neq 0} 
 		[(b_{i0n} - w_{i0n} + d_{in} + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
 	\end{eqnarray}
-Social security is indexed for inflation and is assumed to be taxed at $\Psi_n$\%.
+	Social security is indexed for inflation and is assumed to be taxed at $\Psi_n$\%.
 	Pensions can optionally be indexed for inflation.
 	We exclude $k=0$ to capture only non-equity gains in taxable accounts.
 	These gains are all taxed as ordinary income. Here, we assumed that
@@ -535,6 +535,8 @@ Social security is indexed for inflation and is assumed to be taxed at $\Psi_n$\
 	We assume that qualified dividends and long-term
 	capital gains are taxed at the same preferential rate $\psi_n$, which is the case for most situations.
 	Here $\psi_n$ is an \emph{effective} rate (total LTCG tax divided by total LTCG) rather than a marginal rate.
+	When $Q_n > 0$, we compute $\psi_n = U_n / Q_n$ after determining $U_n$ from the LTCG brackets
+	using total taxable income (ordinary income plus long-term capital gains).
 
 \end{description}
 
@@ -926,6 +928,9 @@ In this case, the objective function will need to consider all years when optimi
         is larger that the bracket $\bar{\mathcal{L}}_{qn}$.
 	The end points $\mathcal{L}_{-1} = 0$ and $\mathcal{L}_{N_q-1} = \mathcal{M}$ are not included
         as they generate trivial constraints.
+	Note that $G_{(n-2)}$ already includes the taxable portion of social security (via $\Psi_n\bar{\zeta}_{in}$),
+	and the additional $(1-\Psi_{(n-2)})\bar{\zeta}_{i(n-2)}$ term restores the non-taxable portion so that MAGI uses
+	total social security benefits.
 	For plans where the year index when Medicare first starts $n_m<2$, we will request
 	and use user-provided values for the first-years MAGIs.
 	Eq.~(\ref{Eq:MedBracket}) constraints are implemented
@@ -951,7 +956,7 @@ In this case, the objective function will need to consider all years when optimi
 		- \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu)] + z_{qn}^m \mathcal{M}
 		& \leq& \nonumber \\
                 \mathcal{M} - \bar{\mathcal{L}}_{qn}
-		+ \sum_i [\omega_{i(n-2)} + \Psi_n\bar\zeta_{i(n-2)} + \bar{\pi}_{i(n-2)}] && \nonumber\\
+		+ \sum_i [\omega_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] && \nonumber\\
 		+ 0.5\sum_{i} \left[\kappa_{i0(n-2)} \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right]. && 
 	\end{eqnarray}
 	The first term on the left-hand side represents withdrawals and conversions from tax-deferred accounts,
@@ -1326,7 +1331,7 @@ For each bracket we set
 	    && - \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu), \nonumber \\
 	A_u[I_{19}(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
 	u[I_{19}(q, n)] &=& -\bar{\mathcal{L}}_{qn} + \mathcal{M}
-         + \sum_i \left[\omega_{i(n-2)} + \Psi_n\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
+         + \sum_i \left[\omega_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
 	&& + 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
 	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	  \right)\right],\nonumber\\
@@ -1360,7 +1365,7 @@ For Eq.~(\ref{Eq:Med2}) we obtain
 	    && + \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu), \nonumber \\
 	A_u[I_{21}(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
 	u[I_{21}(q, n)] &=& \bar{\mathcal{L}}_{qn}
-         - \sum_i \left[\omega_{i(n-2)} + \Psi_n\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
+         - \sum_i \left[\omega_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
 	&& - 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
 	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	  \right)\right],\nonumber\\

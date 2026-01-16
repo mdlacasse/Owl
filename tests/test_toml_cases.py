@@ -67,12 +67,12 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 300000.0,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 167698.9,
+        "net_spending_basis": 167679.9,
         "bequest": 0.0,
     },
     "Case_kim+sam-bequest": {
         "net_spending_basis": 145000.0,
-        "bequest": 1084917.9,
+        "bequest": 1083996.1,
     },
 }
 

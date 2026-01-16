@@ -1765,7 +1765,10 @@ class Plan:
                     bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, tau_prev - self.mu)
                     row.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
 
-                    sumoni = (self.omega_in[i, n2] + self.Psi_n[n2] * self.zetaBar_in[i, n2] + self.piBar_in[i, n2]
+                    # MAGI includes total Social Security (taxable + non-taxable) for IRMAA.
+                    sumoni = (self.omega_in[i, n2]
+                              + self.zetaBar_in[i, n2]
+                              + self.piBar_in[i, n2]
                               + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
                     rhs -= sumoni
 
