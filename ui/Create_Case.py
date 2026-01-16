@@ -80,7 +80,7 @@ elif ret == kz.loadCaseFile:
             tomlex.cases,
             index=None,
             key="_example_case" + str(kz.getGlobalKey("_example_case_idx")),
-                            placeholder="Select an example case")
+            placeholder="Select an example case")
         if case:
             owb.ui_log(f"Loading example: '{case}'")
             mystringio = tomlex.loadCaseExample(case)
@@ -88,7 +88,7 @@ elif ret == kz.loadCaseFile:
                 kz.storeGlobalKey("_example_case_idx", kz.getGlobalKey("_example_case_idx") + 1)
                 kz.initCaseKey("tomlexcase", case)
                 # Ensure the case selector moves to the newly loaded case. BROKEN KLUDGE
-                # kz.storeGlobalKey(":material/person_add: Create Case", kz.currentCaseName()) 
+                # kz.storeGlobalKey(":material/person_add: Create Case", kz.currentCaseName())
                 st.rerun()
 else:
     st.markdown("#### :orange[Description and Life Parameters]")

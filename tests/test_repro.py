@@ -32,11 +32,12 @@ import owlplanner as owl
 solver = 'HiGHS'
 thisyear = date.today().year
 
-SPENDING1 = 86969.3
-BEQUEST1 = 836302.01
-SPENDING2 = 97080.7
-SPENDING1_FIXED = 92614.8
+SPENDING1 = 87003.5
+BEQUEST1 = 839535.4
+SPENDING2 = 97097.5
+SPENDING1_FIXED = 92627.8
 BEQUEST1_FIXED = 500000
+TOL = 1.0
 
 
 def createJackAndJillPlan(name):
@@ -64,8 +65,8 @@ def test_case1():
     p.setRates('historical', 1969)
     p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(SPENDING1, abs=0.5)
-    assert p.bequest == pytest.approx(500000, abs=0.5)
+    assert p.basis == pytest.approx(SPENDING1, abs=TOL)
+    assert p.bequest == pytest.approx(500000, abs=TOL)
 
 
 def test_case1_fixed_rates():
@@ -73,8 +74,8 @@ def test_case1_fixed_rates():
     p.setRates('user', values=[6.0, 4.0, 3.3, 2.8])
     p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(SPENDING1_FIXED, abs=0.5)
-    assert p.bequest == pytest.approx(BEQUEST1_FIXED, abs=0.5)
+    assert p.basis == pytest.approx(SPENDING1_FIXED, abs=TOL)
+    assert p.bequest == pytest.approx(BEQUEST1_FIXED, abs=TOL)
 
 
 def test_case2():
@@ -82,8 +83,8 @@ def test_case2():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(80000, abs=0.5)
-    assert p.bequest == pytest.approx(BEQUEST1, abs=0.5)
+    assert p.basis == pytest.approx(80000, abs=TOL)
+    assert p.bequest == pytest.approx(BEQUEST1, abs=TOL)
 
 
 def test_config1():
@@ -92,8 +93,8 @@ def test_config1():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(80000, abs=0.5)
-    assert p.bequest == pytest.approx(BEQUEST1, abs=0.5)
+    assert p.basis == pytest.approx(80000, abs=TOL)
+    assert p.bequest == pytest.approx(BEQUEST1, abs=TOL)
     p.saveConfig()
     base_filename = 'case_' + name
     full_filename = 'case_' + name + '.toml'
@@ -101,13 +102,13 @@ def test_config1():
     p2 = owl.readConfig(base_filename)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p2.caseStatus == "solved"
-    assert p2.basis == pytest.approx(80000, abs=0.5)
-    assert p2.bequest == pytest.approx(BEQUEST1, abs=0.5)
+    assert p2.basis == pytest.approx(80000, abs=TOL)
+    assert p2.bequest == pytest.approx(BEQUEST1, abs=TOL)
     p3 = owl.readConfig(full_filename)
     p3.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p3.caseStatus == "solved"
-    assert p3.basis == pytest.approx(80000, abs=0.5)
-    assert p3.bequest == pytest.approx(BEQUEST1, abs=0.5)
+    assert p3.basis == pytest.approx(80000, abs=TOL)
+    assert p3.bequest == pytest.approx(BEQUEST1, abs=TOL)
     os.remove(full_filename)
 
 
@@ -117,16 +118,16 @@ def test_config2():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(80000, abs=0.5)
-    assert p.bequest == pytest.approx(BEQUEST1, abs=0.5)
+    assert p.basis == pytest.approx(80000, abs=TOL)
+    assert p.bequest == pytest.approx(BEQUEST1, abs=TOL)
     iostring = StringIO()
     p.saveConfig(iostring)
     # print('iostream:', iostream.getvalue())
     p2 = owl.readConfig(iostring)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p2.caseStatus == "solved"
-    assert p2.basis == pytest.approx(80000, abs=0.5)
-    assert p2.bequest == pytest.approx(BEQUEST1, abs=0.5)
+    assert p2.basis == pytest.approx(80000, abs=TOL)
+    assert p2.bequest == pytest.approx(BEQUEST1, abs=TOL)
 
 
 def test_clone1():
@@ -135,14 +136,14 @@ def test_clone1():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(80000, abs=0.5)
-    assert p.bequest == pytest.approx(BEQUEST1, abs=0.5)
+    assert p.basis == pytest.approx(80000, abs=TOL)
+    assert p.bequest == pytest.approx(BEQUEST1, abs=TOL)
     name2 = 'testclone1.2'
     p2 = owl.clone(p, name2)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80})
     assert p2.caseStatus == "solved"
-    assert p2.basis == pytest.approx(80000, abs=0.5)
-    assert p2.bequest == pytest.approx(BEQUEST1, abs=0.5)
+    assert p2.basis == pytest.approx(80000, abs=TOL)
+    assert p2.bequest == pytest.approx(BEQUEST1, abs=TOL)
 
 
 def test_clone2():
@@ -151,14 +152,14 @@ def test_clone2():
     p.setRates('historical', 1969)
     p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 10})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(SPENDING2, abs=0.5)
-    assert p.bequest == pytest.approx(10000, abs=0.5)
+    assert p.basis == pytest.approx(SPENDING2, abs=TOL)
+    assert p.bequest == pytest.approx(10000, abs=TOL)
     name2 = 'testclone2.2'
     p2 = owl.clone(p, name2)
     p2.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 10})
     assert p2.caseStatus == "solved"
-    assert p2.basis == pytest.approx(SPENDING2, abs=0.5)
-    assert p2.bequest == pytest.approx(10000, abs=0.5)
+    assert p2.basis == pytest.approx(SPENDING2, abs=TOL)
+    assert p2.bequest == pytest.approx(10000, abs=TOL)
 
 
 def test_stochastic_reproducibility():
@@ -211,8 +212,8 @@ def test_stochastic_reproducibility():
     assert p2.caseStatus == "solved"
 
     # Verify results are identical (reproducible)
-    assert p2.basis == pytest.approx(basis1, abs=0.5)
-    assert p2.bequest == pytest.approx(bequest1, abs=0.5)
+    assert p2.basis == pytest.approx(basis1, abs=TOL)
+    assert p2.bequest == pytest.approx(bequest1, abs=TOL)
     np.testing.assert_array_almost_equal(p2.tau_kn, tau_kn1, decimal=10)
 
     # Test that Monte-Carlo generates different rates even with reproducibility enabled

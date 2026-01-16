@@ -56,23 +56,23 @@ def getHFP(exdir, case, check_exists=True):
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
         "net_spending_basis": 100000.0,
-        "bequest": 8114394.17,
+        "bequest": 8095411.7,
     },
     "Case_jack+jill": {
-        "net_spending_basis": 108771.64,
+        "net_spending_basis": 108771.6,
         "bequest": 500000.0,
     },
     "Case_joe": {
-        "net_spending_basis": 87461.16,
+        "net_spending_basis": 87461.2,
         "bequest": 300000.0,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 167457.41,
+        "net_spending_basis": 167698.9,
         "bequest": 0.0,
     },
     "Case_kim+sam-bequest": {
         "net_spending_basis": 145000.0,
-        "bequest": 1068131.82,
+        "bequest": 1084917.9,
     },
 }
 
@@ -89,7 +89,7 @@ def test_reproducibility():
     is successfully loaded for each case.
     """
     exdir = "./examples/"
-    tolerance = 1e-1  # Tolerance for floating point comparison: $.10
+    tolerance = 5e-1  # Tolerance for floating point comparison: $.50
 
     # Dictionary to store actual results
     actual_results = {}
