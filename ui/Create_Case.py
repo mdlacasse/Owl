@@ -68,6 +68,8 @@ elif ret == kz.loadCaseFile:
             if kz.createCaseFromFile(mystringio):
                 # Bump uploader key to avoid re-import on rerun.
                 kz.storeGlobalKey("_confile_idx", kz.getGlobalKey("_confile_idx") + 1)
+                # Ensure the case selector moves to the newly loaded case.
+                kz.storeGlobalKey(":material/person_add: Create Case", kz.currentCaseName())
                 st.rerun()
 
     with col2:
@@ -85,6 +87,8 @@ elif ret == kz.loadCaseFile:
             if kz.createCaseFromFile(mystringio):
                 kz.storeGlobalKey("_example_case_idx", kz.getGlobalKey("_example_case_idx") + 1)
                 kz.initCaseKey("tomlexcase", case)
+                # Ensure the case selector moves to the newly loaded case.
+                kz.storeGlobalKey(":material/person_add: Create Case", kz.currentCaseName())
                 st.rerun()
 else:
     st.markdown("#### :orange[Description and Life Parameters]")
