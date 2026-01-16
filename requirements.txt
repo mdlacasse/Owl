@@ -8,5 +8,5 @@ plotly >= 6.3
 pulp
 scipy
 seaborn
-streamlit
+streamlit < 1.53
 toml
