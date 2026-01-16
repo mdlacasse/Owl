@@ -68,8 +68,8 @@ elif ret == kz.loadCaseFile:
             if kz.createCaseFromFile(mystringio):
                 # Bump uploader key to avoid re-import on rerun.
                 kz.storeGlobalKey("_confile_idx", kz.getGlobalKey("_confile_idx") + 1)
-                # Ensure the case selector moves to the newly loaded case.
-                kz.storeGlobalKey(":material/person_add: Create Case", kz.currentCaseName())
+                # Ensure the case selector moves to the newly loaded case. NO!
+                # kz.storeGlobalKey(":material/person_add: Create Case", kz.currentCaseName())
                 st.rerun()
 
     with col2:
