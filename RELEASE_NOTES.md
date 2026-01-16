@@ -1,3 +1,11 @@
+### Version 2026.01.15
+- Fix LTCG tax computation (self-consistent stacking accuracy)
+- Add non-taxable portion of SS to MAGI
+- Fix cash-flow to include all fixed-asset proceeds
+- Apply max Roth conversion cap across both spouses
+- Clarify SS tax fraction vs LTCG effective rate
+- Align documentation and reproducibility baselines with code
+
 ### Version 2026.01.12
 - Merged binary exclusion constraints for both spouses (one set per year instead of per individual)
   - Updated paper to reflect that binary variables $z_{nz}$ are shared across both spouses

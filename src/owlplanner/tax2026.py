@@ -154,25 +154,80 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
     return nmstart, L, C
 
 
-def capitalGainTaxRate(Ni, magi_n, gamma_n, nd, Nn):
+def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
     """
-    Return an array of decimal rates for capital gains.
-    Parameter nd is the index year of first passing of a spouse, if applicable,
-    nd == Nn for single individuals.
+    Return an array of tax on capital gains.
+
+    Parameters:
+    -----------
+    Ni : int
+        Number of individuals (1 or 2)
+    txIncome_n : array
+        Array of taxable income for each year (ordinary income + capital gains)
+    ltcg_n : array
+        Array of long-term capital gains for each year
+    gamma_n : array
+        Array of inflation adjustment factors for each year
+    nd : int
+        Index year of first passing of a spouse, if applicable (nd == Nn for single individuals)
+    Nn : int
+        Total number of years in the plan
+
+    Returns:
+    --------
+    cgTax_n : array
+        Array of tax on capital gains for each year
+
+    Notes:
+    ------
+    Thresholds are determined by the taxable income which is roughly AGI - (standard/itemized) deductions.
+    Taxable income can also be thought of as taxable ordinary income + capital gains.
+
+    Long-term capital gains are taxed at 0%, 15%, or 20% based on total taxable income.
+    Capital gains "stack on top" of ordinary income, so the portion of gains that
+    pushes total income above each threshold is taxed at the corresponding rate.
     """
     status = Ni - 1
-    cgRate_n = np.zeros(Nn)
+    cgTax_n = np.zeros(Nn)
 
     for n in range(Nn):
         if status and n == nd:
             status -= 1
 
-        if magi_n[n] >= gamma_n[n] * capGainRates[status][1]:
-            cgRate_n[n] = 0.20
-        elif magi_n[n] >= gamma_n[n] * capGainRates[status][0]:
-            cgRate_n[n] = 0.15
+        # Calculate ordinary income (taxable income minus capital gains).
+        ordIncome = txIncome_n[n] - ltcg_n[n]
 
-    return cgRate_n
+        # Get inflation-adjusted thresholds for this year.
+        threshold15 = gamma_n[n] * capGainRates[status][0]  # 0% to 15% threshold
+        threshold20 = gamma_n[n] * capGainRates[status][1]  # 15% to 20% threshold
+
+        # Calculate how much LTCG falls in the 20% bracket.
+        # This is the portion of LTCG that pushes total income above threshold20.
+        if txIncome_n[n] > threshold20:
+            ltcg20 = min(ltcg_n[n], txIncome_n[n] - threshold20)
+        else:
+            ltcg20 = 0
+
+        # Calculate how much LTCG falls in the 15% bracket.
+        # This is the portion of LTCG in the range [threshold15, threshold20].
+        if ordIncome >= threshold20:
+            # All LTCG is already in the 20% bracket.
+            ltcg15 = 0
+        elif txIncome_n[n] > threshold15:
+            # Some LTCG falls in the 15% bracket.
+            # The 15% bracket spans from threshold15 to threshold20.
+            bracket_top = min(threshold20, txIncome_n[n])
+            bracket_bottom = max(threshold15, ordIncome)
+            ltcg15 = min(ltcg_n[n] - ltcg20, bracket_top - bracket_bottom)
+        else:
+            # Total income is below the 15% threshold.
+            ltcg15 = 0
+
+        # Remaining LTCG is in the 0% bracket (ltcg0 = ltcg_n[n] - ltcg20 - ltcg15).
+        # Calculate tax: 20% on ltcg20, 15% on ltcg15, 0% on remainder.
+        cgTax_n[n] = 0.20 * ltcg20 + 0.15 * ltcg15
+
+    return cgTax_n
 
 
 def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):

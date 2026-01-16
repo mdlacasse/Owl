@@ -43,7 +43,7 @@
 This document describes the mathematical model underlying
 the optimization algorithms implemented in
 Owl, which is a Python application optimizing retirement
-planning using linear programming. The goal of
+planning using mixed-integer linear programming. The goal of
 these calculations is to optimize the financial aspects
 of retirement planning, considering the types of savings accounts,
 federal income tax, contributions, return rates, Medicare premiums, Roth conversions,
@@ -131,23 +131,23 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	negative taxable income if the inflation-adjusted standard exemption is simply subtracted
 	from the gross taxable income $G_n$ in years of low income.
 \item [$f_{t n}$]
-	Fraction of tax bracket $t$ filled, so that taxable ordinary income $G_n$ can be expressed as
+	Amount of taxable ordinary income falling into tax bracket $t$. The ordinary taxable income is
+	\begin{equation}
+		\label{Eq:G_n}
+		G_n = \sum_t f_{tn},
+	\end{equation}
+	with $f_{tn}$ bound between 0 and the bracket width $\bar{\Gamma}_{tn} - \bar{\Gamma}_{(t-1)n}$.
+	For interpretation, one can introduce the fractional fill $f'_{tn}$ with
+	$f_{tn} := f'_{tn}\bar{\Delta}_{tn}$ and
 	\begin{eqnarray}
 		G_n = \sum_t f'_{t n}\bar{\Delta}_{t n},\\
 		0 \leq f'_{t n} \leq 1.
 	\end{eqnarray}
-	When considering taxes,
-	the product $\bar{\Delta}_{tn}\theta_{tn}$ does not guarantee to
-	be ordered monotonically. It is therefore more appropriate to use the combined variable
-	$\bar{f}_{tn} = f'_{tn}\bar{\Delta}_{tn}$ in the optimization. Given that the rates on
-	tax brackets $\theta_{tn}$ are increasing monotonically with income, the lower brackets
-	will be filled in first when optimizing. The ordinary taxable income can then be expressed as
-	\begin{equation}
-		\label{Eq:Tx1}
-		G_n = \sum_t \bar{f}_{tn},
-	\end{equation}
-	with $\bar{f}_{tn}$ bound between 0 and the bracket width $\bar{\Gamma}_{tn} - \bar{\Gamma}_{(t-1)n}$. 
-	Definitions of $\Gamma_{tn}$ and $\Delta_{tn}$ are in the section describing the parameters below. 
+	When considering taxes, the product $\bar{\Delta}_{tn}\theta^x_{tn}$ does not guarantee to
+	be ordered monotonically. It is therefore more appropriate to optimize directly in $f_{tn}$.
+	Given that the rates on tax brackets $\theta^x_{tn}$ are increasing monotonically with income,
+	the lower brackets will be filled in first when optimizing.
+	Definitions of $\theta^x_{tn}, \Gamma_{tn}$ and $\Delta_{tn}$ are in the section describing the parameters below. 
 
 \item [$g_n$]
 	Net spending in year $n$.
@@ -166,7 +166,8 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$z_{*}^*$]
 	Binary variables are all designated by the letter $z$, but a superscript is
 	used to distinguish the different families. For example, $z_{qn}^m$ represents
-	binary variables associated with Medicare calculations.
+	binary variables associated with Medicare calculations and $z_{nz}^x$ are used for
+	the exclusion constraints.
 \end{description}
 
 \section{Parameters}
@@ -244,11 +245,11 @@ Parameter values are either set by the user, historical data, or by the tax code
 		\Delta_{tn} = \Gamma_{tn} - \Gamma_{(t-1)n}.
 	\end{equation}
 	Once adjusted for inflation,
-	the taxable income can be expressed as in Eq.~(\ref{Eq:Tx1}). These data are 7 time series.
+	the taxable income can be expressed as in Eq.~(\ref{Eq:G_n}). These data are 7 time series.
 	The filing status changes after the passing of one spouse ($n \ge n_d$) and income tax
 	brackets and differences are adjusted accordingly.
-\item [$\theta_{tn}$]
-	Tax rate for tax bracket $t$ in year $n$. Using $N_t$ time series allows to adjust income
+\item [$\theta^x_{tn}$]
+	Tax rate for ordinary income tax bracket $t$ in year $n$. Using $N_t$ time series allows to adjust income
 	tax rates in the foreseeable future.
 	For example, in 2024 the rates (in decimal) are .10, .12, .22, .24, .32, .35, and .37.
         While these rates were extended indefinitely by Congress in 2025, they could still
@@ -352,18 +353,31 @@ where $N$ is either $n_d$ or $N_n$,or using an s-curve as in
 	\begin{equation}
 		\kappa_{ijkn} = \alpha_{ijkn}\kappa_{ijn}.
 	\end{equation}
+as savings account balances are assumed to be rebalanced periodically.
 \item [$\omega_{in}$]
-	Sum of wages obtained by individual $i$ during year $n$.
+	Sum of wages earned by individual $i$ during year $n$.
 	Do not confuse wages $\omega$ with withdrawals $w$.
+\item [$\mathcal{A}_n^*$]
+	Amounts resulting from the proceeds of liquidation of fixed assets. The liquidation of these
+	fixed assets can generate a taxable income, marked with a superscript $x$ as $\mathcal{A}_n^x$,
+	long-term capital gains, marked with superscript $c$ as $\mathcal{A}_n^c$,
+	or tax-free proceeds marked with a superscript $f$ as $\mathcal{A}_n^f$.
+	These are used to capture the sale of a residence or real estate,
+	cashing restricted stocks, or receiving a lump-sum annuity.
 \item [$\mathcal{C}_{q}$]
-	Cost of Medicare for bracket $q$ of modified adjusted gross income (MAGI). This includes
+	Cost of Medicare for bracket $q$ of modified adjusted gross income (MAGI) $\mathbb{G}$.
+	This includes
 	Medicare part B premiums and any additional
 	Income-Related Monthly Adjusted Amount (IRMAA). When adjusted
 	for inflation, this becomes $\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$.
         There are $N_q = 6$ brackets for IRMAA and therefore 5 step adjustments forming
         a piecewise constant function.
+\item [$\mathcal{D}_n$]
+	Debts payment in year $n$ to be considered in the cash flow. This allows the cash flow to account
+	for a mortgage or car loans for example.
 \item [$\mathcal{L}_{q}$]
-	Income brackets used to determine Medicare adjustments based on the modified adjusted gross income.
+	Upper bounds for brackets used to determine Medicare adjustments
+	based on the modified adjusted gross income (MAGI) $\mathbb{G}$.
 	When adjusted for inflation, this becomes $\bar{\mathcal{L}}_{qn} = \gamma_n\mathcal{L}_q$.
         While there are 6 brackets for IRMAA adjustments forming a piecewise constant function,
 	$\mathcal{L}_q$ has $N_q - 1$ distinct thresholds as the last element is an arbitrary large
@@ -371,7 +385,7 @@ where $N$ is either $n_d$ or $N_n$,or using an s-curve as in
         Note that $\bar{\mathcal{L}}_{qn}$ needs to be adjusted for inflation and marital status,
         including adjustments due to the passing of one spouse.
 \item [$\mu$]
-	Dividend return rate for equities in taxable accounts. Average is near 2\% for S\&P 500.
+	Dividend return rate for equities in taxable accounts. Average is about 1.7\% for S\&P 500.
 \item [$\nu$]
 	Heirs income tax rate to be applied on the tax-deferred portion of the estate. This is not an estate tax
 	but rather the federal income marginal tax rate that heirs would have to pay on inherited tax-deferred accounts.
@@ -382,6 +396,7 @@ where $N$ is either $n_d$ or $N_n$,or using an s-curve as in
 	Income tax rate on long-term capital gain and qualified dividends. Rate $\psi$ is 0, 15, or 20\%
 	depending on gross income. If adjusted self-consistently for income, then $\psi$ becomes
  	time series $\psi_n$.
+	This is distinct from the Social Security tax fraction $\Psi$.
 \item [$\Psi$]
 	Fraction of social security that is taxed, which depends on gross income and maxes out at 85\%.
         If adjusted self-consistently for income, then $\Psi$ becomes time series $\Psi_n$. However,
@@ -405,8 +420,9 @@ where $N$ is either $n_d$ or $N_n$,or using an s-curve as in
 	thus avoid loopholes when optimizing for the final bequest.
 \item[$\mathcal{M}$]
 	This large constant is used in the so-called big-$\mathcal{M}$ method to implement
-	binary constraints. As this is mainly used around MAGI, a value of about $10^7$ should
-	be adequate for most cases.
+	binary constraints. As this is mainly used around MAGI, a value of about $10^8$ should
+	be adequate for most cases. We also use $\mathcal{M}$ to represent the upper bounds
+	of top tax brackets.
 \end{description}
 
 \section{Intermediate variables}
@@ -415,25 +431,25 @@ but they are ultimately replaced in the final formulation.
 Intermediate variables are represented in roman uppercase letters, or in double stroke uppercase letters.
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$G_n$]
-	Taxable ordinary income in year $n$. Sum of wages, pension, social security benefits, all withdrawals
+	Taxable ordinary income in year $n$. Proceeds from the liquidation of fixed assets taxable
+	as ordinary income, the sum of wages, pensions, taxable social security benefits, all withdrawals
 	from tax-deferred accounts, including Roth conversions, and gains from securities
 	(i.e., all gains except those from the $k=0$ equities, which are taxed as capital gains)
-	in the ($j=0$) taxable account, including contributions $\kappa$, minus the standard deduction,
+	in the ($j=0$) taxable account, including contributions $\kappa$, minus the standard deduction $e_n$,
 	\begin{eqnarray}
 		\label{Eq:Tx2}
-		G_n &=& 
-		\sum_i [\omega_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]
+		G_n &=&  \mathcal{A}_n^x + 
+		\sum_i [\omega_{in} + \Psi_n\bar{\zeta}_{in} + \bar{\pi}_{in}]
 		- e_n
 		\nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in}]
 		\nonumber \\
-		&& + \sum_{i,k} 
-		[(1-\delta(k, 0))(b_{i0n} - w_{i0n} + d_{in} + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
+		&& + \sum_{i,k\neq 0} 
+		[(b_{i0n} - w_{i0n} + d_{in} + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
 	\end{eqnarray}
-	Social security is indexed for inflation and is assumed to be taxed at $\Psi_n$\%.
+Social security is indexed for inflation and is assumed to be taxed at $\Psi_n$\%.
 	Pensions can optionally be indexed for inflation.
-	We use a discrete Kronecker $\delta$ function for selecting gains from non-equity assets in
-	taxable accounts, but we could have equivalently excluded $k \neq 0$ in the sum.
+	We exclude $k=0$ to capture only non-equity gains in taxable accounts.
 	These gains are all taxed as ordinary income. Here, we assumed that
 	withdrawals and deposits in the taxable account are taking place at the beginning of the year, while
 	contributions, if any, are taking place in mid-year.
@@ -469,7 +485,7 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 \item [$\mathbb{G}_n$]
 	Modified Gross Adjusted Income or MAGI for year $n$. We approximate it as
 	\begin{equation}
-		\mathbb{G}_n = G_n + Q_n + e_n.
+		\mathbb{G}_n = G_n + Q_n + e_n + (1 - \Psi_n)\sum_i \bar{\zeta}_{in}.
 	\end{equation}
 	This approach ignores additional IRS
 	rules around tax-free interests which are insignificant in most cases.
@@ -505,10 +521,10 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	paid in each tax bracket as
 	\begin{equation}
 		\label{Eq:IncTax1}
-		T_n = \sum_t \bar{f}_{tn}\theta_{tn}.
+		T_n = \sum_t f_{tn}\theta^x_{tn}.
 	\end{equation}
-	Notice how $\bar{f}_{tn}$ also defines $G_n$ in Eq.~(\ref{Eq:Tx1}), and that optimal
-	values of $\bar{f}_{tn}$ have to minimize $T_n$ regardless of whether the bequest or the desired
+	Notice how $f_{tn}$ also defines $G_n$ in Eq.~(\ref{Eq:G_n}), and that optimal
+	values of $f_{tn}$ have to minimize $T_n$ regardless of whether the bequest or the desired
 	net spending is being maximized.
 
 \item [$U_n$]
@@ -518,6 +534,7 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	\end{equation}
 	We assume that qualified dividends and long-term
 	capital gains are taxed at the same preferential rate $\psi_n$, which is the case for most situations.
+	Here $\psi_n$ is an \emph{effective} rate (total LTCG tax divided by total LTCG) rather than a marginal rate.
 
 \end{description}
 
@@ -576,11 +593,11 @@ add the market returns to the savings balances.
 	the sum of assets in a class with similar tax treatment (e.g., IRA and 401k).
 
 \paragraph*{Income tax brackets}
-	Taxable ordinary income is divided in tax brackets as defined in Eq.~(\ref{Eq:Tx1}),
+	Taxable ordinary income is divided in tax brackets as defined in Eq.~(\ref{Eq:G_n}),
 	and therefore
 	\begin{equation}
 		\label{Eq:C2}
-		0 \le \bar{f}_{tn} \le \bar{\Delta}_{tn},
+		0 \le f_{tn} \le \bar{\Delta}_{tn},
 	\end{equation}
 	where each income tax bracket width $\Delta_{tn}$ has been adjusted for inflation.
 
@@ -619,13 +636,17 @@ add the market returns to the savings balances.
 		x_{ijn} \le b_{i1n}.
 	\end{equation}
 	This constraint, however, is naturally satisfied when $b_{ijn} \ge 0$ non-negativity bounds are enforced.
-	Additional maximum Roth conversion constraints $x_{max}$ can be imposed by the user and
-	then the previous equation becomes
+	Additional maximum Roth conversion constraints $x_{max}$ can be imposed by the user.
+	For a single individual, the previous equation becomes
 	\begin{equation}
 		x_{in} \le \min(b_{i1n}, x_{max}).
 	\end{equation}
-	As this last equation involves a variable and a parameter in the $\min$ function,
-	it needs to be coded as two separate constraints.
+	For couples, the cap applies to the combined conversions:
+	\begin{equation}
+		x_{0n} + x_{1n} \le x_{max}.
+	\end{equation}
+	As these equations involve a variable and a parameter in the $\min$ function,
+	they are coded as separate constraints.
 
 \paragraph*{Initial balances}
 	The initial balances $\beta_{ij}$ are one of the main inputs of the model.
@@ -772,28 +793,28 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 
 \paragraph*{Net spending}
 	For calculating the net spending $g_n$, we consider the cash flow of all withdrawals,
-	wages, social security and pension benefits, and big-ticket items. 
-	Then we subtract potential surplus $s_{n}$ and all taxes, penalties, and Medicare premiums paid:
+	wages, social security and pension benefits, proceeds from liquidation of fixed assets, and big-ticket items. 
+	Then we subtract potential surplus $s_{n}$ and all taxes, penalties, debts, and Medicare premiums paid:
 	\begin{eqnarray}
-		g_n = \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] 
+		g_n &=& \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] 
 		+ \sum_{i,j} w_{ijn} + \sum_i \Lambda^\pm_{in} - s_{n}
-		- P_n - T_n - U_n - m_n.
+		- P_n - T_n - U_n - m_n \nonumber \\
+		&& + \sum_{*=x,c,f} \mathcal{A}_n^* - \mathcal{D}_n.
 	\end{eqnarray}
 	Notice how big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
 		\label{Eq:C4}
 		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_{i,j\neq0} (1-\mathcal{H}(n - n_{i, 59})) w_{ijn}\nonumber\\
-                + m_n + s_n + \sum_t \bar{f}_{tn} \theta_{tn} &&\nonumber \\
+                + m_n + s_n + \sum_t f_{tn} \theta^x_{tn} &&\nonumber \\
 		+ \psi_n\sum_i \alpha_{i00n} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0(n-1)} - \mu)\right] 
-		&=& \sum_i [\Lambda^\pm_{in} - 0.5\psi_n\mu\alpha_{i00n}\kappa_{i0n}] \nonumber\\
-                && + \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ].
+		&=& \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in} \nonumber\\
+                && + \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ]
+		- 0.5\psi_n\mu\sum_i \alpha_{i00n}\kappa_{i0n} - \mathcal{D}_n.
 	\end{eqnarray}
-	Notice that we do not consider market losses as we use $\max(0, \tau)$, and that
-	rates from only the previous year are used. Tax-loss
-	harvesting is beyond the scope of this model, as is the tracking of stocks
-	purchased over the years.
+	Notice that we do not consider market losses or tax-loss harvesting,
+	and we do not track individual stock purchases over the years.
 
 	We want the net spending to be predictable and smooth. For that purpose, we use
 \begin{equation}
@@ -822,9 +843,9 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 In this case, the objective function will need to consider all years when optimizing net spending.
 
 \paragraph*{Taxable ordinary income}
-	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:Tx1}) and (\ref{Eq:Tx2}),
+	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:G_n}) and (\ref{Eq:Tx2}),
 	\begin{eqnarray}
-		\sum_t \bar{f}_{tn} &=&
+		\sum_t f_{tn} &=& \mathcal{A}^x_n +
 		\sum_i [\omega_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]  \nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in} ]
 		\nonumber\\
@@ -834,11 +855,11 @@ In this case, the objective function will need to consider all years when optimi
 	and re-arrange to move variables to the LHS as follows
 	\begin{eqnarray}
 		\label{Eq:C6}
-		e_n + \sum_t \bar{f}_{tn}
+		e_n + \sum_t f_{tn}
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
-		\sum_i [\omega_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in} ]
+		\mathcal{A}^x_n + \sum_i [\omega_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in} ]
 		\nonumber \\
 		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n}.
 	\end{eqnarray}
@@ -851,9 +872,10 @@ In this case, the objective function will need to consider all years when optimi
         it can be computed using binary variables and mixed-integer linear
 	programming. In the current tax code, this adjustment
 	depends on the modified adjusted gross income (MAGI) $\mathbb{G}$ from 2 years earlier. For the
-	MAGI, we use $\mathbb{G}_{(n-2)} = G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}$,
-	i.e., gross taxable ordinary income plus dividends
-	plus standard exemption from 2 years ago.
+	MAGI, we use $\mathbb{G}_{(n-2)} = G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}
+	+ (1 - \Psi_{(n-2)})\sum_i \bar{\zeta}_{i(n-2)}$,
+	i.e., gross taxable ordinary income plus dividends,
+	plus standard exemption and the non-taxable portion of social security from 2 years ago.
 	If the plan
         has its oldest individual currently either 64 or 65 years old, MAGI values for previous years
 	must be provided by the user to complete the calculations.
@@ -910,9 +932,9 @@ In this case, the objective function will need to consider all years when optimi
 	with $(N_q -1)(N_n - n_m)$ constraints as
 	\begin{eqnarray}
 		\label{Eq:MedBracket2}
-		G_{(n-2)} + Q_{(n-2)} + e_{(n-2)} - z_{qn}^m \mathcal{M}
+		G_{(n-2)} + Q_{(n-2)} + e_{(n-2)} + (1 - \Psi_{(n-2)})\sum_i \bar{\zeta}_{i(n-2)} - z_{qn}^m \mathcal{M}
                 & \geq & \bar{\mathcal{L}}_{qn} - \mathcal{M}, \nonumber\\
-		G_{(n-2)} + Q_{(n-2)} + e_{(n-2)} - z_{qn}^m \mathcal{M}
+		G_{(n-2)} + Q_{(n-2)} + e_{(n-2)} + (1 - \Psi_{(n-2)})\sum_i \bar{\zeta}_{i(n-2)} - z_{qn}^m \mathcal{M}
                 & \leq & \bar{\mathcal{L}}_{qn}, \nonumber\\
 		&&\forall q \in {0, \ldots, N_q-2},\nonumber \\
 		&&\forall n \in {n_m, \ldots, N_n-1}.
@@ -926,7 +948,7 @@ In this case, the objective function will need to consider all years when optimi
 		- \sum_i \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})
                 \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] &&
 		\nonumber \\
-		- \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0(n-3)} - \mu)] + z_{qn}^m \mathcal{M}
+		- \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu)] + z_{qn}^m \mathcal{M}
 		& \leq& \nonumber \\
                 \mathcal{M} - \bar{\mathcal{L}}_{qn}
 		+ \sum_i [\omega_{i(n-2)} + \Psi_n\bar\zeta_{i(n-2)} + \bar{\pi}_{i(n-2)}] && \nonumber\\
@@ -981,7 +1003,7 @@ index 0 for representing the first element.
 To bring all variables in a single block vector,
 we will simply use two generic index mapping functions defined as
 \begin{equation}
-	q_*(C, \ell_1, \ell_2, \ell_3 ; N_1, N_2, N_3) :=
+	\text{q}_*(C, \ell_1, \ell_2, \ell_3 ; N_1, N_2, N_3) :=
 	C + \ell_1N_2N_3 + \ell_2N_3 + \ell_3 ,
 \end{equation}
 and
@@ -1001,7 +1023,7 @@ store the end-of-life estate value. Therefore, we use
 where
 \begin{equation}
 	\label{Eq:Extra}
-	q_b(i, j, n) = q_*(C_b, i, j, n; N_i, N_j, N_n+1)
+	q_b(i, j, n) = q_*(C_b, i, j, n; N_i, N_j, N_n+1),
 \end{equation}
 and where $n$ exceptionally runs from 0 to $N_n$ inclusively, and therefore
 $q_b$ runs from $C_b = 0$ to $C_{d} - 1$,
@@ -1017,17 +1039,31 @@ For surplus deposits in the taxable savings accounts $d_{in}$ we will use
 \end{equation}
 where
 \begin{equation}
-	q_d(i, n) = q_*(C_d, i, n, 0; N_i, N_n, 1)
+	q_d(i, n) = q_*(C_d, i, n, 0; N_i, N_n, 1),
 \end{equation}
-with $q_d$ running from $C_d$ to $C_f - 1$, where
+with $q_d$ running from $C_d$ to $C_e - 1$, where
 \[
-	C_f = q_C(C_d, N_i, N_n, 1) = N_i(N_j(N_n+1) + N_n).
+	C_e = q_C(C_d, N_i, N_n, 1) = N_i(N_j(N_n+1) + N_n).
 \]
 
-\paragraph*{Tax bracket fractions (\boldmath$f$)}
-For tax bracket fractions $\bar{f}_{tn}$ we will use
+\paragraph*{Standard exemption (\boldmath$e$)}
+For the standard exemption $e_n$ we will use
 \begin{equation}
-	y[q_f(t, n)] = \bar{f}_{tn},
+	y[q_e(n)] = e_{n},
+\end{equation}
+where
+\begin{equation}
+	q_e(n) = q_*(C_e, n, 0, 0; N_n, 1, 1) = C_e + n,
+\end{equation}
+with $q_e$ running from $C_e$ to $C_f - 1$, where
+\[
+	C_f = q_C(C_e, N_n, 1, 1) = N_i(N_j(N_n+1) + N_n) + N_n.
+\]
+
+\paragraph*{Tax bracket amounts (\boldmath$f$)}
+For tax bracket amounts $f_{tn}$ we will use
+\begin{equation}
+	y[q_f(t, n)] = f_{tn},
 \end{equation}
 where
 \begin{equation}
@@ -1035,7 +1071,7 @@ where
 \end{equation}
 with $q_f$ running from $C_f$ to $C_g - 1$, where
 \[
-	C_g = q_C(C_f, N_t, N_n, 1) = N_i(N_j(N_n+1) + N_n) + N_tN_n.
+	C_g = q_C(C_f, N_t, N_n, 1) = N_i(N_j(N_n+1) + N_n) + (N_t + 1)N_n.
 \]
 
 \paragraph*{Net spending (\boldmath$g$)}
@@ -1049,7 +1085,7 @@ where
 \end{equation}
 with $q_g$ running from $C_g$ to $C_m - 1$, where
 \[
-	C_m = q_C(C_g, N_n, 1, 1) = N_i(N_j(N_n+1) + N_n) + (N_t + 1) N_n.
+	C_m = q_C(C_g, N_n, 1, 1) = N_i(N_j(N_n+1) + N_n) + (N_t + 2) N_n.
 \]
 
 \paragraph*{Medicare costs (\boldmath$m$)}
@@ -1085,15 +1121,15 @@ with $q_s$ running from $C_s$ to $C_w - 1$, where
 \paragraph*{Withdrawals (\boldmath$w$)}
 For withdrawals $w_{ijn}$ we will use
 \begin{equation}
-	y[q_w(i, j, k, n)] = w_{i j n},
+	y[q_w(i, j, n)] = w_{i j n},
 \end{equation}
 where
 \begin{equation}
-	q_w(i, j, n) = q_*(C_w, i, j, n; N_i, N_j, N_n)
+	q_w(i, j, n) = q_*(C_w, i, j, n; N_i, N_j, N_n),
 \end{equation}
 with $q_w$ running from $C_w$ to $C_x - 1$, where
 \[
-	C_x = q_C(C_w, N_i, N_j, N_n) = N_i(N_j(2N_n + 1) + (N_t + 3) N_n.
+C_x = q_C(C_w, N_i, N_j, N_n) = N_i(N_j(2N_n + 1) + (N_t + 3) N_n).
 \]
 
 \paragraph*{Roth conversions (\boldmath$x$)}
@@ -1103,20 +1139,20 @@ Finally, for Roth conversions $x_{in}$ we will use
 \end{equation}
 where
 \begin{equation}
-	q_x(i, n) = q_*(C_x, i, n, 0; N_i, N_n, 1)
+	q_x(i, n) = q_*(C_x, i, n, 0; N_i, N_n, 1),
 \end{equation}
 with $q_x$ running from $C_x$ to $C_* - 1$, where
 \begin{equation}
 	\label{Eq:Cstar}
-	C_* = q_C(C_x, N_i, N_n, 1) = N_i(N_j(2N_n + 1) + (N_t + N_i + 3) N_n.
+C_* = q_C(C_x, N_i, N_n, 1) = N_i(N_j(2N_n + 1) + (N_t + N_i + 3) N_n).
 \end{equation}
 
-With $N_i = 2, N_j = 3, N_k = 4, N_t = 7$ we have $24 N_n + 6$ variables. For
-a 30-year plan, this results in 726 non-integer decision variables.
+With $N_i = 2, N_j = 3, N_k = 4, N_t = 7$ we have $27 N_n + 6$ variables. For
+a 30-year plan, this results in 816 non-integer decision variables.
 If the time resolution is increased to
-months, that would result in 8,646 variables which is still solvable by today's standards.
-Adding binary variables $z_{nz}$ with $z \in \{0, 1, 2, 3\}$ can add $4N_n$ more decision variables,
-while adding $z^m_{qn}$ adds $6N_n$ more, resulting in $(24 + 4 + 6) N_n + 6 = 34 N_n + 6$, or 1,026 for 30 years.
+months, that would result in 9,726 variables which is still solvable by today's standards.
+Adding binary variables $z_{nz}^x$ with $z \in \{0, 1, 2, 3\}$ can add $4N_n$ more decision variables,
+while adding $z^m_{qn}$ adds $6N_n$ more, resulting in $(27 + 4 + 6) N_n + 6 = 37 N_n + 6$, or 1,116 for 30 years.
 
 \section{Reverse mapping of indices}
 The inverse functions for the index-mapping functions will be derived for the
@@ -1172,13 +1208,14 @@ Eq.~(\ref{Eq:C1}) using matrix $A_{u}y \le u$ starting with the following $N_iN_
 \end{eqnarray}
 and all other elements in the same rows of $A_u$ being $0$.
 Notice that while $b$ has $N_n+1$ elements, the constraints
-for $b$ go from $0$ to $N_n-1$ as there is no RMD required in the last year of the plan $N_n$.
+for $b$ go from $0$ to $N_n-1$ as there is no RMD required in the last year of the plan $N_n$,
+when all individuals have passed. Years before RMDs where $\rho_{in} = 0$ just add a trivial constraint.
 See Eq.~(\ref{Eq:Extra}).
 
-\paragraph*{Income tax brackets}
+\paragraph*{Ordinary income tax brackets}
 Similarly, we add $N_t N_n$ more rows to matrix $A_uy \le u$ to express
 the inequality constraint in Eq.~(\ref{Eq:C2})
-setting an upper limit on fractions $\bar{f}_{tn}$,
+setting an upper limit on amounts $f_{tn}$,
 \begin{eqnarray}
 	A_u[I_1(t, n), q_{f}(t, n)] &=& 1, \nonumber \\
 	u[I_1(t, n)] &=& \bar{\Delta}_{tn},\\
@@ -1187,73 +1224,156 @@ setting an upper limit on fractions $\bar{f}_{tn}$,
 \end{eqnarray}
 and all other elements in the same rows of $A_u$ being $0$.
 
+\paragraph*{Standard exemption}
+For $e_n \le \bar{\sigma}_n$ we add
+\begin{eqnarray}
+	A_u[I_2(n), q_e(n)] &=& 1, \nonumber \\
+	u[I_2(n)] &=& \bar{\sigma}_{n},\\
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
+\end{eqnarray}
+Non-negativity of $e_n$ provides the lower bound.
+
+\paragraph*{Withdrawal limits}
+For $w_{ijn} + \delta(j,1)x_{in} \le b_{ijn}$ we add:
+\begin{eqnarray}
+	A_u[I_5(i, j, n), q_{w}(i, j, n)] &=& 1, \nonumber \\
+	A_u[I_5(i, j, n), q_{x}(i, n)] &=& \delta(j, 1), \nonumber \\
+	A_u[I_5(i, j, n), q_{b}(i, j, n)] &=& -1, \nonumber \\
+	u[I_5(i, j, n)] &=& 0, \nonumber \\
+	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
+	&&\qquad\forall j \in \{0,\ldots, N_j - 1\},\nonumber\\
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
+\end{eqnarray}
+
+\paragraph*{Posthumous account activities}
+For $n \ge n_d$ and the first-to-pass individual $i_d$, we set
+\begin{eqnarray}
+	A_u[I_6(j, n), q_{w}(i_d, j, n)] &=& 1, \nonumber \\
+	u[I_6(j, n)] &=& 0, \nonumber \\
+	A_u[I_7(n), q_{d}(i_d, n)] &=& 1, \nonumber \\
+	u[I_7(n)] &=& 0, \nonumber \\
+	A_u[I_8(n), q_{x}(i_d, n)] &=& 1, \nonumber \\
+	u[I_8(n)] &=& 0, \nonumber \\
+	&&\qquad\forall j \in \{0,\ldots, N_j - 1\},\nonumber\\
+	&&\qquad\forall n \in \{n_d,\ldots, N_n - 1\}. \nonumber
+\end{eqnarray}
+
+\paragraph*{Roth conversions}
+To enforce $x_{in} \le b_{i1n}$ we add
+\begin{eqnarray}
+	A_u[I_9(i, n), q_{x}(i, n)] &=& 1, \nonumber \\
+	A_u[I_9(i, n), q_{b}(i, 1, n)] &=& -1, \nonumber \\
+	u[I_9(i, n)] &=& 0, \nonumber \\
+	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
+\end{eqnarray}
+If a maximum conversion $x_{max}$ is specified, we also add the bound
+$\sum_i x_{in} \le x_{max}$ for all $n$ with
+\begin{eqnarray}
+	A_u[I_{18}(n), q_x(i, n)] &=& 1, \nonumber \\
+	u[I_{18}(n)] &=& x_{max}, \nonumber \\
+	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
+\end{eqnarray}
+This maximum is applied to the combined conversions of both individuals in each year.
+
+\paragraph*{Exclusion constraints}
+The XOR exclusions of Eqs.~(\ref{Eq:Binary1}) and (\ref{Eq:Binary2})
+are implemented with big-$\mathcal{M}$ constraints using binary variables $z_{nz}^x$,
+adding the corresponding rows for $\sum_i w_{i0n} + \sum_i w_{i2n}$, $s_n$, and $\sum_i x_{in}$
+with upper bounds $\mathcal{M} z_{nz}$, along with the bounds
+$0 \le z_{n0}^x + z_{n1}^x \le 1$ and $0 \le z_{n2}^x + z_{n3}^x \le 1$.
+\begin{eqnarray}
+	A_u[I_{12}(n), q_w(i, 0, n)] &=& 1, \nonumber \\
+	A_u[I_{12}(n), q_w(i, 2, n)] &=& 1, \nonumber \\
+	A_u[I_{12}(n), q_{z^x}(n, 0)] &=& -\mathcal{M}, \nonumber \\
+	u[I_{12}(n)] &=& 0, \nonumber \\
+	A_u[I_{13}(n), q_s(n)] &=& 1, \nonumber \\
+	A_u[I_{13}(n), q_{z^x}(n, 1)] &=& -\mathcal{M}, \nonumber \\
+	u[I_{13}(n)] &=& 0, \nonumber \\
+	A_u[I_{14}(n), q_{z^x}(n, 0)] &=& 1, \nonumber \\
+	A_u[I_{14}(n), q_{z^x}(n, 1)] &=& 1, \nonumber \\
+	u[I_{14}(n)] &=& 1, \nonumber \\
+	A_u[I_{15}(n), q_x(i, n)] &=& 1, \nonumber \\
+	A_u[I_{15}(n), q_{z^x}(n, 2)] &=& -\mathcal{M}, \nonumber \\
+	u[I_{15}(n)] &=& 0, \nonumber \\
+	A_u[I_{16}(n), q_w(i, 2, n)] &=& 1, \nonumber \\
+	A_u[I_{16}(n), q_{z^x}(n, 3)] &=& -\mathcal{M}, \nonumber \\
+	u[I_{16}(n)] &=& 0, \nonumber \\
+	A_u[I_{17}(n), q_{z^x}(n, 2)] &=& 1, \nonumber \\
+	A_u[I_{17}(n), q_{z^x}(n, 3)] &=& 1, \nonumber \\
+	u[I_{17}(n)] &=& 1, \nonumber \\
+	&&\qquad\forall i \in \{0,\ldots, N_i - 1\}, \nonumber\\
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
+\end{eqnarray}
+
 \paragraph*{Medicare brackets}
 Medicare's MAGI brackets determine the values of binary variables $z^m_{qn}$.
 We first code Eq.~(\ref{Eq:Med1}) and then Eq.~(\ref{Eq:Med2}) will be very similar.
 For each bracket we set
 \begin{eqnarray}
-	A_u[I_2(q, n), q_{w}(i, 1, n-2)] &=& -1, \nonumber \\
-	A_u[I_2(q, n), q_{x}(i, n-2)] &=& -1, \nonumber \\
-	A_u[I_2(q, n), q_{b}(i, 0, n-2)] &=&
+	A_u[I_{19}(q, n), q_{w}(i, 1, n-2)] &=& -1, \nonumber \\
+	A_u[I_{19}(q, n), q_{x}(i, n-2)] &=& -1, \nonumber \\
+	A_u[I_{19}(q, n), q_{b}(i, 0, n-2)] &=&
 	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
-	A_u[I_2(q, n), q_{d}(i, n-2)] &=&
+	A_u[I_{19}(q, n), q_{d}(i, n-2)] &=&
 	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
-	A_u[I_2(q, n), q_{w}(i, 0, n-2)] &=&
+	A_u[I_{19}(q, n), q_{w}(i, 0, n-2)] &=&
 	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	    \nonumber \\
 	    && - \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu), \nonumber \\
-	A_u[I_2(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
-	u[I_2(q, n)] &=& -\bar{\mathcal{L}}_{qn} + \mathcal{M}
+	A_u[I_{19}(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
+	u[I_{19}(q, n)] &=& -\bar{\mathcal{L}}_{qn} + \mathcal{M}
          + \sum_i \left[\omega_{i(n-2)} + \Psi_n\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
 	&& + 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
 	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	  \right)\right],\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\}, \nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k - 1\}, \nonumber\\
-	&&\qquad\forall q \in \{1,\ldots, N_q - 2\}, \nonumber\\
+	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{\max(n_m, 2),\ldots, N_n - 1\}.
 \end{eqnarray}
 When $n_m < 2$, we use these additional rows
 \begin{eqnarray}
-	A_u[I_2(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
-	u[I_2(q, n)] &=& \mathcal{M} + \mathcal{A}_{n} -\bar{\mathcal{L}}_{qn}, \nonumber \\
-	&&\qquad\forall q \in \{1,\ldots, N_q - 2\}, \nonumber\\
+	A_u[I_{20}(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
+	u[I_{20}(q, n)] &=& \mathcal{M} + \mathcal{A}_{n} -\bar{\mathcal{L}}_{qn}, \nonumber \\
+	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{n_m,\ldots, 2\},
 \end{eqnarray}
 where $\mathcal{A}_n$ is a user-provided array of MAGI values for (up to) the last two years in chronological order.
 
 For Eq.~(\ref{Eq:Med2}) we obtain
 \begin{eqnarray}
-	A_u[I_2(q, n), q_{w}(i, 1, n-2)] &=& 1, \nonumber \\
-	A_u[I_2(q, n), q_{x}(i, n-2)] &=& 1, \nonumber \\
-	A_u[I_2(q, n), q_{b}(i, 0, n-2)] &=&
+	A_u[I_{21}(q, n), q_{w}(i, 1, n-2)] &=& 1, \nonumber \\
+	A_u[I_{21}(q, n), q_{x}(i, n-2)] &=& 1, \nonumber \\
+	A_u[I_{21}(q, n), q_{b}(i, 0, n-2)] &=&
 	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
-	A_u[I_2(q, n), q_{d}(i, n-2)] &=&
+	A_u[I_{21}(q, n), q_{d}(i, n-2)] &=&
 	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
-	A_u[I_2(q, n), q_{w}(i, 0, n-2)] &=&
+	A_u[I_{21}(q, n), q_{w}(i, 0, n-2)] &=&
 	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	    \nonumber \\
 	    && + \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu), \nonumber \\
-	A_u[I_2(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
-	u[I_2(q, n)] &=& \bar{\mathcal{L}}_{qn}
+	A_u[I_{21}(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
+	u[I_{21}(q, n)] &=& \bar{\mathcal{L}}_{qn}
          - \sum_i \left[\omega_{i(n-2)} + \Psi_n\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
 	&& - 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
 	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	  \right)\right],\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\}, \nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k - 1\}, \nonumber\\
-	&&\qquad\forall q \in \{1,\ldots, N_q - 2\}, \nonumber\\
+	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{\max(n_m, 2),\ldots, N_n - 1\}.
 \end{eqnarray}
 When $n_m < 2$, we enforce these additional rows
 \begin{eqnarray}
-	A_u[I_2(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
-	u[I_2(q, n)] &=& \bar{\mathcal{L}}_{qn} - \mathcal{A}_{n} , \nonumber \\
-	&&\qquad\forall q \in \{1,\ldots, N_q - 2\}, \nonumber\\
+	A_u[I_{22}(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
+	u[I_{22}(q, n)] &=& \bar{\mathcal{L}}_{qn} - \mathcal{A}_{n} , \nonumber \\
+	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{n_m,\ldots, 2\},
 \end{eqnarray}
 where $\mathcal{A}_n$ is a user-provided array of MAGI values for (up to) the last two years in chronological order.
@@ -1306,10 +1426,12 @@ we add $N_n$ more rows to $A_ey = v$ as
 \begin{eqnarray}
 	A_e[J_4(n), q_g(n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_m(n)] &=& 1, \nonumber \\
+	A_e[J_4(n), q_s(n)] &=& 1, \nonumber \\
 	A_e[J_4(n), q_b(i, 0, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
-	A_e[J_4(n), q_d(i, n)] &=& 1 + \psi_n\mu\alpha_{i00n}, \nonumber \\
-	A_e[J_4(n), q_{\bar{f}}(t, n)] &=& \theta_{tn}, \nonumber \\
-	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59})) + \delta(j, 0)\psi_n\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
+	A_e[J_4(n), q_d(i, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
+	A_e[J_4(n), q_{f}(t, n)] &=& \theta^x_{tn}, \nonumber \\
+	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59}))
+		+ \delta(j, 0)\psi_n\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -1317,13 +1439,10 @@ we add $N_n$ more rows to $A_ey = v$ as
 \end{eqnarray}
 where $v$ is
 \begin{equation}
-	v[J_4(n)] = \sum_i [\omega_{in} + \bar\zeta_{in} + \bar{\pi}_{in}
-	+ \Lambda^\pm_{in} - 0.5\psi_n\mu\alpha_{i00n}\kappa_{i0n}].
+	v[J_4(n)] = \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in}
+	+ \sum_i [\omega_{in} + \bar\zeta_{in} + \bar{\pi}_{in}]
+	- 0.5\psi_n\mu\sum_i \alpha_{i00n}\kappa_{i0n} - \mathcal{D}_n.
 \end{equation}
-Here we used Eq.~(\ref{Eq:eta2}) reflecting the fact that the sum of all deposits $d_{in}$ must equal the surplus $s_n$,
-\[
-	s_n = \sum_i d_{in}.
-\]
 
 The condition of having a predictable net spending expressed as an
 equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
@@ -1339,7 +1458,7 @@ Finally, for the equality constraint in Eq.~(\ref{Eq:C6}) establishing taxable
 ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 \begin{eqnarray}
 	A_e[J_6(n), q_e(n)] &=& 1, \nonumber \\
-	A_e[J_6(n), q_{\bar{f}}(t, n)] &=& 1, \nonumber \\
+	A_e[J_6(n), q_{f}(t, n)] &=& 1, \nonumber \\
 	A_e[J_6(n), q_w(i, 1, n)] &=& -1, \nonumber \\
 	A_e[J_6(n), q_x(i, n)] &=& -1, \nonumber \\
 	A_e[J_6(n), q_b(i, 0, n)] &=& -\sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \\
@@ -1353,7 +1472,7 @@ ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 with
 \begin{eqnarray}
 	v[J_6(n)] &=& 
-	\sum_i [\omega_{in} + \Psi_n\bar\zeta_{in}  + \bar{\pi}_{in}]
+\mathcal{A}^x_n + \sum_i [\omega_{in} + \Psi_n\bar\zeta_{in}  + \bar{\pi}_{in}]
 	+ 0.5\sum_{i} \kappa_{i0n} \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}.
 \end{eqnarray}
 

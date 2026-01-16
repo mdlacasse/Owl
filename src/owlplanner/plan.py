@@ -314,6 +314,8 @@ class Plan:
 
         # Default parameters:
         self.psi_n = np.zeros(self.N_n)  # Long-term income tax rate on capital gains (decimal)
+        # Fraction of social security benefits that is taxed (fixed at 85% for now).
+        self.Psi_n = np.ones(self.N_n) * 0.85
         self.chi = 0.6   # Survivor fraction
         self.mu = 0.018  # Dividend rate (decimal)
         self.nu = 0.30   # Heirs tax rate (decimal)
@@ -1453,9 +1455,11 @@ class Plan:
 
                 if rhsopt >= 0:
                     rhsopt *= self.optionsUnits
-                    for i in range(self.N_i):
-                        for n in range(self.horizons[i]):
-                            self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, rhsopt + 0.01)
+                    for n in range(self.N_n):
+                        row = self.A.newRow()
+                        for i in range(self.N_i):
+                            row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), 1)
+                        self.A.addRow(row, 0, rhsopt + 0.01)
 
             if "startRothConversions" in options:
                 rhsopt = options["startRothConversions"]
@@ -1603,8 +1607,10 @@ class Plan:
         tau_0prev[tau_0prev < 0] = 0
         for n in range(self.N_n):
             rhs = -self.M_n[n] - self.J_n[n]
-            # Add fixed assets tax-free money (positive cash flow)
-            rhs += self.fixed_assets_tax_free_n[n]
+            # Add fixed assets proceeds (positive cash flow)
+            rhs += (self.fixed_assets_tax_free_n[n]
+                    + self.fixed_assets_ordinary_income_n[n]
+                    + self.fixed_assets_capital_gains_n[n])
             # Subtract debt payments (negative cash flow)
             rhs -= self.debt_payments_n[n]
             row = self.A.newRow({_q1(self.C["g"], n, self.N_n): 1})
@@ -1649,7 +1655,7 @@ class Plan:
             row = self.A.newRow()
             row.addElem(_q1(self.C["e"], n, self.N_n), 1)
             for i in range(self.N_i):
-                rhs += self.omega_in[i, n] + 0.85 * self.zetaBar_in[i, n] + self.piBar_in[i, n]
+                rhs += self.omega_in[i, n] + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n]
                 row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1)
                 row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), -1)
                 fak = np.sum(self.tau_kn[1:self.N_k, n] * self.alpha_ijkn[i, 0, 1:self.N_k, n], axis=0)
@@ -1760,7 +1766,7 @@ class Plan:
                     bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, tau_prev - self.mu)
                     row.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
 
-                    sumoni = (self.omega_in[i, n2] + self.psi_n[n2] * self.zetaBar_in[i, n2] + self.piBar_in[i, n2]
+                    sumoni = (self.omega_in[i, n2] + self.Psi_n[n2] * self.zetaBar_in[i, n2] + self.piBar_in[i, n2]
                               + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
                     rhs -= sumoni
 
@@ -2398,9 +2404,13 @@ class Plan:
         self._aggregateResults(x, short=True)
 
         self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
-        # THIS FIX IS TEMPORARY AS TO TEST WHAT CAUSES OSCILLATING SOLUTIONS. MOVE TO OPTIMIZATION?
-        # self.psi_n = np.ones(self.N_n) * 0.15
-        self.psi_n = tx.capitalGainTaxRate(self.N_i, self.MAGI_n, self.gamma_n[:-1], self.n_d, self.N_n)
+        ltcg_n = np.maximum(self.Q_n, 0)
+        tx_income_n = self.e_n + ltcg_n
+        cg_tax_n = tx.capitalGainTax(self.N_i, tx_income_n, ltcg_n, self.gamma_n[:-1], self.n_d, self.N_n)
+        self.psi_n = np.zeros(self.N_n)
+        has_ltcg = ltcg_n > 0
+        self.psi_n[has_ltcg] = cg_tax_n[has_ltcg] / ltcg_n[has_ltcg]
+        self.U_n = cg_tax_n
         # Compute Medicare through self-consistent loop.
         if includeMedicare:
             self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
@@ -2487,7 +2497,8 @@ class Plan:
         self.Q_n += self.fixed_assets_capital_gains_n
         self.U_n = self.psi_n * self.Q_n
 
-        self.MAGI_n = self.G_n + self.e_n + self.Q_n
+        self.MAGI_n = (self.G_n + self.e_n + self.Q_n
+                       + np.sum((1 - self.Psi_n) * self.zetaBar_in, axis=0))
 
         I_in = ((self.b_ijn[:, 0, :-1] + self.d_in - self.w_ijn[:, 0, :])
                 * np.sum(self.alpha_ijkn[:, 0, 1:, :Nn] * self.tau_kn[1:, :], axis=1))
