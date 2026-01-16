@@ -56,21 +56,34 @@ elif ret == kz.loadCaseFile:
     col1, col2 = st.columns(2, gap="large")
     with col1:
         st.markdown("#### :orange[Upload Your Own Case File]")
-        file = st.file_uploader("Upload *case* parameter file...", key="_confile", type=["toml"])
+        kz.initGlobalKey("_confile_idx", 0)
+        file = st.file_uploader(
+            "Upload *case* parameter file...",
+            key="_confile" + str(kz.getGlobalKey("_confile_idx")),
+            type=["toml"],
+        )
         if file is not None:
             owb.ui_log(f"Loading case file: '{file.name}'")
             mystringio = StringIO(file.read().decode("utf-8"))
             if kz.createCaseFromFile(mystringio):
+                # Bump uploader key to avoid re-import on rerun.
+                kz.storeGlobalKey("_confile_idx", kz.getGlobalKey("_confile_idx") + 1)
                 st.rerun()
 
     with col2:
         st.markdown("#### :orange[Load a Case Example]")
-        case = st.selectbox("Examples available from GitHub", tomlex.cases, index=None,
+        kz.initGlobalKey("_example_case_idx", 0)
+        case = st.selectbox(
+            "Examples available from GitHub",
+            tomlex.cases,
+            index=None,
+            key="_example_case" + str(kz.getGlobalKey("_example_case_idx")),
                             placeholder="Select an example case")
         if case:
             owb.ui_log(f"Loading example: '{case}'")
             mystringio = tomlex.loadCaseExample(case)
             if kz.createCaseFromFile(mystringio):
+                kz.storeGlobalKey("_example_case_idx", kz.getGlobalKey("_example_case_idx") + 1)
                 kz.initCaseKey("tomlexcase", case)
                 st.rerun()
 else:
