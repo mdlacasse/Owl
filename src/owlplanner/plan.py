@@ -29,6 +29,7 @@ from functools import wraps
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 import time
+import textwrap
 
 from . import utils as u
 from . import tax2026 as tx
@@ -628,13 +629,9 @@ class Plan:
         fras = socsec.getFRAs(self.yobs)
         spousalBenefits = socsec.getSpousalBenefits(pias)
 
-        self.mylog.vprint(
-            "Social security monthly benefits set to", [u.d(pias[i]) for i in range(self.N_i)],
-            "at FRAs(s)", [fras[i] for i in range(self.N_i)],
-        )
-        self.mylog.vprint(
-            "Benefits requested to start at age(s)", [ages[i] for i in range(self.N_i)],
-        )
+        self.mylog.vprint("SS monthly PIAs set to", [u.d(pias[i]) for i in range(self.N_i)])
+        self.mylog.vprint("SS FRAs(s)", [fras[i] for i in range(self.N_i)])
+        self.mylog.vprint("SS benefits claimed at age(s)", [ages[i] for i in range(self.N_i)])
 
         thisyear = date.today().year
         self.zeta_in = np.zeros((self.N_i, self.N_n))
@@ -644,7 +641,7 @@ class Plan:
 
             eligible = 62 if bornOnFirstDays else 62 + 1/12
             if ages[i] < eligible:
-                self.mylog.vprint(f"Resetting starting age of {self.inames[i]} to {eligible}.")
+                self.mylog.vprint(f"Resetting SS claiming age of {self.inames[i]} to {eligible}.")
                 ages[i] = eligible
 
             # Check if claim age added to birth month falls next year.
@@ -1442,14 +1439,14 @@ class Plan:
                 self.A.addRow(row, rhs, np.inf)
 
     def _add_roth_conversion_constraints(self, options):
-        # Values in file supercedes everything
+        # Values in file supercedes everything.
         if "maxRothConversion" in options and options["maxRothConversion"] == "file":
             for i in range(self.N_i):
                 for n in range(self.horizons[i]):
                     rhs = self.myRothX_in[i][n]
                     self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), rhs, rhs)
         else:
-            # Don't exclude anyone by default
+            # Don't exclude anyone by default.
             i_x = -1
             if "noRothConversions" in options and options["noRothConversions"] != "None":
                 rhsopt = options["noRothConversions"]
@@ -1707,6 +1704,14 @@ class Plan:
                 0, 1
             )
 
+            # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
+            if "maxRothConversion" in options:
+                rhsopt = options["maxRothConversion"]
+                if not isinstance(rhsopt, (int, float)):
+                    raise ValueError(f"Specified maxRothConversion {rhsopt} is not a number.")
+                if False and rhsopt < -1:
+                    return
+
             # Make z_2 and z_3 exclusive binary variables.
             dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
                     _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
@@ -1950,6 +1955,7 @@ class Plan:
 
         Refer to companion document for implementation details.
         """
+
         if self.rateMethod is None:
             raise RuntimeError("Rate method must be selected before solving.")
 
@@ -1962,23 +1968,25 @@ class Plan:
         knownSolvers = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS", "MOSEK"]
 
         knownOptions = [
+            "abs_tol",
             "bequest",
-            "bigM_xor",  # Big-M value for XOR constraints (default: 5e6)
             "bigM_irmaa",  # Big-M value for Medicare IRMAA constraints (default: 1e7)
+            "bigM_xor",  # Big-M value for XOR constraints (default: 5e6)
             "gap",
             "maxRothConversion",
             "netSpending",
             "noRothConversions",
             "oppCostX",
-            "withMedicare",
             "previousMAGIs",
+            "rel_tol",
             "solver",
             "spendingSlack",
             "startRothConversions",
-            "tolerance",
             "units",
-            "xorConstraints",
+            "verbose",
+            "withMedicare",
             "withSCLoop",
+            "xorConstraints",
         ]
         # We might modify options if required.
         options = {} if options is None else options
@@ -2009,6 +2017,18 @@ class Plan:
 
         oppCostX = options.get("oppCostX", 0.)
         self.xnet = 1 - oppCostX / 100.
+
+        # Go easy on MILP
+        if "gap" not in myoptions and options.get("withMedicare", "loop") == "optimize":
+            fac = 1
+            maxRoth = myoptions.get("maxRothConversion", 100)
+            if maxRoth <= 15:
+                fac = 10
+            # Loosen default MIP gap when Medicare is optimized. Even more if rothX == 0
+            gap = fac * 3e-4
+            options["gap"] = gap
+            myoptions["gap"] = gap
+            self.mylog.vprint(f"Using restricted gap of {gap}.")
 
         self.prevMAGI = np.zeros(2)
         if "previousMAGIs" in myoptions:
@@ -2049,6 +2069,8 @@ class Plan:
             raise RuntimeError("Internal error in defining solverMethod.")
 
         self.mylog.vprint(f"Using {solver} solver.")
+        options_txt = textwrap.fill(f"{options}", initial_indent="\t", subsequent_indent="\t", width=100)
+        self.mylog.vprint(f"Solver options:\n{options_txt}.")
         self._scSolve(objective, options, solverMethod)
 
         self.objective = objective
@@ -2063,10 +2085,22 @@ class Plan:
         includeMedicare = options.get("withMedicare", "loop") == "loop"
         withSCLoop = options.get("withSCLoop", True)
 
-        # Convergence based on objective function only (+/- 10$ accuracy).
-        tolerance = options.get("tolerance", 10)
-        if not isinstance(tolerance, (int, float)):
-            raise ValueError(f"tolerance {tolerance} is not a number.")
+        # Convergence uses a relative tolerance tied to MILP gap,
+        # with an absolute floor to avoid zero/near-zero objectives.
+        gap = options.get("gap", 1e-4)
+        if not isinstance(gap, (int, float)):
+            raise ValueError(f"gap {gap} is not a number.")
+        abs_tol = options.get("abs_tol", 10)
+        if not isinstance(abs_tol, (int, float)):
+            raise ValueError(f"abs_tol {abs_tol} is not a number.")
+        rel_tol = options.get("rel_tol")
+        if rel_tol is None:
+            # Keep rel_tol aligned with solver gap to avoid SC loop chasing noise.
+            rel_tol = max(5e-6, gap / 300)
+        if not isinstance(rel_tol, (int, float)):
+            raise ValueError(f"rel_tol {rel_tol} is not a number.")
+
+        self.mylog.vprint(f"Using rel_tol={rel_tol:.2e}, abs_tol={abs_tol:.2e}, and gap={gap:.2e}.")
 
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
@@ -2100,14 +2134,19 @@ class Plan:
 
             # Solution difference is calculated and reported but not used for convergence
             # since it scales with problem size and can prevent convergence for large cases.
-            if absObjDiff <= tolerance:
+            prev_scaled_obj = scaled_obj
+            if np.isfinite(old_objfns[-1]):
+                prev_scaled_obj = (-old_objfns[-1]) * objFac
+            scale = max(1.0, abs(scaled_obj), abs(prev_scaled_obj))
+            tol = max(abs_tol, rel_tol * scale)
+            if absObjDiff <= tol:
                 # Check if convergence was monotonic or oscillatory
                 # old_objfns stores -objfn values, so we need to scale them to match displayed values
                 # For monotonic convergence, the scaled objective (objfn * objFac) should be non-increasing
                 # Include current iteration's scaled objfn value
                 scaled_objfns = [(-val) * objFac for val in old_objfns[1:]] + [scaled_obj]
                 # Check if scaled objective function is non-increasing (monotonic convergence)
-                is_monotonic = all(scaled_objfns[i] <= scaled_objfns[i-1] + tolerance
+                is_monotonic = all(scaled_objfns[i] <= scaled_objfns[i-1] + tol
                                    for i in range(1, len(scaled_objfns)))
                 if is_monotonic:
                     self.convergenceType = "monotonic"
@@ -2118,7 +2157,7 @@ class Plan:
 
             # Check for oscillation (need at least 4 iterations to detect a 2-cycle)
             if it >= 3:
-                cycle_len = self._detectOscillation(scaled_obj_history, tolerance)
+                cycle_len = self._detectOscillation(scaled_obj_history, tol)
                 if cycle_len is not None:
                     # Find the best (minimum) objective in the cycle
                     cycle_values = scaled_obj_history[-cycle_len:]
@@ -2152,7 +2191,7 @@ class Plan:
                     self.mylog.vprint("Accepting solution from cycle and terminating.")
                     break
 
-            if it > 59:
+            if it > 29:
                 self.convergenceType = "max iteration"
                 self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
                 break
@@ -2181,20 +2220,18 @@ class Plan:
         """
         from scipy import optimize
 
-        bigM = options.get("bigM_xor", BIGM_XOR)
-        if not isinstance(bigM, (int, float)):
-            raise ValueError(f"bigM_xor {bigM} is not a number.")
-        mygap = options.get("gap", 100/bigM)
+        mygap = options.get("gap", 5e-4)
         if not isinstance(mygap, (int, float)):
             raise ValueError(f"gap {mygap} is not a number.")
+        verbose = options.get("verbose", False)
 
         # Optimize solver parameters
         milpOptions = {
-            "disp": False,
+            "disp": bool(verbose),
             "mip_rel_gap": mygap,    # Default 1e-4
             "presolve": True,
             "time_limit": 900,     # No more that 15 minutes
-            "node_limit": 4000000  # Limit search nodes for faster solutions
+            "node_limit": 1000000  # Limit search nodes for faster solutions
         }
 
         self._buildConstraints(objective, options)
@@ -2308,6 +2345,7 @@ class Plan:
         cind, cval = self.c.lists()
 
         mygap = options.get("gap", 1e-4)
+        verbose = options.get("verbose", False)
 
         task = mosek.Task()
         task.putdouparam(mosek.dparam.mio_max_time, 900.0)           # Default -1
@@ -2315,9 +2353,10 @@ class Plan:
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, mygap)         # Default 1e-4
         # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-5)   # Default 1e-5
         # task.putdouparam(mosek.iparam.mio_heuristic_level, 3)      # Default -1
-        # task.set_Stream(mosek.streamtype.msg, _streamPrinter)
         task.appendcons(self.A.ncons)
         task.appendvars(self.A.nvars)
+        if verbose:
+            task.set_Stream(mosek.streamtype.msg, _streamPrinter)
 
         for ii in range(len(cind)):
             task.putcj(cind[ii], cval[ii])

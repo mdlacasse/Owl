@@ -204,6 +204,7 @@ class Bounds:
         return lb, ub
 
     def integralityArray(self):
+        # All variables continuous by default.
         integrality = np.zeros(self.nvars, dtype=int)
         for ii in range(len(self.integrality)):
             integrality[self.integrality[ii]] = 1

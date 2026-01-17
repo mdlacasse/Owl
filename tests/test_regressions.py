@@ -202,7 +202,8 @@ def test_taxfreegrowth1():
     p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
     rate = 4
     p.setRates('user', values=[0, 0, rate, 0])
-    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withSCLoop': False}
+    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver,
+               'withSCLoop': False, 'xorConstraints': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
     assert p.bequest == pytest.approx(1000*amount*(1+rate/100)**n, abs=0.5)
@@ -217,7 +218,8 @@ def test_taxfreegrowth1_2():
     p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
     rate = 4
     p.setRates('user', values=[0, 0, rate, 0])
-    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withSCLoop': False}
+    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver,
+               'withSCLoop': False, 'xorConstraints': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
     assert p.bequest == pytest.approx(1000*amount*(1+rate/100)**n, abs=0.5)
@@ -231,7 +233,8 @@ def test_taxfreegrowth2():
     p.setAllocationRatios('individual', generic=[[[0, 50, 50, 0], [0, 50, 50, 0]]])
     rate = 4
     p.setRates('user', values=[0, rate, rate, 0])
-    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withSCLoop': False}
+    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver,
+               'withSCLoop': False, 'xorConstraints': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
     assert p.bequest == pytest.approx(1000*amount*(1+rate/100)**n, abs=0.5)
@@ -246,7 +249,8 @@ def test_taxfreegrowth2_2():
     p.setAllocationRatios('spouses', generic=[[0, 50, 50, 0], [0, 50, 50, 0]])
     rate = 4
     p.setRates('user', values=[0, rate, rate, 0])
-    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withSCLoop': False}
+    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver,
+               'withSCLoop': False, 'xorConstraints': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
     assert p.bequest == pytest.approx(1000*amount*(1+rate/100)**n, abs=0.5)
@@ -260,7 +264,8 @@ def test_taxfreegrowth3():
     p.setAllocationRatios('individual', generic=[[[50, 50, 0, 0], [50, 50, 0, 0]]])
     rate = 4
     p.setRates('user', values=[rate, rate, 0, 0])
-    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withSCLoop': False}
+    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver,
+               'withSCLoop': False, 'xorConstraints': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
     assert p.bequest == pytest.approx(1000*amount*(1+rate/100)**n, abs=0.5)
@@ -275,7 +280,8 @@ def test_taxfreegrowth3_2():
     p.setAllocationRatios('spouses', generic=[[50, 50, 0, 0], [50, 50, 0, 0]])
     rate = 4
     p.setRates('user', values=[rate, rate, 0, 0])
-    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withSCLoop': False}
+    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver,
+               'withSCLoop': False, 'xorConstraints': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
     assert p.bequest == pytest.approx(1000*amount*(1+rate/100)**n, abs=0.5)
@@ -407,7 +413,8 @@ def test_taxfreegrowth8():
     p.setAllocationRatios('individual', generic=[[[100, 0, 0, 0], [100, 0, 0, 0]]])
     # Inflation should cancel out growth.
     p.setRates('user', values=[4, 0, 0, 4])
-    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withSCLoop': False}
+    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver,
+               'withSCLoop': False, 'xorConstraints': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(1e-7, abs=0.01)
     assert p.bequest == pytest.approx(1000*amount, abs=0.5)
@@ -422,7 +429,8 @@ def test_taxfreegrowth8_2():
     p.setAllocationRatios('spouses', generic=[[100, 0, 0, 0], [100, 0, 0, 0]])
     # Inflation should cancel out growth.
     p.setRates('user', values=[4, 0, 0, 4])
-    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver, 'withSCLoop': False}
+    options = {'maxRothConversion': 0, 'netSpending': 0, 'solver': solver,
+               'withSCLoop': False, 'xorConstraints': False}
     p.solve('maxBequest', options=options)
     assert p.basis == pytest.approx(0, abs=0.01)
     assert p.bequest == pytest.approx(1000*amount, abs=0.5)

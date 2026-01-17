@@ -1,5 +1,7 @@
 """
-Package version information.
+Parameters reference page for Owl retirement planner Streamlit UI.
+
+This module renders the PARAMETERS.md documentation as markdown.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 
@@ -17,4 +19,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-__version__ = "2026.01.17"
+from pathlib import Path
+
+import streamlit as st
+import sskeys as kz
+
+
+st.markdown("# :material/tune: Parameters Reference")
+kz.divider("orange")
+
+parameters_path = Path(__file__).resolve().parents[1] / "PARAMETERS.md"
+try:
+    content = parameters_path.read_text(encoding="utf-8")
+except FileNotFoundError:
+    st.error(f"Unable to locate `{parameters_path.name}` in the project root.")
+else:
+    st.markdown(content)

@@ -320,6 +320,24 @@ class TestGetFixedAssetsArrays:
         assert np.all(ordinary == 0)
         assert np.all(capital == 0)
 
+    def test_negative_yod_counts_from_plan_end(self):
+        """Test negative yod offsets from the end of the plan."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "basis": 100000,
+            "value": 120000,
+            "rate": 0.0,
+            "yod": -1,  # Last plan year
+            "commission": 0.0
+        }])
+        thisyear = 2025
+        N_n = 3  # Plan years: 2025, 2026, 2027
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        # yod = -1 maps to end_year (2027), which is index 2
+        assert capital[2] > 0
+        assert tax_free[2] == pytest.approx(100000, abs=1.0)
+
     def test_asset_with_future_growth(self):
         """Test asset that grows before disposition."""
         df = pd.DataFrame([{
@@ -583,6 +601,23 @@ class TestGetFixedAssetsBequestValue:
         # With 5% commission: proceeds = 403175 * 0.95 ≈ 383016
         assert bequest > 0
         assert bequest == pytest.approx(383016, abs=1000)
+
+    def test_zero_yod_liquidates_at_plan_end(self):
+        """Test yod=0 is treated as liquidated at plan end."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "basis": 100000,
+            "value": 110000,
+            "rate": 0.0,
+            "yod": 0,
+            "commission": 0.0
+        }])
+        thisyear = 2025
+        N_n = 3  # Plan ends in 2027
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        # yod=0 maps to year after plan end, so it is liquidated at plan end
+        assert bequest == pytest.approx(110000, abs=1.0)
 
     def test_asset_with_acquisition_year_in_bequest(self):
         """Test asset with explicit acquisition year in bequest calculation."""

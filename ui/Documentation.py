@@ -409,6 +409,9 @@ where:
 - *rate* is the **annual growth rate** (percentage) applied from the acquisition year to the disposition year.
   This rate is used to calculate the future value of the asset at the time of disposition.
 - *yod* is the **year of disposition**. Assets are disposed at the beginning of the year specified.
+  Negative values count backward from the end of the plan: -1 is the final plan year, -2 is the
+  year before that, and so on. A value of 0 means the asset is liquidated at the end of the plan
+  and added to the bequest.
   If the disposition year is beyond the plan duration, the asset is liquidated at the end of the
   last year of the plan and added to the bequest (no taxes applied, step-up in basis for heirs).
 - *commission* is the **sale commission** (percentage) charged when the asset is disposed. This percentage

@@ -125,6 +125,10 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
         if reference_year > end_year:
             continue
 
+        # Account for negative or null yod with reference to end of plan
+        if yod <= 0:
+            yod = end_year + yod + 1
+
         # Skip if disposition is before reference year (invalid)
         if yod < reference_year:
             continue
@@ -248,6 +252,10 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
         # Skip if asset reference year is after the plan ends
         if reference_year > end_year:
             continue
+
+        # Account for negative or null yod with reference to end of plan
+        if yod <= 0:
+            yod = end_year + yod + 1
 
         # Skip if disposition is before reference year (invalid)
         if yod < reference_year:

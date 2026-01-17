@@ -264,8 +264,8 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
             ),
             "yod": st.column_config.NumberColumn(
                 "yod",
-                help="Year of disposition (y)",
-                min_value=thisyear,
+                help="Year of disposition (y); negative counts from plan end",
+                # min_value=thisyear,    # Can be zero or negative
                 required=True,
                 step=1,
             ),

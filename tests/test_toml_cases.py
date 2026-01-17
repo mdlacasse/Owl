@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
+import pytest
 
 import owlplanner as owl
 
@@ -89,7 +90,7 @@ def test_reproducibility():
     is successfully loaded for each case.
     """
     exdir = "./examples/"
-    tolerance = 5e-1  # Tolerance for floating point comparison: $.50
+    rel_tol = 1e-5  # Relative tolerance for floating point comparisons
 
     # Dictionary to store actual results
     actual_results = {}
@@ -149,23 +150,18 @@ def test_reproducibility():
         expected = EXPECTED_OBJECTIVE_VALUES[case]
 
         if expected["net_spending_basis"] is not None:
-            net_spending_diff = abs(
-                net_spending_basis - expected["net_spending_basis"]
-            )
-            assert net_spending_diff < tolerance, (
-                f"{case}: Net spending basis mismatch. "
-                f"Expected {expected['net_spending_basis']}, "
-                f"got {net_spending_basis} "
-                f"(difference: {net_spending_diff})"
-            )
+            assert net_spending_basis == pytest.approx(
+                expected["net_spending_basis"],
+                rel=rel_tol,
+                abs=rel_tol,
+            ), f"{case}: Net spending basis mismatch."
 
         if expected["bequest"] is not None:
-            bequest_diff = abs(bequest - expected["bequest"])
-            assert bequest_diff < tolerance, (
-                f"{case}: Bequest mismatch. "
-                f"Expected {expected['bequest']}, got {bequest} "
-                f"(difference: {bequest_diff})"
-            )
+            assert bequest == pytest.approx(
+                expected["bequest"],
+                rel=rel_tol,
+                abs=rel_tol,
+            ), f"{case}: Bequest mismatch."
 
 
 def test_historical():

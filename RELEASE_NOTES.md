@@ -1,3 +1,17 @@
+### Version 2026.01.17
+- Add more parameters to control solver
+- Add capability to specify years from last in fixed assets
+- Document negative/zero fixed-asset disposition years and update UI tooltip
+- Add tests for negative/zero fixed-asset disposition years
+- Improved default values for broader case applicability
+
+### Version 2026.01.15
+- Fix LTCG tax computation (self-consistent stacking accuracy)
+- Add non-taxable portion of SS to MAGI
+- Fix cash flow to include all fixed-asset proceeds
+- Apply max Roth conversion cap across both spouses
+- Clarify SS tax fraction vs LTCG effective rate
+
 ### Version 2026.01.16
 - Extend longevity table to 120yo and add safety checks
 - Add 15% of untaxed SS back to MAGI
