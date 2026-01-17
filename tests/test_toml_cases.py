@@ -53,27 +53,27 @@ def getHFP(exdir, case, check_exists=True):
 
 # Expected objective function values for reproducibility testing
 # Format: {case_name: {"net_spending_basis": value, "bequest": value}}
-# These values are in today's dollars and should remain constant across runs
+# Values are in today's dollars and rounded to the nearest dollar
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
-        "net_spending_basis": 100000.0,
-        "bequest": 8093727.3,
+        "net_spending_basis": 100000,
+        "bequest": 8093727,
     },
     "Case_jack+jill": {
-        "net_spending_basis": 108771.6,
-        "bequest": 500000.0,
+        "net_spending_basis": 108772,
+        "bequest": 500000,
     },
     "Case_joe": {
-        "net_spending_basis": 87461.2,
-        "bequest": 300000.0,
+        "net_spending_basis": 87461,
+        "bequest": 300000,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 167679.9,
-        "bequest": 0.0,
+        "net_spending_basis": 167680,
+        "bequest": 0,
     },
     "Case_kim+sam-bequest": {
-        "net_spending_basis": 145000.0,
-        "bequest": 1083996.1,
+        "net_spending_basis": 145000,
+        "bequest": 1083996,
     },
 }
 
