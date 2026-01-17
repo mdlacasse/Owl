@@ -529,11 +529,14 @@ def syncHouseLists(plan):
         return False
 
     plan.houseLists = {}
+    logger = plan.logger()
     debts = kz.getCaseKey("houseListDebts")
     fixedAssets = kz.getCaseKey("houseListFixedAssets")
 
-    plan.houseLists["Debts"] = conditionDebtsAndFixedAssetsDF(debts, "Debts")
-    plan.houseLists["Fixed Assets"] = conditionDebtsAndFixedAssetsDF(fixedAssets, "Fixed Assets")
+    plan.houseLists["Debts"] = conditionDebtsAndFixedAssetsDF(debts, "Debts", mylog=logger)
+    plan.houseLists["Fixed Assets"] = conditionDebtsAndFixedAssetsDF(
+        fixedAssets, "Fixed Assets", mylog=logger
+    )
 
     return True
 

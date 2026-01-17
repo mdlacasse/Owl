@@ -2025,7 +2025,7 @@ class Plan:
             if maxRoth <= 15:
                 fac = 10
             # Loosen default MIP gap when Medicare is optimized. Even more if rothX == 0
-            gap = fac * 3e-4
+            gap = fac * 1e-3
             options["gap"] = gap
             myoptions["gap"] = gap
             self.mylog.vprint(f"Using restricted gap of {gap}.")

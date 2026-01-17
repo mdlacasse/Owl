@@ -283,7 +283,7 @@ def _conditionHouseTables(dfDict, mylog):
     return houseDic
 
 
-def conditionDebtsAndFixedAssetsDF(df, tableType):
+def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None):
     """
     Condition a DataFrame for Debts or Fixed Assets by:
     - Creating an empty DataFrame with proper columns if df is None or empty
@@ -296,6 +296,8 @@ def conditionDebtsAndFixedAssetsDF(df, tableType):
         The DataFrame to condition, or None/empty to create a new empty DataFrame
     tableType : str
         Type of table: "Debts" or "Fixed Assets"
+    mylog : logger, optional
+        Logger instance for optional UI/log output
 
     Returns
     -------
@@ -376,6 +378,9 @@ def conditionDebtsAndFixedAssetsDF(df, tableType):
         mask = df["year"] < thisyear
         if mask.any():
             df.loc[mask, "year"] = thisyear
+
+    if mylog is not None:
+        mylog.vprint(f"Found {len(df)} valid row(s) in {tableType} table.")
 
     return df
 

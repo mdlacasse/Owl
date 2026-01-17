@@ -115,9 +115,9 @@ else:
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         helpmsg = ("How to compute Medicare and IRMAA premiums:"
-                   " ignore, use self-consistent loop, or use additional variables in optimization."
-                   "In increasing order of accuracy: `None` is fast but inaccurate while `optimize`"
-                   " is slow but accurate.")
+                   " ignore, or use self-consistent loop, or optimize (expert)."
+                   "`None` is fast but inaccurate while `optimize`"
+                   " might require tuning to converge. Use `loop` for most cases.")
         ret = kz.getRadio("Medicare and IRMAA calculations", mediChoices, "withMedicare", help=helpmsg)
         if ret == "optimize":
             st.markdown(":material/warning: Medicare optimization can sometimes have slow convergence -"
