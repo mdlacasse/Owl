@@ -68,7 +68,8 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
     -----------
     fixed_assets_df : pd.DataFrame
         DataFrame with columns: name, type, year, basis, value, rate, yod, commission
-        where 'year' is the reference year (this year or after)
+        where 'year' is the reference year (this year or after). Basis and
+        value are in reference-year dollars.
     N_n : int
         Number of years in the plan (length of output arrays)
     thisyear : int, optional
@@ -215,7 +216,8 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
     -----------
     fixed_assets_df : pd.DataFrame
         DataFrame with columns: name, type, year, basis, value, rate, yod, commission
-        where 'year' is the reference year (this year or after)
+        where 'year' is the reference year (this year or after). Basis and
+        value are in reference-year dollars.
     N_n : int
         Number of years in the plan
     thisyear : int, optional

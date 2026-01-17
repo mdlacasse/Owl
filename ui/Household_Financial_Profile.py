@@ -193,10 +193,10 @@ This information is needed to enforce the five-year maturation rule in Roth savi
             hide_index=True,
             key=kz.genCaseKey("debts")
         )
-        tableCaption = """Values are in nominal $. Additional items can be directly entered
-in the tables by clicking :material/add: on the last row.
+        debtsCaption = """Amounts are in nominal $. Additional items can be directly entered
+in the table by clicking :material/add: on the last row.
 Items can be deleted by selecting rows in the left margin and hitting *Delete*."""
-        st.caption(tableCaption)
+        st.caption(debtsCaption)
 
         # Store edited debts if changed
         if not debtdf.equals(edited_debtdf):
@@ -240,7 +240,7 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
             ),
             "basis": st.column_config.NumberColumn(
                 "basis",
-                help="Enter cost basis ($)",
+                help="Enter cost basis in reference-year dollars ($)",
                 min_value=0,
                 required=True,
                 format="dollar",
@@ -287,7 +287,11 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
             num_rows="dynamic",
             key=kz.genCaseKey("fixed_assets")
         )
-        st.caption(tableCaption)
+        fixedCaption = """Basis and value are in reference-year $ (at the start of the reference year).
+Additional items can be directly entered in the table by clicking :material/add:
+on the last row. Items can be deleted by selecting rows in the left margin and
+hitting *Delete*."""
+        st.caption(fixedCaption)
 
         # Store edited fixed assets if changed
         if not fixeddf.equals(edited_fixeddf):

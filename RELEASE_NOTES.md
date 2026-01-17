@@ -1,3 +1,5 @@
+- Clarify docs for reference year of fixed assets
+
 ### Version 2026.01.17
 - Add more parameters to control solver
 - Add capability to specify years from last in fixed assets
