@@ -152,7 +152,7 @@ Look at the documentation for some suggestions."""
 
             with incol2:
                 kz.initCaseKey("life0", 80)
-                ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", help=longmsg, disabled=diz1)
+                ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0", max_value=120, help=longmsg, disabled=diz1)
 
     with col2:
         if kz.getCaseKey("status") == "married":
@@ -172,7 +172,7 @@ Look at the documentation for some suggestions."""
 
                 with incol2:
                     kz.initCaseKey("life1", 80)
-                    ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1", help=longmsg, disabled=diz1)
+                    ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1", max_value=120, help=longmsg, disabled=diz1)
 
     st.divider()
     cantcreate = kz.isIncomplete() or diz1

@@ -373,7 +373,7 @@ class Plan:
             self.mylog.vprint(f"{self.inames[i]:>14}: life horizon from {thisyear} -> {endyear}.")
 
         # Prepare RMD time series.
-        self.rho_in = tx.rho_in(self.yobs, self.N_n)
+        self.rho_in = tx.rho_in(self.yobs, self.expectancy, self.N_n)
 
         # Initialize guardrails to ensure proper configuration.
         self._adjustedParameters = False
@@ -1442,12 +1442,24 @@ class Plan:
                 self.A.addRow(row, rhs, np.inf)
 
     def _add_roth_conversion_constraints(self, options):
+        # Values in file supercedes everything
         if "maxRothConversion" in options and options["maxRothConversion"] == "file":
             for i in range(self.N_i):
                 for n in range(self.horizons[i]):
                     rhs = self.myRothX_in[i][n]
                     self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), rhs, rhs)
         else:
+            # Don't exclude anyone by default
+            i_x = -1
+            if "noRothConversions" in options and options["noRothConversions"] != "None":
+                rhsopt = options["noRothConversions"]
+                try:
+                    i_x = self.inames.index(rhsopt)
+                except ValueError as e:
+                    raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:") from e
+                for n in range(self.horizons[i_x]):
+                    self.B.setRange(_q2(self.C["x"], i_x, n, self.N_i, self.N_n), 0, 0)
+
             if "maxRothConversion" in options:
                 rhsopt = options["maxRothConversion"]
                 if not isinstance(rhsopt, (int, float)):
@@ -1455,10 +1467,12 @@ class Plan:
 
                 if rhsopt >= 0:
                     rhsopt *= self.optionsUnits
-                    for n in range(self.N_n):
-                        for i in range(self.N_i):
+                    for i in range(self.N_i):
+                        if i == i_x:
+                            continue
+                        for n in range(self.horizons[i]):
                             # Apply the cap per individual (legacy behavior).
-                            self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, rhsopt + 0.01)
+                            self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, rhsopt)
 
             if "startRothConversions" in options:
                 rhsopt = options["startRothConversions"]
@@ -1467,21 +1481,16 @@ class Plan:
                 thisyear = date.today().year
                 yearn = max(rhsopt - thisyear, 0)
                 for i in range(self.N_i):
+                    if i == i_x:
+                        continue
                     nstart = min(yearn, self.horizons[i])
                     for n in range(0, nstart):
                         self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, 0)
 
-            if "noRothConversions" in options and options["noRothConversions"] != "None":
-                rhsopt = options["noRothConversions"]
-                try:
-                    i_x = self.inames.index(rhsopt)
-                except ValueError as e:
-                    raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:") from e
-                for n in range(self.N_n):
-                    self.B.setRange(_q2(self.C["x"], i_x, n, self.N_i, self.N_n), 0, 0)
-
             # Disallow Roth conversions in last year alive.
             for i in range(self.N_i):
+                if i == i_x:
+                    continue
                 self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 1, self.N_i, self.N_n), 0, 0)
 
     def _add_withdrawal_limits(self):

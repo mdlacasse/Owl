@@ -176,7 +176,7 @@ class Bounds:
         self.ind.append(ii)
         self.lb.append(lb)
         self.ub.append(ub)
-        if lb == ub:
+        if np.isclose(lb, ub):
             self.key.append("fx")
         elif ub == np.inf and lb == -np.inf:
             self.key.append("fr")

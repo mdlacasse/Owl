@@ -1,4 +1,5 @@
 ### Version 2026.01.16
+- Extend longevity table to 120yo and add safety checks
 - Add 15% of untaxed SS back to MAGI
 - Update documentation (TeX)
 - Adjust reproducibility tests

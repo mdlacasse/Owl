@@ -367,7 +367,7 @@ def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
     return J_n
 
 
-def rho_in(yobs, N_n):
+def rho_in(yobs, longevity, N_n):
     """
     Return Required Minimum Distribution fractions for each individual.
     This implementation does not support spouses with more than
@@ -410,11 +410,30 @@ def rho_in(yobs, N_n):
         5.2,
         4.9,
         4.6,
+        4.3,
+        4.1,
+        3.9,
+        3.7,
+        3.5,
+        3.4,
+        3.3,
+        3.1,
+        3.0,
+        2.9,
+        2.8,
+        2.7,
+        2.5,
+        2.3,
+        2.0
     ]
 
     N_i = len(yobs)
     if N_i == 2 and abs(yobs[0] - yobs[1]) > 10:
         raise RuntimeError("RMD: Unsupported age difference of more than 10 years.")
+    if np.any(np.array(longevity) > 120):
+        raise RuntimeError(
+            "RMD: Unsupported life expectancy over 120 years."
+        )
 
     rho = np.zeros((N_i, N_n))
     thisyear = date.today().year
