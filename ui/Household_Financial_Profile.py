@@ -195,7 +195,7 @@ This information is needed to enforce the five-year maturation rule in Roth savi
         )
         debtsCaption = """Amounts are in nominal $. Additional items can be directly entered
 in the table by clicking :material/add: on the last row.
-Items can be deleted by selecting rows in the left margin and hitting *Delete*."""
+Items can be deleted by selecting rows in the left margin and pressing the *Delete* key."""
         st.caption(debtsCaption)
 
         # Store edited debts if changed
@@ -290,7 +290,7 @@ Items can be deleted by selecting rows in the left margin and hitting *Delete*."
         fixedCaption = """Basis and value are in reference-year $ (at the start of the reference year).
 Additional items can be directly entered in the table by clicking :material/add:
 on the last row. Items can be deleted by selecting rows in the left margin and
-hitting *Delete*."""
+pressing the *Delete* key."""
         st.caption(fixedCaption)
 
         # Store edited fixed assets if changed

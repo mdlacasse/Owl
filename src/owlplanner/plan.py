@@ -2087,7 +2087,7 @@ class Plan:
 
         # Convergence uses a relative tolerance tied to MILP gap,
         # with an absolute floor to avoid zero/near-zero objectives.
-        gap = options.get("gap", 1e-4)
+        gap = options.get("gap", 5e-5)
         if not isinstance(gap, (int, float)):
             raise ValueError(f"gap {gap} is not a number.")
         abs_tol = options.get("abs_tol", 10)

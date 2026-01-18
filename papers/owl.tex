@@ -393,9 +393,10 @@ as savings account balances are assumed to be rebalanced periodically.
 	Fraction of savings account $j$ that is left to surviving spouse $i_s$ as a beneficiary
 	at the death of individual $i_d$, the first spouse to pass.
 \item [$\psi$]
-	Income tax rate on long-term capital gain and qualified dividends. Rate $\psi$ is 0, 15, or 20\%
-	depending on gross income. If adjusted self-consistently for income, then $\psi$ becomes
- 	time series $\psi_n$.
+	Effective income tax rate on long-term capital gains and qualified dividends.
+	The rate is computed from the LTCG tax brackets using total taxable income, so it is an
+	average (total LTCG tax divided by total LTCG) rather than a marginal rate.
+	If adjusted self-consistently for income, then $\psi$ becomes time series $\psi_n$.
 	This is distinct from the Social Security tax fraction $\Psi$.
 \item [$\Psi$]
 	Fraction of social security that is taxed, which depends on gross income and maxes out at 85\%.
