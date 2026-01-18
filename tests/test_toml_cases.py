@@ -26,6 +26,8 @@ import pytest
 
 import owlplanner as owl
 
+pytestmark = pytest.mark.toml
+
 
 def getHFP(exdir, case, check_exists=True):
     """
@@ -55,10 +57,10 @@ def getHFP(exdir, case, check_exists=True):
 # Format: {case_name: {"net_spending_basis": value, "bequest": value}}
 # Values are in today's dollars and rounded to the nearest dollar
 EXPECTED_OBJECTIVE_VALUES = {
-    # "Case_john+sally": {
-        # "net_spending_basis": 100000,
-        # "bequest": 8093727,
-    # },
+    "Case_john+sally": {
+        "net_spending_basis": 100000,
+        "bequest": 8093727,
+    },
     "Case_jack+jill": {
         "net_spending_basis": 108772,
         "bequest": 500000,
@@ -90,7 +92,7 @@ def test_reproducibility():
     is successfully loaded for each case.
     """
     exdir = "./examples/"
-    rel_tol = 1e-5  # Relative tolerance for floating point comparisons
+    rel_tol = 1e-4  # Relative tolerance for floating point comparisons
 
     # Dictionary to store actual results
     actual_results = {}

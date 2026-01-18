@@ -1,5 +1,7 @@
 - Clarify docs for reference year of fixed assets
 - Improve logging while reading fixed assets and debts
+- Bring all hard-coded constants to top of file
+- Disable tests on GH failing due to different linear solver
 
 ### Version 2026.01.17
 - Add more parameters to control solver

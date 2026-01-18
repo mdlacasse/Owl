@@ -48,6 +48,10 @@ from .plotting.factory import PlotFactory
 # Default values
 BIGM_XOR = 5e7     # 100 times maximum withdrawals or conversions
 BIGM_IRMAA = 5e7   # 100 times maximum MAGI
+GAP = 1e-4
+MILP_GAP = 10 * GAP
+REL_TOL = 1e-6
+ABS_TOL = 10
 
 
 def _genGamma_n(tau):
@@ -2015,18 +2019,17 @@ class Plan:
 
         self.optionsUnits = u.getUnits(myoptions.get("units", "k"))
 
-        oppCostX = options.get("oppCostX", 0.)
+        oppCostX = myoptions.get("oppCostX", 0.)
         self.xnet = 1 - oppCostX / 100.
 
-        # Go easy on MILP
-        if "gap" not in myoptions and options.get("withMedicare", "loop") == "optimize":
+        # Go easy on MILP - auto gap somehow.
+        if "gap" not in myoptions and myoptions.get("withMedicare", "loop") == "optimize":
             fac = 1
             maxRoth = myoptions.get("maxRothConversion", 100)
             if maxRoth <= 15:
                 fac = 10
             # Loosen default MIP gap when Medicare is optimized. Even more if rothX == 0
-            gap = fac * 1e-3
-            options["gap"] = gap
+            gap = fac * MILP_GAP
             myoptions["gap"] = gap
             self.mylog.vprint(f"Using restricted gap of {gap}.")
 
@@ -2050,7 +2053,7 @@ class Plan:
         self.M_n = np.zeros(self.N_n)
 
         self._adjustParameters(self.gamma_n, self.MAGI_n)
-        self._buildOffsetMap(options)
+        self._buildOffsetMap(myoptions)
 
         # Process debts and fixed assets
         self.processDebtsAndFixedAssets()
@@ -2069,9 +2072,9 @@ class Plan:
             raise RuntimeError("Internal error in defining solverMethod.")
 
         self.mylog.vprint(f"Using {solver} solver.")
-        options_txt = textwrap.fill(f"{options}", initial_indent="\t", subsequent_indent="\t", width=100)
-        self.mylog.vprint(f"Solver options:\n{options_txt}.")
-        self._scSolve(objective, options, solverMethod)
+        myoptions_txt = textwrap.fill(f"{myoptions}", initial_indent="\t", subsequent_indent="\t", width=100)
+        self.mylog.vprint(f"Solver options:\n{myoptions_txt}.")
+        self._scSolve(objective, myoptions, solverMethod)
 
         self.objective = objective
         self.solverOptions = myoptions
@@ -2087,16 +2090,16 @@ class Plan:
 
         # Convergence uses a relative tolerance tied to MILP gap,
         # with an absolute floor to avoid zero/near-zero objectives.
-        gap = options.get("gap", 1e-4)
+        gap = options.get("gap", GAP)
         if not isinstance(gap, (int, float)):
             raise ValueError(f"gap {gap} is not a number.")
-        abs_tol = options.get("abs_tol", 10)
+        abs_tol = options.get("abs_tol", ABS_TOL)
         if not isinstance(abs_tol, (int, float)):
             raise ValueError(f"abs_tol {abs_tol} is not a number.")
         rel_tol = options.get("rel_tol")
         if rel_tol is None:
             # Keep rel_tol aligned with solver gap to avoid SC loop chasing noise.
-            rel_tol = max(5e-6, gap / 300)
+            rel_tol = max(REL_TOL, gap / 300)
         if not isinstance(rel_tol, (int, float)):
             raise ValueError(f"rel_tol {rel_tol} is not a number.")
 
