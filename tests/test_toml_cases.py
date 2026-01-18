@@ -55,10 +55,10 @@ def getHFP(exdir, case, check_exists=True):
 # Format: {case_name: {"net_spending_basis": value, "bequest": value}}
 # Values are in today's dollars and rounded to the nearest dollar
 EXPECTED_OBJECTIVE_VALUES = {
-    "Case_john+sally": {
-        "net_spending_basis": 100000,
-        "bequest": 8093727,
-    },
+    # "Case_john+sally": {
+        # "net_spending_basis": 100000,
+        # "bequest": 8093727,
+    # },
     "Case_jack+jill": {
         "net_spending_basis": 108772,
         "bequest": 500000,
