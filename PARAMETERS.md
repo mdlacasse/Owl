@@ -27,7 +27,7 @@ Basic information about the individuals in the plan.
 | `names` | list of strings | Names of the individuals in the plan. Must contain 1 or 2 names. Length determines `N_i` |
 | `date_of_birth` | list of `N_i` ISO dates | Date of birth for each individual in ISO format (e.g., `"1967-01-15"`). Defaults to `"1965-01-15"` if not specified |
 | `life_expectancy` | list of `N_i` integers | Life expectancy in years for each individual |
-| `start_date` | string | Start date of the plan in ISO format (e.g., `"2026-01-01"`). Only the month and day are used; the plan always starts in the current year. Defaults to `"today"` if not specified |
+| `start_date` | string | Start date of the plan (e.g., `"01-01"`, `"01/01"`, `"2026-01-01"`). Only the month and day are used; the plan always starts in the current year. Defaults to `"today"` if not specified |
 
 ---
 
@@ -80,7 +80,7 @@ Investment return rates and inflation assumptions.
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred accounts |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
-| `method` | string | Method for determining rates. Valid values: `"user"`, `"stochastic"`, `"historical"`, `"historical average"`, `"histochastic"`, `"optimistic"`, `"conservative"` |
+| `method` | string | Method for determining rates. Valid values: `"default"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"stochastic"`, `"histochastic"` |
 
 ### Conditional Parameters Based on `method`
 
@@ -95,13 +95,19 @@ Investment return rates and inflation assumptions.
 | `standard_deviations` | list of 4 floats | Standard deviations (as percentages) for each rate type |
 | `correlations` | array | Correlation matrix (4×4) or flattened upper triangle (6 values) for the four rate types |
 
+#### For `method = "stochastic"` or `"histochastic"`:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `rate_seed` | integer | Random seed for reproducible stochastic rates |
+| `reproducible_rates` | boolean | Whether stochastic rates should be reproducible |
+
 #### For `method = "historical"`, `"historical average"`, or `"histochastic"`:
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `from` | integer | Starting year for historical data range (must be between 1928 and 2024) |
-| `to` | integer | Ending year for historical data range (must be between 1928 and 2024, and greater than `from`) |
+| `from` | integer | Starting year for historical data range (must be between 1928 and 2025) |
+| `to` | integer | Ending year for historical data range (must be between 1928 and 2025, and greater than `from`) |
 
-**Note:** If `from` and `to` are not specified for methods that don't require them, they default to the full available range (1928-2025).
+**Note:** `from`/`to` are stored for all methods in saved case files. Methods that do not use them ignore these fields.
 
 ---
 
@@ -112,8 +118,8 @@ Asset allocation strategy and how it changes over time.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `interpolation_method` | string | Method for interpolating asset allocation over time. Valid values: `"linear"`, `"s-curve"` |
-| `interpolation_center` | float | *(For s-curve only)* Center point of the interpolation curve (in years from start) |
-| `interpolation_width` | float | *(For s-curve only)* Width of the interpolation curve (in years) |
+| `interpolation_center` | float | Center point of the interpolation curve (in years from start). Ignored for `"linear"` |
+| `interpolation_width` | float | Width of the interpolation curve (in years). Ignored for `"linear"` |
 | `type` | string | Type of allocation strategy. Valid values: `"account"`, `"individual"`, `"spouses"` |
 
 ### Conditional Parameters Based on `type`
@@ -161,17 +167,18 @@ Options controlling the optimization solver and constraints.
 
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
-| `abs_tol` | float | Absolute convergence tolerance for the self-consistent loop objective. | `10` |
+| `abs_tol` | float | Absolute convergence tolerance for the self-consistent loop objective. | `20` |
 | `bequest` | float | Target bequest value in today's dollars (in `units`). Used when `objective = "maxSpending"`. | `1` (if omitted with `maxSpending`) |
 | `bigM_irmaa` | float | *(Advanced)* Big-M value for Medicare IRMAA bracket constraints (used when `withMedicare = "optimize"`). Should exceed any plausible aggregate MAGI. | `5e7` |
 | `bigM_xor` | float | *(Advanced)* Big-M value for XOR constraints (mutually exclusive operations). Should exceed any individual withdrawal, conversion, or surplus deposit. | `5e7` |
-| `gap` | float | Relative MILP gap used by solvers and to scale convergence tolerances. | `1e-4` (SC loop/MOSEK), `5e-4` (HiGHS); if `withMedicare = "optimize"` and unset, set to `3e-4` (or `3e-3` when `maxRothConversion <= 15`) |
+| `gap` | float | Relative MILP gap used by solvers and to scale convergence tolerances. | `1e-4` (default); if `withMedicare = "optimize"` and unset, set to `1e-3` (or `1e-2` when `maxRothConversion <= 15`) |
 | `maxRothConversion` | float or string | Maximum annual Roth conversion amount (in `units`). Use `"file"` to take per-year limits from time lists; omit for no cap (except last year). | No cap unless provided |
 | `netSpending` | float | Target net spending amount in today's dollars (in `units`). Used when `objective = "maxBequest"`. | Required for `maxBequest` |
 | `noRothConversions` | string | Name of individual for whom Roth conversions are disabled, or `"None"` to allow conversions for all. | `"None"` |
 | `oppCostX` | float | *(Advanced)* Opportunity cost applied to Roth conversions (percent). | `0` |
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |
-| `rel_tol` | float | Relative convergence tolerance for the self-consistent loop objective. | `max(5e-6, gap / 300)` |
+| `rel_tol` | float | Relative convergence tolerance for the self-consistent loop objective. | `max(1e-6, gap / 300)` |
+| `time_limit` | float | Solver time limit in seconds. | `900` |
 | `solver` | string | Solver to use for optimization. Valid values: `"HiGHS"`, `"PuLP/CBC"`, `"PuLP/HiGHS"`, `"MOSEK"`. | `"HiGHS"` |
 | `spendingSlack` | integer | Percentage allowed to deviate from the spending profile (0-50). | `0` |
 | `startRothConversions` | integer | Year when Roth conversions can begin (clamped to the current year). | Current year |

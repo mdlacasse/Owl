@@ -64,7 +64,7 @@ This file is in Excel or LibreOffice format, and must have one tab per individua
 and optionally one for the household debts, and one for fixed assets.
 If no file is provided, values will default to zero, but these values can be edited in the app.
 
-With these two files, a scenario can be created and solved with only a few steps. We will use the case
+With these two files, a full scenario can be created and solved with only a few steps. We will use the case
 of Jack and Jill provided here as an example:
 1) Download these two files from the GitHub repository
  (right-click on the link and select `Save link as...`):

@@ -186,7 +186,7 @@ Once changes are complete hit the `Create case` button."""
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
     cantcopy = cantmodify or kz.caseHasNoPlan()
     if not cantcopy and kz.getCaseKey("stTimeLists") is None:
-        st.info("If you want a copy, make sure the *Household Financial Profile* (if any) has been uploaded.")
+        st.info("Make sure to upload the *Household Financial Profile* next (if any).")
 
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:

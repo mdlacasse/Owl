@@ -81,6 +81,15 @@ def getUnits(units) -> int:
     return fac
 
 
+def get_numeric_option(options, key, default, *, min_value=None) -> float:
+    value = options.get(key, default)
+    if not isinstance(value, (int, float)):
+        raise ValueError(f"{key} {value} is not a number.")
+    if min_value is not None and value < min_value:
+        raise ValueError(f"{key} must be >= {min_value}.")
+    return float(value)
+
+
 # Next two functions could be a one-line lambda functions.
 # e.g., krond = lambda a, b: 1 if a == b else 0
 def krond(a, b) -> int:

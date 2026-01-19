@@ -61,6 +61,7 @@ dev = [
     "pytest>=9.0.2",
 ]
 
+
 [tool.ruff]
 line-length = 120
 indent-width = 4

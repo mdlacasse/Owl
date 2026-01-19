@@ -416,10 +416,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         if not isinstance(to, int):
             to = int(to)
     if rateMethod in ["user", "stochastic"]:
-        rateValues = np.array(diconf["rates_selection"]["values"], dtype=np.float32)
+        rateValues = np.array(diconf["rates_selection"]["values"], dtype=np.float64)
     if rateMethod in ["stochastic"]:
-        stdev = np.array(diconf["rates_selection"]["standard_deviations"], dtype=np.float32)
-        rateCorr = np.array(diconf["rates_selection"]["correlations"], dtype=np.float32)
+        stdev = np.array(diconf["rates_selection"]["standard_deviations"], dtype=np.float64)
+        rateCorr = np.array(diconf["rates_selection"]["correlations"], dtype=np.float64)
     # Load seed and reproducibility flag for stochastic methods
     if rateMethod in ["stochastic", "histochastic"]:
         rateSeed = diconf["rates_selection"].get("rate_seed")
@@ -439,7 +439,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     allocType = diconf["asset_allocation"]["type"]
     if allocType == "account":
         for aType in AccountTypes:
-            boundsAR[aType] = np.array(diconf["asset_allocation"][aType], dtype=np.float32)
+            boundsAR[aType] = np.array(diconf["asset_allocation"][aType], dtype=np.float64)
 
         p.setAllocationRatios(
             allocType,
@@ -448,7 +448,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             taxFree=boundsAR["tax-free"],
         )
     elif allocType == "individual" or allocType == "spouses":
-        boundsAR["generic"] = np.array(diconf["asset_allocation"]["generic"], dtype=np.float32)
+        boundsAR["generic"] = np.array(diconf["asset_allocation"]["generic"], dtype=np.float64)
         p.setAllocationRatios(
             allocType,
             generic=boundsAR["generic"],

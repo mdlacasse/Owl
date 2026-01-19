@@ -46,12 +46,13 @@ from .plotting.factory import PlotFactory
 
 
 # Default values
-BIGM_XOR = 5e7     # 100 times maximum withdrawals or conversions
-BIGM_IRMAA = 5e7   # 100 times maximum MAGI
+BIGM_XOR = 5e7     # 100 times large withdrawals or conversions
+BIGM_IRMAA = 5e7   # 100 times large MAGI
 GAP = 1e-4
 MILP_GAP = 10 * GAP
+ABS_TOL = 20
 REL_TOL = 1e-6
-ABS_TOL = 10
+TIME_LIMIT = 900
 
 
 def _genGamma_n(tau):
@@ -1462,9 +1463,7 @@ class Plan:
                     self.B.setRange(_q2(self.C["x"], i_x, n, self.N_i, self.N_n), 0, 0)
 
             if "maxRothConversion" in options:
-                rhsopt = options["maxRothConversion"]
-                if not isinstance(rhsopt, (int, float)):
-                    raise ValueError(f"Specified maxRothConversion {rhsopt} is not a number.")
+                rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
 
                 if rhsopt >= 0:
                     rhsopt *= self.optionsUnits
@@ -1476,9 +1475,7 @@ class Plan:
                             self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, rhsopt)
 
             if "startRothConversions" in options:
-                rhsopt = options["startRothConversions"]
-                if not isinstance(rhsopt, (int, float)):
-                    raise ValueError(f"Specified startRothConversions {rhsopt} is not a number.")
+                rhsopt = int(u.get_numeric_option(options, "startRothConversions", 0))
                 thisyear = date.today().year
                 yearn = max(rhsopt - thisyear, 0)
                 for i in range(self.N_i):
@@ -1515,9 +1512,7 @@ class Plan:
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
             if "bequest" in options:
-                bequest = options["bequest"]
-                if not isinstance(bequest, (int, float)):
-                    raise ValueError(f"Desired bequest {bequest} is not a number.")
+                bequest = u.get_numeric_option(options, "bequest", 1)
                 bequest *= self.optionsUnits * self.gamma_n[-1]
             else:
                 bequest = 1
@@ -1536,9 +1531,7 @@ class Plan:
                 row.addElem(_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
             self.A.addRow(row, total_bequest_value, total_bequest_value)
         elif objective == "maxBequest":
-            spending = options["netSpending"]
-            if not isinstance(spending, (int, float)):
-                raise ValueError(f"Desired spending provided {spending} is not a number.")
+            spending = u.get_numeric_option(options, "netSpending", 1)
             spending *= self.optionsUnits
             self.B.setRange(_q1(self.C["g"], 0, self.N_n), spending, spending)
 
@@ -1680,9 +1673,7 @@ class Plan:
         if not options.get("xorConstraints", True):
             return
 
-        bigM = options.get("bigM_xor", BIGM_XOR)
-        if not isinstance(bigM, (int, float)):
-            raise ValueError(f"bigM_xor {bigM} is not a number.")
+        bigM = u.get_numeric_option(options, "bigM_xor", BIGM_XOR, min_value=0)
 
         for n in range(self.N_n):
             # Make z_0 and z_1 exclusive binary variables.
@@ -1710,9 +1701,7 @@ class Plan:
 
             # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
             if "maxRothConversion" in options:
-                rhsopt = options["maxRothConversion"]
-                if not isinstance(rhsopt, (int, float)):
-                    raise ValueError(f"Specified maxRothConversion {rhsopt} is not a number.")
+                rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
                 if False and rhsopt < -1:
                     return
 
@@ -1744,9 +1733,7 @@ class Plan:
             return
 
         # Default: 1e8 (100 million) - bounds aggregate MAGI, typically larger than bigM_xor
-        bigM = options.get("bigM_irmaa", BIGM_IRMAA)
-        if not isinstance(bigM, (int, float)):
-            raise ValueError(f"bigM_irmaa {bigM} is not a number.")
+        bigM = u.get_numeric_option(options, "bigM_irmaa", BIGM_IRMAA, min_value=0)
 
         Nmed = self.N_n - self.nm
         offset = 0
@@ -1975,7 +1962,7 @@ class Plan:
             "abs_tol",
             "bequest",
             "bigM_irmaa",  # Big-M value for Medicare IRMAA constraints (default: 1e7)
-            "bigM_xor",  # Big-M value for XOR constraints (default: 5e6)
+            "bigM_xor",    # Big-M value for XOR constraints (default: 5e6)
             "gap",
             "maxRothConversion",
             "netSpending",
@@ -1986,6 +1973,7 @@ class Plan:
             "solver",
             "spendingSlack",
             "startRothConversions",
+            "time_limit",
             "units",
             "verbose",
             "withMedicare",
@@ -2090,19 +2078,13 @@ class Plan:
 
         # Convergence uses a relative tolerance tied to MILP gap,
         # with an absolute floor to avoid zero/near-zero objectives.
-        gap = options.get("gap", GAP)
-        if not isinstance(gap, (int, float)):
-            raise ValueError(f"gap {gap} is not a number.")
-        abs_tol = options.get("abs_tol", ABS_TOL)
-        if not isinstance(abs_tol, (int, float)):
-            raise ValueError(f"abs_tol {abs_tol} is not a number.")
+        gap = u.get_numeric_option(options, "gap", GAP, min_value=0)
+        abs_tol = u.get_numeric_option(options, "abs_tol", ABS_TOL, min_value=0)
         rel_tol = options.get("rel_tol")
         if rel_tol is None:
             # Keep rel_tol aligned with solver gap to avoid SC loop chasing noise.
             rel_tol = max(REL_TOL, gap / 300)
-        if not isinstance(rel_tol, (int, float)):
-            raise ValueError(f"rel_tol {rel_tol} is not a number.")
-
+        # rel_tol = u.get_numeric_option({"rel_tol": rel_tol}, "rel_tol", REL_TOL, min_value=0)
         self.mylog.vprint(f"Using rel_tol={rel_tol:.2e}, abs_tol={abs_tol:.2e}, and gap={gap:.2e}.")
 
         if objective == "maxSpending":
@@ -2132,7 +2114,7 @@ class Plan:
             absObjDiff = abs(objFac*(objfn + old_objfns[-1]))
             scaled_obj = objfn * objFac
             scaled_obj_history.append(scaled_obj)
-            self.mylog.vprint(f"Iteration: {it} objective: {u.d(scaled_obj, f=2)},"
+            self.mylog.vprint(f"Iteration: {it:02}, f: {u.d(scaled_obj, f=2)},"
                               f" |dX|: {absSolDiff:.2f}, |df|: {u.d(absObjDiff, f=2)}")
 
             # Solution difference is calculated and reported but not used for convergence
@@ -2223,18 +2205,17 @@ class Plan:
         """
         from scipy import optimize
 
-        mygap = options.get("gap", 5e-4)
-        if not isinstance(mygap, (int, float)):
-            raise ValueError(f"gap {mygap} is not a number.")
+        time_limit = u.get_numeric_option(options, "time_limit", TIME_LIMIT, min_value=0)  # seconds
+        mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
         verbose = options.get("verbose", False)
 
         # Optimize solver parameters
         milpOptions = {
             "disp": bool(verbose),
-            "mip_rel_gap": mygap,    # Default 1e-4
+            "mip_rel_gap": mygap,    # Internal default in milp is 1e-4
             "presolve": True,
-            "time_limit": 900,     # No more that 15 minutes
-            "node_limit": 1000000  # Limit search nodes for faster solutions
+            "time_limit": time_limit,
+            "node_limit": 1000000    # Limit search nodes for faster solutions
         }
 
         self._buildConstraints(objective, options)
@@ -2347,15 +2328,17 @@ class Plan:
         vkeys = self.B.keys()
         cind, cval = self.c.lists()
 
-        mygap = options.get("gap", 1e-4)
+        time_limit = u.get_numeric_option(options, "time_limit", TIME_LIMIT, min_value=0)
+        mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
+
         verbose = options.get("verbose", False)
 
         task = mosek.Task()
-        task.putdouparam(mosek.dparam.mio_max_time, 900.0)           # Default -1
+        task.putdouparam(mosek.dparam.mio_max_time, time_limit)           # Default -1
         # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)       # Default 1e-10
-        task.putdouparam(mosek.dparam.mio_tol_rel_gap, mygap)         # Default 1e-4
+        task.putdouparam(mosek.dparam.mio_tol_rel_gap, mygap)          # Default 1e-4
         # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-5)   # Default 1e-5
-        # task.putdouparam(mosek.iparam.mio_heuristic_level, 3)      # Default -1
+        # task.putdouparam(mosek.iparam.mio_heuristic_level, 3)        # Default -1
         task.appendcons(self.A.ncons)
         task.appendvars(self.A.nvars)
         if verbose:
