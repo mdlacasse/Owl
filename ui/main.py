@@ -20,15 +20,52 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import json
+import time
+import traceback
+
 import streamlit as st
 
 import sskeys as kz
+
+# region agent log
+def _agent_log(hypothesis_id, location, message, data=None):
+    payload = {
+        "sessionId": "debug-session",
+        "runId": "pre-fix",
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data or {},
+        "timestamp": int(time.time() * 1000),
+    }
+    with open("/Users/mdlacasse/Owl/.cursor/debug.log", "a", encoding="utf-8") as logf:
+        logf.write(json.dumps(payload) + "\n")
+# endregion
+
+# region agent log
+_agent_log(
+    "H1",
+    "ui/main.py:34",
+    "main_imported",
+    {"pages_defined": True},
+)
+# endregion
 
 # Pick one for narrow or wide graphs. That can also be changed in upper-right settings menu.
 st.set_page_config(layout="wide", page_title="Owl Retirement Planner")
 # st.set_page_config(layout="centered", page_title="Owl Retirement Planner")
 
 kz.init()
+
+# region agent log
+_agent_log(
+    "H2",
+    "ui/main.py:50",
+    "kz_init_complete",
+    {"case_name": kz.currentCaseName()},
+)
+# endregion
 
 # Use URL-based logo from ui folder for simplicity and reliability
 st.logo("https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png", size="large")
@@ -67,4 +104,32 @@ kz.initGlobalKey("position", "sticky")
 
 pg = st.navigation(pages, position=kz.getGlobalKey("menuLocation"))
 
-pg.run()
+# region agent log
+_agent_log(
+    "H3",
+    "ui/main.py:88",
+    "pg_run_start",
+    {"menu_location": kz.getGlobalKey("menuLocation"), "page_groups": list(pages.keys())},
+)
+# endregion
+try:
+    pg.run()
+except Exception as exc:  # noqa: BLE001 - debug instrumentation
+    # region agent log
+    _agent_log(
+        "H1",
+        "ui/main.py:96",
+        "pg_run_exception",
+        {"error": str(exc), "traceback": traceback.format_exc()},
+    )
+    # endregion
+    raise
+else:
+    # region agent log
+    _agent_log(
+        "H3",
+        "ui/main.py:105",
+        "pg_run_complete",
+        {},
+    )
+    # endregion
