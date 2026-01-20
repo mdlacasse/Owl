@@ -241,6 +241,17 @@ def _setRates(plan):
     rateType = kz.getCaseKey("rateType")
     yfrm = kz.getCaseKey("yfrm")
     yto = kz.getCaseKey("yto")
+    adjusted_range = False
+
+    if yfrm is not None and yto is not None and yfrm >= yto:
+        if yfrm < TO:
+            yto = yfrm + 1
+        else:
+            yto = TO
+            yfrm = TO - 1
+        kz.pushCaseKey("yfrm", yfrm)
+        kz.pushCaseKey("yto", yto)
+        adjusted_range = True
 
     if rateType is None:
         st.info("Rate type not selected yet.")
@@ -248,6 +259,8 @@ def _setRates(plan):
 
     if rateType == "fixed":
         if kz.getCaseKey("fixedType") == "historical average":
+            if adjusted_range:
+                st.warning("Ending year adjusted to be after starting year.")
             plan.setRates("historical average", yfrm, yto)
             # Set fxRates back to computed values.
             for j in range(4):
@@ -277,6 +290,8 @@ def _setRates(plan):
                     st.warning(f"Using {yfrm} as starting year.")
                 yto = min(TO, yfrm + plan.N_n - 1)
                 kz.pushCaseKey("yto", yto)
+            elif adjusted_range:
+                st.warning("Ending year adjusted to be after starting year.")
 
             # Set reproducibility for histochastic methods
             if varyingType == "histochastic":

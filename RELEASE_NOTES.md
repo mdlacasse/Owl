@@ -1,3 +1,4 @@
+- Fixed bug in UI when historical lower bound above top
 - Clarify docs for reference year of fixed assets
 - Improve logging while reading fixed assets and debts
 - Bring all hard-coded constants to top of file
