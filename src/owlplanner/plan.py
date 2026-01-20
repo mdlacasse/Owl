@@ -1343,6 +1343,8 @@ class Plan:
         C["zm"] = _qC(C["zx"], self.N_n, self.N_zx)
         self.nvars = _qC(C["zm"], self.N_n - self.nm, self.N_q - 1) if medi else C["zm"]
         self.nbins = self.nvars - C["zx"]
+        self.nconts = C["zx"]
+        self.nbals = C["d"]
 
         self.C = C
         self.mylog.vprint(
@@ -2095,7 +2097,7 @@ class Plan:
         # rel_tol = u.get_numeric_option({"rel_tol": rel_tol}, "rel_tol", REL_TOL, min_value=0)
         self.mylog.vprint(f"Using rel_tol={rel_tol:.2e}, abs_tol={abs_tol:.2e}, and gap={gap:.2e}.")
 
-        max_iterations = u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1)
+        max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
         self.mylog.vprint(f"Using maxIter={max_iterations}.")
 
         if objective == "maxSpending":
@@ -2121,12 +2123,13 @@ class Plan:
             self._computeNLstuff(xx, includeMedicare)
 
             delta = xx - old_x
-            absSolDiff = np.sum(np.abs(delta), axis=0)
+            # Only consider account balances in dX.
+            absSolDiff = np.sum(np.abs(delta[:self.nbals]), axis=0)/self.nbals
             absObjDiff = abs(objFac*(objfn + old_objfns[-1]))
             scaled_obj = objfn * objFac
             scaled_obj_history.append(scaled_obj)
-            self.mylog.vprint(f"Iteration: {it:02}, f: {u.d(scaled_obj, f=2)},"
-                              f" |dX|: {absSolDiff:.2f}, |df|: {u.d(absObjDiff, f=2)}")
+            self.mylog.vprint(f"Iteration: {it:02}, f: {u.d(scaled_obj, f=0)};"
+                              f" |dX|: {absSolDiff:.0f}; |df|: {u.d(absObjDiff, f=0)}")
 
             # Solution difference is calculated and reported but not used for convergence
             # since it scales with problem size and can prevent convergence for large cases.
