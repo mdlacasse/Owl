@@ -492,11 +492,12 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	rules around tax-free interests which are insignificant in most cases.
 
 \item [$\mathbb{I}_n$]
-	Interests earned from taxable account.
+	Interests and taxable gains earned from taxable account.
 	\begin{equation}
 		\mathbb{I}_n = \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
 		     + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}].
 	\end{equation}
+	Note that $\mathbb{I}$ can be negative by definition, and will need to be clamped to zero if so.
 
 \item [$P_n$]
 	Amount of 10\% early withdrawal penalty in year $n$,

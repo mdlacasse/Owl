@@ -1,4 +1,5 @@
 ### Version 2026.01.20
+- Fix negative taxable gains in years of negative returns
 - Fix limits in UI not allowing negative rates
 - Add more control hooks on solver (xor, maxIter)
 - Clarify docs for reference year of fixed assets

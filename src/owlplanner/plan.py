@@ -2525,11 +2525,10 @@ class Plan:
         self.G_n = np.sum(self.f_tn, axis=0)
 
         tau_0 = np.array(self.tau_kn[0, :])
-        tau_0[tau_0 < 0] = 0
         # Last year's rates.
         tau_0prev = np.roll(tau_0, 1)
         # Capital gains = price appreciation only (total return - dividend rate)
-        # to avoid double taxation of dividends
+        # to avoid double taxation of dividends. No tax harvesting here.
         capital_gains_rate = np.maximum(0, tau_0prev - self.mu)
         self.Q_n = np.sum(
             (
@@ -2549,7 +2548,8 @@ class Plan:
 
         I_in = ((self.b_ijn[:, 0, :-1] + self.d_in - self.w_ijn[:, 0, :])
                 * np.sum(self.alpha_ijkn[:, 0, 1:, :Nn] * self.tau_kn[1:, :], axis=1))
-        self.I_n = np.sum(I_in, axis=0)
+        # Clamp interest/dividend income to non-negative. Sum over individuals to share losses across spouses.
+        self.I_n = np.maximum(0, np.sum(I_in, axis=0))
 
         # Stop after building minimum required for self-consistent loop.
         if short:
