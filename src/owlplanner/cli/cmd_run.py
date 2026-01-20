@@ -24,28 +24,6 @@ import click
 from loguru import logger
 import owlplanner as owl
 from pathlib import Path
-from openpyxl import load_workbook
-
-
-def insert_text_file_as_first_sheet(
-    xlsx_path: Path,
-    text_path: Path,
-    sheet_name: str = "Config (.toml)",
-):
-    """
-    Insert the contents of a text file as the first worksheet in an Excel file.
-    Each line goes into its own row (column A).
-    """
-    wb = load_workbook(xlsx_path)
-
-    # Create new sheet at position 0
-    ws = wb.create_sheet(title=sheet_name, index=0)
-
-    with text_path.open("r", encoding="utf-8") as f:
-        for row_idx, line in enumerate(f, start=1):
-            ws.cell(row=row_idx, column=1, value=line.rstrip())
-
-    wb.save(xlsx_path)
 
 
 def validate_toml(ctx, param, value: Path):
@@ -76,7 +54,15 @@ def validate_toml(ctx, param, value: Path):
     type=click.Path(exists=False, dir_okay=False, path_type=Path),
     callback=validate_toml,
 )
-def cmd_run(filename: Path):
+@click.option(
+    "--with-config",
+    "with_config",
+    type=click.Choice(["no", "first", "last"], case_sensitive=False),
+    default="first",
+    show_default=True,
+    help="Include config TOML sheet at the first or last position.",
+)
+def cmd_run(filename: Path, with_config: str):
     """Run the solver for an input OWL plan file.
 
     FILENAME is the OWL plan file to run. If no extension is provided,
@@ -86,8 +72,7 @@ def cmd_run(filename: Path):
     The output filename is derived from the input filename by appending
     '_results.xlsx' to the stem of the input filename.
 
-    The input TOML file will be inserted as the first worksheet in the output Excel file
-    for reference.
+    Optionally include the case configuration as a TOML worksheet.
 
     """
     logger.debug(f"Executing the run command with file: {filename}")
@@ -97,10 +82,5 @@ def cmd_run(filename: Path):
     click.echo(f"Case status: {plan.caseStatus}")
     if plan.caseStatus == "solved":
         output_filename = filename.with_name(filename.stem + "_results.xlsx")
-        plan.saveWorkbook(basename=output_filename, overwrite=True)
-        # Insert TOML file as first worksheet
-        insert_text_file_as_first_sheet(
-            xlsx_path=output_filename,
-            text_path=filename,
-        )
+        plan.saveWorkbook(basename=output_filename, overwrite=True, with_config=with_config)
         click.echo(f"Results saved to: {output_filename}")

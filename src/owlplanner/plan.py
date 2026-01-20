@@ -1709,28 +1709,28 @@ class Plan:
         # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
         if options.get("xorRoth", True):
             for n in range(self.N_n):
-               # Make z_2 and z_3 exclusive binary variables.
-               dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                       _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
-               if self.N_i == 2:
-                   dic1 = {_q2(self.C["x"], 1, n, self.N_i, self.N_n): -1}
-                   dic0.update(dic1)
+                # Make z_2 and z_3 exclusive binary variables.
+                dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
+                        _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
+                if self.N_i == 2:
+                    dic1 = {_q2(self.C["x"], 1, n, self.N_i, self.N_n): -1}
+                    dic0.update(dic1)
 
-                   self.A.addNewRow(dic0, 0, np.inf)
+                self.A.addNewRow(dic0, 0, np.inf)
 
-                   dic0 = {_q2(self.C["zx"], n, 3, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                           _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
-                   if self.N_i == 2:
-                       dic1 = {_q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
-                       dic0.update(dic1)
+                dic0 = {_q2(self.C["zx"], n, 3, self.N_n, self.N_zx): bigM*self.gamma_n[n],
+                        _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                if self.N_i == 2:
+                    dic1 = {_q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                    dic0.update(dic1)
 
-                   self.A.addNewRow(dic0, 0, np.inf)
+                self.A.addNewRow(dic0, 0, np.inf)
 
-                   self.A.addNewRow(
-                       {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): +1,
-                        _q2(self.C["zx"], n, 3, self.N_n, self.N_zx): +1},
-                       0, 1
-                   )
+                self.A.addNewRow(
+                    {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): +1,
+                     _q2(self.C["zx"], n, 3, self.N_n, self.N_zx): +1},
+                    0, 1
+                )
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -3072,7 +3072,7 @@ class Plan:
         self._plotter.jupyter_renderer(fig)
         return None
 
-    def saveWorkbook(self, overwrite=False, *, basename=None, saveToFile=True):
+    def saveWorkbook(self, overwrite=False, *, basename=None, saveToFile=True, with_config="no"):
         """
         Save instance in an Excel spreadsheet.
         The first worksheet will contain income in the following
@@ -3106,7 +3106,30 @@ class Plan:
         - tax-free account.
 
         Last worksheet contains summary.
+
+        with_config controls whether to insert the current case configuration
+        as a TOML sheet. Valid values are:
+        - "no": do not include config
+        - "first": insert config as the first sheet
+        - "last": insert config as the last sheet
         """
+        def add_config_sheet(position):
+            if with_config == "no":
+                return
+            if with_config not in {"no", "first", "last"}:
+                raise ValueError(f"Invalid with_config option '{with_config}'.")
+            if position != with_config:
+                return
+
+            from io import StringIO
+
+            config_buffer = StringIO()
+            config.saveConfig(self, config_buffer, self.mylog)
+            config_buffer.seek(0)
+
+            ws_config = wb.create_sheet(title="Config (.toml)", index=0 if position == "first" else None)
+            for row_idx, line in enumerate(config_buffer.getvalue().splitlines(), start=1):
+                ws_config.cell(row=row_idx, column=1, value=line)
 
         def fillsheet(sheet, dic, datatype, op=lambda x: x):
             rawData = {}
@@ -3126,6 +3149,7 @@ class Plan:
             _formatSpreadsheet(ws, datatype)
 
         wb = Workbook()
+        add_config_sheet("first")
 
         # Income.
         ws = wb.active
@@ -3283,6 +3307,7 @@ class Plan:
             ws.append(row)
 
         _formatSpreadsheet(ws, "summary")
+        add_config_sheet("last")
 
         if saveToFile:
             if basename is None:
