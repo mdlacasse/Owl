@@ -187,6 +187,8 @@ Options controlling the optimization solver and constraints.
 | `withMedicare` | string | Medicare IRMAA handling. Valid values: `"None"`, `"loop"`, `"optimize"`. | `"loop"` |
 | `withSCLoop` | boolean | Whether to use the self-consistent loop for solving. | `true` |
 | `xorConstraints` | boolean | Whether to use XOR constraints in the optimization. | `true` |
+| `xorConstraintsRoth` | boolean | Whether to enforce XOR constraints for Roth conversions. Requires `xorConstraints = true`. | `true` |
+| `xorConstraintsSurplus` | boolean | Whether to enforce XOR constraints for surplus deposits. Requires `xorConstraints = true`. | `true` |
 
 **Note:** The solver options dictionary is passed directly to the optimization routine. Only the options listed above are validated; other options may be accepted but are not documented here.
 
@@ -273,6 +275,8 @@ bequest = 500
 solver = "HiGHS"
 spendingSlack = 0
 xorConstraints = true
+xorConstraintsRoth = true
+xorConstraintsSurplus = true
 withSCLoop = true
 
 [results]
