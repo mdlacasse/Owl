@@ -1675,58 +1675,61 @@ class Plan:
 
         bigM = u.get_numeric_option(options, "bigM_xor", BIGM_XOR, min_value=0)
 
-        for n in range(self.N_n):
-            # Make z_0 and z_1 exclusive binary variables.
-            dic0 = {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                    _q3(self.C["w"], 0, 0, n, self.N_i, self.N_j, self.N_n): -1,
-                    _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
-            if self.N_i == 2:
-                dic1 = {_q3(self.C["w"], 1, 0, n, self.N_i, self.N_j, self.N_n): -1,
-                        _q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
-                dic0.update(dic1)
+        if options.get("xorConstraintsSurplus", True):
+            for n in range(self.N_n):
+                # Make z_0 and z_1 exclusive binary variables.
+                dic0 = {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): bigM*self.gamma_n[n],
+                        _q3(self.C["w"], 0, 0, n, self.N_i, self.N_j, self.N_n): -1,
+                        _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                if self.N_i == 2:
+                    dic1 = {_q3(self.C["w"], 1, 0, n, self.N_i, self.N_j, self.N_n): -1,
+                            _q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                    dic0.update(dic1)
 
-            self.A.addNewRow(dic0, 0, np.inf)
+                self.A.addNewRow(dic0, 0, np.inf)
 
-            self.A.addNewRow(
-                {_q2(self.C["zx"], n, 1, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                 _q1(self.C["s"], n, self.N_n): -1},
-                0, np.inf)
+                self.A.addNewRow(
+                    {_q2(self.C["zx"], n, 1, self.N_n, self.N_zx): bigM*self.gamma_n[n],
+                     _q1(self.C["s"], n, self.N_n): -1},
+                    0, np.inf)
 
-            # As both can be zero, bound as z_0 + z_1 <= 1
-            self.A.addNewRow(
-                {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): +1,
-                 _q2(self.C["zx"], n, 1, self.N_n, self.N_zx): +1},
-                0, 1
-            )
+                # As both can be zero, bound as z_0 + z_1 <= 1
+                self.A.addNewRow(
+                    {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): +1,
+                     _q2(self.C["zx"], n, 1, self.N_n, self.N_zx): +1},
+                    0, 1
+                )
 
-            # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
+        # Turning off this constraint for maxRothConversions = 0 makes solution infeasible. Why?
+        if options.get("xorConstraintsRoth", True):
             if "maxRothConversion" in options:
                 rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
-                if False and rhsopt < -1:
+                if rhsopt < -1:
                     return
 
-            # Make z_2 and z_3 exclusive binary variables.
-            dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                    _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
-            if self.N_i == 2:
-                dic1 = {_q2(self.C["x"], 1, n, self.N_i, self.N_n): -1}
-                dic0.update(dic1)
+            for n in range(self.N_n):
+                # Make z_2 and z_3 exclusive binary variables.
+                dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
+                        _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
+                if self.N_i == 2:
+                    dic1 = {_q2(self.C["x"], 1, n, self.N_i, self.N_n): -1}
+                    dic0.update(dic1)
 
-            self.A.addNewRow(dic0, 0, np.inf)
+                self.A.addNewRow(dic0, 0, np.inf)
 
-            dic0 = {_q2(self.C["zx"], n, 3, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                    _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
-            if self.N_i == 2:
-                dic1 = {_q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
-                dic0.update(dic1)
+                dic0 = {_q2(self.C["zx"], n, 3, self.N_n, self.N_zx): bigM*self.gamma_n[n],
+                        _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                if self.N_i == 2:
+                    dic1 = {_q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                    dic0.update(dic1)
 
-            self.A.addNewRow(dic0, 0, np.inf)
+                self.A.addNewRow(dic0, 0, np.inf)
 
-            self.A.addNewRow(
-                {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): +1,
-                 _q2(self.C["zx"], n, 3, self.N_n, self.N_zx): +1},
-                0, 1
-            )
+                self.A.addNewRow(
+                    {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): +1,
+                     _q2(self.C["zx"], n, 3, self.N_n, self.N_zx): +1},
+                    0, 1
+                )
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -1979,6 +1982,8 @@ class Plan:
             "withMedicare",
             "withSCLoop",
             "xorConstraints",
+            "xorConstraintsRoth",
+            "xorConstraintsSurplus",
         ]
         # We might modify options if required.
         options = {} if options is None else options
