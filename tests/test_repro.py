@@ -28,8 +28,8 @@ from io import StringIO
 import owlplanner as owl
 
 
-# solver = 'MOSEK'
 solver = 'HiGHS'
+# solver = 'MOSEK'
 thisyear = date.today().year
 
 SPENDING1 = 87021

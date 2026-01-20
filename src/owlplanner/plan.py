@@ -1967,7 +1967,7 @@ class Plan:
             "bigM_irmaa",  # Big-M value for Medicare IRMAA constraints (default: 1e7)
             "bigM_xor",    # Big-M value for XOR constraints (default: 5e6)
             "gap",
-            "maxIterations",
+            "maxIter",
             "maxRothConversion",
             "netSpending",
             "noRothConversions",
@@ -1977,14 +1977,14 @@ class Plan:
             "solver",
             "spendingSlack",
             "startRothConversions",
-            "time_limit",
+            "maxTime",
             "units",
             "verbose",
             "withMedicare",
             "withSCLoop",
             "xorConstraints",
-            "xorConstraintsRoth",
-            "xorConstraintsSurplus",
+            "xorRoth",
+            "xorsSurplus",
         ]
         # We might modify options if required.
         options = {} if options is None else options
@@ -2094,8 +2094,8 @@ class Plan:
         # rel_tol = u.get_numeric_option({"rel_tol": rel_tol}, "rel_tol", REL_TOL, min_value=0)
         self.mylog.vprint(f"Using rel_tol={rel_tol:.2e}, abs_tol={abs_tol:.2e}, and gap={gap:.2e}.")
 
-        maxIterations = u.get_numeric_option(options, "maxIterations", MAX_ITERATIONS, min_value=1)
-        self.mylog.vprint(f"Using maxIterations={maxIterations}.")
+        max_iterations = u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1)
+        self.mylog.vprint(f"Using maxIter={max_iterations}.")
 
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
@@ -2186,7 +2186,7 @@ class Plan:
                     self.mylog.vprint("Accepting solution from cycle and terminating.")
                     break
 
-            if it > maxIterations:
+            if it >= max_iterations:
                 self.convergenceType = "max iteration"
                 self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
                 break
@@ -2215,7 +2215,7 @@ class Plan:
         """
         from scipy import optimize
 
-        time_limit = u.get_numeric_option(options, "time_limit", TIME_LIMIT, min_value=0)  # seconds
+        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)  # seconds
         mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
         verbose = options.get("verbose", False)
 
@@ -2338,7 +2338,7 @@ class Plan:
         vkeys = self.B.keys()
         cind, cval = self.c.lists()
 
-        time_limit = u.get_numeric_option(options, "time_limit", TIME_LIMIT, min_value=0)
+        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
         mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
 
         verbose = options.get("verbose", False)
