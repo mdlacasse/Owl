@@ -1984,7 +1984,7 @@ class Plan:
             "withSCLoop",
             "xorConstraints",
             "xorRoth",
-            "xorsSurplus",
+            "xorSurplus",
         ]
         # We might modify options if required.
         options = {} if options is None else options
