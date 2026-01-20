@@ -121,16 +121,20 @@ forecasts for the next decade can be found
 
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
-            kz.getNum("S&P 500", "fxRate0", disabled=ro, step=1.0, help=helpmsgSP500, callback=updateRates)
+            kz.getNum("S&P 500", "fxRate0", disabled=ro, step=1.0, help=helpmsgSP500,
+                      callback=updateRates, min_value=-100.0, max_value=100.0)
 
         with col2:
-            kz.getNum("Corporate Bonds Baa", "fxRate1", disabled=ro, step=1.0, help=helpmsgBaa, callback=updateRates)
+            kz.getNum("Corporate Bonds Baa", "fxRate1", disabled=ro, step=1.0, help=helpmsgBaa,
+                      callback=updateRates, min_value=-100.0, max_value=100.0)
 
         with col3:
-            kz.getNum("10-y Treasury Notes", "fxRate2", disabled=ro, step=1.0, help=helpmsgTnote, callback=updateRates)
+            kz.getNum("10-y Treasury Notes", "fxRate2", disabled=ro, step=1.0, help=helpmsgTnote,
+                      callback=updateRates, min_value=-100.0, max_value=100.0)
 
         with col4:
-            kz.getNum("Cash Assets/Inflation", "fxRate3", disabled=ro, step=1.0, help=helpmsgCash, callback=updateRates)
+            kz.getNum("Cash Assets/Inflation", "fxRate3", disabled=ro, step=1.0, help=helpmsgCash,
+                      callback=updateRates, min_value=-100.0, max_value=100.0)
 
     elif kz.getCaseKey("rateType") == "varying":
         with col2:
@@ -178,22 +182,22 @@ forecasts for the next decade can be found
         with col1:
             kz.initCaseKey("mean0", 0)
             kz.getNum("S&P 500", "mean0", disabled=ro, help=helpmsgSP500,
-                      step=1.0, min_value=-9.0, callback=updateRates)
+                      step=1.0, min_value=-100.0, max_value=100.0, callback=updateRates)
 
         with col2:
             kz.initCaseKey("mean1", 0)
             kz.getNum("Corporate Bonds Baa", "mean1", disabled=ro, help=helpmsgBaa,
-                      step=1.0, min_value=-9.0, callback=updateRates)
+                      step=1.0, min_value=-100.0, max_value=100.0, callback=updateRates)
 
         with col3:
             kz.initCaseKey("mean2", 0)
             kz.getNum("10-y Treasury Notes", "mean2", disabled=ro, step=1.0, help=helpmsgTnote,
-                      min_value=-9.0, callback=updateRates)
+                      min_value=-100.0, max_value=100.0, callback=updateRates)
 
         with col4:
             kz.initCaseKey("mean3", 0)
             kz.getNum("Cash Assets/Inflation", "mean3", disabled=ro, help=helpmsgCash,
-                      step=1.0, min_value=-9.0, callback=updateRates)
+                      step=1.0, min_value=-100.0, max_value=100.0, callback=updateRates)
 
         st.markdown("##### Volatility (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")

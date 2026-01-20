@@ -50,6 +50,7 @@ BIGM_XOR = 5e7     # 100 times large withdrawals or conversions
 BIGM_IRMAA = 5e7   # 100 times large MAGI
 GAP = 1e-4
 MILP_GAP = 10 * GAP
+MAX_ITERATIONS = 29
 ABS_TOL = 20
 REL_TOL = 1e-6
 TIME_LIMIT = 900
@@ -1675,36 +1676,38 @@ class Plan:
 
         bigM = u.get_numeric_option(options, "bigM_xor", BIGM_XOR, min_value=0)
 
-        for n in range(self.N_n):
-            # Make z_0 and z_1 exclusive binary variables.
-            dic0 = {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                    _q3(self.C["w"], 0, 0, n, self.N_i, self.N_j, self.N_n): -1,
-                    _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
-            if self.N_i == 2:
-                dic1 = {_q3(self.C["w"], 1, 0, n, self.N_i, self.N_j, self.N_n): -1,
-                        _q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
-                dic0.update(dic1)
+        if options.get("xorConstraintsSurplus", True):
+            for n in range(self.N_n):
+                # Make z_0 and z_1 exclusive binary variables.
+                dic0 = {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): bigM*self.gamma_n[n],
+                        _q3(self.C["w"], 0, 0, n, self.N_i, self.N_j, self.N_n): -1,
+                        _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                if self.N_i == 2:
+                    dic1 = {_q3(self.C["w"], 1, 0, n, self.N_i, self.N_j, self.N_n): -1,
+                            _q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                    dic0.update(dic1)
 
-            self.A.addNewRow(dic0, 0, np.inf)
+                self.A.addNewRow(dic0, 0, np.inf)
 
-            self.A.addNewRow(
-                {_q2(self.C["zx"], n, 1, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                 _q1(self.C["s"], n, self.N_n): -1},
-                0, np.inf)
+                self.A.addNewRow(
+                    {_q2(self.C["zx"], n, 1, self.N_n, self.N_zx): bigM*self.gamma_n[n],
+                     _q1(self.C["s"], n, self.N_n): -1},
+                    0, np.inf)
 
-            # As both can be zero, bound as z_0 + z_1 <= 1
-            self.A.addNewRow(
-                {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): +1,
-                 _q2(self.C["zx"], n, 1, self.N_n, self.N_zx): +1},
-                0, 1
-            )
+                # As both can be zero, bound as z_0 + z_1 <= 1
+                self.A.addNewRow(
+                    {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): +1,
+                     _q2(self.C["zx"], n, 1, self.N_n, self.N_zx): +1},
+                    0, 1
+                )
 
-            # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
-            if "maxRothConversion" in options:
-                rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
-                if False and rhsopt < -1:
-                    return
+        if "maxRothConversion" in options:
+            rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
+            if rhsopt < -1:
+                return
 
+        # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
+        if options.get("xorConstraintsRoth", True):
             # Make z_2 and z_3 exclusive binary variables.
             dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
                     _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
@@ -1964,6 +1967,7 @@ class Plan:
             "bigM_irmaa",  # Big-M value for Medicare IRMAA constraints (default: 1e7)
             "bigM_xor",    # Big-M value for XOR constraints (default: 5e6)
             "gap",
+            "maxIterations",
             "maxRothConversion",
             "netSpending",
             "noRothConversions",
@@ -1979,9 +1983,12 @@ class Plan:
             "withMedicare",
             "withSCLoop",
             "xorConstraints",
+            "xorConstraintsRoth",
+            "xorConstraintsSurplus",
         ]
         # We might modify options if required.
         options = {} if options is None else options
+
         myoptions = dict(options)
 
         for opt in myoptions:
@@ -2087,6 +2094,9 @@ class Plan:
         # rel_tol = u.get_numeric_option({"rel_tol": rel_tol}, "rel_tol", REL_TOL, min_value=0)
         self.mylog.vprint(f"Using rel_tol={rel_tol:.2e}, abs_tol={abs_tol:.2e}, and gap={gap:.2e}.")
 
+        maxIterations = u.get_numeric_option(options, "maxIterations", MAX_ITERATIONS, min_value=1)
+        self.mylog.vprint(f"Using maxIterations={maxIterations}.")
+
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
         else:
@@ -2176,7 +2186,7 @@ class Plan:
                     self.mylog.vprint("Accepting solution from cycle and terminating.")
                     break
 
-            if it > 29:
+            if it > maxIterations:
                 self.convergenceType = "max iteration"
                 self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
                 break

@@ -1,7 +1,11 @@
+### Version 2026.01.20
+- Fix limits in UI not allowing negative rates
+- Add more control hooks on solver (xor, maxIter)
 - Clarify docs for reference year of fixed assets
 - Improve logging while reading fixed assets and debts
-- Bring all hard-coded constants to top of file
-- Disable tests on GH failing due to different linear solver
+- Bring most hard-coded constants to top of file
+- Enable Python 3.14 in GH CI
+- Investigate tests on GH failing due to different linear solver
 
 ### Version 2026.01.17
 - Add more parameters to control solver
