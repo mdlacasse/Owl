@@ -113,6 +113,7 @@ forecasts for the next decade can be found
 
         st.divider()
         ro = fxType != "user"
+        min_rate = -100.0 if fxType == "historical average" else 0.0
 
         st.markdown("#### :orange[Fixed Rate Values (%)]")
         rates = FXRATES[fxType]
@@ -122,19 +123,19 @@ forecasts for the next decade can be found
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.getNum("S&P 500", "fxRate0", disabled=ro, step=1.0, help=helpmsgSP500,
-                      callback=updateRates, min_value=-100.0, max_value=100.0)
+                      callback=updateRates, min_value=min_rate, max_value=100.0)
 
         with col2:
             kz.getNum("Corporate Bonds Baa", "fxRate1", disabled=ro, step=1.0, help=helpmsgBaa,
-                      callback=updateRates, min_value=-100.0, max_value=100.0)
+                      callback=updateRates, min_value=min_rate, max_value=100.0)
 
         with col3:
             kz.getNum("10-y Treasury Notes", "fxRate2", disabled=ro, step=1.0, help=helpmsgTnote,
-                      callback=updateRates, min_value=-100.0, max_value=100.0)
+                      callback=updateRates, min_value=min_rate, max_value=100.0)
 
         with col4:
             kz.getNum("Cash Assets/Inflation", "fxRate3", disabled=ro, step=1.0, help=helpmsgCash,
-                      callback=updateRates, min_value=-100.0, max_value=100.0)
+                      callback=updateRates, min_value=min_rate, max_value=100.0)
 
     elif kz.getCaseKey("rateType") == "varying":
         with col2:

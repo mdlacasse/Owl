@@ -167,19 +167,19 @@ Options controlling the optimization solver and constraints.
 
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
-| `abs_tol` | float | Absolute convergence tolerance for the self-consistent loop objective. | `20` |
+| `abs_tol` | float | *(Advanced)* Absolute convergence tolerance for the self-consistent loop objective. | `20` |
 | `bequest` | float | Target bequest value in today's dollars (in `units`). Used when `objective = "maxSpending"`. | `1` (if omitted with `maxSpending`) |
 | `bigM_irmaa` | float | *(Advanced)* Big-M value for Medicare IRMAA bracket constraints (used when `withMedicare = "optimize"`). Should exceed any plausible aggregate MAGI. | `5e7` |
 | `bigM_xor` | float | *(Advanced)* Big-M value for XOR constraints (mutually exclusive operations). Should exceed any individual withdrawal, conversion, or surplus deposit. | `5e7` |
-| `gap` | float | Relative MILP gap used by solvers and to scale convergence tolerances. | `1e-4` (default); if `withMedicare = "optimize"` and unset, set to `1e-3` (or `1e-2` when `maxRothConversion <= 15`) |
-| `maxIter` | integer | Maximum number of iterations for the self-consistent loop. Must be at least 1. | `29` |
+| `gap` | float | *(Advanced)* Relative MILP gap used by solvers and to scale convergence tolerances. | `1e-4` (default); if `withMedicare = "optimize"` and unset, set to `1e-3` (or `1e-2` when `maxRothConversion <= 15`) |
+| `maxIter` | integer | *(Advanced)* Maximum number of iterations for the self-consistent loop. Must be at least 1. | `29` |
 | `maxRothConversion` | float or string | Maximum annual Roth conversion amount (in `units`). Use `"file"` to take per-year limits from time lists; omit for no cap (except last year). | No cap unless provided |
-| `maxTime` | float | Solver time limit in seconds. | `900` |
+| `maxTime` | float | *(Advanced)* Solver time limit in seconds. | `900` |
 | `netSpending` | float | Target net spending amount in today's dollars (in `units`). Used when `objective = "maxBequest"`. | Required for `maxBequest` |
 | `noRothConversions` | string | Name of individual for whom Roth conversions are disabled, or `"None"` to allow conversions for all. | `"None"` |
 | `oppCostX` | float | *(Advanced)* Opportunity cost applied to Roth conversions (percent). | `0` |
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |
-| `rel_tol` | float | Relative convergence tolerance for the self-consistent loop objective. | `max(1e-6, gap / 300)` |
+| `rel_tol` | float | *(Advanced)* Relative convergence tolerance for the self-consistent loop objective. | `max(1e-6, gap / 300)` |
 | `solver` | string | Solver to use for optimization. Valid values: `"HiGHS"`, `"PuLP/CBC"`, `"PuLP/HiGHS"`, `"MOSEK"`. | `"HiGHS"` |
 | `spendingSlack` | integer | Percentage allowed to deviate from the spending profile (0-50). | `0` |
 | `startRothConversions` | integer | Year when Roth conversions can begin (clamped to the current year). | Current year |
@@ -187,9 +187,9 @@ Options controlling the optimization solver and constraints.
 | `verbose` | boolean | Enable solver verbosity/output where supported. | `false` |
 | `withMedicare` | string | Medicare IRMAA handling. Valid values: `"None"`, `"loop"`, `"optimize"`. | `"loop"` |
 | `withSCLoop` | boolean | Whether to use the self-consistent loop for solving. | `true` |
-| `xorConstraints` | boolean | Whether to use XOR constraints in the optimization. | `true` |
-| `xorRoth` | boolean | Whether to enforce XOR constraints preventing simultaneous Roth conversions and tax-free withdrawals. | `true` |
-| `xorSurplus` | boolean | Whether to enforce XOR constraints preventing simultaneous surplus deposits and withdrawals from taxable or tax-free accounts. | `true` |
+| `xorConstraints` | boolean | *(Advanced)* Whether to use XOR constraints in the optimization. | `true` |
+| `xorRoth` | boolean | *(Advanced)* Whether to enforce XOR constraints preventing simultaneous Roth conversions and tax-free withdrawals. | `true` |
+| `xorSurplus` | boolean | *(Advanced)* Whether to enforce XOR constraints preventing simultaneous surplus deposits and withdrawals from taxable or tax-free accounts. | `true` |
 
 **Note:** The solver options dictionary is passed directly to the optimization routine. Only the options listed above are validated; other options may be accepted but are not documented here.
 
@@ -275,7 +275,6 @@ withMedicare = "loop"
 bequest = 500
 solver = "HiGHS"
 spendingSlack = 0
-xorConstraints = true
 xorRoth = true
 xorSurplus = true
 withSCLoop = true
