@@ -1458,15 +1458,15 @@ class Plan:
                     self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), rhs, rhs)
         else:
             # Don't exclude anyone by default.
-            i_x = -1
+            i_xcluded = -1
             if "noRothConversions" in options and options["noRothConversions"] != "None":
                 rhsopt = options["noRothConversions"]
                 try:
-                    i_x = self.inames.index(rhsopt)
+                    i_xcluded = self.inames.index(rhsopt)
                 except ValueError as e:
                     raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:") from e
-                for n in range(self.horizons[i_x]):
-                    self.B.setRange(_q2(self.C["x"], i_x, n, self.N_i, self.N_n), 0, 0)
+                for n in range(self.horizons[i_xcluded]):
+                    self.B.setRange(_q2(self.C["x"], i_xcluded, n, self.N_i, self.N_n), 0, 0)
 
             if "maxRothConversion" in options:
                 rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
@@ -1474,7 +1474,7 @@ class Plan:
                 if rhsopt >= 0:
                     rhsopt *= self.optionsUnits
                     for i in range(self.N_i):
-                        if i == i_x:
+                        if i == i_xcluded:
                             continue
                         for n in range(self.horizons[i]):
                             # Apply the cap per individual (legacy behavior).
@@ -1485,15 +1485,35 @@ class Plan:
                 thisyear = date.today().year
                 yearn = max(rhsopt - thisyear, 0)
                 for i in range(self.N_i):
-                    if i == i_x:
+                    if i == i_xcluded:
                         continue
                     nstart = min(yearn, self.horizons[i])
                     for n in range(0, nstart):
                         self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, 0)
 
+            if "swapRothConverters" in options and i_xcluded == -1:
+                rhsopt = int(u.get_numeric_option(options, "swapRothConverters", 0))
+                if self.N_i == 2 and rhsopt != 0:
+                    thisyear = date.today().year
+                    absrhsopt = abs(rhsopt)
+                    yearn = max(absrhsopt - thisyear, 0)
+                    i_x = 0 if rhsopt > 0 else 1
+                    i_y = (i_x + 1) % 2
+
+                    transy = min(yearn, self.horizons[i_y])
+                    for n in range(0, transy):
+                        self.B.setRange(_q2(self.C["x"], i_y, n, self.N_i, self.N_n), 0, 0)
+
+                    transx = min(yearn, self.horizons[i_x])
+                    for n in range(transx, self.horizons[i_x]):
+                        self.B.setRange(_q2(self.C["x"], i_x, n, self.N_i, self.N_n), 0, 0)
+
+                    # self.mylog.vprint("Switching Roth converter from"
+                    #                  f" {self.inames[i_x]} -> {self.inames[i_y]} in {absrhsopt}.")
+
             # Disallow Roth conversions in last two years alive. Plan has at least 2 years.
             for i in range(self.N_i):
-                if i == i_x:
+                if i == i_xcluded:
                     continue
                 self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 2, self.N_i, self.N_n), 0, 0)
                 self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 1, self.N_i, self.N_n), 0, 0)
@@ -1992,6 +2012,7 @@ class Plan:
             "solver",
             "spendingSlack",
             "startRothConversions",
+            "swapRothConverters",
             "maxTime",
             "units",
             "verbose",

@@ -138,7 +138,8 @@ else:
                        "  When Medicare is selected, this will also compute Medicare and IRMAA.")
             ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
             helpmsg = ("Option to optimize Medicare using binary variables."
-                       "  Use with caution as some cases might not converge without adjusting additional solver parameters.")
+                       "  Use with caution as some cases might not converge"
+                       " without adjusting additional solver parameters.")
             medioff = not medion
             ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff)
         with col2:
