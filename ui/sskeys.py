@@ -417,6 +417,8 @@ def compareSummaries():
 def getSolveParameters():
     """
     From UI to Plan.
+    The UI has a flat dictionary, while the Plan has a separate embedded dictionary for solver options.
+    This function only builds the solver camelCase dictionary.
     """
 
     maximize = getCaseKey("objective")
@@ -430,7 +432,9 @@ def getSolveParameters():
     options = {}
     optList = ["netSpending", "maxRothConversion", "noRothConversions",
                "startRothConversions", "bequest", "solver",
-               "spendingSlack", "oppCostX", "xorRoth", "xorSurplus", "withSCLoop",]
+               "spendingSlack", "oppCostX", "xorRoth", "xorSurplus", "withSCLoop",
+               "allowLateSurplus",]
+
     for opt in optList:
         val = getCaseKey(opt)
         if val is not None:

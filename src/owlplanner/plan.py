@@ -1374,7 +1374,7 @@ class Plan:
         self._add_conversion_limits()
         self._add_objective_constraints(objective, options)
         self._add_initial_balances()
-        self._add_surplus_deposit_linking()
+        self._add_surplus_deposit_linking(options)
         self._add_account_balance_carryover()
         self._add_net_cash_flow()
         self._add_income_profile()
@@ -1552,7 +1552,7 @@ class Plan:
                 rhs = self.beta_ij[i, j] / backTau
                 self.B.setRange(_q3(self.C["b"], i, j, 0, self.N_i, self.N_j, self.N_n + 1), rhs, rhs)
 
-    def _add_surplus_deposit_linking(self):
+    def _add_surplus_deposit_linking(self, options):
         for i in range(self.N_i):
             fac1 = u.krond(i, 0) * (1 - self.eta) + u.krond(i, 1) * self.eta
             for n in range(self.n_d):
@@ -1562,9 +1562,12 @@ class Plan:
             for n in range(self.n_d, self.N_n):
                 rowDic = {_q2(self.C["d"], i, n, self.N_i, self.N_n): 1, _q1(self.C["s"], n, self.N_n): -fac2}
                 self.A.addNewRow(rowDic, 0, 0)
-        # Prevent surplus on two last year as they have little tax and/or growthconsequence.
-        self.B.setRange(_q1(self.C["s"], self.N_n - 2, self.N_n), 0, 0)
-        self.B.setRange(_q1(self.C["s"], self.N_n - 1, self.N_n), 0, 0)
+
+        # Prevent surplus on two last year as they have little tax and/or growth consequence.
+        disallow = not options.get("allowLateSurplus", False)
+        if disallow:
+            self.B.setRange(_q1(self.C["s"], self.N_n - 2, self.N_n), 0, 0)
+            self.B.setRange(_q1(self.C["s"], self.N_n - 1, self.N_n), 0, 0)
 
     def _add_account_balance_carryover(self):
         tau_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
@@ -1681,7 +1684,7 @@ class Plan:
         if not options.get("xorConstraints", True):
             return
 
-        bigM = u.get_numeric_option(options, "bigM_xor", BIGM_XOR, min_value=0)
+        bigM = u.get_numeric_option(options, "bigMxor", BIGM_XOR, min_value=0)
 
         if options.get("xorSurplus", True):
             for n in range(self.N_n):
@@ -1743,8 +1746,8 @@ class Plan:
         if options.get("withMedicare", "loop") != "optimize":
             return
 
-        # Default: 1e8 (100 million) - bounds aggregate MAGI, typically larger than bigM_xor
-        bigM = u.get_numeric_option(options, "bigM_irmaa", BIGM_IRMAA, min_value=0)
+        # Default: 5e7 (50 million) - bounds aggregate MAGI, typically larger than bigMxor
+        bigM = u.get_numeric_option(options, "bigMirmaa", BIGM_IRMAA, min_value=0)
 
         Nmed = self.N_n - self.nm
         offset = 0
@@ -1970,10 +1973,11 @@ class Plan:
         knownSolvers = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS", "MOSEK"]
 
         knownOptions = [
-            "abs_tol",
+            "absTol",
+            "allowLateSurplus",
             "bequest",
-            "bigM_irmaa",  # Big-M value for Medicare IRMAA constraints (default: 1e7)
-            "bigM_xor",    # Big-M value for XOR constraints (default: 5e6)
+            "bigMirmaa",  # Big-M value for Medicare IRMAA constraints (default: 5e7)
+            "bigMxor",    # Big-M value for XOR constraints (default: 5e7)
             "gap",
             "maxIter",
             "maxRothConversion",
@@ -1981,7 +1985,7 @@ class Plan:
             "noRothConversions",
             "oppCostX",
             "previousMAGIs",
-            "rel_tol",
+            "relTol",
             "solver",
             "spendingSlack",
             "startRothConversions",
@@ -2094,13 +2098,13 @@ class Plan:
         # Convergence uses a relative tolerance tied to MILP gap,
         # with an absolute floor to avoid zero/near-zero objectives.
         gap = u.get_numeric_option(options, "gap", GAP, min_value=0)
-        abs_tol = u.get_numeric_option(options, "abs_tol", ABS_TOL, min_value=0)
-        rel_tol = options.get("rel_tol")
+        abs_tol = u.get_numeric_option(options, "absTol", ABS_TOL, min_value=0)
+        rel_tol = options.get("relTol")
         if rel_tol is None:
             # Keep rel_tol aligned with solver gap to avoid SC loop chasing noise.
             rel_tol = max(REL_TOL, gap / 300)
-        # rel_tol = u.get_numeric_option({"rel_tol": rel_tol}, "rel_tol", REL_TOL, min_value=0)
-        self.mylog.vprint(f"Using rel_tol={rel_tol:.1e}, abs_tol={abs_tol:.1e}, and gap={gap:.1e}.")
+        # rel_tol = u.get_numeric_option({"relTol": rel_tol}, "relTol", REL_TOL, min_value=0)
+        self.mylog.vprint(f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, and gap={gap:.1e}.")
 
         max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
         self.mylog.vprint(f"Using maxIter={max_iterations}.")

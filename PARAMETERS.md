@@ -167,10 +167,11 @@ Options controlling the optimization solver and constraints.
 
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
-| `abs_tol` | float | *(Advanced)* Absolute convergence tolerance for the self-consistent loop objective. | `20` |
+| `absTol` | float | *(Advanced)* Absolute convergence tolerance for the self-consistent loop objective. | `20` |
+| `allowLateSurplus` | boolean | Allow surplus deposits in the final two years of the plan. | `false` |
 | `bequest` | float | Target bequest value in today's dollars (in `units`). Used when `objective = "maxSpending"`. | `1` (if omitted with `maxSpending`) |
-| `bigM_irmaa` | float | *(Advanced)* Big-M value for Medicare IRMAA bracket constraints (used when `withMedicare = "optimize"`). Should exceed any plausible aggregate MAGI. | `5e7` |
-| `bigM_xor` | float | *(Advanced)* Big-M value for XOR constraints (mutually exclusive operations). Should exceed any individual withdrawal, conversion, or surplus deposit. | `5e7` |
+| `bigMirmaa` | float | *(Advanced)* Big-M value for Medicare IRMAA bracket constraints (used when `withMedicare = "optimize"`). Should exceed any plausible aggregate MAGI. | `5e7` |
+| `bigMxor` | float | *(Advanced)* Big-M value for XOR constraints (mutually exclusive operations). Should exceed any individual withdrawal, conversion, or surplus deposit. | `5e7` |
 | `gap` | float | *(Advanced)* Relative MILP gap used by solvers and to scale convergence tolerances. | `1e-4` (default); if `withMedicare = "optimize"` and unset, set to `1e-3` (or `1e-2` when `maxRothConversion <= 15`) |
 | `maxIter` | integer | *(Advanced)* Maximum number of iterations for the self-consistent loop. Must be at least 1. | `29` |
 | `maxRothConversion` | float or string | Maximum annual Roth conversion amount (in `units`). Use `"file"` to take per-year limits from time lists; omit for no cap (except last year). | No cap unless provided |
@@ -179,7 +180,7 @@ Options controlling the optimization solver and constraints.
 | `noRothConversions` | string | Name of individual for whom Roth conversions are disabled, or `"None"` to allow conversions for all. | `"None"` |
 | `oppCostX` | float | *(Advanced)* Opportunity cost applied to Roth conversions (percent). | `0` |
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |
-| `rel_tol` | float | *(Advanced)* Relative convergence tolerance for the self-consistent loop objective. | `max(1e-6, gap / 300)` |
+| `relTol` | float | *(Advanced)* Relative convergence tolerance for the self-consistent loop objective. | `max(1e-6, gap / 300)` |
 | `solver` | string | Solver to use for optimization. Valid values: `"HiGHS"`, `"PuLP/CBC"`, `"PuLP/HiGHS"`, `"MOSEK"`. | `"HiGHS"` |
 | `spendingSlack` | integer | Percentage allowed to deviate from the spending profile (0-50). | `0` |
 | `startRothConversions` | integer | Year when Roth conversions can begin (clamped to the current year). | Current year |

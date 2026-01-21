@@ -90,7 +90,7 @@ else:
         kz.initCaseKey("maxRothConversion", 50)
         ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion",
                         disabled=fromFile, help=helpmsg)
-        helpmsg = "Use the Roth conversion values in the *Wages and Contributions* file to override"
+        helpmsg = "Convert using values from the *Roth conv* column of the *Wages and Contributions* table."
         ret = kz.getToggle("Convert as in Wages and Contributions tables", "readRothX", help=helpmsg)
         # kz.initCaseKey("oppCostX", 0.)
         # helpmsg = "Estimated opportunity cost for paying estimated tax on Roth conversions."
@@ -107,7 +107,7 @@ else:
             iname1 = kz.getCaseKey("iname1")
             choices = ["None", iname0, iname1]
             kz.initCaseKey("noRothConversions", choices[0])
-            helpmsg = "`None` means no exclusion. To exclude both spouses, set `Maximum Roth conversion` to 0."
+            helpmsg = "`None` means no exclusion. To exclude both spouses, set `Maximum annual Roth conversion` to 0."
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg)
 
     st.divider()
@@ -115,10 +115,10 @@ else:
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("computeMedicare", True)
-        helpmsg = "Compute Medicare and IRMAA premiums"
+        helpmsg = "Compute Medicare and IRMAA premiums."
         medion = kz.getToggle("Medicare and IRMAA calculations", "computeMedicare", help=helpmsg)
         if medion and not kz.getCaseKey("withSCLoop"):
-            st.markdown(":material/warning: Medicare on while self-consistent loop is off.")
+            st.markdown(":material/warning: Medicare is on while self-consistent loop is off.")
     with col2:
         if kz.getCaseKey("computeMedicare"):
             helpmsg = "MAGI in nominal $k for current and previous years."
@@ -144,7 +144,7 @@ else:
         with col2:
             kz.initCaseKey("xorSurplus", True)
             helpmsg = ("Enable mutually exclusive constraints between surplus deposits"
-                       " and withdrawals from taxable accounts")
+                       " and withdrawals from taxable accounts.")
             ret = kz.getToggle("XOR constraints on surplus deposits and withdrawals from taxable accounts",
                                "xorSurplus", help=helpmsg)
 
@@ -153,6 +153,11 @@ else:
                        " Roth conversions and withdrawals from tax-free accounts.")
             ret = kz.getToggle("XOR constraints on Roth conversions and tax-free withdrawals",
                                "xorRoth", help=helpmsg)
+
+            kz.initCaseKey("allowLateSurplus", False)
+            helpmsg = ("Allow cash-flow surpluses in the last 2 years of the plan.")
+            ret = kz.getToggle("Allow cash-flow surpluses in last years",
+                               "allowLateSurplus", help=helpmsg)
 
         st.divider()
         st.markdown("#### :orange[Solver]")

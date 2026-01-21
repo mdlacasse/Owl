@@ -1,5 +1,6 @@
 ### Version 2026.01.21
 - Move "optimize" Medicare option to advanced section
+- Add solver option to enable surpluses in late years
 
 ### Version 2026.01.20
 - Fix negative taxable gains in years of negative returns
