@@ -116,8 +116,8 @@ else:
     with col1:
         kz.initCaseKey("computeMedicare", True)
         helpmsg = "Compute Medicare and IRMAA premiums"
-        ret = kz.getToggle("Medicare and IRMAA calculations", "computeMedicare", help=helpmsg)
-        if ret and not kz.getCaseKey("withSCLoop"):
+        medion = kz.getToggle("Medicare and IRMAA calculations", "computeMedicare", help=helpmsg)
+        if medion and not kz.getCaseKey("withSCLoop"):
             st.markdown(":material/warning: Medicare on while self-consistent loop is off.")
     with col2:
         if kz.getCaseKey("computeMedicare"):
@@ -139,7 +139,8 @@ else:
             ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
             helpmsg = ("Option to optimize Medicare using binary variables."
                        "  Use with caution as some cases do not converge without adjusting additional parameters.")
-            ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg)
+            medioff = not medion
+            ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff)
         with col2:
             kz.initCaseKey("xorSurplus", True)
             helpmsg = ("Enable mutually exclusive constraints between surplus deposits"
