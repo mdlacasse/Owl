@@ -305,6 +305,9 @@ class Plan:
         thisyear = date.today().year
         self.horizons = self.yobs + self.expectancy - thisyear + 1
         self.N_n = np.max(self.horizons)
+        if self.N_n <= 2:
+            raise ValueError(f"Plan needs more than {self.N_n} years.")
+
         self.year_n = np.linspace(thisyear, thisyear + self.N_n - 1, self.N_n, dtype=np.int32)
         # Year index in the case (if any) where individuals turn 59. For 10% withdrawal penalty.
         self.n59 = 59 - thisyear + self.yobs
@@ -1488,10 +1491,11 @@ class Plan:
                     for n in range(0, nstart):
                         self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, 0)
 
-            # Disallow Roth conversions in last year alive.
+            # Disallow Roth conversions in last two years alive. Plan has at least 2 years.
             for i in range(self.N_i):
                 if i == i_x:
                     continue
+                self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 2, self.N_i, self.N_n), 0, 0)
                 self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 1, self.N_i, self.N_n), 0, 0)
 
     def _add_withdrawal_limits(self):
@@ -1558,7 +1562,8 @@ class Plan:
             for n in range(self.n_d, self.N_n):
                 rowDic = {_q2(self.C["d"], i, n, self.N_i, self.N_n): 1, _q1(self.C["s"], n, self.N_n): -fac2}
                 self.A.addNewRow(rowDic, 0, 0)
-        # Prevent surplus on last year.
+        # Prevent surplus on two last year as they have little tax and/or growthconsequence.
+        self.B.setRange(_q1(self.C["s"], self.N_n - 2, self.N_n), 0, 0)
         self.B.setRange(_q1(self.C["s"], self.N_n - 1, self.N_n), 0, 0)
 
     def _add_account_balance_carryover(self):
@@ -2029,7 +2034,7 @@ class Plan:
             # Loosen default MIP gap when Medicare is optimized. Even more if rothX == 0
             gap = fac * MILP_GAP
             myoptions["gap"] = gap
-            self.mylog.vprint(f"Using restricted gap of {gap}.")
+            self.mylog.vprint(f"Using restricted gap of {gap:.1e}.")
 
         self.prevMAGI = np.zeros(2)
         if "previousMAGIs" in myoptions:
@@ -2095,7 +2100,7 @@ class Plan:
             # Keep rel_tol aligned with solver gap to avoid SC loop chasing noise.
             rel_tol = max(REL_TOL, gap / 300)
         # rel_tol = u.get_numeric_option({"rel_tol": rel_tol}, "rel_tol", REL_TOL, min_value=0)
-        self.mylog.vprint(f"Using rel_tol={rel_tol:.2e}, abs_tol={abs_tol:.2e}, and gap={gap:.2e}.")
+        self.mylog.vprint(f"Using rel_tol={rel_tol:.1e}, abs_tol={abs_tol:.1e}, and gap={gap:.1e}.")
 
         max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
         self.mylog.vprint(f"Using maxIter={max_iterations}.")
