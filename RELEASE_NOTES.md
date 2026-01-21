@@ -8,6 +8,7 @@
 - Enable Python 3.14 in GH CI
 - Investigate tests on GH failing due to different linear solver
 - Disallow conversions and surplus in last 2 years
+- Connect MOSEK logger with verbose keyword
 
 ### Version 2026.01.17
 - Add more parameters to control solver

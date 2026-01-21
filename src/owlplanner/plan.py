@@ -2337,6 +2337,7 @@ class Plan:
         solverMsg = str()
 
         def _streamPrinter(text, msg=solverMsg):
+            self.mylog.vprint(text.strip())
             msg += text
 
         self._buildConstraints(objective, options)
@@ -2353,15 +2354,20 @@ class Plan:
         verbose = options.get("verbose", False)
 
         task = mosek.Task()
-        task.putdouparam(mosek.dparam.mio_max_time, time_limit)           # Default -1
+        task.putdouparam(mosek.dparam.mio_max_time, time_limit)        # Default -1
         # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)       # Default 1e-10
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, mygap)          # Default 1e-4
         # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-5)   # Default 1e-5
         # task.putdouparam(mosek.iparam.mio_heuristic_level, 3)        # Default -1
+
+        # task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
+        task.set_Stream(mosek.streamtype.err, _streamPrinter)
+        if verbose:
+            # task.set_Stream(mosek.streamtype.log, _streamPrinter)
+            task.set_Stream(mosek.streamtype.msg, _streamPrinter)
+
         task.appendcons(self.A.ncons)
         task.appendvars(self.A.nvars)
-        if verbose:
-            task.set_Stream(mosek.streamtype.msg, _streamPrinter)
 
         for ii in range(len(cind)):
             task.putcj(cind[ii], cval[ii])
@@ -2385,7 +2391,6 @@ class Plan:
 
         xx = np.array(task.getxx(mosek.soltype.itg))
         solution = task.getprimalobj(mosek.soltype.itg)
-        task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
         task.solutionsummary(mosek.streamtype.msg)
         # task.writedata(self._name+'.ptf')
 
