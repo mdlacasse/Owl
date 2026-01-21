@@ -53,7 +53,6 @@ startRothConversions = 2025
 withMedicare = "loop"
 solver = "HiGHS"
 spendingSlack = 0
-xorConstraints = true
 withSCLoop = true
 
 [results]

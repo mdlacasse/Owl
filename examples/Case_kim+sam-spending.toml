@@ -57,7 +57,6 @@ withMedicare = "optimize"
 bequest = 0
 solver = "HiGHS"
 spendingSlack = 0
-xorConstraints = true
 withSCLoop = true
 
 [results]

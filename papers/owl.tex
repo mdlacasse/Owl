@@ -709,13 +709,14 @@ add the market returns to the savings balances.
 	of the year, and the conversions in mid-year can only solve part of this artificial bias
 	under specific conditions.
 
-	To solve these spurious scenarios, it would be desirable to make the following exclusions
-	between surplus $s_n$, withdrawals $w_{ijn}$, and conversions $x_{in}$:
+	To solve these spurious scenarios, it would be desirable to make the following at-most-one
+	(AMO) exclusions between surplus $s_n$, withdrawals $w_{ijn}$, and conversions $x_{in}$:
 	\begin{eqnarray*}
-		\left(\sum_i w_{i0n} + \sum_i w_{i2n}\right) &\texttt{XOR} & s_n, \\
-		\sum_i x_{in} &\texttt{XOR} & \sum_i w_{i2n},
+		\left(\sum_i w_{i0n} + \sum_i w_{i2n}\right) &\texttt{AMO} & s_n, \\
+		\sum_i x_{in} &\texttt{AMO} & \sum_i w_{i2n},
 	\end{eqnarray*}
 	for $j \neq 1$, i.e., for all withdrawals except those from tax-deferred accounts.
+	The AMO relation can also be represented by a logical NAND operator.
 	The first exclusion prevents surplus deposits when withdrawals from taxable or tax-free accounts occur
 	from either spouse, while the second exclusion prevents simultaneous Roth conversions and tax-free withdrawals
 	from either spouse.
@@ -725,18 +726,19 @@ add the market returns to the savings balances.
 	The first pair of binary variables $(z_{n0}, z_{n1})$ enforces the surplus-withdrawal exclusion:
 	\begin{alignat}{2}
 		\label{Eq:Binary1}
-		\epsilon z_{n0} & \le \; \sum_i (w_{i0n} + w_{i2n}) \le \mathcal{M} z_{n0}, \nonumber \\
-		\epsilon z_{n1} & \le \; s_n \le \mathcal{M} z_{n1}, \nonumber \\
-		z_{n0} + z_{n1} &= 1,
+		\epsilon z_{n0} & \le \; \sum_i (w_{i0n} + w_{i2n})  \le \mathcal{M} z_{n0}, \nonumber \\
+		\epsilon z_{n1} & \le \; s_n  \le \mathcal{M} z_{n1}, \nonumber \\
+		0  & \le z_{n0} + z_{n1}  \le 1,
 	\end{alignat}
 	where $\epsilon$ is a small positive number (e.g., $0.001$) to ensure that when a binary variable
-	is active, the corresponding continuous variable is non-zero.
+	is active, the corresponding continuous variable is non-zero. However, the AMO exclusion
+	does not require the lower bound on the variables as both values can be zero.
 	The second pair of binary variables $(z_{n2}, z_{n3})$ enforces the Roth conversion-tax-free withdrawal exclusion:
 	\begin{alignat}{2}
 		\label{Eq:Binary2}
-		\epsilon z_{n2} & \le \; \sum_i x_{in} \le \mathcal{M} z_{n2}, \nonumber \\
-		\epsilon z_{n3} & \le \; \sum_i w_{i2n} \le \mathcal{M} z_{n3}, \nonumber \\
-		z_{n2} + z_{n3} &= 1.
+		\epsilon z_{n2} & \le \; \sum_i x_{in}  \le \mathcal{M} z_{n2}, \nonumber \\
+		\epsilon z_{n3} & \le \; \sum_i w_{i2n}  \le \mathcal{M} z_{n3}, \nonumber \\
+		0 &\le z_{n2} + z_{n3} \le 1.
 	\end{alignat}
 	Here, $\mathcal{M}$ is a large number such as $10^9$, just slightly
 	larger than what $x$, $w$, and $s$ can possibly be.
@@ -1285,7 +1287,7 @@ $\sum_i x_{in} \le x_{max}$ for all $n$ with
 This maximum is applied to the combined conversions of both individuals in each year.
 
 \paragraph*{Exclusion constraints}
-The XOR exclusions of Eqs.~(\ref{Eq:Binary1}) and (\ref{Eq:Binary2})
+The at-most-one (AMO) exclusions of Eqs.~(\ref{Eq:Binary1}) and (\ref{Eq:Binary2})
 are implemented with big-$\mathcal{M}$ constraints using binary variables $z_{nz}^x$,
 adding the corresponding rows for $\sum_i w_{i0n} + \sum_i w_{i2n}$, $s_n$, and $\sum_i x_{in}$
 with upper bounds $\mathcal{M} z_{nz}$, along with the bounds

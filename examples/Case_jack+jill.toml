@@ -56,7 +56,6 @@ withMedicare = "loop"
 bequest = 500
 solver = "HiGHS"
 spendingSlack = 0
-xorConstraints = true
 withSCLoop = true
 
 [results]

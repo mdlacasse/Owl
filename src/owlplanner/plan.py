@@ -1681,12 +1681,12 @@ class Plan:
             self.A.addRow(row, rhs, rhs)
 
     def _configure_exclusion_binary_variables(self, options):
-        if not options.get("xorConstraints", True):
+        if not options.get("amoConstraints", True):
             return
 
-        bigM = u.get_numeric_option(options, "bigMxor", BIGM_XOR, min_value=0)
+        bigM = u.get_numeric_option(options, "bigMamo", BIGM_XOR, min_value=0)
 
-        if options.get("xorSurplus", True):
+        if options.get("amoSurplus", True):
             for n in range(self.N_n):
                 # Make z_0 and z_1 exclusive binary variables.
                 dic0 = {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): bigM*self.gamma_n[n],
@@ -1717,7 +1717,7 @@ class Plan:
                 return
 
         # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
-        if options.get("xorRoth", True):
+        if options.get("amoRoth", True):
             for n in range(self.N_n):
                 # Make z_2 and z_3 exclusive binary variables.
                 dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
@@ -1746,7 +1746,7 @@ class Plan:
         if options.get("withMedicare", "loop") != "optimize":
             return
 
-        # Default: 5e7 (50 million) - bounds aggregate MAGI, typically larger than bigMxor
+        # Default: 5e7 (50 million) - bounds aggregate MAGI, typically larger than bigMamo
         bigM = u.get_numeric_option(options, "bigMirmaa", BIGM_IRMAA, min_value=0)
 
         Nmed = self.N_n - self.nm
@@ -1974,9 +1974,12 @@ class Plan:
 
         knownOptions = [
             "absTol",
+            "amoConstraints",
+            "amoRoth",
+            "amoSurplus",
             "bequest",
             "bigMirmaa",  # Big-M value for Medicare IRMAA constraints (default: 5e7)
-            "bigMxor",    # Big-M value for XOR constraints (default: 5e7)
+            "bigMamo",    # Big-M value for XOR constraints (default: 5e7)
             "gap",
             "maxIter",
             "maxRothConversion",
@@ -1994,18 +1997,17 @@ class Plan:
             "verbose",
             "withMedicare",
             "withSCLoop",
-            "xorConstraints",
-            "xorRoth",
-            "xorSurplus",
         ]
-        # We might modify options if required.
         options = {} if options is None else options
 
+        # We might modify options if required.
         myoptions = dict(options)
 
-        for opt in myoptions:
+        for opt in list(myoptions.keys()):
             if opt not in knownOptions:
-                raise ValueError(f"Option {opt} is not one of {knownOptions}.")
+                # raise ValueError(f"Option {opt} is not one of {knownOptions}.")
+                self.mylog.vprint(f"Ignoring unknown solver option '{opt}'.")
+                myoptions.pop(opt)
 
         if objective not in knownObjectives:
             raise ValueError(f"Objective {objective} is not one of {knownObjectives}.")

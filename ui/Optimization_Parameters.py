@@ -142,17 +142,17 @@ else:
             medioff = not medion
             ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff)
         with col2:
-            kz.initCaseKey("xorSurplus", True)
+            kz.initCaseKey("amoSurplus", True)
             helpmsg = ("Enable mutually exclusive constraints between surplus deposits"
-                       " and withdrawals from taxable accounts.")
-            ret = kz.getToggle("XOR constraints on surplus deposits and withdrawals from taxable accounts",
-                               "xorSurplus", help=helpmsg)
+                       " and withdrawals from taxable or tax-free accounts.")
+            ret = kz.getToggle("XOR constraints on surplus deposits and withdrawals from taxable or tax-free accounts",
+                               "amoSurplus", help=helpmsg)
 
-            kz.initCaseKey("xorRoth", True)
+            kz.initCaseKey("amoRoth", True)
             helpmsg = ("Enable mutually exclusive constraints between"
                        " Roth conversions and withdrawals from tax-free accounts.")
             ret = kz.getToggle("XOR constraints on Roth conversions and tax-free withdrawals",
-                               "xorRoth", help=helpmsg)
+                               "amoRoth", help=helpmsg)
 
             kz.initCaseKey("noLateSurplus", False)
             helpmsg = ("Disallow cash-flow surpluses in the last 2 years of the plan.")

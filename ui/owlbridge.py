@@ -873,8 +873,8 @@ def genDic(plan):
     # Should we ignore expert options that will reset to default?
     optList = ["netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
                "startRothConversions", "withMedicare", "bequest", "solver", "noLateSurplus",
-               "spendingSlack", "oppCostX", "xorConstraints", "xorRoth", "xorSurplus", "withSCLoop",
-               "absTol", "bigMirmaa", "bigMxor", "relTol",]
+               "spendingSlack", "oppCostX", "amoConstraints", "amoRoth", "amoSurplus", "withSCLoop",
+               "absTol", "bigMirmaa", "bigMamo", "relTol",]
     for key in optList:
         if key in solverOptionKeys:
             dic[key] = plan.solverOptions[key]

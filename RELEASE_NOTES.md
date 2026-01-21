@@ -1,6 +1,7 @@
 ### Version 2026.01.21
 - Move "optimize" Medicare option to advanced section
 - Add solver option to disable surpluses in late years
+- Rename XOR -> AMO as correct term
 
 ### Version 2026.01.20
 - Fix negative taxable gains in years of negative returns

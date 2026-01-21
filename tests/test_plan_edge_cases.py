@@ -297,15 +297,15 @@ def test_solve_invalid_objective():
 
 
 def test_solve_invalid_option():
-    """Test solve with invalid option."""
+    """Test solve ignores unknown option."""
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("default")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
 
-    with pytest.raises(ValueError, match="Option.*is not one of"):
-        p.solve("maxSpending", options={"invalid_option": True})
+    p.solve("maxSpending", options={"invalid_option": True})
+    assert "invalid_option" not in p.solverOptions
 
 
 def test_solve_max_bequest_no_net_spending():
