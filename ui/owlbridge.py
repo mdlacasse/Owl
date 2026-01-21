@@ -791,6 +791,10 @@ def createCaseFromFile(strio):
 
 
 def genDic(plan):
+    """
+    From Plan to to UI.
+    """
+
     accName = ["txbl", "txDef", "txFree"]
     dic = {}
     dic["plan"] = plan
@@ -865,15 +869,21 @@ def genDic(plan):
             st.error("Only 'individual' and 'account' asset allocations are currently supported")
             return None
 
-    optionKeys = list(plan.solverOptions)
-    optList = ["netSpending", "maxRothConversion", "noRothConversions",
+    solverOptionKeys = list(plan.solverOptions)
+    # Should we ignore expert options that will reset to default.
+    optList = ["netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
                "startRothConversions", "withMedicare", "bequest", "solver",
-               "spendingSlack", "oppCostX", "xorConstraints", "withSCLoop",]
+               "spendingSlack", "oppCostX", "xorConstraints", "xorRoth", "xorSurplus", "withSCLoop",]
     for key in optList:
-        if key in optionKeys:
+        if key in solverOptionKeys:
             dic[key] = plan.solverOptions[key]
 
-    if "previousMAGIs" in optionKeys:
+    if "withMedicare" in solverOptionKeys:
+        opt = plan.solverOptions["withMedicare"]
+        dic["computeMedicare"] = False if opt == "None" else True
+        dic["optimizeMedicare"] = True if opt == "optimize" else False
+
+    if "previousMAGIs" in solverOptionKeys:
         dic["MAGI0"] = plan.solverOptions["previousMAGIs"][0]
         dic["MAGI1"] = plan.solverOptions["previousMAGIs"][1]
 

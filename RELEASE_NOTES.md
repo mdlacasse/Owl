@@ -1,3 +1,6 @@
+### Version 2026.01.21
+- Move "optimize" Medicare option to advanced section
+
 ### Version 2026.01.20
 - Fix negative taxable gains in years of negative returns
 - Fix limits in UI not allowing negative rates

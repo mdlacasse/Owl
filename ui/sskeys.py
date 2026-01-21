@@ -415,6 +415,10 @@ def compareSummaries():
 
 
 def getSolveParameters():
+    """
+    From UI to Plan.
+    """
+
     maximize = getCaseKey("objective")
     if maximize is None:
         return None
@@ -425,12 +429,17 @@ def getSolveParameters():
 
     options = {}
     optList = ["netSpending", "maxRothConversion", "noRothConversions",
-               "startRothConversions", "withMedicare", "bequest", "solver",
-               "spendingSlack", "oppCostX", "xorConstraints", "withSCLoop",]
+               "startRothConversions", "bequest", "solver",
+               "spendingSlack", "oppCostX", "xorRoth", "xorSurplus", "withSCLoop",]
     for opt in optList:
         val = getCaseKey(opt)
         if val is not None:
             options[opt] = val
+
+    # These need translation.
+    medion = getCaseKey("computeMedicare")
+    mediopt = getCaseKey("optimizeMedicare")
+    options["withMedicare"] = "None" if not medion else ("optimize" if mediopt else "loop")
 
     if getCaseKey("readRothX"):
         options["maxRothConversion"] = "file"

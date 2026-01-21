@@ -34,8 +34,8 @@ kz.initCaseKey("survivor", 60)
 kz.initCaseKey("smileDip", 15)
 kz.initCaseKey("smileIncrease", 12)
 kz.initCaseKey("smileDelay", 0)
-mediChoices = ["None", "loop", "optimize"]
-kz.initCaseKey("withMedicare", mediChoices[1])
+kz.initCaseKey("computeMedicare", True)
+kz.initCaseKey("optimizeMedicare", False)
 kz.initCaseKey("withSCLoop", True)
 
 
@@ -114,19 +114,13 @@ else:
     st.markdown("#### :orange[Medicare]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        helpmsg = ("How to compute Medicare and IRMAA premiums:"
-                   " ignore, or use self-consistent loop, or optimize (expert)."
-                   "`None` is fast but inaccurate while `optimize`"
-                   " might require tuning to converge. Use `loop` for most cases.")
-        ret = kz.getRadio("Medicare and IRMAA calculations", mediChoices, "withMedicare", help=helpmsg)
-        if ret == "optimize":
-            st.markdown(":material/warning: Medicare optimization can sometimes have slow convergence -"
-                        " time for coffee :coffee: ?")
-        elif ret == "loop" and not kz.getCaseKey("withSCLoop"):
-            st.markdown(":material/warning: Medicare set to 'loop' while self-consistent loop is off.")
+        kz.initCaseKey("computeMedicare", True)
+        helpmsg = "Compute Medicare and IRMAA premiums"
+        ret = kz.getToggle("Medicare and IRMAA calculations", "computeMedicare", help=helpmsg)
+        if ret and not kz.getCaseKey("withSCLoop"):
+            st.markdown(":material/warning: Medicare on while self-consistent loop is off.")
     with col2:
-        medi = kz.getCaseKey("withMedicare")
-        if medi == "optimize" or (medi == "loop" and kz.getCaseKey("withSCLoop")):
+        if kz.getCaseKey("computeMedicare"):
             helpmsg = "MAGI in nominal $k for current and previous years."
             years = owb.backYearsMAGI()
             for ii in range(2):
@@ -137,18 +131,27 @@ else:
     st.divider()
     with st.expander("*Advanced Options*"):
         st.markdown("#### :orange[Calculations]")
-        kz.initCaseKey("xorConstraints", True)
         col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
         with col1:
             helpmsg = ("Option to use a self-consistent loop to adjust additional values such as the net"
                        " investment income tax (NIIT), and capital gain tax rates."
-                       "  When Medicare is selected to *loop(, this will also compute Medicare and IRMAA.")
+                       "  When Medicare is selected, this will also compute Medicare and IRMAA.")
             ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
+            helpmsg = ("Option to optimize Medicare using binary variables."
+                       "  Use with caution as some cases do not converge without adjusting additional parameters.")
+            ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg)
         with col2:
-            helpmsg = ("Enable mutually exclusive constraints between surplus deposits,"
-                       " Roth conversions, and withdrawals from taxable and/or tax-free accounts.")
-            ret = kz.getToggle("XOR constraints on deposits, conversions, and withdrawals",
-                               "xorConstraints", help=helpmsg)
+            kz.initCaseKey("xorSurplus", True)
+            helpmsg = ("Enable mutually exclusive constraints between surplus deposits"
+                       " and withdrawals from taxable accounts")
+            ret = kz.getToggle("XOR constraints on surplus deposits and withdrawals from taxable accounts",
+                               "xorSurplus", help=helpmsg)
+
+            kz.initCaseKey("xorRoth", True)
+            helpmsg = ("Enable mutually exclusive constraints between"
+                       " Roth conversions and withdrawals from tax-free accounts.")
+            ret = kz.getToggle("XOR constraints on Roth conversions and tax-free withdrawals",
+                               "xorRoth", help=helpmsg)
 
         st.divider()
         st.markdown("#### :orange[Solver]")
