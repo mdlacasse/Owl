@@ -433,7 +433,7 @@ def getSolveParameters():
     optList = ["netSpending", "maxRothConversion", "noRothConversions",
                "startRothConversions", "bequest", "solver",
                "spendingSlack", "oppCostX", "xorRoth", "xorSurplus", "withSCLoop",
-               "allowLateSurplus",]
+               "noLateSurplus",]
 
     for opt in optList:
         val = getCaseKey(opt)

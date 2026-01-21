@@ -154,10 +154,10 @@ else:
             ret = kz.getToggle("XOR constraints on Roth conversions and tax-free withdrawals",
                                "xorRoth", help=helpmsg)
 
-            kz.initCaseKey("allowLateSurplus", False)
-            helpmsg = ("Allow cash-flow surpluses in the last 2 years of the plan.")
-            ret = kz.getToggle("Allow cash-flow surpluses in last years",
-                               "allowLateSurplus", help=helpmsg)
+            kz.initCaseKey("noLateSurplus", False)
+            helpmsg = ("Disallow cash-flow surpluses in the last 2 years of the plan.")
+            ret = kz.getToggle("Disallow cash-flow surpluses in last years",
+                               "noLateSurplus", help=helpmsg)
 
         st.divider()
         st.markdown("#### :orange[Solver]")

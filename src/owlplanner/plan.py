@@ -1564,7 +1564,7 @@ class Plan:
                 self.A.addNewRow(rowDic, 0, 0)
 
         # Prevent surplus on two last year as they have little tax and/or growth consequence.
-        disallow = not options.get("allowLateSurplus", False)
+        disallow = options.get("noLateSurplus", False)
         if disallow:
             self.B.setRange(_q1(self.C["s"], self.N_n - 2, self.N_n), 0, 0)
             self.B.setRange(_q1(self.C["s"], self.N_n - 1, self.N_n), 0, 0)
@@ -1974,7 +1974,6 @@ class Plan:
 
         knownOptions = [
             "absTol",
-            "allowLateSurplus",
             "bequest",
             "bigMirmaa",  # Big-M value for Medicare IRMAA constraints (default: 5e7)
             "bigMxor",    # Big-M value for XOR constraints (default: 5e7)
@@ -1982,6 +1981,7 @@ class Plan:
             "maxIter",
             "maxRothConversion",
             "netSpending",
+            "noLateSurplus",
             "noRothConversions",
             "oppCostX",
             "previousMAGIs",

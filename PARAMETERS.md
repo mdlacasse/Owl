@@ -168,7 +168,6 @@ Options controlling the optimization solver and constraints.
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
 | `absTol` | float | *(Advanced)* Absolute convergence tolerance for the self-consistent loop objective. | `20` |
-| `allowLateSurplus` | boolean | Allow surplus deposits in the final two years of the plan. | `false` |
 | `bequest` | float | Target bequest value in today's dollars (in `units`). Used when `objective = "maxSpending"`. | `1` (if omitted with `maxSpending`) |
 | `bigMirmaa` | float | *(Advanced)* Big-M value for Medicare IRMAA bracket constraints (used when `withMedicare = "optimize"`). Should exceed any plausible aggregate MAGI. | `5e7` |
 | `bigMxor` | float | *(Advanced)* Big-M value for XOR constraints (mutually exclusive operations). Should exceed any individual withdrawal, conversion, or surplus deposit. | `5e7` |
@@ -177,6 +176,7 @@ Options controlling the optimization solver and constraints.
 | `maxRothConversion` | float or string | Maximum annual Roth conversion amount (in `units`). Use `"file"` to take per-year limits from time lists; omit for no cap (except last year). | No cap unless provided |
 | `maxTime` | float | *(Advanced)* Solver time limit in seconds. | `900` |
 | `netSpending` | float | Target net spending amount in today's dollars (in `units`). Used when `objective = "maxBequest"`. | Required for `maxBequest` |
+| `noLateSurplus` | boolean | Disallow surplus deposits in the final two years of the plan. | `false` |
 | `noRothConversions` | string | Name of individual for whom Roth conversions are disabled, or `"None"` to allow conversions for all. | `"None"` |
 | `oppCostX` | float | *(Advanced)* Opportunity cost applied to Roth conversions (percent). | `0` |
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |

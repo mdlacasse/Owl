@@ -367,12 +367,6 @@ where:
   the fixed annual payment amount based on standard amortization formulas. The payment amount remains
   constant throughout the loan term.
 
-Note that by default, surpluses are not allowed in the last 2 years of the plan. This is because
-negative returns can cause a degeneracy between tax-free accounts and taxable accounts, and
-the optimizer can freely transfer huge amnounts of money with no tax consequences. Therefore,
-if assets are disposed in the last 2 years of the plan, make sure to allow late surpluses
-in the solver options.
-
 **Debt Payment Calculation:**
 - Debt payments are calculated using standard amortization formulas based on the principal amount,
   interest rate, and term.
