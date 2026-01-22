@@ -4,9 +4,11 @@ numpy
 odfpy
 openpyxl
 pandas
-plotly >= 6.3
+# plotly <= 6.3
+plotly
 pulp
 scipy
 seaborn
-streamlit < 1.52
+# streamlit < 1.52
+streamlit
 toml
