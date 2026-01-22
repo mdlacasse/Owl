@@ -2142,6 +2142,8 @@ class Plan:
         old_x = np.zeros(self.nvars)
         old_objfns = [np.inf]
         scaled_obj_history = []  # Track scaled objective values for oscillation detection
+        sol_history = []  # Track solutions aligned with scaled_obj_history
+        obj_history = []  # Track raw objective values aligned with scaled_obj_history
         self._computeNLstuff(None, includeMedicare)
         while True:
             objfn, xx, solverSuccess, solverMsg = solverMethod(objective, options)
@@ -2161,6 +2163,8 @@ class Plan:
             absObjDiff = abs(objFac*(objfn + old_objfns[-1]))
             scaled_obj = objfn * objFac
             scaled_obj_history.append(scaled_obj)
+            sol_history.append(xx)
+            obj_history.append(objfn)
             self.mylog.vprint(f"Iteration: {it:02}, f: {u.d(scaled_obj, f=0)};"
                               f" |dX|: {absSolDiff:.0f}; |df|: {u.d(absObjDiff, f=0)}")
 
@@ -2199,26 +2203,12 @@ class Plan:
                     self.mylog.vprint(f"Oscillation detected: {cycle_len}-cycle pattern identified.")
                     self.mylog.vprint(f"Best objective in cycle: {u.d(best_obj, f=2)}")
 
-                    # For 2-cycles, we can select the better solution since we have both available
-                    if cycle_len == 2:
-                        # best_idx is 0 (current) or 1 (previous)
-                        if best_idx == 1:  # Previous solution is better
-                            # Use previous solution
-                            xx = old_x
-                            objfn = -old_objfns[-1]  # Convert back from stored -objfn
-                            self.mylog.vprint("Using previous solution (better objective).")
-                        else:
-                            self.mylog.vprint("Using current solution (better objective).")
-                    else:
-                        # For longer cycles, we only have current and previous solutions available
-                        # Use whichever is better between current and previous
-                        prev_obj = (-old_objfns[-1]) * objFac if len(old_objfns) > 1 else scaled_obj
-                        if prev_obj < scaled_obj:
-                            xx = old_x
-                            objfn = -old_objfns[-1]
-                            self.mylog.vprint("Using previous solution (better than current).")
-                        else:
-                            self.mylog.vprint("Using current solution.")
+                    # Select the solution corresponding to the best objective in the detected cycle.
+                    cycle_solutions = sol_history[-cycle_len:]
+                    cycle_objfns = obj_history[-cycle_len:]
+                    xx = cycle_solutions[best_idx]
+                    objfn = cycle_objfns[best_idx]
+                    self.mylog.vprint("Using best solution from detected cycle.")
 
                     self.mylog.vprint("Accepting solution from cycle and terminating.")
                     break
