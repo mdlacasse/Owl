@@ -104,7 +104,7 @@ def _genXi_n(profile, fraction, n_d, N_n, a, b, c):
             xi[n_d:] *= fraction
         xi *= neutralSum / xi.sum()
     else:
-        raise ValueError(f"Unknown profile type {profile}.")
+        raise ValueError(f"Unknown profile type '{profile}'.")
 
     return xi
 
@@ -377,7 +377,7 @@ class Plan:
 
         # Scenario starts at the beginning of this year and ends at the end of the last year.
         s = ("", "s")[self.N_i - 1]
-        self.mylog.vprint(f"Preparing scenario {self._id} of {self.N_n} years for {self.N_i} individual{s}.")
+        self.mylog.vprint(f"Preparing scenario '{self._id}' of {self.N_n} years for {self.N_i} individual{s}.")
         for i in range(self.N_i):
             endyear = thisyear + self.horizons[i] - 1
             self.mylog.vprint(f"{self.inames[i]:>14}: life horizon from {thisyear} -> {endyear}.")
@@ -477,7 +477,7 @@ class Plan:
         to distinguish graph outputs and as base name for
         saving configurations and workbooks.
         """
-        self.mylog.vprint(f"Renaming case {self._name} -> {newname}.")
+        self.mylog.vprint(f"Renaming case '{self._name}' -> '{newname}'.")
         self._name = newname
 
     def setDescription(self, description):
@@ -512,7 +512,7 @@ class Plan:
         """
 
         self.defaultPlots = self._checkValueType(value)
-        self.mylog.vprint(f"Setting plots default value to {value}.")
+        self.mylog.vprint(f"Setting plots default value to '{value}'.")
 
     def setPlotBackend(self, backend: str):
         """
@@ -520,12 +520,12 @@ class Plan:
         """
 
         if backend not in ("matplotlib", "plotly"):
-            raise ValueError(f"Backend {backend} not a valid option.")
+            raise ValueError(f"Backend '{backend}' not a valid option.")
 
         if backend != self._plotterName:
             self._plotter = PlotFactory.createBackend(backend)
             self._plotterName = backend
-            self.mylog.vprint(f"Setting plotting backend to {backend}.")
+            self.mylog.vprint(f"Setting plotting backend to '{backend}'.")
 
     def setDividendRate(self, mu):
         """
@@ -807,9 +807,9 @@ class Plan:
         self.rateFrm = frm
         self.rateTo = to
         self.tau_kn = dr.genSeries(self.N_n).transpose()
-        self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using {method} method.")
+        self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using '{method}' method.")
         if method in ["stochastic", "histochastic"]:
-            repro_status = 'reproducible' if self.reproducibleRates else 'non-reproducible'
+            repro_status = "reproducible" if self.reproducibleRates else "non-reproducible"
             self.mylog.vprint(f"Using seed {seed} for {repro_status} rates.")
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
@@ -910,12 +910,12 @@ class Plan:
             self.interpCenter = center
             self.interpWidth = width
         else:
-            raise ValueError(f"Method {method} not supported.")
+            raise ValueError(f"Method '{method}' not supported.")
 
         self.interpMethod = method
         self.caseStatus = "modified"
 
-        self.mylog.vprint(f"Asset allocation interpolation method set to {method}.")
+        self.mylog.vprint(f"Asset allocation interpolation method set to '{method}'.")
 
     def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None, taxFree=None, generic=None):
         """
@@ -942,7 +942,7 @@ class Plan:
         # Validate allocType parameter
         validTypes = ["account", "individual", "spouses"]
         if allocType not in validTypes:
-            raise ValueError(f"allocType must be one of {validTypes}, got '{allocType}'")
+            raise ValueError(f"allocType must be one of {validTypes}, got '{allocType}'.")
 
         self.boundsAR = {}
         self.alpha_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n + 1))
@@ -962,7 +962,7 @@ class Plan:
                             raise ValueError("Sum of percentages must add to 100.")
 
             for i in range(self.N_i):
-                self.mylog.vprint(f"{self.inames[i]}: Setting gliding allocation ratios (%) to {allocType}.")
+                self.mylog.vprint(f"{self.inames[i]}: Setting gliding allocation ratios (%) to '{allocType}'.")
                 self.mylog.vprint(f"      taxable: {taxable[i][0]} -> {taxable[i][1]}")
                 self.mylog.vprint(f"  taxDeferred: {taxDeferred[i][0]} -> {taxDeferred[i][1]}")
                 self.mylog.vprint(f"      taxFree: {taxFree[i][0]} -> {taxFree[i][1]}")
@@ -999,7 +999,7 @@ class Plan:
                         raise ValueError("Sum of percentages must add to 100.")
 
             for i in range(self.N_i):
-                self.mylog.vprint(f"{self.inames[i]}: Setting gliding allocation ratios (%) to {allocType}.")
+                self.mylog.vprint(f"{self.inames[i]}: Setting gliding allocation ratios (%) to '{allocType}'.")
                 self.mylog.vprint(f"\t{generic[i][0]} -> {generic[i][1]}")
 
             for i in range(self.N_i):
@@ -1034,7 +1034,7 @@ class Plan:
         self.ARCoord = allocType
         self.caseStatus = "modified"
 
-        self.mylog.vprint(f"Interpolating assets allocation ratios using {self.interpMethod} method.")
+        self.mylog.vprint(f"Interpolating assets allocation ratios using '{self.interpMethod}' method.")
 
     def readContributions(self, filename, filename_for_logging=None):
         """
@@ -1464,7 +1464,7 @@ class Plan:
                 try:
                     i_xcluded = self.inames.index(rhsopt)
                 except ValueError as e:
-                    raise ValueError(f"Unknown individual {rhsopt} for noRothConversions:") from e
+                    raise ValueError(f"Unknown individual '{rhsopt}' for noRothConversions:") from e
                 for n in range(self.horizons[i_xcluded]):
                     self.B.setRange(_q2(self.C["x"], i_xcluded, n, self.N_i, self.N_n), 0, 0)
 
@@ -1507,9 +1507,6 @@ class Plan:
                     transx = min(yearn, self.horizons[i_x])
                     for n in range(transx, self.horizons[i_x]):
                         self.B.setRange(_q2(self.C["x"], i_x, n, self.N_i, self.N_n), 0, 0)
-
-                    # self.mylog.vprint("Switching Roth converter from"
-                    #                  f" {self.inames[i_x]} -> {self.inames[i_y]} in {absrhsopt}.")
 
             # Disallow Roth conversions in last two years alive. Plan has at least 2 years.
             for i in range(self.N_i):
@@ -1866,8 +1863,8 @@ class Plan:
         elif objective == "maxBequest":
             columns = ["partial", "final"]
         else:
-            self.mylog.print(f"Invalid objective {objective}.")
-            raise ValueError(f"Invalid objective {objective}.")
+            self.mylog.print(f"Invalid objective '{objective}'.")
+            raise ValueError(f"Invalid objective '{objective}'.")
 
         df = pd.DataFrame(columns=columns)
 
@@ -1919,7 +1916,7 @@ class Plan:
         elif objective == "maxBequest":
             columns = ["partial", "final"]
         else:
-            self.mylog.print(f"Invalid objective {objective}.")
+            self.mylog.print(f"Invalid objective '{objective}'.")
             return None
 
         df = pd.DataFrame(columns=columns)
@@ -2026,15 +2023,15 @@ class Plan:
 
         for opt in list(myoptions.keys()):
             if opt not in knownOptions:
-                # raise ValueError(f"Option {opt} is not one of {knownOptions}.")
+                # raise ValueError(f"Option '{opt}' is not one of {knownOptions}.")
                 self.mylog.vprint(f"Ignoring unknown solver option '{opt}'.")
                 myoptions.pop(opt)
 
         if objective not in knownObjectives:
-            raise ValueError(f"Objective {objective} is not one of {knownObjectives}.")
+            raise ValueError(f"Objective '{objective}' is not one of {knownObjectives}.")
 
         if objective == "maxBequest" and "netSpending" not in myoptions:
-            raise RuntimeError(f"Objective {objective} needs netSpending option.")
+            raise RuntimeError(f"Objective '{objective}' needs netSpending option.")
 
         if objective == "maxBequest" and "bequest" in myoptions:
             self.mylog.vprint("Ignoring bequest option provided.")
@@ -2051,6 +2048,10 @@ class Plan:
 
         oppCostX = myoptions.get("oppCostX", 0.)
         self.xnet = 1 - oppCostX / 100.
+
+        if "swapRothConverters" in myoptions and "noRothConversions" in myoptions:
+            self.mylog.vprint("Ignoring 'noRothConversions' as 'swapRothConverters' option present.")
+            myoptions.pop("noRothConversions")
 
         # Go easy on MILP - auto gap somehow.
         if "gap" not in myoptions and myoptions.get("withMedicare", "loop") == "optimize":
@@ -2073,7 +2074,7 @@ class Plan:
 
         lambdha = myoptions.get("spendingSlack", 0)
         if not (0 <= lambdha <= 50):
-            raise ValueError(f"Slack value out of range {lambdha}.")
+            raise ValueError(f"Slack value {lambdha} out of range.")
         self.lambdha = lambdha / 100
 
         # Reset long-term capital gain tax rate and MAGI to zero.
@@ -2090,7 +2091,7 @@ class Plan:
 
         solver = myoptions.get("solver", self.defaultSolver)
         if solver not in knownSolvers:
-            raise ValueError(f"Unknown solver {solver}.")
+            raise ValueError(f"Unknown solver '{solver}'.")
 
         if solver == "HiGHS":
             solverMethod = self._milpSolve
@@ -2101,7 +2102,7 @@ class Plan:
         else:
             raise RuntimeError("Internal error in defining solverMethod.")
 
-        self.mylog.vprint(f"Using {solver} solver.")
+        self.mylog.vprint(f"Using '{solver}' solver.")
         myoptions_txt = textwrap.fill(f"{myoptions}", initial_indent="\t", subsequent_indent="\t", width=100)
         self.mylog.vprint(f"Solver options:\n{myoptions_txt}.")
         self._scSolve(objective, myoptions, solverMethod)

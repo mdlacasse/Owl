@@ -393,7 +393,7 @@ as savings account balances are assumed to be rebalanced periodically.
 	Fraction of savings account $j$ that is left to surviving spouse $i_s$ as a beneficiary
 	at the death of individual $i_d$, the first spouse to pass.
 \item [$\psi$]
-	Effective income tax rate on long-term capital gains and qualified dividends.
+	Effective income tax rate on long-term capital gains (LTCG) and qualified dividends.
 	The rate is computed from the LTCG tax brackets using total taxable income, so it is an
 	average (total LTCG tax divided by total LTCG) rather than a marginal rate.
 	If adjusted self-consistently for income, then $\psi$ becomes time series $\psi_n$.
@@ -401,7 +401,7 @@ as savings account balances are assumed to be rebalanced periodically.
 \item [$\Psi$]
 	Fraction of social security that is taxed, which depends on gross income and maxes out at 85\%.
         If adjusted self-consistently for income, then $\Psi$ becomes time series $\Psi_n$. However,
-	given how low the threshold (around \$44k the married couples) is for reaching the
+	given how low the threshold (around \$44k for married couples) is for reaching the
 	maximum taxation level of 85\%, it is fixed at this value in Owl.
 \item [$\eta$]
 	Spousal ratio for surplus deposits, which goes from 0 to 1, as the fraction
@@ -816,8 +816,9 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 		+ \psi_n\sum_i \alpha_{i00n} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0(n-1)} - \mu)\right] 
 		&=& \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in} \nonumber\\
-                && + \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ]
-		- 0.5\psi_n\mu\sum_i \alpha_{i00n}\kappa_{i0n} - \mathcal{D}_n.
+                && + \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] \nonumber \\
+		&& - 0.5\psi_n\mu\sum_i \alpha_{i00n}\kappa_{i0n} \nonumber \\
+                && - \mathcal{D}_n.
 	\end{eqnarray}
 	Notice that we do not consider market losses or tax-loss harvesting,
 	and we do not track individual stock purchases over the years.
