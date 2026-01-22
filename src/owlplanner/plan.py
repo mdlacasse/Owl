@@ -2683,50 +2683,55 @@ class Plan:
         return None
 
     @_checkCaseStatus
-    def summary(self):
+    def summary(self, N=None):
         """
         Print summary in logs.
         """
         self.mylog.print("SUMMARY ================================================================")
-        dic = self.summaryDic()
+        dic = self.summaryDic(N)
         for key, value in dic.items():
             self.mylog.print(f"{key}: {value}")
         self.mylog.print("------------------------------------------------------------------------")
 
         return None
 
-    def summaryList(self):
+    def summaryList(self, N=None):
         """
         Return summary as a list.
         """
         mylist = []
-        dic = self.summaryDic()
+        dic = self.summaryDic(N)
         for key, value in dic.items():
             mylist.append(f"{key}: {value}")
 
         return mylist
 
-    def summaryDf(self):
+    def summaryDf(self, N=None):
         """
         Return summary as a dataframe.
         """
-        return pd.DataFrame(self.summaryDic(), index=[self._name])
+        return pd.DataFrame(self.summaryDic(N), index=[self._name])
 
-    def summaryString(self):
+    def summaryString(self, N=None):
         """
         Return summary as a string.
         """
         string = "Synopsis\n"
-        dic = self.summaryDic()
+        dic = self.summaryDic(N)
         for key, value in dic.items():
             string += f"{key:>70}: {value}\n"
 
         return string
 
-    def summaryDic(self):
+    def summaryDic(self, N=None):
         """
         Return dictionary containing summary of values.
         """
+        if N is None:
+            N = self.N_n
+        if not (0 < N <= self.N_n):
+            raise ValueError(f"Value N={N} is out of reange")
+
         now = self.year_n[0]
         dic = {}
         # Results
@@ -2735,23 +2740,23 @@ class Plan:
         dic[f"Net spending for year {now}"] = u.d(self.g_n[0])
         dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0] * self.yearFracLeft)
 
-        totSpending = np.sum(self.g_n, axis=0)
-        totSpendingNow = np.sum(self.g_n / self.gamma_n[:-1], axis=0)
+        totSpending = np.sum(self.g_n[:N], axis=0)
+        totSpendingNow = np.sum(self.g_n[:N] / self.gamma_n[:N], axis=0)
         dic[" Total net spending"] = f"{u.d(totSpendingNow)}"
         dic["[Total net spending]"] = f"{u.d(totSpending)}"
 
-        totRoth = np.sum(self.x_in, axis=(0, 1))
-        totRothNow = np.sum(np.sum(self.x_in, axis=0) / self.gamma_n[:-1], axis=0)
+        totRoth = np.sum(self.x_in[:, :N], axis=(0, 1))
+        totRothNow = np.sum(np.sum(self.x_in[:, :N], axis=0) / self.gamma_n[:N], axis=0)
         dic[" Total Roth conversions"] = f"{u.d(totRothNow)}"
         dic["[Total Roth conversions]"] = f"{u.d(totRoth)}"
 
-        taxPaid = np.sum(self.T_n, axis=0)
-        taxPaidNow = np.sum(self.T_n / self.gamma_n[:-1], axis=0)
+        taxPaid = np.sum(self.T_n[:N], axis=0)
+        taxPaidNow = np.sum(self.T_n[:N] / self.gamma_n[:N], axis=0)
         dic[" Total tax paid on ordinary income"] = f"{u.d(taxPaidNow)}"
         dic["[Total tax paid on ordinary income]"] = f"{u.d(taxPaid)}"
         for t in range(self.N_t):
-            taxPaid = np.sum(self.T_tn[t], axis=0)
-            taxPaidNow = np.sum(self.T_tn[t] / self.gamma_n[:-1], axis=0)
+            taxPaid = np.sum(self.T_tn[t, :N], axis=0)
+            taxPaidNow = np.sum(self.T_tn[t, :N] / self.gamma_n[:N], axis=0)
             if t >= len(tx.taxBracketNames):
                 tname = f"Bracket {t}"
             else:
@@ -2759,33 +2764,33 @@ class Plan:
             dic[f"»  Subtotal in tax bracket {tname}"] = f"{u.d(taxPaidNow)}"
             dic[f"» [Subtotal in tax bracket {tname}]"] = f"{u.d(taxPaid)}"
 
-        penaltyPaid = np.sum(self.P_n, axis=0)
-        penaltyPaidNow = np.sum(self.P_n / self.gamma_n[:-1], axis=0)
+        penaltyPaid = np.sum(self.P_n[:N], axis=0)
+        penaltyPaidNow = np.sum(self.P_n[:N] / self.gamma_n[:N], axis=0)
         dic["»  Subtotal in early withdrawal penalty"] = f"{u.d(penaltyPaidNow)}"
         dic["» [Subtotal in early withdrawal penalty]"] = f"{u.d(penaltyPaid)}"
 
-        taxPaid = np.sum(self.U_n, axis=0)
-        taxPaidNow = np.sum(self.U_n / self.gamma_n[:-1], axis=0)
+        taxPaid = np.sum(self.U_n[:N], axis=0)
+        taxPaidNow = np.sum(self.U_n[:N] / self.gamma_n[:N], axis=0)
         dic[" Total tax paid on gains and dividends"] = f"{u.d(taxPaidNow)}"
         dic["[Total tax paid on gains and dividends]"] = f"{u.d(taxPaid)}"
 
-        taxPaid = np.sum(self.J_n, axis=0)
-        taxPaidNow = np.sum(self.J_n / self.gamma_n[:-1], axis=0)
+        taxPaid = np.sum(self.J_n[:N], axis=0)
+        taxPaidNow = np.sum(self.J_n[:N] / self.gamma_n[:N], axis=0)
         dic[" Total net investment income tax paid"] = f"{u.d(taxPaidNow)}"
         dic["[Total net investment income tax paid]"] = f"{u.d(taxPaid)}"
 
-        taxPaid = np.sum(self.m_n + self.M_n, axis=0)
-        taxPaidNow = np.sum((self.m_n + self.M_n) / self.gamma_n[:-1], axis=0)
+        taxPaid = np.sum(self.m_n[:N] + self.M_n[:N], axis=0)
+        taxPaidNow = np.sum((self.m_n[:N] + self.M_n[:N]) / self.gamma_n[:N], axis=0)
         dic[" Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
         dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
 
-        totDebtPayments = np.sum(self.debt_payments_n, axis=0)
+        totDebtPayments = np.sum(self.debt_payments_n[:N], axis=0)
         if totDebtPayments > 0:
-            totDebtPaymentsNow = np.sum(self.debt_payments_n / self.gamma_n[:-1], axis=0)
+            totDebtPaymentsNow = np.sum(self.debt_payments_n[:N] / self.gamma_n[:N], axis=0)
             dic[" Total debt payments"] = f"{u.d(totDebtPaymentsNow)}"
             dic["[Total debt payments]"] = f"{u.d(totDebtPayments)}"
 
-        if self.N_i == 2 and self.n_d < self.N_n:
+        if self.N_i == 2 and self.n_d < self.N_n and N == self.N_n:
             p_j = self.partialEstate_j * (1 - self.phi_j)
             p_j[1] *= 1 - self.nu
             nx = self.n_d - 1
@@ -2815,38 +2820,39 @@ class Plan:
             dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-free"] = f"{u.d(ynxNow*p_j[2])}"
             dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-free]"] = f"{u.d(p_j[2])}"
 
-        estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
-        heirsTaxLiability = estate[1] * self.nu
-        estate[1] *= 1 - self.nu
-        endyear = self.year_n[-1]
-        lyNow = 1./self.gamma_n[-1]
-        # Add fixed assets bequest value (assets with yod past plan end)
-        debts = self.remaining_debt_balance
-        savingsEstate = np.sum(estate)
-        totEstate = savingsEstate - debts + self.fixed_assets_bequest_value
+        if N == self.N_n:
+            estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
+            heirsTaxLiability = estate[1] * self.nu
+            estate[1] *= 1 - self.nu
+            endyear = self.year_n[-1]
+            lyNow = 1./self.gamma_n[-1]
+            # Add fixed assets bequest value (assets with yod past plan end)
+            debts = self.remaining_debt_balance
+            savingsEstate = np.sum(estate)
+            totEstate = savingsEstate - debts + self.fixed_assets_bequest_value
 
-        dic["Year of final bequest"] = f"{endyear}"
-        dic[" Total after-tax value of final bequest"] = f"{u.d(lyNow*totEstate)}"
-        dic["» After-tax value of savings assets"] = f"{u.d(lyNow*savingsEstate)}"
-        dic["» Fixed assets liquidated at end of plan"] = f"{u.d(lyNow*self.fixed_assets_bequest_value)}"
-        dic["» With heirs assuming tax liability of"] = f"{u.d(lyNow*heirsTaxLiability)}"
-        dic["» After paying remaining debts of"] = f"{u.d(lyNow*debts)}"
+            dic["Year of final bequest"] = f"{endyear}"
+            dic[" Total after-tax value of final bequest"] = f"{u.d(lyNow*totEstate)}"
+            dic["» After-tax value of savings assets"] = f"{u.d(lyNow*savingsEstate)}"
+            dic["» Fixed assets liquidated at end of plan"] = f"{u.d(lyNow*self.fixed_assets_bequest_value)}"
+            dic["» With heirs assuming tax liability of"] = f"{u.d(lyNow*heirsTaxLiability)}"
+            dic["» After paying remaining debts of"] = f"{u.d(lyNow*debts)}"
 
-        dic["[Total after-tax value of final bequest]"] = f"{u.d(totEstate)}"
-        dic["[» After-tax value of savings assets]"] = f"{u.d(savingsEstate)}"
-        dic["[» Fixed assets liquidated at end of plan]"] = f"{u.d(self.fixed_assets_bequest_value)}"
-        dic["[» With heirs assuming tax liability of"] = f"{u.d(heirsTaxLiability)}"
-        dic["[» After paying remaining debts of]"] = f"{u.d(debts)}"
+            dic["[Total after-tax value of final bequest]"] = f"{u.d(totEstate)}"
+            dic["[» After-tax value of savings assets]"] = f"{u.d(savingsEstate)}"
+            dic["[» Fixed assets liquidated at end of plan]"] = f"{u.d(self.fixed_assets_bequest_value)}"
+            dic["[» With heirs assuming tax liability of"] = f"{u.d(heirsTaxLiability)}"
+            dic["[» After paying remaining debts of]"] = f"{u.d(debts)}"
 
-        dic["»  Post-tax final bequest account value - taxable"] = f"{u.d(lyNow*estate[0])}"
-        dic["» [Post-tax final bequest account value - taxable]"] = f"{u.d(estate[0])}"
-        dic["»  Post-tax final bequest account value - tax-def"] = f"{u.d(lyNow*estate[1])}"
-        dic["» [Post-tax final bequest account value - tax-def]"] = f"{u.d(estate[1])}"
-        dic["»  Post-tax final bequest account value - tax-free"] = f"{u.d(lyNow*estate[2])}"
-        dic["» [Post-tax final bequest account value - tax-free]"] = f"{u.d(estate[2])}"
+            dic["»  Post-tax final bequest account value - taxable"] = f"{u.d(lyNow*estate[0])}"
+            dic["» [Post-tax final bequest account value - taxable]"] = f"{u.d(estate[0])}"
+            dic["»  Post-tax final bequest account value - tax-def"] = f"{u.d(lyNow*estate[1])}"
+            dic["» [Post-tax final bequest account value - tax-def]"] = f"{u.d(estate[1])}"
+            dic["»  Post-tax final bequest account value - tax-free"] = f"{u.d(lyNow*estate[2])}"
+            dic["» [Post-tax final bequest account value - tax-free]"] = f"{u.d(estate[2])}"
 
         dic["Case starting date"] = str(self.startDate)
-        dic["Cumulative inflation factor at end of final year"] = f"{self.gamma_n[-1]:.2f}"
+        dic["Cumulative inflation factor at end of final year"] = f"{self.gamma_n[N]:.2f}"
         for i in range(self.N_i):
             dic[f"{self.inames[i]:>14}'s life horizon"] = f"{now} -> {now + self.horizons[i] - 1}"
             dic[f"{self.inames[i]:>14}'s years planned"] = f"{self.horizons[i]}"
