@@ -8,6 +8,6 @@ plotly >= 6.3
 pulp
 scipy
 seaborn
-streamlit < 1.53
+streamlit == 1.52.2
 toml
 altair < 5
