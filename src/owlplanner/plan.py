@@ -2191,9 +2191,9 @@ class Plan:
             if it >= 3:
                 cycle_len = self._detectOscillation(scaled_obj_history, tol)
                 if cycle_len is not None:
-                    # Find the best (minimum) objective in the cycle
+                    # Find the best (maximum) objective in the cycle
                     cycle_values = scaled_obj_history[-cycle_len:]
-                    best_idx = np.argmin(cycle_values)
+                    best_idx = np.argmax(cycle_values)
                     best_obj = cycle_values[best_idx]
                     self.convergenceType = f"oscillatory (cycle length {cycle_len})"
                     self.mylog.vprint(f"Oscillation detected: {cycle_len}-cycle pattern identified.")
