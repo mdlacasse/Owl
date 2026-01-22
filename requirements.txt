@@ -10,3 +10,4 @@ scipy
 seaborn
 streamlit < 1.53
 toml
+altair == 4.2.2
