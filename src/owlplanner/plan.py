@@ -1780,9 +1780,12 @@ class Plan:
             n2 = self.nm + nn - 2  # n - 2
             for q in range(self.N_q - 1):
                 rhs = self.L_nq[nn, q]
+                rhs -= (self.fixed_assets_ordinary_income_n[n2]
+                        + self.fixed_assets_capital_gains_n[n2])
                 row = self.A.newRow()
 
                 row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM*self.gamma_n[nn])
+                row.addElem(_q1(self.C["e"], n2, self.N_n), +1)
                 for i in range(self.N_i):
                     row.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), +1)
                     row.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), +1)

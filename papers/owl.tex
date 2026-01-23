@@ -153,6 +153,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	Net spending in year $n$.
 \item [$m_n$]
 	Medicare costs in year $n$, including part B premiums and IRMAA income-related adjustments.
+	This does not include part D premiums and adjustments.
 \item [$s_{n}$]
 	Surplus of funds during year $n$, most likely caused by required minimum distributions (RMDs)
 	or influx of money from big-ticket items (inheritance, gifts, sale of a house, etc.).
@@ -540,6 +541,16 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	When $Q_n > 0$, we compute $\psi_n = U_n / Q_n$ after determining $U_n$ from the LTCG brackets
 	using total taxable income (ordinary income plus long-term capital gains).
 
+\item [$J_n$]
+	Net investment income tax (NIIT) paid in year $n$. The NIIT is 3.8\% and applies
+	when modified adjusted gross income $\mathbb{G}_n$ exceeds the statutory threshold
+	$G^{\mathrm{NIIT}}$ (not indexed for inflation). We compute
+	\begin{equation}
+		J_n = 0.038\ \max\!\left(0,\ \min\!\left(\mathbb{G}_n - G^{\mathrm{NIIT}},\ \mathbb{I}_n + Q_n\right)\right),
+	\end{equation}
+	where $G^{\mathrm{NIIT}}$ is \$200k for single filers and \$250k for married filing jointly,
+	with filing status changing after the passing of one spouse ($n \ge n_d$).
+
 \end{description}
 
 \chapter{Formulation with imposed asset allocation ratios}
@@ -591,7 +602,7 @@ add the market returns to the savings balances.
 	at December 31 of the previous year, which is the amount from which the IRS bases the RMDs.
 	Eq.~(\ref{Eq:C1}) has to hold for each year $n$ and each individual $i$, and therefore, there
 	are $i\times N_n$ such equations (although trivial when $\rho_{in} = 0$).
-	These constraints avoid paying the 50\% penalty
+	These constraints avoid paying up to 25\% penalty
 	on amounts not withdrawn when RMDs are required.
 	Note that aggregate rules need to be considered separately as this approach only considers
 	the sum of assets in a class with similar tax treatment (e.g., IRA and 401k).
@@ -804,7 +815,7 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 	\begin{eqnarray}
 		g_n &=& \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] 
 		+ \sum_{i,j} w_{ijn} + \sum_i \Lambda^\pm_{in} - s_{n}
-		- P_n - T_n - U_n - m_n \nonumber \\
+		- P_n - T_n - U_n - J_n - m_n \nonumber \\
 		&& + \sum_{*=x,c,f} \mathcal{A}_n^* - \mathcal{D}_n.
 	\end{eqnarray}
 	Notice how big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
@@ -818,7 +829,7 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 		&=& \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in} \nonumber\\
                 && + \sum_i [\omega_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] \nonumber \\
 		&& - 0.5\psi_n\mu\sum_i \alpha_{i00n}\kappa_{i0n} \nonumber \\
-                && - \mathcal{D}_n.
+                && - \mathcal{D}_n - J_n.
 	\end{eqnarray}
 	Notice that we do not consider market losses or tax-loss harvesting,
 	and we do not track individual stock purchases over the years.
