@@ -198,25 +198,29 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
 
                 # Choose icon and color
                 if is_current:
-                    icon = "🟠"  # Filled circle (emoji)
+                    # icon = "🟠"  # Filled circle (emoji)
                     # icon = "spinner"
                     color = "orange"
+                    label = f":{color}[:material/radio_button_unchecked:]"
                 elif is_visited:
-                    icon = "🟢"  # Filled circle (emoji)
+                    # icon = "🟢"  # Filled circle (emoji)
                     color = "green"
+                    label = f":{color}[:material/radio_button_checked:]"
                 else:
-                    icon = "⚪"  # Empty circle (emoji)
-                    color = "lightgray"
+                    # icon = "⚪"  # Empty circle (emoji)
+                    color = "gray"
+                    label = f":{color}[:material/radio_button_unchecked:]"
 
                 st.page_link(
                     page_info["file"],
-                    label="",
-                    icon=icon,
+                    label=label,
+                    # icon=icon,
                     use_container_width=True,
                     disabled=is_current,
                 )
                 st.markdown(
-                    f'<div style="text-align: center; margin-top: 0.1em; font-size: 0.7em; color: {color};">'
+                    f'<div style="text-align: left; margin-top: -0.9em; margin-left: 1em;'
+                    f' font-size: 0.7em; color: {color};">'
                     f'{page_info["name"]}'
                     f'</div>',
                     unsafe_allow_html=True
