@@ -1785,6 +1785,9 @@ class Plan:
                 row = self.A.newRow()
 
                 row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM*self.gamma_n[nn])
+                # Using e_n slows convergence like crazy.
+                # Maybe replace with full exemption at the risk of creating negative income?
+                # rhs -= self.sigmaBar_n[n2]
                 row.addElem(_q1(self.C["e"], n2, self.N_n), +1)
                 for i in range(self.N_i):
                     row.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), +1)
@@ -2149,7 +2152,7 @@ class Plan:
         obj_history = []  # Track raw objective values aligned with scaled_obj_history
         self._computeNLstuff(None, includeMedicare)
         while True:
-            objfn, xx, solverSuccess, solverMsg = solverMethod(objective, options)
+            objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
 
             if not solverSuccess or objfn is None:
                 self.mylog.vprint("Solver failed:", solverMsg, solverSuccess)
@@ -2168,7 +2171,7 @@ class Plan:
             scaled_obj_history.append(scaled_obj)
             sol_history.append(xx)
             obj_history.append(objfn)
-            self.mylog.vprint(f"Iteration: {it:02}, f: {u.d(scaled_obj, f=0)};"
+            self.mylog.vprint(f"Iter: {it:02}; f: {u.d(scaled_obj, f=0)}; gap: {solgap:.1e};"
                               f" |dX|: {absSolDiff:.0f}; |df|: {u.d(absObjDiff, f=0)}")
 
             # Solution difference is calculated and reported but not used for convergence
@@ -2274,7 +2277,7 @@ class Plan:
             options=milpOptions,
         )
 
-        return solution.fun, solution.x, solution.success, solution.message
+        return solution.fun, solution.x, solution.success, solution.message, solution.mip_gap
 
     def _pulpSolve(self, objective, options):
         """
@@ -2339,7 +2342,7 @@ class Plan:
         solution = np.dot(c, xx)
         success = (pulp.LpStatus[prob.status] == "Optimal")
 
-        return solution, xx, success, pulp.LpStatus[prob.status]
+        return solution, xx, success, pulp.LpStatus[prob.status], -1
 
     def _mosekSolve(self, objective, options):
         """
@@ -2409,13 +2412,14 @@ class Plan:
         # Problem MUST contain binary variables to make these calls.
         solsta = task.getsolsta(mosek.soltype.itg)
         solverSuccess = (solsta == mosek.solsta.integer_optimal)
+        rel_gap = task.getdouinf(mosek.dinfitem.mio_obj_rel_gap) if solverSuccess else -1
 
         xx = np.array(task.getxx(mosek.soltype.itg))
         solution = task.getprimalobj(mosek.soltype.itg)
         task.solutionsummary(mosek.streamtype.msg)
         # task.writedata(self._name+'.ptf')
 
-        return solution, xx, solverSuccess, solverMsg
+        return solution, xx, solverSuccess, solverMsg, rel_gap
 
     def _detectOscillation(self, obj_history, tolerance, max_cycle_length=15):
         """
@@ -2573,10 +2577,11 @@ class Plan:
             * self.alpha_ijkn[:, 0, 0, :Nn],
             axis=0,
         )
-        # Add fixed assets capital gains
+        # Add fixed assets capital gains.
         self.Q_n += self.fixed_assets_capital_gains_n
         self.U_n = self.psi_n * self.Q_n
 
+        # Also add back non-taxable part of SS.
         self.MAGI_n = (self.G_n + self.e_n + self.Q_n
                        + np.sum((1 - self.Psi_n) * self.zetaBar_in, axis=0))
 

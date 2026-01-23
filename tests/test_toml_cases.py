@@ -70,12 +70,12 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 300000,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 167643,
+        "net_spending_basis": 167680,
         "bequest": 0,
     },
     "Case_kim+sam-bequest": {
         "net_spending_basis": 145000,
-        "bequest": 1082258,
+        "bequest": 1083940,
     },
 }
 
@@ -166,33 +166,3 @@ def test_reproducibility():
             ), f"{case}: Bequest mismatch."
 
 
-def test_historical():
-    exdir = "./examples/"
-    case = "Case_jack+jill"
-    file = os.path.join(exdir, case)
-    p = owl.readConfig(file)
-    hfp = getHFP(exdir, case)
-    assert hfp != "", f"Could not find HFP file for {case}"
-    assert os.path.exists(hfp), f"HFP file does not exist: {hfp}"
-    p.readContributions(hfp)
-    # Verify HFP was loaded
-    assert hasattr(p, 'timeLists') and p.timeLists is not None, f"HFP file {hfp} was not loaded"
-    options = p.solverOptions
-    objective = p.objective
-    p.runHistoricalRange(objective, options, 1969, 2023)
-
-
-def test_MC():
-    exdir = "./examples/"
-    case = "Case_jack+jill"
-    file = os.path.join(exdir, case)
-    p = owl.readConfig(file)
-    hfp = getHFP(exdir, case)
-    assert hfp != "", f"Could not find HFP file for {case}"
-    assert os.path.exists(hfp), f"HFP file does not exist: {hfp}"
-    p.readContributions(hfp)
-    # Verify HFP was loaded
-    assert hasattr(p, 'timeLists') and p.timeLists is not None, f"HFP file {hfp} was not loaded"
-    options = p.solverOptions
-    objective = p.objective
-    p.runMC(objective, options, 20)

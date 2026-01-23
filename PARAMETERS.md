@@ -190,7 +190,7 @@ Options controlling the optimization solver and constraints.
 | `swapRothConverters` | integer | *(Advanced)* For plans involvng spouses, only allow one spouse to perform Roth conversions per year. The year provided determines a transition year when roles are swapped. The sign selects who converts first: positive means person 1 can convert first and person 2 any time after; negative year means person 2 before and person 1 after. This option overrides the `noRothConversions` option. | `0` |
 | `units` | string | Units for amounts. Valid values: `"1"` (dollars), `"k"` (thousands), `"M"` (millions). | `"k"` |
 | `verbose` | boolean | Enable solver verbosity/output where supported. | `false` |
-| `withMedicare` | string | Medicare IRMAA handling. Valid values: `"None"`, `"loop"`, `"optimize"`. | `"loop"` |
+| `withMedicare` | string | Medicare IRMAA handling. Valid values: `"None"`, `"loop"`, `"optimize"` (expert). | `"loop"` |
 | `withSCLoop` | boolean | Whether to use the self-consistent loop for solving. | `true` |
 
 **Note:** The solver options dictionary is passed directly to the optimization routine. Only the options listed above are validated; other options may be accepted but are not documented here.
