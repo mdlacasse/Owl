@@ -178,8 +178,8 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
     if show_percentage:
         st.markdown(
             f'<div style="font-size: 0.85em; margin-bottom: 0.2em;">'
-            f'<strong>Case Setup Progress:</strong> {visited_count}/{total_pages} '
-            f'({progress*100:.0f}%) - Step {current_idx + 1} of {total_pages}'
+            f'<strong>Case Setup Progress:</strong> ({progress*100:.0f}%) - Step {current_idx + 1} of {total_pages}'
+            f'<br><span style="font-size: 0.75em; color: #666;">Click on any step below to navigate</span>'
             f'</div>',
             unsafe_allow_html=True
         )
