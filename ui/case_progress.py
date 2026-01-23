@@ -202,7 +202,7 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
                     # icon = "spinner"
                     color = "orange"
                 elif is_visited:
-                    icon = "✅"  # Check mark (emoji)
+                    icon = "🟢"  # Filled circle (emoji)
                     color = "green"
                 else:
                     icon = "⚪"  # Empty circle (emoji)
