@@ -849,8 +849,9 @@ you should definitely consider installing and running *Owl*
 locally on your computer, either natively or through a container.
 See instructions on the GitHub repository for how to proceed.
 
-If not using the Streamlit app, going full screen by hitting F11 in your browser
-can also greatly improve the visualization of graphs and worksheets.
+If not using the Streamlit app, going full screen while in the Chrome browser
+can also greatly improve the visualization of graphs and worksheets
+(achieved by pressing F11 on Windows, or Ctl+Cmd+F on MacOS).
 
 *Owl*'s default theme is the *Dark* mode but a *Light* theme is also available by
 clicking on the three vertical dots located on the upper right of the app

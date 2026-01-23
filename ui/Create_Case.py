@@ -180,7 +180,7 @@ Look at the documentation for some suggestions."""
     cantcreate = kz.isIncomplete() or diz1
     if not cantcreate and kz.getCaseKey("plan") is None:
         st.info("""Any parameter on this page can now be changed, including the case name.
-Once changes are complete hit the `Create case` button."""
+Once changes are complete click the `Create case` button."""
                 )
 
     cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
@@ -191,7 +191,7 @@ Once changes are complete hit the `Create case` button."""
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
         helpmsg = """`Copy case` carries over all parameters to a new case.
-Hit the `Create case` button once all parameters on this page are right."""
+Click the `Create case` button once all parameters on this page are right."""
         st.button("Copy case :material/content_copy:", on_click=kz.copyCase,
                   disabled=cantcopy, help=helpmsg)
     with col2:
