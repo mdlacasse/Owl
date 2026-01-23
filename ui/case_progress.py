@@ -180,7 +180,6 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
             f'<div style="font-size: 0.85em; margin-bottom: 0.2em;">'
             f'<strong>Case Setup Progress:</strong> {visited_count}/{total_pages} '
             f'({progress*100:.0f}%) - Step {current_idx + 1} of {total_pages}'
-            f'<br><span style="font-size: 0.75em; color: #666;">Click on any step below to navigate</span>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -188,7 +187,7 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
     # Main progress bar (compact)
     st.progress(progress, text="")
 
-    # Show step indicators (compact) - NOW CLICKABLE
+    # Show step indicators (compact) - clickable navigation
     if show_labels:
         cols = st.columns(total_pages)
         for idx, (col, page_info) in enumerate(zip(cols, CASE_SETUP_PAGES)):
@@ -199,34 +198,29 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
 
                 # Choose icon and color
                 if is_current:
-                    icon = "●"  # Filled circle
+                    icon = "🟠"  # Filled circle (emoji)
+                    # icon = "spinner"
                     color = "orange"
-                    # Current page - discrete styling with bold/underlined "(current)" text
-                    # Icon on left, text on right (horizontal layout like clickable pages)
-                    st.markdown(
-                        f'<div style="display: flex; align-items: center; margin-top: 0.0em; margin-bottom: 0.3em;">'
-                        f'<span style="color: {color}; font-size: 1.1em; font-weight: bold; margin-right: 0.5em;">{icon}</span>'
-                        f'<div style="display: flex; flex-direction: column;">'
-                        f'<span style="font-size: 1.0em; color: {color};">{page_info["name"]}</span>'
-                        # f'<span style="font-size: 0.75em; color: {color}; font-weight: bold; text-decoration: underline;">(current)</span>'
-                        f'</div></div>',
-                        unsafe_allow_html=True
-                    )
+                elif is_visited:
+                    icon = "✅"  # Check mark (emoji)
+                    color = "green"
                 else:
-                    # Other pages - use page_link for navigation
-                    # Format: icon on first line, name on second line
-                    if is_visited:
-                        icon = "✓"  # Check mark
-                    else:
-                        icon = "○"  # Empty circle
-                    
-                    label_text = f"{icon}\n{page_info['name']}"
-                    st.page_link(
-                        page_info["file"],
-                        label=label_text,
-                        icon=None,
-                        use_container_width=True
-                    )
+                    icon = "⚪"  # Empty circle (emoji)
+                    color = "lightgray"
+
+                st.page_link(
+                    page_info["file"],
+                    label="",
+                    icon=icon,
+                    use_container_width=True,
+                    disabled=is_current,
+                )
+                st.markdown(
+                    f'<div style="text-align: center; margin-top: 0.1em; font-size: 0.7em; color: {color};">'
+                    f'{page_info["name"]}'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
 
 
 def show_simple_progress_bar():
