@@ -1257,10 +1257,10 @@ Non-negativity of $e_n$ provides the lower bound.
 \paragraph*{Withdrawal limits}
 For $w_{ijn} + \delta(j,1)x_{in} \le b_{ijn}$ we add:
 \begin{eqnarray}
-	A_u[I_5(i, j, n), q_{w}(i, j, n)] &=& 1, \nonumber \\
-	A_u[I_5(i, j, n), q_{x}(i, n)] &=& \delta(j, 1), \nonumber \\
-	A_u[I_5(i, j, n), q_{b}(i, j, n)] &=& -1, \nonumber \\
-	u[I_5(i, j, n)] &=& 0, \nonumber \\
+	A_u[I_3(i, j, n), q_{w}(i, j, n)] &=& 1, \nonumber \\
+	A_u[I_3(i, j, n), q_{x}(i, n)] &=& \delta(j, 1), \nonumber \\
+	A_u[I_3(i, j, n), q_{b}(i, j, n)] &=& -1, \nonumber \\
+	u[I_3(i, j, n)] &=& 0, \nonumber \\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j - 1\},\nonumber\\
 	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
@@ -1269,12 +1269,12 @@ For $w_{ijn} + \delta(j,1)x_{in} \le b_{ijn}$ we add:
 \paragraph*{Posthumous account activities}
 For $n \ge n_d$ and the first-to-pass individual $i_d$, we set
 \begin{eqnarray}
-	A_u[I_6(j, n), q_{w}(i_d, j, n)] &=& 1, \nonumber \\
-	u[I_6(j, n)] &=& 0, \nonumber \\
-	A_u[I_7(n), q_{d}(i_d, n)] &=& 1, \nonumber \\
-	u[I_7(n)] &=& 0, \nonumber \\
-	A_u[I_8(n), q_{x}(i_d, n)] &=& 1, \nonumber \\
-	u[I_8(n)] &=& 0, \nonumber \\
+	A_u[I_4(j, n), q_{w}(i_d, j, n)] &=& 1, \nonumber \\
+	u[I_4(j, n)] &=& 0, \nonumber \\
+	A_u[I_5(n), q_{d}(i_d, n)] &=& 1, \nonumber \\
+	u[I_5(n)] &=& 0, \nonumber \\
+	A_u[I_6(n), q_{x}(i_d, n)] &=& 1, \nonumber \\
+	u[I_6(n)] &=& 0, \nonumber \\
 	&&\qquad\forall j \in \{0,\ldots, N_j - 1\},\nonumber\\
 	&&\qquad\forall n \in \{n_d,\ldots, N_n - 1\}. \nonumber
 \end{eqnarray}
@@ -1282,17 +1282,17 @@ For $n \ge n_d$ and the first-to-pass individual $i_d$, we set
 \paragraph*{Roth conversions}
 To enforce $x_{in} \le b_{i1n}$ we add
 \begin{eqnarray}
-	A_u[I_9(i, n), q_{x}(i, n)] &=& 1, \nonumber \\
-	A_u[I_9(i, n), q_{b}(i, 1, n)] &=& -1, \nonumber \\
-	u[I_9(i, n)] &=& 0, \nonumber \\
+	A_u[I_7(i, n), q_{x}(i, n)] &=& 1, \nonumber \\
+	A_u[I_7(i, n), q_{b}(i, 1, n)] &=& -1, \nonumber \\
+	u[I_7(i, n)] &=& 0, \nonumber \\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
 	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
 \end{eqnarray}
 If a maximum conversion $x_{max}$ is specified, we also add the bound
 $\sum_i x_{in} \le x_{max}$ for all $n$ with
 \begin{eqnarray}
-	A_u[I_{18}(n), q_x(i, n)] &=& 1, \nonumber \\
-	u[I_{18}(n)] &=& x_{max}, \nonumber \\
+	A_u[I_8(n), q_x(i, n)] &=& 1, \nonumber \\
+	u[I_8(n)] &=& x_{max}, \nonumber \\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
 	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
 \end{eqnarray}
@@ -1305,25 +1305,25 @@ adding the corresponding rows for $\sum_i w_{i0n} + \sum_i w_{i2n}$, $s_n$, and 
 with upper bounds $\mathcal{M} z_{nz}$, along with the bounds
 $0 \le z_{n0}^x + z_{n1}^x \le 1$ and $0 \le z_{n2}^x + z_{n3}^x \le 1$.
 \begin{eqnarray}
-	A_u[I_{12}(n), q_w(i, 0, n)] &=& 1, \nonumber \\
-	A_u[I_{12}(n), q_w(i, 2, n)] &=& 1, \nonumber \\
-	A_u[I_{12}(n), q_{z^x}(n, 0)] &=& -\mathcal{M}, \nonumber \\
+	A_u[I_9(n), q_w(i, 0, n)] &=& 1, \nonumber \\
+	A_u[I_9(n), q_w(i, 2, n)] &=& 1, \nonumber \\
+	A_u[I_9(n), q_{z^x}(n, 0)] &=& -\mathcal{M}, \nonumber \\
+	u[I_9(n)] &=& 0, \nonumber \\
+	A_u[I_{10}(n), q_s(n)] &=& 1, \nonumber \\
+	A_u[I_{10}(n), q_{z^x}(n, 1)] &=& -\mathcal{M}, \nonumber \\
+	u[I_{10}(n)] &=& 0, \nonumber \\
+	A_u[I_{11}(n), q_{z^x}(n, 0)] &=& 1, \nonumber \\
+	A_u[I_{11}(n), q_{z^x}(n, 1)] &=& 1, \nonumber \\
+	u[I_{11}(n)] &=& 1, \nonumber \\
+	A_u[I_{12}(n), q_x(i, n)] &=& 1, \nonumber \\
+	A_u[I_{12}(n), q_{z^x}(n, 2)] &=& -\mathcal{M}, \nonumber \\
 	u[I_{12}(n)] &=& 0, \nonumber \\
-	A_u[I_{13}(n), q_s(n)] &=& 1, \nonumber \\
-	A_u[I_{13}(n), q_{z^x}(n, 1)] &=& -\mathcal{M}, \nonumber \\
+	A_u[I_{13}(n), q_w(i, 2, n)] &=& 1, \nonumber \\
+	A_u[I_{13}(n), q_{z^x}(n, 3)] &=& -\mathcal{M}, \nonumber \\
 	u[I_{13}(n)] &=& 0, \nonumber \\
-	A_u[I_{14}(n), q_{z^x}(n, 0)] &=& 1, \nonumber \\
-	A_u[I_{14}(n), q_{z^x}(n, 1)] &=& 1, \nonumber \\
+	A_u[I_{14}(n), q_{z^x}(n, 2)] &=& 1, \nonumber \\
+	A_u[I_{14}(n), q_{z^x}(n, 3)] &=& 1, \nonumber \\
 	u[I_{14}(n)] &=& 1, \nonumber \\
-	A_u[I_{15}(n), q_x(i, n)] &=& 1, \nonumber \\
-	A_u[I_{15}(n), q_{z^x}(n, 2)] &=& -\mathcal{M}, \nonumber \\
-	u[I_{15}(n)] &=& 0, \nonumber \\
-	A_u[I_{16}(n), q_w(i, 2, n)] &=& 1, \nonumber \\
-	A_u[I_{16}(n), q_{z^x}(n, 3)] &=& -\mathcal{M}, \nonumber \\
-	u[I_{16}(n)] &=& 0, \nonumber \\
-	A_u[I_{17}(n), q_{z^x}(n, 2)] &=& 1, \nonumber \\
-	A_u[I_{17}(n), q_{z^x}(n, 3)] &=& 1, \nonumber \\
-	u[I_{17}(n)] &=& 1, \nonumber \\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\}, \nonumber\\
 	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
 \end{eqnarray}
@@ -1333,20 +1333,20 @@ Medicare's MAGI brackets determine the values of binary variables $z^m_{qn}$.
 We first code Eq.~(\ref{Eq:Med1}) and then Eq.~(\ref{Eq:Med2}) will be very similar.
 For each bracket we set
 \begin{eqnarray}
-	A_u[I_{19}(q, n), q_{w}(i, 1, n-2)] &=& -1, \nonumber \\
-	A_u[I_{19}(q, n), q_{x}(i, n-2)] &=& -1, \nonumber \\
-	A_u[I_{19}(q, n), q_{b}(i, 0, n-2)] &=&
+	A_u[I_{15}(q, n), q_{w}(i, 1, n-2)] &=& -1, \nonumber \\
+	A_u[I_{15}(q, n), q_{x}(i, n-2)] &=& -1, \nonumber \\
+	A_u[I_{15}(q, n), q_{b}(i, 0, n-2)] &=&
 	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
-	A_u[I_{19}(q, n), q_{d}(i, n-2)] &=&
+	A_u[I_{15}(q, n), q_{d}(i, n-2)] &=&
 	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
-	A_u[I_{19}(q, n), q_{w}(i, 0, n-2)] &=&
+	A_u[I_{15}(q, n), q_{w}(i, 0, n-2)] &=&
 	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	    \nonumber \\
 	    && - \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu), \nonumber \\
-	A_u[I_{19}(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
-	u[I_{19}(q, n)] &=& -\bar{\mathcal{L}}_{qn} + \mathcal{M}
+	A_u[I_{15}(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
+	u[I_{15}(q, n)] &=& -\bar{\mathcal{L}}_{qn} + \mathcal{M}
          + \sum_i \left[\omega_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
 	&& + 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
 	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
@@ -1358,8 +1358,8 @@ For each bracket we set
 \end{eqnarray}
 When $n_m < 2$, we use these additional rows
 \begin{eqnarray}
-	A_u[I_{20}(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
-	u[I_{20}(q, n)] &=& \mathcal{M} + \mathcal{A}_{n} -\bar{\mathcal{L}}_{qn}, \nonumber \\
+	A_u[I_{16}(q, n), q_{z^m}(q, n)] &=& \mathcal{M}, \nonumber \\
+	u[I_{16}(q, n)] &=& \mathcal{M} + \mathcal{A}_{n} -\bar{\mathcal{L}}_{qn}, \nonumber \\
 	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{n_m,\ldots, 2\},
 \end{eqnarray}
@@ -1367,20 +1367,20 @@ where $\mathcal{A}_n$ is a user-provided array of MAGI values for (up to) the la
 
 For Eq.~(\ref{Eq:Med2}) we obtain
 \begin{eqnarray}
-	A_u[I_{21}(q, n), q_{w}(i, 1, n-2)] &=& 1, \nonumber \\
-	A_u[I_{21}(q, n), q_{x}(i, n-2)] &=& 1, \nonumber \\
-	A_u[I_{21}(q, n), q_{b}(i, 0, n-2)] &=&
+	A_u[I_{17}(q, n), q_{w}(i, 1, n-2)] &=& 1, \nonumber \\
+	A_u[I_{17}(q, n), q_{x}(i, n-2)] &=& 1, \nonumber \\
+	A_u[I_{17}(q, n), q_{b}(i, 0, n-2)] &=&
 	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
-	A_u[I_{21}(q, n), q_{d}(i, n-2)] &=&
+	A_u[I_{17}(q, n), q_{d}(i, n-2)] &=&
 	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)},
 	    \nonumber \\
-	A_u[I_{21}(q, n), q_{w}(i, 0, n-2)] &=&
+	A_u[I_{17}(q, n), q_{w}(i, 0, n-2)] &=&
 	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	    \nonumber \\
 	    && + \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu), \nonumber \\
-	A_u[I_{21}(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
-	u[I_{21}(q, n)] &=& \bar{\mathcal{L}}_{qn}
+	A_u[I_{17}(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
+	u[I_{17}(q, n)] &=& \bar{\mathcal{L}}_{qn}
          - \sum_i \left[\omega_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right]\nonumber \\
 	&& - 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
 	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
@@ -1392,8 +1392,8 @@ For Eq.~(\ref{Eq:Med2}) we obtain
 \end{eqnarray}
 When $n_m < 2$, we enforce these additional rows
 \begin{eqnarray}
-	A_u[I_{22}(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
-	u[I_{22}(q, n)] &=& \bar{\mathcal{L}}_{qn} - \mathcal{A}_{n} , \nonumber \\
+	A_u[I_{18}(q, n), q_{z^m}(q, n)] &=& -\mathcal{M}, \nonumber \\
+	u[I_{18}(q, n)] &=& \bar{\mathcal{L}}_{qn} - \mathcal{A}_{n} , \nonumber \\
 	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{n_m,\ldots, 2\},
 \end{eqnarray}
@@ -1434,9 +1434,9 @@ Binary variables $z_{qn}^m$ express all active IRMAA brackets.
 The costs for Medicare are easily obtained once the binary variables
 $z^m_{qn}$ are determined using Eq.~(\ref{Eq:MediCosts}).
 \begin{eqnarray}
-	A_u[J_3(n), q_{m}(n)] &=& 1, \nonumber \\
-	A_u[J_3(n), q_{z^m}(q, n)] &=& -(\bar{\mathcal{C}}_{(q+1)n} - \bar{\mathcal{C}}_{qn}), \nonumber \\
-	u[J_3(n)] &=& \bar{\mathcal{C}}_{0n},\\
+	A_u[J_2(n), q_{m}(n)] &=& 1, \nonumber \\
+	A_u[J_2(n), q_{z^m}(q, n)] &=& -(\bar{\mathcal{C}}_{(q+1)n} - \bar{\mathcal{C}}_{qn}), \nonumber \\
+	u[J_2(n)] &=& \bar{\mathcal{C}}_{0n},\\
 	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{n_m,\ldots, N_n - 1\}.\nonumber
 \end{eqnarray}
@@ -1445,13 +1445,13 @@ $z^m_{qn}$ are determined using Eq.~(\ref{Eq:MediCosts}).
 For the equality constraint on net spending expressed in Eq.~(\ref{Eq:C4}),
 we add $N_n$ more rows to $A_ey = v$ as
 \begin{eqnarray}
-	A_e[J_4(n), q_g(n)] &=& 1, \nonumber \\
-	A_e[J_4(n), q_m(n)] &=& 1, \nonumber \\
-	A_e[J_4(n), q_s(n)] &=& 1, \nonumber \\
-	A_e[J_4(n), q_b(i, 0, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
-	A_e[J_4(n), q_d(i, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
-	A_e[J_4(n), q_{f}(t, n)] &=& \theta^x_{tn}, \nonumber \\
-	A_e[J_4(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59}))
+	A_e[J_3(n), q_g(n)] &=& 1, \nonumber \\
+	A_e[J_3(n), q_m(n)] &=& 1, \nonumber \\
+	A_e[J_3(n), q_s(n)] &=& 1, \nonumber \\
+	A_e[J_3(n), q_b(i, 0, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
+	A_e[J_3(n), q_d(i, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
+	A_e[J_3(n), q_{f}(t, n)] &=& \theta^x_{tn}, \nonumber \\
+	A_e[J_3(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59}))
 		+ \delta(j, 0)\psi_n\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
@@ -1460,7 +1460,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 \end{eqnarray}
 where $v$ is
 \begin{equation}
-	v[J_4(n)] = \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in}
+	v[J_3(n)] = \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in}
 	+ \sum_i [\omega_{in} + \bar\zeta_{in} + \bar{\pi}_{in}]
 	- 0.5\psi_n\mu\sum_i \alpha_{i00n}\kappa_{i0n} - \mathcal{D}_n.
 \end{equation}
@@ -1468,9 +1468,9 @@ where $v$ is
 The condition of having a predictable net spending expressed as an
 equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
 \begin{eqnarray}
-	A_e[J_5(n), q_g(0)] &=& -\bar{\xi}_n, \nonumber \\
-	A_e[J_5(n), q_g(n)] &=& \xi_0, \nonumber \\
-	v[J_5(n)] &=& 0, \\
+	A_e[J_4(n), q_g(0)] &=& -\bar{\xi}_n, \nonumber \\
+	A_e[J_4(n), q_g(n)] &=& \xi_0, \nonumber \\
+	v[J_4(n)] &=& 0, \\
 	&&\qquad\forall n \in \{1,\ldots, N_n\}. \nonumber
 \end{eqnarray}
 
@@ -1478,13 +1478,13 @@ equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
 Finally, for the equality constraint in Eq.~(\ref{Eq:C6}) establishing taxable
 ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 \begin{eqnarray}
-	A_e[J_6(n), q_e(n)] &=& 1, \nonumber \\
-	A_e[J_6(n), q_{f}(t, n)] &=& 1, \nonumber \\
-	A_e[J_6(n), q_w(i, 1, n)] &=& -1, \nonumber \\
-	A_e[J_6(n), q_x(i, n)] &=& -1, \nonumber \\
-	A_e[J_6(n), q_b(i, 0, n)] &=& -\sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \\
-	A_e[J_6(n), q_w(i, 0, n)] &=&  \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \nonumber \\
-	A_e[J_6(n), q_d(i, n)] &=&    -\sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \nonumber \\
+	A_e[J_5(n), q_e(n)] &=& 1, \nonumber \\
+	A_e[J_5(n), q_{f}(t, n)] &=& 1, \nonumber \\
+	A_e[J_5(n), q_w(i, 1, n)] &=& -1, \nonumber \\
+	A_e[J_5(n), q_x(i, n)] &=& -1, \nonumber \\
+	A_e[J_5(n), q_b(i, 0, n)] &=& -\sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \\
+	A_e[J_5(n), q_w(i, 0, n)] &=&  \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \nonumber \\
+	A_e[J_5(n), q_d(i, n)] &=&    -\sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall k \in \{0,\ldots, N_k-1\},\nonumber\\
@@ -1492,7 +1492,7 @@ ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 \end{eqnarray}
 with
 \begin{eqnarray}
-	v[J_6(n)] &=& 
+	v[J_5(n)] &=& 
 \mathcal{A}^x_n + \sum_i [\omega_{in} + \Psi_n\bar\zeta_{in}  + \bar{\pi}_{in}]
 	+ 0.5\sum_{i} \kappa_{i0n} \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}.
 \end{eqnarray}
