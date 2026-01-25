@@ -182,7 +182,7 @@ to estimate {iname1}'s PIA.""")
             getIntInput(0, "pAge_y", "starting at age...", 65, msg2)
         with incol2:
             getIntInput(0, "pAge_m", "...and month(s)", 0, msg2, max_val=11, prompt=False)
-        getToggleInput(0, "pIdx", "Inflafion adjusted")
+        getToggleInput(0, "pIdx", "Inflation adjusted")
 
     with col2:
         if kz.getCaseKey("status") == "married":
@@ -194,7 +194,7 @@ to estimate {iname1}'s PIA.""")
                 getIntInput(1, "pAge", "starting at age...", 65, msg2)
             with incol2:
                 getIntInput(1, "pAge_m", "...and month(s)", 0, msg2, max_val=11, prompt=False)
-            getToggleInput(1, "pIdx", "Inflafion adjusted")
+            getToggleInput(1, "pIdx", "Inflation adjusted")
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()
