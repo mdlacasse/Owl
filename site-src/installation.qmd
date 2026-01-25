@@ -40,7 +40,7 @@ Command `pip install build` will install it in other distributions.
 ## Creating a virtual environment
 
 It is common practice to create a virtual environment for a specific project.
-This is to avoid making changes in the base ditribution that could break dependencies.
+This is to avoid making changes in the base distribution that could break dependencies.
 Creating and activating a new environment called *owlenv* in *Anaconda*
 is achieved by the following commands: 
 ```
