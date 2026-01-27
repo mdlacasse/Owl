@@ -43,8 +43,8 @@ def init():
     ss = st.session_state
     if "cases" not in ss:
         ss.cases = {
-            newCase: {"iname0": "", "status": "unknown", "caseStatus": "new", "id": 0},
-            loadCaseFile: {"iname0": "", "status": "unknown", "caseStatus": "new", "id": 1},
+            newCase: {"iname0": "", "status": "unknown", "caseStatus": "new", "id": -2},
+            loadCaseFile: {"iname0": "", "status": "unknown", "caseStatus": "new", "id": -1},
         }
 
     # Variable for storing name of current case.
