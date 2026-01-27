@@ -185,7 +185,7 @@ Options controlling the optimization solver and constraints.
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |
 | `relTol` | float | *(Advanced)* Relative convergence tolerance for the self-consistent loop objective. | `max(1e-6, gap / 300)` |
 | `scDamping` | float | *(Advanced)* Damping factor applied to nonlinear updates once oscillation is detected; `0` disables damping. | `0` |
-| `scDampingOnOsc` | float | *(Advanced)* Damping factor to activate on oscillation when `scDamping` is `0`. | `0.2` |
+| `scDampingOnOsc` | float | *(Advanced)* Damping factor to activate on oscillation when `scDamping` is `0`. | `0.6` |
 | `solver` | string | Solver to use for optimization. Valid values: `"HiGHS"`, `"PuLP/CBC"`, `"PuLP/HiGHS"`, `"MOSEK"`. | `"HiGHS"` |
 | `spendingSlack` | integer | Percentage allowed to deviate from the spending profile (0-50). | `0` |
 | `startRothConversions` | integer | Year when Roth conversions can begin (clamped to the current year). | Current year |

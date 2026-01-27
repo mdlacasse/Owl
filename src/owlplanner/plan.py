@@ -54,7 +54,7 @@ MAX_ITERATIONS = 29
 ABS_TOL = 20
 REL_TOL = 1e-6
 TIME_LIMIT = 900
-SC_DAMPING_ON_OSC_DEFAULT = 0.2
+SC_DAMPING_ON_OSC = 0.6
 
 
 def _genGamma_n(tau):
@@ -2146,12 +2146,7 @@ class Plan:
         self.mylog.print(f"Using maxIter={max_iterations}.")
 
         sc_damping = u.get_numeric_option(options, "scDamping", 0.0, min_value=0.0)
-        sc_damping_on_osc = u.get_numeric_option(
-            options,
-            "scDampingOnOsc",
-            SC_DAMPING_ON_OSC_DEFAULT,
-            min_value=0.0,
-        )
+        sc_damping_on_osc = u.get_numeric_option(options, "scDampingOnOsc", SC_DAMPING_ON_OSC, min_value=0.0)
         if sc_damping > 1 or sc_damping_on_osc > 1:
             raise ValueError("scDamping and scDampingOnOsc must be between 0 and 1.")
         damping_on_osc = sc_damping if sc_damping > 0 else sc_damping_on_osc
