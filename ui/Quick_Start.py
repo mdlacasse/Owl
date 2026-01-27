@@ -37,11 +37,12 @@ with col1:
     kz.divider("orange")
     st.markdown("### :material/campaign: News")
     st.markdown("""
-- This version includes updated tax laws for year 2026 (TY2025) and historical gains for 2025.
+- This version includes updated federal tax laws for year 2026 (TY2025) and historical gains for 2025.
 
 Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
 or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
+Don't hesitate to give the project a star if this app is useful to you.
 """)
 
     kz.divider("orange")

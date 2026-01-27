@@ -33,11 +33,11 @@ ret = kz.titleBar(":material/person_add: Create Case", allCases=True)
 
 if ret == kz.newCase:
     st.info(
-        "#### Starting a new case from scratch.\n\n"
-        "(Alternatively, you can choose `Upload Case File...` in the top selector box to upload your own"
+        "#### Starting a new case from scratch\n\n"
+        "A name for the case must first be provided.\n\n"
+        "*(Alternatively, you can choose `Upload Case File...` in the top selector box to upload your own"
         " case or select one from multiple examples."
-        " Look at the :material/help: [Documentation](Documentation) for more details.)\n\n"
-        "A name for the case must first be provided."
+        " Look at the :material/help: [Documentation](Documentation) for more details.)*"
     )
     st.text_input(
         "Case name",
@@ -48,10 +48,10 @@ if ret == kz.newCase:
     )
 elif ret == kz.loadCaseFile:
     st.info(
-        "#### Starting a case from a *case* parameter file.\n\n"
-        "(Alternatively, you can choose `New Case...` in the top selector box to start a case from scratch."
-        " Look at the :material/help: [Documentation](Documentation) for more details.)\n\n"
-        "Upload your own case or select one from multiple examples."
+        "#### Starting a case from a *case* parameter file\n\n"
+        "Upload your own case or select one from multiple examples.\n\n"
+        "*(Alternatively, you can choose `New Case...` in the top selector box to start a case from scratch."
+        " Look at the :material/help: [Documentation](Documentation) for more details.)*"
     )
     col1, col2 = st.columns(2, gap="large")
     with col1:
