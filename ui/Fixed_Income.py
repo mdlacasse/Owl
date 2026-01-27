@@ -142,9 +142,10 @@ earnings and the contributions you have made to the Social Security program.
 The Social Security Administration (SSA) maintains a record of your earnings,
 which you can access through the SSA [website](ssa.gov).
 To view your personal earnings record, you must create an account and sign in.
-Once logged in, you can use the link to ssa.tools below to calculate your PIA using your earnings data.
+Once logged in, use the link to ssa.tools below to calculate your PIA using your earnings data.
 This tool also allows you to include projections of future earnings
 (such as expected salary and remaining years of work), resulting in a more accurate estimate of your PIA.
+For ease of use, the link will securely pass the individual's DOB and nickname.
 
 Owl is designed with a strong commitment to user privacy and does not collect or store any
 personal information. The developer of ssa.tools follows the same philosophy:
