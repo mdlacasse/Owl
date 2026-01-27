@@ -147,11 +147,22 @@ forecasts for the next decade can be found
     if (kz.getCaseKey("rateType") == "fixed" and "hist" in kz.getCaseKey("fixedType")) or (
         kz.getCaseKey("rateType") == "varying" and "hist" in kz.getCaseKey("varyingType")
     ):
+        # Enforce yto >= yfrm + 2 (min 2 years for statistics) before rendering
+        # so neither widget is ever in an invalid state (avoids Streamlit deadlock).
+        yfrm_val = kz.getCaseKey("yfrm")
+        yto_val = kz.getCaseKey("yto")
+        if yfrm_val is not None and yto_val is not None:
+            yto_val = min(owb.TO, max(yto_val, yfrm_val + 2))
+            yfrm_val = max(owb.FROM, min(yfrm_val, yto_val - 2))
+            kz.pushCaseKey("yfrm", yfrm_val)
+            kz.pushCaseKey("yto", yto_val)
+        # Sync case -> widget keys so number_inputs show current values (needed when normalization was skipped).
+        kz.pushCaseKey("yfrm")
+        kz.pushCaseKey("yto")
 
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col3:
             maxValue = owb.TO if kz.getCaseKey("varyingType") == "historical" else kz.getCaseKey("yto") - 1
-            kz.pushCaseKey("yfrm")
             st.number_input(
                 "Starting year",
                 min_value=owb.FROM,
@@ -163,11 +174,10 @@ forecasts for the next decade can be found
 
         with col4:
             ishistorical = kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "historical"
-            kz.pushCaseKey("yto")
             st.number_input(
                 "Ending year",
                 max_value=owb.TO,
-                min_value=kz.getCaseKey("yfrm") + 1,
+                min_value=kz.getCaseKey("yfrm") + 2,     # At least 2 years needed for statistics.
                 disabled=ishistorical,
                 on_change=updateRates,
                 args=["yto"],
