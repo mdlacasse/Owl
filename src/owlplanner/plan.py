@@ -54,6 +54,7 @@ MAX_ITERATIONS = 29
 ABS_TOL = 20
 REL_TOL = 1e-6
 TIME_LIMIT = 900
+SC_DAMPING_ON_OSC_DEFAULT = 0.2
 
 
 def _genGamma_n(tau):
@@ -2013,6 +2014,8 @@ class Plan:
             "oppCostX",
             "previousMAGIs",
             "relTol",
+            "scDamping",
+            "scDampingOnOsc",
             "solver",
             "spendingSlack",
             "startRothConversions",
@@ -2027,6 +2030,8 @@ class Plan:
 
         # We might modify options if required.
         myoptions = dict(options)
+        if "sc_damping" in myoptions and "scDamping" not in myoptions:
+            myoptions["scDamping"] = myoptions.pop("sc_damping")
 
         for opt in list(myoptions.keys()):
             if opt not in knownOptions:
@@ -2140,6 +2145,30 @@ class Plan:
         max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
         self.mylog.print(f"Using maxIter={max_iterations}.")
 
+        sc_damping = u.get_numeric_option(options, "scDamping", 0.0, min_value=0.0)
+        sc_damping_on_osc = u.get_numeric_option(
+            options,
+            "scDampingOnOsc",
+            SC_DAMPING_ON_OSC_DEFAULT,
+            min_value=0.0,
+        )
+        if sc_damping > 1 or sc_damping_on_osc > 1:
+            raise ValueError("scDamping and scDampingOnOsc must be between 0 and 1.")
+        damping_on_osc = sc_damping if sc_damping > 0 else sc_damping_on_osc
+        damping_active = False
+        if damping_on_osc > 0:
+            self.mylog.vprint(f"Oscillation damping ready at {damping_on_osc:.2f}.")
+
+        def apply_sc_damping(prev_magi, prev_j, prev_m, prev_psi, alpha):
+            if alpha <= 0:
+                return
+            one_minus = 1 - alpha
+            self.MAGI_n = one_minus * self.MAGI_n + alpha * prev_magi
+            self.J_n = one_minus * self.J_n + alpha * prev_j
+            self.M_n = one_minus * self.M_n + alpha * prev_m
+            self.psi_n = one_minus * self.psi_n + alpha * prev_psi
+            self.U_n = self.psi_n * self.Q_n
+
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
         else:
@@ -2162,7 +2191,16 @@ class Plan:
             if not withSCLoop:
                 break
 
+            prev_magi = self.MAGI_n.copy()
+            prev_j = self.J_n.copy()
+            prev_m = self.M_n.copy()
+            prev_psi = self.psi_n.copy()
+
             self._computeNLstuff(xx, includeMedicare)
+            damping_applied = False
+            if damping_active:
+                apply_sc_damping(prev_magi, prev_j, prev_m, prev_psi, damping_on_osc)
+                damping_applied = True
 
             delta = xx - old_x
             # Only consider account balances in dX.
@@ -2202,23 +2240,36 @@ class Plan:
             if it >= 3:
                 cycle_len = self._detectOscillation(scaled_obj_history, tol)
                 if cycle_len is not None:
-                    # Find the best (maximum) objective in the cycle
-                    cycle_values = scaled_obj_history[-cycle_len:]
-                    best_idx = np.argmax(cycle_values)
-                    best_obj = cycle_values[best_idx]
-                    self.convergenceType = f"oscillatory (cycle length {cycle_len})"
-                    self.mylog.print(f"Oscillation detected: {cycle_len}-cycle pattern identified.")
-                    self.mylog.print(f"Best objective in cycle: {u.d(best_obj, f=2)}")
+                    if damping_on_osc > 0:
+                        if not damping_active:
+                            damping_active = True
+                            self.mylog.print(
+                                f"Oscillation detected: enabling damping at {damping_on_osc:.2f}."
+                            )
+                        if not damping_applied:
+                            apply_sc_damping(prev_magi, prev_j, prev_m, prev_psi, damping_on_osc)
+                        self.mylog.print(
+                            f"Oscillation detected: {cycle_len}-cycle pattern identified."
+                        )
+                        self.mylog.print("Applying damping and continuing iterations.")
+                    else:
+                        # Find the best (maximum) objective in the cycle
+                        cycle_values = scaled_obj_history[-cycle_len:]
+                        best_idx = np.argmax(cycle_values)
+                        best_obj = cycle_values[best_idx]
+                        self.convergenceType = f"oscillatory (cycle length {cycle_len})"
+                        self.mylog.print(f"Oscillation detected: {cycle_len}-cycle pattern identified.")
+                        self.mylog.print(f"Best objective in cycle: {u.d(best_obj, f=2)}")
 
-                    # Select the solution corresponding to the best objective in the detected cycle.
-                    cycle_solutions = sol_history[-cycle_len:]
-                    cycle_objfns = obj_history[-cycle_len:]
-                    xx = cycle_solutions[best_idx]
-                    objfn = cycle_objfns[best_idx]
-                    self.mylog.print("Using best solution from detected cycle.")
+                        # Select the solution corresponding to the best objective in the detected cycle.
+                        cycle_solutions = sol_history[-cycle_len:]
+                        cycle_objfns = obj_history[-cycle_len:]
+                        xx = cycle_solutions[best_idx]
+                        objfn = cycle_objfns[best_idx]
+                        self.mylog.print("Using best solution from detected cycle.")
 
-                    self.mylog.print("Accepting solution from cycle and terminating.")
-                    break
+                        self.mylog.print("Accepting solution from cycle and terminating.")
+                        break
 
             if it >= max_iterations:
                 self.convergenceType = "max iteration"
