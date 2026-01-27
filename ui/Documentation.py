@@ -143,6 +143,7 @@ This section contains the steps for creating and configuring *case* scenarios.
 For new *cases*, every page of this section should be visited and parameters
 entered according to your personal situation. To make this process easier,
 a progress bar tracking which page has been visited is shown at the bottom of the page.
+This bar can also be used to navigate between the pages of the *Case Setup* section.
 
 #### Case Definition
 
