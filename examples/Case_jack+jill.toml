@@ -9,17 +9,17 @@ life_expectancy = [ 89, 92,]
 start_date = "2026-01-01"
 
 [savings_assets]
-taxable_savings_balances = [ 120.5, 60.2,]
-tax_deferred_savings_balances = [ 600.2, 150.0,]
-tax_free_savings_balances = [ 280.6, 260.8,]
+taxable_savings_balances = [ 90.5, 60.2,]
+tax_deferred_savings_balances = [ 600.5, 150.0,]
+tax_free_savings_balances = [ 70.6, 40.8,]
 beneficiary_fractions = [ 1.0, 1.0, 1.0,]
-spousal_surplus_deposit_fraction = 0.0
+spousal_surplus_deposit_fraction = 0.5
 
 [household_financial_profile]
 HFP_file_name = "HFP_jack+jill.xlsx"
 
 [fixed_income]
-pension_monthly_amounts = [ 0, 0,]
+pension_monthly_amounts = [ 0.0, 10.5,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ false, false,]
 social_security_pia_amounts = [ 2360, 1642,]
@@ -27,7 +27,7 @@ social_security_ages = [ 70.0, 62.083333333333336,]
 
 [rates_selection]
 heirs_rate_on_tax_deferred_estate = 30.0
-dividend_rate = 1.8000000000000003
+dividend_rate = 1.7
 obbba_expiration_year = 2032
 method = "historical"
 from = 1969
@@ -38,7 +38,7 @@ interpolation_method = "s-curve"
 interpolation_center = 15.0
 interpolation_width = 5.0
 type = "individual"
-generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 60, 40, 0, 0,], [ 80, 0, 10, 10,],],]
+generic = [ [ [ 60, 40, 0, 0,], [ 70, 30, 0, 0,],], [ [ 50, 50, 0, 0,], [ 70, 30, 0, 0,],],]
 
 [optimization_parameters]
 spending_profile = "smile"
@@ -53,7 +53,7 @@ maxRothConversion = 100
 noRothConversions = "Jill"
 startRothConversions = 2025
 withMedicare = "loop"
-bequest = 500
+bequest = 400
 solver = "HiGHS"
 spendingSlack = 0
 withSCLoop = true

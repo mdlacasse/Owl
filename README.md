@@ -15,6 +15,10 @@ Users can select varying return rates to perform historical back testing,
 stochastic rates for performing Monte Carlo analyses,
 or fixed rates either derived from historical averages, or set by the user.
 
+Owl is designed for US retirees as it considers US federal tax laws,
+Medicare premiums, rules for 401k including required minimum distributions,
+maturation rules for Roth accounts and conversions, social security rules, etc.
+
 There are three ways to run Owl:
 
 - **Streamlit Hub:** Run Owl remotely as hosted on the Streamlit Community Server at

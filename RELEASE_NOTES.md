@@ -1,3 +1,7 @@
+### Version 2026.01.26
+- Updated Jupyter notebooks
+- Improved logging
+
 ### Version 2026.01.21
 - Move "optimize" Medicare option to advanced section
 - Add solver option to disable surpluses in late years

@@ -19,28 +19,30 @@ Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 import owlplanner as owl
 # Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to age 92.
 # Plan starts on Jan 1st of this year.
-plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutorial', startDate='01-01')
-# Jack has $90.5k in a taxable investment account, $600.5k in a tax-deferred account and $70k from 2 tax-free accounts.
+plan = owl.Plan(['Jack', 'Jill'], ["1963-01-15", "1966-01-15"], [89, 92], 'jack & jill - tutorial')
+# On January 1st, Jack has $90.5k in a taxable investment account,
+# $600.5k in a tax-deferred account and $70k from 2 tax-free accounts.
 # Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
-plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50.6 + 20, 40.8])
-# An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
-plan.readContributions('jack+jill.xlsx')
+plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50.6 + 20, 40.8], startDate="01-01")
+t An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
+plan.readContributions('examples/HFP_jack+jill.xlsx')
 # Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
 # Jill will do the same thing but is a bit more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
 plan.setInterpolationMethod('s-curve')
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
 # Jack has no pension, but Jill will receive $10k per year at 65 yo.
 plan.setPension([0, 10.5], [65, 65])
-# Jack anticipates receiving social security of $28.4k at age 70, and Jill $19.7k at age 62. All values are in today's $.
-plan.setSocialSecurity([28.4, 19.7], [70, 62])
+# Jack anticipates receiving social security at age 70 and has a monthly Primary Insurance Amount of $2,360,
+# while Jill will claim at age 62 with a PIA of $1,642. All values are in today's $.
+plan.setSocialSecurity([2360, 1642], [70, 62.083])
 # Instead of a 'flat' profile, we select a 'smile' spending profile, with 60% needs for the survivor.
 plan.setSpendingProfile('smile', 60)
 # We will reproduce the historical sequence of returns starting in year 1969.
 plan.setRates('historical', 1969)
-# Jack and Jill want to leave a bequest of $500k, and limit Roth conversions to $100k per year.
+# Jack and Jill want to leave a bequest of $400k, and limit Roth conversions to $100k per year.
 # Jill's 403b plan does not support in-plan Roth conversions.
 # We solve for the maximum net spending profile under these constraints.
-plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500, 'noRothConversions': 'Jill'})
+plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 400, 'noRothConversions': 'Jill'})
 ```
 The output can be seen using the following commands that display various plots of the decision variables in time.
 ```python
@@ -125,7 +127,7 @@ plan.showRatesCorrelations()
 
 A short text summary of the outcome of the optimization can be displayed through using:
 ```python
-plan.summary()
+print(plan.summarySting())
 ```
 The output of the last command reports that if future rates are exactly like those observed
 starting from 1969 and the following years, Jack and Jill could afford an annual spending of
@@ -133,31 +135,83 @@ starting from 1969 and the following years, Jack and Jill could afford an annual
 (with a basis of \\$88.8k - the basis multiplies the profile which can vary over the course of the plan).
 The summary also contains some details:
 ```
-SUMMARY ================================================================
-Net yearly spending basis in 2025$: $91,812
-Net yearly spending for year 2025: $100,448
-Net spending remaining in year 2025: $100,448
-Total net spending in 2025$: $2,809,453 ($7,757,092 nominal)
-Total Roth conversions in 2025$: $320,639 ($456,454 nominal)
-Total income tax paid on ordinary income in 2025$: $247,788 ($469,522 nominal)
-Total tax paid on gains and dividends in 2025$: $3,313 ($3,768 nominal)
-Total Medicare premiums paid in 2025$: $117,660 ($343,388 nominal)
-Spousal wealth transfer from Jack to Jill in year 2051 (nominal): taxable: $0  tax-def: $57,224  tax-free: $2,102,173
-Sum of spousal bequests to Jill in year 2051 in 2025$: $499,341 ($2,159,397 nominal)
-Post-tax non-spousal bequests from Jack in year 2051 (nominal): taxable: $0  tax-def: $0  tax-free: $0
-Sum of post-tax non-spousal bequests from Jack in year 2051 in 2025$: $0 ($0 nominal)
-Post-tax account values at the end of final plan year 2057 (nominal): taxable: $0  tax-def: $0  tax-free: $2,488,808
-Total estate value at the end of final plan year 2057 in 2025$: $500,000 ($2,488,808 nominal)
-Plan starting date: 01-01
-Cumulative inflation factor from start date to end of plan: 4.98
-        Jack's 27-year life horizon: 2025 -> 2051
-        Jill's 33-year life horizon: 2025 -> 2057
-Plan name: jack & jill - tutorial
-Number of decision variables: 996
-Number of constraints: 867
-Case executed on: 2025-02-04 at 22:55:03
-
-------------------------------------------------------------------------
+Synopsis
+                                                                    Case name: jack & jill - tutorial
+Net yearly spending basis . . . . . . . . . . . . . . . . . . . . . . . . . .: $90,333
+                                                   Net spending for year 2026: $98,830
+                                          Net spending remaining in year 2026: $98,830
+                                                           Total net spending: $2,764,191
+                                                         [Total net spending]: $7,632,120
+                                                       Total Roth conversions: $342,708
+                                                     [Total Roth conversions]: $448,854
+                                            Total tax paid on ordinary income: $215,128
+                                          [Total tax paid on ordinary income]: $433,372
+                                               »  Subtotal in tax bracket 10%: $75,360
+                                              » [Subtotal in tax bracket 10%]: $204,198
+                                            »  Subtotal in tax bracket 12/15%: $107,740
+                                           » [Subtotal in tax bracket 12/15%]: $195,020
+                                            »  Subtotal in tax bracket 22/25%: $32,028
+                                           » [Subtotal in tax bracket 22/25%]: $34,154
+                                            »  Subtotal in tax bracket 24/28%: $0
+                                           » [Subtotal in tax bracket 24/28%]: $0
+                                            »  Subtotal in tax bracket 32/33%: $0
+                                           » [Subtotal in tax bracket 32/33%]: $0
+                                               »  Subtotal in tax bracket 35%: $0
+                                              » [Subtotal in tax bracket 35%]: $0
+                                            »  Subtotal in tax bracket 37/40%: $0
+                                           » [Subtotal in tax bracket 37/40%]: $0
+                                      »  Subtotal in early withdrawal penalty: $0
+                                     » [Subtotal in early withdrawal penalty]: $0
+                                        Total tax paid on gains and dividends: $0
+                                      [Total tax paid on gains and dividends]: $0
+                                         Total net investment income tax paid: $0
+                                       [Total net investment income tax paid]: $0
+                                                 Total Medicare premiums paid: $129,044
+                                               [Total Medicare premiums paid]: $376,613
+                                                      Year of partial bequest: 2052
+                                              Sum of spousal transfer to Jill: $385,601
+                                            [Sum of spousal transfer to Jill]: $1,667,527
+                                        »  Spousal transfer to Jill - taxable: $0
+                                       » [Spousal transfer to Jill - taxable]: $0
+                                        »  Spousal transfer to Jill - tax-def: $20,279
+                                       » [Spousal transfer to Jill - tax-def]: $87,695
+                                       »  Spousal transfer to Jill - tax-free: $365,322
+                                      » [Spousal transfer to Jill - tax-free]: $1,579,832
+                                Sum of post-tax non-spousal bequest from Jack: $0
+                              [Sum of post-tax non-spousal bequest from Jack]: $0
+                          »  Post-tax non-spousal bequest from Jack - taxable: $0
+                         » [Post-tax non-spousal bequest from Jack - taxable]: $0
+                          »  Post-tax non-spousal bequest from Jack - tax-def: $0
+                         » [Post-tax non-spousal bequest from Jack - tax-def]: $0
+                         »  Post-tax non-spousal bequest from Jack - tax-free: $0
+                        » [Post-tax non-spousal bequest from Jack - tax-free]: $0
+                                                        Year of final bequest: 2058
+                                       Total after-tax value of final bequest: $400,000
+                                          » After-tax value of savings assets: $400,000
+                                     » Fixed assets liquidated at end of plan: $0
+                                       » With heirs assuming tax liability of: $0
+                                            » After paying remaining debts of: $0
+                                     [Total after-tax value of final bequest]: $1,991,047
+                                        [» After-tax value of savings assets]: $1,991,047
+                                   [» Fixed assets liquidated at end of plan]: $0
+                                      [» With heirs assuming tax liability of: $0
+                                          [» After paying remaining debts of]: $0
+                            »  Post-tax final bequest account value - taxable: $0
+                           » [Post-tax final bequest account value - taxable]: $0
+                            »  Post-tax final bequest account value - tax-def: $0
+                           » [Post-tax final bequest account value - tax-def]: $0
+                           »  Post-tax final bequest account value - tax-free: $400,000
+                          » [Post-tax final bequest account value - tax-free]: $1,991,047
+                                                           Case starting date: 01-01
+                             Cumulative inflation factor at end of final year: 4.98
+                                                          Jack's life horizon: 2026 -> 2052
+                                                         Jack's years planned: 27
+                                                          Jill's life horizon: 2026 -> 2058
+                                                         Jill's years planned: 33
+                                                 Number of decision variables: 1029
+                                                        Number of constraints: 911
+                                                                  Convergence: monotonic
+                                                             Case executed on: 2026-01-26 at 23:25:47
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
 ```python

@@ -62,8 +62,8 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 8096474,
     },
     "Case_jack+jill": {
-        "net_spending_basis": 108772,
-        "bequest": 500000,
+        "net_spending_basis": 90333,
+        "bequest": 400000,
     },
     "Case_joe": {
         "net_spending_basis": 87461,

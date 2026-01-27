@@ -120,7 +120,7 @@ class Logger(object):
     # Printing methods
     # ------------------------------------------------------------
 
-    def print(self, *args, **kwargs):
+    def print(self, *args, tag="INFO", **kwargs):
         """
         Unconditional printing regardless of verbosity.
         """
@@ -144,7 +144,7 @@ class Logger(object):
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message = " ".join(map(str, args))
-        formatted_message = f"{timestamp} | INFO | {location} | {message}"
+        formatted_message = f"{timestamp} | {tag} | {location} | {message}"
 
         if "file" not in kwargs:
             file = self._logstreams[0]
@@ -155,7 +155,7 @@ class Logger(object):
         print(formatted_message, **kwargs)
         file.flush()
 
-    def vprint(self, *args, **kwargs):
+    def vprint(self, *args, tag="DEBUG", **kwargs):
         """
         Conditional printing depending on verbose flag.
         """
@@ -179,7 +179,7 @@ class Logger(object):
             from datetime import datetime
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             message = " ".join(map(str, args))
-            formatted_message = f"{timestamp} | DEBUG | {location} | {message}"
+            formatted_message = f"{timestamp} | {tag} | {location} | {message}"
 
             if "file" not in kwargs:
                 file = self._logstreams[0]

@@ -41,7 +41,11 @@ as it only requires basic financial knowledge.
 
 Strictly speaking, *Owl* is not a planning tool, but more an environment for exploring *what if* scenarios.
 It provides different realizations of a financial strategy through the rigorous
-mathematical optimization of relevant decision variables. Using a linear programming approach,
+mathematical optimization of relevant decision variables.
+Owl is designed for US retirees as it considers US federal tax laws,
+Medicare premiums, rules for 401k including required minimum distributions,
+maturation rules for Roth accounts and conversions, social security rules, etc.
+Using a linear programming approach,
 two different objectives can currently be optimized: either
 maximize the net spending amount under the constraint of a desired bequest,
 or maximize an after-tax bequest under the constraint of a desired net spending amount.

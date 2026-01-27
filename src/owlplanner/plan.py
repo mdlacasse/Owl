@@ -181,7 +181,7 @@ def _checkCaseStatus(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.caseStatus != "solved":
-            self.mylog.vprint(f"Preventing to run method {func.__name__}() while case is {self.caseStatus}.")
+            self.mylog.print(f"Preventing to run method {func.__name__}() while case is {self.caseStatus}.")
             return None
         return func(self, *args, **kwargs)
 
@@ -198,11 +198,11 @@ def _checkConfiguration(func):
     def wrapper(self, *args, **kwargs):
         if self.xi_n is None:
             msg = f"You must define a spending profile before calling {func.__name__}()."
-            self.mylog.vprint(msg)
+            self.mylog.print(msg)
             raise RuntimeError(msg)
         if self.alpha_ijkn is None:
             msg = f"You must define an allocation profile before calling {func.__name__}()."
-            self.mylog.vprint(msg)
+            self.mylog.print(msg)
             raise RuntimeError(msg)
         return func(self, *args, **kwargs)
 
@@ -221,7 +221,8 @@ def _timer(func):
         result = func(self, *args, **kwargs)
         pt = time.process_time() - pt0
         rt = time.time() - rt0
-        self.mylog.vprint(f"CPU time used: {int(pt / 60)}m{pt % 60:.1f}s, Wall time: {int(rt / 60)}m{rt % 60:.1f}s.")
+        self.mylog.vprint(f"CPU time used: {int(pt / 60)}m{pt % 60:.1f}s, Wall time: {int(rt / 60)}m{rt % 60:.1f}s.",
+                          tag="INFO")
         return result
 
     return wrapper
@@ -326,9 +327,9 @@ class Plan:
         self.psi_n = np.zeros(self.N_n)  # Long-term income tax rate on capital gains (decimal)
         # Fraction of social security benefits that is taxed (fixed at 85% for now).
         self.Psi_n = np.ones(self.N_n) * 0.85
-        self.chi = 0.6   # Survivor fraction
-        self.mu = 0.018  # Dividend rate (decimal)
-        self.nu = 0.30   # Heirs tax rate (decimal)
+        self.chi = 0.60   # Survivor fraction
+        self.mu = 0.0172  # Dividend rate (decimal)
+        self.nu = 0.300   # Heirs tax rate (decimal)
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1])  # Fractions left to other spouse at death
         self.smileDip = 15  # Percent to reduce smile profile
@@ -499,7 +500,7 @@ class Plan:
         if not (0 <= eta <= 1):
             raise ValueError("Fraction must be between 0 and 1.")
         if self.N_i != 2:
-            self.mylog.vprint("Deposit fraction can only be 0 for single individuals.")
+            self.mylog.print("Deposit fraction can only be 0 for single individuals.")
             eta = 0
         else:
             self.mylog.vprint(f"Setting spousal surplus deposit fraction to {eta:.1f}.")
@@ -563,8 +564,8 @@ class Plan:
         self.caseStatus = "modified"
 
         if np.any(self.phi_j != 1):
-            self.mylog.vprint("Consider changing spousal deposit fraction for better convergence.")
-            self.mylog.vprint(f"\tRecommended: setSpousalDepositFraction({self.i_d}.)")
+            self.mylog.print("Consider changing spousal deposit fraction for better convergence.")
+            self.mylog.print(f"\tRecommended: setSpousalDepositFraction({self.i_d}.)")
 
     def setHeirsTaxRate(self, nu):
         """
@@ -650,7 +651,7 @@ class Plan:
 
             eligible = 62 if bornOnFirstDays else 62 + 1/12
             if ages[i] < eligible:
-                self.mylog.vprint(f"Resetting SS claiming age of {self.inames[i]} to {eligible}.")
+                self.mylog.print(f"Resetting SS claiming age of {self.inames[i]} to {eligible}.")
                 ages[i] = eligible
 
             # Check if claim age added to birth month falls next year.
@@ -810,7 +811,7 @@ class Plan:
         self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using '{method}' method.")
         if method in ["stochastic", "histochastic"]:
             repro_status = "reproducible" if self.reproducibleRates else "non-reproducible"
-            self.mylog.vprint(f"Using seed {seed} for {repro_status} rates.")
+            self.mylog.print(f"Using seed {seed} for {repro_status} rates.")
 
         # Once rates are selected, (re)build cumulative inflation multipliers.
         self.gamma_n = _genGamma_n(self.tau_kn)
@@ -1854,7 +1855,7 @@ class Plan:
 
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n - 1
-            self.mylog.vprint(f"Warning: Upper bound for year range re-adjusted to {yend}.")
+            self.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
 
         if yend < ystart:
             raise ValueError(f"Starting year is too large to support a lifespan of {self.N_n} years.")
@@ -2030,7 +2031,7 @@ class Plan:
         for opt in list(myoptions.keys()):
             if opt not in knownOptions:
                 # raise ValueError(f"Option '{opt}' is not one of {knownOptions}.")
-                self.mylog.vprint(f"Ignoring unknown solver option '{opt}'.")
+                self.mylog.print(f"Ignoring unknown solver option '{opt}'.")
                 myoptions.pop(opt)
 
         if objective not in knownObjectives:
@@ -2040,11 +2041,11 @@ class Plan:
             raise RuntimeError(f"Objective '{objective}' needs netSpending option.")
 
         if objective == "maxBequest" and "bequest" in myoptions:
-            self.mylog.vprint("Ignoring bequest option provided.")
+            self.mylog.print("Ignoring bequest option provided.")
             myoptions.pop("bequest")
 
         if objective == "maxSpending" and "netSpending" in myoptions:
-            self.mylog.vprint("Ignoring netSpending option provided.")
+            self.mylog.print("Ignoring netSpending option provided.")
             myoptions.pop("netSpending")
 
         if objective == "maxSpending" and "bequest" not in myoptions:
@@ -2056,7 +2057,7 @@ class Plan:
         self.xnet = 1 - oppCostX / 100.
 
         if "swapRothConverters" in myoptions and "noRothConversions" in myoptions:
-            self.mylog.vprint("Ignoring 'noRothConversions' as 'swapRothConverters' option present.")
+            self.mylog.print("Ignoring 'noRothConversions' as 'swapRothConverters' option present.")
             myoptions.pop("noRothConversions")
 
         # Go easy on MILP - auto gap somehow.
@@ -2134,10 +2135,10 @@ class Plan:
             # Keep rel_tol aligned with solver gap to avoid SC loop chasing noise.
             rel_tol = max(REL_TOL, gap / 300)
         # rel_tol = u.get_numeric_option({"relTol": rel_tol}, "relTol", REL_TOL, min_value=0)
-        self.mylog.vprint(f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, and gap={gap:.1e}.")
+        self.mylog.print(f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, and gap={gap:.1e}.")
 
         max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
-        self.mylog.vprint(f"Using maxIter={max_iterations}.")
+        self.mylog.print(f"Using maxIter={max_iterations}.")
 
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
@@ -2155,7 +2156,7 @@ class Plan:
             objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
 
             if not solverSuccess or objfn is None:
-                self.mylog.vprint("Solver failed:", solverMsg, solverSuccess)
+                self.mylog.print("Solver failed:", solverMsg, solverSuccess)
                 break
 
             if not withSCLoop:
@@ -2194,7 +2195,7 @@ class Plan:
                     self.convergenceType = "monotonic"
                 else:
                     self.convergenceType = "oscillatory"
-                self.mylog.vprint(f"Converged on full solution with {self.convergenceType} behavior.")
+                self.mylog.print(f"Converged on full solution with {self.convergenceType} behavior.")
                 break
 
             # Check for oscillation (need at least 4 iterations to detect a 2-cycle)
@@ -2206,22 +2207,22 @@ class Plan:
                     best_idx = np.argmax(cycle_values)
                     best_obj = cycle_values[best_idx]
                     self.convergenceType = f"oscillatory (cycle length {cycle_len})"
-                    self.mylog.vprint(f"Oscillation detected: {cycle_len}-cycle pattern identified.")
-                    self.mylog.vprint(f"Best objective in cycle: {u.d(best_obj, f=2)}")
+                    self.mylog.print(f"Oscillation detected: {cycle_len}-cycle pattern identified.")
+                    self.mylog.print(f"Best objective in cycle: {u.d(best_obj, f=2)}")
 
                     # Select the solution corresponding to the best objective in the detected cycle.
                     cycle_solutions = sol_history[-cycle_len:]
                     cycle_objfns = obj_history[-cycle_len:]
                     xx = cycle_solutions[best_idx]
                     objfn = cycle_objfns[best_idx]
-                    self.mylog.vprint("Using best solution from detected cycle.")
+                    self.mylog.print("Using best solution from detected cycle.")
 
-                    self.mylog.vprint("Accepting solution from cycle and terminating.")
+                    self.mylog.print("Accepting solution from cycle and terminating.")
                     break
 
             if it >= max_iterations:
                 self.convergenceType = "max iteration"
-                self.mylog.vprint("WARNING: Exiting loop on maximum iterations.")
+                self.mylog.print("Warning: Exiting loop on maximum iterations.")
                 break
 
             it += 1
@@ -2229,15 +2230,15 @@ class Plan:
             old_x = xx
 
         if solverSuccess:
-            self.mylog.vprint(f"Self-consistent loop returned after {it+1} iterations.")
-            self.mylog.vprint(solverMsg)
-            self.mylog.vprint(f"Objective: {u.d(objfn * objFac)}")
+            self.mylog.print(f"Self-consistent loop returned after {it+1} iterations.")
+            self.mylog.print(solverMsg)
+            self.mylog.print(f"Objective: {u.d(objfn * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(xx)
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
             self.caseStatus = "solved"
         else:
-            self.mylog.vprint("WARNING: Optimization failed:", solverMsg, solverSuccess)
+            self.mylog.print("Warning: Optimization failed:", solverMsg, solverSuccess)
             self.caseStatus = "unsuccessful"
 
         return None
@@ -2727,7 +2728,7 @@ class Plan:
         string = "Synopsis\n"
         dic = self.summaryDic(N)
         for key, value in dic.items():
-            string += f"{key:>70}: {value}\n"
+            string += f"{key:>77}: {value}\n"
 
         return string
 
@@ -2880,7 +2881,7 @@ class Plan:
         A tag string can be set to add information to the title of the plot.
         """
         if self.rateMethod in [None, "user", "historical average", "conservative"]:
-            self.mylog.vprint(f"Warning: Cannot plot correlations for {self.rateMethod} rate method.")
+            self.mylog.print(f"Warning: Cannot plot correlations for {self.rateMethod} rate method.")
             return None
 
         # Check if rates are constant (all values are the same for each rate type)
@@ -2897,7 +2898,7 @@ class Plan:
                     break
 
             if rates_are_constant:
-                self.mylog.vprint("Warning: Cannot plot correlations for constant rates (no variation in rate values).")
+                self.mylog.print("Warning: Cannot plot correlations for constant rates (no variation in rate values).")
                 return None
 
         fig = self._plotter.plot_rates_correlations(self._name, self.tau_kn, self.N_n, self.rateMethod,
@@ -2928,7 +2929,7 @@ class Plan:
         A tag string can be set to add information to the title of the plot.
         """
         if self.rateMethod is None:
-            self.mylog.vprint("Warning: Rate method must be selected before plotting.")
+            self.mylog.print("Warning: Rate method must be selected before plotting.")
             return None
 
         fig = self._plotter.plot_rates(self._name, self.tau_kn, self.year_n,
@@ -2947,7 +2948,7 @@ class Plan:
         A tag string can be set to add information to the title of the plot.
         """
         if self.xi_n is None:
-            self.mylog.vprint("Warning: Profile must be selected before plotting.")
+            self.mylog.print("Warning: Profile must be selected before plotting.")
             return None
         title = self._name + "\nSpending Profile"
         if tag:
@@ -3459,7 +3460,7 @@ def _saveWorkbook(wb, basename, overwrite, mylog):
         mylog.print(f'File "{fname}" already exists.')
         key = input("Overwrite? [Ny] ")
         if key != "y":
-            mylog.vprint("Skipping save and returning.")
+            mylog.print("Skipping save and returning.")
             return None
 
     for _ in range(3):
