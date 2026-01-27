@@ -126,7 +126,7 @@ else:
     description = kz.getLongText("Brief description", "description", help=helpmsg,
                                  placeholder="Enter a brief description...")
 
-    namehelp = "Use first name or just a nick name."
+    namehelp = "Use first name or just a nickname."
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("iname0", "")
@@ -138,12 +138,11 @@ else:
 
         if iname0:
             datemsg = """
-Calculations are the same if you were born any time after the 2nd of the month.
-SS has edge cases for those born on the 1st or the 2nd.
+Calculations are the same if you were born on any day after the 2nd of the month.
+Social Security has special rules for those born on the 1st or 2nd.
 Ask your favorite AI about it if you're curious.
 """
-            longmsg = """There are good resources for estimating longevity on the internet.
-Look at the documentation for some suggestions."""
+            longmsg = """See the documentation for suggested resources on estimating longevity."""
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("dob0", "1965-01-15")

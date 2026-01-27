@@ -92,7 +92,7 @@ This software is released under the
 [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
 #### :orange[Disclaimer]
-This program is for educatonal purposes only and does not constitute financial advice.
+This program is for educational purposes only and does not constitute financial advice.
 
 """
 )

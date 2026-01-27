@@ -142,7 +142,7 @@ earnings and the contributions you have made to the Social Security program.
 The Social Security Administration (SSA) maintains a record of your earnings,
 which you can access through the SSA [website](ssa.gov).
 To view your personal earnings record, you must create an account and sign in.
-Once logged in, use the link to ssa.tools below to calculate your PIA using your earnings data.
+Once logged in, use the ssa.tools link in this section to calculate your PIA using your earnings data.
 This tool also allows you to include projections of future earnings
 (such as expected salary and remaining years of work), resulting in a more accurate estimate of your PIA.
 For ease of use, the link will securely pass the individual's DOB and nickname.
@@ -153,8 +153,8 @@ all calculations are performed locally in your browser, and no data is transmitt
 or saved. Since the links will open in a new browser tab,
 simply note your calculated PIA and enter it back on this page.
 
-Because the SSA updates its parameters annually and PIA values are expressed in today’s dollars,
-PIA estimates are valid for the current year only.
+Because the SSA updates its parameters annually and PIAs are expressed in today’s dollars,
+these estimates are valid only for the current year.
 As a result, this process should be repeated each year to maintain accurate estimates.
 """)
 

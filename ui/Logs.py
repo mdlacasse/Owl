@@ -60,7 +60,7 @@ kz.initGlobalKey("active_text_filter", "")
 current_filter = kz.getGlobalKey("active_text_filter")
 
 text_input_value = ctrl_cols[0].text_input(
-    "Search logs – Enter string to filter log messages.",
+    "Filter log messages",
     placeholder="Substring match (e.g., warning)",
     value=current_filter,
     key="text_filter_input"

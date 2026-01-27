@@ -45,7 +45,7 @@ else:
 case and compares it with other similar cases that ran successfully.""")
             styledDf = df[1:].style.map(kz.colorBySign)
             st.dataframe(styledDf, width="stretch")
-            st.caption("Values with [legend] are nominal, otherwise in today's \\$. "
+            st.caption("Values with [legend] are nominal; others are in today's \\$. "
                        "Lines starting with » indicate itemized subtotals.")
             col1, col2 = st.columns(2, gap="large")
             helpmsg = "Download synopsis and comparisons as a text file."

@@ -451,7 +451,7 @@ is to use an online calculator such as [ssa.tools](https://ssa.tools/calculator)
 This tool requires the full earning records from one's personal account
 on the SSA website. The table listing all earning records from the SSA web page needs
 to be copied and pasted as instructed.
-Follow instructions carefully and do not cut from the PDF version
+Follow the instructions carefully and do not copy from a PDF version,
 as it can contain aggregated years.
 Please see
 [this page](https://ssa.tools/guides/earnings-record-paste) for common input errors.

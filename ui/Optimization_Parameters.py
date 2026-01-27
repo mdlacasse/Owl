@@ -56,7 +56,7 @@ else:
         choices = ["Net spending", "Bequest"]
         helpmsg = "Value is in today's \\$k."
         kz.initCaseKey("objective", choices[0])
-        helpmsg = "Pick one value to optimize. By choosing one of the two, the other becomes a constraint."
+        helpmsg = "Choose one quantity to maximize; the other is then treated as a constraint."
         ret = kz.getRadio("Maximize", choices, "objective", help=helpmsg)
 
     with col2:
@@ -126,7 +126,7 @@ else:
             for ii in range(2):
                 kz.initCaseKey("MAGI" + str(ii), 0)
                 if years[ii] > 0:
-                    ret = kz.getNum(f"MAGI for year {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
+                    ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
     with st.expander("*Advanced Options*"):

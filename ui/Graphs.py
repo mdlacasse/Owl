@@ -46,7 +46,7 @@ else:
                           callback=owb.setDefaultPlots)
 
     with col3:
-        helpmsg = "Click on button if graphs are not all showing."
+        helpmsg = "Click to refresh if some graphs are not showing."
         st.button(
             "Re-run single case",
             help=helpmsg,

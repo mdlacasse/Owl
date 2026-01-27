@@ -31,7 +31,7 @@ import json
 ss = st.session_state
 newCase = "New Case..."
 loadCaseFile = "Upload Case File..."
-help1000 = "Value is in \\$1,000 denoted \\$k."
+help1000 = "Values are in thousands of dollars (\\$k)."
 
 
 def init():

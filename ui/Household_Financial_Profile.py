@@ -56,7 +56,7 @@ else:
         if original is None or original == "None":
             st.info(
                 f"Case *'{kz.currentCaseName()}'* makes no reference to a Household Financial Profile.\n\n"
-                "You can build your own HPF by directly filling the table(s) below. "
+                "You can build your own HFP by directly filling the table(s) below. "
                 "Once a case has been successfully run, values can be saved on the **Output Files** page. "
                 "Alternatively, you can start from this Excel "
                 "[template](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) "
@@ -171,7 +171,7 @@ This information is needed to enforce the five-year maturation rule in Roth savi
             ),
             "amount": st.column_config.NumberColumn(
                 "amount",
-                help="Enter original load amount ($)",
+                help="Enter original loan amount ($)",
                 format="dollar",
                 required=True,
                 min_value=0,

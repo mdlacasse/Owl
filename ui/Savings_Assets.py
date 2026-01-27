@@ -92,7 +92,7 @@ else:
             with col1:
                 kz.initCaseKey("surplusFraction", 0.5)
                 helpmsg = ("When beneficiary fractions are not all 1, "
-                           "set cash-flow surplus deposits to entirely go to the account of first spouse to pass.")
+                           "assign all cash-flow surplus deposits to the account of the first spouse to pass.")
                 ret = kz.getNum(
                     f"Fraction of cash flow surplus deposited in {iname1}'s taxable account",
                     "surplusFraction",
