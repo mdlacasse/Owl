@@ -164,5 +164,3 @@ def test_reproducibility():
                 rel=rel_tol,
                 abs=rel_tol,
             ), f"{case}: Bequest mismatch."
-
-
