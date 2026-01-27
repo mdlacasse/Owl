@@ -874,7 +874,7 @@ def genDic(plan):
     optList = ["netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
                "startRothConversions", "withMedicare", "bequest", "solver", "noLateSurplus",
                "spendingSlack", "oppCostX", "amoConstraints", "amoRoth", "amoSurplus", "withSCLoop",
-               "absTol", "bigMirmaa", "bigMamo", "relTol", "scDamping", "scDampingOnOsc"]
+               "absTol", "bigMirmaa", "bigMamo", "relTol",]
     for key in optList:
         if key in solverOptionKeys:
             dic[key] = plan.solverOptions[key]
