@@ -1,5 +1,5 @@
 case_name = "john+sally"
-description = "This example reproduces the case of John and Sally, discussed by Eric Sajdak. This case can be used to compare the heuristic strategy of surfing a tax bracket for performing Roth conversions to a solution optimized by linear programming. The former is a good approach when one assumes fixed rates. When rates are varying, and the market drops, an optimized solution shows that it is sometime advantageous to convert above the target tax bracket. File 'john+sally.xlsx' contains wages and contributions associated with this case. Run this case with different rates to see the effects on Roth conversions."
+description = "This example reproduces the case of John and Sally, discussed by Eric Sajdak. This case can be used to compare the heuristic strategy of surfing a tax bracket for performing Roth conversions to a solution optimized by linear programming. The former is a good approach when one assumes fixed rates. When rates are varying, and the market drops, an optimized solution shows that it is sometime advantageous to convert above the target tax bracket. File 'HFP_john+sally.xlsx' contains wages and contributions associated with this case. Run this case with different rates to see the effects on Roth conversions."
 
 [basic_info]
 status = "married"

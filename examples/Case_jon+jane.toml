@@ -1,5 +1,5 @@
 case_name = "Jon+Jane"
-description = "This case reproduces a similar case discussed a while back on i-orp. It involves Jon and Jane close to retirement, and assumes a base case of optimistic returns of 10% with an inflation of 3.5%. A wages and contributions file called 'jon+jane.xlsx' is associated with this case."
+description = "This case reproduces a similar case discussed a while back on i-orp. It involves Jon and Jane close to retirement, and assumes a base case of optimistic returns of 10% with an inflation of 3.5%. A Household Financial Profile called 'HFP_jon+jane.xlsx' is associated with this case."
 
 [basic_info]
 status = "married"
