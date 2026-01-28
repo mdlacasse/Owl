@@ -1817,6 +1817,15 @@ class Plan:
 
                 self.A.addRow(row, -np.inf, rhs)
 
+        # Enforce monotonicity: higher bracket implies lower bracket is active.
+        for nn in range(Nmed):
+            for q in range(self.N_q - 2):
+                self.A.addNewRow(
+                    {_q2(self.C["zm"], nn, q + 1, Nmed, self.N_q - 1): 1,
+                     _q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): -1},
+                    -np.inf, 0
+                )
+
     def _add_Medicare_costs(self, options):
         if options.get("withMedicare", "loop") != "optimize":
             return

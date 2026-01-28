@@ -929,6 +929,12 @@ In this case, the objective function will need to consider all years when optimi
 	\end{eqnarray}
 	for all $n \in \{n_m, \ldots, N_n-1\}$, where $n_{m}$ is the index year when
 	Medicare starts for any individual $i$ in the plan, and $q \in \{0, \ldots, N_q -2\}$.
+	To preserve the monotonic structure of the IRMAA brackets, we also impose
+	\begin{equation}
+		\label{Eq:MedMono}
+		z_{(q+1)n}^m \le z_{qn}^m, \qquad q \in \{0, \ldots, N_q-3\},
+	\end{equation}
+	so that activating a higher bracket implies all lower brackets are active as well.
         As this applies to each individual eligible for Medicare, values
 	$\bar{\mathcal{L}}_{qn}$ and  $\bar{\mathcal{C}}_{qn}$
 	can include the accounting details for when both spouses are eligible and/or alive.
@@ -1355,6 +1361,14 @@ For each bracket we set
 	&&\qquad\forall k \in \{0,\ldots, N_k - 1\}, \nonumber\\
 	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{\max(n_m, 2),\ldots, N_n - 1\}.
+\end{eqnarray}
+To enforce the monotonicity of the bracket indicators, we add
+\begin{eqnarray}
+	A_u[I_{19}(q, n), q_{z^m}(q+1, n)] &=& 1, \nonumber \\
+	A_u[I_{19}(q, n), q_{z^m}(q, n)] &=& -1, \nonumber \\
+	u[I_{19}(q, n)] &=& 0, \nonumber \\
+	&&\qquad\forall q \in \{0,\ldots, N_q - 3\}, \nonumber\\
+	&&\qquad\forall n \in \{\max(n_m, 0),\ldots, N_n - 1\}.
 \end{eqnarray}
 When $n_m < 2$, we use these additional rows
 \begin{eqnarray}
