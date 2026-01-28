@@ -88,9 +88,9 @@ else:
         msg1 = "This is the **monthly** amount at Full Retirement Age (FRA)."
         if specialcase0:
             msg2 = ("Claiming age in years and months. "
-                    "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd).")
+                    "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd). Maximum 70.")
         else:
-            msg2 = "Claiming age in years and months. Minimum: 62 years."
+            msg2 = "Claiming age in years and months. Minimum: 62, maximum: 70."
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
@@ -173,28 +173,30 @@ to estimate {iname1}'s PIA.""")
 
     st.divider()
     st.markdown("#### :orange[Pension]")
+    msg_pension1 = "Monthly benefit received from pension."
+    msg_pension2 = "Age at which pension benefits start. In years and months."
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("pAge_y0", 65)
         kz.initCaseKey("pAge_m0", 0)
-        getIntInput(0, "pAmt", "**monthly** amount (in today's \\$)", help=msg1)
+        getIntInput(0, "pAmt", "**monthly** amount (in today's \\$)", help=msg_pension1)
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
-            getIntInput(0, "pAge_y", "starting at age...", 65, msg2)
+            getIntInput(0, "pAge_y", "starting at age...", 65, msg_pension2)
         with incol2:
-            getIntInput(0, "pAge_m", "...and month(s)", 0, msg2, max_val=11, prompt=False)
+            getIntInput(0, "pAge_m", "...and month(s)", 0, msg_pension2, max_val=11, prompt=False)
         getToggleInput(0, "pIdx", "Inflation adjusted")
 
     with col2:
         if kz.getCaseKey("status") == "married":
             kz.initCaseKey("pAge_y1", 65)
             kz.initCaseKey("pAge_m1", 0)
-            getIntInput(1, "pAmt", "**monthly** amount (in today's \\$)", help=msg1)
+            getIntInput(1, "pAmt", "**monthly** amount (in today's \\$)", help=msg_pension1)
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
-                getIntInput(1, "pAge", "starting at age...", 65, msg2)
+                getIntInput(1, "pAge", "starting at age...", 65, msg_pension2)
             with incol2:
-                getIntInput(1, "pAge_m", "...and month(s)", 0, msg2, max_val=11, prompt=False)
+                getIntInput(1, "pAge_m", "...and month(s)", 0, msg_pension2, max_val=11, prompt=False)
             getToggleInput(1, "pIdx", "Inflation adjusted")
 
     # Show progress bar at bottom (only when case is defined)

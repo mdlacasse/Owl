@@ -600,9 +600,9 @@ class Plan:
         for i in range(self.N_i):
             if amounts[i] != 0:
                 # Check if claim age added to birth month falls next year.
-                realage = ages[i] + (self.mobs[i] - 1)/12
-                iage = int(realage)
-                fraction = 1 - (realage % 1.)
+                yearage = ages[i] + (self.mobs[i] - 1)/12
+                iage = int(yearage)
+                fraction = 1 - (yearage % 1.)
                 realns = iage - thisyear + self.yobs[i]
                 ns = max(0, realns)
                 nd = self.horizons[i]
