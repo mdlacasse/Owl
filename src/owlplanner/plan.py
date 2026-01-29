@@ -1776,8 +1776,9 @@ class Plan:
             for nn in range(offset):
                 n = self.nm + nn
                 for q in range(self.N_q - 1):
-                    self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): bigM},
-                                     self.prevMAGI[n] - self.L_nq[nn, q], np.inf)
+                    # MAGI is known for the first Medicare years (n < 2).
+                    zval = 1 if self.prevMAGI[n] > self.L_nq[nn, q] else 0
+                    self.B.setRange(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), zval, zval)
 
         for nn in range(offset, Nmed):
             n2 = self.nm + nn - 2  # n - 2
