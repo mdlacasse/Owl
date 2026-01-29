@@ -1792,7 +1792,7 @@ class Plan:
                 magi = self.prevMAGI[n]
                 qsel = 0
                 for q in range(1, self.N_q):
-                    if magi > self.L_nq[nn, q - 1]:
+                    if magi > self.Lbar_nq[nn, q - 1]:
                         qsel = q
                 for q in range(self.N_q):
                     idx = _q2(self.C["zm"], nn, q, Nmed, self.N_q)
