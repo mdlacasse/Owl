@@ -2587,7 +2587,6 @@ class Plan:
         if "h" in self.C:
             self.h_qn = np.array(x[Ch:Cm])
             self.h_qn = self.h_qn.reshape((self.N_n - self.nm, self.N_q))
-            print(self.h_qn)
 
         self.m_n = np.array(x[Cm:Cs])
 
