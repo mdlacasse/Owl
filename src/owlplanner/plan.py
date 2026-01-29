@@ -1734,9 +1734,11 @@ class Plan:
                 )
 
         if "maxRothConversion" in options:
-            rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
-            if rhsopt < -1:
-                return
+            rhsopt = options.get("maxRothConversion")
+            if rhsopt != "file":
+                rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
+                if rhsopt < -1:
+                    return
 
         # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
         if options.get("amoRoth", True):
@@ -2082,7 +2084,7 @@ class Plan:
         if "gap" not in myoptions and myoptions.get("withMedicare", "loop") == "optimize":
             fac = 1
             maxRoth = myoptions.get("maxRothConversion", 100)
-            if maxRoth <= 15:
+            if maxRoth != "file" and maxRoth <= 15:
                 fac = 10
             # Loosen default MIP gap when Medicare is optimized. Even more if rothX == 0
             gap = fac * MILP_GAP
