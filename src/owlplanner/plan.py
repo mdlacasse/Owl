@@ -1317,7 +1317,7 @@ class Plan:
                 if self.pensionIsIndexed[i]:
                     self.piBar_in[i] *= gamma_n[:-1]
 
-            self.nm, self.L_nq, self.C_nq = tx.mediVals(self.yobs, self.horizons, gamma_n, self.N_n, self.N_q)
+            self.nm, self.Lbar_nq, self.Cbar_nq = tx.mediVals(self.yobs, self.horizons, gamma_n, self.N_n, self.N_q)
 
             self._adjustedParameters = True
 
@@ -1770,6 +1770,7 @@ class Plan:
         if options.get("withMedicare", "loop") != "optimize":
             return
 
+        bigM = u.get_numeric_option(options, "bigMamo", BIGM_XOR, min_value=0)
         Nmed = self.N_n - self.nm
         # Select exactly one IRMAA bracket per year (SOS1 behavior).
         for nn in range(Nmed):
@@ -1778,7 +1779,7 @@ class Plan:
                 row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q), 1)
             self.A.addRow(row, 1, 1)
 
-        # MAGI decomposition into bracket portions: sum_q mg_{q} = MAGI.
+        # MAGI decomposition into bracket portions: sum_q h_{q} = MAGI.
         for nn in range(Nmed):
             n = self.nm + nn
             row = self.A.newRow()
@@ -1787,15 +1788,22 @@ class Plan:
 
             if n < 2:
                 self.A.addRow(row, self.prevMAGI[n], self.prevMAGI[n])
+                # Fix bracket selection for known previous MAGI.
+                magi = self.prevMAGI[n]
+                qsel = 0
+                for q in range(1, self.N_q):
+                    if magi > self.L_nq[nn, q - 1]:
+                        qsel = q
+                for q in range(self.N_q):
+                    idx = _q2(self.C["zm"], nn, q, Nmed, self.N_q)
+                    val = 1 if q == qsel else 0
+                    self.B.setRange(idx, val, val)
                 continue
 
             n2 = n - 2
             rhs = (self.fixed_assets_ordinary_income_n[n2]
                    + self.fixed_assets_capital_gains_n[n2])
 
-            # Using e_n slows convergence like crazy.
-            # Maybe replace with full exemption at the risk of creating negative income?
-            # rhs -= self.sigmaBar_n[n2]
             row.addElem(_q1(self.C["e"], n2, self.N_n), -1)
             for i in range(self.N_i):
                 row.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), -1)
@@ -1824,22 +1832,30 @@ class Plan:
 
             self.A.addRow(row, rhs, rhs)
 
-        # Bracket bounds without big-M: L_{q-1} z_q <= mg_q <= L_q z_q.
+        # Bracket bounds: L_{q-1} z_q <= mg_q <= L_q z_q.
         for nn in range(Nmed):
             for q in range(self.N_q):
                 mg_idx = _q2(self.C["h"], nn, q, Nmed, self.N_q)
                 zm_idx = _q2(self.C["zm"], nn, q, Nmed, self.N_q)
 
-                lower = 0 if q == 0 else self.L_nq[nn, q - 1]
+                lower = 0 if q == 0 else self.Lbar_nq[nn, q - 1]
                 if lower > 0:
                     self.A.addNewRow({mg_idx: 1, zm_idx: -lower}, 0, np.inf)
 
                 if q < self.N_q - 1:
-                    upper = self.L_nq[nn, q]
+                    upper = self.Lbar_nq[nn, q]
+                    self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0)
+                else:
+                    # Upper bound for last bracket so h_qn = 0 when z_q = 0.
+                    upper = bigM * self.gamma_n[self.nm + nn]
                     self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0)
 
     def _add_Medicare_costs(self, options):
         if options.get("withMedicare", "loop") != "optimize":
+            # In loop mode, Medicare costs are computed outside the solver (M_n).
+            # Ensure the in-model Medicare variable (m_n) stays at zero.
+            for n in range(self.N_n):
+                self.B.setRange(_q1(self.C["m"], n, self.N_n), 0, 0)
             return
 
         for n in range(self.nm):
@@ -1851,7 +1867,7 @@ class Plan:
             row = self.A.newRow()
             row.addElem(_q1(self.C["m"], n, self.N_n), 1)
             for q in range(self.N_q):
-                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q), -self.C_nq[nn, q])
+                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q), -self.Cbar_nq[nn, q])
             self.A.addRow(row, 0, 0)
 
     def _build_objective_vector(self, objective):
@@ -2571,6 +2587,7 @@ class Plan:
         if "h" in self.C:
             self.h_qn = np.array(x[Ch:Cm])
             self.h_qn = self.h_qn.reshape((self.N_n - self.nm, self.N_q))
+            print(self.h_qn)
 
         self.m_n = np.array(x[Cm:Cs])
 

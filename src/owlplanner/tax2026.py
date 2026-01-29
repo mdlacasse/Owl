@@ -135,8 +135,8 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
     # Has it already started?
     Nmed = Nn - nmstart
 
-    L = np.zeros((Nmed, Nq-1))
-    C = np.zeros((Nmed, Nq))
+    Lbar = np.zeros((Nmed, Nq-1))
+    Cbar = np.zeros((Nmed, Nq))
 
     # Year starts at offset nmstart in the plan. L and C arrays are shorter.
     for nn in range(Nmed):
@@ -148,12 +148,12 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
             imed += 1
         if imed:
             status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
-            L[nn] = gamma_n[n] * irmaaBrackets[status][1:]
-            C[nn] = imed * gamma_n[n] * irmaaCosts
+            Lbar[nn] = gamma_n[n] * irmaaBrackets[status][1:]
+            Cbar[nn] = imed * gamma_n[n] * irmaaCosts
         else:
             raise RuntimeError("mediVals: This should never happen.")
 
-    return nmstart, L, C
+    return nmstart, Lbar, Cbar
 
 
 def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
