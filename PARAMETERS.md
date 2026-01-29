@@ -172,6 +172,7 @@ Options controlling the optimization solver and constraints.
 | `amoRoth` | boolean | *(Advanced)* Whether to enforce at-most-one (AMO) constraints preventing simultaneous Roth conversions and tax-free withdrawals. | `true` |
 | `amoSurplus` | boolean | *(Advanced)* Whether to enforce XOR constraints preventing simultaneous surplus deposits and withdrawals from taxable or tax-free accounts. | `true` |
 | `bequest` | float | Target bequest value in today's dollars (in `units`). Used when `objective = "maxSpending"`. | `1` (if omitted with `maxSpending`) |
+| `bigMirmaa` | float | *(Advanced)* Big-M value for Medicare IRMAA bracket constraints (used when `withMedicare = "optimize"`). Should exceed any plausible aggregate MAGI. | `5e7` |
 | `bigMamo` | float | *(Advanced)* Big-M value for at-mot-one (AMO) constraints (mutually exclusive operations). Should exceed any individual withdrawal, conversion, or surplus deposit. | `5e7` |
 | `gap` | float | *(Advanced)* Relative MILP gap used by solvers and to scale convergence tolerances. | `1e-4` (default); if `withMedicare = "optimize"` and unset, set to `1e-3` (or `1e-2` when `maxRothConversion <= 15`) |
 | `maxIter` | integer | *(Advanced)* Maximum number of iterations for the self-consistent loop. Must be at least 1. | `29` |

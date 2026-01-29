@@ -48,9 +48,7 @@ irmaaBrackets = np.array(
 # These are current for 2026 (2025TY).
 # Index [0] stores the standard Medicare part B basic premium.
 # Following values are incremental IRMAA part B monthly fees.
-# The cumulative sum yields the total monthly premium per bracket.
 irmaaFees = 12 * np.array([202.90, 81.20, 121.70, 121.70, 121.70, 40.70])
-irmaaCosts = np.cumsum(irmaaFees)
 
 #########################################################################
 # Make projection for pre-TCJA using 2017 to current year.
@@ -125,7 +123,7 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
     Costs C include the fact that one or two indivuals have to pay. Eligibility is built-in.
     """
     thisyear = date.today().year
-    assert Nq == len(irmaaCosts), f"Inconsistent value of Nq: {Nq}."
+    assert Nq == len(irmaaFees), f"Inconsistent value of Nq: {Nq}."
     assert Nq == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
     Ni = len(yobs)
     # What index year will Medicare start? 65 - age for each individual.
@@ -149,7 +147,7 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
         if imed:
             status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
             L[nn] = gamma_n[n] * irmaaBrackets[status][1:]
-            C[nn] = imed * gamma_n[n] * irmaaCosts
+            C[nn] = imed * gamma_n[n] * irmaaFees
         else:
             raise RuntimeError("mediVals: This should never happen.")
 
