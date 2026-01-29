@@ -47,7 +47,6 @@ from .plotting.factory import PlotFactory
 
 # Default values
 BIGM_XOR = 5e7     # 100 times large withdrawals or conversions
-BIGM_IRMAA = 5e7   # 100 times large MAGI
 GAP = 1e-4
 MILP_GAP = 10 * GAP
 MAX_ITERATIONS = 29
@@ -1331,6 +1330,7 @@ class Plan:
         All binary variables must be lumped at the end of the vector.
         """
         medi = options.get("withMedicare", "loop") == "optimize"
+        Nmed = self.N_n - self.nm
 
         # Stack all variables in a single block vector with all binary variables at the end.
         C = {}
@@ -1339,13 +1339,17 @@ class Plan:
         C["e"] = _qC(C["d"], self.N_i, self.N_n)
         C["f"] = _qC(C["e"], self.N_n)
         C["g"] = _qC(C["f"], self.N_t, self.N_n)
-        C["m"] = _qC(C["g"], self.N_n)
+        if medi:
+            C["h"] = _qC(C["g"], self.N_n)
+            C["m"] = _qC(C["h"], Nmed, self.N_q)
+        else:
+            C["m"] = _qC(C["g"], self.N_n)
         C["s"] = _qC(C["m"], self.N_n)
         C["w"] = _qC(C["s"], self.N_n)
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
         C["zx"] = _qC(C["x"], self.N_i, self.N_n)
         C["zm"] = _qC(C["zx"], self.N_n, self.N_zx)
-        self.nvars = _qC(C["zm"], self.N_n - self.nm, self.N_q - 1) if medi else C["zm"]
+        self.nvars = _qC(C["zm"], Nmed, self.N_q) if medi else C["zm"]
         self.nbins = self.nvars - C["zx"]
         self.nconts = C["zx"]
         self.nbals = C["d"]
@@ -1764,67 +1768,73 @@ class Plan:
         if options.get("withMedicare", "loop") != "optimize":
             return
 
-        # Default: 5e7 (50 million) - bounds aggregate MAGI, typically larger than bigMamo
-        bigM = u.get_numeric_option(options, "bigMirmaa", BIGM_IRMAA, min_value=0)
-
         Nmed = self.N_n - self.nm
-        offset = 0
-        if self.nm < 2:
-            offset = 2 - self.nm
-            for nn in range(offset):
-                n = self.nm + nn
-                for q in range(self.N_q - 1):
-                    self.A.addNewRow({_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): bigM},
-                                     self.prevMAGI[n] - self.L_nq[nn, q], np.inf)
-
-        for nn in range(offset, Nmed):
-            n2 = self.nm + nn - 2  # n - 2
-            for q in range(self.N_q - 1):
-                rhs = self.L_nq[nn, q]
-                rhs -= (self.fixed_assets_ordinary_income_n[n2]
-                        + self.fixed_assets_capital_gains_n[n2])
-                row = self.A.newRow()
-
-                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -bigM*self.gamma_n[nn])
-                # Using e_n slows convergence like crazy.
-                # Maybe replace with full exemption at the risk of creating negative income?
-                # rhs -= self.sigmaBar_n[n2]
-                row.addElem(_q1(self.C["e"], n2, self.N_n), +1)
-                for i in range(self.N_i):
-                    row.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), +1)
-                    row.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), +1)
-
-                    # Dividends and interest gains for year n2.
-                    afac = (self.mu*self.alpha_ijkn[i, 0, 0, n2]
-                            + np.sum(self.alpha_ijkn[i, 0, 1:, n2]*self.tau_kn[1:, n2]))
-
-                    row.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), +afac)
-                    row.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), +afac)
-
-                    # Capital gains on stocks sold from taxable account accrued in year n2 - 1.
-                    # Capital gains = price appreciation only (total return - dividend rate)
-                    #  to avoid double taxation of dividends.
-                    tau_prev = self.tau_kn[0, max(0, n2-1)]
-                    bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, tau_prev - self.mu)
-                    row.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), -afac + bfac)
-
-                    # MAGI includes total Social Security (taxable + non-taxable) for IRMAA.
-                    sumoni = (self.omega_in[i, n2]
-                              + self.zetaBar_in[i, n2]
-                              + self.piBar_in[i, n2]
-                              + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
-                    rhs -= sumoni
-
-                self.A.addRow(row, -np.inf, rhs)
-
-        # Enforce monotonicity: higher bracket implies lower bracket is active.
+        # Select exactly one IRMAA bracket per year (SOS1 behavior).
         for nn in range(Nmed):
-            for q in range(self.N_q - 2):
-                self.A.addNewRow(
-                    {_q2(self.C["zm"], nn, q + 1, Nmed, self.N_q - 1): 1,
-                     _q2(self.C["zm"], nn, q, Nmed, self.N_q - 1): -1},
-                    -np.inf, 0
-                )
+            row = self.A.newRow()
+            for q in range(self.N_q):
+                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q), 1)
+            self.A.addRow(row, 1, 1)
+
+        # MAGI decomposition into bracket portions: sum_q mg_{q} = MAGI.
+        for nn in range(Nmed):
+            n = self.nm + nn
+            row = self.A.newRow()
+            for q in range(self.N_q):
+                row.addElem(_q2(self.C["h"], nn, q, Nmed, self.N_q), 1)
+
+            if n < 2:
+                self.A.addRow(row, self.prevMAGI[n], self.prevMAGI[n])
+                continue
+
+            n2 = n - 2
+            rhs = (self.fixed_assets_ordinary_income_n[n2]
+                   + self.fixed_assets_capital_gains_n[n2])
+
+            # Using e_n slows convergence like crazy.
+            # Maybe replace with full exemption at the risk of creating negative income?
+            # rhs -= self.sigmaBar_n[n2]
+            row.addElem(_q1(self.C["e"], n2, self.N_n), -1)
+            for i in range(self.N_i):
+                row.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), -1)
+                row.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), -1)
+
+                # Dividends and interest gains for year n2.
+                afac = (self.mu * self.alpha_ijkn[i, 0, 0, n2]
+                        + np.sum(self.alpha_ijkn[i, 0, 1:, n2] * self.tau_kn[1:, n2]))
+
+                row.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), -afac)
+                row.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), -afac)
+
+                # Capital gains on stocks sold from taxable account accrued in year n2 - 1.
+                # Capital gains = price appreciation only (total return - dividend rate)
+                #  to avoid double taxation of dividends.
+                tau_prev = self.tau_kn[0, max(0, n2 - 1)]
+                bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, tau_prev - self.mu)
+                row.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), afac - bfac)
+
+                # MAGI includes total Social Security (taxable + non-taxable) for IRMAA.
+                sumoni = (self.omega_in[i, n2]
+                          + self.zetaBar_in[i, n2]
+                          + self.piBar_in[i, n2]
+                          + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
+                rhs += sumoni
+
+            self.A.addRow(row, rhs, rhs)
+
+        # Bracket bounds without big-M: L_{q-1} z_q <= mg_q <= L_q z_q.
+        for nn in range(Nmed):
+            for q in range(self.N_q):
+                mg_idx = _q2(self.C["h"], nn, q, Nmed, self.N_q)
+                zm_idx = _q2(self.C["zm"], nn, q, Nmed, self.N_q)
+
+                lower = 0 if q == 0 else self.L_nq[nn, q - 1]
+                if lower > 0:
+                    self.A.addNewRow({mg_idx: 1, zm_idx: -lower}, 0, np.inf)
+
+                if q < self.N_q - 1:
+                    upper = self.L_nq[nn, q]
+                    self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0)
 
     def _add_Medicare_costs(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -1838,9 +1848,9 @@ class Plan:
             n = self.nm + nn
             row = self.A.newRow()
             row.addElem(_q1(self.C["m"], n, self.N_n), 1)
-            for q in range(self.N_q - 1):
-                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -self.C_nq[nn, q+1])
-            self.A.addRow(row, self.C_nq[nn, 0], self.C_nq[nn, 0])
+            for q in range(self.N_q):
+                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q), -self.C_nq[nn, q])
+            self.A.addRow(row, 0, 0)
 
     def _build_objective_vector(self, objective):
         c = abc.Objective(self.nvars)
@@ -2011,7 +2021,6 @@ class Plan:
             "amoRoth",
             "amoSurplus",
             "bequest",
-            "bigMirmaa",  # Big-M value for Medicare IRMAA constraints (default: 5e7)
             "bigMamo",    # Big-M value for XOR constraints (default: 5e7)
             "gap",
             "maxIter",
@@ -2531,6 +2540,7 @@ class Plan:
         Ce = self.C["e"]
         Cf = self.C["f"]
         Cg = self.C["g"]
+        Ch = self.C.get("h", self.C["m"])
         Cm = self.C["m"]
         Cs = self.C["s"]
         Cw = self.C["w"]
@@ -2554,7 +2564,11 @@ class Plan:
         self.f_tn = np.array(x[Cf:Cg])
         self.f_tn = self.f_tn.reshape((Nt, Nn))
 
-        self.g_n = np.array(x[Cg:Cm])
+        self.g_n = np.array(x[Cg:Ch])
+
+        if "h" in self.C:
+            self.h_qn = np.array(x[Ch:Cm])
+            self.h_qn = self.h_qn.reshape((self.N_n - self.nm, self.N_q))
 
         self.m_n = np.array(x[Cm:Cs])
 
