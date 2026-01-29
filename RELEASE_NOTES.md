@@ -1,3 +1,7 @@
+### Version 2026.01.28
+- Recoded Medicare optimzation algorithm for SOS1 formulation
+- Updated documents and parameters
+
 ### Version 2026.01.26
 - Updated Jupyter notebooks
 - Improved logging
