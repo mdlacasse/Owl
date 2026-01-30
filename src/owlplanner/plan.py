@@ -46,7 +46,7 @@ from .plotting.factory import PlotFactory
 
 
 # Default values
-BIGM_XOR = 5e7     # 100 times large withdrawals or conversions
+BIGM_AMO = 5e7     # 100 times large withdrawals or conversions
 GAP = 1e-4
 MILP_GAP = 10 * GAP
 MAX_ITERATIONS = 29
@@ -1706,7 +1706,7 @@ class Plan:
         if not options.get("amoConstraints", True):
             return
 
-        bigM = u.get_numeric_option(options, "bigMamo", BIGM_XOR, min_value=0)
+        bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
 
         if options.get("amoSurplus", True):
             for n in range(self.N_n):
@@ -1770,7 +1770,7 @@ class Plan:
         if options.get("withMedicare", "loop") != "optimize":
             return
 
-        bigM = u.get_numeric_option(options, "bigMamo", BIGM_XOR, min_value=0)
+        bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
         Nmed = self.N_n - self.nm
         # Select exactly one IRMAA bracket per year (SOS1 behavior).
         for nn in range(Nmed):
@@ -2056,7 +2056,7 @@ class Plan:
             "amoRoth",
             "amoSurplus",
             "bequest",
-            "bigMamo",    # Big-M value for XOR constraints (default: 5e7)
+            "bigMamo",    # Big-M value for AMO constraints (default: 5e7)
             "epsilon",
             "gap",
             "maxIter",
