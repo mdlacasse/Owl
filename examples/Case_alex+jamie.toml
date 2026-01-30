@@ -1,0 +1,64 @@
+case_name = "Alex+Jamie"
+description = "A case where there is big difference in longevity."
+
+[basic_info]
+status = "married"
+names = [ "Alex", "Jamie",]
+date_of_birth = [ "1960-01-15", "1961-01-17",]
+life_expectancy = [ 72, 90,]
+start_date = "2026-01-01"
+
+[savings_assets]
+taxable_savings_balances = [ 500.0, 200.0,]
+tax_deferred_savings_balances = [ 1500.0, 400.0,]
+tax_free_savings_balances = [ 50.0, 40.0,]
+beneficiary_fractions = [ 1.0, 1.0, 1.0,]
+spousal_surplus_deposit_fraction = 0.5
+
+[household_financial_profile]
+HFP_file_name = "dictionary of DataFrames"
+
+[fixed_income]
+pension_monthly_amounts = [ 0, 0,]
+pension_ages = [ 65.0, 65.0,]
+pension_indexed = [ false, false,]
+social_security_pia_amounts = [ 3000, 1200,]
+social_security_ages = [ 69.0, 62.083333333333336,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 30.0
+dividend_rate = 1.72
+obbba_expiration_year = 2032
+method = "user"
+values = [ 7.000000000000001, 4.0, 3.3000000000000003, 2.8,]
+from = 1928
+to = 2025
+
+[asset_allocation]
+interpolation_method = "linear"
+interpolation_center = 15.0
+interpolation_width = 5.0
+type = "individual"
+generic = [ [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],], [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],],]
+
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 60
+objective = "maxSpending"
+
+[solver_options]
+maxRothConversion = 400.0
+noRothConversions = "None"
+startRothConversions = 2026
+bequest = 0
+solver = "HiGHS"
+spendingSlack = 0
+amoRoth = true
+amoSurplus = true
+withSCLoop = true
+noLateSurplus = false
+withMedicare = "loop"
+previousMAGIs = [ 200.0, 200.0,]
+
+[results]
+default_plots = "today"

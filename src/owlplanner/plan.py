@@ -53,6 +53,7 @@ MAX_ITERATIONS = 29
 ABS_TOL = 20
 REL_TOL = 1e-6
 TIME_LIMIT = 900
+EPSILON = 1e-9
 
 
 def _genGamma_n(tau):
@@ -2153,6 +2154,13 @@ class Plan:
         solver = myoptions.get("solver", self.defaultSolver)
         if solver not in knownSolvers:
             raise ValueError(f"Unknown solver '{solver}'.")
+
+        # Turn on epsilon by default when optimizing Medicare.
+        withMedicare = options.get("withMedicare", "loop")
+        epsilon = EPSILON if withMedicare == "optimize" else 0
+        if epsilon > 0 and "epsilon" not in myoptions:
+            self.mylog.vprint(f"Adding lexicographic weight with epsilon={epsilon:.2e}.")
+            myoptions["epsilon"] = epsilon
 
         if solver == "HiGHS":
             solverMethod = self._milpSolve

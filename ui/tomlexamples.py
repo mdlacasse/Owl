@@ -26,8 +26,7 @@ import os
 from io import StringIO, BytesIO
 
 
-cases = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam-bequest",
-         "kim+sam-spending", "drawdowncalc-comparison-1"]
+cases = ["alex+jamie", "jack+jill", "joe", "john+sally", "jon+jane", "kim+sam-bequest", "kim+sam-spending"]
 
 
 wages = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam"]
