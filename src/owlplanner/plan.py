@@ -1383,7 +1383,7 @@ class Plan:
         self._configure_Medicare_binary_variables(options)
         self._add_Medicare_costs(options)
         self._configure_exclusion_binary_variables(options)
-        self._build_objective_vector(objective)
+        self._build_objective_vector(objective, options)
 
     def _add_rmd_inequalities(self):
         for i in range(self.N_i):
@@ -1845,18 +1845,35 @@ class Plan:
                 row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q - 1), -self.C_nq[nn, q+1])
             self.A.addRow(row, self.C_nq[nn, 0], self.C_nq[nn, 0])
 
-    def _build_objective_vector(self, objective):
-        c = abc.Objective(self.nvars)
+    def _build_objective_vector(self, objective, options):
+        c_arr = np.zeros(self.nvars)
         if objective == "maxSpending":
             for n in range(self.N_n):
-                c.setElem(_q1(self.C["g"], n, self.N_n), -1/self.gamma_n[n])
+                c_arr[_q1(self.C["g"], n, self.N_n)] = -1/self.gamma_n[n]
         elif objective == "maxBequest":
             for i in range(self.N_i):
-                c.setElem(_q3(self.C["b"], i, 0, self.N_n, self.N_i, self.N_j, self.N_n + 1), -1)
-                c.setElem(_q3(self.C["b"], i, 1, self.N_n, self.N_i, self.N_j, self.N_n + 1), -(1 - self.nu))
-                c.setElem(_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1), -1)
+                c_arr[_q3(self.C["b"], i, 0, self.N_n, self.N_i, self.N_j, self.N_n + 1)] = -1
+                c_arr[_q3(self.C["b"], i, 1, self.N_n, self.N_i, self.N_j, self.N_n + 1)] = -(1 - self.nu)
+                c_arr[_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1)] = -1
         else:
             raise RuntimeError("Internal error in objective function.")
+
+        epsilon = u.get_numeric_option(options, "epsilon", 0, min_value=0)
+        if epsilon > 0:
+            # Penalize Roth conversions to reduce churn.
+            for i in range(self.N_i):
+                for n in range(self.N_n):
+                    c_arr[_q2(self.C["x"], i, n, self.N_i, self.N_n)] += epsilon
+
+            if self.N_i == 2:
+                # Favor withdrawals from spouse 0 by penalizing spouse 1 withdrawals.
+                for j in range(self.N_j):
+                    for n in range(self.N_n):
+                        c_arr[_q3(self.C["w"], 1, j, n, self.N_i, self.N_j, self.N_n)] += epsilon
+
+        c = abc.Objective(self.nvars)
+        for idx in np.flatnonzero(c_arr):
+            c.setElem(idx, c_arr[idx])
         self.c = c
 
     @_timer
@@ -2016,6 +2033,7 @@ class Plan:
             "bequest",
             "bigMirmaa",  # Big-M value for Medicare IRMAA constraints (default: 5e7)
             "bigMamo",    # Big-M value for XOR constraints (default: 5e7)
+            "epsilon",
             "gap",
             "maxIter",
             "maxRothConversion",
