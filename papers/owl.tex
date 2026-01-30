@@ -136,7 +136,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 		\label{Eq:G_n}
 		G_n = \sum_t f_{tn},
 	\end{equation}
-	with $f_{tn}$ bound between 0 and the bracket width $\bar{\Gamma}_{tn} - \bar{\Gamma}_{(t-1)n}$.
+	with $f_{tn}$ bound between 0 and the bracket width $\bar{\Delta}_{tn} = \bar{\Gamma}_{tn} - \bar{\Gamma}_{(t-1)n}$.
 	For interpretation, one can introduce the fractional fill $f'_{tn}$ with
 	$f_{tn} := f'_{tn}\bar{\Delta}_{tn}$ and
 	\begin{eqnarray}
@@ -144,8 +144,9 @@ while parameters are prescribed by the user, historical data, or tax laws.
 		0 \leq f'_{t n} \leq 1.
 	\end{eqnarray}
 	When considering taxes, the product $\bar{\Delta}_{tn}\theta^x_{tn}$ does not guarantee to
-	be ordered monotonically. It is therefore more appropriate to optimize directly in $f_{tn}$.
-	Given that the rates on tax brackets $\theta^x_{tn}$ are increasing monotonically with income,
+	be ordered monotonically, and therefore forcing lower brackets to be filled first when being minimized.
+	It is therefore more appropriate to optimize directly in $f_{tn}$, as the tax rates are progressive.
+	Given that the rates $\theta^x_{tn}$ on tax brackets $t$ are increasing monotonically with income,
 	the lower brackets will be filled in first when optimizing.
 	Definitions of $\theta^x_{tn}, \Gamma_{tn}$ and $\Delta_{tn}$ are in the section describing the parameters below. 
 
@@ -188,7 +189,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 
 \section{Parameters}
 For more easily distinguishing parameters from variables, all parameters are expressed
-either in Greek letters or using caligraphic fonts.
+either in Greek letters or uppercase roman letters using caligraphic fonts.
 Parameter values are either set by the user, historical data, or by the tax code.
 \begin{description}[leftmargin=4em,style=multiline]
 \item [$\beta_{ij}$]
@@ -409,7 +410,7 @@ as savings account balances are assumed to be rebalanced periodically.
 \item [$\phi_j$]
 	Fraction of savings account $j$ that is left to surviving spouse $i_s$ as a beneficiary
 	at the death of individual $i_d$, the first spouse to pass.
-\item [$\psi$]
+\item [$\psi_n$]
 	Effective income tax rate on long-term capital gains (LTCG) and qualified dividends.
 	The rate is computed from the LTCG tax brackets using total taxable income, so it is an
 	average (total LTCG tax divided by total LTCG) rather than a marginal rate.

@@ -1694,7 +1694,8 @@ class Plan:
                 rhs += self.omega_in[i, n] + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n]
                 row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1)
                 row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), -1)
-                fak = np.sum(self.tau_kn[1:self.N_k, n] * self.alpha_ijkn[i, 0, 1:self.N_k, n], axis=0)
+                # Only positive returns are taxable (interest/dividends); losses don't reduce income.
+                fak = np.sum(np.maximum(0, self.tau_kn[1:self.N_k, n]) * self.alpha_ijkn[i, 0, 1:self.N_k, n], axis=0)
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
                 row.addElem(_q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1), -fak)
                 row.addElem(_q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n), fak)
@@ -1810,9 +1811,9 @@ class Plan:
                 row.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), -1)
                 row.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), -1)
 
-                # Dividends and interest gains for year n2.
+                # Dividends and interest gains for year n2. Only positive returns are taxable.
                 afac = (self.mu * self.alpha_ijkn[i, 0, 0, n2]
-                        + np.sum(self.alpha_ijkn[i, 0, 1:, n2] * self.tau_kn[1:, n2]))
+                        + np.sum(self.alpha_ijkn[i, 0, 1:, n2] * np.maximum(0, self.tau_kn[1:, n2])))
 
                 row.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), -afac)
                 row.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), -afac)
@@ -2653,9 +2654,10 @@ class Plan:
         self.MAGI_n = (self.G_n + self.e_n + self.Q_n
                        + np.sum((1 - self.Psi_n) * self.zetaBar_in, axis=0))
 
+        # Only positive returns count as interest/dividend income (matches _add_taxable_income).
         I_in = ((self.b_ijn[:, 0, :-1] + self.d_in - self.w_ijn[:, 0, :])
-                * np.sum(self.alpha_ijkn[:, 0, 1:, :Nn] * self.tau_kn[1:, :], axis=1))
-        # Clamp interest/dividend income to non-negative. Sum over individuals to share losses across spouses.
+                * np.sum(self.alpha_ijkn[:, 0, 1:, :Nn] * np.maximum(0, self.tau_kn[1:, :]), axis=1))
+        # Sum over individuals to share losses across spouses; clamp to non-negative.
         self.I_n = np.maximum(0, np.sum(I_in, axis=0))
 
         # Stop after building minimum required for self-consistent loop.
