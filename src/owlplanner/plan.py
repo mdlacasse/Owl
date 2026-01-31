@@ -1885,7 +1885,10 @@ class Plan:
         else:
             raise RuntimeError("Internal error in objective function.")
 
-        epsilon = u.get_numeric_option(options, "epsilon", 0, min_value=0)
+        # Turn on epsilon by default when optimizing Medicare.
+        withMedicare = options.get("withMedicare", "loop")
+        default_epsilon = EPSILON if withMedicare == "optimize" else 0
+        epsilon = u.get_numeric_option(options, "epsilon", default_epsilon, min_value=0)
         if epsilon > 0:
             # Penalize Roth conversions to reduce churn.
             for i in range(self.N_i):
@@ -2155,13 +2158,6 @@ class Plan:
         solver = myoptions.get("solver", self.defaultSolver)
         if solver not in knownSolvers:
             raise ValueError(f"Unknown solver '{solver}'.")
-
-        # Turn on epsilon by default when optimizing Medicare.
-        withMedicare = options.get("withMedicare", "loop")
-        epsilon = EPSILON if withMedicare == "optimize" else 0
-        if epsilon > 0 and "epsilon" not in myoptions:
-            self.mylog.vprint(f"Adding lexicographic weight with epsilon={epsilon:.2e}.")
-            myoptions["epsilon"] = epsilon
 
         if solver == "HiGHS":
             solverMethod = self._milpSolve

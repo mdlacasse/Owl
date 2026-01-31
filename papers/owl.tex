@@ -561,11 +561,11 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 \item [$J_n$]
 	Net investment income tax (NIIT) paid in year $n$. The NIIT is 3.8\% and applies
 	when modified adjusted gross income $\mathbb{G}_n$ exceeds the statutory threshold
-	$G^{\mathrm{NIIT}}$ (not indexed for inflation). We compute
+	$\mathbb{G}^{\mathrm{NIIT}}$ (not indexed for inflation). We compute
 	\begin{equation}
-		J_n = 0.038\ \max\!\left(0,\ \min\!\left(\mathbb{G}_n - G^{\mathrm{NIIT}},\ \mathbb{I}_n + Q_n\right)\right),
+		J_n = 0.038\ \max\!\left(0,\ \min\!\left(\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}},\ \mathbb{I}_n + Q_n\right)\right),
 	\end{equation}
-	where $G^{\mathrm{NIIT}}$ is \$200k for single filers and \$250k for married filing jointly,
+	where $\mathbb{G}^{\mathrm{NIIT}}$ is \$200k for single filers and \$250k for married filing jointly,
 	with filing status changing after the passing of one spouse ($n \ge n_d$).
 
 \end{description}
@@ -751,24 +751,24 @@ add the market returns to the savings balances.
 	from either spouse, while the second exclusion prevents simultaneous Roth conversions and tax-free withdrawals
 	from either spouse.
 	To favor tax-deferred withdrawals in most reasonable situations,
-	we implement these exclusions by introducing binary variables $z_{nz} \in \{0, 1\}$ 
-	with $z \in \{0, 1, 2, 3\}$ for each year $n$ (shared across both spouses).
-	The first pair of binary variables $(z_{n0}, z_{n1})$ enforces the surplus-withdrawal exclusion:
+	we implement these exclusions by introducing binary variables $z^x_{n\ell} \in \{0, 1\}$ 
+	with $\ell \in \{0, 1, 2, 3\}$ for each year $n$ (shared across both spouses).
+	The first pair of binary variables $(z^x_{n0}, z^x_{n1})$ enforces the surplus-withdrawal exclusion:
 	\begin{alignat}{2}
 		\label{Eq:Binary1}
-		\epsilon z_{n0} & \le \; \sum_i (w_{i0n} + w_{i2n})  \le \mathcal{M} z_{n0}, \nonumber \\
-		\epsilon z_{n1} & \le \; s_n  \le \mathcal{M} z_{n1}, \nonumber \\
-		0  & \le z_{n0} + z_{n1}  \le 1,
+		\epsilon z^x_{n0} & \le \; \sum_i (w_{i0n} + w_{i2n})  \le \mathcal{M} z^x_{n0}, \nonumber \\
+		\epsilon z^x_{n1} & \le \; s_n  \le \mathcal{M} z^x_{n1}, \nonumber \\
+		0  & \le z^x_{n0} + z^x_{n1}  \le 1,
 	\end{alignat}
 	where $\epsilon$ is a small positive number (e.g., $0.001$) to ensure that when a binary variable
 	is active, the corresponding continuous variable is non-zero. However, the AMO exclusion
 	does not require the lower bound on the variables as both values can be zero.
-	The second pair of binary variables $(z_{n2}, z_{n3})$ enforces the Roth conversion-tax-free withdrawal exclusion:
+	The second pair of binary variables $(z^x_{n2}, z^x_{n3})$ enforces the Roth conversion-tax-free withdrawal exclusion:
 	\begin{alignat}{2}
 		\label{Eq:Binary2}
-		\epsilon z_{n2} & \le \; \sum_i x_{in}  \le \mathcal{M} z_{n2}, \nonumber \\
-		\epsilon z_{n3} & \le \; \sum_i w_{i2n}  \le \mathcal{M} z_{n3}, \nonumber \\
-		0 &\le z_{n2} + z_{n3} \le 1.
+		\epsilon z^x_{n2} & \le \; \sum_i x_{in}  \le \mathcal{M} z^x_{n2}, \nonumber \\
+		\epsilon z^x_{n3} & \le \; \sum_i w_{i2n}  \le \mathcal{M} z^x_{n3}, \nonumber \\
+		0 &\le z^x_{n2} + z^x_{n3} \le 1.
 	\end{alignat}
 	Here, $\mathcal{M}$ is a large number such as $10^9$, just slightly
 	larger than what $x$, $w$, and $s$ can possibly be.
@@ -926,7 +926,7 @@ In this case, the objective function will need to consider the sum over all year
 	\end{figure}
 
 	Including regular premiums, there are $N_q=6$ brackets
-	of MAGI indexed for inflation defined with annual Medicare costs of
+	of MAGI indexed for inflation defined with annual cumulative Medicare costs of
 	$\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$ also adjusted for inflation.
         These segments are separated by $N_q -1$ thresholds
 	$\bar{\mathcal{L}}_{qn} = \gamma_n\mathcal{L}_q$.
@@ -938,9 +938,10 @@ In this case, the objective function will need to consider the sum over all year
 	represents the (inflation-adjusted) base premium for Medicare part B in year $n$, while
 	higher $q$ values include the IRMAA additional costs.
 
-        To model the IRMAA brackets without big-$\mathcal{M}$, we introduce
+        To model the IRMAA brackets we introduce
 	binary variables $z_{qn}^m \in \{0, 1\}$ (one per bracket) and continuous
 	variables $h_{qn} \ge 0$ for the MAGI assigned to the selected bracket $q$.
+	Big-$\mathcal{M}$ is used only for the upper bound of the top bracket (see below).
 	We impose an SOS1 selection on binary $z_{qn}^m$ as
 	\begin{equation}
 		\label{Eq:SOS1}
@@ -952,10 +953,19 @@ In this case, the objective function will need to consider the sum over all year
 		0 \le h_{0n} &\le& \bar{\mathcal{L}}_{0n} z_{0n}^m, \nonumber \\
 		\bar{\mathcal{L}}_{(q-1)n} z_{qn}^m \le h_{qn} &\le& \bar{\mathcal{L}}_{qn} z_{qn}^m,
 		\quad q \in \{1, \ldots, N_q-2\}, \label{Eq:MedDecomph}\\
-		\bar{\mathcal{L}}_{(N_q-2)n} z_{(N_q-1)n}^m &\le& h_{(N_q-1)n}, \nonumber
+		\bar{\mathcal{L}}_{(N_q-2)n} z_{(N_q-1)n}^m \le h_{(N_q-1)n} &\le&
+		\mathcal{M} \gamma_n z_{(N_q-1)n}^m. \nonumber
 	\end{eqnarray}
 	for all $n \in \{n_m, \ldots, N_n-1\}$, where $n_{m}$ is the index year when
 	Medicare starts for any individual $i$ in the plan.
+	The upper bound on the last bracket is necessary: when $z_{(N_q-1)n}^m = 0$
+	(the top bracket is not selected), the lower bound alone only gives
+	$h_{(N_q-1)n} \ge 0$, so the solver could assign positive MAGI to an inactive
+	bracket. The constraint $h_{(N_q-1)n} \le \mathcal{M} \gamma_n z_{(N_q-1)n}^m$
+	forces $h_{(N_q-1)n} \le 0$ when $z_{(N_q-1)n}^m = 0$; with $h_{qn} \ge 0$ we
+	obtain $h_{(N_q-1)n} = 0$ for the inactive bracket. When $z_{(N_q-1)n}^m = 1$,
+	$\mathcal{M} \gamma_n$ is chosen large enough to not bind (e.g.\ of order $10^8$
+	in real units).
         As this applies to each individual eligible for Medicare, values
 	$\bar{\mathcal{L}}_{qn}$ and  $\bar{\mathcal{C}}_{qn}$
 	can include the accounting details for when both spouses are eligible and/or alive.
@@ -964,7 +974,7 @@ In this case, the objective function will need to consider the sum over all year
 		\label{Eq:MediCosts}
 		m_n = \sum_{q=0}^{N_q - 1} z_{qn}^m \bar{\mathcal{C}}_{qn},
 	\end{equation}
-	as each $z_{qn}^m$ selects a unique bracket.
+	as $z_{qn}^m = \delta(q, q')$ can only select a unique bracket $q'$.
 	For $n \ge 2$, Eq.~(\ref{Eq:MedDecomp}) can be expanded using
 	Eqs.~(\ref{Eq:Tx2}) and (\ref{Eq:Qx2}) as
 	\begin{eqnarray}
@@ -995,22 +1005,25 @@ In this case, the objective function will need to consider the sum over all year
 		+ \mu\alpha_{i00(n-2)}\right)\Bigr].
 		\end{aligned}
 	\end{equation}
-	For plans where $n_m < 2$, we use the user-provided MAGI values $\mathbb{G}_{(-1)}$ and possibly
-	$\mathbb{G}_{(-2)}$ and set
-	\begin{equation}
-		\label{Eq:MedDecomp4}
-		\sum_{q=0}^{N_q-1} h_{qn} = \mathbb{G}_{(n-2)},
-		\qquad n \in \{n_m,\ldots, 1\}.
-	\end{equation}
-	Note that $G_{(n-2)}$ already includes the taxable portion of social security (via $\Psi_n\bar{\zeta}_{in}$),
-	and the additional $(1-\Psi_{(n-2)})\bar{\zeta}_{i(n-2)}$ term restores the non-taxable portion so that MAGI uses
-	total social security benefits.
-	For plans where the year index when Medicare first starts $n_m<2$, we will request
-	and use user-provided values for the first-years MAGIs.
 	Eq.~(\ref{Eq:MedDecomp}) is expanded using Eqs.~(\ref{Eq:Tx2}) and (\ref{Eq:Qx2})
 	to yield a linear equality in the decision variables; it is implemented directly
 	in the constraint matrix. For indices at the beginning of the time sequence,
 	we use $\tau_{0, \max(0, n-x)}$, when $x>n$.
+	Note that $G_{(n-2)}$ already includes the taxable portion of social security (via $\Psi_n\bar{\zeta}_{in}$),
+	and the additional $(1-\Psi_{(n-2)})\bar{\zeta}_{i(n-2)}$ term restores the non-taxable portion so that MAGI uses
+	total social security benefits.
+
+	For plans where the year index when Medicare first starts $n_m<2$, we will request
+	and use user-provided values for the first-years MAGIs as $\mathbb{G}_{(-1)}$ and possibly
+	$\mathbb{G}_{(-2)}$ and set
+	\begin{equation}
+		\label{Eq:MedDecomp4}
+		\sum_{q=0}^{N_q-1} h_{qn} = \mathbb{G}_{(n-2)},
+		\qquad n \in \{n_m,\ldots, 1\},
+	\end{equation}
+	where $n_m \ge 0$.
+	Using Eq.~(\ref{Eq:MedDecomph}), we can also check for bounds and add
+	constraints directly on $z^m_{q0}$ and possibly $z^m_{q1}$.
 
 \chapter{Mapping of decision variables}
 At this point, one can use one of the many algebraic modeling languages
@@ -1371,6 +1384,13 @@ MAGI variables $h_{qn}$. We set upper bounds for each bracket using Eq.~(\ref{Eq
 	&&\qquad\forall q \in \{0,\ldots, N_q - 2\}, \nonumber\\
 	&&\qquad\forall n \in \{n_m,\ldots, N_n - 1\},
 \end{eqnarray}
+the upper bound for the last bracket ($q = N_q - 1$) using big-$\mathcal{M}$ as
+\begin{eqnarray}
+	A_u[I_{15}(N_q - 1, n), q_{h}(N_q - 1, n)] &=& 1, \nonumber \\
+	A_u[I_{15}(N_q - 1, n), q_{z^m}(N_q - 1, n)] &=& -\mathcal{M} \gamma_n, \nonumber \\
+	u[I_{15}(N_q - 1, n)] &=& 0, \nonumber \\
+	&&\qquad\forall n \in \{n_m,\ldots, N_n - 1\},
+\end{eqnarray}
 and the lower bounds as
 \begin{eqnarray}
 	A_u[I_{16}(q, n), q_{h}(q, n)] &=& -1, \nonumber \\
@@ -1719,5 +1739,25 @@ minimizing the inner product $c\cdot y$, where $c$ is
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 \end{eqnarray}
 and 0 otherwise.
+
+\paragraph*{Lexicographic weight for Roth conversions and preferential withdrawals}
+The coefficient vector $c$ can be augmented with a small positive weight $\varepsilon$
+to break ties without changing the primary objective in practice. In addition to the
+coefficients of the chosen primary objective (max spending or max bequest), the
+implementation adds the following contributions to $c$:
+\begin{eqnarray}
+	c[q_x(i, n)] &\leftarrow& c[q_x(i, n)] + \varepsilon, \nonumber \\
+	&&\qquad\forall i \in \{0,\ldots, N_i-1\}, \; \forall n \in \{0,\ldots, N_n-1\}, \\
+	c[q_w(1, j, n)] &\leftarrow& c[q_w(1, j, n)] + \varepsilon, \nonumber \\
+	&&\qquad\forall j \in \{0,\ldots, N_j-1\}, \; \forall n \in \{0,\ldots, N_n-1\},
+	\quad \text{when } N_i = 2.
+\end{eqnarray}
+The first line penalizes Roth conversions $x_{in}$, so that among solutions with the
+same primary objective value the solver prefers fewer or smaller conversions (reducing
+churn). The second line penalizes withdrawals $w_{1jn}$ from the second individual
+($i=1$), so that withdrawals from the first individual ($i=0$) are preferred when
+otherwise equivalent. The weight $\varepsilon$ is chosen small (e.g.\ of order
+$10^{-9}$ in the same units as $y$) so that the primary objective dominates; it is
+often enabled by default when optimizing Medicare (IRMAA) to stabilize bracket selection.
 
 \end{document}
