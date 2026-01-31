@@ -50,8 +50,8 @@ BIGM_AMO = 5e7     # 100 times large withdrawals or conversions
 GAP = 1e-4
 MILP_GAP = 10 * GAP
 MAX_ITERATIONS = 29
-ABS_TOL = 20
-REL_TOL = 1e-6
+ABS_TOL = 50
+REL_TOL = 5e-6
 TIME_LIMIT = 900
 EPSILON = 1e-9
 
