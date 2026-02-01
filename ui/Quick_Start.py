@@ -49,6 +49,15 @@ Don't hesitate to give the project a star if this app is useful to you.
     kz.divider("orange")
     st.markdown("### :material/rocket_launch: Quick Start")
     st.markdown("""
+**What Owl does.** Unlike many retirement calculators that illustrate a single strategy or use
+rules of thumb, Owl builds a *mathematical model* of your finances over the full plan and
+*optimizes* it. The model includes your taxable, tax-deferred, and tax-free accounts; federal
+taxes and Medicare premiums; required minimum distributions; and Roth conversions. Owl then
+*solves* for the decisions—how much to spend each year, when to convert to Roth, and which
+accounts to draw from—that best meet your goal (e.g. a target bequest or maximum sustainable
+spending). That optimization is Owl’s defining feature: it searches for a best plan instead of
+showing one fixed scenario. All calculations run on your device or server; no data is sent elsewhere.
+
 To respect your privacy, Owl does not store any information related to a case:
 all information is lost after a session is closed. For this reason,
 two ancillary files can be used to store the specifications of a case so that it can be reproduced
