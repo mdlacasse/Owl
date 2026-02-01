@@ -37,11 +37,12 @@ with col1:
     kz.divider("orange")
     st.markdown("### :material/campaign: News")
     st.markdown("""
-- This version includes updated federal tax laws for year 2026 (TY2025) and historical gains for 2025.
+This version includes updated US federal tax laws for year 2026 (TY2025) and historical gains for 2025.
 
 Please report bugs :bug: and suggestions through the
 GitHub [channel](http://github.com/mdlacasse/Owl/issues)
 or directly by email [:incoming_envelope:](mailto:martin.d.lacasse@gmail.com).
+
 Don't hesitate to give the project a star if this app is useful to you.
 """)
 
@@ -56,7 +57,7 @@ at a later time:
 specifying account balances, asset allocation, social security and pension, rates,
 optimization parameters and related assumptions.
 This file is in *toml* format which is editable with a simple text editor.
-2) A ***Household Financial Profile (HFP) Workbook*** containing
+1) A ***Household Financial Profile (HFP) Workbook*** containing
 a time table for each individual with anticipated wages, future contributions
 to savings accounts, Roth conversions and contributions for future and last five years,
 and anticipated big-ticket items, which can be either expenses or income.
@@ -67,7 +68,7 @@ If no file is provided, values will default to zero, but these values can be edi
 
 With these two files, a full scenario can be created and solved with only a few steps. We will use the case
 of Jack and Jill provided here as an example:
-3) Download these two files from the GitHub repository
+1) Download these two files from the GitHub repository
  (right-click on the link and select `Save link as...`):
     - *Case* parameter file named
     [Case_jack+jill.toml](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true)
@@ -75,13 +76,13 @@ of Jack and Jill provided here as an example:
     - *Household Financial Profile* workbook named
     [HFP_jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_jack+jill.xlsx?raw=true)
     in Excel format.
-4) Navigate to the **Create Case** page (under **Case Setup**) and drag and drop the case parameter file
+1) Navigate to the **Create Case** page (under **Case Setup**) and drag and drop the case parameter file
 you just downloaded (*Case_jack+jill.toml*).
 Alternatively, you can directly select the case of *jack+jill* in the dropdown menu for GitHub examples.
-5) Navigate to the **Household Financial Profile** page and
+1) Navigate to the **Household Financial Profile** page and
 drag and drop the *Household Financial Profile* workbook you downloaded (*HFP_jack+jill.xlsx*).
 Alternatively, you can load the *Household Financial Profile* workbook directly by using the marked button.
-6) Move to any page in the **Single Scenario** section to browse the simulation results.
+1) Move to any page in the **Single Scenario** section to browse the simulation results.
 These pages will display **Graphs**, **Worksheets**, or **Output Files** respectively.
 
 Congratulations! :balloon: You just ran your first case.
