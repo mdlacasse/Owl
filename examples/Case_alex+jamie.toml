@@ -56,8 +56,8 @@ spendingSlack = 0
 amoRoth = true
 amoSurplus = true
 withSCLoop = true
-noLateSurplus = false
 withMedicare = "loop"
+noLateSurplus = false
 previousMAGIs = [ 200.0, 200.0,]
 
 [results]

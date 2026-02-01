@@ -2219,6 +2219,14 @@ class Plan:
                 break
 
             if not withSCLoop:
+                # When Medicare is in loop mode, M_n was zero in the constraint for this
+                # single solve. Update M_n (and J_n) from solution for reporting.
+                if includeMedicare:
+                    self._computeNLstuff(xx, includeMedicare)
+                    self.mylog.print(
+                        "Warning: Self-consistent loop is off; Medicare premiums are "
+                        "computed for display but were not in the budget constraint."
+                    )
                 break
 
             self._computeNLstuff(xx, includeMedicare)
@@ -2241,7 +2249,9 @@ class Plan:
                 prev_scaled_obj = (-old_objfns[-1]) * objFac
             scale = max(1.0, abs(scaled_obj), abs(prev_scaled_obj))
             tol = max(abs_tol, rel_tol * scale)
-            if absObjDiff <= tol:
+            # With Medicare in loop mode, the first solve uses M_n=0; require at least
+            # one re-solve so the accepted solution had Medicare in the budget.
+            if absObjDiff <= tol and (not includeMedicare or it >= 1):
                 # Check if convergence was monotonic or oscillatory
                 # old_objfns stores -objfn values, so we need to scale them to match displayed values
                 # For monotonic convergence, the scaled objective (objfn * objFac) should be non-increasing

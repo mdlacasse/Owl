@@ -54,10 +54,10 @@ netSpending = 145
 maxRothConversion = 100
 noRothConversions = "None"
 startRothConversions = 2026
-withMedicare = "loop"
 solver = "HiGHS"
 spendingSlack = 0
 withSCLoop = true
+withMedicare = "loop"
 
 [results]
 default_plots = "today"

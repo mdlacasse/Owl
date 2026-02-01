@@ -473,11 +473,18 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
     p.setSpendingProfile(profile, survivor, dip, increase, delay)
 
     # Solver Options.
-    p.solverOptions = diconf["solver_options"]
+    p.solverOptions = dict(diconf["solver_options"])
+
+    # Defaults for options not present in case file (e.g. Case_joe.toml).
+    # Ensures Medicare is computed in loop mode and self-consistent loop runs.
+    if "withMedicare" not in p.solverOptions:
+        p.solverOptions["withMedicare"] = "loop"
+    if "withSCLoop" not in p.solverOptions:
+        p.solverOptions["withSCLoop"] = True
 
     # Address legacy case files.
     # Convert boolean values (True/False) to string format, but preserve string values
-    withMedicare = diconf["solver_options"].get("withMedicare")
+    withMedicare = p.solverOptions.get("withMedicare")
     if isinstance(withMedicare, bool):
         p.solverOptions["withMedicare"] = "loop" if withMedicare else "None"
 

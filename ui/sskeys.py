@@ -227,7 +227,7 @@ def copyCase():
     ss.cases[dupname]["copy"] = True
     refreshCase(ss.cases[dupname])
     ss.currentCase = dupname
-    st.toast("Case copied but not created.")
+    st.toast("Case copied but not yet created.")
 
 
 def createCaseFromFile(strio):

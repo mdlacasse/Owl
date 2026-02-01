@@ -45,10 +45,10 @@ irmaaBrackets = np.array(
     ]
 )
 
-# These are current for 2026 (2025TY).
-# Index [0] stores the standard Medicare part B basic premium.
-# Following values are incremental IRMAA part B monthly fees.
-# The cumulative sum yields the total monthly premium per bracket.
+# These are current for 2026 (2025TY). Source: CMS 2026 Part B premiums and IRMAA.
+# Index [0] stores the standard Medicare Part B basic premium (monthly $202.90 for 2026).
+# Following values are incremental IRMAA Part B monthly fees; cumulative = total/month.
+# Single brackets [0]: ≤$109k, $109–137k, $137–171k, $171–205k, $205–500k, ≥$500k.
 irmaaFees = 12 * np.array([202.90, 81.20, 121.70, 121.70, 121.70, 40.70])
 irmaaCosts = np.cumsum(irmaaFees)
 

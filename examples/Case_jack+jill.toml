@@ -52,11 +52,11 @@ objective = "maxSpending"
 maxRothConversion = 100
 noRothConversions = "Jill"
 startRothConversions = 2025
+withSCLoop = true
 withMedicare = "loop"
 bequest = 400
 solver = "HiGHS"
 spendingSlack = 0
-withSCLoop = true
 
 [results]
 default_plots = "today"
