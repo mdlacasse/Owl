@@ -668,6 +668,19 @@ def setGlobalPlotBackend(key):
             plan.setPlotBackend(val)
 
 
+def _highlight_current_year_row(row):
+    """Highlight the row where year equals the current year."""
+    this_year = date.today().year
+    if "year" in row.index:
+        try:
+            if int(row["year"]) == this_year:
+                # Semi-transparent tint works in both light and dark theme
+                return ["background-color: rgba(33, 150, 243, 0.25)"] * len(row)
+        except (TypeError, ValueError):
+            pass
+    return [""] * len(row)
+
+
 @_checkPlan
 def showWorkbook(plan):
     wb = plan.saveWorkbook(saveToFile=False)
@@ -707,7 +720,11 @@ def showWorkbook(plan):
                     colfor[col] = st.column_config.NumberColumn(None, format="%.3f")
 
         st.markdown(f"#### :orange[{name}]")
-        st.dataframe(df.astype(str), width="stretch", column_config=colfor, hide_index=True)
+        if "s Sources" in name:
+            display_df = df.style.apply(_highlight_current_year_row, axis=1)
+            st.dataframe(display_df, width="stretch", column_config=colfor, hide_index=True)
+        else:
+            st.dataframe(df.astype(str), width="stretch", column_config=colfor, hide_index=True)
 
         if dollars:
             st.caption("Values are in nominal $, rounded to the nearest dollar.")

@@ -721,8 +721,8 @@ Each table can be downloaded separately in csv format, or all tables can be down
 jointly as a single Excel workbook by clicking on the `Download Worksheets` on the
 [Output Files](#description-output-files) page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
-The first few lines of the **Sources** worksheets are the most important
-as these lines are the only ones that are actionable in the near term.
+The first line of the individual's **Sources** worksheets is highlighted in blue
+indicating that these lines contain actionable items for the current year.
 
 #### :material/description: Output Files
 This page allows to compare *cases* and save files for future use.
