@@ -545,7 +545,9 @@ def getDate(text, nkey, disabled=False, callback=setpull, help=None, min_value=N
         return None
     else:
         isodate = mydate.strftime("%Y-%m-%d")
-        setCaseKey(nkey, isodate)
+        # Only mark case modified when the value actually changed.
+        if isodate != getCaseKey(nkey):
+            setCaseKey(nkey, isodate)
         return isodate
 
 
