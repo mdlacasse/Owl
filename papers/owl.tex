@@ -1694,30 +1694,40 @@ which would add one more row to $A_ey = v$ as
 \end{eqnarray}
 where $I(0)$ is used only to provide the proper row offset $C_l$. See Eq.~(\ref{Eq:Offsets}).
 
-For maximizing the net spending under the constraint of a fixed bequest, one has simply to
-minimize the inner product $c\cdot y$, where $c$ is
+For maximizing the net spending under the constraint of a fixed bequest, one may either
+maximize the first-year net spending basis $g_0$ (with the profile fixed by Eq.~(\ref{Eq:C5})),
+or maximize the sum of net spending over all years in today's dollars.
+In the first case, minimize the inner product $c\cdot y$ with
 \begin{eqnarray}
 	c[q_g(0)] &=& -1,
 \end{eqnarray}
-and 0 otherwise. See Eq.~(\ref{Eq:C5}).
+and 0 otherwise; the whole time series $g_n$ then follows from Eq.~(\ref{Eq:C5}).
+In the second case, when the slack variable $\lambda$ is used over net spending
+(as in Eq.~(\ref{Eq:C15}) below), the objective is the sum
+$\sum_{n=0}^{N_n-1} g_n/\gamma_n$, maximized by setting
+\begin{eqnarray}
+	c[q_g(n)] &=& -1/\gamma_n,
+\end{eqnarray}
+$\forall n \in \{0, \ldots, N_n-1\}$, and 0 otherwise.
+This sum-of-net-spending formulation is the one implemented in Owl.
 
 \paragraph*{Maximum variable net spending}
-Instead of maximizing a basis for net spending that is multiplied by a profile $\bar{\xi}_n$,
-one could maximize the sum of net spending over the full duration
-of the plan, in today's dollars. The quantity to optimize is then
+When the slack variable $\lambda$ is used (Eq.~(\ref{Eq:lambdha}) or Eq.~(\ref{Eq:C15}) below),
+the objective function is the sum of net spending over the full duration of the plan in today's dollars,
+$\sum_{n=0}^{N_n-1} g_n/\gamma_n$. The coefficient vector is
 \begin{eqnarray}
 	c[q_g(n)] &=& -1/\gamma_n,
 \end{eqnarray}
 $\forall n \in \{0, \ldots, N_n-1\}$ and 0 otherwise.
-In that case, constraint equality Eq.~(\ref{Eq:C5}) will need to be changed to an inequality. 
+In that case, constraint equality Eq.~(\ref{Eq:C5}) is replaced by an inequality.
 Instead of obeying 
 \begin{equation}
 	g_n \xi_0 - g_0 \bar{\xi}_n = 0,
 \end{equation}
-we now impose the following inequality constraint:
+we impose the inequality constraint
 \begin{equation}
         \label{Eq:C15}
-	(1 - \lambda) g_0 \bar{\xi}_n/\xi_0 <= g_n <= (1 + \lambda) g_0 \bar{\xi}_n/\xi_0 ,
+	(1 - \lambda) g_0 \bar{\xi}_n/\xi_0 \le g_n \le (1 + \lambda) g_0 \bar{\xi}_n/\xi_0 ,
 \end{equation}
 where $\lambda$ is the percentage expressed in decimal that the annual net spending is allowed to deviate
 from the desired profile. It should be noticed that when $\lambda = 0$ the two
