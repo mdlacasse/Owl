@@ -28,6 +28,7 @@ import sskeys as kz
 # Main app sets layout and page_title in main.py.
 
 logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
+owl_pdf_url = "https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf?raw=true"
 
 # Value proposition
 col1, col2 = st.columns([2, 1], gap="large")
@@ -39,19 +40,21 @@ with col1:
 **Owl tells you how much you can safely spend, when to do Roth conversions,
 and which accounts to draw from.**
 
+Most retirement calculators rely on rigid rules of thumb to show a single path.
+Owl builds a sophisticated **mathematical model** [(pdf)]({url}) of your full financial picture—
+taxable accounts, Roth conversions, Medicare premiums, and more—and **optimizes**
+it for you based on your assumptions: it finds the best scenario out of all possible ones
+and **solves** for the concrete decisions that get you there.
+You can then see how sensitive your optimal plan is to those assumptions (e.g. returns or spending targets), so you know how robust your strategy is.
+
 Owl is designed for US retirees; it uses US federal tax laws, Medicare rules,
 Social Security, and rules for 401(k)s and Roth accounts.
-
-Most retirement calculators rely on rigid rules of thumb to show a single path.
-Owl builds a sophisticated **mathematical model** of your full financial picture—taxable accounts, Roth conversions,
-Medicare premiums, and more—and **optimizes** it for you based on your assumptions: it finds the best scenario
-out of all possible ones and **solves** for the concrete decisions that get you there.
 
 Owl is **open-source**. This means: **no sign-ups**, **no fees**, **no tracking**,
 and **full privacy**: all your data stays on your device and is gone after the session is closed.
 However, you can save and reuse a plan by creating a **case parameter file** (TOML) and
-a **Household Financial Profile** (Excel). If you don't load files, values start at
-zero but you can edit everything in the app.""")
+a **Household Financial Profile** (Excel). If you don't load files, parameters start at
+default valiues but you can still edit everything in the app.""".format(url=owl_pdf_url))
 
 with col2:
     st.image(logofile, width="stretch")
@@ -62,7 +65,7 @@ kz.divider("orange")
 # Benefits
 st.markdown("### :orange[Why use a retirement spending and tax planner?]")
 st.markdown(
-    "Most **retirement calculators** give you one rigid path. Owl **optimizes** your plan so you get:"
+    "Most **retirement calculators** give you one rigid path. Owl **optimizes** your plan given your assumptions so you get:"
 )
 ben_col1, ben_col2, ben_col3 = st.columns(3)
 with ben_col1:
@@ -73,12 +76,12 @@ with ben_col2:
 \nReduce taxes and Medicare premiums by timing conversions.""")
 with ben_col3:
     st.markdown("""**:material/lock: Your data stays private**
-\nEverything runs on your device. We don’t store or see your finances.""")
+\nEverything runs on your device. We don’t store, view, or resell your financial data.""")
 
 kz.divider("orange")
 
 # ---- Quick start demo: lead with 3-step journey ----
-st.markdown("### :orange[Run your first plan in 3 steps]")
+st.markdown("### :orange[Run your first case in 3 steps]")
 st.markdown("Use the **Jack & Jill** example to see results in under a minute.")
 
 step1, step2, step3 = st.columns(3)
@@ -104,6 +107,7 @@ kz.divider("orange")
 st.markdown("### :orange[Get the sample case files]")
 st.markdown(
     "Want to edit assumptions in a text editor or spreadsheet? Download the Jack & Jill files and reload them anytime."
+    " You can also copy the case from within the app, modify, and save your changes."
 )
 lm1, lm2 = st.columns(2)
 with lm1:
@@ -123,8 +127,8 @@ st.markdown(
     """US retirees and planners use Owl to explore spending, Roth conversions, and tax-efficient drawdown strategies.
 Owl is **free and open source**—no account, no tracking.
 We use up-to-date US federal tax rules (including 2026) so you can plan with confidence.
-Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues)
-or star the repo if it helps you.""")
+Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues).
+You use Owl and like it? Give the repo a star.""")
 
 st.markdown("#### :orange[Disclaimer]")
 st.markdown("This program is for educational purposes only and does not constitute financial advice.")
