@@ -130,7 +130,7 @@ st.markdown(
 Owl is **free and open source**—no account, no tracking.
 We use up-to-date US federal tax rules (including 2026) so you can plan with confidence.
 Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues).
-You use Owl and like it? Give the repo a star.""")
+You use Owl and like it? Give the [repo](https://github.com/mdlacasse/Owl)  a star.""")
 
 st.markdown("#### :orange[Disclaimer]")
 st.markdown("This program is for educational purposes only and does not constitute financial advice.")
