@@ -215,7 +215,7 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
                     page_info["file"],
                     label=label,
                     # icon=icon,
-                    use_container_width=True,
+                    width="stretch",
                     disabled=is_current,
                 )
                 st.markdown(

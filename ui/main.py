@@ -53,7 +53,7 @@ pages = {
         st.Page("Monte_Carlo.py", icon=":material/finance:"),
     ],
     "Resources": [
-        st.Page("Quick_Start.py", icon=":material/rocket_launch:", default=True),
+        st.Page("Quick_Start.py", icon=":material/campaign:", default=True),
         st.Page("Documentation.py", icon=":material/help:"),
         st.Page("Parameters_Reference.py", icon=":material/tune:"),
         st.Page("Settings.py", icon=":material/settings:"),

@@ -73,7 +73,7 @@ if text_input_value != current_filter:
 if ctrl_cols[2].button(
     "Clear logs",
     type="secondary",
-    use_container_width=True,
+    width="stretch",
     help=":warning: This action cannot be undone."
 ):
     # Clear logs from the selected case

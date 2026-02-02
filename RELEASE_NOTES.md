@@ -1,3 +1,11 @@
+### Version 2026.02.02
+- Update landing page
+- Highlight current year in some worksheets
+- Fix logo link in some .md files
+- Fix bug in getDate refreshing status
+- Fix joe's example missing withMedicare
+- Completed doc in owl.tex
+
 ### Version 2026.01.28
 - Recoded Medicare optimzation algorithm for SOS1 formulation
 - Updated documents and parameters
