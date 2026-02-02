@@ -81,6 +81,8 @@ _KEY_TRANSLATION = {
     "Correlations": "correlations",
     "From": "from",
     "To": "to",
+    "Reverse sequence": "reverse_sequence",
+    "Roll sequence": "roll_sequence",
     # Asset Allocation keys
     "Interpolation method": "interpolation_method",
     "Interpolation center": "interpolation_center",
@@ -266,6 +268,8 @@ def saveConfig(myplan, file, mylog):
     else:
         diconf["rates_selection"]["from"] = int(FROM)
         diconf["rates_selection"]["to"] = int(TO)
+    diconf["rates_selection"]["reverse_sequence"] = bool(myplan.rateReverse)
+    diconf["rates_selection"]["roll_sequence"] = int(myplan.rateRoll)
 
     # Asset Allocation.
     diconf["asset_allocation"] = {
@@ -427,7 +431,10 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             rateSeed = int(rateSeed)
         reproducibleRates = diconf["rates_selection"].get("reproducible_rates", False)
         p.setReproducible(reproducibleRates, seed=rateSeed)
-    p.setRates(rateMethod, frm, to, rateValues, stdev, rateCorr)
+    reverseSequence = diconf["rates_selection"].get("reverse_sequence", False)
+    rollSequence = diconf["rates_selection"].get("roll_sequence", 0)
+    p.setRates(rateMethod, frm, to, rateValues, stdev, rateCorr,
+               reverse=reverseSequence, roll=rollSequence)
 
     # Asset Allocation.
     boundsAR = {}

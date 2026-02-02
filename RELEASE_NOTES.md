@@ -5,6 +5,8 @@
 - Fix bug in getDate refreshing status
 - Fix joe's example missing withMedicare
 - Completed doc in owl.tex
+- Add rate sequence modifiers
+- Sync Documentation.py
 
 ### Version 2026.01.28
 - Recoded Medicare optimzation algorithm for SOS1 formulation

@@ -92,8 +92,9 @@ with col1:
 - [:material/finance: Monte Carlo](#finance-monte-carlo)
 
 [Resources](#resources)
-- [:material/rocket_launch: Quick Start](#rocket-launch-quick-start)
+- [:material/campaign: Quick Start](#quick-start)
 - [:material/help: Documentation](#help-documentation)
+- [:material/tune: Parameters Reference](#parameters-reference)
 - [:material/settings: Settings](#settings-settings)
 - [:material/error: Logs](#error-logs)
 - [:material/info: About *Owl*](#info-about-owl)
@@ -116,7 +117,7 @@ one to create a new *case* from scratch, and one to create a case
 from a *case* parameter file, which
 would then populate values of all parameters found
 in the [Case Setup](#case-setup) section.
-This box is present on all pages except those in the [Resources](#resource) section.
+This box is present on all pages except those in the [Resources](#resources) section.
 The *case* being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
@@ -190,10 +191,10 @@ anything else can change between *cases*.
 
 ##### Initializing the life parameters of a scenario
 While on the **Create Case** page,
-click on the `Case selector` box and choose one of `New case...` or `Upload case file...`.
+click on the `Case selector` box and choose one of `New Case...` or `Upload Case File...`.
 
 ##### Creating a case from scratch
-When starting from `New case...`,
+When starting from `New Case...`,
 one must provide the birth date of each spouse(s) and their expected lifespan(s).
 For selecting your own longevity numbers, there are plenty of predictors on the Internet.
 Pick your favorite:
@@ -203,11 +204,11 @@ Pick your favorite:
 or just Google *life expectancy calculator*.
 
 ##### Using a *case* file
-If `Upload case file...` is selected, a *case* file must be uploaded.
+If `Upload Case File...` is selected, a *case* file must be uploaded.
 These files end with the *.toml* extension, are human readable (and therefore editable),
 and contain all the parameters required to characterize a scenario.
 An example is provided
-[here](https://github.com/mdlacasse/Owl/main/blob/examples/case_jack+jill.toml?raw=true) and more
+[here](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true) and more
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
 will populate all the fields in the [Case Setup](#case-setup) section,
@@ -218,7 +219,7 @@ Once a *case* was successfully run, the *case* file for the *case* being develop
 can be saved under the [Output Files](#description-output-files) page and
 can be reloaded at a later time.
 Case parameter files can have any name but when saving from the interface,
-their name will start with *case_* followed by the *case* name.
+their name will start with *Case_* followed by the *case* name.
 
 #### :material/home: Household Financial Profile
 The *Household Financial Profile* contains two major sections,
@@ -306,9 +307,9 @@ the needed values can be derived. These extra columns will be ignored when the f
 
 Manual Roth conversions can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in *Owl*.
-When the option `Convert as in contribution file` is toggled
+When the option `Convert as in Wages and Contributions tables` is toggled
 in the [Optimization Parameters](#tune-optimization-parameters) page,
-values from the **Wages and Contributions** file will be used and no optimization on Roth conversions
+values from the **Wages and Contributions** table will be used and no optimization on Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guesses.
 
@@ -330,9 +331,9 @@ If a file was originally associated with a *case* file, a message will remind th
 
 If values were entered or edited directly in the table,
 values can be saved directly in Excel format by clicking
-the `Download Wages and Contributions` on the
+the `Download Household Financial Profile workbook` on the
 [Output Files](#description-output-files) page. This allows to rerun the same *case* at a later time
-by reloading the same **Wages and Contributions** file.
+by reloading the same **Household Financial Profile** workbook (which contains the Wages and Contributions data).
 
 ##### :material/account_balance: Debts and Fixed Assets
 These tables contain current or future debts and existing fixed assets.
@@ -596,6 +597,18 @@ tax rate that heirs will pay on the tax-deferred portion of the bequest. Another
 to the year when the OBBBA rates are anticipated to return to pre-Tax Cut and Job Act
 rates.
 
+For **varying** rate types (historical, histochastic, stochastic), the *Advanced Options* expander
+offers **Rate sequence** controls that transform the generated rate series in time:
+- **Reverse sequence** – When enabled, the rate sequence is reversed along the time axis
+  (e.g. the last year of the series becomes the first year of the plan). Useful for stress-testing
+  with a “worst years first” scenario.
+- **Roll (years)** – Shifts the rate sequence by a number of years (0 = no shift); values wrap
+  around so that years that fall off one end reappear at the other. Allows starting the plan
+  at a different point in the same historical or stochastic sequence.
+
+These options apply only to varying rates; they are ignored (with a warning) for fixed rate methods,
+since the same rate is used every year.
+
 #### :material/tune: Optimization Parameters
 This page allows you to select the objective function to optimize.
 One can choose between maximizing the net spending amount subject to the constraint
@@ -606,8 +619,8 @@ the other becomes a constraint to obey.
 
 The maximum amount for Roth conversions and which spouse can execute them is configurable.
 Roth conversions are optimized for reducing taxes and maximizing the selected objective function,
-unless the `Convert from contributions file`
-button is toggled, in which case Roth conversions will not be optimized,
+unless the `Convert as in Wages and Contributions tables`
+toggle is on, in which case Roth conversions will not be optimized,
 but will rather be performed according to
 the *Roth conv* column on the
 [Wages and Contributions](#work-history-wages-and-contributions) page.
@@ -741,19 +754,20 @@ of the parameters selected for each case.
 
 Another section called **Excel Workbooks** allows
 to save the contents of the tables on corresponding pages as a single Excel workbook.
-The `Download Wages and Contributions file` will save the data displayed on the
-[Wages and Contributions](#work-history-wages-and-contributions) page while the
+The `Download Household Financial Profile workbook` will save the data displayed on the
+[Wages and Contributions](#work-history-wages-and-contributions) page
+(and the rest of the Household Financial Profile) while the
 `Download Worksheets` will save all tables displayed
-on the [Worksheets](#data-table-worksheets) page as a single Excel file.
+on the [Worksheets](#data-table-worksheets) page as a single Excel workbook.
 
 Similarly, all parameters used to generate the *case* are collected in *toml* format and displayed.
-The `Download case parameter file...` button allows to save the parameters of the selected scenario
+The `Download Case parameter file` button allows to save the parameters of the selected scenario
 to a *case* file for future use.
 
-With the *case* parameter file and the **Wages and Contributions** worksheet,
+With the *case* parameter file and the **Household Financial Profile** workbook,
 the same *case* can be reproduced at a later time by uploading
 them through the widgets on the [Create Case](#person-add-create-case)
-and [Wages and Contributions](#work-history-wages-and-contributions) pages,
+and [Household Financial Profile](#home-household-financial-profile) pages,
 respectively.
 
 --------------------------------------------------------------------------------------
@@ -808,12 +822,16 @@ Most likely, this will not happen unless you devise unusually long Monte Carlo r
 
 --------------------------------------------------------------------------------------
 ### :orange[Resources]
-#### :material/rocket_launch: Quick Start
+#### :material/campaign: Quick Start
 This page is the landing page of the application.
 It shows new users how to quickly get started by using an example *case* file.
 
 #### :material/help: Documentation
 These very pages.
+
+#### :material/tune: Parameters Reference
+This page displays the full parameters reference (PARAMETERS.md) for case configuration and TOML keys.
+
 
 #### :material/settings: Settings
 This page allows to select different backends for plotting the graphs.

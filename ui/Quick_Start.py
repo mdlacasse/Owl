@@ -45,7 +45,8 @@ Owl builds a sophisticated **mathematical model** [(pdf)]({url}) of your full fi
 taxable accounts, Roth conversions, Medicare premiums, and more—and **optimizes**
 it for you based on your assumptions: it finds the best scenario out of all possible ones
 and **solves** for the concrete decisions that get you there.
-You can then see how sensitive your optimal plan is to those assumptions (e.g. returns or spending targets), so you know how robust your strategy is.
+You can then see how sensitive your optimal plan is to those assumptions
+(e.g. returns or spending targets), so you know how robust your strategy is.
 
 Owl is designed for US retirees; it uses US federal tax laws, Medicare rules,
 Social Security, and rules for 401(k)s and Roth accounts.
@@ -65,7 +66,8 @@ kz.divider("orange")
 # Benefits
 st.markdown("### :orange[Why use a retirement spending and tax planner?]")
 st.markdown(
-    "Most **retirement calculators** give you one rigid path. Owl **optimizes** your plan given your assumptions so you get:"
+    "Most **retirement calculators** give you one rigid path. Owl **optimizes** "
+    "your plan given your assumptions so you get:"
 )
 ben_col1, ben_col2, ben_col3 = st.columns(3)
 with ben_col1:

@@ -299,12 +299,18 @@ def _setRates(plan):
                 seed = kz.getCaseKey("rateSeed") if reproducible else None
                 plan.setReproducible(reproducible, seed=seed)
 
-            plan.setRates(varyingType, yfrm, yto)
+            reverse_seq = kz.getCaseKey("reverse_sequence")
+            roll_seq = kz.getCaseKey("roll_sequence")
+            reverse_seq = False if reverse_seq is None else bool(reverse_seq)
+            roll_seq = 0 if roll_seq is None else int(roll_seq)
+            plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq)
 
-            # Store seed and reproducibility flag back to case keys
+            # Store seed, reproducibility, and sequence options back to case keys
             if varyingType == "histochastic":
                 kz.setCaseKey("rateSeed", plan.rateSeed)
                 kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
+            kz.setCaseKey("reverse_sequence", plan.rateReverse)
+            kz.setCaseKey("roll_sequence", plan.rateRoll)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
                 kz.pushCaseKey(f"mean{j}", 100 * mean[j])
@@ -329,11 +335,18 @@ def _setRates(plan):
             seed = kz.getCaseKey("rateSeed") if reproducible else None
             plan.setReproducible(reproducible, seed=seed)
 
-            plan.setRates(varyingType, values=means, stdev=stdev, corr=corr)
+            reverse_seq = kz.getCaseKey("reverse_sequence")
+            roll_seq = kz.getCaseKey("roll_sequence")
+            reverse_seq = False if reverse_seq is None else bool(reverse_seq)
+            roll_seq = 0 if roll_seq is None else int(roll_seq)
+            plan.setRates(varyingType, values=means, stdev=stdev, corr=corr,
+                          reverse=reverse_seq, roll=roll_seq)
 
-            # Store seed and reproducibility flag back to case keys
+            # Store seed, reproducibility, and sequence options back to case keys
             kz.setCaseKey("rateSeed", plan.rateSeed)
             kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
+            kz.setCaseKey("reverse_sequence", plan.rateReverse)
+            kz.setCaseKey("roll_sequence", plan.rateRoll)
         else:
             raise RuntimeError("Logic error in setRates()")
 
@@ -943,6 +956,10 @@ def genDic(plan):
         dic["reproducibleRates"] = plan.reproducibleRates
         if plan.rateSeed is not None:
             dic["rateSeed"] = plan.rateSeed
+
+    # Reverse and roll sequence (varying rates only; stored for all for consistency)
+    dic["reverse_sequence"] = getattr(plan, "rateReverse", False)
+    dic["roll_sequence"] = getattr(plan, "rateRoll", 0)
 
     return plan._name, dic
 

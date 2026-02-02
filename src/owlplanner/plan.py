@@ -56,6 +56,18 @@ TIME_LIMIT = 900
 EPSILON = 1e-9
 
 
+def _apply_rate_sequence_transform(tau_kn, reverse, roll):
+    """
+    Apply reverse and/or roll to a rate series (N_k x N_n).
+    Returns a new array; does not modify the input.
+    """
+    if reverse:
+        tau_kn = tau_kn[:, ::-1]
+    if roll != 0:
+        tau_kn = np.roll(tau_kn, int(roll), axis=1)
+    return tau_kn
+
+
 def _genGamma_n(tau):
     """
     Utility function to generate a cumulative inflation multiplier
@@ -398,6 +410,8 @@ class Plan:
         self.rateMethod = None
         self.reproducibleRates = False
         self.rateSeed = None
+        self.rateReverse = False
+        self.rateRoll = 0
 
         self.ARCoord = None
         self.objective = "unknown"
@@ -757,7 +771,8 @@ class Plan:
             # setRates() will generate a new seed each time it's called
             self.rateSeed = None
 
-    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None, override_reproducible=False):
+    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None,
+                 override_reproducible=False, reverse=False, roll=0):
         """
         Generate rates for return and inflation based on the method and
         years selected. Note that last bound is included.
@@ -780,6 +795,8 @@ class Plan:
         Args:
             override_reproducible: If True, override reproducibility setting and always generate new rates.
                                  Used by Monte-Carlo runs to ensure different rates each time.
+            reverse: If True, reverse the rate sequence along the time axis (default False).
+            roll: Number of years to roll the sequence; positive rolls toward the end (default 0).
         """
         if frm is not None and to is None:
             to = frm + self.N_n - 1  # 'to' is inclusive.
@@ -807,7 +824,15 @@ class Plan:
         self.rateMethod = method
         self.rateFrm = frm
         self.rateTo = to
+        self.rateReverse = bool(reverse)
+        self.rateRoll = int(roll)
         self.tau_kn = dr.genSeries(self.N_n).transpose()
+        # Reverse and roll are no-ops for constant (fixed) rate methods; ignore with a warning.
+        if method in rates.CONSTANT_RATE_METHODS and (reverse or roll != 0):
+            self.mylog.print("Warning: reverse and roll are ignored for constant (fixed) rate methods.")
+        else:
+            self.tau_kn = _apply_rate_sequence_transform(
+                self.tau_kn, self.rateReverse, self.rateRoll)
         self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using '{method}' method.")
         if method in ["stochastic", "histochastic"]:
             repro_status = "reproducible" if self.reproducibleRates else "non-reproducible"
@@ -831,9 +856,7 @@ class Plan:
                                  Used by Monte-Carlo runs to ensure each run gets different rates.
         """
         # Fixed rate methods don't need regeneration - they produce the same values
-        fixed_methods = ["default", "optimistic", "conservative", "user",
-                         "historical average", "historical"]
-        if self.rateMethod in fixed_methods:
+        if self.rateMethod in rates.RATE_METHODS_NO_REGEN:
             return
 
         # Only stochastic methods reach here
@@ -851,6 +874,8 @@ class Plan:
             stdev=100 * self.rateStdev,
             corr=self.rateCorr,
             override_reproducible=override_reproducible,
+            reverse=self.rateReverse,
+            roll=self.rateRoll,
         )
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, startDate=None, units="k"):

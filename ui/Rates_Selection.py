@@ -85,6 +85,8 @@ else:
     kz.runOncePerCase(initRates)
     kz.initCaseKey("yfrm", owb.FROM)
     kz.initCaseKey("yto", owb.TO)
+    kz.initCaseKey("reverse_sequence", False)
+    kz.initCaseKey("roll_sequence", 0)
     helpmsgSP500 = """Rate also includes dividends.
 Unless historical, S&P 500 can be used to represent any mix of equities
 (domestic, international, emerging, ...).
@@ -278,6 +280,30 @@ forecasts for the next decade can be found
 
     # st.divider()
     with st.expander("*Advanced Options*"):
+        # Rate sequence (reverse / roll) — only for varying (non-fixed) methods
+        if kz.getCaseKey("rateType") == "varying":
+            st.markdown("#### :orange[Rate sequence]")
+            plan = kz.getCaseKey("plan")
+            N_n = plan.N_n if plan is not None else 50
+            help_reverse = "Reverse the rate sequence along the time axis (e.g. run last year first)."
+            help_roll = "Roll the rate sequence by this many years (0 = no shift)."
+            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+            with col1:
+                kz.getToggle("Reverse sequence", "reverse_sequence", callback=updateRates, help=help_reverse)
+            with col2:
+                st.number_input(
+                    "Roll (years)",
+                    min_value=0,
+                    max_value=N_n,
+                    value=int(kz.getCaseKey("roll_sequence") or 0),
+                    step=1,
+                    on_change=updateRates,
+                    args=["roll_sequence"],
+                    key=kz.genCaseKey("roll_sequence"),
+                    help=help_roll,
+                )
+            st.markdown("#####")
+
         st.markdown("#### :orange[Other Rates]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:

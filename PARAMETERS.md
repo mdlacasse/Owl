@@ -107,6 +107,12 @@ Investment return rates and inflation assumptions.
 | `from` | integer | Starting year for historical data range (must be between 1928 and 2025) |
 | `to` | integer | Ending year for historical data range (must be between 1928 and 2025, and greater than `from`) |
 
+#### For `method = "historical"`, `"histochastic"`, or `"stochastic"` (varying rates only):
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `reverse_sequence` | boolean | If true, reverse the rate sequence along the time axis (e.g. last year first). Default is `false`. Ignored for fixed/constant rate methods. |
+| `roll_sequence` | integer | Number of years to roll (shift) the rate sequence; positive shifts toward the end, values wrap. Default is `0`. Ignored for fixed/constant rate methods. |
+
 **Note:** `from`/`to` are stored for all methods in saved case files. Methods that do not use them ignore these fields.
 
 ---

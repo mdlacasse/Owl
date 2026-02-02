@@ -36,6 +36,17 @@ from owlplanner import utils as u
 FROM = 1928
 TO = 2025
 
+# Rate methods that use the same rate every year (reverse/roll are no-ops).
+CONSTANT_RATE_METHODS = (
+    "default", "optimistic", "conservative", "user",
+    "historical average", "mean",
+)
+# Rate methods that produce deterministic series (no regeneration needed).
+RATE_METHODS_NO_REGEN = (
+    "default", "optimistic", "conservative", "user",
+    "historical average", "historical",
+)
+
 where = os.path.dirname(sys.modules["owlplanner"].__file__)
 file = os.path.join(where, "data/rates.csv")
 try:
