@@ -37,25 +37,24 @@ with col1:
     st.markdown("*Owl – Optimal Wealth Lab*")
     st.markdown("")
     st.markdown("""
-**Owl tells you how much you can safely spend, when to do Roth conversions,
-and which accounts to draw from.**
+#### :orange[Stop guessing. Start optimizing.]
+Take the guesswork out of retirement with an optimized financial roadmap built just for you.
+Owl builds a sophisticated mathematical model ([pdf](../papers/owl.pdf))
+of your entire financial life—from taxable accounts to Roth conversions and Medicare premiums.
+It doesn't just show you a scenario; it finds the best one based on your goals and shows you exactly
+how robust that plan is against market shifts and future regulation based  on your assumptions.
+Owl tells you how much you can safely spend, when to do Roth conversions,
+and which accounts to draw from.
 
-Most retirement calculators rely on rigid rules of thumb to show a single path.
-Owl builds a sophisticated **mathematical model** [(pdf)]({url}) of your full financial picture—
-taxable accounts, Roth conversions, Medicare premiums, and more—and **optimizes**
-it for you based on your assumptions: it finds the best scenario out of all possible ones
-and **solves** for the concrete decisions that get you there.
-You can then see how sensitive your optimal plan is to those assumptions
-(e.g. returns or spending targets), so you know how robust your strategy is.
+#### :orange[Built for US Retirees]
+Owl integrates US federal tax laws, Social Security rules, and 401(k)/Roth regulations
+to ensure your plan is grounded in reality.
 
-Owl is designed for US retirees; it uses US federal tax laws, Medicare rules,
-Social Security, and rules for 401(k)s and Roth accounts.
-
-Owl is **open-source**. This means: **no sign-ups**, **no fees**, **no tracking**,
-and **full privacy**: all your data stays on your device and is gone after the session is closed.
-However, you can save and reuse a plan by creating a **case parameter file** (TOML) and
-a **Household Financial Profile** (Excel). If you don't load files, parameters start at
-default valiues but you can still edit everything in the app.""".format(url=owl_pdf_url))
+#### :orange[Private by Design]
+Owl is open source and runs entirely on your device.
+- **No Sign-ups:** Start planning immediately.
+- **No Fees:** Professional-grade modeling, free for everyone.
+- **Total Privacy:** Your data stays with you; it’s never tracked or stored on our servers.""")
 
 with col2:
     st.image(logofile, width="stretch")
@@ -64,7 +63,7 @@ with col2:
 kz.divider("orange")
 
 # Benefits
-st.markdown("### :orange[Why use a retirement spending and tax planner?]")
+st.markdown("#### :orange[Why use a retirement spending and tax planner?]")
 st.markdown(
     "Most **retirement calculators** give you one rigid path. Owl **optimizes** "
     "your plan given your assumptions so you get:"
@@ -82,72 +81,83 @@ with ben_col3:
 
 kz.divider("orange")
 
-# ---- Quick start demo: lead with 3-step journey ----
-st.markdown("### :orange[Run your first case in 3 steps]")
-st.markdown("Use the **Jack & Jill** example to see results in under a minute.")
+st.markdown("#### :orange[Ready for a demo?]")
 
-step1, step2, step3 = st.columns(3)
-with step1:
-    st.markdown("**1. Load the case**")
-    st.markdown("Go to **Create Case**, then choose **Jack + Jill** from the example dropdown.")
-    st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
-with step2:
-    st.markdown("**2. Load the financial profile**")
-    st.markdown("On **Household Financial Profile**, load the Jack & Jill workbook (or use the example button).")
-    st.page_link("Household_Financial_Profile.py", label="Open Household Financial Profile", icon=":material/home:")
-with step3:
-    st.markdown("**3. View your plan**")
-    st.markdown("Check **Graphs**, **Worksheets**, or **Output Files** under Single Scenario.")
-    st.page_link("Graphs.py", label="View Graphs", icon=":material/stacked_line_chart:")
+with st.expander("Explore some case  exaples."):
+    # ---- Quick start demo: lead with 3-step journey ----
+    st.markdown("##### :orange[Run your first case in 3 steps]")
+    st.markdown("Use the **Jack & Jill** example to see results in under a minute.")
 
-st.markdown("")
-st.caption("You’ve run your first case. Explore other Case Setup pages to change assumptions. Explore other cases.")
+    step1, step2, step3 = st.columns(3)
+    with step1:
+        st.markdown("**1. Load the case**")
+        st.markdown("Go to **Create Case**, then choose **Jack + Jill** from the example dropdown.")
+        st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
+    with step2:
+        st.markdown("**2. Load the financial profile**")
+        st.markdown("On **Household Financial Profile**, load the Jack & Jill workbook (or use the example button).")
+        st.page_link("Household_Financial_Profile.py", label="Open Household Financial Profile", icon=":material/home:")
+    with step3:
+        st.markdown("**3. View your plan**")
+        st.markdown("Check **Graphs**, **Worksheets**, or **Output Files** under Single Scenario.")
+        st.page_link("Graphs.py", label="View Graphs", icon=":material/stacked_line_chart:")
+
+    st.markdown("")
+    st.caption("You’ve run your first case. Explore other Case Setup pages to change assumptions. Explore other cases.")
 
 kz.divider("orange")
 
-# ---- Lead magnet: sample files ----
-st.markdown("### :orange[Get the sample case files]")
-st.markdown(
-    "Want to edit assumptions in a text editor or spreadsheet? Download the Jack & Jill files and reload them anytime."
-    " You can also copy the case from within the app, modify, and save your changes."
-)
-lm1, lm2 = st.columns(2)
-with lm1:
-    st.markdown("""- **Case parameters** (TOML):
-[Case_jack+jill.toml](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true)""")
-with lm2:
-    st.markdown(
-        """- **Household Financial Profile** (Excel):
-[HFP_jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_jack+jill.xlsx?raw=true)""")
-st.caption("Right-click a link and choose “Save link as…” to download.")
+st.markdown("#### :orange[Ready to go deep ?]")
+with st.expander("Run your own cases."):
+    st.markdown("""Design your own case and save your progress locally.
+Return anytime by uploading your own configuration files—no cloud account required.""")
+    st.markdown("##### :orange[Get the sample case files]")
+    st.markdown("""
+Want to edit assumptions in a text editor or spreadsheet? Download the Jack & Jill files and reload them anytime.
+You can also copy the case from within the app, modify, and save your changes.""")
+
+    lm1, lm2 = st.columns(2)
+    with lm1:
+        st.markdown("""- **Case parameters** (TOML):
+    [Case_jack+jill.toml](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true)""")
+    with lm2:
+        st.markdown(
+            """- **Household Financial Profile** (Excel):
+    [HFP_jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_jack+jill.xlsx?raw=true)""")
+    st.caption("Right-click a link and choose “Save link as…” to download.")
+
+    st.markdown("""
+You can also create a case from scratch in the app and save the *case* and *Household Financial Profile* from there.""")
+    kz.divider("orange")
+
+    # ---- How to run Owl ----
+    st.markdown("#### :orange[How to run Owl]")
+    st.markdown("""
+- Use Owl directly as hosted on the Streamlit Cloud server
+([owlplanner.streamlit.app](https://owlplanner.streamlit.app)),
+- Self-host in a Docker container running on your compiuter
+(instructions [here](https://github.com/mdlacasse/Owl/blob/main/docker/README.md)), or
+- Run natively on your computer (instructions [here](https://github.com/mdlacasse/Owl/blob/main/INSTALL.md)).""")
 
 kz.divider("orange")
 
 # ---- Social proof / trust ----
-st.markdown("### :orange[Open source & privacy-first]")
-st.markdown(
-    """US retirees and planners use Owl to explore spending, Roth conversions, and tax-efficient drawdown strategies.
-Owl is **free and open source**—no account, no tracking.
-We use up-to-date US federal tax rules (including 2026) so you can plan with confidence.
+st.markdown("#### :orange[Getting involved]")
+st.markdown("""Owl is being developed by retired scientitsts and engineers happy
+to share their knowledge and remain intellectually engaged and active.\n
 Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues).
-You use Owl and like it? Give the [repo](https://github.com/mdlacasse/Owl)  a star.""")
+You use Owl and like it? Give the [repo](https://github.com/mdlacasse/Owl) a star.""")
 
 st.markdown("#### :orange[Disclaimer]")
-st.markdown("This program is for educational purposes only and does not constitute financial advice.")
-
-kz.divider("orange")
-
-# ---- How to run Owl ----
-st.markdown("### :orange[How to run Owl]")
-st.markdown(
-    """Use Owl on the Streamlit Cloud server ([owlplanner.streamlit.app](https://owlplanner.streamlit.app)),
-self-host it in a Docker container (instructions [here](https://github.com/mdlacasse/Owl/blob/main/docker/README.md)),
-or run it on your computer (instructions [here](https://github.com/mdlacasse/Owl/blob/main/INSTALL.md)).""")
+st.markdown("""
+US retirees and planners use Owl to explore spending, Roth conversions, and tax-efficient drawdown strategies.
+We use up-to-date US federal tax rules (including 2026) so you can plan with confidence.
+Nevertheless, this program is for educational purposes only and does not constitute financial advice.""")
 
 kz.divider("orange")
 
 # ---- Secondary CTAs and resources ----
-st.markdown("### :orange[Next steps]")
+st.markdown("#### :orange[Next steps]")
 c0, c1, c2, c3 = st.columns(4)
 with c0:
     st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
