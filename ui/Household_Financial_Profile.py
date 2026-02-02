@@ -93,8 +93,9 @@ that has not yet been uploaded.""")
     st.divider()
     st.markdown("### :material/work_history: :orange[Wages and Contributions]")
     st.markdown("""Wages and contributions for each individual.
-Previous five years are only used to track past Roth account contributions and conversions.
-This information is needed to enforce the five-year maturation rule in Roth savings accounts.""")
+Current year is highligthed in blue. The cells before are for the previous five years, used exclusively to track past
+Roth contributions and conversions. This historical data ensures compliance with the IRS five-year maturation rule.
+For these initial five years, only Roth-related entries are read; all other columns will be ignored.""")
 
     with st.expander("*Expand Wages and Contributions Timetables*"):
         for i in range(n):
@@ -106,8 +107,9 @@ This information is needed to enforce the five-year maturation rule in Roth savi
                 formatdic[col] = st.column_config.NumberColumn(None, min_value=0.0, format="accounting")
             formatdic[cols[-1]] = st.column_config.NumberColumn(None, format="accounting")
 
+            styled_df = df.style.apply(owb.highlight_year_row, axis=1)
             newdf = st.data_editor(
-                df,
+                styled_df,
                 column_config=formatdic,
                 hide_index=True,
                 key=kz.genCaseKey("wages" + str(i)),

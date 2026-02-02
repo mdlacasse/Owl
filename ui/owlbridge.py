@@ -668,13 +668,15 @@ def setGlobalPlotBackend(key):
             plan.setPlotBackend(val)
 
 
-def _highlight_current_year_row(row):
-    """Highlight the row where year equals the current year."""
+def highlight_year_row(row):
+    """Highlight the row where year equals the current year.
+
+    Uses a semi-transparent tint that works in both light and dark theme.
+    """
     this_year = date.today().year
     if "year" in row.index:
         try:
             if int(row["year"]) == this_year:
-                # Semi-transparent tint works in both light and dark theme
                 return ["background-color: rgba(33, 150, 243, 0.25)"] * len(row)
         except (TypeError, ValueError):
             pass
@@ -720,8 +722,8 @@ def showWorkbook(plan):
                     colfor[col] = st.column_config.NumberColumn(None, format="%.3f")
 
         st.markdown(f"#### :orange[{name}]")
-        if "s Sources" in name:
-            display_df = df.style.apply(_highlight_current_year_row, axis=1)
+        if "Accounts" in name:
+            display_df = df.style.apply(highlight_year_row, axis=1)
             st.dataframe(display_df, width="stretch", column_config=colfor, hide_index=True)
         else:
             st.dataframe(df.astype(str), width="stretch", column_config=colfor, hide_index=True)
