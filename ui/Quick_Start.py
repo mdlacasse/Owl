@@ -50,7 +50,7 @@ and which accounts to draw from.
 Owl integrates US federal tax laws, Social Security rules, and 401(k)/Roth regulations
 to ensure your plan is grounded in reality.
 
-#### :orange[Private by Design]
+#### :orange[Private by design]
 Owl is open source and runs entirely on your device.
 - **No Sign-ups:** Start planning immediately.
 - **No Fees:** Professional-grade modeling, free for everyone.
@@ -83,7 +83,7 @@ kz.divider("orange")
 
 st.markdown("#### :orange[Ready for a demo?]")
 
-with st.expander("Explore some case  exaples."):
+with st.expander("Explore some case  examples."):
     # ---- Quick start demo: lead with 3-step journey ----
     st.markdown("##### :orange[Run your first case in 3 steps]")
     st.markdown("Use the **Jack & Jill** example to see results in under a minute.")
