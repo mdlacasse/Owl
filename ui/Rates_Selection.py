@@ -165,25 +165,23 @@ forecasts for the next decade can be found
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col3:
             maxValue = owb.TO if kz.getCaseKey("varyingType") == "historical" else kz.getCaseKey("yto") - 1
-            st.number_input(
+            kz.getIntNum(
                 "Starting year",
+                "yfrm",
                 min_value=owb.FROM,
                 max_value=maxValue,
-                on_change=updateRates,
-                args=["yfrm"],
-                key=kz.genCaseKey("yfrm"),
+                callback=updateRates,
             )
 
         with col4:
             ishistorical = kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "historical"
-            st.number_input(
+            kz.getIntNum(
                 "Ending year",
+                "yto",
                 max_value=owb.TO,
                 min_value=kz.getCaseKey("yfrm") + 2,     # At least 2 years needed for statistics.
                 disabled=ishistorical,
-                on_change=updateRates,
-                args=["yto"],
-                key=kz.genCaseKey("yto"),
+                callback=updateRates,
             )
 
     if kz.getCaseKey("rateType") == "varying":
@@ -287,22 +285,14 @@ forecasts for the next decade can be found
             N_n = plan.N_n if plan is not None else 50
             help_reverse = "Reverse the rate sequence along the time axis (e.g. run last year first)."
             help_roll = "Roll the rate sequence by this many years (0 = no shift)."
-            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-            with col1:
-                kz.getToggle("Reverse sequence", "reverse_sequence", callback=updateRates, help=help_reverse)
+            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
             with col2:
-                st.number_input(
-                    "Roll (years)",
-                    min_value=0,
-                    max_value=N_n,
-                    value=int(kz.getCaseKey("roll_sequence") or 0),
-                    step=1,
-                    on_change=updateRates,
-                    args=["roll_sequence"],
-                    key=kz.genCaseKey("roll_sequence"),
-                    help=help_roll,
-                )
-            st.markdown("#####")
+                kz.getToggle("Reverse sequence", "reverse_sequence", callback=updateRates, help=help_reverse)
+            with col1:
+                kz.initCaseKey("roll_sequence", 0)
+                kz.getIntNum("Roll (years)", "roll_sequence", min_value=0, max_value=N_n,
+                             step=1, callback=updateRates, help=help_roll)
+            # st.markdown("#####")
 
         st.markdown("#### :orange[Other Rates]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
@@ -312,7 +302,7 @@ forecasts for the next decade can be found
 See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             ret = kz.getNum("Dividend rate (%)", "divRate", max_value=5.0, format="%.2f", help=helpmsg, step=1.0)
 
-        st.markdown("#####")
+        # st.markdown("#####")
         st.markdown("#### :orange[Income taxes]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
