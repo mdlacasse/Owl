@@ -148,7 +148,9 @@ kz.divider("orange")
 
 # ---- Secondary CTAs and resources ----
 st.markdown("### :orange[Next steps]")
-c1, c2, c3 = st.columns(3)
+c0, c1, c2, c3 = st.columns(4)
+with c0:
+    st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
 with c1:
     st.page_link("Documentation.py", label="Documentation", icon=":material/help:")
 with c2:
