@@ -137,13 +137,14 @@ else:
             st.markdown("""
 The Primary Insurance Amount (PIA) is the monthly Social Security benefit you would receive if
 you claim benefits at your full retirement age. It is calculated based on your lifetime
-earnings and the contributions you have made to the Social Security program.
+earnings, the past contributions made to the Social Security program, and future
+contributions based on some basic assumptions.
 
 The Social Security Administration (SSA) maintains a record of your earnings,
-which you can access through the SSA [website](ssa.gov).
+which you can access through the SSA [website](https://ssa.gov).
 To view your personal earnings record, you must create an account and sign in.
 Once logged in, use the ssa.tools link in this section to calculate your PIA using your earnings data.
-This tool also allows you to include projections of future earnings
+This tool also allows you to refine the projections of future earnings
 (such as expected salary and remaining years of work), resulting in a more accurate estimate of your PIA.
 For ease of use, the link will securely pass the individual's DOB and nickname.
 
