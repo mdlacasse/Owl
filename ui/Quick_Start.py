@@ -28,7 +28,7 @@ import sskeys as kz
 # Main app sets layout and page_title in main.py.
 
 logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
-owl_pdf_url = "https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf?raw=true"
+owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/papers/owl.pdf"
 
 # Value proposition
 col1, col2 = st.columns([2, 1], gap="large")
