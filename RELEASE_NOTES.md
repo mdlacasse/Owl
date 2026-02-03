@@ -8,6 +8,7 @@
 - **Rate sequence modifiers** (issue #77): Add reverse and roll options for varying rate methods.
   - New `reverse_sequence` (boolean) and `roll_sequence` (integer) in `setRates`, config, and TOML.
   - UI: Reverse toggle and Roll (years) in Rates Selection → Advanced Options.
+  - Historical Range: same reverse/roll options in Advanced Options; `runHistoricalRange` accepts `reverse` and `roll` and applies them to each year’s historical sequence.
   - Ignored for fixed/constant rate methods (with warning). Documented in PARAMETERS.md and Documentation.
 
 ### Landing page and Quick Start

@@ -63,3 +63,22 @@ def test_historical():
     options = p.solverOptions
     objective = p.objective
     p.runHistoricalRange(objective, options, 1969, 2023)
+
+
+def test_historical_range_reverse_roll():
+    """Test that runHistoricalRange accepts reverse and roll and runs to completion."""
+    exdir = "./examples/"
+    case = "Case_jack+jill"
+    file = os.path.join(exdir, case)
+    p = owl.readConfig(file)
+    hfp = getHFP(exdir, case)
+    assert hfp != "", f"Could not find HFP file for {case}"
+    p.readContributions(hfp)
+    options = p.solverOptions
+    objective = p.objective
+    # Short range; with reverse=True and roll=1, each year's sequence is transformed
+    n, df = p.runHistoricalRange(
+        objective, options, 1970, 1972, figure=False, reverse=True, roll=1
+    )
+    assert n == 3
+    assert len(df) == 3

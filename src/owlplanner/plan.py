@@ -1932,11 +1932,15 @@ class Plan:
         self.c = c
 
     @_timer
-    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False, progcall=None):
+    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False,
+                           progcall=None, reverse=False, roll=0):
         """
         Run historical scenarios on plan over a range of years.
-        """
 
+        For each year in [ystart, yend], rates are set to the historical sequence
+        starting at that year. Optional reverse and roll apply to each sequence
+        (same semantics as setRates).
+        """
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n - 1
             self.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
@@ -1966,7 +1970,7 @@ class Plan:
             progcall.start()
 
         for year in range(ystart, yend + 1):
-            self.setRates("historical", year)
+            self.setRates("historical", year, reverse=reverse, roll=roll)
             self.solve(objective, options)
             if not verbose:
                 progcall.show((year - ystart + 1) / N)

@@ -782,6 +782,8 @@ User can run multiple simulations,
 each starting at a different year within a range of historical years.
 Each simulation assumes that the rates follow the same sequence that happened in the past,
 starting from a selected year in the past, and then offset by one year, and so on.
+In *Advanced Options*, you can apply **Reverse sequence** and **Roll (years)** to the rate
+sequence for each run (same behavior as on the Rates Selection page).
 A histogram of results and a success rate is displayed at the end of the run.
 $N$ is the number of runs that could fit in the year range selected,
 $P$ the probability of success,

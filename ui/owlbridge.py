@@ -199,11 +199,17 @@ def runHistorical(plan):
 
     hyfrm = kz.getCaseKey("hyfrm")
     hyto = kz.getCaseKey("hyto")
+    reverse_seq = kz.getCaseKey("reverse_sequence")
+    roll_seq = kz.getCaseKey("roll_sequence")
+    reverse_seq = False if reverse_seq is None else bool(reverse_seq)
+    roll_seq = 0 if roll_seq is None else int(roll_seq)
 
     objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress(None)
-        fig, summary = plan1.runHistoricalRange(objective, options, hyfrm, hyto, figure=True, progcall=mybar)
+        fig, summary = plan1.runHistoricalRange(
+            objective, options, hyfrm, hyto, figure=True, progcall=mybar,
+            reverse=reverse_seq, roll=roll_seq)
         kz.storeCaseKey("histoPlot", fig)
         kz.storeCaseKey("histoSummary", summary)
     except Exception as e:

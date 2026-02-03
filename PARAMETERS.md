@@ -110,10 +110,10 @@ Investment return rates and inflation assumptions.
 #### For `method = "historical"`, `"histochastic"`, or `"stochastic"` (varying rates only):
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `reverse_sequence` | boolean | If true, reverse the rate sequence along the time axis (e.g. last year first). Default is `false`. Ignored for fixed/constant rate methods. |
-| `roll_sequence` | integer | Number of years to roll (shift) the rate sequence; positive shifts toward the end, values wrap. Default is `0`. Ignored for fixed/constant rate methods. |
+| `reverse_sequence` | boolean | If true, reverse the rate sequence along the time axis (e.g. last year first). Default is `false`. Ignored for fixed/constant rate methods. Used for both single-scenario and Historical Range runs. |
+| `roll_sequence` | integer | Number of years to roll (shift) the rate sequence; positive shifts toward the end, values wrap. Default is `0`. Ignored for fixed/constant rate methods. Used for both single-scenario and Historical Range runs. |
 
-**Note:** `from`/`to` are stored for all methods in saved case files. Methods that do not use them ignore these fields.
+**Note:** `from`/`to` are stored for all methods in saved case files. Methods that do not use them ignore these fields. When running Historical Range, each year in the range uses the historical rate sequence starting at that year, with `reverse_sequence` and `roll_sequence` applied to each sequence.
 
 ---
 

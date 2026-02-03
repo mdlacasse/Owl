@@ -35,6 +35,8 @@ else:
     kz.initCaseKey("hyto", owb.TO)
     kz.initCaseKey("histoPlot", None)
     kz.initCaseKey("histoSummary", None)
+    kz.initCaseKey("reverse_sequence", False)
+    kz.initCaseKey("roll_sequence", 0)
 
     st.markdown("""Generate a histogram of results obtained from backtesting
 current scenario with historical data over selected year range.""")
@@ -65,6 +67,19 @@ current scenario with historical data over selected year range.""")
     # col1, col2 = st.columns(2, gap="small", vertical_alignment="top")
     with col4:
         st.button("Run historical range", on_click=owb.runHistorical, disabled=kz.caseIsNotRunReady())
+
+    with st.expander("*Advanced Options*"):
+        st.markdown("#### :orange[Rate sequence]")
+        plan = kz.getCaseKey("plan")
+        N_n = plan.N_n if plan is not None else 50
+        help_reverse = "Reverse the rate sequence along the time axis (e.g. run last year first)."
+        help_roll = "Roll the rate sequence by this many years (0 = no shift)."
+        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
+        with col2:
+            kz.getToggle("Reverse sequence", "reverse_sequence", callback=kz.setpull, help=help_reverse)
+        with col1:
+            kz.getIntNum("Roll (years)", "roll_sequence", min_value=0, max_value=N_n,
+                         step=1, callback=kz.setpull, help=help_roll)
 
     st.divider()
     fig = kz.getCaseKey("histoPlot")
