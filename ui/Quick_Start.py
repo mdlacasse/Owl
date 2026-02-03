@@ -84,7 +84,7 @@ kz.divider("orange")
 
 st.markdown("#### :orange[Ready for a demo?]")
 
-with st.expander("Explore some case  examples."):
+with st.expander("*Explore some case examples*"):
     # ---- Quick start demo: lead with 3-step journey ----
     st.markdown("##### :orange[Run your first case in 3 steps]")
     st.markdown("Use the **Jack & Jill** example to see results in under a minute.")
@@ -109,7 +109,7 @@ with st.expander("Explore some case  examples."):
 kz.divider("orange")
 
 st.markdown("#### :orange[Ready to go deep ?]")
-with st.expander("Run your own cases."):
+with st.expander("*Run your own cases*"):
     st.markdown("""Design your own case and save your progress locally.
 Return anytime by uploading your own configuration files—no cloud account required.""")
     st.markdown("##### :orange[Get the sample case files]")
