@@ -42,7 +42,7 @@ else:
             kz.initCaseKey("MC_cases", 100)
             kz.getIntNum("Number of random instances", "MC_cases", step=10, max_value=10000)
         with col4:
-            st.button("Run Simulation", on_click=owb.runMC, disabled=kz.caseIsNotMCReady())
+            st.button("Run simulation", on_click=owb.runMC, disabled=kz.caseIsNotMCReady())
 
     st.divider()
     fig = kz.getCaseKey("monteCarloPlot")

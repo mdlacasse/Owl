@@ -597,7 +597,7 @@ tax rate that heirs will pay on the tax-deferred portion of the bequest. Another
 to the year when the OBBBA rates are anticipated to return to pre-Tax Cut and Job Act
 rates.
 
-For **varying** rate types (historical, histochastic, stochastic), the *Advanced Options* expander
+For **varying** rate types (historical, histochastic, stochastic), the *Advanced options* expander
 offers **Rate sequence** controls that transform the generated rate series in time:
 - **Reverse sequence** – When enabled, the rate sequence is reversed along the time axis
   (e.g. the last year of the series becomes the first year of the plan). Useful for stress-testing
@@ -782,7 +782,7 @@ User can run multiple simulations,
 each starting at a different year within a range of historical years.
 Each simulation assumes that the rates follow the same sequence that happened in the past,
 starting from a selected year in the past, and then offset by one year, and so on.
-In *Advanced Options*, you can apply **Reverse sequence** and **Roll (years)** to the rate
+In *Advanced options*, you can apply **Reverse sequence** and **Roll (years)** to the rate
 sequence for each run (same behavior as on the Rates Selection page).
 A histogram of results and a success rate is displayed at the end of the run.
 $N$ is the number of runs that could fit in the year range selected,

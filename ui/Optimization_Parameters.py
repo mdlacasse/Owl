@@ -129,7 +129,7 @@ else:
                     ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
-    with st.expander("*Advanced Options*"):
+    with st.expander("*Advanced options*"):
         st.markdown("#### :orange[Calculations]")
         col1, col2 = st.columns([40, 60], gap="large", vertical_alignment="top")
         with col1:

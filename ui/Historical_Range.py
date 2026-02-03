@@ -68,7 +68,7 @@ current scenario with historical data over selected year range.""")
     with col4:
         st.button("Run historical range", on_click=owb.runHistorical, disabled=kz.caseIsNotRunReady())
 
-    with st.expander("*Advanced Options*"):
+    with st.expander("*Advanced options*"):
         st.markdown("#### :orange[Rate sequence]")
         plan = kz.getCaseKey("plan")
         N_n = plan.N_n if plan is not None else 50

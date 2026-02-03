@@ -64,7 +64,7 @@ else:
 
     if kz.getCaseKey("status") == "married":
         st.divider()
-        with st.expander("*Advanced Options*"):
+        with st.expander("*Advanced options*"):
             st.markdown("#### :orange[Survivor's Spousal Beneficiary Fractions]")
             col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
             with col1:

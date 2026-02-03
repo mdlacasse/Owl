@@ -277,7 +277,7 @@ forecasts for the next decade can be found
     owb.showRates(col1)
 
     # st.divider()
-    with st.expander("*Advanced Options*"):
+    with st.expander("*Advanced options*"):
         # Rate sequence (reverse / roll) — only for varying (non-fixed) methods
         if kz.getCaseKey("rateType") == "varying":
             st.markdown("#### :orange[Rate sequence]")

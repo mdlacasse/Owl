@@ -97,7 +97,7 @@ Current year is highligthed in blue. The cells before are for the previous five 
 Roth contributions and conversions. This historical data ensures compliance with the IRS five-year maturation rule.
 For these initial five years, only Roth-related entries are read; all other columns will be ignored.""")
 
-    with st.expander("*Expand Wages and Contributions Timetables*"):
+    with st.expander("*Expand Wages and Contributions timetables*"):
         for i in range(n):
             st.markdown("#### :orange[" + kz.getCaseKey("iname" + str(i)) + "'s Timetable]")
             df = kz.getCaseKey("timeList" + str(i))
@@ -122,13 +122,13 @@ For these initial five years, only Roth-related entries are read; all other colu
                 kz.setCaseKey("timeList" + str(i), newdf)
                 st.rerun()
 
-        st.button("Reset Timetables to zero", help="Reset all values to zero.", on_click=owb.resetTimeLists)
+        st.button("Reset timetables to zero", help="Reset all values to zero.", on_click=owb.resetTimeLists)
 
     st.divider()
     st.markdown("### :material/account_balance: :orange[Debts and Fixed Assets]")
     st.markdown("""Debts and fixed assets are associated with the household.""")
 
-    with st.expander("*Expand Debts and Fixed Assets Tables*"):
+    with st.expander("*Expand Debts and Fixed Assets tables*"):
         st.markdown("#### :orange[Debts]")
 
         # Get debt types from owlbridge to ensure consistency with validation logic
