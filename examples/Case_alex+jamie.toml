@@ -16,7 +16,7 @@ beneficiary_fractions = [ 1.0, 1.0, 1.0,]
 spousal_surplus_deposit_fraction = 0.5
 
 [household_financial_profile]
-HFP_file_name = "dictionary of DataFrames"
+HFP_file_name = "HFP_alex+jamie.xlsx"
 
 [fixed_income]
 pension_monthly_amounts = [ 0, 0,]
