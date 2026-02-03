@@ -37,7 +37,7 @@ with col1:
     st.markdown("*Owl – Optimal Wealth Lab*")
     st.markdown("")
     st.markdown(f"""
-#### :orange[Stop guessing. Start optimizing.]
+### :orange[Stop guessing. Start optimizing.]
 Take the guesswork out of retirement with an optimized financial roadmap built just for you.
 Owl builds a sophisticated mathematical model
 ([pdf]({owl_pdf_url}))
@@ -47,11 +47,11 @@ how robust that plan is against market shifts and future regulation based  on yo
 Owl tells you how much you can safely spend, when to do Roth conversions,
 and which accounts to draw from.
 
-#### :orange[Built for US Retirees]
+### :orange[Built for US Retirees]
 Owl integrates US federal tax laws, Social Security rules, and 401(k)/Roth regulations
 to ensure your plan is grounded in reality.
 
-#### :orange[Private by design]
+### :orange[Private by design]
 Owl is open source and runs entirely on your device.
 - **No Sign-ups:** Start planning immediately.
 - **No Fees:** Professional-grade modeling, free for everyone.
@@ -64,7 +64,7 @@ with col2:
 kz.divider("orange")
 
 # Benefits
-st.markdown("#### :orange[Why use a retirement spending and tax planner?]")
+st.markdown("### :orange[Why use a retirement spending and tax planner?]")
 st.markdown(
     "Most **retirement calculators** give you one rigid path. Owl **optimizes** "
     "your plan given your assumptions so you get:"
@@ -82,11 +82,11 @@ with ben_col3:
 
 kz.divider("orange")
 
-st.markdown("#### :orange[Ready for a demo?]")
+st.markdown("### :orange[Ready for a demo?]")
 
 with st.expander("*Explore some case examples*"):
     # ---- Quick start demo: lead with 3-step journey ----
-    st.markdown("##### :orange[Run your first case in 3 steps]")
+    st.markdown("#### :orange[Run your first case in 3 steps]")
     st.markdown("Use the **Jack & Jill** example to see results in under a minute.")
 
     step1, step2, step3 = st.columns(3)
@@ -108,11 +108,11 @@ with st.expander("*Explore some case examples*"):
 
 kz.divider("orange")
 
-st.markdown("#### :orange[Ready to go deep ?]")
+st.markdown("### :orange[Ready to go deep ?]")
 with st.expander("*Run your own cases*"):
     st.markdown("""Design your own case and save your progress locally.
 Return anytime by uploading your own configuration files—no cloud account required.""")
-    st.markdown("##### :orange[Get the sample case files]")
+    st.markdown("#### :orange[Get the sample case files]")
     st.markdown("""
 Want to edit assumptions in a text editor or spreadsheet? Download the Jack & Jill files and reload them anytime.
 You can also copy the case from within the app, modify, and save your changes.""")
@@ -132,7 +132,7 @@ You can also create a case from scratch in the app and save the *case* and *Hous
     kz.divider("orange")
 
     # ---- How to run Owl ----
-    st.markdown("#### :orange[How to run Owl]")
+    st.markdown("### :orange[How to run Owl]")
     st.markdown("""
 - Use Owl directly as hosted on the Streamlit Cloud server
 ([owlplanner.streamlit.app](https://owlplanner.streamlit.app)),
@@ -143,14 +143,14 @@ You can also create a case from scratch in the app and save the *case* and *Hous
 kz.divider("orange")
 
 # ---- Social proof / trust ----
-st.markdown("#### :orange[Get involved]")
+st.markdown("### :orange[Get involved]")
 st.markdown("""Owl is being developed by retired scientitsts and engineers happy
 to share their knowledge and remain intellectually engaged and active.\n
 - Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues) (requires a GitHub account).
 - Want to share your story? Open a [discussion](https://github.com/mdlacasse/Owl/discussions).
 - You use Owl and like it? Give the [repo](https://github.com/mdlacasse/Owl) a star.""")
 
-st.markdown("#### :orange[Disclaimer]")
+st.markdown("### :orange[Disclaimer]")
 st.markdown("""
 US retirees and planners use Owl to explore spending, Roth conversions, and tax-efficient drawdown strategies.
 We use up-to-date US federal tax rules (including 2026) so you can plan with confidence.
@@ -159,7 +159,7 @@ Nevertheless, this program is for educational purposes only and does not constit
 kz.divider("orange")
 
 # ---- Secondary CTAs and resources ----
-st.markdown("#### :orange[Next steps]")
+st.markdown("### :orange[Next steps]")
 c0, c1, c2, c3 = st.columns(4)
 with c0:
     st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")

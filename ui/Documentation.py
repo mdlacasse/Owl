@@ -66,7 +66,7 @@ col1, col2 = st.columns([0.80, 0.20], gap="large")
 with col1:
     st.markdown("""
 
--------------------------------------------------
+-------
 ### :orange[Table of Contents]
 [Getting Started with User Interface](#getting-started-with-user-interface)
 
@@ -105,7 +105,7 @@ with col1:
 - [:material/rule_settings: Typical Workflow](#rule-settings-typical-workflow)
 - [:material/mindfulness: Scope of Use](#mindfulness-scope-of-use)
 
---------------------------------------------------------------------------------------
+-------
 ### :orange[Getting Started with the User Interface]
 The functions of each page are described below in the same order as they appear in the menu bar:
 Typically, pages would be accessed in order, starting from left to right and from the top down.
@@ -140,7 +140,7 @@ There are four sections in the menu bar:
 [Multiple Scenarios](#multiple-scenarios), and [Resources](#resources).
 The sections below follow the same logical order.
 
--------------------------------------------------
+-------
 ### :orange[Case Setup]
 This section contains the steps for creating and configuring *case* scenarios.
 For new *cases*, every page of this section should be visited and parameters
@@ -708,7 +708,7 @@ amounts over the duration of the *case*.
 Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
 for that reason they do not start at 1.
 
---------------------------------------------------------------------------------------
+-------
 ### :orange[Single Scenario]
 
 #### :material/stacked_line_chart: Graphs
@@ -772,7 +772,7 @@ them through the widgets on the [Create Case](#person-add-create-case)
 and [Household Financial Profile](#home-household-financial-profile) pages,
 respectively.
 
---------------------------------------------------------------------------------------
+-------
 ### :orange[Multiple Scenarios]
 There are two different ways to run multiple scenarios and generate a histogram
 of results.
@@ -824,7 +824,7 @@ Moreover, the community server has a
 CPU time limit that will stop a session after the quota is reached.
 Most likely, this will not happen unless you devise unusually long Monte Carlo runs.
 
---------------------------------------------------------------------------------------
+-------
 ### :orange[Resources]
 #### :material/campaign: Quick Start
 This page is the landing page of the application.
@@ -891,7 +891,7 @@ This page is mainly used for debugging purposes.
 #### :material/info: About *Owl*
 Credits and disclaimers.
 
---------------------------------------------------------------------------------------
+-------
 ### :orange[Tips]
 #### :material/lightbulb_2: Advice on Optimization and Roth Conversions
 *Owl* can optimize explicitly for Medicare costs but these can sometimes be

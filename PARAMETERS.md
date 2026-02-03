@@ -1,12 +1,10 @@
-# Owl Parameters
-
 This document describes all parameters used in Owl TOML configuration files. The TOML file structure is organized into sections for clarity, and can be consumed by both the UI and CLI applications.
 
 **Note:** Throughout this document, `N_i` refers to the number of individuals in the plan (1 for single, 2 for married).
 
----
+-------
 
-## Root Level Parameters
+## :orange[Root level parameters]
 
 These parameters are defined at the root level of the TOML file (not within any section).
 
@@ -15,9 +13,9 @@ These parameters are defined at the root level of the TOML file (not within any 
 | `case_name` | string | Name of the case/plan |
 | `description` | string | A short text describing the purpose of the case |
 
----
+-------
 
-## [basic_info]
+## :orange[[basic_info]]
 
 Basic information about the individuals in the plan.
 
@@ -29,9 +27,9 @@ Basic information about the individuals in the plan.
 | `life_expectancy` | list of `N_i` integers | Life expectancy in years for each individual |
 | `start_date` | string | Start date of the plan (e.g., `"01-01"`, `"01/01"`, `"2026-01-01"`). Only the month and day are used; the plan always starts in the current year. Defaults to `"today"` if not specified |
 
----
+-------
 
-## [savings_assets]
+## :orange[[savings_assets]]
 
 Initial account balances and beneficiary information.
 
@@ -43,9 +41,9 @@ Initial account balances and beneficiary information.
 | `beneficiary_fractions` | list of 3 floats | *(Married only)* Fraction of each account type (taxable, tax-deferred, tax-free) bequeathed to the surviving spouse. Each value should be between 0.0 and 1.0 |
 | `spousal_surplus_deposit_fraction` | float | *(Married only)* Fraction of surplus to deposit in the second spouse's taxable account. Value between 0.0 and 1.0 |
 
----
+-------
 
-## [household_financial_profile]
+## :orange[[household_financial_profile]]
 
 Reference to the Excel file containing wages, contributions, and other time-varying financial data.
 
@@ -55,9 +53,9 @@ Reference to the Excel file containing wages, contributions, and other time-vary
 
 **Note:** The Excel file should contain one sheet per individual with columns for: year, anticipated wages, taxable contributions, 401k contributions, Roth 401k contributions, IRA contributions, Roth IRA contributions, Roth conversions, and big-ticket items.
 
----
+-------
 
-## [fixed_income]
+## :orange[[fixed_income]]
 
 Pension and Social Security information.
 
@@ -69,9 +67,9 @@ Pension and Social Security information.
 | `social_security_pia_amounts` | list of `N_i` integers | Primary Insurance Amount (PIA) for Social Security for each individual (in dollars) |
 | `social_security_ages` | list of `N_i` floats | Age at which Social Security benefits start for each individual |
 
----
+-------
 
-## [rates_selection]
+## :orange[[rates_selection]]
 
 Investment return rates and inflation assumptions.
 
@@ -82,32 +80,32 @@ Investment return rates and inflation assumptions.
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
 | `method` | string | Method for determining rates. Valid values: `"default"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"stochastic"`, `"histochastic"` |
 
-### Conditional Parameters Based on `method`
+### :orange[Conditional parameters based on `method`]
 
-#### For `method = "user"` or `"stochastic"`:
+#### :orange[For method = "user" or "stochastic"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `values` | list of 4 floats | Fixed rate values as percentages: [S&P 500 return, Corporate Baa bonds return, 10-year Treasury notes return, Inflation rate] |
 
-#### For `method = "stochastic"`:
+#### :orange[For method = "stochastic"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `standard_deviations` | list of 4 floats | Standard deviations (as percentages) for each rate type |
 | `correlations` | array | Correlation matrix (4×4) or flattened upper triangle (6 values) for the four rate types |
 
-#### For `method = "stochastic"` or `"histochastic"`:
+#### :orange[For method = "stochastic" or "histochastic"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `rate_seed` | integer | Random seed for reproducible stochastic rates |
 | `reproducible_rates` | boolean | Whether stochastic rates should be reproducible |
 
-#### For `method = "historical"`, `"historical average"`, or `"histochastic"`:
+#### :orange[For method = "historical", "historical average", or "histochastic"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `from` | integer | Starting year for historical data range (must be between 1928 and 2025) |
 | `to` | integer | Ending year for historical data range (must be between 1928 and 2025, and greater than `from`) |
 
-#### For `method = "historical"`, `"histochastic"`, or `"stochastic"` (varying rates only):
+#### :orange[For method = "historical", "histochastic", or "stochastic" (varying rates only)]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `reverse_sequence` | boolean | If true, reverse the rate sequence along the time axis (e.g. last year first). Default is `false`. Ignored for fixed/constant rate methods. Used for both single-scenario and Historical Range runs. |
@@ -115,9 +113,9 @@ Investment return rates and inflation assumptions.
 
 **Note:** `from`/`to` are stored for all methods in saved case files. Methods that do not use them ignore these fields. When running Historical Range, each year in the range uses the historical rate sequence starting at that year, with `reverse_sequence` and `roll_sequence` applied to each sequence.
 
----
+-------
 
-## [asset_allocation]
+## :orange[[asset_allocation]]
 
 Asset allocation strategy and how it changes over time.
 
@@ -128,25 +126,25 @@ Asset allocation strategy and how it changes over time.
 | `interpolation_width` | float | Width of the interpolation curve (in years). Ignored for `"linear"` |
 | `type` | string | Type of allocation strategy. Valid values: `"account"`, `"individual"`, `"spouses"` |
 
-### Conditional Parameters Based on `type`
+### :orange[Conditional parameters based on `type`]
 
-#### For `type = "account"`:
+#### :orange[For type = "account"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `taxable` | 3D array | Asset allocation bounds for taxable accounts. Structure: `[[[initial_stocks, initial_bonds, initial_fixed, initial_real_estate], [final_stocks, final_bonds, final_fixed, final_real_estate]]]` for each individual |
 | `tax-deferred` | 3D array | Asset allocation bounds for tax-deferred accounts (same structure as `taxable`) |
 | `tax-free` | 3D array | Asset allocation bounds for tax-free accounts (same structure as `taxable`) |
 
-#### For `type = "individual"` or `"spouses"`:
+#### :orange[For type = "individual" or "spouses"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `generic` | 3D array | Generic asset allocation bounds. Structure: `[[[initial_stocks, initial_bonds, initial_fixed, initial_real_estate], [final_stocks, final_bonds, final_fixed, final_real_estate]], ...]` for each individual. For single individuals, only one pair is needed |
 
 **Note:** All allocation values are percentages that should sum to 100 for each time point. The four asset classes are: stocks, bonds, fixed assets, and real estate.
 
----
+-------
 
-## [optimization_parameters]
+## :orange[[optimization_parameters]]
 
 Parameters controlling the optimization objective and spending profile.
 
@@ -156,7 +154,7 @@ Parameters controlling the optimization objective and spending profile.
 | `surviving_spouse_spending_percent` | integer | Percentage of spending amount for the surviving spouse (0-100). Default is `60` |
 | `objective` | string | Optimization objective. Valid values: `"maxSpending"`, `"maxBequest"` |
 
-### Conditional Parameters for `spending_profile = "smile"`:
+### :orange[Conditional parameters for spending_profile = "smile"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `smile_dip` | integer | Percentage to decrease spending during the "slow-go" years (0-100). Default is `15` |
@@ -165,9 +163,9 @@ Parameters controlling the optimization objective and spending profile.
 
 **Note:** The "smile" profile creates a spending pattern that starts high, decreases during middle years, and increases again later in retirement.
 
----
+-------
 
-## [solver_options]
+## :orange[[solver_options]]
 
 Options controlling the optimization solver and constraints.
 
@@ -201,9 +199,9 @@ Options controlling the optimization solver and constraints.
 
 **Note:** The solver options dictionary is passed directly to the optimization routine. Only the options listed above are validated; other options may be accepted but are not documented here.
 
----
+-------
 
-## [results]
+## :orange[[results]]
 
 Parameters controlling result display and output.
 
@@ -211,9 +209,9 @@ Parameters controlling result display and output.
 |-----------|------|-------------|
 | `default_plots` | string | Default plot display mode. Valid values: `"nominal"` (nominal dollars), `"today"` (today's dollars) |
 
----
+-------
 
-## Notes on Data Types
+## :orange[Notes on data types]
 
 - **Floats**: All monetary amounts are typically in thousands of dollars unless otherwise specified
 - **Integers**: Used for years, ages, and counts
@@ -222,7 +220,9 @@ Parameters controlling result display and output.
 - **Lists**: Arrays in TOML, e.g., `[1, 2, 3]` or `["Name1", "Name2"]`
 - **3D Arrays**: Nested arrays, e.g., `[[[60, 40, 0, 0], [70, 30, 0, 0]]]`
 
-## Example TOML Structure
+-------
+
+## :orange[Example TOML structure]
 
 ```toml
 case_name = "example"
