@@ -127,8 +127,10 @@ different resulting outcomes can be found on the [Output Files](#description-out
 The [Typical Workflow](#typical-workflow) section below
 goes through a more specific example.
 
-*Owl* uses a full year as the standard unit of time. All values are therefore entered and
-reported as yearly values. These include wages, income, rates, social security, etc.
+*Owl* uses a full year as the standard unit of time. Most values are therefore entered and
+reported as yearly values. These include wages, income, rates, etc. To better align
+with numbers from the Social Security Administration, social security
+and pensions are entered as a monthly values.
 Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars.
 Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
