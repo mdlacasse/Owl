@@ -52,10 +52,10 @@ Owl integrates US federal tax laws, Social Security rules, and 401(k)/Roth regul
 to ensure your plan is grounded in reality.
 
 ### :orange[Private by design]
-Owl is open source and runs entirely on your device.
+Owl is open source. Your data stays private in all cases—we don't store, track, or resell your financial data, whether cloud-hosted, or self-hosted on your device.
 - **No Sign-ups:** Start planning immediately.
 - **No Fees:** Professional-grade modeling, free for everyone.
-- **Total Privacy:** Your data stays with you; it’s never tracked or stored on our servers.""")
+- **Total Privacy:** Your data remains private either way.""")
 
 with col2:
     st.image(logofile, width="stretch")
@@ -78,7 +78,7 @@ with ben_col2:
 \nReduce taxes and Medicare premiums by timing conversions.""")
 with ben_col3:
     st.markdown("""**:material/lock: Your data stays private**
-\nEverything runs on your device. We don’t store, view, or resell your financial data.""")
+\nWhether cloud-hosted or self-hosted on your device, we don't store, view, or resell your financial data.""")
 
 kz.divider("orange")
 

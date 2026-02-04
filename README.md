@@ -21,7 +21,7 @@ maturation rules for Roth accounts and conversions, social security rules, etc.
 
 There are three ways to run Owl:
 
-- **Streamlit Hub:** Run Owl remotely as hosted on the Streamlit Community Server at
+- **Streamlit Hub:** Run Owl remotely as hosted on the Streamlit Community Cloud at
 [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
 
 - **Docker Container:** Run Owl locally on your computer using a Docker image.
