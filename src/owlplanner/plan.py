@@ -48,7 +48,7 @@ from .plotting.factory import PlotFactory
 # Default values
 BIGM_AMO = 5e7     # 100 times large withdrawals or conversions
 GAP = 1e-4
-MILP_GAP = 10 * GAP
+MILP_GAP = 30 * GAP
 MAX_ITERATIONS = 29
 ABS_TOL = 50
 REL_TOL = 5e-6
