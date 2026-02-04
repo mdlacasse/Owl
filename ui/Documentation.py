@@ -855,7 +855,7 @@ The sidebar menu can also be collapsed if needed.
 Default behavior is to have the menubar at the top, unless on a mobile device.
 
 ###### Streamlit App and Theme
-If you are accessing *Owl* remotely on the Streamlit Community Server through the Chrome browser,
+If you are accessing *Owl* remotely on the Streamlit Community Cloud server through the Chrome browser,
 the Chrome performance manager might disable hidden or inactive tabs.
 This could cause your *Owl* session to inadvertently reset when idling for too long,
 and losing the state of the calculator.
@@ -866,10 +866,10 @@ The app provides more screen space as it doesn't have a navigation bar.
 On a mobile device, saving the page to the home screen will achieve the same result.
 A similar timing problem can happen if your simulations
 (Monte Carlo) are extremely long.
-The Streamlit community server has a hard resource limit
+The Streamlit Community Cloud has a hard resource limit
 on CPU time that might stop your calculations before completion.
 I could successfully run 1,000 simulations using the Streamlit app while
-being hosted on the Streamlit community server.
+being hosted on the Streamlit Community Cloud.
 However, if you are contemplating running Monte Carlo simulations
 with thousands of *cases* routinely,
 you should definitely consider installing and running *Owl*

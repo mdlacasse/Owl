@@ -134,7 +134,7 @@ You can also create a case from scratch in the app and save the *case* and *Hous
     # ---- How to run Owl ----
     st.markdown("### :orange[How to run Owl]")
     st.markdown("""
-- Use Owl directly as hosted on the Streamlit Cloud server
+- Use Owl directly as hosted on the Streamlit Community Cloud server
 ([owlplanner.streamlit.app](https://owlplanner.streamlit.app)),
 - Self-host in a Docker container running on your computer
 (instructions [here](https://github.com/mdlacasse/Owl/blob/main/docker/README.md)), or

@@ -10,7 +10,7 @@ This document is aimed at software developers desiring to install the Owl source
 and run it locally on their computer.
 
 For end-users, we suggest accessing Owl from the
-[Streamlit Community Server](http://owlplanner.streamlit.app)
+[Streamlit Community Cloud](http://owlplanner.streamlit.app)
 or, if one prefers to have everything on their own computer,
 to install and run a Docker image as described in these [instructions](docker/README.md).
 
