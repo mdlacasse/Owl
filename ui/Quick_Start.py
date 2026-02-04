@@ -33,7 +33,7 @@ owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/p
 # Value proposition
 col1, col2 = st.columns([2, 1], gap="large")
 with col1:
-    st.markdown("# :orange[Plan your retirement with confidence]")
+    st.markdown("# Plan your retirement with confidence")
     st.markdown("*Owl – Optimal Wealth Lab*")
     st.markdown("")
     st.markdown(f"""
