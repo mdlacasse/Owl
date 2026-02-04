@@ -36,7 +36,7 @@ st.markdown(
     """
 - Owl is an open-source retirement financial planner capable of optimization through
 mixed-integer linear programming.
-- Source code is available from a repository on [GitHub](https://github.com/mdlacasse/owl).
+- Source code is available from a repository on [GitHub](https://github.com/mdlacasse/Owl).
 - Mathematical formulation of the linear optimization problem can be
 found in this [document](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf?raw=true).
 
@@ -66,7 +66,7 @@ It can also run on [MOSEK](https://mosek.com) if available on your computer.
     - [highspy](https://highs.dev),
     [Matplotlib](https://matplotlib.org),
     [Numpy](https://numpy.org),
-    [odfpy](https://https://pypi.org/project/odfpy),
+    [odfpy](https://pypi.org/project/odfpy),
     [openpyxl](https://openpyxl.readthedocs.io),
     [Pandas](https://pandas.pydata.org),
     [Plotly](https://plotly.com),
@@ -74,11 +74,11 @@ It can also run on [MOSEK](https://mosek.com) if available on your computer.
     [Scipy](https://scipy.org),
     [Seaborn](https://seaborn.pydata.org),
     [toml](https://toml.io),
- and [Streamlit](https://streamlit.io) for the front-end.
+and [Streamlit](https://streamlit.io) for the front-end.
 
 #### :orange[Bugs and Feature Requests]
 Please submit bugs and feature requests through
-[GitHub](https://github.com/mdlacasse/owl/issues) if you have a GitHub account
+[GitHub](https://github.com/mdlacasse/Owl/issues) if you have a GitHub account
 or directly by [email](mailto:martin.d.lacasse@gmail.com).
 Or just drop me a line to report your experience with the tool. &#x1F44D;
 
