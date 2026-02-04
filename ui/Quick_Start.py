@@ -43,7 +43,7 @@ Owl builds a sophisticated mathematical model
 ([pdf]({owl_pdf_url}))
 of your entire financial life—from taxable accounts to Roth conversions and Medicare premiums.
 It doesn't just show you a scenario; it finds the best one based on your goals and shows you exactly
-how robust that plan is against market shifts and future regulation based  on your assumptions.
+how robust that plan is against market shifts and future regulation—all based on your assumptions.
 Owl tells you how much you can safely spend, when to do Roth conversions,
 and which accounts to draw from.
 
@@ -136,7 +136,7 @@ You can also create a case from scratch in the app and save the *case* and *Hous
     st.markdown("""
 - Use Owl directly as hosted on the Streamlit Cloud server
 ([owlplanner.streamlit.app](https://owlplanner.streamlit.app)),
-- Self-host in a Docker container running on your compiuter
+- Self-host in a Docker container running on your computer
 (instructions [here](https://github.com/mdlacasse/Owl/blob/main/docker/README.md)), or
 - Run natively on your computer (instructions [here](https://github.com/mdlacasse/Owl/blob/main/INSTALL.md)).""")
 
@@ -144,7 +144,7 @@ kz.divider("orange")
 
 # ---- Social proof / trust ----
 st.markdown("### :orange[Get involved]")
-st.markdown("""Owl is being developed by retired scientitsts and engineers happy
+st.markdown("""Owl is being developed by retired scientists and engineers who are happy
 to share their knowledge and remain intellectually engaged and active.\n
 - Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues) (requires a GitHub account).
 - Want to share your story? Open a [discussion](https://github.com/mdlacasse/Owl/discussions).

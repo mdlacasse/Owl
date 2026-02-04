@@ -164,7 +164,7 @@ at the end of their planning period.
 The **Create Case** page is where every new scenario begins.
 It controls the creation of scenarios as the `Case selector` drop-down menu contains
 two additional items:
-one to create new *cases*, and the other to create  *cases* from a *case* parameter file.
+one to create new *cases*, and the other to create *cases* from a *case* parameter file.
 This page also allows you to copy and/or rename scenarios, as well as deleting them.
 
 For creating a scenario from scratch, (first) name(s), marital status,
