@@ -2,6 +2,13 @@
 
 ---
 
+## Version 2026.02.04
+
+### Optimization
+- Reduce default gap for MILP optimization with withMedicare is optimized.
+
+---
+
 ## Version 2026.02.02
 
 ### Rates
