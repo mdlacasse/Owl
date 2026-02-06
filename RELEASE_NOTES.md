@@ -2,6 +2,13 @@
 
 ---
 
+## Version 2026.02.06
+
+### Multiple scenarios
+- Added capabilities for running augmented historical range.
+
+---
+
 ## Version 2026.02.04
 
 ### Optimization

@@ -52,7 +52,8 @@ Owl integrates US federal tax laws, Social Security rules, and 401(k)/Roth regul
 to ensure your plan is grounded in reality.
 
 ### :orange[Private by design]
-Owl is open source. Your data stays private in all cases—we don't store, track, or resell your financial data, whether cloud-hosted, or self-hosted on your device.
+Owl is open source. Your data stays private in all cases—we don't store, track,
+or resell your financial data, whether cloud-hosted, or self-hosted on your device.
 - **No Sign-ups:** Start planning immediately.
 - **No Fees:** Professional-grade modeling, free for everyone.
 - **Total Privacy:** Your data remains private either way.""")

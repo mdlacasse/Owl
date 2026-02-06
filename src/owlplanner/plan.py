@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 from datetime import date, datetime
 from functools import wraps
+from itertools import product
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 import time
@@ -1933,13 +1934,16 @@ class Plan:
 
     @_timer
     def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False,
-                           progcall=None, reverse=False, roll=0):
+                           progcall=None, reverse=False, roll=0, augmented=False):
         """
         Run historical scenarios on plan over a range of years.
 
         For each year in [ystart, yend], rates are set to the historical sequence
-        starting at that year. Optional reverse and roll apply to each sequence
-        (same semantics as setRates).
+        starting at that year.
+
+        If augmented is False, only (reverse=False, roll=0) is used (one run per year).
+        If augmented is True, every (reverse, roll) in {False, True} x {0, ..., N_n-1}
+        is run for each year, expanding the sample for the histogram.
         """
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n - 1
@@ -1948,8 +1952,16 @@ class Plan:
         if yend < ystart:
             raise ValueError(f"Starting year is too large to support a lifespan of {self.N_n} years.")
 
-        N = yend - ystart + 1
-        self.mylog.vprint(f"Running historical range from {ystart} to {yend}.")
+        n_years = yend - ystart + 1
+        if augmented:
+            reverse_roll_pairs = list(product([False, True], range(self.N_n)))
+            N = n_years * len(reverse_roll_pairs)
+            self.mylog.vprint(f"Running historical range from {ystart} to {yend} (augmented: {len(reverse_roll_pairs)}"
+                              f" variants per year, {N} runs).")
+        else:
+            reverse_roll_pairs = [(False, 0)]
+            N = n_years
+            self.mylog.vprint(f"Running historical range from {ystart} to {yend}.")
 
         self.mylog.setVerbose(verbose)
 
@@ -1969,16 +1981,19 @@ class Plan:
         if not verbose:
             progcall.start()
 
+        step = 0
         for year in range(ystart, yend + 1):
-            self.setRates("historical", year, reverse=reverse, roll=roll)
-            self.solve(objective, options)
-            if not verbose:
-                progcall.show((year - ystart + 1) / N)
-            if self.caseStatus == "solved":
-                if objective == "maxSpending":
-                    df.loc[len(df)] = [self.partialBequest, self.basis]
-                elif objective == "maxBequest":
-                    df.loc[len(df)] = [self.partialBequest, self.bequest]
+            for rev, rll in reverse_roll_pairs:
+                self.setRates("historical", year, reverse=rev, roll=rll)
+                self.solve(objective, options)
+                if not verbose:
+                    step += 1
+                    progcall.show(step / N)
+                if self.caseStatus == "solved":
+                    if objective == "maxSpending":
+                        df.loc[len(df)] = [self.partialBequest, self.basis]
+                    elif objective == "maxBequest":
+                        df.loc[len(df)] = [self.partialBequest, self.bequest]
 
         progcall.finish()
         self.mylog.resetVerbose()
