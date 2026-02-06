@@ -348,7 +348,8 @@ in the net spending amount.
 *Debts* remaining at the end of the *case* will be taken out of the savings accounts.
 A bequest of zero will therefore leave sufficient money from the savings accounts
 to pay the remaining debts. Mortgage interest is not deducted for income tax purposes,
-as *Owl* assumes taking the standard tax deduction.
+as *Owl* assumes taking the standard tax deduction. Be mindful that selling a house near
+the end of the plan while leaving a zero bequest may lead to infeasible solutions.
 
 The *Household Financial Profile* workbook can optionally contain a *Debts* sheet and
 a *Fixed Assets* sheet to store these data.
