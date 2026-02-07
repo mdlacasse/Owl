@@ -563,8 +563,38 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
-    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None):
-        """Show a histogram of values from historical data or Monte Carlo simulations."""
+    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None,
+                              log_x=False):
+        """Show a histogram of values from historical data or Monte Carlo simulations.
+
+        If log_x is True, use log-spaced bins and a log-scale x-axis (log-normal style).
+        Zeros are excluded from the histogram when log_x is True.
+        """
+        _LOG_FLOOR = 0.001   # $1 in thousands; values below excluded when log_x
+        _LOG_NBINS = 50
+
+        def _log_spaced_edges(series, num_bins=_LOG_NBINS, floor=_LOG_FLOOR):
+            """Log-spaced bin edges from positive values >= floor. Returns (edges, positive_mask)."""
+            pos = series.to_numpy(dtype=float)
+            pos = pos[(pos >= floor) & np.isfinite(pos)]
+            if len(pos) == 0:
+                return None, np.zeros(len(series), dtype=bool)
+            lo, hi = float(np.min(pos)), float(np.max(pos))
+            if lo <= 0 or hi <= 0:
+                return None, (series.to_numpy(dtype=float) >= floor) & np.isfinite(series)
+            edges = np.logspace(np.log10(lo), np.log10(hi), num=num_bins + 1)
+            return edges, (series.to_numpy(dtype=float) >= floor) & np.isfinite(series)
+
+        def _histogram_log(series, edges):
+            """Counts in log-spaced bins; series values must be >= floor (zeros excluded)."""
+            pos = series.to_numpy(dtype=float)
+            pos = pos[(pos >= _LOG_FLOOR) & np.isfinite(pos)]
+            if len(pos) == 0:
+                return np.zeros(len(edges) - 1), (edges[:-1] + edges[1:]) / 2
+            counts, _ = np.histogram(pos, bins=edges)
+            centers = (edges[:-1] + edges[1:]) / 2
+            return counts, centers
+
         description = io.StringIO()
 
         # Calculate success rate and create title
@@ -598,26 +628,51 @@ class PlotlyBackend(PlotBackend):
 
         if len(df) > 0:
             thisyear = year_n[0]
+            if log_x:
+                print("Histogram: log-scale x-axis, log-spaced bins (zeros excluded).",
+                      file=description)
 
             if objective == "maxBequest":
                 # Single figure with both partial and final bequests
                 fig = go.Figure()
 
-                # Add histograms for each column
-                for i, col in enumerate(df.columns):
-                    dmedian = u.d(medians.iloc[i], latex=False)
-                    dmean = u.d(means.iloc[i], latex=False)
-                    label = f"{my[i]}: M: {dmedian}, <x>: {dmean}"
+                if log_x:
+                    # Shared log-spaced edges from union of both columns
+                    all_pos = []
+                    for col in df.columns:
+                        s = df[col]
+                        all_pos.extend(s[(s >= _LOG_FLOOR) & np.isfinite(s)].tolist())
+                    if all_pos:
+                        all_pos = np.array(all_pos)
+                        lo, hi = float(np.min(all_pos)), float(np.max(all_pos))
+                        edges = np.logspace(np.log10(lo), np.log10(hi), num=_LOG_NBINS + 1)
+                        for i, col in enumerate(df.columns):
+                            counts, centers = _histogram_log(df[col], edges)
+                            dmedian = u.d(medians.iloc[i], latex=False)
+                            dmean = u.d(means.iloc[i], latex=False)
+                            label = f"{my[i]}: M: {dmedian}, <x>: {dmean}"
+                            fig.add_trace(go.Bar(
+                                x=centers, y=counts, name=label,
+                                opacity=0.7, marker_color=colors[i]
+                            ))
+                    else:
+                        log_x = False
+                        for i, col in enumerate(df.columns):
+                            dmedian = u.d(medians.iloc[i], latex=False)
+                            dmean = u.d(means.iloc[i], latex=False)
+                            label = f"{my[i]}: M: {dmedian}, <x>: {dmean}"
+                            fig.add_trace(go.Histogram(
+                                x=df[col], name=label, opacity=0.7, marker_color=colors[i]
+                            ))
+                else:
+                    for i, col in enumerate(df.columns):
+                        dmedian = u.d(medians.iloc[i], latex=False)
+                        dmean = u.d(means.iloc[i], latex=False)
+                        label = f"{my[i]}: M: {dmedian}, <x>: {dmean}"
+                        fig.add_trace(go.Histogram(
+                            x=df[col], name=label, opacity=0.7, marker_color=colors[i]
+                        ))
 
-                    # Add histogram
-                    fig.add_trace(go.Histogram(
-                        x=df[col],
-                        name=label,
-                        opacity=0.7,
-                        marker_color=colors[i]
-                    ))
-
-                # Update layout
                 fig.update_layout(
                     title=objective,
                     xaxis_title=f"{thisyear} $k",
@@ -626,13 +681,12 @@ class PlotlyBackend(PlotBackend):
                     barmode="overlay",
                     showlegend=True,
                     legend=dict(
-                        yanchor="bottom",
-                        y=-0.50,
-                        xanchor="center",
-                        x=0.5,
+                        yanchor="bottom", y=-0.50, xanchor="center", x=0.5,
                         bgcolor="rgba(0, 0, 0, 0)"
                     )
                 )
+                if log_x:
+                    fig.update_xaxes(type="log")
 
                 leads = [f"partial {my[0]}", f"  final {my[1]}"]
                 leads = leads if nfields == 2 else leads[1:]
@@ -652,31 +706,35 @@ class PlotlyBackend(PlotBackend):
                     dmedian = u.d(medians.iloc[i], latex=False)
                     dmean = u.d(means.iloc[i], latex=False)
                     label = f"M: {dmedian}, <x>: {dmean}"
+                    if log_x:
+                        edges, _ = _log_spaced_edges(df[col])
+                        if edges is not None:
+                            counts, centers = _histogram_log(df[col], edges)
+                            fig.add_trace(
+                                go.Bar(x=centers, y=counts, name=label,
+                                       marker_color=colors[i], showlegend=True),
+                                row=1, col=i+1
+                            )
+                        else:
+                            fig.add_trace(
+                                go.Histogram(x=df[col], name=label,
+                                             marker_color=colors[i], showlegend=True),
+                                row=1, col=i+1
+                            )
+                    else:
+                        fig.add_trace(
+                            go.Histogram(x=df[col], name=label,
+                                         marker_color=colors[i], showlegend=True),
+                            row=1, col=i+1
+                        )
 
-                    # Add histogram
-                    fig.add_trace(
-                        go.Histogram(
-                            x=df[col],
-                            name=label,
-                            marker_color=colors[i],
-                            showlegend=True
-                        ),
-                        row=1, col=i+1
-                    )
-
-                # Update layout
-                fig.update_layout(
-                    title=title,
-                    template=self.template,
-                    height=400,
-                    width=800
-                )
-
-                # Update y-axis labels
+                fig.update_layout(title=title, template=self.template, height=400, width=800)
                 fig.update_yaxes(title_text="Count", row=1, col=1)
-                # fig.update_yaxes(title_text="Count", row=1, col=2)
                 fig.update_xaxes(title_text=f"{thisyear} $k", row=1, col=1)
                 fig.update_xaxes(title_text=f"{thisyear} $k", row=1, col=2)
+                if log_x:
+                    fig.update_xaxes(type="log", row=1, col=1)
+                    fig.update_xaxes(type="log", row=1, col=2)
 
             else:
                 # Single histogram for net spending
@@ -686,14 +744,18 @@ class PlotlyBackend(PlotBackend):
                 dmean = u.d(means.iloc[0], latex=False)
                 label = f"M: {dmedian}, <x>: {dmean}"
 
-                # Add histogram
-                fig.add_trace(go.Histogram(
-                    x=df[objective],
-                    name=label,
-                    marker_color="orange"
-                ))
+                use_log_scale = False
+                if log_x:
+                    edges, _ = _log_spaced_edges(df[objective])
+                    if edges is not None:
+                        counts, centers = _histogram_log(df[objective], edges)
+                        fig.add_trace(go.Bar(x=centers, y=counts, name=label, marker_color="orange"))
+                        use_log_scale = True
+                    else:
+                        fig.add_trace(go.Histogram(x=df[objective], name=label, marker_color="orange"))
+                else:
+                    fig.add_trace(go.Histogram(x=df[objective], name=label, marker_color="orange"))
 
-                # Update layout
                 fig.update_layout(
                     title=objective,
                     xaxis_title=f"{thisyear} $k",
@@ -701,13 +763,12 @@ class PlotlyBackend(PlotBackend):
                     template=self.template,
                     showlegend=True,
                     legend=dict(
-                        yanchor="bottom",
-                        y=-0.50,
-                        xanchor="center",
-                        x=0.5,
+                        yanchor="bottom", y=-0.50, xanchor="center", x=0.5,
                         bgcolor="rgba(0, 0, 0, 0)"
                     )
                 )
+                if use_log_scale:
+                    fig.update_xaxes(type="log")
 
                 leads = [objective]
 

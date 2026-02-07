@@ -5,7 +5,8 @@
 ## Version 2026.02.06
 
 ### Multiple scenarios
-- Added capabilities for running augmented historical range.
+- Add capabilities for running augmented historical range.
+- Add log scale option to hostograms
 
 ---
 

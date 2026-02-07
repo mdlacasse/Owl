@@ -1934,7 +1934,7 @@ class Plan:
 
     @_timer
     def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False,
-                           progcall=None, reverse=False, roll=0, augmented=False):
+                           progcall=None, reverse=False, roll=0, augmented=False, log_x=False):
         """
         Run historical scenarios on plan over a range of years.
 
@@ -1944,6 +1944,8 @@ class Plan:
         If augmented is False, only (reverse=False, roll=0) is used (one run per year).
         If augmented is True, every (reverse, roll) in {False, True} x {0, ..., N_n-1}
         is run for each year, expanding the sample for the histogram.
+
+        If log_x is True, the result histogram uses log-spaced bins and a log-scale x-axis.
         """
         if yend + self.N_n > self.year_n[0]:
             yend = self.year_n[0] - self.N_n - 1
@@ -1998,8 +2000,8 @@ class Plan:
         progcall.finish()
         self.mylog.resetVerbose()
 
-        fig, description = self._plotter.plot_histogram_results(objective, df, N, self.year_n,
-                                                                self.n_d, self.N_i, self.phi_j)
+        fig, description = self._plotter.plot_histogram_results(
+            objective, df, N, self.year_n, self.n_d, self.N_i, self.phi_j, log_x=log_x)
         self.mylog.print(description.getvalue())
 
         if figure:
@@ -2008,7 +2010,7 @@ class Plan:
         return N, df
 
     @_timer
-    def runMC(self, objective, options, N, verbose=False, figure=False, progcall=None):
+    def runMC(self, objective, options, N, verbose=False, figure=False, progcall=None, log_x=False):
         """
         Run Monte Carlo simulations on plan.
         """
@@ -2051,8 +2053,8 @@ class Plan:
         progcall.finish()
         self.mylog.resetVerbose()
 
-        fig, description = self._plotter.plot_histogram_results(objective, df, N, self.year_n,
-                                                                self.n_d, self.N_i, self.phi_j)
+        fig, description = self._plotter.plot_histogram_results(
+            objective, df, N, self.year_n, self.n_d, self.N_i, self.phi_j, log_x=log_x)
         self.mylog.print(description.getvalue())
 
         if figure:

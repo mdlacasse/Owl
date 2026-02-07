@@ -114,8 +114,27 @@ class MatplotlibBackend(PlotBackend):
 
         return fig, ax
 
-    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None):
-        """Show a histogram of values from historical data or Monte Carlo simulations."""
+    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None,
+                              log_x=False):
+        """Show a histogram of values from historical data or Monte Carlo simulations.
+
+        If log_x is True, use log-spaced bins and a log-scale x-axis (log-normal style).
+        Zeros are excluded from the histogram when log_x is True.
+        """
+        _LOG_FLOOR = 0.001   # $1 in thousands; values below excluded when log_x
+        _LOG_NBINS = 50
+
+        def _log_spaced_edges(series, floor=_LOG_FLOOR, num_bins=_LOG_NBINS):
+            """Log-spaced bin edges from positive values >= floor. Returns None if no positive data."""
+            pos = series.to_numpy(dtype=float)
+            pos = pos[(pos >= floor) & np.isfinite(pos)]
+            if len(pos) == 0:
+                return None
+            lo, hi = float(np.min(pos)), float(np.max(pos))
+            if lo <= 0 or hi <= 0:
+                return None
+            return np.logspace(np.log10(lo), np.log10(hi), num=num_bins + 1)
+
         description = io.StringIO()
 
         pSuccess = u.pc(len(df) / N)
@@ -143,12 +162,27 @@ class MatplotlibBackend(PlotBackend):
         df /= 1000
         if len(df) > 0:
             thisyear = year_n[0]
+            if log_x:
+                print("Histogram: log-scale x-axis, log-spaced bins (zeros excluded).",
+                      file=description)
+
             if objective == "maxBequest":
                 fig, axes = plt.subplots()
-                # Show both partial and final bequests in the same histogram.
-                sbn.histplot(df, multiple="dodge", kde=True, ax=axes)
+                if log_x:
+                    all_pos = np.concatenate([
+                        df[col][(df[col] >= _LOG_FLOOR) & np.isfinite(df[col])].to_numpy()
+                        for col in df.columns
+                    ])
+                    edges = _log_spaced_edges(pd.Series(all_pos)) if len(all_pos) > 0 else None
+                else:
+                    edges = None
+                if edges is not None:
+                    sbn.histplot(df, multiple="dodge", kde=True, ax=axes, bins=edges)
+                    axes.set_xscale("log")
+                    axes.set_xlim(edges[0], edges[-1])
+                else:
+                    sbn.histplot(df, multiple="dodge", kde=True, ax=axes)
                 legend = []
-                # Don't know why but legend is reversed from df.
                 for q in range(nfields - 1, -1, -1):
                     dmedian = u.d(medians.iloc[q], latex=True)
                     dmean = u.d(means.iloc[q], latex=True)
@@ -159,12 +193,17 @@ class MatplotlibBackend(PlotBackend):
                 leads = [f"partial {my[0]}", f"  final {my[1]}"]
                 leads = leads if nfields == 2 else leads[1:]
             elif nfields == 2:
-                # Show partial bequest and net spending as two separate histograms.
                 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
                 cols = ["partial", objective]
                 leads = [f"partial {my[0]}", objective]
                 for q, col in enumerate(cols):
-                    sbn.histplot(df[col], kde=True, ax=axes[q])
+                    edges = _log_spaced_edges(df[col]) if log_x else None
+                    if edges is not None:
+                        sbn.histplot(df[col], kde=True, ax=axes[q], bins=edges)
+                        axes[q].set_xscale("log")
+                        axes[q].set_xlim(edges[0], edges[-1])
+                    else:
+                        sbn.histplot(df[col], kde=True, ax=axes[q])
                     dmedian = u.d(medians.iloc[q], latex=True)
                     dmean = u.d(means.iloc[q], latex=True)
                     legend = [f"$M$: {dmedian}, $\\bar{{x}}$: {dmean}"]
@@ -173,9 +212,14 @@ class MatplotlibBackend(PlotBackend):
                     axes[q].set_title(leads[q])
                     axes[q].set_xlabel(f"{thisyear} $k")
             else:
-                # Show net spending as single histogram.
                 fig, axes = plt.subplots()
-                sbn.histplot(df[objective], kde=True, ax=axes)
+                edges = _log_spaced_edges(df[objective]) if log_x else None
+                if edges is not None:
+                    sbn.histplot(df[objective], kde=True, ax=axes, bins=edges)
+                    axes.set_xscale("log")
+                    axes.set_xlim(edges[0], edges[-1])
+                else:
+                    sbn.histplot(df[objective], kde=True, ax=axes)
                 dmedian = u.d(medians.iloc[0], latex=True)
                 dmean = u.d(means.iloc[0], latex=True)
                 legend = [f"$M$: {dmedian}, $\\bar{{x}}$: {dmean}"]

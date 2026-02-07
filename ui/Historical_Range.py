@@ -38,6 +38,7 @@ else:
     kz.initCaseKey("reverse_sequence", False)
     kz.initCaseKey("roll_sequence", 0)
     kz.initCaseKey("augmented_sampling", False)
+    kz.initCaseKey("histogram_log_x", False)
 
     st.markdown("""Generate a histogram of results obtained from backtesting
 current scenario with historical data over selected year range.""")
@@ -69,6 +70,7 @@ current scenario with historical data over selected year range.""")
     with col4:
         st.button("Run historical range", on_click=owb.runHistorical, disabled=kz.caseIsNotRunReady())
 
+    st.markdown("####")
     with st.expander("*Advanced options*"):
         st.markdown("#### :orange[Augmented sampling]")
         plan = kz.getCaseKey("plan")
@@ -79,6 +81,12 @@ current scenario with historical data over selected year range.""")
             "When off, only the default sequence (no reverse, no roll) is used."
         )
         kz.getToggle("Augmented sampling", "augmented_sampling", callback=kz.setpull, help=help_augmented)
+        st.markdown("#### :orange[Histogram]")
+        help_log_x = (
+            "Use log-spaced bins and a log-scale x-axis for the result histogram (log-normal style). "
+            "Values below $1k are excluded from the histogram when on."
+        )
+        kz.getToggle("Log scale (x-axis)", "histogram_log_x", callback=kz.setpull, help=help_log_x)
         st.markdown("#### :orange[Rate sequence] *(one variant per year when augmented is off)*")
         help_reverse = ("Reverse the rate sequence along the time axis (e.g. run last year first)."
                         " Ignored when Augmented sampling is on.")

@@ -33,8 +33,13 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None):
-        """Show a histogram of values from historical data or Monte Carlo simulations."""
+    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None,
+                              log_x=False):
+        """Show a histogram of values from historical data or Monte Carlo simulations.
+
+        If log_x is True, use log-spaced bins and a log-scale x-axis (log-normal style).
+        Zeros are excluded from the histogram when log_x is True.
+        """
         pass
 
     @abstractmethod

@@ -201,13 +201,15 @@ def runHistorical(plan):
     hyto = kz.getCaseKey("hyto")
     augmented = kz.getCaseKey("augmented_sampling")
     augmented = False if augmented is None else bool(augmented)
+    log_x = kz.getCaseKey("histogram_log_x")
+    log_x = False if log_x is None else bool(log_x)
 
     objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress(None)
         fig, summary = plan1.runHistoricalRange(
             objective, options, hyfrm, hyto, figure=True, progcall=mybar,
-            augmented=augmented)
+            augmented=augmented, log_x=log_x)
         kz.storeCaseKey("histoPlot", fig)
         kz.storeCaseKey("histoSummary", summary)
     except Exception as e:
@@ -223,11 +225,13 @@ def runMC(plan):
     prepareRun(plan1)
 
     N = kz.getCaseKey("MC_cases")
+    log_x = kz.getCaseKey("histogram_log_x")
+    log_x = False if log_x is None else bool(log_x)
 
     objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress(None)
-        fig, summary = plan1.runMC(objective, options, N, figure=True, progcall=mybar)
+        fig, summary = plan1.runMC(objective, options, N, figure=True, progcall=mybar, log_x=log_x)
         kz.storeCaseKey("monteCarloPlot", fig)
         kz.storeCaseKey("monteCarloSummary", summary)
     except Exception as e:
