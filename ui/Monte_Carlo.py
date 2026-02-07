@@ -47,6 +47,7 @@ else:
 
         st.markdown("#####")
         with st.expander("*Advanced options*"):
+            st.caption("Changing these options will only affect the next run.")
             st.markdown("#### :orange[Histogram]")
             help_log_x = (
                 "Use log-spaced bins and a log-scale x-axis for the result histogram (log-normal style). "

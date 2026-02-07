@@ -70,6 +70,7 @@ current scenario with historical data over selected year range.""")
 
     st.markdown("####")
     with st.expander("*Advanced options*"):
+        st.caption("Changing these options will only affect the next run.")
         col1, col2 = st.columns(2, gap="small", vertical_alignment="top")
         with col1:
             st.markdown("#### :orange[Augmented sampling]")
