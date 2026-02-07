@@ -571,10 +571,19 @@ class PlotlyBackend(PlotBackend):
         Zeros are excluded from the histogram when log_x is True.
         """
         _LOG_FLOOR = 0.001   # $1 in thousands; values below excluded when log_x
-        _LOG_NBINS = 50
+        _LOG_NBINS_MAX = 50
+        _LOG_NBINS_MIN = 10
 
-        def _log_spaced_edges(series, num_bins=_LOG_NBINS, floor=_LOG_FLOOR):
-            """Log-spaced bin edges from positive values >= floor. Returns (edges, positive_mask)."""
+        def _log_nbins(n_positive):
+            """Data-adaptive number of log bins: between 10 and 50, ~sqrt(n) otherwise."""
+            if n_positive <= 0:
+                return _LOG_NBINS_MIN
+            n_bins = int(np.sqrt(n_positive))
+            return max(_LOG_NBINS_MIN, min(_LOG_NBINS_MAX, n_bins))
+
+        def _log_spaced_edges(series, n_positive=None, floor=_LOG_FLOOR):
+            """Log-spaced bin edges from positive values >= floor. Returns (edges, positive_mask).
+            n_positive: if given, used for adaptive bin count; else derived from series."""
             pos = series.to_numpy(dtype=float)
             pos = pos[(pos >= floor) & np.isfinite(pos)]
             if len(pos) == 0:
@@ -582,6 +591,7 @@ class PlotlyBackend(PlotBackend):
             lo, hi = float(np.min(pos)), float(np.max(pos))
             if lo <= 0 or hi <= 0:
                 return None, (series.to_numpy(dtype=float) >= floor) & np.isfinite(series)
+            num_bins = _log_nbins(n_positive if n_positive is not None else len(pos))
             edges = np.logspace(np.log10(lo), np.log10(hi), num=num_bins + 1)
             return edges, (series.to_numpy(dtype=float) >= floor) & np.isfinite(series)
 
@@ -645,7 +655,8 @@ class PlotlyBackend(PlotBackend):
                     if all_pos:
                         all_pos = np.array(all_pos)
                         lo, hi = float(np.min(all_pos)), float(np.max(all_pos))
-                        edges = np.logspace(np.log10(lo), np.log10(hi), num=_LOG_NBINS + 1)
+                        num_bins = _log_nbins(len(all_pos))
+                        edges = np.logspace(np.log10(lo), np.log10(hi), num=num_bins + 1)
                         for i, col in enumerate(df.columns):
                             counts, centers = _histogram_log(df[col], edges)
                             dmedian = u.d(medians.iloc[i], latex=False)

@@ -122,10 +122,19 @@ class MatplotlibBackend(PlotBackend):
         Zeros are excluded from the histogram when log_x is True.
         """
         _LOG_FLOOR = 0.001   # $1 in thousands; values below excluded when log_x
-        _LOG_NBINS = 50
+        _LOG_NBINS_MAX = 50
+        _LOG_NBINS_MIN = 10
 
-        def _log_spaced_edges(series, floor=_LOG_FLOOR, num_bins=_LOG_NBINS):
-            """Log-spaced bin edges from positive values >= floor. Returns None if no positive data."""
+        def _log_nbins(n_positive):
+            """Data-adaptive number of log bins: between 10 and 50, ~sqrt(n) otherwise."""
+            if n_positive <= 0:
+                return _LOG_NBINS_MIN
+            n_bins = int(np.sqrt(n_positive))
+            return max(_LOG_NBINS_MIN, min(_LOG_NBINS_MAX, n_bins))
+
+        def _log_spaced_edges(series, floor=_LOG_FLOOR, n_positive=None):
+            """Log-spaced bin edges from positive values >= floor. Returns None if no positive data.
+            n_positive: if given, used for adaptive bin count; else derived from series."""
             pos = series.to_numpy(dtype=float)
             pos = pos[(pos >= floor) & np.isfinite(pos)]
             if len(pos) == 0:
@@ -133,6 +142,7 @@ class MatplotlibBackend(PlotBackend):
             lo, hi = float(np.min(pos)), float(np.max(pos))
             if lo <= 0 or hi <= 0:
                 return None
+            num_bins = _log_nbins(n_positive if n_positive is not None else len(pos))
             return np.logspace(np.log10(lo), np.log10(hi), num=num_bins + 1)
 
         description = io.StringIO()
@@ -173,7 +183,8 @@ class MatplotlibBackend(PlotBackend):
                         df[col][(df[col] >= _LOG_FLOOR) & np.isfinite(df[col])].to_numpy()
                         for col in df.columns
                     ])
-                    edges = _log_spaced_edges(pd.Series(all_pos)) if len(all_pos) > 0 else None
+                    edges = _log_spaced_edges(
+                        pd.Series(all_pos), n_positive=len(all_pos)) if len(all_pos) > 0 else None
                 else:
                     edges = None
                 if edges is not None:
