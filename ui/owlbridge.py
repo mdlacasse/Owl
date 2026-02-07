@@ -201,7 +201,7 @@ def runHistorical(plan):
     hyto = kz.getCaseKey("hyto")
     augmented = kz.getCaseKey("augmented_sampling")
     augmented = False if augmented is None else bool(augmented)
-    log_x = kz.getCaseKey("histogram_log_x")
+    log_x = kz.getCaseKey("histogram_log_x_historical")
     log_x = False if log_x is None else bool(log_x)
 
     objective, options = kz.getSolveParameters()
@@ -225,7 +225,7 @@ def runMC(plan):
     prepareRun(plan1)
 
     N = kz.getCaseKey("MC_cases")
-    log_x = kz.getCaseKey("histogram_log_x")
+    log_x = kz.getCaseKey("histogram_log_x_mc")
     log_x = False if log_x is None else bool(log_x)
 
     objective, options = kz.getSolveParameters()

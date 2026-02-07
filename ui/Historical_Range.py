@@ -38,7 +38,7 @@ else:
     kz.initCaseKey("reverse_sequence", False)
     kz.initCaseKey("roll_sequence", 0)
     kz.initCaseKey("augmented_sampling", False)
-    kz.initCaseKey("histogram_log_x", False)
+    kz.initCaseKey("histogram_log_x_historical", False)
 
     st.markdown("""Generate a histogram of results obtained from backtesting
 current scenario with historical data over selected year range.""")
@@ -65,41 +65,44 @@ current scenario with historical data over selected year range.""")
             key=kz.genCaseKey("hyto"),
         )
 
-    # st.divider()
-    # col1, col2 = st.columns(2, gap="small", vertical_alignment="top")
     with col4:
         st.button("Run historical range", on_click=owb.runHistorical, disabled=kz.caseIsNotRunReady())
 
     st.markdown("####")
     with st.expander("*Advanced options*"):
-        st.markdown("#### :orange[Augmented sampling]")
-        plan = kz.getCaseKey("plan")
-        N_n = plan.N_n if plan is not None else 50
-        help_augmented = (
-            "When on, run every combination of reverse (forward/reversed) and roll (0 to N−1) "
-            "for each year. The histogram then aggregates all runs (years × 2 × N). "
-            "When off, only the default sequence (no reverse, no roll) is used."
-        )
-        kz.getToggle("Augmented sampling", "augmented_sampling", callback=kz.setpull, help=help_augmented)
-        st.markdown("#### :orange[Histogram]")
-        help_log_x = (
-            "Use log-spaced bins and a log-scale x-axis for the result histogram (log-normal style). "
-            "Values below $1k are excluded from the histogram when on."
-        )
-        kz.getToggle("Log scale (x-axis)", "histogram_log_x", callback=kz.setpull, help=help_log_x)
-        st.markdown("#### :orange[Rate sequence] *(one variant per year when augmented is off)*")
+        col1, col2 = st.columns(2, gap="small", vertical_alignment="top")
+        with col1:
+            st.markdown("#### :orange[Augmented sampling]")
+            plan = kz.getCaseKey("plan")
+            N_n = plan.N_n if plan is not None else 50
+            help_augmented = (
+                "When on, run every combination of reverse (forward/reversed) and roll (0 to N−1) "
+                "for each year. The histogram then aggregates all runs (years × 2 × N). "
+                "When off, only the default sequence (no reverse, no roll) is used."
+            )
+            kz.getToggle("Augmented sampling", "augmented_sampling", callback=kz.setpull, help=help_augmented)
+        with col2:
+            st.markdown("#### :orange[Histogram]")
+            help_log_x = (
+                "Use log-spaced bins and a log-scale x-axis for the result histogram (log-normal style). "
+                "Values below $1k are excluded from the histogram when on."
+            )
+            kz.getToggle("Log scale (x-axis)", "histogram_log_x_historical", callback=kz.setpull, help=help_log_x)
+
+        st.markdown("#### :orange[Rate sequence]")
+        st.caption("*One variant per year when augmented is off*")
         help_reverse = ("Reverse the rate sequence along the time axis (e.g. run last year first)."
                         " Ignored when Augmented sampling is on.")
         help_roll = "Roll the rate sequence by this many years (0 = no shift). Ignored when Augmented sampling is on."
         augmented = kz.getCaseKey("augmented_sampling")
         augmented = False if augmented is None else bool(augmented)
-        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
-        with col2:
-            kz.getToggle("Reverse sequence", "reverse_sequence", callback=kz.setpull, help=help_reverse,
-                         disabled=augmented)
+        col1, col2, col3, col4  = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
             kz.getIntNum("Roll (years)", "roll_sequence", min_value=0, max_value=N_n,
                          step=1, callback=kz.setpull, help=help_roll, disabled=augmented)
+        with col2:
+            kz.getToggle("Reverse sequence", "reverse_sequence", callback=kz.setpull, help=help_reverse,
+                         disabled=augmented)
 
     st.divider()
     fig = kz.getCaseKey("histoPlot")

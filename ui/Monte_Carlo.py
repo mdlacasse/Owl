@@ -37,7 +37,7 @@ else:
         st.info("Rates must be set to *stochastic* or *histochastic* to run Monte Carlo simulations.")
     else:
         st.markdown("Generate a histogram of results obtained from running multiple scenarios with stochastic rates.")
-        kz.initCaseKey("histogram_log_x", False)
+        kz.initCaseKey("histogram_log_x_mc", False)
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
             kz.initCaseKey("MC_cases", 100)
@@ -47,11 +47,12 @@ else:
 
         st.markdown("#####")
         with st.expander("*Advanced options*"):
+            st.markdown("#### :orange[Histogram]")
             help_log_x = (
                 "Use log-spaced bins and a log-scale x-axis for the result histogram (log-normal style). "
                 "Values below $1k are excluded when on."
             )
-            kz.getToggle("Log scale (x-axis) for histogram", "histogram_log_x", callback=kz.setpull, help=help_log_x)
+            kz.getToggle("Log scale (x-axis) for histogram", "histogram_log_x_mc", callback=kz.setpull, help=help_log_x)
 
     st.divider()
     fig = kz.getCaseKey("monteCarloPlot")
