@@ -316,6 +316,35 @@ class Rates(object):
         self._rateMethod = self._fixedRates
 
         return
+    
+    def _hfpRates(self, n):
+        """
+        Return rates for absolute year index n.
+        """
+        start_idx = self._hfp_years[0] - FROM
+        idx = n - start_idx
+
+        if idx < 0 or idx >= len(self._hfp_rates):
+            raise IndexError("HFP rate index out of bounds.")
+
+        return self._hfp_rates[idx]
+
+
+    def setHFPRates(self, rate_df):
+        """
+        Set time-indexed rates from Household Financial Profile.
+        Expects decimal values.
+        """
+        self.method = "HFP"
+
+        self._hfp_years = rate_df["year"].values
+        self._hfp_rates = rate_df[
+            ["S&P 500", "Corporate Baa", "T Bonds", "inflation"]
+        ].to_numpy(dtype=float)
+
+        self._rateMethod = self._hfpRates
+
+        self.mylog.vprint("Using HFP-provided deterministic rate series.")
 
     def genSeries(self, N):
         """
