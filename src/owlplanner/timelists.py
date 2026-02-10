@@ -298,6 +298,10 @@ def _conditionHouseTables(dfDict, mylog):
 def _conditionRatesTable(dfDict, horizons, mylog):
     """
     Read and validate Rates table from Household Financial Profile.
+
+    - Rates must cover the full planning horizon (absolute calendar years)
+    - Missing years raise an error
+    - Rate values may be provided as percentages or decimals
     """
     if "Rates" not in dfDict:
         return None
@@ -314,27 +318,33 @@ def _conditionRatesTable(dfDict, horizons, mylog):
     df = df[(df["year"] >= thisyear) & (df["year"] < endyear)]
     df = df.drop_duplicates("year")
 
-    # Ensure full coverage
-    missing = []
-    for year in range(thisyear, endyear):
-        if year not in df["year"].values:
-            missing.append(year)
+    # ---- Convert rate columns robustly ----
+    for col in _rateItems[1:]:
+        # Handle strings like "5.5%" explicitly
+        if df[col].dtype == object:
+            df[col] = df[col].astype(str).str.strip().str.replace("%", "", regex=False)
 
+        # Convert to float explicitly
+        df[col] = pd.to_numeric(df[col], errors="coerce").astype(float)
+
+        if df[col].isna().any():
+            raise ValueError(f"Invalid rate value in column '{col}'.")
+
+        # Normalize percentages → decimals
+        # Convention: values > 1.0 are percentages
+        mask = df[col] > 1.0
+        df.loc[mask, col] = df.loc[mask, col] / 100.0
+
+    # ---- Enforce full coverage ----
+    expected_years = set(range(thisyear, endyear))
+    actual_years = set(df["year"].values)
+
+    missing = sorted(expected_years - actual_years)
     if missing:
         raise ValueError(
             f"Rates table missing years: {missing}. "
             "Rates must cover full planning horizon."
         )
-
-    # Convert percent → decimal
-    for col in _rateItems[1:]:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-        if df[col].isna().any():
-            raise ValueError(f"Invalid rate value in column '{col}'.")
-
-        # Excel % handling (5.5% may appear as 5.5 or 0.055)
-        mask = df[col] > 1.0
-        df.loc[mask, col] /= 100.0
 
     df.sort_values("year", inplace=True)
     df.reset_index(drop=True, inplace=True)

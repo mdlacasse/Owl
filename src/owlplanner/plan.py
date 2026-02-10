@@ -1274,6 +1274,17 @@ class Plan:
                 ws.append(row)
             _formatFixedAssetsSheet(ws)
 
+        # Add Rates sheet if available
+        if self.rateTable is not None and not self.rateTable.empty:
+            ws = wb.create_sheet("Rates")
+            df = self.rateTable
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+            # Optional: formatting helper if you want later
+            # _formatRatesSheet(ws)
+
+
+
         return wb
 
     def zeroContributions(self):
