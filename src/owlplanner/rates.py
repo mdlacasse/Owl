@@ -45,6 +45,7 @@ CONSTANT_RATE_METHODS = (
 RATE_METHODS_NO_REGEN = (
     "default", "optimistic", "conservative", "user",
     "historical average", "historical",
+    "HFP",
 )
 
 where = os.path.dirname(sys.modules["owlplanner"].__file__)

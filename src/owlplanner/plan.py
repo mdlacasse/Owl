@@ -404,6 +404,7 @@ class Plan:
         self.timeListsFileName = "None"
         self.timeLists = {}
         self.houseLists = {}
+        self.rateTable = None
         self.zeroContributions()
         self.caseStatus = "unsolved"
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
@@ -821,7 +822,22 @@ class Plan:
             seed = None
 
         dr = rates.Rates(self.mylog, seed=seed)
-        self.rateValues, self.rateStdev, self.rateCorr = dr.setMethod(method, frm, to, values, stdev, corr)
+
+        if method == "HFP":
+            if not hasattr(self, "rateTable") or self.rateTable is None:
+                raise ValueError("method='HFP' selected but no Rates table loaded from HFP.")
+
+            dr.setHFPRates(self.rateTable)
+
+            # Populate Plan fields for consistency
+            self.rateValues = None
+            self.rateStdev = None
+            self.rateCorr = None
+        else:
+            self.rateValues, self.rateStdev, self.rateCorr = dr.setMethod(
+                method, frm, to, values, stdev, corr
+            )
+
         self.rateMethod = method
         self.rateFrm = frm
         self.rateTo = to
@@ -1092,8 +1108,9 @@ class Plan:
             Explicit filename for logging purposes. If provided, this will be used
             in log messages instead of trying to extract it from filename.
         """
+        self.rateTable = None  # Clear any existing rate table since we're loading new data.
         try:
-            returned_filename, self.timeLists, self.houseLists = timelists.read(
+            returned_filename, self.timeLists, self.houseLists, self.rateTable = timelists.read(
                 filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging
             )
         except Exception as e:
