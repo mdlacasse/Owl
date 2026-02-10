@@ -320,15 +320,16 @@ class Rates(object):
     
     def _hfpRates(self, n):
         """
-        Return rates for absolute year index n.
+        Return HFP rates for plan-relative year index n.
         """
-        start_idx = self._hfp_years[0] - FROM
-        idx = n - start_idx
+        if n < 0 or n >= len(self._hfp_rates):
+            raise IndexError(
+                f"HFP rate index {n} out of bounds "
+                f"(available 0..{len(self._hfp_rates) - 1})."
+            )
 
-        if idx < 0 or idx >= len(self._hfp_rates):
-            raise IndexError("HFP rate index out of bounds.")
+        return self._hfp_rates[n]
 
-        return self._hfp_rates[idx]
 
 
     def setHFPRates(self, rate_df):
@@ -338,14 +339,17 @@ class Rates(object):
         """
         self.method = "HFP"
 
-        self._hfp_years = rate_df["year"].values
+        self._hfp_year0 = int(rate_df["year"].iloc[0])
         self._hfp_rates = rate_df[
             ["S&P 500", "Corporate Baa", "T Bonds", "inflation"]
         ].to_numpy(dtype=float)
 
         self._rateMethod = self._hfpRates
 
-        self.mylog.vprint("Using HFP-provided deterministic rate series.")
+        self.mylog.vprint(
+            f"Using HFP deterministic rates from {self._hfp_year0} "
+            f"to {self._hfp_year0 + len(self._hfp_rates) - 1}."
+        )
 
     def genSeries(self, N):
         """

@@ -203,3 +203,150 @@ class TestHFPRatesWriteRead:
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
+
+def test_readconfig_method_hfp_loads_rates():
+    """
+    Integration test:
+    - TOML specifies method = HFP
+    - HFP file includes Rates tab
+    - readConfig loads rates and activates them
+    """
+    from datetime import date
+    import pandas as pd
+    import toml
+    import tempfile
+    import os
+    from pathlib import Path
+
+    from owlplanner.config import readConfig
+
+    thisyear = date.today().year
+    keep_tmp = os.getenv("OWL_KEEP_TMP") == "1"
+    keep_tmp = 1==1
+
+    if keep_tmp:
+        tmpdir = Path(tempfile.mkdtemp(prefix="owl_hfp_"))
+        print(f"[DEBUG] Preserving temp dir: {tmpdir}")
+        cleanup = None
+    else:
+        tmp = tempfile.TemporaryDirectory(prefix="owl_hfp_")
+        tmpdir = Path(tmp.name)
+        cleanup = tmp.cleanup
+
+    try:
+        # ------------------------------------------------------------------
+        # 1. Create temporary HFP file with Rates tab
+        # ------------------------------------------------------------------
+        hfp_path = tmpdir / "test_hfp.xlsx"
+
+        birth_year = 1980
+        remaining_years = 30
+        expectancy = (thisyear - birth_year) + remaining_years
+
+        rate_years = list(range(thisyear, thisyear + remaining_years + 1))  # current + x future years
+
+        rates_df = pd.DataFrame({
+            "year": rate_years,
+            "S&P 500": ["5.5%"] * len(rate_years),
+            "Corporate Baa": [3.25] * len(rate_years),
+            "T Bonds": [0.0275] * len(rate_years),
+            "inflation": ["2.8%"] * len(rate_years),
+        })
+
+        years = list(range(thisyear-5, thisyear + remaining_years + 1))
+        wages_df = pd.DataFrame({
+            "year": years,
+            "anticipated wages": [0] * len(years),
+            "taxable ctrb": [0] * len(years),
+            "401k ctrb": [0] * len(years),
+            "Roth 401k ctrb": [0] * len(years),
+            "IRA ctrb": [0] * len(years),
+            "Roth IRA ctrb": [0] * len(years),
+            "Roth conv": [0] * len(years),
+            "big-ticket items": [0] * len(years),
+        })
+
+        with pd.ExcelWriter(hfp_path) as writer:
+            wages_df.to_excel(writer, sheet_name="Alice", index=False)
+            rates_df.to_excel(writer, sheet_name="Rates", index=False)
+
+        # ------------------------------------------------------------------
+        # 2. Create TOML file with method = HFP
+        # ------------------------------------------------------------------
+        toml_path = tmpdir / "case_hfp.toml"
+
+        toml_config = {
+            "case_name": "HFP Test Case",
+            "basic_info": {
+                "names": ["Alice"],
+                "date_of_birth": ["1980-01-15"],
+                "life_expectancy": [expectancy],
+            },
+            "savings_assets": {
+                "taxable_savings_balances": [0],
+                "tax_deferred_savings_balances": [0],
+                "tax_free_savings_balances": [0],
+            },
+            "household_financial_profile": {
+                "HFP_file_name": str(hfp_path),
+            },
+            "fixed_income": {
+                "pension_monthly_amounts": [0],
+                "pension_ages": [70],
+                "pension_indexed": False,
+                "social_security_pia_amounts": [3000,],
+                "social_security_ages": [62],
+            },
+            "rates_selection": {
+                "method": "HFP",
+                "heirs_rate_on_tax_deferred_estate": 30,
+                "dividend_rate": 1.8,
+                "obbba_expiration_year": 2032,
+                "reverse_sequence": False,
+                "roll_sequence": 0,
+            },
+            "asset_allocation": {
+                "interpolation_method": "linear",
+                "interpolation_center": 0.5,
+                "interpolation_width": 0.2,
+                "type": "individual",
+                "generic":  [ [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],], ]
+            },
+            "optimization_parameters": {
+                "objective": "max_spending",
+                "spending_profile": "flat",
+                "surviving_spouse_spending_percent": 70,
+            },
+            "solver_options": {},
+            "results": {
+                "default_plots": "today",
+            },
+        }
+
+        with open(toml_path, "w") as f:
+            toml.dump(toml_config, f)
+
+        # ------------------------------------------------------------------
+        # 3. Load via readConfig
+        # ------------------------------------------------------------------
+        p = readConfig(str(toml_path), verbose=False)
+
+        # ------------------------------------------------------------------
+        # 4. Assertions
+        # ------------------------------------------------------------------
+        assert p.rateMethod == "HFP"
+        assert p.rateTable is not None
+        assert len(p.rateTable) == len(rate_years)
+
+        row = p.rateTable.iloc[0]
+        assert abs(row["S&P 500"] - 0.055) < 1e-9
+        assert abs(row["Corporate Baa"] - 0.0325) < 1e-9
+        assert abs(row["T Bonds"] - 0.0275) < 1e-9
+        assert abs(row["inflation"] - 0.028) < 1e-9
+
+        assert p.tau_kn is not None
+        assert p.tau_kn.shape[1] == p.N_n
+
+    finally:
+        if cleanup:
+            cleanup()
