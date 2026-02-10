@@ -431,10 +431,17 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
             rateSeed = int(rateSeed)
         reproducibleRates = diconf["rates_selection"].get("reproducible_rates", False)
         p.setReproducible(reproducibleRates, seed=rateSeed)
+
+    if rateMethod == "HFP":
+        if p.rateTable is None or p.rateTable.empty:
+            raise ValueError(
+                "rateMethod='HFP' requires a Rates tab in the Household Financial Profile file."
+            )
+
     reverseSequence = diconf["rates_selection"].get("reverse_sequence", False)
     rollSequence = diconf["rates_selection"].get("roll_sequence", 0)
     p.setRates(rateMethod, frm, to, rateValues, stdev, rateCorr,
-               reverse=reverseSequence, roll=rollSequence)
+            reverse=reverseSequence, roll=rollSequence)
 
     # Asset Allocation.
     boundsAR = {}
