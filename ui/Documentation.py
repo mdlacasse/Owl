@@ -62,14 +62,14 @@ with col3:
     st.image(logofile)
     st.caption("Retirement planner with great wisdom")
 
-col1, col2 = st.columns([0.80, 0.20], gap="large")
-with col1:
-    st.markdown("""
+st.markdown("""
 
 -------
 ### :orange[Table of Contents]
-[Getting Started with User Interface](#getting-started-with-user-interface)
+""")
 
+col1, col2, col3 = st.columns(3, gap="small")
+col1.markdown("""
 [Case Setup](#case-setup)
 - [Case Definition](#case-definition)
 - [:material/person_add: Create Case](#person-add-create-case)
@@ -81,7 +81,9 @@ with col1:
 - [:material/percent: Asset Allocation](#percent-asset-allocation)
 - [:material/monitoring: Rates Selection](#monitoring-rates-selection)
 - [:material/tune: Optimization Parameters](#tune-optimization-parameters)
+""")
 
+col2.markdown("""
 [Single Scenario](#single-scenario)
 - [:material/stacked_line_chart: Graphs](#stacked-line-chart-graphs)
 - [:material/data_table: Worksheets](#data-table-worksheets)
@@ -91,12 +93,16 @@ with col1:
 - [:material/history: Historical Range](#history-historical-range)
 - [:material/finance: Monte Carlo](#finance-monte-carlo)
 
-[Resources](#resources)
+[Tools](#tools)
+- [:material/settings: Settings](#settings-settings)
+- [:material/error: Logs](#error-logs)
+""")
+
+col3.markdown("""
+[Help](#help)
 - [:material/campaign: Quick Start](#quick-start)
 - [:material/help: Documentation](#help-documentation)
 - [:material/tune: Parameters Reference](#parameters-reference)
-- [:material/settings: Settings](#settings-settings)
-- [:material/error: Logs](#error-logs)
 - [:material/info: About *Owl*](#info-about-owl)
 
 [Tips](#tips)
@@ -105,7 +111,13 @@ with col1:
 - [:material/rule_settings: Typical Workflow](#rule-settings-typical-workflow)
 - [:material/mindfulness: Scope of Use](#mindfulness-scope-of-use)
 
--------
+""")
+
+st.markdown("---")
+
+col1, col2 = st.columns([0.80, 0.20], gap="large")
+with col1:
+    st.markdown("""
 ### :orange[Getting Started with the User Interface]
 The functions of each page are described below in the same order as they appear in the menu bar:
 Typically, pages would be accessed in order, starting from left to right and from the top down.
@@ -117,7 +129,8 @@ one to create a new *case* from scratch, and one to create a case
 from a *case* parameter file, which
 would then populate values of all parameters found
 in the [Case Setup](#case-setup) section.
-This box is present on all pages except those in the [Resources](#resources) section.
+This box is present on all pages in [Case Setup](#case-setup)
+and [Single Scenario](#single-scenario) sections.
 The *case* being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
@@ -135,9 +148,9 @@ Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars.
 Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
 
-There are four sections in the menu bar:
+There are five sections in the menu bar:
 [Case Setup](#case-setup), [Single Scenario](#single-scenario),
-[Multiple Scenarios](#multiple-scenarios), and [Resources](#resources).
+[Multiple Scenarios](#multiple-scenarios), [Tools](#tools), and [Help](#help).
 The sections below follow the same logical order.
 
 -------
@@ -600,8 +613,9 @@ tax rate that heirs will pay on the tax-deferred portion of the bequest. Another
 to the year when the OBBBA rates are anticipated to return to pre-Tax Cut and Job Act
 rates.
 
-For **varying** rate types (historical, histochastic, stochastic), the *Advanced options* expander
-offers **Rate sequence** controls that transform the generated rate series in time:
+For **varying** rate types (historical, histochastic, stochastic), the *Advanced options*
+offers **Rate sequence** controls for time reversal and rolling of the historical (or stochastic)
+rate series:
 - **Reverse sequence** – When enabled, the rate sequence is reversed along the time axis
   (e.g. the last year of the series becomes the first year of the plan). Useful for stress-testing
   with a “worst years first” scenario.
@@ -785,10 +799,25 @@ User can run multiple simulations,
 each starting at a different year within a range of historical years.
 Each simulation assumes that the rates follow the same sequence that happened in the past,
 starting from a selected year in the past, and then offset by one year, and so on.
-In *Advanced options*, you can apply **Reverse sequence** and **Roll (years)** to the rate
-sequence for each run (same behavior as on the Rates Selection page).
+The **Starting year** and **Ending year** on the page set the year range and thus the number of
+runs: one run per year in that range by default.
+
+*Advanced options* add the following:
+
+- **Augmented sampling** – When on, each year in the range is run with every combination of *reverse*
+  (forward or reversed sequence) and *roll* (0 to *N*−1 years), so the histogram aggregates many more
+  runs (years × 2 × *N*) and gives a broader view of outcomes. When off, only the default sequence
+  (no reverse, no roll) is used—one run per year.
+- **Log scale (x-axis)** – When on, the result histogram uses log-spaced bins and a log-scale x-axis
+  (log-normal style). Values below $1k are excluded from the histogram. Useful when the
+  distribution is right-skewed.
+- **Rate sequence** – When augmented sampling is off, **Reverse sequence** and **Roll (years)** can
+  be applied to the rate sequence for each run
+ (same behavior as on the [Rates Selection](#monitoring-rates-selection) page),
+  giving one variant per year.
+
 A histogram of results and a success rate is displayed at the end of the run.
-$N$ is the number of runs that could fit in the year range selected,
+$N$ is the number of runs (from the year range and, if used, augmented sampling),
 $P$ the probability of success,
 $\\bar{x}$ is the resulting average, and $M$ is the median.
 
@@ -826,18 +855,7 @@ CPU time limit that will stop a session after the quota is reached.
 Most likely, this will not happen unless you devise unusually long Monte Carlo runs.
 
 -------
-### :orange[Resources]
-#### :material/campaign: Quick Start
-This page is the landing page of the application.
-It shows new users how to quickly get started by using an example *case* file.
-
-#### :material/help: Documentation
-These very pages.
-
-#### :material/tune: Parameters Reference
-This page displays the full parameters reference (PARAMETERS.md) for case configuration and TOML keys.
-
-
+### :orange[Tools]
 #### :material/settings: Settings
 This page allows to select different backends for plotting the graphs.
 The `plotly` package is currently the default as the graphs generated are interactive
@@ -889,17 +907,31 @@ and selecting the **Settings** option.
 Messages coming from the underlying *Owl* calculation engine are displayed on this page.
 This page is mainly used for debugging purposes.
 
+-------
+### :orange[Help]
+
+#### :material/campaign: Quick Start
+This page is the landing page of the application.
+It shows new users how to quickly get started by using an example *case* file.
+
+#### :material/help: Documentation
+These very pages.
+
+#### :material/tune: Parameters Reference
+This page displays reference tables for parameters settings. These are useful for understanding
+keys in case configuration files (TOML).
+
 #### :material/info: About *Owl*
 Credits and disclaimers.
 
 -------
 ### :orange[Tips]
-#### :material/lightbulb_2: Advice on Optimization and Roth Conversions
+#### :material/lightbulb_2: Recommendations on Optimization and Roth Conversions
 *Owl* can optimize explicitly for Medicare costs but these can sometimes be
 costly computations. This approach is included in the current version but
 be aware that computing time can be unpredictable
 due to the additional complexity and the number of binary variables involved.
-As a second option, a self-consistent loop is provided which consists in adding
+As a second option, a self-consistent loop is provided by default which consists in adding
 Medicare costs after the optimization step, and then iterate to convergence.
 In this case, the suggested Roth conversions can sometimes lead to
 smaller net spending or bequest than when no Roth conversions are made.
@@ -907,10 +939,10 @@ This is due to higher Medicare costs triggered by the increased MAGI
 resulting from Roth conversions
 which are factored in during the optimization step.
 
-In general, one should **always** run comparisons between *cases*
+Whenever possible, one should **always** run comparisons between *cases*
 with and without Roth conversions. These comparisons will help quantify
-the effects of the suggested conversions. Optimizers will give the "best" approach
-even if it means only generating one more dollar.
+the effects of the suggested conversions. Remember that optimizers
+will give the "best" approach even if it means only generating one more dollar.
 
 While considering Roth conversions,
 always keep in mind that all projections rely on our current best assumptions.

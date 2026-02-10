@@ -52,12 +52,14 @@ pages = {
         st.Page("Historical_Range.py", icon=":material/history:"),
         st.Page("Monte_Carlo.py", icon=":material/finance:"),
     ],
-    "Resources": [
+    "Tools": [
+        st.Page("Settings.py", icon=":material/settings:"),
+        st.Page("Logs.py", icon=":material/error:"),
+    ],
+    "Help": [
         st.Page("Quick_Start.py", icon=":material/campaign:", default=True),
         st.Page("Documentation.py", icon=":material/help:"),
         st.Page("Parameters_Reference.py", icon=":material/tune:"),
-        st.Page("Settings.py", icon=":material/settings:"),
-        st.Page("Logs.py", icon=":material/error:"),
         st.Page("About_Owl.py", icon=":material/info:"),
     ],
 }
