@@ -70,15 +70,18 @@ current scenario with historical data over selected year range.""")
 
     st.markdown("####")
     with st.expander("*Advanced options*"):
-        st.caption("Changing these options will only affect the next run.")
+        st.caption("""
+Changing these options will only affect the next run.
+Augmented sampling requires a lot of computing and is unlikely to complete on Community Cloud.
+When using this option, self-hosting Owl is recommended.""")
         col1, col2 = st.columns(2, gap="small", vertical_alignment="top")
         with col1:
             st.markdown("#### :orange[Augmented sampling]")
             plan = kz.getCaseKey("plan")
             N_n = plan.N_n if plan is not None else 50
             help_augmented = (
-                "When on, run every combination of reverse (forward/reversed) and roll (0 to N−1) "
-                "for each year. The histogram then aggregates all runs (years × 2 × N). "
+                "When on, run every combination of reverse (forward/reversed) and roll (0 to $N$−1) "
+                "for each year. The histogram then aggregates all runs (2 × $N^2$). "
                 "When off, only the default sequence (no reverse, no roll) is used."
             )
             kz.getToggle("Augmented sampling", "augmented_sampling", callback=kz.setpull, help=help_augmented)
@@ -93,8 +96,8 @@ current scenario with historical data over selected year range.""")
         st.markdown("#### :orange[Rate sequence]")
         st.caption("*One variant per year when augmented is off*")
         help_reverse = ("Reverse the rate sequence along the time axis (e.g. run last year first)."
-                        " Ignored when Augmented sampling is on.")
-        help_roll = "Roll the rate sequence by this many years (0 = no shift). Ignored when Augmented sampling is on."
+                        " Ignored when `Augmented sampling` is on.")
+        help_roll = "Roll the rate sequence by this many years (0 = no shift). Ignored when `Augmented sampling` is on."
         augmented = kz.getCaseKey("augmented_sampling")
         augmented = False if augmented is None else bool(augmented)
         col1, col2, col3, col4  = st.columns(4, gap="large", vertical_alignment="bottom")

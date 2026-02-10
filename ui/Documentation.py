@@ -807,7 +807,9 @@ runs: one run per year in that range by default.
 - **Augmented sampling** – When on, each year in the range is run with every combination of *reverse*
   (forward or reversed sequence) and *roll* (0 to *N*−1 years), so the histogram aggregates many more
   runs (years × 2 × *N*) and gives a broader view of outcomes. When off, only the default sequence
-  (no reverse, no roll) is used—one run per year.
+  (no reverse, no roll) is used—one run per year. As the number of rate sequences is proportional to the
+  square of the number of years in the plan $(\tilde 2N^2)$, it is recommended to run this options
+  only when self-hosting *Owl* as it is likely to timeout on the Community server due to the long computing time.
 - **Log scale (x-axis)** – When on, the result histogram uses log-spaced bins and a log-scale x-axis
   (log-normal style). Values below $1k are excluded from the histogram. Useful when the
   distribution is right-skewed.
