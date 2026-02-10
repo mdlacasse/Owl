@@ -79,6 +79,14 @@ _fixedAssetTypes = [
     "stocks",
 ]
 
+_rateItems = [
+    "year",
+    "S&P 500",
+    "Corporate Baa",
+    "T Bonds",
+    "inflation",
+]
+
 
 def read(finput, inames, horizons, mylog, filename=None):
     """
@@ -132,7 +140,11 @@ def read(finput, inames, horizons, mylog, filename=None):
     houseLists = _conditionHouseTables(dfDict, mylog)
     mylog.vprint(f"Successfully read household tables from {streamName}.")
 
-    return finput, timeLists, houseLists
+    rateTable = _conditionRatesTable(dfDict, horizons, mylog)
+    mylog.vprint(f"Successfully read rates table from {streamName}.")
+
+
+    return finput, timeLists, houseLists, rateTable
 
 
 def _checkColumns(df, iname, colList):
@@ -281,6 +293,55 @@ def _conditionHouseTables(dfDict, mylog):
             mylog.vprint(f"Table for {page} not found. Assuming empty table.")
 
     return houseDic
+
+
+def _conditionRatesTable(dfDict, horizons, mylog):
+    """
+    Read and validate Rates table from Household Financial Profile.
+    """
+    if "Rates" not in dfDict:
+        return None
+
+    df = dfDict["Rates"]
+    df = _checkColumns(df, "Rates", _rateItems)
+    df = df[_rateItems].copy()
+
+    thisyear = date.today().year
+    max_horizon = max(horizons)
+    endyear = thisyear + max_horizon
+
+    # Restrict to planning horizon
+    df = df[(df["year"] >= thisyear) & (df["year"] < endyear)]
+    df = df.drop_duplicates("year")
+
+    # Ensure full coverage
+    missing = []
+    for year in range(thisyear, endyear):
+        if year not in df["year"].values:
+            missing.append(year)
+
+    if missing:
+        raise ValueError(
+            f"Rates table missing years: {missing}. "
+            "Rates must cover full planning horizon."
+        )
+
+    # Convert percent → decimal
+    for col in _rateItems[1:]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+        if df[col].isna().any():
+            raise ValueError(f"Invalid rate value in column '{col}'.")
+
+        # Excel % handling (5.5% may appear as 5.5 or 0.055)
+        mask = df[col] > 1.0
+        df.loc[mask, col] /= 100.0
+
+    df.sort_values("year", inplace=True)
+    df.reset_index(drop=True, inplace=True)
+
+    mylog.vprint(f"Loaded {len(df)} HFP rate rows.")
+
+    return df
 
 
 def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None):
