@@ -73,7 +73,7 @@ current scenario with historical data over selected year range.""")
         st.caption("""
 Changing these options will only affect the next run.
 Augmented sampling requires a lot of computing and is unlikely to complete on Community Cloud.
-When using this option, self-hosting Owl is recommended.""")
+It is best to self-host *Owl* when using this option.""")
         col1, col2 = st.columns(2, gap="small", vertical_alignment="top")
         with col1:
             st.markdown("#### :orange[Augmented sampling]")
