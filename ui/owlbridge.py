@@ -19,30 +19,26 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+# flake8: noqa: E402
 
 import streamlit as st
 import pandas as pd
 from io import StringIO, BytesIO
 from functools import wraps
 from datetime import datetime, date
-import importlib
 import sys
 
 sys.path.insert(0, "./src")
 sys.path.insert(0, "../src")
 
-import owlplanner as owl                      # noqa: E402
-from owlplanner.rates import FROM, TO         # noqa: E402
-from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes  # noqa: E402, F401
-from owlplanner.mylogging import Logger  # noqa: E402
+import owlplanner as owl
+from owlplanner.rates import FROM, TO
+from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes
+from owlplanner.mylogging import Logger
+from moseklicense import hasMOSEK
 
-import sskeys as kz         # noqa: E402
-import progress             # noqa: E402
-
-
-def hasMOSEK():
-    spec = importlib.util.find_spec("mosek")
-    return spec is not None
+import sskeys as kz
+import progress
 
 
 def createPlan():

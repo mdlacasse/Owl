@@ -563,8 +563,7 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
-    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None,
-                              log_x=False):
+    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None, log_x=False):
         """Show a histogram of values from historical data or Monte Carlo simulations.
 
         If log_x is True, use log-spaced bins and a log-scale x-axis (log-normal style).
@@ -609,7 +608,10 @@ class PlotlyBackend(PlotBackend):
 
         # Calculate success rate and create title
         pSuccess = u.pc(len(df) / N)
-        print(f"Success rate: {pSuccess} on {N} samples.", file=description)
+        n_failed = N - len(df)
+        print(f"Success rate: {pSuccess} on {N} scenarios.", file=description)
+        if n_failed > 0:
+            print(f"N failed: {n_failed}", file=description)
         title = f"N = {N}, P = {pSuccess}"
 
         # Calculate statistics
@@ -790,8 +792,6 @@ class PlotlyBackend(PlotBackend):
                 mmin = 1000 * df.iloc[:, q].min()
                 mmax = 1000 * df.iloc[:, q].max()
                 print(f"{leads[q]:>12}:           Range: {u.d(mmin)} - {u.d(mmax)}", file=description)
-                nzeros = len(df.iloc[:, q][df.iloc[:, q] < 0.001])
-                print(f"{leads[q]:>12}:    N zero solns: {nzeros}", file=description)
 
             return fig, description
 

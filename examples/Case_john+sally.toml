@@ -52,7 +52,7 @@ noRothConversions = "None"
 startRothConversions = 2025
 withSCLoop = true
 withMedicare = "loop"
-solver = "HiGHS"
+solver = "MOSEK"
 spendingSlack = 0
 
 [results]

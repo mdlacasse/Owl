@@ -52,9 +52,10 @@ uv.lock
 .ipynb_checkpoints/
 
 # --------------------------------------------------
-# Streamlit
+# Streamlit / secrets
 # --------------------------------------------------
-.streamlit/secrets.toml
+secrets.toml
+mosek.lic
 
 # --------------------------------------------------
 # dotenv / secrets

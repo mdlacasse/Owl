@@ -51,8 +51,8 @@ BIGM_AMO = 5e7     # 100 times large withdrawals or conversions
 GAP = 1e-4
 MILP_GAP = 30 * GAP
 MAX_ITERATIONS = 29
-ABS_TOL = 50
-REL_TOL = 5e-6
+ABS_TOL = 100
+REL_TOL = 1e-5
 TIME_LIMIT = 900
 EPSILON = 1e-9
 
@@ -62,10 +62,10 @@ def _apply_rate_sequence_transform(tau_kn, reverse, roll):
     Apply reverse and/or roll to a rate series (N_k x N_n).
     Returns a new array; does not modify the input.
     """
-    if reverse:
-        tau_kn = tau_kn[:, ::-1]
     if roll != 0:
         tau_kn = np.roll(tau_kn, int(roll), axis=1)
+    if reverse:
+        tau_kn = tau_kn[:, ::-1]
     return tau_kn
 
 
@@ -2243,7 +2243,7 @@ class Plan:
         self.mylog.print(f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, and gap={gap:.1e}.")
 
         max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
-        self.mylog.print(f"Using maxIter={max_iterations}.")
+        # self.mylog.print(f"Using maxIter={max_iterations}.")
 
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
@@ -2330,9 +2330,7 @@ class Plan:
                     cycle_objfns = obj_history[-cycle_len:]
                     xx = cycle_solutions[best_idx]
                     objfn = cycle_objfns[best_idx]
-                    self.mylog.print("Using best solution from detected cycle.")
-
-                    self.mylog.print("Accepting solution from cycle and terminating.")
+                    self.mylog.print("Accepting best solution from cycle and terminating.")
                     break
 
             if it >= max_iterations:
@@ -2346,7 +2344,8 @@ class Plan:
 
         if solverSuccess:
             self.mylog.print(f"Self-consistent loop returned after {it+1} iterations.")
-            self.mylog.print(solverMsg)
+            if solverMsg:
+                self.mylog.print(solverMsg)
             self.mylog.print(f"Objective: {u.d(objfn * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(xx)
@@ -2476,9 +2475,8 @@ class Plan:
 
         solverMsg = str()
 
-        def _streamPrinter(text, msg=solverMsg):
+        def _streamPrinter(text):
             self.mylog.vprint(text.strip())
-            msg += text
 
         self._buildConstraints(objective, options)
         Aind, Aval, clb, cub = self.A.lists()
@@ -2523,12 +2521,28 @@ class Plan:
             task.putconbound(ii, bdic[ckeys[ii]], clb[ii], cub[ii])
 
         task.putobjsense(mosek.objsense.minimize)
-        task.optimize()
+
+        try:
+            trmcode = task.optimize()
+        except mosek.Error as e:
+            solverMsg = f"MOSEK: {e.msg}"
+            xx = np.zeros(self.A.nvars)
+            return 0.0, xx, False, solverMsg, -1
 
         # Problem MUST contain binary variables to make these calls.
         solsta = task.getsolsta(mosek.soltype.itg)
         solverSuccess = (solsta == mosek.solsta.integer_optimal)
         rel_gap = task.getdouinf(mosek.dinfitem.mio_obj_rel_gap) if solverSuccess else -1
+
+        if solsta == mosek.solsta.integer_optimal:
+            solverMsg = "MOSEK: Optimal integer solution found"
+        elif solsta == mosek.solsta.prim_feas:
+            solverMsg = "MOSEK: Feasible integer solution (not proven optimal)"
+        elif solsta == mosek.solsta.unknown:
+            symname, desc = mosek.Env.getcodedesc(trmcode)
+            solverMsg = f"MOSEK: {symname} - {desc}"
+        else:
+            solverMsg = f"MOSEK: Solution status {solsta}"
 
         xx = np.array(task.getxx(mosek.soltype.itg))
         solution = task.getprimalobj(mosek.soltype.itg)

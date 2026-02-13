@@ -173,7 +173,8 @@ else:
 
         col1, col2 = st.columns([40, 60], gap="large", vertical_alignment="top")
         with col1:
-            helpmsg = "Select different solvers for comparison purposes. Use HiGHS for best performance."
+            helpmsg = ("Select different solvers for comparison purposes."
+                       " For best performance, use MOSEK if available. Otherwise use HiGHS.")
             ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
         with col2:
             helpmsg = ("Additional solver options as a dictionary (e.g., '{\"key1\": \"value1\", \"key2\": 123}'). "

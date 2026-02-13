@@ -57,13 +57,13 @@ Martin-D. Lacasse (mdlacasse)
  Gene Wood (gene1wood) for improvements and bug fixes.
 
 - Greg Grothaus for developing [ssa.tools](https://ssa.tools) and providing an integration with Owl.
-- Owl image is from [freepik](https://freepik.com).
-- Historical rates are from [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/).
-- Linear programming optimization solvers are from
-[HiGHS](https://highs.dev) and [PuLP](https://coin-or.github.io/pulp/).
-It can also run on [MOSEK](https://mosek.com) if available on your computer.
+- [MOSEK](https://mosek.com) for providing a free license of their commercial software for Owl's deployment on
+the Community Cloud server.
+- [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) for sharing his analyses of historical rates.
+- [HiGHS](https://highs.dev) and [PuLP](https://coin-or.github.io/pulp/) for providing open-source
+linear programming optimization solvers.
 - Owl planner relies on the following [Python](https://python.org) packages:
-    - [highspy](https://highs.dev),
+    [highspy](https://highs.dev),
     [Matplotlib](https://matplotlib.org),
     [Numpy](https://numpy.org),
     [odfpy](https://pypi.org/project/odfpy),
@@ -75,6 +75,7 @@ It can also run on [MOSEK](https://mosek.com) if available on your computer.
     [Seaborn](https://seaborn.pydata.org),
     [toml](https://toml.io),
 and [Streamlit](https://streamlit.io) for the front-end.
+- Owl image is from [freepik](https://freepik.com).
 
 #### :orange[Bugs and Feature Requests]
 Please submit bugs and feature requests through

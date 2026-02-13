@@ -30,11 +30,15 @@ class Progress:
         self.clocks = []
         for i in range(1, 13):
             self.clocks.extend([f":clock{i}:", f":clock{i}30:"])
-        self.txt = "Calculations in progress. Please wait. "
+        self.moons = [":new_moon:", ":waxing_crescent_moon:", ":first_quarter_moon:",
+                      ":waxing_gibbous_moon:", ":full_moon:", ":waning_gibbous_moon:",
+                      ":last_quarter_moon:", ":waning_crescent_moon:"]
+        self.txt = "Calculations in progress. Please wait... &nbsp; &nbsp;"
 
     def msg(self):
         self.counter += 1
-        return self.txt + self.clocks[(self.counter - 1) % 24]
+        # return self.txt + self.clocks[(self.counter - 1) % 24]
+        return self.txt + self.moons[(self.counter - 1) % 8]
 
     def start(self):
         self.bar = st.progress(0, self.msg())

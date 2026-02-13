@@ -31,7 +31,7 @@ logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
 owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/papers/owl.pdf"
 
 # Value proposition
-col1, col2 = st.columns([2, 1], gap="large")
+col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
     st.markdown("# Plan your retirement with confidence")
     st.markdown("*Owl – Optimal Wealth Lab*")
@@ -49,18 +49,38 @@ and which accounts to draw from.
 
 ### :orange[Built for US Retirees]
 Owl integrates US federal tax laws, Social Security rules, and 401(k)/Roth regulations
-to ensure your plan is grounded in reality.
+to ensure your plan is grounded in reality.""")
 
+with col2:
+    st.image(logofile, width="stretch")
+    st.caption("Retirement planner with great wisdom")
+
+# st.markdown("### :orange[Powered by best-in-class optimizer]")
+# col1, col2 = st.columns([18, 82], gap="medium")
+# with col1:
+#    moseklogo = "https://www.mosek.com/static/images/branding/partnergraphmosekinside.jpg"
+#    st.image(moseklogo)
+#    st.caption("Optimization done right since 1999.")
+#with col2:
+#    st.markdown("""
+#[MOSEK](https://mosek.com)—the industry-leading optimizer behind *"Optimization done right. Since 1999."*—has
+#generously provided Owl with a free license for the Community Cloud deployment. This means you get:
+#- **Faster, more reliable plans** — Run more cases in less time with a state-of-the-art solver
+#- **Professional-grade optimization** — The same technology trusted by financial institutions
+#and engineering firms worldwide
+#- **Freedom to compare** — Benchmark results against other optimizers and choose what works best for you
+#
+#We are grateful for MOSEK's support of open-source retirement planning.
+#""")
+
+st.markdown("""
 ### :orange[Private by design]
 Owl is open source. Your data stays private in all cases—we don't store, track,
 or resell your financial data, whether cloud-hosted, or self-hosted on your device.
 - **No Sign-ups:** Start planning immediately.
 - **No Fees:** Professional-grade modeling, free for everyone.
-- **Total Privacy:** Your data remains private either way.""")
-
-with col2:
-    st.image(logofile, width="stretch")
-    st.caption("Retirement planner with great wisdom")
+- **Total Privacy:** Your data remains private either way.
+""")
 
 kz.divider("orange")
 
@@ -82,7 +102,6 @@ with ben_col3:
 \nWhether cloud-hosted or self-hosted on your device, we don't store, view, or resell your financial data.""")
 
 kz.divider("orange")
-
 st.markdown("### :orange[Ready for a demo?]")
 
 with st.expander("*Explore some case examples*"):
@@ -109,7 +128,7 @@ with st.expander("*Explore some case examples*"):
 
 kz.divider("orange")
 
-st.markdown("### :orange[Ready to go deep ?]")
+st.markdown("### :orange[Ready to go deeper?]")
 with st.expander("*Run your own cases*"):
     st.markdown("""Design your own case and save your progress locally.
 Return anytime by uploading your own configuration files—no cloud account required.""")

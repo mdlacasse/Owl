@@ -71,9 +71,11 @@ current scenario with historical data over selected year range.""")
     st.markdown("####")
     with st.expander("*Advanced options*"):
         st.caption("""
-Changing these options will only affect the next run.
-Augmented sampling requires a lot of computing and is unlikely to complete on Community Cloud.
-It is best to self-host *Owl* when using this option.""")
+:warning: Augmented sampling requires a lot of computing time and is unlikely to complete on the Community Cloud.
+Consider self-hosting *Owl* for using this option.:warning:
+
+Changing any of these options only affects the next run.
+""")
         col1, col2 = st.columns(2, gap="small", vertical_alignment="top")
         with col1:
             st.markdown("#### :orange[Augmented sampling]")
@@ -81,7 +83,7 @@ It is best to self-host *Owl* when using this option.""")
             N_n = plan.N_n if plan is not None else 50
             help_augmented = (
                 "When on, run every combination of reverse (forward/reversed) and roll (0 to $N$−1) "
-                "for each year. The histogram then aggregates all runs (2 × $N^2$). "
+                "for each year. The histogram then aggregates all runs (historical years × $2N$). "
                 "When off, only the default sequence (no reverse, no roll) is used."
             )
             kz.getToggle("Augmented sampling", "augmented_sampling", callback=kz.setpull, help=help_augmented)
@@ -100,7 +102,7 @@ It is best to self-host *Owl* when using this option.""")
         help_roll = "Roll the rate sequence by this many years (0 = no shift). Ignored when `Augmented sampling` is on."
         augmented = kz.getCaseKey("augmented_sampling")
         augmented = False if augmented is None else bool(augmented)
-        col1, col2, col3, col4  = st.columns(4, gap="large", vertical_alignment="bottom")
+        col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
             kz.getIntNum("Roll (years)", "roll_sequence", min_value=0, max_value=N_n,
                          step=1, callback=kz.setpull, help=help_roll, disabled=augmented)

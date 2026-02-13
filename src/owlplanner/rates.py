@@ -41,6 +41,7 @@ CONSTANT_RATE_METHODS = (
     "default", "optimistic", "conservative", "user",
     "historical average", "mean",
 )
+
 # Rate methods that produce deterministic series (no regeneration needed).
 RATE_METHODS_NO_REGEN = (
     "default", "optimistic", "conservative", "user",

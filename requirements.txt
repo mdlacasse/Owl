@@ -11,3 +11,4 @@ seaborn
 streamlit == 1.52.2
 toml
 altair < 5
+mosek

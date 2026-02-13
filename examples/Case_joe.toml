@@ -52,6 +52,7 @@ startRothConversions = 2025
 bequest = 300
 withSCLoop = true
 withMedicare = "loop"
+solver = "MOSEK"
 
 [results]
 default_plots = "nominal"
