@@ -4,6 +4,14 @@ This document describes all parameters used in Owl TOML configuration files. The
 
 -------
 
+## :orange[User-defined sections]
+
+Any TOML section not listed in this document is treated as user-defined and **preserved on load and save**. You can add custom sections (e.g. `[user]`, `[custom_metadata]`, `[notes]`) to store notes, tags, or other data. These sections are ignored by Owl for planning but are round-tripped when you save a case file after loading one that contained them.
+
+**Reserved section names** (do not use for custom data): `basic_info`, `savings_assets`, `household_financial_profile`, `fixed_income`, `rates_selection`, `asset_allocation`, `optimization_parameters`, `solver_options`, `results`, plus root-level keys `case_name` and `description`.
+
+-------
+
 ## :orange[Root level parameters]
 
 These parameters are defined at the root level of the TOML file (not within any section).
@@ -291,5 +299,10 @@ maxTime = 900
 
 [results]
 default_plots = "nominal"
+
+# Optional: user-defined sections are preserved on load/save
+[user]
+notes = "Custom notes or metadata"
+version = 1
 ```
 

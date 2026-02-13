@@ -2,8 +2,17 @@
 
 ---
 
-## Version 2026.02.06
+## Version 2026.02.13
+- Add capability to include user-defined tokens in configuration file
 
+---
+
+## Version 2026.02.12
+- Improve integration wih MOSEK 
+
+---
+
+## Version 2026.02.06
 ### Multiple scenarios
 - Add capabilities for running augmented historical range.
 - Add log scale option to hostograms

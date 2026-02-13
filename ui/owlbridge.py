@@ -106,53 +106,16 @@ def _checkPlan(func):
 
 
 def prepareRun(plan):
-    ni = 2 if kz.getCaseKey("status") == "married" else 1
+    from owlplanner.config import apply_config_to_plan, ui_to_config
 
-    startDate = kz.getCaseKey("startDate")
-    bal = kz.getAccountBalances(ni)
     try:
-        plan.setAccountBalances(taxable=bal[0], taxDeferred=bal[1], taxFree=bal[2], startDate=startDate)
+        uidic = kz.currentCaseDic()
+        diconf = ui_to_config(uidic)
+        apply_config_to_plan(plan, diconf)
     except Exception as e:
-        st.error(f"Setting account balances failed: {e}")
+        st.error(f"Failed to apply configuration: {e}")
         return
 
-    amounts, ages, indexed = kz.getFixedIncome(ni, "p")
-    try:
-        plan.setPension(amounts, ages, indexed)
-    except Exception as e:
-        st.error(f"Failed setting pensions: {e}")
-        return
-
-    amounts, ages, indexed = kz.getFixedIncome(ni, "ss")
-    try:
-        plan.setSocialSecurity(amounts, ages)
-    except Exception as e:
-        st.error(f"Failed setting social security: {e}")
-        return
-
-    if ni == 2:
-        benfrac = [kz.getCaseKey("benf0"), kz.getCaseKey("benf1"), kz.getCaseKey("benf2")]
-        try:
-            plan.setBeneficiaryFractions(benfrac)
-        except Exception as e:
-            st.error(f"Failed setting beneficiary fractions: {e}")
-            return
-
-        surplusFrac = kz.getCaseKey("surplusFraction")
-        try:
-            plan.setSpousalDepositFraction(surplusFrac)
-        except Exception as e:
-            st.error(f"Failed setting beneficiary fractions: {e}")
-            return
-
-    plan.setDescription(kz.getCaseKey("description"))
-    plan.setHeirsTaxRate(kz.getCaseKey("heirsTx"))
-    plan.setDividendRate(kz.getCaseKey("divRate"))
-    plan.setExpirationYearOBBBA(kz.getCaseKey("yOBBBA"))
-
-    _setInterpolationMethod(plan)
-    _setAllocationRatios(plan)
-    _setRates(plan)
     _setContributions(plan, "set")
 
 
@@ -809,21 +772,38 @@ def saveCaseFile(plan):
 
 
 def createCaseFromFile(strio):
+    from owlplanner.config import load_toml
+    from owlplanner.config import config_to_plan
+    from owlplanner.config import config_to_ui
+
     logstrio = StringIO()
     try:
-        plan = owl.readConfig(strio, logstreams=[logstrio], readContributions=False)
+        diconf, dirname, _ = load_toml(strio)
+        plan = config_to_plan(
+            diconf,
+            dirname,
+            verbose=True,
+            logstreams=[logstrio, logstrio],
+            read_contributions=False,
+        )
     except Exception as e:
         st.error(f"Failed to parse case file: {e}")
         return "", {}
 
-    name, mydic = genDic(plan)
+    mydic = config_to_ui(diconf)
+    mydic["plan"] = plan
+    mydic["id"] = plan._id
+    mydic["summaryDf"] = None
+    mydic["casetoml"] = ""
+    mydic["caseStatus"] = "new"
     mydic["logs"] = logstrio
+    mydic["config"] = diconf  # Store canonical config for round-trip of user keys
 
     val = kz.getGlobalKey("plotGlobalBackend")
     if val:
         plan.setPlotBackend(val)
 
-    return name, mydic
+    return plan._name, mydic
 
 
 def genDic(plan):
