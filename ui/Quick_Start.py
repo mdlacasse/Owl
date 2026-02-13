@@ -61,17 +61,17 @@ with col2:
 #    moseklogo = "https://www.mosek.com/static/images/branding/partnergraphmosekinside.jpg"
 #    st.image(moseklogo)
 #    st.caption("Optimization done right since 1999.")
-#with col2:
+# with col2:
 #    st.markdown("""
-#[MOSEK](https://mosek.com)—the industry-leading optimizer behind *"Optimization done right. Since 1999."*—has
-#generously provided Owl with a free license for the Community Cloud deployment. This means you get:
-#- **Faster, more reliable plans** — Run more cases in less time with a state-of-the-art solver
-#- **Professional-grade optimization** — The same technology trusted by financial institutions
-#and engineering firms worldwide
-#- **Freedom to compare** — Benchmark results against other optimizers and choose what works best for you
+# [MOSEK](https://mosek.com)—the industry-leading optimizer behind *"Optimization done right. Since 1999."*—has
+# generously provided Owl with a free license for the Community Cloud deployment. This means you get:
+# - **Faster, more reliable plans** — Run more cases in less time with a state-of-the-art solver
+# - **Professional-grade optimization** — The same technology trusted by financial institutions
+# and engineering firms worldwide
+# - **Freedom to compare** — Benchmark results against other optimizers and choose what works best for you
 #
-#We are grateful for MOSEK's support of open-source retirement planning.
-#""")
+# We are grateful for MOSEK's support of open-source retirement planning.
+# """)
 
 st.markdown("""
 ### :orange[Private by design]

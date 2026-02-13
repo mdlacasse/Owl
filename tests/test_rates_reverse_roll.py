@@ -103,12 +103,12 @@ class TestSetRatesRoll:
 class TestSetRatesReverseAndRoll:
     """Tests for applying reverse and roll together."""
 
-    def test_reverse_then_roll_order(self):
-        """Transform is applied: first reverse, then roll (in setRates)."""
+    def test_roll_then_reverse_order(self):
+        """Transform is applied: first roll, then reverse (in setRates)."""
         p = _make_plan_with_historical_rates()
         p.setRates("historical", 1969, 1969 + 4)  # 5 years
         tau_base = p.tau_kn.copy()
-        expected = np.roll(tau_base[:, ::-1], 1, axis=1)
+        expected = np.roll(tau_base, 1, axis=1)[:, ::-1]
         p.setRates("historical", 1969, 1969 + 4, reverse=True, roll=1)
         np.testing.assert_array_almost_equal(p.tau_kn, expected)
 
