@@ -42,7 +42,7 @@ found in this [document](https://github.com/mdlacasse/Owl/blob/main/papers/owl.p
 
 Copyright &copy; 2025-2026 - The Owlplanner [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 
-#### :orange[Credits]
+#### :orange[Credits and Acknowledgements]
 - Original author:
 Martin-D. Lacasse (mdlacasse)
 
