@@ -369,14 +369,3 @@ Use bootstrap when:
 * You distrust parametric assumptions
 * You want empirically grounded SOR modeling
 
-
-
-If you would like next, I can:
-
-* Provide implementation pseudocode for OWL
-* Provide performance optimization tips
-* Show how ruin probability changes vs Toeplitz
-* Design a hybrid Toeplitz + bootstrap regime-switch model
-* Help write a short academic-style justification section
-
-You are now designing a retirement engine that is far beyond typical Monte Carlo implementations.
