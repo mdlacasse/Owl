@@ -41,6 +41,13 @@ def hasMOSEK():
     return (spec is not None and mosekenv is not None)
 
 
+desired_permissions = 0o600
+
+
+def opener(path, flags):
+    return os.open(path, flags, desired_permissions)
+
+
 def createLicense():
     streamlit_d = _streamlit_dir()
     if not streamlit_d or not os.path.isfile(os.path.join(streamlit_d, "secrets.toml")):
@@ -52,8 +59,8 @@ def createLicense():
         return
 
     license_path = os.path.join(streamlit_d, "mosek.lic")
-    with open(license_path, "w") as f:
-        f.write(license + "\n")
+    with open(license_path, "w", opener=opener) as fh:
+        fh.write(license + "\n")
 
     # print(f"Created MOSEK license file {license_path}")
     os.environ[MOSEKLM_LICENSE_FILE] = os.path.abspath(license_path)

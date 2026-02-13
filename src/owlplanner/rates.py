@@ -45,7 +45,7 @@ CONSTANT_RATE_METHODS = (
 # Rate methods that produce deterministic series (no regeneration needed).
 RATE_METHODS_NO_REGEN = (
     "default", "optimistic", "conservative", "user",
-    "historical average", "historical",
+    "historical average", "historical", "dataframe",
 )
 
 where = os.path.dirname(sys.modules["owlplanner"].__file__)
@@ -73,6 +73,85 @@ TBills = df["TBills"]
 
 # Inflation rate as U.S. CPI index (%) since 1928.
 Inflation = df["Inflation"]
+
+# Required column names for the dataframe method (order: Stocks, Bonds, Fixed, Inflation).
+REQUIRED_RATE_COLUMNS = ("S&P 500", "Bonds Baa", "TNotes", "Inflation")
+
+
+def _validate_rates_dataframe(df, frm, to):
+    """
+    Validate a DataFrame for use with the dataframe rate method.
+
+    Args:
+        df: pandas DataFrame with year and rate columns.
+        frm: First year (inclusive) required in the DataFrame.
+        to: Last year (inclusive) required in the DataFrame.
+
+    Returns:
+        rates_array: (N, 4) array in decimal, ordered by year from frm to to.
+
+    Raises:
+        ValueError: If validation fails (missing columns, missing years, duplicates).
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("DataFrame must be a pandas DataFrame.")
+
+    if frm is None or to is None:
+        raise ValueError("From year (frm) and to year (to) must be provided with the dataframe option.")
+
+    if frm > to:
+        raise ValueError(f"From year ({frm}) must be less than or equal to to year ({to}).")
+
+    # Check required columns
+    missing = [c for c in REQUIRED_RATE_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"DataFrame missing required columns: {missing}. "
+            f"Required: {list(REQUIRED_RATE_COLUMNS)}"
+        )
+
+    year_col = "year" if "year" in df.columns else "Year"
+    if year_col not in df.columns:
+        raise ValueError("DataFrame must have a 'year' or 'Year' column.")
+
+    years = df[year_col].values
+    if len(years) == 0:
+        raise ValueError("DataFrame must not be empty.")
+
+    # Validate years are integers
+    try:
+        years_int = np.array(years, dtype=int)
+    except (ValueError, TypeError):
+        raise ValueError("Year column must contain integers.")
+
+    if not np.array_equal(years, years_int):
+        raise ValueError("Year column must contain integers.")
+
+    # Years must be unique (no duplicates)
+    if len(np.unique(years_int)) != len(years_int):
+        raise ValueError("Year column must contain unique values (no duplicates).")
+
+    # All years from frm to to must be present
+    required_years = set(range(frm, to + 1))
+    df_years = set(years_int)
+    missing_years = sorted(required_years - df_years)
+    if missing_years:
+        raise ValueError(
+            f"DataFrame missing required years: {missing_years[:10]}{'...' if len(missing_years) > 10 else ''}. "
+            f"All years from {frm} to {to} must be present."
+        )
+
+    # Check for nulls in rate columns
+    for col in REQUIRED_RATE_COLUMNS:
+        if df[col].isna().any():
+            raise ValueError(f"Column '{col}' contains missing values.")
+
+    # Build rates array ordered by year (frm, frm+1, ..., to)
+    df_sorted = df.set_index(year_col).sort_index()
+    rates_pct = df_sorted.loc[frm:to, list(REQUIRED_RATE_COLUMNS)].values.astype(float)
+    rates_dec = rates_pct / 100.0
+
+    return rates_dec
 
 
 def getRatesDistributions(frm, to, mylog=None):
@@ -178,7 +257,7 @@ class Rates(object):
         # Default values for rates.
         self.setMethod("default")
 
-    def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None):
+    def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None, df=None):
         """
         Select the method to generate the annual rates of return
         for the different classes of assets.  Different methods include:
@@ -190,6 +269,7 @@ class Rates(object):
         - historical average or means: average over historical data.
         - histochastic: randomly generated from the statistical properties of a historical range.
         - stochastic: randomly generated from means, standard deviation and optionally a correlation matrix.
+        - dataframe: rates from a user-provided pandas DataFrame (API only).
         The correlation matrix can be provided as a full matrix or
         by only specifying the off-diagonal elements as a simple list
         of (Nk*Nk - Nk)/2 values for Nk assets.
@@ -205,6 +285,7 @@ class Rates(object):
             "mean",
             "stochastic",
             "histochastic",
+            "dataframe",
         ]:
             raise ValueError(f"Unknown rate selection method {method}.")
 
@@ -278,6 +359,31 @@ class Rates(object):
             self.mylog.vprint("Setting rates using stochastic method with means:", *[u.pc(k) for k in self.means])
             self.mylog.vprint("\t standard deviations:", *[u.pc(k) for k in self.stdev])
             self.mylog.vprint("\t and correlation matrix:\n\t\t", str(self.corr).replace("\n", "\n\t\t"))
+        elif method == "dataframe":
+            if df is None:
+                raise ValueError("DataFrame must be provided with the dataframe option.")
+            if frm is None or to is None:
+                raise ValueError(
+                    "From year (frm) and to year (to) must be provided with the dataframe option."
+                )
+            if frm > to:
+                raise ValueError(f"From year ({frm}) must be less than or equal to to year ({to}).")
+            self._dfRates = _validate_rates_dataframe(df, frm, to)
+            self.frm = frm
+            self.to = to
+            self._dfSpan = len(self._dfRates)
+            self.means = np.mean(self._dfRates, axis=0)
+            self.stdev = np.std(self._dfRates, axis=0)
+            if self._dfSpan > 1 and np.all(self.stdev > 1e-10):
+                self.corr = np.corrcoef(self._dfRates.T)
+                self.covar = np.cov(self._dfRates.T)
+            else:
+                self.corr = np.eye(4)
+                self.covar = np.diag(self.stdev ** 2)
+            self._rateMethod = self._dataframeRates
+            self.mylog.vprint(
+                f"Using rates from DataFrame ({self._dfSpan} years, {self.frm} to {self.to})."
+            )
         else:
             # Then methods relying on historical data range.
             if frm is None:
@@ -328,16 +434,21 @@ class Rates(object):
         """
         rateSeries = np.zeros((N, 4))
 
-        # Convert years to indices.
-        ifrm = self.frm - FROM
-        ito = self.to - FROM
+        if self.method == "dataframe":
+            span = self._dfSpan
+            for n in range(N):
+                rateSeries[n][:] = self._rateMethod(n % span)[:]
+        else:
+            # Convert years to indices.
+            ifrm = self.frm - FROM
+            ito = self.to - FROM
 
-        # Add one since bounds are inclusive.
-        span = ito - ifrm + 1
+            # Add one since bounds are inclusive.
+            span = ito - ifrm + 1
 
-        # Assign 4 values at the time.
-        for n in range(N):
-            rateSeries[n][:] = self._rateMethod((ifrm + (n % span)))[:]
+            # Assign 4 values at the time.
+            for n in range(N):
+                rateSeries[n][:] = self._rateMethod((ifrm + (n % span)))[:]
 
         return rateSeries
 
@@ -376,3 +487,10 @@ class Rates(object):
         srates = self._rng.multivariate_normal(self.means, self.covar)
 
         return srates
+
+    def _dataframeRates(self, n):
+        """
+        Return an array of 4 values from the user-provided DataFrame
+        at index n (Stocks, Bonds, Fixed assets, Inflation).
+        """
+        return self._dfRates[n]

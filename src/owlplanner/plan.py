@@ -772,7 +772,7 @@ class Plan:
             # setRates() will generate a new seed each time it's called
             self.rateSeed = None
 
-    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None,
+    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None, df=None,
                  override_reproducible=False, reverse=False, roll=0):
         """
         Generate rates for return and inflation based on the method and
@@ -780,27 +780,34 @@ class Plan:
 
         The following methods are available:
         default, user, realistic, conservative, historical average, stochastic,
-        histochastic, and historical.
+        histochastic, historical, and dataframe.
 
         - For 'user', fixed rate values must be provided.
         - For 'stochastic', means, stdev, and optional correlation matrix must be provided.
         - For 'historical average', 'histochastic', and 'historical', a starting year
           must be provided, and optionally an ending year.
+        - For 'dataframe', a pandas DataFrame and frm/to (or use plan year range as default).
+          DataFrame must contain all years from frm to to, with unique years. Columns:
+          year, S&P 500, Bonds Baa, TNotes, Inflation.
 
-        Valid year range is from 1928 to last year.
+        Valid year range is from 1928 to last year (historical methods).
 
         Note: For stochastic methods, setReproducible() should be called before
         setRates() to set the reproducibility flag and seed. If not called,
         defaults to non-reproducible behavior.
 
         Args:
+            df: pandas DataFrame for 'dataframe' method (required when method is 'dataframe').
             override_reproducible: If True, override reproducibility setting and always generate new rates.
                                  Used by Monte-Carlo runs to ensure different rates each time.
             reverse: If True, reverse the rate sequence along the time axis (default False).
             roll: Number of years to roll the sequence; positive rolls toward the end (default 0).
         """
-        if frm is not None and to is None:
+        if method != "dataframe" and frm is not None and to is None:
             to = frm + self.N_n - 1  # 'to' is inclusive.
+        if method == "dataframe" and (frm is None or to is None):
+            frm = int(self.year_n[0])
+            to = int(self.year_n[-1])
 
         # Handle seed for stochastic methods
         if method in ["stochastic", "histochastic"]:
@@ -821,10 +828,12 @@ class Plan:
             seed = None
 
         dr = rates.Rates(self.mylog, seed=seed)
-        self.rateValues, self.rateStdev, self.rateCorr = dr.setMethod(method, frm, to, values, stdev, corr)
+        self.rateValues, self.rateStdev, self.rateCorr = dr.setMethod(
+            method, frm, to, values, stdev, corr, df=df
+        )
         self.rateMethod = method
-        self.rateFrm = frm
-        self.rateTo = to
+        self.rateFrm = dr.frm if method == "dataframe" else frm
+        self.rateTo = dr.to if method == "dataframe" else to
         self.rateReverse = bool(reverse)
         self.rateRoll = int(roll)
         self.tau_kn = dr.genSeries(self.N_n).transpose()

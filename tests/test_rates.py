@@ -22,9 +22,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
 import numpy as np
+import pandas as pd
 
 from owlplanner import rates
-from owlplanner.rates import FROM, TO, getRatesDistributions
+from owlplanner.rates import (
+    FROM,
+    TO,
+    REQUIRED_RATE_COLUMNS,
+    _validate_rates_dataframe,
+    getRatesDistributions,
+)
 
 
 class TestRatesInitialization:
@@ -276,6 +283,134 @@ class TestRatesSetMethod:
         with pytest.raises(ValueError, match="Unknown rate selection method"):
             r.setMethod("invalid_method")
 
+    def test_set_method_dataframe(self):
+        """Test setting method to dataframe with valid DataFrame."""
+        r = rates.Rates()
+        df = pd.DataFrame({
+            "year": [2000, 2001, 2002],
+            "S&P 500": [10.0, 5.0, -2.0],
+            "Bonds Baa": [4.0, 3.5, 3.0],
+            "TNotes": [3.0, 2.5, 2.0],
+            "Inflation": [2.0, 2.5, 3.0],
+        })
+        means, stdev, corr = r.setMethod("dataframe", df=df, frm=2000, to=2002)
+        assert r.method == "dataframe"
+        assert r.frm == 2000
+        assert r.to == 2002
+        assert len(means) == 4
+        assert len(stdev) == 4
+        assert corr.shape == (4, 4)
+
+    def test_set_method_dataframe_missing_df(self):
+        """Test that dataframe method requires df."""
+        r = rates.Rates()
+        with pytest.raises(ValueError, match="DataFrame must be provided"):
+            r.setMethod("dataframe")
+
+    def test_set_method_dataframe_missing_frm_to(self):
+        """Test that dataframe requires frm and to."""
+        r = rates.Rates()
+        df = pd.DataFrame({
+            "year": [2000, 2001],
+            "S&P 500": [10.0, 5.0],
+            "Bonds Baa": [4.0, 3.5],
+            "TNotes": [3.0, 2.5],
+            "Inflation": [2.0, 2.5],
+        })
+        # When neither frm nor to provided, frm is None (to defaults to TO)
+        with pytest.raises(ValueError, match="frm.*to.*must be provided"):
+            r.setMethod("dataframe", df=df)
+        # When only frm provided, to must be explicit None to override default
+        with pytest.raises(ValueError, match="frm.*to.*must be provided"):
+            r.setMethod("dataframe", df=df, frm=2000, to=None)
+        # When only to provided
+        with pytest.raises(ValueError, match="frm.*to.*must be provided"):
+            r.setMethod("dataframe", df=df, frm=None, to=2001)
+
+    def test_set_method_dataframe_missing_columns(self):
+        """Test that dataframe validates required columns."""
+        r = rates.Rates()
+        df = pd.DataFrame({"year": [2000], "S&P 500": [10.0]})  # Missing columns
+        with pytest.raises(ValueError, match="missing required columns"):
+            r.setMethod("dataframe", df=df, frm=2000, to=2000)
+
+    def test_set_method_dataframe_missing_year(self):
+        """Test that dataframe requires year column."""
+        r = rates.Rates()
+        df = pd.DataFrame({
+            "S&P 500": [10.0],
+            "Bonds Baa": [4.0],
+            "TNotes": [3.0],
+            "Inflation": [2.0],
+        })
+        with pytest.raises(ValueError, match="year"):
+            r.setMethod("dataframe", df=df, frm=2000, to=2000)
+
+    def test_set_method_dataframe_missing_years(self):
+        """Test that all years from frm to to must be present."""
+        r = rates.Rates()
+        df = pd.DataFrame({
+            "year": [2000, 2002],  # Missing 2001
+            "S&P 500": [10.0, 5.0],
+            "Bonds Baa": [4.0, 3.5],
+            "TNotes": [3.0, 2.5],
+            "Inflation": [2.0, 2.5],
+        })
+        with pytest.raises(ValueError, match="missing required years"):
+            r.setMethod("dataframe", df=df, frm=2000, to=2002)
+
+    def test_set_method_dataframe_duplicate_years(self):
+        """Test that years must be unique (no duplicates)."""
+        r = rates.Rates()
+        df = pd.DataFrame({
+            "year": [2000, 2001, 2001, 2002],
+            "S&P 500": [10.0, 5.0, 6.0, -2.0],
+            "Bonds Baa": [4.0, 3.5, 3.5, 3.0],
+            "TNotes": [3.0, 2.5, 2.5, 2.0],
+            "Inflation": [2.0, 2.5, 2.5, 3.0],
+        })
+        with pytest.raises(ValueError, match="unique"):
+            r.setMethod("dataframe", df=df, frm=2000, to=2002)
+
+    def test_set_method_dataframe_null_values(self):
+        """Test that dataframe rejects null values in rate columns."""
+        r = rates.Rates()
+        df = pd.DataFrame({
+            "year": [2000, 2001],
+            "S&P 500": [10.0, np.nan],
+            "Bonds Baa": [4.0, 3.5],
+            "TNotes": [3.0, 2.5],
+            "Inflation": [2.0, 2.5],
+        })
+        with pytest.raises(ValueError, match="contains missing"):
+            r.setMethod("dataframe", df=df, frm=2000, to=2001)
+
+    def test_set_method_dataframe_not_dataframe(self):
+        """Test that dataframe rejects non-DataFrame input."""
+        r = rates.Rates()
+        with pytest.raises(ValueError, match="pandas DataFrame"):
+            r.setMethod("dataframe", df={"year": [2000], "S&P 500": [10.0]}, frm=2000, to=2000)
+
+    def test_set_method_dataframe_empty(self):
+        """Test that dataframe rejects empty DataFrame."""
+        r = rates.Rates()
+        df = pd.DataFrame(columns=["year", "S&P 500", "Bonds Baa", "TNotes", "Inflation"])
+        with pytest.raises(ValueError, match="must not be empty"):
+            r.setMethod("dataframe", df=df, frm=2000, to=2000)
+
+    def test_set_method_dataframe_frm_gt_to(self):
+        """Test that frm must be <= to."""
+        r = rates.Rates()
+        df = pd.DataFrame({
+            "year": [2000, 2001],
+            "S&P 500": [10.0, 5.0],
+            "Bonds Baa": [4.0, 3.5],
+            "TNotes": [3.0, 2.5],
+            "Inflation": [2.0, 2.5],
+        })
+        with pytest.raises(ValueError, match="less than or equal"):
+            r.setMethod("dataframe", df=df, frm=2002, to=2000)
+
 
 class TestRatesGenSeries:
     """Tests for genSeries functionality."""
@@ -373,6 +508,112 @@ class TestRatesGenSeries:
         # Different calls should produce different values
         series2 = r.genSeries(N)
         assert series2.shape == (N, 4)
+
+    def test_gen_series_dataframe(self):
+        """Test generating series with dataframe method."""
+        r = rates.Rates()
+        df = pd.DataFrame({
+            "year": [2000, 2001, 2002],
+            "S&P 500": [10.0, 5.0, -2.0],
+            "Bonds Baa": [4.0, 3.5, 3.0],
+            "TNotes": [3.0, 2.5, 2.0],
+            "Inflation": [2.0, 2.5, 3.0],
+        })
+        r.setMethod("dataframe", df=df, frm=2000, to=2002)
+        N = 5
+        series = r.genSeries(N)
+        assert series.shape == (N, 4)
+        # First 3 rows should match df (in decimal)
+        expected = df[list(REQUIRED_RATE_COLUMNS)].values / 100.0
+        np.testing.assert_array_almost_equal(series[:3], expected, decimal=6)
+        # Row 4 should wrap to row 0
+        np.testing.assert_array_almost_equal(series[3], series[0], decimal=6)
+        # Row 5 should wrap to row 1
+        np.testing.assert_array_almost_equal(series[4], series[1], decimal=6)
+
+    def test_gen_series_dataframe_single_row(self):
+        """Test dataframe method with single-row DataFrame."""
+        r = rates.Rates()
+        df = pd.DataFrame({
+            "year": [2000],
+            "S&P 500": [8.0],
+            "Bonds Baa": [4.0],
+            "TNotes": [3.0],
+            "Inflation": [2.0],
+        })
+        r.setMethod("dataframe", df=df, frm=2000, to=2000)
+        series = r.genSeries(5)
+        assert series.shape == (5, 4)
+        expected = np.array([[0.08, 0.04, 0.03, 0.02]])
+        for i in range(5):
+            np.testing.assert_array_almost_equal(series[i], expected[0], decimal=6)
+
+
+class TestRatesDataframeWithPlan:
+    """Integration tests for dataframe method with Plan."""
+
+    def test_plan_set_rates_dataframe(self):
+        """Test Plan.setRates with dataframe method (frm/to default to plan year range)."""
+        import owlplanner as owl
+
+        p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+        p.setSpendingProfile("flat")
+        p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+        p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+
+        frm = int(p.year_n[0])
+        to = int(p.year_n[-1])
+        n_years = to - frm + 1
+        df = pd.DataFrame({
+            "year": list(range(frm, to + 1)),
+            "S&P 500": [10.0] * n_years,
+            "Bonds Baa": [4.0] * n_years,
+            "TNotes": [3.0] * n_years,
+            "Inflation": [2.5] * n_years,
+        })
+        p.setRates("dataframe", df=df)
+
+        assert p.rateMethod == "dataframe"
+        assert p.rateFrm == frm
+        assert p.rateTo == to
+        assert p.tau_kn.shape[0] == 4
+        assert p.tau_kn.shape[1] == p.N_n
+        # First year should be 10%, 4%, 3%, 2.5% in decimal
+        np.testing.assert_array_almost_equal(
+            p.tau_kn[:, 0], [0.10, 0.04, 0.03, 0.025], decimal=6
+        )
+
+
+class TestValidateRatesDataframe:
+    """Tests for _validate_rates_dataframe function."""
+
+    def test_validate_accepts_year_column(self):
+        """Test that Year (capital Y) is accepted."""
+        df = pd.DataFrame({
+            "Year": [2000, 2001],
+            "S&P 500": [10.0, 5.0],
+            "Bonds Baa": [4.0, 3.5],
+            "TNotes": [3.0, 2.5],
+            "Inflation": [2.0, 2.5],
+        })
+        rates_arr = _validate_rates_dataframe(df, 2000, 2001)
+        assert rates_arr.shape == (2, 4)
+
+    def test_validate_unsorted_years_reorders(self):
+        """Test that DataFrame with unsorted years is reordered by frm-to."""
+        df = pd.DataFrame({
+            "year": [2002, 2000, 2001],
+            "S&P 500": [-2.0, 10.0, 5.0],
+            "Bonds Baa": [3.0, 4.0, 3.5],
+            "TNotes": [2.0, 3.0, 2.5],
+            "Inflation": [3.0, 2.0, 2.5],
+        })
+        rates_arr = _validate_rates_dataframe(df, 2000, 2002)
+        assert rates_arr.shape == (3, 4)
+        # Order should be 2000, 2001, 2002
+        np.testing.assert_array_almost_equal(rates_arr[0], [0.10, 0.04, 0.03, 0.02], decimal=4)
+        np.testing.assert_array_almost_equal(rates_arr[1], [0.05, 0.035, 0.025, 0.025], decimal=4)
+        np.testing.assert_array_almost_equal(rates_arr[2], [-0.02, 0.03, 0.02, 0.03], decimal=4)
 
 
 class TestGetRatesDistributions:
