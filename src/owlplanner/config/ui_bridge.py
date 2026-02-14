@@ -146,7 +146,7 @@ def config_to_ui(diconf: dict) -> dict:
         "netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
         "startRothConversions", "bequest", "solver", "noLateSurplus",
         "spendingSlack", "oppCostX", "amoConstraints", "amoRoth", "amoSurplus",
-        "withSCLoop", "absTol", "bigMirmaa", "bigMamo", "relTol",
+        "withSCLoop", "absTol", "bigMamo", "relTol",
     ]
     for key in opt_list:
         if key in so:
@@ -330,7 +330,7 @@ def ui_to_config(uidic: dict) -> dict:
         "netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
         "startRothConversions", "bequest", "solver", "noLateSurplus",
         "spendingSlack", "oppCostX", "amoConstraints", "amoRoth", "amoSurplus",
-        "withSCLoop", "absTol", "bigMirmaa", "bigMamo", "relTol",
+        "withSCLoop", "absTol", "bigMamo", "relTol",
     ]
     for key in opt_list:
         val = uidic.get(key)
