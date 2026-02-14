@@ -29,6 +29,11 @@ class BaseRateModel(ABC):
     All rate models must subclass this.
     """
 
+    model_name = "base"
+    description = "Abstract rate model."
+    required_parameters = {}
+    optional_parameters = {}
+
     def __init__(self, config, seed=None, logger=None, **kwargs):
         self.config = config
         self.seed = seed
@@ -47,3 +52,17 @@ class BaseRateModel(ABC):
     @property
     def deterministic(self):
         return False
+
+    @property
+    def constant(self):
+        return False
+
+    @classmethod
+    def get_metadata(cls):
+        return {
+            "model_name": cls.model_name,
+            "description": cls.description,
+            "required_parameters": cls.required_parameters,
+            "optional_parameters": cls.optional_parameters,
+        }
+    
