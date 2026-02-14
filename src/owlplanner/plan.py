@@ -52,9 +52,9 @@ GAP = 1e-4
 MILP_GAP = 30 * GAP
 MAX_ITERATIONS = 29
 ABS_TOL = 100
-REL_TOL = 1e-5
+REL_TOL = 5e-5
 TIME_LIMIT = 900
-EPSILON = 1e-9
+EPSILON = 1e-8
 
 
 def _apply_rate_sequence_transform(tau_kn, reverse, roll):

@@ -34,21 +34,22 @@ owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/p
 col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
     st.markdown("# Plan your retirement with confidence")
-    st.markdown("*Owl – Optimal Wealth Lab*")
+    st.markdown("**Owl** – *Optimal Wealth Lab*")
     st.markdown("")
     st.markdown(f"""
 ### :orange[Stop guessing. Start optimizing.]
-Take the guesswork out of retirement with an optimized financial roadmap built just for you.
-Owl builds a sophisticated mathematical model
-([pdf]({owl_pdf_url}))
-of your entire financial life—from taxable accounts to Roth conversions and Medicare premiums.
-It doesn't just show you a scenario; it finds the best one based on your goals and shows you exactly
-how robust that plan is against market shifts and future regulation—all based on your assumptions.
-Owl tells you how much you can safely spend, when to do Roth conversions,
-and which accounts to draw from.
+Retire with confidence and clarity.
+**Owl** builds a sophisticated mathematical model of your entire financial landscape—mapping
+everything from taxable accounts to Roth conversions and Medicare premiums.
+
+Unlike basic calculators, **Owl** doesn’t just show you a scenario;
+it solves for the optimal one. You’ll receive an actionable roadmap that tells you exactly how much
+to spend, when to convert to Roth, and which accounts to draw from first.
+Plus, you can stress-test your plan against market volatility and changing regulations
+to see exactly how robust your future really is. 
 
 ### :orange[Built for US Retirees]
-Owl integrates US federal tax laws, Social Security rules, and 401(k)/Roth regulations
+**Owl** integrates US federal tax laws, Social Security rules, and 401(k)/Roth regulations
 to ensure your plan is grounded in reality.""")
 
 with col2:
@@ -64,7 +65,7 @@ with col2:
 # with col2:
 #    st.markdown("""
 # [MOSEK](https://mosek.com)—the industry-leading optimizer behind *"Optimization done right. Since 1999."*—has
-# generously provided Owl with a free license for the Community Cloud deployment. This means you get:
+# generously provided **Owl** with a free license for the Community Cloud deployment. This means you get:
 # - **Faster, more reliable plans** — Run more cases in less time with a state-of-the-art solver
 # - **Professional-grade optimization** — The same technology trusted by financial institutions
 # and engineering firms worldwide
@@ -75,7 +76,7 @@ with col2:
 
 st.markdown("""
 ### :orange[Private by design]
-Owl is open source. Your data stays private in all cases—we don't store, track,
+**Owl** is open source. Your data stays private in all cases—we don't store, track,
 or resell your financial data, whether cloud-hosted, or self-hosted on your device.
 - **No Sign-ups:** Start planning immediately.
 - **No Fees:** Professional-grade modeling, free for everyone.
@@ -85,21 +86,24 @@ or resell your financial data, whether cloud-hosted, or self-hosted on your devi
 kz.divider("orange")
 
 # Benefits
-st.markdown("### :orange[Why use a retirement spending and tax planner?]")
+st.markdown("### :orange[How is **Owl** different from other calculators?]")
 st.markdown(
-    "Most **retirement calculators** give you one rigid path. Owl **optimizes** "
+    "Most **retirement calculators** give you one rigid path. **Owl** **optimizes** "
     "your plan given your assumptions so you get:"
 )
 ben_col1, ben_col2, ben_col3 = st.columns(3)
 with ben_col1:
-    st.markdown("""**:material/trending_up: Sustainable spending**
- \nSee how much you can spend each year without outliving your savings.""")
+    st.markdown("""**:material/trending_up: Maximize your lifestyle.**
+\nConfidently determine your safe spending limit each year while
+ensuring your savings last as long as you do.""")
 with ben_col2:
-    st.markdown("""**:material/account_balance: Smarter Roth conversions**
-\nReduce taxes and Medicare premiums by timing conversions.""")
+    st.markdown("""**:material/account_balance: Minimize lifetime taxes.**
+\nIdentify the optimal windows for Roth conversions
+to reduce your total tax bill and lower future Medicare premiums.""")
 with ben_col3:
-    st.markdown("""**:material/lock: Your data stays private**
-\nWhether cloud-hosted or self-hosted on your device, we don't store, view, or resell your financial data.""")
+    st.markdown("""**:material/lock: Your data stays yours.**
+\nWe prioritize privacy by design. Whether you choose cloud or self-hosting,
+we never store, view, or monetize your financial information.""")
 
 kz.divider("orange")
 st.markdown("### :orange[Ready for a demo?]")
@@ -152,9 +156,9 @@ You can also create a case from scratch in the app and save the *case* and *Hous
     kz.divider("orange")
 
     # ---- How to run Owl ----
-    st.markdown("### :orange[How to run Owl]")
+    st.markdown("### :orange[How to run **Owl**]")
     st.markdown("""
-- Use Owl directly as hosted on the Streamlit Community Cloud server
+- Use **Owl** directly as hosted on the Streamlit Community Cloud server
 ([owlplanner.streamlit.app](https://owlplanner.streamlit.app)),
 - Self-host in a Docker container running on your computer
 (instructions [here](https://github.com/mdlacasse/Owl/blob/main/docker/README.md)), or
@@ -164,15 +168,15 @@ kz.divider("orange")
 
 # ---- Social proof / trust ----
 st.markdown("### :orange[Get involved]")
-st.markdown("""Owl is being developed by retired scientists and engineers who are happy
+st.markdown("""**Owl** is being developed by retired scientists and engineers who are happy
 to share their knowledge and remain intellectually engaged and active.\n
 - Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues) (requires a GitHub account).
 - Want to share your story? Open a [discussion](https://github.com/mdlacasse/Owl/discussions).
-- You use Owl and like it? Give the [repo](https://github.com/mdlacasse/Owl) a star.""")
+- You use **Owl** and like it? Give the [repo](https://github.com/mdlacasse/Owl) a star.""")
 
 st.markdown("### :orange[Disclaimer]")
 st.markdown("""
-US retirees and planners use Owl to explore spending, Roth conversions, and tax-efficient drawdown strategies.
+US retirees and planners use **Owl** to explore spending, Roth conversions, and tax-efficient drawdown strategies.
 We use up-to-date US federal tax rules (including 2026) so you can plan with confidence.
 Nevertheless, this program is for educational purposes only and does not constitute financial advice.""")
 
