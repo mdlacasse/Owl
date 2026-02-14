@@ -27,19 +27,27 @@ import case_progress as cp
 
 
 def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, prompt=True):
+    """
+    Integer input widget. Config stores some values as float (e.g. pension_monthly_amounts)
+    and ages use year+month (pAge_y, pAge_m) from _age_float_to_ym in config_to_ui.
+    Coerce to int so Streamlit gets consistent types (avoids StreamlitMixedNumericTypesError).
+    """
     nkey = key + str(i)
     kz.initCaseKey(nkey, defval)
     stored_value = kz.getCaseKey(nkey)
     # Clamp stored value to valid range if it's outside
     if stored_value is not None:
+        stored_value = int(stored_value)
         if min_val is not None and stored_value < min_val:
-            stored_value = min_val
+            stored_value = int(min_val)
             kz.setCaseKey(nkey, stored_value)
         if max_val is not None and stored_value > max_val:
-            stored_value = max_val
+            stored_value = int(max_val)
             kz.setCaseKey(nkey, stored_value)
     else:
-        stored_value = defval
+        stored_value = int(defval)
+    min_val = int(min_val) if min_val is not None else None
+    max_val = int(max_val) if max_val is not None else None
     if prompt:
         own = f"{kz.getCaseKey('iname' + str(i))}'s "
     else:
@@ -195,7 +203,7 @@ to estimate {iname1}'s PIA.""")
             getIntInput(1, "pAmt", "**monthly** amount (in today's \\$)", help=msg_pension1)
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
-                getIntInput(1, "pAge", "starting at age...", 65, msg_pension2)
+                getIntInput(1, "pAge_y", "starting at age...", 65, msg_pension2)
             with incol2:
                 getIntInput(1, "pAge_m", "...and month(s)", 0, msg_pension2, max_val=11, prompt=False)
             getToggleInput(1, "pIdx", "Inflation adjusted")
