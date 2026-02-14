@@ -25,6 +25,59 @@ from owlplanner import rates
 
 class LegacyRateModel(BaseRateModel):
 
+    model_name = "legacy"
+    description = "Built-in OWL rate models."
+
+    # --------------------------------------------------
+    # Per-method metadata
+    # --------------------------------------------------
+
+    METHOD_METADATA = {
+        "default": {
+            "description": "30-year historical average deterministic rates.",
+            "required_parameters": {},
+            "optional_parameters": {},
+            "deterministic": True,
+            "constant": True,
+        },
+        "user": {
+            "description": "User-specified fixed rates.",
+            "required_parameters": {
+                "values": {
+                    "type": "list[float]",
+                    "length": 4,
+                    "description": "Rates in percent: [Stocks, Bonds, TNotes, Inflation]"
+                }
+            },
+            "optional_parameters": {},
+            "deterministic": True,
+            "constant": True,
+        },
+        "stochastic": {
+            "description": "Multivariate normal stochastic rates.",
+            "required_parameters": {
+                "values": {"type": "list[float]", "length": 4},
+                "stdev": {"type": "list[float]", "length": 4},
+            },
+            "optional_parameters": {
+                "corr": {"type": "matrix or list[6]"},
+            },
+            "deterministic": False,
+            "constant": False,
+        },
+        "historical": {
+            "description": "Historical time series from specified year.",
+            "required_parameters": {
+                "frm": {"type": "int"},
+            },
+            "optional_parameters": {
+                "to": {"type": "int"},
+            },
+            "deterministic": True,
+            "constant": False,
+        },
+    }
+
     constant_methods = (
         "default",
         "optimistic",
@@ -70,3 +123,19 @@ class LegacyRateModel(BaseRateModel):
 
     def generate(self, N):
         return self._rates.genSeries(N)
+
+
+    @classmethod
+    def get_method_metadata(cls, method):
+        if method not in cls.METHOD_METADATA:
+            raise ValueError(f"No metadata defined for legacy method '{method}'")
+
+        meta = cls.METHOD_METADATA[method]
+
+        return {
+            "model_name": method,
+            "description": meta["description"],
+            "required_parameters": meta.get("required_parameters", {}),
+            "optional_parameters": meta.get("optional_parameters", {}),
+        }
+

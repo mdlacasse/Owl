@@ -110,3 +110,22 @@ def load_rate_model(method, method_file=None):
         f"Allowed methods: {sorted(ALLOWED_METHODS)} "
         f"or provide method_file for plugin."
     )
+
+def list_available_rate_models():
+    """
+    Return list of available model names.
+    """
+    return sorted(ALLOWED_METHODS)
+
+def get_rate_model_metadata(method, method_file=None):
+    """
+    Return metadata dictionary for a rate model.
+    """
+
+    ModelClass = load_rate_model(method, method_file)
+
+    # Legacy special handling
+    if ModelClass is LegacyRateModel:
+        return LegacyRateModel.get_method_metadata(method)
+
+    return ModelClass.get_metadata()

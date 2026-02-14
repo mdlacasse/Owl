@@ -25,10 +25,30 @@ import numpy as np
 
 
 class DataFrameRateModel(BaseRateModel):
-    """ """
+    """
+    Rate model that generates rates from a provided DataFrame.
+    """
+
+    model_name = "dataframe"
+    description = "Time-indexed rates supplied via pandas DataFrame."
+
+    required_parameters = {
+        "df": {
+            "type": "pandas.DataFrame",
+            "description": "Must contain year, S&P 500, Bonds Baa, TNotes, Inflation"
+        }
+    }
+
+    optional_parameters = {}
+
     @property
     def deterministic(self):
         return True
+    
+    @property
+    def constant(self):
+        return False
+
 
     def generate(self, N):
 
