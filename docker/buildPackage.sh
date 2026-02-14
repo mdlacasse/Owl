@@ -1,7 +1,9 @@
-## !/bin/bash or similar
+## !/bin/bash
 
 cd ..
-rm dist/*.whl dist/*.tar.gz
+for file in dist/*.whl dist/*.tar.gz; do
+    rm $file
+done
 
 touch uv.lock
 python -m build .
