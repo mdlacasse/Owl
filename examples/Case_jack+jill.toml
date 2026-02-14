@@ -51,7 +51,7 @@ objective = "maxSpending"
 [solver_options]
 maxRothConversion = 100
 noRothConversions = "Jill"
-startRothConversions = 2025
+startRothConversions = 2026
 withSCLoop = true
 withMedicare = "loop"
 bequest = 400

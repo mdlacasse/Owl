@@ -196,7 +196,8 @@ Click the `Create case` button once all parameters on this page are right."""
                   disabled=cantcopy, help=helpmsg)
     with col2:
         helpmsg = "`Create case` opens up all other pages in the **Case Setup** section."
-        st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate, help=helpmsg)
+        st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate,
+                  type='primary', help=helpmsg)
 
     with col3:
         kz.initGlobalKey("delete_confirmation_active", False)

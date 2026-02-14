@@ -30,7 +30,7 @@ obbba_expiration_year = 2099
 method = "user"
 values = [ 6.5, 0.0, 0.0, 2.799999952316284,]
 from = 1928
-to = 2024
+to = 2025
 
 [asset_allocation]
 interpolation_method = "s-curve"
@@ -47,7 +47,7 @@ objective = "maxBequest"
 [solver_options]
 netSpending = 80.0
 maxRothConversion = 50
-startRothConversions = 2025
+startRothConversions = 2026
 solver = "HiGHS"
 spendingSlack = 0
 withSCLoop = false

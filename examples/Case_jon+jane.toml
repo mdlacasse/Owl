@@ -49,7 +49,7 @@ objective = "maxSpending"
 [solver_options]
 maxRothConversion = 0.0
 noRothConversions = "None"
-startRothConversions = 2025
+startRothConversions = 2026
 bequest = 30.0
 solver = "HiGHS"
 spendingSlack = 0

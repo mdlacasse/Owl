@@ -38,7 +38,7 @@ def test_load_toml_start_roth_past_year_reset():
 
     toml_content = open("examples/Case_joe.toml").read()
     toml_content = toml_content.replace(
-        "startRothConversions = 2025",
+        "startRothConversions = 2026",
         "startRothConversions = 2019",  # Past year
     )
     log = StringIO()
