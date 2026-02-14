@@ -86,24 +86,21 @@ or resell your financial data, whether cloud-hosted, or self-hosted on your devi
 kz.divider("orange")
 
 # Benefits
-st.markdown("### :orange[How is **Owl** different from other calculators?]")
+st.markdown("### :orange[How is **Owl** different?]")
 st.markdown(
     "Most **retirement calculators** give you one rigid path. **Owl** **optimizes** "
-    "your plan given your assumptions so you get:"
+    "your plan given your assumptions so you can:"
 )
-ben_col1, ben_col2, ben_col3 = st.columns(3)
-with ben_col1:
-    st.markdown("""**:material/trending_up: Maximize your lifestyle.**
-\nConfidently determine your safe spending limit each year while
-ensuring your savings last as long as you do.""")
-with ben_col2:
-    st.markdown("""**:material/account_balance: Minimize lifetime taxes.**
-\nIdentify the optimal windows for Roth conversions
-to reduce your total tax bill and lower future Medicare premiums.""")
-with ben_col3:
-    st.markdown("""**:material/lock: Your data stays yours.**
-\nWe prioritize privacy by design. Whether you choose cloud or self-hosting,
-we never store, view, or monetize your financial information.""")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown("""**:material/trending_up: Spend with confidence**
+\nKnow exactly how much you can enjoy each year without the fear of outliving your savings.""")
+with col2:
+    st.markdown("""**:material/account_balance: Minimize lifetime taxes**
+\nAutomatically identify Roth conversion windows to lower your total tax bill and Medicare (IRMAA) premiums.""")
+with col3:
+    st.markdown("""**:material/lock: Keep your data private**
+\nPrivacy by design. Whether cloud or self-hosted, we never store, view, or monetize your financial info.""")
 
 kz.divider("orange")
 st.markdown("### :orange[Ready for a demo?]")
