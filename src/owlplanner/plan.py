@@ -789,6 +789,7 @@ class Plan:
         override_reproducible=False,
         reverse=False,
         roll=0,
+        **kwargs,
     ):
         """
         Generate rates using pluggable rate model architecture.
@@ -841,6 +842,7 @@ class Plan:
             "corr": corr,
             "df": df,
         }
+        model_config.update(kwargs)
 
         # --------------------------------------------------
         # Load rate model class

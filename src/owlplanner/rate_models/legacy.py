@@ -17,7 +17,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 ###########################################################################
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner import rates
@@ -124,7 +123,6 @@ class LegacyRateModel(BaseRateModel):
     def generate(self, N):
         return self._rates.genSeries(N)
 
-
     @classmethod
     def get_method_metadata(cls, method):
         if method not in cls.METHOD_METADATA:
@@ -138,4 +136,3 @@ class LegacyRateModel(BaseRateModel):
             "required_parameters": meta.get("required_parameters", {}),
             "optional_parameters": meta.get("optional_parameters", {}),
         }
-

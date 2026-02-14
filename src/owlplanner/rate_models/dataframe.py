@@ -44,11 +44,10 @@ class DataFrameRateModel(BaseRateModel):
     @property
     def deterministic(self):
         return True
-    
+
     @property
     def constant(self):
         return False
-
 
     def generate(self, N):
 
