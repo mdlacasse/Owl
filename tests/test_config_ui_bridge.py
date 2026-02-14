@@ -77,6 +77,62 @@ def test_ui_to_config_to_plan():
     assert plan.inames[0] == "Joe"
 
 
+def test_config_to_ui_dataframe_maps_to_user(caplog):
+    """When config has method=dataframe, config_to_ui maps to user and logs warning."""
+    import logging
+    caplog.set_level(logging.WARNING)
+
+    diconf = {
+        "case_name": "test",
+        "description": "",
+        "basic_info": {
+            "status": "single",
+            "names": ["Joe"],
+            "date_of_birth": ["1961-01-15"],
+            "life_expectancy": [89],
+            "start_date": "today",
+        },
+        "savings_assets": {
+            "taxable_savings_balances": [100],
+            "tax_deferred_savings_balances": [200],
+            "tax_free_savings_balances": [50],
+        },
+        "household_financial_profile": {"HFP_file_name": "None"},
+        "fixed_income": {
+            "pension_monthly_amounts": [0],
+            "pension_ages": [65],
+            "pension_indexed": [True],
+            "social_security_pia_amounts": [0],
+            "social_security_ages": [67],
+        },
+        "rates_selection": {
+            "heirs_rate_on_tax_deferred_estate": 30,
+            "dividend_rate": 1.8,
+            "obbba_expiration_year": 2032,
+            "method": "dataframe",
+        },
+        "asset_allocation": {
+            "interpolation_method": "s-curve",
+            "interpolation_center": 15,
+            "interpolation_width": 5,
+            "type": "individual",
+            "generic": [[[60, 40, 0, 0], [70, 30, 0, 0]]],
+        },
+        "optimization_parameters": {
+            "spending_profile": "flat",
+            "surviving_spouse_spending_percent": 60,
+            "objective": "maxSpending",
+        },
+        "solver_options": {},
+        "results": {"default_plots": "nominal"},
+    }
+    uidic = config_to_ui(diconf)
+
+    assert uidic["rateType"] == "fixed"
+    assert uidic["fixedType"] == "user"
+    assert "Dataframe rate method is not supported in UI" in caplog.text
+
+
 def test_apply_config_to_plan():
     """apply_config_to_plan syncs config to existing plan."""
     p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)

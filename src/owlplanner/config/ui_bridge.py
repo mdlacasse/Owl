@@ -7,11 +7,14 @@ Streamlit widgets (getCaseKey, setCaseKey).
 Copyright (C) 2025-2026 The Owlplanner Authors
 """
 
+import logging
 from datetime import date, datetime
 from typing import Any
 
 from owlplanner.config.schema import KNOWN_SECTIONS
 from owlplanner.rates import FROM
+
+logger = logging.getLogger(__name__)
 
 # Account type ordering for UI (txbl, txDef, txFree)
 ACC_UI = ["txbl", "txDef", "txFree"]
@@ -164,6 +167,9 @@ def config_to_ui(diconf: dict) -> dict:
     dic["objective"] = "Net spending" if obj == "maxSpending" else "Bequest"
 
     rate_method = rs.get("method", "historical average")
+    if rate_method == "dataframe":
+        logger.warning("Dataframe rate method is not supported in UI; mapping to 'user'.")
+        rate_method = "user"
     if rate_method in ["default", "conservative", "optimistic", "historical average", "user"]:
         dic["rateType"] = "fixed"
         dic["fixedType"] = rate_method

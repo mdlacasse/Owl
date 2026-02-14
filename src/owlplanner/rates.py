@@ -78,29 +78,26 @@ Inflation = df["Inflation"]
 REQUIRED_RATE_COLUMNS = ("S&P 500", "Bonds Baa", "TNotes", "Inflation")
 
 
-def _validate_rates_dataframe(df, frm, to):
+def _validate_rates_dataframe(df, n_years, offset=0):
     """
     Validate a DataFrame for use with the dataframe rate method.
 
+    Rates are read sequentially from the DataFrame, starting at row 'offset'.
+    No year column is required; row order defines the sequence.
+
     Args:
-        df: pandas DataFrame with year and rate columns.
-        frm: First year (inclusive) required in the DataFrame.
-        to: Last year (inclusive) required in the DataFrame.
+        df: pandas DataFrame with rate columns only (S&P 500, Bonds Baa, TNotes, Inflation).
+        n_years: Number of rows needed (N_n).
+        offset: Number of rows to skip at the start (default 0).
 
     Returns:
-        rates_array: (N, 4) array in decimal, ordered by year from frm to to.
+        rates_array: (n_rows, 4) array in decimal, in row order.
 
     Raises:
-        ValueError: If validation fails (missing columns, missing years, duplicates).
+        ValueError: If validation fails (missing columns, insufficient rows, nulls).
     """
     if not isinstance(df, pd.DataFrame):
         raise ValueError("DataFrame must be a pandas DataFrame.")
-
-    if frm is None or to is None:
-        raise ValueError("From year (frm) and to year (to) must be provided with the dataframe option.")
-
-    if frm > to:
-        raise ValueError(f"From year ({frm}) must be less than or equal to to year ({to}).")
 
     # Check required columns
     missing = [c for c in REQUIRED_RATE_COLUMNS if c not in df.columns]
@@ -110,35 +107,14 @@ def _validate_rates_dataframe(df, frm, to):
             f"Required: {list(REQUIRED_RATE_COLUMNS)}"
         )
 
-    year_col = "year" if "year" in df.columns else "Year"
-    if year_col not in df.columns:
-        raise ValueError("DataFrame must have a 'year' or 'Year' column.")
-
-    years = df[year_col].values
-    if len(years) == 0:
+    if len(df) == 0:
         raise ValueError("DataFrame must not be empty.")
 
-    # Validate years are integers
-    try:
-        years_int = np.array(years, dtype=int)
-    except (ValueError, TypeError):
-        raise ValueError("Year column must contain integers.")
-
-    if not np.array_equal(years, years_int):
-        raise ValueError("Year column must contain integers.")
-
-    # Years must be unique (no duplicates)
-    if len(np.unique(years_int)) != len(years_int):
-        raise ValueError("Year column must contain unique values (no duplicates).")
-
-    # All years from frm to to must be present
-    required_years = set(range(frm, to + 1))
-    df_years = set(years_int)
-    missing_years = sorted(required_years - df_years)
-    if missing_years:
+    required_rows = n_years + offset
+    if len(df) < required_rows:
         raise ValueError(
-            f"DataFrame missing required years: {missing_years[:10]}{'...' if len(missing_years) > 10 else ''}. "
-            f"All years from {frm} to {to} must be present."
+            f"DataFrame has {len(df)} rows but needs at least {required_rows} "
+            f"(N_n={n_years} + offset={offset})."
         )
 
     # Check for nulls in rate columns
@@ -146,9 +122,8 @@ def _validate_rates_dataframe(df, frm, to):
         if df[col].isna().any():
             raise ValueError(f"Column '{col}' contains missing values.")
 
-    # Build rates array ordered by year (frm, frm+1, ..., to)
-    df_sorted = df.set_index(year_col).sort_index()
-    rates_pct = df_sorted.loc[frm:to, list(REQUIRED_RATE_COLUMNS)].values.astype(float)
+    # Extract rates in row order, convert percent to decimal
+    rates_pct = df[list(REQUIRED_RATE_COLUMNS)].values.astype(float)
     rates_dec = rates_pct / 100.0
 
     return rates_dec
@@ -257,7 +232,8 @@ class Rates(object):
         # Default values for rates.
         self.setMethod("default")
 
-    def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None, df=None):
+    def setMethod(self, method, frm=None, to=TO, values=None, stdev=None, corr=None, df=None,
+                  n_years=None, offset=0):
         """
         Select the method to generate the annual rates of return
         for the different classes of assets.  Different methods include:
@@ -362,15 +338,12 @@ class Rates(object):
         elif method == "dataframe":
             if df is None:
                 raise ValueError("DataFrame must be provided with the dataframe option.")
-            if frm is None or to is None:
-                raise ValueError(
-                    "From year (frm) and to year (to) must be provided with the dataframe option."
-                )
-            if frm > to:
-                raise ValueError(f"From year ({frm}) must be less than or equal to to year ({to}).")
-            self._dfRates = _validate_rates_dataframe(df, frm, to)
-            self.frm = frm
-            self.to = to
+            if n_years is None:
+                raise ValueError("n_years must be provided with the dataframe option.")
+            self._dfOffset = int(offset)
+            self._dfRates = _validate_rates_dataframe(df, n_years, self._dfOffset)
+            self.frm = None
+            self.to = None
             self._dfSpan = len(self._dfRates)
             self.means = np.mean(self._dfRates, axis=0)
             self.stdev = np.std(self._dfRates, axis=0)
@@ -382,7 +355,7 @@ class Rates(object):
                 self.covar = np.diag(self.stdev ** 2)
             self._rateMethod = self._dataframeRates
             self.mylog.vprint(
-                f"Using rates from DataFrame ({self._dfSpan} years, {self.frm} to {self.to})."
+                f"Using rates from DataFrame ({self._dfSpan} rows, offset={self._dfOffset})."
             )
         else:
             # Then methods relying on historical data range.
@@ -435,9 +408,14 @@ class Rates(object):
         rateSeries = np.zeros((N, 4))
 
         if self.method == "dataframe":
-            span = self._dfSpan
             for n in range(N):
-                rateSeries[n][:] = self._rateMethod(n % span)[:]
+                idx = self._dfOffset + n
+                if idx >= self._dfSpan:
+                    raise ValueError(
+                        f"DataFrame has insufficient rows: need {self._dfOffset + N} "
+                        f"for offset={self._dfOffset} and N={N}, got {self._dfSpan}."
+                    )
+                rateSeries[n][:] = self._rateMethod(idx)[:]
         else:
             # Convert years to indices.
             ifrm = self.frm - FROM
@@ -488,9 +466,9 @@ class Rates(object):
 
         return srates
 
-    def _dataframeRates(self, n):
+    def _dataframeRates(self, idx):
         """
         Return an array of 4 values from the user-provided DataFrame
-        at index n (Stocks, Bonds, Fixed assets, Inflation).
+        at row index idx (Stocks, Bonds, Fixed assets, Inflation).
         """
-        return self._dfRates[n]
+        return self._dfRates[idx]

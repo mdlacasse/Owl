@@ -139,6 +139,9 @@ def config_to_plan(
     rate_seed = None
     reproducible_rates = False
     rate_method = known["rates_selection"]["method"]
+    if rate_method == "dataframe":
+        log.print("Dataframe rate method is not supported in UI; mapping to 'user'.")
+        rate_method = "user"
     if rate_method in ["historical average", "historical", "histochastic"]:
         frm = known["rates_selection"]["from"]
         if not isinstance(frm, int):
@@ -148,7 +151,7 @@ def config_to_plan(
             to = int(to)
     if rate_method in ["user", "stochastic"]:
         rate_values = np.array(
-            known["rates_selection"]["values"],
+            known["rates_selection"].get("values", [6.0, 4.0, 3.3, 2.8]),
             dtype=np.float64,
         )
     if rate_method == "stochastic":
@@ -303,6 +306,9 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
     rate_seed = None
     reproducible_rates = False
     rate_method = known["rates_selection"]["method"]
+    if rate_method == "dataframe":
+        log.print("Dataframe rate method is not supported in UI; mapping to 'user'.")
+        rate_method = "user"
     if rate_method in ["historical average", "historical", "histochastic"]:
         frm = known["rates_selection"].get("from")
         if frm is not None:

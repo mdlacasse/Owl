@@ -912,6 +912,9 @@ def genDic(plan):
     if plan.rateMethod in ["default", "conservative", "optimistic", "historical average", "user"]:
         dic["rateType"] = "fixed"
         dic["fixedType"] = plan.rateMethod
+    elif plan.rateMethod == "dataframe":
+        dic["rateType"] = "fixed"
+        dic["fixedType"] = "user"
     elif plan.rateMethod in ["histochastic", "historical", "stochastic"]:
         dic["rateType"] = "varying"
         dic["varyingType"] = plan.rateMethod
@@ -923,6 +926,9 @@ def genDic(plan):
     if plan.rateMethod in ["historical average", "histochastic", "historical"]:
         dic["yfrm"] = plan.rateFrm
         dic["yto"] = plan.rateTo
+    elif plan.rateMethod == "dataframe":
+        dic["yfrm"] = FROM
+        dic["yto"] = date.today().year - 1
     else:
         dic["yfrm"] = FROM
         # Rates availability are trailing by 1 year.
