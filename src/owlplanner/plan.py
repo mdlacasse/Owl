@@ -414,6 +414,10 @@ class Plan:
         self.rateReverse = False
         self.rateRoll = 0
 
+        # for plugins and legacy models
+        self.rateModel = None
+        self.rateMethodFile = None
+
         self.ARCoord = None
         self.objective = "unknown"
 
@@ -775,121 +779,176 @@ class Plan:
     def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None, df=None,
                  override_reproducible=False, reverse=False, roll=0, offset=0):
         """
-        Generate rates for return and inflation based on the method and
-        years selected. Note that last bound is included.
+        Generate rates using pluggable rate model architecture.
 
-        The following methods are available:
-        default, user, realistic, conservative, historical average, stochastic,
-        histochastic, historical, and dataframe.
-
-        - For 'user', fixed rate values must be provided.
-        - For 'stochastic', means, stdev, and optional correlation matrix must be provided.
-        - For 'historical average', 'histochastic', and 'historical', a starting year
-          must be provided, and optionally an ending year.
-        - For 'dataframe', a pandas DataFrame with rate columns only (API only; UI does not support).
-          Columns: S&P 500, Bonds Baa, TNotes, Inflation. Rates are read sequentially from
-          rows starting at offset. DataFrame must have at least N_n + offset rows.
-
-        Valid year range is from 1928 to last year (historical methods).
-
-        Note: For stochastic methods, setReproducible() should be called before
-        setRates() to set the reproducibility flag and seed. If not called,
-        defaults to non-reproducible behavior.
-
-        Args:
-            df: pandas DataFrame for 'dataframe' method (required when method is 'dataframe').
-            offset: For 'dataframe', number of rows to skip at start (default 0).
-            override_reproducible: If True, override reproducibility setting and always generate new rates.
-                                 Used by Monte-Carlo runs to ensure different rates each time.
-            reverse: If True, reverse the rate sequence along the time axis (default False).
-            roll: Number of years to roll the sequence; positive rolls toward the end (default 0).
+        Supports:
+            - legacy built-in methods
+            - dataframe
+            - external plugin models
         """
-        if method != "dataframe" and frm is not None and to is None:
-            to = frm + self.N_n - 1  # 'to' is inclusive.
 
-        # Handle seed for stochastic methods
-        if method in ["stochastic", "histochastic"]:
-            if self.reproducibleRates and not override_reproducible:
-                if self.rateSeed is None:
-                    raise RuntimeError("Config error: reproducibleRates is True but rateSeed is None.")
+        # --------------------------------------------------
+        # Resolve year range
+        # --------------------------------------------------
 
-                seed = self.rateSeed
-            else:
-                # For non-reproducible rates or when overriding reproducibility, generate a new seed from time.
-                # This ensures we always have a seed stored in config, but it won't be reused.
-                seed = int(time.time() * 1000000)
-                if not override_reproducible:
-                    self.rateSeed = seed
+        if method in ("historical", "historical average", "histochastic"):
+            if frm is None:
+                raise ValueError("frm must be provided for historical methods.")
+
+            if to is None:
+                to = frm + self.N_n - 1
         else:
-            # For non-stochastic methods, seed is not used but we preserve it
-            # so that if user switches back to stochastic, their reproducibility settings are maintained.
+            if frm is None:
+                frm = int(self.year_n[0])
+            if to is None:
+                to = int(self.year_n[-1])
+
+        # --------------------------------------------------
+        # Determine seed handling
+        # --------------------------------------------------
+
+        seed = None
+
+        if self.reproducibleRates and not override_reproducible:
+            seed = self.rateSeed
+        elif override_reproducible:
+            seed = int(time.time() * 1_000_000)
+        elif not self.reproducibleRates:
             seed = None
 
-        dr = rates.Rates(self.mylog, seed=seed)
-        if method == "dataframe":
-            dr.setMethod(
-                method, frm, to, values, stdev, corr, df=df,
-                n_years=self.N_n, offset=offset
-            )
+        # --------------------------------------------------
+        # Build model configuration dictionary
+        # --------------------------------------------------
+
+        model_config = {
+            "method": method,
+            "frm": frm,
+            "to": to,
+            "values": values,
+            "stdev": stdev,
+            "corr": corr,
+            "df": df,
+        }
+
+        # --------------------------------------------------
+        # Load rate model class
+        # --------------------------------------------------
+
+        from owlplanner.rate_models.loader import load_rate_model
+
+        ModelClass = load_rate_model(method, method_file)
+
+        model = ModelClass(
+            config=model_config,
+            seed=seed,
+            logger=self.mylog,
+        )
+
+        # --------------------------------------------------
+        # Backward compatibility for legacy model
+        # --------------------------------------------------
+        if method_file is None:
+            # Legacy model — restore legacy attributes
+            values = model.config.get("values")
+            stdev = model.config.get("stdev")
+            corr = model.config.get("corr")
+
+            self.rateValues = np.array(values) if values is not None else None
+            self.rateStdev = np.array(stdev) if stdev is not None else None
+            if corr is None:
+                # Legacy behavior: stochastic default correlation = identity matrix
+                if method in ("stochastic", "histochastic"):
+                    self.rateCorr = np.eye(4)
+                else:
+                    self.rateCorr = None
+            else:
+                self.rateCorr = np.array(corr)
         else:
-            dr.setMethod(method, frm, to, values, stdev, corr, df=df)
-        self.rateValues, self.rateStdev, self.rateCorr = dr.means, dr.stdev, dr.corr
+            # Non-legacy plugins may not define these
+            self.rateValues = None
+            self.rateStdev = None
+            self.rateCorr = None
+
+        # --------------------------------------------------
+        # Generate series
+        # --------------------------------------------------
+
+        series = model.generate(self.N_n)
+
+        if series.shape != (self.N_n, 4):
+            raise RuntimeError(
+                f"Rate model returned shape {series.shape}, expected ({self.N_n}, 4)"
+            )
+
+        # --------------------------------------------------
+        # Store metadata
+        # --------------------------------------------------
+
+        self.rateModel = model
         self.rateMethod = method
-        self.rateFrm = dr.frm if method == "dataframe" else frm
-        self.rateTo = dr.to if method == "dataframe" else to
+        self.rateMethodFile = method_file
+        self.rateFrm = frm
+        self.rateTo = to
         self.rateReverse = bool(reverse)
         self.rateRoll = int(roll)
-        self.tau_kn = dr.genSeries(self.N_n).transpose()
-        # Reverse and roll are no-ops for constant (fixed) rate methods; ignore with a warning.
-        if method in rates.CONSTANT_RATE_METHODS and (reverse or roll != 0):
-            self.mylog.print("Warning: reverse and roll are ignored for constant (fixed) rate methods.")
-        else:
-            self.tau_kn = _apply_rate_sequence_transform(
-                self.tau_kn, self.rateReverse, self.rateRoll)
-        self.mylog.vprint(f"Generating rate series of {len(self.tau_kn[0])} years using '{method}' method.")
-        if method in ["stochastic", "histochastic"]:
-            repro_status = "reproducible" if self.reproducibleRates else "non-reproducible"
-            self.mylog.print(f"Using seed {seed} for {repro_status} rates.")
 
-        # Once rates are selected, (re)build cumulative inflation multipliers.
+        # --------------------------------------------------
+        # Apply reverse / roll (legacy behavior)
+        # --------------------------------------------------
+
+        # model.generate() returns (N, 4)
+        # tau_kn must be (4, N)
+
+        series_kn = series.transpose()  # (4, N)
+
+        if getattr(model, "constant", False):
+            if reverse or roll != 0:
+                self.mylog.print(
+                    "Warning: reverse and roll are ignored for constant (fixed) rate methods."
+                )
+        else:
+            series_kn = _apply_rate_sequence_transform(
+                series_kn,
+                reverse,
+                roll,
+            )
+
+        self.tau_kn = series_kn
+
+        # --------------------------------------------------
+        # Inflation multiplier
+        # --------------------------------------------------
+
         self.gamma_n = _genGamma_n(self.tau_kn)
+
         self._adjustedParameters = False
         self.caseStatus = "modified"
 
+        self.mylog.vprint(
+            f"Generated {self.N_n} years of rates using model '{method}'."
+        )
+
     def regenRates(self, override_reproducible=False):
         """
-        Regenerate the rates using the arguments specified during last setRates() call.
-        This method is used to regenerate stochastic time series.
-        Only stochastic and histochastic methods need regeneration.
-        All fixed rate methods (default, optimistic, conservative, user, historical average,
-        historical) don't need regeneration as they produce the same values.
-
-        Args:
-            override_reproducible: If True, override reproducibility setting and always generate new rates.
-                                 Used by Monte-Carlo runs to ensure each run gets different rates.
+        Regenerate stochastic rate series using stored model.
         """
-        # Fixed rate methods don't need regeneration - they produce the same values
-        if self.rateMethod in rates.RATE_METHODS_NO_REGEN:
+
+        if not hasattr(self, "rateModel"):
             return
 
-        # Only stochastic methods reach here
-        # If reproducibility is enabled and we're not overriding it, don't regenerate
-        # (rates should stay the same for reproducibility)
+        if self.rateModel.deterministic:
+            return
+
         if self.reproducibleRates and not override_reproducible:
             return
 
-        # Regenerate with new random values
-        self.setRates(
-            self.rateMethod,
-            frm=self.rateFrm,
-            to=self.rateTo,
-            values=100 * self.rateValues,
-            stdev=100 * self.rateStdev,
-            corr=self.rateCorr,
-            override_reproducible=override_reproducible,
-            reverse=self.rateReverse,
-            roll=self.rateRoll,
-        )
+        # Re-generate via model
+        series = self.rateModel.generate(self.N_n)
+
+        self.tau_kn = series.transpose()
+        self.gamma_n = _genGamma_n(self.tau_kn)
+
+        self.mylog.vprint("Regenerated stochastic rate series.")
 
     def setAccountBalances(self, *, taxable, taxDeferred, taxFree, startDate=None, units="k"):
         """
