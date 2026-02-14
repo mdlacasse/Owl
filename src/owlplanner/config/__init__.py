@@ -14,7 +14,7 @@ from owlplanner import mylogging as log
 from . import legacy
 from .plan_bridge import apply_config_to_plan, config_to_plan, plan_to_config
 from .schema import CaseConfig
-from .toml_io import load_toml, save_toml
+from .toml_io import load_toml, save_toml, sanitize_config
 from .ui_bridge import config_to_ui, ui_to_config
 
 
@@ -67,6 +67,7 @@ __all__ = [
     "saveConfig",
     "load_config",
     "load_toml",
+    "sanitize_config",
     "save_toml",
     "config_to_plan",
     "plan_to_config",

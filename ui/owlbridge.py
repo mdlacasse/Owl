@@ -778,7 +778,7 @@ def createCaseFromFile(strio):
 
     logstrio = StringIO()
     try:
-        diconf, dirname, _ = load_toml(strio)
+        diconf, dirname, _ = load_toml(strio, log_stream=logstrio)
         plan = config_to_plan(
             diconf,
             dirname,

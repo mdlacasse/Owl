@@ -4,13 +4,44 @@ TOML load/save with unknown key preservation.
 Copyright (C) 2025-2026 The Owlplanner Authors
 """
 
+import logging
 import os
+from datetime import date
 from io import BytesIO, StringIO
 from typing import Union
 
 import toml
 
 from .legacy import translate_old_keys
+
+_LOG = logging.getLogger(__name__)
+
+
+def sanitize_config(diconf: dict, *, log_stream=None) -> None:
+    """
+    Apply domain-specific sanitization to a loaded config dict (in place).
+
+    Corrects values that may be invalid due to time passage (e.g. case from prior year).
+    Add new rules here as they emerge.
+    """
+    so = diconf.get("solver_options")
+    if so is None:
+        return
+
+    # Clamp startRothConversions to this year if in the past
+    start_roth = so.get("startRothConversions")
+    if start_roth is not None:
+        thisyear = date.today().year
+        year_val = int(start_roth)
+        if year_val < thisyear:
+            so["startRothConversions"] = thisyear
+            msg = (
+                f"Warning: startRothConversions ({year_val}) was in the past; "
+                f"reset to {thisyear}."
+            )
+            if log_stream is not None:
+                log_stream.write(msg + "\n")
+            _LOG.warning(msg)
 
 
 def _convert_for_toml(obj):
@@ -34,12 +65,15 @@ def _convert_for_toml(obj):
 
 def load_toml(
     file: Union[str, BytesIO, StringIO],
+    *,
+    log_stream=None,
 ) -> tuple[dict, str, Union[str, None]]:
     """
     Load configuration from TOML file. Unknown keys are preserved.
 
     Args:
         file: File path (str), BytesIO, or StringIO
+        log_stream: Optional file-like object to write warnings to (e.g. case logs).
 
     Returns:
         (diconf, dirname, filename):
@@ -76,6 +110,8 @@ def load_toml(
         raise ValueError(f"Type {type(file)} not a valid type")
 
     diconf = translate_old_keys(diconf)
+    sanitize_config(diconf, log_stream=log_stream)
+
     return diconf, dirname, filename
 
 

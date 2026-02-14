@@ -13,8 +13,40 @@ from owlplanner.config import (
     config_to_ui,
     load_toml,
     plan_to_config,
+    sanitize_config,
     ui_to_config,
 )
+
+
+def test_sanitize_config_start_roth_past_year():
+    """sanitize_config resets startRothConversions to this year when in the past."""
+    from datetime import date
+
+    diconf = {"solver_options": {"startRothConversions": 2019}}
+    log = StringIO()
+    sanitize_config(diconf, log_stream=log)
+    thisyear = date.today().year
+
+    assert diconf["solver_options"]["startRothConversions"] == thisyear
+    assert "Warning" in log.getvalue()
+    assert "reset to" in log.getvalue()
+
+
+def test_load_toml_start_roth_past_year_reset():
+    """startRothConversions in the past is reset when config file is read (via sanitize_config)."""
+    from datetime import date
+
+    toml_content = open("examples/Case_joe.toml").read()
+    toml_content = toml_content.replace(
+        "startRothConversions = 2025",
+        "startRothConversions = 2019",  # Past year
+    )
+    log = StringIO()
+    diconf, _, _ = load_toml(StringIO(toml_content), log_stream=log)
+    thisyear = date.today().year
+
+    assert diconf["solver_options"]["startRothConversions"] == thisyear
+    assert "Warning" in log.getvalue()
 
 
 def test_config_to_ui_roundtrip():
