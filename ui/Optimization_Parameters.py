@@ -133,8 +133,8 @@ else:
 
     st.divider()
     st.markdown("#### :orange[Safety Net]")
-    helpmsg = ("Minimum amount to keep in taxable account (today's \\$k). "
-               "Indexed for inflation. Constraint applies from year 2 through each individual's life horizon.")
+    helpmsg = ("Maintain a minimum inflation-adjusted taxable balance (today’s \\$k)"
+               " from year 2 through life expectancy. This should ideally be less than the initial balance.")
     ni = 2 if kz.getCaseKey("status") == "married" else 1
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
@@ -182,7 +182,7 @@ else:
                                "amoRoth", help=helpmsg)
 
             kz.initCaseKey("noLateSurplus", False)
-            helpmsg = ("Disallow cash-flow surpluses in the last 2 years of the plan.")
+            helpmsg = ("Disallow cash-flow surpluses in the last two years of the plan.")
             ret = kz.getToggle("Disallow cash-flow surpluses in last years",
                                "noLateSurplus", help=helpmsg)
 
