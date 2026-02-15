@@ -109,24 +109,26 @@ else:
             choices = ["None", iname0, iname1]
             kz.initCaseKey("noRothConversions", choices[0])
             helpmsg = "`None` means no exclusion. To exclude both spouses, set `Maximum annual Roth conversion` to 0."
-            ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg)
+            ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions",
+                              disabled=fromFile, help=helpmsg)
 
     st.divider()
     st.markdown("#### :orange[Medicare]")
-    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-    with col1:
+    cols = st.columns(3, gap="large", vertical_alignment="top")
+    with cols[0]:
         kz.initCaseKey("computeMedicare", True)
         helpmsg = "Compute Medicare and IRMAA premiums."
         medion = kz.getToggle("Medicare and IRMAA calculations", "computeMedicare", help=helpmsg)
         if medion and not kz.getCaseKey("withSCLoop"):
             st.markdown(":material/warning: Medicare is on while self-consistent loop is off.")
-    with col2:
-        if kz.getCaseKey("computeMedicare"):
-            helpmsg = "MAGI in nominal $k for current and previous years."
-            years = owb.backYearsMAGI()
-            for ii in range(2):
-                kz.initCaseKey("MAGI" + str(ii), 0)
-                if years[ii] > 0:
+
+    if kz.getCaseKey("computeMedicare"):
+        helpmsg = "MAGI in nominal $k for current and previous years."
+        years = owb.backYearsMAGI()
+        for ii in range(2):
+            kz.initCaseKey("MAGI" + str(ii), 0)
+            if years[ii] > 0:
+                with cols[1+ii]:
                     ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
