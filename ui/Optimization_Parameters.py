@@ -64,8 +64,8 @@ else:
             kz.initCaseKey("bequest", 0)
             helpmsg_bequest = ("Desired bequest from savings accounts only (in today's \\$k). "
                                "Fixed assets liquidated at end of plan are added separately.")
-            ret = kz.getNum("Desired bequest from savings accounts (\\$k)", "bequest",
-                            help=helpmsg_bequest)
+            bequest = kz.getNum("Desired bequest from savings accounts (\\$k)", "bequest",
+                                help=helpmsg_bequest)
 
             # Get fixed assets bequest value in today's dollars to inform the user
             fixed_assets_bequest = owb.getFixedAssetsBequestValue(in_todays_dollars=True)
@@ -140,14 +140,19 @@ else:
     with col1:
         kz.initCaseKey("minTaxableBalance0", 0)
         iname0 = kz.getCaseKey("iname0")
-        ret = kz.getNum(f"Minimum taxable balance for {iname0} (\\$k)", "minTaxableBalance0",
-                        min_value=0., help=helpmsg)
+        net0 = kz.getNum(f"Minimum taxable balance for {iname0} (\\$k)", "minTaxableBalance0",
+                         min_value=0., help=helpmsg)
     with col2:
-        kz.initCaseKey("minTaxableBalance1", 0)
+        net1 = 0
         if ni == 2:
+            kz.initCaseKey("minTaxableBalance1", 0)
             iname1 = kz.getCaseKey("iname1")
-            ret = kz.getNum(f"Minimum taxable balance for {iname1} (\\$k)", "minTaxableBalance1",
-                            min_value=0., help=helpmsg)
+            net1 = kz.getNum(f"Minimum taxable balance for {iname1} (\\$k)", "minTaxableBalance1",
+                             min_value=0., help=helpmsg)
+
+    if kz.getCaseKey("objective") == "Net spending" and (net0 + net1) > bequest:
+        st.caption(":warning: When maximizing spending with a bequest target, the desired bequest should be at least "
+                   "as large as the survivor's safety net (in today's \\$), otherwise optimization may be infeasible.")
 
     st.divider()
     with st.expander("*Advanced options*"):
