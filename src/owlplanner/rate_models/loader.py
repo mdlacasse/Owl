@@ -21,13 +21,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 ###########################################################################
 import importlib.util
 import pathlib
 
 from owlplanner.rate_models.legacy import LegacyRateModel
 from owlplanner.rate_models.dataframe import DataFrameRateModel
+from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
 
 
 # ------------------------------------------------------------
@@ -48,14 +48,15 @@ LEGACY_METHODS = {
 
 BUILTIN_NEW_METHODS = {
     "dataframe",
+    "bootstrap_sor",
 }
 
 ALLOWED_METHODS = LEGACY_METHODS | BUILTIN_NEW_METHODS
 
-
 # ------------------------------------------------------------
 # Loader
 # ------------------------------------------------------------
+
 
 def load_rate_model(method, method_file=None):
     """
@@ -96,6 +97,9 @@ def load_rate_model(method, method_file=None):
     if method == "dataframe":
         return DataFrameRateModel
 
+    if method == "bootstrap_sor":
+        return BootstrapSORRateModel
+
     # ------------------------------------------------------------
     # 3. Legacy built-in models
     # ------------------------------------------------------------
@@ -111,11 +115,13 @@ def load_rate_model(method, method_file=None):
         f"or provide method_file for plugin."
     )
 
+
 def list_available_rate_models():
     """
     Return list of available model names.
     """
     return sorted(ALLOWED_METHODS)
+
 
 def get_rate_model_metadata(method, method_file=None):
     """

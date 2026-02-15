@@ -776,8 +776,21 @@ class Plan:
             # setRates() will generate a new seed each time it's called
             self.rateSeed = None
 
-    def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None, df=None,
-                 override_reproducible=False, reverse=False, roll=0, offset=0):
+    def setRates(
+        self,
+        method,
+        frm=None,
+        to=None,
+        values=None,
+        stdev=None,
+        corr=None,
+        df=None,
+        method_file=None,
+        override_reproducible=False,
+        reverse=False,
+        roll=0,
+        **kwargs,
+    ):
         """
         Generate rates using pluggable rate model architecture.
 
@@ -829,6 +842,7 @@ class Plan:
             "corr": corr,
             "df": df,
         }
+        model_config.update(kwargs)
 
         # --------------------------------------------------
         # Load rate model class

@@ -17,7 +17,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 ###########################################################################
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner import rates
@@ -33,49 +32,132 @@ class LegacyRateModel(BaseRateModel):
     # --------------------------------------------------
 
     METHOD_METADATA = {
+
+        # ------------------------------------------------------------
+        # Deterministic Fixed Methods
+        # ------------------------------------------------------------
+
         "default": {
-            "description": "30-year historical average deterministic rates.",
+            "description": "30-year trailing historical average deterministic rates.",
             "required_parameters": {},
             "optional_parameters": {},
             "deterministic": True,
             "constant": True,
         },
+
+        "optimistic": {
+            "description": "Optimistic fixed rates based on industry forecasts.",
+            "required_parameters": {},
+            "optional_parameters": {},
+            "deterministic": True,
+            "constant": True,
+        },
+
+        "conservative": {
+            "description": "Conservative fixed rate assumptions.",
+            "required_parameters": {},
+            "optional_parameters": {},
+            "deterministic": True,
+            "constant": True,
+        },
+
         "user": {
-            "description": "User-specified fixed rates.",
+            "description": "User-specified fixed annual rates.",
             "required_parameters": {
                 "values": {
                     "type": "list[float]",
                     "length": 4,
-                    "description": "Rates in percent: [Stocks, Bonds, TNotes, Inflation]"
+                    "description": "Rates in percent: [Stocks, Bonds Baa, TNotes, Inflation]",
                 }
             },
             "optional_parameters": {},
             "deterministic": True,
             "constant": True,
         },
-        "stochastic": {
-            "description": "Multivariate normal stochastic rates.",
-            "required_parameters": {
-                "values": {"type": "list[float]", "length": 4},
-                "stdev": {"type": "list[float]", "length": 4},
-            },
-            "optional_parameters": {
-                "corr": {"type": "matrix or list[6]"},
-            },
-            "deterministic": False,
-            "constant": False,
-        },
+
+        # ------------------------------------------------------------
+        # Historical Deterministic
+        # ------------------------------------------------------------
+
         "historical": {
-            "description": "Historical time series from specified year.",
+            "description": "Historical year-by-year returns starting at frm.",
             "required_parameters": {
-                "frm": {"type": "int"},
+                "frm": {
+                    "type": "int",
+                    "description": "Starting historical year (inclusive)."
+                }
             },
             "optional_parameters": {
-                "to": {"type": "int"},
+                "to": {
+                    "type": "int",
+                    "description": "Ending historical year (inclusive). Defaults to frm + N_n - 1."
+                }
             },
             "deterministic": True,
             "constant": False,
         },
+
+        "historical average": {
+            "description": "Fixed rates equal to historical average over selected range.",
+            "required_parameters": {
+                "frm": {"type": "int"},
+                "to": {"type": "int"},
+            },
+            "optional_parameters": {},
+            "deterministic": True,
+            "constant": True,
+        },
+
+        "mean": {
+            "description": "Alias for 'historical average'.",
+            "required_parameters": {
+                "frm": {"type": "int"},
+                "to": {"type": "int"},
+            },
+            "optional_parameters": {},
+            "deterministic": True,
+            "constant": True,
+        },
+
+        # ------------------------------------------------------------
+        # Stochastic Models
+        # ------------------------------------------------------------
+
+        "stochastic": {
+            "description": "Multivariate normal stochastic model using user-provided mean and volatility.",
+            "required_parameters": {
+                "values": {
+                    "type": "list[float]",
+                    "length": 4,
+                    "description": "Mean returns in percent.",
+                },
+                "stdev": {
+                    "type": "list[float]",
+                    "length": 4,
+                    "description": "Standard deviations in percent.",
+                },
+            },
+            "optional_parameters": {
+                "corr": {
+                    "type": "4x4 matrix or list[6]",
+                    "description": "Correlation matrix or upper-triangular off-diagonal list."
+                }
+            },
+            "deterministic": False,
+            "constant": False,
+        },
+
+        "histochastic": {
+            "description": "Multivariate normal model using historical mean and covariance from selected range.",
+            "required_parameters": {
+                "frm": {"type": "int"},
+                "to": {"type": "int"},
+            },
+            "optional_parameters": {},
+            "deterministic": False,
+            "constant": False,
+        },
+
     }
 
     constant_methods = (
@@ -124,7 +206,6 @@ class LegacyRateModel(BaseRateModel):
     def generate(self, N):
         return self._rates.genSeries(N)
 
-
     @classmethod
     def get_method_metadata(cls, method):
         if method not in cls.METHOD_METADATA:
@@ -138,4 +219,3 @@ class LegacyRateModel(BaseRateModel):
             "required_parameters": meta.get("required_parameters", {}),
             "optional_parameters": meta.get("optional_parameters", {}),
         }
-

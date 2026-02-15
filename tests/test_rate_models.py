@@ -116,7 +116,7 @@ def test_roll_sequence():
     assert np.allclose(np.roll(tau_forward, shift=3, axis=1), tau_roll)
 
 def test_dataframe_method():
-    years = np.arange(2000, 2000+20)
+    years = np.arange(2000, 2000 + 20)
 
     df = pd.DataFrame({
         "year": years,
@@ -125,8 +125,13 @@ def test_dataframe_method():
         "T Bonds": 0.025,
         "inflation": 0.02,
     })
+
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
-    p.setRates(method="dataframe", df=df)
+
+    # Explicitly align plan to DataFrame years
+    p.setRates(method="dataframe", df=df, frm=2000, to=2000 + p.N_n - 1)
+
+    # tau_kn is (4, N)
     assert np.allclose(p.tau_kn[0], 0.05)
 
 
