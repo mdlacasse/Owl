@@ -691,10 +691,10 @@ def flagCurrentCase(caseName):
 def titleBar(txt, allCases=False):
     if allCases:
         choices = allCaseNames()
-        helpmsg = "Select an existing case, or create a new one from scratch or from a *case* parameter file."
+        helpmsg = "Select an existing case, create a new one from scratch, or load from a case parameter file."
     else:
         choices = onlyCaseNames()
-        helpmsg = "Select an existing case."
+        helpmsg = "Switch to a different case."
 
     header = st.container()
     # header.title("Here is a sticky header")
