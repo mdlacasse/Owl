@@ -43,7 +43,7 @@ def config_to_plan(
     *,
     verbose: bool = True,
     logstreams=None,
-    read_contributions: bool = True,
+    loadHFP: bool = True,
 ) -> "Plan":
     """
     Build a Plan from a configuration dict.
@@ -56,7 +56,7 @@ def config_to_plan(
         dirname: Directory of config file (for resolving HFP relative paths)
         verbose: Logger verbosity
         logstreams: Logger streams
-        read_contributions: Whether to load HFP file
+        loadHFP: Whether to load the Household Financial Profile file
     """
     from owlplanner import plan
 
@@ -99,17 +99,17 @@ def config_to_plan(
     hfp_section = known.get("household_financial_profile", {})
     time_lists_file = hfp_section.get("HFP_file_name", "None")
     if time_lists_file != "None":
-        if read_contributions:
+        if loadHFP:
             if os.path.exists(time_lists_file):
                 myfile = time_lists_file
             elif dirname and os.path.exists(os.path.join(dirname, time_lists_file)):
                 myfile = os.path.join(dirname, time_lists_file)
             else:
                 raise FileNotFoundError(f"File '{time_lists_file}' not found.")
-            p.readContributions(myfile)
+            p.readHFP(myfile)
         else:
             p.timeListsFileName = time_lists_file
-            mylog.vprint(f"Ignoring to read contributions file {time_lists_file}.")
+            mylog.vprint(f"Ignoring HFP file {time_lists_file}.")
 
     # Fixed Income
     ssec_amounts = np.array(

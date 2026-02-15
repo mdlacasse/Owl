@@ -204,7 +204,7 @@ withSCLoop = true
 default_plots = "today"
 """
         # No reverse_sequence or roll_sequence keys
-        p = config.readConfig(StringIO(toml_content), verbose=False, readContributions=False)
+        p = config.readConfig(StringIO(toml_content), verbose=False, loadHFP=False)
         assert p.rateReverse is False
         assert p.rateRoll == 0
 
@@ -217,7 +217,7 @@ default_plots = "today"
         f = StringIO()
         config.saveConfig(p, f, p.mylog)
         f.seek(0)
-        p2 = config.readConfig(f, verbose=False, readContributions=False)
+        p2 = config.readConfig(f, verbose=False, loadHFP=False)
         assert p2.rateReverse is True
         assert p2.rateRoll == 4
         np.testing.assert_array_almost_equal(p2.tau_kn, p.tau_kn)

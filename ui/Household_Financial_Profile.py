@@ -35,7 +35,7 @@ def loadWCExample(file):
         hfp_name = tomlex.getHFPName(file)
         mybytesio = tomlex.loadWagesExample(file)
         if mybytesio is not None:
-            owb.readContributions(mybytesio, file=hfp_name)
+            owb.readHFP(mybytesio, file=hfp_name)
 
 
 ret = kz.titleBar(":material/home: Household Financial Profile")
@@ -76,7 +76,7 @@ that has not yet been uploaded.""")
             type=["xlsx", "ods"],
         )
         if stTimeLists is not None:
-            if owb.readContributions(stTimeLists):
+            if owb.readHFP(stTimeLists):
                 kz.setCaseKey("stTimeLists", stTimeLists)
                 # Change key to reset uploader.
                 kz.storeCaseKey("_xlsx", kz.getCaseKey("_xlsx") + 1)

@@ -409,7 +409,7 @@ def _setContributions(plan, action):
         dicDf[kz.getCaseKey("iname1")] = kz.getCaseKey("timeList1")
 
     try:
-        plan.readContributions(dicDf)
+        plan.readHFP(dicDf)
     except Exception as e:
         st.error(f"Failed to parse Household Financial Profile Workbook: {e}")
         return False
@@ -457,9 +457,9 @@ def _setContributions(plan, action):
 
 
 @_checkPlan
-def readContributions(plan, stFile, file=None):
+def readHFP(plan, stFile, file=None):
     """
-    Set from file -> Plan -> UI.
+    Load HFP from file -> Plan -> UI.
     """
     if stFile is None:
         return False
@@ -472,7 +472,7 @@ def readContributions(plan, stFile, file=None):
         name = "unknown"
 
     try:
-        plan.readContributions(stFile, filename_for_logging=name)
+        plan.readHFP(stFile, filename_for_logging=name)
     except Exception as e:
         st.error(f"Failed to parse Household Financial Profile Workbook '{name}': {e}")
         return False
@@ -497,12 +497,12 @@ def readContributions(plan, stFile, file=None):
 
 
 @_checkPlan
-def resetContributions(plan):
-    return plan.zeroContributions()
+def resetWagesAndContributions(plan):
+    return plan.zeroWagesAndContributions()
 
 
 def resetTimeLists():
-    tlists = resetContributions()
+    tlists = resetWagesAndContributions()
     for i, iname in enumerate(tlists):
         kz.setCaseKey(f"timeList{i}", tlists[iname])
 
@@ -784,7 +784,7 @@ def createCaseFromFile(strio):
             dirname,
             verbose=True,
             logstreams=[logstrio, logstrio],
-            read_contributions=False,
+            loadHFP=False,
         )
     except Exception as e:
         st.error(f"Failed to parse case file: {e}")

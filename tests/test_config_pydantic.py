@@ -86,7 +86,7 @@ default_plots = "nominal"
 def test_user_keys_preserved_on_roundtrip():
     """User-defined sections ([user], [custom_metadata], etc.) are preserved across load/save."""
     strio = StringIO(_TOML_WITH_USER_KEYS)
-    p = owl.readConfig(strio, verbose=False, readContributions=False)
+    p = owl.readConfig(strio, verbose=False, loadHFP=False)
 
     out = StringIO()
     p.saveConfig(out)
@@ -102,13 +102,13 @@ def test_user_keys_preserved_on_roundtrip():
 def test_user_keys_survive_second_roundtrip():
     """User keys preserved through multiple load/save cycles."""
     strio = StringIO(_TOML_WITH_USER_KEYS)
-    p1 = owl.readConfig(strio, verbose=False, readContributions=False)
+    p1 = owl.readConfig(strio, verbose=False, loadHFP=False)
 
     out1 = StringIO()
     p1.saveConfig(out1)
     out1.seek(0)
 
-    p2 = owl.readConfig(out1, verbose=False, readContributions=False)
+    p2 = owl.readConfig(out1, verbose=False, loadHFP=False)
     out2 = StringIO()
     p2.saveConfig(out2)
     out2_str = out2.getvalue()

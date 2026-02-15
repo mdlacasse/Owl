@@ -70,7 +70,7 @@ def test_ui_to_config_to_plan():
     diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml").read()))
     uidic = config_to_ui(diconf)
     back = ui_to_config(uidic)
-    plan = config_to_plan(back, verbose=False, read_contributions=False)
+    plan = config_to_plan(back, verbose=False, loadHFP=False)
 
     assert plan._name == "joe"
     assert plan.N_i == 1

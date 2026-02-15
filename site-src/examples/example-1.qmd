@@ -50,7 +50,7 @@ plan.setAccountBalances(
 * An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
 
 ```{python}
-plan.readContributions('../../examples/jack+jill.xlsx')
+plan.readHFP('../../examples/jack+jill.xlsx')
 ```
 
 ### Asset allocations

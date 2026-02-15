@@ -52,7 +52,7 @@ def cmd_list(directory):
     for filename in toml_files:
         try:
             logger.debug(f"Loading plan from {filename}")
-            plan = owl.readConfig(str(filename), logstreams="loguru", readContributions=False)
+            plan = owl.readConfig(str(filename), logstreams="loguru", loadHFP=False)
             plans.append((filename.stem, plan))
         except Exception as e:
             logger.warning(f"Failed to load {filename}: {e}")

@@ -116,7 +116,7 @@ def test_reproducibility():
 
         # Load HFP file and verify it was loaded successfully
         try:
-            p.readContributions(hfp)
+            p.readHFP(hfp)
         except Exception as e:
             assert False, (
                 f"Failed to load HFP file {hfp} for case {case}: {e}"

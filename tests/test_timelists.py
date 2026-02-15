@@ -51,7 +51,7 @@ class TestHFPWriteRead:
         )
 
         # Set some basic contributions
-        p.zeroContributions()
+        p.zeroWagesAndContributions()
         alice_df = p.timeLists["Alice"]
         # Set some wages for a few years
         alice_df.loc[alice_df["year"] == 2025, "anticipated wages"] = 100000
@@ -74,7 +74,7 @@ class TestHFPWriteRead:
                 "Test Plan 2",
                 verbose=False
             )
-            p2.readContributions(tmp_path)
+            p2.readHFP(tmp_path)
 
             # Verify data was preserved
             assert p2.timeLists is not None
@@ -125,7 +125,7 @@ class TestHFPWriteRead:
 
         # Set up houseLists
         p.houseLists = {"Debts": debts_df}
-        p.zeroContributions()
+        p.zeroWagesAndContributions()
 
         # Save to temporary file
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
@@ -143,7 +143,7 @@ class TestHFPWriteRead:
                 "Test Debts 2",
                 verbose=False
             )
-            p2.readContributions(tmp_path)
+            p2.readHFP(tmp_path)
 
             # Verify debts were preserved
             assert "Debts" in p2.houseLists
@@ -208,7 +208,7 @@ class TestHFPWriteRead:
 
         # Set up houseLists
         p.houseLists = {"Fixed Assets": assets_df}
-        p.zeroContributions()
+        p.zeroWagesAndContributions()
 
         # Save to temporary file
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
@@ -226,7 +226,7 @@ class TestHFPWriteRead:
                 "Test Fixed Assets 2",
                 verbose=False
             )
-            p2.readContributions(tmp_path)
+            p2.readHFP(tmp_path)
 
             # Verify fixed assets were preserved
             assert "Fixed Assets" in p2.houseLists
@@ -349,7 +349,7 @@ class TestHFPWriteRead:
         )
 
         # Set contributions for both
-        p.zeroContributions()
+        p.zeroWagesAndContributions()
         george_df = p.timeLists["George"]
         gina_df = p.timeLists["Gina"]
 
@@ -388,7 +388,7 @@ class TestHFPWriteRead:
                 "Test Married 2",
                 verbose=False
             )
-            p2.readContributions(tmp_path)
+            p2.readHFP(tmp_path)
 
             # Verify both individuals' data
             assert "George" in p2.timeLists

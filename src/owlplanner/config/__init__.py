@@ -22,7 +22,7 @@ from .ui_bridge import config_to_ui, ui_to_config
 translate_old_keys = legacy.translate_old_keys
 
 
-def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
+def readConfig(file, *, verbose=True, logstreams=None, loadHFP=True):
     """
     Read plan parameters from case file *basename*.toml.
     A new plan is created and returned.
@@ -40,7 +40,7 @@ def readConfig(file, *, verbose=True, logstreams=None, readContributions=True):
         dirname,
         verbose=verbose,
         logstreams=logstreams,
-        read_contributions=readContributions,
+        loadHFP=loadHFP,
     )
 
 

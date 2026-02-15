@@ -21,7 +21,7 @@ plan = owl.Plan(['Jack', 'Jill'], [1962, 1965], [89, 92], 'jack & jill - tutoria
 # Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
 plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50.6 + 20, 40.8])
 # An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
-plan.readContributions('jack+jill.xlsx')
+plan.readHFP('jack+jill.xlsx')
 # Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
 # Jill will do the same thing but is a bit more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
 plan.setInterpolationMethod('s-curve')

@@ -24,8 +24,8 @@ plan = owl.Plan(['Jack', 'Jill'], ["1963-01-15", "1966-01-15"], [89, 92], 'jack 
 # $600.5k in a tax-deferred account and $70k from 2 tax-free accounts.
 # Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
 plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50.6 + 20, 40.8], startDate="01-01")
-t An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
-plan.readContributions('examples/HFP_jack+jill.xlsx')
+# An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
+plan.readHFP('examples/HFP_jack+jill.xlsx')
 # Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
 # Jill will do the same thing but is a bit more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
 plan.setInterpolationMethod('s-curve')
@@ -127,7 +127,7 @@ plan.showRatesCorrelations()
 
 A short text summary of the outcome of the optimization can be displayed through using:
 ```python
-print(plan.summarySting())
+print(plan.summaryString())
 ```
 The output of the last command reports that if future rates are exactly like those observed
 starting from 1969 and the following years, Jack and Jill could afford an annual spending of

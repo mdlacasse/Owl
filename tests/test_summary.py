@@ -39,7 +39,7 @@ def get_jack_jill_plan():
     p = owl.readConfig(file)
 
     hfp = os.path.join(exdir, "HFP_jack+jill.xlsx")
-    p.readContributions(hfp)
+    p.readHFP(hfp)
     p.resolve()
 
     return p

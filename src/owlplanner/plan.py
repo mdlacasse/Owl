@@ -404,7 +404,7 @@ class Plan:
         self.timeListsFileName = "None"
         self.timeLists = {}
         self.houseLists = {}
-        self.zeroContributions()
+        self.zeroWagesAndContributions()
         self.caseStatus = "unsolved"
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
         self.convergenceType = "undefined"
@@ -1075,13 +1075,14 @@ class Plan:
 
         self.mylog.vprint(f"Interpolating assets allocation ratios using '{self.interpMethod}' method.")
 
-    def readContributions(self, filename, filename_for_logging=None):
+    def readHFP(self, filename, filename_for_logging=None):
         """
-        Provide the name of the file containing the financial events
-        over the anticipated life span determined by the
-        assumed longevity. File can be an excel, or odt file with one
-        tab named after each spouse and must have the following
-        column headers:
+        Load the Household Financial Profile (HFP) from file.
+
+        The HFP file contains wages, contributions, Roth conversions,
+        big-ticket items (per individual), and optionally Debts and Fixed Assets.
+        File can be an excel, or odt file with one tab named after each
+        spouse and must have the following column headers:
 
                 'year',
                 'anticipated wages',
@@ -1271,9 +1272,10 @@ class Plan:
 
         return wb
 
-    def zeroContributions(self):
+    def zeroWagesAndContributions(self):
         """
-        Reset all contributions variables to zero.
+        Zero wages, contributions, Roth conversions, and big-ticket items.
+        Resets timeLists; does not modify Debts or Fixed Assets.
         """
         self.mylog.vprint("Resetting wages and contributions to zero.")
 

@@ -50,7 +50,7 @@ def createJackAndJillPlan(name):
 
     p.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150],
                          taxFree=[50 + 20, 40], startDate="1-1")
-    p.readContributions('./examples/HFP_jack+jill.xlsx')
+    p.readHFP('./examples/HFP_jack+jill.xlsx')
     p.setInterpolationMethod('s-curve')
     p.setAllocationRatios('individual',
                           generic=[[[60, 40, 0, 0], [70, 30, 0, 0]],
