@@ -43,7 +43,7 @@ class DataFrameRateModel(BaseRateModel):
             }
         }
 
-    optional_parameters =  {
+    optional_parameters = {
             "offset": {
                 "type": "int",
                 "default": 0,
