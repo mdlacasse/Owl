@@ -895,6 +895,13 @@ def genDic(plan):
         if key in solverOptionKeys:
             dic[key] = plan.solverOptions[key]
 
+    if "minTaxableBalance" in solverOptionKeys:
+        mbl = plan.solverOptions["minTaxableBalance"]
+        if isinstance(mbl, (list, tuple)) and len(mbl) >= 1:
+            dic["minTaxableBalance0"] = mbl[0] if mbl[0] is not None else 0
+        if isinstance(mbl, (list, tuple)) and len(mbl) >= 2:
+            dic["minTaxableBalance1"] = mbl[1] if mbl[1] is not None else 0
+
     if "withMedicare" in solverOptionKeys:
         opt = plan.solverOptions["withMedicare"]
         dic["computeMedicare"] = False if opt == "None" else True

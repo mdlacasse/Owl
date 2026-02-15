@@ -51,7 +51,7 @@ else:
     kz.runOncePerCase(initProfile)
 
     st.markdown("#### :orange[Objective]")
-    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         choices = ["Net spending", "Bequest"]
         helpmsg = "Value is in today's \\$k."
@@ -81,7 +81,7 @@ else:
 
     st.divider()
     st.markdown("#### :orange[Roth Conversions]")
-    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         iname0 = kz.getCaseKey("iname0")
         helpmsg = "Value is in nominal \\$k."
@@ -103,6 +103,7 @@ else:
         kz.initCaseKey("startRothConversions", thisyear)
         ret = kz.getIntNum("Year to start considering Roth conversions", "startRothConversions",
                            min_value=thisyear, disabled=fromFile, help=helpmsg)
+    with col3:
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
             choices = ["None", iname0, iname1]
@@ -112,7 +113,7 @@ else:
 
     st.divider()
     st.markdown("#### :orange[Medicare]")
-    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("computeMedicare", True)
         helpmsg = "Compute Medicare and IRMAA premiums."
@@ -127,6 +128,24 @@ else:
                 kz.initCaseKey("MAGI" + str(ii), 0)
                 if years[ii] > 0:
                     ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
+
+    st.divider()
+    st.markdown("#### :orange[Safety Net]")
+    helpmsg = ("Minimum amount to keep in taxable account (today's \\$k). "
+               "Indexed for inflation. Constraint applies from year 2 through each individual's life horizon.")
+    ni = 2 if kz.getCaseKey("status") == "married" else 1
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+    with col1:
+        kz.initCaseKey("minTaxableBalance0", 0)
+        iname0 = kz.getCaseKey("iname0")
+        ret = kz.getNum(f"Minimum taxable balance for {iname0} (\\$k)", "minTaxableBalance0",
+                        min_value=0., help=helpmsg)
+    with col2:
+        kz.initCaseKey("minTaxableBalance1", 0)
+        if ni == 2:
+            iname1 = kz.getCaseKey("iname1")
+            ret = kz.getNum(f"Minimum taxable balance for {iname1} (\\$k)", "minTaxableBalance1",
+                            min_value=0., help=helpmsg)
 
     st.divider()
     with st.expander("*Advanced options*"):
@@ -185,7 +204,7 @@ else:
 
     st.divider()
     st.markdown("#### :orange[Spending Profile]")
-    col1, col2, col3 = st.columns(3, gap="medium", vertical_alignment="top")
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         helpmsg = "Spending can be constant during the duration of the plan or be adjusted for lifestyle."
         ret = kz.getRadio("Type of profile", profileChoices, "spendingProfile", help=helpmsg, callback=owb.setProfile)

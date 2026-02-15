@@ -448,6 +448,15 @@ def getSolveParameters():
     if getCaseKey("readRothX"):
         options["maxRothConversion"] = "file"
 
+    # Build minTaxableBalance list from per-spouse UI values (today's $k)
+    ni = 2 if getCaseKey("status") == "married" else 1
+    min_taxable = [
+        float(getCaseKey("minTaxableBalance0") or 0),
+        float(getCaseKey("minTaxableBalance1") or 0),
+    ][:ni]
+    if any(v > 0 for v in min_taxable):
+        options["minTaxableBalance"] = min_taxable
+
     previousMAGIs = getPreviousMAGIs()
     if previousMAGIs[0] > 0 or previousMAGIs[1] > 0:
         options["previousMAGIs"] = previousMAGIs

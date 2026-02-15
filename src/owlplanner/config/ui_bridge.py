@@ -163,6 +163,12 @@ def config_to_ui(diconf: dict) -> dict:
         dic["MAGI0"] = so["previousMAGIs"][0]
         dic["MAGI1"] = so["previousMAGIs"][1]
 
+    if "minTaxableBalance" in so:
+        mbl = so["minTaxableBalance"]
+        if isinstance(mbl, (list, tuple)):
+            dic["minTaxableBalance0"] = mbl[0] if len(mbl) > 0 else 0
+            dic["minTaxableBalance1"] = mbl[1] if len(mbl) > 1 else 0
+
     obj = op.get("objective", "maxSpending")
     dic["objective"] = "Net spending" if obj == "maxSpending" else "Bequest"
 
@@ -353,6 +359,13 @@ def ui_to_config(uidic: dict) -> dict:
     magi1 = uidic.get("MAGI1")
     if magi0 is not None and magi1 is not None and (float(magi0 or 0) > 0 or float(magi1 or 0) > 0):
         diconf["solver_options"]["previousMAGIs"] = [float(magi0 or 0), float(magi1 or 0)]
+
+    mb0 = uidic.get("minTaxableBalance0")
+    mb1 = uidic.get("minTaxableBalance1")
+    if mb0 is not None or mb1 is not None:
+        mbl = [float(mb0 or 0), float(mb1 or 0)][:ni]
+        if any(v > 0 for v in mbl):
+            diconf["solver_options"]["minTaxableBalance"] = mbl
 
     return diconf
 

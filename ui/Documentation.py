@@ -251,7 +251,7 @@ or large influx of after-tax money, debts, and fixed assets.
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
 The **Wages and Contributions** table contains 9 columns titled as follows:
 
-|year|anticipated wages|ctrb taxable|ctrb 401k|ctrb Roth 401k|ctrb IRA|ctrb Roth IRA|Roth conv|big-ticket items|
+|year|anticipated wages|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|Roth conv|big-ticket items|
 |--|--|--|--|--|--|--|--|--|
 |2021 | | | | | | | | |
 | ... | | | | | | | | |
@@ -268,7 +268,7 @@ Excel capabilities for cross-column calculations.
 
 This file goes five year back in time in order to capture previous contributions and
 conversions to Roth accounts.
-Entries in columns others than contributions or conversions to Roth accounts
+Entries in columns other than contributions or conversions to Roth accounts
 for past years will be ignored by **Owl** but can be left there for documentation purposes.
 Past contributions and conversions are required for implementing
 constraints restricting withdrawals from Roth accounts, thus avoiding
@@ -417,8 +417,7 @@ where:
   the asset is included in calculations.
 - *name* is a unique identifier for the fixed asset (e.g., "Primary Residence", "Rental Property").
 - *type* is one of *residence*, *real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*.
-  In the current version, only fixed-rate lump-sum annuities can be represented. The asset type determines
-  the tax treatment upon disposition (see Asset Lifecycle section below).
+  The asset type determines the tax treatment upon disposition (see Asset Lifecycle section below).
 - *year* is the **reference year** (this year or after). If the year is in the past, it will be
   automatically reset to the current year when reading from the HFP file. Assets acquired in
   the future have a future reference year. The asset is considered assessed (current) or acquired (future)
@@ -677,17 +676,27 @@ Turning off the self-consistent loop will default all these values to zero.
 
 Medicare premiums start automatically in the year each individual reaches age 65.
 
-An additional setting allows to turn off mutually exclusive operations,
-such as Roth conversions and withdrawals from the tax-free account.
-Enabling these mutually exclusive constraints avoids both these situations.
-Surprinsingly, dropping these constraints can lead to slightly different optimal points
-for reasons that escape me.
-
 If the current age of any individual in the *case* makes them eligible
 for Medicare within the next two years,
 additional cells will appear for entering the MAGI's for the
 past 1 or 2 years, whichever applies. Values default to zero.
 These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
+
+**Safety Net** settings allow you to enforce a minimum balance in each spouse's taxable account.
+The amount is specified in today's dollars and is indexed for inflation over the plan horizon.
+These constraints apply from year 2 onward through each individual's life horizon (the first year
+is excluded to avoid conflicts with initial balances).
+The minimum should ideally be smaller than each spouse's initial taxable balance, otherwise the
+optimizer may find the problem infeasible or produce unexpected results.
+Use this to ensure a reserve of liquid assets is maintained for emergencies or opportunities,
+or to reflect a personal preference for keeping a buffer in taxable accounts.
+
+The *Advanced options* expander contains additional settings. One allows to turn off mutually
+exclusive operations, such as Roth conversions and withdrawals from the tax-free account.
+Enabling these mutually exclusive constraints avoids both these situations.
+Surprisingly, dropping these constraints can lead to slightly different optimal points
+for reasons that escape me.
+The self-consistent loop, Medicare optimization, and solver selection are also found there.
 
 Different mixed-integer linear programming solvers can be selected.
 This option is mostly for verification purposes.
@@ -734,7 +743,7 @@ in the [Case Setup](#case-setup) section.
 This simulation uses a single instance of a series of rates, either fixed or varying,
 as selected in the [Case Setup](#case-setup) section.
 The outcome is optimized according to the chosen parameters: either maximize the
-net spending, of maximize the bequest under the constraint of a net spending amount.
+net spending, or maximize the bequest under the constraint of a net spending amount.
 Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 

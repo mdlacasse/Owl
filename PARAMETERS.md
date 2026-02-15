@@ -181,6 +181,7 @@ Options controlling the optimization solver and constraints.
 | `gap` | float | *(Advanced)* Relative MILP gap used by solvers and to scale convergence tolerances. | `1e-4` (default); if `withMedicare = "optimize"` and unset, set to `3e-3` (or `3e-2` when `maxRothConversion <= 15`) |
 | `maxIter` | integer | *(Advanced)* Maximum number of iterations for the self-consistent loop. Must be at least 1. | `29` |
 | `maxRothConversion` | float or string | Maximum annual Roth conversion amount (in `units`). Use `"file"` to take per-year limits from time lists; omit for no cap (except last year). | No cap unless provided |
+| `minTaxableBalance` | array | Minimum taxable account balance per spouse (in today's `units`). Values are indexed for inflation. Constraints apply from year 2 through each individual's life horizon. | Omit for no minimum |
 | `maxTime` | float | *(Advanced)* Solver time limit in seconds. | `900` |
 | `netSpending` | float | Target net spending amount in today's dollars (in `units`). Used when `objective = "maxBequest"`. | Required for `maxBequest` |
 | `noLateSurplus` | boolean | Disallow surplus deposits in the final two years of the plan. | `false` |

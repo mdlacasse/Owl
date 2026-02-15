@@ -1415,8 +1415,9 @@ class Plan:
         self._add_standard_exemption_bounds()
         self._add_defunct_constraints()
         self._add_roth_conversion_constraints(options)
+        self._add_safety_net(options)
         self._add_roth_maturation_constraints()
-        self._add_withdrawal_limits()
+        # self._add_withdrawal_limits()
         self._add_conversion_limits()
         self._add_objective_constraints(objective, options)
         self._add_initial_balances()
@@ -1560,6 +1561,29 @@ class Plan:
                     continue
                 self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 2, self.N_i, self.N_n), 0, 0)
                 self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 1, self.N_i, self.N_n), 0, 0)
+
+    def _add_safety_net(self, options):
+        """
+        Enforce minimum taxable account balances (safety net) for each individual.
+        Amounts are in today's $ and indexed for inflation. Constraints apply
+        from year 2 onward through each individual's life horizon (not year 1).
+        """
+        if "minTaxableBalance" not in options:
+            return
+        min_bal = options["minTaxableBalance"]
+        if not isinstance(min_bal, (list, tuple)) or len(min_bal) < self.N_i:
+            return
+        for i in range(self.N_i):
+            val = min_bal[i] if i < len(min_bal) else 0
+            min_today = float(val) if val is not None and val != "" else 0
+            if min_today <= 0:
+                continue
+            min_dollar = min_today * self.optionsUnits
+            # From year 2 onward; last year = min(horizons[i], N_n) for survivor,
+            # horizons[i]-1 for deceased (last year alive)
+            for n in range(1, self.horizons[i]):
+                rhs = min_dollar * self.gamma_n[n]
+                self.B.setRange(_q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1), rhs, np.inf)
 
     def _add_withdrawal_limits(self):
         for i in range(self.N_i):
@@ -1750,6 +1774,7 @@ class Plan:
 
         bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
 
+        # A surplus cannot be created from a taxable or tax-exempt withdrawal.
         if options.get("amoSurplus", True):
             for n in range(self.N_n):
                 # Make z_0 and z_1 exclusive binary variables.
@@ -1783,9 +1808,10 @@ class Plan:
                     return
 
         # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
+        # A Roth conversion cannot be done in the same year as a Roth withdrawal.
         if options.get("amoRoth", True):
             for n in range(self.N_n):
-                # Make z_2 and z_3 exclusive binary variables.
+                # Make z_2 and z_3 at-most-one binary variables.
                 dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
                         _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
                 if self.N_i == 2:
@@ -2126,6 +2152,7 @@ class Plan:
             "gap",
             "maxIter",
             "maxRothConversion",
+            "minTaxableBalance",
             "netSpending",
             "noLateSurplus",
             "noRothConversions",
