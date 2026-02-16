@@ -152,11 +152,14 @@ def test_reproducibility():
         expected = EXPECTED_OBJECTIVE_VALUES[case]
 
         if expected["net_spending_basis"] is not None:
-            assert net_spending_basis == pytest.approx(
+            comparison_value = pytest.approx(
                 expected["net_spending_basis"],
                 rel=rel_tol,
                 abs=rel_tol,
-            ), f"{case}: Net spending basis mismatch."
+            )
+            assert net_spending_basis == comparison_value, f"{case}: Net spending basis mismatch."
+            assert net_spending_basis == comparison_value, f"{case}: Net spending basis: {net_spending_basis}"
+            assert net_spending_basis == comparison_value, f"{case}: calculated value: {comparison_value}"            
 
         if expected["bequest"] is not None:
             assert bequest == pytest.approx(
