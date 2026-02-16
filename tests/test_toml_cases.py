@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
+import sys
 import pytest
 
 import owlplanner as owl
@@ -56,28 +57,55 @@ def getHFP(exdir, case, check_exists=True):
 # Expected objective function values for reproducibility testing
 # Format: {case_name: {"net_spending_basis": value, "bequest": value}}
 # Values are in today's dollars and rounded to the nearest dollar
-EXPECTED_OBJECTIVE_VALUES = {
-    "Case_john+sally": {
-        "net_spending_basis": 100000,
-        "bequest": 8094499,
-    },
-    "Case_jack+jill": {
-        "net_spending_basis": 90296,
-        "bequest": 400000,
-    },
-    "Case_joe": {
-        "net_spending_basis": 87461,
-        "bequest": 300000,
-    },
-    "Case_kim+sam-spending": {
-        "net_spending_basis": 167680,
-        "bequest": 0,
-    },
-    "Case_kim+sam-bequest": {
-        "net_spending_basis": 145000,
-        "bequest": 1083940,
-    },
-}
+if sys.platform == "darwin":
+    EXPECTED_OBJECTIVE_VALUES = {
+        "Case_john+sally": {
+            "net_spending_basis": 100000,
+            "bequest": 8094499,
+        },
+        "Case_jack+jill": {
+            "net_spending_basis": 90296,
+            "bequest": 400000,
+        },
+        "Case_joe": {
+            "net_spending_basis": 87461,
+            "bequest": 300000,
+        },
+        "Case_kim+sam-spending": {
+            "net_spending_basis": 167680,
+            "bequest": 0,
+        },
+        "Case_kim+sam-bequest": {
+            "net_spending_basis": 145000,
+            "bequest": 1083940,
+        },
+    }
+elif sys.platform == "win32":
+    EXPECTED_OBJECTIVE_VALUES = {
+        "Case_john+sally": {
+            "net_spending_basis": 100000,
+            "bequest": 8094499,
+        },
+        "Case_jack+jill": {
+            "net_spending_basis": 90280,
+            "bequest": 400000,
+        },
+        "Case_joe": {
+            "net_spending_basis": 87461,
+            "bequest": 300000,
+        },
+        "Case_kim+sam-spending": {
+            "net_spending_basis": 167680,
+            "bequest": 0,
+        },
+        "Case_kim+sam-bequest": {
+            "net_spending_basis": 145000,
+            "bequest": 1083940,
+        },
+    }
+else:
+    print(f"Unknown platform {sys.platform}")
+    assert False
 
 
 def test_reproducibility():

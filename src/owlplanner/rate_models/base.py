@@ -2,7 +2,6 @@
 Base class for future rate models.
 
 
-
 Copyright (C) 2025-2026 The Owlplanner Authors
 
 This program is free software: you can redistribute it and/or modify
