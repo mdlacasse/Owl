@@ -2,6 +2,38 @@
 
 ---
 
+## Version 2026.02.16
+
+### Rates
+- **Pluggable rate model architecture**: New `owlplanner.rate_models` package with loader, base class, and pluggable model resolution.
+  - Legacy methods (default, optimistic, conservative, user, historical, historical average, stochastic, histochastic) wrapped via `LegacyRateModel`.
+  - Built-in `dataframe` and `bootstrap_sor` models.
+  - External plugin support via `method_file=` in `setRates`.
+- **DataFrame rate method** (issue #84): Supply rates from a pandas DataFrame with columns S&P 500, Bonds Baa, TNotes, Inflation; supports year-based or sequential mode with optional offset.
+- **Remove mean/means aliases**: Drop deprecated rate method aliases; use `historical average` only.
+
+### Constraints and optimization
+- **Safety net**: Add constraint for minimum taxable account balance per individual; configurable per spouse, applies from year 2 onward.
+- Add caption on infeasibility when safety net exceeds bequest target.
+- Enhance optimization page of UI.
+
+### Configuration and UI
+- Rename contributions → Household Financial Profile (HFP) for consistency.
+- Discovery UI helpers for rate models and metadata.
+- Tooltip and wording improvements; fix int/float conversion for fixed income age.
+- Fix `startRothConversions` in examples; clamp year when in the past.
+- Highlight create-on-copy in UI.
+
+### Documentation and notebooks
+- Add README and docs for pluggable rate models and SOR (sequence-of-returns) models.
+- Update template notebook: fix outdated rate method names (`average` → `historical average`, `fixed` → `user`), remove obsolete "means" mention.
+
+### Code quality
+- Flake8 fixes across scripts (cumulative_returns_analysis, roth_case_study, time_time_correlation, etc.) and tests.
+- Remove undefined `sc_damping` from roth_case_study; fix type hints and line length.
+
+---
+
 ## Version 2026.02.13
 - Add capability to include user-defined tokens in configuration file
 
