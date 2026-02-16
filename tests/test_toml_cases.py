@@ -80,7 +80,7 @@ if platform == "darwin":
             "bequest": 1083940,
         },
     }
-elif platform == "win32":
+elif platform in ["win32", "linux"]:
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100000,
