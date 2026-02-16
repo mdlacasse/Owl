@@ -1,9 +1,7 @@
 import numpy as np
 import pandas as pd
-import pytest
 
 from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
-from owlplanner.rates import FROM, TO
 
 
 # ---------------------------------------------------------

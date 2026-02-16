@@ -41,7 +41,6 @@ LEGACY_METHODS = {
     "user",
     "historical",
     "historical average",
-    "mean",
     "stochastic",
     "histochastic",
 }

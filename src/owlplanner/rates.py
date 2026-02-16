@@ -39,7 +39,7 @@ TO = 2025
 # Rate methods that use the same rate every year (reverse/roll are no-ops).
 CONSTANT_RATE_METHODS = (
     "default", "optimistic", "conservative", "user",
-    "historical average", "mean",
+    "historical average",
 )
 
 # Rate methods that produce deterministic series (no regeneration needed).
@@ -242,7 +242,7 @@ class Rates(object):
         - conservative: conservative values.
         - user: user-selected fixed rates.
         - historical: historical rates from 1928 to last year.
-        - historical average or means: average over historical data.
+        - historical average: average over historical data.
         - histochastic: randomly generated from the statistical properties of a historical range.
         - stochastic: randomly generated from means, standard deviation and optionally a correlation matrix.
         - dataframe: rates from a user-provided pandas DataFrame (API only).
@@ -258,7 +258,6 @@ class Rates(object):
             "user",
             "historical",
             "historical average",
-            "mean",
             "stochastic",
             "histochastic",
             "dataframe",
@@ -373,7 +372,7 @@ class Rates(object):
             if method == "historical":
                 self.mylog.vprint(f"Using historical rates representing data from {frm} to {to}.")
                 self._rateMethod = self._histRates
-            elif method == "historical average" or method == "means":
+            elif method == "historical average":
                 self.mylog.vprint(f"Using average of rates from {frm} to {to}.")
                 self.means, self.stdev, self.corr, self.covar = getRatesDistributions(frm, to, self.mylog)
                 self._setFixedRates(self.means)

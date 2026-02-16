@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 from owlplanner import Plan
 
+
 def test_legacy_model_default():
 
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
@@ -43,6 +44,7 @@ def test_stochastic_regen_changes_series():
     tau2 = p.tau_kn.copy()
     assert not np.allclose(tau1, tau2)
 
+
 def test_default_does_not_regen():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -53,6 +55,7 @@ def test_default_does_not_regen():
     tau2 = p.tau_kn.copy()
 
     assert np.allclose(tau1, tau2)
+
 
 def test_user_fixed_rates():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
@@ -66,6 +69,7 @@ def test_user_fixed_rates():
     first_year = p.tau_kn[:, 0]
 
     assert np.allclose(first_year, [0.05, 0.03, 0.02, 0.015])
+
 
 def test_stochastic_reproducible_same_series():
     p1 = Plan(["Joe"], ["1961-01-15"], [80], "test1", verbose=False)
@@ -86,12 +90,14 @@ def test_stochastic_reproducible_same_series():
 
     assert np.allclose(p1.tau_kn, p2.tau_kn)
 
+
 def test_historical_range():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
     p.setRates(method="historical", frm=1980)
 
     assert p.tau_kn.shape == (4, p.N_n)
+
 
 def test_reverse_sequence():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
@@ -104,6 +110,7 @@ def test_reverse_sequence():
 
     assert np.allclose(tau_forward[:, ::-1], tau_reverse)
 
+
 def test_roll_sequence():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -114,6 +121,7 @@ def test_roll_sequence():
     tau_roll = p.tau_kn.copy()
 
     assert np.allclose(np.roll(tau_forward, shift=3, axis=1), tau_roll)
+
 
 def test_dataframe_method():
     years = np.arange(2000, 2000 + 20)
@@ -157,6 +165,7 @@ class RateModel(BaseRateModel):
 
     assert np.allclose(p.tau_kn, 0.05)
 
+
 def test_plugin_bad_shape(tmp_path):
     plugin_code = """
 from owlplanner.rate_models.base import BaseRateModel
@@ -175,11 +184,13 @@ class RateModel(BaseRateModel):
     with pytest.raises(RuntimeError):
         p.setRates(method="custom", method_file=str(plugin_path))
 
+
 def test_unknown_method_raises():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
     with pytest.raises(ValueError):
         p.setRates(method="unknown_method")
+
 
 def test_plugin_missing_class(tmp_path):
     plugin_code = """
@@ -194,11 +205,13 @@ def test_plugin_missing_class(tmp_path):
     with pytest.raises(ValueError):
         p.setRates(method="custom", method_file=str(plugin_path))
 
+
 def test_plugin_file_not_found():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
     with pytest.raises(FileNotFoundError):
         p.setRates(method="custom", method_file="does_not_exist.py")
+
 
 def test_deterministic_plugin_no_regen(tmp_path):
     plugin_code = """
@@ -226,6 +239,7 @@ class RateModel(BaseRateModel):
 
     assert np.allclose(tau1, tau2)
 
+
 def test_plugin_reverse_roll(tmp_path):
     plugin_code = """
 from owlplanner.rate_models.base import BaseRateModel
@@ -248,6 +262,7 @@ class RateModel(BaseRateModel):
     reversed_series = p.tau_kn.copy()
 
     assert np.allclose(forward[:, ::-1], reversed_series)
+
 
 def test_dataframe_missing_column():
     years = np.arange(2000, 2020)

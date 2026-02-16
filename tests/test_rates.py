@@ -164,17 +164,6 @@ class TestRatesSetMethod:
         assert len(stdev) == 4
         assert corr.shape == (4, 4)
 
-    def test_set_method_means(self):
-        """Test that 'historical average' works (note: 'mean' is in allowed list but checks for 'means')."""
-        r = rates.Rates()
-        frm = 2000
-        to = 2010
-        # Note: The code accepts "mean" in the allowed list but the elif checks for "means" (plural)
-        # So "historical average" works, but "mean" would fail. Testing "historical average" here.
-        means, stdev, corr = r.setMethod("historical average", frm=frm, to=to)
-        assert r.method == "historical average"
-        assert len(means) == 4
-
     def test_set_method_histochastic(self):
         """Test setting method to histochastic."""
         r = rates.Rates()

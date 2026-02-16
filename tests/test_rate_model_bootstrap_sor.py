@@ -168,13 +168,9 @@ def test_stationary_varies_block_length():
 # ------------------------------------------------------------
 
 def test_reverse_roll_applies():
-    from owlplanner.plan import Plan
-
     plan = _make_plan()
     plan.reproducibleRates = True
     plan.rateSeed = 1234  # force reproducibility
-
-    N = 20
 
     plan.setRates(
         method="bootstrap_sor",

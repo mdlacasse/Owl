@@ -108,17 +108,6 @@ class LegacyRateModel(BaseRateModel):
             "constant": True,
         },
 
-        "mean": {
-            "description": "Alias for 'historical average'.",
-            "required_parameters": {
-                "frm": {"type": "int"},
-                "to": {"type": "int"},
-            },
-            "optional_parameters": {},
-            "deterministic": True,
-            "constant": True,
-        },
-
         # ------------------------------------------------------------
         # Stochastic Models
         # ------------------------------------------------------------

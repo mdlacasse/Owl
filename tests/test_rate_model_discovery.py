@@ -7,7 +7,6 @@ from owlplanner.rate_models.loader import (
     list_available_rate_models,
     get_rate_model_metadata,
 )
-from owlplanner.rate_models.legacy import LegacyRateModel
 
 
 # ------------------------------------------------------------
