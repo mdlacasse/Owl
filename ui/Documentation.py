@@ -100,7 +100,7 @@ col2.markdown("""
 
 col3.markdown("""
 [Help](#help)
-- [:material/campaign: Quick Start](#quick-start)
+- [:material/campaign: Welcome](#welcome)
 - [:material/help: Documentation](#help-documentation)
 - [:material/tune: Parameters Reference](#parameters-reference)
 - [:material/info: About **Owl**](#info-about-owl)
@@ -926,7 +926,7 @@ This page is mainly used for debugging purposes.
 -------
 ### :orange[Help]
 
-#### :material/campaign: Quick Start
+#### :material/campaign: Welcome
 This page is the landing page of the application.
 It shows new users how to quickly get started by using an example *case* file.
 
