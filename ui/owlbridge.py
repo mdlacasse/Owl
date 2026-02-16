@@ -928,9 +928,12 @@ def genDic(plan):
         dic["rateType"] = "varying"
         dic["varyingType"] = plan.rateMethod
 
-    # Initialize in both cases.
+    # Initialize in both cases. Plan stores rateValues in percent when set; else use tau_kn (decimal).
     for k1 in range(plan.N_k):
-        dic[f"fxRate{k1}"] = 100 * plan.rateValues[k1]
+        if plan.rateValues is not None:
+            dic[f"fxRate{k1}"] = plan.rateValues[k1]
+        else:
+            dic[f"fxRate{k1}"] = 100 * plan.tau_kn[k1, -1]
 
     if plan.rateMethod in ["historical average", "histochastic", "historical"]:
         dic["yfrm"] = plan.rateFrm
@@ -946,8 +949,12 @@ def genDic(plan):
     if plan.rateMethod in ["stochastic", "histochastic"]:
         qq = 1
         for k1 in range(plan.N_k):
-            dic[f"mean{k1}"] = 100 * plan.rateValues[k1]
-            dic[f"stdev{k1}"] = 100 * plan.rateStdev[k1]
+            if plan.rateValues is not None:
+                dic[f"mean{k1}"] = plan.rateValues[k1]  # Plan stores percent
+                dic[f"stdev{k1}"] = plan.rateStdev[k1] if plan.rateStdev is not None else 0
+            else:
+                dic[f"mean{k1}"] = 100 * plan.tau_kn[k1, -1]
+                dic[f"stdev{k1}"] = 100 * plan.rateStdev[k1] if plan.rateStdev is not None else 0
             for k2 in range(k1 + 1, plan.N_k):
                 dic[f"corr{qq}"] = plan.rateCorr[k1, k2]
                 qq += 1

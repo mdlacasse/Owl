@@ -467,12 +467,11 @@ def plan_to_config(myplan: "Plan") -> dict:
             diconf["rates_selection"]["rate_seed"] = int(myplan.rateSeed)
         diconf["rates_selection"]["reproducible_rates"] = bool(myplan.reproducibleRates)
     if myplan.rateMethod in ["user", "stochastic"]:
-        diconf["rates_selection"]["values"] = (100 * myplan.rateValues).tolist()
+        # Plan stores rateValues in percent (API/config format), not decimal.
+        diconf["rates_selection"]["values"] = myplan.rateValues.tolist()
     if myplan.rateMethod == "stochastic":
-        # Plan stores stdev (decimal) and corr (coefficient -1 to 1); config uses percent for stdev.
-        diconf["rates_selection"]["standard_deviations"] = (
-            100 * myplan.rateStdev
-        ).tolist()
+        # Plan stores rateStdev in percent; rateCorr as coefficient (-1 to 1).
+        diconf["rates_selection"]["standard_deviations"] = myplan.rateStdev.tolist()
         # Correlations: extract upper triangle as coefficient (-1 to 1).
         corr_upper = []
         for k1 in range(myplan.N_k):
