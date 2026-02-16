@@ -179,6 +179,12 @@ class BuiltinRateModel(BaseRateModel):
             corr,
         )
 
+        if self.method == "stochastic":
+            # Store normalized decimal values back into params
+            self.params["values"] = self._rates.means
+            self.params["stdev"] = self._rates.stdev
+            self.params["corr"] = self._rates.corr        
+
     #######################################################################
     # Model properties
     #######################################################################

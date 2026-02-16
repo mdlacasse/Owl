@@ -887,9 +887,9 @@ class Plan:
         self.rateTo = model.config.get("to")
 
         # Backward compatibility fields (for built-in stochastic/user)
-        self.rateValues = model.config.get("values")
-        self.rateStdev = model.config.get("stdev")
-        self.rateCorr = model.config.get("corr")
+        self.rateValues = model.params.get("values")
+        self.rateStdev = model.params.get("stdev")
+        self.rateCorr = model.params.get("corr")
 
         if self.rateValues is not None:
             self.rateValues = np.array(self.rateValues)
