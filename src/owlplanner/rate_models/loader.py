@@ -25,7 +25,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import importlib.util
 import pathlib
 
-from owlplanner.rate_models.legacy import LegacyRateModel
+from owlplanner.rate_models.builtin import BuiltinRateModel
 from owlplanner.rate_models.dataframe import DataFrameRateModel
 from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
 
@@ -34,28 +34,19 @@ from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
 # Allowed built-in method names
 # ------------------------------------------------------------
 
-LEGACY_METHODS = {
-    "default",
-    "optimistic",
-    "conservative",
-    "user",
-    "historical",
-    "historical average",
-    "stochastic",
-    "histochastic",
-}
+BUILTIN_CORE_METHODS = BuiltinRateModel.list_methods()
 
-BUILTIN_NEW_METHODS = {
+BUILTIN_EXTENDED_METHODS = {
     "dataframe",
     "bootstrap_sor",
 }
 
-ALLOWED_METHODS = LEGACY_METHODS | BUILTIN_NEW_METHODS
+ALLOWED_METHODS = BUILTIN_CORE_METHODS | BUILTIN_EXTENDED_METHODS
+
 
 # ------------------------------------------------------------
 # Loader
 # ------------------------------------------------------------
-
 
 def load_rate_model(method, method_file=None):
     """
@@ -63,11 +54,8 @@ def load_rate_model(method, method_file=None):
 
     Priority order:
         1. External plugin (if method_file provided)
-        2. Built-in new models (e.g., dataframe)
-        3. Legacy built-in models
-
-    Raises:
-        ValueError if method is unknown and no plugin file provided.
+        2. Extended built-in models (dataframe, bootstrap_sor)
+        3. Core built-in models
     """
 
     # ------------------------------------------------------------
@@ -91,7 +79,7 @@ def load_rate_model(method, method_file=None):
         return module.RateModel
 
     # ------------------------------------------------------------
-    # 2. Built-in new models
+    # 2. Extended built-ins
     # ------------------------------------------------------------
     if method == "dataframe":
         return DataFrameRateModel
@@ -100,10 +88,10 @@ def load_rate_model(method, method_file=None):
         return BootstrapSORRateModel
 
     # ------------------------------------------------------------
-    # 3. Legacy built-in models
+    # 3. Core built-ins
     # ------------------------------------------------------------
-    if method in LEGACY_METHODS:
-        return LegacyRateModel
+    if method in BUILTIN_CORE_METHODS:
+        return BuiltinRateModel
 
     # ------------------------------------------------------------
     # Unknown method
@@ -116,21 +104,13 @@ def load_rate_model(method, method_file=None):
 
 
 def list_available_rate_models():
-    """
-    Return list of available model names.
-    """
     return sorted(ALLOWED_METHODS)
 
 
 def get_rate_model_metadata(method, method_file=None):
-    """
-    Return metadata dictionary for a rate model.
-    """
-
     ModelClass = load_rate_model(method, method_file)
 
-    # Legacy special handling
-    if ModelClass is LegacyRateModel:
-        return LegacyRateModel.get_method_metadata(method)
+    if ModelClass is BuiltinRateModel:
+        return BuiltinRateModel.get_method_metadata(method)
 
     return ModelClass.get_metadata()

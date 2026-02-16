@@ -1,37 +1,24 @@
 """
-Wrapper for legacy rate models.  All new rate models should subclass BaseRateModel.
-
+Wrapper for core builtin rate models.
+All new rate models should subclass BaseRateModel.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 ###########################################################################
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner import rates
 
 
-class LegacyRateModel(BaseRateModel):
+class BuiltinRateModel(BaseRateModel):
 
-    model_name = "legacy"
+    model_name = "builtin"
     description = "Built-in OWL rate models."
 
-    # --------------------------------------------------
+    #######################################################################
     # Per-method metadata
-    # --------------------------------------------------
+    #######################################################################
 
-    METHOD_METADATA = {
+    BUILTINS_METADATA = {
 
         # ------------------------------------------------------------
         # Deterministic Fixed Methods
@@ -62,7 +49,7 @@ class LegacyRateModel(BaseRateModel):
         },
 
         "user": {
-            "description": "User-specified fixed annual rates.",
+            "description": "User-specified fixed annual rates (percent).",
             "required_parameters": {
                 "values": {
                     "type": "list[float]",
@@ -80,18 +67,19 @@ class LegacyRateModel(BaseRateModel):
         # ------------------------------------------------------------
 
         "historical": {
-            "description": "Historical year-by-year returns starting at frm.",
+            "description": "Historical year-by-year returns over selected range.",
             "required_parameters": {
                 "frm": {
                     "type": "int",
                     "description": "Starting historical year (inclusive)."
-                }
+                },
             },
             "optional_parameters": {
                 "to": {
                     "type": "int",
-                    "description": "Ending historical year (inclusive). Defaults to frm + N_n - 1."
-                }
+                    "description": "Ending historical year (inclusive). "
+                                   "Defaults to frm if not provided."
+                },
             },
             "deterministic": True,
             "constant": False,
@@ -138,7 +126,7 @@ class LegacyRateModel(BaseRateModel):
         },
 
         "histochastic": {
-            "description": "Multivariate normal model using historical mean and covariance from selected range.",
+            "description": "Multivariate normal model using historical mean and covariance.",
             "required_parameters": {
                 "frm": {"type": "int"},
                 "to": {"type": "int"},
@@ -147,61 +135,79 @@ class LegacyRateModel(BaseRateModel):
             "deterministic": False,
             "constant": False,
         },
-
     }
 
-    constant_methods = (
-        "default",
-        "optimistic",
-        "conservative",
-        "user",
-        "historical average",
-    )
+    #######################################################################
+    # Initialization
+    #######################################################################
 
     def __init__(self, config, seed=None, logger=None):
-        super().__init__(config, seed, logger)
 
         self.method = config["method"]
-        self.frm = config["frm"]
-        self.to = config["to"]
 
+        if self.method not in self.BUILTINS_METADATA:
+            raise ValueError(f"Unknown builtin rate method '{self.method}'.")
+
+        # Inject metadata into base validation system
+        meta = self.BUILTINS_METADATA[self.method]
+        self.required_parameters = meta.get("required_parameters", {})
+        self.optional_parameters = meta.get("optional_parameters", {})
+
+        # Run centralized validation
+        super().__init__(config, seed, logger)
+
+        # Extract normalized parameters
+        frm = self.get_param("frm")
+        to = self.get_param("to")
+        values = self.get_param("values")
+        stdev = self.get_param("stdev")
+        corr = self.get_param("corr")
+
+        # Special-case: historical single-year fallback
+        if self.method == "historical" and frm is not None and to is None:
+            to = frm
+
+        # Initialize underlying Rates engine
         self._rates = rates.Rates(logger, seed=seed)
 
         self._rates.setMethod(
             self.method,
-            self.frm,
-            self.to,
-            config.get("values"),
-            config.get("stdev"),
-            config.get("corr"),
+            frm,
+            to,
+            values,
+            stdev,
+            corr,
         )
+
+    #######################################################################
+    # Model properties
+    #######################################################################
 
     @property
     def deterministic(self):
-        # deterministic means no randomness
-        return self.method in (
-            "default",
-            "optimistic",
-            "conservative",
-            "user",
-            "historical average",
-            "historical",
-        )
+        return self.BUILTINS_METADATA[self.method]["deterministic"]
 
     @property
     def constant(self):
-        # constant means no time variation
-        return self.method in self.constant_methods
+        return self.BUILTINS_METADATA[self.method]["constant"]
+
+    #######################################################################
+    # Generate
+    #######################################################################
 
     def generate(self, N):
         return self._rates.genSeries(N)
 
+    #######################################################################
+    # Metadata helpers
+    #######################################################################
+
     @classmethod
     def get_method_metadata(cls, method):
-        if method not in cls.METHOD_METADATA:
-            raise ValueError(f"No metadata defined for legacy method '{method}'")
+        if method not in cls.BUILTINS_METADATA:
+            raise ValueError(f"No metadata defined for builtin method '{method}'")
 
-        meta = cls.METHOD_METADATA[method]
+        meta = cls.BUILTINS_METADATA[method]
 
         return {
             "model_name": method,
@@ -209,3 +215,7 @@ class LegacyRateModel(BaseRateModel):
             "required_parameters": meta.get("required_parameters", {}),
             "optional_parameters": meta.get("optional_parameters", {}),
         }
+
+    @classmethod
+    def list_methods(cls):
+        return set(cls.BUILTINS_METADATA.keys())

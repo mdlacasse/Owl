@@ -19,7 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-########################################################################################
+###########################################################################
 from owlplanner.rate_models.base import BaseRateModel
 import numpy as np
 
@@ -30,26 +30,38 @@ class DataFrameRateModel(BaseRateModel):
     """
 
     model_name = "dataframe"
-    description = "Sequential rates read row-by-row from a pandas DataFrame."
+    description = "Sequential or year-based rates read from a pandas DataFrame."
 
     required_parameters = {
-            "df": {
-                "type": "pandas.DataFrame",
-                "description": "Must contain columns: ['S&P 500','Bonds Baa','TNotes','Inflation']",
-            },
-            "n_years": {
-                "type": "int",
-                "description": "Number of years required for plan horizon."
-            }
-        }
+        "df": {
+            "type": "pandas.DataFrame",
+            "description": "Must contain columns: ['S&P 500','Bonds Baa','TNotes','Inflation']",
+        },
+        "n_years": {
+            "type": "int",
+            "description": "Number of years required for plan horizon.",
+        },
+    }
 
     optional_parameters = {
-            "offset": {
-                "type": "int",
-                "default": 0,
-                "description": "Number of initial rows to skip before reading sequentially."
-            }
-        }
+        "offset": {
+            "type": "int",
+            "default": 0,
+            "description": "Number of initial rows to skip before reading sequentially.",
+        },
+        "frm": {
+            "type": "int",
+            "description": "Starting year (if year column present).",
+        },
+        "to": {
+            "type": "int",
+            "description": "Ending year (if year column present).",
+        },
+    }
+
+    #######################################################################
+    # Properties
+    #######################################################################
 
     @property
     def deterministic(self):
@@ -59,16 +71,17 @@ class DataFrameRateModel(BaseRateModel):
     def constant(self):
         return False
 
+    #######################################################################
+    # Generate
+    #######################################################################
+
     def generate(self, N):
 
-        df = self.config.get("df")
-
-        if df is None:
-            raise ValueError("DataFrame must be provided with the dataframe option.")
-
-        frm = self.config.get("frm")
-        to = self.config.get("to")
-        offset = int(self.config.get("offset", 0))
+        df = self.get_param("df")
+        n_years = self.get_param("n_years")
+        offset = int(self.get_param("offset") or 0)
+        frm = self.get_param("frm")
+        to = self.get_param("to")
 
         # --------------------------------------------------
         # Normalize column names (supports aliases)
@@ -86,7 +99,6 @@ class DataFrameRateModel(BaseRateModel):
 
         canonical_cols = ["S&P 500", "Bonds Baa", "TNotes", "Inflation"]
 
-        # Build normalized column dictionary
         normalized = {}
 
         for canonical in canonical_cols:
@@ -95,7 +107,6 @@ class DataFrameRateModel(BaseRateModel):
                 if original in df.columns and mapped == canonical:
                     found = original
                     break
-
             if found is not None:
                 normalized[canonical] = df[found]
 
@@ -107,16 +118,13 @@ class DataFrameRateModel(BaseRateModel):
 
             if frm is None or to is None:
                 raise ValueError(
-                    "From year (frm) and to year (to) must be provided with the dataframe option."
+                    "frm and to must be provided when DataFrame contains a year column."
                 )
 
             if frm > to:
-                raise ValueError(f"From year ({frm}) must be <= to year ({to}).")
+                raise ValueError(f"frm ({frm}) must be <= to ({to}).")
 
             year_col = "year" if "year" in df.columns else "Year"
-
-            if year_col not in df.columns:
-                raise ValueError("DataFrame must contain a 'year' column.")
 
             missing = [c for c in canonical_cols if c not in normalized]
             if missing:

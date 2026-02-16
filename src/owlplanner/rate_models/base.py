@@ -1,21 +1,15 @@
 """
 Base class for future rate models.
 
+Centralizes:
+- Required parameter validation
+- Optional parameter defaults
+- Unknown parameter checking
+- Metadata exposure
+
+All rate models must subclass this.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 ###########################################################################
 from abc import ABC, abstractmethod
@@ -32,10 +26,84 @@ class BaseRateModel(ABC):
     required_parameters = {}
     optional_parameters = {}
 
+    #######################################################################
+    # Initialization
+    #######################################################################
+
     def __init__(self, config, seed=None, logger=None, **kwargs):
-        self.config = config
+        self.config = config or {}
         self.seed = seed
         self.logger = logger
+
+        # Normalize and validate parameters
+        self.params = self._validate_and_normalize_parameters(self.config)
+
+    #######################################################################
+    # Parameter Validation (Centralized)
+    #######################################################################
+
+    def _validate_and_normalize_parameters(self, config):
+        """
+        Validates required parameters, applies optional defaults,
+        and optionally rejects unknown parameters.
+
+        Returns:
+            normalized parameter dictionary
+        """
+
+        required = self.required_parameters or {}
+        optional = self.optional_parameters or {}
+
+        normalized = {}
+
+        # --------------------------------------------------
+        # 1. Validate required parameters
+        # --------------------------------------------------
+        for param in required:
+            if config.get(param) is None:
+                raise ValueError(
+                    f"Rate model '{self.model_name}' "
+                    f"requires parameter '{param}'."
+                )
+            normalized[param] = config[param]
+
+        # --------------------------------------------------
+        # 2. Apply optional parameters with defaults
+        # --------------------------------------------------
+        for param, meta in optional.items():
+            if param in config and config[param] is not None:
+                normalized[param] = config[param]
+            else:
+                if "default" in meta:
+                    normalized[param] = meta["default"]
+
+        # --------------------------------------------------
+        # 3. Detect unknown parameters
+        # --------------------------------------------------
+        allowed = set(required.keys()) | set(optional.keys()) | {"method"}
+
+        for key in config:
+            if key not in allowed:
+                raise ValueError(
+                    f"Unknown parameter '{key}' for rate model "
+                    f"'{self.model_name}'."
+                )
+
+        return normalized
+
+    #######################################################################
+    # Parameter Access Helper
+    #######################################################################
+
+    def get_param(self, name, default=None):
+        """
+        Safe parameter accessor.
+        """
+        return self.params.get(name, default)
+
+    #######################################################################
+    # Required Interface
+    #######################################################################
 
     @abstractmethod
     def generate(self, N) -> np.ndarray:
@@ -47,6 +115,10 @@ class BaseRateModel(ABC):
         """
         pass
 
+    #######################################################################
+    # Model Properties
+    #######################################################################
+
     @property
     def deterministic(self):
         return False
@@ -54,6 +126,10 @@ class BaseRateModel(ABC):
     @property
     def constant(self):
         return False
+
+    #######################################################################
+    # Metadata
+    #######################################################################
 
     @classmethod
     def get_metadata(cls):
