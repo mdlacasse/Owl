@@ -155,6 +155,8 @@ def config_to_plan(
             dtype=np.float64,
         )
     if rate_method == "stochastic":
+        # Stdev: config uses percent; Plan expects percent for stdev (converts internally).
+        # Correlations: Pearson coefficient (-1 to 1), standard in finance/statistics.
         stdev = np.array(
             known["rates_selection"]["standard_deviations"],
             dtype=np.float64,
@@ -467,10 +469,16 @@ def plan_to_config(myplan: "Plan") -> dict:
     if myplan.rateMethod in ["user", "stochastic"]:
         diconf["rates_selection"]["values"] = (100 * myplan.rateValues).tolist()
     if myplan.rateMethod == "stochastic":
+        # Plan stores stdev (decimal) and corr (coefficient -1 to 1); config uses percent for stdev.
         diconf["rates_selection"]["standard_deviations"] = (
             100 * myplan.rateStdev
         ).tolist()
-        diconf["rates_selection"]["correlations"] = myplan.rateCorr.tolist()
+        # Correlations: extract upper triangle as coefficient (-1 to 1).
+        corr_upper = []
+        for k1 in range(myplan.N_k):
+            for k2 in range(k1 + 1, myplan.N_k):
+                corr_upper.append(float(myplan.rateCorr[k1, k2]))
+        diconf["rates_selection"]["correlations"] = corr_upper
     if myplan.rateMethod in ["historical average", "historical", "histochastic"]:
         diconf["rates_selection"]["from"] = int(myplan.rateFrm)
         diconf["rates_selection"]["to"] = int(myplan.rateTo)

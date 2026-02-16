@@ -282,6 +282,7 @@ def _setRates(plan):
             for j in range(4):
                 kz.pushCaseKey(f"mean{j}", 100 * mean[j])
                 kz.pushCaseKey(f"stdev{j}", 100 * stdev[j])
+            # Correlations: Pearson coefficient (-1 to 1), standard representation.
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1 + 1, plan.N_k):
@@ -296,7 +297,8 @@ def _setRates(plan):
                 means.append(kz.getCaseKey(f"mean{kk}"))
                 stdev.append(kz.getCaseKey(f"stdev{kk}"))
             for q in range(1, 7):
-                corr.append(kz.getCaseKey(f"corr{q}"))
+                c = kz.getCaseKey(f"corr{q}")
+                corr.append(0.0 if c is None else float(c))
             # Set reproducibility for stochastic methods
             reproducible = kz.getCaseKey("reproducibleRates")
             seed = kz.getCaseKey("rateSeed") if reproducible else None

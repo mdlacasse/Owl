@@ -4,6 +4,12 @@ Bridge between canonical configuration dict and UI flat session-state dict.
 Maps between the nested TOML/config structure and the flat keys used by
 Streamlit widgets (getCaseKey, setCaseKey).
 
+Rates representation:
+- Returns and volatility (standard deviation): percent (e.g., 7 for 7%). Plan uses
+  decimal internally. Conversion at boundary.
+- Correlations: Pearson coefficient (-1 to 1). Not percent—standard convention
+  in finance and statistics (Investopedia, Wikipedia).
+
 Copyright (C) 2025-2026 The Owlplanner Authors
 """
 
@@ -183,9 +189,10 @@ def config_to_ui(diconf: dict) -> dict:
         dic["rateType"] = "varying"
         dic["varyingType"] = rate_method
 
+    # Config and UI use percent (7 = 7%); Plan uses decimal internally.
     values = rs.get("values", [6.0, 4.0, 3.3, 2.8])
     for k in range(4):
-        dic[f"fxRate{k}"] = 100 * (values[k] if k < len(values) else 0)
+        dic[f"fxRate{k}"] = float(values[k] if k < len(values) else 0)
 
     if rate_method in ["historical average", "histochastic", "historical"]:
         dic["yfrm"] = rs.get("from", 1969)
@@ -197,12 +204,13 @@ def config_to_ui(diconf: dict) -> dict:
     if rate_method in ["stochastic", "histochastic"]:
         means = rs.get("values", [6.0, 4.0, 3.3, 2.8])
         stdevs = rs.get("standard_deviations", [17.0, 8.0, 10.0, 3.0])
+        # Correlations: Pearson coefficient (-1 to 1), standard in finance/statistics.
         corr = rs.get("correlations", [0.4, 0.26, -0.22, 0.84, -0.39, -0.39])
         for k in range(4):
-            dic[f"mean{k}"] = 100 * (means[k] if k < len(means) else 0)
-            dic[f"stdev{k}"] = 100 * (stdevs[k] if k < len(stdevs) else 0)
+            dic[f"mean{k}"] = float(means[k] if k < len(means) else 0)
+            dic[f"stdev{k}"] = float(stdevs[k] if k < len(stdevs) else 0)
         for q in range(1, 7):
-            dic[f"corr{q}"] = corr[q - 1] if q - 1 < len(corr) else 0
+            dic[f"corr{q}"] = float(corr[q - 1] if q - 1 < len(corr) else 0)
         dic["reproducibleRates"] = rs.get("reproducible_rates", False)
         dic["rateSeed"] = rs.get("rate_seed")
 
@@ -386,17 +394,18 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
         rs["from"] = int(uidic.get("yfrm", 1969) or 1969)
         rs["to"] = int(uidic.get("yto", date.today().year - 1) or date.today().year - 1)
     elif method in ["user", "stochastic"]:
+        # UI and config use percent; Plan converts to decimal at boundary.
         rs["values"] = [
-            float(uidic.get(f"fxRate{k}", 0) or 0) / 100.0 for k in range(4)
+            float(uidic.get(f"fxRate{k}", 0) or 0) for k in range(4)
         ]
     if method == "stochastic":
         rs["standard_deviations"] = [
-            float(uidic.get(f"stdev{k}", 0) or 0) / 100.0 for k in range(4)
+            float(uidic.get(f"stdev{k}", 0) or 0) for k in range(4)
         ]
-        corr = []
-        for q in range(1, 7):
-            corr.append(float(uidic.get(f"corr{q}", 0) or 0))
-        rs["correlations"] = corr
+        # Correlations in percent (-100 to 100); Plan uses coefficient (-1 to 1) internally.
+        rs["correlations"] = [
+            float(uidic.get(f"corr{q}", 0) or 0) for q in range(1, 7)
+        ]
     if method in ["stochastic", "histochastic"]:
         rs["reproducible_rates"] = bool(uidic.get("reproducibleRates", False))
         seed = uidic.get("rateSeed")

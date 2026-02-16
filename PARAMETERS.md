@@ -73,6 +73,18 @@ Pension and Social Security information.
 
 Investment return rates and inflation assumptions.
 
+### :orange[Units of measure]
+
+Rates use standard financial conventions:
+
+| Quantity | UI & config | Plan (internal) | Convention |
+|----------|-------------|-----------------|------------|
+| Returns (e.g., S&P 500) | Percent: `7` = 7% | Decimal: `0.07` | Finance convention: returns in percent |
+| Volatility (standard deviation) | Percent: `17` = 17% | Decimal: `0.17` | Finance convention: volatility in percent |
+| Correlations | Coefficient: `0.4` = 0.4 | Same: `0.4` | Pearson coefficient, range -1 to 1 (standard in statistics and finance) |
+
+*Correlations are not expressed in percent.* The Pearson correlation coefficient ranges from -1 (perfect negative) to +1 (perfect positive). Expressing it as a percent is non-standard; the decimal coefficient is the universal convention in finance and statistics.
+
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred accounts |
@@ -85,13 +97,13 @@ Investment return rates and inflation assumptions.
 #### :orange[For method = "user" or "stochastic"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `values` | list of 4 floats | Fixed rate values as percentages: [S&P 500 return, Corporate Baa bonds return, 10-year Treasury notes return, Inflation rate] |
+| `values` | list of 4 floats | Mean returns in percent: [S&P 500, Corporate Baa bonds, 10-year Treasury notes, Inflation] (e.g., `7` for 7%) |
 
 #### :orange[For method = "stochastic"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `standard_deviations` | list of 4 floats | Standard deviations (as percentages) for each rate type |
-| `correlations` | array | Correlation matrix (4×4) or flattened upper triangle (6 values) for the four rate types |
+| `standard_deviations` | list of 4 floats | Volatility in percent for each rate type (e.g., `17` for 17% annualized standard deviation) |
+| `correlations` | list of 6 floats | Pearson correlation coefficient (range -1 to 1) for upper triangle: (1,2), (1,3), (1,4), (2,3), (2,4), (3,4). Standard representation in finance and statistics. |
 
 #### :orange[For method = "stochastic" or "histochastic"]
 | Parameter | Type | Description |

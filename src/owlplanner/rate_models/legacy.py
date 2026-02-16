@@ -129,7 +129,8 @@ class LegacyRateModel(BaseRateModel):
             "optional_parameters": {
                 "corr": {
                     "type": "4x4 matrix or list[6]",
-                    "description": "Correlation matrix or upper-triangular off-diagonal list."
+                    "description": ("Pearson correlation coefficient (-1 to 1)."
+                                    " Matrix or upper-triangle off-diagonals. Standard in finance/statistics."),
                 }
             },
             "deterministic": False,
