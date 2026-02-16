@@ -22,8 +22,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
-import sys
 import pytest
+from sys import platform
 
 import owlplanner as owl
 
@@ -57,7 +57,7 @@ def getHFP(exdir, case, check_exists=True):
 # Expected objective function values for reproducibility testing
 # Format: {case_name: {"net_spending_basis": value, "bequest": value}}
 # Values are in today's dollars and rounded to the nearest dollar
-if sys.platform == "darwin":
+if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100000,
@@ -80,7 +80,7 @@ if sys.platform == "darwin":
             "bequest": 1083940,
         },
     }
-elif sys.platform == "win32":
+elif platform == "win32":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100000,
@@ -104,7 +104,7 @@ elif sys.platform == "win32":
         },
     }
 else:
-    print(f"Unknown platform {sys.platform}")
+    print(f"Unknown platform {platform}")
     assert False
 
 

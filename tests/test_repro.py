@@ -22,7 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
 import os
-import sys
+from sys import platform
 from datetime import date
 from io import StringIO
 
@@ -33,20 +33,20 @@ solver = 'HiGHS'
 # solver = 'MOSEK'
 thisyear = date.today().year
 
-if sys.platform == "darwin":
+if platform == "darwin":
     SPENDING1 = 86958
     BEQUEST1 = 837286
     SPENDING2 = 97057
     SPENDING1_FIXED = 92628
     BEQUEST1_FIXED = 500000
-elif sys.platform == "win32":
+elif platform == "win32":
     SPENDING1 = 86958
     BEQUEST1 = 837319
     SPENDING2 = 97057
     SPENDING1_FIXED = 92628
     BEQUEST1_FIXED = 500000
 else:
-    print(f"Unknown platform {sys.platform}")
+    print(f"Unknown platform {platform}")
     assert False
 
 REL_TOL = 3e-5
