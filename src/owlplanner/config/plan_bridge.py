@@ -12,6 +12,7 @@ import numpy as np
 
 from owlplanner import mylogging as log
 from owlplanner.rates import FROM, TO
+from owlplanner.rate_models.loader import load_rate_model
 
 from .schema import KNOWN_SECTIONS
 
@@ -126,62 +127,87 @@ def config_to_plan(
     pension_indexed = known["fixed_income"]["pension_indexed"]
     p.setPension(pension_amounts, pension_ages, pension_indexed)
 
-    # Rates Selection
-    p.setDividendRate(float(known["rates_selection"].get("dividend_rate", 1.8)))
-    p.setHeirsTaxRate(float(known["rates_selection"]["heirs_rate_on_tax_deferred_estate"]))
-    p.yOBBBA = int(known["rates_selection"].get("obbba_expiration_year", 2032))
+    # --------------------------------------------------
+    # Rates Selection (metadata-driven)
+    # --------------------------------------------------
 
-    frm = None
-    to = None
-    rate_values = None
-    stdev = None
-    rate_corr = None
-    rate_seed = None
-    reproducible_rates = False
-    rate_method = known["rates_selection"]["method"]
-    if rate_method == "dataframe":
-        log.print("Dataframe rate method is not supported in UI; mapping to 'user'.")
-        rate_method = "user"
-    if rate_method in ["historical average", "historical", "histochastic"]:
-        frm = known["rates_selection"]["from"]
-        if not isinstance(frm, int):
-            frm = int(frm)
-        to = known["rates_selection"]["to"]
-        if not isinstance(to, int):
-            to = int(to)
-    if rate_method in ["user", "stochastic"]:
-        rate_values = np.array(
-            known["rates_selection"].get("values", [6.0, 4.0, 3.3, 2.8]),
-            dtype=np.float64,
-        )
-    if rate_method == "stochastic":
-        # Stdev: config uses percent; Plan expects percent for stdev (converts internally).
-        # Correlations: Pearson coefficient (-1 to 1), standard in finance/statistics.
-        stdev = np.array(
-            known["rates_selection"]["standard_deviations"],
-            dtype=np.float64,
-        )
-        rate_corr = np.array(
-            known["rates_selection"]["correlations"],
-            dtype=np.float64,
-        )
-    if rate_method in ["stochastic", "histochastic"]:
-        rate_seed = known["rates_selection"].get("rate_seed")
-        if rate_seed is not None:
-            rate_seed = int(rate_seed)
-        reproducible_rates = known["rates_selection"].get("reproducible_rates", False)
-        p.setReproducible(reproducible_rates, seed=rate_seed)
-    reverse = known["rates_selection"].get("reverse_sequence", False)
-    roll = known["rates_selection"].get("roll_sequence", 0)
+    rates_section = dict(known["rates_selection"])
+
+    # Required base fields handled outside setRates
+    p.setDividendRate(float(rates_section.get("dividend_rate", 1.8)))
+    p.setHeirsTaxRate(float(rates_section["heirs_rate_on_tax_deferred_estate"]))
+    p.yOBBBA = int(rates_section.get("obbba_expiration_year", 2032))
+
+    rate_method = rates_section.pop("method")
+    # Remove Plan-level keys so they are not passed to RateModel
+    rates_section.pop("dividend_rate", None)
+    rates_section.pop("heirs_rate_on_tax_deferred_estate", None)
+    rates_section.pop("obbba_expiration_year", None)
+
+
+    # Handle reproducibility separately (Plan-level state)
+    rate_seed = rates_section.pop("rate_seed", None)
+    reproducible_rates = rates_section.pop("reproducible_rates", False)
+
+    if rate_seed is not None:
+        rate_seed = int(rate_seed)
+
+    if reproducible_rates or rate_seed is not None:
+        p.setReproducible(bool(reproducible_rates), seed=rate_seed)
+
+    # Extract transform flags (Plan-level)
+    reverse = bool(rates_section.pop("reverse_sequence", False))
+    roll = int(rates_section.pop("roll_sequence", 0))
+
+    # Rename config keys if needed for internal consistency
+    # (UI uses "from", internal uses "frm")
+    if "from" in rates_section:
+        rates_section["frm"] = rates_section.pop("from")
+
+    if "frm" in rates_section:
+        rates_section["frm"] = int(rates_section["frm"])
+
+    if "to" in rates_section:
+        rates_section["to"] = int(rates_section["to"])
+
+    # Legacy compatibility: auto-fill to for historical methods if missing
+    if rate_method in ("historical", "historical average", "histochastic"):
+        if "frm" not in rates_section:
+            raise ValueError(
+                f"Rate method '{rate_method}' requires 'from' year."
+            )
+
+        # Auto-fill to if missing (legacy behavior)
+        if "to" not in rates_section:
+            rates_section["to"] = int(rates_section["frm"]) + p.N_n - 1
+        
+    # Clean parameters prior to call to setRates
+
+    ModelClass = load_rate_model(rate_method)
+
+    # Metadata filtering
+    ModelClass = load_rate_model(rate_method)
+
+    if ModelClass.model_name == "builtin":
+        # Builtin model has per-method metadata
+        metadata = ModelClass.get_method_metadata(rate_method)
+    else:
+        metadata = ModelClass.get_metadata()
+
+    required = set(metadata.get("required_parameters", {}).keys())
+    optional = set(metadata.get("optional_parameters", {}).keys())
+    allowed = required | optional
+
+    clean_rate_section = {
+        k: v for k, v in rates_section.items() if k in allowed
+    }
+
+    # Call metadata-driven setRates
     p.setRates(
-        rate_method,
-        frm,
-        to,
-        rate_values,
-        stdev,
-        rate_corr,
+        method=rate_method,
         reverse=reverse,
         roll=roll,
+        **clean_rate_section,
     )
 
     # Asset Allocation
@@ -295,60 +321,82 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
     pension_indexed = known["fixed_income"]["pension_indexed"]
     plan.setPension(pension_amounts, pension_ages, pension_indexed)
 
-    # Rates
-    plan.setDividendRate(float(known["rates_selection"].get("dividend_rate", 1.8)))
-    plan.setHeirsTaxRate(float(known["rates_selection"]["heirs_rate_on_tax_deferred_estate"]))
-    plan.yOBBBA = int(known["rates_selection"].get("obbba_expiration_year", 2032))
+    # --------------------------------------------------
+    # Rates Selection (metadata-driven)
+    # --------------------------------------------------
 
-    frm = None
-    to = None
-    rate_values = None
-    stdev = None
-    rate_corr = None
-    rate_seed = None
-    reproducible_rates = False
-    rate_method = known["rates_selection"]["method"]
-    if rate_method == "dataframe":
-        log.print("Dataframe rate method is not supported in UI; mapping to 'user'.")
-        rate_method = "user"
-    if rate_method in ["historical average", "historical", "histochastic"]:
-        frm = known["rates_selection"].get("from")
-        if frm is not None:
-            frm = int(frm)
-        to = known["rates_selection"].get("to")
-        if to is not None:
-            to = int(to)
-    if rate_method in ["user", "stochastic"]:
-        rate_values = np.array(
-            known["rates_selection"].get("values", [6.0, 4.0, 3.3, 2.8]),
-            dtype=np.float64,
-        )
-    if rate_method == "stochastic":
-        stdev = np.array(
-            known["rates_selection"].get("standard_deviations", [17.0, 8.0, 10.0, 3.0]),
-            dtype=np.float64,
-        )
-        rate_corr = np.array(
-            known["rates_selection"].get("correlations", [0.4, 0.26, -0.22, 0.84, -0.39, -0.39]),
-            dtype=np.float64,
-        )
-    if rate_method in ["stochastic", "histochastic"]:
-        rate_seed = known["rates_selection"].get("rate_seed")
-        if rate_seed is not None:
-            rate_seed = int(rate_seed)
-        reproducible_rates = known["rates_selection"].get("reproducible_rates", False)
-        plan.setReproducible(reproducible_rates, seed=rate_seed)
-    reverse = known["rates_selection"].get("reverse_sequence", False)
-    roll = known["rates_selection"].get("roll_sequence", 0)
+    rates_section = dict(known["rates_selection"])
+
+    # Plan-level rate settings
+    plan.setDividendRate(float(rates_section.get("dividend_rate", 1.8)))
+    plan.setHeirsTaxRate(float(rates_section["heirs_rate_on_tax_deferred_estate"]))
+    plan.yOBBBA = int(rates_section.get("obbba_expiration_year", 2032))
+
+    # Remove plan-level keys
+    rates_section.pop("dividend_rate", None)
+    rates_section.pop("heirs_rate_on_tax_deferred_estate", None)
+    rates_section.pop("obbba_expiration_year", None)
+
+    rate_method = rates_section.pop("method")
+
+    # Reproducibility
+    rate_seed = rates_section.pop("rate_seed", None)
+    reproducible_rates = rates_section.pop("reproducible_rates", False)
+
+    if rate_seed is not None:
+        rate_seed = int(rate_seed)
+
+    if reproducible_rates or rate_seed is not None:
+        plan.setReproducible(bool(reproducible_rates), seed=rate_seed)
+
+    # Transform flags
+    reverse = bool(rates_section.pop("reverse_sequence", False))
+    roll = int(rates_section.pop("roll_sequence", 0))
+
+    # Normalize naming
+    if "from" in rates_section:
+        rates_section["frm"] = rates_section.pop("from")
+
+    if "frm" in rates_section:
+        rates_section["frm"] = int(rates_section["frm"])
+
+    if "to" in rates_section:
+        rates_section["to"] = int(rates_section["to"])
+
+    # Legacy auto-fill for historical
+    if rate_method in ("historical", "historical average", "histochastic"):
+        if "frm" not in rates_section:
+            raise ValueError(
+                f"Rate method '{rate_method}' requires 'from' year."
+            )
+
+        if "to" not in rates_section:
+            rates_section["to"] = int(rates_section["frm"]) + plan.N_n - 1
+
+    ModelClass = load_rate_model(rate_method)
+
+    # Metadata filtering
+    ModelClass = load_rate_model(rate_method)
+
+    if ModelClass.model_name == "builtin":
+        # Builtin model has per-method metadata
+        metadata = ModelClass.get_method_metadata(rate_method)
+    else:
+        metadata = ModelClass.get_metadata()
+
+    required = set(metadata.get("required_parameters", {}).keys())
+    optional = set(metadata.get("optional_parameters", {}).keys())
+    allowed = required | optional
+
+    clean_rate_section = {
+        k: v for k, v in rates_section.items() if k in allowed
+    }
+
     plan.setRates(
-        rate_method,
-        frm,
-        to,
-        rate_values,
-        stdev,
-        rate_corr,
+        method=rate_method,
         reverse=reverse,
         roll=roll,
+        **clean_rate_section,
     )
 
     # Asset Allocation

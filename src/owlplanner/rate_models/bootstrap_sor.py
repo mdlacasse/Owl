@@ -38,98 +38,101 @@ class BootstrapSORRateModel(BaseRateModel):
     model_name = "bootstrap_sor"
 
     description = (
-            "Historical bootstrap model for sequence-of-returns analysis. "
-            "Supports IID, block, circular, and stationary bootstrap variants."
-        )
+        "Historical bootstrap model for sequence-of-returns analysis. "
+        "Supports IID, block, circular, and stationary bootstrap variants.  Defaults to IID."
+    )
+
+    more_info = "https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/bootstrap_sor.md"
+
+    deterministic = False
+    constant = False
 
     required_parameters = {
-            "frm": {
-                "type": "int",
-                "description": "First historical year (inclusive)."
-            },
-            "to": {
-                "type": "int",
-                "description": "Last historical year (inclusive)."
-            },
-        }
+        "frm": {
+            "type": "int",
+            "description": "First historical year (inclusive).",
+            "example": "1969",
+        },
+        "to": {
+            "type": "int",
+            "description": "Last historical year (inclusive).",
+            "example": "2002",
+        },
+    }
 
     optional_parameters = {
-            "bootstrap_type": {
-                "type": "str",
-                "allowed": ["iid", "block", "circular", "stationary"],
-                "default": "iid",
-            },
-            "block_size": {
-                "type": "int",
-                "default": 1,
-                "description": "Block length for block-based bootstraps."
-            },
-            "crisis_years": {
-                "type": "list[int]",
-                "default": [],
-                "description": "Years to overweight in sampling."
-            },
-            "crisis_weight": {
-                "type": "float",
-                "default": 1.0,
-                "description": "Sampling multiplier for crisis years."
-            },
-        }
+        "bootstrap_type": {
+            "type": "str",
+            "description": "Type of bootstrap to perform. Defaults to iid",
+            "allowed": ["iid", "block", "circular", "stationary"],
+            "default": "iid",
+            "example": '"block"',
+        },
+        "block_size": {
+            "type": "int",
+            "default": 1,
+            "description": "Block length for block-based bootstraps.",
+            "example": "5",
+        },
+        "crisis_years": {
+            "type": "list[int]",
+            "default": [],
+            "description": "Years to overweight in sampling.",
+            "example": "[1973, 1974, 2000, 2008]",
+        },
+        "crisis_weight": {
+            "type": "float",
+            "default": 1.0,
+            "description": "Sampling multiplier for crisis years.",
+            "example": "2.0",
+        },
+    }
 
     #######################################################################
     # Initialization
     #######################################################################
 
-    def __init__(self, config, seed=None, logger=None, **kwargs):
+    def __init__(self, config, seed=None, logger=None):
         super().__init__(config, seed, logger)
 
-        self.frm = config.get("frm")
-        self.to = config.get("to")
-
-        if self.frm is None or self.to is None:
-            raise ValueError("Bootstrap SOR requires 'frm' and 'to'.")
+        self.frm = int(self.get_param("frm"))
+        self.to = int(self.get_param("to"))
 
         if not (FROM <= self.frm <= TO):
-            raise ValueError(f"frm={self.frm} out of bounds.")
-        if not (FROM <= self.to <= TO):
-            raise ValueError(f"to={self.to} out of bounds.")
-        if self.frm > self.to:
-            raise ValueError("frm must be <= to.")
+            raise ValueError(f"from={self.frm} out of bounds [{FROM}, {TO}].")
 
-        self.bootstrap_type = config.get("bootstrap_type", "iid").lower()
-        self.block_size = int(config.get("block_size", 1))
-        self.crisis_years = config.get("crisis_years", [])
-        self.crisis_weight = float(config.get("crisis_weight", 1.0))
+        if not (FROM <= self.to <= TO):
+            raise ValueError(f"to={self.to} out of bounds [{FROM}, {TO}].")
+
+        if self.frm > self.to:
+            raise ValueError("from must be <= to.")
+
+        self.bootstrap_type = self.get_param("bootstrap_type").lower()
+        self.block_size = int(self.get_param("block_size"))
+        self.crisis_years = self.get_param("crisis_years") or []
+        self.crisis_weight = float(self.get_param("crisis_weight"))
 
         if self.block_size < 1:
             raise ValueError("block_size must be >= 1.")
 
         self._rng = np.random.default_rng(seed)
+
         self._historical_data, self._years = self._load_historical_slice()
-
         self._base_weights = self._build_sampling_weights()
-
-    #######################################################################
-    # Properties
-    #######################################################################
-
-    @property
-    def deterministic(self):
-        return False
-
-    @property
-    def constant(self):
-        return False
 
     #######################################################################
     # Historical Data
     #######################################################################
 
     def _load_historical_slice(self):
+
         where = os.path.dirname(sys.modules["owlplanner"].__file__)
         file = os.path.join(where, "data/rates.csv")
 
         df = pd.read_csv(file)
+
+        if "year" not in df.columns:
+            raise ValueError("Historical rates.csv must contain a 'year' column.")
 
         mask = (df["year"] >= self.frm) & (df["year"] <= self.to)
         df_slice = df.loc[mask]
@@ -149,21 +152,17 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _build_sampling_weights(self):
-        """
-        Build stable probability weights for each historical year.
-        Returns None for uniform sampling.
-        """
+
         T = len(self._years)
 
         if not self.crisis_years or self.crisis_weight == 1.0:
-            return None  # uniform sampling
+            return None
 
         weights = np.ones(T, dtype=float)
 
         crisis_mask = np.isin(self._years, self.crisis_years)
         weights[crisis_mask] *= self.crisis_weight
 
-        # Ensure no negative weights
         weights = np.clip(weights, 0.0, None)
 
         total = weights.sum()
@@ -171,8 +170,6 @@ class BootstrapSORRateModel(BaseRateModel):
             raise ValueError("Crisis weighting produced zero probability mass.")
 
         weights /= total
-
-        # Final normalization (remove floating drift)
         weights /= weights.sum()
 
         return weights
@@ -211,6 +208,7 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _iid_bootstrap(self, N):
+
         T = len(self._historical_data)
 
         if self._base_weights is None:
@@ -225,19 +223,18 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _block_bootstrap(self, N):
+
         T = len(self._historical_data)
 
         max_start = T - self.block_size + 1
         if max_start <= 0:
             raise ValueError("block_size larger than available historical window.")
 
-        # Build valid start weights
         if self._base_weights is None:
             start_probs = None
         else:
             start_weights = self._base_weights[:max_start]
             start_weights = np.clip(start_weights, 0.0, None)
-            start_weights /= start_weights.sum()
             start_weights /= start_weights.sum()
             start_probs = start_weights
 
@@ -258,6 +255,7 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _circular_bootstrap(self, N):
+
         T = len(self._historical_data)
 
         blocks = []
@@ -265,7 +263,6 @@ class BootstrapSORRateModel(BaseRateModel):
 
         while total_len < N:
             start = self._choice(T, self._base_weights)
-
             idx = [(start + i) % T for i in range(self.block_size)]
             block = self._historical_data[idx]
 
@@ -280,9 +277,9 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _stationary_bootstrap(self, N):
-        T = len(self._historical_data)
 
-        p = 1.0 / self.block_size  # restart probability
+        T = len(self._historical_data)
+        p = 1.0 / self.block_size
 
         series = np.zeros((N, 4))
 

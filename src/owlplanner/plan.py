@@ -794,47 +794,39 @@ class Plan:
         """
         Generate rates using pluggable rate model architecture.
 
-        Supports:
-            - legacy built-in methods
-            - dataframe
-            - external plugin models
+        Fully metadata-driven:
+            - No method-specific filtering
+            - Validation handled inside each RateModel
+            - Supports built-in and plugin models
         """
-
-        # --------------------------------------------------
-        # Resolve year range
-        # --------------------------------------------------
-
-        if method in ("historical", "historical average", "histochastic"):
-            if frm is None:
-                raise ValueError("frm must be provided for historical methods.")
-
-            if to is None:
-                to = frm + self.N_n - 1
-        else:
-            if frm is None:
-                frm = int(self.year_n[0])
-            if to is None:
-                to = int(self.year_n[-1])
 
         # --------------------------------------------------
         # Determine seed handling
         # --------------------------------------------------
 
-        seed = None
-
         if self.reproducibleRates and not override_reproducible:
             seed = self.rateSeed
         elif override_reproducible:
             seed = int(time.time() * 1_000_000)
-        elif not self.reproducibleRates:
+        else:
             seed = None
+
+        # --------------------------------------------------
+        # Legacy compatibility: historical shorthand
+        # --------------------------------------------------
+
+        if method in ("historical", "historical average", "histochastic"):
+            if frm is not None and to is None:
+                to = frm + self.N_n - 1
 
         # --------------------------------------------------
         # Build model configuration dictionary
         # --------------------------------------------------
 
-        model_config = {
-            "method": method,
+        model_config = {"method": method}
+
+        # Only include parameters that are not None
+        base_args = {
             "frm": frm,
             "to": to,
             "values": values,
@@ -842,7 +834,18 @@ class Plan:
             "corr": corr,
             "df": df,
         }
+
+        for k, v in base_args.items():
+            if v is not None:
+                model_config[k] = v
+
+        # Include any additional keyword arguments
         model_config.update(kwargs)
+
+
+        if method == "dataframe":
+            model_config["n_years"] = self.N_n
+
 
         # --------------------------------------------------
         # Load rate model class
@@ -859,31 +862,6 @@ class Plan:
         )
 
         # --------------------------------------------------
-        # Backward compatibility for legacy model
-        # --------------------------------------------------
-        if method_file is None:
-            # Legacy model — restore legacy attributes
-            values = model.config.get("values")
-            stdev = model.config.get("stdev")
-            corr = model.config.get("corr")
-
-            self.rateValues = np.array(values) if values is not None else None
-            self.rateStdev = np.array(stdev) if stdev is not None else None
-            if corr is None:
-                # Legacy behavior: stochastic default correlation = identity matrix
-                if method in ("stochastic", "histochastic"):
-                    self.rateCorr = np.eye(4)
-                else:
-                    self.rateCorr = None
-            else:
-                self.rateCorr = np.array(corr)
-        else:
-            # Non-legacy plugins may not define these
-            self.rateValues = None
-            self.rateStdev = None
-            self.rateCorr = None
-
-        # --------------------------------------------------
         # Generate series
         # --------------------------------------------------
 
@@ -895,25 +873,40 @@ class Plan:
             )
 
         # --------------------------------------------------
-        # Store metadata
+        # Store model + metadata
         # --------------------------------------------------
 
         self.rateModel = model
         self.rateMethod = method
         self.rateMethodFile = method_file
-        self.rateFrm = frm
-        self.rateTo = to
         self.rateReverse = bool(reverse)
         self.rateRoll = int(roll)
 
+        # Store frm/to if present in model config
+        self.rateFrm = model.config.get("frm")
+        self.rateTo = model.config.get("to")
+
+        # Backward compatibility fields (for built-in stochastic/user)
+        self.rateValues = model.params.get("values")
+        self.rateStdev = model.params.get("stdev")
+        self.rateCorr = model.params.get("corr")
+
+        if self.rateValues is not None:
+            self.rateValues = np.array(self.rateValues)
+
+        if self.rateStdev is not None:
+            self.rateStdev = np.array(self.rateStdev)
+
+        if self.rateCorr is not None:
+            self.rateCorr = np.array(self.rateCorr)
+
         # --------------------------------------------------
-        # Apply reverse / roll (legacy behavior)
+        # Apply reverse / roll
         # --------------------------------------------------
 
-        # model.generate() returns (N, 4)
+        # model.generate returns (N, 4)
         # tau_kn must be (4, N)
-
-        series_kn = series.transpose()  # (4, N)
+        series_kn = series.transpose()
 
         if getattr(model, "constant", False):
             if reverse or roll != 0:
@@ -947,19 +940,35 @@ class Plan:
         Regenerate stochastic rate series using stored model.
         """
 
-        if not hasattr(self, "rateModel"):
+        if not hasattr(self, "rateModel") or self.rateModel is None:
             return
 
-        if self.rateModel.deterministic:
+        # Do not regenerate deterministic models
+        if getattr(self.rateModel, "deterministic", False):
             return
 
+        # Respect reproducibility setting
         if self.reproducibleRates and not override_reproducible:
             return
 
-        # Re-generate via model
+        # Generate new series
         series = self.rateModel.generate(self.N_n)
 
-        self.tau_kn = series.transpose()
+        if series.shape != (self.N_n, 4):
+            raise RuntimeError(
+                f"Rate model returned shape {series.shape}, expected ({self.N_n}, 4)"
+            )
+
+        series_kn = series.transpose()
+
+        if not getattr(self.rateModel, "constant", False):
+            series_kn = _apply_rate_sequence_transform(
+                series_kn,
+                self.rateReverse,
+                self.rateRoll,
+            )
+
+        self.tau_kn = series_kn
         self.gamma_n = _genGamma_n(self.tau_kn)
 
         self.mylog.vprint("Regenerated stochastic rate series.")
