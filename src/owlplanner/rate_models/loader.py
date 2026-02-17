@@ -24,6 +24,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ###########################################################################
 import importlib.util
 import pathlib
+from urllib.parse import urlparse
 
 from owlplanner.rate_models.builtin import BuiltinRateModel
 from owlplanner.rate_models.dataframe import DataFrameRateModel
@@ -114,9 +115,6 @@ def get_rate_model_metadata(method, method_file=None):
         return BuiltinRateModel.get_method_metadata(method)
 
     return ModelClass.get_metadata()
-
-import pathlib
-from urllib.parse import urlparse
 
 
 # ------------------------------------------------------------

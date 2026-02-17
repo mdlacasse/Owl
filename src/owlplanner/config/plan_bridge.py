@@ -14,19 +14,11 @@ from owlplanner import mylogging as log
 from owlplanner.rates import FROM, TO
 from owlplanner.rate_models.loader import load_rate_model
 
+from .constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
 from .schema import KNOWN_SECTIONS
 
 if TYPE_CHECKING:
     from owlplanner.plan import Plan
-
-AccountTypes = ["taxable", "tax-deferred", "tax-free"]
-
-account_key_map = {
-    "taxable": "taxable_savings_balances",
-    "tax-deferred": "tax_deferred_savings_balances",
-    "tax-free": "tax_free_savings_balances",
-}
-
 
 def _extract_extra(diconf: dict) -> dict:
     """Extract unknown top-level sections for round-trip preservation."""
@@ -36,6 +28,163 @@ def _extract_extra(diconf: dict) -> dict:
 def _get_known(diconf: dict) -> dict:
     """Get only known sections (for plan building)."""
     return {k: v for k, v in diconf.items() if k in KNOWN_SECTIONS}
+
+
+def _apply_assets_to_plan(plan: "Plan", known: dict, icount: int) -> None:
+    """Apply savings assets from config to plan."""
+    start_date = known["basic_info"].get("start_date", "today")
+    balances = {}
+    for acc in ACCOUNT_TYPES:
+        balances[acc] = list(known["savings_assets"][ACCOUNT_KEY_MAP[acc]])
+    plan.setAccountBalances(
+        taxable=balances["taxable"],
+        taxDeferred=balances["tax-deferred"],
+        taxFree=balances["tax-free"],
+        startDate=start_date,
+    )
+    if icount == 2:
+        phi_j = known["savings_assets"]["beneficiary_fractions"]
+        plan.setBeneficiaryFractions(phi_j)
+        eta = known["savings_assets"]["spousal_surplus_deposit_fraction"]
+        plan.setSpousalDepositFraction(eta)
+
+
+def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
+    """Apply fixed income (SS, pension) from config to plan."""
+    ssec_amounts = np.array(
+        known["fixed_income"].get("social_security_pia_amounts", [0] * icount),
+        dtype=np.int32,
+    )
+    ssec_ages = np.array(known["fixed_income"]["social_security_ages"])
+    plan.setSocialSecurity(ssec_amounts, ssec_ages)
+    pension_amounts = np.array(
+        known["fixed_income"].get("pension_monthly_amounts", [0] * icount),
+        dtype=np.float32,
+    )
+    pension_ages = np.array(known["fixed_income"]["pension_ages"])
+    pension_indexed = known["fixed_income"]["pension_indexed"]
+    plan.setPension(pension_amounts, pension_ages, pension_indexed)
+
+
+def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
+    """Apply rates selection from config to plan (metadata-driven)."""
+    rates_section = dict(known["rates_selection"])
+
+    plan.setDividendRate(float(rates_section.get("dividend_rate", 1.8)))
+    plan.setHeirsTaxRate(float(rates_section["heirs_rate_on_tax_deferred_estate"]))
+    plan.yOBBBA = int(rates_section.get("obbba_expiration_year", 2032))
+
+    rates_section.pop("dividend_rate", None)
+    rates_section.pop("heirs_rate_on_tax_deferred_estate", None)
+    rates_section.pop("obbba_expiration_year", None)
+
+    rate_method = rates_section.pop("method")
+
+    rate_seed = rates_section.pop("rate_seed", None)
+    reproducible_rates = rates_section.pop("reproducible_rates", False)
+    if rate_seed is not None:
+        rate_seed = int(rate_seed)
+    if reproducible_rates or rate_seed is not None:
+        plan.setReproducible(bool(reproducible_rates), seed=rate_seed)
+
+    reverse = bool(rates_section.pop("reverse_sequence", False))
+    roll = int(rates_section.pop("roll_sequence", 0))
+
+    if "from" in rates_section:
+        rates_section["frm"] = rates_section.pop("from")
+    if "frm" in rates_section:
+        rates_section["frm"] = int(rates_section["frm"])
+    if "to" in rates_section:
+        rates_section["to"] = int(rates_section["to"])
+
+    if rate_method in ("historical", "historical average", "histochastic"):
+        if "frm" not in rates_section:
+            raise ValueError(f"Rate method '{rate_method}' requires 'from' year.")
+        if "to" not in rates_section:
+            rates_section["to"] = int(rates_section["frm"]) + plan.N_n - 1
+
+    ModelClass = load_rate_model(rate_method)
+    if ModelClass.model_name == "builtin":
+        metadata = ModelClass.get_method_metadata(rate_method)
+    else:
+        metadata = ModelClass.get_metadata()
+
+    required = set(metadata.get("required_parameters", {}).keys())
+    optional = set(metadata.get("optional_parameters", {}).keys())
+    allowed = required | optional
+    clean_rate_section = {k: v for k, v in rates_section.items() if k in allowed}
+
+    plan.setRates(
+        method=rate_method,
+        reverse=reverse,
+        roll=roll,
+        **clean_rate_section,
+    )
+
+
+def _apply_asset_allocation_to_plan(plan: "Plan", known: dict) -> None:
+    """Apply asset allocation from config to plan."""
+    plan.setInterpolationMethod(
+        known["asset_allocation"]["interpolation_method"],
+        float(known["asset_allocation"]["interpolation_center"]),
+        float(known["asset_allocation"]["interpolation_width"]),
+    )
+    alloc_type = known["asset_allocation"]["type"]
+    if alloc_type == "account":
+        bounds_ar = {}
+        for a_type in ACCOUNT_TYPES:
+            bounds_ar[a_type] = np.array(
+                known["asset_allocation"][a_type],
+                dtype=np.float64,
+            )
+        plan.setAllocationRatios(
+            alloc_type,
+            taxable=bounds_ar["taxable"],
+            taxDeferred=bounds_ar["tax-deferred"],
+            taxFree=bounds_ar["tax-free"],
+        )
+    elif alloc_type in ["individual", "spouses"]:
+        bounds_generic = np.array(
+            known["asset_allocation"]["generic"],
+            dtype=np.float64,
+        )
+        plan.setAllocationRatios(alloc_type, generic=bounds_generic)
+    else:
+        raise ValueError(f"Unknown asset allocation type {alloc_type}.")
+
+
+def _apply_optimization_to_plan(plan: "Plan", known: dict) -> None:
+    """Apply optimization parameters from config to plan."""
+    op = known["optimization_parameters"]
+    plan.objective = op["objective"]
+    profile = op["spending_profile"]
+    survivor = int(op["surviving_spouse_spending_percent"])
+    if profile == "smile":
+        dip = int(op.get("smile_dip", 15))
+        increase = int(op.get("smile_increase", 12))
+        delay = int(op.get("smile_delay", 0))
+    else:
+        dip, increase, delay = 15, 12, 0
+    plan.setSpendingProfile(profile, survivor, dip, increase, delay)
+
+
+def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
+    """Apply solver options from config to plan."""
+    plan.solverOptions = dict(known.get("solver_options", {}))
+    if "withMedicare" not in plan.solverOptions:
+        plan.solverOptions["withMedicare"] = "loop"
+    if "withSCLoop" not in plan.solverOptions:
+        plan.solverOptions["withSCLoop"] = True
+    with_medicare = plan.solverOptions.get("withMedicare")
+    if isinstance(with_medicare, bool):
+        plan.solverOptions["withMedicare"] = "loop" if with_medicare else "None"
+    name_opt = plan.solverOptions.get("noRothConversions", "None")
+    if name_opt != "None" and name_opt not in plan.inames:
+        raise ValueError(f"Unknown name {name_opt} for noRothConversions.")
+    this_year = date.today().year
+    year = plan.solverOptions.get("startRothConversions", this_year)
+    plan.solverOptions["startRothConversions"] = max(year, this_year)
+    plan.yOBBBA = max(plan.yOBBBA, this_year)
 
 
 def config_to_plan(
@@ -79,22 +228,7 @@ def config_to_plan(
     p._description = known.get("description", "")
     p._config_extra = extra
 
-    # Assets: config/TOML in $k (per PARAMETERS.md); plan uses dollars. Copy lists to avoid mutation.
-    start_date = known["basic_info"].get("start_date", "today")
-    balances = {}
-    for acc in AccountTypes:
-        balances[acc] = list(known["savings_assets"][account_key_map[acc]])
-    p.setAccountBalances(
-        taxable=balances["taxable"],
-        taxDeferred=balances["tax-deferred"],
-        taxFree=balances["tax-free"],
-        startDate=start_date,
-    )
-    if icount == 2:
-        phi_j = known["savings_assets"]["beneficiary_fractions"]
-        p.setBeneficiaryFractions(phi_j)
-        eta = known["savings_assets"]["spousal_surplus_deposit_fraction"]
-        p.setSpousalDepositFraction(eta)
+    _apply_assets_to_plan(p, known, icount)
 
     # Household Financial Profile
     hfp_section = known.get("household_financial_profile", {})
@@ -112,165 +246,12 @@ def config_to_plan(
             p.timeListsFileName = time_lists_file
             mylog.vprint(f"Ignoring HFP file {time_lists_file}.")
 
-    # Fixed Income
-    ssec_amounts = np.array(
-        known["fixed_income"].get("social_security_pia_amounts", [0] * icount),
-        dtype=np.int32,
-    )
-    ssec_ages = np.array(known["fixed_income"]["social_security_ages"])
-    p.setSocialSecurity(ssec_amounts, ssec_ages)
-    pension_amounts = np.array(
-        known["fixed_income"].get("pension_monthly_amounts", [0] * icount),
-        dtype=np.float32,
-    )
-    pension_ages = np.array(known["fixed_income"]["pension_ages"])
-    pension_indexed = known["fixed_income"]["pension_indexed"]
-    p.setPension(pension_amounts, pension_ages, pension_indexed)
+    _apply_fixed_income_to_plan(p, known, icount)
+    _apply_rates_to_plan(p, known)
+    _apply_asset_allocation_to_plan(p, known)
+    _apply_optimization_to_plan(p, known)
+    _apply_solver_options_to_plan(p, known)
 
-    # --------------------------------------------------
-    # Rates Selection (metadata-driven)
-    # --------------------------------------------------
-
-    rates_section = dict(known["rates_selection"])
-
-    # Required base fields handled outside setRates
-    p.setDividendRate(float(rates_section.get("dividend_rate", 1.8)))
-    p.setHeirsTaxRate(float(rates_section["heirs_rate_on_tax_deferred_estate"]))
-    p.yOBBBA = int(rates_section.get("obbba_expiration_year", 2032))
-
-    rate_method = rates_section.pop("method")
-    # Remove Plan-level keys so they are not passed to RateModel
-    rates_section.pop("dividend_rate", None)
-    rates_section.pop("heirs_rate_on_tax_deferred_estate", None)
-    rates_section.pop("obbba_expiration_year", None)
-
-
-    # Handle reproducibility separately (Plan-level state)
-    rate_seed = rates_section.pop("rate_seed", None)
-    reproducible_rates = rates_section.pop("reproducible_rates", False)
-
-    if rate_seed is not None:
-        rate_seed = int(rate_seed)
-
-    if reproducible_rates or rate_seed is not None:
-        p.setReproducible(bool(reproducible_rates), seed=rate_seed)
-
-    # Extract transform flags (Plan-level)
-    reverse = bool(rates_section.pop("reverse_sequence", False))
-    roll = int(rates_section.pop("roll_sequence", 0))
-
-    # Rename config keys if needed for internal consistency
-    # (UI uses "from", internal uses "frm")
-    if "from" in rates_section:
-        rates_section["frm"] = rates_section.pop("from")
-
-    if "frm" in rates_section:
-        rates_section["frm"] = int(rates_section["frm"])
-
-    if "to" in rates_section:
-        rates_section["to"] = int(rates_section["to"])
-
-    # Legacy compatibility: auto-fill to for historical methods if missing
-    if rate_method in ("historical", "historical average", "histochastic"):
-        if "frm" not in rates_section:
-            raise ValueError(
-                f"Rate method '{rate_method}' requires 'from' year."
-            )
-
-        # Auto-fill to if missing (legacy behavior)
-        if "to" not in rates_section:
-            rates_section["to"] = int(rates_section["frm"]) + p.N_n - 1
-        
-    # Clean parameters prior to call to setRates
-
-    ModelClass = load_rate_model(rate_method)
-
-    # Metadata filtering
-    ModelClass = load_rate_model(rate_method)
-
-    if ModelClass.model_name == "builtin":
-        # Builtin model has per-method metadata
-        metadata = ModelClass.get_method_metadata(rate_method)
-    else:
-        metadata = ModelClass.get_metadata()
-
-    required = set(metadata.get("required_parameters", {}).keys())
-    optional = set(metadata.get("optional_parameters", {}).keys())
-    allowed = required | optional
-
-    clean_rate_section = {
-        k: v for k, v in rates_section.items() if k in allowed
-    }
-
-    # Call metadata-driven setRates
-    p.setRates(
-        method=rate_method,
-        reverse=reverse,
-        roll=roll,
-        **clean_rate_section,
-    )
-
-    # Asset Allocation
-    p.setInterpolationMethod(
-        known["asset_allocation"]["interpolation_method"],
-        float(known["asset_allocation"]["interpolation_center"]),
-        float(known["asset_allocation"]["interpolation_width"]),
-    )
-    alloc_type = known["asset_allocation"]["type"]
-    if alloc_type == "account":
-        bounds_ar = {}
-        for a_type in AccountTypes:
-            bounds_ar[a_type] = np.array(
-                known["asset_allocation"][a_type],
-                dtype=np.float64,
-            )
-        p.setAllocationRatios(
-            alloc_type,
-            taxable=bounds_ar["taxable"],
-            taxDeferred=bounds_ar["tax-deferred"],
-            taxFree=bounds_ar["tax-free"],
-        )
-    elif alloc_type in ["individual", "spouses"]:
-        bounds_generic = np.array(
-            known["asset_allocation"]["generic"],
-            dtype=np.float64,
-        )
-        p.setAllocationRatios(alloc_type, generic=bounds_generic)
-    else:
-        raise ValueError(f"Unknown asset allocation type {alloc_type}.")
-
-    # Optimization Parameters
-    p.objective = known["optimization_parameters"]["objective"]
-    profile = known["optimization_parameters"]["spending_profile"]
-    survivor = int(known["optimization_parameters"]["surviving_spouse_spending_percent"])
-    if profile == "smile":
-        dip = int(known["optimization_parameters"]["smile_dip"])
-        increase = int(known["optimization_parameters"]["smile_increase"])
-        delay = int(known["optimization_parameters"]["smile_delay"])
-    else:
-        dip = 15
-        increase = 12
-        delay = 0
-    p.setSpendingProfile(profile, survivor, dip, increase, delay)
-
-    # Solver Options
-    p.solverOptions = dict(known["solver_options"])
-    if "withMedicare" not in p.solverOptions:
-        p.solverOptions["withMedicare"] = "loop"
-    if "withSCLoop" not in p.solverOptions:
-        p.solverOptions["withSCLoop"] = True
-    with_medicare = p.solverOptions.get("withMedicare")
-    if isinstance(with_medicare, bool):
-        p.solverOptions["withMedicare"] = "loop" if with_medicare else "None"
-    name_opt = p.solverOptions.get("noRothConversions", "None")
-    if name_opt != "None" and name_opt not in p.inames:
-        raise ValueError(f"Unknown name {name_opt} for noRothConversions.")
-    this_year = date.today().year
-    year = p.solverOptions.get("startRothConversions", this_year)
-    p.solverOptions["startRothConversions"] = max(year, this_year)
-    p.yOBBBA = max(p.yOBBBA, this_year)
-
-    # Results
     p.setDefaultPlots(known["results"]["default_plots"])
 
     return p
@@ -288,176 +269,14 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
 
     # Basic info (description, start_date only - names/dobs/life require new plan)
     plan._description = known.get("description", "")
-    start_date = known["basic_info"].get("start_date", "today")
 
-    # Assets: config/TOML in $k (per PARAMETERS.md); plan uses dollars. Copy lists to avoid mutation.
-    balances = {}
-    for acc in AccountTypes:
-        balances[acc] = list(known["savings_assets"][account_key_map[acc]])
-    plan.setAccountBalances(
-        taxable=balances["taxable"],
-        taxDeferred=balances["tax-deferred"],
-        taxFree=balances["tax-free"],
-        startDate=start_date,
-    )
-    if icount == 2:
-        phi_j = known["savings_assets"]["beneficiary_fractions"]
-        plan.setBeneficiaryFractions(phi_j)
-        eta = known["savings_assets"]["spousal_surplus_deposit_fraction"]
-        plan.setSpousalDepositFraction(eta)
+    _apply_assets_to_plan(plan, known, icount)
+    _apply_fixed_income_to_plan(plan, known, icount)
+    _apply_rates_to_plan(plan, known)
+    _apply_asset_allocation_to_plan(plan, known)
+    _apply_optimization_to_plan(plan, known)
+    _apply_solver_options_to_plan(plan, known)
 
-    # Fixed Income
-    ssec_amounts = np.array(
-        known["fixed_income"].get("social_security_pia_amounts", [0] * icount),
-        dtype=np.int32,
-    )
-    ssec_ages = np.array(known["fixed_income"]["social_security_ages"])
-    plan.setSocialSecurity(ssec_amounts, ssec_ages)
-    pension_amounts = np.array(
-        known["fixed_income"].get("pension_monthly_amounts", [0] * icount),
-        dtype=np.float32,
-    )
-    pension_ages = np.array(known["fixed_income"]["pension_ages"])
-    pension_indexed = known["fixed_income"]["pension_indexed"]
-    plan.setPension(pension_amounts, pension_ages, pension_indexed)
-
-    # --------------------------------------------------
-    # Rates Selection (metadata-driven)
-    # --------------------------------------------------
-
-    rates_section = dict(known["rates_selection"])
-
-    # Plan-level rate settings
-    plan.setDividendRate(float(rates_section.get("dividend_rate", 1.8)))
-    plan.setHeirsTaxRate(float(rates_section["heirs_rate_on_tax_deferred_estate"]))
-    plan.yOBBBA = int(rates_section.get("obbba_expiration_year", 2032))
-
-    # Remove plan-level keys
-    rates_section.pop("dividend_rate", None)
-    rates_section.pop("heirs_rate_on_tax_deferred_estate", None)
-    rates_section.pop("obbba_expiration_year", None)
-
-    rate_method = rates_section.pop("method")
-
-    # Reproducibility
-    rate_seed = rates_section.pop("rate_seed", None)
-    reproducible_rates = rates_section.pop("reproducible_rates", False)
-
-    if rate_seed is not None:
-        rate_seed = int(rate_seed)
-
-    if reproducible_rates or rate_seed is not None:
-        plan.setReproducible(bool(reproducible_rates), seed=rate_seed)
-
-    # Transform flags
-    reverse = bool(rates_section.pop("reverse_sequence", False))
-    roll = int(rates_section.pop("roll_sequence", 0))
-
-    # Normalize naming
-    if "from" in rates_section:
-        rates_section["frm"] = rates_section.pop("from")
-
-    if "frm" in rates_section:
-        rates_section["frm"] = int(rates_section["frm"])
-
-    if "to" in rates_section:
-        rates_section["to"] = int(rates_section["to"])
-
-    # Legacy auto-fill for historical
-    if rate_method in ("historical", "historical average", "histochastic"):
-        if "frm" not in rates_section:
-            raise ValueError(
-                f"Rate method '{rate_method}' requires 'from' year."
-            )
-
-        if "to" not in rates_section:
-            rates_section["to"] = int(rates_section["frm"]) + plan.N_n - 1
-
-    ModelClass = load_rate_model(rate_method)
-
-    # Metadata filtering
-    ModelClass = load_rate_model(rate_method)
-
-    if ModelClass.model_name == "builtin":
-        # Builtin model has per-method metadata
-        metadata = ModelClass.get_method_metadata(rate_method)
-    else:
-        metadata = ModelClass.get_metadata()
-
-    required = set(metadata.get("required_parameters", {}).keys())
-    optional = set(metadata.get("optional_parameters", {}).keys())
-    allowed = required | optional
-
-    clean_rate_section = {
-        k: v for k, v in rates_section.items() if k in allowed
-    }
-
-    plan.setRates(
-        method=rate_method,
-        reverse=reverse,
-        roll=roll,
-        **clean_rate_section,
-    )
-
-    # Asset Allocation
-    plan.setInterpolationMethod(
-        known["asset_allocation"]["interpolation_method"],
-        float(known["asset_allocation"]["interpolation_center"]),
-        float(known["asset_allocation"]["interpolation_width"]),
-    )
-    alloc_type = known["asset_allocation"]["type"]
-    if alloc_type == "account":
-        bounds_ar = {}
-        for a_type in AccountTypes:
-            bounds_ar[a_type] = np.array(
-                known["asset_allocation"][a_type],
-                dtype=np.float64,
-            )
-        plan.setAllocationRatios(
-            alloc_type,
-            taxable=bounds_ar["taxable"],
-            taxDeferred=bounds_ar["tax-deferred"],
-            taxFree=bounds_ar["tax-free"],
-        )
-    elif alloc_type in ["individual", "spouses"]:
-        bounds_generic = np.array(
-            known["asset_allocation"]["generic"],
-            dtype=np.float64,
-        )
-        plan.setAllocationRatios(alloc_type, generic=bounds_generic)
-
-    # Optimization Parameters
-    plan.objective = known["optimization_parameters"]["objective"]
-    profile = known["optimization_parameters"]["spending_profile"]
-    survivor = int(known["optimization_parameters"]["surviving_spouse_spending_percent"])
-    if profile == "smile":
-        dip = int(known["optimization_parameters"].get("smile_dip", 15))
-        increase = int(known["optimization_parameters"].get("smile_increase", 12))
-        delay = int(known["optimization_parameters"].get("smile_delay", 0))
-    else:
-        dip = 15
-        increase = 12
-        delay = 0
-    plan.setSpendingProfile(profile, survivor, dip, increase, delay)
-
-    # Solver Options
-    plan.solverOptions = dict(known.get("solver_options", {}))
-    name_opt = plan.solverOptions.get("noRothConversions", "None")
-    if name_opt != "None" and name_opt not in plan.inames:
-        raise ValueError(f"Unknown name {name_opt} for noRothConversions.")
-    if "withMedicare" not in plan.solverOptions:
-        plan.solverOptions["withMedicare"] = "loop"
-    if "withSCLoop" not in plan.solverOptions:
-        plan.solverOptions["withSCLoop"] = True
-    with_medicare = plan.solverOptions.get("withMedicare")
-    if isinstance(with_medicare, bool):
-        plan.solverOptions["withMedicare"] = "loop" if with_medicare else "None"
-    this_year = date.today().year
-    year = plan.solverOptions.get("startRothConversions", this_year)
-    plan.solverOptions["startRothConversions"] = max(year, this_year)
-    plan.yOBBBA = max(plan.yOBBBA, this_year)
-
-    # Results
     plan.setDefaultPlots(known.get("results", {}).get("default_plots", "nominal"))
 
 
@@ -484,7 +303,7 @@ def plan_to_config(myplan: "Plan") -> dict:
     diconf["savings_assets"] = {}
     for j in range(myplan.N_j):
         amounts = myplan.beta_ij[:, j] / 1000  # plan dollars -> config $k
-        diconf["savings_assets"][account_key_map[AccountTypes[j]]] = amounts.tolist()
+        diconf["savings_assets"][ACCOUNT_KEY_MAP[ACCOUNT_TYPES[j]]] = amounts.tolist()
     if myplan.N_i == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = myplan.phi_j.tolist()
         diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = myplan.eta
@@ -543,7 +362,7 @@ def plan_to_config(myplan: "Plan") -> dict:
         "type": myplan.ARCoord,
     }
     if myplan.ARCoord == "account":
-        for acc_type in AccountTypes:
+        for acc_type in ACCOUNT_TYPES:
             val = myplan.boundsAR[acc_type]
             diconf["asset_allocation"][acc_type] = (
                 val.tolist() if hasattr(val, "tolist") else val

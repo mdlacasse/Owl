@@ -20,8 +20,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 ###########################################################################
-from owlplanner.rate_models.base import BaseRateModel
 import numpy as np
+
+from owlplanner.rate_models.base import BaseRateModel
+from owlplanner.rates import REQUIRED_RATE_COLUMNS
 
 
 class DataFrameRateModel(BaseRateModel):
@@ -97,7 +99,7 @@ class DataFrameRateModel(BaseRateModel):
             "inflation": "Inflation",
         }
 
-        canonical_cols = ["S&P 500", "Bonds Baa", "TNotes", "Inflation"]
+        canonical_cols = list(REQUIRED_RATE_COLUMNS)
 
         normalized = {}
 

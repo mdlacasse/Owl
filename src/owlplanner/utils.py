@@ -141,9 +141,9 @@ def krond(a, b) -> int:
     return 1 if a == b else 0
 
 
-def heavyside(x) -> int:
+def heaviside(x) -> int:
     """
-    Heavyside step function.
+    Heaviside step function.
     """
     return 1 if x >= 0 else 0
 

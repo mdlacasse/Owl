@@ -129,13 +129,13 @@ def test_krond():
     assert utils.krond("a", "b") == 0
 
 
-def test_heavyside():
-    """Test heavyside function."""
-    assert utils.heavyside(1) == 1
-    assert utils.heavyside(0) == 1
-    assert utils.heavyside(-1) == 0
-    assert utils.heavyside(0.5) == 1
-    assert utils.heavyside(-0.5) == 0
+def test_heaviside():
+    """Test heaviside function."""
+    assert utils.heaviside(1) == 1
+    assert utils.heaviside(0) == 1
+    assert utils.heaviside(-1) == 0
+    assert utils.heaviside(0.5) == 1
+    assert utils.heaviside(-0.5) == 0
 
 
 def test_round_cents_default():

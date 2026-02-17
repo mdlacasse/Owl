@@ -30,7 +30,7 @@ import os
 import sys
 
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner.rates import FROM, TO
+from owlplanner.rates import FROM, REQUIRED_RATE_COLUMNS, TO
 
 
 class BootstrapSORRateModel(BaseRateModel):
@@ -142,7 +142,7 @@ class BootstrapSORRateModel(BaseRateModel):
 
         years = df_slice["year"].values
 
-        data = df_slice[["S&P 500", "Bonds Baa", "TNotes", "Inflation"]].values
+        data = df_slice[list(REQUIRED_RATE_COLUMNS)].values
         data = data / 100.0  # percent → decimal
 
         return data, years

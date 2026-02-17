@@ -120,97 +120,49 @@ class Logger(object):
     # Printing methods
     # ------------------------------------------------------------
 
-    def print(self, *args, tag="INFO", **kwargs):
+    def _stream_print(self, *args, tag="INFO", stream_index=0, **kwargs):
         """
-        Unconditional printing regardless of verbosity.
+        Format message with caller location and timestamp, print to stream.
+        Used by print() and vprint() for stream-based logging.
         """
-
-        if self._use_loguru:
-            loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
-            return
-
-        # Get caller information (loguru style: name:function:line)
-        frame = inspect.currentframe()
-        caller_frame = frame.f_back
-        filename = os.path.basename(caller_frame.f_code.co_filename)
-        # Remove .py extension if present
-        if filename.endswith('.py'):
-            filename = filename[:-3]
-        function_name = caller_frame.f_code.co_name
-        line_number = caller_frame.f_lineno
-        location = f"{filename}:{function_name}:{line_number}"
-
-        # Format message with timestamp, location, and tag
         from datetime import datetime
+
+        # Caller is one frame up from the method that called us (print/vprint)
+        frame = inspect.currentframe().f_back.f_back
+        filename = os.path.basename(frame.f_code.co_filename)
+        if filename.endswith(".py"):
+            filename = filename[:-3]
+        location = f"{filename}:{frame.f_code.co_name}:{frame.f_lineno}"
+
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message = " ".join(map(str, args))
         formatted_message = f"{timestamp} | {tag} | {location} | {message}"
 
         if "file" not in kwargs:
-            file = self._logstreams[0]
-            kwargs["file"] = file
-        else:
-            file = kwargs["file"]
-
+            kwargs["file"] = self._logstreams[stream_index]
+        out = kwargs["file"]
         print(formatted_message, **kwargs)
-        file.flush()
+        out.flush()
+
+    def print(self, *args, tag="INFO", **kwargs):
+        """
+        Unconditional printing regardless of verbosity.
+        """
+        if self._use_loguru:
+            loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
+            return
+        self._stream_print(*args, tag=tag, stream_index=0, **kwargs)
 
     def vprint(self, *args, tag="DEBUG", **kwargs):
         """
         Conditional printing depending on verbose flag.
         """
-        if self._verbose:
-            if self._use_loguru:
-                loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
-                return
-
-            # Get caller information (loguru style: name:function:line)
-            frame = inspect.currentframe()
-            caller_frame = frame.f_back
-            filename = os.path.basename(caller_frame.f_code.co_filename)
-            # Remove .py extension if present
-            if filename.endswith('.py'):
-                filename = filename[:-3]
-            function_name = caller_frame.f_code.co_name
-            line_number = caller_frame.f_lineno
-            location = f"{filename}:{function_name}:{line_number}"
-
-            # Format message with timestamp, location, and tag
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            message = " ".join(map(str, args))
-            formatted_message = f"{timestamp} | {tag} | {location} | {message}"
-
-            if "file" not in kwargs:
-                file = self._logstreams[0]
-                kwargs["file"] = file
-            else:
-                file = kwargs["file"]
-
-            print(formatted_message, **kwargs)
-            file.flush()
-
-    def xprint(self, *args, **kwargs):
-        """
-        Print message and exit. Used for fatal errors.
-        """
+        if not self._verbose:
+            return
         if self._use_loguru:
-            loguru_logger.opt(depth=1).debug("ERROR: " + " ".join(map(str, args)))
-            loguru_logger.opt(depth=1).debug("Exiting...")
-            raise Exception("Fatal error.")
-
-        if "file" not in kwargs:
-            file = self._logstreams[1]
-            kwargs["file"] = file
-        else:
-            file = kwargs["file"]
-
-        if self._verbose:
-            print("ERROR:", *args, **kwargs)
-            print("Exiting...", file=file)
-            file.flush()
-
-        raise Exception("Fatal error.")
+            loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
+            return
+        self._stream_print(*args, tag=tag, stream_index=0, **kwargs)
 
 
 # Log filtering utility functions removed - no longer needed since StringIO guarantees ordered messages

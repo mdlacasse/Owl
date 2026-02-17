@@ -17,20 +17,24 @@ import logging
 from datetime import date, datetime
 from typing import Any
 
+from owlplanner.config.constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
 from owlplanner.config.schema import KNOWN_SECTIONS
 from owlplanner.rates import FROM
 
 logger = logging.getLogger(__name__)
 
-# Account type ordering for UI (txbl, txDef, txFree)
+# Account type ordering for UI widget keys (txbl, txDef, txFree)
 ACC_UI = ["txbl", "txDef", "txFree"]
-# Account type ordering for config
-ACC_CONF = ["taxable", "tax-deferred", "tax-free"]
-ACC_KEY_MAP = {
-    "taxable": "taxable_savings_balances",
-    "tax-deferred": "tax_deferred_savings_balances",
-    "tax-free": "tax_free_savings_balances",
-}
+# Account type ordering for config (alias for shared constant)
+ACC_CONF = ACCOUNT_TYPES
+
+# Solver options keys passed between config and UI
+SOLVER_OPT_KEYS = [
+    "netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
+    "startRothConversions", "bequest", "solver", "noLateSurplus",
+    "spendingSlack", "oppCostX", "amoConstraints", "amoRoth", "amoSurplus",
+    "withSCLoop", "absTol", "bigMamo", "relTol",
+]
 
 
 def _start_date_to_ui(start_date: str) -> date:
@@ -131,7 +135,7 @@ def config_to_ui(diconf: dict) -> dict:
         dic[f"pIdx{i}"] = p_idx[i] if i < len(p_idx) else True
 
         for j, acc in enumerate(ACC_CONF):
-            key = ACC_KEY_MAP[acc]
+            key = ACCOUNT_KEY_MAP[acc]
             vals = sa.get(key, [0.0] * ni)
             dic[ACC_UI[j] + str(i)] = vals[i] if i < len(vals) else 0.0  # config $k = UI $k
 
@@ -151,13 +155,7 @@ def config_to_ui(diconf: dict) -> dict:
                     dic[f"j{j}_fin%{k}_{i}"] = int(a[1][k])
 
     # Solver options
-    opt_list = [
-        "netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
-        "startRothConversions", "bequest", "solver", "noLateSurplus",
-        "spendingSlack", "oppCostX", "amoConstraints", "amoRoth", "amoSurplus",
-        "withSCLoop", "absTol", "bigMamo", "relTol",
-    ]
-    for key in opt_list:
+    for key in SOLVER_OPT_KEYS:
         if key in so:
             dic[key] = so[key]
 
@@ -296,7 +294,7 @@ def ui_to_config(uidic: dict) -> dict:
 
     # Savings: UI $k = config $k (per doc: tables dollars, UI thousands except fixed income)
     for j, acc in enumerate(ACC_CONF):
-        key = ACC_KEY_MAP[acc]
+        key = ACCOUNT_KEY_MAP[acc]
         diconf["savings_assets"][key] = [
             float(uidic.get(ACC_UI[j] + str(i), 0) or 0) for i in range(ni)
         ]
@@ -346,13 +344,7 @@ def ui_to_config(uidic: dict) -> dict:
             diconf["asset_allocation"]["generic"].append([init, fin])
 
     # Solver options
-    opt_list = [
-        "netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
-        "startRothConversions", "bequest", "solver", "noLateSurplus",
-        "spendingSlack", "oppCostX", "amoConstraints", "amoRoth", "amoSurplus",
-        "withSCLoop", "absTol", "bigMamo", "relTol",
-    ]
-    for key in opt_list:
+    for key in SOLVER_OPT_KEYS:
         val = uidic.get(key)
         if val is not None:
             diconf["solver_options"][key] = val
@@ -402,7 +394,7 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
         rs["standard_deviations"] = [
             float(uidic.get(f"stdev{k}", 0) or 0) for k in range(4)
         ]
-        # Correlations in percent (-100 to 100); Plan uses coefficient (-1 to 1) internally.
+        # Correlations: Pearson coefficient (-1 to 1). Standard in finance/statistics.
         rs["correlations"] = [
             float(uidic.get(f"corr{q}", 0) or 0) for q in range(1, 7)
         ]

@@ -160,62 +160,6 @@ def test_vprint_with_file_kwarg():
     assert "Debug" in output
 
 
-def test_xprint_raises_exception():
-    """Test xprint method raises exception."""
-    stream = StringIO()
-    logger = log.Logger(verbose=True, logstreams=[stream, stream])
-    with pytest.raises(Exception, match="Fatal error"):
-        logger.xprint("Error message")
-
-
-def test_xprint_verbose_true():
-    """Test xprint method when verbose is True."""
-    stream1 = StringIO()
-    stream2 = StringIO()
-    logger = log.Logger(verbose=True, logstreams=[stream1, stream2])
-    try:
-        logger.xprint("Error message")
-    except Exception:
-        pass
-    # xprint uses stderr (stream2) for errors, but "Exiting..." might go to stdout
-    stream1.seek(0)
-    stream2.seek(0)
-    output1 = stream1.read()
-    output2 = stream2.read()
-    # Check that error message is in stderr
-    assert "ERROR" in output2 or "Error message" in output2
-    # "Exiting..." might be in either stream
-    assert "Exiting" in (output1 + output2)
-
-
-def test_xprint_verbose_false():
-    """Test xprint method when verbose is False."""
-    stream = StringIO()
-    logger = log.Logger(verbose=False, logstreams=[stream, stream])
-    try:
-        logger.xprint("Error message")
-    except Exception:
-        pass
-    stream.seek(0)
-    output = stream.read()
-    # Should still print error even when not verbose
-    assert "ERROR" in output or output == ""
-
-
-def test_xprint_with_file_kwarg():
-    """Test xprint method with file kwarg."""
-    stream1 = StringIO()
-    stream2 = StringIO()
-    logger = log.Logger(verbose=True, logstreams=[stream1, stream2])
-    try:
-        logger.xprint("Error", file=stream1)
-    except Exception:
-        pass
-    stream1.seek(0)
-    output = stream1.read()
-    assert "ERROR" in output or "Error" in output
-
-
 def test_deepcopy():
     """Test __deepcopy__ method."""
     import copy
@@ -277,11 +221,3 @@ def test_vprint_loguru_backend():
         logger = log.Logger(verbose=True, logstreams="loguru")
         # Should not raise error
         logger.vprint("Debug message")
-
-
-def test_xprint_loguru_backend():
-    """Test xprint method with loguru backend."""
-    if log.HAS_LOGURU:
-        logger = log.Logger(verbose=True, logstreams="loguru")
-        with pytest.raises(Exception, match="Fatal error"):
-            logger.xprint("Error message")

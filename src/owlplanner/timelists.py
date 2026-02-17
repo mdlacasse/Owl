@@ -80,6 +80,19 @@ _fixedAssetTypes = [
 ]
 
 
+def _convert_to_string(val):
+    """
+    Convert value to string for DataFrame string columns.
+    Handles None, NaN, lists (e.g. from Streamlit data_editor).
+    """
+    if pd.isna(val) or val is None:
+        return ""
+    if isinstance(val, list):
+        cleaned = [str(x) for x in val if x is not None and not pd.isna(x)]
+        return " ".join(cleaned) if cleaned else ""
+    return str(val)
+
+
 def read(finput, inames, horizons, mylog, filename=None):
     """
     Read listed parameters from an excel spreadsheet or through
@@ -352,17 +365,7 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None):
             elif col in ["name", "type"]:
                 # String columns: ensure they are strings, not lists
                 # Streamlit data_editor can return lists for string columns in some cases
-                def convert_to_string(val):
-                    if pd.isna(val) or val is None:
-                        return ""
-                    if isinstance(val, list):
-                        # If it's a list, join the elements (handles Streamlit data_editor edge cases)
-                        # Filter out None/NaN values before joining
-                        cleaned = [str(x) for x in val if x is not None and not pd.isna(x)]
-                        return " ".join(cleaned) if cleaned else ""
-                    return str(val)
-
-                df[col] = df[col].apply(convert_to_string).astype(str)
+                df[col] = df[col].apply(_convert_to_string).astype(str)
                 # Replace "nan" string with empty string
                 df[col] = df[col].replace("nan", "").replace("None", "")
             elif col in int_cols:

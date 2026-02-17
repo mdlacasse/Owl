@@ -1243,7 +1243,7 @@ class Plan:
         thisyear = date.today().year
 
         # Process debts
-        if "Debts" in self.houseLists and not self.houseLists["Debts"].empty:
+        if "Debts" in self.houseLists and not u.is_dataframe_empty(self.houseLists["Debts"]):
             self.debt_payments_n = debts.get_debt_payments_array(
                 self.houseLists["Debts"], self.N_n, thisyear
             )
@@ -1255,7 +1255,7 @@ class Plan:
             self.remaining_debt_balance = 0.0
 
         # Process fixed assets
-        if "Fixed Assets" in self.houseLists and not self.houseLists["Fixed Assets"].empty:
+        if "Fixed Assets" in self.houseLists and not u.is_dataframe_empty(self.houseLists["Fixed Assets"]):
             filing_status = "married" if self.N_i == 2 else "single"
             (self.fixed_assets_tax_free_n,
              self.fixed_assets_ordinary_income_n,
@@ -1323,7 +1323,7 @@ class Plan:
             fillsheet(ws, 1)
 
         # Add Debts sheet if available
-        if "Debts" in self.houseLists and not self.houseLists["Debts"].empty:
+        if "Debts" in self.houseLists and not u.is_dataframe_empty(self.houseLists["Debts"]):
             ws = wb.create_sheet("Debts")
             df = self.houseLists["Debts"]
             for row in dataframe_to_rows(df, index=False, header=True):
@@ -1338,7 +1338,7 @@ class Plan:
             _formatDebtsSheet(ws)
 
         # Add Fixed Assets sheet if available
-        if "Fixed Assets" in self.houseLists and not self.houseLists["Fixed Assets"].empty:
+        if "Fixed Assets" in self.houseLists and not u.is_dataframe_empty(self.houseLists["Fixed Assets"]):
             ws = wb.create_sheet("Fixed Assets")
             df = self.houseLists["Fixed Assets"]
             for row in dataframe_to_rows(df, index=False, header=True):
