@@ -1660,8 +1660,12 @@ class Plan:
 
     def _add_withdrawal_limits(self):
         for i in range(self.N_i):
-            for j in [0, 2]:
-                for n in range(self.N_n):
+            for n in range(self.N_n):
+                rowDic = {_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n): -1,
+                          _q2(self.C["x"], i, n, self.N_i, self.N_n): -1,
+                          _q3(self.C["b"], i, 1, n, self.N_i, self.N_j, self.N_n + 1): 1}
+                self.A.addNewRow(rowDic, 0, np.inf)
+                for j in [0, 2]:
                     rowDic = {_q3(self.C["w"], i, j, n, self.N_i, self.N_j, self.N_n): -1,
                               _q3(self.C["b"], i, j, n, self.N_i, self.N_j, self.N_n + 1): 1}
                     self.A.addNewRow(rowDic, 0, np.inf)
