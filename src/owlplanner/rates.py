@@ -48,6 +48,39 @@ RATE_METHODS_NO_REGEN = (
     "historical average", "historical", "dataframe",
 )
 
+# Canonical fixed rates (decimal). Single source of truth for UI/config sync.
+_DEF_RATES = np.array([0.1101, 0.0736, 0.0503, 0.0251])   # 30-year trailing avg
+_OPTIMISTIC_RATES = np.array([0.086, 0.049, 0.033, 0.025])  # MorningStar 2023
+_CONSERV_RATES = np.array([0.06, 0.04, 0.033, 0.028])
+
+
+def get_fixed_rate_values(method):
+    """
+    Return the canonical fixed rate values (percent) for built-in methods.
+
+    Single source of truth for conservative, optimistic, and default rates.
+    Used by the UI and config-to-plan bridge to avoid duplication and sync drift.
+
+    Args:
+        method: One of "conservative", "optimistic", "default"
+
+    Returns:
+        List of 4 floats in percent: [S&P 500, Bonds Baa, TNotes, Inflation]
+
+    Raises:
+        ValueError: If method is not a supported fixed method.
+    """
+    if method == "default":
+        arr = _DEF_RATES
+    elif method == "optimistic":
+        arr = _OPTIMISTIC_RATES
+    elif method == "conservative":
+        arr = _CONSERV_RATES
+    else:
+        raise ValueError(f"Unknown fixed rate method '{method}'.")
+    return [float(100 * x) for x in arr]
+
+
 where = os.path.dirname(sys.modules["owlplanner"].__file__)
 file = os.path.join(where, "data/rates.csv")
 try:
@@ -211,15 +244,10 @@ class Rates(object):
         self._seed = seed
         self._rng = np.random.default_rng(seed)
 
-        # Default rates are average over last 30 years.
-        self._defRates = np.array([0.1101, 0.0736, 0.0503, 0.0251])
-
-        # Realistic rates are average predictions of major firms
-        # as reported by MorningStar in 2023.
-        self._optimisticRates = np.array([0.086, 0.049, 0.033, 0.025])
-
-        # Conservative rates.
-        self._conservRates = np.array([0.06, 0.04, 0.033, 0.028])
+        # Use canonical module-level constants (single source of truth)
+        self._defRates = _DEF_RATES.copy()
+        self._optimisticRates = _OPTIMISTIC_RATES.copy()
+        self._conservRates = _CONSERV_RATES.copy()
 
         self.means = np.zeros((4))
         self.stdev = np.zeros((4))

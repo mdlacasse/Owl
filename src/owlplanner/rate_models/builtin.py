@@ -13,9 +13,6 @@ class BuiltinRateModel(BaseRateModel):
 
     model_name = "builtin"
     description = "Built-in OWL rate models."
-    deterministic = None
-    constant = None
-
 
     #######################################################################
     # Per-method metadata
@@ -204,7 +201,7 @@ class BuiltinRateModel(BaseRateModel):
         rate_seed = config.get("rate_seed", seed)
 
         self._rates = rates.Rates(logger, seed=rate_seed)
-        #self._rates = rates.Rates(logger, seed=seed)
+        # self._rates = rates.Rates(logger, seed=seed)
 
         self._rates.setMethod(
             self.method,
@@ -225,7 +222,6 @@ class BuiltinRateModel(BaseRateModel):
             # internally generated default correlation matrix
             if corr is None:
                 self.params["corr"] = self._rates.corr.copy()
-
 
     #######################################################################
     # Model properties

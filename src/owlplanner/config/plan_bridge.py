@@ -20,6 +20,7 @@ from .schema import KNOWN_SECTIONS
 if TYPE_CHECKING:
     from owlplanner.plan import Plan
 
+
 def _extract_extra(diconf: dict) -> dict:
     """Extract unknown top-level sections for round-trip preservation."""
     return {k: v for k, v in diconf.items() if k not in KNOWN_SECTIONS}

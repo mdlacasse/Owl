@@ -842,10 +842,8 @@ class Plan:
         # Include any additional keyword arguments
         model_config.update(kwargs)
 
-
         if method == "dataframe":
             model_config["n_years"] = self.N_n
-
 
         # --------------------------------------------------
         # Load rate model class

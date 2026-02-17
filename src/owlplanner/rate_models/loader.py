@@ -272,13 +272,13 @@ def generate_rate_models_markdown():
             # Required parameters in declared order
             for name, p in required.items():
                 lines.append(
-                    f"| `{name}` | Yes | {p.get('type','')} | {p.get('description','')} |"
+                    f"| `{name}` | Yes | {p.get('type', '')} | {p.get('description', '')} |"
                 )
 
             # Optional parameters
             for name, p in optional.items():
                 lines.append(
-                    f"| `{name}` | No | {p.get('type','')} | {p.get('description','')} |"
+                    f"| `{name}` | No | {p.get('type', '')} | {p.get('description', '')} |"
                 )
 
             lines.append("")

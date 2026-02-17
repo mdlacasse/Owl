@@ -28,12 +28,17 @@ import owlbridge as owb
 import case_progress as cp
 
 
-FXRATES = {
-    "conservative": [7, 4, 3.3, 2.8],
-    "optimistic": [10, 6, 5, 3],
-    "historical average": [0, 0, 0, 0],
-    "user": [7, 4, 3.3, 2.8],
-}
+def _get_fx_rates():
+    """Build FXRATES with conservative/optimistic from backend (single source of truth)."""
+    return {
+        "conservative": owb.getFixedRates("conservative"),
+        "optimistic": owb.getFixedRates("optimistic"),
+        "historical average": [0, 0, 0, 0],  # placeholder; computed at runtime
+        "user": owb.getFixedRates("conservative"),  # default initial values
+    }
+
+
+FXRATES = _get_fx_rates()
 
 rateChoices = ["fixed", "varying"]
 fixedChoices = list(FXRATES)

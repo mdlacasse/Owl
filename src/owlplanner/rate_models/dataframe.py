@@ -80,7 +80,7 @@ class DataFrameRateModel(BaseRateModel):
     def generate(self, N):
 
         df = self.get_param("df")
-        n_years = self.get_param("n_years")
+        _ = self.get_param("n_years")  # validated by config
         offset = int(self.get_param("offset") or 0)
         frm = self.get_param("frm")
         to = self.get_param("to")

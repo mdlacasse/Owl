@@ -32,13 +32,23 @@ sys.path.insert(0, "./src")
 sys.path.insert(0, "../src")
 
 import owlplanner as owl
-from owlplanner.rates import FROM, TO
+from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes
 from owlplanner.mylogging import Logger
 from moseklicense import hasMOSEK
 
 import sskeys as kz
 import progress
+
+
+def getFixedRates(method):
+    """
+    Return canonical fixed rate values (percent) for conservative, optimistic, default.
+
+    Single source of truth: values come from owlplanner.rates to stay in sync
+    with the backend. Use this instead of duplicating FXRATES in the UI.
+    """
+    return get_fixed_rate_values(method)
 
 
 def createPlan():
@@ -225,14 +235,21 @@ def _setRates(plan):
         return False
 
     if rateType == "fixed":
-        if kz.getCaseKey("fixedType") == "historical average":
+        fixedType = kz.getCaseKey("fixedType")
+        if fixedType == "historical average":
             if adjusted_range:
                 st.warning("Ending year adjusted to be after starting year.")
             plan.setRates("historical average", yfrm, yto)
             # Set fxRates back to computed values.
             for j in range(4):
                 kz.pushCaseKey(f"fxRate{j}", 100 * plan.tau_kn[j, -1])
+        elif fixedType in ("conservative", "optimistic"):
+            # Use backend as single source of truth; sync display from plan
+            plan.setRates(fixedType)
+            for j in range(4):
+                kz.pushCaseKey(f"fxRate{j}", 100 * plan.tau_kn[j, -1])
         else:
+            # user: values from UI
             plan.setRates(
                 "user",
                 values=[
