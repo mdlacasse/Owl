@@ -1490,7 +1490,7 @@ class Plan:
         self._add_roth_conversion_constraints(options)
         self._add_safety_net(options)
         self._add_roth_maturation_constraints()
-        # self._add_withdrawal_limits()
+        self._add_withdrawal_limits()
         self._add_conversion_limits()
         self._add_objective_constraints(objective, options)
         self._add_initial_balances()
