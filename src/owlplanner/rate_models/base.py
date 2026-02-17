@@ -21,8 +21,19 @@ class BaseRateModel(ABC):
     All rate models must subclass this.
     """
 
+    # ------------------------------------------------------------
+    # Core Metadata (Class-Level)
+    # ------------------------------------------------------------
+
     model_name = "base"
     description = "Abstract rate model."
+    more_info = None
+
+    # Model characteristics
+    deterministic = False
+    constant = False
+
+    # Parameter schema
     required_parameters = {}
     optional_parameters = {}
 
@@ -45,7 +56,7 @@ class BaseRateModel(ABC):
     def _validate_and_normalize_parameters(self, config):
         """
         Validates required parameters, applies optional defaults,
-        and optionally rejects unknown parameters.
+        and rejects unknown parameters.
 
         Returns:
             normalized parameter dictionary
@@ -116,26 +127,21 @@ class BaseRateModel(ABC):
         pass
 
     #######################################################################
-    # Model Properties
-    #######################################################################
-
-    @property
-    def deterministic(self):
-        return False
-
-    @property
-    def constant(self):
-        return False
-
-    #######################################################################
-    # Metadata
+    # Metadata Exposure
     #######################################################################
 
     @classmethod
     def get_metadata(cls):
+        """
+        Returns normalized metadata dictionary for documentation
+        and model discovery.
+        """
         return {
-            "model_name": cls.model_name,
-            "description": cls.description,
-            "required_parameters": cls.required_parameters,
-            "optional_parameters": cls.optional_parameters,
+            "model_name": getattr(cls, "model_name", None),
+            "description": getattr(cls, "description", ""),
+            "more_info": getattr(cls, "more_info", None),
+            "required_parameters": getattr(cls, "required_parameters", {}),
+            "optional_parameters": getattr(cls, "optional_parameters", {}),
+            "deterministic": getattr(cls, "deterministic", False),
+            "constant": getattr(cls, "constant", False),
         }

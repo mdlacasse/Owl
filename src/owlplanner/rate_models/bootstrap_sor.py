@@ -39,40 +39,52 @@ class BootstrapSORRateModel(BaseRateModel):
 
     description = (
         "Historical bootstrap model for sequence-of-returns analysis. "
-        "Supports IID, block, circular, and stationary bootstrap variants."
+        "Supports IID, block, circular, and stationary bootstrap variants.  Defaults to IID."
     )
+
+    more_info = "https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/bootstrap_sor.md"
+
+    deterministic = False
+    constant = False
 
     required_parameters = {
         "frm": {
             "type": "int",
             "description": "First historical year (inclusive).",
+            "example": "1969",
         },
         "to": {
             "type": "int",
             "description": "Last historical year (inclusive).",
+            "example": "2002",
         },
     }
 
     optional_parameters = {
         "bootstrap_type": {
             "type": "str",
+            "description": "Type of bootstrap to perform. Defaults to iid",
             "allowed": ["iid", "block", "circular", "stationary"],
             "default": "iid",
+            "example": '"block"',
         },
         "block_size": {
             "type": "int",
             "default": 1,
             "description": "Block length for block-based bootstraps.",
+            "example": "5",
         },
         "crisis_years": {
             "type": "list[int]",
             "default": [],
             "description": "Years to overweight in sampling.",
+            "example": "[1973, 1974, 2000, 2008]",
         },
         "crisis_weight": {
             "type": "float",
             "default": 1.0,
             "description": "Sampling multiplier for crisis years.",
+            "example": "2.0",
         },
     }
 
@@ -107,18 +119,6 @@ class BootstrapSORRateModel(BaseRateModel):
 
         self._historical_data, self._years = self._load_historical_slice()
         self._base_weights = self._build_sampling_weights()
-
-    #######################################################################
-    # Properties
-    #######################################################################
-
-    @property
-    def deterministic(self):
-        return False
-
-    @property
-    def constant(self):
-        return False
 
     #######################################################################
     # Historical Data

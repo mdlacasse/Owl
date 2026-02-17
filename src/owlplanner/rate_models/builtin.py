@@ -13,6 +13,9 @@ class BuiltinRateModel(BaseRateModel):
 
     model_name = "builtin"
     description = "Built-in OWL rate models."
+    deterministic = None
+    constant = None
+
 
     #######################################################################
     # Per-method metadata
@@ -26,6 +29,7 @@ class BuiltinRateModel(BaseRateModel):
 
         "default": {
             "description": "30-year trailing historical average deterministic rates.",
+            "more_info" : None,
             "required_parameters": {},
             "optional_parameters": {},
             "deterministic": True,
@@ -34,6 +38,7 @@ class BuiltinRateModel(BaseRateModel):
 
         "optimistic": {
             "description": "Optimistic fixed rates based on industry forecasts.",
+            "more_info" : None,
             "required_parameters": {},
             "optional_parameters": {},
             "deterministic": True,
@@ -42,6 +47,7 @@ class BuiltinRateModel(BaseRateModel):
 
         "conservative": {
             "description": "Conservative fixed rate assumptions.",
+            "more_info" : None,
             "required_parameters": {},
             "optional_parameters": {},
             "deterministic": True,
@@ -50,11 +56,13 @@ class BuiltinRateModel(BaseRateModel):
 
         "user": {
             "description": "User-specified fixed annual rates (percent).",
+            "more_info" : None,
             "required_parameters": {
                 "values": {
                     "type": "list[float]",
                     "length": 4,
                     "description": "Rates in percent: [Stocks, Bonds Baa, TNotes, Inflation]",
+                    "example": "[7.0, 4.5, 3.5, 2.5]",
                 }
             },
             "optional_parameters": {},
@@ -68,17 +76,22 @@ class BuiltinRateModel(BaseRateModel):
 
         "historical": {
             "description": "Historical year-by-year returns over selected range.",
+            "more_info" : None,
             "required_parameters": {
                 "frm": {
                     "type": "int",
-                    "description": "Starting historical year (inclusive)."
+                    "description": "Starting historical year (inclusive).",
+                    "example": "1969",
                 },
             },
             "optional_parameters": {
                 "to": {
                     "type": "int",
-                    "description": "Ending historical year (inclusive). "
-                                   "Defaults to frm if not provided."
+                    "description": (
+                        "Ending historical year (inclusive). "
+                        "Defaults to frm if not provided."
+                    ),
+                    "example": "2002",
                 },
             },
             "deterministic": True,
@@ -87,9 +100,16 @@ class BuiltinRateModel(BaseRateModel):
 
         "historical average": {
             "description": "Fixed rates equal to historical average over selected range.",
+            "more_info" : None,
             "required_parameters": {
-                "frm": {"type": "int"},
-                "to": {"type": "int"},
+                "frm": {
+                    "type": "int",
+                    "example": "1969",
+                },
+                "to": {
+                    "type": "int",
+                    "example": "2002",
+                },
             },
             "optional_parameters": {},
             "deterministic": True,
@@ -102,23 +122,29 @@ class BuiltinRateModel(BaseRateModel):
 
         "stochastic": {
             "description": "Multivariate normal stochastic model using user-provided mean and volatility.",
+            "more_info" : None,
             "required_parameters": {
                 "values": {
                     "type": "list[float]",
                     "length": 4,
                     "description": "Mean returns in percent.",
+                    "example": "[7.0, 4.5, 3.5, 2.5]",
                 },
                 "stdev": {
                     "type": "list[float]",
                     "length": 4,
                     "description": "Standard deviations in percent.",
+                    "example": "[17.0, 8.0, 6.0, 2.0]",
                 },
             },
             "optional_parameters": {
                 "corr": {
                     "type": "4x4 matrix or list[6]",
-                    "description": ("Pearson correlation coefficient (-1 to 1)."
-                                    " Matrix or upper-triangle off-diagonals. Standard in finance/statistics."),
+                    "description": (
+                        "Pearson correlation coefficient (-1 to 1). "
+                        "Matrix or upper-triangle off-diagonals. Standard in finance/statistics."
+                    ),
+                    "example": "[0.2, 0.1, 0.0, 0.3, 0.1, 0.2]",
                 }
             },
             "deterministic": False,
@@ -127,9 +153,16 @@ class BuiltinRateModel(BaseRateModel):
 
         "histochastic": {
             "description": "Multivariate normal model using historical mean and covariance.",
+            "more_info" : None,
             "required_parameters": {
-                "frm": {"type": "int"},
-                "to": {"type": "int"},
+                "frm": {
+                    "type": "int",
+                    "example": "1969",
+                },
+                "to": {
+                    "type": "int",
+                    "example": "2002",
+                },
             },
             "optional_parameters": {},
             "deterministic": False,
@@ -164,11 +197,14 @@ class BuiltinRateModel(BaseRateModel):
         corr = self.get_param("corr")
 
         # Special-case: historical single-year fallback
-        if self.method == "historical" and frm is not None and to is None:
-            to = frm
+#        if self.method == "historical" and frm is not None and to is None:
+#            to = frm
 
         # Initialize underlying Rates engine
-        self._rates = rates.Rates(logger, seed=seed)
+        rate_seed = config.get("rate_seed", seed)
+
+        self._rates = rates.Rates(logger, seed=rate_seed)
+        #self._rates = rates.Rates(logger, seed=seed)
 
         self._rates.setMethod(
             self.method,
@@ -179,11 +215,17 @@ class BuiltinRateModel(BaseRateModel):
             corr,
         )
 
+        if self.method in ("historical", "historical average"):
+            self.params["values"] = self._rates.means.copy()
+            self.params["stdev"] = self._rates.stdev.copy()
+            self.params["corr"] = self._rates.corr.copy()
+
         if self.method == "stochastic":
-            # Store normalized decimal values back into params
-            self.params["values"] = self._rates.means
-            self.params["stdev"] = self._rates.stdev
-            self.params["corr"] = self._rates.corr        
+            # If user did not provide correlation, store the
+            # internally generated default correlation matrix
+            if corr is None:
+                self.params["corr"] = self._rates.corr.copy()
+
 
     #######################################################################
     # Model properties
