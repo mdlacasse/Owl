@@ -80,7 +80,7 @@ st.markdown("""
 or resell your financial data, whether cloud-hosted, or self-hosted on your device.
 - **No Sign-ups:** Start planning immediately.
 - **No Fees:** Professional-grade modeling, free for everyone.
-- **Total Privacy:** Your data remains private either way.
+- **Total Privacy:** Your data always remains private.
 """)
 
 kz.divider("orange")

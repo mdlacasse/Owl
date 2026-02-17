@@ -1652,12 +1652,11 @@ class Plan:
         """
         if "minTaxableBalance" not in options:
             return
-        min_bal = options["minTaxableBalance"]
-        if not isinstance(min_bal, (list, tuple)) or len(min_bal) < self.N_i:
-            return
+        min_bal = u.get_numeric_list_option(
+            options, "minTaxableBalance", self.N_i, min_value=0
+        )
         for i in range(self.N_i):
-            val = min_bal[i] if i < len(min_bal) else 0
-            min_today = float(val) if val is not None and val != "" else 0
+            min_today = min_bal[i]
             if min_today <= 0:
                 continue
             min_dollar = min_today * self.optionsUnits
@@ -2305,10 +2304,7 @@ class Plan:
 
         self.prevMAGI = np.zeros(2)
         if "previousMAGIs" in myoptions:
-            magi = myoptions["previousMAGIs"]
-            if len(magi) != 2:
-                raise ValueError("previousMAGIs must have 2 values.")
-
+            magi = u.get_numeric_list_option(myoptions, "previousMAGIs", 2)
             self.prevMAGI = self.optionsUnits * np.array(magi)
 
         lambdha = myoptions.get("spendingSlack", 0)

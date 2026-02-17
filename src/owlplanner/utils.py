@@ -90,6 +90,48 @@ def get_numeric_option(options, key, default, *, min_value=None) -> float:
     return float(value)
 
 
+def get_numeric_list_option(options, key, min_length, *, min_value=None) -> list[float]:
+    """
+    Get and validate a list of numeric values from options.
+
+    Args:
+        options: Options dictionary (caller must ensure key is present).
+        key: Key to look up.
+        min_length: Minimum required length of the list.
+        min_value: Optional minimum value for each element (e.g. 0 for non-negative).
+
+    Returns:
+        List of floats. None and empty string elements become 0.
+
+    Raises:
+        ValueError: If value is not a list/tuple, too short, or contains non-numeric elements.
+    """
+    value = options[key]
+    if not isinstance(value, (list, tuple)):
+        raise ValueError(
+            f"{key} must be a list or tuple, got {type(value).__name__}."
+        )
+    if len(value) < min_length:
+        raise ValueError(
+            f"{key} must have at least {min_length} elements, got {len(value)}."
+        )
+
+    result = []
+    for i, val in enumerate(value):
+        if val is None or val == "":
+            result.append(0.0)
+        else:
+            if not isinstance(val, (int, float)):
+                raise ValueError(f"{key}[{i}] {val!r} is not a number.")
+            f = float(val)
+            if min_value is not None and f < min_value:
+                raise ValueError(
+                    f"{key}[{i}] must be >= {min_value}, got {f}."
+                )
+            result.append(f)
+    return result
+
+
 # Next two functions could be a one-line lambda functions.
 # e.g., krond = lambda a, b: 1 if a == b else 0
 def krond(a, b) -> int:

@@ -281,3 +281,52 @@ def test_convert_to_bool_invalid_type():
     # The function catches this and defaults to True
     result = utils.convert_to_bool([])  # List can't be converted, defaults to True
     assert result is True
+
+
+def test_get_numeric_list_option_valid():
+    """Test get_numeric_list_option with valid input."""
+    options = {"minTaxableBalance": [100, 50, 0]}
+    result = utils.get_numeric_list_option(options, "minTaxableBalance", 2)
+    assert result == [100.0, 50.0, 0.0]
+
+
+def test_get_numeric_list_option_none_and_empty_become_zero():
+    """Test that None and empty string become 0."""
+    options = {"key": [None, "", 10]}
+    result = utils.get_numeric_list_option(options, "key", 3)
+    assert result == [0.0, 0.0, 10.0]
+
+
+def test_get_numeric_list_option_min_value():
+    """Test min_value constraint."""
+    options = {"key": [0, 5, 10]}
+    result = utils.get_numeric_list_option(options, "key", 3, min_value=0)
+    assert result == [0.0, 5.0, 10.0]
+
+
+def test_get_numeric_list_option_min_value_violation():
+    """Test min_value raises on violation."""
+    options = {"key": [0, -1, 10]}
+    with pytest.raises(ValueError, match=r"key\[1\] must be >= 0"):
+        utils.get_numeric_list_option(options, "key", 3, min_value=0)
+
+
+def test_get_numeric_list_option_not_list():
+    """Test non-list input raises."""
+    options = {"key": "not a list"}
+    with pytest.raises(ValueError, match="must be a list or tuple"):
+        utils.get_numeric_list_option(options, "key", 2)
+
+
+def test_get_numeric_list_option_too_short():
+    """Test too-short list raises."""
+    options = {"key": [1]}
+    with pytest.raises(ValueError, match="at least 2 elements"):
+        utils.get_numeric_list_option(options, "key", 2)
+
+
+def test_get_numeric_list_option_non_numeric_element():
+    """Test non-numeric element raises."""
+    options = {"key": [1, "abc", 3]}
+    with pytest.raises(ValueError, match=r"key\[1\] .* is not a number"):
+        utils.get_numeric_list_option(options, "key", 3)
