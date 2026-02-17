@@ -54,22 +54,22 @@ to ensure your plan is grounded in reality.""")
 
 with col2:
     st.image(logofile, width="stretch")
-    st.caption("Retirement planner with great wisdom")
+    st.caption("*Retirement planner with great wisdom*")
 
 st.markdown("### :orange[Powered by best-in-class optimizer]")
-col1, col2 = st.columns([18, 82], gap="medium")
+col1, col2 = st.columns([17, 83], gap="medium")
 with col1:
     moseklogo = "https://www.mosek.com/static/images/branding/partnergraphmosekinside.jpg"
     st.image(moseklogo)
-    st.caption("Optimization done right since 1999.")
+    st.caption("*Optimization done right. Since 1999.*")
 with col2:
     st.markdown("""
 [MOSEK](https://mosek.com)—the industry-leading optimizer behind *"Optimization done right. Since 1999."*—has
 generously provided **Owl** with a free license for the Community Cloud deployment. This means you get:
-- **Faster, more reliable plans** — Run more cases in less time with a state-of-the-art solver
+- **Faster, more reliable plans** — Run more cases in less time with a state-of-the-art solver.
 - **Professional-grade optimization** — The same technology trusted by financial institutions
-and engineering firms worldwide
-- **Freedom to compare** — Benchmark results against other optimizers and choose what works best for you
+and engineering firms worldwide.
+- **Freedom to compare** — Benchmark results against other optimizers and choose what works best for you.
 
 We are grateful for MOSEK's support of open-source retirement planning.
 """)
