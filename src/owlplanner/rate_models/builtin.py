@@ -178,6 +178,12 @@ class BuiltinRateModel(BaseRateModel):
     #######################################################################
 
     def __init__(self, config, seed=None, logger=None):
+        # Accept config-style names (standard_deviations, correlations) or API names (stdev, corr)
+        config = dict(config or {})
+        if "standard_deviations" in config and "stdev" not in config:
+            config["stdev"] = config.pop("standard_deviations")
+        if "correlations" in config and "corr" not in config:
+            config["corr"] = config.pop("correlations")
 
         self.method = config["method"]
 
