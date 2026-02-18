@@ -81,37 +81,14 @@ class DataFrameRateModel(BaseRateModel):
         offset = int(self.get_param("offset") or 0)
 
         # --------------------------------------------------
-        # Normalize column names (supports aliases)
+        # Validate required columns (exact names, no aliases)
         # --------------------------------------------------
 
-        column_map = {
-            "S&P 500": "S&P 500",
-            "Bonds Baa": "Bonds Baa",
-            "Corporate Baa": "Bonds Baa",
-            "TNotes": "TNotes",
-            "T Bonds": "TNotes",
-            "Inflation": "Inflation",
-            "inflation": "Inflation",
-        }
-
-        canonical_cols = list(REQUIRED_RATE_COLUMNS)
-
-        normalized = {}
-
-        for canonical in canonical_cols:
-            found = None
-            for original, mapped in column_map.items():
-                if original in df.columns and mapped == canonical:
-                    found = original
-                    break
-            if found is not None:
-                normalized[canonical] = df[found]
-
-        missing = [c for c in canonical_cols if c not in normalized]
+        missing = [c for c in REQUIRED_RATE_COLUMNS if c not in df.columns]
         if missing:
             raise ValueError(
                 f"DataFrame missing required columns: {missing}. "
-                f"Required: {canonical_cols}"
+                f"Required: {list(REQUIRED_RATE_COLUMNS)}"
             )
 
         # --------------------------------------------------
@@ -125,12 +102,7 @@ class DataFrameRateModel(BaseRateModel):
                 f"(n_years={n_years} + offset={offset})."
             )
 
-        data = np.column_stack([
-            normalized["S&P 500"],
-            normalized["Bonds Baa"],
-            normalized["TNotes"],
-            normalized["Inflation"],
-        ]).astype(float)
+        data = df[list(REQUIRED_RATE_COLUMNS)].values.astype(float)
 
         if offset < 0:
             raise ValueError("offset must be >= 0.")

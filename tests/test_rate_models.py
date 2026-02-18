@@ -22,6 +22,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from owlplanner import Plan
+from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
 
 
 def test_rate_model_default():
@@ -130,9 +131,9 @@ def test_dataframe_method():
 
     df = pd.DataFrame({
         "S&P 500": [0.05] * n,
-        "Corporate Baa": [0.03] * n,
-        "T Bonds": [0.025] * n,
-        "inflation": [0.02] * n,
+        "Bonds Baa": [0.03] * n,
+        "TNotes": [0.025] * n,
+        "Inflation": [0.02] * n,
     })
 
     p.setRates(method="dataframe", df=df)
@@ -262,17 +263,16 @@ class RateModel(BaseRateModel):
     assert np.allclose(forward[:, ::-1], reversed_series)
 
 
-def test_dataframe_missing_column():
-    # Sequential format: no year column
+@pytest.mark.parametrize("missing_col", REQUIRED_RATE_COLUMNS)
+def test_dataframe_missing_column(missing_col):
+    """DataFrame must include every required column; reject when any one is missing."""
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
     n = p.N_n
 
-    df = pd.DataFrame({
-        "S&P 500": [0.05] * n,
-        # Missing Bonds Baa / Corporate Baa
-        "T Bonds": [0.025] * n,
-        "inflation": [0.02] * n,
-    })
+    # Build df with all columns except the one under test
+    data = {"S&P 500": [0.05] * n, "Bonds Baa": [0.03] * n, "TNotes": [0.025] * n, "Inflation": [0.02] * n}
+    del data[missing_col]
+    df = pd.DataFrame(data)
 
     with pytest.raises(ValueError, match="missing required columns"):
         p.setRates(method="dataframe", df=df)
