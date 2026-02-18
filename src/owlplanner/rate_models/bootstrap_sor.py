@@ -30,7 +30,8 @@ import os
 import sys
 
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner.rates import FROM, REQUIRED_RATE_COLUMNS, TO
+from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
+from owlplanner.rates import FROM, TO
 
 
 class BootstrapSORRateModel(BaseRateModel):

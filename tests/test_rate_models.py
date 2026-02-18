@@ -24,7 +24,7 @@ import pandas as pd
 from owlplanner import Plan
 
 
-def test_legacy_model_default():
+def test_rate_model_default():
 
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
     p.setRates("default")
@@ -124,20 +124,18 @@ def test_roll_sequence():
 
 
 def test_dataframe_method():
-    years = np.arange(2000, 2000 + 20)
+    # Sequential format: no year column, rows read in order
+    p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    n = p.N_n
 
     df = pd.DataFrame({
-        "year": years,
-        "S&P 500": 0.05,
-        "Corporate Baa": 0.03,
-        "T Bonds": 0.025,
-        "inflation": 0.02,
+        "S&P 500": [0.05] * n,
+        "Corporate Baa": [0.03] * n,
+        "T Bonds": [0.025] * n,
+        "inflation": [0.02] * n,
     })
 
-    p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
-
-    # Explicitly align plan to DataFrame years
-    p.setRates(method="dataframe", df=df, frm=2000, to=2000 + p.N_n - 1)
+    p.setRates(method="dataframe", df=df)
 
     # tau_kn is (4, N)
     assert np.allclose(p.tau_kn[0], 0.05)
@@ -265,17 +263,33 @@ class RateModel(BaseRateModel):
 
 
 def test_dataframe_missing_column():
-    years = np.arange(2000, 2020)
+    # Sequential format: no year column
+    p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    n = p.N_n
 
     df = pd.DataFrame({
-        "year": years,
-        "S&P 500": 0.05,
-        # Missing Corporate Baa
-        "T Bonds": 0.025,
-        "inflation": 0.02,
+        "S&P 500": [0.05] * n,
+        # Missing Bonds Baa / Corporate Baa
+        "T Bonds": [0.025] * n,
+        "inflation": [0.02] * n,
     })
 
-    p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    with pytest.raises(ValueError, match="missing required columns"):
+        p.setRates(method="dataframe", df=df)
 
-    with pytest.raises(ValueError):
+
+def test_dataframe_insufficient_rows():
+    """DataFrame must have at least n_years + offset rows."""
+    p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    n = p.N_n
+
+    # Too few rows (n-1 instead of n)
+    df = pd.DataFrame({
+        "S&P 500": [0.05] * (n - 1),
+        "Bonds Baa": [0.03] * (n - 1),
+        "TNotes": [0.025] * (n - 1),
+        "Inflation": [0.02] * (n - 1),
+    })
+
+    with pytest.raises(ValueError, match="needs at least"):
         p.setRates(method="dataframe", df=df)

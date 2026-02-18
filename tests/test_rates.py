@@ -28,8 +28,6 @@ from owlplanner import rates
 from owlplanner.rates import (
     FROM,
     TO,
-    REQUIRED_RATE_COLUMNS,
-    _validate_rates_dataframe,
     getRatesDistributions,
 )
 
@@ -272,102 +270,6 @@ class TestRatesSetMethod:
         with pytest.raises(ValueError, match="Unknown rate selection method"):
             r.setMethod("invalid_method")
 
-    def test_set_method_dataframe(self):
-        """Test setting method to dataframe with valid DataFrame (no year column)."""
-        r = rates.Rates()
-        df = pd.DataFrame({
-            "S&P 500": [10.0, 5.0, -2.0],
-            "Bonds Baa": [4.0, 3.5, 3.0],
-            "TNotes": [3.0, 2.5, 2.0],
-            "Inflation": [2.0, 2.5, 3.0],
-        })
-        means, stdev, corr = r.setMethod("dataframe", df=df, n_years=3, offset=0)
-        assert r.method == "dataframe"
-        assert r.frm is None
-        assert r.to is None
-        assert len(means) == 4
-        assert len(stdev) == 4
-        assert corr.shape == (4, 4)
-
-    def test_set_method_dataframe_with_offset(self):
-        """Test dataframe method with offset skips initial rows."""
-        r = rates.Rates()
-        df = pd.DataFrame({
-            "S&P 500": [1.0, 2.0, 10.0, 5.0, -2.0],
-            "Bonds Baa": [1.0, 2.0, 4.0, 3.5, 3.0],
-            "TNotes": [1.0, 2.0, 3.0, 2.5, 2.0],
-            "Inflation": [1.0, 2.0, 2.0, 2.5, 3.0],
-        })
-        r.setMethod("dataframe", df=df, n_years=3, offset=2)
-        series = r.genSeries(3)
-        np.testing.assert_array_almost_equal(series[0], [0.10, 0.04, 0.03, 0.02], decimal=6)
-        np.testing.assert_array_almost_equal(series[1], [0.05, 0.035, 0.025, 0.025], decimal=6)
-        np.testing.assert_array_almost_equal(series[2], [-0.02, 0.03, 0.02, 0.03], decimal=6)
-
-    def test_set_method_dataframe_missing_df(self):
-        """Test that dataframe method requires df."""
-        r = rates.Rates()
-        with pytest.raises(ValueError, match="DataFrame must be provided"):
-            r.setMethod("dataframe", n_years=1)
-
-    def test_set_method_dataframe_missing_n_years(self):
-        """Test that dataframe requires n_years."""
-        r = rates.Rates()
-        df = pd.DataFrame({
-            "S&P 500": [10.0, 5.0],
-            "Bonds Baa": [4.0, 3.5],
-            "TNotes": [3.0, 2.5],
-            "Inflation": [2.0, 2.5],
-        })
-        with pytest.raises(ValueError, match="n_years"):
-            r.setMethod("dataframe", df=df)
-
-    def test_set_method_dataframe_missing_columns(self):
-        """Test that dataframe validates required columns."""
-        r = rates.Rates()
-        df = pd.DataFrame({"S&P 500": [10.0]})
-        with pytest.raises(ValueError, match="missing required columns"):
-            r.setMethod("dataframe", df=df, n_years=1)
-
-    def test_set_method_dataframe_insufficient_rows(self):
-        """Test that dataframe has at least n_years + offset rows."""
-        r = rates.Rates()
-        df = pd.DataFrame({
-            "S&P 500": [10.0, 5.0],
-            "Bonds Baa": [4.0, 3.5],
-            "TNotes": [3.0, 2.5],
-            "Inflation": [2.0, 2.5],
-        })
-        with pytest.raises(ValueError, match="needs at least 3"):
-            r.setMethod("dataframe", df=df, n_years=3, offset=0)
-        with pytest.raises(ValueError, match="needs at least 5"):
-            r.setMethod("dataframe", df=df, n_years=3, offset=2)
-
-    def test_set_method_dataframe_null_values(self):
-        """Test that dataframe rejects null values in rate columns."""
-        r = rates.Rates()
-        df = pd.DataFrame({
-            "S&P 500": [10.0, np.nan],
-            "Bonds Baa": [4.0, 3.5],
-            "TNotes": [3.0, 2.5],
-            "Inflation": [2.0, 2.5],
-        })
-        with pytest.raises(ValueError, match="contains missing"):
-            r.setMethod("dataframe", df=df, n_years=2)
-
-    def test_set_method_dataframe_not_dataframe(self):
-        """Test that dataframe rejects non-DataFrame input."""
-        r = rates.Rates()
-        with pytest.raises(ValueError, match="pandas DataFrame"):
-            r.setMethod("dataframe", df={"S&P 500": [10.0]}, n_years=1)
-
-    def test_set_method_dataframe_empty(self):
-        """Test that dataframe rejects empty DataFrame."""
-        r = rates.Rates()
-        df = pd.DataFrame(columns=["S&P 500", "Bonds Baa", "TNotes", "Inflation"])
-        with pytest.raises(ValueError, match="must not be empty"):
-            r.setMethod("dataframe", df=df, n_years=1)
-
 
 class TestRatesGenSeries:
     """Tests for genSeries functionality."""
@@ -466,37 +368,6 @@ class TestRatesGenSeries:
         series2 = r.genSeries(N)
         assert series2.shape == (N, 4)
 
-    def test_gen_series_dataframe(self):
-        """Test generating series with dataframe method - reads sequentially, no wrapping."""
-        r = rates.Rates()
-        df = pd.DataFrame({
-            "S&P 500": [10.0, 5.0, -2.0],
-            "Bonds Baa": [4.0, 3.5, 3.0],
-            "TNotes": [3.0, 2.5, 2.0],
-            "Inflation": [2.0, 2.5, 3.0],
-        })
-        r.setMethod("dataframe", df=df, n_years=3, offset=0)
-        series = r.genSeries(3)
-        assert series.shape == (3, 4)
-        expected = df[list(REQUIRED_RATE_COLUMNS)].values / 100.0
-        np.testing.assert_array_almost_equal(series, expected, decimal=6)
-
-    def test_gen_series_dataframe_single_row(self):
-        """Test dataframe method with single-row DataFrame."""
-        r = rates.Rates()
-        df = pd.DataFrame({
-            "S&P 500": [8.0],
-            "Bonds Baa": [4.0],
-            "TNotes": [3.0],
-            "Inflation": [2.0],
-        })
-        r.setMethod("dataframe", df=df, n_years=1, offset=0)
-        series = r.genSeries(1)
-        assert series.shape == (1, 4)
-        np.testing.assert_array_almost_equal(
-            series[0], [0.08, 0.04, 0.03, 0.02], decimal=6
-        )
-
 
 class TestRatesDataframeWithPlan:
     """Integration tests for dataframe method with Plan."""
@@ -550,37 +421,6 @@ class TestRatesDataframeWithPlan:
         np.testing.assert_array_almost_equal(
             p.tau_kn[:, 0], [0.10, 0.04, 0.03, 0.025], decimal=6
         )
-
-
-class TestValidateRatesDataframe:
-    """Tests for _validate_rates_dataframe function."""
-
-    def test_validate_no_year_column_required(self):
-        """Test that DataFrame needs only rate columns, no year column."""
-        df = pd.DataFrame({
-            "S&P 500": [10.0, 5.0],
-            "Bonds Baa": [4.0, 3.5],
-            "TNotes": [3.0, 2.5],
-            "Inflation": [2.0, 2.5],
-        })
-        rates_arr = _validate_rates_dataframe(df, 2, 0)
-        assert rates_arr.shape == (2, 4)
-        np.testing.assert_array_almost_equal(rates_arr[0], [0.10, 0.04, 0.03, 0.02], decimal=4)
-        np.testing.assert_array_almost_equal(rates_arr[1], [0.05, 0.035, 0.025, 0.025], decimal=4)
-
-    def test_validate_row_order_preserved(self):
-        """Test that DataFrame row order is preserved (sequential read)."""
-        df = pd.DataFrame({
-            "S&P 500": [-2.0, 10.0, 5.0],
-            "Bonds Baa": [3.0, 4.0, 3.5],
-            "TNotes": [2.0, 3.0, 2.5],
-            "Inflation": [3.0, 2.0, 2.5],
-        })
-        rates_arr = _validate_rates_dataframe(df, 3, 0)
-        assert rates_arr.shape == (3, 4)
-        np.testing.assert_array_almost_equal(rates_arr[0], [-0.02, 0.03, 0.02, 0.03], decimal=4)
-        np.testing.assert_array_almost_equal(rates_arr[1], [0.10, 0.04, 0.03, 0.02], decimal=4)
-        np.testing.assert_array_almost_equal(rates_arr[2], [0.05, 0.035, 0.025, 0.025], decimal=4)
 
 
 class TestGetRatesDistributions:

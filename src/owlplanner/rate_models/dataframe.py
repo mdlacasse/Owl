@@ -23,16 +23,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner.rates import REQUIRED_RATE_COLUMNS
+from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
 
 
 class DataFrameRateModel(BaseRateModel):
     """
     Rate model that generates rates from a provided DataFrame.
+
+    Rates are read sequentially from the DataFrame. Row order defines the
+    sequence; no year column is used. Historical data with year indexing
+    is handled by built-in methods (e.g. historical, histochastic) which
+    read from the package's data directory.
     """
 
     model_name = "dataframe"
-    description = "Sequential or year-based rates read from a pandas DataFrame."
+    description = "Sequential rates read from a pandas DataFrame (no year column)."
 
     required_parameters = {
         "df": {
@@ -41,7 +46,7 @@ class DataFrameRateModel(BaseRateModel):
         },
         "n_years": {
             "type": "int",
-            "description": "Number of years required for plan horizon.",
+            "description": "Number of years (rows) required for plan horizon.",
         },
     }
 
@@ -50,14 +55,6 @@ class DataFrameRateModel(BaseRateModel):
             "type": "int",
             "default": 0,
             "description": "Number of initial rows to skip before reading sequentially.",
-        },
-        "frm": {
-            "type": "int",
-            "description": "Starting year (if year column present).",
-        },
-        "to": {
-            "type": "int",
-            "description": "Ending year (if year column present).",
         },
     }
 
@@ -80,10 +77,8 @@ class DataFrameRateModel(BaseRateModel):
     def generate(self, N):
 
         df = self.get_param("df")
-        _ = self.get_param("n_years")  # validated by config
+        n_years = self.get_param("n_years")
         offset = int(self.get_param("offset") or 0)
-        frm = self.get_param("frm")
-        to = self.get_param("to")
 
         # --------------------------------------------------
         # Normalize column names (supports aliases)
@@ -112,76 +107,22 @@ class DataFrameRateModel(BaseRateModel):
             if found is not None:
                 normalized[canonical] = df[found]
 
-        # --------------------------------------------------
-        # Year-based mode
-        # --------------------------------------------------
-
-        if "year" in df.columns or "Year" in df.columns:
-
-            if frm is None or to is None:
-                raise ValueError(
-                    "frm and to must be provided when DataFrame contains a year column."
-                )
-
-            if frm > to:
-                raise ValueError(f"frm ({frm}) must be <= to ({to}).")
-
-            year_col = "year" if "year" in df.columns else "Year"
-
-            missing = [c for c in canonical_cols if c not in normalized]
-            if missing:
-                raise ValueError(
-                    f"DataFrame missing required columns: {missing}. "
-                    f"Required: {canonical_cols}"
-                )
-
-            years = df[year_col].values
-
-            try:
-                years_int = years.astype(int)
-            except Exception:
-                raise ValueError("Year column must contain integers.")
-
-            if len(np.unique(years_int)) != len(years_int):
-                raise ValueError("Year column must contain unique values.")
-
-            required_years = set(range(frm, to + 1))
-            df_years = set(years_int)
-            missing_years = sorted(required_years - df_years)
-
-            if missing_years:
-                raise ValueError(
-                    f"DataFrame missing required years: {missing_years[:10]}"
-                )
-
-            df_sorted = df.set_index(year_col).sort_index()
-
-            data = np.column_stack([
-                df_sorted.loc[frm:to, normalized["S&P 500"].name],
-                df_sorted.loc[frm:to, normalized["Bonds Baa"].name],
-                df_sorted.loc[frm:to, normalized["TNotes"].name],
-                df_sorted.loc[frm:to, normalized["Inflation"].name],
-            ]).astype(float)
-
-            if np.nanmean(np.abs(data)) > 1:
-                data = data / 100.0
-
-            if data.shape[0] < N:
-                raise ValueError(
-                    "DataFrame does not contain enough rows for requested years."
-                )
-
-            return data[:N]
-
-        # --------------------------------------------------
-        # Sequential mode (no year column)
-        # --------------------------------------------------
-
         missing = [c for c in canonical_cols if c not in normalized]
         if missing:
             raise ValueError(
                 f"DataFrame missing required columns: {missing}. "
                 f"Required: {canonical_cols}"
+            )
+
+        # --------------------------------------------------
+        # Validate row count: must have at least n_years + offset rows
+        # --------------------------------------------------
+
+        required_rows = n_years + offset
+        if len(df) < required_rows:
+            raise ValueError(
+                f"DataFrame has {len(df)} rows but needs at least {required_rows} "
+                f"(n_years={n_years} + offset={offset})."
             )
 
         data = np.column_stack([

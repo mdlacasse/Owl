@@ -24,10 +24,10 @@ def test_list_available_rate_models_contains_expected():
 
 
 # ------------------------------------------------------------
-# 2. Legacy metadata
+# 2. setRate metadata
 # ------------------------------------------------------------
 
-def test_legacy_user_metadata():
+def test_rate_user_metadata():
     meta = get_rate_model_metadata("user")
 
     assert meta["model_name"] == "user"

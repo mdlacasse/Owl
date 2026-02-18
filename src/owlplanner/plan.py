@@ -414,7 +414,7 @@ class Plan:
         self.rateReverse = False
         self.rateRoll = 0
 
-        # for plugins and legacy models
+        # for plugins and core models
         self.rateModel = None
         self.rateMethodFile = None
 
@@ -1604,7 +1604,7 @@ class Plan:
                         if i == i_xcluded:
                             continue
                         for n in range(self.horizons[i]):
-                            # Apply the cap per individual (legacy behavior).
+                            # Apply the cap per individual.
                             self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, rhsopt)
 
             if "startRothConversions" in options:
