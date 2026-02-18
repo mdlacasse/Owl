@@ -190,9 +190,9 @@ Make sure to upload the *Household Financial Profile* next (if any) by navigatin
 
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
-        helpmsg = """`Copy case` carries over all parameters to a new case.
+        helpmsg = """`Copy parameters` carries over all parameters to a new case.
 Click the `Create case` button once all parameters on this page are right."""
-        st.button("Copy case :material/content_copy:", on_click=kz.copyCase,
+        st.button("Copy parameters :material/content_copy:", on_click=kz.copyCase,
                   disabled=cantcopy, help=helpmsg)
     with col2:
         helpmsg = "`Create case` opens up all other pages in the **Case Setup** section."
