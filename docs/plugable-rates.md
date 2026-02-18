@@ -82,18 +82,17 @@ This replaces your `RATE_METHODS_NO_REGEN` logic for plugins.
 
 ------------------------------------------------------------------------
 
-# 🧱 Step 2 — Wrap Legacy Rates as a Model
+# 🧱 Step 2 — Basic Rate Model
 
 Create:
 
-    owlplanner/rate_models/legacy.py
+    owlplanner/rate_models/basic.py
 
 ``` python
 import numpy as np
-from owlplanner import rates
 from .base import BaseRateModel
 
-class LegacyRateModel(BaseRateModel):
+class BasicRateModel(BaseRateModel):
 
     def __init__(self, N, method, frm, to, values, stdev, corr,
                  seed=None, reproducible=False, override_reproducible=False,
@@ -110,27 +109,19 @@ class LegacyRateModel(BaseRateModel):
 
     @property
     def needs_regen(self):
-        return self.method not in rates.RATE_METHODS_NO_REGEN
+        from owlplanner.rate_models.constants import RATE_METHODS_NO_REGEN
+        return self.method not in RATE_METHODS_NO_REGEN
 
     def generate(self):
-
-        dr = rates.Rates(seed=self.seed)
-
-        means, stdev, corr = dr.setMethod(
-            self.method,
-            self.frm,
-            self.to,
-            self.values,
-            self.stdev,
-            self.corr
-        )
-
-        series = dr.genSeries(self.N)
-
-        return series
+        # Use BuiltinRateModel for built-in methods.
+        from owlplanner.rate_models.builtin import BuiltinRateModel
+        cfg = {"method": self.method, "frm": self.frm, "to": self.to,
+               "values": self.values, "stdev": self.stdev, "corr": self.corr}
+        m = BuiltinRateModel(cfg, seed=self.seed)
+        return m.generate(self.N)
 ```
 
-Now legacy methods are just another “model”.
+Now built-in methods are wrapped as a “model”.
 
 ------------------------------------------------------------------------
 
@@ -208,9 +199,9 @@ def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None
             corr=corr
         )
     else:
-        from owlplanner.rate_models.legacy import LegacyRateModel
+        from owlplanner.rate_models.basic import BasicRateModel
 
-        model = LegacyRateModel(
+        model = BasicRateModel(
             N=self.N_n,
             method=method,
             frm=frm,
@@ -335,7 +326,7 @@ Eventually you can delete `Rates.py` entirely.
 
     Plan
      └── setRates()
-          ├── LegacyRateModel (wraps rates.py)
+          ├── BasicRateModel (built-in method wrapper)
           └── PluginRateModel (dynamic load)
 
     All models implement BaseRateModel

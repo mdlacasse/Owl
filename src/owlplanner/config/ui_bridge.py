@@ -20,6 +20,12 @@ from typing import Any
 from owlplanner.config.constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
 from owlplanner.config.schema import KNOWN_SECTIONS
 from owlplanner.rates import FROM
+from owlplanner.rate_models.constants import (
+    FIXED_TYPE_UI,
+    HISTORICAL_RANGE_METHODS,
+    METHODS_WITH_VALUES,
+    STOCHASTIC_METHODS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +186,7 @@ def config_to_ui(diconf: dict) -> dict:
     if rate_method == "dataframe":
         logger.warning("Dataframe rate method is not supported in UI; mapping to 'user'.")
         rate_method = "user"
-    if rate_method in ["default", "conservative", "optimistic", "historical average", "user"]:
+    if rate_method in FIXED_TYPE_UI:
         dic["rateType"] = "fixed"
         dic["fixedType"] = rate_method
     else:
@@ -192,14 +198,14 @@ def config_to_ui(diconf: dict) -> dict:
     for k in range(4):
         dic[f"fxRate{k}"] = float(values[k] if k < len(values) else 0)
 
-    if rate_method in ["historical average", "histochastic", "historical"]:
+    if rate_method in HISTORICAL_RANGE_METHODS:
         dic["yfrm"] = rs.get("from", 1969)
         dic["yto"] = rs.get("to", date.today().year - 1)
     else:
         dic["yfrm"] = FROM
         dic["yto"] = date.today().year - 1
 
-    if rate_method in ["stochastic", "histochastic"]:
+    if rate_method in STOCHASTIC_METHODS:
         means = rs.get("values", [6.0, 4.0, 3.3, 2.8])
         stdevs = rs.get("standard_deviations", [17.0, 8.0, 10.0, 3.0])
         # Correlations: Pearson coefficient (-1 to 1), standard in finance/statistics.
@@ -382,10 +388,10 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
     rs = diconf["rates_selection"]
     method = rs["method"]
 
-    if method in ["historical average", "historical", "histochastic"]:
+    if method in HISTORICAL_RANGE_METHODS:
         rs["from"] = int(uidic.get("yfrm", 1969) or 1969)
         rs["to"] = int(uidic.get("yto", date.today().year - 1) or date.today().year - 1)
-    elif method in ["user", "stochastic"]:
+    elif method in METHODS_WITH_VALUES:
         # UI and config use percent; Plan converts to decimal at boundary.
         rs["values"] = [
             float(uidic.get(f"fxRate{k}", 0) or 0) for k in range(4)
@@ -398,12 +404,12 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
         rs["correlations"] = [
             float(uidic.get(f"corr{q}", 0) or 0) for q in range(1, 7)
         ]
-    if method in ["stochastic", "histochastic"]:
+    if method in STOCHASTIC_METHODS:
         rs["reproducible_rates"] = bool(uidic.get("reproducibleRates", False))
         seed = uidic.get("rateSeed")
         if seed is not None:
             rs["rate_seed"] = int(seed)
 
-    if method not in ["historical average", "historical", "histochastic"]:
+    if method not in HISTORICAL_RANGE_METHODS:
         rs["from"] = FROM
         rs["to"] = date.today().year - 1

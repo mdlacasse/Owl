@@ -7,7 +7,7 @@ investment return and inflation rate series used by `Plan.setRates()`.
 
 It supports:
 
-* Legacy built-in methods (default, stochastic, historical, etc.)
+* Original built-in methods (default, stochastic, historical, etc.)
 * Built-in new models (e.g. `dataframe`)
 * External plugin rate models loaded at runtime
 * UI discovery of available models and required parameters
@@ -19,7 +19,7 @@ It supports:
 ```
 rate_models/
 ├── base.py          # Abstract base class for all rate models
-├── legacy.py        # Wrapper for legacy built-in methods
+├── basic.py         # Wrapper for built-in methods (BasicRateModel)
 ├── dataframe.py     # Built-in DataFrame-based rate model
 ├── loader.py        # Model resolution and discovery system
 └── README.md
@@ -214,11 +214,11 @@ meta = get_rate_model_metadata(
 
 
 
-# 4️⃣ Legacy Models
+# 4️⃣ Basic Models
 
-Legacy methods are wrapped by `LegacyRateModel`.
+Basic methods are wrapped by `BasicRateModel`.
 
-Supported legacy methods:
+Supported basic methods:
 
 ```
 default
@@ -227,7 +227,6 @@ conservative
 user
 historical
 historical average
-mean
 stochastic
 histochastic
 ```

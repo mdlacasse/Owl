@@ -44,6 +44,7 @@ from . import fixedassets as fxasst
 from . import mylogging as log
 from . import progress
 from .plotting.factory import PlotFactory
+from .rate_models.constants import HISTORICAL_RANGE_METHODS
 
 
 # Default values
@@ -815,7 +816,7 @@ class Plan:
         # Legacy compatibility: historical shorthand
         # --------------------------------------------------
 
-        if method in ("historical", "historical average", "histochastic"):
+        if method in HISTORICAL_RANGE_METHODS:
             if frm is not None and to is None:
                 to = frm + self.N_n - 1
 

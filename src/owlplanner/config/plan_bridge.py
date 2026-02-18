@@ -12,6 +12,11 @@ import numpy as np
 
 from owlplanner import mylogging as log
 from owlplanner.rates import FROM, TO
+from owlplanner.rate_models.constants import (
+    HISTORICAL_RANGE_METHODS,
+    METHODS_WITH_VALUES,
+    STOCHASTIC_METHODS,
+)
 from owlplanner.rate_models.loader import load_rate_model
 
 from .constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
@@ -98,7 +103,7 @@ def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
     if "to" in rates_section:
         rates_section["to"] = int(rates_section["to"])
 
-    if rate_method in ("historical", "historical average", "histochastic"):
+    if rate_method in HISTORICAL_RANGE_METHODS:
         if "frm" not in rates_section:
             raise ValueError(f"Rate method '{rate_method}' requires 'from' year.")
         if "to" not in rates_section:
@@ -330,11 +335,11 @@ def plan_to_config(myplan: "Plan") -> dict:
         "obbba_expiration_year": myplan.yOBBBA,
         "method": myplan.rateMethod,
     }
-    if myplan.rateMethod in ["stochastic", "histochastic"]:
+    if myplan.rateMethod in STOCHASTIC_METHODS:
         if myplan.rateSeed is not None:
             diconf["rates_selection"]["rate_seed"] = int(myplan.rateSeed)
         diconf["rates_selection"]["reproducible_rates"] = bool(myplan.reproducibleRates)
-    if myplan.rateMethod in ["user", "stochastic"]:
+    if myplan.rateMethod in METHODS_WITH_VALUES:
         # Plan stores rateValues in percent (API/config format), not decimal.
         diconf["rates_selection"]["values"] = myplan.rateValues.tolist()
     if myplan.rateMethod == "stochastic":
@@ -346,7 +351,7 @@ def plan_to_config(myplan: "Plan") -> dict:
             for k2 in range(k1 + 1, myplan.N_k):
                 corr_upper.append(float(myplan.rateCorr[k1, k2]))
         diconf["rates_selection"]["correlations"] = corr_upper
-    if myplan.rateMethod in ["historical average", "historical", "histochastic"]:
+    if myplan.rateMethod in HISTORICAL_RANGE_METHODS:
         diconf["rates_selection"]["from"] = int(myplan.rateFrm)
         diconf["rates_selection"]["to"] = int(myplan.rateTo)
     else:

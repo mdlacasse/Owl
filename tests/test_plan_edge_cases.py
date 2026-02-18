@@ -230,7 +230,7 @@ def test_set_reproducible():
 def test_set_rates_invalid_method():
     """Test setRates with invalid method."""
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
-    # The error comes from rates.Rates.setMethod, so we just check it raises
+    # The error comes from the rate model loader or BuiltinRateModel
     with pytest.raises((ValueError, RuntimeError)):
         p.setRates("invalid_method")
 

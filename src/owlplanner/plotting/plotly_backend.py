@@ -31,6 +31,7 @@ from scipy import stats
 
 from .base import PlotBackend
 from .. import utils as u
+from ..rate_models.constants import HISTORICAL_RANGE_METHODS
 
 
 class PlotlyBackend(PlotBackend):
@@ -282,7 +283,7 @@ class PlotlyBackend(PlotBackend):
 
         # Build title
         title = name + "<br>Return & Inflation Rates (" + str(rate_method)
-        if rate_method in ["historical", "histochastic", "historical average"]:
+        if rate_method in HISTORICAL_RANGE_METHODS:
             title += f" {rate_frm}-{rate_to}"
         title += ")"
         if tag:

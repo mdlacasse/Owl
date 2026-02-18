@@ -5,8 +5,14 @@ All new rate models should subclass BaseRateModel.
 Copyright (C) 2025-2026 The Owlplanner Authors
 """
 ###########################################################################
+import numpy as np
+
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner import rates
+from owlplanner.rate_models import _builtin_impl as impl
+from owlplanner.rate_models.constants import (
+    FIXED_PRESET_METHODS,
+    HISTORICAL_RANGE_METHODS,
+)
 
 
 class BuiltinRateModel(BaseRateModel):
@@ -193,35 +199,43 @@ class BuiltinRateModel(BaseRateModel):
         stdev = self.get_param("stdev")
         corr = self.get_param("corr")
 
-        # Special-case: historical single-year fallback
-#        if self.method == "historical" and frm is not None and to is None:
-#            to = frm
-
-        # Initialize underlying Rates engine
+        # Seed and RNG for stochastic methods
         rate_seed = config.get("rate_seed", seed)
+        self._rng = np.random.default_rng(rate_seed)
 
-        self._rates = rates.Rates(logger, seed=rate_seed)
-        # self._rates = rates.Rates(logger, seed=seed)
+        # Historical range default and validation
+        if self.method in HISTORICAL_RANGE_METHODS:
+            if to is None:
+                to = frm
+            if not (impl.FROM <= frm <= impl.TO):
+                raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
+            if not (impl.FROM <= to <= impl.TO):
+                raise ValueError(f"Upper range 'to={to}' out of bounds.")
+            if frm >= to:
+                raise ValueError("Unacceptable range.")
 
-        self._rates.setMethod(
-            self.method,
-            frm,
-            to,
-            values,
-            stdev,
-            corr,
-        )
+        # User values length validation
+        if self.method == "user" and values is not None:
+            if len(values) != 4:
+                raise ValueError("Values must have 4 items.")
 
-        if self.method in ("historical", "historical average"):
-            self.params["values"] = self._rates.means.copy()
-            self.params["stdev"] = self._rates.stdev.copy()
-            self.params["corr"] = self._rates.corr.copy()
+        # Store params for generate(); optional metadata for params dict
+        self._frm = frm
+        self._to = to
+        self._values = values
+        self._stdev = stdev
+        self._corr = corr
+
+        # Params for historical average / histochastic are populated in generate()
+        # Params for stochastic (corr when user didn't provide) set in generate()
 
         if self.method == "stochastic":
-            # If user did not provide correlation, store the
-            # internally generated default correlation matrix
-            if corr is None:
-                self.params["corr"] = self._rates.corr.copy()
+            # Store correlation for later; if user didn't provide, we use identity
+            # and will capture the actual matrix when we build covar in generate
+            if corr is not None:
+                corr_matrix = impl._build_corr_matrix(corr)
+                self.params["corr"] = corr_matrix.copy()
+            # else: identity is implicit; we'll set params["corr"] in generate when we have it
 
     #######################################################################
     # Model properties
@@ -240,7 +254,50 @@ class BuiltinRateModel(BaseRateModel):
     #######################################################################
 
     def generate(self, N):
-        return self._rates.genSeries(N)
+        method = self.method
+
+        if method in FIXED_PRESET_METHODS:
+            from owlplanner.rates import get_fixed_rates_decimal
+            rates_decimal = get_fixed_rates_decimal(method)
+            return impl.generate_fixed_series(N, rates_decimal)
+
+        if method == "user":
+            rates_decimal = np.array(self._values, dtype=float) / 100.0
+            return impl.generate_fixed_series(N, rates_decimal)
+
+        if method == "historical":
+            return impl.generate_historical_series(N, self._frm, self._to)
+
+        if method == "historical average":
+            series, means, stdev_arr, corr_arr = impl.generate_historical_average_series(
+                N, self._frm, self._to, self.logger
+            )
+            self.params["values"] = means.copy()
+            self.params["stdev"] = stdev_arr.copy()
+            self.params["corr"] = corr_arr.copy()
+            return series
+
+        if method == "histochastic":
+            series, means, stdev_arr, corr_arr = impl.generate_histochastic_series(
+                N, self._frm, self._to, self._rng, self.logger
+            )
+            self.params["values"] = means.copy()
+            self.params["stdev"] = stdev_arr.copy()
+            self.params["corr"] = corr_arr.copy()
+            return series
+
+        if method == "stochastic":
+            series, means, stdev_arr, corr_matrix = impl.generate_stochastic_series(
+                N,
+                self._values,
+                self._stdev,
+                corr=self._corr,
+                rng=self._rng,
+            )
+            self.params["corr"] = corr_matrix.copy()
+            return series
+
+        raise ValueError(f"Method '{method}' not implemented.")
 
     #######################################################################
     # Metadata helpers

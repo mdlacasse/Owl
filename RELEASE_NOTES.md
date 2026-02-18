@@ -2,11 +2,32 @@
 
 ---
 
+## Version 2026.02.17
+
+### Rates API consolidation
+- **Single API**: Consolidate `Rates.setMethod` and `Plan.setRates` into one API. Use `Plan.setRates()` as the sole entry point.
+- **Remove Rates class**: Deprecate and remove the legacy `Rates` class from `rates.py`. Rate generation logic moved to `BuiltinRateModel` and `rate_models._builtin_impl`.
+- **New `rate_models/_builtin_impl.py`**: Helper functions for built-in rate methods (fixed, historical, stochastic) used by `BuiltinRateModel`.
+- **Canonical fixed rates**: Single source of truth in `rates.py`. Add `get_fixed_rates_decimal()`; remove duplicate definitions from `_builtin_impl`.
+
+### Rate model constants
+- **`rate_models/constants.py`**: Centralize method name sets (e.g. `FIXED_PRESET_METHODS`, `HISTORICAL_RANGE_METHODS`, `RATE_METHODS_NO_REGEN`, `STOCHASTIC_METHODS`) for use across plan, config, UI, and plotting.
+- Remove `CONSTANT_RATE_METHODS` and `RATE_METHODS_NO_REGEN` from `rates.py` (now in rate_models).
+
+### Documentation
+- Rename `LegacyRateModel` to `BasicRateModel` in plugable-rates docs.
+- Update plugable-rates Step 2 to reflect BuiltinRateModel architecture.
+
+### Tests
+- Migrate `test_rates.py` from `Rates.setMethod` to `BuiltinRateModel` and `Plan.setRates`.
+
+---
+
 ## Version 2026.02.16
 
 ### Rates
 - **Pluggable rate model architecture**: New `owlplanner.rate_models` package with loader, base class, and pluggable model resolution.
-  - Legacy methods (default, optimistic, conservative, user, historical, historical average, stochastic, histochastic) wrapped via `LegacyRateModel`.
+  - Basic methods (default, optimistic, conservative, user, historical, historical average, stochastic, histochastic) wrapped via `BasicRateModel`.
   - Built-in `dataframe` and `bootstrap_sor` models.
   - External plugin support via `method_file=` in `setRates`.
 - **DataFrame rate method** (issue #84): Supply rates from a pandas DataFrame with columns S&P 500, Bonds Baa, TNotes, Inflation; supports year-based or sequential mode with optional offset.

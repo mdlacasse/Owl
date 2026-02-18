@@ -26,6 +26,7 @@ from datetime import date
 import sskeys as kz
 import owlbridge as owb
 import case_progress as cp
+from owlplanner.rate_models.constants import VARYING_TYPE_UI
 
 
 def _get_fx_rates():
@@ -42,7 +43,7 @@ FXRATES = _get_fx_rates()
 
 rateChoices = ["fixed", "varying"]
 fixedChoices = list(FXRATES)
-varyingChoices = ["historical", "histochastic", "stochastic"]
+varyingChoices = list(VARYING_TYPE_UI)
 
 
 def updateFixedRates(key, pull=True):

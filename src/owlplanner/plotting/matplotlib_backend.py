@@ -33,6 +33,7 @@ import seaborn as sbn           # Noqa: E402
 
 from .base import PlotBackend   # Noqa: E402
 from .. import utils as u       # Noqa: E402
+from ..rate_models.constants import HISTORICAL_RANGE_METHODS  # Noqa: E402
 
 
 class MatplotlibBackend(PlotBackend):
@@ -287,7 +288,7 @@ class MatplotlibBackend(PlotBackend):
 
         title = name + "\n"
         title += f"Rates Correlations (N={N_n}) {rate_method}"
-        if rate_method in ["historical", "histochastic"]:
+        if rate_method in ("historical", "histochastic"):
             title += f" ({rate_frm}-{rate_to})"
 
         if tag != "":
@@ -301,7 +302,7 @@ class MatplotlibBackend(PlotBackend):
         """Plot rate values used over the time horizon."""
         fig, ax = plt.subplots()
         title = name + "\nReturn & Inflation Rates (" + str(rate_method)
-        if rate_method in ["historical", "histochastic", "historical average"]:
+        if rate_method in HISTORICAL_RANGE_METHODS:
             title += f" {rate_frm}-{rate_to}"
         title += ")"
 
