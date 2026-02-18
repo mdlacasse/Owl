@@ -699,6 +699,8 @@ def showWorkbook(plan):
                 dollars = True
                 break
 
+        pctSheets = "Allocations" in name or name == "Rates"
+
         ws = wb[name]
         df = pd.DataFrame(ws.values)
         new_header = df.iloc[0]
@@ -714,11 +716,12 @@ def showWorkbook(plan):
                     colfor[col] = st.column_config.NumberColumn(None, format="accounting", step=1)
         else:
             colfor = {}
+            num_format = "%.2f" if pctSheets else "%.3f"
             for col in df.columns:
                 if col == "year":
                     colfor[col] = st.column_config.NumberColumn(None, format="%d", width="small")
                 else:
-                    colfor[col] = st.column_config.NumberColumn(None, format="%.3f")
+                    colfor[col] = st.column_config.NumberColumn(None, format=num_format)
 
         st.markdown(f"#### :orange[{name}]")
         if "Accounts" in name:
@@ -729,6 +732,8 @@ def showWorkbook(plan):
 
         if dollars:
             st.caption("Values are in nominal $, rounded to the nearest dollar.")
+        elif pctSheets:
+            st.caption("Values are in percent, with 2 decimal places.")
         else:
             st.caption("Values are fractional.")
 

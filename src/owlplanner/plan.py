@@ -3581,22 +3581,22 @@ class Plan:
             rawData["year"] = year_n
             for jkey in jDic:
                 for kkey in kDic:
-                    rawData[jkey + "/" + kkey] = self.alpha_ijkn[i, jDic[jkey], kDic[kkey], :]
+                    rawData[jkey + "/" + kkey] = 100 * self.alpha_ijkn[i, jDic[jkey], kDic[kkey], :]
             df = pd.DataFrame(rawData)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
 
-            _formatSpreadsheet(ws, "percent1")
+            _formatSpreadsheet(ws, "pct_value")
 
         # Rates on penultimate sheet.
         ratesDic = {
-            "S&P 500": self.tau_kn[0],
-            "Corporate Baa": self.tau_kn[1],
-            "T Bonds": self.tau_kn[2],
-            "inflation": self.tau_kn[3],
+            "S&P 500": 100 * self.tau_kn[0],
+            "Corporate Baa": 100 * self.tau_kn[1],
+            "T Bonds": 100 * self.tau_kn[2],
+            "inflation": 100 * self.tau_kn[3],
         }
         ws = wb.create_sheet("Rates")
-        fillsheet(ws, ratesDic, "percent2")
+        fillsheet(ws, ratesDic, "pct_value")
 
         # Summary on last sheet.
         ws = wb.create_sheet("Summary")
@@ -3670,7 +3670,7 @@ class Plan:
         # Rates
         ratesDic = {"S&P 500": 0, "Corporate Baa": 1, "T Bonds": 2, "inflation": 3}
         for key in ratesDic:
-            planData[key] = self.tau_kn[ratesDic[key]]
+            planData[key] = 100 * self.tau_kn[ratesDic[key]]
 
         df = pd.DataFrame(planData)
 
@@ -3748,6 +3748,8 @@ def _formatSpreadsheet(ws, ftype):
         fstring = "#.0%"
     elif ftype == "percent0":
         fstring = "#0%"
+    elif ftype == "pct_value":
+        fstring = "0.00"
     elif ftype == "summary":
         for col in ws.columns:
             column = col[0].column_letter
