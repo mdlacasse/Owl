@@ -119,6 +119,12 @@ def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
         if "to" not in rates_section:
             rates_section["to"] = int(rates_section["frm"]) + plan.N_n - 1
 
+    # Map config keys to rate model parameter names
+    if "standard_deviations" in rates_section and "stdev" not in rates_section:
+        rates_section["stdev"] = rates_section.pop("standard_deviations")
+    if "correlations" in rates_section and "corr" not in rates_section:
+        rates_section["corr"] = rates_section.pop("correlations")
+
     ModelClass = load_rate_model(rate_method)
     if ModelClass.model_name == "builtin":
         metadata = ModelClass.get_method_metadata(rate_method)

@@ -20,20 +20,24 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.ticker as tk
 import io
 import os
 
 os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
 
-import seaborn as sbn           # Noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.ticker as tk  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+import seaborn as sbn  # noqa: E402
 
-from .base import PlotBackend   # Noqa: E402
-from .. import utils as u       # Noqa: E402
-from ..rate_models.constants import HISTORICAL_RANGE_METHODS  # Noqa: E402
+from .base import PlotBackend  # noqa: E402
+from .. import utils as u  # noqa: E402
+from ..rate_models.constants import (  # noqa: E402
+    HISTORICAL_RANGE_METHODS,
+    RATE_DISPLAY_NAMES,
+    RATE_DISPLAY_NAMES_SHORT,
+)
 
 
 class MatplotlibBackend(PlotBackend):
@@ -258,13 +262,7 @@ class MatplotlibBackend(PlotBackend):
     def plot_rates_correlations(self, name, tau_kn, N_n, rate_method, rate_frm=None, rate_to=None,
                                 tag="", share_range=False):
         """Plot correlations between various rates."""
-        rate_names = [
-            "S&P 500 (incl. div.)",
-            "Bonds Baa",
-            "T-Notes",
-            "Inflation",
-        ]
-
+        rate_names = RATE_DISPLAY_NAMES
         df = pd.DataFrame()
         for k, name in enumerate(rate_names):
             data = 100 * tau_kn[k]
@@ -309,12 +307,7 @@ class MatplotlibBackend(PlotBackend):
         if tag != "":
             title += " - " + tag
 
-        rate_name = [
-            "S&P 500 (incl. div.)",
-            "Bonds Baa",
-            "T-Notes",
-            "Inflation",
-        ]
+        rate_name = RATE_DISPLAY_NAMES
         ltype = ["-", "-.", ":", "--"]
 
         for k in range(N_k):
@@ -349,25 +342,11 @@ class MatplotlibBackend(PlotBackend):
         dat3 = np.array(Inflation[frm:to])
 
         fig.suptitle(title)
-        ax[0].set_title("S&P 500")
-        label = "<>: " + u.pc(np.mean(dat0), 2, 1)
-        ax[0].hist(dat0, bins=nbins, label=label)
-        ax[0].legend(loc="upper left", fontsize=8, framealpha=0.7)
-
-        ax[1].set_title("Bonds Baa")
-        label = "<>: " + u.pc(np.mean(dat1), 2, 1)
-        ax[1].hist(dat1, bins=nbins, label=label)
-        ax[1].legend(loc="upper left", fontsize=8, framealpha=0.7)
-
-        ax[2].set_title("T-Notes")
-        label = "<>: " + u.pc(np.mean(dat2), 2, 1)
-        ax[2].hist(dat2, bins=nbins, label=label)
-        ax[2].legend(loc="upper left", fontsize=8, framealpha=0.7)
-
-        ax[3].set_title("Inflation")
-        label = "<>: " + u.pc(np.mean(dat3), 2, 1)
-        ax[3].hist(dat3, bins=nbins, label=label)
-        ax[3].legend(loc="upper left", fontsize=8, framealpha=0.7)
+        data = [dat0, dat1, dat2, dat3]
+        for ax_i, dat, subtitle in zip(ax, data, RATE_DISPLAY_NAMES_SHORT):
+            ax_i.set_title(subtitle)
+            ax_i.hist(dat, bins=nbins, label="<>: " + u.pc(np.mean(dat), 2, 1))
+            ax_i.legend(loc="upper left", fontsize=8, framealpha=0.7)
 
         return fig
 

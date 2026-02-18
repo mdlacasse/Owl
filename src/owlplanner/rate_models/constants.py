@@ -7,6 +7,11 @@ Copyright (C) 2025-2026 The Owlplanner Authors
 # Required column names for DataFrame rate input (order: Stocks, Bonds, Fixed, Inflation).
 REQUIRED_RATE_COLUMNS = ("S&P 500", "Bonds Baa", "TNotes", "Inflation")
 
+# Display names for plotting (order: Stocks, Bonds Baa, T-Notes, Inflation).
+RATE_DISPLAY_NAMES = ("S&P 500 (incl. div.)", "Bonds Baa", "T-Notes", "Inflation")
+# Short form for subplot titles (e.g. histogram panels)
+RATE_DISPLAY_NAMES_SHORT = ("S&P 500", "Bonds Baa", "T-Notes", "Inflation")
+
 # Built-in method name sets. Must stay in sync with BuiltinRateModel.BUILTINS_METADATA.
 
 # Methods using canonical fixed preset rates (default, optimistic, conservative).

@@ -43,6 +43,14 @@ SOLVER_OPT_KEYS = [
 ]
 
 
+def _get_ui(d: dict, key: str, default, coerce=None):
+    """Get value from UI dict; use default for None/empty string. Optionally coerce type."""
+    val = d.get(key, default)
+    if val is None or val == "":
+        val = default
+    return coerce(val) if coerce else val
+
+
 def _start_date_to_ui(start_date: str) -> date:
     """Convert config start_date string to UI date object."""
     tdate = start_date.replace("/", "-").split("-")
@@ -249,8 +257,8 @@ def ui_to_config(uidic: dict) -> dict:
         if n is None:
             n = ""
         names.append(n)
-        dobs.append(uidic.get(f"dob{i}", "1965-01-15") or "1965-01-15")
-        life.append(int(uidic.get(f"life{i}", 89) or 89))
+        dobs.append(_get_ui(uidic, f"dob{i}", "1965-01-15"))
+        life.append(_get_ui(uidic, f"life{i}", 89, int))
 
     start_date = uidic.get("startDate")
     if hasattr(start_date, "strftime"):
@@ -270,7 +278,7 @@ def ui_to_config(uidic: dict) -> dict:
         },
         "savings_assets": {},
         "household_financial_profile": {
-            "HFP_file_name": uidic.get("timeListsFileName", "None") or "None",
+            "HFP_file_name": _get_ui(uidic, "timeListsFileName", "None"),
         },
         "fixed_income": {
             "pension_monthly_amounts": [],
@@ -280,26 +288,26 @@ def ui_to_config(uidic: dict) -> dict:
             "social_security_ages": [],
         },
         "rates_selection": {
-            "heirs_rate_on_tax_deferred_estate": float(uidic.get("heirsTx", 30) or 30),
-            "dividend_rate": float(uidic.get("divRate", 1.8) or 1.8),
-            "obbba_expiration_year": int(uidic.get("yOBBBA", 2032) or 2032),
+            "heirs_rate_on_tax_deferred_estate": _get_ui(uidic, "heirsTx", 30, float),
+            "dividend_rate": _get_ui(uidic, "divRate", 1.8, float),
+            "obbba_expiration_year": _get_ui(uidic, "yOBBBA", 2032, int),
             "method": _ui_rate_method_to_config(uidic),
             "reverse_sequence": bool(uidic.get("reverse_sequence", False)),
-            "roll_sequence": int(uidic.get("roll_sequence", 0) or 0),
+            "roll_sequence": _get_ui(uidic, "roll_sequence", 0, int),
         },
         "asset_allocation": {
             "interpolation_method": uidic.get("interpMethod", "s-curve"),
-            "interpolation_center": float(uidic.get("interpCenter", 15) or 15),
-            "interpolation_width": float(uidic.get("interpWidth", 5) or 5),
+            "interpolation_center": _get_ui(uidic, "interpCenter", 15, float),
+            "interpolation_width": _get_ui(uidic, "interpWidth", 5, float),
             "type": uidic.get("allocType", "individual"),
         },
         "optimization_parameters": {
             "spending_profile": uidic.get("spendingProfile", "smile"),
-            "surviving_spouse_spending_percent": int(uidic.get("survivor", 60) or 60),
+            "surviving_spouse_spending_percent": _get_ui(uidic, "survivor", 60, int),
             "objective": "maxSpending" if "spending" in str(uidic.get("objective", "Net spending")) else "maxBequest",
-            "smile_dip": int(uidic.get("smileDip", 15) or 15),
-            "smile_increase": int(uidic.get("smileIncrease", 12) or 12),
-            "smile_delay": int(uidic.get("smileDelay", 0) or 0),
+            "smile_dip": _get_ui(uidic, "smileDip", 15, int),
+            "smile_increase": _get_ui(uidic, "smileIncrease", 12, int),
+            "smile_delay": _get_ui(uidic, "smileDelay", 0, int),
         },
         "solver_options": {},
         "results": {"default_plots": uidic.get("plots", "nominal")},
@@ -309,36 +317,36 @@ def ui_to_config(uidic: dict) -> dict:
     for j, acc in enumerate(ACC_CONF):
         key = ACCOUNT_KEY_MAP[acc]
         diconf["savings_assets"][key] = [
-            float(uidic.get(ACC_UI[j] + str(i), 0) or 0) for i in range(ni)
+            _get_ui(uidic, ACC_UI[j] + str(i), 0, float) for i in range(ni)
         ]
     if ni == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = [
-            float(uidic.get(f"benf{j}", 1) or 1) for j in range(3)
+            _get_ui(uidic, f"benf{j}", 1, float) for j in range(3)
         ]
-        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = float(
-            uidic.get("surplusFraction", 0.5) or 0.5
+        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = _get_ui(
+            uidic, "surplusFraction", 0.5, float
         )
 
     # Fixed income
     for i in range(ni):
-        sy = int(uidic.get(f"ssAge_y{i}", 67) or 67)
-        sm = int(uidic.get(f"ssAge_m{i}", 0) or 0)
+        sy = _get_ui(uidic, f"ssAge_y{i}", 67, int)
+        sm = _get_ui(uidic, f"ssAge_m{i}", 0, int)
         diconf["fixed_income"]["social_security_ages"].append(sy + sm / 12.0)
         diconf["fixed_income"]["social_security_pia_amounts"].append(
-            int(uidic.get(f"ssAmt{i}", 0) or 0)
+            _get_ui(uidic, f"ssAmt{i}", 0, int)
         )
-        py = int(uidic.get(f"pAge_y{i}", 65) or 65)
-        pm = int(uidic.get(f"pAge_m{i}", 0) or 0)
+        py = _get_ui(uidic, f"pAge_y{i}", 65, int)
+        pm = _get_ui(uidic, f"pAge_m{i}", 0, int)
         diconf["fixed_income"]["pension_ages"].append(py + pm / 12.0)
         diconf["fixed_income"]["pension_monthly_amounts"].append(
-            float(uidic.get(f"pAmt{i}", 0) or 0)
+            _get_ui(uidic, f"pAmt{i}", 0, float)
         )
         diconf["fixed_income"]["pension_indexed"].append(
             bool(uidic.get(f"pIdx{i}", True))
         )
     thisyear = date.today().year
-    diconf["fixed_income"]["social_security_trim_pct"] = int(
-        uidic.get("ssTrimPct", 0) or 0
+    diconf["fixed_income"]["social_security_trim_pct"] = _get_ui(
+        uidic, "ssTrimPct", 0, int
     )
     trim_year_val = uidic.get("ssTrimYear", thisyear + 10)
     diconf["fixed_income"]["social_security_trim_year"] = int(
@@ -354,14 +362,14 @@ def ui_to_config(uidic: dict) -> dict:
         for j, acc in enumerate(ACC_CONF):
             diconf["asset_allocation"][acc] = []
             for i in range(ni):
-                init = [int(uidic.get(f"j{j}_init%{k}_{i}", 0) or 0) for k in range(4)]
-                fin = [int(uidic.get(f"j{j}_fin%{k}_{i}", 0) or 0) for k in range(4)]
+                init = [_get_ui(uidic, f"j{j}_init%{k}_{i}", 0, int) for k in range(4)]
+                fin = [_get_ui(uidic, f"j{j}_fin%{k}_{i}", 0, int) for k in range(4)]
                 diconf["asset_allocation"][acc].append([init, fin])
     else:
         diconf["asset_allocation"]["generic"] = []
         for i in range(ni):
-            init = [int(uidic.get(f"j3_init%{k}_{i}", 0) or 0) for k in range(4)]
-            fin = [int(uidic.get(f"j3_fin%{k}_{i}", 0) or 0) for k in range(4)]
+            init = [_get_ui(uidic, f"j3_init%{k}_{i}", 0, int) for k in range(4)]
+            fin = [_get_ui(uidic, f"j3_fin%{k}_{i}", 0, int) for k in range(4)]
             diconf["asset_allocation"]["generic"].append([init, fin])
 
     # Solver options
@@ -404,21 +412,15 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
     method = rs["method"]
 
     if method in HISTORICAL_RANGE_METHODS:
-        rs["from"] = int(uidic.get("yfrm", 1969) or 1969)
-        rs["to"] = int(uidic.get("yto", date.today().year - 1) or date.today().year - 1)
+        rs["from"] = _get_ui(uidic, "yfrm", 1969, int)
+        rs["to"] = _get_ui(uidic, "yto", date.today().year - 1, int)
     elif method in METHODS_WITH_VALUES:
         # UI and config use percent; Plan converts to decimal at boundary.
-        rs["values"] = [
-            float(uidic.get(f"fxRate{k}", 0) or 0) for k in range(4)
-        ]
+        rs["values"] = [_get_ui(uidic, f"fxRate{k}", 0, float) for k in range(4)]
     if method == "stochastic":
-        rs["standard_deviations"] = [
-            float(uidic.get(f"stdev{k}", 0) or 0) for k in range(4)
-        ]
+        rs["standard_deviations"] = [_get_ui(uidic, f"stdev{k}", 0, float) for k in range(4)]
         # Correlations: Pearson coefficient (-1 to 1). Standard in finance/statistics.
-        rs["correlations"] = [
-            float(uidic.get(f"corr{q}", 0) or 0) for q in range(1, 7)
-        ]
+        rs["correlations"] = [_get_ui(uidic, f"corr{q}", 0, float) for q in range(1, 7)]
     if method in STOCHASTIC_METHODS:
         rs["reproducible_rates"] = bool(uidic.get("reproducibleRates", False))
         seed = uidic.get("rateSeed")

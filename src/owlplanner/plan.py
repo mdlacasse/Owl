@@ -44,7 +44,7 @@ from . import fixedassets as fxasst
 from . import mylogging as log
 from . import progress
 from .plotting.factory import PlotFactory
-from .rate_models.constants import HISTORICAL_RANGE_METHODS
+from .rate_models.constants import HISTORICAL_RANGE_METHODS, RATE_DISPLAY_NAMES_SHORT
 
 
 # Default values
@@ -3609,10 +3609,8 @@ class Plan:
 
         # Rates on penultimate sheet.
         ratesDic = {
-            "S&P 500": 100 * self.tau_kn[0],
-            "Bonds Baa": 100 * self.tau_kn[1],
-            "T-Notes": 100 * self.tau_kn[2],
-            "Inflation": 100 * self.tau_kn[3],
+            name: 100 * self.tau_kn[k]
+            for k, name in enumerate(RATE_DISPLAY_NAMES_SHORT)
         }
         ws = wb.create_sheet("Rates")
         fillsheet(ws, ratesDic, "pct_value")
@@ -3687,9 +3685,8 @@ class Plan:
             planData[self.inames[i] + " big-ticket items"] = self.Lambda_in[i, :]
 
         # Rates
-        ratesDic = {"S&P 500": 0, "Bonds Baa": 1, "T-Notes": 2, "Inflation": 3}
-        for key in ratesDic:
-            planData[key] = 100 * self.tau_kn[ratesDic[key]]
+        for k, name in enumerate(RATE_DISPLAY_NAMES_SHORT):
+            planData[name] = 100 * self.tau_kn[k]
 
         df = pd.DataFrame(planData)
 

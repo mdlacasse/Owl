@@ -31,7 +31,30 @@ from scipy import stats
 
 from .base import PlotBackend
 from .. import utils as u
-from ..rate_models.constants import HISTORICAL_RANGE_METHODS
+from ..rate_models.constants import (
+    HISTORICAL_RANGE_METHODS,
+    RATE_DISPLAY_NAMES,
+    RATE_DISPLAY_NAMES_SHORT,
+)
+
+# Reusable legend layouts for plotly
+_LEGEND_TOP = dict(
+    traceorder="reversed",
+    yanchor="top",
+    y=0.99,
+    xanchor="left",
+    x=0.01,
+    bgcolor="rgba(255, 255, 255, 0.5)",
+)
+_LEGEND_BOTTOM = dict(
+    yanchor="bottom",
+    y=-0.5,
+    xanchor="center",
+    x=0.5,
+    bgcolor="rgba(0, 0, 0, 0)",
+    orientation="h",
+)
+_LEGEND_BOTTOM_REVERSED = {**_LEGEND_BOTTOM, "traceorder": "reversed"}
 
 
 class PlotlyBackend(PlotBackend):
@@ -43,22 +66,14 @@ class PlotlyBackend(PlotBackend):
         self.template = "plotly_white"
         self.layout = dict(
             showlegend=True,
-            legend=dict(
-                traceorder="reversed",
-                yanchor="top",
-                y=0.99,
-                xanchor="left",
-                x=0.01,
-                bgcolor="rgba(255, 255, 255, 0.5)"
-            ),
+            legend=_LEGEND_TOP,
             xaxis=dict(
-                # title="year",
                 showgrid=True,
                 griddash="dot",
                 gridcolor="lightgray",
                 zeroline=True,
                 zerolinecolor="gray",
-                zerolinewidth=1
+                zerolinewidth=1,
             ),
             yaxis=dict(
                 showgrid=True,
@@ -66,8 +81,8 @@ class PlotlyBackend(PlotBackend):
                 gridcolor="lightgray",
                 zeroline=True,
                 zerolinecolor="gray",
-                zerolinewidth=1
-            )
+                zerolinewidth=1,
+            ),
         )
         # Setting to "browser" will open each graph in a separate tab.
         # pio.renderers.default = "browser"
@@ -95,16 +110,8 @@ class PlotlyBackend(PlotBackend):
             yaxis_title="ξ",
             template=self.template,
             showlegend=True,
-            legend=dict(
-                traceorder="reversed",
-                yanchor="bottom",
-                y=-0.5,
-                xanchor="center",
-                x=0.5,
-                bgcolor="rgba(0, 0, 0, 0)",
-                orientation="h"
-            ),
-            margin=dict(b=150)
+            legend=_LEGEND_BOTTOM_REVERSED,
+            margin=dict(b=150),
         )
 
         # Format y-axis as number
@@ -150,15 +157,8 @@ class PlotlyBackend(PlotBackend):
             yaxis_title=y_title,
             template=self.template,
             showlegend=True,
-            legend=dict(
-                yanchor="bottom",
-                y=-0.5,
-                xanchor="center",
-                x=0.5,
-                bgcolor="rgba(0, 0, 0, 0)",
-                orientation="h"
-            ),
-            margin=dict(b=150)
+            legend=_LEGEND_BOTTOM,
+            margin=dict(b=150),
         )
 
         # Format y-axis as number
@@ -203,14 +203,7 @@ class PlotlyBackend(PlotBackend):
             yaxis_title=y_title,
             template=self.template,
             showlegend=True,
-            legend=dict(
-                yanchor="bottom",
-                y=-0.4,
-                xanchor="center",
-                x=0.5,
-                bgcolor="rgba(0, 0, 0, 0)",
-                orientation="h"
-            ),
+            legend={**_LEGEND_BOTTOM, "y": -0.4},
             margin=dict(b=150)
         )
 
@@ -261,15 +254,8 @@ class PlotlyBackend(PlotBackend):
             yaxis_title=y_title,
             template=self.template,
             showlegend=True,
-            legend=dict(
-                yanchor="bottom",
-                y=-0.4,
-                xanchor="center",
-                x=0.5,
-                bgcolor="rgba(0, 0, 0, 0)",
-                orientation="h"
-            ),
-            margin=dict(b=150)
+            legend={**_LEGEND_BOTTOM, "y": -0.4},
+            margin=dict(b=150),
         )
 
         # Format y-axis as currency
@@ -290,12 +276,7 @@ class PlotlyBackend(PlotBackend):
             title += " - " + tag
 
         # Define rate names and line styles
-        rate_names = [
-            "S&P 500 (incl. div.)",
-            "Bonds Baa",
-            "T-Notes",
-            "Inflation",
-        ]
+        rate_names = list(RATE_DISPLAY_NAMES)
         line_styles = ["solid", "dot", "dash", "longdash"]
 
         # Plot each rate
@@ -321,19 +302,11 @@ class PlotlyBackend(PlotBackend):
         # Update layout
         fig.update_layout(
             title=title,
-            # xaxis_title="year",
             yaxis_title="%",
             template=self.template,
             showlegend=True,
-            legend=dict(
-                yanchor="bottom",
-                y=-0.60,
-                xanchor="center",
-                x=0.5,
-                bgcolor="rgba(0, 0, 0, 0)",
-                orientation="h"
-            ),
-            margin=dict(b=150)
+            legend={**_LEGEND_BOTTOM, "y": -0.60},
+            margin=dict(b=150),
         )
 
         # Format y-axis as percentage
@@ -346,7 +319,7 @@ class PlotlyBackend(PlotBackend):
         # Create subplot figure
         fig = make_subplots(
             rows=1, cols=4,
-            subplot_titles=("S&P 500", "Bonds Baa", "T-Notes", "Inflation"),
+            subplot_titles=RATE_DISPLAY_NAMES_SHORT,
             shared_yaxes=True
         )
 
@@ -427,13 +400,7 @@ class PlotlyBackend(PlotBackend):
                                 tag="", share_range=False):
         """Plot correlations between various rates."""
         # Create DataFrame with rate data
-        rate_names = [
-            "S&P 500 (incl. div.)",
-            "Bonds Baa",
-            "T-Notes",
-            "Inflation",
-        ]
-
+        rate_names = RATE_DISPLAY_NAMES
         df = pd.DataFrame()
         for k, name in enumerate(rate_names):
             df[name] = 100 * tau_kn[k]  # Convert to percentage
@@ -694,10 +661,7 @@ class PlotlyBackend(PlotBackend):
                     template=self.template,
                     barmode="overlay",
                     showlegend=True,
-                    legend=dict(
-                        yanchor="bottom", y=-0.50, xanchor="center", x=0.5,
-                        bgcolor="rgba(0, 0, 0, 0)"
-                    )
+                    legend=_LEGEND_BOTTOM
                 )
                 if log_x:
                     fig.update_xaxes(type="log")
@@ -776,10 +740,7 @@ class PlotlyBackend(PlotBackend):
                     yaxis_title="Count",
                     template=self.template,
                     showlegend=True,
-                    legend=dict(
-                        yanchor="bottom", y=-0.50, xanchor="center", x=0.5,
-                        bgcolor="rgba(0, 0, 0, 0)"
-                    )
+                    legend=_LEGEND_BOTTOM
                 )
                 if use_log_scale:
                     fig.update_xaxes(type="log")
@@ -860,15 +821,7 @@ class PlotlyBackend(PlotBackend):
                 yaxis_title=yformat,
                 template=self.template,
                 showlegend=True,
-                legend=dict(
-                    # traceorder="reversed",
-                    yanchor="bottom",
-                    y=-0.65,
-                    xanchor="center",
-                    x=0.5,
-                    bgcolor="rgba(0, 0, 0, 0)",
-                    orientation="h"
-                ),
+                legend={**_LEGEND_BOTTOM, "y": -0.65},
                 margin=dict(b=150)
             )
 
@@ -933,15 +886,7 @@ class PlotlyBackend(PlotBackend):
                     yaxis_title="%",
                     template=self.template,
                     showlegend=True,
-                    legend=dict(
-                        traceorder="reversed",
-                        yanchor="bottom",
-                        y=-0.5,
-                        xanchor="center",
-                        x=0.5,
-                        bgcolor="rgba(0, 0, 0, 0)",
-                        orientation="h"
-                    ),
+                    legend=_LEGEND_BOTTOM_REVERSED,
                     margin=dict(b=150)
                 )
 
@@ -995,15 +940,7 @@ class PlotlyBackend(PlotBackend):
             yaxis_title=yformat,
             template=self.template,
             showlegend=True,
-            legend=dict(
-                traceorder="reversed",
-                yanchor="bottom",
-                y=-0.5,
-                xanchor="center",
-                x=0.5,
-                bgcolor="rgba(0, 0, 0, 0)",
-                orientation="h"
-            ),
+            legend=_LEGEND_BOTTOM_REVERSED,
             margin=dict(b=150)
         )
 
@@ -1061,15 +998,7 @@ class PlotlyBackend(PlotBackend):
             yaxis_title=yformat,
             template=self.template,
             showlegend=True,
-            legend_traceorder="reversed",
-            legend=dict(
-                yanchor="bottom",
-                y=-0.75,
-                xanchor="center",
-                x=0.5,
-                bgcolor="rgba(0, 0, 0, 0)",
-                orientation="h",
-            ),
+            legend={**_LEGEND_BOTTOM_REVERSED, "y": -0.75},
             margin=dict(b=150)
         )
 
