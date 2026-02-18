@@ -648,43 +648,33 @@ the *Roth conv* column on the
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
 
-A **self-consistent loop** is an iterative calculation method used to compute values that are difficult
-to integrate directly into a linear program. The loop works by:
-1. Solving the optimization problem with initial estimates for these values
-2. Calculating the actual values based on the solution
-3. Re-solving the problem with the updated values
-4. Repeating until the values converge (stop changing significantly)
+The **Medicare** section has a toggle *Medicare and IRMAA calculations*.
+When turned off, Medicare premiums are ignored (set to zero); this is the fastest option but least accurate.
+When turned on (the default), Medicare premiums are computed via a self-consistent loop: the optimizer
+finds the best strategy, then Medicare premiums are calculated from that strategy's income (MAGI),
+and the problem is re-solved with those premiums as fixed costs until they stabilize.
+This provides good accuracy with reasonable computation time.
 
-This method is used for the net investment income tax (NIIT),
-the rate on capital gains (0, 15, or 20%), the phase out of the additional exemption for seniors,
-and potentially the Medicare and IRMAA premiums.
-Turning off the self-consistent loop will default all these values to zero.
-
-**Medicare and IRMAA calculations** can be handled in three ways:
-
-- **`None`**: Medicare premiums are ignored (set to zero). This is the fastest option but least accurate.
-
-- **`loop` (self-consistent loop)**: Medicare premiums are calculated iteratively after each optimization solution.
-  The optimizer finds the best strategy, then Medicare premiums are computed based on that strategy's income (MAGI),
-  and the problem is re-solved with those premiums as fixed costs. This process repeats until the premiums stabilize.
-  This is the **recommended default** as it provides good accuracy with reasonable computation time.
-  However, when income is near an IRMAA bracket boundary, the solution may oscillate slightly between iterations.
-
-- **`optimize` (full optimization)**: Medicare premiums are integrated directly into the optimization problem
-  as decision variables. The optimizer simultaneously finds the best financial strategy AND the optimal Medicare
-  premium bracket, considering all trade-offs. This is the **most accurate** method but can be significantly slower
-  (sometimes taking many minutes) due to the additional binary variables required. Use this option for single-case
-  analysis when you want the most precise results, and compare with self-consistent loop results to verify.
-  **Do not use this option** when running multiple scenarios such as Monte Carlo simulations, as the computation
-  time would be prohibitive.
+For maximum accuracy, enable *Optimize Medicare (expert)* in the *Advanced options* expander.
+That option integrates Medicare premiums directly into the optimization as decision variables,
+so the optimizer simultaneously finds the best strategy and premium bracket.
+It can be significantly slower (sometimes many minutes) due to additional binary variables.
+Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios.
 
 Medicare premiums start automatically in the year each individual reaches age 65.
+If anyone in the case is age 64 or older, inputs appear for *MAGI for [year] ($k)*
+for the prior 1 or 2 years (nominal thousands). These values are needed for
+Income-Related Monthly Adjusted Amounts (IRMAA). Values default to zero.
+A warning appears if Medicare is on while the self-consistent loop is off,
+since Medicare in loop mode requires the loop to compute premiums iteratively.
 
-If the current age of any individual in the *case* makes them eligible
-for Medicare within the next two years,
-additional cells will appear for entering the MAGI's for the
-past 1 or 2 years, whichever applies. Values default to zero.
-These numbers are needed to calculate the Income-Related Monthly Adjusted Amounts (IRMAA).
+A **self-consistent loop** is an iterative method used for values that are difficult
+to integrate into the linear program: the net investment income tax (NIIT),
+the capital gains rate (0, 15, or 20%), the phase out of the additional exemption for seniors,
+and Medicare/IRMAA when Medicare is enabled. The loop solves, recalculates these values
+from the solution, re-solves, and repeats until convergence. The *Self-consistent loop
+calculations* toggle in *Advanced options* turns this on or off; turning it off
+defaults all these values to zero.
 
 **Safety Net** settings allow you to enforce a minimum balance in each spouse's taxable account.
 The amount is specified in today's dollars and is indexed for inflation over the plan horizon.
@@ -695,12 +685,15 @@ optimizer may find the problem infeasible or produce unexpected results.
 Use this to ensure a reserve of liquid assets is maintained for emergencies or opportunities,
 or to reflect a personal preference for keeping a buffer in taxable accounts.
 
-The *Advanced options* expander contains additional settings. One allows to turn off mutually
-exclusive operations, such as Roth conversions and withdrawals from the tax-free account.
-Enabling these mutually exclusive constraints avoids both these situations.
-Surprisingly, dropping these constraints can lead to slightly different optimal points
-for reasons that escape me.
-The self-consistent loop, Medicare optimization, and solver selection are also found there.
+The *Advanced options* expander contains:
+- *Self-consistent loop calculations* – when on, iteratively computes NIIT, capital gains rates,
+  phase out of senior exemptions, and Medicare/IRMAA (when Medicare is enabled).
+- *Optimize Medicare (expert)* – integrates Medicare into the optimization; enabled only when
+  Medicare and IRMAA calculations are on.
+- *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*
+- *Disallow same-year Roth conversions and tax-free withdrawals*
+- *Disallow cash-flow surpluses in last years*
+- *Solver* selection (HiGHS, PuLP/CBC, PuLP/HiGHS, or MOSEK if available).
 
 Different mixed-integer linear programming solvers can be selected.
 This option is mostly for verification purposes.
