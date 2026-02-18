@@ -148,6 +148,38 @@ def test_config_roundtrip_social_security_trim():
     assert out["fixed_income"]["social_security_trim_year"] == 2035
 
 
+def test_plan_to_config_saves_trim_when_nonzero():
+    """plan_to_config includes trim_pct and trim_year in fixed_income when trim_pct > 0."""
+    from owlplanner.config import plan_to_config
+
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setRates("stochastic", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
+    p.setSocialSecurity([2000], [67], trim_pct=23, trim_year=2035)
+
+    out = plan_to_config(p)
+    assert out["fixed_income"]["social_security_trim_pct"] == 23
+    assert out["fixed_income"]["social_security_trim_year"] == 2035
+
+
+def test_plan_to_config_omits_trim_when_zero():
+    """plan_to_config omits trim keys when trim_pct is 0 (default)."""
+    from owlplanner.config import plan_to_config
+
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setRates("stochastic", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
+    p.setSocialSecurity([2000], [67])  # default trim_pct=0
+
+    out = plan_to_config(p)
+    assert "social_security_trim_pct" not in out["fixed_income"]
+    assert "social_security_trim_year" not in out["fixed_income"]
+
+
 def test_apply_config_to_plan():
     """apply_config_to_plan syncs config to existing plan."""
     p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)

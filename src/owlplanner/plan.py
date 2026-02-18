@@ -357,6 +357,8 @@ class Plan:
         self.pensionIsIndexed = [False] * self.N_i
         self.ssecAmounts = np.zeros(self.N_i, dtype=np.int32)
         self.ssecAges = 67 * np.ones(self.N_i, dtype=np.int32)
+        self.ssecTrimPct = 0
+        self.ssecTrimYear = None
 
         # Parameters from timeLists initialized to zero.
         self.omega_in = np.zeros((self.N_i, self.N_n))
@@ -727,10 +729,12 @@ class Plan:
             trim = 1.0 - trim_pct / 100
             trim_n = max(0, trim_year - thisyear)
             if 0 <= trim_n < self.N_n:
-                 self.zeta_in[:, trim_n : ] *= trim 
+                self.zeta_in[:, trim_n:] *= trim
 
         self.ssecAmounts = pias
         self.ssecAges = ages
+        self.ssecTrimPct = trim_pct
+        self.ssecTrimYear = trim_year
         self.caseStatus = "modified"
         self._adjustedParameters = False
 

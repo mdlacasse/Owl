@@ -337,6 +337,11 @@ def plan_to_config(myplan: "Plan") -> dict:
         "social_security_pia_amounts": myplan.ssecAmounts.tolist(),
         "social_security_ages": myplan.ssecAges.tolist(),
     }
+    trim_pct = getattr(myplan, "ssecTrimPct", 0) or 0
+    trim_year = getattr(myplan, "ssecTrimYear", None)
+    if trim_pct != 0 and trim_year is not None:
+        diconf["fixed_income"]["social_security_trim_pct"] = int(trim_pct)
+        diconf["fixed_income"]["social_security_trim_year"] = int(trim_year)
 
     # Rates Selection
     diconf["rates_selection"] = {
