@@ -2,7 +2,7 @@
 Historical and statistical rate of return data for asset classes.
 
 This module provides historical annual rates of return for different asset
-classes: S&P500, Baa corporate bonds, real estate, 3-mo T-Bills, 10-year Treasury
+classes: S&P 500, Baa corporate bonds, real estate, 3-mo T-Bills, 10-year Treasury
 notes, and inflation as measured by CPI from 1928 to present. Values were
 extracted from NYU's Stern School of business historical returns data.
 
@@ -52,7 +52,7 @@ def get_fixed_rate_values(method):
         method: One of "conservative", "optimistic", "default"
 
     Returns:
-        List of 4 floats in percent: [S&P 500, Bonds Baa, TNotes, Inflation]
+        List of 4 floats in percent: [S&P 500, Bonds Baa, T-Notes, Inflation]
 
     Raises:
         ValueError: If method is not a supported fixed method.
@@ -140,9 +140,9 @@ def getRatesDistributions(frm, to, mylog=None):
         raise ValueError(f'"from" {frm} must be smaller than "to" {to}.')
 
     series = {
-        "SP500": SP500,
-        "BondsBaa": BondsBaa,
-        "T. Notes": TNotes,
+        "S&P 500": SP500,
+        "Bonds Baa": BondsBaa,
+        "T-Notes": TNotes,
         "Inflation": Inflation,
     }
 

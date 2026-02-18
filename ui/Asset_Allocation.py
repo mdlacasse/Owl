@@ -43,7 +43,7 @@ def getPercentInput(i, j, keybase, text, defval=0):
 
 
 ACC = ["taxable", "tax-deferred", "tax-free"]
-ASSET = ["S&P 500", "Corp Bonds Baa", "T-Notes", "Cash Assets"]
+ASSET = ["S&P 500", "Bonds Baa", "T-Notes", "Cash Assets"]
 DEFALLOC = [60, 20, 10, 10]
 
 

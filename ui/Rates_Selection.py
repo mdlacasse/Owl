@@ -134,7 +134,7 @@ forecasts for the next decade can be found
                       callback=updateRates, min_value=min_rate, max_value=100.0)
 
         with col2:
-            kz.getNum("Corporate Bonds Baa", "fxRate1", disabled=ro, step=1.0, help=helpmsgBaa,
+            kz.getNum("Bonds Baa", "fxRate1", disabled=ro, step=1.0, help=helpmsgBaa,
                       callback=updateRates, min_value=min_rate, max_value=100.0)
 
         with col3:
@@ -203,7 +203,7 @@ forecasts for the next decade can be found
 
         with col2:
             kz.initCaseKey("mean1", 0)
-            kz.getNum("Corporate Bonds Baa", "mean1", disabled=ro, help=helpmsgBaa,
+            kz.getNum("Bonds Baa", "mean1", disabled=ro, help=helpmsgBaa,
                       step=1.0, min_value=-100.0, max_value=100.0, callback=updateRates)
 
         with col3:
@@ -224,7 +224,7 @@ forecasts for the next decade can be found
 
         with col2:
             kz.initCaseKey("stdev1", 0)
-            kz.getNum("Corporate Bonds Baa", "stdev1", disabled=ro, step=1.0, callback=updateRates)
+            kz.getNum("Bonds Baa", "stdev1", disabled=ro, step=1.0, callback=updateRates)
 
         with col3:
             kz.initCaseKey("stdev2", 0)
@@ -245,7 +245,7 @@ forecasts for the next decade can be found
             kz.getNum("(1,2)", "corr1", disabled=ro, step=0.01, format="%.2f",
                       min_value=-1.0, max_value=1.0, callback=updateRates)
             kz.initCaseKey("diag2", 1.0)
-            kz.getNum("Corporate Bonds Baa", "diag2", disabled=True, format="%.2f",
+            kz.getNum("Bonds Baa", "diag2", disabled=True, format="%.2f",
                       callback=None)
 
         with col3:

@@ -291,9 +291,9 @@ class PlotlyBackend(PlotBackend):
 
         # Define rate names and line styles
         rate_names = [
-            "S&P500 (incl. div.)",
-            "Baa Corp. Bonds",
-            "10-y T-Notes",
+            "S&P 500 (incl. div.)",
+            "Bonds Baa",
+            "T-Notes",
             "Inflation",
         ]
         line_styles = ["solid", "dot", "dash", "longdash"]
@@ -346,7 +346,7 @@ class PlotlyBackend(PlotBackend):
         # Create subplot figure
         fig = make_subplots(
             rows=1, cols=4,
-            subplot_titles=("S&P500", "BondsBaa", "TNotes", "Inflation"),
+            subplot_titles=("S&P 500", "Bonds Baa", "T-Notes", "Inflation"),
             shared_yaxes=True
         )
 
@@ -428,9 +428,9 @@ class PlotlyBackend(PlotBackend):
         """Plot correlations between various rates."""
         # Create DataFrame with rate data
         rate_names = [
-            "S&P500 (incl. div.)",
-            "Baa Corp. Bonds",
-            "10-y T-Notes",
+            "S&P 500 (incl. div.)",
+            "Bonds Baa",
+            "T-Notes",
             "Inflation",
         ]
 

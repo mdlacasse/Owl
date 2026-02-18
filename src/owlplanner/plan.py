@@ -3591,9 +3591,9 @@ class Plan:
         # Rates on penultimate sheet.
         ratesDic = {
             "S&P 500": 100 * self.tau_kn[0],
-            "Corporate Baa": 100 * self.tau_kn[1],
-            "T Bonds": 100 * self.tau_kn[2],
-            "inflation": 100 * self.tau_kn[3],
+            "Bonds Baa": 100 * self.tau_kn[1],
+            "T-Notes": 100 * self.tau_kn[2],
+            "Inflation": 100 * self.tau_kn[3],
         }
         ws = wb.create_sheet("Rates")
         fillsheet(ws, ratesDic, "pct_value")
@@ -3668,7 +3668,7 @@ class Plan:
             planData[self.inames[i] + " big-ticket items"] = self.Lambda_in[i, :]
 
         # Rates
-        ratesDic = {"S&P 500": 0, "Corporate Baa": 1, "T Bonds": 2, "inflation": 3}
+        ratesDic = {"S&P 500": 0, "Bonds Baa": 1, "T-Notes": 2, "Inflation": 3}
         for key in ratesDic:
             planData[key] = 100 * self.tau_kn[ratesDic[key]]
 

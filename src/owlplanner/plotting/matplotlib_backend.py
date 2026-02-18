@@ -259,9 +259,9 @@ class MatplotlibBackend(PlotBackend):
                                 tag="", share_range=False):
         """Plot correlations between various rates."""
         rate_names = [
-            "S&P500 (incl. div.)",
-            "Baa Corp. Bonds",
-            "10-y T-Notes",
+            "S&P 500 (incl. div.)",
+            "Bonds Baa",
+            "T-Notes",
             "Inflation",
         ]
 
@@ -310,9 +310,9 @@ class MatplotlibBackend(PlotBackend):
             title += " - " + tag
 
         rate_name = [
-            "S&P500 (incl. div.)",
-            "Baa Corp. Bonds",
-            "10-y T-Notes",
+            "S&P 500 (incl. div.)",
+            "Bonds Baa",
+            "T-Notes",
             "Inflation",
         ]
         ltype = ["-", "-.", ":", "--"]
@@ -349,17 +349,17 @@ class MatplotlibBackend(PlotBackend):
         dat3 = np.array(Inflation[frm:to])
 
         fig.suptitle(title)
-        ax[0].set_title("S&P500")
+        ax[0].set_title("S&P 500")
         label = "<>: " + u.pc(np.mean(dat0), 2, 1)
         ax[0].hist(dat0, bins=nbins, label=label)
         ax[0].legend(loc="upper left", fontsize=8, framealpha=0.7)
 
-        ax[1].set_title("BondsBaa")
+        ax[1].set_title("Bonds Baa")
         label = "<>: " + u.pc(np.mean(dat1), 2, 1)
         ax[1].hist(dat1, bins=nbins, label=label)
         ax[1].legend(loc="upper left", fontsize=8, framealpha=0.7)
 
-        ax[2].set_title("TNotes")
+        ax[2].set_title("T-Notes")
         label = "<>: " + u.pc(np.mean(dat2), 2, 1)
         ax[2].hist(dat2, bins=nbins, label=label)
         ax[2].legend(loc="upper left", fontsize=8, framealpha=0.7)
