@@ -21,6 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import streamlit as st
+from datetime import date
 
 import sskeys as kz
 import case_progress as cp
@@ -179,6 +180,40 @@ to estimate {iname0}'s PIA.""")
                     st.markdown(f"""Click
 [here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&name={iname1})
 to estimate {iname1}'s PIA.""")
+
+    col1, col2 = st.columns([.67, .33], gap="large", vertical_alignment="top")
+    with col1:
+        st.markdown("")
+        with st.expander("*Advanced options*"):
+            st.markdown("#### :orange[Social Security benefit reduction]")
+            help_trim = (
+                "Reduce Social Security benefits by this percentage starting in the given year. "
+                "Use to model trust fund shortfall scenarios (e.g. 23% cut from 2035). "
+                "0 = no reduction."
+            )
+            help_trim_year = "Calendar year when the reduction begins."
+            incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
+            with incol1:
+                kz.initCaseKey("ssTrimPct", 0)
+                kz.getIntNum(
+                    "Reduction (%)",
+                    "ssTrimPct",
+                    min_value=0,
+                    max_value=100,
+                    step=1,
+                    help=help_trim,
+                )
+            with incol2:
+                thisyear = date.today().year
+                kz.initCaseKey("ssTrimYear", thisyear + 10)
+                kz.getIntNum(
+                    "Starting year",
+                    "ssTrimYear",
+                    min_value=thisyear,
+                    max_value=thisyear + 50,
+                    step=1,
+                    help=help_trim_year,
+                )
 
     st.divider()
     st.markdown("#### :orange[Pension]")

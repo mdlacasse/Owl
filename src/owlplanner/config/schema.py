@@ -81,6 +81,12 @@ class FixedIncome(BaseModel):
     pension_indexed: List[bool] = Field(description="Whether pension is inflation-indexed")
     social_security_pia_amounts: Optional[List[int]] = None
     social_security_ages: List[float] = Field(description="Age at SS start")
+    social_security_trim_pct: Optional[int] = Field(
+        default=0, description="% reduction in SS benefits from trim_year onward"
+    )
+    social_security_trim_year: Optional[int] = Field(
+        default=None, description="Year when SS benefit reduction begins"
+    )
 
 
 class RatesSelection(BaseModel):

@@ -57,12 +57,22 @@ def _apply_assets_to_plan(plan: "Plan", known: dict, icount: int) -> None:
 
 def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
     """Apply fixed income (SS, pension) from config to plan."""
+    fi = known["fixed_income"]
     ssec_amounts = np.array(
-        known["fixed_income"].get("social_security_pia_amounts", [0] * icount),
+        fi.get("social_security_pia_amounts", [0] * icount),
         dtype=np.int32,
     )
-    ssec_ages = np.array(known["fixed_income"]["social_security_ages"])
-    plan.setSocialSecurity(ssec_amounts, ssec_ages)
+    ssec_ages = np.array(fi["social_security_ages"])
+    trim_pct = fi.get("social_security_trim_pct", 0) or 0
+    trim_year = fi.get("social_security_trim_year")
+    if trim_year is None and trim_pct > 0:
+        trim_year = date.today().year + 10  # fallback for legacy configs
+    plan.setSocialSecurity(
+        ssec_amounts,
+        ssec_ages,
+        trim_pct=int(trim_pct),
+        trim_year=int(trim_year) if trim_year is not None else None,
+    )
     pension_amounts = np.array(
         known["fixed_income"].get("pension_monthly_amounts", [0] * icount),
         dtype=np.float32,

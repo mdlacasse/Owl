@@ -640,7 +640,7 @@ class Plan:
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
-    def setSocialSecurity(self, pias, ages):
+    def setSocialSecurity(self, pias, ages, trim_pct=0, trim_year=None):
         """
         Set value of social security for each individual and claiming age.
 
@@ -651,6 +651,14 @@ class Plan:
             raise ValueError(f"Principal Insurance Amount must have {self.N_i} entries.")
         if len(ages) != self.N_i:
             raise ValueError(f"Ages must have {self.N_i} entries.")
+
+        if trim_pct != 0:
+            if not (0 <= trim_pct <= 100):
+                raise ValueError(f"trim_pct {trim_pct} outside range [0, 100].")
+            if trim_year is None:
+                raise ValueError("trim_year required when trim_pct > 0.")
+            if not isinstance(trim_year, int):
+                raise ValueError("trim_year must be an integer.")
 
         # Just make sure we are dealing with arrays if lists were passed.
         pias = np.array(pias, dtype=np.int32)
@@ -713,6 +721,13 @@ class Plan:
 
         # Convert all to annual numbers.
         self.zeta_in *= 12
+
+        if trim_pct > 0:
+            self.mylog.print(f"Reducing Social Security by {trim_pct}% starting in year {trim_year}.")
+            trim = 1.0 - trim_pct / 100
+            trim_n = max(0, trim_year - thisyear)
+            if 0 <= trim_n < self.N_n:
+                 self.zeta_in[:, trim_n : ] *= trim 
 
         self.ssecAmounts = pias
         self.ssecAges = ages

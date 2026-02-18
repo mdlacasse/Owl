@@ -122,6 +122,8 @@ def config_to_ui(diconf: dict) -> dict:
     life = bi.get("life_expectancy", [89] * ni)
     ss_amt = fi.get("social_security_pia_amounts", [0] * ni)
     ss_ages = fi.get("social_security_ages", [67.0] * ni)
+    ss_trim_pct = fi.get("social_security_trim_pct", 0)
+    ss_trim_year = fi.get("social_security_trim_year")
     p_amt = fi.get("pension_monthly_amounts", [0.0] * ni)
     p_ages = fi.get("pension_ages", [65.0] * ni)
     p_idx = fi.get("pension_indexed", [True] * ni)
@@ -140,6 +142,11 @@ def config_to_ui(diconf: dict) -> dict:
         dic[f"pAmt{i}"] = p_amt[i] if i < len(p_amt) else 0.0
         dic[f"pIdx{i}"] = p_idx[i] if i < len(p_idx) else True
 
+    thisyear = date.today().year
+    dic["ssTrimPct"] = int(ss_trim_pct) if ss_trim_pct is not None else 0
+    dic["ssTrimYear"] = int(ss_trim_year) if ss_trim_year is not None else thisyear + 10
+
+    for i in range(ni):
         for j, acc in enumerate(ACC_CONF):
             key = ACCOUNT_KEY_MAP[acc]
             vals = sa.get(key, [0.0] * ni)
@@ -329,6 +336,14 @@ def ui_to_config(uidic: dict) -> dict:
         diconf["fixed_income"]["pension_indexed"].append(
             bool(uidic.get(f"pIdx{i}", True))
         )
+    thisyear = date.today().year
+    diconf["fixed_income"]["social_security_trim_pct"] = int(
+        uidic.get("ssTrimPct", 0) or 0
+    )
+    trim_year_val = uidic.get("ssTrimYear", thisyear + 10)
+    diconf["fixed_income"]["social_security_trim_year"] = int(
+        trim_year_val if trim_year_val not in (None, "") else thisyear + 10
+    )
 
     # Rates
     _ui_rates_to_config(diconf, uidic, ni)

@@ -9,9 +9,11 @@ Copyright (C) 2025-2026 The Owlplanner Authors
 
 import pytest
 from datetime import date
+from io import StringIO
 import numpy as np
 
 import owlplanner as owl
+import owlplanner.mylogging as log
 import owlplanner.plan as plan
 
 
@@ -204,6 +206,66 @@ def test_set_social_security_invalid_lengths():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="Principal Insurance Amount must have"):
         p.setSocialSecurity([2000, 3000], [67])  # Wrong length for PIAs
+
+
+def test_set_social_security_trim_pct_outside_range():
+    """Test setSocialSecurity raises for trim_pct outside [0, 100]."""
+    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    with pytest.raises(ValueError, match="trim_pct.*outside range"):
+        p.setSocialSecurity([2000], [67], trim_pct=-5, trim_year=2030)
+    with pytest.raises(ValueError, match="trim_pct.*outside range"):
+        p.setSocialSecurity([2000], [67], trim_pct=101, trim_year=2030)
+
+
+def test_set_social_security_trim_year_required():
+    """Test setSocialSecurity requires trim_year when trim_pct > 0."""
+    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    with pytest.raises(ValueError, match="trim_year required"):
+        p.setSocialSecurity([2000], [67], trim_pct=25, trim_year=None)
+
+
+def test_set_social_security_trim_year_must_be_int():
+    """Test setSocialSecurity requires trim_year to be an integer."""
+    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    with pytest.raises(ValueError, match="trim_year must be an integer"):
+        p.setSocialSecurity([2000], [67], trim_pct=25, trim_year=2030.5)
+
+
+def test_set_social_security_trim_log_message():
+    """Test setSocialSecurity logs when trim_pct > 0."""
+    strio = StringIO()
+    mylogger = log.Logger(verbose=False, logstreams=[strio])
+    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p.setLogger(mylogger)
+    p.setSocialSecurity([2000], [67], trim_pct=25, trim_year=2035)
+    captured = strio.getvalue()
+    assert "Reducing Social Security" in captured
+    assert "25%" in captured
+    assert "2035" in captured
+
+
+def test_set_social_security_trim_applies_reduction():
+    """Test setSocialSecurity reduces benefits by trim_pct from trim_year onward."""
+    p = owl.Plan(['Joe'], ["1961-01-15"], [85], "test")
+    p.setSocialSecurity([2000], [67], trim_pct=0)  # No trim baseline
+    zeta_baseline = p.zeta_in.copy()
+
+    p.setSocialSecurity([2000], [67], trim_pct=20, trim_year=date.today().year + 5)
+    trim_n = 5
+    if trim_n < p.N_n:
+        # From trim year onward, values should be 0.8 of baseline
+        np.testing.assert_allclose(
+            p.zeta_in[:, trim_n:], zeta_baseline[:, trim_n:] * 0.8
+        )
+
+
+def test_set_social_security_trim_zero_no_effect():
+    """Test setSocialSecurity with trim_pct=0 has no trimming (default behavior)."""
+    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p.setSocialSecurity([2000], [67])  # Default trim_pct=0, trim_year=None
+    zeta_no_trim = p.zeta_in.copy()
+    p.setSocialSecurity([2000], [67], trim_pct=0, trim_year=2030)
+    np.testing.assert_array_equal(p.zeta_in, zeta_no_trim)
 
 
 def test_set_spending_profile_invalid_percent():

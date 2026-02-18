@@ -133,6 +133,21 @@ def test_config_to_ui_dataframe_maps_to_user(caplog):
     assert "Dataframe rate method is not supported in UI" in caplog.text
 
 
+def test_config_roundtrip_social_security_trim():
+    """SS trim_pct and trim_year roundtrip through config_to_ui and ui_to_config."""
+    diconf = _minimal_config_for_rates()
+    diconf["fixed_income"]["social_security_trim_pct"] = 23
+    diconf["fixed_income"]["social_security_trim_year"] = 2035
+
+    uidic = config_to_ui(diconf)
+    assert uidic["ssTrimPct"] == 23
+    assert uidic["ssTrimYear"] == 2035
+
+    out = ui_to_config(uidic)
+    assert out["fixed_income"]["social_security_trim_pct"] == 23
+    assert out["fixed_income"]["social_security_trim_year"] == 2035
+
+
 def test_apply_config_to_plan():
     """apply_config_to_plan syncs config to existing plan."""
     p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
