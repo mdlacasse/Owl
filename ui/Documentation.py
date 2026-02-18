@@ -498,6 +498,10 @@ A great website for guidance on when to start taking social security is
 And obviously there are
 [ssa.tools](https://ssa.tools), and [ssa.gov](https://ssa.gov).
 
+The *Advanced options* expander allows you to model trust fund shortfall scenarios.
+You can reduce Social Security benefits by a given percentage starting in a
+specified year (e.g. a 23% cut from 2035). Use 0% reduction for the baseline case.
+
 Pensions amounts, if any, are also entered on this page.
 While social security is always adjusted for inflation, pensions can optionally be
 indexed for inflation by selecting the corresponding button.
