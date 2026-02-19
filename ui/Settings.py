@@ -39,8 +39,6 @@ col1, col2, col3 = st.columns(3, gap="large")
 with col1:
     choices = ("matplotlib", "plotly")
     gkey = "plotGlobalBackend"
-    # This should point to the default behavior. No point to call back.
-    kz.initGlobalKey(gkey, choices[1])
     st.markdown("#### :orange[Graph Appearance]")
     helpmsg = "Select the plotting library to use."
     index = choices.index(kz.getGlobalKey(gkey))
@@ -50,7 +48,6 @@ with col1:
 with col2:
     choices = ("sidebar", "top")
     mkey = "menuLocation"
-    kz.initGlobalKey(mkey, choices[1])
     st.markdown("#### :orange[Menu]")
     helpmsg = "Select menu appearance."
     index = choices.index(kz.getGlobalKey(mkey))
@@ -60,7 +57,6 @@ with col2:
 with col3:
     choices = ("sticky", "static")
     pkey = "position"
-    kz.initGlobalKey(pkey, choices[0])
     st.markdown("#### :orange[Header]")
     helpmsg = "Select header behavior."
     index = choices.index(kz.getGlobalKey(pkey))

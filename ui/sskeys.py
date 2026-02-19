@@ -34,6 +34,11 @@ loadCaseFile = "Upload Case File..."
 help1000 = "Values are in thousands of dollars (\\$k)."
 
 
+def initGlobalKey(key, val):
+    if key not in ss:
+        ss[key] = val
+
+
 def init():
     """
     Initialize variables through a function as it will only happen once through module.
@@ -51,6 +56,10 @@ def init():
     if "currentCase" not in ss:
         ss.currentCase = loadCaseFile
         # ss.currentCase = newCase
+
+    initGlobalKey("plotGlobalBackend", "plotly")
+    initGlobalKey("menuLocation", "top")
+    initGlobalKey("position", "sticky")
 
 
 init()
@@ -349,9 +358,6 @@ def initCaseKey(key, val):
         setCaseKey(key, val)
 
 
-def initGlobalKey(key, val):
-    if key not in ss:
-        ss[key] = val
 
 
 def getCaseKey(key):

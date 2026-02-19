@@ -54,8 +54,12 @@ else:
             disabled=kz.caseIsNotRunReady(),
         )
 
-    st.divider()
     if kz.isCaseUnsolved():
+        st.divider()
         st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
     else:
+        if kz.getGlobalKey("plotGlobalBackend") == "plotly":
+            st.markdown("")
+            st.caption("Tip: Click on legend items in the graphs below to show or hide individual curves.")
+        st.divider()
         owb.plotSingleResults()

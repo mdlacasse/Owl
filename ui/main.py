@@ -64,9 +64,6 @@ pages = {
     ],
 }
 
-kz.initGlobalKey("menuLocation", "top")
-kz.initGlobalKey("position", "sticky")
-
 pg = st.navigation(pages, position=kz.getGlobalKey("menuLocation"))
 
 pg.run()
