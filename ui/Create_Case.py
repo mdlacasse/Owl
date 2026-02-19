@@ -136,13 +136,13 @@ else:
         iname0 = kz.getText("Your first name", "iname0", help=namehelp,
                             disabled=diz2, placeholder="Enter name...")
 
-        if iname0:
-            datemsg = """
+        datemsg = """
 Calculations are the same if you were born on any day after the 2nd of the month.
 Social Security has special rules for those born on the 1st or 2nd.
 Ask your favorite AI about it if you're curious.
 """
-            longmsg = """See the documentation for suggested resources on estimating longevity."""
+        longmsg = """See the documentation for suggested resources on estimating longevity."""
+        if iname0:
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("dob0", "1965-01-15")
