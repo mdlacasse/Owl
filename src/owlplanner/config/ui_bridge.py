@@ -202,7 +202,7 @@ def config_to_ui(diconf: dict) -> dict:
         logger.warning("Dataframe rate method is not supported in UI; mapping to 'user'.")
         rate_method = "user"
     if rate_method in FIXED_TYPE_UI:
-        dic["rateType"] = "fixed"
+        dic["rateType"] = "constant"
         dic["fixedType"] = rate_method
     else:
         dic["rateType"] = "varying"
@@ -400,8 +400,8 @@ def ui_to_config(uidic: dict) -> dict:
 
 
 def _ui_rate_method_to_config(uidic: dict) -> str:
-    rate_type = uidic.get("rateType", "fixed")
-    if rate_type == "fixed":
+    rate_type = uidic.get("rateType", "constant")
+    if rate_type == "constant":
         return uidic.get("fixedType", "historical average")
     return uidic.get("varyingType", "histochastic")
 

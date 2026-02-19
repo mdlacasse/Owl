@@ -128,7 +128,7 @@ def test_config_to_ui_dataframe_maps_to_user(caplog):
     }
     uidic = config_to_ui(diconf)
 
-    assert uidic["rateType"] == "fixed"
+    assert uidic["rateType"] == "constant"
     assert uidic["fixedType"] == "user"
     assert "Dataframe rate method is not supported in UI" in caplog.text
 

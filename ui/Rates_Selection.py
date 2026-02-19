@@ -41,7 +41,7 @@ def _get_fx_rates():
 
 FXRATES = _get_fx_rates()
 
-rateChoices = ["fixed", "varying"]
+rateChoices = ["constant", "varying"]
 fixedChoices = list(FXRATES)
 varyingChoices = list(VARYING_TYPE_UI)
 
@@ -65,14 +65,14 @@ def updateFixedRates(key, pull=True):
 
 def updateRates(key):
     kz.setpull(key)
-    if kz.getCaseKey(key) == "fixed":
+    if kz.getCaseKey(key) == "constant":
         updateFixedRates(kz.getCaseKey("fixedType"), False)
     else:
         owb.setRates()
 
 
 def initRates():
-    if kz.getCaseKey("rateType") == "fixed" and kz.getCaseKey("fixedType") != "historical":
+    if kz.getCaseKey("rateType") == "constant" and kz.getCaseKey("fixedType") != "historical":
         updateFixedRates(kz.getCaseKey("fixedType"), False)
     else:
         owb.setRates()
@@ -107,23 +107,23 @@ forecasts for the next decade can be found
     st.markdown("#### :orange[Type of Rates]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        helpmsg = "Rates can be fixed for the duration of the plan or change annually."
+        helpmsg = "Rates can be constant for the duration of the plan or change annually."
         kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates, help=helpmsg)
 
-    if kz.getCaseKey("rateType") == "fixed":
+    if kz.getCaseKey("rateType") == "constant":
         fxType = kz.getCaseKey("fixedType")
         if fxType != "historical":
             updateFixedRates(fxType, False)
 
         with col2:
-            fxType = kz.getRadio("Select fixed rates", fixedChoices, "fixedType", updateFixedRates,
+            fxType = kz.getRadio("Select constant rates", fixedChoices, "fixedType", updateFixedRates,
                                  help=helpFixed)
 
         st.divider()
         ro = fxType != "user"
         min_rate = -100.0 if fxType == "historical average" else 0.0
 
-        st.markdown("#### :orange[Fixed Rate Values (%)]")
+        st.markdown("#### :orange[Constant Rate Values (%)]")
         rates = FXRATES[fxType]
         for j in range(4):
             kz.initCaseKey(f"fxRate{j}", rates[j])
@@ -152,7 +152,7 @@ forecasts for the next decade can be found
     else:
         st.error("Logic error")
 
-    if (kz.getCaseKey("rateType") == "fixed" and "hist" in kz.getCaseKey("fixedType")) or (
+    if (kz.getCaseKey("rateType") == "constant" and "hist" in kz.getCaseKey("fixedType")) or (
         kz.getCaseKey("rateType") == "varying" and "hist" in kz.getCaseKey("varyingType")
     ):
         # Enforce yto >= yfrm + 2 (min 2 years for statistics) before rendering

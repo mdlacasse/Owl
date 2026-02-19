@@ -234,7 +234,7 @@ def _setRates(plan):
         st.info("Rate type not selected yet.")
         return False
 
-    if rateType == "fixed":
+    if rateType == "constant":
         fixedType = kz.getCaseKey("fixedType")
         if fixedType == "historical average":
             if adjusted_range:
@@ -941,10 +941,10 @@ def genDic(plan):
         dic["objective"] = "Bequest"
 
     if plan.rateMethod in ["default", "conservative", "optimistic", "historical average", "user"]:
-        dic["rateType"] = "fixed"
+        dic["rateType"] = "constant"
         dic["fixedType"] = plan.rateMethod
     elif plan.rateMethod == "dataframe":
-        dic["rateType"] = "fixed"
+        dic["rateType"] = "constant"
         dic["fixedType"] = "user"
     elif plan.rateMethod in ["histochastic", "historical", "stochastic"]:
         dic["rateType"] = "varying"
