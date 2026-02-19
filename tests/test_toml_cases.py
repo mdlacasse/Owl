@@ -61,7 +61,7 @@ if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100000,
-            "bequest": 8096132,
+            "bequest": 8094499,
         },
         "Case_jack+jill": {
             "net_spending_basis": 90291,
@@ -84,7 +84,7 @@ elif platform in ["win32", "linux"]:
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100000,
-            "bequest": 8096132,
+            "bequest": 8094499,
         },
         "Case_jack+jill": {
             "net_spending_basis": 90291,

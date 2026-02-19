@@ -1524,7 +1524,6 @@ class Plan:
         self._add_safety_net(options)
         self._add_roth_maturation_constraints()
         self._add_withdrawal_limits()
-        self._add_conversion_limits()
         self._add_objective_constraints(objective, options)
         self._add_initial_balances()
         self._add_surplus_deposit_linking(options)
@@ -1692,7 +1691,7 @@ class Plan:
 
     def _add_withdrawal_limits(self):
         for i in range(self.N_i):
-            for n in range(self.N_n):
+            for n in range(self.horizons[i]):
                 rowDic = {_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n): -1,
                           _q2(self.C["x"], i, n, self.N_i, self.N_n): -1,
                           _q3(self.C["b"], i, 1, n, self.N_i, self.N_j, self.N_n + 1): 1}
@@ -1701,16 +1700,6 @@ class Plan:
                     rowDic = {_q3(self.C["w"], i, j, n, self.N_i, self.N_j, self.N_n): -1,
                               _q3(self.C["b"], i, j, n, self.N_i, self.N_j, self.N_n + 1): 1}
                     self.A.addNewRow(rowDic, 0, np.inf)
-
-    def _add_conversion_limits(self):
-        for i in range(self.N_i):
-            for n in range(self.N_n):
-                rowDic = {
-                    _q2(self.C["x"], i, n, self.N_i, self.N_n): -1,
-                    _q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n): -1,
-                    _q3(self.C["b"], i, 1, n, self.N_i, self.N_j, self.N_n + 1): 1,
-                }
-                self.A.addNewRow(rowDic, 0, np.inf)
 
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":

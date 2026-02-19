@@ -1313,8 +1313,10 @@ For $w_{ijn} + \delta(j,1)x_{in} \le b_{ijn}$ we add:
 	u[I_3(i, j, n)] &=& 0, \nonumber \\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j - 1\},\nonumber\\
-	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}~(n < n_d~\text{for}~i = i_d). \nonumber
 \end{eqnarray}
+For a couple, the upper index for the first-to-pass individual $i_d$ is $n_d - 1$
+rather than $N_n - 1$, since posthumous constraints zero out all account activities.
 
 \paragraph*{Posthumous account activities}
 For $n \ge n_d$ and the first-to-pass individual $i_d$, we set
@@ -1329,20 +1331,12 @@ For $n \ge n_d$ and the first-to-pass individual $i_d$, we set
 	&&\qquad\forall n \in \{n_d,\ldots, N_n - 1\}. \nonumber
 \end{eqnarray}
 
-\paragraph*{Roth conversions}
-To enforce $x_{in} \le b_{i1n}$ we add
-\begin{eqnarray}
-	A_u[I_7(i, n), q_{x}(i, n)] &=& 1, \nonumber \\
-	A_u[I_7(i, n), q_{b}(i, 1, n)] &=& -1, \nonumber \\
-	u[I_7(i, n)] &=& 0, \nonumber \\
-	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
-	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
-\end{eqnarray}
-If a maximum conversion $x_{max}$ is specified, we also add the bound
+\paragraph*{Roth conversion limit}
+If a maximum conversion $x_{max}$ is specified, we add the bound
 $\sum_i x_{in} \le x_{max}$ for all $n$ with
 \begin{eqnarray}
-	A_u[I_8(n), q_x(i, n)] &=& 1, \nonumber \\
-	u[I_8(n)] &=& x_{max}, \nonumber \\
+	A_u[I_7(n), q_x(i, n)] &=& 1, \nonumber \\
+	u[I_7(n)] &=& x_{max}, \nonumber \\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
 	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
 \end{eqnarray}
