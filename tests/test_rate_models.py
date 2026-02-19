@@ -161,6 +161,22 @@ def test_dataframe_method_in_percent_false():
     assert np.allclose(p.tau_kn[0], 0.05)
 
 
+def test_dataframe_method_in_percent_type_error():
+    # Non-boolean in_percent must raise ValueError, not silently misbehave
+    p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    n = p.N_n
+
+    df = pd.DataFrame({
+        "S&P 500":   [5.0] * n,
+        "Bonds Baa": [3.0] * n,
+        "T-Notes":   [2.5] * n,
+        "Inflation": [2.0] * n,
+    })
+
+    with pytest.raises(ValueError, match="in_percent"):
+        p.setRates(method="dataframe", df=df, in_percent="False")
+
+
 def test_external_plugin_loading(tmp_path):
     plugin_code = """
 from owlplanner.rate_models.base import BaseRateModel

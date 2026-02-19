@@ -123,7 +123,12 @@ class DataFrameRateModel(BaseRateModel):
 
         data = data[offset:offset + N]
 
-        if bool(self.get_param("in_percent")):
+        in_percent = self.get_param("in_percent")
+        if not isinstance(in_percent, bool):
+            raise ValueError(
+                f"'in_percent' must be a bool (True or False), got {type(in_percent).__name__!r}."
+            )
+        if in_percent:
             data = data / 100.0
 
         return data

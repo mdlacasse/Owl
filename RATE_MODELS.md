@@ -75,7 +75,7 @@ User-specified fixed annual rates (percent).
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"user"`) |
-| `values` | Yes | list[float] | Rates in percent: [Stocks, Bonds Baa, TNotes, Inflation] |
+| `values` | Yes | list[float] | Rates in percent: [S&P 500, Bonds Baa, T-Notes, Inflation] |
 
 **Example:**
 
@@ -178,9 +178,10 @@ Sequential or year-based rates read from a pandas DataFrame.
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"dataframe"`) |
-| `df` | Yes | pandas.DataFrame | Must contain columns: ['S&P 500','Bonds Baa','TNotes','Inflation'] |
+| `df` | Yes | pandas.DataFrame | Must contain columns: ['S&P 500','Bonds Baa','T-Notes','Inflation'] |
 | `n_years` | Yes | int | Number of years required for plan horizon. |
 | `offset` | No | int | Number of initial rows to skip before reading sequentially. |
+| `in_percent` | No | bool | If True (default), values are percent (7.0 = 7%) and divided by 100. Pass False if values are already decimal (0.07 = 7%). |
 | `frm` | No | int | Starting year (if year column present). |
 | `to` | No | int | Ending year (if year column present). |
 
