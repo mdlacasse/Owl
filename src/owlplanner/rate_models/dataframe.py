@@ -20,7 +20,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 ###########################################################################
-import numpy as np
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS

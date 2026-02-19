@@ -27,7 +27,6 @@ import pathlib
 from urllib.parse import urlparse
 
 from owlplanner.rate_models.builtin import (
-    BuiltinRateModel,  # noqa: F401 — re-exported for backward compat
     DefaultRateModel,
     OptimisticRateModel,
     ConservativeRateModel,

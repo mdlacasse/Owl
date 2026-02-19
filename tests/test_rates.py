@@ -517,8 +517,8 @@ class TestGetRatesDistributionsDataFrame:
     def test_df_mode_correlation_properties(self):
         df = self._make_df(50)
         _, _, corr, _ = getRatesDistributions(df=df)
-        assert np.allclose(corr, corr.T)              # symmetric
-        assert np.allclose(np.diag(corr), np.ones(4)) # unit diagonal
+        assert np.allclose(corr, corr.T)               # symmetric
+        assert np.allclose(np.diag(corr), np.ones(4))  # unit diagonal
 
     def test_historical_mode_still_works(self):
         """Existing positional call signature is unaffected."""
