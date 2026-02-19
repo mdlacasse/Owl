@@ -44,6 +44,33 @@ def sanitize_config(diconf: dict, *, log_stream=None) -> None:
             _LOG.warning(msg)
 
 
+def _clean_float(v) -> str:
+    """Format a float for TOML with limited precision, removing spurious digits.
+
+    Near-integer values (within 1e-9) are written as ``N.0`` to remain TOML float-typed.
+    All other values use 8 significant figures (``:.8g``), which eliminates float32→float64
+    widening artifacts (e.g. 2.799999952 → 2.8) and truncates long repeating fractions.
+    """
+    fv = float(v)
+    if abs(fv - round(fv)) < 1e-9:
+        return f"{int(round(fv))}.0"
+    formatted = f"{fv:.8g}"
+    if "." not in formatted and "e" not in formatted:
+        formatted += ".0"
+    return formatted
+
+
+class _CleanFloatEncoder(toml.TomlNumpyEncoder):
+    """TOML encoder that writes floats with limited precision (8 significant figures)."""
+
+    def __init__(self):
+        import numpy as np
+
+        super().__init__()
+        for t in (float, np.float16, np.float32, np.float64):
+            self.dump_funcs[t] = _clean_float
+
+
 def _convert_for_toml(obj):
     """Convert numpy types to Python native types for TOML serialization."""
     import numpy as np
@@ -143,9 +170,9 @@ def save_toml(
         if mylog:
             mylog.vprint(f"Saving plan case file as '{filename}'.")
         with open(filename, "w") as casefile:
-            toml.dump(diconf, casefile, encoder=toml.TomlNumpyEncoder())
+            toml.dump(diconf, casefile, encoder=_CleanFloatEncoder())
     elif isinstance(file, StringIO):
-        string = toml.dumps(diconf, encoder=toml.TomlNumpyEncoder())
+        string = toml.dumps(diconf, encoder=_CleanFloatEncoder())
         file.write(string)
     else:
         raise ValueError(f"Argument {type(file)} has unknown type")

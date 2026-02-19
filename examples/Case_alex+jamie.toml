@@ -23,14 +23,14 @@ pension_monthly_amounts = [ 0, 0,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ false, false,]
 social_security_pia_amounts = [ 3000, 1200,]
-social_security_ages = [ 69.0, 62.083333333333336,]
+social_security_ages = [ 69.0, 62.08333333333333,]
 
 [rates_selection]
 heirs_rate_on_tax_deferred_estate = 30.0
 dividend_rate = 1.72
 obbba_expiration_year = 2032
 method = "user"
-values = [ 7.000000000000001, 4.0, 3.3000000000000003, 2.8,]
+values = [ 7.0, 4.0, 3.3, 2.8,]
 from = 1928
 to = 2025
 
