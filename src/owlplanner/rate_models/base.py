@@ -135,6 +135,70 @@ class BaseRateModel(ABC):
         pass
 
     #######################################################################
+    # TOML Serialization Interface
+    #######################################################################
+
+    @classmethod
+    def from_config(cls, rates_section: dict) -> dict:
+        """
+        Extract and normalize model-specific parameters from a rates_selection dict.
+
+        Called by plan_bridge when loading a TOML config.  The default implementation:
+
+        - Translates the TOML key ``from`` to the internal key ``frm``.
+        - Coerces ``frm`` and ``to`` to int.
+        - Filters the result to only the keys declared in ``required_parameters``
+          and ``optional_parameters``.
+
+        Subclasses with non-standard TOML formats (renamed keys, nested structures,
+        type transformations) may override this method.
+
+        Args:
+            rates_section: The raw rates_selection dict from the config, with
+                global keys (method, dividend_rate, etc.) already removed.
+
+        Returns:
+            A kwargs dict suitable for passing to ``plan.setRates(**kwargs)``.
+        """
+        section = dict(rates_section)
+        # Translate TOML 'from' → internal 'frm' for backward compat.
+        if "from" in section:
+            section["frm"] = section.pop("from")
+        if "frm" in section:
+            section["frm"] = int(section["frm"])
+        if "to" in section:
+            section["to"] = int(section["to"])
+        allowed = set(cls.required_parameters) | set(cls.optional_parameters)
+        return {k: v for k, v in section.items() if k in allowed}
+
+    @classmethod
+    def to_config(cls, **params) -> dict:
+        """
+        Serialize model-specific parameters to a flat dict for TOML rates_selection.
+
+        Called by plan_bridge when saving a Plan to config.  The default implementation:
+
+        - Filters ``params`` to only the keys declared in ``required_parameters``
+          and ``optional_parameters``.
+        - Renames the internal key ``frm`` back to the TOML key ``from``.
+
+        Subclasses with non-standard TOML formats (renamed keys, type transformations,
+        derived fields) may override this method.
+
+        Args:
+            **params: The model's current parameter dict (e.g. ``plan.rateModel.params``).
+
+        Returns:
+            A dict of model-specific fields to merge into the rates_selection section.
+        """
+        allowed = set(cls.required_parameters) | set(cls.optional_parameters)
+        result = {k: v for k, v in params.items() if k in allowed}
+        # Translate internal 'frm' → TOML 'from' for backward compat.
+        if "frm" in result:
+            result["from"] = result.pop("frm")
+        return result
+
+    #######################################################################
     # Metadata Exposure
     #######################################################################
 

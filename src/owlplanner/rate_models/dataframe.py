@@ -67,6 +67,15 @@ class DataFrameRateModel(BaseRateModel):
     }
 
     #######################################################################
+    # TOML Serialization
+    #######################################################################
+
+    @classmethod
+    def to_config(cls, **params) -> dict:
+        """DataFrame cannot be serialized to TOML; return empty dict."""
+        return {}
+
+    #######################################################################
     # Properties
     #######################################################################
 

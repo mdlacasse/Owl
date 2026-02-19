@@ -218,6 +218,27 @@ class StochasticRateModel(BaseRateModel):
         }
     }
 
+    @classmethod
+    def from_config(cls, rates_section: dict) -> dict:
+        """Normalize TOML aliases (standard_deviations→stdev, correlations→corr) before filtering."""
+        section = _normalize_aliases(dict(rates_section))
+        allowed = set(cls.required_parameters) | set(cls.optional_parameters)
+        return {k: v for k, v in section.items() if k in allowed}
+
+    @classmethod
+    def to_config(cls, **params) -> dict:
+        """Serialize to TOML names: stdev→standard_deviations, corr→correlations (upper triangle)."""
+        result = {}
+        if "values" in params and params["values"] is not None:
+            result["values"] = list(np.array(params["values"]).tolist())
+        if "stdev" in params and params["stdev"] is not None:
+            result["standard_deviations"] = list(np.array(params["stdev"]).tolist())
+        if "corr" in params and params["corr"] is not None:
+            corr = np.array(params["corr"])
+            Nk = corr.shape[0]
+            result["correlations"] = [float(corr[k1, k2]) for k1 in range(Nk) for k2 in range(k1 + 1, Nk)]
+        return result
+
     def __init__(self, config, seed=None, logger=None):
         config = _normalize_aliases(dict(config or {}))
         rate_seed = config.pop("rate_seed", seed)

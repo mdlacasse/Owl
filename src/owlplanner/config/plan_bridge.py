@@ -14,7 +14,6 @@ from owlplanner import mylogging as log
 from owlplanner.rates import FROM, TO
 from owlplanner.rate_models.constants import (
     HISTORICAL_RANGE_METHODS,
-    METHODS_WITH_VALUES,
     STOCHASTIC_METHODS,
 )
 from owlplanner.rate_models.loader import load_rate_model
@@ -106,26 +105,14 @@ def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
     reverse = bool(rates_section.pop("reverse_sequence", False))
     roll = int(rates_section.pop("roll_sequence", 0))
 
-    if "from" in rates_section:
-        rates_section["frm"] = rates_section.pop("from")
-    if "frm" in rates_section:
-        rates_section["frm"] = int(rates_section["frm"])
-    if "to" in rates_section:
-        rates_section["to"] = int(rates_section["to"])
+    ModelClass = load_rate_model(rate_method)
+    clean_rate_section = ModelClass.from_config(rates_section)
 
     if rate_method in HISTORICAL_RANGE_METHODS:
-        if "frm" not in rates_section:
+        if "frm" not in clean_rate_section:
             raise ValueError(f"Rate method '{rate_method}' requires 'from' year.")
-        if "to" not in rates_section:
-            rates_section["to"] = int(rates_section["frm"]) + plan.N_n - 1
-
-    ModelClass = load_rate_model(rate_method)
-    metadata = ModelClass.get_metadata()
-
-    required = set(metadata.get("required_parameters", {}).keys())
-    optional = set(metadata.get("optional_parameters", {}).keys())
-    allowed = required | optional
-    clean_rate_section = {k: v for k, v in rates_section.items() if k in allowed}
+        if "to" not in clean_rate_section:
+            clean_rate_section["to"] = int(clean_rate_section["frm"]) + plan.N_n - 1
 
     plan.setRates(
         method=rate_method,
@@ -351,22 +338,10 @@ def plan_to_config(myplan: "Plan") -> dict:
         if myplan.rateSeed is not None:
             diconf["rates_selection"]["rate_seed"] = int(myplan.rateSeed)
         diconf["rates_selection"]["reproducible_rates"] = bool(myplan.reproducibleRates)
-    if myplan.rateMethod in METHODS_WITH_VALUES:
-        # Plan stores rateValues in percent (API/config format), not decimal.
-        diconf["rates_selection"]["values"] = myplan.rateValues.tolist()
-    if myplan.rateMethod == "stochastic":
-        # Plan stores rateStdev in percent; rateCorr as coefficient (-1 to 1).
-        diconf["rates_selection"]["standard_deviations"] = myplan.rateStdev.tolist()
-        # Correlations: extract upper triangle as coefficient (-1 to 1).
-        corr_upper = []
-        for k1 in range(myplan.N_k):
-            for k2 in range(k1 + 1, myplan.N_k):
-                corr_upper.append(float(myplan.rateCorr[k1, k2]))
-        diconf["rates_selection"]["correlations"] = corr_upper
-    if myplan.rateMethod in HISTORICAL_RANGE_METHODS:
-        diconf["rates_selection"]["from"] = int(myplan.rateFrm)
-        diconf["rates_selection"]["to"] = int(myplan.rateTo)
-    else:
+    ModelClass = load_rate_model(myplan.rateMethod)
+    diconf["rates_selection"].update(ModelClass.to_config(**myplan.rateModel.params))
+    # Ensure 'from'/'to' are always present (UI bridge expects them).
+    if "from" not in diconf["rates_selection"]:
         diconf["rates_selection"]["from"] = int(FROM)
         diconf["rates_selection"]["to"] = int(TO)
     diconf["rates_selection"]["reverse_sequence"] = bool(myplan.rateReverse)
