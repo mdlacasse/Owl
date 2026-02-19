@@ -2,6 +2,40 @@
 
 ---
 
+## Version 2026.02.19
+
+### Rate models
+- **BuiltinRateModel decomposition**: Replace single dispatcher with 8 concrete `BaseRateModel` subclasses (Default, Optimistic, Conservative, User, Historical, HistoricalAverage, Stochastic, Histochastic), each with its own metadata and `generate()`. `BuiltinRateModel` shim preserves backward compatibility.
+- **Stochastic UI fix**: Builtin rate model accepts config-style parameter names (`standard_deviations`, `correlations`) in addition to API names (`stdev`, `corr`). Fixes "Rate model 'builtin' requires parameter 'stdev'" when stochastic rates are selected in the UI. Name remap moved into `BuiltinRateModel.__init__`.
+- **getRatesDistributions** (issue #92): Standardize to return percent by default; add optional `df=` parameter to accept user-supplied DataFrame (e.g. from DataFrameRateModel) for distribution statistics.
+- **DataFrame rate model** (issue #92): Rename TNotes/TBills to T-Notes/T-Bills in CSV and `REQUIRED_RATE_COLUMNS`; add `in_percent` parameter to replace heuristic; align `RATE_DISPLAY_NAMES_SHORT` with column names for direct workbook→dataframe use; enforce bool type on `in_percent`.
+- **Rates UI**: Rename label 'fixed' to 'constant' in rates selection (radio, tooltips, section labels, `rateType` comparisons).
+
+### Social Security
+- **SS trim**: Add trim percent and year to SS benefits (reduction from a given year onward). Config, schema, UI bridge, and Fixed Income page updated.
+- Fix SS trim params not properly saving from UI.
+
+### Code maintainability and reduction
+- **Config UI bridge**: Add `_get_ui` helper to replace repeated `uidic.get(key, default) or default` patterns (~30 occurrences).
+- **Rate display constants**: Add `RATE_DISPLAY_NAMES` and `RATE_DISPLAY_NAMES_SHORT` in `rate_models/constants.py`; use in plotting backends and plan.
+- **Plotly backend**: Extract legend/layout dicts to module constants (`_LEGEND_TOP`, `_LEGEND_BOTTOM`, `_LEGEND_BOTTOM_REVERSED`).
+- **Matplotlib backend**: Refactor `plot_rates_distributions` to use a loop over rate names/data.
+- Net ~90 lines removed.
+
+### UI
+- Rename "copy case" to "copy parameters".
+- Make asset names consistent everywhere (issue #92).
+- Change worksheets output to % (issue #92 partial).
+
+### Documentation and notebooks
+- Update documentation and doc alignment.
+- Fix broken notebooks.
+
+### Code quality
+- Flake8: fix E402 in `matplotlib_backend.py` (imports after `os.environ` for Jupyter); general lint fixes.
+
+---
+
 ## Version 2026.02.17
 
 ### Rates API consolidation
