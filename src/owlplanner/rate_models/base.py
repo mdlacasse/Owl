@@ -119,10 +119,18 @@ class BaseRateModel(ABC):
     @abstractmethod
     def generate(self, N) -> np.ndarray:
         """
-        Must return array shape (N, 4)
-        Columns:
-        [S&P 500, Corporate Baa, T Bonds, Inflation]
-        All values must be decimal.
+        Generate an (N, 4) rate series in **decimal** format.
+
+        Columns: [S&P 500, Bonds Baa, T-Notes, Inflation]
+
+        Plugin convention
+        -----------------
+        - Return values must be decimal (e.g. 0.07 = 7%).  Internal callers
+          transpose the result into plan.tau_kn which is always decimal.
+        - If your plugin accepts user-facing parameters such as ``values`` or
+          ``stdev``, accept them in **percent** (e.g. 7.0 = 7%) for consistency
+          with setRates() and getRatesDistributions().
+        - Correlation / covariance matrices are always in **decimal** (−1 to 1).
         """
         pass
 

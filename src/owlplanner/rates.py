@@ -111,10 +111,10 @@ BondsBaa = df["Bonds Baa"]
 RealEstate = df["real estate"]
 
 # Annual rate of return (%) for 10-y Treasury notes since 1928.
-TNotes = df["TNotes"]
+TNotes = df["T-Notes"]
 
 # Annual rates of return for 3-month Treasury bills since 1928.
-TBills = df["TBills"]
+TBills = df["T-Bills"]
 
 # Inflation rate as U.S. CPI index (%) since 1928.
 Inflation = df["Inflation"]

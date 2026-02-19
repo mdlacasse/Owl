@@ -18,7 +18,7 @@ def get_historical_slice(frm, to):
 
     df = df[(df["year"] >= frm) & (df["year"] <= to)]
 
-    data = df[["S&P 500", "Bonds Baa", "TNotes", "Inflation"]].values / 100.0
+    data = df[["S&P 500", "Bonds Baa", "T-Notes", "Inflation"]].values / 100.0
     return data
 
 

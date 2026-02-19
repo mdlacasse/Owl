@@ -42,7 +42,7 @@ class DataFrameRateModel(BaseRateModel):
     required_parameters = {
         "df": {
             "type": "pandas.DataFrame",
-            "description": "Must contain columns: ['S&P 500','Bonds Baa','TNotes','Inflation']",
+            "description": "Must contain columns: ['S&P 500','Bonds Baa','T-Notes','Inflation']",
         },
         "n_years": {
             "type": "int",
@@ -55,6 +55,15 @@ class DataFrameRateModel(BaseRateModel):
             "type": "int",
             "default": 0,
             "description": "Number of initial rows to skip before reading sequentially.",
+        },
+        "in_percent": {
+            "type": "bool",
+            "default": True,
+            "description": (
+                "If True (default), DataFrame values are in percent (e.g. 7.0 = 7%) "
+                "and are divided by 100 internally. Pass False if values are already "
+                "in decimal (e.g. 0.07 = 7%)."
+            ),
         },
     }
 
@@ -114,7 +123,7 @@ class DataFrameRateModel(BaseRateModel):
 
         data = data[offset:offset + N]
 
-        if np.nanmean(np.abs(data)) > 1:
+        if bool(self.get_param("in_percent")):
             data = data / 100.0
 
         return data

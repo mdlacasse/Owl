@@ -327,7 +327,7 @@ class TestRatesDataframeWithPlan:
         df = pd.DataFrame({
             "S&P 500": [10.0] * n_years,
             "Bonds Baa": [4.0] * n_years,
-            "TNotes": [3.0] * n_years,
+            "T-Notes": [3.0] * n_years,
             "Inflation": [2.5] * n_years,
         })
         p.setRates("dataframe", df=df)
@@ -353,7 +353,7 @@ class TestRatesDataframeWithPlan:
         df = pd.DataFrame({
             "S&P 500": [1.0] * offset + [10.0] * n_years,
             "Bonds Baa": [1.0] * offset + [4.0] * n_years,
-            "TNotes": [1.0] * offset + [3.0] * n_years,
+            "T-Notes": [1.0] * offset + [3.0] * n_years,
             "Inflation": [1.0] * offset + [2.5] * n_years,
         })
         p.setRates("dataframe", df=df, offset=offset)

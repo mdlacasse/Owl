@@ -64,7 +64,7 @@ class BuiltinRateModel(BaseRateModel):
                 "values": {
                     "type": "list[float]",
                     "length": 4,
-                    "description": "Rates in percent: [Stocks, Bonds Baa, T-Notes, Inflation]",
+                    "description": "Rates in percent: [S&P 500, Bonds Baa, T-Notes, Inflation]",
                     "example": "[7.0, 4.5, 3.5, 2.5]",
                 }
             },

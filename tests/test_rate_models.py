@@ -126,19 +126,38 @@ def test_roll_sequence():
 
 def test_dataframe_method():
     # Sequential format: no year column, rows read in order
+    # Values in percent (default in_percent=True)
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
     n = p.N_n
 
     df = pd.DataFrame({
-        "S&P 500": [0.05] * n,
-        "Bonds Baa": [0.03] * n,
-        "TNotes": [0.025] * n,
-        "Inflation": [0.02] * n,
+        "S&P 500":   [5.0] * n,   # percent → stored as 0.05
+        "Bonds Baa": [3.0] * n,
+        "T-Notes":    [2.5] * n,
+        "Inflation": [2.0] * n,
     })
 
     p.setRates(method="dataframe", df=df)
 
-    # tau_kn is (4, N)
+    # tau_kn is (4, N) and always decimal
+    assert np.allclose(p.tau_kn[0], 0.05)
+
+
+def test_dataframe_method_in_percent_false():
+    # Values already in decimal; in_percent=False skips the /100 conversion
+    p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    n = p.N_n
+
+    df = pd.DataFrame({
+        "S&P 500":   [0.05] * n,
+        "Bonds Baa": [0.03] * n,
+        "T-Notes":    [0.025] * n,
+        "Inflation": [0.02] * n,
+    })
+
+    p.setRates(method="dataframe", df=df, in_percent=False)
+
+    # tau_kn is (4, N) and always decimal
     assert np.allclose(p.tau_kn[0], 0.05)
 
 
@@ -270,7 +289,7 @@ def test_dataframe_missing_column(missing_col):
     n = p.N_n
 
     # Build df with all columns except the one under test
-    data = {"S&P 500": [0.05] * n, "Bonds Baa": [0.03] * n, "TNotes": [0.025] * n, "Inflation": [0.02] * n}
+    data = {"S&P 500": [5.0] * n, "Bonds Baa": [3.0] * n, "T-Notes": [2.5] * n, "Inflation": [2.0] * n}
     del data[missing_col]
     df = pd.DataFrame(data)
 
@@ -285,10 +304,10 @@ def test_dataframe_insufficient_rows():
 
     # Too few rows (n-1 instead of n)
     df = pd.DataFrame({
-        "S&P 500": [0.05] * (n - 1),
-        "Bonds Baa": [0.03] * (n - 1),
-        "TNotes": [0.025] * (n - 1),
-        "Inflation": [0.02] * (n - 1),
+        "S&P 500": [5.0] * (n - 1),
+        "Bonds Baa": [3.0] * (n - 1),
+        "T-Notes": [2.5] * (n - 1),
+        "Inflation": [2.0] * (n - 1),
     })
 
     with pytest.raises(ValueError, match="needs at least"):

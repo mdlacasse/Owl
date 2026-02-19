@@ -3414,7 +3414,7 @@ class Plan:
         The second worksheet contains the rates
         used for the case as follows:
         - S&P 500
-        - Corporate Baa bonds
+        - Bonds Baa
         - Treasury notes (10y)
         - Inflation.
 
