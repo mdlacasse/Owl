@@ -12,7 +12,7 @@ RATE_DISPLAY_NAMES = ("S&P 500 (incl. div.)", "Bonds Baa", "T-Notes", "Inflation
 # Short form for subplot titles (e.g. histogram panels)
 RATE_DISPLAY_NAMES_SHORT = ("S&P 500", "Bonds Baa", "T-Notes", "Inflation")
 
-# Built-in method name sets. Must stay in sync with BuiltinRateModel.BUILTINS_METADATA.
+# Built-in method name sets. Must stay in sync with loader._RATE_MODEL_REGISTRY.
 
 # Methods using canonical fixed preset rates (default, optimistic, conservative).
 FIXED_PRESET_METHODS = ("default", "optimistic", "conservative")

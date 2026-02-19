@@ -120,10 +120,7 @@ def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
             rates_section["to"] = int(rates_section["frm"]) + plan.N_n - 1
 
     ModelClass = load_rate_model(rate_method)
-    if ModelClass.model_name == "builtin":
-        metadata = ModelClass.get_method_metadata(rate_method)
-    else:
-        metadata = ModelClass.get_metadata()
+    metadata = ModelClass.get_metadata()
 
     required = set(metadata.get("required_parameters", {}).keys())
     optional = set(metadata.get("optional_parameters", {}).keys())

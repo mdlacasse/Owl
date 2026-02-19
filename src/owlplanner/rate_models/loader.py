@@ -26,23 +26,44 @@ import importlib.util
 import pathlib
 from urllib.parse import urlparse
 
-from owlplanner.rate_models.builtin import BuiltinRateModel
+from owlplanner.rate_models.builtin import (
+    BuiltinRateModel,  # noqa: F401 — re-exported for backward compat
+    DefaultRateModel,
+    OptimisticRateModel,
+    ConservativeRateModel,
+    UserRateModel,
+    HistoricalRateModel,
+    HistoricalAverageRateModel,
+    StochasticRateModel,
+    HistochasticRateModel,
+)
 from owlplanner.rate_models.dataframe import DataFrameRateModel
 from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
 
 
 # ------------------------------------------------------------
-# Allowed built-in method names
+# Unified registry of all built-in rate models
 # ------------------------------------------------------------
 
-BUILTIN_CORE_METHODS = BuiltinRateModel.list_methods()
-
-BUILTIN_EXTENDED_METHODS = {
-    "dataframe",
-    "bootstrap_sor",
+_RATE_MODEL_REGISTRY = {
+    "default": DefaultRateModel,
+    "optimistic": OptimisticRateModel,
+    "conservative": ConservativeRateModel,
+    "user": UserRateModel,
+    "historical": HistoricalRateModel,
+    "historical average": HistoricalAverageRateModel,
+    "stochastic": StochasticRateModel,
+    "histochastic": HistochasticRateModel,
+    "dataframe": DataFrameRateModel,
+    "bootstrap_sor": BootstrapSORRateModel,
 }
 
-ALLOWED_METHODS = BUILTIN_CORE_METHODS | BUILTIN_EXTENDED_METHODS
+BUILTIN_CORE_METHODS = frozenset({
+    "default", "optimistic", "conservative", "user",
+    "historical", "historical average", "stochastic", "histochastic",
+})
+
+ALLOWED_METHODS = frozenset(_RATE_MODEL_REGISTRY.keys())
 
 
 # ------------------------------------------------------------
@@ -55,8 +76,7 @@ def load_rate_model(method, method_file=None):
 
     Priority order:
         1. External plugin (if method_file provided)
-        2. Extended built-in models (dataframe, bootstrap_sor)
-        3. Core built-in models
+        2. Registry lookup (builtin + extended models)
     """
 
     # ------------------------------------------------------------
@@ -80,19 +100,10 @@ def load_rate_model(method, method_file=None):
         return module.RateModel
 
     # ------------------------------------------------------------
-    # 2. Extended built-ins
+    # 2. Registry lookup
     # ------------------------------------------------------------
-    if method == "dataframe":
-        return DataFrameRateModel
-
-    if method == "bootstrap_sor":
-        return BootstrapSORRateModel
-
-    # ------------------------------------------------------------
-    # 3. Core built-ins
-    # ------------------------------------------------------------
-    if method in BUILTIN_CORE_METHODS:
-        return BuiltinRateModel
+    if method in _RATE_MODEL_REGISTRY:
+        return _RATE_MODEL_REGISTRY[method]
 
     # ------------------------------------------------------------
     # Unknown method
@@ -109,12 +120,7 @@ def list_available_rate_models():
 
 
 def get_rate_model_metadata(method, method_file=None):
-    ModelClass = load_rate_model(method, method_file)
-
-    if ModelClass is BuiltinRateModel:
-        return BuiltinRateModel.get_method_metadata(method)
-
-    return ModelClass.get_metadata()
+    return load_rate_model(method, method_file).get_metadata()
 
 
 # ------------------------------------------------------------
@@ -144,8 +150,8 @@ def _collect_all_model_metadata():
 
     metadata = []
 
-    # Built-in methods
-    for method, md in BuiltinRateModel.BUILTINS_METADATA.items():
+    for method, ModelClass in _RATE_MODEL_REGISTRY.items():
+        md = ModelClass.get_metadata()
         metadata.append({
             "method": method,
             "description": md.get("description", ""),
@@ -154,25 +160,6 @@ def _collect_all_model_metadata():
             "optional_parameters": md.get("optional_parameters", {}),
             "deterministic": md.get("deterministic", True),
             "constant": md.get("constant", True),
-        })
-
-    # Extended models
-    for method in sorted(ALLOWED_METHODS):
-        ModelClass = load_rate_model(method)
-
-        if ModelClass is BuiltinRateModel:
-            continue
-
-        md = ModelClass.get_metadata().copy()
-
-        metadata.append({
-            "method": method,
-            "description": md.get("description", ""),
-            "more_info": md.get("more_info"),
-            "required_parameters": md.get("required_parameters", {}),
-            "optional_parameters": md.get("optional_parameters", {}),
-            "deterministic": md.get("deterministic", False),
-            "constant": md.get("constant", False),
         })
 
     return metadata

@@ -1,5 +1,5 @@
 """
-Wrapper for core builtin rate models.
+Built-in rate models — one class per method.
 All new rate models should subclass BaseRateModel.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
@@ -9,320 +9,303 @@ import numpy as np
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models import _builtin_impl as impl
-from owlplanner.rate_models.constants import (
-    FIXED_PRESET_METHODS,
-    HISTORICAL_RANGE_METHODS,
-)
 
 
-class BuiltinRateModel(BaseRateModel):
+# ---------------------------------------------------------------------------
+# Module-level helpers
+# ---------------------------------------------------------------------------
 
-    model_name = "builtin"
-    description = "Built-in OWL rate models."
+def _normalize_aliases(config: dict) -> dict:
+    """Remap TOML names: standard_deviations→stdev, correlations→corr."""
+    config = dict(config)
+    if "standard_deviations" in config and "stdev" not in config:
+        config["stdev"] = config.pop("standard_deviations")
+    if "correlations" in config and "corr" not in config:
+        config["corr"] = config.pop("correlations")
+    return config
 
-    #######################################################################
-    # Per-method metadata
-    #######################################################################
 
-    BUILTINS_METADATA = {
+def _validate_historical_range(frm: int, to: int) -> None:
+    if not (impl.FROM <= frm <= impl.TO):
+        raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
+    if not (impl.FROM <= to <= impl.TO):
+        raise ValueError(f"Upper range 'to={to}' out of bounds.")
+    if frm >= to:
+        raise ValueError("Unacceptable range.")
 
-        # ------------------------------------------------------------
-        # Deterministic Fixed Methods
-        # ------------------------------------------------------------
 
-        "default": {
-            "description": "30-year trailing historical average deterministic rates.",
-            "more_info" : None,
-            "required_parameters": {},
-            "optional_parameters": {},
-            "deterministic": True,
-            "constant": True,
+# ---------------------------------------------------------------------------
+# Fixed-preset models
+# ---------------------------------------------------------------------------
+
+class DefaultRateModel(BaseRateModel):
+    model_name = "default"
+    description = "30-year trailing historical average deterministic rates."
+    deterministic = True
+    constant = True
+    required_parameters = {}
+    optional_parameters = {}
+
+    def generate(self, N):
+        from owlplanner.rates import get_fixed_rates_decimal
+        return impl.generate_fixed_series(N, get_fixed_rates_decimal("default"))
+
+
+class OptimisticRateModel(BaseRateModel):
+    model_name = "optimistic"
+    description = "Optimistic fixed rates based on industry forecasts."
+    deterministic = True
+    constant = True
+    required_parameters = {}
+    optional_parameters = {}
+
+    def generate(self, N):
+        from owlplanner.rates import get_fixed_rates_decimal
+        return impl.generate_fixed_series(N, get_fixed_rates_decimal("optimistic"))
+
+
+class ConservativeRateModel(BaseRateModel):
+    model_name = "conservative"
+    description = "Conservative fixed rate assumptions."
+    deterministic = True
+    constant = True
+    required_parameters = {}
+    optional_parameters = {}
+
+    def generate(self, N):
+        from owlplanner.rates import get_fixed_rates_decimal
+        return impl.generate_fixed_series(N, get_fixed_rates_decimal("conservative"))
+
+
+# ---------------------------------------------------------------------------
+# User-specified fixed rates
+# ---------------------------------------------------------------------------
+
+class UserRateModel(BaseRateModel):
+    model_name = "user"
+    description = "User-specified fixed annual rates (percent)."
+    deterministic = True
+    constant = True
+    required_parameters = {
+        "values": {
+            "type": "list[float]",
+            "length": 4,
+            "description": "Rates in percent: [S&P 500, Bonds Baa, T-Notes, Inflation]",
+            "example": "[7.0, 4.5, 3.5, 2.5]",
+        }
+    }
+    optional_parameters = {}
+
+    def __init__(self, config, seed=None, logger=None):
+        super().__init__(dict(config or {}), seed=seed, logger=logger)
+        values = self.get_param("values")
+        if values is not None and len(values) != 4:
+            raise ValueError("Values must have 4 items.")
+        self._values = values
+
+    def generate(self, N):
+        rates_decimal = np.array(self._values, dtype=float) / 100.0
+        return impl.generate_fixed_series(N, rates_decimal)
+
+
+# ---------------------------------------------------------------------------
+# Historical deterministic models
+# ---------------------------------------------------------------------------
+
+class HistoricalRateModel(BaseRateModel):
+    model_name = "historical"
+    description = "Historical year-by-year returns over selected range."
+    deterministic = True
+    constant = False
+    required_parameters = {
+        "frm": {
+            "type": "int",
+            "description": "Starting historical year (inclusive).",
+            "example": "1969",
         },
-
-        "optimistic": {
-            "description": "Optimistic fixed rates based on industry forecasts.",
-            "more_info" : None,
-            "required_parameters": {},
-            "optional_parameters": {},
-            "deterministic": True,
-            "constant": True,
-        },
-
-        "conservative": {
-            "description": "Conservative fixed rate assumptions.",
-            "more_info" : None,
-            "required_parameters": {},
-            "optional_parameters": {},
-            "deterministic": True,
-            "constant": True,
-        },
-
-        "user": {
-            "description": "User-specified fixed annual rates (percent).",
-            "more_info" : None,
-            "required_parameters": {
-                "values": {
-                    "type": "list[float]",
-                    "length": 4,
-                    "description": "Rates in percent: [S&P 500, Bonds Baa, T-Notes, Inflation]",
-                    "example": "[7.0, 4.5, 3.5, 2.5]",
-                }
-            },
-            "optional_parameters": {},
-            "deterministic": True,
-            "constant": True,
-        },
-
-        # ------------------------------------------------------------
-        # Historical Deterministic
-        # ------------------------------------------------------------
-
-        "historical": {
-            "description": "Historical year-by-year returns over selected range.",
-            "more_info" : None,
-            "required_parameters": {
-                "frm": {
-                    "type": "int",
-                    "description": "Starting historical year (inclusive).",
-                    "example": "1969",
-                },
-            },
-            "optional_parameters": {
-                "to": {
-                    "type": "int",
-                    "description": (
-                        "Ending historical year (inclusive). "
-                        "Defaults to frm if not provided."
-                    ),
-                    "example": "2002",
-                },
-            },
-            "deterministic": True,
-            "constant": False,
-        },
-
-        "historical average": {
-            "description": "Fixed rates equal to historical average over selected range.",
-            "more_info" : None,
-            "required_parameters": {
-                "frm": {
-                    "type": "int",
-                    "example": "1969",
-                },
-                "to": {
-                    "type": "int",
-                    "example": "2002",
-                },
-            },
-            "optional_parameters": {},
-            "deterministic": True,
-            "constant": True,
-        },
-
-        # ------------------------------------------------------------
-        # Stochastic Models
-        # ------------------------------------------------------------
-
-        "stochastic": {
-            "description": "Multivariate normal stochastic model using user-provided mean and volatility.",
-            "more_info" : None,
-            "required_parameters": {
-                "values": {
-                    "type": "list[float]",
-                    "length": 4,
-                    "description": "Mean returns in percent.",
-                    "example": "[7.0, 4.5, 3.5, 2.5]",
-                },
-                "stdev": {
-                    "type": "list[float]",
-                    "length": 4,
-                    "description": "Standard deviations in percent.",
-                    "example": "[17.0, 8.0, 6.0, 2.0]",
-                },
-            },
-            "optional_parameters": {
-                "corr": {
-                    "type": "4x4 matrix or list[6]",
-                    "description": (
-                        "Pearson correlation coefficient (-1 to 1). "
-                        "Matrix or upper-triangle off-diagonals. Standard in finance/statistics."
-                    ),
-                    "example": "[0.2, 0.1, 0.0, 0.3, 0.1, 0.2]",
-                }
-            },
-            "deterministic": False,
-            "constant": False,
-        },
-
-        "histochastic": {
-            "description": "Multivariate normal model using historical mean and covariance.",
-            "more_info" : None,
-            "required_parameters": {
-                "frm": {
-                    "type": "int",
-                    "example": "1969",
-                },
-                "to": {
-                    "type": "int",
-                    "example": "2002",
-                },
-            },
-            "optional_parameters": {},
-            "deterministic": False,
-            "constant": False,
+    }
+    optional_parameters = {
+        "to": {
+            "type": "int",
+            "description": (
+                "Ending historical year (inclusive). "
+                "Defaults to frm if not provided."
+            ),
+            "example": "2002",
         },
     }
 
-    #######################################################################
-    # Initialization
-    #######################################################################
-
     def __init__(self, config, seed=None, logger=None):
-        # Accept config-style names (standard_deviations, correlations) or API names (stdev, corr)
-        config = dict(config or {})
-        if "standard_deviations" in config and "stdev" not in config:
-            config["stdev"] = config.pop("standard_deviations")
-        if "correlations" in config and "corr" not in config:
-            config["corr"] = config.pop("correlations")
-
-        self.method = config["method"]
-
-        if self.method not in self.BUILTINS_METADATA:
-            raise ValueError(f"Unknown builtin rate method '{self.method}'.")
-
-        # Inject metadata into base validation system
-        meta = self.BUILTINS_METADATA[self.method]
-        self.required_parameters = meta.get("required_parameters", {})
-        self.optional_parameters = meta.get("optional_parameters", {})
-
-        # Run centralized validation
-        super().__init__(config, seed, logger)
-
-        # Extract normalized parameters
+        super().__init__(dict(config or {}), seed=seed, logger=logger)
         frm = self.get_param("frm")
         to = self.get_param("to")
-        values = self.get_param("values")
-        stdev = self.get_param("stdev")
-        corr = self.get_param("corr")
-
-        # Seed and RNG for stochastic methods
-        rate_seed = config.get("rate_seed", seed)
-        self._rng = np.random.default_rng(rate_seed)
-
-        # Historical range default and validation
-        if self.method in HISTORICAL_RANGE_METHODS:
-            if to is None:
-                to = frm
-            if not (impl.FROM <= frm <= impl.TO):
-                raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
-            if not (impl.FROM <= to <= impl.TO):
-                raise ValueError(f"Upper range 'to={to}' out of bounds.")
-            if frm >= to:
-                raise ValueError("Unacceptable range.")
-
-        # User values length validation
-        if self.method == "user" and values is not None:
-            if len(values) != 4:
-                raise ValueError("Values must have 4 items.")
-
-        # Store params for generate(); optional metadata for params dict
+        if to is None:
+            to = frm
+        _validate_historical_range(frm, to)
         self._frm = frm
         self._to = to
-        self._values = values
-        self._stdev = stdev
-        self._corr = corr
-
-        # Params for historical average / histochastic are populated in generate()
-        # Params for stochastic (corr when user didn't provide) set in generate()
-
-        if self.method == "stochastic":
-            # Store correlation for later; if user didn't provide, we use identity
-            # and will capture the actual matrix when we build covar in generate
-            if corr is not None:
-                corr_matrix = impl._build_corr_matrix(corr)
-                self.params["corr"] = corr_matrix.copy()
-            # else: identity is implicit; we'll set params["corr"] in generate when we have it
-
-    #######################################################################
-    # Model properties
-    #######################################################################
-
-    @property
-    def deterministic(self):
-        return self.BUILTINS_METADATA[self.method]["deterministic"]
-
-    @property
-    def constant(self):
-        return self.BUILTINS_METADATA[self.method]["constant"]
-
-    #######################################################################
-    # Generate
-    #######################################################################
 
     def generate(self, N):
-        method = self.method
+        return impl.generate_historical_series(N, self._frm, self._to)
 
-        if method in FIXED_PRESET_METHODS:
-            from owlplanner.rates import get_fixed_rates_decimal
-            rates_decimal = get_fixed_rates_decimal(method)
-            return impl.generate_fixed_series(N, rates_decimal)
 
-        if method == "user":
-            rates_decimal = np.array(self._values, dtype=float) / 100.0
-            return impl.generate_fixed_series(N, rates_decimal)
+class HistoricalAverageRateModel(BaseRateModel):
+    model_name = "historical average"
+    description = "Fixed rates equal to historical average over selected range."
+    deterministic = True
+    constant = True
+    required_parameters = {
+        "frm": {
+            "type": "int",
+            "example": "1969",
+        },
+        "to": {
+            "type": "int",
+            "example": "2002",
+        },
+    }
+    optional_parameters = {}
 
-        if method == "historical":
-            return impl.generate_historical_series(N, self._frm, self._to)
+    def __init__(self, config, seed=None, logger=None):
+        super().__init__(dict(config or {}), seed=seed, logger=logger)
+        frm = self.get_param("frm")
+        to = self.get_param("to")
+        _validate_historical_range(frm, to)
+        self._frm = frm
+        self._to = to
 
-        if method == "historical average":
-            series, means, stdev_arr, corr_arr = impl.generate_historical_average_series(
-                N, self._frm, self._to, self.logger
-            )
-            self.params["values"] = means.copy()
-            self.params["stdev"] = stdev_arr.copy()
-            self.params["corr"] = corr_arr.copy()
-            return series
+    def generate(self, N):
+        series, means, stdev_arr, corr_arr = impl.generate_historical_average_series(
+            N, self._frm, self._to, self.logger
+        )
+        self.params["values"] = means.copy()
+        self.params["stdev"] = stdev_arr.copy()
+        self.params["corr"] = corr_arr.copy()
+        return series
 
-        if method == "histochastic":
-            series, means, stdev_arr, corr_arr = impl.generate_histochastic_series(
-                N, self._frm, self._to, self._rng, self.logger
-            )
-            self.params["values"] = means.copy()
-            self.params["stdev"] = stdev_arr.copy()
-            self.params["corr"] = corr_arr.copy()
-            return series
 
-        if method == "stochastic":
-            series, means, stdev_arr, corr_matrix = impl.generate_stochastic_series(
-                N,
-                self._values,
-                self._stdev,
-                corr=self._corr,
-                rng=self._rng,
-            )
-            self.params["corr"] = corr_matrix.copy()
-            return series
+# ---------------------------------------------------------------------------
+# Stochastic models
+# ---------------------------------------------------------------------------
 
-        raise ValueError(f"Method '{method}' not implemented.")
-
-    #######################################################################
-    # Metadata helpers
-    #######################################################################
-
-    @classmethod
-    def get_method_metadata(cls, method):
-        if method not in cls.BUILTINS_METADATA:
-            raise ValueError(f"No metadata defined for builtin method '{method}'")
-
-        meta = cls.BUILTINS_METADATA[method]
-
-        return {
-            "model_name": method,
-            "description": meta["description"],
-            "required_parameters": meta.get("required_parameters", {}),
-            "optional_parameters": meta.get("optional_parameters", {}),
+class StochasticRateModel(BaseRateModel):
+    model_name = "stochastic"
+    description = "Multivariate normal stochastic model using user-provided mean and volatility."
+    deterministic = False
+    constant = False
+    required_parameters = {
+        "values": {
+            "type": "list[float]",
+            "length": 4,
+            "description": "Mean returns in percent.",
+            "example": "[7.0, 4.5, 3.5, 2.5]",
+        },
+        "stdev": {
+            "type": "list[float]",
+            "length": 4,
+            "description": "Standard deviations in percent.",
+            "example": "[17.0, 8.0, 6.0, 2.0]",
+        },
+    }
+    optional_parameters = {
+        "corr": {
+            "type": "4x4 matrix or list[6]",
+            "description": (
+                "Pearson correlation coefficient (-1 to 1). "
+                "Matrix or upper-triangle off-diagonals. Standard in finance/statistics."
+            ),
+            "example": "[0.2, 0.1, 0.0, 0.3, 0.1, 0.2]",
         }
+    }
 
-    @classmethod
-    def list_methods(cls):
-        return set(cls.BUILTINS_METADATA.keys())
+    def __init__(self, config, seed=None, logger=None):
+        config = _normalize_aliases(dict(config or {}))
+        rate_seed = config.pop("rate_seed", seed)
+        super().__init__(config, seed=seed, logger=logger)
+        self._rng = np.random.default_rng(rate_seed)
+        self._values = self.get_param("values")
+        self._stdev = self.get_param("stdev")
+        self._corr = self.get_param("corr")
+        if self._corr is not None:
+            corr_matrix = impl._build_corr_matrix(self._corr)
+            self.params["corr"] = corr_matrix.copy()
+
+    def generate(self, N):
+        series, means, stdev_arr, corr_matrix = impl.generate_stochastic_series(
+            N,
+            self._values,
+            self._stdev,
+            corr=self._corr,
+            rng=self._rng,
+        )
+        self.params["corr"] = corr_matrix.copy()
+        return series
+
+
+class HistochasticRateModel(BaseRateModel):
+    model_name = "histochastic"
+    description = "Multivariate normal model using historical mean and covariance."
+    deterministic = False
+    constant = False
+    required_parameters = {
+        "frm": {
+            "type": "int",
+            "example": "1969",
+        },
+        "to": {
+            "type": "int",
+            "example": "2002",
+        },
+    }
+    optional_parameters = {}
+
+    def __init__(self, config, seed=None, logger=None):
+        config = _normalize_aliases(dict(config or {}))
+        rate_seed = config.pop("rate_seed", seed)
+        super().__init__(config, seed=seed, logger=logger)
+        self._rng = np.random.default_rng(rate_seed)
+        frm = self.get_param("frm")
+        to = self.get_param("to")
+        _validate_historical_range(frm, to)
+        self._frm = frm
+        self._to = to
+
+    def generate(self, N):
+        series, means, stdev_arr, corr_arr = impl.generate_histochastic_series(
+            N, self._frm, self._to, self._rng, self.logger
+        )
+        self.params["values"] = means.copy()
+        self.params["stdev"] = stdev_arr.copy()
+        self.params["corr"] = corr_arr.copy()
+        return series
+
+
+# ---------------------------------------------------------------------------
+# Registry and backward-compatibility shim
+# ---------------------------------------------------------------------------
+
+_BUILTIN_REGISTRY = {
+    "default": DefaultRateModel,
+    "optimistic": OptimisticRateModel,
+    "conservative": ConservativeRateModel,
+    "user": UserRateModel,
+    "historical": HistoricalRateModel,
+    "historical average": HistoricalAverageRateModel,
+    "stochastic": StochasticRateModel,
+    "histochastic": HistochasticRateModel,
+}
+
+
+class BuiltinRateModel:
+    """Backward-compatibility shim — delegates to the appropriate concrete class."""
+
+    @staticmethod
+    def list_methods():
+        return set(_BUILTIN_REGISTRY.keys())
+
+    def __new__(cls, config, seed=None, logger=None):
+        config = dict(config or {})
+        method = config.get("method")
+        if method not in _BUILTIN_REGISTRY:
+            raise ValueError(f"Unknown builtin rate method '{method}'.")
+        return _BUILTIN_REGISTRY[method](config, seed=seed, logger=logger)
