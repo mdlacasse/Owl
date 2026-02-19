@@ -28,7 +28,7 @@ heirs_rate_on_tax_deferred_estate = 0.0
 dividend_rate = 0.0
 obbba_expiration_year = 2099
 method = "user"
-values = [ 6.5, 0.0, 0.0, 2.799999952316284,]
+values = [ 6.5, 0.0, 0.0, 2.8,]
 from = 1928
 to = 2025
 

@@ -73,7 +73,7 @@
 - Enhance optimization page of UI.
 
 ### Configuration and UI
-- Rename contributions → Household Financial Profile (HFP) for consistency.
+- Rename contributions -> Household Financial Profile (HFP) for consistency.
 - Discovery UI helpers for rate models and metadata.
 - Tooltip and wording improvements; fix int/float conversion for fixed income age.
 - Fix `startRothConversions` in examples; clamp year when in the past.
@@ -81,7 +81,7 @@
 
 ### Documentation and notebooks
 - Add README and docs for pluggable rate models and SOR (sequence-of-returns) models.
-- Update template notebook: fix outdated rate method names (`average` → `historical average`, `fixed` → `user`), remove obsolete "means" mention.
+- Update template notebook: fix outdated rate method names (`average` -> `historical average`, `fixed` -> `user`), remove obsolete "means" mention.
 
 ### Code quality
 - Flake8 fixes across scripts (cumulative_returns_analysis, roth_case_study, time_time_correlation, etc.) and tests.
@@ -118,7 +118,7 @@
 ### Rates
 - **Rate sequence modifiers** (issue #77): Add reverse and roll options for varying rate methods.
   - New `reverse_sequence` (boolean) and `roll_sequence` (integer) in `setRates`, config, and TOML.
-  - UI: Reverse toggle and Roll (years) in Rates Selection → Advanced Options.
+  - UI: Reverse toggle and Roll (years) in Rates Selection -> Advanced Options.
   - Historical Range: same reverse/roll options in Advanced Options; `runHistoricalRange` accepts `reverse` and `roll` and applies them to each year’s historical sequence.
   - Ignored for fixed/constant rate methods (with warning). Documented in PARAMETERS.md and Documentation.
 
