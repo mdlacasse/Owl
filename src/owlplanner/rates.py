@@ -120,7 +120,7 @@ TBills = df["T-Bills"]
 Inflation = df["Inflation"]
 
 
-def getRatesDistributions(frm, to, mylog=None, in_percent=True):
+def getRatesDistributions(frm=None, to=None, mylog=None, in_percent=True, *, df=None):
     """
     Pre-compute normal distribution parameters for the series above.
     This calculation takes into account the correlations between
@@ -135,43 +135,62 @@ def getRatesDistributions(frm, to, mylog=None, in_percent=True):
 
     Parameters
     ----------
-    frm : int
-        Start year (inclusive).
-    to : int
-        End year (inclusive).
+    frm : int, optional
+        In historical mode: start year (inclusive). Required when df=None.
+        In DataFrame mode: start row index (inclusive); defaults to 0.
+    to : int, optional
+        In historical mode: end year (inclusive). Required when df=None.
+        In DataFrame mode: end row index (inclusive); defaults to last row.
     mylog : Logger, optional
         Logger instance; a default silent logger is used if None.
     in_percent : bool, optional
         If True (default), return means/stdev in percent (e.g. 7.0 = 7%).
         If False, return means/stdev in decimal (e.g. 0.07 = 7%).
         corr and covar are unaffected.
+    df : DataFrame, keyword-only, optional
+        User-supplied DataFrame with columns matching REQUIRED_RATE_COLUMNS
+        (S&P 500, Bonds Baa, T-Notes, Inflation). Values must be in percent
+        (e.g. 7.0 = 7%). When provided, frm/to are treated as row indices
+        rather than years. When None (default), the built-in historical data
+        is used and frm/to must be year integers.
     """
     if mylog is None:
         mylog = log.Logger()
 
-    # Convert years to index and check range.
-    frm -= FROM
-    to -= FROM
-    if not (0 <= frm and frm <= len(SP500)):
-        raise ValueError(f"Range 'from' {frm} out of bounds.")
-    if not (0 <= to and to <= len(SP500)):
-        raise ValueError(f"Range 'to' {to} out of bounds.")
-    if frm >= to:
-        raise ValueError(f'"from" {frm} must be smaller than "to" {to}.')
+    if df is None:
+        # ── Historical mode (existing behavior) ──────────────────────────────
+        if frm is None or to is None:
+            raise ValueError("frm and to (years) are required in historical mode.")
+        ifrm = frm - FROM
+        ito = to - FROM
+        if not (0 <= ifrm <= len(SP500)):
+            raise ValueError(f"Range 'from' {ifrm} out of bounds.")
+        if not (0 <= ito <= len(SP500)):
+            raise ValueError(f"Range 'to' {ito} out of bounds.")
+        if ifrm >= ito:
+            raise ValueError(f'"from" {ifrm} must be smaller than "to" {ito}.')
+        data = pd.DataFrame({"S&P 500": SP500, "Bonds Baa": BondsBaa,
+                             "T-Notes": TNotes, "Inflation": Inflation})
+        data = data.truncate(before=ifrm, after=ito)
+    else:
+        # ── DataFrame mode (new) ─────────────────────────────────────────────
+        from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
+        missing = [c for c in REQUIRED_RATE_COLUMNS if c not in df.columns]
+        if missing:
+            raise ValueError(f"DataFrame missing required columns: {missing}")
+        if frm is not None or to is not None:
+            ifrm = frm if frm is not None else 0
+            ito = to if to is not None else len(df) - 1
+            data = df.iloc[ifrm: ito + 1]
+        else:
+            data = df
+        if len(data) < 2:
+            raise ValueError("DataFrame must have at least 2 rows for computing statistics.")
 
-    series = {
-        "S&P 500": SP500,
-        "Bonds Baa": BondsBaa,
-        "T-Notes": TNotes,
-        "Inflation": Inflation,
-    }
-
-    df = pd.DataFrame(series)
-    df = df.truncate(before=frm, after=to)
-
-    means = df.mean()
-    stdev = df.std()
-    covar = df.cov()
+    # ── Shared statistics block ───────────────────────────────────────────────
+    means = data.mean()
+    stdev = data.std()
+    covar = data.cov()
 
     mylog.vprint("means: (%)\n", means)
     mylog.vprint("standard deviation: (%)\n", stdev)

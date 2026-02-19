@@ -462,6 +462,70 @@ class TestGetRatesDistributions:
         np.testing.assert_array_almost_equal(covar_pct, covar_dec, decimal=10)
 
 
+class TestGetRatesDistributionsDataFrame:
+    """Tests for getRatesDistributions with user-supplied DataFrame."""
+
+    def _make_df(self, n=20):
+        """Synthetic 4-column DataFrame in percent."""
+        rng = np.random.default_rng(0)
+        return pd.DataFrame({
+            "S&P 500":   rng.normal(7.0, 15.0, n),
+            "Bonds Baa": rng.normal(4.5,  8.0, n),
+            "T-Notes":   rng.normal(3.5,  5.0, n),
+            "Inflation": rng.normal(2.5,  2.0, n),
+        })
+
+    def test_df_mode_basic_shapes(self):
+        df = self._make_df()
+        means, stdev, corr, covar = getRatesDistributions(df=df)
+        assert means.shape == (4,)
+        assert stdev.shape == (4,)
+        assert corr.shape == (4, 4)
+        assert covar.shape == (4, 4)
+
+    def test_df_mode_in_percent_true(self):
+        df = self._make_df()
+        means, stdev, corr, covar = getRatesDistributions(df=df, in_percent=True)
+        assert all(abs(means) < 100)     # percent-scale, not decimal
+
+    def test_df_mode_in_percent_false(self):
+        df = self._make_df()
+        means, stdev, corr, covar = getRatesDistributions(df=df, in_percent=False)
+        assert all(abs(means) < 1.0)     # decimal-scale
+
+    def test_df_mode_row_slicing(self):
+        df = self._make_df(30)
+        means_all, _, _, _ = getRatesDistributions(df=df)
+        means_sub, _, _, _ = getRatesDistributions(frm=0, to=9, df=df)  # first 10 rows
+        assert not np.allclose(means_all, means_sub)    # different subsets differ
+
+    def test_df_mode_partial_index(self):
+        df = self._make_df(20)
+        means, stdev, corr, covar = getRatesDistributions(frm=5, df=df)  # frm only
+        assert means.shape == (4,)
+
+    def test_df_mode_missing_column(self):
+        df = self._make_df().drop(columns=["Inflation"])
+        with pytest.raises(ValueError, match="missing required columns"):
+            getRatesDistributions(df=df)
+
+    def test_df_mode_too_few_rows(self):
+        df = self._make_df(1)
+        with pytest.raises(ValueError, match="at least 2 rows"):
+            getRatesDistributions(df=df)
+
+    def test_df_mode_correlation_properties(self):
+        df = self._make_df(50)
+        _, _, corr, _ = getRatesDistributions(df=df)
+        assert np.allclose(corr, corr.T)              # symmetric
+        assert np.allclose(np.diag(corr), np.ones(4)) # unit diagonal
+
+    def test_historical_mode_still_works(self):
+        """Existing positional call signature is unaffected."""
+        means, stdev, corr, covar = getRatesDistributions(2000, 2020)
+        assert means.shape == (4,)
+
+
 class TestRatesEdgeCases:
     """Tests for edge cases and error conditions."""
 
