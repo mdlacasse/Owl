@@ -120,11 +120,31 @@ TBills = df["TBills"]
 Inflation = df["Inflation"]
 
 
-def getRatesDistributions(frm, to, mylog=None):
+def getRatesDistributions(frm, to, mylog=None, in_percent=True):
     """
     Pre-compute normal distribution parameters for the series above.
     This calculation takes into account the correlations between
-    the different rates. Function returns means and covariance matrix.
+    the different rates. Function returns means, stdev, correlation matrix,
+    and covariance matrix.
+
+    By default (in_percent=True), means and stdev are returned in percent
+    (e.g. 7.0 = 7%), matching the units expected by setRates(). Pass
+    in_percent=False to get decimal values (e.g. 0.07 = 7%) suitable for
+    direct NumPy math. The correlation and covariance matrices are always
+    returned in their natural (decimal) form and are never converted.
+
+    Parameters
+    ----------
+    frm : int
+        Start year (inclusive).
+    to : int
+        End year (inclusive).
+    mylog : Logger, optional
+        Logger instance; a default silent logger is used if None.
+    in_percent : bool, optional
+        If True (default), return means/stdev in percent (e.g. 7.0 = 7%).
+        If False, return means/stdev in decimal (e.g. 0.07 = 7%).
+        corr and covar are unaffected.
     """
     if mylog is None:
         mylog = log.Logger()
@@ -168,4 +188,8 @@ def getRatesDistributions(frm, to, mylog=None):
     corr[corr < -1] = -1
     mylog.vprint("correlation matrix: \n\t\t%s" % str(corr).replace("\n", "\n\t\t"))
 
+    if in_percent:
+        means = means * 100
+        stdev = stdev * 100
+    # corr and covar are correlation-derived (unitless or decimal); never converted
     return means, stdev, corr, covar

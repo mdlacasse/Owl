@@ -378,8 +378,11 @@ class TestGetRatesDistributions:
         assert corr.shape == (4, 4)
         assert covar.shape == (4, 4)
 
-        assert np.all(means < 1.0)
-        assert np.all(stdev < 1.0)
+        # Default return is in percent: means in [-100, 100], stdev in (0, 100)
+        assert np.all(means > -100)
+        assert np.all(means < 100)
+        assert np.all(stdev > 0)
+        assert np.all(stdev < 100)
 
         assert np.allclose(corr, corr.T)
         assert np.allclose(np.diag(corr), 1.0)
@@ -425,9 +428,38 @@ class TestGetRatesDistributions:
         assert np.all(corr <= 1.0)
 
         assert np.allclose(covar, covar.T)
+        # covar is always in decimal; stdev is in percent when in_percent=True
         variances = np.diag(covar)
-        expected_variances = stdev ** 2
+        expected_variances = (stdev / 100) ** 2
         np.testing.assert_array_almost_equal(variances, expected_variances, decimal=4)
+
+    def test_get_rates_distributions_in_percent_false(self):
+        """Test that in_percent=False returns decimal values (backward-compatible)."""
+        frm, to = 2000, 2010
+        means, stdev, corr, covar = getRatesDistributions(frm, to, in_percent=False)
+
+        # Decimal values: means and stdev should be < 1.0 in magnitude
+        assert np.all(np.abs(means) < 1.0)
+        assert np.all(stdev < 1.0)
+        assert np.all(stdev > 0)
+
+        # Correlation matrix should be unitless regardless
+        assert np.allclose(corr, corr.T)
+        assert np.allclose(np.diag(corr), 1.0)
+        assert np.all(corr >= -1.0)
+        assert np.all(corr <= 1.0)
+
+    def test_get_rates_distributions_percent_vs_decimal_consistency(self):
+        """Test that in_percent=True values are exactly 100x the in_percent=False values."""
+        frm, to = 2000, 2010
+        means_pct, stdev_pct, corr_pct, covar_pct = getRatesDistributions(frm, to, in_percent=True)
+        means_dec, stdev_dec, corr_dec, covar_dec = getRatesDistributions(frm, to, in_percent=False)
+
+        np.testing.assert_array_almost_equal(means_pct, means_dec * 100, decimal=10)
+        np.testing.assert_array_almost_equal(stdev_pct, stdev_dec * 100, decimal=10)
+        # corr and covar are never converted; identical across both calls
+        np.testing.assert_array_almost_equal(corr_pct, corr_dec, decimal=10)
+        np.testing.assert_array_almost_equal(covar_pct, covar_dec, decimal=10)
 
 
 class TestRatesEdgeCases:

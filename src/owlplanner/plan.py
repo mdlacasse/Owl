@@ -818,6 +818,12 @@ class Plan:
             - No method-specific filtering
             - Validation handled inside each RateModel
             - Supports built-in and plugin models
+
+        Unit convention:
+            values: rates in percent (e.g. 7.0 = 7%), matching the format
+                returned by getRatesDistributions() and consistent with
+                setDividendRate/setHeirsTaxRate.
+            stdev: standard deviations in percent (e.g. 17.0 = 17%).
         """
 
         # --------------------------------------------------

@@ -122,7 +122,7 @@ def generate_historical_average_series(
     Returns:
         (rate_series, means, stdev, corr) - series in decimal, params for metadata
     """
-    means, stdev, corr, _ = getRatesDistributions(frm, to, mylog)
+    means, stdev, corr, _ = getRatesDistributions(frm, to, mylog, in_percent=False)
     rate_series = np.tile(means, (N, 1))
     return rate_series, means, stdev, corr
 
@@ -140,7 +140,7 @@ def generate_histochastic_series(
     Returns:
         (rate_series, means, stdev, corr) - series in decimal, params for metadata
     """
-    means, stdev, corr, covar = getRatesDistributions(frm, to, mylog)
+    means, stdev, corr, covar = getRatesDistributions(frm, to, mylog, in_percent=False)
     rate_series = rng.multivariate_normal(means, covar, size=N)
     return rate_series, means, stdev, corr
 

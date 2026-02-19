@@ -297,8 +297,8 @@ def _setRates(plan):
             kz.setCaseKey("roll_sequence", plan.rateRoll)
             mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
             for j in range(4):
-                kz.pushCaseKey(f"mean{j}", 100 * mean[j])
-                kz.pushCaseKey(f"stdev{j}", 100 * stdev[j])
+                kz.pushCaseKey(f"mean{j}", mean[j])
+                kz.pushCaseKey(f"stdev{j}", stdev[j])
             # Correlations: Pearson coefficient (-1 to 1), standard representation.
             q = 1
             for k1 in range(plan.N_k):
@@ -976,7 +976,7 @@ def genDic(plan):
                 dic[f"stdev{k1}"] = plan.rateStdev[k1] if plan.rateStdev is not None else 0
             else:
                 dic[f"mean{k1}"] = 100 * plan.tau_kn[k1, -1]
-                dic[f"stdev{k1}"] = 100 * plan.rateStdev[k1] if plan.rateStdev is not None else 0
+                dic[f"stdev{k1}"] = plan.rateStdev[k1] if plan.rateStdev is not None else 0
             for k2 in range(k1 + 1, plan.N_k):
                 dic[f"corr{qq}"] = plan.rateCorr[k1, k2]
                 qq += 1
