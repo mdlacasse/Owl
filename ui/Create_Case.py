@@ -226,7 +226,7 @@ Once changes are complete click the `Create case` button."""
         st.markdown("#### :orange[Upload Financial Profile (Optional)]")
         hfp_col1, hfp_col2 = st.columns(2, gap="large")
         with hfp_col1:
-            st.markdown("#### :orange[Upload *Financial Profile* Workbook]")
+            st.markdown("##### :orange[Upload *Financial Profile* Workbook]")
             kz.initCaseKey("_xlsx", 0)
             stTimeLists = st.file_uploader(
                 "Upload values from a Financial Profile (HFP) workbook...",
@@ -246,7 +246,7 @@ Once changes are complete click the `Create case` button."""
         with hfp_col2:
             tomlexcase = kz.getCaseKey("tomlexcase")
             if tomlexcase is not None and tomlex.hasHFPExample(tomlexcase):
-                st.markdown("#### :orange[Load Example HFP Workbook]")
+                st.markdown("##### :orange[Load Example HFP Workbook]")
                 st.markdown("Read associated HFP workbook.")
                 helpmsg = "Load associated HFP workbook from GitHub"
                 st.button("Load workbook associated with example case", help=helpmsg,
