@@ -18,8 +18,7 @@ RUN rm -rf /app/owl
 
 RUN git clone --depth 1 https://github.com/mdlacasse/Owl.git owl
 
-RUN cd /app/owl && grep -vi mosek requirements.txt > myrequirements.txt
-RUN cd /app/owl && python -m pip install -r myrequirements.txt
+RUN cd /app/owl && grep -vi mosek requirements.txt | python -m pip install -r /dev/stdin
 # RUN cd /app/owl && python -m build
 # RUN cd /app/owl && pip install --no-cache-dir .
 

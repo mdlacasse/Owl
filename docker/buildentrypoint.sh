@@ -7,8 +7,8 @@ cd /app && git clone --depth 1 https://github.com/mdlacasse/Owl.git owl
 export OWLDIR=/app/owl
 
 python -m pip install --no-cache-dir --upgrade pip
-grep -v mosek requirements.txt > myrequirements.txt
-cd ${OWLDIR} && python -m pip install -r myrequirements.txt
+cd $OWLDIR
+grep -vi mosek requirements.txt | python -m pip install -r /dev/stdin
 
 
 exec /usr/bin/runentrypoint.sh
