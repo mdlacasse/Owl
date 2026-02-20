@@ -38,7 +38,7 @@ def loadWCExample(file):
             owb.readHFP(mybytesio, file=hfp_name)
 
 
-ret = kz.titleBar(":material/home: Household Financial Profile")
+ret = kz.titleBar(":material/home: Financial Profile")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
@@ -55,9 +55,9 @@ else:
         original = kz.getCaseKey("timeListsFileName")
         if original is None or original == "None":
             st.info(
-                f"Case *'{kz.currentCaseName()}'* makes no reference to a Household Financial Profile.\n\n"
+                f"Case *'{kz.currentCaseName()}'* makes no reference to a Financial Profile.\n\n"
                 "You can build your own HFP by directly filling the table(s) below. "
-                "Once a case has been successfully run, values can be saved on the **Output Files** page. "
+                "Once a case has been successfully run, values can be saved on the **Reports** page. "
                 "Alternatively, you can start from this Excel "
                 "[template](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) "
                 "and upload the file using the widget below."
@@ -68,10 +68,10 @@ that has not yet been uploaded.""")
 
     col1, col2 = st.columns(2, gap="large")
     with col1:
-        st.markdown("#### :orange[Upload *Household Financial Profile* Workbook]")
+        st.markdown("#### :orange[Upload *Financial Profile* Workbook]")
         kz.initCaseKey("_xlsx", 0)
         stTimeLists = st.file_uploader(
-            "Upload values from a Household Financial Profile (HFP) workbook...",
+            "Upload values from a Financial Profile (HFP) workbook...",
             key="_stTimeLists" + str(kz.getCaseKey("_xlsx")),
             type=["xlsx", "ods"],
         )

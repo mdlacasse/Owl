@@ -350,8 +350,6 @@ def initCaseKey(key, val):
         setCaseKey(key, val)
 
 
-
-
 def getCaseKey(key):
     if ss.currentCase is None:
         return None

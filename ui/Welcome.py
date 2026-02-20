@@ -117,15 +117,15 @@ with st.expander("*Explore some case examples*"):
         st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
     with step2:
         st.markdown("**2. Load the financial profile**")
-        st.markdown("On **Household Financial Profile**, load the Jack & Jill workbook (or use the example button).")
-        st.page_link("Household_Financial_Profile.py", label="Open Household Financial Profile", icon=":material/home:")
+        st.markdown("On **Financial Profile**, load the Jack & Jill workbook (or use the example button).")
+        st.page_link("Household_Financial_Profile.py", label="Open Financial Profile", icon=":material/home:")
     with step3:
         st.markdown("**3. View your plan**")
-        st.markdown("Check **Graphs**, **Worksheets**, or **Output Files** under Single Scenario.")
+        st.markdown("Check **Graphs**, **Worksheets**, or **Reports** under Results.")
         st.page_link("Graphs.py", label="View Graphs", icon=":material/stacked_line_chart:")
 
     st.markdown("")
-    st.caption("You’ve run your first case. Explore other Case Setup pages to change assumptions. Explore other cases.")
+    st.caption("You’ve run your first case. Explore other Plan Setup pages to change assumptions. Explore other cases.")
 
 kz.divider("orange")
 
@@ -144,7 +144,7 @@ You can also copy the case from within the app, modify, and save your changes.""
     [Case_jack+jill.toml](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true)""")
     with lm2:
         st.markdown(
-            """- **Household Financial Profile** (Excel):
+            """- **Financial Profile** (Excel):
     [HFP_jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_jack+jill.xlsx?raw=true)""")
     st.caption("Right-click a link and choose “Save link as…” to download.")
 

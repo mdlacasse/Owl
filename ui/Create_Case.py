@@ -223,13 +223,13 @@ Once changes are complete click the `Create case` button."""
 
     # HFP uploader section: shown when plan exists but no HFP has been loaded yet.
     if kz.caseHasPlan() and kz.getCaseKey("stTimeLists") is None:
-        st.markdown("#### :orange[Upload Household Financial Profile (Optional)]")
+        st.markdown("#### :orange[Upload Financial Profile (Optional)]")
         hfp_col1, hfp_col2 = st.columns(2, gap="large")
         with hfp_col1:
-            st.markdown("#### :orange[Upload *Household Financial Profile* Workbook]")
+            st.markdown("#### :orange[Upload *Financial Profile* Workbook]")
             kz.initCaseKey("_xlsx", 0)
             stTimeLists = st.file_uploader(
-                "Upload values from a Household Financial Profile (HFP) workbook...",
+                "Upload values from a Financial Profile (HFP) workbook...",
                 key="_stTimeLists" + str(kz.getCaseKey("_xlsx")),
                 type=["xlsx", "ods"],
             )
@@ -256,7 +256,7 @@ Click the `Create case` button once all parameters on this page are right."""
         st.button("Copy parameters :material/content_copy:", on_click=kz.copyCase,
                   disabled=cantcopy, help=helpmsg)
     with col2:
-        helpmsg = "`Create case` opens up all other pages in the **Case Setup** section."
+        helpmsg = "`Create case` opens up all other pages in the **Plan Setup** section."
         st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate,
                   type='primary', help=helpmsg)
 

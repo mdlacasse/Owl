@@ -70,26 +70,26 @@ st.markdown("""
 
 col1, col2, col3 = st.columns(3, gap="small")
 col1.markdown("""
-[Case Setup](#case-setup)
+[Plan Setup](#plan-setup)
 - [Case Definition](#case-definition)
 - [:material/person_add: Create Case](#person-add-create-case)
-- [:material/home: Household Financial Profile](#home-household-financial-profile)
+- [:material/home: Financial Profile](#home-financial-profile)
     - [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
     - [:material/account_balance: Debts and Fixed Assets](#account-balance-debts-and-fixed-assets)
 - [:material/currency_exchange: Fixed Income](#currency-exchange-fixed-income)
-- [:material/savings: Savings Assets](#savings-savings-assets)
+- [:material/savings: Account Balances](#savings-account-balances)
 - [:material/percent: Asset Allocation](#percent-asset-allocation)
 - [:material/monitoring: Rates Selection](#monitoring-rates-selection)
-- [:material/tune: Optimization Parameters](#tune-optimization-parameters)
+- [:material/tune: Run Options](#tune-run-options)
 """)
 
 col2.markdown("""
-[Single Scenario](#single-scenario)
+[Results](#results)
 - [:material/stacked_line_chart: Graphs](#stacked-line-chart-graphs)
 - [:material/data_table: Worksheets](#data-table-worksheets)
-- [:material/description: Output Files](#description-output-files)
+- [:material/description: Reports](#description-reports)
 
-[Multiple Scenarios](#multiple-scenarios)
+[Simulations](#simulations)
 - [:material/history: Historical Range](#history-historical-range)
 - [:material/finance: Monte Carlo](#finance-monte-carlo)
 
@@ -124,14 +124,14 @@ Typically, pages would be accessed in order, starting from left to right and fro
 
 A `Case selector` box located at the top of each page allows
 to navigate between the different scenarios created.
-This box is present on all pages in [Case Setup](#case-setup)
-and [Single Scenario](#single-scenario) sections.
+This box is present on all pages in [Plan Setup](#plan-setup)
+and [Results](#results) sections.
 The *case* being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
 case and then copying/creating derived scenarios with slight changes in the parameters.
 A comparison between the
-different resulting outcomes can be found on the [Output Files](#description-output-files) page.
+different resulting outcomes can be found on the [Reports](#description-reports) page.
 The [Typical Workflow](#typical-workflow) section below
 goes through a more specific example.
 
@@ -144,17 +144,17 @@ are entered and reported in unit dollars.
 Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
 
 There are five sections in the menu bar:
-[Case Setup](#case-setup), [Single Scenario](#single-scenario),
-[Multiple Scenarios](#multiple-scenarios), [Tools](#tools), and [Help](#help).
+[Plan Setup](#plan-setup), [Results](#results),
+[Simulations](#simulations), [Tools](#tools), and [Help](#help).
 The sections below follow the same logical order.
 
 -------
-### :orange[Case Setup]
+### :orange[Plan Setup]
 This section contains the steps for creating and configuring *case* scenarios.
 For new *cases*, every page of this section should be visited and parameters
 entered according to your personal situation. To make this process easier,
 a progress bar tracking which page has been visited is shown at the bottom of the page.
-This bar can also be used to navigate between the pages of the *Case Setup* section.
+This bar can also be used to navigate between the pages of the *Plan Setup* section.
 
 #### Case Definition
 
@@ -193,11 +193,11 @@ in order to investigate their effects.
 Copy renames the *case* by appending a number counter in parenthesis, just as creating
 a copy of a file on Windows.
 It is recommended to rename each *case* to reflect the change in parameters.
-When copying a scenario, make sure to visit all pages in the [Case Setup](#case-setup)
+When copying a scenario, make sure to visit all pages in the [Plan Setup](#plan-setup)
 section and verify that all parameters are as intended.
 When all *cases* have successfully run,
 results of related *cases* are compared side-by-side with differences
-in the [Output Files](#description-output-files) section.
+in the [Reports](#description-reports) section.
 Related *cases* are determined by having the same individual's names:
 anything else can change between *cases*.
 
@@ -224,18 +224,18 @@ An example is provided
 [here](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true) and more
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
-will populate all the fields in the [Case Setup](#case-setup) section,
-except those in the *Household Financial Profile* which get populated
+will populate all the fields in the [Plan Setup](#plan-setup) section,
+except those in the *Financial Profile* which get populated
 separately by an Excel workbook (see next section).
 
 Once a *case* was successfully run, the *case* file for the *case* being developed
-can be saved under the [Output Files](#description-output-files) page and
+can be saved under the [Reports](#description-reports) page and
 can be reloaded at a later time.
 Case parameter files can have any name but when saving from the interface,
 their name will start with *Case_* followed by the *case* name.
 
-#### :material/home: Household Financial Profile
-The *Household Financial Profile* contains two major sections,
+#### :material/home: Financial Profile
+The *Financial Profile* contains two major sections,
 one representing *Wages and Contributions* for each individual, and
 the other capturing the household's *Debts and Fixed Assets*.
 While the values can be entered manually in each table,
@@ -324,7 +324,7 @@ the needed values can be derived. These extra columns will be ignored when the f
 Manual Roth conversions can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in **Owl**.
 When the option `Convert as in Wages and Contributions tables` is toggled
-in the [Optimization Parameters](#tune-optimization-parameters) page,
+in the [Run Options](#tune-run-options) page,
 values from the **Wages and Contributions** table will be used and no optimization on Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guesses.
@@ -347,8 +347,8 @@ If a file was originally associated with a *case* file, a message will remind th
 
 If values were entered or edited directly in the table,
 values can be saved directly in Excel format by clicking
-the `Download Household Financial Profile workbook` on the
-[Output Files](#description-output-files) page. This allows to rerun the same *case* at a later time
+the `Download Financial Profile workbook` on the
+[Reports](#description-reports) page. This allows to rerun the same *case* at a later time
 by reloading the same **Household Financial Profile** workbook (which contains the Wages and Contributions data).
 
 ##### :material/account_balance: Debts and Fixed Assets
@@ -510,7 +510,7 @@ As for social security, the selected month age, combined with your birth month,
 determines the exact time benefits start in the first year and the total
 annual amount for the first year is adjusted accordingly.
 
-#### :material/savings: Savings Assets
+#### :material/savings: Account Balances
 This page allows to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
@@ -631,7 +631,7 @@ The `roll` operation is applied before `reverse`.
 These options apply only to varying rates; these operations do not apply to fixed rates
 since the same rate is used every year.
 
-#### :material/tune: Optimization Parameters
+#### :material/tune: Run Options
 This page allows you to select the objective function to optimize.
 One can choose between maximizing the net spending amount subject to the constraint
 of a desired bequest, or maximizing a bequest, subject to the constraint of providing
@@ -733,13 +733,13 @@ Notice that *smile* curves are re-scaled to have the same total spending as flat
 for that reason they do not start at 1.
 
 -------
-### :orange[Single Scenario]
+### :orange[Results]
 
 #### :material/stacked_line_chart: Graphs
 This page displays various plots from a single scenario based on the selections made
-in the [Case Setup](#case-setup) section.
+in the [Plan Setup](#plan-setup) section.
 This simulation uses a single instance of a series of rates, either fixed or varying,
-as selected in the [Case Setup](#case-setup) section.
+as selected in the [Plan Setup](#plan-setup) section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, or maximize the bequest under the constraint of a net spending amount.
 Various plots show the results, which can be displayed in today's \\$ or
@@ -758,12 +758,12 @@ Savings balances are values at the beginning of the year, while other quantities
 are for the full year.
 Each table can be downloaded separately in csv format, or all tables can be downloaded
 jointly as a single Excel workbook by clicking on the `Download Worksheets` on the
-[Output Files](#description-output-files) page.
+[Reports](#description-reports) page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 The first line of the individual's **Sources** worksheets is highlighted in blue
 indicating that these lines contain actionable items for the current year.
 
-#### :material/description: Output Files
+#### :material/description: Reports
 This page allows to compare *cases* and save files for future use.
 First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the *case*.
@@ -780,9 +780,9 @@ of the parameters selected for each case.
 
 Another section called **Excel Workbooks** allows
 to save the contents of the tables on corresponding pages as a single Excel workbook.
-The `Download Household Financial Profile workbook` will save the data displayed on the
+The `Download Financial Profile workbook` will save the data displayed on the
 [Wages and Contributions](#work-history-wages-and-contributions) page
-(and the rest of the Household Financial Profile) while the
+(and the rest of the Financial Profile) while the
 `Download Worksheets` will save all tables displayed
 on the [Worksheets](#data-table-worksheets) page as a single Excel workbook.
 
@@ -795,10 +795,10 @@ the same *case* can be reproduced at a later time by uploading the *case* parame
 through the widget on the [Create Case](#person-add-create-case) page, and the
 *Household Financial Profile* workbook through the uploader on either the
 [Create Case](#person-add-create-case) or the
-[Household Financial Profile](#home-household-financial-profile) page.
+[Financial Profile](#home-financial-profile) page.
 
 -------
-### :orange[Multiple Scenarios]
+### :orange[Simulations]
 There are two different ways to run multiple scenarios and generate a histogram
 of results.
 
@@ -969,7 +969,7 @@ A typical workflow would look like the following:
 1) Create a base *case* representing your basic scenario;
 2) Copy the base *case* and modify the parameter you want to investigate;
 3) Repeat 2) with other end-member values of the parameter you would like to consider;
-4) Run all *cases* and compare them on the [Output Files](#description-output-files) page.
+4) Run all *cases* and compare them on the [Reports](#description-reports) page.
 
 To make it more concrete, here is an example
 where one would like to investigate the effects of Roth conversions
@@ -982,7 +982,7 @@ Let's say this *case* allows for Roth conversions up to \\$100k.
 set maximum Roth conversions to 0.
 3) Copy the base *case* again, call it *2026 - No Roth limit* and
 set maximum Roth conversions to a very large number, say, \\$800k.
-4) Compare all *cases* on the [Output Files](#description-output-files) page.
+4) Compare all *cases* on the [Reports](#description-reports) page.
 
 As mentionned above, the most actionable information is located on the first few lines
 of the **Sources** tables on the [Worksheets](#data-table-worksheets) pages.

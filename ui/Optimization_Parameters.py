@@ -43,7 +43,7 @@ def initProfile():
     owb.setProfile(None)
 
 
-ret = kz.titleBar(":material/tune: Optimization Parameters")
+ret = kz.titleBar(":material/tune: Run Options")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")

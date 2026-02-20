@@ -33,7 +33,7 @@ else:
     if kz.caseIsRunReady():
         owb.runPlan()
     elif kz.caseHasNotRun():
-        st.info("Case definition is not yet complete. Please visit all pages in *Case Setup*.")
+        st.info("Case definition is not yet complete. Please visit all pages in *Plan Setup*.")
 
     if kz.isCaseUnsolved():
         st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))

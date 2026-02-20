@@ -25,7 +25,7 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 
-ret = kz.titleBar(":material/description: Output Files")
+ret = kz.titleBar(":material/description: Reports")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
@@ -33,7 +33,7 @@ else:
     if kz.caseIsRunReady():
         owb.runPlan()
     elif kz.caseHasNotRun():
-        st.info("Case definition is not yet complete. Please visit all pages in *Case Setup*.")
+        st.info("Case definition is not yet complete. Please visit all pages in *Plan Setup*.")
 
     if kz.isCaseUnsolved():
         st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
@@ -75,8 +75,8 @@ describing the flow of money, the first one as input to the case, and the follow
         col1, col2 = st.columns(2, gap="large")
         with col1:
             download2 = st.download_button(
-                label="Download Household Financial Profile workbook",
-                help="Download Household Financial Profile as an Excel workbook.",
+                label="Download Financial Profile workbook",
+                help="Download Financial Profile as an Excel workbook.",
                 data=owb.saveContributions(),
                 file_name=f"HFP_{caseName}.xlsx",
                 disabled=kz.isCaseUnsolved(),

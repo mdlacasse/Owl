@@ -34,21 +34,21 @@ kz.init()
 st.logo("https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png", size="large")
 
 pages = {
-    "Case Setup": [
+    "Plan Setup": [
         st.Page("Create_Case.py", icon=":material/person_add:"),
-        st.Page("Household_Financial_Profile.py", icon=":material/home:"),
+        st.Page("Household_Financial_Profile.py", title="Financial Profile", icon=":material/home:"),
         st.Page("Fixed_Income.py", icon=":material/currency_exchange:"),
-        st.Page("Savings_Assets.py", icon=":material/savings:"),
+        st.Page("Savings_Assets.py", title="Account Balances", icon=":material/savings:"),
         st.Page("Asset_Allocation.py", icon=":material/percent:"),
         st.Page("Rates_Selection.py", icon=":material/monitoring:"),
-        st.Page("Optimization_Parameters.py", icon=":material/tune:"),
+        st.Page("Optimization_Parameters.py", title="Run Options", icon=":material/tune:"),
     ],
-    "Single Scenario": [
+    "Results": [
         st.Page("Graphs.py", icon=":material/stacked_line_chart:"),
         st.Page("Worksheets.py", icon=":material/data_table:"),
-        st.Page("Output_Files.py", icon=":material/description:"),
+        st.Page("Output_Files.py", title="Reports", icon=":material/description:"),
     ],
-    "Multiple Scenarios": [
+    "Simulations": [
         st.Page("Historical_Range.py", icon=":material/history:"),
         st.Page("Monte_Carlo.py", icon=":material/finance:"),
     ],

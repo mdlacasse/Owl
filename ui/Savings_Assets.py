@@ -26,7 +26,7 @@ import streamlit as st
 import sskeys as kz
 import case_progress as cp
 
-ret = kz.titleBar(":material/savings: Savings Assets")
+ret = kz.titleBar(":material/savings: Account Balances")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("Case(s) must be first created before running this page.")
