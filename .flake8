@@ -2,4 +2,4 @@
 max-line-length = 120
 # These checks violate PEP8 so let's ignore them
 extend-ignore = E203
-# extend-exclude = */site-packages/*
+extend-exclude = .venv,*/site-packages/*
