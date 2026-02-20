@@ -33,11 +33,7 @@ dist/
 build/
 *.egg-info/
 
-# IMPORTANT:
-# uv.lock IS TRACKED (do not ignore) but...
-# Left there for now to prevent Streamlit lock down
-# Added before building packages in docker/scripts
-uv.lock
+# uv.lock is tracked so Streamlit Community Cloud picks it up for reproducible deploys
 
 # --------------------------------------------------
 # Quarto

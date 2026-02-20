@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
+    "altair",
     "pydantic>=2.0",
     "highspy",
     "matplotlib",
@@ -47,6 +48,9 @@ dependencies = [
 ]
 license = {file = "LICENSE"}
 
+[project.optional-dependencies]
+mosek = ["mosek"]
+
 [project.urls]
 HomePage = "https://github.com/mdlacasse/owl"
 Repository = "https://github.com/mdlacasse/owl"
@@ -59,6 +63,7 @@ owlcli  = "owlplanner.cli._main:cli"
 
 [dependency-groups]
 dev = [
+    "flake8",
     "pytest>=9.0.2",
 ]
 
