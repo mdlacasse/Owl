@@ -232,6 +232,11 @@ Once changes are complete click the `Create case` button."""
                 "Upload values from a Financial Profile (HFP) workbook...",
                 key="_stTimeLists" + str(kz.getCaseKey("_xlsx")),
                 type=["xlsx", "ods"],
+                help=(
+                    "An Excel (.xlsx) or OpenDocument (.ods) workbook with one sheet per individual "
+                    "containing year-by-year wages, retirement contributions, Roth conversions, and large expenses, "
+                    "plus optional household sheets for debts and fixed assets."
+                ),
             )
             if stTimeLists is not None:
                 if owb.readHFP(stTimeLists):
