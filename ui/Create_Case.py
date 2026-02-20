@@ -29,32 +29,33 @@ import tomlexamples as tomlex
 import case_progress as cp
 
 
-ret = kz.titleBar(":material/person_add: Create Case", allCases=True)
+def _loadHFPExample(file):
+    if file:
+        hfp_name = tomlex.getHFPName(file)
+        mybytesio = tomlex.loadWagesExample(file)
+        if mybytesio is not None:
+            owb.readHFP(mybytesio, file=hfp_name)
 
-if ret == kz.newCase:
+
+ret = kz.titleBar(":material/person_add: Create Case")
+
+if ret is None:
     st.info(
-        "#### Starting a new case from scratch\n\n"
-        "A name for the case must first be provided.\n\n"
-        "*(Alternatively, you can choose `Upload Case File...` in the top selector box to upload your own"
-        " case or select one from multiple examples."
-        " Look at the :material/help: [Documentation](Documentation) for more details.)*"
+        "#### Start here\n\n"
+        "Create a new case by providing a name below, or load one from a TOML case file or example.\n\n"
+        "*(Look at the :material/help: [Documentation](Documentation) for more details.)*"
     )
-    st.text_input(
-        "Case name",
-        key="_newcase",
-        on_change=kz.createNewCase,
-        args=["newcase"],
-        placeholder="Enter a short case name...",
-    )
-elif ret == kz.loadCaseFile:
-    st.info(
-        "#### Starting a case from a *case* parameter file\n\n"
-        "Upload your own case or select one from multiple examples.\n\n"
-        "*(Alternatively, you can choose `New Case...` in the top selector box to start a case from scratch."
-        " Look at the :material/help: [Documentation](Documentation) for more details.)*"
-    )
-    col1, col2 = st.columns(2, gap="large")
+    col1, col2, col3 = st.columns(3, gap="large")
     with col1:
+        st.markdown("#### :orange[Create a New Case]")
+        st.text_input(
+            "Case name",
+            key="_newcase",
+            on_change=kz.createNewCase,
+            args=["newcase"],
+            placeholder="Enter a short case name...",
+        )
+    with col2:
         st.markdown("#### :orange[Upload Your Own Case File]")
         kz.initGlobalKey("_confile_idx", 0)
         file = st.file_uploader(
@@ -68,11 +69,8 @@ elif ret == kz.loadCaseFile:
             if kz.createCaseFromFile(mystringio):
                 # Bump uploader key to avoid re-import on rerun.
                 kz.storeGlobalKey("_confile_idx", kz.getGlobalKey("_confile_idx") + 1)
-                # Ensure the case selector moves to the newly loaded case. NO!
-                # kz.storeGlobalKey(":material/person_add: Create Case", kz.currentCaseName())
                 st.rerun()
-
-    with col2:
+    with col3:
         st.markdown("#### :orange[Load a Case Example]")
         kz.initGlobalKey("_example_case_idx", 0)
         case = st.selectbox(
@@ -87,10 +85,50 @@ elif ret == kz.loadCaseFile:
             if kz.createCaseFromFile(mystringio):
                 kz.storeGlobalKey("_example_case_idx", kz.getGlobalKey("_example_case_idx") + 1)
                 kz.initCaseKey("tomlexcase", case)
-                # Ensure the case selector moves to the newly loaded case. BROKEN KLUDGE
-                # kz.storeGlobalKey(":material/person_add: Create Case", kz.currentCaseName())
                 st.rerun()
 else:
+    with st.expander(":material/add: *Create or load another case*"):
+        col1, col2, col3 = st.columns(3, gap="large")
+        with col1:
+            st.markdown("#### :orange[Create a New Case]")
+            st.text_input(
+                "Case name",
+                key="_newcase",
+                on_change=kz.createNewCase,
+                args=["newcase"],
+                placeholder="Enter a short case name...",
+            )
+        with col2:
+            st.markdown("#### :orange[Upload Your Own Case File]")
+            kz.initGlobalKey("_confile_idx", 0)
+            file = st.file_uploader(
+                "Upload *case* parameter file...",
+                key="_confile" + str(kz.getGlobalKey("_confile_idx")),
+                type=["toml"],
+            )
+            if file is not None:
+                owb.ui_log(f"Loading case file: '{file.name}'")
+                mystringio = StringIO(file.read().decode("utf-8"))
+                if kz.createCaseFromFile(mystringio):
+                    kz.storeGlobalKey("_confile_idx", kz.getGlobalKey("_confile_idx") + 1)
+                    st.rerun()
+        with col3:
+            st.markdown("#### :orange[Load a Case Example]")
+            kz.initGlobalKey("_example_case_idx", 0)
+            case = st.selectbox(
+                "Examples available from GitHub",
+                tomlex.cases,
+                index=None,
+                key="_example_case" + str(kz.getGlobalKey("_example_case_idx")),
+                placeholder="Select an example case")
+            if case:
+                owb.ui_log(f"Loading example: '{case}'")
+                mystringio = tomlex.loadCaseExample(case)
+                if kz.createCaseFromFile(mystringio):
+                    kz.storeGlobalKey("_example_case_idx", kz.getGlobalKey("_example_case_idx") + 1)
+                    kz.initCaseKey("tomlexcase", case)
+                    st.rerun()
+
     st.markdown("#### :orange[Description and Life Parameters]")
     casemsg = "Case name can be changed by editing it directly."
     col1, col2 = st.columns(2, gap="large")
@@ -182,11 +220,35 @@ Ask your favorite AI about it if you're curious.
 Once changes are complete click the `Create case` button."""
                 )
 
-    cantmodify = kz.currentCaseName() == kz.newCase or kz.currentCaseName() == kz.loadCaseFile
-    cantcopy = cantmodify or kz.caseHasNoPlan()
-    if not cantcopy and kz.getCaseKey("stTimeLists") is None:
-        st.info("""
-Make sure to upload the *Household Financial Profile* next (if any) by navigating to the next page below.""")
+    cantcopy = kz.caseHasNoPlan()
+
+    # HFP uploader section: shown when plan exists but no HFP has been loaded yet.
+    if kz.caseHasPlan() and kz.getCaseKey("stTimeLists") is None:
+        st.markdown("#### :orange[Upload Household Financial Profile (Optional)]")
+        hfp_col1, hfp_col2 = st.columns(2, gap="large")
+        with hfp_col1:
+            st.markdown("#### :orange[Upload *Household Financial Profile* Workbook]")
+            kz.initCaseKey("_xlsx", 0)
+            stTimeLists = st.file_uploader(
+                "Upload values from a Household Financial Profile (HFP) workbook...",
+                key="_stTimeLists" + str(kz.getCaseKey("_xlsx")),
+                type=["xlsx", "ods"],
+            )
+            if stTimeLists is not None:
+                if owb.readHFP(stTimeLists):
+                    kz.setCaseKey("stTimeLists", stTimeLists)
+                    kz.storeCaseKey("_xlsx", kz.getCaseKey("_xlsx") + 1)
+                    st.rerun()
+        with hfp_col2:
+            tomlexcase = kz.getCaseKey("tomlexcase")
+            if tomlexcase is not None and tomlex.hasHFPExample(tomlexcase):
+                st.markdown("#### :orange[Load Example HFP Workbook]")
+                st.markdown("Read associated HFP workbook.")
+                helpmsg = "Load associated HFP workbook from GitHub"
+                st.button("Load workbook associated with example case", help=helpmsg,
+                          key="create_hfp_example_btn",
+                          on_click=_loadHFPExample, args=[tomlexcase])
+        st.divider()
 
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
@@ -207,21 +269,22 @@ Click the `Create case` button once all parameters on this page are right."""
             conf_col1, conf_col2 = st.columns(2, gap="small")
             with conf_col1:
                 helpmsg = ":warning: Caution: The `Delete case` operation cannot be undone."
-                if st.button("Delete :material/delete:", type="primary", disabled=cantmodify, help=helpmsg):
+                if st.button("Delete :material/delete:", type="primary", help=helpmsg):
                     kz.storeGlobalKey("delete_confirmation_active", False)
                     kz.deleteCurrentCase()
                     st.rerun()
             with conf_col2:
                 helpmsg = "Click to cancel `Delete` operation."
-                if st.button("Cancel", disabled=cantmodify, help=helpmsg):
+                if st.button("Cancel", help=helpmsg):
                     kz.storeGlobalKey("delete_confirmation_active", False)
                     st.rerun()
         else:
             # Show initial delete button
             helpmsg = "Click to delete current case."
-            if st.button("Delete case :material/delete:", disabled=cantmodify, help=helpmsg):
+            if st.button("Delete case :material/delete:", help=helpmsg):
                 kz.storeGlobalKey("delete_confirmation_active", True)
                 st.rerun()
 
-# Show progress bar at bottom (always shown on Create Case page)
-cp.show_progress_bar()
+# Show progress bar at bottom (only when a case is selected)
+if ret is not None:
+    cp.show_progress_bar()

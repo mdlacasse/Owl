@@ -95,7 +95,7 @@ that has not yet been uploaded.""")
     st.markdown("""Wages and contributions for each individual.
 Current year is highligthed in blue. The cells before are for the previous five years, used exclusively to track past
 Roth contributions and conversions. This historical data ensures compliance with the IRS five-year maturation rule.
-For these initial five years, only Roth-related entries are read; all other columns will be ignored.""")
+For these initial five years, only Roth-related entries are read; all other columns are ignored.""")
 
     with st.expander("*Expand Wages and Contributions timetables*"):
         for i in range(n):

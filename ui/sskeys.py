@@ -47,15 +47,11 @@ def init():
     global ss
     ss = st.session_state
     if "cases" not in ss:
-        ss.cases = {
-            newCase: {"iname0": "", "status": "unknown", "caseStatus": "new", "id": -2},
-            loadCaseFile: {"iname0": "", "status": "unknown", "caseStatus": "new", "id": -1},
-        }
+        ss.cases = {}
 
     # Variable for storing name of current case.
     if "currentCase" not in ss:
-        ss.currentCase = loadCaseFile
-        # ss.currentCase = newCase
+        ss.currentCase = None
 
     initGlobalKey("plotGlobalBackend", "plotly")
     initGlobalKey("menuLocation", "top")
@@ -83,10 +79,7 @@ def allCaseNames() -> list:
 
 
 def onlyCaseNames() -> list:
-    caseList = list(ss.cases)
-    caseList.remove(newCase)
-    caseList.remove(loadCaseFile)
-    return caseList
+    return list(ss.cases)
 
 
 def runOncePerSession(func):
@@ -282,7 +275,7 @@ def createNewCase(case):
 
 
 def renameCase(key):
-    if ss.currentCase == newCase or ss.currentCase == loadCaseFile:
+    if ss.currentCase is None:
         return
     newname = ss[key]
     if newname in ss.cases:
@@ -299,10 +292,11 @@ def renameCase(key):
 
 
 def deleteCurrentCase():
-    if ss.currentCase == newCase or ss.currentCase == loadCaseFile:
+    if ss.currentCase is None:
         return
     del ss.cases[ss.currentCase]
-    setCurrentCase(loadCaseFile)
+    remaining = list(ss.cases)
+    ss.currentCase = remaining[0] if remaining else None
 
 
 def dumpSession():
@@ -354,6 +348,8 @@ def initCaseKey(key, val):
     """
     Only set the case local key if unset.
     """
+    if ss.currentCase is None:
+        return
     if key not in ss.cases[ss.currentCase]:
         setCaseKey(key, val)
 
@@ -361,6 +357,8 @@ def initCaseKey(key, val):
 
 
 def getCaseKey(key):
+    if ss.currentCase is None:
+        return None
     return ss.cases[ss.currentCase].get(key)
 
 
@@ -703,13 +701,9 @@ def flagCurrentCase(caseName):
         return caseName
 
 
-def titleBar(txt, allCases=False):
-    if allCases:
-        choices = allCaseNames()
-        helpmsg = "Select an existing case, create a new one from scratch, or load from a case parameter file."
-    else:
-        choices = onlyCaseNames()
-        helpmsg = "Switch to a different case."
+def titleBar(txt):
+    choices = onlyCaseNames()
+    helpmsg = "Switch to a different case."
 
     header = st.container()
     # header.title("Here is a sticky header")
@@ -738,11 +732,18 @@ def titleBar(txt, allCases=False):
             st.markdown("## " + txt)
         with col3:
             nkey = txt
+            # Manage the selectbox value entirely through session state to avoid
+            # the "default value + ss API" conflict.  Set ss[nkey] before the
+            # widget renders so Streamlit never needs to infer a default.
+            current = currentCaseName()
+            if current is not None and current in choices:
+                ss[nkey] = current
+            else:
+                ss[nkey] = None  # placeholder: no case, deleted case, or stale state
             ret = st.selectbox(
                 "Case selector",
                 choices,
                 help=helpmsg,
-                index=getIndex(currentCaseName(), choices),
                 format_func=flagCurrentCase,
                 key=nkey,
                 on_change=switchToCase,

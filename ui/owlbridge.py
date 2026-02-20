@@ -1097,9 +1097,9 @@ def _get_case_logger():
     Otherwise, creates/uses a UI logger that writes to the case's logs StringIO.
     This ensures both plan and UI logging use the same StringIO per case.
     """
-    # Check if we have a valid case (not the special "New Case..." or "Upload Case File..." cases)
+    # Check if we have a valid case selected.
     case_name = kz.currentCaseName()
-    if case_name in [kz.newCase, kz.loadCaseFile]:
+    if case_name is None:
         return None
 
     # If a plan exists, use its logger (which already writes to the case's logs StringIO)
