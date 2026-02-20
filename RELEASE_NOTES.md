@@ -2,6 +2,15 @@
 
 ---
 
+## Version 2026.02.20
+
+### UI
+- **Create Case redesign**: Replace sentinel-based selectbox entries (`New Case...`, `Upload Case File...`) with explicit widgets. When no case is selected, the page shows three columns side by side: create from scratch, upload a TOML case file, and load an example. When a case is already active, a collapsible expander provides the same options for adding more cases.
+- **Inline HFP uploader**: After a case is created, an HFP upload widget appears directly on the Create Case page (when no HFP has been loaded yet), allowing a full case setup without leaving the page.
+- **Streamlit compatibility**: Remove version pin (`== 1.52.2`) and `altair < 5` restriction from `requirements.txt`; manage selectbox value entirely via session state to avoid the newer Streamlit "default value + Session State API" conflict.
+
+---
+
 ## Version 2026.02.19
 
 ### Rate models
