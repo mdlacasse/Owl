@@ -33,7 +33,7 @@ CASE_SETUP_PAGES = [
     },
     {
         "name": "Financial Profile",
-        "file": "Household_Financial_Profile.py",
+        "file": "Financial_Profile.py",
         "icon": ":material/home:",
         "key": "household_profile"
     },
@@ -45,7 +45,7 @@ CASE_SETUP_PAGES = [
     },
     {
         "name": "Account Balances",
-        "file": "Savings_Assets.py",
+        "file": "Account_Balances.py",
         "icon": ":material/savings:",
         "key": "savings_assets"
     },
@@ -63,7 +63,7 @@ CASE_SETUP_PAGES = [
     },
     {
         "name": "Run Options",
-        "file": "Optimization_Parameters.py",
+        "file": "Run_Options.py",
         "icon": ":material/tune:",
         "key": "optimization_params"
     },

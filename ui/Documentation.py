@@ -225,7 +225,7 @@ An example is provided
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
 will populate all the fields in the [Plan Setup](#plan-setup) section,
-except those in the *Financial Profile* which get populated
+except those in the *Household Financial Profile* (HFP) which get populated
 separately by an Excel workbook (see next section).
 
 Once a *case* was successfully run, the *case* file for the *case* being developed
@@ -235,7 +235,7 @@ Case parameter files can have any name but when saving from the interface,
 their name will start with *Case_* followed by the *case* name.
 
 #### :material/home: Financial Profile
-The *Financial Profile* contains two major sections,
+The *Household Financial Profile* (HFP) contains two major sections,
 one representing *Wages and Contributions* for each individual, and
 the other capturing the household's *Debts and Fixed Assets*.
 While the values can be entered manually in each table,

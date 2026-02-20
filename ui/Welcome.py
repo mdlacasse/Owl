@@ -118,7 +118,7 @@ with st.expander("*Explore some case examples*"):
     with step2:
         st.markdown("**2. Load the financial profile**")
         st.markdown("On **Financial Profile**, load the Jack & Jill workbook (or use the example button).")
-        st.page_link("Household_Financial_Profile.py", label="Open Financial Profile", icon=":material/home:")
+        st.page_link("Financial_Profile.py", label="Open Financial Profile", icon=":material/home:")
     with step3:
         st.markdown("**3. View your plan**")
         st.markdown("Check **Graphs**, **Worksheets**, or **Reports** under Results.")

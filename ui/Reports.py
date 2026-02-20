@@ -71,12 +71,12 @@ workbook, to reproduce it in the future.""")
 
         st.divider()
         st.markdown("""#### :orange[Excel Workbooks]\nThese workbooks contain time tables
-describing the flow of money, the first one as input to the case, and the following as its output.""")
+describing the flow of money, the first one as input to the case, and the second as its output.""")
         col1, col2 = st.columns(2, gap="large")
         with col1:
             download2 = st.download_button(
                 label="Download Financial Profile workbook",
-                help="Download Financial Profile as an Excel workbook.",
+                help="Download Household Financial Profile (HFP) as an Excel workbook.",
                 data=owb.saveContributions(),
                 file_name=f"HFP_{caseName}.xlsx",
                 disabled=kz.isCaseUnsolved(),

@@ -36,17 +36,17 @@ st.logo("https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png", size=
 pages = {
     "Plan Setup": [
         st.Page("Create_Case.py", icon=":material/person_add:"),
-        st.Page("Household_Financial_Profile.py", title="Financial Profile", icon=":material/home:"),
+        st.Page("Financial_Profile.py", icon=":material/home:"),
         st.Page("Fixed_Income.py", icon=":material/currency_exchange:"),
-        st.Page("Savings_Assets.py", title="Account Balances", icon=":material/savings:"),
+        st.Page("Account_Balances.py", icon=":material/savings:"),
         st.Page("Asset_Allocation.py", icon=":material/percent:"),
         st.Page("Rates_Selection.py", icon=":material/monitoring:"),
-        st.Page("Optimization_Parameters.py", title="Run Options", icon=":material/tune:"),
+        st.Page("Run_Options.py", icon=":material/tune:"),
     ],
     "Results": [
         st.Page("Graphs.py", icon=":material/stacked_line_chart:"),
         st.Page("Worksheets.py", icon=":material/data_table:"),
-        st.Page("Output_Files.py", title="Reports", icon=":material/description:"),
+        st.Page("Reports.py", icon=":material/description:"),
     ],
     "Simulations": [
         st.Page("Historical_Range.py", icon=":material/history:"),
