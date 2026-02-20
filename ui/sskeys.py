@@ -74,10 +74,6 @@ def getKeyInCase(key, casename):
     return None
 
 
-def allCaseNames() -> list:
-    return list(ss.cases)
-
-
 def onlyCaseNames() -> list:
     return list(ss.cases)
 

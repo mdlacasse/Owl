@@ -144,7 +144,6 @@ else:
 
     diz1 = kz.getCaseKey("plan") is not None
     diz2 = diz1
-    # diz2 = (diz1 or len(kz.allCaseNames()) > 3)
     with col2:
         statusChoices = ["single", "married"]
         kz.initCaseKey("status", statusChoices[0])

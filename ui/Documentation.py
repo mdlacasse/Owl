@@ -124,11 +124,6 @@ Typically, pages would be accessed in order, starting from left to right and fro
 
 A `Case selector` box located at the top of each page allows
 to navigate between the different scenarios created.
-When on the [Create Case](#person-add-create-case) page, however, the selector box offers two more options:
-one to create a new *case* from scratch, and one to create a case
-from a *case* parameter file, which
-would then populate values of all parameters found
-in the [Case Setup](#case-setup) section.
 This box is present on all pages in [Case Setup](#case-setup)
 and [Single Scenario](#single-scenario) sections.
 The *case* being currently displayed is marked with a small red triangle.
@@ -175,10 +170,12 @@ at the end of their planning period.
 
 #### :material/person_add: Create Case
 The **Create Case** page is where every new scenario begins.
-It controls the creation of scenarios as the `Case selector` drop-down menu contains
-two additional items:
-one to create new *cases*, and the other to create *cases* from a *case* parameter file.
-This page also allows you to copy and/or rename scenarios, as well as deleting them.
+When no case is yet selected, the page displays three columns side by side:
+one to create a new *case* from scratch, one to upload a *case* parameter file,
+and one to load an example *case* from the repository.
+When a case is already selected, an expandable panel at the top of the page
+provides the same options for creating or loading additional cases.
+This page also allows you to copy and/or rename scenarios, as well as delete them.
 
 For creating a scenario from scratch, (first) name(s), marital status,
 birth date(s), and life expectancies are required.
@@ -205,12 +202,12 @@ Related *cases* are determined by having the same individual's names:
 anything else can change between *cases*.
 
 ##### Initializing the life parameters of a scenario
-While on the **Create Case** page,
-click on the `Case selector` box and choose one of `New Case...` or `Upload Case File...`.
+When no case is yet selected, the **Create Case** page shows three options side by side.
+Choose one to get started.
 
 ##### Creating a case from scratch
-When starting from `New Case...`,
-one must provide the birth date of each spouse(s) and their expected lifespan(s).
+Enter a name in the **Create a New Case** text box and press Enter.
+One must then provide the birth date of each spouse(s) and their expected lifespan(s).
 For selecting your own longevity numbers, there are plenty of predictors on the Internet.
 Pick your favorite:
 - [longevityillustrator](https://longevityillustrator.org),
@@ -219,7 +216,8 @@ Pick your favorite:
 or just Google *life expectancy calculator*.
 
 ##### Using a *case* file
-If `Upload Case File...` is selected, a *case* file must be uploaded.
+To start from a *case* file, use the **Upload Your Own Case File** widget or pick one
+from the **Load a Case Example** dropdown. A *case* file must be uploaded.
 These files end with the *.toml* extension, are human readable (and therefore editable),
 and contain all the parameters required to characterize a scenario.
 An example is provided
@@ -243,6 +241,9 @@ the other capturing the household's *Debts and Fixed Assets*.
 While the values can be entered manually in each table,
 an option is given to upload an Excel file containing all the data,
 thus avoiding this tedious exercise.
+After a case is created, an HFP upload widget also appears directly on the
+[Create Case](#person-add-create-case) page, so both uploads can be done
+without leaving that page.
 These data include future wages and contributions,
 past and future Roth contributions and conversions, large expenses
 or large influx of after-tax money, debts, and fixed assets.
@@ -790,10 +791,11 @@ The `Download Case parameter file` button allows to save the parameters of the s
 to a *case* file for future use.
 
 With the *case* parameter file and the **Household Financial Profile** workbook,
-the same *case* can be reproduced at a later time by uploading
-them through the widgets on the [Create Case](#person-add-create-case)
-and [Household Financial Profile](#home-household-financial-profile) pages,
-respectively.
+the same *case* can be reproduced at a later time by uploading the *case* parameter file
+through the widget on the [Create Case](#person-add-create-case) page, and the
+*Household Financial Profile* workbook through the uploader on either the
+[Create Case](#person-add-create-case) or the
+[Household Financial Profile](#home-household-financial-profile) page.
 
 -------
 ### :orange[Multiple Scenarios]
