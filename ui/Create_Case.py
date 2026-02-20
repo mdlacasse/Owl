@@ -226,7 +226,7 @@ Once changes are complete click the `Create case` button."""
         st.markdown("#### :orange[Upload Financial Profile (Optional)]")
         hfp_col1, hfp_col2 = st.columns(2, gap="large")
         with hfp_col1:
-            st.markdown("##### :orange[Upload *Financial Profile* Workbook]")
+            st.markdown("##### :orange[Upload *Household Financial Profile* Workbook]")
             kz.initCaseKey("_xlsx", 0)
             stTimeLists = st.file_uploader(
                 "Upload values from a Household Financial Profile (HFP) workbook...",
