@@ -132,6 +132,18 @@ def get_numeric_list_option(options, key, min_length, *, min_value=None) -> list
     return result
 
 
+def get_monetary_option(options, key, default, *, min_value=None) -> float:
+    """Like get_numeric_option but scales the result by the 'units' entry in options."""
+    units = getUnits(options.get("units", "k"))
+    return units * get_numeric_option(options, key, default, min_value=min_value)
+
+
+def get_monetary_list_option(options, key, min_length, *, min_value=None) -> list[float]:
+    """Like get_numeric_list_option but scales every element by the 'units' entry in options."""
+    units = getUnits(options.get("units", "k"))
+    return [units * v for v in get_numeric_list_option(options, key, min_length, min_value=min_value)]
+
+
 # Next two functions could be a one-line lambda functions.
 # e.g., krond = lambda a, b: 1 if a == b else 0
 def krond(a, b) -> int:

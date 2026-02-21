@@ -1628,10 +1628,9 @@ class Plan:
                     self.B.setRange(_q2(self.C["x"], i_xcluded, n, self.N_i, self.N_n), 0, 0)
 
             if "maxRothConversion" in options:
-                rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
+                rhsopt = u.get_monetary_option(options, "maxRothConversion", 0)
 
                 if rhsopt >= 0:
-                    rhsopt *= self.optionsUnits
                     for i in range(self.N_i):
                         if i == i_xcluded:
                             continue
@@ -1682,14 +1681,13 @@ class Plan:
         """
         if "minTaxableBalance" not in options:
             return
-        min_bal = u.get_numeric_list_option(
+        min_bal = u.get_monetary_list_option(
             options, "minTaxableBalance", self.N_i, min_value=0
         )
         for i in range(self.N_i):
-            min_today = min_bal[i]
-            if min_today <= 0:
+            min_dollar = min_bal[i]
+            if min_dollar <= 0:
                 continue
-            min_dollar = min_today * self.optionsUnits
             # From year 2 onward; last year = min(horizons[i], N_n) for survivor,
             # horizons[i]-1 for deceased (last year alive)
             for n in range(1, self.horizons[i]):
@@ -1713,8 +1711,7 @@ class Plan:
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
             if "bequest" in options:
-                bequest = u.get_numeric_option(options, "bequest", 1)
-                bequest *= self.optionsUnits * self.gamma_n[-1]
+                bequest = u.get_monetary_option(options, "bequest", 1) * self.gamma_n[-1]
             else:
                 bequest = 1
 
@@ -1732,8 +1729,7 @@ class Plan:
                 row.addElem(_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
             self.A.addRow(row, total_bequest_value, total_bequest_value)
         elif objective == "maxBequest":
-            spending = u.get_numeric_option(options, "netSpending", 1)
-            spending *= self.optionsUnits
+            spending = u.get_monetary_option(options, "netSpending", 1)
             self.B.setRange(_q1(self.C["g"], 0, self.N_n), spending, spending)
 
     def _add_initial_balances(self):
@@ -2304,8 +2300,6 @@ class Plan:
         if objective == "maxSpending" and "bequest" not in myoptions:
             self.mylog.vprint("Using bequest of $1.")
 
-        self.optionsUnits = u.getUnits(myoptions.get("units", "k"))
-
         oppCostX = myoptions.get("oppCostX", 0.)
         self.xnet = 1 - oppCostX / 100.
 
@@ -2326,8 +2320,7 @@ class Plan:
 
         self.prevMAGI = np.zeros(2)
         if "previousMAGIs" in myoptions:
-            magi = u.get_numeric_list_option(myoptions, "previousMAGIs", 2)
-            self.prevMAGI = self.optionsUnits * np.array(magi)
+            self.prevMAGI = np.array(u.get_monetary_list_option(myoptions, "previousMAGIs", 2))
 
         lambdha = myoptions.get("spendingSlack", 0)
         if not (0 <= lambdha <= 50):
