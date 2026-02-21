@@ -31,8 +31,6 @@ import owlplanner as owl
 
 solver = 'HiGHS'
 # solver = 'MOSEK'
-thisyear = date.today().year
-
 if platform == "darwin":
     SPENDING1 = 86958
     BEQUEST1 = 837286
@@ -54,9 +52,11 @@ ABS_TOL = 20.0
 
 
 def createJackAndJillPlan(name):
+    thisyear = date.today().year
     inames = ['Jack', 'Jill']
-    dobs = ["1964-01-15", "1967-01-16"]
-    expectancy = [thisyear - 1964 + 20, thisyear - 1967 + 20]
+    # Keep Jack at age 62 and Jill at age 59 so SS/Medicare timing stays constant.
+    dobs = [f"{thisyear - 62}-01-15", f"{thisyear - 59}-01-16"]
+    expectancy = [82, 79]
     p = owl.Plan(inames, dobs, expectancy, name)
     p.setSpendingProfile('flat', 60)
 
