@@ -37,7 +37,7 @@ class Progress:
     def show(self, n, N):
         hourglass = self._HOURGLASSES[self.counter % 2]
         self.counter += 1
-        self.bar.progress(n / N, f"{self._TXT}{hourglass} &nbsp; Case {n} of {N}")
+        self.bar.progress(n / N, f"{self._TXT}{hourglass} &nbsp; (case {n} of {N})")
 
     def finish(self):
         self.bar.empty()
