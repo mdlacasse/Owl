@@ -24,27 +24,20 @@ import streamlit as st
 
 
 class Progress:
+    _HOURGLASSES = ["⏳", "⌛"]
+    _TXT = "Calculations in progress. Please wait... &nbsp; &nbsp;"
+
     def __init__(self, mylog):
         self.mylog = mylog
         self.counter = 0
-        self.clocks = []
-        for i in range(1, 13):
-            self.clocks.extend([f":clock{i}:", f":clock{i}30:"])
-        self.moons = [":new_moon:", ":waxing_crescent_moon:", ":first_quarter_moon:",
-                      ":waxing_gibbous_moon:", ":full_moon:", ":waning_gibbous_moon:",
-                      ":last_quarter_moon:", ":waning_crescent_moon:"]
-        self.txt = "Calculations in progress. Please wait... &nbsp; &nbsp;"
-
-    def msg(self):
-        self.counter += 1
-        # return self.txt + self.clocks[(self.counter - 1) % 24]
-        return self.txt + self.moons[(self.counter - 1) % 8]
 
     def start(self):
-        self.bar = st.progress(0, self.msg())
+        self.bar = st.progress(0, self._TXT + self._HOURGLASSES[0])
 
-    def show(self, x):
-        self.bar.progress(x, self.msg())
+    def show(self, n, N):
+        hourglass = self._HOURGLASSES[self.counter % 2]
+        self.counter += 1
+        self.bar.progress(n / N, f"{self._TXT}{hourglass} &nbsp; Case {n} of {N}")
 
     def finish(self):
         self.bar.empty()

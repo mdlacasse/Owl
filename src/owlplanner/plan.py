@@ -2133,7 +2133,7 @@ class Plan:
                 self.solve(objective, options)
                 if not verbose:
                     step += 1
-                    progcall.show(step / N)
+                    progcall.show(step, N)
                 if self.caseStatus == "solved":
                     if objective == "maxSpending":
                         df.loc[len(df)] = [self.partialBequest, self.basis]
@@ -2186,7 +2186,7 @@ class Plan:
             self.regenRates(override_reproducible=True)
             self.solve(objective, myoptions)
             if not verbose:
-                progcall.show((n + 1) / N)
+                progcall.show(n + 1, N)
             if self.caseStatus == "solved":
                 if objective == "maxSpending":
                     df.loc[len(df)] = [self.partialBequest, self.basis]

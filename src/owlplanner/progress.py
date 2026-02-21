@@ -56,22 +56,19 @@ class Progress:
         if self.mylog is not None:
             self.mylog.print("|--- progress ---|")
 
-    def show(self, x: float):
+    def show(self, n: int, N: int):
         """
-        Display the current progress percentage.
+        Display the current progress.
 
         Args:
-            x: Progress value between 0.0 and 1.0 (will be clamped to this range).
-               Values outside this range will be clamped.
+            n: Current case number (1-based).
+            N: Total number of cases.
         """
         if self.mylog is None:
             return
 
-        # Clamp x to [0, 1] range
-        x = max(0.0, min(1.0, x))
-
-        # Use single \r for carriage return (double \r\r is unnecessary)
-        self.mylog.print(f"\r{u.pc(x, f=0)}", end="")
+        x = max(0.0, min(1.0, n / N))
+        self.mylog.print(f"\r{u.pc(x, f=0)} (case {n} of {N})", end="")
 
     def finish(self):
         """
