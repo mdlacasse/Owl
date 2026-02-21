@@ -47,6 +47,13 @@ from .plotting.factory import PlotFactory
 from .rate_models.constants import HISTORICAL_RANGE_METHODS, RATE_DISPLAY_NAMES_SHORT
 
 
+def _mosek_available():
+    import importlib.util
+    import os
+    return (importlib.util.find_spec("mosek") is not None
+            and os.environ.get("MOSEKLM_LICENSE_FILE") is not None)
+
+
 # Default values
 BIGM_AMO = 5e7     # 100 times large withdrawals or conversions
 GAP = 1e-4
@@ -291,7 +298,7 @@ class Plan:
 
         self._description = ''
         self.defaultPlots = "nominal"
-        self.defaultSolver = "HiGHS"
+        self.defaultSolver = "default"
         self._plotterName = None
         # Pick a default plotting backend here.
         # self.setPlotBackend("matplotlib")
@@ -1691,6 +1698,8 @@ class Plan:
 
     def _add_withdrawal_limits(self):
         for i in range(self.N_i):
+            # Wierdly enough, setting horizons causes a effects on HiGHS and MOSEK
+            # for n in range(self.N_n):
             for n in range(self.horizons[i]):
                 rowDic = {_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n): -1,
                           _q2(self.C["x"], i, n, self.N_i, self.N_n): -1,
@@ -2237,7 +2246,7 @@ class Plan:
 
         # Check objective and required options.
         knownObjectives = ["maxBequest", "maxSpending"]
-        knownSolvers = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS", "MOSEK"]
+        knownSolvers = ["default", "HiGHS", "PuLP/CBC", "PuLP/HiGHS", "MOSEK"]
 
         knownOptions = [
             "absTol",
@@ -2338,6 +2347,8 @@ class Plan:
         self.processDebtsAndFixedAssets()
 
         solver = myoptions.get("solver", self.defaultSolver)
+        if solver == "default":
+            solver = "MOSEK" if _mosek_available() else "HiGHS"
         if solver not in knownSolvers:
             raise ValueError(f"Unknown solver '{solver}'.")
 

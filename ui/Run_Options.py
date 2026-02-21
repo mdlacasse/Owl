@@ -188,7 +188,7 @@ else:
 
         st.divider()
         st.markdown("#### :orange[Solver]")
-        choices = ["HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
+        choices = ["default", "HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
         kz.initCaseKey("solver", choices[0])
         kz.initCaseKey("xtraOptions", "")
 
@@ -200,8 +200,12 @@ else:
         col1, col2 = st.columns([40, 60], gap="large", vertical_alignment="top")
         with col1:
             helpmsg = ("Select different solvers for comparison purposes."
-                       " For best performance, use MOSEK if available. Otherwise use HiGHS.")
+                       " For best performance, use MOSEK if available. Otherwise use HiGHS."
+                       " 'default' automatically picks MOSEK when available, otherwise HiGHS.")
             ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
+            if kz.getCaseKey("solver") == "default":
+                resolved = "MOSEK" if owb.hasMOSEK() else "HiGHS"
+                st.caption(f"Will use: **{resolved}**")
         with col2:
             helpmsg = ("Additional solver options as a dictionary (e.g., '{\"key1\": \"value1\", \"key2\": 123}'). "
                        "These options will be merged into the solver options dictionary. "

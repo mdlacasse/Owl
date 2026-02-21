@@ -55,7 +55,7 @@ startRothConversions = 2026
 withSCLoop = true
 withMedicare = "loop"
 bequest = 400
-solver = "HiGHS"
+solver = "default"
 spendingSlack = 0
 
 [results]

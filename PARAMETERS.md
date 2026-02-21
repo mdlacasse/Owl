@@ -201,7 +201,7 @@ Options controlling the optimization solver and constraints.
 | `oppCostX` | float | *(Advanced)* Opportunity cost applied to Roth conversions (percent). | `0` |
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |
 | `relTol` | float | *(Advanced)* Relative convergence tolerance for the self-consistent loop objective. | `max(5e-5, gap / 300)` |
-| `solver` | string | Solver to use for optimization. Valid values: `"HiGHS"`, `"PuLP/CBC"`, `"PuLP/HiGHS"`, `"MOSEK"`. | `"HiGHS"` |
+| `solver` | string | Solver to use for optimization. Valid values: `"default"`, `"HiGHS"`, `"PuLP/CBC"`, `"PuLP/HiGHS"`, `"MOSEK"`. `"default"` automatically selects MOSEK when available and licensed, otherwise falls back to HiGHS. | `"default"` |
 | `spendingSlack` | integer | Percentage allowed to deviate from the spending profile (0-50). | `0` |
 | `startRothConversions` | integer | Year when Roth conversions can begin (clamped to the current year). | Current year |
 | `swapRothConverters` | integer | *(Advanced)* For plans involving spouses, only allow one spouse to perform Roth conversions per year. The year provided determines a transition year when roles are swapped. The sign selects who converts first: positive means person 1 can convert first and person 2 any time after; negative year means person 2 before and person 1 after. This option overrides the `noRothConversions` option. | `0` |
@@ -302,7 +302,7 @@ noRothConversions = "None"
 startRothConversions = 2025
 withMedicare = "loop"
 bequest = 500
-solver = "HiGHS"
+solver = "default"
 spendingSlack = 0
 amoRoth = true
 amoSurplus = true
