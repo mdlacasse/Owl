@@ -8,7 +8,30 @@ This document describes the steps required when advancing Owl to a new tax year 
 
 Most of the codebase dynamically computes the current year via `date.today().year`, so it adapts automatically. The items below are the exceptions — places where a year is hardcoded and must be updated manually.
 
-The test suite is frozen to a reference year (currently **2026**) via `tests/conftest.py`, so tests will not break just because the calendar year advances. The steps below are only needed when you deliberately want to roll the project forward to a new year.
+### How the test freeze works
+
+`tests/conftest.py` contains a session-scoped autouse fixture (`freeze_year`) that runs
+before any test executes. It scans `sys.modules` for every imported module whose `date`
+attribute is `datetime.date` — covering both `owlplanner.*` source modules and the test
+files themselves — and replaces it with a subclass whose `today()` always returns a fixed
+date (`_FROZEN_DATE`, currently `date(2026, 1, 1)`).
+
+Because all call sites use `date.today().year`, this single patch makes every plan
+construction, tax calculation, and time-list operation behave as if the current year is
+**2026**, regardless of when the tests actually run.
+
+Two design decisions complement the freeze:
+
+- **`tests/test_repro.py`** computes birth years as `thisyear - age` (e.g., `thisyear - 62`
+  for Jack) with a fixed life expectancy. This keeps the individuals at the same age each
+  year, so Social Security and Medicare start dates remain the same number of years into
+  the plan — the scenario is identical across calendar years.
+
+- **`tests/test_regressions.py`** uses the same age-relative pattern
+  (`yobs = [thisyear - topAge + ny]`), so it was already year-agnostic.
+
+The net result: **tests never break at year rollover**. The steps below are only needed
+when you deliberately want to roll the project forward to a new year.
 
 ---
 
