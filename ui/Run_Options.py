@@ -197,7 +197,7 @@ else:
         elif kz.getCaseKey("solver") == "MOSEK":
             kz.setCaseKey("solver", choices[0])
 
-        col1, col2 = st.columns([40, 60], gap="large", vertical_alignment="top")
+        col1, col2 = st.columns([45, 55], gap="large", vertical_alignment="top")
         with col1:
             helpmsg = ("Select different solvers for comparison purposes."
                        " For best performance, use MOSEK if available. Otherwise use HiGHS."
