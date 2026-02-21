@@ -2054,15 +2054,15 @@ class Plan:
         else:
             raise RuntimeError("Internal error in objective function.")
 
-        # Turn on epsilon by default when optimizing Medicare.
+        # Turn on epsilon by default to reduce churn and frontload Roth conversions.
         withMedicare = options.get("withMedicare", "loop")
-        default_epsilon = EPSILON if withMedicare == "optimize" else 0
+        default_epsilon = EPSILON
         epsilon = u.get_numeric_option(options, "epsilon", default_epsilon, min_value=0)
         if epsilon > 0:
             # Penalize Roth conversions to reduce churn.
             for i in range(self.N_i):
                 for n in range(self.N_n):
-                    c_arr[_q2(self.C["x"], i, n, self.N_i, self.N_n)] += epsilon
+                    c_arr[_q2(self.C["x"], i, n, self.N_i, self.N_n)] += epsilon * (1 + n)
 
             if self.N_i == 2:
                 # Favor withdrawals from spouse 0 by penalizing spouse 1 withdrawals.
