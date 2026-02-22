@@ -331,9 +331,9 @@ class Plan:
             raise ValueError(f"Plan needs more than {self.N_n} years.")
 
         self.year_n = np.linspace(thisyear, thisyear + self.N_n - 1, self.N_n, dtype=np.int32)
-        # Year index in the case (if any) where individuals turn 59. For 10% withdrawal penalty.
-        self.n59 = 59 - thisyear + self.yobs
-        self.n59[self.n59 < 0] = 0
+        # Year index when each individual turns 59½ (IRS threshold). Born Jul–Dec: +1 year.
+        self.n595 = 59 - thisyear + self.yobs + (self.mobs > 6).astype(np.int32)
+        self.n595[self.n595 < 0] = 0
         # Handle passing of one spouse before the other.
         if self.N_i == 2 and np.min(self.horizons) != np.max(self.horizons):
             self.n_d = np.min(self.horizons)
@@ -1830,9 +1830,9 @@ class Plan:
                 )
                 row.addElem(_q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1), fac * self.mu)
                 row.addElem(_q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n), fac * (tau_0prev[n] - self.mu) - 1)
-                penalty = 0.1 if n < self.n59[i] else 0
+                penalty = 0.1 if n < self.n595[i] else 0
                 row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1 + penalty)
-                row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1 + penalty)
+                row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)   # maturation constraints govern; no 10% penalty
                 row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), fac * self.mu)
 
             for t in range(self.N_t):
@@ -1913,7 +1913,10 @@ class Plan:
         # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
         # A Roth conversion cannot be done in the same year as a Roth withdrawal.
         if options.get("amoRoth", True):
+            n595_max = int(np.max(self.n595))   # last year any individual still needs the ladder
             for n in range(self.N_n):
+                if n < n595_max:
+                    continue   # relax AMO: allow simultaneous conversion + mature Roth withdrawal
                 # Make z_2 and z_3 at-most-one binary variables.
                 dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
                         _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
@@ -2875,7 +2878,7 @@ class Plan:
         self.P_n = np.zeros(Nn)
         # Add early withdrawal penalty if any.
         for i in range(Ni):
-            self.P_n[0:self.n59[i]] += 0.1*(self.w_ijn[i, 1, 0:self.n59[i]] + self.w_ijn[i, 2, 0:self.n59[i]])
+            self.P_n[0:self.n595[i]] += 0.1 * self.w_ijn[i, 1, 0:self.n595[i]]
 
         self.T_n += self.P_n
         # Compute partial distribution at the passing of first spouse.

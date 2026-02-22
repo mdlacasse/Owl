@@ -522,12 +522,13 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	Note that $\mathbb{I}$ can be negative by definition, and $\tau$ will need to be clamped to zero if so.
 
 \item [$P_n$]
-	Amount of 10\% early withdrawal penalty in year $n$,
+	Amount of 10\% early withdrawal penalty in year $n$.
+	The penalty applies only to tax-deferred ($j=1$) withdrawals before the IRS threshold of age 59½:
 	\begin{equation}
 		\label{Eq:PenTax0}
-		P_n = 0.10 \sum_{i, j\neq0} (1 - \mathcal{H}(n - n_{i,59})) w_{ijn}.
+		P_n = 0.10 \sum_i (1 - \mathcal{H}(n - n_{i,59½})) w_{i1n}.
 	\end{equation}
-        Here, $H(n - n_{i, 59})$ is a Heaviside step function which is 0 or 1, depending on the sign of
+        Here, $\mathcal{H}(n - n_{i,59½})$ is a Heaviside step function which is 0 or 1, depending on the sign of
         its argument:
 	\begin{equation}
 	\mathcal{H}(x) :=
@@ -536,8 +537,19 @@ Intermediate variables are represented in roman uppercase letters, or in double 
          1 & x \geq 0.
 	\end{cases}
 	\end{equation}
-        The parameter $n_{i, 59}$ is the year index when individual $i$ turns 59,
-	or 0 if the individual is already 59 years old or older at the beginning of the plan.
+        The parameter $n_{i,59½}$ is the year index when individual $i$ turns 59½,
+	or 0 if the individual is already past 59½ at the beginning of the plan.
+	Because the model operates at yearly granularity:
+	\begin{equation}
+		n_{i,59½} = \max\!\bigl(0,\; 59 - Y_0 + y_{\mathrm{obs},i}
+		             + \mathbf{1}[m_{\mathrm{obs},i} > 6]\bigr),
+	\end{equation}
+	where $Y_0$ is the current calendar year and $m_{\mathrm{obs},i} \in \{1,\ldots,12\}$
+	is the birth month.  The indicator $\mathbf{1}[m>6]$ adds one year for individuals born
+	in July--December, whose 59½ birthday falls in January--June of the following year.
+	Tax-free ($j=2$) Roth withdrawals are not subject to this penalty because the
+	5-year maturation constraints already restrict withdrawals to penalty-free amounts;
+	see the maturation paragraph below.
 
 \item [$T_n$]
 	Amount of income tax paid on taxable ordinary income $G_n$ in year $n$.
@@ -694,6 +706,32 @@ add the market returns to the savings balances.
 	At this point, we assume that all accounts are balanced according to the desired
 	allocation ratios $\alpha_{ijk0}$.
 
+\paragraph*{Roth 5-year maturation and conversion ladder}
+	Two IRS rules govern penalty-free access to Roth funds.
+	(1) Roth \emph{contributions} can always be withdrawn tax- and penalty-free.
+	(2) Roth \emph{conversions} can be withdrawn penalty-free only after a 5-year holding period,
+	with each conversion carrying its own clock; \emph{earnings} additionally require age 59½.
+	Because of rule~(2), any Roth withdrawal allowed by the maturation constraint is already
+	penalty-free, so no 10\% early-withdrawal penalty is assessed on $w_{i2n}$.
+
+	The maturation constraint (row group $I_8$ in the matrix appendix) enforces this rule:
+	\begin{equation}
+		b_{i2n} - w_{i2n} \;\geq\;
+		\sum_{k=1}^{5} \Gamma_k\, x_{i,n-k}
+		+ \sum_{k=1}^{5} (\Gamma_k - 1)\,\kappa_{i2,n-k},
+		\quad \Gamma_k = \prod_{\ell=1}^{k}\max(1,\,1+\mathcal{T}_{i2,n-\ell}),
+	\end{equation}
+	forcing immature conversions (those made within the last 5 years) and recent contribution
+	gains to remain in the account.  Historical amounts ($n-k < 0$) use a conservative 10\%/yr
+	assumption.
+
+	This constraint enables the \emph{Roth conversion ladder}, a strategy popular in the
+	FIRE (Financial Independence, Retire Early) community.  An early retiree converts
+	tax-deferred funds in years $n, n+1, \ldots$ and, 5 years later, withdraws the
+	corresponding Roth amounts penalty-free.  The optimizer discovers this strategy
+	automatically once the Roth penalty is removed and the AMO constraint is relaxed for
+	pre-59½ years (see the AMO discussion below).
+
 \paragraph*{Cash-flow surplus}
 	When both spouses are alive, surplus $s_n$ gets deposited in the taxable accounts
 	according to variable $\eta$ as described in Eq.~(\ref{Eq:eta}),
@@ -777,6 +815,11 @@ add the market returns to the savings balances.
 	Here, $\mathcal{M}$ is a large number such as $10^9$, just slightly
 	larger than what $x$, $w$, and $s$ can possibly be.
 	The lower bound can be ignored here as well for the same reason.
+	Note that the Roth conversion/tax-free withdrawal AMO (Eq.~\ref{Eq:Binary2}) is \emph{relaxed}
+	for years $n < \max_i(n_{i,59½})$: before any individual reaches age 59½,
+	it is legitimate to simultaneously withdraw mature 5-year-old conversions and initiate new
+	ladder rungs, so enforcing the AMO in those years would block the Roth conversion ladder.
+	The AMO is reinstated once all individuals have passed 59½, preventing artificial round-trips.
 
 	Another approach could be to perform Roth conversions at mid-year, while withdrawals
 	could be made at the beginning of the year, and surplus deposits,
@@ -845,7 +888,7 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
 		\label{Eq:C4}
-		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_{i,j\neq0} (1-\mathcal{H}(n - n_{i, 59})) w_{ijn}\nonumber\\
+		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_i (1-\mathcal{H}(n - n_{i,59½})) w_{i1n}\nonumber\\
                 + m_n + s_n + \sum_t f_{tn} \theta^x_{tn} &&\nonumber \\
 		+ \psi_n\sum_i \alpha_{i00n} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0(n-1)} - \mu)\right] 
@@ -1486,7 +1529,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 	A_e[J_5(n), q_b(i, 0, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_5(n), q_d(i, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_5(n), q_{f}(t, n)] &=& \theta^x_{tn}, \nonumber \\
-	A_e[J_5(n), q_w(i, j ,n)] &=& -1 + 0.1(1-\delta(j, 0))(1-\mathcal{H}(n-n_{i, 59}))
+	A_e[J_5(n), q_w(i, j ,n)] &=& -1 + 0.1\,\delta(j,1)\,(1-\mathcal{H}(n-n_{i,59½}))
 		+ \delta(j, 0)\psi_n\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
