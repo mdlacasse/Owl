@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 if ! [[ -v OWLDIR ]]; then
     OWLDIR=/app/owl

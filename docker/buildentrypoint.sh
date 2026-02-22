@@ -1,4 +1,6 @@
-#/bin/bash
+#!/bin/bash
+
+set -e
 
 # Build at run time for smaller image but slower starts.
 rm -rf /app/owl
