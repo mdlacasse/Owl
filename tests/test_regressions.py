@@ -580,3 +580,76 @@ def test_Historical2():
 
     options = {'maxRothConversion': 100, 'noRothConversions': 'Jill', 'withSCLoop': True}
     p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=False)
+
+
+def test_fire_roth_ladder():
+    """
+    FIRE-style Roth conversion ladder verification.
+
+    Single individual, age 45, all funds in tax-deferred, born in October
+    (month > 6) to exercise the month-of-birth 59½ correction.
+
+    Checks:
+    - n595 is 1 year later for Oct-born vs Jan-born (month fix).
+    - Optimizer discovers the ladder: conversions in years 0–5, Roth
+      withdrawals from year 6 onward while still pre-59½.
+    - P_n equals 0.1 × w_trad only — no Roth penalty leak.
+    - P_n is zero for all n >= n595.
+    """
+    thisyear = date.today().year
+    age = 45
+    life = 85
+
+    # October birth → n595 = 59 - thisyear + (thisyear - age) + 1 = 14 + 1 = 15
+    dob_oct = f"{thisyear - age}-10-01"
+    dob_jan = f"{thisyear - age}-01-01"
+
+    def _make_plan(dob, name):
+        p = owl.Plan(["Alex"], [dob], [life], name)
+        p.setAccountBalances(taxable=[0], taxDeferred=[2000], taxFree=[0], startDate="1-1")
+        p.setSpendingProfile("flat", 100)
+        p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+        p.setRates("user", values=[5, 5, 5, 0])
+        return p
+
+    options = {
+        "maxRothConversion": 200,
+        "bequest": 0,
+        "solver": solver,
+        "withSCLoop": False,
+        "withMedicare": False,
+    }
+
+    p_oct = _make_plan(dob_oct, "fire_ladder_oct")
+    p_oct.solve("maxSpending", options=options)
+    assert p_oct.caseStatus == "solved"
+
+    p_jan = _make_plan(dob_jan, "fire_ladder_jan")
+    p_jan.solve("maxSpending", options=options)
+    assert p_jan.caseStatus == "solved"
+
+    # Month-of-birth correction: Oct-born should have n595 one year later than Jan-born.
+    assert p_oct.n595[0] == p_jan.n595[0] + 1
+
+    n595 = p_oct.n595[0]
+    x_in   = p_oct.x_in[0]        # Roth conversions
+    w_roth = p_oct.w_ijn[0, 2, :]  # Roth withdrawals
+    w_trad = p_oct.w_ijn[0, 1, :]  # Tax-deferred withdrawals
+    P_n    = p_oct.P_n
+
+    # Ladder: meaningful conversions happen in the first 5 years.
+    assert np.sum(x_in[:5]) > 50, f"Expected ladder conversions in years 0-4, got {np.sum(x_in[:5]):.1f}"
+
+    # Ladder: Roth withdrawals appear after 5 years (mature conversions).
+    assert np.sum(w_roth[5:n595]) > 10, (
+        f"Expected Roth withdrawals after year 5, got {np.sum(w_roth[5:n595]):.1f}"
+    )
+
+    # Penalty applies only to tax-deferred withdrawals, never to Roth.
+    np.testing.assert_allclose(
+        P_n[:n595], 0.1 * w_trad[:n595], atol=0.5,
+        err_msg="P_n does not match 0.1*w_trad (Roth penalty leak?)",
+    )
+
+    # No penalty after 59½.
+    assert np.all(P_n[n595:] == 0)
