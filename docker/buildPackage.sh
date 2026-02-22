@@ -1,12 +1,12 @@
 ## !/bin/bash
 
+set -e
+
 cd ..
-for file in dist/*.whl dist/*.tar.gz; do
-    rm $file
-done
+rm -f dist/*.whl dist/*.tar.gz
 
 touch uv.lock
+trap 'rm -f uv.lock' EXIT
 python -m build .
-rm uv.lock
 
 twine upload --repository pypi dist/*
