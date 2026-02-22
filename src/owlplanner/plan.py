@@ -687,7 +687,7 @@ class Plan:
             bornOnFirstDays = (self.tobs[i] <= 2)
 
             eligible = 62 if bornOnFirstDays else 62 + 1/12
-            if ages[i] < eligible:
+            if round(ages[i] * 12) < round(eligible * 12):
                 self.mylog.print(f"Resetting SS claiming age of {self.inames[i]} to {eligible}.")
                 ages[i] = eligible
 
