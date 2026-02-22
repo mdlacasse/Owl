@@ -123,7 +123,11 @@ def currentCaseName() -> str:
 
 
 def switchToCase(key):
-    ss.currentCase = ss[key]
+    name = ss[key]
+    # format_func adds 🔻 for display only; strip it if it leaked into the stored value.
+    if isinstance(name, str) and name.endswith("🔻"):
+        name = name[:-1]
+    ss.currentCase = name
 
 
 def switchToCaseName(casename):
@@ -191,6 +195,8 @@ def setCurrentCase(case):
 
 
 def copyCase():
+    if ss.currentCase is None or ss.currentCase not in ss.cases:
+        return
     baseName = re.sub(r"\s*\(\d+\)$", "", ss.currentCase)
     for i in range(1, 10):
         dupname = baseName + f" ({i})"
@@ -351,7 +357,7 @@ def initCaseKey(key, val):
 
 
 def getCaseKey(key):
-    if ss.currentCase is None:
+    if ss.currentCase is None or ss.currentCase not in ss.cases:
         return None
     return ss.cases[ss.currentCase].get(key)
 
@@ -389,12 +395,18 @@ def compareSummaries():
     df = getCaseKey("summaryDf")
     if df is None:
         return None
+    current = currentCaseName()
+    # Copy and re-index with the case dict key to guarantee unique row labels.
+    df = df.copy()
+    df.index = [current]
     for case in onlyCaseNames():
-        if case == currentCaseName():
+        if case == current:
             continue
         odf = ss.cases[case]["summaryDf"]
         if odf is None or set(odf.columns) != set(df.columns):
             continue
+        odf = odf.copy()
+        odf.index = [case]
         df = pd.concat([df, odf])
 
     if df.shape[0] > 1:
