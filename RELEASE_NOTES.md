@@ -2,6 +2,39 @@
 
 ---
 
+## Version 2026.02.23
+
+### Social Security accuracy improvements
+- **Dynamic SS taxability fraction**: `Psi_n` (the fraction of SS benefits subject to
+  federal income tax) is now computed each self-consistent-loop iteration using the IRS
+  provisional income formula instead of a fixed 85%. Thresholds follow IRS rules frozen
+  since 1983/1994 — MFJ: 0% below $32k PI, up to 50% to $44k, 85% above; Single: $25k/$34k.
+  A 30% damping blend ensures SC-loop convergence. Retirees with lower income now get a
+  more accurate (lower) tax on SS benefits, improving Roth conversion and spending results.
+- **`tax_fraction` override**: `setSocialSecurity()` accepts an optional `tax_fraction`
+  parameter to pin `Psi_n` to a fixed value (0.0 / 0.5 / 0.85), bypassing the dynamic
+  computation. Also available in the TOML schema as `social_security_tax_fraction`.
+- **Corrected FRA table**: `getFRAs()` now returns the correct Full Retirement Age for
+  birth years 1938–1942 (65+2/12 to 65+10/12 per the SSA table), instead of the
+  incorrect 66.
+
+### Social Security trim
+- **Remove `trim_year` fallback**: A TOML config with `social_security_trim_pct > 0`
+  but no `social_security_trim_year` now raises an error instead of silently defaulting
+  to 10 years from now. Supply both fields together.
+- **Better UI default**: The "Starting year" field for SS benefit reduction now defaults
+  to 2033 (the SSA Trustees Report projection for OASI trust-fund exhaustion) instead of
+  an arbitrary `current year + 10`.
+- **Disabled year widget**: The "Starting year" input is now greyed out in the UI when
+  the reduction percentage is 0.
+
+### Tests
+- TOML reproducibility tests now force HiGHS as the solver for consistent results across
+  environments (eliminates MOSEK vs. HiGHS non-determinism in the full test suite).
+- Updated regression baselines to reflect the corrected SS taxation calculations.
+
+---
+
 ## Version 2026.02.20
 
 ### UI
