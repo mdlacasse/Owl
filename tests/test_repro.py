@@ -151,14 +151,14 @@ def test_clone1():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(80000, rel=REL_TOL, abs=REL_TOL)
-    assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=REL_TOL)
+    assert p.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
     name2 = 'testclone1.2'
     p2 = owl.clone(p, name2)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p2.caseStatus == "solved"
-    assert p2.basis == pytest.approx(80000, rel=REL_TOL, abs=REL_TOL)
-    assert p2.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=REL_TOL)
+    assert p2.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p2.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
 
 
 def test_clone2():
