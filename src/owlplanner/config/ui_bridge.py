@@ -150,7 +150,6 @@ def config_to_ui(diconf: dict) -> dict:
         dic[f"pAmt{i}"] = p_amt[i] if i < len(p_amt) else 0.0
         dic[f"pIdx{i}"] = p_idx[i] if i < len(p_idx) else True
 
-    thisyear = date.today().year
     dic["ssTrimPct"] = int(ss_trim_pct) if ss_trim_pct is not None else 0
     dic["ssTrimYear"] = int(ss_trim_year) if ss_trim_year is not None else 2033
 
@@ -344,7 +343,6 @@ def ui_to_config(uidic: dict) -> dict:
         diconf["fixed_income"]["pension_indexed"].append(
             bool(uidic.get(f"pIdx{i}", True))
         )
-    thisyear = date.today().year
     diconf["fixed_income"]["social_security_trim_pct"] = _get_ui(
         uidic, "ssTrimPct", 0, int
     )

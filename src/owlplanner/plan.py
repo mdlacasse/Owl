@@ -1849,7 +1849,8 @@ class Plan:
                 row.addElem(_q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n), fac * (tau_0prev[n] - self.mu) - 1)
                 penalty = 0.1 if n < self.n595[i] else 0
                 row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1 + penalty)
-                row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)   # maturation constraints govern; no 10% penalty
+                # maturation constraints govern; no 10% penalty
+                row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)
                 row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), fac * self.mu)
 
             for t in range(self.N_t):
@@ -2075,7 +2076,6 @@ class Plan:
             raise RuntimeError("Internal error in objective function.")
 
         # Turn on epsilon by default to reduce churn and frontload Roth conversions.
-        withMedicare = options.get("withMedicare", "loop")
         default_epsilon = EPSILON
         epsilon = u.get_numeric_option(options, "epsilon", default_epsilon, min_value=0)
         if epsilon > 0:

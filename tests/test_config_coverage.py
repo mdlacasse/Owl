@@ -343,8 +343,6 @@ def test_save_config_file_error():
 def test_save_config_no_double_case_prefix(tmp_path):
     """Regression test for issue #96: filenames starting with 'Case_' must not
     get a spurious 'case_' prefix, producing 'case_Case_...' filenames."""
-    import os
-
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "joe")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])

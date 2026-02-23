@@ -632,10 +632,10 @@ def test_fire_roth_ladder():
     assert p_oct.n595[0] == p_jan.n595[0] + 1
 
     n595 = p_oct.n595[0]
-    x_in   = p_oct.x_in[0]        # Roth conversions
+    x_in = p_oct.x_in[0]           # Roth conversions
     w_roth = p_oct.w_ijn[0, 2, :]  # Roth withdrawals
     w_trad = p_oct.w_ijn[0, 1, :]  # Tax-deferred withdrawals
-    P_n    = p_oct.P_n
+    P_n = p_oct.P_n
 
     # Ladder: meaningful conversions happen in the first 5 years.
     assert np.sum(x_in[:5]) > 50, f"Expected ladder conversions in years 0-4, got {np.sum(x_in[:5]):.1f}"
