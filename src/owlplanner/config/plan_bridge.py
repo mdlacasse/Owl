@@ -66,11 +66,15 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
     trim_year = fi.get("social_security_trim_year")
     if trim_year is None and trim_pct > 0:
         trim_year = date.today().year + 10  # fallback for legacy configs
+    tax_fraction = fi.get("social_security_tax_fraction")
+    if tax_fraction is not None:
+        tax_fraction = float(tax_fraction)
     plan.setSocialSecurity(
         ssec_amounts,
         ssec_ages,
         trim_pct=int(trim_pct),
         trim_year=int(trim_year) if trim_year is not None else None,
+        tax_fraction=tax_fraction,
     )
     pension_amounts = np.array(
         known["fixed_income"].get("pension_monthly_amounts", [0] * icount),
@@ -326,6 +330,9 @@ def plan_to_config(myplan: "Plan") -> dict:
     if trim_pct != 0 and trim_year is not None:
         diconf["fixed_income"]["social_security_trim_pct"] = int(trim_pct)
         diconf["fixed_income"]["social_security_trim_year"] = int(trim_year)
+    tax_fraction = getattr(myplan, "ssecTaxFraction", None)
+    if tax_fraction is not None:
+        diconf["fixed_income"]["social_security_tax_fraction"] = float(tax_fraction)
 
     # Rates Selection
     diconf["rates_selection"] = {

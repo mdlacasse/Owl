@@ -33,7 +33,17 @@ def test_FRA():
         assert yfra[0] % 1 == pytest.approx(2*i/12)
 
     yfra = ss.getFRAs([1940])
-    assert yfra[0] == 66
+    assert yfra[0] == pytest.approx(65.5)
+    yfra = ss.getFRAs([1938])
+    assert yfra[0] == pytest.approx(65 + 2/12)
+    yfra = ss.getFRAs([1942])
+    assert yfra[0] == pytest.approx(65 + 10/12)
+    yfra = ss.getFRAs([1943])
+    assert yfra[0] == pytest.approx(66)
+    yfra = ss.getFRAs([1937])
+    assert yfra[0] == pytest.approx(65)
+    yfra = ss.getFRAs([1900])
+    assert yfra[0] == pytest.approx(65)
     yfra = ss.getFRAs([1954])
     assert yfra[0] == 66
     yfra = ss.getFRAs([1960])

@@ -29,7 +29,10 @@ def getFRAs(yobs):
 
     The FRA is determined by birth year according to Social Security rules:
     - Birth year >= 1960: FRA is 67
-    - Birth year < 1960: FRA increases by 2 months for each year after 1954
+    - Birth year 1955–1959: FRA increases by 2 months for each year after 1954 (66+2/12 to 66+10/12)
+    - Birth year 1943–1954: FRA is 66
+    - Birth year 1938–1942: FRA increases by 2 months for each year after 1937 (65+2/12 to 65+10/12)
+    - Birth year <= 1937: FRA is 65
 
     Parameters
     ----------
@@ -48,9 +51,14 @@ def getFRAs(yobs):
     for i in range(len(yobs)):
         if yobs[i] >= 1960:
             fras[i] = 67
+        elif yobs[i] >= 1955:
+            fras[i] = 66 + 2*(yobs[i] - 1954)/12
+        elif yobs[i] >= 1943:
+            fras[i] = 66
+        elif yobs[i] >= 1938:
+            fras[i] = 65 + 2*(yobs[i] - 1937)/12
         else:
-            mo = max(0, 2*(yobs[i] - 1954))
-            fras[i] = 66 + mo/12
+            fras[i] = 65
 
     return fras
 

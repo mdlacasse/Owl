@@ -346,7 +346,8 @@ class Plan:
 
         # Default parameters:
         self.psi_n = np.zeros(self.N_n)  # Long-term income tax rate on capital gains (decimal)
-        # Fraction of social security benefits that is taxed (fixed at 85% for now).
+        # Fraction of SS benefits subject to federal income tax (initial: 0.85).
+        # Refined each SC-loop iteration by _update_Psi_n() using the IRS provisional income formula.
         self.Psi_n = np.ones(self.N_n) * 0.85
         self.chi = 0.60   # Survivor fraction
         self.mu = 0.0172  # Dividend rate (decimal)
@@ -649,12 +650,23 @@ class Plan:
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
-    def setSocialSecurity(self, pias, ages, trim_pct=0, trim_year=None):
+    def setSocialSecurity(self, pias, ages, trim_pct=0, trim_year=None, tax_fraction=None):
         """
         Set value of social security for each individual and claiming age.
 
         Note: Social Security benefits are paid in arrears (one month after eligibility).
         The zeta_in array represents when checks actually arrive, not when eligibility starts.
+
+        Args:
+            tax_fraction: Optional fixed SS taxability fraction in [0, 1] (default None).
+                If provided, this overrides the self-consistent-loop computation of Psi_n
+                and forces a constant value throughout the planning horizon.
+                Useful for testing and for households whose provisional income (PI) is
+                well within a single IRS bracket:
+                  - 0.0  if PI < $32k (MFJ) / $25k (single) — benefits fully non-taxable
+                  - 0.5  if PI is in the $32k–$44k (MFJ) / $25k–$34k (single) range
+                  - 0.85 if PI > $44k (MFJ) / $34k (single) — up to 85% taxable (default)
+                When None (default), Psi_n is computed dynamically each SC-loop iteration.
         """
         if len(pias) != self.N_i:
             raise ValueError(f"Principal Insurance Amount must have {self.N_i} entries.")
@@ -668,6 +680,10 @@ class Plan:
                 raise ValueError("trim_year required when trim_pct > 0.")
             if not isinstance(trim_year, int):
                 raise ValueError("trim_year must be an integer.")
+
+        if tax_fraction is not None:
+            if not (0 <= tax_fraction <= 1):
+                raise ValueError(f"tax_fraction {tax_fraction} outside range [0, 1].")
 
         # Just make sure we are dealing with arrays if lists were passed.
         pias = np.array(pias, dtype=np.int32)
@@ -742,6 +758,7 @@ class Plan:
         self.ssecAges = ages
         self.ssecTrimPct = trim_pct
         self.ssecTrimYear = trim_year
+        self.ssecTaxFraction = tax_fraction
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
@@ -2747,12 +2764,68 @@ class Plan:
 
         return None
 
+    def _update_Psi_n(self):
+        """
+        Recompute SS taxability fractions using the IRS provisional income (PI) formula.
+
+        PI = non-SS income + ½ × SS = MAGI - ½ × SS.
+        MAGI already includes full SS (see _aggregateResults), so this subtraction
+        is exact and independent of the current Psi_n value.
+
+        IRS thresholds (frozen in nominal dollars since 1983/1994 — not inflation-indexed):
+          - Married filing jointly: 0% below $32k, ramp to 50% at $44k, 85% above $44k
+          - Single:                 0% below $25k, ramp to 50% at $34k, 85% above $34k
+
+        A 30% damping blend (new = 0.3*computed + 0.7*old) is applied to damp potential
+        oscillation near threshold boundaries and ensure SC-loop convergence.
+
+        If setSocialSecurity() was called with a tax_fraction override, this method
+        returns immediately without modifying Psi_n (the fixed value set on reset is used).
+        """
+        # Honor explicit override: skip dynamic computation.
+        if getattr(self, 'ssecTaxFraction', None) is not None:
+            return
+
+        ss_n = np.sum(self.zetaBar_in, axis=0)          # total annual SS (nominal $)
+        pi_n = self.MAGI_n - 0.5 * ss_n                 # provisional income
+
+        if self.N_i == 2:                                # married filing jointly
+            lo, hi = 32_000.0, 44_000.0
+        else:                                            # single
+            lo, hi = 25_000.0, 34_000.0
+
+        taxable_ss = np.where(
+            pi_n < lo,
+            0.0,
+            np.where(
+                pi_n < hi,
+                0.5 * (pi_n - lo),
+                np.minimum(0.85 * ss_n, 0.85 * (pi_n - hi) + 0.5 * (hi - lo)),
+            ),
+        )
+        # Compute new Psi_n, guarding against division where ss_n == 0.
+        new_Psi_n = np.full(self.N_n, 0.85)
+        mask = ss_n > 0
+        new_Psi_n[mask] = np.minimum(taxable_ss[mask] / ss_n[mask], 0.85)
+
+        # 30% damping blend: take 30% of the newly-computed value and 70% of the
+        # previous value. This damps potential oscillation near threshold boundaries
+        # while still converging geometrically to the fixed point.
+        # Once Psi_n has settled (max change < 0.1%), stop updating so the LP
+        # objective can converge within its own tolerance.
+        blended = 0.3 * new_Psi_n + 0.7 * self.Psi_n
+        if np.max(np.abs(blended - self.Psi_n)) > 1e-3:
+            self.Psi_n = blended
+
     def _computeNLstuff(self, x, includeMedicare):
         """
         Compute MAGI, Medicare costs, long-term capital gain tax rate, and
         net investment income tax (NIIT).
         """
         if x is None:
+            # Reset all nonlinear quantities to their starting values for a fresh solve.
+            psi_init = getattr(self, 'ssecTaxFraction', None)
+            self.Psi_n = np.ones(self.N_n) * (psi_init if psi_init is not None else 0.85)
             self.MAGI_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
@@ -2760,6 +2833,7 @@ class Plan:
             return
 
         self._aggregateResults(x, short=True)
+        self._update_Psi_n()
 
         self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
         ltcg_n = np.maximum(self.Q_n, 0)

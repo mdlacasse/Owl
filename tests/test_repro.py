@@ -32,16 +32,16 @@ import owlplanner as owl
 solver = 'HiGHS'
 # solver = 'MOSEK'
 if platform == "darwin":
-    SPENDING1 = 86958
-    BEQUEST1 = 837286
-    SPENDING2 = 97057
-    SPENDING1_FIXED = 92628
+    SPENDING1 = 88335
+    BEQUEST1 = 902336
+    SPENDING2 = 98513
+    SPENDING1_FIXED = 94152
     BEQUEST1_FIXED = 500000
 elif platform in ["win32", "linux"]:
-    SPENDING1 = 86958
-    BEQUEST1 = 837319
-    SPENDING2 = 97057
-    SPENDING1_FIXED = 92628
+    SPENDING1 = 88335
+    BEQUEST1 = 902336
+    SPENDING2 = 98513
+    SPENDING1_FIXED = 94152
     BEQUEST1_FIXED = 500000
 else:
     print(f"Unknown platform {platform}")

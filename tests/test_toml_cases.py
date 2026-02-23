@@ -64,7 +64,7 @@ if platform == "darwin":
             "bequest": 8094499,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 90291,
+            "net_spending_basis": 91776,
             "bequest": 400000,
         },
         "Case_joe": {
@@ -72,12 +72,12 @@ if platform == "darwin":
             "bequest": 300000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 167680,
+            "net_spending_basis": 168294,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145000,
-            "bequest": 1083940,
+            "bequest": 1113254,
         },
     }
 elif platform in ["win32", "linux"]:
@@ -87,7 +87,7 @@ elif platform in ["win32", "linux"]:
             "bequest": 8094499,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 90291,
+            "net_spending_basis": 91776,
             "bequest": 400000,
         },
         "Case_joe": {
@@ -95,12 +95,12 @@ elif platform in ["win32", "linux"]:
             "bequest": 300000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 167680,
+            "net_spending_basis": 168294,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145000,
-            "bequest": 1083940,
+            "bequest": 1113254,
         },
     }
 else:
@@ -161,6 +161,9 @@ def test_reproducibility():
             f"HFP file {hfp} was loaded but contains no time list data "
             f"for case {case}"
         )
+
+        # Force HiGHS for reproducible results across environments (matches GitHub CI).
+        p.solverOptions['solver'] = 'HiGHS'
 
         # Solve the plan
         p.resolve()

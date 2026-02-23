@@ -87,6 +87,14 @@ class FixedIncome(BaseModel):
     social_security_trim_year: Optional[int] = Field(
         default=None, description="Year when SS benefit reduction begins"
     )
+    social_security_tax_fraction: Optional[float] = Field(
+        default=None,
+        description=(
+            "Fixed SS taxability fraction in [0, 1]. Overrides the self-consistent-loop "
+            "computation. Use 0.0 (PI < $32k MFJ/$25k single), 0.5 (mid-range PI), or "
+            "0.85 (high PI, default when absent). Omit to use dynamic computation."
+        ),
+    )
 
 
 class RatesSelection(BaseModel):
