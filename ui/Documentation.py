@@ -501,7 +501,11 @@ And obviously there are
 
 The *Advanced options* expander allows you to model trust fund shortfall scenarios.
 You can reduce Social Security benefits by a given percentage starting in a
-specified year (e.g. a 23% cut from 2035). Use 0% reduction for the baseline case.
+specified year. The default starting year is 2033, the current SSA Trustees Report
+projection for OASI trust-fund exhaustion (e.g. a 23% cut from 2033).
+Use 0% reduction for the baseline case. The starting year field is disabled when
+the reduction percentage is zero. Both percentage and starting year must be provided
+when enabling a reduction.
 
 Pensions amounts, if any, are also entered on this page.
 While social security is always adjusted for inflation, pensions can optionally be
@@ -672,10 +676,13 @@ since Medicare in loop mode requires the loop to compute premiums iteratively.
 A **self-consistent loop** is an iterative method used for values that are difficult
 to integrate into the linear program: the net investment income tax (NIIT),
 the capital gains rate (0, 15, or 20%), the phase out of the additional exemption for seniors,
-and Medicare/IRMAA when Medicare is enabled. The loop solves, recalculates these values
-from the solution, re-solves, and repeats until convergence. The *Self-consistent loop
-calculations* toggle in *Advanced options* turns this on or off; turning it off
-defaults all these values to zero.
+the taxable fraction of Social Security benefits (computed from the IRS provisional income
+formula — 0% below $32k PI for MFJ / $25k for single, ramping to 50% then 85% above
+$44k MFJ / $34k single), and Medicare/IRMAA when Medicare is enabled. The loop solves,
+recalculates these values from the solution, re-solves, and repeats until convergence.
+The *Self-consistent loop calculations* toggle in *Advanced options* turns this on or off;
+turning it off defaults all these values to their conservative upper bounds (e.g. 85% SS
+taxability for all years).
 
 **Safety Net** settings allow you to enforce a minimum balance in each spouse's taxable account.
 The amount is specified in today's dollars and is indexed for inflation over the plan horizon.
@@ -688,7 +695,8 @@ or to reflect a personal preference for keeping a buffer in taxable accounts.
 
 The *Advanced options* expander contains:
 - *Self-consistent loop calculations* – when on, iteratively computes NIIT, capital gains rates,
-  phase out of senior exemptions, and Medicare/IRMAA (when Medicare is enabled).
+  phase out of senior exemptions, the taxable fraction of SS benefits, and Medicare/IRMAA
+  (when Medicare is enabled).
 - *Optimize Medicare (expert)* – integrates Medicare into the optimization; enabled only when
   Medicare and IRMAA calculations are on.
 - *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*

@@ -66,6 +66,9 @@ Pension and Social Security information.
 | `pension_indexed` | list of `N_i` booleans | Whether each pension is indexed for inflation |
 | `social_security_pia_amounts` | list of `N_i` integers | Primary Insurance Amount (PIA) for Social Security for each individual (in dollars) |
 | `social_security_ages` | list of `N_i` floats | Age at which Social Security benefits start for each individual |
+| `social_security_trim_pct` | integer | *(Optional)* Percentage reduction applied to Social Security benefits from `social_security_trim_year` onward. Range 0–100. Use to model trust-fund shortfall scenarios (e.g. 23). Omit or set to 0 for no reduction |
+| `social_security_trim_year` | integer | *(Required when `social_security_trim_pct > 0`)* Calendar year when the SS benefit reduction begins. Default UI value is 2033 (SSA Trustees Report projection for OASI exhaustion). Must be supplied alongside `social_security_trim_pct` |
+| `social_security_tax_fraction` | float | *(Optional)* Fixed fraction of Social Security benefits subject to federal income tax, in [0, 1]. Overrides the self-consistent-loop computation. Use `0.0` when provisional income (PI) is below $32k (MFJ) / $25k (single), `0.5` for the mid-range bracket, or `0.85` for high-income households. Omit to let the SC loop compute this dynamically (recommended) |
 
 -------
 
