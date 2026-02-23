@@ -32,16 +32,16 @@ import owlplanner as owl
 solver = 'HiGHS'
 # solver = 'MOSEK'
 if platform == "darwin":
-    SPENDING1 = 88335
-    BEQUEST1 = 902336
-    SPENDING2 = 98513
-    SPENDING1_FIXED = 94152
+    SPENDING1 = 86958
+    BEQUEST1 = 837286
+    SPENDING2 = 97057
+    SPENDING1_FIXED = 92628
     BEQUEST1_FIXED = 500000
 elif platform in ["win32", "linux"]:
-    SPENDING1 = 88450
-    BEQUEST1 = 901082
-    SPENDING2 = 98513
-    SPENDING1_FIXED = 94152
+    SPENDING1 = 86958
+    BEQUEST1 = 837319
+    SPENDING2 = 97057
+    SPENDING1_FIXED = 92628
     BEQUEST1_FIXED = 500000
 else:
     print(f"Unknown platform {platform}")
@@ -68,7 +68,9 @@ def createJackAndJillPlan(name):
                           generic=[[[60, 40, 0, 0], [70, 30, 0, 0]],
                                    [[50, 50, 0, 0], [70, 30, 0, 0]]])
     p.setPension([0, 10], [65, 65])
-    p.setSocialSecurity([2333, 2083], [67, 70])
+    # Pin SS taxability at 0.85 to keep regression baselines stable across
+    # Python versions. The dynamic Psi_n SC-loop path is tested separately.
+    p.setSocialSecurity([2333, 2083], [67, 70], tax_fraction=0.85)
 
     return p
 
