@@ -338,3 +338,23 @@ def test_save_config_file_error():
     # Use a path that should cause an error (invalid directory)
     with pytest.raises((RuntimeError, OSError), match="Failed to save case file|No such file"):
         config.saveConfig(p, "/invalid/path/that/does/not/exist/test", p.mylog)
+
+
+def test_save_config_no_double_case_prefix(tmp_path):
+    """Regression test for issue #96: filenames starting with 'Case_' must not
+    get a spurious 'case_' prefix, producing 'case_Case_...' filenames."""
+    import os
+
+    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "joe")
+    p.setSpendingProfile("flat")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setRates("default")
+    p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+
+    for name in ("Case_joe", "case_joe", "CASE_joe"):
+        target = tmp_path / f"{name}.toml"
+        config.saveConfig(p, str(target.with_suffix("")), p.mylog)
+        assert target.exists(), f"Expected {target} to be created"
+        bad = tmp_path / f"case_{name}.toml"
+        assert not bad.exists(), f"Double-prefix file {bad} must not be created"
+        target.unlink()  # clean up for next iteration

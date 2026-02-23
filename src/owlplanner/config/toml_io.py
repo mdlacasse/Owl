@@ -165,8 +165,11 @@ def save_toml(
         filename = file
         if not file.endswith(".toml"):
             filename = filename + ".toml"
-        if not filename.startswith("case_"):
-            filename = "case_" + filename
+        dirpart = os.path.dirname(filename)
+        base = os.path.basename(filename)
+        if not base.lower().startswith("case_"):
+            base = "case_" + base
+        filename = os.path.join(dirpart, base) if dirpart else base
         if mylog:
             mylog.vprint(f"Saving plan case file as '{filename}'.")
         with open(filename, "w") as casefile:
