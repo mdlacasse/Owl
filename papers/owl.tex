@@ -170,6 +170,14 @@ while parameters are prescribed by the user, historical data, or tax laws.
 		\mathbb{G}_{(n-2)} = \sum_q h_{qn}.
 	\end{equation}
 	The role of $h$ will become more clear as the formulation of the MAGI calculation is exposed below.
+\item [$p_{rn}$]
+	Provisional income in Social Security taxability zone $r \in \{0, 1, 2\}$ during year $n$.
+	Zone 0 holds PI below the lower statutory threshold $\mathcal{P}^{\mathrm{lo}}_n$ (no Social Security taxable);
+	zone 1 holds PI between the two thresholds (50\% of the zone-1 amount is taxable);
+	zone 2 holds PI above the upper threshold $\mathcal{P}^{\mathrm{hi}}_n$ (85\% of the zone-2 amount is taxable).
+	The decomposition $\Pi_n = \sum_r p_{rn}$ connects these tier variables to the
+	provisional income, which is a linear function of the existing LP decision variables.
+	See the Social Security taxability paragraph in the Constraints section for the complete formulation.
 \item [$m_n$]
 	Medicare costs in year $n$, including part B premiums and IRMAA income-related adjustments.
 	This does not include part D premiums and adjustments.
@@ -361,6 +369,17 @@ where $N$ is either $n_d$ or $N_n$,or using an s-curve as in
 	Social security benefits for individual $i$ in year $n$. Starting age and the passing
 	of one individual for spouses will determine the time series. $\bar{\zeta}_{in}$ is
 	the same series adjusted for inflation.
+\item [$\mathcal{P}^{\mathrm{lo}}_n$, $\mathcal{P}^{\mathrm{hi}}_n$]
+	Lower and upper provisional income thresholds for Social Security taxability,
+	following IRS Publication~915.
+	Below $\mathcal{P}^{\mathrm{lo}}_n$ no Social Security is taxable;
+	between $\mathcal{P}^{\mathrm{lo}}_n$ and $\mathcal{P}^{\mathrm{hi}}_n$ up to 50\% of benefits
+	enter taxable income; above $\mathcal{P}^{\mathrm{hi}}_n$ up to 85\% of benefits are taxable.
+	For single filers $(\mathcal{P}^{\mathrm{lo}}, \mathcal{P}^{\mathrm{hi}}) = (\$25{,}000,\, \$34{,}000)$;
+	for married filing jointly
+	$(\mathcal{P}^{\mathrm{lo}}, \mathcal{P}^{\mathrm{hi}}) = (\$32{,}000,\, \$44{,}000)$.
+	Unlike income-tax brackets, these thresholds are \emph{not} indexed for inflation;
+	the time subscript $n$ reflects only the change in filing status at $n = n_d$.
 \item [$\epsilon_{N_n}$]
 	Desired amount to leave as a bequest at the end of the final year of the plan, $N_n-1$,
 	which is the beginning of year $N_n$. This amount is the after-tax value of the estate
@@ -420,11 +439,13 @@ as savings account balances are assumed to be rebalanced periodically.
 	average (total LTCG tax divided by total LTCG) rather than a marginal rate.
 	If adjusted self-consistently for income, then $\psi$ becomes time series $\psi_n$.
 	This is distinct from the Social Security tax fraction $\Psi$.
-\item [$\Psi$]
-	Fraction of social security that is taxed, which depends on gross income and maxes out at 85\%.
-        If adjusted self-consistently for income, then $\Psi$ becomes time series $\Psi_n$. However,
-	given how low the threshold (around \$44k for married couples) is for reaching the
-	maximum taxation level of 85\%, it is fixed at this value in Owl.
+\item [$\Psi_n$]
+	Effective fraction of Social Security benefits subject to income tax in year $n$.
+	This quantity depends on provisional income and is bounded by 85\%.
+	In the current LP formulation $\Psi_n$ is not an input parameter: it is determined
+	endogenously by the provisional income tier variables $p_{rn}$ as
+	$\Psi_n = (0.5\,p_{1n} + 0.85\,p_{2n})\,/\!\sum_i\bar{\zeta}_{in}$,
+	and is recovered post-solve for diagnostic output only.
 \item [$\eta$]
 	Spousal ratio for surplus deposits, which goes from 0 to 1, as the fraction
 	that goes to the $i = 1$ spouse's account. Therefore, a surplus $s_n$ in year $n$
@@ -461,16 +482,20 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	in the ($j=0$) taxable account, including contributions $\kappa$, minus the standard deduction $e_n$,
 	\begin{eqnarray}
 		\label{Eq:Tx2}
-		G_n &=&  \mathcal{A}_n^x + 
-		\sum_i [\omega_{in} + \Psi_n\bar{\zeta}_{in} + \bar{\pi}_{in}]
+		G_n &=&  \mathcal{A}_n^x +
+		\sum_i [\omega_{in} + \bar{\pi}_{in}]
+		+ (0.5\,p_{1n} + 0.85\,p_{2n})
 		- e_n
 		\nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in}]
 		\nonumber \\
-		&& + \sum_{i,k\neq 0} 
+		&& + \sum_{i,k\neq 0}
 		[(b_{i0n} - w_{i0n} + d_{in} + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
 	\end{eqnarray}
-	Social security is indexed for inflation and is assumed to be taxed at $\Psi_n$\%.
+	Social security is indexed for inflation.
+	The taxable portion $(0.5\,p_{1n} + 0.85\,p_{2n})$ is determined jointly with the
+	optimization via the provisional income tier decomposition; see the
+	Social Security taxability paragraph in the Constraints section.
 	Pensions can optionally be indexed for inflation.
 	We exclude $k=0$ to capture only non-equity gains in taxable accounts.
 	These gains are all taxed as ordinary income. Here, we assume that
@@ -508,8 +533,13 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 \item [$\mathbb{G}_n$]
 	Modified adjusted gross income or MAGI for year $n$. We approximate it as
 	\begin{equation}
-		\mathbb{G}_n = G_n + Q_n + e_n + (1 - \Psi_n)\sum_i \bar{\zeta}_{in}.
+		\mathbb{G}_n = G_n + Q_n + e_n + \sum_i \bar{\zeta}_{in}
+		              - (0.5\,p_{1n} + 0.85\,p_{2n}).
 	\end{equation}
+	Because $G_n$ already contains the taxable Social Security term
+	$(0.5\,p_{1n} + 0.85\,p_{2n})$, subtracting it and adding back the full benefit
+	$\sum_i\bar{\zeta}_{in}$ restores total Social Security in MAGI,
+	consistent with the IRS definition.
 	This approach ignores additional IRS
 	rules around tax-free interests which are insignificant in most cases.
 
@@ -941,13 +971,80 @@ In this case, the objective function will need to consider the sum over all year
 	\begin{eqnarray}
 		\label{Eq:C6}
 		e_n + \sum_t f_{tn}
+		- (0.5\,p_{1n} + 0.85\,p_{2n})
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
-		\mathcal{A}^x_n + \sum_i [\omega_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in} ]
+		\mathcal{A}^x_n + \sum_i [\omega_{in} + \bar{\pi}_{in} ]
 		\nonumber \\
 		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n}.
 	\end{eqnarray}
+
+\paragraph*{Social Security taxability}
+	Under IRS Publication~915, the fraction of Social Security benefits subject to income
+	tax is determined by the \emph{provisional income} (PI), defined as
+	\begin{equation}
+		\label{Eq:PI}
+		\Pi_n = \mathbb{G}_n - \tfrac{1}{2}\sum_i\bar{\zeta}_{in}.
+	\end{equation}
+	Expanding $\mathbb{G}_n$ in terms of the LP variables and noting that the taxable
+	Social Security term $(0.5\,p_{1n}+0.85\,p_{2n})$ cancels, one finds that $\Pi_n$
+	is a purely linear function of the decision variables independent of $p_{rn}$:
+	\begin{eqnarray}
+		\label{Eq:PIexpand}
+		\Pi_n &=& \mathcal{A}^x_n + \mathcal{A}^c_n
+		+ \sum_i [\omega_{in} + \bar{\pi}_{in}]
+		+ \tfrac{1}{2}\sum_i\bar{\zeta}_{in}
+		+ \sum_i [w_{i1n} + x_{in}]
+		\nonumber \\
+		&& - e_n + Q_n
+		+ \sum_i \Bigl[(b_{i0n} - w_{i0n} + d_{in})
+		  \bigl(\mu\alpha_{i00n} + \textstyle\sum_{k\neq 0}\alpha_{i0kn}\tau_{kn}\bigr)\Bigr]
+		\nonumber \\
+		&& - \sum_i \bigl[w_{i0n}\,\alpha_{i00n}\max(0,\tau_{0(n-1)}-\mu)\bigr]
+		\nonumber \\
+		&& + 0.5\sum_i\Bigl[\kappa_{i0n}
+		  \bigl(\mu\alpha_{i00n}+\textstyle\sum_{k\neq 0}\alpha_{i0kn}\tau_{kn}\bigr)\Bigr].
+	\end{eqnarray}
+	This is structurally identical to the MAGI disaggregation used for Medicare
+	(Eq.~\ref{Eq:MedDecomp2}), evaluated at the current year $n$ rather than $n-2$
+	and with $\tfrac{1}{2}\bar{\zeta}$ rather than $\bar{\zeta}$ on the right-hand side.
+
+	We partition $\Pi_n$ into three non-negative tier variables $p_{rn}$, $r\in\{0,1,2\}$,
+	via the PI decomposition equality
+	\begin{equation}
+		\label{Eq:C7}
+		\sum_{r=0}^{2} p_{rn} = \Pi_n,
+	\end{equation}
+	with upper bounds
+	\begin{equation}
+		\label{Eq:PIbounds}
+		p_{0n} \le \mathcal{P}^{\mathrm{lo}}_n, \qquad
+		p_{1n} \le \mathcal{P}^{\mathrm{hi}}_n - \mathcal{P}^{\mathrm{lo}}_n,
+	\end{equation}
+	and the 85\% taxability cap
+	\begin{equation}
+		\label{Eq:TaxableSSCap}
+		0.5\,p_{1n} + 0.85\,p_{2n} \le 0.85\sum_i\bar{\zeta}_{in}.
+	\end{equation}
+	Zone 2 ($r=2$) has no upper bound other than Eq.~(\ref{Eq:TaxableSSCap}).
+
+	The optimizer fills the tiers in the correct order automatically.
+	Zone 0 contributes nothing to taxable income;
+	zone 1 adds $0.5\,\theta^x_{tn}$ of income tax per dollar of PI above $\mathcal{P}^{\mathrm{lo}}$;
+	zone 2 adds $0.85\,\theta^x_{tn}$ per dollar above $\mathcal{P}^{\mathrm{hi}}$.
+	Since tax rates $\theta^x_{tn}$ are positive and the optimizer minimizes total taxes,
+	PI is allocated to the cheapest available zone first---exactly as the income tax bracket
+	variables $f_{tn}$ fill lower-rate brackets before higher-rate ones.
+	The upper bound on $p_{1n}$ ensures that once zone 1 is saturated,
+	any additional PI spills into zone 2.
+
+	This formulation is closed-form and exact: it replaces the self-consistent
+	loop previously used to iterate $\Psi_n$ to convergence, eliminating the
+	associated oscillation risk near the $\mathcal{P}^{\mathrm{lo}}$/$\mathcal{P}^{\mathrm{hi}}$
+	boundaries.
+	Post-solve, the effective fraction is recovered as
+	$\Psi_n = (0.5\,p_{1n}+0.85\,p_{2n})/\sum_i\bar{\zeta}_{in}$ for diagnostic output.
 
 \paragraph*{Medicare brackets and costs}
 	Annual Medicare costs $m_n$ include the income-related monthly adjusted amount
@@ -1385,6 +1482,24 @@ $\sum_i x_{in} \le x_{max}$ for all $n$ with
 \end{eqnarray}
 This maximum is applied to the combined conversions of both individuals in each year.
 
+\paragraph*{Social Security provisional income tier bounds}
+The upper bounds on provisional income tier variables $p_{0n}$ and $p_{1n}$
+from Eq.~(\ref{Eq:PIbounds}) add $2N_n$ rows:
+\begin{eqnarray}
+	A_u[I_8(0, n), q_p(0, n)] &=& 1, \nonumber \\
+	u[I_8(0, n)] &=& \mathcal{P}^{\mathrm{lo}}_n, \nonumber \\
+	A_u[I_8(1, n), q_p(1, n)] &=& 1, \nonumber \\
+	u[I_8(1, n)] &=& \mathcal{P}^{\mathrm{hi}}_n - \mathcal{P}^{\mathrm{lo}}_n, \nonumber \\
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}.
+\end{eqnarray}
+The 85\% taxability cap of Eq.~(\ref{Eq:TaxableSSCap}) adds $N_n$ more rows:
+\begin{eqnarray}
+	A_u[I_8(2, n), q_p(1, n)] &=& 0.5, \nonumber \\
+	A_u[I_8(2, n), q_p(2, n)] &=& 0.85, \nonumber \\
+	u[I_8(2, n)] &=& 0.85\sum_i\bar{\zeta}_{in}, \nonumber \\
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}.
+\end{eqnarray}
+
 \paragraph*{Exclusion constraints}
 The at-most-one (AMO) exclusions of Eqs.~(\ref{Eq:Binary1}) and (\ref{Eq:Binary2})
 are implemented with big-$\mathcal{M}$ constraints using binary variables $z_{nz}^x$,
@@ -1553,11 +1668,16 @@ equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
 \end{eqnarray}
 
 \paragraph*{Taxable ordinary income}
-Finally, for the equality constraint in Eq.~(\ref{Eq:C6}) establishing taxable
-ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
+For the equality constraint in Eq.~(\ref{Eq:C6}) establishing taxable
+ordinary income, we add $N_n$ rows to $A_ey = v$ as follows.
+The taxable Social Security terms $p_{1n}$ and $p_{2n}$ appear with negative
+coefficients on the LHS, reflecting their move from the right-hand side of the
+earlier (SC-loop) formulation.
 \begin{eqnarray}
 	A_e[J_7(n), q_e(n)] &=& 1, \nonumber \\
 	A_e[J_7(n), q_{f}(t, n)] &=& 1, \nonumber \\
+	A_e[J_7(n), q_p(1, n)] &=& -0.5, \nonumber \\
+	A_e[J_7(n), q_p(2, n)] &=& -0.85, \nonumber \\
 	A_e[J_7(n), q_w(i, 1, n)] &=& -1, \nonumber \\
 	A_e[J_7(n), q_x(i, n)] &=& -1, \nonumber \\
 	A_e[J_7(n), q_b(i, 0, n)] &=& -\sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}, \\
@@ -1570,9 +1690,39 @@ ordinary income, we add $N_n$ rows to $A_ey = v$ as follows
 \end{eqnarray}
 with
 \begin{eqnarray}
-	v[J_7(n)] &=& 
-\mathcal{A}^x_n + \sum_i [\omega_{in} + \Psi_n\bar\zeta_{in}  + \bar{\pi}_{in}]
+	v[J_7(n)] &=&
+	\mathcal{A}^x_n + \sum_i [\omega_{in} + \bar{\pi}_{in}]
 	+ 0.5\sum_{i} \kappa_{i0n} \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}.
+\end{eqnarray}
+Note that $\Psi_n\bar\zeta_{in}$ no longer appears on the right-hand side;
+it is replaced by the LP variables $p_{1n}$ and $p_{2n}$ on the left.
+
+\paragraph*{Provisional income decomposition}
+The PI decomposition equality Eq.~(\ref{Eq:C7}) adds $N_n$ rows to $A_ey = v$.
+The structure is identical to the MAGI disaggregation (paragraph above), but
+applied at the current year $n$ and with $\tfrac{1}{2}\bar{\zeta}$ rather than
+$\bar{\zeta}$ on the right-hand side.
+\begin{eqnarray}
+	A_e[J_8(n), q_p(r, n)] &=& 1, \quad r \in \{0, 1, 2\}, \nonumber \\
+	A_e[J_8(n), q_e(n)] &=& -1, \nonumber \\
+	A_e[J_8(n), q_w(i, 1, n)] &=& -1, \nonumber \\
+	A_e[J_8(n), q_x(i, n)] &=& -1, \nonumber \\
+	A_e[J_8(n), q_b(i, 0, n)] &=&
+	    -\mu\alpha_{i00n} - \sum_{k\neq 0}\alpha_{i0kn}\tau_{kn}, \nonumber \\
+	A_e[J_8(n), q_d(i, n)] &=&
+	    -\mu\alpha_{i00n} - \sum_{k\neq 0}\alpha_{i0kn}\tau_{kn}, \nonumber \\
+	A_e[J_8(n), q_w(i, 0, n)] &=&
+	    \mu\alpha_{i00n} + \sum_{k\neq 0}\alpha_{i0kn}\tau_{kn}
+	    - \alpha_{i00n}\max(0,\tau_{0\max(0,n-1)}-\mu), \nonumber \\
+	v[J_8(n)] &=& \mathcal{A}^x_n + \mathcal{A}^c_n
+	+ \sum_i \bigl[\omega_{in} + \tfrac{1}{2}\bar{\zeta}_{in} + \bar{\pi}_{in}\bigr]
+	\nonumber \\
+	&& + 0.5\sum_i\Bigl[\kappa_{i0n}
+	   \bigl(\mu\alpha_{i00n}+\textstyle\sum_{k\neq 0}\alpha_{i0kn}\tau_{kn}\bigr)\Bigr],
+	\nonumber \\
+	&&\qquad\forall i \in \{0,\ldots, N_i - 1\}, \nonumber\\
+	&&\qquad\forall k \in \{0,\ldots, N_k - 1\}, \nonumber\\
+	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
 \end{eqnarray}
 
 \section{Other considerations}
