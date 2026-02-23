@@ -205,10 +205,11 @@ to estimate {iname1}'s PIA.""")
                 )
             with incol2:
                 thisyear = date.today().year
-                kz.initCaseKey("ssTrimYear", thisyear + 10)
+                kz.initCaseKey("ssTrimYear", 2033)
                 kz.getIntNum(
                     "Starting year",
                     "ssTrimYear",
+                    disabled=(kz.getCaseKey("ssTrimPct") == 0),
                     min_value=thisyear,
                     max_value=thisyear + 50,
                     step=1,

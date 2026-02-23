@@ -64,8 +64,6 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
     ssec_ages = np.array(fi["social_security_ages"])
     trim_pct = fi.get("social_security_trim_pct", 0) or 0
     trim_year = fi.get("social_security_trim_year")
-    if trim_year is None and trim_pct > 0:
-        trim_year = date.today().year + 10  # fallback for legacy configs
     tax_fraction = fi.get("social_security_tax_fraction")
     if tax_fraction is not None:
         tax_fraction = float(tax_fraction)

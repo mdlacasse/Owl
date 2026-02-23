@@ -152,7 +152,7 @@ def config_to_ui(diconf: dict) -> dict:
 
     thisyear = date.today().year
     dic["ssTrimPct"] = int(ss_trim_pct) if ss_trim_pct is not None else 0
-    dic["ssTrimYear"] = int(ss_trim_year) if ss_trim_year is not None else thisyear + 10
+    dic["ssTrimYear"] = int(ss_trim_year) if ss_trim_year is not None else 2033
 
     for i in range(ni):
         for j, acc in enumerate(ACC_CONF):
@@ -348,9 +348,9 @@ def ui_to_config(uidic: dict) -> dict:
     diconf["fixed_income"]["social_security_trim_pct"] = _get_ui(
         uidic, "ssTrimPct", 0, int
     )
-    trim_year_val = uidic.get("ssTrimYear", thisyear + 10)
+    trim_year_val = uidic.get("ssTrimYear", 2033)
     diconf["fixed_income"]["social_security_trim_year"] = int(
-        trim_year_val if trim_year_val not in (None, "") else thisyear + 10
+        trim_year_val if trim_year_val not in (None, "") else 2033
     )
 
     # Rates
