@@ -120,7 +120,8 @@ def test_reproducibility():
     is successfully loaded for each case.
     """
     exdir = "./examples/"
-    rel_tol = 1e-4  # Relative tolerance for floating point comparisons
+    rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version
+    # differences across Python releases (~0.035% max observed variation)
 
     # Dictionary to store actual results
     actual_results = {}

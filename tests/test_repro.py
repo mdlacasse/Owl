@@ -48,7 +48,7 @@ else:
     assert False
 
 REL_TOL = 3e-5
-ABS_TOL = 20.0
+ABS_TOL = 50.0  # Widened from 20 to tolerate minor HiGHS version differences across Python releases
 
 
 def createJackAndJillPlan(name):
