@@ -62,7 +62,7 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         dtype=np.int32,
     )
     ssec_ages = np.array(fi["social_security_ages"])
-    trim_pct = fi.get("social_security_trim_pct", 0) or 0
+    trim_pct = fi.get("social_security_trim_pct", 0)
     trim_year = fi.get("social_security_trim_year")
     tax_fraction = fi.get("social_security_tax_fraction")
     if tax_fraction is not None:
@@ -179,6 +179,7 @@ def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
         plan.solverOptions["withSCLoop"] = True
     with_medicare = plan.solverOptions.get("withMedicare")
     if isinstance(with_medicare, bool):
+        # Legacy TOML compat: pre-2025 files used withMedicare = true/false.
         plan.solverOptions["withMedicare"] = "loop" if with_medicare else "None"
     name_opt = plan.solverOptions.get("noRothConversions", "None")
     if name_opt != "None" and name_opt not in plan.inames:

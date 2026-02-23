@@ -22,6 +22,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
 
+# SSA-mandated benefit reduction rates (own-benefit and spousal, first 36 months before FRA).
+# Expressed as a per-year rate since 'diff' (fra - ssage) is measured in years.
+_SELF_REDUCTION_RATE = 5 / 9 / 100 * 12      # 5/9 of 1% per month × 12 ≈ 0.06667/yr (own benefit)
+_SPOUSAL_REDUCTION_RATE = 25 / 36 / 100 * 12  # 25/36 of 1% per month × 12 ≈ 0.08333/yr (spousal)
+
 
 def getFRAs(yobs):
     """
@@ -156,7 +161,7 @@ def getSelfFactor(fra, convage, bornOnFirstDays):
         return 1. - .08 * diff
     elif diff <= 3:
         # Reduction of 20% over first 36 months.
-        return 1. - 0.06666667 * diff
+        return 1. - _SELF_REDUCTION_RATE * diff
     else:
         # Then 5% per tranche of 12 months.
         return .8 - 0.05 * (diff - 3)
@@ -211,7 +216,7 @@ def getSpousalFactor(fra, convage, bornOnFirstDays):
         return 1.
     elif diff <= 3:
         # Reduction of 25% over first 36 months.
-        return 1. - 0.08333333 * diff
+        return 1. - _SPOUSAL_REDUCTION_RATE * diff
     else:
         # Then 5% per tranche of 12 months.
         return .75 - 0.05 * (diff - 3)

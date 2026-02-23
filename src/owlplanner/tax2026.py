@@ -23,13 +23,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 from datetime import date
 
+# Sentinel: used as default yOBBBA meaning "OBBBA never expires / far future".
+_YEAR_FAR_FUTURE = 2099
 
 ###############################################################################
 # Start of section where rates need to be actualized every year.
 ###############################################################################
 # Single [0] and married filing jointly [1].
 
-# These are current for 2026, i.e., applying to tax year 2025.
+# OBBBA §1002 — 65+ additional "bonus" deduction expires after this tax year.
+OBBBA_BONUS_EXPIRATION_YEAR = 2028
+
+# These are current for 2026 (2025TY).
 taxBrackets_OBBBA = np.array(
     [
         [12400, 50400, 105700, 201775, 256225, 640600, 9999999],
@@ -147,7 +152,10 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
         if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
             imed += 1
         if imed:
-            status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
+            if Ni == 1 or not (n < horizons[0] and n < horizons[1]):
+                status = 0   # single or one spouse deceased
+            else:
+                status = 1   # married filing jointly
             Lbar[nn] = gamma_n[n] * irmaaBrackets[status][1:]
             Cbar[nn] = imed * gamma_n[n] * irmaaCosts
         else:
@@ -256,7 +264,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     return costs
 
 
-def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=2099):
+def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
     """
     Input is year of birth, index of shortest-lived individual,
     lifespan of shortest-lived individual, total number of years
@@ -303,7 +311,7 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=2099):
         for i in souls:
             if thisyear + n - yobs[i] >= 65:
                 sigmaBar[n] += extra65Deduction[filingStatus] * gamma_n[n]
-                if thisyear + n <= 2028:
+                if thisyear + n <= OBBBA_BONUS_EXPIRATION_YEAR:
                     sigmaBar[n] += 6000 * max(0, 1 - 0.06*max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
 
         # Fill in future tax rates for year n.
@@ -319,7 +327,7 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=2099):
     return sigmaBar, theta, Delta
 
 
-def taxBrackets(N_i, n_d, N_n, yOBBBA=2099):
+def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
     """
     Return dictionary containing future tax brackets
     unadjusted for inflation for plotting.

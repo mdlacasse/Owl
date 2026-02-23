@@ -57,6 +57,7 @@ def _mosek_available():
 # Default values
 BIGM_AMO = 5e7     # 100 times large withdrawals or conversions
 GAP = 1e-4
+_PSI_DAMP = 0.3    # SC-loop damping weight for new Psi_n estimate (blend 30% new / 70% old)
 MILP_GAP = 30 * GAP
 MAX_ITERATIONS = 29
 ABS_TOL = 100
@@ -2813,7 +2814,7 @@ class Plan:
         # while still converging geometrically to the fixed point.
         # Once Psi_n has settled (max change < 0.1%), stop updating so the LP
         # objective can converge within its own tolerance.
-        blended = 0.3 * new_Psi_n + 0.7 * self.Psi_n
+        blended = _PSI_DAMP * new_Psi_n + (1.0 - _PSI_DAMP) * self.Psi_n
         if np.max(np.abs(blended - self.Psi_n)) > 1e-3:
             self.Psi_n = blended
 
