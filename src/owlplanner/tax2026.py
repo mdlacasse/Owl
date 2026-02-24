@@ -115,12 +115,69 @@ niitRate = 0.038
 # Bonus decreases linearly above threshold by 1% / $1k over threshold.
 bonusThreshold = np.array([75_000, 150_000])
 
+# IRS Social Security taxability thresholds (frozen since 1983/1994 — not inflation-indexed).
+# Provisional income formula: PI = MAGI - 0.5*SS. Below lo: 0% taxable; lo-hi: 50% ramp;
+# above hi: up to 85% taxable. [Single, MFJ].
+ssTaxabilityLo = np.array([25_000.0, 32_000.0])
+ssTaxabilityHi = np.array([34_000.0, 44_000.0])
+
 taxBracketNames = ["10%", "12/15%", "22/25%", "24/28%", "32/33%", "35%", "37/40%"]
 
 rates_OBBBA = np.array([0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.370])
 rates_preTCJA = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 
 ###############################################################################
+
+
+def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None):
+    """
+    Compute the fraction of Social Security benefits subject to federal income tax
+    using the IRS provisional income (PI) formula.
+
+    PI = MAGI - 0.5 * SS (MAGI already includes full SS).
+    IRS thresholds (frozen in nominal dollars since 1983/1994):
+      - Married filing jointly: 0% below $32k, ramp to 50% at $44k, 85% above $44k
+      - Single:                 0% below $25k, ramp to 50% at $34k, 85% above $34k
+
+    Parameters
+    ----------
+    N_i : int
+        Number of individuals (1 or 2)
+    MAGI_n : array
+        Modified adjusted gross income per year
+    ss_n : array
+        Total Social Security benefits per year
+    ssec_tax_fraction : float or None
+        If provided, return constant array with this value (overrides PI computation)
+
+    Returns
+    -------
+    Psi_n : array
+        Fraction of SS taxable per year, in [0, 0.85]
+    """
+    N_n = len(MAGI_n)
+    if ssec_tax_fraction is not None:
+        return np.ones(N_n) * ssec_tax_fraction
+
+    status = N_i - 1  # 0=single, 1=MFJ
+    lo = ssTaxabilityLo[status]
+    hi = ssTaxabilityHi[status]
+
+    pi_n = MAGI_n - 0.5 * ss_n
+
+    taxable_ss = np.where(
+        pi_n < lo,
+        0.0,
+        np.where(
+            pi_n < hi,
+            0.5 * (pi_n - lo),
+            np.minimum(0.85 * ss_n, 0.85 * (pi_n - hi) + 0.5 * (hi - lo)),
+        ),
+    )
+    new_Psi_n = np.full(N_n, 0.85)
+    mask = ss_n > 0
+    new_Psi_n[mask] = np.minimum(taxable_ss[mask] / ss_n[mask], 0.85)
+    return new_Psi_n
 
 
 def mediVals(yobs, horizons, gamma_n, Nn, Nq):

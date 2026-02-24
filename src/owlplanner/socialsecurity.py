@@ -21,6 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import numpy as np
+from datetime import date
 
 # SSA-mandated benefit reduction rates (own-benefit and spousal, first 36 months before FRA).
 # Expressed as a per-year rate since 'diff' (fra - ssage) is measured in years.
@@ -220,3 +221,105 @@ def getSpousalFactor(fra, convage, bornOnFirstDays):
     else:
         # Then 5% per tranche of 12 months.
         return .75 - 0.05 * (diff - 3)
+
+
+def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i, N_n,
+                                     trim_pct=0, trim_year=None, thisyear=None):
+    """
+    Compute annual Social Security benefits by individual and year.
+
+    Benefits are paid in arrears (one month after eligibility). Handles own benefits,
+    spousal benefits, survivor benefits, and optional trim. Ages may be adjusted for
+    eligibility (e.g. reset to 62 if below).
+
+    Parameters
+    ----------
+    pias : array
+        Primary Insurance Amounts (monthly), one per individual
+    ages : array
+        Claiming ages, one per individual (may be modified for eligibility)
+    yobs : array
+        Birth years, one per individual
+    mobs : array
+        Birth months (1-12), one per individual
+    tobs : array
+        Birth day-of-month, one per individual (1-2 treated specially per SSA)
+    horizons : array
+        Year index when each individual's horizon ends
+    N_i : int
+        Number of individuals
+    N_n : int
+        Plan horizon (number of years)
+    trim_pct : float
+        Percent reduction in benefits from trim_year onward (0 = no trim)
+    trim_year : int or None
+        Calendar year when trim begins (required if trim_pct > 0)
+    thisyear : int or None
+        Current calendar year (default: date.today().year)
+
+    Returns
+    -------
+    zeta_in : ndarray
+        Shape (N_i, N_n), annual SS benefits per individual per year
+    ages : ndarray
+        Claiming ages, possibly adjusted for eligibility
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+
+    pias = np.asarray(pias, dtype=np.int32)
+    ages = np.asarray(ages, dtype=np.float64).copy()
+
+    # Derive i_d, i_s, n_d from horizons
+    if N_i == 2 and np.min(horizons) != np.max(horizons):
+        n_d = int(np.min(horizons))
+        i_d = int(np.argmax(horizons == n_d))
+        i_s = (i_d + 1) % 2
+    else:
+        n_d = N_n
+        i_d = 0
+        i_s = -1
+
+    fras = getFRAs(yobs)
+    spousalBenefits = getSpousalBenefits(pias)
+
+    zeta_in = np.zeros((N_i, N_n))
+    for i in range(N_i):
+        bornOnFirstDays = (tobs[i] <= 2)
+        eligible = 62 if bornOnFirstDays else 62 + 1/12
+        if round(ages[i] * 12) < round(eligible * 12):
+            ages[i] = eligible
+
+        janage = ages[i] + (mobs[i] - 1) / 12
+        paymentJanage = janage + 1/12
+        paymentIage = int(paymentJanage)
+        paymentRealns = yobs[i] + paymentIage - thisyear
+        ns = max(0, paymentRealns)
+        nd = horizons[i]
+        zeta_in[i, ns:nd] = pias[i]
+        if paymentRealns >= 0:
+            zeta_in[i, ns] *= 1 - (paymentJanage % 1.)
+
+        zeta_in[i, :] *= getSelfFactor(fras[i], ages[i], bool(bornOnFirstDays))
+
+        if N_i == 2 and spousalBenefits[i] > 0:
+            claimYear = max(yobs + (mobs - 1) / 12 + ages)
+            claimAge = claimYear - yobs[i] - (mobs[i] - 1) / 12
+            paymentClaimYear = claimYear + 1/12
+            ns2 = max(0, int(paymentClaimYear) - thisyear)
+            spousalFactor = getSpousalFactor(fras[i], claimAge, bool(bornOnFirstDays))
+            zeta_in[i, ns2:nd] += spousalBenefits[i] * spousalFactor
+            zeta_in[i, ns2] -= spousalBenefits[i] * spousalFactor * (paymentClaimYear % 1.)
+
+    if N_i == 2 and n_d < N_n and zeta_in[i_d, n_d - 1] > zeta_in[i_s, n_d - 1]:
+        zeta_in[i_s, n_d:horizons[i_s]] = zeta_in[i_d, n_d - 1]
+
+    zeta_in *= 12
+
+    if trim_pct > 0 and trim_year is not None:
+        trim = 1.0 - trim_pct / 100
+        trim_n = max(0, trim_year - thisyear)
+        if 0 <= trim_n < N_n:
+            zeta_in[:, trim_n:] *= trim
+
+    return zeta_in, ages

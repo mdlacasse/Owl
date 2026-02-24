@@ -686,74 +686,29 @@ class Plan:
             if not (0 <= tax_fraction <= 1):
                 raise ValueError(f"tax_fraction {tax_fraction} outside range [0, 1].")
 
-        # Just make sure we are dealing with arrays if lists were passed.
         pias = np.array(pias, dtype=np.int32)
         ages = np.array(ages)
+        ages_orig = ages.copy()
 
         fras = socsec.getFRAs(self.yobs)
-        spousalBenefits = socsec.getSpousalBenefits(pias)
-
         self.mylog.vprint("SS monthly PIAs set to", [u.d(pias[i]) for i in range(self.N_i)])
         self.mylog.vprint("SS FRAs(s)", [fras[i] for i in range(self.N_i)])
-        self.mylog.vprint("SS benefits claimed at age(s)", [ages[i] for i in range(self.N_i)])
 
         thisyear = date.today().year
-        self.zeta_in = np.zeros((self.N_i, self.N_n))
+        self.zeta_in, ages = socsec.compute_social_security_benefits(
+            pias, ages, self.yobs, self.mobs, self.tobs, self.horizons,
+            self.N_i, self.N_n, trim_pct=trim_pct, trim_year=trim_year, thisyear=thisyear
+        )
+
         for i in range(self.N_i):
-            # Check if age is in bound.
-            bornOnFirstDays = (self.tobs[i] <= 2)
-
-            eligible = 62 if bornOnFirstDays else 62 + 1/12
-            if round(ages[i] * 12) < round(eligible * 12):
+            if ages[i] != ages_orig[i]:
+                eligible = 62 if (self.tobs[i] <= 2) else 62 + 1/12
                 self.mylog.print(f"Resetting SS claiming age of {self.inames[i]} to {eligible}.")
-                ages[i] = eligible
 
-            # Check if claim age added to birth month falls next year.
-            # janage is age with reference to Jan 1 of yob when eligibility starts.
-            janage = ages[i] + (self.mobs[i] - 1)/12
-
-            # Social Security benefits are paid in arrears (one month after eligibility).
-            # Calculate when payments actually start (checks arrive).
-            paymentJanage = janage + 1/12
-            paymentIage = int(paymentJanage)
-            paymentRealns = self.yobs[i] + paymentIage - thisyear
-            ns = max(0, paymentRealns)
-            nd = self.horizons[i]
-            self.zeta_in[i, ns:nd] = pias[i]
-            # Reduce starting year due to month offset. If paymentRealns < 0, this has happened already.
-            if paymentRealns >= 0:
-                self.zeta_in[i, ns] *= 1 - (paymentJanage % 1.)
-
-            # Increase/decrease PIA due to claiming age.
-            self.zeta_in[i, :] *= socsec.getSelfFactor(fras[i], ages[i], bornOnFirstDays)
-
-            # Add spousal benefits if applicable.
-            if self.N_i == 2 and spousalBenefits[i] > 0:
-                # The latest of the two spouses to claim (eligibility start).
-                claimYear = max(self.yobs + (self.mobs - 1)/12 + ages)
-                claimAge = claimYear - self.yobs[i] - (self.mobs[i] - 1)/12
-                # Spousal benefits are also paid in arrears (one month after eligibility).
-                paymentClaimYear = claimYear + 1/12
-                ns2 = max(0, int(paymentClaimYear) - thisyear)
-                spousalFactor = socsec.getSpousalFactor(fras[i], claimAge, bornOnFirstDays)
-                self.zeta_in[i, ns2:nd] += spousalBenefits[i] * spousalFactor
-                # Reduce first year of benefit by month offset.
-                self.zeta_in[i, ns2] -= spousalBenefits[i] * spousalFactor * (paymentClaimYear % 1.)
-
-        # Switch survivor to spousal survivor benefits.
-        # Assumes both deceased and survivor already have claimed last year before passing (at n_d - 1).
-        if self.N_i == 2 and self.zeta_in[self.i_d, self.n_d - 1] > self.zeta_in[self.i_s, self.n_d - 1]:
-            self.zeta_in[self.i_s, self.n_d : self.horizons[self.i_s]] = self.zeta_in[self.i_d, self.n_d - 1]
-
-        # Convert all to annual numbers.
-        self.zeta_in *= 12
+        self.mylog.vprint("SS benefits claimed at age(s)", [ages[i] for i in range(self.N_i)])
 
         if trim_pct > 0:
             self.mylog.print(f"Reducing Social Security by {trim_pct}% starting in year {trim_year}.")
-            trim = 1.0 - trim_pct / 100
-            trim_n = max(0, trim_year - thisyear)
-            if 0 <= trim_n < self.N_n:
-                self.zeta_in[:, trim_n:] *= trim
 
         self.ssecAmounts = pias
         self.ssecAges = ages
@@ -2769,16 +2724,9 @@ class Plan:
         """
         Recompute SS taxability fractions using the IRS provisional income (PI) formula.
 
-        PI = non-SS income + ½ × SS = MAGI - ½ × SS.
-        MAGI already includes full SS (see _aggregateResults), so this subtraction
-        is exact and independent of the current Psi_n value.
-
-        IRS thresholds (frozen in nominal dollars since 1983/1994 — not inflation-indexed):
-          - Married filing jointly: 0% below $32k, ramp to 50% at $44k, 85% above $44k
-          - Single:                 0% below $25k, ramp to 50% at $34k, 85% above $34k
-
-        A 30% damping blend (new = 0.3*computed + 0.7*old) is applied to damp potential
-        oscillation near threshold boundaries and ensure SC-loop convergence.
+        Delegates to tax2026.compute_social_security_taxability() for the pure tax
+        computation. A 30% damping blend is applied here to damp potential oscillation
+        near threshold boundaries and ensure SC-loop convergence.
 
         If setSocialSecurity() was called with a tax_fraction override, this method
         returns immediately without modifying Psi_n (the fixed value set on reset is used).
@@ -2787,33 +2735,12 @@ class Plan:
         if getattr(self, 'ssecTaxFraction', None) is not None:
             return
 
-        ss_n = np.sum(self.zetaBar_in, axis=0)          # total annual SS (nominal $)
-        pi_n = self.MAGI_n - 0.5 * ss_n                 # provisional income
-
-        if self.N_i == 2:                                # married filing jointly
-            lo, hi = 32_000.0, 44_000.0
-        else:                                            # single
-            lo, hi = 25_000.0, 34_000.0
-
-        taxable_ss = np.where(
-            pi_n < lo,
-            0.0,
-            np.where(
-                pi_n < hi,
-                0.5 * (pi_n - lo),
-                np.minimum(0.85 * ss_n, 0.85 * (pi_n - hi) + 0.5 * (hi - lo)),
-            ),
+        ss_n = np.sum(self.zetaBar_in, axis=0)
+        new_Psi_n = tx.compute_social_security_taxability(
+            self.N_i, self.MAGI_n, ss_n, ssec_tax_fraction=None
         )
-        # Compute new Psi_n, guarding against division where ss_n == 0.
-        new_Psi_n = np.full(self.N_n, 0.85)
-        mask = ss_n > 0
-        new_Psi_n[mask] = np.minimum(taxable_ss[mask] / ss_n[mask], 0.85)
 
-        # 30% damping blend: take 30% of the newly-computed value and 70% of the
-        # previous value. This damps potential oscillation near threshold boundaries
-        # while still converging geometrically to the fixed point.
-        # Once Psi_n has settled (max change < 0.1%), stop updating so the LP
-        # objective can converge within its own tolerance.
+        # 30% damping blend: damp oscillation near threshold boundaries.
         blended = _PSI_DAMP * new_Psi_n + (1.0 - _PSI_DAMP) * self.Psi_n
         if np.max(np.abs(blended - self.Psi_n)) > 1e-3:
             self.Psi_n = blended

@@ -108,3 +108,64 @@ def test_SpousalBenefits():
     pias = [1000, 3000]
     benefits = ss.getSpousalBenefits(pias)
     assert np.array_equal(benefits, [500, 0])
+
+
+def test_compute_social_security_benefits_single():
+    """Single individual: zeta_in has correct shape and non-zero where expected."""
+    from datetime import date
+    thisyear = date.today().year
+    yob = thisyear - 67  # 67 years old now
+    pias = np.array([2000])
+    ages = np.array([67.0])
+    yobs = np.array([yob])
+    mobs = np.array([1])
+    tobs = np.array([15])
+    horizons = np.array([20])
+    N_i, N_n = 1, 20
+
+    zeta_in, ages_out = ss.compute_social_security_benefits(
+        pias, ages, yobs, mobs, tobs, horizons, N_i, N_n
+    )
+    assert zeta_in.shape == (1, 20)
+    # SS starts at 67, paid in arrears; year 0 should have partial, years 1-19 full
+    assert np.sum(zeta_in) > 0
+    assert np.array_equal(ages_out, ages)
+
+
+def test_compute_social_security_benefits_couple():
+    """Two individuals: zeta_in has correct shape."""
+    from datetime import date
+    thisyear = date.today().year
+    yobs = np.array([thisyear - 66, thisyear - 63])
+    pias = np.array([2333, 2083])
+    ages = np.array([67.0, 70.0])
+    mobs = np.array([1, 1])
+    tobs = np.array([15, 16])
+    horizons = np.array([20, 20])
+    N_i, N_n = 2, 20
+
+    zeta_in, ages_out = ss.compute_social_security_benefits(
+        pias, ages, yobs, mobs, tobs, horizons, N_i, N_n
+    )
+    assert zeta_in.shape == (2, 20)
+    assert np.sum(zeta_in) > 0
+
+
+def test_compute_social_security_benefits_age_reset():
+    """Claiming age below 62 is reset to 62."""
+    from datetime import date
+    thisyear = date.today().year
+    yob = thisyear - 60  # 60 years old
+    pias = np.array([2000])
+    ages = np.array([60.0])  # Invalid: before 62
+    yobs = np.array([yob])
+    mobs = np.array([1])
+    tobs = np.array([1])  # born on 1st: eligible at 62
+    horizons = np.array([20])
+    N_i, N_n = 1, 20
+
+    zeta_in, ages_out = ss.compute_social_security_benefits(
+        pias, ages, yobs, mobs, tobs, horizons, N_i, N_n
+    )
+    assert ages_out[0] == pytest.approx(62.0)
+    assert ages[0] == pytest.approx(60.0)  # Original unchanged (we copy)

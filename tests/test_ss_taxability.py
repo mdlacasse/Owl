@@ -28,6 +28,7 @@ import pytest
 from datetime import date
 
 import owlplanner as owl
+from owlplanner import tax2026 as tx
 
 
 def _make_couple_plan(name, taxable, tax_deferred, tax_free, ss_pias, ss_ages,
@@ -133,6 +134,47 @@ def test_ss_partial_bracket():
     psi_ss = p.Psi_n[ss_mask]
     assert psi_ss.max() <= 0.85 + 1e-6, f"Psi_n exceeded 0.85: {psi_ss.max():.4f}"
     assert psi_ss.min() >= 0.0 - 1e-6, f"Psi_n went negative: {psi_ss.min():.4f}"
+
+
+def test_compute_social_security_taxability_override():
+    """When ssec_tax_fraction is set, return constant array."""
+    N_n = 10
+    MAGI_n = np.zeros(N_n)
+    ss_n = np.ones(N_n) * 30_000
+    psi = tx.compute_social_security_taxability(1, MAGI_n, ss_n, ssec_tax_fraction=0.5)
+    assert np.all(psi == 0.5)
+
+
+def test_compute_social_security_taxability_single_low_pi():
+    """Single filer with PI < $25k: 0% taxable."""
+    MAGI_n = np.array([20_000.0])
+    ss_n = np.array([20_000.0])  # PI = 20k - 10k = 10k < 25k
+    psi = tx.compute_social_security_taxability(1, MAGI_n, ss_n)
+    assert psi[0] == pytest.approx(0.0)
+
+
+def test_compute_social_security_taxability_single_high_pi():
+    """Single filer with PI >> $34k: 85% cap binding."""
+    MAGI_n = np.array([100_000.0])
+    ss_n = np.array([30_000.0])  # PI = 100k - 15k = 85k >> 34k
+    psi = tx.compute_social_security_taxability(1, MAGI_n, ss_n)
+    assert psi[0] == pytest.approx(0.85)
+
+
+def test_compute_social_security_taxability_mfj_high_pi():
+    """MFJ with PI >> $44k: 85% cap binding."""
+    MAGI_n = np.array([150_000.0])
+    ss_n = np.array([50_000.0])  # PI = 150k - 25k = 125k >> 44k
+    psi = tx.compute_social_security_taxability(2, MAGI_n, ss_n)
+    assert psi[0] == pytest.approx(0.85)
+
+
+def test_compute_social_security_taxability_zero_ss():
+    """When ss_n is zero, return 0.85 (default, no division)."""
+    MAGI_n = np.array([50_000.0])
+    ss_n = np.array([0.0])
+    psi = tx.compute_social_security_taxability(1, MAGI_n, ss_n)
+    assert psi[0] == pytest.approx(0.85)
 
 
 def test_ss_dynamic_psi_varies():
