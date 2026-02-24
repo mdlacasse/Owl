@@ -27,9 +27,12 @@ from . import utils as u
 
 
 # Expected headers in each excel sheet, one per individual.
+# Optional columns (e.g. "other inc.") default to zero when absent for backward compatibility.
+_optionalTimeHorizonItems = ["other inc."]
 _timeHorizonItems = [
     "year",
     "anticipated wages",
+    "other inc.",
     "taxable ctrb",
     "401k ctrb",
     "Roth 401k ctrb",
@@ -37,6 +40,9 @@ _timeHorizonItems = [
     "Roth IRA ctrb",
     "Roth conv",
     "big-ticket items",
+]
+_requiredTimeHorizonItems = [
+    col for col in _timeHorizonItems if col not in _optionalTimeHorizonItems
 ]
 
 
@@ -97,9 +103,10 @@ def read(finput, inames, horizons, mylog, filename=None):
     """
     Read listed parameters from an excel spreadsheet or through
     a dictionary of dataframes through Pandas.
-    Use one sheet for each individual with the following 9 columns:
+    Use one sheet for each individual with required columns:
     year, anticipated wages, taxable ctrb, 401k ctrb, Roth 401k ctrb,
     IRA ctrb, Roth IRA ctrb, Roth conv, and big-ticket items.
+    Optional column "other inc." (other ordinary income) defaults to zero if absent.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     Return a dictionary of dataframes by individual's names.
 
@@ -148,21 +155,23 @@ def read(finput, inames, horizons, mylog, filename=None):
     return finput, timeLists, houseLists
 
 
-def _checkColumns(df, iname, colList):
+def _checkColumns(df, iname, colList, required_cols=None):
     """
-    Ensure all columns in colList are present. Remove others.
+    Ensure required columns are present. Keep allowed columns. Remove others.
+    If required_cols is None, colList is treated as required.
     """
-    # Drop all columns not in the list.
+    # Drop all columns not in the list (and unnamed columns).
     # Make an explicit copy to avoid SettingWithCopyWarning
     df = df.loc[:, ~df.columns.str.contains("^Unnamed")].copy()
 
-    # Collect columns to drop
-    cols_to_drop = [col for col in df.columns if col == "" or col not in colList]
+    allowed = colList if required_cols is None else colList
+    cols_to_drop = [col for col in df.columns if col == "" or col not in allowed]
     if cols_to_drop:
         df = df.drop(cols_to_drop, axis=1)
 
-    # Check that all columns in the list are present.
-    for item in colList:
+    # Check that all required columns are present.
+    required = required_cols if required_cols is not None else colList
+    for item in required:
         if item not in df.columns:
             raise ValueError(f"Column {item} not found for {iname}.")
 
@@ -184,7 +193,14 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
 
         df = dfDict[iname]
 
-        df = _checkColumns(df, iname, _timeHorizonItems)
+        df = _checkColumns(
+            df, iname, _timeHorizonItems, required_cols=_requiredTimeHorizonItems
+        )
+
+        # Add optional columns with zeros if missing (backward compatibility)
+        for col in _optionalTimeHorizonItems:
+            if col not in df.columns:
+                df[col] = 0
 
         # Ensure columns are in the correct order
         df = df[_timeHorizonItems].copy()

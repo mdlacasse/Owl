@@ -51,7 +51,7 @@ Reference to the Excel file containing wages, contributions, and other time-vary
 |-----------|------|-------------|
 | `HFP_file_name` | string | Name of the Excel file (`.xlsx`) containing wages, contributions, Roth conversions, and big-ticket items. Use `"None"` if no file is associated with the case |
 
-**Note:** The Excel file should contain one sheet per individual with columns for: year, anticipated wages, taxable contributions, 401k contributions, Roth 401k contributions, IRA contributions, Roth IRA contributions, Roth conversions, and big-ticket items.
+**Note:** The Excel file should contain one sheet per individual with columns for: year, anticipated wages, other inc. (optional), taxable contributions, 401k contributions, Roth 401k contributions, IRA contributions, Roth IRA contributions, Roth conversions, and big-ticket items.
 
 -------
 

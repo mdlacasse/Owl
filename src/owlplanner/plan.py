@@ -309,6 +309,7 @@ class Plan:
 
         # Parameters from timeLists initialized to zero.
         self.omega_in = np.zeros((self.N_i, self.N_n))
+        self.other_inc_in = np.zeros((self.N_i, self.N_n))
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
         # Go back 5 years for maturation rules on IRA and Roth.
         self.myRothX_in = np.zeros((self.N_i, self.N_n + 5))
@@ -1098,6 +1099,7 @@ class Plan:
 
                 'year',
                 'anticipated wages',
+                'other inc.' (optional; defaults to zero if absent),
                 'taxable ctrb',
                 '401k ctrb',
                 'Roth 401k ctrb',
@@ -1142,6 +1144,7 @@ class Plan:
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
             self.omega_in[i, :h] = self.timeLists[iname]["anticipated wages"].iloc[5:5+h]
+            self.other_inc_in[i, :h] = self.timeLists[iname]["other inc."].iloc[5:5+h]
             self.Lambda_in[i, :h] = self.timeLists[iname]["big-ticket items"].iloc[5:5+h]
 
             # Values for last 5 years of Roth conversion and contributions stored at the end
@@ -1293,6 +1296,7 @@ class Plan:
 
         # Reset parameters with zeros.
         self.omega_in[:, :] = 0.0
+        self.other_inc_in[:, :] = 0.0
         self.Lambda_in[:, :] = 0.0
         self.myRothX_in[:, :] = 0.0
         self.kappa_ijn[:, :, :] = 0.0
@@ -1300,6 +1304,7 @@ class Plan:
         cols = [
             "year",
             "anticipated wages",
+            "other inc.",
             "taxable ctrb",
             "401k ctrb",
             "Roth 401k ctrb",
@@ -1722,6 +1727,7 @@ class Plan:
                 fac = self.psi_n[n] * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
                     self.omega_in[i, n]
+                    + self.other_inc_in[i, n]
                     + self.zetaBar_in[i, n]
                     + self.piBar_in[i, n]
                     + self.Lambda_in[i, n]
@@ -1758,7 +1764,8 @@ class Plan:
             row = self.A.newRow()
             row.addElem(_q1(self.C["e"], n, self.N_n), 1)
             for i in range(self.N_i):
-                rhs += self.omega_in[i, n] + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n]
+                rhs += (self.omega_in[i, n] + self.other_inc_in[i, n]
+                        + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n])
                 row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1)
                 row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), -1)
                 # Only positive returns are taxable (interest/dividends); losses don't reduce income.
@@ -1899,6 +1906,7 @@ class Plan:
 
                 # MAGI includes total Social Security (taxable + non-taxable) for IRMAA.
                 sumoni = (self.omega_in[i, n2]
+                          + self.other_inc_in[i, n2]
                           + self.zetaBar_in[i, n2]
                           + self.piBar_in[i, n2]
                           + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
@@ -2799,6 +2807,7 @@ class Plan:
         """
         sources = {}
         sources["wages"] = self.omega_in
+        sources["other inc"] = self.other_inc_in
         sources["ssec"] = self.zetaBar_in
         sources["pension"] = self.piBar_in
         sources["txbl acc wdrwl"] = self.w_ijn[:, 0, :]

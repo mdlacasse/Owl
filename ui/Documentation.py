@@ -250,17 +250,18 @@ or large influx of after-tax money, debts, and fixed assets.
 
 ##### :material/work_history: Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
-The **Wages and Contributions** table contains 9 columns titled as follows:
+The **Wages and Contributions** table contains 10 columns titled as follows:
 
-|year|anticipated wages|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|Roth conv|big-ticket items|
-|--|--|--|--|--|--|--|--|--|
-|2021 | | | | | | | | |
-| ... | | | | | | | | |
-|2026 | | | | | | | | |
-|2027 | | | | | | | | |
-| ... | | | | | | | | |
-|20XX | | | | | | | | |
+|year|anticipated wages|other inc.|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|Roth conv|big-ticket items|
+|--|--|--|--|--|--|--|--|--|--|
+|2021 | | | | | | | | | |
+| ... | | | | | | | | | |
+|2026 | | | | | | | | | |
+|2027 | | | | | | | | | |
+| ... | | | | | | | | | |
+|20XX | | | | | | | | | |
 
+The *other inc.* column is optional; older HFP files without it will default to zero. It contributes to ordinary income (e.g., part-time work, consulting, royalties).
 Note that column names are case sensitive and all entries are in lower case.
 The easiest way to complete the process of filling this file is either to start from the template
 file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) or
