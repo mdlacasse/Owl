@@ -37,16 +37,16 @@ OBBBA_BONUS_EXPIRATION_YEAR = 2028
 # These are current for 2026 (2025TY).
 taxBrackets_OBBBA = np.array(
     [
-        [12400, 50400, 105700, 201775, 256225, 640600, 9999999],
-        [24800, 100800, 211400, 403550, 512450, 768700, 9999999],
+        [12_400, 50_400, 105_700, 201_775, 256_225, 640_600, 9_999_999],
+        [24_800, 100_800, 211_400, 403_550, 512_450, 768_700, 9_999_999],
     ]
 )
 
 # These are current for 2026 (2025TY).
 irmaaBrackets = np.array(
     [
-        [0, 109000, 137000, 171000, 205000, 500000],
-        [0, 218000, 274000, 342000, 410000, 750000],
+        [0, 109_000, 137_000, 171_000, 205_000, 500_000],
+        [0, 218_000, 274_000, 342_000, 410_000, 750_000],
     ]
 )
 
@@ -60,8 +60,8 @@ irmaaCosts = np.cumsum(irmaaFees)
 #########################################################################
 # Make projection for pre-TCJA using 2017 to current year.
 # taxBrackets_2017 = np.array(
-#    [ [9325, 37950, 91900, 191650, 416700, 418400, 9999999],
-#      [18650, 75900, 153100, 233350, 416700, 470700, 9999999],
+#    [ [9_325, 37_950, 91_900, 191_650, 416_700, 418_400, 9_999_999],
+#      [18_650, 75_900, 153_100, 233_350, 416_700, 470_700, 9_999_999],
 #    ])
 #
 # stdDeduction_2017 = [6350, 12700]
@@ -72,27 +72,27 @@ irmaaCosts = np.cumsum(irmaaFees)
 # These are speculated.
 taxBrackets_preTCJA = np.array(
     [
-        [12600, 51270, 124160, 258920, 562960, 565260, 9999999],   # Single
-        [25200, 102540, 206840, 315260, 562960, 635920, 9999999],  # MFJ
+        [12_600, 51_270, 124_160, 258_920, 562_960, 565_260, 9_999_999],   # Single
+        [25_200, 102_540, 206_840, 315_260, 562_960, 635_920, 9_999_999],  # MFJ
     ]
 )
 
 # These are speculated (adjusted for inflation to 2026).
-stdDeduction_preTCJA = np.array([8580, 17160])   # Single, MFJ
+stdDeduction_preTCJA = np.array([8_580, 17_160])   # Single, MFJ
 #########################################################################
 
 # These are current for 2026 (2025TY).
-stdDeduction_OBBBA = np.array([16100, 32200])    # Single, MFJ
+stdDeduction_OBBBA = np.array([16_100, 32_200])    # Single, MFJ
 
 # These are current for 2026  (2025TY) per individual.
-extra65Deduction = np.array([2000, 1600])        # Single, MFJ
+extra65Deduction = np.array([2_000, 1_600])        # Single, MFJ
 
 # These are current for 2026 (2025TY).
 # Thresholds setting capital gains brackets 0%, 15%, 20%.
 capGainRates = np.array(
     [
-        [49450, 545500],
-        [98900, 613700],
+        [49_450, 545_500],
+        [98_900, 613_700],
     ]
 )
 
@@ -105,7 +105,7 @@ capGainRates = np.array(
 ###############################################################################
 
 # Thresholds for net investment income tax (not adjusted for inflation).
-niitThreshold = np.array([200000, 250000])
+niitThreshold = np.array([200_000, 250_000])
 niitRate = 0.038
 
 # Thresholds for 65+ bonus of $6k per individual for circumventing tax
@@ -113,7 +113,7 @@ niitRate = 0.038
 # These numbers are hard-coded below as the tax code will likely change
 # the rules for eligibility and will require a code review.
 # Bonus decreases linearly above threshold by 1% / $1k over threshold.
-bonusThreshold = np.array([75000, 150000])
+bonusThreshold = np.array([75_000, 150_000])
 
 taxBracketNames = ["10%", "12/15%", "22/25%", "24/28%", "32/33%", "35%", "37/40%"]
 

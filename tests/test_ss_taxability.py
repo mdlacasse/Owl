@@ -112,7 +112,7 @@ def test_ss_max_bracket():
     assert joint_ss_mask.any(), "Expected some joint SS-active years"
     psi_joint = p.Psi_n[joint_ss_mask]
     # During joint years, combined PI >> P_hi, so the 85% cap should be binding.
-    assert np.all(psi_joint > 0.80), f"Expected Psi_n≈0.85 for joint SS years, got min={psi_joint.min():.4f}"
+    assert np.all(psi_joint > 0.84), f"Expected Psi_n≈0.85 for joint SS years, got min={psi_joint.min():.4f}"
 
 
 def test_ss_partial_bracket():

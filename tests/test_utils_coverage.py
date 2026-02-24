@@ -111,8 +111,8 @@ def test_get_units_k():
 
 def test_get_units_m():
     """Test getUnits with 'm' or 'M'."""
-    assert utils.getUnits("m") == 1000000
-    assert utils.getUnits("M") == 1000000
+    assert utils.getUnits("m") == 1_000_000
+    assert utils.getUnits("M") == 1_000_000
 
 
 def test_get_units_invalid():

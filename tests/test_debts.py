@@ -32,7 +32,7 @@ class TestCalculateMonthlyPayment:
 
     def test_standard_loan(self):
         """Test standard 30-year mortgage calculation."""
-        principal = 200000
+        principal = 200_000
         rate = 4.5
         term = 30
         payment = debts.calculate_monthly_payment(principal, rate, term)
@@ -41,7 +41,7 @@ class TestCalculateMonthlyPayment:
 
     def test_zero_interest(self):
         """Test loan with zero interest rate."""
-        principal = 100000
+        principal = 100_000
         rate = 0.0
         term = 10
         payment = debts.calculate_monthly_payment(principal, rate, term)
@@ -51,7 +51,7 @@ class TestCalculateMonthlyPayment:
 
     def test_short_term_loan(self):
         """Test short-term loan (5 years)."""
-        principal = 50000
+        principal = 50_000
         rate = 5.0
         term = 5
         payment = debts.calculate_monthly_payment(principal, rate, term)
@@ -61,9 +61,9 @@ class TestCalculateMonthlyPayment:
     def test_invalid_inputs(self):
         """Test handling of invalid inputs."""
         assert debts.calculate_monthly_payment(0, 4.5, 30) == 0.0
-        assert debts.calculate_monthly_payment(100000, -1, 30) == 0.0
-        assert debts.calculate_monthly_payment(100000, 4.5, 0) == 0.0
-        assert debts.calculate_monthly_payment(100000, 4.5, -5) == 0.0
+        assert debts.calculate_monthly_payment(100_000, -1, 30) == 0.0
+        assert debts.calculate_monthly_payment(100_000, 4.5, 0) == 0.0
+        assert debts.calculate_monthly_payment(100_000, 4.5, -5) == 0.0
 
 
 class TestCalculateAnnualPayment:
@@ -71,7 +71,7 @@ class TestCalculateAnnualPayment:
 
     def test_annual_from_monthly(self):
         """Test that annual payment is 12 times monthly payment."""
-        principal = 200000
+        principal = 200_000
         rate = 4.5
         term = 30
         monthly = debts.calculate_monthly_payment(principal, rate, term)
@@ -80,7 +80,7 @@ class TestCalculateAnnualPayment:
 
     def test_zero_interest_annual(self):
         """Test annual payment with zero interest."""
-        principal = 100000
+        principal = 100_000
         rate = 0.0
         term = 10
         annual = debts.calculate_annual_payment(principal, rate, term)
@@ -93,7 +93,7 @@ class TestCalculateRemainingBalance:
 
     def test_initial_balance(self):
         """Test that remaining balance equals principal at start."""
-        principal = 200000
+        principal = 200_000
         rate = 4.5
         term = 30
         balance = debts.calculate_remaining_balance(principal, rate, term, 0)
@@ -101,7 +101,7 @@ class TestCalculateRemainingBalance:
 
     def test_final_balance(self):
         """Test that remaining balance is zero at end of term."""
-        principal = 200000
+        principal = 200_000
         rate = 4.5
         term = 30
         balance = debts.calculate_remaining_balance(principal, rate, term, term)
@@ -109,7 +109,7 @@ class TestCalculateRemainingBalance:
 
     def test_balance_after_half_term(self):
         """Test remaining balance after half the term."""
-        principal = 200000
+        principal = 200_000
         rate = 4.5
         term = 30
         balance = debts.calculate_remaining_balance(principal, rate, term, 15)
@@ -118,7 +118,7 @@ class TestCalculateRemainingBalance:
 
     def test_zero_interest_balance(self):
         """Test remaining balance with zero interest."""
-        principal = 100000
+        principal = 100_000
         rate = 0.0
         term = 10
         balance = debts.calculate_remaining_balance(principal, rate, term, 5)
@@ -127,7 +127,7 @@ class TestCalculateRemainingBalance:
 
     def test_negative_years_elapsed(self):
         """Test that negative years returns principal."""
-        principal = 200000
+        principal = 200_000
         rate = 4.5
         term = 30
         balance = debts.calculate_remaining_balance(principal, rate, term, -1)
@@ -135,7 +135,7 @@ class TestCalculateRemainingBalance:
 
     def test_years_exceeding_term(self):
         """Test that years exceeding term returns zero."""
-        principal = 200000
+        principal = 200_000
         rate = 4.5
         term = 30
         balance = debts.calculate_remaining_balance(principal, rate, term, 35)
@@ -158,7 +158,7 @@ class TestGetDebtPaymentsForYear:
             "type": "mortgage",
             "year": 2020,
             "term": 30,
-            "amount": 200000,
+            "amount": 200_000,
             "rate": 4.5
         }])
         payment = debts.get_debt_payments_for_year(df, 2025)
@@ -172,7 +172,7 @@ class TestGetDebtPaymentsForYear:
             "type": "mortgage",
             "year": 2030,
             "term": 30,
-            "amount": 200000,
+            "amount": 200_000,
             "rate": 4.5
         }])
         payment = debts.get_debt_payments_for_year(df, 2025)
@@ -185,7 +185,7 @@ class TestGetDebtPaymentsForYear:
             "type": "mortgage",
             "year": 1990,
             "term": 30,
-            "amount": 200000,
+            "amount": 200_000,
             "rate": 4.5
         }])
         payment = debts.get_debt_payments_for_year(df, 2025)
@@ -199,7 +199,7 @@ class TestGetDebtPaymentsForYear:
                 "type": "mortgage",
                 "year": 2020,
                 "term": 30,
-                "amount": 200000,
+                "amount": 200_000,
                 "rate": 4.5
             },
             {
@@ -207,7 +207,7 @@ class TestGetDebtPaymentsForYear:
                 "type": "loan",
                 "year": 2023,
                 "term": 5,
-                "amount": 30000,
+                "amount": 30_000,
                 "rate": 6.0
             }
         ])
@@ -232,12 +232,12 @@ class TestGetDebtBalancesForYear:
             "type": "mortgage",
             "year": 2020,
             "term": 30,
-            "amount": 200000,
+            "amount": 200_000,
             "rate": 4.5
         }])
         balance = debts.get_debt_balances_for_year(df, 2025)
         # Should be positive but less than original principal
-        assert 0 < balance < 200000
+        assert 0 < balance < 200_000
 
     def test_loan_not_started(self):
         """Test with loan that hasn't started."""
@@ -246,7 +246,7 @@ class TestGetDebtBalancesForYear:
             "type": "mortgage",
             "year": 2030,
             "term": 30,
-            "amount": 200000,
+            "amount": 200_000,
             "rate": 4.5
         }])
         balance = debts.get_debt_balances_for_year(df, 2025)
@@ -259,7 +259,7 @@ class TestGetDebtBalancesForYear:
             "type": "mortgage",
             "year": 1990,
             "term": 30,
-            "amount": 200000,
+            "amount": 200_000,
             "rate": 4.5
         }])
         balance = debts.get_debt_balances_for_year(df, 2025)
@@ -283,7 +283,7 @@ class TestGetDebtPaymentsArray:
             "type": "mortgage",
             "year": 2020,
             "term": 30,
-            "amount": 200000,
+            "amount": 200_000,
             "rate": 4.5
         }])
         thisyear = 2025
@@ -300,7 +300,7 @@ class TestGetDebtPaymentsArray:
             "type": "loan",
             "year": 2028,
             "term": 5,
-            "amount": 30000,
+            "amount": 30_000,
             "rate": 6.0
         }])
         thisyear = 2025
@@ -319,7 +319,7 @@ class TestGetDebtPaymentsArray:
             "type": "loan",
             "year": 2020,
             "term": 5,
-            "amount": 30000,
+            "amount": 30_000,
             "rate": 6.0
         }])
         thisyear = 2025
@@ -339,7 +339,7 @@ class TestGetDebtPaymentsArray:
                 "type": "mortgage",
                 "year": 2020,
                 "term": 30,
-                "amount": 200000,
+                "amount": 200_000,
                 "rate": 4.5
             },
             {
@@ -347,7 +347,7 @@ class TestGetDebtPaymentsArray:
                 "type": "loan",
                 "year": 2026,
                 "term": 5,
-                "amount": 30000,
+                "amount": 30_000,
                 "rate": 6.0
             }
         ])
@@ -377,7 +377,7 @@ class TestGetRemainingDebtBalance:
             "type": "loan",
             "year": 2020,
             "term": 5,
-            "amount": 30000,
+            "amount": 30_000,
             "rate": 6.0
         }])
         thisyear = 2025
@@ -393,7 +393,7 @@ class TestGetRemainingDebtBalance:
             "type": "mortgage",
             "year": 2020,
             "term": 30,
-            "amount": 200000,
+            "amount": 200_000,
             "rate": 4.5
         }])
         thisyear = 2025
@@ -409,7 +409,7 @@ class TestGetRemainingDebtBalance:
             "type": "mortgage",
             "year": 2040,
             "term": 30,
-            "amount": 200000,
+            "amount": 200_000,
             "rate": 4.5
         }])
         thisyear = 2025
@@ -426,7 +426,7 @@ class TestGetRemainingDebtBalance:
                 "type": "loan",
                 "year": 2020,
                 "term": 5,
-                "amount": 30000,
+                "amount": 30_000,
                 "rate": 6.0
             },
             {
@@ -434,7 +434,7 @@ class TestGetRemainingDebtBalance:
                 "type": "mortgage",
                 "year": 2020,
                 "term": 30,
-                "amount": 200000,
+                "amount": 200_000,
                 "rate": 4.5
             }
         ])
@@ -444,4 +444,4 @@ class TestGetRemainingDebtBalance:
         # Only mortgage should have remaining balance
         assert balance > 0
         # Should be less than full mortgage principal
-        assert balance < 200000
+        assert balance < 200_000

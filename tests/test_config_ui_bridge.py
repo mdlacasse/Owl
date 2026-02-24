@@ -194,7 +194,7 @@ def test_apply_config_to_plan():
     diconf["savings_assets"]["taxable_savings_balances"] = [150.0]  # Change
 
     apply_config_to_plan(p, diconf)
-    assert p.beta_ij[0, 0] == 150000  # 150 * 1000
+    assert p.beta_ij[0, 0] == 150_000  # 150 * 1000
 
 
 def test_config_to_ui_rates_in_valid_range():

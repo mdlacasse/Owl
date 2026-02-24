@@ -60,47 +60,47 @@ def getHFP(exdir, case, check_exists=True):
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
-            "net_spending_basis": 100000,
-            "bequest": 8094499,
+            "net_spending_basis": 100_000,
+            "bequest": 8_094_499,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91776,
-            "bequest": 400000,
+            "net_spending_basis": 91_776,
+            "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 87461,
-            "bequest": 300000,
+            "net_spending_basis": 87_461,
+            "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 168294,
+            "net_spending_basis": 168_294,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
-            "net_spending_basis": 145000,
-            "bequest": 1113254,
+            "net_spending_basis": 145_000,
+            "bequest": 1_113_254,
         },
     }
 elif platform in ["win32", "linux"]:
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
-            "net_spending_basis": 100000,
-            "bequest": 8094499,
+            "net_spending_basis": 100_000,
+            "bequest": 8_094_499,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91757,
-            "bequest": 400000,
+            "net_spending_basis": 91_757,
+            "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 87461,
-            "bequest": 300000,
+            "net_spending_basis": 87_461,
+            "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 168294,
+            "net_spending_basis": 168_294,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
-            "net_spending_basis": 145000,
-            "bequest": 1113254,
+            "net_spending_basis": 145_000,
+            "bequest": 1_113_254,
         },
     }
 else:

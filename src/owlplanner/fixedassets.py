@@ -30,8 +30,8 @@ from . import utils as u
 
 
 # Primary residence exclusion limits (2025 tax year)
-RESIDENCE_EXCLUSION_SINGLE = 250000
-RESIDENCE_EXCLUSION_MARRIED = 500000
+RESIDENCE_EXCLUSION_SINGLE = 250_000
+RESIDENCE_EXCLUSION_MARRIED = 500_000
 
 
 def calculate_future_value(current_value, annual_rate, years):

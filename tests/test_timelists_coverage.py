@@ -212,8 +212,8 @@ def test_condition_house_tables():
             'name': ['House'],
             'type': ['residence'],
             'year': [thisyear],
-            'basis': [150000],
-            'value': [200000],
+            'basis': [150_000],
+            'value': [200_000],
             'rate': [0.0],
             'yod': [0],
             'commission': [0.0]

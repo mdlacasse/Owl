@@ -32,17 +32,17 @@ import owlplanner as owl
 solver = 'HiGHS'
 # solver = 'MOSEK'
 if platform == "darwin":
-    SPENDING1 = 86958
-    BEQUEST1 = 837286
-    SPENDING2 = 97057
-    SPENDING1_FIXED = 92628
-    BEQUEST1_FIXED = 500000
+    SPENDING1 = 86_958
+    BEQUEST1 = 837_286
+    SPENDING2 = 97_057
+    SPENDING1_FIXED = 92_628
+    BEQUEST1_FIXED = 500_000
 elif platform in ["win32", "linux"]:
-    SPENDING1 = 86958
-    BEQUEST1 = 837319
-    SPENDING2 = 97057
-    SPENDING1_FIXED = 92628
-    BEQUEST1_FIXED = 500000
+    SPENDING1 = 86_958
+    BEQUEST1 = 837_319
+    SPENDING2 = 97_057
+    SPENDING1_FIXED = 92_628
+    BEQUEST1_FIXED = 500_000
 else:
     print(f"Unknown platform {platform}")
     assert False
@@ -81,7 +81,7 @@ def test_case1():
     p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500, 'solver': solver})
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(SPENDING1, rel=REL_TOL, abs=ABS_TOL)
-    assert p.bequest == pytest.approx(500000, rel=REL_TOL, abs=ABS_TOL)
+    assert p.bequest == pytest.approx(500_000, rel=REL_TOL, abs=ABS_TOL)
 
 
 def test_case1_fixed_rates():
@@ -98,7 +98,7 @@ def test_case2():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
 
 
@@ -108,7 +108,7 @@ def test_config1():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
     p.saveConfig()
     base_filename = 'case_' + name
@@ -117,12 +117,12 @@ def test_config1():
     p2 = owl.readConfig(base_filename)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p2.caseStatus == "solved"
-    assert p2.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p2.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p2.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
     p3 = owl.readConfig(full_filename)
     p3.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p3.caseStatus == "solved"
-    assert p3.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p3.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p3.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
     os.remove(full_filename)
 
@@ -133,7 +133,7 @@ def test_config2():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
     iostring = StringIO()
     p.saveConfig(iostring)
@@ -141,7 +141,7 @@ def test_config2():
     p2 = owl.readConfig(iostring)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p2.caseStatus == "solved"
-    assert p2.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p2.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p2.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
 
 
@@ -151,13 +151,13 @@ def test_clone1():
     p.setRates('historical', 1969)
     p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
     name2 = 'testclone1.2'
     p2 = owl.clone(p, name2)
     p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver})
     assert p2.caseStatus == "solved"
-    assert p2.basis == pytest.approx(80000, rel=REL_TOL, abs=ABS_TOL)
+    assert p2.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p2.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
 
 
@@ -168,13 +168,13 @@ def test_clone2():
     p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 10, 'solver': solver})
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(SPENDING2, rel=REL_TOL, abs=ABS_TOL)
-    assert p.bequest == pytest.approx(10000, rel=REL_TOL, abs=ABS_TOL)
+    assert p.bequest == pytest.approx(10_000, rel=REL_TOL, abs=ABS_TOL)
     name2 = 'testclone2.2'
     p2 = owl.clone(p, name2)
     p2.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 10, 'solver': solver})
     assert p2.caseStatus == "solved"
     assert p2.basis == pytest.approx(SPENDING2, rel=REL_TOL, abs=ABS_TOL)
-    assert p2.bequest == pytest.approx(10000, rel=REL_TOL, abs=ABS_TOL)
+    assert p2.bequest == pytest.approx(10_000, rel=REL_TOL, abs=ABS_TOL)
 
 
 def test_stochastic_reproducibility():

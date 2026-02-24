@@ -32,17 +32,17 @@ class TestCalculateFutureValue:
 
     def test_standard_growth(self):
         """Test standard future value calculation."""
-        current_value = 100000
+        current_value = 100_000
         annual_rate = 5.0
         years = 10
         future_value = fixedassets.calculate_future_value(current_value, annual_rate, years)
         # FV = 100000 * (1.05)^10 ≈ 162889.46
-        expected = 100000 * (1.05 ** 10)
+        expected = 100_000 * (1.05 ** 10)
         assert future_value == pytest.approx(expected, abs=1.0)
 
     def test_zero_growth_rate(self):
         """Test with zero growth rate."""
-        current_value = 100000
+        current_value = 100_000
         annual_rate = 0.0
         years = 10
         future_value = fixedassets.calculate_future_value(current_value, annual_rate, years)
@@ -50,7 +50,7 @@ class TestCalculateFutureValue:
 
     def test_zero_years(self):
         """Test with zero years (should return current value)."""
-        current_value = 100000
+        current_value = 100_000
         annual_rate = 5.0
         years = 0
         future_value = fixedassets.calculate_future_value(current_value, annual_rate, years)
@@ -58,7 +58,7 @@ class TestCalculateFutureValue:
 
     def test_negative_years(self):
         """Test with negative years (should return current value)."""
-        current_value = 100000
+        current_value = 100_000
         annual_rate = 5.0
         years = -5
         future_value = fixedassets.calculate_future_value(current_value, annual_rate, years)
@@ -66,20 +66,20 @@ class TestCalculateFutureValue:
 
     def test_high_growth_rate(self):
         """Test with high growth rate."""
-        current_value = 100000
+        current_value = 100_000
         annual_rate = 10.0
         years = 5
         future_value = fixedassets.calculate_future_value(current_value, annual_rate, years)
-        expected = 100000 * (1.10 ** 5)
+        expected = 100_000 * (1.10 ** 5)
         assert future_value == pytest.approx(expected, abs=1.0)
 
     def test_fractional_years(self):
         """Test with fractional years."""
-        current_value = 100000
+        current_value = 100_000
         annual_rate = 5.0
         years = 2.5
         future_value = fixedassets.calculate_future_value(current_value, annual_rate, years)
-        expected = 100000 * (1.05 ** 2.5)
+        expected = 100_000 * (1.05 ** 2.5)
         assert future_value == pytest.approx(expected, abs=1.0)
 
 
@@ -108,8 +108,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "annuity",
             "type": "fixed annuity",
-            "basis": 100000,
-            "value": 120000,
+            "basis": 100_000,
+            "value": 120_000,
             "rate": 3.0,
             "yod": 2025,
             "commission": 0.0
@@ -119,7 +119,7 @@ class TestGetFixedAssetsArrays:
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
         # Gain should be in ordinary income, basis in tax-free
         assert ordinary[0] > 0  # Gain is ordinary income
-        assert tax_free[0] == pytest.approx(100000, abs=1.0)  # Basis is tax-free
+        assert tax_free[0] == pytest.approx(100_000, abs=1.0)  # Basis is tax-free
         assert capital[0] == 0  # No capital gains
 
     def test_residence_single_small_gain(self):
@@ -127,8 +127,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "house",
             "type": "residence",
-            "basis": 200000,
-            "value": 400000,
+            "basis": 200_000,
+            "value": 400_000,
             "rate": 2.0,
             "yod": 2025,
             "commission": 5.0
@@ -148,8 +148,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "house",
             "type": "residence",
-            "basis": 200000,
-            "value": 600000,
+            "basis": 200_000,
+            "value": 600_000,
             "rate": 2.0,
             "yod": 2025,
             "commission": 5.0
@@ -163,15 +163,15 @@ class TestGetFixedAssetsArrays:
         # Gain = 570000 - 200000 = 370000
         # Taxable gain = 370000 - 250000 = 120000
         assert capital[0] > 0  # Should have capital gains
-        assert capital[0] == pytest.approx(120000, abs=1000)  # Taxable portion
+        assert capital[0] == pytest.approx(120_000, abs=1000)  # Taxable portion
 
     def test_residence_married_large_gain(self):
         """Test primary residence with married filing status."""
         df = pd.DataFrame([{
             "name": "house",
             "type": "residence",
-            "basis": 200000,
-            "value": 800000,
+            "basis": 200_000,
+            "value": 800_000,
             "rate": 2.0,
             "yod": 2025,
             "commission": 5.0
@@ -185,15 +185,15 @@ class TestGetFixedAssetsArrays:
         # Gain = 760000 - 200000 = 560000
         # Taxable gain = 560000 - 500000 = 60000 (married exclusion is $500k)
         assert capital[0] > 0
-        assert capital[0] == pytest.approx(60000, abs=1000)
+        assert capital[0] == pytest.approx(60_000, abs=1000)
 
     def test_stocks_with_gain(self):
         """Test stocks asset with capital gain."""
         df = pd.DataFrame([{
             "name": "stocks",
             "type": "stocks",
-            "basis": 100000,
-            "value": 150000,
+            "basis": 100_000,
+            "value": 150_000,
             "rate": 5.0,
             "yod": 2025,
             "commission": 1.0
@@ -204,7 +204,7 @@ class TestGetFixedAssetsArrays:
         # With 1% commission: proceeds = 150000 * 0.99 = 148500
         # Gain = 148500 - 100000 = 48500
         assert capital[0] > 0  # Should have capital gains
-        assert tax_free[0] == pytest.approx(100000, abs=1.0)  # Basis is tax-free
+        assert tax_free[0] == pytest.approx(100_000, abs=1.0)  # Basis is tax-free
         assert ordinary[0] == 0  # No ordinary income
 
     def test_real_estate_with_gain(self):
@@ -212,8 +212,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "rental",
             "type": "real estate",
-            "basis": 300000,
-            "value": 400000,
+            "basis": 300_000,
+            "value": 400_000,
             "rate": 3.0,
             "yod": 2025,
             "commission": 6.0
@@ -222,7 +222,7 @@ class TestGetFixedAssetsArrays:
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
         assert capital[0] > 0
-        assert tax_free[0] == pytest.approx(300000, abs=1.0)
+        assert tax_free[0] == pytest.approx(300_000, abs=1.0)
         assert ordinary[0] == 0
 
     def test_collectibles_with_gain(self):
@@ -230,8 +230,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "art",
             "type": "collectibles",
-            "basis": 50000,
-            "value": 80000,
+            "basis": 50_000,
+            "value": 80_000,
             "rate": 4.0,
             "yod": 2025,
             "commission": 10.0
@@ -240,7 +240,7 @@ class TestGetFixedAssetsArrays:
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
         assert capital[0] > 0
-        assert tax_free[0] == pytest.approx(50000, abs=1.0)
+        assert tax_free[0] == pytest.approx(50_000, abs=1.0)
         assert ordinary[0] == 0
 
     def test_precious_metals_with_gain(self):
@@ -248,8 +248,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "gold",
             "type": "precious metals",
-            "basis": 100000,
-            "value": 120000,
+            "basis": 100_000,
+            "value": 120_000,
             "rate": 2.0,
             "yod": 2025,
             "commission": 2.0
@@ -258,7 +258,7 @@ class TestGetFixedAssetsArrays:
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
         assert capital[0] > 0
-        assert tax_free[0] == pytest.approx(100000, abs=1.0)
+        assert tax_free[0] == pytest.approx(100_000, abs=1.0)
         assert ordinary[0] == 0
 
     def test_asset_with_loss(self):
@@ -266,8 +266,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "stocks",
             "type": "stocks",
-            "basis": 100000,
-            "value": 80000,
+            "basis": 100_000,
+            "value": 80_000,
             "rate": 0.0,
             "yod": 2025,
             "commission": 1.0
@@ -279,15 +279,15 @@ class TestGetFixedAssetsArrays:
         # Loss = 79200 - 100000 = -20800
         assert capital[0] == 0  # No capital gains (it's a loss)
         # Proceeds should be in tax-free
-        assert tax_free[0] == pytest.approx(79200, abs=1.0)
+        assert tax_free[0] == pytest.approx(79_200, abs=1.0)
 
     def test_asset_outside_horizon_before(self):
         """Test asset disposed before plan starts."""
         df = pd.DataFrame([{
             "name": "house",
             "type": "residence",
-            "basis": 200000,
-            "value": 300000,
+            "basis": 200_000,
+            "value": 300_000,
             "rate": 2.0,
             "yod": 2020,
             "commission": 5.0
@@ -305,8 +305,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "house",
             "type": "residence",
-            "basis": 200000,
-            "value": 300000,
+            "basis": 200_000,
+            "value": 300_000,
             "rate": 2.0,
             "yod": 2040,
             "commission": 5.0
@@ -325,8 +325,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "stocks",
             "type": "stocks",
-            "basis": 100000,
-            "value": 120000,
+            "basis": 100_000,
+            "value": 120_000,
             "rate": 0.0,
             "yod": -1,  # Last plan year
             "commission": 0.0
@@ -336,15 +336,15 @@ class TestGetFixedAssetsArrays:
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
         # yod = -1 maps to end_year (2027), which is index 2
         assert capital[2] > 0
-        assert tax_free[2] == pytest.approx(100000, abs=1.0)
+        assert tax_free[2] == pytest.approx(100_000, abs=1.0)
 
     def test_asset_with_future_growth(self):
         """Test asset that grows before disposition."""
         df = pd.DataFrame([{
             "name": "stocks",
             "type": "stocks",
-            "basis": 100000,
-            "value": 100000,  # Current value
+            "basis": 100_000,
+            "value": 100_000,  # Current value
             "rate": 5.0,  # 5% growth per year
             "yod": 2027,  # Disposed in 2 years
             "commission": 1.0
@@ -357,7 +357,7 @@ class TestGetFixedAssetsArrays:
         # Gain = 109147.5 - 100000 = 9147.5
         n = 2027 - 2025  # Index 2
         assert capital[n] > 0  # Should have capital gains
-        assert tax_free[n] == pytest.approx(100000, abs=1.0)
+        assert tax_free[n] == pytest.approx(100_000, abs=1.0)
 
     def test_multiple_assets_same_year(self):
         """Test multiple assets disposed in same year."""
@@ -365,8 +365,8 @@ class TestGetFixedAssetsArrays:
             {
                 "name": "stocks",
                 "type": "stocks",
-                "basis": 100000,
-                "value": 120000,
+                "basis": 100_000,
+                "value": 120_000,
                 "rate": 0.0,
                 "yod": 2026,
                 "commission": 1.0
@@ -374,8 +374,8 @@ class TestGetFixedAssetsArrays:
             {
                 "name": "annuity",
                 "type": "fixed annuity",
-                "basis": 50000,
-                "value": 60000,
+                "basis": 50_000,
+                "value": 60_000,
                 "rate": 0.0,
                 "yod": 2026,
                 "commission": 0.0
@@ -396,8 +396,8 @@ class TestGetFixedAssetsArrays:
             {
                 "name": "stocks",
                 "type": "stocks",
-                "basis": 100000,
-                "value": 120000,
+                "basis": 100_000,
+                "value": 120_000,
                 "rate": 0.0,
                 "yod": 2026,
                 "commission": 1.0
@@ -405,8 +405,8 @@ class TestGetFixedAssetsArrays:
             {
                 "name": "house",
                 "type": "residence",
-                "basis": 200000,
-                "value": 300000,
+                "basis": 200_000,
+                "value": 300_000,
                 "rate": 0.0,
                 "yod": 2028,
                 "commission": 5.0
@@ -426,8 +426,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "unknown",
             "type": "unknown_type",
-            "basis": 100000,
-            "value": 120000,
+            "basis": 100_000,
+            "value": 120_000,
             "rate": 0.0,
             "yod": 2025,
             "commission": 1.0
@@ -437,7 +437,7 @@ class TestGetFixedAssetsArrays:
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
         # Should treat as capital gains
         assert capital[0] > 0
-        assert tax_free[0] == pytest.approx(100000, abs=1.0)
+        assert tax_free[0] == pytest.approx(100_000, abs=1.0)
         assert ordinary[0] == 0
 
     def test_case_insensitive_asset_type(self):
@@ -445,8 +445,8 @@ class TestGetFixedAssetsArrays:
         df = pd.DataFrame([{
             "name": "stocks",
             "type": "STOCKS",  # Uppercase
-            "basis": 100000,
-            "value": 120000,
+            "basis": 100_000,
+            "value": 120_000,
             "rate": 0.0,
             "yod": 2025,
             "commission": 1.0
@@ -456,7 +456,7 @@ class TestGetFixedAssetsArrays:
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
         # Should work the same as lowercase
         assert capital[0] > 0
-        assert tax_free[0] == pytest.approx(100000, abs=1.0)
+        assert tax_free[0] == pytest.approx(100_000, abs=1.0)
 
     def test_asset_with_acquisition_year(self):
         """Test asset with explicit acquisition year (future acquisition)."""
@@ -464,8 +464,8 @@ class TestGetFixedAssetsArrays:
             "name": "stocks",
             "type": "stocks",
             "year": 2027,  # Acquired in 2027
-            "basis": 100000,
-            "value": 100000,  # Value at acquisition
+            "basis": 100_000,
+            "value": 100_000,  # Value at acquisition
             "rate": 5.0,
             "yod": 2029,  # Disposed in 2029
             "commission": 1.0
@@ -481,7 +481,7 @@ class TestGetFixedAssetsArrays:
         n = 2029 - 2025  # Index 4
         assert capital[n] > 0
         assert capital[n] == pytest.approx(9147.5, abs=10.0)
-        assert tax_free[n] == pytest.approx(100000, abs=1.0)
+        assert tax_free[n] == pytest.approx(100_000, abs=1.0)
 
     def test_asset_acquired_future_disposed_beyond_plan(self):
         """Test asset acquired in future but disposed beyond plan - should not be in arrays."""
@@ -489,7 +489,7 @@ class TestGetFixedAssetsArrays:
             "name": "house",
             "type": "residence",
             "year": 2027,  # Acquired in 2027
-            "basis": 200000,
+            "basis": 200_000,
             "value": 200000,
             "rate": 3.0,
             "yod": 2040,  # Disposed beyond plan (plan ends 2034)
@@ -509,8 +509,8 @@ class TestGetFixedAssetsArrays:
             "name": "stocks",
             "type": "stocks",
             # No "year" column - should default to thisyear
-            "basis": 100000,
-            "value": 100000,
+            "basis": 100_000,
+            "value": 100_000,
             "rate": 5.0,
             "yod": 2027,  # Disposed in 2 years
             "commission": 1.0
@@ -523,7 +523,7 @@ class TestGetFixedAssetsArrays:
         # Future value = 100000 * (1.05)^2 = 110250
         n = 2027 - 2025  # Index 2
         assert capital[n] > 0
-        assert tax_free[n] == pytest.approx(100000, abs=1.0)
+        assert tax_free[n] == pytest.approx(100_000, abs=1.0)
 
     def test_asset_acquired_after_plan_ends(self):
         """Test asset acquired after plan ends - should be ignored."""
@@ -531,8 +531,8 @@ class TestGetFixedAssetsArrays:
             "name": "stocks",
             "type": "stocks",
             "year": 2040,  # Acquired after plan ends (plan ends 2034)
-            "basis": 100000,
-            "value": 100000,
+            "basis": 100_000,
+            "value": 100_000,
             "rate": 5.0,
             "yod": 2045,
             "commission": 1.0
@@ -551,8 +551,8 @@ class TestGetFixedAssetsArrays:
             "name": "stocks",
             "type": "stocks",
             "year": 2027,  # Acquired in 2027
-            "basis": 100000,
-            "value": 100000,
+            "basis": 100_000,
+            "value": 100_000,
             "rate": 5.0,
             "yod": 2025,  # Disposed before acquisition (invalid)
             "commission": 1.0
@@ -585,8 +585,8 @@ class TestGetFixedAssetsBequestValue:
         df = pd.DataFrame([{
             "name": "house",
             "type": "residence",
-            "basis": 200000,
-            "value": 300000,
+            "basis": 200_000,
+            "value": 300_000,
             "rate": 3.0,
             "yod": 2040,  # Beyond plan end (plan ends 2034)
             "commission": 5.0
@@ -600,15 +600,15 @@ class TestGetFixedAssetsBequestValue:
         # Future value = 300000 * (1.03)^10 ≈ 403175
         # With 5% commission: proceeds = 403175 * 0.95 ≈ 383016
         assert bequest > 0
-        assert bequest == pytest.approx(383016, abs=1000)
+        assert bequest == pytest.approx(383_016, abs=1000)
 
     def test_zero_yod_liquidates_at_plan_end(self):
         """Test yod=0 is treated as liquidated at plan end."""
         df = pd.DataFrame([{
             "name": "stocks",
             "type": "stocks",
-            "basis": 100000,
-            "value": 110000,
+            "basis": 100_000,
+            "value": 110_000,
             "rate": 0.0,
             "yod": 0,
             "commission": 0.0
@@ -617,7 +617,7 @@ class TestGetFixedAssetsBequestValue:
         N_n = 3  # Plan ends in 2027
         bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
         # yod=0 maps to year after plan end, so it is liquidated at plan end
-        assert bequest == pytest.approx(110000, abs=1.0)
+        assert bequest == pytest.approx(110_000, abs=1.0)
 
     def test_asset_with_acquisition_year_in_bequest(self):
         """Test asset with explicit acquisition year in bequest calculation."""
@@ -625,7 +625,7 @@ class TestGetFixedAssetsBequestValue:
             "name": "house",
             "type": "residence",
             "year": 2027,  # Acquired in 2027
-            "basis": 200000,
+            "basis": 200_000,
             "value": 200000,  # Value at acquisition
             "rate": 3.0,
             "yod": 2040,  # Beyond plan end
@@ -639,15 +639,15 @@ class TestGetFixedAssetsBequestValue:
         # Future value = 200000 * (1.03)^8 ≈ 253354
         # With 5% commission: proceeds = 253354 * 0.95 ≈ 240684
         assert bequest > 0
-        assert bequest == pytest.approx(240684, abs=1000)
+        assert bequest == pytest.approx(240_684, abs=1000)
 
     def test_asset_disposed_during_plan_not_in_bequest(self):
         """Test asset disposed during plan - should NOT be in bequest."""
         df = pd.DataFrame([{
             "name": "house",
             "type": "residence",
-            "basis": 200000,
-            "value": 300000,
+            "basis": 200_000,
+            "value": 300_000,
             "rate": 3.0,
             "yod": 2030,  # Within plan (plan ends 2034)
             "commission": 5.0
@@ -664,7 +664,7 @@ class TestGetFixedAssetsBequestValue:
             "name": "house",
             "type": "residence",
             "year": 2040,  # Acquired after plan ends
-            "basis": 200000,
+            "basis": 200_000,
             "value": 200000,
             "rate": 3.0,
             "yod": 2045,
@@ -682,8 +682,8 @@ class TestGetFixedAssetsBequestValue:
             {
                 "name": "house1",
                 "type": "residence",
-                "basis": 200000,
-                "value": 300000,
+                "basis": 200_000,
+                "value": 300_000,
                 "rate": 3.0,
                 "yod": 2040,  # Beyond plan
                 "commission": 5.0
@@ -692,8 +692,8 @@ class TestGetFixedAssetsBequestValue:
                 "name": "house2",
                 "type": "residence",
                 "year": 2027,  # Acquired in 2027
-                "basis": 150000,
-                "value": 150000,
+                "basis": 150_000,
+                "value": 150_000,
                 "rate": 2.0,
                 "yod": 2045,  # Beyond plan
                 "commission": 6.0
@@ -705,7 +705,7 @@ class TestGetFixedAssetsBequestValue:
         # Both assets should be in bequest
         assert bequest > 0
         # Should be sum of both assets' proceeds
-        assert bequest > 300000  # At least the first asset's value
+        assert bequest > 300_000  # At least the first asset's value
 
     def test_no_double_counting_arrays_vs_bequest(self):
         """Test that assets are not double-counted between arrays and bequest."""
@@ -713,8 +713,8 @@ class TestGetFixedAssetsBequestValue:
             {
                 "name": "stocks",
                 "type": "stocks",
-                "basis": 100000,
-                "value": 100000,
+                "basis": 100_000,
+                "value": 100_000,
                 "rate": 5.0,
                 "yod": 2030,  # Within plan - should be in arrays only
                 "commission": 1.0
@@ -722,7 +722,7 @@ class TestGetFixedAssetsBequestValue:
             {
                 "name": "house",
                 "type": "residence",
-                "basis": 200000,
+                "basis": 200_000,
                 "value": 200000,
                 "rate": 3.0,
                 "yod": 2040,  # Beyond plan - should be in bequest only

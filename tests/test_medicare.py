@@ -81,7 +81,7 @@ def test_irmaa_values_2026_cms():
     """IRMAA fees and brackets match CMS 2026 (single: ≤109k, 109–137k, etc.)."""
     # Standard monthly Part B 2026 = $202.90
     assert tx.irmaaFees[0] == pytest.approx(12 * 202.90)
-    # Single brackets (index 0): 0, 109000, 137000, 171000, 205000, 500000
+    # Single brackets (index 0): 0, 109_000, 137_000, 171_000, 205_000, 500_000
     assert tx.irmaaBrackets[0][1] == 109_000
     assert tx.irmaaBrackets[0][2] == 137_000
     assert tx.irmaaBrackets[0][5] == 500_000

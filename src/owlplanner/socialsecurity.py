@@ -24,7 +24,7 @@ import numpy as np
 
 # SSA-mandated benefit reduction rates (own-benefit and spousal, first 36 months before FRA).
 # Expressed as a per-year rate since 'diff' (fra - ssage) is measured in years.
-_SELF_REDUCTION_RATE = 5 / 9 / 100 * 12      # 5/9 of 1% per month × 12 ≈ 0.06667/yr (own benefit)
+_SELF_REDUCTION_RATE = 5 / 9 / 100 * 12       # 5/9 of 1% per month × 12 ≈ 0.06667/yr (own benefit)
 _SPOUSAL_REDUCTION_RATE = 25 / 36 / 100 * 12  # 25/36 of 1% per month × 12 ≈ 0.08333/yr (spousal)
 
 

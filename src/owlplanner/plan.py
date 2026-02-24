@@ -812,7 +812,7 @@ class Plan:
                     seed = self.rateSeed
                 else:
                     # Generate new seed from current time
-                    seed = int(time.time() * 1000000)  # Use microseconds
+                    seed = int(time.time() * 1_000_000)  # Use microseconds
             else:
                 seed = int(seed)
             self.rateSeed = seed
@@ -2534,7 +2534,7 @@ class Plan:
             "mip_rel_gap": mygap,    # Internal default in milp is 1e-4
             "presolve": True,
             "time_limit": time_limit,
-            "node_limit": 1000000    # Limit search nodes for faster solutions
+            "node_limit": 1_000_000    # Limit search nodes for faster solutions
         }
 
         self._buildConstraints(objective, options)

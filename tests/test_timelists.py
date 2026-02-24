@@ -54,8 +54,8 @@ class TestHFPWriteRead:
         p.zeroWagesAndContributions()
         alice_df = p.timeLists["Alice"]
         # Set some wages for a few years
-        alice_df.loc[alice_df["year"] == 2025, "anticipated wages"] = 100000
-        alice_df.loc[alice_df["year"] == 2026, "anticipated wages"] = 105000
+        alice_df.loc[alice_df["year"] == 2025, "anticipated wages"] = 100_000
+        alice_df.loc[alice_df["year"] == 2026, "anticipated wages"] = 105_000
         p.setContributions()
 
         # Save to temporary file
@@ -80,8 +80,8 @@ class TestHFPWriteRead:
             assert p2.timeLists is not None
             assert "Alice" in p2.timeLists
             alice_df2 = p2.timeLists["Alice"]
-            assert alice_df2.loc[alice_df2["year"] == 2025, "anticipated wages"].iloc[0] == 100000
-            assert alice_df2.loc[alice_df2["year"] == 2026, "anticipated wages"].iloc[0] == 105000
+            assert alice_df2.loc[alice_df2["year"] == 2025, "anticipated wages"].iloc[0] == 100_000
+            assert alice_df2.loc[alice_df2["year"] == 2026, "anticipated wages"].iloc[0] == 105_000
 
         finally:
             if os.path.exists(tmp_path):
@@ -109,7 +109,7 @@ class TestHFPWriteRead:
                 "type": "mortgage",
                 "year": 2020,
                 "term": 30,
-                "amount": 200000,
+                "amount": 200_000,
                 "rate": 4.5
             },
             {
@@ -118,7 +118,7 @@ class TestHFPWriteRead:
                 "type": "loan",
                 "year": 2015,
                 "term": 10,
-                "amount": 50000,
+                "amount": 50_000,
                 "rate": 5.0
             }
         ])
@@ -156,11 +156,11 @@ class TestHFPWriteRead:
             # Verify values are correct
             mortgage = debts_df2[debts_df2["name"] == "Mortgage"].iloc[0]
             assert mortgage["active"]
-            assert mortgage["amount"] == 200000
+            assert mortgage["amount"] == 200_000
 
             old_loan = debts_df2[debts_df2["name"] == "Old Loan"].iloc[0]
             assert not old_loan["active"]
-            assert old_loan["amount"] == 50000
+            assert old_loan["amount"] == 50_000
 
         finally:
             if os.path.exists(tmp_path):
@@ -187,8 +187,8 @@ class TestHFPWriteRead:
                 "name": "House",
                 "type": "residence",
                 "year": thisyear,  # Acquired in current year
-                "basis": 150000,
-                "value": 300000,
+                "basis": 150_000,
+                "value": 300_000,
                 "rate": 3.0,
                 "yod": 2035,
                 "commission": 6.0
@@ -198,8 +198,8 @@ class TestHFPWriteRead:
                 "name": "Collectible",
                 "type": "collectibles",
                 "year": thisyear + 2,  # Acquired in future year
-                "basis": 10000,
-                "value": 15000,
+                "basis": 10_000,
+                "value": 15_000,
                 "rate": 2.0,
                 "yod": 2030,
                 "commission": 10.0
@@ -239,12 +239,12 @@ class TestHFPWriteRead:
             # Verify values are correct
             house = assets_df2[assets_df2["name"] == "House"].iloc[0]
             assert house["active"]
-            assert house["value"] == 300000
+            assert house["value"] == 300_000
             assert house["year"] == thisyear  # Verify year column is preserved
 
             collectible = assets_df2[assets_df2["name"] == "Collectible"].iloc[0]
             assert not collectible["active"]
-            assert collectible["value"] == 15000
+            assert collectible["value"] == 15_000
             assert collectible["year"] == thisyear + 2  # Verify year column is preserved
 
         finally:
@@ -260,7 +260,7 @@ class TestHFPWriteRead:
             "type": ["loan"] * 6,
             "year": [2020] * 6,
             "term": [10] * 6,
-            "amount": [10000] * 6,
+            "amount": [10_000] * 6,
             "rate": [5.0] * 6
         }
         debts_df = pd.DataFrame(debts_data)
@@ -289,7 +289,7 @@ class TestHFPWriteRead:
             "type": ["loan"] * 4,
             "year": [2020] * 4,
             "term": [10] * 4,
-            "amount": [10000] * 4,
+            "amount": [10_000] * 4,
             "rate": [5.0] * 4
         }
         debts_df = pd.DataFrame(debts_data)
@@ -316,7 +316,7 @@ class TestHFPWriteRead:
             "type": ["loan"] * 4,
             "year": [2020] * 4,
             "term": [10] * 4,
-            "amount": [10000] * 4,
+            "amount": [10_000] * 4,
             "rate": [5.0] * 4
         }
         debts_df = pd.DataFrame(debts_data)
@@ -353,8 +353,8 @@ class TestHFPWriteRead:
         george_df = p.timeLists["George"]
         gina_df = p.timeLists["Gina"]
 
-        george_df.loc[george_df["year"] == 2025, "anticipated wages"] = 120000
-        gina_df.loc[gina_df["year"] == 2025, "anticipated wages"] = 80000
+        george_df.loc[george_df["year"] == 2025, "anticipated wages"] = 120_000
+        gina_df.loc[gina_df["year"] == 2025, "anticipated wages"] = 80_000
 
         p.setContributions()
 
@@ -366,7 +366,7 @@ class TestHFPWriteRead:
                 "type": "mortgage",
                 "year": 2020,
                 "term": 30,
-                "amount": 300000,
+                "amount": 300_000,
                 "rate": 4.0
             }
         ])
@@ -395,10 +395,10 @@ class TestHFPWriteRead:
             assert "Gina" in p2.timeLists
             assert p2.timeLists["George"].loc[
                 p2.timeLists["George"]["year"] == 2025, "anticipated wages"
-            ].iloc[0] == 120000
+            ].iloc[0] == 120_000
             assert p2.timeLists["Gina"].loc[
                 p2.timeLists["Gina"]["year"] == 2025, "anticipated wages"
-            ].iloc[0] == 80000
+            ].iloc[0] == 80_000
 
             # Verify debts
             assert "Debts" in p2.houseLists
