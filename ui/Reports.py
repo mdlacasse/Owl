@@ -70,6 +70,13 @@ workbook, to reproduce it in the future.""")
             )
 
         st.divider()
+        if kz.getCaseKey("timeListsFileName") == "edited values":
+            st.warning(
+                "Household Financial Profile values were edited for this case. "
+                "The Case parameter file alone cannot reproduce the run. "
+                "To make the case reproducible, download the **Financial Profile workbook** "
+                f"below and save it as HFP_{caseName}.xlsx alongside the Case file."
+            )
         st.markdown("""#### :orange[Excel Workbooks]\nThese workbooks contain time tables
 describing the flow of money, the first one as input to the case, and the second as its output.""")
         col1, col2 = st.columns(2, gap="large")

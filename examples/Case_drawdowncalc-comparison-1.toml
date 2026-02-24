@@ -14,7 +14,7 @@ tax_deferred_savings_balances = [ 600.0,]
 tax_free_savings_balances = [ 600.0,]
 
 [household_financial_profile]
-HFP_file_name = "edited values"
+HFP_file_name = "None"
 
 [fixed_income]
 pension_monthly_amounts = [ 0,]

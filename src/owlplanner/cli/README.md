@@ -28,14 +28,14 @@ Case_john+sally                john+sally            ✓HFP_john+sally.xlsx
 Case_jon+jane                  Jon+Jane              ✗HFP_jon+jane.xslx
 Case_kim+sam-bequest           kim+sam-bequest       ✓HFP_kim+sam.xlsx
 Case_kim+sam-spending          kim+sam-spending      ✓HFP_kim+sam.xlsx
-case_drawdowncalc-comparison-1 drawdowncalc-com...   ✗edited values
+case_drawdowncalc-comparison-1 drawdowncalc-com...   ✗None
 ```
 
 The listing shows the file name, plan name and Household Financial Plan file (timeListsFile) associated with each plan.
 
 ✓ indicates that the Household Financial Plan file listed in the OWL Plan file exists.
 ✗ indicates that the Household Financial Plan file was not found.
-*edited values* indicates that the plan file may have been changed since the Household Financial Plan file was created.
+Plans with `None` have no HFP (e.g., test cases). *edited values* can appear when a case was edited in the UI; download the HFP workbook for reproducibility.
 
 
 To run an OWL plan file, use the `run` command followed by the plan file name:
