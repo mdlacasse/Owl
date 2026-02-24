@@ -230,7 +230,7 @@ def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None
     # ----------------------------------------
 
     if reverse or roll != 0:
-        self.tau_kn = _apply_rate_sequence_transform(
+        self.tau_kn = rates.apply_rate_sequence_transform(
             self.tau_kn, reverse, roll
         )
 
@@ -246,7 +246,7 @@ def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None
     self._rateModel = model   # <-- critical for regenRates()
 
     # Build inflation multipliers
-    self.gamma_n = _genGamma_n(self.tau_kn)
+    self.gamma_n = rates.gen_gamma_n(self.tau_kn)
 
     self._adjustedParameters = False
     self.caseStatus = "modified"

@@ -15,6 +15,8 @@ import numpy as np
 import owlplanner as owl
 import owlplanner.mylogging as log
 import owlplanner.plan as plan
+import owlplanner.rates as rates
+import owlplanner.spending as spending
 
 
 def test_plan_constructor_empty_name():
@@ -50,15 +52,15 @@ def test_plan_constructor_empty_individual_name():
         owl.Plan(['Joe', ''], ["1961-01-15", "1962-01-15"], [80, 82], "test")
 
 
-def test_gen_xi_n_unknown_profile():
-    """Test _genXi_n raises error for unknown profile type."""
+def test_gen_spending_profile_unknown_profile():
+    """Test gen_spending_profile raises error for unknown profile type."""
     with pytest.raises(ValueError, match="Unknown profile type"):
-        plan._genXi_n("unknown", 0.6, 10, 20, 15, 12, 0)
+        spending.gen_spending_profile("unknown", 0.6, 10, 20, dip=15, increase=12, delay=0)
 
 
-def test_gen_xi_n_smile_profile():
-    """Test _genXi_n with smile profile."""
-    xi = plan._genXi_n("smile", 0.6, 15, 30, 15, 12, 5)
+def test_gen_spending_profile_smile():
+    """Test gen_spending_profile with smile profile."""
+    xi = spending.gen_spending_profile("smile", 0.6, 15, 30, dip=15, increase=12, delay=5)
     assert len(xi) == 30
     assert np.all(xi >= 0)
 
@@ -464,9 +466,9 @@ def test_q_functions():
 
 
 def test_gen_gamma_n():
-    """Test _genGamma_n function."""
+    """Test gen_gamma_n function."""
     tau = np.array([[0.02, 0.03, 0.025], [0.01, 0.015, 0.012], [0.02, 0.02, 0.02]])  # Last row is inflation
-    gamma = plan._genGamma_n(tau)
+    gamma = rates.gen_gamma_n(tau)
     assert len(gamma) == len(tau[-1]) + 1
     assert gamma[0] == 1.0
     assert gamma[1] == 1.02  # First inflation rate

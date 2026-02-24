@@ -41,6 +41,38 @@ _OPTIMISTIC_RATES = np.array([0.086, 0.049, 0.033, 0.025])  # MorningStar 2023
 _CONSERV_RATES = np.array([0.06, 0.04, 0.033, 0.028])
 
 
+def apply_rate_sequence_transform(tau_kn, reverse, roll):
+    """
+    Apply reverse and/or roll to a rate series (N_k x N_n).
+    Returns a new array; does not modify the input.
+    """
+    if roll != 0:
+        tau_kn = np.roll(tau_kn, int(roll), axis=1)
+    if reverse:
+        tau_kn = tau_kn[:, ::-1]
+    return tau_kn
+
+
+def gen_gamma_n(tau):
+    """
+    Generate cumulative inflation multiplier at the beginning of each year.
+
+    tau: Time series of annual rates (e.g. N_k x N_n), last row is inflation.
+    If there are Nn years in the inflation series, returns Nn + 1 values,
+    as the last year compounds for an extra point at the start of the following year.
+
+    Returns
+    -------
+    gamma : ndarray
+        Cumulative inflation multiplier at year n with respect to current time.
+    """
+    N = len(tau[-1]) + 1
+    gamma = np.ones(N)
+    for n in range(1, N):
+        gamma[n] = gamma[n - 1] * (1 + tau[-1, n - 1])
+    return gamma
+
+
 def get_fixed_rate_values(method):
     """
     Return the canonical fixed rate values (percent) for built-in methods.

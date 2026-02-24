@@ -354,3 +354,49 @@ def convert_to_bool(val):
     except (ValueError, TypeError):
         # Can't convert, default to True
         return True
+
+
+def detect_oscillation(obj_history, tolerance, max_cycle_length=15):
+    """
+    Detect if a sequence is oscillating in a repeating cycle.
+
+    Checks for repeating patterns of length 2, 3, 4, etc. in the recent
+    history. Uses a tolerance for numerical matching.
+
+    Parameters
+    ----------
+    obj_history : list
+        List of recent values (most recent last)
+    tolerance : float
+        Tolerance for considering two values "equal"
+    max_cycle_length : int
+        Maximum cycle length to check for (default 15)
+
+    Returns
+    -------
+    int or None
+        Cycle length if oscillation detected, None otherwise
+    """
+    if len(obj_history) < 4:
+        return None
+
+    for cycle_len in range(2, min(max_cycle_length + 1, len(obj_history) // 2 + 1)):
+        if len(obj_history) < 2 * cycle_len:
+            continue
+
+        recent = obj_history[-cycle_len:]
+        previous = obj_history[-2*cycle_len:-cycle_len]
+
+        matches = all(abs(recent[i] - previous[i]) <= tolerance
+                      for i in range(cycle_len))
+
+        if matches:
+            if len(obj_history) >= 3 * cycle_len:
+                earlier = obj_history[-3*cycle_len:-2*cycle_len]
+                if all(abs(recent[i] - earlier[i]) <= tolerance
+                       for i in range(cycle_len)):
+                    return cycle_len
+            else:
+                return cycle_len
+
+    return None

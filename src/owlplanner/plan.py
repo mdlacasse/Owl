@@ -38,13 +38,16 @@ from . import abcapi as abc
 from . import rates
 from . import config
 from . import timelists
+from . import export
+from . import pension
 from . import socialsecurity as socsec
+from . import spending
 from . import debts as debts
 from . import fixedassets as fxasst
 from . import mylogging as log
 from . import progress
 from .plotting.factory import PlotFactory
-from .rate_models.constants import HISTORICAL_RANGE_METHODS, RATE_DISPLAY_NAMES_SHORT
+from .rate_models.constants import HISTORICAL_RANGE_METHODS
 
 
 def _mosek_available():
@@ -64,71 +67,6 @@ ABS_TOL = 100
 REL_TOL = 5e-5
 TIME_LIMIT = 900
 EPSILON = 1e-8
-
-
-def _apply_rate_sequence_transform(tau_kn, reverse, roll):
-    """
-    Apply reverse and/or roll to a rate series (N_k x N_n).
-    Returns a new array; does not modify the input.
-    """
-    if roll != 0:
-        tau_kn = np.roll(tau_kn, int(roll), axis=1)
-    if reverse:
-        tau_kn = tau_kn[:, ::-1]
-    return tau_kn
-
-
-def _genGamma_n(tau):
-    """
-    Utility function to generate a cumulative inflation multiplier
-    at the beginning of a year.
-    Return time series of cumulative inflation multiplier
-    at year n with respect to the current time reference.
-    -``tau``: Time series containing annual rates, the last of which is inflation.
-    If there are Nn years in time series, the series will generate Nn + 1,
-    as the last year will compound for an extra data point at the beginning of the
-    following year.
-    """
-    N = len(tau[-1]) + 1
-    gamma = np.ones(N)
-
-    for n in range(1, N):
-        gamma[n] = gamma[n - 1] * (1 + tau[-1, n - 1])
-
-    return gamma
-
-
-def _genXi_n(profile, fraction, n_d, N_n, a, b, c):
-    """
-    Utility function to generate spending profile.
-    Return time series of spending profile.
-    Value is reduced to fraction starting in year n_d,
-    after the passing of shortest-lived spouse.
-    Series is unadjusted for inflation.
-    """
-    xi = np.ones(N_n)
-    if profile == "flat":
-        if n_d < N_n:
-            xi[n_d:] *= fraction
-    elif profile == "smile":
-        span = N_n - 1 - c
-        x = np.linspace(0, span, N_n - c)
-        a /= 100
-        b /= 100
-        # Use a cosine +/- 15% combined with a gentle +12% linear increase.
-        xi[c:] = xi[c:] + a * np.cos((2 * np.pi / span) * x) + (b / (N_n - 1)) * x
-        xi[:c] = xi[c]
-        # Normalize to be sum-neutral with respect to a flat profile.
-        neutralSum = N_n
-        # Reduce income needs after passing of one spouse.
-        if n_d < N_n:
-            neutralSum -= (1 - fraction) * (N_n - n_d)  # Account for flat spousal reduction.
-            xi[n_d:] *= fraction
-        xi *= neutralSum / xi.sum()
-    else:
-        raise ValueError(f"Unknown profile type '{profile}'.")
-
-    return xi
 
 
 def _qC(C, N1, N2=1, N3=1, N4=1):
@@ -626,24 +564,10 @@ class Plan:
                           "at age(s)", [int(ages[i]) for i in range(self.N_i)])
 
         thisyear = date.today().year
-        # Use zero array freshly initialized.
-        self.pi_in = np.zeros((self.N_i, self.N_n))
-        for i in range(self.N_i):
-            if amounts[i] != 0:
-                # Check if claim age added to birth month falls next year.
-                yearage = ages[i] + (self.mobs[i] - 1)/12
-                iage = int(yearage)
-                fraction = 1 - (yearage % 1.)
-                realns = iage - thisyear + self.yobs[i]
-                ns = max(0, realns)
-                nd = self.horizons[i]
-                self.pi_in[i, ns:nd] = amounts[i]
-                # Reduce starting year due to birth month. If realns < 0, this has happened already.
-                if realns >= 0:
-                    self.pi_in[i, ns] *= fraction
-
-        # Convert all to annual numbers.
-        self.pi_in *= 12
+        self.pi_in = pension.compute_pension_benefits(
+            amounts, ages, self.yobs, self.mobs, self.horizons,
+            self.N_i, self.N_n, thisyear=thisyear
+        )
 
         self.pensionAmounts = np.array(amounts, dtype=np.int32)
         self.pensionAges = np.array(ages)
@@ -739,7 +663,9 @@ class Plan:
         if self.N_i == 2:
             self.mylog.vprint("Securing", u.pc(self.chi, f=0), "of spending amount for surviving spouse.")
 
-        self.xi_n = _genXi_n(profile, self.chi, self.n_d, self.N_n, dip, increase, delay)
+        self.xi_n = spending.gen_spending_profile(
+            profile, self.chi, self.n_d, self.N_n, dip=dip, increase=increase, delay=delay
+        )
 
         self.spendingProfile = profile
         self.smileDip = dip
@@ -918,7 +844,7 @@ class Plan:
                     "Warning: reverse and roll are ignored for constant (fixed) rate methods."
                 )
         else:
-            series_kn = _apply_rate_sequence_transform(
+            series_kn = rates.apply_rate_sequence_transform(
                 series_kn,
                 reverse,
                 roll,
@@ -930,7 +856,7 @@ class Plan:
         # Inflation multiplier
         # --------------------------------------------------
 
-        self.gamma_n = _genGamma_n(self.tau_kn)
+        self.gamma_n = rates.gen_gamma_n(self.tau_kn)
 
         self._adjustedParameters = False
         self.caseStatus = "modified"
@@ -966,14 +892,14 @@ class Plan:
         series_kn = series.transpose()
 
         if not getattr(self.rateModel, "constant", False):
-            series_kn = _apply_rate_sequence_transform(
+            series_kn = rates.apply_rate_sequence_transform(
                 series_kn,
                 self.rateReverse,
                 self.rateRoll,
             )
 
         self.tau_kn = series_kn
-        self.gamma_n = _genGamma_n(self.tau_kn)
+        self.gamma_n = rates.gen_gamma_n(self.tau_kn)
 
         self.mylog.vprint("Regenerated stochastic rate series.")
 
@@ -1297,7 +1223,7 @@ class Plan:
 
         # Calculate gamma_n if not already calculated
         if not hasattr(self, 'gamma_n') or self.gamma_n is None:
-            self.gamma_n = _genGamma_n(self.tau_kn)
+            self.gamma_n = rates.gen_gamma_n(self.tau_kn)
 
         # Convert: today's dollars = nominal dollars / inflation_factor
         return self.fixed_assets_bequest_value / self.gamma_n[-1]
@@ -1316,7 +1242,7 @@ class Plan:
             df = self.timeLists[self.inames[i]]
             for row in dataframe_to_rows(df, index=False, header=True):
                 sheet.append(row)
-            _formatSpreadsheet(sheet, "currency")
+            export._format_spreadsheet(sheet, "currency")
 
         wb = Workbook()
         ws = wb.active
@@ -1332,14 +1258,14 @@ class Plan:
             df = self.houseLists["Debts"]
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
-            _formatDebtsSheet(ws)
+            export._format_debts_sheet(ws)
         else:
             # Create empty Debts sheet with proper columns
             ws = wb.create_sheet("Debts")
             df = pd.DataFrame(columns=timelists._debtItems)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
-            _formatDebtsSheet(ws)
+            export._format_debts_sheet(ws)
 
         # Add Fixed Assets sheet if available
         if "Fixed Assets" in self.houseLists and not u.is_dataframe_empty(self.houseLists["Fixed Assets"]):
@@ -1347,14 +1273,14 @@ class Plan:
             df = self.houseLists["Fixed Assets"]
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
-            _formatFixedAssetsSheet(ws)
+            export._format_fixed_assets_sheet(ws)
         else:
             # Create empty Fixed Assets sheet with proper columns
             ws = wb.create_sheet("Fixed Assets")
             df = pd.DataFrame(columns=timelists._fixedAssetItems)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
-            _formatFixedAssetsSheet(ws)
+            export._format_fixed_assets_sheet(ws)
 
         return wb
 
@@ -2431,7 +2357,7 @@ class Plan:
 
             # Check for oscillation (need at least 4 iterations to detect a 2-cycle)
             if it >= 3:
-                cycle_len = self._detectOscillation(scaled_obj_history, tol)
+                cycle_len = u.detect_oscillation(scaled_obj_history, tol)
                 if cycle_len is not None:
                     # Find the best (maximum) objective in the cycle
                     cycle_values = scaled_obj_history[-cycle_len:]
@@ -2666,59 +2592,6 @@ class Plan:
         # task.writedata(self._name+'.ptf')
 
         return solution, xx, solverSuccess, solverMsg, rel_gap
-
-    def _detectOscillation(self, obj_history, tolerance, max_cycle_length=15):
-        """
-        Detect if the objective function is oscillating in a repeating cycle.
-
-        This function checks for repeating patterns of any length (2, 3, 4, etc.)
-        in the recent objective function history. It handles numerical precision
-        by using a tolerance for "close enough" matching.
-
-        Parameters
-        ----------
-        obj_history : list
-            List of recent objective function values (most recent last)
-        tolerance : float
-            Tolerance for considering two values "equal" (same as convergence tolerance)
-        max_cycle_length : int
-            Maximum cycle length to check for (default 15)
-
-        Returns
-        -------
-        int or None
-            Cycle length if oscillation detected, None otherwise
-        """
-        if len(obj_history) < 4:  # Need at least 4 values to detect a 2-cycle
-            return None
-
-        # Check for cycles of length 2, 3, 4, ... up to max_cycle_length
-        # We need at least 2*cycle_length values to confirm a cycle
-        for cycle_len in range(2, min(max_cycle_length + 1, len(obj_history) // 2 + 1)):
-            # Check if the last cycle_len values match the previous cycle_len values
-            if len(obj_history) < 2 * cycle_len:
-                continue
-
-            recent = obj_history[-cycle_len:]
-            previous = obj_history[-2*cycle_len:-cycle_len]
-
-            # Check if all pairs match within tolerance
-            matches = all(abs(recent[i] - previous[i]) <= tolerance
-                          for i in range(cycle_len))
-
-            if matches:
-                # Verify it's a true cycle by checking one more period back if available
-                if len(obj_history) >= 3 * cycle_len:
-                    earlier = obj_history[-3*cycle_len:-2*cycle_len]
-                    if all(abs(recent[i] - earlier[i]) <= tolerance
-                           for i in range(cycle_len)):
-                        return cycle_len
-                else:
-                    # If we don't have enough history, still report the cycle
-                    # but it's less certain
-                    return cycle_len
-
-        return None
 
     def _update_Psi_n(self):
         """
@@ -2985,174 +2858,20 @@ class Plan:
         return None
 
     def summaryList(self, N=None):
-        """
-        Return summary as a list.
-        """
-        mylist = []
-        dic = self.summaryDic(N)
-        for key, value in dic.items():
-            mylist.append(f"{key}: {value}")
-
-        return mylist
+        """Return summary as a list."""
+        return export.build_summary_list(self, N)
 
     def summaryDf(self, N=None):
-        """
-        Return summary as a dataframe.
-        """
-        return pd.DataFrame(self.summaryDic(N), index=[self._name])
+        """Return summary as a dataframe."""
+        return pd.DataFrame(export.build_summary_dic(self, N), index=[self._name])
 
     def summaryString(self, N=None):
-        """
-        Return summary as a string.
-        """
-        string = "Synopsis\n"
-        dic = self.summaryDic(N)
-        for key, value in dic.items():
-            string += f"{key:>77}: {value}\n"
-
-        return string
+        """Return summary as a string."""
+        return export.build_summary_string(self, N)
 
     def summaryDic(self, N=None):
-        """
-        Return dictionary containing summary of values.
-        """
-        if N is None:
-            N = self.N_n
-        if not (0 < N <= self.N_n):
-            raise ValueError(f"Value N={N} is out of reange")
-
-        now = self.year_n[0]
-        dic = {}
-        # Results
-        dic["Case name"] = self._name
-        dic["Net yearly spending basis" + 26*" ."] = u.d(self.g_n[0] / self.xi_n[0])
-        dic[f"Net spending for year {now}"] = u.d(self.g_n[0])
-        dic[f"Net spending remaining in year {now}"] = u.d(self.g_n[0] * self.yearFracLeft)
-
-        totSpending = np.sum(self.g_n[:N], axis=0)
-        totSpendingNow = np.sum(self.g_n[:N] / self.gamma_n[:N], axis=0)
-        dic[" Total net spending"] = f"{u.d(totSpendingNow)}"
-        dic["[Total net spending]"] = f"{u.d(totSpending)}"
-
-        totRoth = np.sum(self.x_in[:, :N], axis=(0, 1))
-        totRothNow = np.sum(np.sum(self.x_in[:, :N], axis=0) / self.gamma_n[:N], axis=0)
-        dic[" Total Roth conversions"] = f"{u.d(totRothNow)}"
-        dic["[Total Roth conversions]"] = f"{u.d(totRoth)}"
-
-        taxPaid = np.sum(self.T_n[:N], axis=0)
-        taxPaidNow = np.sum(self.T_n[:N] / self.gamma_n[:N], axis=0)
-        dic[" Total tax paid on ordinary income"] = f"{u.d(taxPaidNow)}"
-        dic["[Total tax paid on ordinary income]"] = f"{u.d(taxPaid)}"
-        for t in range(self.N_t):
-            taxPaid = np.sum(self.T_tn[t, :N], axis=0)
-            taxPaidNow = np.sum(self.T_tn[t, :N] / self.gamma_n[:N], axis=0)
-            if t >= len(tx.taxBracketNames):
-                tname = f"Bracket {t}"
-            else:
-                tname = tx.taxBracketNames[t]
-            dic[f"»  Subtotal in tax bracket {tname}"] = f"{u.d(taxPaidNow)}"
-            dic[f"» [Subtotal in tax bracket {tname}]"] = f"{u.d(taxPaid)}"
-
-        penaltyPaid = np.sum(self.P_n[:N], axis=0)
-        penaltyPaidNow = np.sum(self.P_n[:N] / self.gamma_n[:N], axis=0)
-        dic["»  Subtotal in early withdrawal penalty"] = f"{u.d(penaltyPaidNow)}"
-        dic["» [Subtotal in early withdrawal penalty]"] = f"{u.d(penaltyPaid)}"
-
-        taxPaid = np.sum(self.U_n[:N], axis=0)
-        taxPaidNow = np.sum(self.U_n[:N] / self.gamma_n[:N], axis=0)
-        dic[" Total tax paid on gains and dividends"] = f"{u.d(taxPaidNow)}"
-        dic["[Total tax paid on gains and dividends]"] = f"{u.d(taxPaid)}"
-
-        taxPaid = np.sum(self.J_n[:N], axis=0)
-        taxPaidNow = np.sum(self.J_n[:N] / self.gamma_n[:N], axis=0)
-        dic[" Total net investment income tax paid"] = f"{u.d(taxPaidNow)}"
-        dic["[Total net investment income tax paid]"] = f"{u.d(taxPaid)}"
-
-        taxPaid = np.sum(self.m_n[:N] + self.M_n[:N], axis=0)
-        taxPaidNow = np.sum((self.m_n[:N] + self.M_n[:N]) / self.gamma_n[:N], axis=0)
-        dic[" Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
-        dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
-
-        totDebtPayments = np.sum(self.debt_payments_n[:N], axis=0)
-        if totDebtPayments > 0:
-            totDebtPaymentsNow = np.sum(self.debt_payments_n[:N] / self.gamma_n[:N], axis=0)
-            dic[" Total debt payments"] = f"{u.d(totDebtPaymentsNow)}"
-            dic["[Total debt payments]"] = f"{u.d(totDebtPayments)}"
-
-        if self.N_i == 2 and self.n_d < self.N_n and N == self.N_n:
-            p_j = self.partialEstate_j * (1 - self.phi_j)
-            p_j[1] *= 1 - self.nu
-            nx = self.n_d - 1
-            ynx = self.year_n[nx]
-            ynxNow = 1./self.gamma_n[nx + 1]
-            totOthers = np.sum(p_j)
-            q_j = self.partialEstate_j * self.phi_j
-            totSpousal = np.sum(q_j)
-            iname_s = self.inames[self.i_s]
-            iname_d = self.inames[self.i_d]
-            dic["Year of partial bequest"] = f"{ynx}"
-            dic[f" Sum of spousal transfer to {iname_s}"] = f"{u.d(ynxNow*totSpousal)}"
-            dic[f"[Sum of spousal transfer to {iname_s}]"] = f"{u.d(totSpousal)}"
-            dic[f"»  Spousal transfer to {iname_s} - taxable"] = f"{u.d(ynxNow*q_j[0])}"
-            dic[f"» [Spousal transfer to {iname_s} - taxable]"] = f"{u.d(q_j[0])}"
-            dic[f"»  Spousal transfer to {iname_s} - tax-def"] = f"{u.d(ynxNow*q_j[1])}"
-            dic[f"» [Spousal transfer to {iname_s} - tax-def]"] = f"{u.d(q_j[1])}"
-            dic[f"»  Spousal transfer to {iname_s} - tax-free"] = f"{u.d(ynxNow*q_j[2])}"
-            dic[f"» [Spousal transfer to {iname_s} - tax-free]"] = f"{u.d(q_j[2])}"
-
-            dic[f" Sum of post-tax non-spousal bequest from {iname_d}"] = f"{u.d(ynxNow*totOthers)}"
-            dic[f"[Sum of post-tax non-spousal bequest from {iname_d}]"] = f"{u.d(totOthers)}"
-            dic[f"»  Post-tax non-spousal bequest from {iname_d} - taxable"] = f"{u.d(ynxNow*p_j[0])}"
-            dic[f"» [Post-tax non-spousal bequest from {iname_d} - taxable]"] = f"{u.d(p_j[0])}"
-            dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-def"] = f"{u.d(ynxNow*p_j[1])}"
-            dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-def]"] = f"{u.d(p_j[1])}"
-            dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-free"] = f"{u.d(ynxNow*p_j[2])}"
-            dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-free]"] = f"{u.d(p_j[2])}"
-
-        if N == self.N_n:
-            estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
-            heirsTaxLiability = estate[1] * self.nu
-            estate[1] *= 1 - self.nu
-            endyear = self.year_n[-1]
-            lyNow = 1./self.gamma_n[-1]
-            # Add fixed assets bequest value (assets with yod past plan end)
-            debts = self.remaining_debt_balance
-            savingsEstate = np.sum(estate)
-            totEstate = savingsEstate - debts + self.fixed_assets_bequest_value
-
-            dic["Year of final bequest"] = f"{endyear}"
-            dic[" Total after-tax value of final bequest"] = f"{u.d(lyNow*totEstate)}"
-            dic["» After-tax value of savings assets"] = f"{u.d(lyNow*savingsEstate)}"
-            dic["» Fixed assets liquidated at end of plan"] = f"{u.d(lyNow*self.fixed_assets_bequest_value)}"
-            dic["» With heirs assuming tax liability of"] = f"{u.d(lyNow*heirsTaxLiability)}"
-            dic["» After paying remaining debts of"] = f"{u.d(lyNow*debts)}"
-
-            dic["[Total after-tax value of final bequest]"] = f"{u.d(totEstate)}"
-            dic["[» After-tax value of savings assets]"] = f"{u.d(savingsEstate)}"
-            dic["[» Fixed assets liquidated at end of plan]"] = f"{u.d(self.fixed_assets_bequest_value)}"
-            dic["[» With heirs assuming tax liability of"] = f"{u.d(heirsTaxLiability)}"
-            dic["[» After paying remaining debts of]"] = f"{u.d(debts)}"
-
-            dic["»  Post-tax final bequest account value - taxable"] = f"{u.d(lyNow*estate[0])}"
-            dic["» [Post-tax final bequest account value - taxable]"] = f"{u.d(estate[0])}"
-            dic["»  Post-tax final bequest account value - tax-def"] = f"{u.d(lyNow*estate[1])}"
-            dic["» [Post-tax final bequest account value - tax-def]"] = f"{u.d(estate[1])}"
-            dic["»  Post-tax final bequest account value - tax-free"] = f"{u.d(lyNow*estate[2])}"
-            dic["» [Post-tax final bequest account value - tax-free]"] = f"{u.d(estate[2])}"
-
-        dic["Case starting date"] = str(self.startDate)
-        dic["Cumulative inflation factor at end of final year"] = f"{self.gamma_n[N]:.2f}"
-        for i in range(self.N_i):
-            dic[f"{self.inames[i]:>14}'s life horizon"] = f"{now} -> {now + self.horizons[i] - 1}"
-            dic[f"{self.inames[i]:>14}'s years planned"] = f"{self.horizons[i]}"
-
-        dic["Case name"] = self._name
-        dic["Number of decision variables"] = str(self.A.nvars)
-        dic["Number of constraints"] = str(self.A.ncons)
-        dic["Convergence"] = self.convergenceType
-        dic["Case executed on"] = str(self._timestamp)
-
-        return dic
+        """Return dictionary containing summary of values."""
+        return export.build_summary_dic(self, N)
 
     def showRatesCorrelations(self, tag="", shareRange=False, figure=False):
         """
@@ -3401,313 +3120,18 @@ class Plan:
     def saveWorkbook(self, overwrite=False, *, basename=None, saveToFile=True, with_config="no"):
         """
         Save instance in an Excel spreadsheet.
-        The first worksheet will contain income in the following
-        fields in columns:
-        - net spending
-        - taxable ordinary income
-        - taxable dividends
-        - tax bills (federal only, including IRMAA)
-        for all the years for the time span of the case.
-
-        The second worksheet contains the rates
-        used for the case as follows:
-        - S&P 500
-        - Bonds Baa
-        - Treasury notes (10y)
-        - Inflation.
-
-        The subsequent worksheets has the sources for each
-        spouse as follows:
-        - taxable account withdrawals
-        - RMDs
-        - distributions
-        - Roth conversions
-        - tax-free withdrawals
-        - big-ticket items.
-
-        The subsequent worksheets contains the balances
-        and input/ouput to the savings accounts for each spouse:
-        - taxable savings account
-        - tax-deferred account
-        - tax-free account.
-
-        Last worksheet contains summary.
-
-        with_config controls whether to insert the current case configuration
-        as a TOML sheet. Valid values are:
-        - "no": do not include config
-        - "first": insert config as the first sheet
-        - "last": insert config as the last sheet
+        See export.plan_to_excel for sheet structure and with_config options.
         """
-        def add_config_sheet(position):
-            if with_config == "no":
-                return
-            if with_config not in {"no", "first", "last"}:
-                raise ValueError(f"Invalid with_config option '{with_config}'.")
-            if position != with_config:
-                return
-
-            from io import StringIO
-
-            config_buffer = StringIO()
-            config.saveConfig(self, config_buffer, self.mylog)
-            config_buffer.seek(0)
-
-            ws_config = wb.create_sheet(title="Config (.toml)", index=0 if position == "first" else None)
-            for row_idx, line in enumerate(config_buffer.getvalue().splitlines(), start=1):
-                ws_config.cell(row=row_idx, column=1, value=line)
-
-        def fillsheet(sheet, dic, datatype, op=lambda x: x):
-            rawData = {}
-            rawData["year"] = self.year_n
-            if datatype == "currency":
-                for key in dic:
-                    rawData[key] = u.roundCents(op(dic[key]))
-            else:
-                for key in dic:
-                    rawData[key] = op(dic[key])
-
-            # We need to work by row.
-            df = pd.DataFrame(rawData)
-            for row in dataframe_to_rows(df, index=False, header=True):
-                ws.append(row)
-
-            _formatSpreadsheet(ws, datatype)
-
-        wb = Workbook()
-        add_config_sheet("first")
-
-        # Income.
-        ws = wb.active
-        ws.title = "Income"
-
-        incomeDic = {
-            "net spending": self.g_n,
-            "taxable ord. income": self.G_n,
-            "taxable gains/divs": self.Q_n,
-            "Tax bills + Med.": self.T_n + self.U_n + self.m_n + self.M_n + self.J_n,
-        }
-
-        fillsheet(ws, incomeDic, "currency")
-
-        # Cash flow - sum over both individuals for some.
-        cashFlowDic = {
-            "net spending": self.g_n,
-            "all wages": np.sum(self.omega_in, axis=0),
-            "all pensions": np.sum(self.piBar_in, axis=0),
-            "all soc sec": np.sum(self.zetaBar_in, axis=0),
-            "all BTI's": np.sum(self.Lambda_in, axis=0),
-            "FA ord inc": self.fixed_assets_ordinary_income_n,
-            "FA cap gains": self.fixed_assets_capital_gains_n,
-            "FA tax-free": self.fixed_assets_tax_free_n,
-            "debt pmts": -self.debt_payments_n,
-            "all wdrwls": np.sum(self.w_ijn, axis=(0, 1)),
-            "all deposits": -np.sum(self.d_in, axis=0),
-            "ord taxes": -self.T_n - self.J_n,
-            "div taxes": -self.U_n,
-            "Medicare": -self.m_n - self.M_n,
-        }
-        sname = "Cash Flow"
-        ws = wb.create_sheet(sname)
-        fillsheet(ws, cashFlowDic, "currency")
-
-        # Sources are handled separately.
-        srcDic = {
-            "wages": self.sources_in["wages"],
-            "social sec": self.sources_in["ssec"],
-            "pension": self.sources_in["pension"],
-            "txbl acc wdrwl": self.sources_in["txbl acc wdrwl"],
-            "RMDs": self.sources_in["RMD"],
-            "+distributions": self.sources_in["+dist"],
-            "Roth conv": self.sources_in["RothX"],
-            "tax-free wdrwl": self.sources_in["tax-free wdrwl"],
-            "big-ticket items": self.sources_in["BTI"],
-        }
-
-        for i in range(self.N_i):
-            sname = self.inames[i] + "'s Sources"
-            ws = wb.create_sheet(sname)
-            fillsheet(ws, srcDic, "currency", op=lambda x: x[i])   # noqa: B023
-
-        # Household sources (debts and fixed assets)
-        householdSrcDic = {
-            "FA ord inc": self.sources_in["FA ord inc"],
-            "FA cap gains": self.sources_in["FA cap gains"],
-            "FA tax-free": self.sources_in["FA tax-free"],
-            "debt pmts": self.sources_in["debt pmts"],
-        }
-        ws = wb.create_sheet("Household Sources")
-        fillsheet(ws, householdSrcDic, "currency", op=lambda x: x[0])
-
-        # Account balances except final year.
-        accDic = {
-            "taxable bal": self.b_ijn[:, 0, :-1],
-            "taxable ctrb": self.kappa_ijn[:, 0, :self.N_n],
-            "taxable dep": self.d_in,
-            "taxable wdrwl": self.w_ijn[:, 0, :],
-            "tax-deferred bal": self.b_ijn[:, 1, :-1],
-            "tax-deferred ctrb": self.kappa_ijn[:, 1, :self.N_n],
-            "tax-deferred wdrwl": self.w_ijn[:, 1, :],
-            "(included RMDs)": self.rmd_in[:, :],
-            "Roth conv": self.x_in,
-            "tax-free bal": self.b_ijn[:, 2, :-1],
-            "tax-free ctrb": self.kappa_ijn[:, 2, :self.N_n],
-            "tax-free wdrwl": self.w_ijn[:, 2, :],
-        }
-        for i in range(self.N_i):
-            sname = self.inames[i] + "'s Accounts"
-            ws = wb.create_sheet(sname)
-            fillsheet(ws, accDic, "currency", op=lambda x: x[i])   # noqa: B023
-            # Add final balances.
-            lastRow = [
-                self.year_n[-1] + 1,
-                self.b_ijn[i][0][-1],
-                0,
-                0,
-                0,
-                self.b_ijn[i][1][-1],
-                0,
-                0,
-                0,
-                0,
-                self.b_ijn[i][2][-1],
-                0,
-                0,
-            ]
-            ws.append(lastRow)
-            _formatSpreadsheet(ws, "currency")
-
-        # Federal income tax brackets.
-        TxDic = {}
-        for t in range(self.N_t):
-            TxDic[tx.taxBracketNames[t]] = self.T_tn[t, :]
-
-        TxDic["total"] = self.T_n
-        TxDic["NIIT"] = self.J_n
-        TxDic["LTCG"] = self.U_n
-        TxDic["10% penalty"] = self.P_n
-
-        sname = "Federal Income Tax"
-        ws = wb.create_sheet(sname)
-        fillsheet(ws, TxDic, "currency")
-
-        # Allocations.
-        jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}
-        kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
-
-        # Add one year for estate.
-        year_n = np.append(self.year_n, [self.year_n[-1] + 1])
-        for i in range(self.N_i):
-            sname = self.inames[i] + "'s Allocations"
-            ws = wb.create_sheet(sname)
-            rawData = {}
-            rawData["year"] = year_n
-            for jkey in jDic:
-                for kkey in kDic:
-                    rawData[jkey + "/" + kkey] = 100 * self.alpha_ijkn[i, jDic[jkey], kDic[kkey], :]
-            df = pd.DataFrame(rawData)
-            for row in dataframe_to_rows(df, index=False, header=True):
-                ws.append(row)
-
-            _formatSpreadsheet(ws, "pct_value")
-
-        # Rates on penultimate sheet.
-        ratesDic = {
-            name: 100 * self.tau_kn[k]
-            for k, name in enumerate(RATE_DISPLAY_NAMES_SHORT)
-        }
-        ws = wb.create_sheet("Rates")
-        fillsheet(ws, ratesDic, "pct_value")
-
-        # Summary on last sheet.
-        ws = wb.create_sheet("Summary")
-        rawData = {}
-        rawData["SUMMARY ==========================================================================="] = (
-            self.summaryList()
+        return export.plan_to_excel(
+            self, overwrite=overwrite, basename=basename,
+            saveToFile=saveToFile, with_config=with_config
         )
-
-        df = pd.DataFrame(rawData)
-        for row in dataframe_to_rows(df, index=False, header=True):
-            ws.append(row)
-
-        _formatSpreadsheet(ws, "summary")
-        add_config_sheet("last")
-
-        if saveToFile:
-            if basename is None:
-                basename = self._name
-
-            _saveWorkbook(wb, basename, overwrite, self.mylog)
-            return None
-
-        return wb
 
     def saveWorkbookCSV(self, basename):
         """
-        Function similar to saveWorkbook(), but saving information in csv format
-        instead of an Excel worksheet.
-        See saveWorkbook() sister function for more information.
+        Save plan data in CSV format. See saveWorkbook() for related structure.
         """
-
-        planData = {}
-        planData["year"] = self.year_n
-
-        # Income data
-        planData["net spending"] = self.g_n
-        planData["taxable ord. income"] = self.G_n
-        planData["taxable gains/divs"] = self.Q_n
-        planData["Tax bills + Med."] = self.T_n + self.U_n + self.m_n + self.M_n + self.J_n
-
-        # Cash flow data (matching Cash Flow worksheet)
-        planData["all wages"] = np.sum(self.omega_in, axis=0)
-        planData["all pensions"] = np.sum(self.piBar_in, axis=0)
-        planData["all soc sec"] = np.sum(self.zetaBar_in, axis=0)
-        planData["all BTI's"] = np.sum(self.Lambda_in, axis=0)
-        planData["FA ord inc"] = self.fixed_assets_ordinary_income_n
-        planData["FA cap gains"] = self.fixed_assets_capital_gains_n
-        planData["FA tax-free"] = self.fixed_assets_tax_free_n
-        planData["debt pmts"] = -self.debt_payments_n
-        planData["all wdrwls"] = np.sum(self.w_ijn, axis=(0, 1))
-        planData["all deposits"] = -np.sum(self.d_in, axis=0)
-        planData["ord taxes"] = -self.T_n - self.J_n
-        planData["div taxes"] = -self.U_n
-        planData["Medicare"] = -self.m_n - self.M_n
-
-        # Individual account data
-        for i in range(self.N_i):
-            planData[self.inames[i] + " txbl bal"] = self.b_ijn[i, 0, :-1]
-            planData[self.inames[i] + " txbl dep"] = self.d_in[i, :]
-            planData[self.inames[i] + " txbl wrdwl"] = self.w_ijn[i, 0, :]
-            planData[self.inames[i] + " tx-def bal"] = self.b_ijn[i, 1, :-1]
-            planData[self.inames[i] + " tx-def ctrb"] = self.kappa_ijn[i, 1, :self.N_n]
-            planData[self.inames[i] + " tx-def wdrl"] = self.w_ijn[i, 1, :]
-            planData[self.inames[i] + " (RMD)"] = self.rmd_in[i, :]
-            planData[self.inames[i] + " Roth conv"] = self.x_in[i, :]
-            planData[self.inames[i] + " tx-free bal"] = self.b_ijn[i, 2, :-1]
-            planData[self.inames[i] + " tx-free ctrb"] = self.kappa_ijn[i, 2, :self.N_n]
-            planData[self.inames[i] + " tax-free wdrwl"] = self.w_ijn[i, 2, :]
-            planData[self.inames[i] + " big-ticket items"] = self.Lambda_in[i, :]
-
-        # Rates
-        for k, name in enumerate(RATE_DISPLAY_NAMES_SHORT):
-            planData[name] = 100 * self.tau_kn[k]
-
-        df = pd.DataFrame(planData)
-
-        while True:
-            try:
-                fname = "worksheet" + "_" + basename + ".csv"
-                df.to_csv(fname)
-                break
-            except PermissionError:
-                self.mylog.print(f'Failed to save "{fname}": Permission denied.')
-                key = input("Close file and try again? [Yn] ")
-                if key == "n":
-                    break
-            except Exception as e:
-                raise Exception(f"Unanticipated exception: {e}.") from e
-
-        return None
+        return export.plan_to_csv(self, basename, self.mylog)
 
     def saveConfig(self, basename=None):
         """
@@ -3719,169 +3143,3 @@ class Plan:
         config.saveConfig(self, basename, self.mylog)
 
         return None
-
-
-def _saveWorkbook(wb, basename, overwrite, mylog):
-    """
-    Utility function to save XL workbook.
-    """
-    from os.path import isfile
-    from pathlib import Path
-
-    if Path(basename).suffixes == []:
-        fname = "workbook" + "_" + basename + ".xlsx"
-    else:
-        fname = basename
-
-    if not overwrite and isfile(fname):
-        mylog.print(f'File "{fname}" already exists.')
-        key = input("Overwrite? [Ny] ")
-        if key != "y":
-            mylog.print("Skipping save and returning.")
-            return None
-
-    for _ in range(3):
-        try:
-            mylog.vprint(f'Saving plan as "{fname}".')
-            wb.save(fname)
-            break
-        except PermissionError:
-            mylog.print(f'Failed to save "{fname}": Permission denied.')
-            key = input("Close file and try again? [Yn] ")
-            if key == "n":
-                break
-        except Exception as e:
-            raise Exception(f"Unanticipated exception {e}.") from e
-
-    return None
-
-
-def _formatSpreadsheet(ws, ftype):
-    """
-    Utility function to beautify spreadsheet.
-    """
-    if ftype == "currency":
-        fstring = "$#,##0_);[Red]($#,##0)"
-    elif ftype == "percent2":
-        fstring = "#.00%"
-    elif ftype == "percent1":
-        fstring = "#.0%"
-    elif ftype == "percent0":
-        fstring = "#0%"
-    elif ftype == "pct_value":
-        fstring = "0.00"
-    elif ftype == "summary":
-        for col in ws.columns:
-            column = col[0].column_letter
-            width = max(len(str(col[0].value)) + 20, 40)
-            ws.column_dimensions[column].width = width
-            return None
-    else:
-        raise RuntimeError(f"Unknown format: {ftype}.")
-
-    for cell in ws[1] + ws["A"]:
-        cell.style = "Pandas"
-    for col in ws.columns:
-        column = col[0].column_letter
-        # col[0].style = 'Title'
-        width = max(len(str(col[0].value)) + 4, 10)
-        ws.column_dimensions[column].width = width
-        if column == "A":
-            # Format year column as integer without commas
-            for cell in col:
-                cell.number_format = "0"
-        else:
-            for cell in col:
-                cell.number_format = fstring
-
-    return None
-
-
-def _formatDebtsSheet(ws):
-    """
-    Format Debts sheet with appropriate column formatting.
-    """
-    from openpyxl.utils import get_column_letter
-
-    # Format header row
-    for cell in ws[1]:
-        cell.style = "Pandas"
-
-    # Get column mapping from header
-    header_row = ws[1]
-    col_map = {}
-    for idx, cell in enumerate(header_row, start=1):
-        col_letter = get_column_letter(idx)
-        col_name = str(cell.value).lower() if cell.value else ""
-        col_map[col_letter] = col_name
-        # Set column width
-        width = max(len(str(cell.value)) + 4, 10)
-        ws.column_dimensions[col_letter].width = width
-
-    # Apply formatting based on column name
-    for col_letter, col_name in col_map.items():
-        if col_name in ["year", "term"]:
-            # Integer format without commas
-            fstring = "0"
-        elif col_name in ["rate"]:
-            # Number format (2 decimal places for percentages stored as numbers)
-            fstring = "#,##0.00"
-        elif col_name in ["amount"]:
-            # Currency format
-            fstring = "$#,##0_);[Red]($#,##0)"
-        else:
-            # Text columns (name, type) - no number formatting
-            continue
-
-        # Apply formatting to all data rows (skip header row 1)
-        for row in ws.iter_rows(min_row=2):
-            for cell in row:
-                if cell.column_letter == col_letter:
-                    cell.number_format = fstring
-
-    return None
-
-
-def _formatFixedAssetsSheet(ws):
-    """
-    Format Fixed Assets sheet with appropriate column formatting.
-    """
-    from openpyxl.utils import get_column_letter
-
-    # Format header row
-    for cell in ws[1]:
-        cell.style = "Pandas"
-
-    # Get column mapping from header
-    header_row = ws[1]
-    col_map = {}
-    for idx, cell in enumerate(header_row, start=1):
-        col_letter = get_column_letter(idx)
-        col_name = str(cell.value).lower() if cell.value else ""
-        col_map[col_letter] = col_name
-        # Set column width
-        width = max(len(str(cell.value)) + 4, 10)
-        ws.column_dimensions[col_letter].width = width
-
-    # Apply formatting based on column name
-    for col_letter, col_name in col_map.items():
-        if col_name in ["yod"]:
-            # Integer format without commas
-            fstring = "0"
-        elif col_name in ["rate", "commission"]:
-            # Number format (1 decimal place for percentages stored as numbers)
-            fstring = "#,##0.00"
-        elif col_name in ["basis", "value"]:
-            # Currency format
-            fstring = "$#,##0_);[Red]($#,##0)"
-        else:
-            # Text columns (name, type) - no number formatting
-            continue
-
-        # Apply formatting to all data rows (skip header row 1)
-        for row in ws.iter_rows(min_row=2):
-            for cell in row:
-                if cell.column_letter == col_letter:
-                    cell.number_format = fstring
-
-    return None
