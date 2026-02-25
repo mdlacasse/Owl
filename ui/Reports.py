@@ -56,7 +56,11 @@ case and compares it with other similar cases that ran successfully.""")
             helpmsg = "Rerun all other cases defined in the case selector."
             col2.button("Rerun all cases", on_click=owb.runAllCases, help=helpmsg)
 
-        lines = kz.getCaseKey("casetoml")
+        hfp_buffer = owb.saveContributions()
+        gcs = owb.getCaseString()
+        lines = gcs.getvalue() if gcs else kz.getCaseKey("casetoml")
+        if gcs is not None:
+            kz.storeCaseKey("casetoml", lines)
         if lines != "":
             st.divider()
             st.markdown("""#### :orange[Case Parameter File]\nThis file contains the parameters
@@ -81,14 +85,20 @@ workbook, to reproduce it in the future.""")
 describing the flow of money, the first one as input to the case, and the second as its output.""")
         col1, col2 = st.columns(2, gap="large")
         with col1:
-            download2 = st.download_button(
+            hfp_clicked = st.download_button(
                 label="Download Financial Profile workbook",
                 help="Download Household Financial Profile (HFP) as an Excel workbook.",
-                data=owb.saveContributions(),
+                data=hfp_buffer,
                 file_name=f"HFP_{caseName}.xlsx",
                 disabled=kz.isCaseUnsolved(),
                 mime="application/vnd.ms-excel",
             )
+            if hfp_clicked:
+                owb.markHFPAsSaved()
+                gcs = owb.getCaseString()
+                if gcs is not None:
+                    kz.storeCaseKey("casetoml", gcs.getvalue())
+                st.rerun()
 
         with col2:
             download2 = st.download_button(

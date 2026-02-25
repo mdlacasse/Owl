@@ -88,7 +88,7 @@ class TestHFPWriteRead:
                 os.unlink(tmp_path)
 
     def test_backward_compat_other_inc_missing(self):
-        """Test that HFP without 'other inc.' column loads with zeros (backward compat)."""
+        """Test that HFP without 'other inc' column loads with zeros (backward compat)."""
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
@@ -100,8 +100,8 @@ class TestHFPWriteRead:
             verbose=False
         )
         p.zeroWagesAndContributions()
-        # Remove "other inc." to simulate old HFP format
-        alice_df = p.timeLists["Alice"].drop(columns=["other inc."])
+        # Remove "other inc" to simulate old HFP format
+        alice_df = p.timeLists["Alice"].drop(columns=["other inc"])
         p.timeLists["Alice"] = alice_df
 
         # Write to temp file (manually, to preserve missing column)
@@ -119,14 +119,14 @@ class TestHFPWriteRead:
             )
             p2.readHFP(tmp_path)
 
-            assert "other inc." in p2.timeLists["Alice"].columns
-            assert (p2.timeLists["Alice"]["other inc."] == 0).all()
+            assert "other inc" in p2.timeLists["Alice"].columns
+            assert (p2.timeLists["Alice"]["other inc"] == 0).all()
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
     def test_other_inc_preserved(self):
-        """Test that 'other inc.' values are preserved on write and read."""
+        """Test that 'other inc' values are preserved on write and read."""
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
@@ -139,8 +139,8 @@ class TestHFPWriteRead:
         )
         p.zeroWagesAndContributions()
         alice_df = p.timeLists["Alice"]
-        alice_df.loc[alice_df["year"] == 2025, "other inc."] = 5_000
-        alice_df.loc[alice_df["year"] == 2026, "other inc."] = 6_000
+        alice_df.loc[alice_df["year"] == 2025, "other inc"] = 5_000
+        alice_df.loc[alice_df["year"] == 2026, "other inc"] = 6_000
         p.setContributions()
 
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
@@ -159,8 +159,8 @@ class TestHFPWriteRead:
             p2.readHFP(tmp_path)
 
             alice_df2 = p2.timeLists["Alice"]
-            assert alice_df2.loc[alice_df2["year"] == 2025, "other inc."].iloc[0] == 5_000
-            assert alice_df2.loc[alice_df2["year"] == 2026, "other inc."].iloc[0] == 6_000
+            assert alice_df2.loc[alice_df2["year"] == 2025, "other inc"].iloc[0] == 5_000
+            assert alice_df2.loc[alice_df2["year"] == 2026, "other inc"].iloc[0] == 6_000
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)

@@ -1099,7 +1099,7 @@ class Plan:
 
                 'year',
                 'anticipated wages',
-                'other inc.' (optional; defaults to zero if absent),
+                'other inc' (optional; defaults to zero if absent),
                 'taxable ctrb',
                 '401k ctrb',
                 'Roth 401k ctrb',
@@ -1144,7 +1144,7 @@ class Plan:
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
             self.omega_in[i, :h] = self.timeLists[iname]["anticipated wages"].iloc[5:5+h]
-            self.other_inc_in[i, :h] = self.timeLists[iname]["other inc."].iloc[5:5+h]
+            self.other_inc_in[i, :h] = self.timeLists[iname]["other inc"].iloc[5:5+h]
             self.Lambda_in[i, :h] = self.timeLists[iname]["big-ticket items"].iloc[5:5+h]
 
             # Values for last 5 years of Roth conversion and contributions stored at the end
@@ -1304,7 +1304,7 @@ class Plan:
         cols = [
             "year",
             "anticipated wages",
-            "other inc.",
+            "other inc",
             "taxable ctrb",
             "401k ctrb",
             "Roth 401k ctrb",

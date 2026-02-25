@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Add the optional 'other inc.' column to HFP Excel files.
+Add the optional 'other inc' column to HFP Excel files.
 Inserts the column after 'anticipated wages' and before 'taxable ctrb'.
 Fills with zeros. Run from project root: python scripts/add_other_inc_column.py
 """
@@ -20,7 +20,7 @@ HFP_FILES = [
     "HFP_alex+jamie.xlsx",
 ]
 
-# Time horizon columns in canonical order (other inc. after anticipated wages)
+# Time horizon columns in canonical order (other inc after anticipated wages)
 REQUIRED_COLS = [
     "year",
     "anticipated wages",
@@ -32,15 +32,20 @@ REQUIRED_COLS = [
     "Roth conv",
     "big-ticket items",
 ]
-NEW_COL = "other inc."
+NEW_COL = "other inc"
 # Position: after anticipated wages (index 1), before taxable ctrb (index 2)
 INSERT_AFTER = "anticipated wages"
 
 
+LEGACY_COL = "other inc."
+
+
 def add_other_inc_to_sheet(df):
-    """Add 'other inc.' column if missing. Return modified DataFrame."""
+    """Add 'other inc' column if missing, or rename legacy 'other inc.' to 'other inc'."""
     if NEW_COL in df.columns:
         return df
+    if LEGACY_COL in df.columns:
+        return df.rename(columns={LEGACY_COL: NEW_COL})
     # Find position
     cols = list(df.columns)
     try:
@@ -58,7 +63,7 @@ def add_other_inc_to_sheet(df):
 
 
 def process_hfp_file(path):
-    """Process one HFP file: add other inc. to each individual sheet."""
+    """Process one HFP file: add other inc to each individual sheet."""
     df_dict = pd.read_excel(path, sheet_name=None)
     modified = False
     for sheet_name, df in df_dict.items():

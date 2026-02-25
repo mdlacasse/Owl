@@ -27,12 +27,12 @@ from . import utils as u
 
 
 # Expected headers in each excel sheet, one per individual.
-# Optional columns (e.g. "other inc.") default to zero when absent for backward compatibility.
-_optionalTimeHorizonItems = ["other inc."]
+# Optional columns (e.g. "other inc") default to zero when absent for backward compatibility.
+_optionalTimeHorizonItems = ["other inc"]
 _timeHorizonItems = [
     "year",
     "anticipated wages",
-    "other inc.",
+    "other inc",
     "taxable ctrb",
     "401k ctrb",
     "Roth 401k ctrb",
@@ -106,7 +106,7 @@ def read(finput, inames, horizons, mylog, filename=None):
     Use one sheet for each individual with required columns:
     year, anticipated wages, taxable ctrb, 401k ctrb, Roth 401k ctrb,
     IRA ctrb, Roth IRA ctrb, Roth conv, and big-ticket items.
-    Optional column "other inc." (other ordinary income) defaults to zero if absent.
+    Optional column "other inc" (other ordinary income) defaults to zero if absent.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     Return a dictionary of dataframes by individual's names.
 
@@ -192,6 +192,10 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
             raise ValueError(f"No sheet found for {iname}.")
 
         df = dfDict[iname]
+
+        # Backward compatibility: old HFP files used "other inc."; normalize to "other inc"
+        if "other inc." in df.columns and "other inc" not in df.columns:
+            df = df.rename(columns={"other inc.": "other inc"})
 
         df = _checkColumns(
             df, iname, _timeHorizonItems, required_cols=_requiredTimeHorizonItems
