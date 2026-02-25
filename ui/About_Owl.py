@@ -48,6 +48,7 @@ mixed-integer linear programming.
 - Source code is available from a repository on [GitHub](https://github.com/mdlacasse/Owl).
 - Mathematical formulation of the linear optimization problem can be
 found in this [document](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf?raw=true).
+- [Release notes](https://github.com/mdlacasse/Owl/blob/main/RELEASE_NOTES.md) document changes in each version.
 
 Copyright &copy; 2025-2026 - The Owlplanner [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 

@@ -2,6 +2,26 @@
 
 ---
 
+## Version 2026.02.24
+
+### HFP (Household Financial Profile)
+- **Optional "other inc." column**: Wages and contributions tables support an optional *other inc.* (other ordinary income) column for income such as part-time work, consulting, or royalties. Older HFP files without this column default to zero for backward compatibility. `scripts/add_other_inc_column.py` adds the column to existing Excel files.
+- **Reports page warning**: When HFP values were edited in the UI, the Reports page now shows a warning advising users to download the Financial Profile workbook for reproducibility. The Case parameter file alone cannot reproduce the run when HFP data was edited.
+- **Drawdown test case**: `Case_drawdowncalc-comparison-1` now has `HFP_file_name = "None"` since it has no associated HFP (test case only). Most realistic cases should have an HFP.
+- **CLI README**: Updated example output and description for plans with no HFP and for edited values.
+
+### Configuration and TOML
+- **Issue #96**: Case-insensitive `case_` prefix check when saving TOML. Case files named with different casing (e.g., `case_foo`) are now handled correctly.
+
+### Code organization
+- **Extracted modules**: `pension.py` (pension benefit timing) and `spending.py` (spending profile generation) extracted for clarity and testability.
+- **Refactoring**: SS tax logic moved to `tax2026.py`, `setSocialSecurity` logic to `socialsecurity.py`; gamma/rate transform moved to `rates.py`, oscillation detection to `utils.py`. Documentation and PARAMETERS.md updated for SS trim and dynamic Psi_n.
+
+### Tests
+- Reproducibility test stability improvements: widened tolerances for HiGHS version differences across Python releases; pinned `tax_fraction=0.85` where needed; fixed test_clone1 tolerance (REL_TOL vs ABS_TOL).
+
+---
+
 ## Version 2026.02.23
 
 ### Social Security accuracy improvements
