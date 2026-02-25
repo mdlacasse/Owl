@@ -26,19 +26,19 @@ import os
 import owlplanner as owl
 
 
-def get_jack_jill_plan():
+def get_joe_plan():
     """
-    Create and solve a jack+jill plan for testing summary methods.
+    Create and solve a joe's plan for testing summary methods.
 
     Returns:
         Solved Plan object
     """
     exdir = "./examples/"
-    case = "Case_jack+jill"
+    case = "Case_joe"
     file = os.path.join(exdir, case)
     p = owl.readConfig(file)
 
-    hfp = os.path.join(exdir, "HFP_jack+jill.xlsx")
+    hfp = os.path.join(exdir, "HFP_joe.xlsx")
     p.readHFP(hfp)
     p.resolve()
 
@@ -47,7 +47,7 @@ def get_jack_jill_plan():
 
 def test_summary_dic_default_n():
     """Test summaryDic with N=None (default, all years)."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved", "Plan must be solved to generate summary"
 
     # Get summary with default N (all years)
@@ -62,7 +62,7 @@ def test_summary_dic_default_n():
 
 def test_summary_dic_fraction_of_years():
     """Test summaryDic with N set to a fraction of total years."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     total_years = p.N_n
@@ -101,7 +101,7 @@ def test_summary_dic_fraction_of_years():
 
 def test_summary_dic_first_year_only():
     """Test summaryDic with N=1 (first year only)."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     dic = p.summaryDic(N=1)
@@ -114,7 +114,7 @@ def test_summary_dic_first_year_only():
 
 def test_summary_dic_all_years():
     """Test summaryDic with N equal to total years."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     total_years = p.N_n
@@ -127,7 +127,7 @@ def test_summary_dic_all_years():
 
 def test_summary_dic_invalid_n_zero():
     """Test summaryDic raises ValueError for N=0."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     with pytest.raises(ValueError, match="out of reange"):
@@ -136,7 +136,7 @@ def test_summary_dic_invalid_n_zero():
 
 def test_summary_dic_invalid_n_negative():
     """Test summaryDic raises ValueError for negative N."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     with pytest.raises(ValueError, match="out of reange"):
@@ -145,7 +145,7 @@ def test_summary_dic_invalid_n_negative():
 
 def test_summary_dic_invalid_n_too_large():
     """Test summaryDic raises ValueError for N > total years."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     total_years = p.N_n
@@ -155,7 +155,7 @@ def test_summary_dic_invalid_n_too_large():
 
 def test_summary_list_with_n():
     """Test summaryList with N parameter."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     # Get list for first 3 years
@@ -169,7 +169,7 @@ def test_summary_list_with_n():
 
 def test_summary_df_with_n():
     """Test summaryDf with N parameter."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     # Get dataframe for first 5 years
@@ -183,7 +183,7 @@ def test_summary_df_with_n():
 
 def test_summary_string_with_n():
     """Test summaryString with N parameter."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     # Get string for first 7 years
@@ -196,7 +196,7 @@ def test_summary_string_with_n():
 
 def test_summary_method_with_n():
     """Test summary method (prints to log) with N parameter."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     # summary() returns None but prints to log
@@ -206,7 +206,7 @@ def test_summary_method_with_n():
 
 def test_summary_consistency_across_methods():
     """Test that all summary methods produce consistent results for same N."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     N = 8
@@ -230,7 +230,7 @@ def test_summary_consistency_across_methods():
 
 def test_summary_progressive_years():
     """Test that summary values increase as N increases."""
-    p = get_jack_jill_plan()
+    p = get_joe_plan()
     assert p.caseStatus == "solved"
 
     def extract_value(s):
@@ -256,7 +256,7 @@ def test_summary_unsolved_plan():
     """Test that summary methods require solved plan."""
     # Create a plan but don't solve it
     exdir = "./examples/"
-    case = "Case_jack+jill"
+    case = "Case_joe"
     file = os.path.join(exdir, case)
     p = owl.readConfig(file)
     # Don't solve the plan

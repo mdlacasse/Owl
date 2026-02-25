@@ -49,9 +49,9 @@ def getHFP(exdir, case, check_exists=True):
 
 
 def test_historical():
-    """Test historical range analysis for jack+jill case."""
+    """Test historical range analysis for joe's case."""
     exdir = "./examples/"
-    case = "Case_jack+jill"
+    case = "Case_joe"
     file = os.path.join(exdir, case)
     p = owl.readConfig(file)
     hfp = getHFP(exdir, case)
@@ -68,7 +68,7 @@ def test_historical():
 def test_historical_range_reverse_roll():
     """Test that runHistoricalRange accepts reverse and roll and runs to completion."""
     exdir = "./examples/"
-    case = "Case_jack+jill"
+    case = "Case_joe"
     file = os.path.join(exdir, case)
     p = owl.readConfig(file)
     hfp = getHFP(exdir, case)
