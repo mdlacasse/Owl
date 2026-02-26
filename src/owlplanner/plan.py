@@ -1359,25 +1359,25 @@ class Plan:
 
         # Stack all variables in a single block vector with all binary variables at the end.
         vm = VarMap()
-        vm.add("b",   self.N_i, self.N_j, self.N_n + 1)
-        vm.add("d",   self.N_i, self.N_n)
-        vm.add("e",   self.N_n)
-        vm.add("f",   self.N_t, self.N_n)
-        vm.add("g",   self.N_n)
-        vm.add_if(medi,   "h",   Nmed, self.N_q)    # IRMAA bracket portions (Medicare optimize)
-        vm.add("m",   self.N_n)
-        vm.add("s",   self.N_n)
-        vm.add("w",   self.N_i, self.N_j, self.N_n)
-        vm.add("x",   self.N_i, self.N_n)
+        vm.add("b", self.N_i, self.N_j, self.N_n + 1)
+        vm.add("d", self.N_i, self.N_n)
+        vm.add("e", self.N_n)
+        vm.add("f", self.N_t, self.N_n)
+        vm.add("g", self.N_n)
+        vm.add_if(medi, "h", Nmed, self.N_q)    # IRMAA bracket portions (Medicare optimize)
+        vm.add("m", self.N_n)
+        vm.add("s", self.N_n)
+        vm.add("w", self.N_i, self.N_j, self.N_n)
+        vm.add("x", self.N_i, self.N_n)
         # SS taxability LP variables (continuous) must precede the binary block.
         vm.add_if(ss_lp, "plo", self.N_n)           # p^lo_n = max(0, Π_n − 𝒫^lo)
         vm.add_if(ss_lp, "phi", self.N_n)           # p^hi_n = max(0, Π_n − 𝒫^hi)
-        vm.add_if(ss_lp, "q",   self.N_n)           # q_n    = min(𝒫^hi−𝒫^lo, p^lo_n)
-        vm.add_if(ss_lp, "tss", self.N_n)           # t^σ_n  = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n)
+        vm.add_if(ss_lp, "q", self.N_n)             # q_n    = min(𝒫^hi−𝒫^lo, p^lo_n)
+        vm.add_if(ss_lp, "tss", self.N_n)            # t^σ_n  = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n)
         vm.mark_binary_start()
-        vm.add("zx",  self.N_n, self.N_zx)          # Roth exclusion binaries
-        vm.add_if(medi,   "zm", Nmed, self.N_q)     # IRMAA bracket selection binaries
-        vm.add_if(ss_lp,  "zs", self.N_n, 2)        # z^σ family (2 per year) for SS min() ops
+        vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
+        vm.add_if(medi, "zm", Nmed, self.N_q)       # IRMAA bracket selection binaries
+        vm.add_if(ss_lp,"zs", self.N_n, 2)          # z^σ family (2 per year) for SS min() ops
         self.vm = vm
 
         self.nvars = vm.nvars
@@ -2376,6 +2376,8 @@ class Plan:
         """
         includeMedicare = options.get("withMedicare", "loop") == "loop"
         withSCLoop = options.get("withSCLoop", True)
+        ss_val = options.get("withSSTaxability", "loop")
+        fixed_psi = float(ss_val) if isinstance(ss_val, (int, float)) else None
 
         # Convergence uses a relative tolerance tied to MILP gap,
         # with an absolute floor to avoid zero/near-zero objectives.
@@ -2402,7 +2404,7 @@ class Plan:
         scaled_obj_history = []  # Track scaled objective values for oscillation detection
         sol_history = []  # Track solutions aligned with scaled_obj_history
         obj_history = []  # Track raw objective values aligned with scaled_obj_history
-        self._computeNLstuff(None, includeMedicare)
+        self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
         while True:
             objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
 
@@ -2414,14 +2416,14 @@ class Plan:
                 # When Medicare is in loop mode, M_n was zero in the constraint for this
                 # single solve. Update M_n (and J_n) from solution for reporting.
                 if includeMedicare:
-                    self._computeNLstuff(xx, includeMedicare)
+                    self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)
                     self.mylog.print(
                         "Warning: Self-consistent loop is off; Medicare premiums are "
                         "computed for display but were not in the budget constraint."
                     )
                 break
 
-            self._computeNLstuff(xx, includeMedicare)
+            self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)
 
             delta = xx - old_x
             # Only consider account balances in dX.
@@ -2722,15 +2724,14 @@ class Plan:
         if np.max(np.abs(blended - self.Psi_n)) > 1e-3:
             self.Psi_n = blended
 
-    def _computeNLstuff(self, x, includeMedicare):
+    def _computeNLstuff(self, x, includeMedicare, fixedPsi=None):
         """
         Compute MAGI, Medicare costs, long-term capital gain tax rate, and
         net investment income tax (NIIT).
         """
         if x is None:
             # Reset all nonlinear quantities to their starting values for a fresh solve.
-            psi_init = getattr(self, 'ssecTaxFraction', None)
-            self.Psi_n = np.ones(self.N_n) * (psi_init if psi_init is not None else 0.85)
+            self.Psi_n = np.ones(self.N_n) * (fixedPsi if fixedPsi is not None else 0.85)
             self.MAGI_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
@@ -2740,7 +2741,8 @@ class Plan:
         self._aggregateResults(x, short=True)
         # Psi_n is derived directly from the tss_n LP variable in _aggregateResults
         # when withSSTaxability=="optimize"; skip the SC-loop update in that case.
-        if "tss" not in self.vm:
+        # Also skip when fixedPsi is set (numeric withSSTaxability).
+        if "tss" not in self.vm and fixedPsi is None:
             self._update_Psi_n()
 
         self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
@@ -2779,22 +2781,14 @@ class Plan:
             self.b_ijkn[:, :, k, :] = self.b_ijn[:, :, :] * self.alpha_ijkn[:, :, k, :]
 
         self.d_in = vm["d"].extract(x)
-
         self.e_n = vm["e"].extract(x)
-
         self.f_tn = vm["f"].extract(x)
-
         self.g_n = vm["g"].extract(x)
-
         if "h" in vm:
             self.h_qn = vm["h"].extract(x)
-
         self.m_n = vm["m"].extract(x)
-
         self.s_n = vm["s"].extract(x)
-
         self.w_ijn = vm["w"].extract(x)
-
         self.x_in = vm["x"].extract(x)
 
         # Extract SS taxability LP variables and update Psi_n from the LP solution.
@@ -2804,10 +2798,6 @@ class Plan:
             mask = ss_n > 0
             self.Psi_n = np.zeros(Nn)
             self.Psi_n[mask] = np.minimum(self.tss_n[mask] / ss_n[mask], 0.85)
-
-        # self.z_inz = np.array(x[Czx:])
-        # self.z_inz = self.z_inz.reshape((Ni, Nn, Nzx))
-        # print(self.z_inz)
 
         self.G_n = np.sum(self.f_tn, axis=0)
 

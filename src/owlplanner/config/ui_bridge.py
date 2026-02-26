@@ -183,6 +183,14 @@ def config_to_ui(diconf: dict) -> dict:
     dic["computeMedicare"] = with_med != "None"
     dic["optimizeMedicare"] = with_med == "optimize"
 
+    ss_taxability = so.get("withSSTaxability", "loop")
+    if isinstance(ss_taxability, (int, float)):
+        dic["ssTaxabilityMode"] = "value"
+        dic["ssTaxabilityValue"] = float(ss_taxability)
+    else:
+        dic["ssTaxabilityMode"] = ss_taxability   # "loop" or "optimize"
+        dic["ssTaxabilityValue"] = 0.85
+
     if "previousMAGIs" in so:
         dic["MAGI0"] = so["previousMAGIs"][0]
         dic["MAGI1"] = so["previousMAGIs"][1]
@@ -381,6 +389,12 @@ def ui_to_config(uidic: dict) -> dict:
     diconf["solver_options"]["withMedicare"] = (
         "None" if not compute_med else ("optimize" if optimize_med else "loop")
     )
+
+    ss_mode = uidic.get("ssTaxabilityMode", "loop")
+    if ss_mode == "value":
+        diconf["solver_options"]["withSSTaxability"] = _get_ui(uidic, "ssTaxabilityValue", 0.85, float)
+    else:
+        diconf["solver_options"]["withSSTaxability"] = ss_mode
 
     magi0 = uidic.get("MAGI0")
     magi1 = uidic.get("MAGI1")

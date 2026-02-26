@@ -455,6 +455,13 @@ def getSolveParameters():
     mediopt = getCaseKey("optimizeMedicare")
     options["withMedicare"] = "None" if not medion else ("optimize" if mediopt else "loop")
 
+    # SS taxability — "loop", "optimize", or numeric fixed fraction.
+    ss_mode = getCaseKey("ssTaxabilityMode")
+    if ss_mode == "value":
+        options["withSSTaxability"] = getCaseKey("ssTaxabilityValue")
+    else:
+        options["withSSTaxability"] = ss_mode if ss_mode is not None else "loop"
+
     if getCaseKey("readRothX"):
         options["maxRothConversion"] = "file"
 

@@ -68,7 +68,6 @@ Pension and Social Security information.
 | `social_security_ages` | list of `N_i` floats | Age at which Social Security benefits start for each individual |
 | `social_security_trim_pct` | integer | *(Optional)* Percentage reduction applied to Social Security benefits from `social_security_trim_year` onward. Range 0–100. Use to model trust-fund shortfall scenarios (e.g. 23). Omit or set to 0 for no reduction |
 | `social_security_trim_year` | integer | *(Required when `social_security_trim_pct > 0`)* Calendar year when the SS benefit reduction begins. Default UI value is 2033 (SSA Trustees Report projection for OASI exhaustion). Must be supplied alongside `social_security_trim_pct` |
-| `social_security_tax_fraction` | float | *(Optional)* Fixed fraction of Social Security benefits subject to federal income tax, in [0, 1]. Overrides the self-consistent-loop computation. Use `0.0` when provisional income (PI) is below $32k (MFJ) / $25k (single), `0.5` for the mid-range bracket, or `0.85` for high-income households. Omit to let the SC loop compute this dynamically (recommended) |
 
 -------
 
@@ -212,6 +211,7 @@ Options controlling the optimization solver and constraints.
 | `verbose` | boolean | Enable solver verbosity/output where supported. | `false` |
 | `withMedicare` | string | Medicare IRMAA handling. Valid values: `"None"`, `"loop"`, `"optimize"` (expert). | `"loop"` |
 | `withSCLoop` | boolean | Whether to use the self-consistent loop for solving. | `true` |
+| `withSSTaxability` | string or float | Social Security taxable-fraction (Ψ) handling. Use `"loop"` to compute Ψ dynamically each SC-loop iteration (recommended). Use `"optimize"` to solve Ψ exactly as a MIP decision variable (expert). Use a float in [0, 0.85] to pin Ψ to a fixed value — `0.0` (PI well below lower threshold), `0.5` (mid-range PI), or `0.85` (PI above upper threshold). | `"loop"` |
 
 **Note:** The solver options dictionary is passed directly to the optimization routine. Only the options listed above are validated; other options may be accepted but are not documented here.
 
@@ -304,6 +304,7 @@ maxRothConversion = 100
 noRothConversions = "None"
 startRothConversions = 2025
 withMedicare = "loop"
+withSSTaxability = "loop"
 bequest = 500
 solver = "default"
 spendingSlack = 0

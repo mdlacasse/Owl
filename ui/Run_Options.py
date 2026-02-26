@@ -37,6 +37,8 @@ kz.initCaseKey("smileDelay", 0)
 kz.initCaseKey("computeMedicare", True)
 kz.initCaseKey("optimizeMedicare", False)
 kz.initCaseKey("withSCLoop", True)
+kz.initCaseKey("ssTaxabilityMode", "loop")
+kz.initCaseKey("ssTaxabilityValue", 0.85)
 
 
 def initProfile():
@@ -130,6 +132,25 @@ else:
             if years[ii] > 0:
                 with cols[1+ii]:
                     ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
+
+    st.divider()
+    st.markdown("#### :orange[Social Security Taxability]")
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+    with col1:
+        choices = ["loop", "value", "optimize"]
+        kz.initCaseKey("ssTaxabilityMode", "loop")
+        helpmsg = ("’loop’: compute SS taxable fraction dynamically via the self-consistent loop. "
+                   "’value’: pin \u03a8 to a fixed fraction (enter below). "
+                   "’optimize’: solve taxable SS exactly within the LP using binary variables (expert).")
+        ret = kz.getRadio("SS taxability method", choices, "ssTaxabilityMode", help=helpmsg)
+    with col2:
+        if kz.getCaseKey("ssTaxabilityMode") == "value":
+            kz.initCaseKey("ssTaxabilityValue", 0.85)
+            helpmsg = ("\u03a8 \u2208 [0, 0.85]. "
+                       "Use 0.0 (PI below lower threshold), 0.5 (mid-range), or 0.85 (high PI).")
+            ret = kz.getNum("Fixed SS tax fraction \u03a8", "ssTaxabilityValue",
+                            min_value=0.0, max_value=0.85, step=0.05, format="%.2f",
+                            help=helpmsg)
 
     st.divider()
     st.markdown("#### :orange[Safety Net]")

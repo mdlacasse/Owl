@@ -64,15 +64,11 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
     ssec_ages = np.array(fi["social_security_ages"])
     trim_pct = fi.get("social_security_trim_pct", 0)
     trim_year = fi.get("social_security_trim_year")
-    tax_fraction = fi.get("social_security_tax_fraction")
-    if tax_fraction is not None:
-        tax_fraction = float(tax_fraction)
     plan.setSocialSecurity(
         ssec_amounts,
         ssec_ages,
         trim_pct=int(trim_pct),
         trim_year=int(trim_year) if trim_year is not None else None,
-        tax_fraction=tax_fraction,
     )
     pension_amounts = np.array(
         known["fixed_income"].get("pension_monthly_amounts", [0] * icount),
@@ -175,6 +171,8 @@ def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
     plan.solverOptions = dict(known.get("solver_options", {}))
     if "withMedicare" not in plan.solverOptions:
         plan.solverOptions["withMedicare"] = "loop"
+    if "withSSTaxability" not in plan.solverOptions:
+        plan.solverOptions["withSSTaxability"] = "loop"
     if "withSCLoop" not in plan.solverOptions:
         plan.solverOptions["withSCLoop"] = True
     with_medicare = plan.solverOptions.get("withMedicare")
@@ -329,9 +327,6 @@ def plan_to_config(myplan: "Plan") -> dict:
     if trim_pct != 0 and trim_year is not None:
         diconf["fixed_income"]["social_security_trim_pct"] = int(trim_pct)
         diconf["fixed_income"]["social_security_trim_year"] = int(trim_year)
-    tax_fraction = getattr(myplan, "ssecTaxFraction", None)
-    if tax_fraction is not None:
-        diconf["fixed_income"]["social_security_tax_fraction"] = float(tax_fraction)
 
     # Rates Selection
     diconf["rates_selection"] = {

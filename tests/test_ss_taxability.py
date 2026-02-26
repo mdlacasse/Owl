@@ -307,3 +307,52 @@ def test_historical_crash_years_feasible():
     n, df = p.runHistoricalRange(objective, options, 1969, 1975, figure=False)
     assert len(df) >= 1, "Expected at least one feasible historical run in 1969-1975"
     assert n >= 1, "Expected at least one successful historical run"
+
+
+def test_ss_fixed_fraction():
+    """
+    Numeric withSSTaxability=0.5 should pin Psi_n to exactly 0.5 for all years
+    and produce a different (lower) spending than the SC-loop default.
+    """
+    p = _make_couple_plan(
+        'ss_fixed_half',
+        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
+        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
+    )
+    # SC-loop solve for reference
+    p.solve('maxSpending', {})
+    assert p.caseStatus == 'solved', f"SC-loop solver failed: {p.caseStatus}"
+    obj_loop = p.g_n[0]
+
+    # Fixed-fraction solve
+    p.solve('maxSpending', {'withSSTaxability': 0.5})
+    assert p.caseStatus == 'solved', f"Fixed-fraction solver failed: {p.caseStatus}"
+    obj_fixed = p.g_n[0]
+
+    # Psi_n must be uniformly 0.5 everywhere
+    assert np.allclose(p.Psi_n, 0.5, atol=1e-6), (
+        f"Psi_n not pinned to 0.5: min={p.Psi_n.min():.4f}, max={p.Psi_n.max():.4f}"
+    )
+
+    # With a fixed mid-range Psi_n, spending should differ from the SC-loop result
+    assert obj_fixed != pytest.approx(obj_loop, rel=1e-4), (
+        "Expected fixed-fraction spending to differ from SC-loop, but they matched."
+    )
+
+
+def test_ss_fixed_fraction_zero():
+    """
+    Numeric withSSTaxability=0.0 should pin Psi_n to 0 for all years.
+    """
+    p = _make_couple_plan(
+        'ss_fixed_zero',
+        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
+        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
+    )
+    p.solve('maxSpending', {'withSSTaxability': 0.0})
+    assert p.caseStatus == 'solved', f"Solver failed: {p.caseStatus}"
+
+    # Psi_n must be uniformly 0.0
+    assert np.allclose(p.Psi_n, 0.0, atol=1e-6), (
+        f"Psi_n not pinned to 0.0: min={p.Psi_n.min():.4f}, max={p.Psi_n.max():.4f}"
+    )

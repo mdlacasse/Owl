@@ -935,6 +935,14 @@ def genDic(plan):
         dic["computeMedicare"] = False if opt == "None" else True
         dic["optimizeMedicare"] = True if opt == "optimize" else False
 
+    ss_val = plan.solverOptions.get("withSSTaxability", "loop")
+    if isinstance(ss_val, (int, float)):
+        dic["ssTaxabilityMode"] = "value"
+        dic["ssTaxabilityValue"] = float(ss_val)
+    else:
+        dic["ssTaxabilityMode"] = ss_val
+        dic["ssTaxabilityValue"] = 0.85
+
     if "previousMAGIs" in solverOptionKeys:
         dic["MAGI0"] = plan.solverOptions["previousMAGIs"][0]
         dic["MAGI1"] = plan.solverOptions["previousMAGIs"][1]

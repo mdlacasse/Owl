@@ -18,7 +18,7 @@
 - **Refactoring**: SS tax logic moved to `tax2026.py`, `setSocialSecurity` logic to `socialsecurity.py`; gamma/rate transform moved to `rates.py`, oscillation detection to `utils.py`. Documentation and PARAMETERS.md updated for SS trim and dynamic Psi_n.
 
 ### Tests
-- Reproducibility test stability improvements: widened tolerances for HiGHS version differences across Python releases; pinned `tax_fraction=0.85` where needed; fixed test_clone1 tolerance (REL_TOL vs ABS_TOL).
+- Reproducibility test stability improvements: widened tolerances for HiGHS version differences across Python releases; fixed test_clone1 tolerance (REL_TOL vs ABS_TOL).
 
 ---
 
@@ -31,9 +31,7 @@
   since 1983/1994 — MFJ: 0% below $32k PI, up to 50% to $44k, 85% above; Single: $25k/$34k.
   A 30% damping blend ensures SC-loop convergence. Retirees with lower income now get a
   more accurate (lower) tax on SS benefits, improving Roth conversion and spending results.
-- **`tax_fraction` override**: `setSocialSecurity()` accepts an optional `tax_fraction`
-  parameter to pin `Psi_n` to a fixed value (0.0 / 0.5 / 0.85), bypassing the dynamic
-  computation. Also available in the TOML schema as `social_security_tax_fraction`.
+- **`withSSTaxability` solver option**: pin `Psi_n` to a fixed value by passing a float in [0, 0.85] as `withSSTaxability` in solve options (e.g. `0.0`, `0.5`, `0.85`). Supersedes the old `tax_fraction` parameter to `setSocialSecurity()`.
 - **Corrected FRA table**: `getFRAs()` now returns the correct Full Retirement Age for
   birth years 1938–1942 (65+2/12 to 65+10/12 per the SSA table), instead of the
   incorrect 66.
