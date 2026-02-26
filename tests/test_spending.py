@@ -5,7 +5,6 @@ Copyright (C) 2025-2026 The Owlplanner Authors
 """
 
 import numpy as np
-import pytest
 
 from owlplanner import spending
 

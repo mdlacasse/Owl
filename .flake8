@@ -3,3 +3,5 @@ max-line-length = 120
 # These checks violate PEP8 so let's ignore them
 extend-ignore = E203
 extend-exclude = .venv,*/site-packages/*
+per-file-ignores =
+    ui/Documentation.py: E501

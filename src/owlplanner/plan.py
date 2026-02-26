@@ -70,7 +70,6 @@ TIME_LIMIT = 900
 EPSILON = 1e-8
 
 
-
 def clone(plan, newname=None, *, verbose=True, logstreams=None):
     """
     Return an almost identical copy of plan: only the name of the case
@@ -1381,13 +1380,14 @@ class Plan:
         vm.add_if(ss_lp,  "zs", self.N_n, 2)        # z^σ family (2 per year) for SS min() ops
         self.vm = vm
 
-        self.nvars  = vm.nvars
-        self.nbins  = vm.nbins
+        self.nvars = vm.nvars
+        self.nbins = vm.nbins
         self.nconts = vm.nconts
-        self.nbals  = vm.nbals
+        self.nbals = vm.nbals
 
+        nseries = len(vm._blocks)
         self.mylog.vprint(
-            f"Problem has {len(vm._blocks)} distinct series, {self.nvars} decision variables (including {self.nbins} binary).")
+            f"Problem has {nseries} distinct series, {self.nvars} decision variables (including {self.nbins} binary).")
 
     def _buildConstraints(self, objective, options):
         """
@@ -1888,15 +1888,15 @@ class Plan:
                 bfac = self.alpha_ijkn[i, 0, 0, n] * max(0, tau_prev - self.mu)
 
                 w1_idx = self.vm["w"].idx(i, 1, n)
-                x_idx  = self.vm["x"].idx(i, n)
-                b_idx  = self.vm["b"].idx(i, 0, n)
-                d_idx  = self.vm["d"].idx(i, n)
+                x_idx = self.vm["x"].idx(i, n)
+                b_idx = self.vm["b"].idx(i, 0, n)
+                d_idx = self.vm["d"].idx(i, n)
                 w0_idx = self.vm["w"].idx(i, 0, n)
 
-                pi_row[w1_idx] = pi_row.get(w1_idx, 0) - 1           # IRA withdrawals (income)
-                pi_row[x_idx]  = pi_row.get(x_idx,  0) - 1           # Roth conversions (income)
-                pi_row[b_idx]  = pi_row.get(b_idx,  0) - afac        # beginning balance × yield
-                pi_row[d_idx]  = pi_row.get(d_idx,  0) - afac        # contributions × yield
+                pi_row[w1_idx] = pi_row.get(w1_idx, 0) - 1    # IRA withdrawals (income)
+                pi_row[x_idx] = pi_row.get(x_idx, 0) - 1      # Roth conversions (income)
+                pi_row[b_idx] = pi_row.get(b_idx, 0) - afac   # beginning balance × yield
+                pi_row[d_idx] = pi_row.get(d_idx, 0) - afac   # contributions × yield
                 pi_row[w0_idx] = pi_row.get(w0_idx, 0) + (afac - bfac)  # withdrawals (net)
 
                 rhs_pi += (self.omega_in[i, n]
@@ -1907,10 +1907,10 @@ class Plan:
             # Variable index shorthands.
             plo_idx = self.vm["plo"].idx(n)
             phi_idx = self.vm["phi"].idx(n)
-            q_idx   = self.vm["q"].idx(n)
+            q_idx = self.vm["q"].idx(n)
             tss_idx = self.vm["tss"].idx(n)
-            z0_idx  = self.vm["zs"].idx(n, 0)
-            z1_idx  = self.vm["zs"].idx(n, 1)
+            z0_idx = self.vm["zs"].idx(n, 0)
+            z1_idx = self.vm["zs"].idx(n, 1)
 
             # === p^lo_n = max(0, Π_n − 𝒫^lo) ===
             # Lower bound ≥ 0 from default variable bounds; explicit inequality enforces the max.
