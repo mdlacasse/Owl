@@ -457,12 +457,26 @@ def test_clone_without_newname():
 
 
 def test_q_functions():
-    """Test index mapping functions."""
-    assert plan._qC(0, 2, 3, 4, 5) == 0 + 2 * 3 * 4 * 5
-    assert plan._q1(10, 5) == 15
-    assert plan._q2(10, 2, 3, 4, 5) == 10 + 2 * 5 + 3
-    assert plan._q3(10, 1, 2, 3, 4, 5, 6) == 10 + 1 * 5 * 6 + 2 * 6 + 3
-    assert plan._q4(10, 1, 2, 3, 4, 5, 6, 7, 8) == 10 + 1 * 6 * 7 * 8 + 2 * 7 * 8 + 3 * 8 + 4
+    """Test VarBlock row-major indexing (replaces the deleted _q1/_q2/_q3/_q4 functions)."""
+    from owlplanner.varmap import VarBlock
+    # 1-D: equivalent to old _q1(C, l, N)
+    b1 = VarBlock("e", 10, (5,))
+    assert b1.idx(5) == 15
+
+    # 2-D: equivalent to old _q2(C, l1, l2, N1, N2)
+    # _q2(10, 2, 3, 4, 5) == 10 + 2*5 + 3 == 23
+    b2 = VarBlock("f", 10, (4, 5))
+    assert b2.idx(2, 3) == 10 + 2 * 5 + 3
+
+    # 3-D: equivalent to old _q3(C, l1, l2, l3, N1, N2, N3)
+    # _q3(10, 1, 2, 3, 4, 5, 6) == 10 + 1*5*6 + 2*6 + 3 == 55
+    b3 = VarBlock("b", 10, (4, 5, 6))
+    assert b3.idx(1, 2, 3) == 10 + 1 * 5 * 6 + 2 * 6 + 3
+
+    # 4-D: equivalent to old _q4(C, l1, l2, l3, l4, N1, N2, N3, N4)
+    # _q4(10, 1, 2, 3, 4, 5, 6, 7, 8) == 10 + 1*6*7*8 + 2*7*8 + 3*8 + 4 == 10+336+112+24+4 == 486
+    b4 = VarBlock("z", 10, (5, 6, 7, 8))
+    assert b4.idx(1, 2, 3, 4) == 10 + 1 * 6 * 7 * 8 + 2 * 7 * 8 + 3 * 8 + 4
 
 
 def test_gen_gamma_n():

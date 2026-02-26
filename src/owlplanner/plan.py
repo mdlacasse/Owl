@@ -48,6 +48,7 @@ from . import mylogging as log
 from . import progress
 from .plotting.factory import PlotFactory
 from .rate_models.constants import HISTORICAL_RANGE_METHODS
+from .varmap import VarMap
 
 
 def _mosek_available():
@@ -68,40 +69,6 @@ REL_TOL = 5e-5
 TIME_LIMIT = 900
 EPSILON = 1e-8
 
-
-def _qC(C, N1, N2=1, N3=1, N4=1):
-    """
-    Index range accumulator.
-    """
-    return C + N1 * N2 * N3 * N4
-
-
-def _q1(C, l1, N1=None):
-    """
-    Index mapping function. 1 argument.
-    """
-    return C + l1
-
-
-def _q2(C, l1, l2, N1, N2):
-    """
-    Index mapping function. 2 arguments.
-    """
-    return C + l1 * N2 + l2
-
-
-def _q3(C, l1, l2, l3, N1, N2, N3):
-    """
-    Index mapping function. 3 arguments.
-    """
-    return C + l1 * N2 * N3 + l2 * N3 + l3
-
-
-def _q4(C, l1, l2, l3, l4, N1, N2, N3, N4):
-    """
-    Index mapping function. 4 arguments.
-    """
-    return C + l1 * N2 * N3 * N4 + l2 * N3 * N4 + l3 * N4 + l4
 
 
 def clone(plan, newname=None, *, verbose=True, logstreams=None):
@@ -1392,48 +1359,35 @@ class Plan:
         Nmed = self.N_n - self.nm
 
         # Stack all variables in a single block vector with all binary variables at the end.
-        C = {}
-        C["b"] = 0
-        C["d"] = _qC(C["b"], self.N_i, self.N_j, self.N_n + 1)
-        C["e"] = _qC(C["d"], self.N_i, self.N_n)
-        C["f"] = _qC(C["e"], self.N_n)
-        C["g"] = _qC(C["f"], self.N_t, self.N_n)
-        if medi:
-            C["h"] = _qC(C["g"], self.N_n)
-            C["m"] = _qC(C["h"], Nmed, self.N_q)
-        else:
-            C["m"] = _qC(C["g"], self.N_n)
-        C["s"] = _qC(C["m"], self.N_n)
-        C["w"] = _qC(C["s"], self.N_n)
-        C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
+        vm = VarMap()
+        vm.add("b",   self.N_i, self.N_j, self.N_n + 1)
+        vm.add("d",   self.N_i, self.N_n)
+        vm.add("e",   self.N_n)
+        vm.add("f",   self.N_t, self.N_n)
+        vm.add("g",   self.N_n)
+        vm.add_if(medi,   "h",   Nmed, self.N_q)    # IRMAA bracket portions (Medicare optimize)
+        vm.add("m",   self.N_n)
+        vm.add("s",   self.N_n)
+        vm.add("w",   self.N_i, self.N_j, self.N_n)
+        vm.add("x",   self.N_i, self.N_n)
         # SS taxability LP variables (continuous) must precede the binary block.
-        if ss_lp:
-            C["plo"] = _qC(C["x"],   self.N_i, self.N_n)   # p^lo_n = max(0, PI_n - P^lo)
-            C["phi"] = _qC(C["plo"], self.N_n)              # p^hi_n = max(0, PI_n - P^hi)
-            C["q"]   = _qC(C["phi"], self.N_n)              # q_n    = min(P^hi-P^lo, p^lo_n)
-            C["tss"] = _qC(C["q"],   self.N_n)              # t^σ_n  = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n)
-            C["zx"]  = _qC(C["tss"], self.N_n)
-        else:
-            C["zx"] = _qC(C["x"], self.N_i, self.N_n)
-        C["zm"] = _qC(C["zx"], self.N_n, self.N_zx)
-        # z^σ binary family (2 per year) for SS taxability min() operations.
-        if medi and ss_lp:
-            C["zs"]    = _qC(C["zm"], Nmed, self.N_q)
-            self.nvars = _qC(C["zs"], self.N_n, 2)
-        elif medi:
-            self.nvars = _qC(C["zm"], Nmed, self.N_q)
-        elif ss_lp:
-            C["zs"]    = C["zm"]                            # right after z^x (no IRMAA binaries)
-            self.nvars = _qC(C["zs"], self.N_n, 2)
-        else:
-            self.nvars = C["zm"]
-        self.nbins = self.nvars - C["zx"]
-        self.nconts = C["zx"]
-        self.nbals = C["d"]
+        vm.add_if(ss_lp, "plo", self.N_n)           # p^lo_n = max(0, Π_n − 𝒫^lo)
+        vm.add_if(ss_lp, "phi", self.N_n)           # p^hi_n = max(0, Π_n − 𝒫^hi)
+        vm.add_if(ss_lp, "q",   self.N_n)           # q_n    = min(𝒫^hi−𝒫^lo, p^lo_n)
+        vm.add_if(ss_lp, "tss", self.N_n)           # t^σ_n  = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n)
+        vm.mark_binary_start()
+        vm.add("zx",  self.N_n, self.N_zx)          # Roth exclusion binaries
+        vm.add_if(medi,   "zm", Nmed, self.N_q)     # IRMAA bracket selection binaries
+        vm.add_if(ss_lp,  "zs", self.N_n, 2)        # z^σ family (2 per year) for SS min() ops
+        self.vm = vm
 
-        self.C = C
+        self.nvars  = vm.nvars
+        self.nbins  = vm.nbins
+        self.nconts = vm.nconts
+        self.nbals  = vm.nbals
+
         self.mylog.vprint(
-            f"Problem has {len(C)} distinct series, {self.nvars} decision variables (including {self.nbins} binary).")
+            f"Problem has {len(vm._blocks)} distinct series, {self.nvars} decision variables (including {self.nbins} binary).")
 
     def _buildConstraints(self, objective, options):
         """
@@ -1472,27 +1426,27 @@ class Plan:
             if self.beta_ij[i, 1] > 0:
                 for n in range(self.horizons[i]):
                     rowDic = {
-                        _q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n): 1,
-                        _q3(self.C["b"], i, 1, n, self.N_i, self.N_j, self.N_n + 1): -self.rho_in[i, n],
+                        self.vm["w"].idx(i, 1, n): 1,
+                        self.vm["b"].idx(i, 1, n): -self.rho_in[i, n],
                     }
                     self.A.addNewRow(rowDic, 0, np.inf)
 
     def _add_tax_bracket_bounds(self):
         for t in range(self.N_t):
             for n in range(self.N_n):
-                self.B.setRange(_q2(self.C["f"], t, n, self.N_t, self.N_n), 0, self.DeltaBar_tn[t, n])
+                self.B.setRange(self.vm["f"].idx(t, n), 0, self.DeltaBar_tn[t, n])
 
     def _add_standard_exemption_bounds(self):
         for n in range(self.N_n):
-            self.B.setRange(_q1(self.C["e"], n, self.N_n), 0, self.sigmaBar_n[n])
+            self.B.setRange(self.vm["e"].idx(n), 0, self.sigmaBar_n[n])
 
     def _add_defunct_constraints(self):
         if self.N_i == 2:
             for n in range(self.n_d, self.N_n):
-                self.B.setRange(_q2(self.C["d"], self.i_d, n, self.N_i, self.N_n), 0, 0)
-                self.B.setRange(_q2(self.C["x"], self.i_d, n, self.N_i, self.N_n), 0, 0)
+                self.B.setRange(self.vm["d"].idx(self.i_d, n), 0, 0)
+                self.B.setRange(self.vm["x"].idx(self.i_d, n), 0, 0)
                 for j in range(self.N_j):
-                    self.B.setRange(_q3(self.C["w"], self.i_d, j, n, self.N_i, self.N_j, self.N_n), 0, 0)
+                    self.B.setRange(self.vm["w"].idx(self.i_d, j, n), 0, 0)
 
     def _add_roth_maturation_constraints(self):
         """
@@ -1512,15 +1466,15 @@ class Plan:
                 # To add compounded gains to cumulative amounts. Always keep cgains >= 1.
                 cgains = 1
                 row = self.A.newRow()
-                row.addElem(_q3(self.C["b"], i, 2, n, self.N_i, self.N_j, self.N_n + 1), 1)
-                row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)
+                row.addElem(self.vm["b"].idx(i, 2, n), 1)
+                row.addElem(self.vm["w"].idx(i, 2, n), -1)
                 for dn in range(1, 6):
                     nn = n - dn
                     if nn >= 0:   # Past of future is now or in the future: use variables or parameters.
                         Tau1 = 1 + np.sum(self.alpha_ijkn[i, 2, :, nn] * self.tau_kn[:, nn], axis=0)
                         # Ignore market downs.
                         cgains *= max(1, Tau1)
-                        row.addElem(_q2(self.C["x"], i, nn, self.N_i, self.N_n), -cgains)
+                        row.addElem(self.vm["x"].idx(i, nn), -cgains)
                         # If a contribution, it has only penalty on gains, not on deposited amount.
                         rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn]
                     else:  # Past of future is in the past:
@@ -1538,7 +1492,7 @@ class Plan:
             for i in range(self.N_i):
                 for n in range(self.horizons[i]):
                     rhs = self.myRothX_in[i][n]
-                    self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), rhs, rhs)
+                    self.B.setRange(self.vm["x"].idx(i, n), rhs, rhs)
         else:
             # Don't exclude anyone by default.
             i_xcluded = -1
@@ -1549,7 +1503,7 @@ class Plan:
                 except ValueError as e:
                     raise ValueError(f"Unknown individual '{rhsopt}' for noRothConversions:") from e
                 for n in range(self.horizons[i_xcluded]):
-                    self.B.setRange(_q2(self.C["x"], i_xcluded, n, self.N_i, self.N_n), 0, 0)
+                    self.B.setRange(self.vm["x"].idx(i_xcluded, n), 0, 0)
 
             if "maxRothConversion" in options:
                 rhsopt = u.get_monetary_option(options, "maxRothConversion", 0)
@@ -1560,7 +1514,7 @@ class Plan:
                             continue
                         for n in range(self.horizons[i]):
                             # Apply the cap per individual.
-                            self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, rhsopt)
+                            self.B.setRange(self.vm["x"].idx(i, n), 0, rhsopt)
 
             if "startRothConversions" in options:
                 rhsopt = int(u.get_numeric_option(options, "startRothConversions", 0))
@@ -1571,7 +1525,7 @@ class Plan:
                         continue
                     nstart = min(yearn, self.horizons[i])
                     for n in range(0, nstart):
-                        self.B.setRange(_q2(self.C["x"], i, n, self.N_i, self.N_n), 0, 0)
+                        self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
 
             if "swapRothConverters" in options and i_xcluded == -1:
                 rhsopt = int(u.get_numeric_option(options, "swapRothConverters", 0))
@@ -1584,18 +1538,18 @@ class Plan:
 
                     transy = min(yearn, self.horizons[i_y])
                     for n in range(0, transy):
-                        self.B.setRange(_q2(self.C["x"], i_y, n, self.N_i, self.N_n), 0, 0)
+                        self.B.setRange(self.vm["x"].idx(i_y, n), 0, 0)
 
                     transx = min(yearn, self.horizons[i_x])
                     for n in range(transx, self.horizons[i_x]):
-                        self.B.setRange(_q2(self.C["x"], i_x, n, self.N_i, self.N_n), 0, 0)
+                        self.B.setRange(self.vm["x"].idx(i_x, n), 0, 0)
 
             # Disallow Roth conversions in last two years alive. Plan has at least 2 years.
             for i in range(self.N_i):
                 if i == i_xcluded:
                     continue
-                self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 2, self.N_i, self.N_n), 0, 0)
-                self.B.setRange(_q2(self.C["x"], i, self.horizons[i] - 1, self.N_i, self.N_n), 0, 0)
+                self.B.setRange(self.vm["x"].idx(i, self.horizons[i] - 2), 0, 0)
+                self.B.setRange(self.vm["x"].idx(i, self.horizons[i] - 1), 0, 0)
 
     def _add_safety_net(self, options):
         """
@@ -1616,20 +1570,20 @@ class Plan:
             # horizons[i]-1 for deceased (last year alive)
             for n in range(1, self.horizons[i]):
                 rhs = min_dollar * self.gamma_n[n]
-                self.B.setRange(_q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1), rhs, np.inf)
+                self.B.setRange(self.vm["b"].idx(i, 0, n), rhs, np.inf)
 
     def _add_withdrawal_limits(self):
         for i in range(self.N_i):
             # Wierdly enough, setting horizons causes a effects on HiGHS and MOSEK
             # for n in range(self.N_n):
             for n in range(self.horizons[i]):
-                rowDic = {_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n): -1,
-                          _q2(self.C["x"], i, n, self.N_i, self.N_n): -1,
-                          _q3(self.C["b"], i, 1, n, self.N_i, self.N_j, self.N_n + 1): 1}
+                rowDic = {self.vm["w"].idx(i, 1, n): -1,
+                          self.vm["x"].idx(i, n): -1,
+                          self.vm["b"].idx(i, 1, n): 1}
                 self.A.addNewRow(rowDic, 0, np.inf)
                 for j in [0, 2]:
-                    rowDic = {_q3(self.C["w"], i, j, n, self.N_i, self.N_j, self.N_n): -1,
-                              _q3(self.C["b"], i, j, n, self.N_i, self.N_j, self.N_n + 1): 1}
+                    rowDic = {self.vm["w"].idx(i, j, n): -1,
+                              self.vm["b"].idx(i, j, n): 1}
                     self.A.addNewRow(rowDic, 0, np.inf)
 
     def _add_objective_constraints(self, objective, options):
@@ -1648,13 +1602,13 @@ class Plan:
 
             row = self.A.newRow()
             for i in range(self.N_i):
-                row.addElem(_q3(self.C["b"], i, 0, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
-                row.addElem(_q3(self.C["b"], i, 1, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1 - self.nu)
-                row.addElem(_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1), 1)
+                row.addElem(self.vm["b"].idx(i, 0, self.N_n), 1)
+                row.addElem(self.vm["b"].idx(i, 1, self.N_n), 1 - self.nu)
+                row.addElem(self.vm["b"].idx(i, 2, self.N_n), 1)
             self.A.addRow(row, total_bequest_value, total_bequest_value)
         elif objective == "maxBequest":
             spending = u.get_monetary_option(options, "netSpending", 1)
-            self.B.setRange(_q1(self.C["g"], 0, self.N_n), spending, spending)
+            self.B.setRange(self.vm["g"].idx(0), spending, spending)
 
     def _add_initial_balances(self):
         # Back project balances to the beginning of the year.
@@ -1664,24 +1618,24 @@ class Plan:
             for j in range(self.N_j):
                 backTau = 1 + yearSpent * np.sum(self.tau_kn[:, 0] * self.alpha_ijkn[i, j, :, 0])
                 rhs = self.beta_ij[i, j] / backTau
-                self.B.setRange(_q3(self.C["b"], i, j, 0, self.N_i, self.N_j, self.N_n + 1), rhs, rhs)
+                self.B.setRange(self.vm["b"].idx(i, j, 0), rhs, rhs)
 
     def _add_surplus_deposit_linking(self, options):
         for i in range(self.N_i):
             fac1 = u.krond(i, 0) * (1 - self.eta) + u.krond(i, 1) * self.eta
             for n in range(self.n_d):
-                rowDic = {_q2(self.C["d"], i, n, self.N_i, self.N_n): 1, _q1(self.C["s"], n, self.N_n): -fac1}
+                rowDic = {self.vm["d"].idx(i, n): 1, self.vm["s"].idx(n): -fac1}
                 self.A.addNewRow(rowDic, 0, 0)
             fac2 = u.krond(self.i_s, i)
             for n in range(self.n_d, self.N_n):
-                rowDic = {_q2(self.C["d"], i, n, self.N_i, self.N_n): 1, _q1(self.C["s"], n, self.N_n): -fac2}
+                rowDic = {self.vm["d"].idx(i, n): 1, self.vm["s"].idx(n): -fac2}
                 self.A.addNewRow(rowDic, 0, 0)
 
         # Prevent surplus on two last year as they have little tax and/or growth consequence.
         disallow = options.get("noLateSurplus", False)
         if disallow:
-            self.B.setRange(_q1(self.C["s"], self.N_n - 2, self.N_n), 0, 0)
-            self.B.setRange(_q1(self.C["s"], self.N_n - 1, self.N_n), 0, 0)
+            self.B.setRange(self.vm["s"].idx(self.N_n - 2), 0, 0)
+            self.B.setRange(self.vm["s"].idx(self.N_n - 1), 0, 0)
 
     def _add_account_balance_carryover(self):
         tau_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
@@ -1705,26 +1659,26 @@ class Plan:
                     rhs = fac1 * self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
 
                     row = self.A.newRow()
-                    row.addElem(_q3(self.C["b"], i, j, n + 1, self.N_i, self.N_j, self.N_n + 1), 1)
-                    row.addElem(_q3(self.C["b"], i, j, n, self.N_i, self.N_j, self.N_n + 1), -fac1 * Tau1_ijn[i, j, n])
-                    row.addElem(_q3(self.C["w"], i, j, n, self.N_i, self.N_j, self.N_n), fac1 * Tau1_ijn[i, j, n])
-                    row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), -fac1 * u.krond(j, 0) * Tau1_ijn[i, 0, n])
+                    row.addElem(self.vm["b"].idx(i, j, n + 1), 1)
+                    row.addElem(self.vm["b"].idx(i, j, n), -fac1 * Tau1_ijn[i, j, n])
+                    row.addElem(self.vm["w"].idx(i, j, n), fac1 * Tau1_ijn[i, j, n])
+                    row.addElem(self.vm["d"].idx(i, n), -fac1 * u.krond(j, 0) * Tau1_ijn[i, 0, n])
                     row.addElem(
-                        _q2(self.C["x"], i, n, self.N_i, self.N_n),
+                        self.vm["x"].idx(i, n),
                         -fac1 * (self.xnet * u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[i, j, n],
                     )
 
                     if self.N_i == 2 and self.n_d < self.N_n and i == self.i_s and n == self.n_d - 1:
                         fac2 = self.phi_j[j]
                         rhs += fac2 * self.kappa_ijn[self.i_d, j, n] * Tauh_ijn[self.i_d, j, n]
-                        row.addElem(_q3(self.C["b"], self.i_d, j, n, self.N_i, self.N_j, self.N_n + 1),
+                        row.addElem(self.vm["b"].idx(self.i_d, j, n),
                                     -fac2 * Tau1_ijn[self.i_d, j, n])
-                        row.addElem(_q3(self.C["w"], self.i_d, j, n, self.N_i, self.N_j, self.N_n),
+                        row.addElem(self.vm["w"].idx(self.i_d, j, n),
                                     fac2 * Tau1_ijn[self.i_d, j, n])
-                        row.addElem(_q2(self.C["d"], self.i_d, n, self.N_i, self.N_n),
+                        row.addElem(self.vm["d"].idx(self.i_d, n),
                                     -fac2 * u.krond(j, 0) * Tau1_ijn[self.i_d, 0, n])
                         row.addElem(
-                            _q2(self.C["x"], self.i_d, n, self.N_i, self.N_n),
+                            self.vm["x"].idx(self.i_d, n),
                             -fac2 * (self.xnet * u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[self.i_d, j, n],
                         )
                     self.A.addRow(row, rhs, rhs)
@@ -1740,9 +1694,9 @@ class Plan:
                     + self.fixed_assets_capital_gains_n[n])
             # Subtract debt payments (negative cash flow)
             rhs -= self.debt_payments_n[n]
-            row = self.A.newRow({_q1(self.C["g"], n, self.N_n): 1})
-            row.addElem(_q1(self.C["s"], n, self.N_n), 1)
-            row.addElem(_q1(self.C["m"], n, self.N_n), 1)
+            row = self.A.newRow({self.vm["g"].idx(n): 1})
+            row.addElem(self.vm["s"].idx(n), 1)
+            row.addElem(self.vm["m"].idx(n), 1)
             for i in range(self.N_i):
                 fac = self.psi_n[n] * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
@@ -1753,16 +1707,16 @@ class Plan:
                     + self.Lambda_in[i, n]
                     - 0.5 * fac * self.mu * self.kappa_ijn[i, 0, n]
                 )
-                row.addElem(_q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1), fac * self.mu)
-                row.addElem(_q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n), fac * (tau_0prev[n] - self.mu) - 1)
+                row.addElem(self.vm["b"].idx(i, 0, n), fac * self.mu)
+                row.addElem(self.vm["w"].idx(i, 0, n), fac * (tau_0prev[n] - self.mu) - 1)
                 penalty = 0.1 if n < self.n595[i] else 0
-                row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1 + penalty)
+                row.addElem(self.vm["w"].idx(i, 1, n), -1 + penalty)
                 # maturation constraints govern; no 10% penalty
-                row.addElem(_q3(self.C["w"], i, 2, n, self.N_i, self.N_j, self.N_n), -1)
-                row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), fac * self.mu)
+                row.addElem(self.vm["w"].idx(i, 2, n), -1)
+                row.addElem(self.vm["d"].idx(i, n), fac * self.mu)
 
             for t in range(self.N_t):
-                row.addElem(_q2(self.C["f"], t, n, self.N_t, self.N_n), self.theta_tn[t, n])
+                row.addElem(self.vm["f"].idx(t, n), self.theta_tn[t, n])
 
             self.A.addRow(row, rhs, rhs)
 
@@ -1770,11 +1724,11 @@ class Plan:
         spLo = 1 - self.lambdha
         spHi = 1 + self.lambdha
         for n in range(1, self.N_n):
-            rowDic = {_q1(self.C["g"], 0, self.N_n): spLo * self.xiBar_n[n],
-                      _q1(self.C["g"], n, self.N_n): -self.xiBar_n[0]}
+            rowDic = {self.vm["g"].idx(0): spLo * self.xiBar_n[n],
+                      self.vm["g"].idx(n): -self.xiBar_n[0]}
             self.A.addNewRow(rowDic, -np.inf, 0)
-            rowDic = {_q1(self.C["g"], 0, self.N_n): spHi * self.xiBar_n[n],
-                      _q1(self.C["g"], n, self.N_n): -self.xiBar_n[0]}
+            rowDic = {self.vm["g"].idx(0): spHi * self.xiBar_n[n],
+                      self.vm["g"].idx(n): -self.xiBar_n[0]}
             self.A.addNewRow(rowDic, 0, np.inf)
 
     def _add_taxable_income(self, options=None):
@@ -1783,7 +1737,7 @@ class Plan:
             # Add fixed assets ordinary income
             rhs = self.fixed_assets_ordinary_income_n[n]
             row = self.A.newRow()
-            row.addElem(_q1(self.C["e"], n, self.N_n), 1)
+            row.addElem(self.vm["e"].idx(n), 1)
             for i in range(self.N_i):
                 if ss_lp:
                     # Taxable SS is an LP variable (tss_n); omit the Psi_n*zetaBar parameter.
@@ -1791,20 +1745,20 @@ class Plan:
                 else:
                     rhs += (self.omega_in[i, n] + self.other_inc_in[i, n]
                             + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n])
-                row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1)
-                row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), -1)
+                row.addElem(self.vm["w"].idx(i, 1, n), -1)
+                row.addElem(self.vm["x"].idx(i, n), -1)
                 # Only positive returns are taxable (interest/dividends); losses don't reduce income.
                 fak = np.sum(np.maximum(0, self.tau_kn[1:self.N_k, n]) * self.alpha_ijkn[i, 0, 1:self.N_k, n], axis=0)
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
-                row.addElem(_q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1), -fak)
-                row.addElem(_q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n), fak)
-                row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), -fak)
+                row.addElem(self.vm["b"].idx(i, 0, n), -fak)
+                row.addElem(self.vm["w"].idx(i, 0, n), fak)
+                row.addElem(self.vm["d"].idx(i, n), -fak)
             for t in range(self.N_t):
-                row.addElem(_q2(self.C["f"], t, n, self.N_t, self.N_n), 1)
+                row.addElem(self.vm["f"].idx(t, n), 1)
             if ss_lp:
                 # t^σ_n = taxable SS LP variable replaces Psi_n*zetaBar_n in the constraint:
                 # e_n - t^σ_n + sum_t(f_tn) = non_SS_ordinary_income
-                row.addElem(_q1(self.C["tss"], n, self.N_n), -1)
+                row.addElem(self.vm["tss"].idx(n), -1)
             self.A.addRow(row, rhs, rhs)
 
     def _configure_exclusion_binary_variables(self, options):
@@ -1817,25 +1771,25 @@ class Plan:
         if options.get("amoSurplus", True):
             for n in range(self.N_n):
                 # Make z_0 and z_1 exclusive binary variables.
-                dic0 = {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                        _q3(self.C["w"], 0, 0, n, self.N_i, self.N_j, self.N_n): -1,
-                        _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                dic0 = {self.vm["zx"].idx(n, 0): bigM*self.gamma_n[n],
+                        self.vm["w"].idx(0, 0, n): -1,
+                        self.vm["w"].idx(0, 2, n): -1}
                 if self.N_i == 2:
-                    dic1 = {_q3(self.C["w"], 1, 0, n, self.N_i, self.N_j, self.N_n): -1,
-                            _q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                    dic1 = {self.vm["w"].idx(1, 0, n): -1,
+                            self.vm["w"].idx(1, 2, n): -1}
                     dic0.update(dic1)
 
                 self.A.addNewRow(dic0, 0, np.inf)
 
                 self.A.addNewRow(
-                    {_q2(self.C["zx"], n, 1, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                     _q1(self.C["s"], n, self.N_n): -1},
+                    {self.vm["zx"].idx(n, 1): bigM*self.gamma_n[n],
+                     self.vm["s"].idx(n): -1},
                     0, np.inf)
 
                 # As both can be zero, bound as z_0 + z_1 <= 1
                 self.A.addNewRow(
-                    {_q2(self.C["zx"], n, 0, self.N_n, self.N_zx): +1,
-                     _q2(self.C["zx"], n, 1, self.N_n, self.N_zx): +1},
+                    {self.vm["zx"].idx(n, 0): +1,
+                     self.vm["zx"].idx(n, 1): +1},
                     0, 1
                 )
 
@@ -1854,25 +1808,25 @@ class Plan:
                 if n < n595_max:
                     continue   # relax AMO: allow simultaneous conversion + mature Roth withdrawal
                 # Make z_2 and z_3 at-most-one binary variables.
-                dic0 = {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                        _q2(self.C["x"], 0, n, self.N_i, self.N_n): -1}
+                dic0 = {self.vm["zx"].idx(n, 2): bigM*self.gamma_n[n],
+                        self.vm["x"].idx(0, n): -1}
                 if self.N_i == 2:
-                    dic1 = {_q2(self.C["x"], 1, n, self.N_i, self.N_n): -1}
+                    dic1 = {self.vm["x"].idx(1, n): -1}
                     dic0.update(dic1)
 
                 self.A.addNewRow(dic0, 0, np.inf)
 
-                dic0 = {_q2(self.C["zx"], n, 3, self.N_n, self.N_zx): bigM*self.gamma_n[n],
-                        _q3(self.C["w"], 0, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                dic0 = {self.vm["zx"].idx(n, 3): bigM*self.gamma_n[n],
+                        self.vm["w"].idx(0, 2, n): -1}
                 if self.N_i == 2:
-                    dic1 = {_q3(self.C["w"], 1, 2, n, self.N_i, self.N_j, self.N_n): -1}
+                    dic1 = {self.vm["w"].idx(1, 2, n): -1}
                     dic0.update(dic1)
 
                 self.A.addNewRow(dic0, 0, np.inf)
 
                 self.A.addNewRow(
-                    {_q2(self.C["zx"], n, 2, self.N_n, self.N_zx): +1,
-                     _q2(self.C["zx"], n, 3, self.N_n, self.N_zx): +1},
+                    {self.vm["zx"].idx(n, 2): +1,
+                     self.vm["zx"].idx(n, 3): +1},
                     0, 1
                 )
 
@@ -1923,8 +1877,8 @@ class Plan:
                       + 0.5 * zetaBar_n)   # 0.5·SS for provisional income (not full SS)
 
             pi_row = {}
-            pi_row[_q1(self.C["e"],   n, self.N_n)] = -1   # subtract e_n
-            pi_row[_q1(self.C["tss"], n, self.N_n)] = +1   # add back t^σ_n to cancel its share in e_n
+            pi_row[self.vm["e"].idx(n)] = -1   # subtract e_n
+            pi_row[self.vm["tss"].idx(n)] = +1   # add back t^σ_n to cancel its share in e_n
 
             for i in range(self.N_i):
                 # Combined dividend + interest yield for taxable account (equity + bonds/notes/cash).
@@ -1933,11 +1887,11 @@ class Plan:
                 # Capital gains: price appreciation only (total equity return − dividend rate).
                 bfac = self.alpha_ijkn[i, 0, 0, n] * max(0, tau_prev - self.mu)
 
-                w1_idx = _q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n)
-                x_idx  = _q2(self.C["x"], i,    n, self.N_i, self.N_n)
-                b_idx  = _q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1)
-                d_idx  = _q2(self.C["d"], i,    n, self.N_i, self.N_n)
-                w0_idx = _q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n)
+                w1_idx = self.vm["w"].idx(i, 1, n)
+                x_idx  = self.vm["x"].idx(i, n)
+                b_idx  = self.vm["b"].idx(i, 0, n)
+                d_idx  = self.vm["d"].idx(i, n)
+                w0_idx = self.vm["w"].idx(i, 0, n)
 
                 pi_row[w1_idx] = pi_row.get(w1_idx, 0) - 1           # IRA withdrawals (income)
                 pi_row[x_idx]  = pi_row.get(x_idx,  0) - 1           # Roth conversions (income)
@@ -1951,12 +1905,12 @@ class Plan:
                            + 0.5 * self.kappa_ijn[i, 0, n] * afac)   # half-period contribution yield
 
             # Variable index shorthands.
-            plo_idx = _q1(self.C["plo"], n, self.N_n)
-            phi_idx = _q1(self.C["phi"], n, self.N_n)
-            q_idx   = _q1(self.C["q"],   n, self.N_n)
-            tss_idx = _q1(self.C["tss"], n, self.N_n)
-            z0_idx  = _q2(self.C["zs"],  n, 0, self.N_n, 2)
-            z1_idx  = _q2(self.C["zs"],  n, 1, self.N_n, 2)
+            plo_idx = self.vm["plo"].idx(n)
+            phi_idx = self.vm["phi"].idx(n)
+            q_idx   = self.vm["q"].idx(n)
+            tss_idx = self.vm["tss"].idx(n)
+            z0_idx  = self.vm["zs"].idx(n, 0)
+            z1_idx  = self.vm["zs"].idx(n, 1)
 
             # === p^lo_n = max(0, Π_n − 𝒫^lo) ===
             # Lower bound ≥ 0 from default variable bounds; explicit inequality enforces the max.
@@ -1998,7 +1952,7 @@ class Plan:
         for nn in range(Nmed):
             row = self.A.newRow()
             for q in range(self.N_q):
-                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q), 1)
+                row.addElem(self.vm["zm"].idx(nn, q), 1)
             self.A.addRow(row, 1, 1)
 
         # MAGI decomposition into bracket portions: sum_q h_{q} = MAGI.
@@ -2006,7 +1960,7 @@ class Plan:
             n = self.nm + nn
             row = self.A.newRow()
             for q in range(self.N_q):
-                row.addElem(_q2(self.C["h"], nn, q, Nmed, self.N_q), 1)
+                row.addElem(self.vm["h"].idx(nn, q), 1)
 
             if n < 2:
                 self.A.addRow(row, self.prevMAGI[n], self.prevMAGI[n])
@@ -2017,7 +1971,7 @@ class Plan:
                     if magi > self.Lbar_nq[nn, q - 1]:
                         qsel = q
                 for q in range(self.N_q):
-                    idx = _q2(self.C["zm"], nn, q, Nmed, self.N_q)
+                    idx = self.vm["zm"].idx(nn, q)
                     val = 1 if q == qsel else 0
                     self.B.setRange(idx, val, val)
                 continue
@@ -2026,24 +1980,24 @@ class Plan:
             rhs = (self.fixed_assets_ordinary_income_n[n2]
                    + self.fixed_assets_capital_gains_n[n2])
 
-            row.addElem(_q1(self.C["e"], n2, self.N_n), -1)
+            row.addElem(self.vm["e"].idx(n2), -1)
             for i in range(self.N_i):
-                row.addElem(_q3(self.C["w"], i, 1, n2, self.N_i, self.N_j, self.N_n), -1)
-                row.addElem(_q2(self.C["x"], i, n2, self.N_i, self.N_n), -1)
+                row.addElem(self.vm["w"].idx(i, 1, n2), -1)
+                row.addElem(self.vm["x"].idx(i, n2), -1)
 
                 # Dividends and interest gains for year n2. Only positive returns are taxable.
                 afac = (self.mu * self.alpha_ijkn[i, 0, 0, n2]
                         + np.sum(self.alpha_ijkn[i, 0, 1:, n2] * np.maximum(0, self.tau_kn[1:, n2])))
 
-                row.addElem(_q3(self.C["b"], i, 0, n2, self.N_i, self.N_j, self.N_n + 1), -afac)
-                row.addElem(_q2(self.C["d"], i, n2, self.N_i, self.N_n), -afac)
+                row.addElem(self.vm["b"].idx(i, 0, n2), -afac)
+                row.addElem(self.vm["d"].idx(i, n2), -afac)
 
                 # Capital gains on stocks sold from taxable account accrued in year n2 - 1.
                 # Capital gains = price appreciation only (total return - dividend rate)
                 #  to avoid double taxation of dividends.
                 tau_prev = self.tau_kn[0, max(0, n2 - 1)]
                 bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, tau_prev - self.mu)
-                row.addElem(_q3(self.C["w"], i, 0, n2, self.N_i, self.N_j, self.N_n), afac - bfac)
+                row.addElem(self.vm["w"].idx(i, 0, n2), afac - bfac)
 
                 # MAGI includes total Social Security (taxable + non-taxable) for IRMAA.
                 sumoni = (self.omega_in[i, n2]
@@ -2058,8 +2012,8 @@ class Plan:
         # Bracket bounds: L_{q-1} z_q <= mg_q <= L_q z_q.
         for nn in range(Nmed):
             for q in range(self.N_q):
-                mg_idx = _q2(self.C["h"], nn, q, Nmed, self.N_q)
-                zm_idx = _q2(self.C["zm"], nn, q, Nmed, self.N_q)
+                mg_idx = self.vm["h"].idx(nn, q)
+                zm_idx = self.vm["zm"].idx(nn, q)
 
                 lower = 0 if q == 0 else self.Lbar_nq[nn, q - 1]
                 if lower > 0:
@@ -2078,31 +2032,31 @@ class Plan:
             # In loop mode, Medicare costs are computed outside the solver (M_n).
             # Ensure the in-model Medicare variable (m_n) stays at zero.
             for n in range(self.N_n):
-                self.B.setRange(_q1(self.C["m"], n, self.N_n), 0, 0)
+                self.B.setRange(self.vm["m"].idx(n), 0, 0)
             return
 
         for n in range(self.nm):
-            self.B.setRange(_q1(self.C["m"], n, self.N_n), 0, 0)
+            self.B.setRange(self.vm["m"].idx(n), 0, 0)
 
         Nmed = self.N_n - self.nm
         for nn in range(Nmed):
             n = self.nm + nn
             row = self.A.newRow()
-            row.addElem(_q1(self.C["m"], n, self.N_n), 1)
+            row.addElem(self.vm["m"].idx(n), 1)
             for q in range(self.N_q):
-                row.addElem(_q2(self.C["zm"], nn, q, Nmed, self.N_q), -self.Cbar_nq[nn, q])
+                row.addElem(self.vm["zm"].idx(nn, q), -self.Cbar_nq[nn, q])
             self.A.addRow(row, 0, 0)
 
     def _build_objective_vector(self, objective, options):
         c_arr = np.zeros(self.nvars)
         if objective == "maxSpending":
             for n in range(self.N_n):
-                c_arr[_q1(self.C["g"], n, self.N_n)] = -1/self.gamma_n[n]
+                c_arr[self.vm["g"].idx(n)] = -1/self.gamma_n[n]
         elif objective == "maxBequest":
             for i in range(self.N_i):
-                c_arr[_q3(self.C["b"], i, 0, self.N_n, self.N_i, self.N_j, self.N_n + 1)] = -1
-                c_arr[_q3(self.C["b"], i, 1, self.N_n, self.N_i, self.N_j, self.N_n + 1)] = -(1 - self.nu)
-                c_arr[_q3(self.C["b"], i, 2, self.N_n, self.N_i, self.N_j, self.N_n + 1)] = -1
+                c_arr[self.vm["b"].idx(i, 0, self.N_n)] = -1
+                c_arr[self.vm["b"].idx(i, 1, self.N_n)] = -(1 - self.nu)
+                c_arr[self.vm["b"].idx(i, 2, self.N_n)] = -1
         else:
             raise RuntimeError("Internal error in objective function.")
 
@@ -2113,13 +2067,13 @@ class Plan:
             # Penalize Roth conversions to reduce churn.
             for i in range(self.N_i):
                 for n in range(self.N_n):
-                    c_arr[_q2(self.C["x"], i, n, self.N_i, self.N_n)] += epsilon * (1 + n)
+                    c_arr[self.vm["x"].idx(i, n)] += epsilon * (1 + n)
 
             if self.N_i == 2:
                 # Favor withdrawals from spouse 0 by penalizing spouse 1 withdrawals.
                 for j in range(self.N_j):
                     for n in range(self.N_n):
-                        c_arr[_q3(self.C["w"], 1, j, n, self.N_i, self.N_j, self.N_n)] += epsilon
+                        c_arr[self.vm["w"].idx(1, j, n)] += epsilon
 
         c = abc.Objective(self.nvars)
         for idx in np.flatnonzero(c_arr):
@@ -2786,7 +2740,7 @@ class Plan:
         self._aggregateResults(x, short=True)
         # Psi_n is derived directly from the tss_n LP variable in _aggregateResults
         # when withSSTaxability=="optimize"; skip the SC-loop update in that case.
-        if "tss" not in self.C:
+        if "tss" not in self.vm:
             self._update_Psi_n()
 
         self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
@@ -2813,59 +2767,39 @@ class Plan:
         Nj = self.N_j
         Nk = self.N_k
         Nn = self.N_n
-        Nt = self.N_t
-        # Nzx = self.N_zx
         n_d = self.n_d
-
-        Cb = self.C["b"]
-        Cd = self.C["d"]
-        Ce = self.C["e"]
-        Cf = self.C["f"]
-        Cg = self.C["g"]
-        Ch = self.C.get("h", self.C["m"])
-        Cm = self.C["m"]
-        Cs = self.C["s"]
-        Cw = self.C["w"]
-        Cx = self.C["x"]
-        Czx = self.C["zx"]
+        vm = self.vm
 
         x = u.roundCents(x)
 
         # Allocate, slice in, and reshape variables.
-        self.b_ijn = np.array(x[Cb:Cd])
-        self.b_ijn = self.b_ijn.reshape((Ni, Nj, Nn + 1))
+        self.b_ijn = vm["b"].extract(x)
         self.b_ijkn = np.zeros((Ni, Nj, Nk, Nn + 1))
         for k in range(Nk):
             self.b_ijkn[:, :, k, :] = self.b_ijn[:, :, :] * self.alpha_ijkn[:, :, k, :]
 
-        self.d_in = np.array(x[Cd:Ce])
-        self.d_in = self.d_in.reshape((Ni, Nn))
+        self.d_in = vm["d"].extract(x)
 
-        self.e_n = np.array(x[Ce:Cf])
+        self.e_n = vm["e"].extract(x)
 
-        self.f_tn = np.array(x[Cf:Cg])
-        self.f_tn = self.f_tn.reshape((Nt, Nn))
+        self.f_tn = vm["f"].extract(x)
 
-        self.g_n = np.array(x[Cg:Ch])
+        self.g_n = vm["g"].extract(x)
 
-        if "h" in self.C:
-            self.h_qn = np.array(x[Ch:Cm])
-            self.h_qn = self.h_qn.reshape((self.N_n - self.nm, self.N_q))
+        if "h" in vm:
+            self.h_qn = vm["h"].extract(x)
 
-        self.m_n = np.array(x[Cm:Cs])
+        self.m_n = vm["m"].extract(x)
 
-        self.s_n = np.array(x[Cs:Cw])
+        self.s_n = vm["s"].extract(x)
 
-        self.w_ijn = np.array(x[Cw:Cx])
-        self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
+        self.w_ijn = vm["w"].extract(x)
 
-        self.x_in = np.array(x[Cx:Cx + Ni * Nn])
-        self.x_in = self.x_in.reshape((Ni, Nn))
+        self.x_in = vm["x"].extract(x)
 
         # Extract SS taxability LP variables and update Psi_n from the LP solution.
-        if "tss" in self.C:
-            Ctss = self.C["tss"]
-            self.tss_n = np.array(x[Ctss:Czx])  # t^σ_n: N_n values, ends before binary block
+        if "tss" in vm:
+            self.tss_n = vm["tss"].extract(x)
             ss_n = np.sum(self.zetaBar_in, axis=0)
             mask = ss_n > 0
             self.Psi_n = np.zeros(Nn)
