@@ -700,13 +700,26 @@ def showWorkbook(plan):
                 break
 
         pctSheets = "Allocations" in name or name == "Rates"
+        federalTaxSheet = name == "Federal Income Tax"
 
         ws = wb[name]
         df = pd.DataFrame(ws.values)
         new_header = df.iloc[0]
         df = df[1:]
         df.columns = new_header
-        if dollars:
+        if federalTaxSheet:
+            if "SS % taxed" in df.columns:
+                df = df.copy()
+                df["SS % taxed"] = (100 * df["SS % taxed"].astype(float)).map(lambda x: f"{x:.1f}%")
+            colfor = {}
+            for col in df.columns:
+                if col == "year":
+                    colfor[col] = st.column_config.NumberColumn(None, format="%d", width="small")
+                elif col == "SS % taxed":
+                    colfor[col] = st.column_config.TextColumn(None)
+                else:
+                    colfor[col] = st.column_config.NumberColumn(None, format="accounting", step=1)
+        elif dollars:
             colfor = {}
             for col in df.columns:
                 if col == "year":
@@ -730,7 +743,12 @@ def showWorkbook(plan):
         else:
             st.dataframe(df.astype(str), width="stretch", column_config=colfor, hide_index=True)
 
-        if dollars:
+        if federalTaxSheet:
+            st.caption(
+                "Values are in nominal $, rounded to the nearest dollar. "
+                "SS % taxed is the fraction of Social Security benefits subject to federal tax."
+            )
+        elif dollars:
             st.caption("Values are in nominal $, rounded to the nearest dollar.")
         elif pctSheets:
             st.caption("Values are in percent, with 2 decimal places.")

@@ -170,6 +170,40 @@ def _format_fixed_assets_sheet(ws):
     return None
 
 
+def _format_federal_income_tax_sheet(ws):
+    """Format Federal Income Tax sheet with currency for $ columns and percent for SS % taxed."""
+    from openpyxl.utils import get_column_letter
+
+    for cell in ws[1]:
+        cell.style = "Pandas"
+
+    header_row = ws[1]
+    col_map = {}
+    for idx, cell in enumerate(header_row, start=1):
+        col_letter = get_column_letter(idx)
+        col_name = str(cell.value) if cell.value else ""
+        col_map[col_letter] = col_name
+        width = max(len(str(cell.value)) + 4, 10)
+        ws.column_dimensions[col_letter].width = width
+
+    currency_fmt = "$#,##0_);[Red]($#,##0)"
+    percent_fmt = "#.0%"
+    for col_letter, col_name in col_map.items():
+        if col_name == "year":
+            fstring = "0"
+        elif col_name == "SS % taxed":
+            fstring = percent_fmt
+        else:
+            fstring = currency_fmt
+
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                if cell.column_letter == col_letter:
+                    cell.number_format = fstring
+
+    return None
+
+
 def build_summary_dic(plan, N=None):
     """Return dictionary containing summary of plan values."""
     if N is None:
@@ -450,8 +484,19 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     TxDic["NIIT"] = plan.J_n
     TxDic["LTCG"] = plan.U_n
     TxDic["10% penalty"] = plan.P_n
+    ss_n = np.sum(plan.zetaBar_in, axis=0)
+    TxDic["SS % taxed"] = np.where(ss_n > 0, plan.Psi_n, 0)
     ws = wb.create_sheet("Federal Income Tax")
-    fillsheet(ws, TxDic, "currency")
+    rawData = {"year": plan.year_n}
+    for key in TxDic:
+        if key == "SS % taxed":
+            rawData[key] = TxDic[key]
+        else:
+            rawData[key] = u.roundCents(TxDic[key])
+    df = pd.DataFrame(rawData)
+    for row in dataframe_to_rows(df, index=False, header=True):
+        ws.append(row)
+    _format_federal_income_tax_sheet(ws)
 
     jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}
     kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
