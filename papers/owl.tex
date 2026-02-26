@@ -566,13 +566,13 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 
 \item [$P_n$]
 	Amount of 10\% early withdrawal penalty in year $n$.
-	The penalty applies only to tax-deferred ($j=1$) withdrawals before the IRS threshold of age 59½:
+	The penalty applies only to tax-deferred ($j=1$) withdrawals before the IRS threshold of age $59\frac{1}{2}$:
 	\begin{equation}
 		\label{Eq:PenTax0}
-		P_n = 0.10 \sum_i (1 - \mathcal{H}(n - n_{i,59½})) w_{i1n}.
+		P_n = 0.10 \sum_i (1 - \mathcal{H}(n - n_{i,59\frac{1}{2}})) w_{i1n}.
 	\end{equation}
-        Here, $\mathcal{H}(n - n_{i,59½})$ is a Heaviside step function which is 0 or 1, depending on the sign of
-        its argument:
+        Here, $\mathcal{H}(n - n_{i,59\frac{1}{2}})$ is a Heaviside step function which is 0 or 1,
+ depending on the sign of its argument:
 	\begin{equation}
 	\mathcal{H}(x) :=
 	\begin{cases}
@@ -580,11 +580,11 @@ Intermediate variables are represented in roman uppercase letters, or in double 
          1 & x \geq 0.
 	\end{cases}
 	\end{equation}
-        The parameter $n_{i,59½}$ is the year index when individual $i$ turns 59½,
-	or 0 if the individual is already past 59½ at the beginning of the plan.
+        The parameter $n_{i,59\frac{1}{2}}$ is the year index when individual $i$ turns $59\frac{1}{2}$,
+	or 0 if the individual is already past $59\frac{1}{2}$ at the beginning of the plan.
 	Because the model operates at yearly granularity:
 	\begin{equation}
-		n_{i,59½} = \max\!\bigl(0,\; 59 - Y_0 + y_{\mathrm{obs},i}
+		n_{i,59\frac{1}{2}} = \max\bigl(0,\; 59 - Y_0 + y_{\mathrm{obs},i}
 		             + \mathbf{1}[m_{\mathrm{obs},i} > 6]\bigr),
 	\end{equation}
 	where $Y_0$ is the current calendar year and $m_{\mathrm{obs},i} \in \{1,\ldots,12\}$
@@ -622,7 +622,7 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	when modified adjusted gross income $\mathbb{G}_n$ exceeds the statutory threshold
 	$\mathbb{G}^{\mathrm{NIIT}}$ (not indexed for inflation). We compute
 	\begin{equation}
-		J_n = 0.038\ \max\!\left(0,\ \min\!\left(\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}},\ \mathbb{I}_n + Q_n\right)\right),
+		J_n = 0.038\ \max\left(0,\ \min\left(\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}},\ \mathbb{I}_n + Q_n\right)\right),
 	\end{equation}
 	where $\mathbb{G}^{\mathrm{NIIT}}$ is \$200k for single filers and \$250k for married filing jointly,
 	with filing status changing after the passing of one spouse ($n \ge n_d$).
@@ -859,7 +859,7 @@ add the market returns to the savings balances.
 	larger than what $x$, $w$, and $s$ can possibly be.
 	The lower bound can be ignored here as well for the same reason.
 	Note that the Roth conversion/tax-free withdrawal AMO (Eq.~\ref{Eq:Binary2}) is \emph{relaxed}
-	for years $n < \max_i(n_{i,59½})$: before any individual reaches age 59½,
+	for years $n < \max_i(n_{i,59\frac{1}{2}})$: before any individual reaches age 59½,
 	it is legitimate to simultaneously withdraw mature 5-year-old conversions and initiate new
 	ladder rungs, so enforcing the AMO in those years would block the Roth conversion ladder.
 	The AMO is reinstated once all individuals have passed 59½, preventing artificial round-trips.
@@ -931,7 +931,7 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
 		\label{Eq:C4}
-		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_i (1-\mathcal{H}(n - n_{i,59½})) w_{i1n}\nonumber\\
+		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_i (1-\mathcal{H}(n - n_{i,59\frac{1}{2}})) w_{i1n}\nonumber\\
                 + m_n + s_n + \sum_t f_{tn} \theta^x_{tn} &&\nonumber \\
 		+ \psi_n\sum_i \alpha_{i00n} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
 		+ w_{i0n}\max(0, \tau_{0(n-1)} - \mu)\right] 
@@ -1005,12 +1005,12 @@ In this case, the objective function will need to consider the sum over all year
 		\mathcal{T}_n = \begin{cases}
 			0 & \Pi_n < \mathcal{P}^{\mathrm{lo}}, \\[4pt]
 			0.5\,(\Pi_n - \mathcal{P}^{\mathrm{lo}}) & \mathcal{P}^{\mathrm{lo}} \le \Pi_n < \mathcal{P}^{\mathrm{hi}}, \\[4pt]
-			\min\!\Bigl(0.85\sum_i\bar{\zeta}_{in},\;
+			\min\Bigl(0.85\sum_i\bar{\zeta}_{in},\;
 			      0.5\,(\mathcal{P}^{\mathrm{hi}}-\mathcal{P}^{\mathrm{lo}})
 			      + 0.85\,(\Pi_n - \mathcal{P}^{\mathrm{hi}})\Bigr) & \Pi_n \ge \mathcal{P}^{\mathrm{hi}},
 		\end{cases}
 	\end{equation}
-	so that $\Psi_n = \mathcal{T}_n\,/\!\sum_i\bar{\zeta}_{in} \in [0,\,0.85]$.
+	so that $\Psi_n = \mathcal{T}_n\,/\sum_i\bar{\zeta}_{in} \in [0,\,0.85]$.
 
 	Introducing the excess provisional income above each threshold,
 	\begin{equation}
@@ -1023,8 +1023,8 @@ In this case, the objective function will need to consider the sum over all year
 	\begin{equation}
 		\label{Eq:TaxableSSClosed}
 		\mathcal{T}_n =
-		\min\!\Bigl(0.85\!\sum_i\bar{\zeta}_{in},\;
-		      0.50\,\min\!\Bigl(\sum_i\bar{\zeta}_{in},\,
+		\min\Bigl(0.85\!\sum_i\bar{\zeta}_{in},\;
+		      0.50\,\min\Bigl(\sum_i\bar{\zeta}_{in},\,
 		            \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n)\Bigr)
 		      + 0.85\,p^{\sigma,\mathrm{hi}}_n\Bigr),
 	\end{equation}
@@ -1039,7 +1039,7 @@ In this case, the objective function will need to consider the sum over all year
 	\begin{equation}
 		\label{Eq:TaxableSSSimpl}
 		\mathcal{T}_n =
-		\min\!\Bigl(0.85\!\sum_i\bar{\zeta}_{in},\;
+		\min\Bigl(0.85\!\sum_i\bar{\zeta}_{in},\;
 		      0.5\,q^{\sigma}_n + 0.85\,p^{\sigma,\mathrm{hi}}_n\Bigr),
 		\qquad
 		q^{\sigma}_n = \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n).
@@ -1092,7 +1092,7 @@ In this case, the objective function will need to consider the sum over all year
 		q^{\sigma}_n - p^{\sigma,\mathrm{lo}}_n + \mathcal{M}\,z^{\sigma}_{0n} \;\ge\; 0.
 	\end{equation}
 	Analogously, for
-	$t^{\sigma}_n = \min\!\bigl(0.85\sum_i\bar{\zeta}_{in},\;
+	$t^{\sigma}_n = \min\bigl(0.85\sum_i\bar{\zeta}_{in},\;
 	                            0.5\,q^{\sigma}_n+0.85\,p^{\sigma,\mathrm{hi}}_n\bigr)$:
 	\begin{equation}
 		t^{\sigma}_n \le 0.85\!\sum_i\bar{\zeta}_{in},
@@ -1109,22 +1109,22 @@ In this case, the objective function will need to consider the sum over all year
 	\end{equation}
 	In this formulation $t^{\sigma}_n$ is an LP variable rather than the fixed parameter
 	$\Psi_n\sum_i\bar{\zeta}_{in}$ used in SC-loop mode.
-	Moving $t^{\sigma}_n$ to the right-hand side, Eq.~(\ref{Eq:C6}) becomes
+	Moving $t^{\sigma}_n$ to the left-hand side, Eq.~(\ref{Eq:C6}) becomes
 	\begin{eqnarray}
 		\label{Eq:C6prime}
 		e_n + \sum_t f_{tn}
+		- t^{\sigma}_n
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
 		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \bar{\pi}_{in} ]
-		+ t^{\sigma}_n
 		\nonumber \\
 		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n},
 	\end{eqnarray}
 	and $\Psi_n = t^{\sigma}_n / \sum_i\bar{\zeta}_{in}$ is recovered from the LP
 	solution for reporting.
 	There is no circular dependency: provisional income $\Pi_n$ is constructed from
-	non-SS ordinary income, Roth conversions $Q_n$, dividends, and the fixed
+	non-SS ordinary income, Roth conversions, $Q_n$ dividends, and the fixed
 	half of SS ($0.5\sum_i\bar{\zeta}_{in}$), so $t^{\sigma}_n$ does not appear in
 	$\Pi_n$.
 
@@ -1708,7 +1708,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 	A_e[J_5(n), q_b(i, 0, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_5(n), q_d(i, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_5(n), q_{f}(t, n)] &=& \theta^x_{tn}, \nonumber \\
-	A_e[J_5(n), q_w(i, j ,n)] &=& -1 + 0.1\,\delta(j,1)\,(1-\mathcal{H}(n-n_{i,59½}))
+	A_e[J_5(n), q_w(i, j ,n)] &=& -1 + 0.1\,\delta(j,1)\,(1-\mathcal{H}(n-n_{i,59\frac{1}{2}}))
 		+ \delta(j, 0)\psi_n\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
