@@ -1107,10 +1107,22 @@ In this case, the objective function will need to consider the sum over all year
 		t^{\sigma}_n - 0.5\,q^{\sigma}_n - 0.85\,p^{\sigma,\mathrm{hi}}_n
 		  + \mathcal{M}\,z^{\sigma}_{1n} \;\ge\; 0.
 	\end{equation}
-	In this formulation $t^{\sigma}_n$ replaces $\Psi_n\sum_i\bar{\zeta}_{in}$ on the
-	right-hand side of Eq.~(\ref{Eq:C6}), and
-	$\Psi_n = t^{\sigma}_n / \sum_i\bar{\zeta}_{in}$ is recovered from the LP solution
-	for reporting.
+	In this formulation $t^{\sigma}_n$ is an LP variable rather than the fixed parameter
+	$\Psi_n\sum_i\bar{\zeta}_{in}$ used in SC-loop mode.
+	Moving $t^{\sigma}_n$ to the right-hand side, Eq.~(\ref{Eq:C6}) becomes
+	\begin{eqnarray}
+		\label{Eq:C6prime}
+		e_n + \sum_t f_{tn}
+		- \sum_i [ w_{i1n} + x_{in}] &&
+		\nonumber \\
+		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
+		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \bar{\pi}_{in} ]
+		+ t^{\sigma}_n
+		\nonumber \\
+		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n},
+	\end{eqnarray}
+	and $\Psi_n = t^{\sigma}_n / \sum_i\bar{\zeta}_{in}$ is recovered from the LP
+	solution for reporting.
 	There is no circular dependency: provisional income $\Pi_n$ is constructed from
 	non-SS ordinary income, Roth conversions $Q_n$, dividends, and the fixed
 	half of SS ($0.5\sum_i\bar{\zeta}_{in}$), so $t^{\sigma}_n$ does not appear in
