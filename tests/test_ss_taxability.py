@@ -197,6 +197,87 @@ def test_ss_dynamic_psi_varies():
     assert not np.all(p.Psi_n[ss_mask] == 0.85), "Expected dynamic Psi_n, not fixed at 0.85"
 
 
+def test_ss_lp_feasible_and_bounded():
+    """
+    LP-based SS taxability (withSSTaxability='optimize') should produce
+    Psi_n values bounded in [0, 0.85] for all SS-active years.
+    """
+    p = _make_couple_plan(
+        'ss_lp_feasible',
+        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
+        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
+        pension=[0, 10], pension_ages=[65, 65],
+    )
+    p.solve('maxSpending', {'withSSTaxability': 'optimize'})
+    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
+    ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
+    assert ss_mask.any(), "Expected some SS-active years"
+    psi_ss = p.Psi_n[ss_mask]
+    assert np.all(psi_ss <= 0.85 + 1e-6), f"Psi_n exceeded 0.85: {psi_ss.max():.4f}"
+    assert np.all(psi_ss >= 0.0 - 1e-6), f"Psi_n went negative: {psi_ss.min():.4f}"
+
+
+def test_ss_lp_max_bracket():
+    """
+    LP-based SS taxability: high-income household should yield Psi_n ≈ 0.85
+    during joint SS years, matching the SC-loop result.
+    """
+    p = _make_couple_plan(
+        'ss_lp_max',
+        taxable=[100, 50], tax_deferred=[500, 200], tax_free=[100, 50],
+        ss_pias=[2_500, 2_000], ss_ages=[66, 66],
+        pension=[3_500, 3_500], pension_ages=[65, 65],
+    )
+    p.solve('maxSpending', {'withSSTaxability': 'optimize'})
+    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
+    ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
+    joint_mask = np.arange(p.N_n) < p.n_d
+    joint_ss_mask = ss_mask & joint_mask
+    assert joint_ss_mask.any(), "Expected some joint SS-active years"
+    psi_joint = p.Psi_n[joint_ss_mask]
+    assert np.all(psi_joint > 0.84), f"Expected Psi_n≈0.85 for joint SS years, got min={psi_joint.min():.4f}"
+
+
+def test_ss_lp_vs_loop_consistency():
+    """
+    LP-based SS taxability should produce an objective no worse than the SC-loop,
+    and Psi_n should be in [0, 0.85].
+
+    The LP formulation is exact (MIP), so it may find a better optimum than the
+    iterative SC-loop, which can oscillate.  Psi_n values may legitimately differ
+    because the LP finds a different (better) allocation.
+    """
+    p = _make_couple_plan(
+        'ss_consistency',
+        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
+        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
+        pension=[500, 200], pension_ages=[65, 65],
+    )
+    # SC-loop solve
+    p.solve('maxSpending', {})
+    assert p.caseStatus == 'solved', f"SC-loop solver failed: {p.caseStatus}"
+    obj_loop = p.g_n[0]   # nominal spending in year 0 (objective proxy)
+
+    # LP-based solve (exact MIP formulation)
+    p.solve('maxSpending', {'withSSTaxability': 'optimize'})
+    assert p.caseStatus == 'solved', f"LP solver failed: {p.caseStatus}"
+    obj_lp = p.g_n[0]
+    psi_lp = p.Psi_n.copy()
+
+    # LP objective should be no worse than the SC-loop (exact ≥ approximate).
+    # Allow a small tolerance for numerical noise.
+    assert obj_lp >= obj_loop * 0.99, (
+        f"LP objective worse than SC-loop by more than 1%: loop={obj_loop:,.0f}, lp={obj_lp:,.0f}"
+    )
+
+    # Psi_n from LP must stay in [0, 0.85].
+    ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
+    if ss_mask.any():
+        psi_ss = psi_lp[ss_mask]
+        assert np.all(psi_ss <= 0.85 + 1e-6), f"Psi_n (LP) exceeded 0.85: {psi_ss.max():.4f}"
+        assert np.all(psi_ss >= 0.0 - 1e-6), f"Psi_n (LP) went negative: {psi_ss.min():.4f}"
+
+
 @pytest.mark.toml
 def test_historical_crash_years_feasible():
     """

@@ -184,11 +184,32 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$x_{in}$]
 	Roth conversion performed by individual $i$ during year $n$.
 	These events are taxable as ordinary income.
+\item [$p^{\sigma,\mathrm{lo}}_n$, $p^{\sigma,\mathrm{hi}}_n$]
+	Excess provisional income above the lower and upper Social Security taxability
+	thresholds, respectively:
+	$p^{\sigma,\mathrm{lo}}_n = \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{lo}}_n)$ and
+	$p^{\sigma,\mathrm{hi}}_n = \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{hi}}_n)$.
+	These continuous non-negative variables are present only when the solver option
+	\texttt{withSSTaxability="optimize"} is selected.
+\item [$q^{\sigma}_n$]
+	50\%-zone Social Security taxability allocation,
+	equal to $\min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n)$ and bounded in
+	$[0,\,\Delta\mathcal{P}]$.
+	Only present when \texttt{withSSTaxability="optimize"} is selected.
+\item [$t^{\sigma}_n$]
+	Taxable Social Security amount in year $n$, bounded in
+	$[0,\;0.85\sum_i\bar{\zeta}_{in}]$.
+	In the default SC-loop mode this quantity equals $\Psi_n\sum_i\bar{\zeta}_{in}$
+	and is treated as a fixed parameter; with the solver option
+	\texttt{withSSTaxability="optimize"} it becomes an LP decision variable computed
+	exactly from the IRS formula without iteration.
 \item [$z_{*}^*$]
 	Binary variables are all designated by the letter $z$, but a superscript is
 	used to distinguish the different families. For example, $z_{qn}^m$ represents
-	binary variables associated with Medicare calculations and $z_{nz}^x$ are used for
-	the exclusion constraints.
+	binary variables associated with Medicare calculations, $z_{nz}^x$ are used for
+	the exclusion constraints, and $z^{\sigma}_{0n}$, $z^{\sigma}_{1n}$ encode the
+	two $\min(\cdot,\cdot)$ operations in the SS taxability MIP formulation
+	(see the Social Security taxability paragraph in the Constraints section).
 \end{description}
 
 \section{Parameters}
@@ -991,6 +1012,41 @@ In this case, the objective function will need to consider the sum over all year
 	\end{equation}
 	so that $\Psi_n = \mathcal{T}_n\,/\!\sum_i\bar{\zeta}_{in} \in [0,\,0.85]$.
 
+	Introducing the excess provisional income above each threshold,
+	\begin{equation}
+		\label{Eq:plo_phi}
+		p^{\sigma,\mathrm{lo}}_n = \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{lo}}_n),
+		\qquad
+		p^{\sigma,\mathrm{hi}}_n = \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{hi}}_n),
+	\end{equation}
+	the three cases of Eq.~(\ref{Eq:TaxableSS}) collapse into the single expression
+	\begin{equation}
+		\label{Eq:TaxableSSClosed}
+		\mathcal{T}_n =
+		\min\!\Bigl(0.85\!\sum_i\bar{\zeta}_{in},\;
+		      0.50\,\min\!\Bigl(\sum_i\bar{\zeta}_{in},\,
+		            \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n)\Bigr)
+		      + 0.85\,p^{\sigma,\mathrm{hi}}_n\Bigr),
+	\end{equation}
+	where $\Delta\mathcal{P} = \mathcal{P}^{\mathrm{hi}} - \mathcal{P}^{\mathrm{lo}}$
+	is the bracket width (\$12{,}000 for MFJ; \$9{,}000 for single filers).
+	The inner $\min(\sum_i\bar{\zeta}_{in},\,\cdot\,)$ guards against the unusual case
+	$\sum_i\bar{\zeta}_{in} < \Delta\mathcal{P}$, in which SS benefits are too small to
+	fill the 50\%-bracket entirely.
+	Because the clipped excess $\min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n) \le \Delta\mathcal{P}$,
+	whenever $\sum_i\bar{\zeta}_{in} \ge \Delta\mathcal{P}$ the inner $\min$ is
+	automatically satisfied and Eq.~(\ref{Eq:TaxableSSClosed}) simplifies to
+	\begin{equation}
+		\label{Eq:TaxableSSSimpl}
+		\mathcal{T}_n =
+		\min\!\Bigl(0.85\!\sum_i\bar{\zeta}_{in},\;
+		      0.5\,q^{\sigma}_n + 0.85\,p^{\sigma,\mathrm{hi}}_n\Bigr),
+		\qquad
+		q^{\sigma}_n = \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n).
+	\end{equation}
+	This condition holds for virtually all retirees, since combined annual SS benefits
+	nearly always exceed \$12{,}000 (MFJ) or \$9{,}000 (single).
+
 	Because $\Psi_n$ enters the LP only as a constant multiplier of the fixed series
 	$\bar{\zeta}_{in}$ on the right-hand side of Eq.~(\ref{Eq:C6}), it is treated as a
 	\emph{parameter} rather than a decision variable.
@@ -1004,6 +1060,61 @@ In this case, the objective function will need to consider the sum over all year
 	$\max_n|\Delta\Psi_n| > 10^{-3}$.
 	The SC loop terminates when the change in the objective function (net spending
 	or bequest) falls below a prescribed tolerance.
+
+	Alternatively, when the solver option \texttt{withSSTaxability="optimize"} is set,
+	all max/min operations in
+	Eqs.~(\ref{Eq:plo_phi})--(\ref{Eq:TaxableSSSimpl}) are encoded exactly within the
+	LP as a mixed-integer program (MIP) using the continuous variables
+	$p^{\sigma,\mathrm{lo}}_n$, $p^{\sigma,\mathrm{hi}}_n$, $q^{\sigma}_n$, and
+	$t^{\sigma}_n$, together with two binary variables $z^{\sigma}_{0n}$ and
+	$z^{\sigma}_{1n}$ per year.
+	The non-negativity of $p^{\sigma,\mathrm{lo}}_n$ and $p^{\sigma,\mathrm{hi}}_n$
+	combined with the lower-bound constraints
+	$p^{\sigma,\mathrm{lo}}_n \ge \Pi_n - \mathcal{P}^{\mathrm{lo}}_n$ and
+	$p^{\sigma,\mathrm{hi}}_n \ge \Pi_n - \mathcal{P}^{\mathrm{hi}}_n$
+	enforce the $\max(0,\cdot)$ operations; because maximizing spending minimizes taxes,
+	the optimizer pushes these variables to their lower bounds at the optimum.
+	The two $\min(\cdot,\cdot)$ operations in Eq.~(\ref{Eq:TaxableSSSimpl}) are
+	formulated via big-$\mathcal{M}$ lower-bound constraints.
+	For $q^{\sigma}_n = \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n)$,
+	the upper bounds
+	\begin{equation}
+		q^{\sigma}_n \le \Delta\mathcal{P},
+		\qquad
+		q^{\sigma}_n \le p^{\sigma,\mathrm{lo}}_n
+	\end{equation}
+	are complemented by binary-controlled lower bounds that force the optimizer to the
+	tighter constraint:
+	\begin{equation}
+		\label{Eq:BinQ}
+		q^{\sigma}_n - \mathcal{M}\,z^{\sigma}_{0n} \;\ge\; \Delta\mathcal{P} - \mathcal{M},
+		\qquad
+		q^{\sigma}_n - p^{\sigma,\mathrm{lo}}_n + \mathcal{M}\,z^{\sigma}_{0n} \;\ge\; 0.
+	\end{equation}
+	Analogously, for
+	$t^{\sigma}_n = \min\!\bigl(0.85\sum_i\bar{\zeta}_{in},\;
+	                            0.5\,q^{\sigma}_n+0.85\,p^{\sigma,\mathrm{hi}}_n\bigr)$:
+	\begin{equation}
+		t^{\sigma}_n \le 0.85\!\sum_i\bar{\zeta}_{in},
+		\qquad
+		t^{\sigma}_n \le 0.5\,q^{\sigma}_n + 0.85\,p^{\sigma,\mathrm{hi}}_n,
+	\end{equation}
+	\begin{equation}
+		\label{Eq:BinT}
+		t^{\sigma}_n - \mathcal{M}\,z^{\sigma}_{1n}
+		\;\ge\; 0.85\!\sum_i\bar{\zeta}_{in} - \mathcal{M},
+		\qquad
+		t^{\sigma}_n - 0.5\,q^{\sigma}_n - 0.85\,p^{\sigma,\mathrm{hi}}_n
+		  + \mathcal{M}\,z^{\sigma}_{1n} \;\ge\; 0.
+	\end{equation}
+	In this formulation $t^{\sigma}_n$ replaces $\Psi_n\sum_i\bar{\zeta}_{in}$ on the
+	right-hand side of Eq.~(\ref{Eq:C6}), and
+	$\Psi_n = t^{\sigma}_n / \sum_i\bar{\zeta}_{in}$ is recovered from the LP solution
+	for reporting.
+	There is no circular dependency: provisional income $\Pi_n$ is constructed from
+	non-SS ordinary income, Roth conversions $Q_n$, dividends, and the fixed
+	half of SS ($0.5\sum_i\bar{\zeta}_{in}$), so $t^{\sigma}_n$ does not appear in
+	$\Pi_n$.
 
 \paragraph*{Medicare brackets and costs}
 	Annual Medicare costs $m_n$ include the income-related monthly adjusted amount

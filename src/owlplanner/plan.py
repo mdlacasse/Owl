@@ -1388,6 +1388,7 @@ class Plan:
         All binary variables must be lumped at the end of the vector.
         """
         medi = options.get("withMedicare", "loop") == "optimize"
+        ss_lp = options.get("withSSTaxability", "loop") == "optimize"
         Nmed = self.N_n - self.nm
 
         # Stack all variables in a single block vector with all binary variables at the end.
@@ -1405,9 +1406,27 @@ class Plan:
         C["s"] = _qC(C["m"], self.N_n)
         C["w"] = _qC(C["s"], self.N_n)
         C["x"] = _qC(C["w"], self.N_i, self.N_j, self.N_n)
-        C["zx"] = _qC(C["x"], self.N_i, self.N_n)
+        # SS taxability LP variables (continuous) must precede the binary block.
+        if ss_lp:
+            C["plo"] = _qC(C["x"],   self.N_i, self.N_n)   # p^lo_n = max(0, PI_n - P^lo)
+            C["phi"] = _qC(C["plo"], self.N_n)              # p^hi_n = max(0, PI_n - P^hi)
+            C["q"]   = _qC(C["phi"], self.N_n)              # q_n    = min(P^hi-P^lo, p^lo_n)
+            C["tss"] = _qC(C["q"],   self.N_n)              # t^σ_n  = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n)
+            C["zx"]  = _qC(C["tss"], self.N_n)
+        else:
+            C["zx"] = _qC(C["x"], self.N_i, self.N_n)
         C["zm"] = _qC(C["zx"], self.N_n, self.N_zx)
-        self.nvars = _qC(C["zm"], Nmed, self.N_q) if medi else C["zm"]
+        # z^σ binary family (2 per year) for SS taxability min() operations.
+        if medi and ss_lp:
+            C["zs"]    = _qC(C["zm"], Nmed, self.N_q)
+            self.nvars = _qC(C["zs"], self.N_n, 2)
+        elif medi:
+            self.nvars = _qC(C["zm"], Nmed, self.N_q)
+        elif ss_lp:
+            C["zs"]    = C["zm"]                            # right after z^x (no IRMAA binaries)
+            self.nvars = _qC(C["zs"], self.N_n, 2)
+        else:
+            self.nvars = C["zm"]
         self.nbins = self.nvars - C["zx"]
         self.nconts = C["zx"]
         self.nbals = C["d"]
@@ -1441,7 +1460,8 @@ class Plan:
         self._add_account_balance_carryover()
         self._add_net_cash_flow()
         self._add_income_profile()
-        self._add_taxable_income()
+        self._add_taxable_income(options)
+        self._configure_ss_taxability_lp(options)
         self._configure_Medicare_binary_variables(options)
         self._add_Medicare_costs(options)
         self._configure_exclusion_binary_variables(options)
@@ -1757,15 +1777,20 @@ class Plan:
                       _q1(self.C["g"], n, self.N_n): -self.xiBar_n[0]}
             self.A.addNewRow(rowDic, 0, np.inf)
 
-    def _add_taxable_income(self):
+    def _add_taxable_income(self, options=None):
+        ss_lp = options is not None and options.get("withSSTaxability", "loop") == "optimize"
         for n in range(self.N_n):
             # Add fixed assets ordinary income
             rhs = self.fixed_assets_ordinary_income_n[n]
             row = self.A.newRow()
             row.addElem(_q1(self.C["e"], n, self.N_n), 1)
             for i in range(self.N_i):
-                rhs += (self.omega_in[i, n] + self.other_inc_in[i, n]
-                        + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n])
+                if ss_lp:
+                    # Taxable SS is an LP variable (tss_n); omit the Psi_n*zetaBar parameter.
+                    rhs += (self.omega_in[i, n] + self.other_inc_in[i, n] + self.piBar_in[i, n])
+                else:
+                    rhs += (self.omega_in[i, n] + self.other_inc_in[i, n]
+                            + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n])
                 row.addElem(_q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n), -1)
                 row.addElem(_q2(self.C["x"], i, n, self.N_i, self.N_n), -1)
                 # Only positive returns are taxable (interest/dividends); losses don't reduce income.
@@ -1776,6 +1801,10 @@ class Plan:
                 row.addElem(_q2(self.C["d"], i, n, self.N_i, self.N_n), -fak)
             for t in range(self.N_t):
                 row.addElem(_q2(self.C["f"], t, n, self.N_t, self.N_n), 1)
+            if ss_lp:
+                # t^σ_n = taxable SS LP variable replaces Psi_n*zetaBar_n in the constraint:
+                # e_n - t^σ_n + sum_t(f_tn) = non_SS_ordinary_income
+                row.addElem(_q1(self.C["tss"], n, self.N_n), -1)
             self.A.addRow(row, rhs, rhs)
 
     def _configure_exclusion_binary_variables(self, options):
@@ -1846,6 +1875,118 @@ class Plan:
                      _q2(self.C["zx"], n, 3, self.N_n, self.N_zx): +1},
                     0, 1
                 )
+
+    def _configure_ss_taxability_lp(self, options):
+        """
+        Configure SS taxability using the MIP approach (alternative to the SC loop).
+
+        Introduces per-year LP variables p^lo_n, p^hi_n, q_n, t^σ_n and binary variables
+        z^σ_{0n}, z^σ_{1n} to compute taxable Social Security exactly within the LP,
+        eliminating the need to update Psi_n in the self-consistent loop for SS.
+
+        The formulation is exact when total SS benefits ζ̄_n ≥ H_2 - H_1 for all n
+        (ζ̄_n ≥ $12,000 for MFJ or ≥ $9,000 for single). A warning is issued otherwise.
+
+        Provisional income Π_n = (non-SS ordinary income) + Q_n + 0.5·ζ̄_n is built using
+        the same coefficient structure as the Medicare MAGI constraint, adjusted for the
+        current year n and using 0.5·ζ̄_n instead of the full ζ̄_n.
+        """
+        if options.get("withSSTaxability", "loop") != "optimize":
+            return
+
+        bigM = u.get_numeric_option(options, "bigMss", BIGM_AMO, min_value=0)
+        status = self.N_i - 1  # 0 = single, 1 = MFJ
+        ss_lo = tx.ssTaxabilityLo[status]   # 𝒫^lo: lower provisional income threshold
+        ss_hi = tx.ssTaxabilityHi[status]   # 𝒫^hi: upper provisional income threshold
+        delta_p = ss_hi - ss_lo             # H_2 - H_1: bracket width
+
+        tau_0 = self.tau_kn[0, :]
+
+        for n in range(self.N_n):
+            zetaBar_n = np.sum(self.zetaBar_in[:, n])
+
+            if zetaBar_n > 0 and zetaBar_n < delta_p:
+                self.mylog.vprint(
+                    f"Warning: year {n}: ζ̄_n={zetaBar_n:.0f} < Δ𝒫={delta_p:.0f}; "
+                    f"SS taxability LP may slightly overestimate T_ss (inner min ignored)."
+                )
+
+            # === Build Π_n LP coefficients ===
+            # Π_n = e_n - t^σ_n + LP_income_terms + params, where the LP income terms
+            # mirror the Medicare MAGI constraint (same year n, not n-2) but with 0.5·ζ̄_n.
+            # The t^σ_n correction cancels the taxable-SS portion embedded in e_n (with ss_lp,
+            # e_n = B_n + t^σ_n), leaving Π_n = B_n + Q_n + 0.5·ζ̄_n independent of t^σ_n.
+            tau_prev = tau_0[max(0, n - 1)]
+
+            rhs_pi = (self.fixed_assets_ordinary_income_n[n]
+                      + self.fixed_assets_capital_gains_n[n]
+                      + 0.5 * zetaBar_n)   # 0.5·SS for provisional income (not full SS)
+
+            pi_row = {}
+            pi_row[_q1(self.C["e"],   n, self.N_n)] = -1   # subtract e_n
+            pi_row[_q1(self.C["tss"], n, self.N_n)] = +1   # add back t^σ_n to cancel its share in e_n
+
+            for i in range(self.N_i):
+                # Combined dividend + interest yield for taxable account (equity + bonds/notes/cash).
+                afac = (self.mu * self.alpha_ijkn[i, 0, 0, n]
+                        + np.sum(self.alpha_ijkn[i, 0, 1:, n] * np.maximum(0, self.tau_kn[1:, n])))
+                # Capital gains: price appreciation only (total equity return − dividend rate).
+                bfac = self.alpha_ijkn[i, 0, 0, n] * max(0, tau_prev - self.mu)
+
+                w1_idx = _q3(self.C["w"], i, 1, n, self.N_i, self.N_j, self.N_n)
+                x_idx  = _q2(self.C["x"], i,    n, self.N_i, self.N_n)
+                b_idx  = _q3(self.C["b"], i, 0, n, self.N_i, self.N_j, self.N_n + 1)
+                d_idx  = _q2(self.C["d"], i,    n, self.N_i, self.N_n)
+                w0_idx = _q3(self.C["w"], i, 0, n, self.N_i, self.N_j, self.N_n)
+
+                pi_row[w1_idx] = pi_row.get(w1_idx, 0) - 1           # IRA withdrawals (income)
+                pi_row[x_idx]  = pi_row.get(x_idx,  0) - 1           # Roth conversions (income)
+                pi_row[b_idx]  = pi_row.get(b_idx,  0) - afac        # beginning balance × yield
+                pi_row[d_idx]  = pi_row.get(d_idx,  0) - afac        # contributions × yield
+                pi_row[w0_idx] = pi_row.get(w0_idx, 0) + (afac - bfac)  # withdrawals (net)
+
+                rhs_pi += (self.omega_in[i, n]
+                           + self.other_inc_in[i, n]
+                           + self.piBar_in[i, n]
+                           + 0.5 * self.kappa_ijn[i, 0, n] * afac)   # half-period contribution yield
+
+            # Variable index shorthands.
+            plo_idx = _q1(self.C["plo"], n, self.N_n)
+            phi_idx = _q1(self.C["phi"], n, self.N_n)
+            q_idx   = _q1(self.C["q"],   n, self.N_n)
+            tss_idx = _q1(self.C["tss"], n, self.N_n)
+            z0_idx  = _q2(self.C["zs"],  n, 0, self.N_n, 2)
+            z1_idx  = _q2(self.C["zs"],  n, 1, self.N_n, 2)
+
+            # === p^lo_n = max(0, Π_n − 𝒫^lo) ===
+            # Lower bound ≥ 0 from default variable bounds; explicit inequality enforces the max.
+            # Row: p^lo_n + pi_row_coeffs ≥ rhs_pi − ss_lo
+            row_plo = dict(pi_row)
+            row_plo[plo_idx] = row_plo.get(plo_idx, 0) + 1
+            self.A.addNewRow(row_plo, rhs_pi - ss_lo, np.inf)
+
+            # === p^hi_n = max(0, Π_n − 𝒫^hi) ===
+            row_phi = dict(pi_row)
+            row_phi[phi_idx] = row_phi.get(phi_idx, 0) + 1
+            self.A.addNewRow(row_phi, rhs_pi - ss_hi, np.inf)
+
+            # === q_n = min(Δ𝒫, p^lo_n) via binary z^σ_{0n} ===
+            # Upper bounds: q_n ≤ Δ𝒫 (from B.setRange below) and q_n ≤ p^lo_n.
+            self.A.addNewRow({q_idx: 1, plo_idx: -1}, -np.inf, 0)               # q ≤ p^lo
+            # q_n ≥ Δ𝒫 − M·(1 − z0)  →  q_n − M·z0 ≥ Δ𝒫 − M
+            self.A.addNewRow({q_idx: 1, z0_idx: -bigM}, delta_p - bigM, np.inf)
+            # q_n ≥ p^lo_n − M·z0  →  q_n − p^lo_n + M·z0 ≥ 0
+            self.A.addNewRow({q_idx: 1, plo_idx: -1, z0_idx: bigM}, 0, np.inf)
+            self.B.setRange(q_idx, 0, delta_p)                                   # q ≤ Δ𝒫
+
+            # === t^σ_n = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n) via binary z^σ_{1n} ===
+            # Upper bound t^σ_n ≤ 0.5·q_n + 0.85·p^hi_n.
+            self.A.addNewRow({tss_idx: 1, q_idx: -0.5, phi_idx: -0.85}, -np.inf, 0)
+            # t^σ_n ≥ 0.85·ζ̄_n − M·(1 − z1)  →  t^σ_n − M·z1 ≥ 0.85·ζ̄_n − M
+            self.A.addNewRow({tss_idx: 1, z1_idx: -bigM}, 0.85 * zetaBar_n - bigM, np.inf)
+            # t^σ_n ≥ 0.5·q_n + 0.85·p^hi_n − M·z1  →  t^σ_n − 0.5·q − 0.85·p^hi + M·z1 ≥ 0
+            self.A.addNewRow({tss_idx: 1, q_idx: -0.5, phi_idx: -0.85, z1_idx: bigM}, 0, np.inf)
+            self.B.setRange(tss_idx, 0, 0.85 * zetaBar_n)                        # t^σ ≤ 0.85·ζ̄
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -2181,6 +2322,7 @@ class Plan:
             "verbose",
             "withMedicare",
             "withSCLoop",
+            "withSSTaxability",
         ]
         options = {} if options is None else options
 
@@ -2642,7 +2784,10 @@ class Plan:
             return
 
         self._aggregateResults(x, short=True)
-        self._update_Psi_n()
+        # Psi_n is derived directly from the tss_n LP variable in _aggregateResults
+        # when withSSTaxability=="optimize"; skip the SC-loop update in that case.
+        if "tss" not in self.C:
+            self._update_Psi_n()
 
         self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
         ltcg_n = np.maximum(self.Q_n, 0)
@@ -2714,8 +2859,17 @@ class Plan:
         self.w_ijn = np.array(x[Cw:Cx])
         self.w_ijn = self.w_ijn.reshape((Ni, Nj, Nn))
 
-        self.x_in = np.array(x[Cx:Czx])
+        self.x_in = np.array(x[Cx:Cx + Ni * Nn])
         self.x_in = self.x_in.reshape((Ni, Nn))
+
+        # Extract SS taxability LP variables and update Psi_n from the LP solution.
+        if "tss" in self.C:
+            Ctss = self.C["tss"]
+            self.tss_n = np.array(x[Ctss:Czx])  # t^σ_n: N_n values, ends before binary block
+            ss_n = np.sum(self.zetaBar_in, axis=0)
+            mask = ss_n > 0
+            self.Psi_n = np.zeros(Nn)
+            self.Psi_n[mask] = np.minimum(self.tss_n[mask] / ss_n[mask], 0.85)
 
         # self.z_inz = np.array(x[Czx:])
         # self.z_inz = self.z_inz.reshape((Ni, Nn, Nzx))
