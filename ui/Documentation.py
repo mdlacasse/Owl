@@ -63,77 +63,39 @@ with col3:
     st.caption("Retirement planner with great wisdom")
 
 st.markdown("""
-
 -------
 ### :orange[Table of Contents]
-""")
-
-col1, col2, col3 = st.columns(3, gap="small")
-col1.markdown("""
-[Plan Setup](#plan-setup)
-- [Case Definition](#case-definition)
-- [:material/person_add: Create Case](#person-add-create-case)
-- [:material/home: Financial Profile](#home-financial-profile)
-    - [:material/work_history: Wages and Contributions](#work-history-wages-and-contributions)
-    - [:material/account_balance: Debts and Fixed Assets](#account-balance-debts-and-fixed-assets)
-- [:material/currency_exchange: Fixed Income](#currency-exchange-fixed-income)
-- [:material/savings: Account Balances](#savings-account-balances)
-- [:material/percent: Asset Allocation](#percent-asset-allocation)
-- [:material/monitoring: Rates Selection](#monitoring-rates-selection)
-- [:material/tune: Run Options](#tune-run-options)
-""")
-
-col2.markdown("""
-[Results](#results)
-- [:material/stacked_line_chart: Graphs](#stacked-line-chart-graphs)
-- [:material/data_table: Worksheets](#data-table-worksheets)
-- [:material/description: Reports](#description-reports)
-
-[Simulations](#simulations)
-- [:material/history: Historical Range](#history-historical-range)
-- [:material/finance: Monte Carlo](#finance-monte-carlo)
-
-[Tools](#tools)
-- [:material/settings: Settings](#settings-settings)
-- [:material/error: Logs](#error-logs)
-""")
-
-col3.markdown("""
-[Help](#help)
-- [:material/campaign: Welcome](#welcome)
-- [:material/help: Documentation](#help-documentation)
-- [:material/tune: Parameters Reference](#parameters-reference)
-- [:material/info: About **Owl**](#info-about-owl)
-
-[Tips](#tips)
-- [:material/lightbulb_2: Recommendations on Optimization and Roth Conversions]\
-(#lightbulb-2-recommendations-on-optimization-and-roth-conversions)
-- [:material/rule_settings: Typical Workflow](#rule-settings-typical-workflow)
-- [:material/mindfulness: Scope of Use](#mindfulness-scope-of-use)
-
+*Use the tabs below to navigate documentation by section.*
 """)
 
 st.markdown("---")
 
-col1, col2 = st.columns([0.80, 0.20], gap="large")
-with col1:
+# Tabs for bite-sized navigation
+tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_tips = st.tabs([
+    "Overview",
+    "Plan Setup",
+    "Results",
+    "Simulations",
+    "Tools & Help",
+    "Tips",
+])
+
+# --- Overview tab ---
+with tab_overview:
     st.markdown("""
 ### :orange[Getting Started with the User Interface]
 The functions of each page are described below in the same order as they appear in the menu bar:
 Typically, pages would be accessed in order, starting from left to right and from the top down.
 
 A `Case selector` box located at the top of each page allows
-to navigate between the different scenarios created.
-This box is present on all pages in [Plan Setup](#plan-setup)
-and [Results](#results) sections.
+you to navigate between the different scenarios created.
+This box is present on all pages in **Plan Setup** and **Results** sections.
 The *case* being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
 case and then copying/creating derived scenarios with slight changes in the parameters.
-A comparison between the
-different resulting outcomes can be found on the [Reports](#description-reports) page.
-The [Typical Workflow](#typical-workflow) section below
-goes through a more specific example.
+A comparison between the different resulting outcomes can be found on the **Reports** page.
+The **Typical Workflow** section (Tips tab) goes through a more specific example.
 
 **Owl** uses a full year as the standard unit of time. Most values are therefore entered and
 reported as yearly values. These include wages, income, rates, etc. To better align
@@ -144,31 +106,35 @@ are entered and reported in unit dollars.
 Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
 
 There are five sections in the menu bar:
-[Plan Setup](#plan-setup), [Results](#results),
-[Simulations](#simulations), [Tools](#tools), and [Help](#help).
+**Plan Setup**, **Results**, **Simulations**, **Tools**, and **Help**.
 The sections below follow the same logical order.
+""")
 
--------
-### :orange[Plan Setup]
+    with st.expander(":material/folder: Case Definition", expanded=True):
+        st.markdown("""
+A *case* is a collection of parameters that fully defines a retirement scenario. A *case* contains
+individual's life parameters, financial profile, fixed income sources, savings account balances,
+asset allocation ratios, anticipated rates of return, and optimization parameters.
+
+A *run* is the execution of a *case* using a single instance of rates, either constant or varying.
+
+**Owl** helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
+the planner can explore the impacts of differing assumptions and strategies on their portfolio
+at the end of their planning period.
+""")
+
+# --- Plan Setup tab ---
+with tab_plan:
+    st.markdown("""
 This section contains the steps for creating and configuring *case* scenarios.
 For new *cases*, every page of this section should be visited and parameters
 entered according to your personal situation. To make this process easier,
 a progress bar tracking which page has been visited is shown at the bottom of the page.
 This bar can also be used to navigate between the pages of the *Plan Setup* section.
+""")
 
-#### Case Definition
-
-A *case* is a collection of parameters that fully defines a retirement scenario. A *case* contains
-individual's life parameters, financial profile, fixed income sources, savings account balances,
-asset allocation ratios, anticipated rates of return, and optimization parameters.
-
-A *run* is the execution of a *case* using a single instance of rates, either fixed or varying.
-
-**Owl** helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
-the planner can explore the impacts of differing assumptions and strategies on their portfolio
-at the end of their planning period.
-
-#### :material/person_add: Create Case
+    with st.expander(":material/person_add: Create Case", expanded=True):
+        st.markdown("""
 The **Create Case** page is where every new scenario begins.
 When no case is yet selected, the page displays three columns side by side:
 one to create a new *case* from scratch, one to upload a *case* parameter file,
@@ -193,11 +159,11 @@ in order to investigate their effects.
 Copy renames the *case* by appending a number counter in parenthesis, just as creating
 a copy of a file on Windows.
 It is recommended to rename each *case* to reflect the change in parameters.
-When copying a scenario, make sure to visit all pages in the [Plan Setup](#plan-setup)
+When copying a scenario, make sure to visit all pages in the **Plan Setup**
 section and verify that all parameters are as intended.
 When all *cases* have successfully run,
 results of related *cases* are compared side-by-side with differences
-in the [Reports](#description-reports) section.
+in the **Reports** section.
 Related *cases* are determined by having the same individual's names:
 anything else can change between *cases*.
 
@@ -224,17 +190,18 @@ An example is provided
 [here](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true) and more
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
-will populate all the fields in the [Plan Setup](#plan-setup) section,
+will populate all the fields in the **Plan Setup** section,
 except those in the *Household Financial Profile* (HFP) which get populated
 separately by an Excel workbook (see next section).
 
 Once a *case* was successfully run, the *case* file for the *case* being developed
-can be saved under the [Reports](#description-reports) page and
-can be reloaded at a later time.
+can be saved under the Reports page and can be reloaded at a later time.
 Case parameter files can have any name but when saving from the interface,
 their name will start with *Case_* followed by the *case* name.
+""")
 
-#### :material/home: Financial Profile
+    with st.expander(":material/home: Financial Profile"):
+        st.markdown("""
 The *Household Financial Profile* (HFP) contains two major sections,
 one representing *Wages and Contributions* for each individual, and
 the other capturing the household's *Debts and Fixed Assets*.
@@ -242,7 +209,7 @@ While the values can be entered manually in each table,
 an option is given to upload an Excel file containing all the data,
 thus avoiding this tedious exercise.
 After a case is created, an HFP upload widget also appears directly on the
-[Create Case](#person-add-create-case) page, so both uploads can be done
+**Create Case** page, so both uploads can be done
 without leaving that page.
 These data include future wages and contributions,
 past and future Roth contributions and conversions, large expenses
@@ -310,7 +277,7 @@ however, from which you will stop having anticipated income, or diminished incom
 work load. This transition can be gradual or sudden, and can be explored through these wages
 and contributions tables. The only *hard* dates are the years when you intend to receive
 a pension or collect social security, and these years are entered elsewhere on the
-[Fixed Income](#currency-exchange-fixed-income) page.
+**Fixed Income** page.
 
 Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term that includes
 contributions to 403b as well or any other tax-deferred account, with the exception
@@ -326,7 +293,7 @@ the needed values can be derived. These extra columns will be ignored when the f
 Manual Roth conversions can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in **Owl**.
 When the option `Convert as in Wages and Contributions tables` is toggled
-in the [Run Options](#tune-run-options) page,
+in the **Run Options** page,
 values from the **Wages and Contributions** table will be used and no optimization on Roth conversions
 will be performed. This column is provided for flexibility and to allow comparisons
 between an optimized solution and your best guesses.
@@ -350,7 +317,7 @@ If a file was originally associated with a *case* file, a message will remind th
 If values were entered or edited directly in the table,
 values can be saved directly in Excel format by clicking
 the `Download Financial Profile workbook` on the
-[Reports](#description-reports) page. This allows to rerun the same *case* at a later time
+**Reports** page. This allows to rerun the same *case* at a later time
 by reloading the same **Household Financial Profile** workbook (which contains the Wages and Contributions data).
 
 ##### :material/account_balance: Debts and Fixed Assets
@@ -448,8 +415,10 @@ where:
 - If *yod* is beyond the plan duration, the asset is **liquidated at the end of the last year** of the plan
   and added to the bequest value (no taxes, as assets pass to heirs with step-up in basis).
 - Assets disposed during the plan (yod within plan duration) generate taxable proceeds in the year of disposition.
+""")
 
-#### :material/currency_exchange: Fixed Income
+    with st.expander(":material/currency_exchange: Fixed Income"):
+        st.markdown("""
 This page is for entering data related to the individual's anticipated fixed income
 from pensions and social security.
 Unlike other parts of the user interface, amounts on this page are
@@ -515,9 +484,11 @@ indexed for inflation by selecting the corresponding button.
 As for social security, the selected month age, combined with your birth month,
 determines the exact time benefits start in the first year and the total
 annual amount for the first year is adjusted accordingly.
+""")
 
-#### :material/savings: Account Balances
-This page allows to enter account balances in all savings accounts.
+    with st.expander(":material/savings: Account Balances"):
+        st.markdown("""
+This page allows you to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
 Three types of savings accounts are considered and are tracked separately for spouses:
@@ -548,11 +519,13 @@ savings accounts, through surpluses and deposits, can be part of the optimal sol
 
 Setting a surplus fraction that deposits some or all surpluses in the survivor's account
 can also sometimes lead to slow convergence. This is especially noticeable when solving with
-varying rates and not so common when using fixed rates.
+varying rates and not so common when using constant rates.
 When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
+""")
 
-#### :material/percent: Asset Allocation
+    with st.expander(":material/percent: Asset Allocation"):
+        st.markdown("""
 This page allows you to select how to partition your assets between 4 investment options,
 one equity and three fixed-income securities:
 - S&P 500,
@@ -594,12 +567,14 @@ of the allocation ratios from the `initial` values to the `final` values as the 
 When an `s-curve` is selected, two additional parameters controlling the shape of the transition
 will appear, one for the timing of the inflection point measured in years from now,
 and the other for the width of the transition, measured in +/- years from the inflection point.
+""")
 
-#### :material/monitoring: Rates Selection
+    with st.expander(":material/monitoring: Rates Selection"):
+        st.markdown("""
 This page allows you to select the return rates over the
 time span of the *case*. All rates are nominal and annual.
 There are two major types of rates (labeled *constant* and *varying* in the UI):
-- *Constant* (fixed) - staying the same from one year to another:
+- *Constant* — staying the same from one year to another:
     - `conservative`,
     - `optimistic`,
     - `historical average` - i.e., average over a range of past years,
@@ -634,10 +609,12 @@ rate series:
   at a different point in the same historical or stochastic sequence.
 
 The `roll` operation is applied before `reverse`.
-These options apply only to varying rates; these operations do not apply to fixed rates
+These options apply only to varying rates; these operations do not apply to constant rates
 since the same rate is used every year.
+""")
 
-#### :material/tune: Run Options
+    with st.expander(":material/tune: Run Options"):
+        st.markdown("""
 This page allows you to select the objective function to optimize.
 One can choose between maximizing the net spending amount subject to the constraint
 of a desired bequest, or maximizing a bequest, subject to the constraint of providing
@@ -651,7 +628,7 @@ unless the `Convert as in Wages and Contributions tables`
 toggle is on, in which case Roth conversions will not be optimized,
 but will rather be performed according to
 the *Roth conv* column on the
-[Wages and Contributions](#work-history-wages-and-contributions) page.
+**Wages and Contributions** page.
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
 
@@ -753,15 +730,16 @@ the net spending *basis* which sets the resulting spending
 amounts over the duration of the *case*.
 Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
 for that reason they do not start at 1.
+""")
 
--------
-### :orange[Results]
-
-#### :material/stacked_line_chart: Graphs
+# --- Results tab ---
+with tab_results:
+    with st.expander(":material/stacked_line_chart: Graphs", expanded=True):
+        st.markdown("""
 This page displays various plots from a single scenario based on the selections made
-in the [Plan Setup](#plan-setup) section.
-This simulation uses a single instance of a series of rates, either fixed or varying,
-as selected in the [Plan Setup](#plan-setup) section.
+in the **Plan Setup** section.
+This simulation uses a single instance of a series of rates, either constant or varying,
+as selected in the **Plan Setup** section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, or maximize the bequest under the constraint of a net spending amount.
 Various plots show the results, which can be displayed in today's \\$ or
@@ -771,21 +749,26 @@ A button allows to re-run the *case* which would generate a different result
 if the chosen rates are `histochastic` or `stochastic`. Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
-selected in the [Settings](#settings-settings) section described below.
+selected in the Settings section (Tools & Help tab).
 
-#### :material/data_table: Worksheets
+""")
+
+    with st.expander(":material/data_table: Worksheets"):
+        st.markdown("""
 This page shows the various worksheets containing annual transactions
 and savings account balances in nominal \\$.
 Savings balances are values at the beginning of the year, while other quantities
 are for the full year.
 Each table can be downloaded separately in csv format, or all tables can be downloaded
 jointly as a single Excel workbook by clicking on the `Download Worksheets` on the
-[Reports](#description-reports) page.
+**Reports** page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 The first line of the individual's **Sources** worksheets is highlighted in blue
 indicating that these lines contain actionable items for the current year.
+""")
 
-#### :material/description: Reports
+    with st.expander(":material/description: Reports"):
+        st.markdown("""
 This page allows to compare *cases* and save files for future use.
 First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the *case*.
@@ -803,10 +786,10 @@ of the parameters selected for each case.
 Another section called **Excel Workbooks** allows
 to save the contents of the tables on corresponding pages as a single Excel workbook.
 The `Download Financial Profile workbook` will save the data displayed on the
-[Wages and Contributions](#work-history-wages-and-contributions) page
+**Wages and Contributions** page
 (and the rest of the Financial Profile) while the
 `Download Worksheets` will save all tables displayed
-on the [Worksheets](#data-table-worksheets) page as a single Excel workbook.
+on the **Worksheets** page as a single Excel workbook.
 
 Similarly, all parameters used to generate the *case* are collected in *toml* format and displayed.
 The `Download Case parameter file` button allows to save the parameters of the selected scenario
@@ -814,17 +797,18 @@ to a *case* file for future use.
 
 With the *case* parameter file and the **Household Financial Profile** workbook,
 the same *case* can be reproduced at a later time by uploading the *case* parameter file
-through the widget on the [Create Case](#person-add-create-case) page, and the
-*Household Financial Profile* workbook through the uploader on either the
-[Create Case](#person-add-create-case) or the
-[Financial Profile](#home-financial-profile) page.
+through the widget on the Create Case page, and the *Household Financial Profile* workbook
+through the uploader on either the Create Case or the Financial Profile page.
+""")
 
--------
-### :orange[Simulations]
-There are two different ways to run multiple scenarios and generate a histogram
-of results.
+# --- Simulations tab ---
+with tab_sim:
+    st.markdown("""
+There are two different ways to run multiple scenarios and generate a histogram of results.
+""")
 
-#### :material/history: Historical Range
+    with st.expander(":material/history: Historical Range", expanded=True):
+        st.markdown("""
 This page is for backtesting your scenario over a selected range of past years,
 and generate a histogram of results.
 User can run multiple simulations,
@@ -850,7 +834,7 @@ runs: one run per year in that range by default.
   distribution is right-skewed.
 - **Rate sequence** – When augmented sampling is off, **Reverse sequence** and **Roll (years)** can
   be applied to the rate sequence for each run
- (same behavior as on the [Rates Selection](#monitoring-rates-selection) page),
+ (same behavior as on the **Rates Selection** page),
   giving one variant per year.
 
 A histogram of results and a success rate is displayed at the end of the run.
@@ -863,11 +847,12 @@ one for the partial bequest left at the passing of the first spouse
 and the other for the distribution of values of the objective being optimized,
 either maximum net spending or maximum bequest left at the passing
 of the surviving spouse, depending on the objective function being optimized.
+""")
 
-#### :material/finance: Monte Carlo
+    with st.expander(":material/finance: Monte Carlo"):
+        st.markdown("""
 This page runs a Monte Carlo simulation using time sequences of
-annual rates of return that are generated
-using statistical methods. At the end of the run,
+annual rates of return that are generated using statistical methods. At the end of the run,
 a histogram is shown, with a probability of success.
 
 The mean outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
@@ -875,7 +860,7 @@ of cases $N$ and the probability of success $P$, which is the percentage of case
 Cases that failed are termed infeasible, as the optimizer could not find
 values that could satisty all constraints.
 
-As is the case for [Historical Range](#history-historical-range),
+As is the case for **Historical Range**,
 if the `Beneficiary fractions` are not all unity, two histograms will also be displayed:
 one for the partial bequest left at the passing of the first spouse
 and the other for the distribution of values of the objective being optimized,
@@ -890,10 +875,12 @@ faster than running on the Streamlit host, depending on your hardware.
 Moreover, the community server has a
 CPU time limit that will stop a session after the quota is reached.
 Most likely, this will not happen unless you devise unusually long Monte Carlo runs.
+""")
 
--------
-### :orange[Tools]
-#### :material/settings: Settings
+# --- Tools & Help tab ---
+with tab_tools:
+    with st.expander(":material/settings: Settings", expanded=True):
+        st.markdown("""
 This page allows to select different backends for plotting the graphs.
 The `plotly` package is currently the default as the graphs generated are interactive
 while `matplotlib` graphs are not.
@@ -943,32 +930,29 @@ can also greatly improve the visualization of graphs and worksheets
 **Owl**'s default theme is the *Dark* mode but a *Light* theme is also available by
 clicking on the three vertical dots located on the upper right of the app
 and selecting the **Settings** option.
+""")
 
-#### :material/error: Logs
+    with st.expander(":material/error: Logs"):
+        st.markdown("""
 Messages coming from the underlying **Owl** calculation engine are displayed on this page.
 This page is mainly used for debugging purposes.
+""")
 
--------
-### :orange[Help]
+    with st.expander(":material/campaign: Help pages"):
+        st.markdown("""
+**Welcome** — The landing page of the application. It shows new users how to quickly get started by using an example *case* file.
 
-#### :material/campaign: Welcome
-This page is the landing page of the application.
-It shows new users how to quickly get started by using an example *case* file.
+**Documentation** — These very pages.
 
-#### :material/help: Documentation
-These very pages.
+**Parameters Reference** — Displays reference tables for parameter settings. Useful for understanding keys in case configuration files (TOML).
 
-#### :material/tune: Parameters Reference
-This page displays reference tables for parameters settings. These are useful for understanding
-keys in case configuration files (TOML).
+**About Owl** — Credits and disclaimers.
+""")
 
-#### :material/info: About **Owl**
-Credits and disclaimers.
-
--------
-### :orange[Tips]
-#### :material/lightbulb_2: Recommendations on Optimization and Roth Conversions
-
+# --- Tips tab ---
+with tab_tips:
+    with st.expander(":material/lightbulb_2: Recommendations on Optimization and Roth Conversions", expanded=True):
+        st.markdown("""
 **Owl** can optimize explicitly for Medicare costs but these can sometimes be
 costly computations. This approach is included in the current version but
 be aware that computing time can be unpredictable
@@ -990,13 +974,16 @@ While considering Roth conversions,
 always keep in mind that all projections rely on our current best assumptions.
 To account for the effects of potential changes in future income tax rates,
 one can use a termination year for current tax rates to revert to higher rates.
+""")
 
-#### :material/rule_settings: Typical Workflow
+    with st.expander(":material/rule_settings: Typical Workflow"):
+        st.markdown("""
 A typical workflow would look like the following:
+
 1) Create a base *case* representing your basic scenario;
 2) Copy the base *case* and modify the parameter you want to investigate;
 3) Repeat 2) with other end-member values of the parameter you would like to consider;
-4) Run all *cases* and compare them on the [Reports](#description-reports) page.
+4) Run all *cases* and compare them on the **Reports** page.
 
 To make it more concrete, here is an example
 where one would like to investigate the effects of Roth conversions
@@ -1009,13 +996,15 @@ Let's say this *case* allows for Roth conversions up to \\$100k.
 set maximum Roth conversions to 0.
 3) Copy the base *case* again, call it *2026 - No Roth limit* and
 set maximum Roth conversions to a very large number, say, \\$800k.
-4) Compare all *cases* on the [Reports](#description-reports) page.
+4) Compare all *cases* on the **Reports** page.
 
 As mentionned above, the most actionable information is located on the first few lines
-of the **Sources** tables on the [Worksheets](#data-table-worksheets) pages.
+of the **Sources** tables on the Worksheets page.
 This is where withdrawals and conversions are displayed for this year and the next few years.
+""")
 
-#### :material/mindfulness: Scope of Use
+    with st.expander(":material/mindfulness: Scope of Use"):
+        st.markdown("""
 In general, computer modeling is not about predicting the future,
 but rather about exploring possibilities.
 **Owl** has been designed to allow users to explore multiple parameters
