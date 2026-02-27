@@ -106,8 +106,8 @@ col3.markdown("""
 - [:material/info: About **Owl**](#info-about-owl)
 
 [Tips](#tips)
-- [:material/lightbulb_2: Advice on Optimization and Roth Conversions]\
-(#lightbulb-2-advice-on-optimization-and-roth-conversions)
+- [:material/lightbulb_2: Recommendations on Optimization and Roth Conversions]\
+(#lightbulb-2-recommendations-on-optimization-and-roth-conversions)
 - [:material/rule_settings: Typical Workflow](#rule-settings-typical-workflow)
 - [:material/mindfulness: Scope of Use](#mindfulness-scope-of-use)
 
@@ -572,7 +572,7 @@ considered to merely track inflation and therefore remain at constant value.
 Two choices of asset allocations are possible:
 `account` and `individual`. For `account` type, each type
 of individual savings account is associated with its own asset allocation ratios.
-It is wise to be more aggresive in tax-exempt accounts and more conservative in
+It is wise to be more aggressive in tax-exempt accounts and more conservative in
 taxable investment accounts. This choice will naturally push the optimizer
 to load more assets into the tax-exempt accounts through Roth conversions.
 These Roth conversions can be artificially driven by the better return rates
@@ -598,13 +598,13 @@ and the other for the width of the transition, measured in +/- years from the in
 #### :material/monitoring: Rates Selection
 This page allows you to select the return rates over the
 time span of the *case*. All rates are nominal and annual.
-There are two major types of rates:
-- `Fixed` - staying the same from one year to another:
+There are two major types of rates (labeled *constant* and *varying* in the UI):
+- *Constant* (fixed) - staying the same from one year to another:
     - `conservative`,
     - `optimistic`,
     - `historical average` - i.e., average over a range of past years,
     - `user` - rates are provided by the user.
-- `Varying` - changing from year to year:
+- *Varying* - changing from year to year:
     - `historical` - using a rate sequence which happened in the past,
     - `histochastic` - using stochastic rates derived from statistics over a time range of historical rates,
     - `stochastic` - using stochastic rates created from statistical parameters specified by the user.
@@ -620,7 +620,7 @@ This [reference](https://us500.com/tools/data/sp500-dividend-yield) provides
 historical S&P 500 dividend yields over different periods.
 This page also includes some adjustments related to future tax rates. One is the anticipated
 tax rate that heirs will pay on the tax-deferred portion of the bequest. Another setting is related
-to the year when the OBBBA rates are anticipated to return to pre-Tax Cut and Job Act
+to the year when the OBBBA rates are anticipated to return to pre-Tax Cuts and Jobs Act
 rates.
 
 For **varying** rate types (historical, histochastic, stochastic), the *Advanced options*
@@ -669,7 +669,7 @@ It can be significantly slower (sometimes many minutes) due to additional binary
 Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios.
 
 Medicare premiums start automatically in the year each individual reaches age 65.
-If anyone in the case is age 64 or older, inputs appear for *MAGI for [year] ($k)*
+If anyone in the case is age 64 or older, inputs appear for `MAGI for [year] ($k)`
 for the prior 1 or 2 years (nominal thousands). These values are needed for
 Income-Related Monthly Adjusted Amounts (IRMAA). Values default to zero.
 A warning appears if Medicare is on while the self-consistent loop is off,
@@ -679,8 +679,8 @@ A **self-consistent loop** is an iterative method used for values that are diffi
 to integrate into the linear program: the net investment income tax (NIIT),
 the capital gains rate (0, 15, or 20%), the phase out of the additional exemption for seniors,
 the taxable fraction of Social Security benefits (computed from the IRS provisional income
-formula — 0% below $32k PI for MFJ / $25k for single, ramping to 50% then 85% above
-$44k MFJ / $34k single), and Medicare/IRMAA when Medicare is enabled. The loop solves,
+formula — 0% below \\$32k PI for MFJ / \\$25k for single, ramping to 50% then 85% above
+\\$44k MFJ / \\$34k single), and Medicare/IRMAA when Medicare is enabled. The loop solves,
 recalculates these values from the solution, re-solves, and repeats until convergence.
 The *Self-consistent loop calculations* toggle in *Advanced options* turns this on or off;
 turning it off defaults all these values to their conservative upper bounds (e.g. 85% SS
@@ -692,6 +692,8 @@ These constraints apply from year 2 onward through each individual's life horizo
 is excluded to avoid conflicts with initial balances).
 The minimum should ideally be smaller than each spouse's initial taxable balance, otherwise the
 optimizer may find the problem infeasible or produce unexpected results.
+When maximizing spending with a bequest target, the desired bequest should be at least as large
+as the survivor's safety net (in today's \\$), otherwise optimization may be infeasible.
 Use this to ensure a reserve of liquid assets is maintained for emergencies or opportunities,
 or to reflect a personal preference for keeping a buffer in taxable accounts.
 
@@ -703,10 +705,20 @@ The *Advanced options* expander contains:
   Medicare and IRMAA calculations are on.
 - *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*
 - *Disallow same-year Roth conversions and tax-free withdrawals*
-- *Disallow cash-flow surpluses in last years*
-- *Solver* selection (HiGHS, PuLP/CBC, PuLP/HiGHS, or MOSEK if available).
+- *Disallow cash-flow surpluses in the last two years of the plan*
+- *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction Ψ.
+- *Solver* selection (default, HiGHS, PuLP/CBC, PuLP/HiGHS, or MOSEK if available), plus optional extra solver options.
+
+**Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
+Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
+Choose *value* to pin it to a fixed fraction Ψ ∈ [0, 0.85]: use 0.0 for low provisional income,
+0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
+exactly within the LP using binary variables; this can be slower.
 
 Different mixed-integer linear programming solvers can be selected.
+Choose `default` to auto-select MOSEK when available, otherwise HiGHS.
+The *Extra solver options (expert)* field accepts a JSON dictionary (e.g. `{"key": "value"}`)
+that is merged into the solver options; leave empty unless experimenting.
 This option is mostly for verification purposes.
 All solvers tested
 (HiGHS, COIN-OR Branch-and-Cut solver through PuLP, HiGHS through PuLP, and MOSEK)
@@ -826,7 +838,7 @@ runs: one run per year in that range by default.
 
 - **Augmented sampling** – When on, each year in the range is run with every combination of *reverse*
   (forward or reversed sequence) and *roll* (0 to *N*−1 years), so the histogram aggregates many more
-  runs (historical years $\\times 2N$, where $N$ is tne number of years in the plan)
+  runs (historical years $\\times 2N$, where $N$ is the number of years in the plan)
   and gives a broader view of outcomes. When off, only the default sequence
   (no reverse, no roll) is used—one run per year.
   As the number of rate sequences can reach several thousands,
@@ -898,7 +910,10 @@ The position of the menubar can be selected to be at the top or as a sidebar.
 The sidebar menu can also be collapsed if needed.
 Default behavior is to have the menubar at the top, unless on a mobile device.
 
-###### Streamlit App and Theme
+The **Header** section lets you choose whether the case selector bar stays sticky (fixed at the top when
+scrolling) or scrolls with the page (static).
+
+###### Full Screen
 If you are accessing **Owl** remotely on the Streamlit Community Cloud server through the Chrome browser,
 the Chrome performance manager might disable hidden or inactive tabs.
 This could cause your **Owl** session to inadvertently reset when idling for too long,
@@ -924,6 +939,7 @@ If not using the Streamlit app, going full screen while in the Chrome browser
 can also greatly improve the visualization of graphs and worksheets
 (achieved by pressing F11 on Windows, or Ctl+Cmd+F on MacOS).
 
+###### App Theme
 **Owl**'s default theme is the *Dark* mode but a *Light* theme is also available by
 clicking on the three vertical dots located on the upper right of the app
 and selecting the **Settings** option.
@@ -952,6 +968,7 @@ Credits and disclaimers.
 -------
 ### :orange[Tips]
 #### :material/lightbulb_2: Recommendations on Optimization and Roth Conversions
+
 **Owl** can optimize explicitly for Medicare costs but these can sometimes be
 costly computations. This approach is included in the current version but
 be aware that computing time can be unpredictable

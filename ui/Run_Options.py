@@ -134,25 +134,6 @@ else:
                     ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
-    st.markdown("#### :orange[Social Security Taxability]")
-    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-    with col1:
-        choices = ["loop", "value", "optimize"]
-        kz.initCaseKey("ssTaxabilityMode", "loop")
-        helpmsg = ("’loop’: compute SS taxable fraction dynamically via the self-consistent loop. "
-                   "’value’: pin \u03a8 to a fixed fraction (enter below). "
-                   "’optimize’: solve taxable SS exactly within the LP using binary variables (expert).")
-        ret = kz.getRadio("SS taxability method", choices, "ssTaxabilityMode", help=helpmsg)
-    with col2:
-        if kz.getCaseKey("ssTaxabilityMode") == "value":
-            kz.initCaseKey("ssTaxabilityValue", 0.85)
-            helpmsg = ("\u03a8 \u2208 [0, 0.85]. "
-                       "Use 0.0 (PI below lower threshold), 0.5 (mid-range), or 0.85 (high PI).")
-            ret = kz.getNum("Fixed SS tax fraction \u03a8", "ssTaxabilityValue",
-                            min_value=0.0, max_value=0.85, step=0.05, format="%.2f",
-                            help=helpmsg)
-
-    st.divider()
     st.markdown("#### :orange[Safety Net]")
     helpmsg = ("Maintain a minimum inflation-adjusted taxable balance (today’s \\$k)"
                " from year 2 through life expectancy. This should ideally be less than the initial balance.")
@@ -204,8 +185,27 @@ else:
 
             kz.initCaseKey("noLateSurplus", False)
             helpmsg = ("Disallow cash-flow surpluses in the last two years of the plan.")
-            ret = kz.getToggle("Disallow cash-flow surpluses in last years",
+            ret = kz.getToggle("Disallow cash-flow surpluses in last 2 years",
                                "noLateSurplus", help=helpmsg)
+
+        st.divider()
+        st.markdown("#### :orange[Social Security Taxability]")
+        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+        with col1:
+            choices = ["loop", "value", "optimize"]
+            kz.initCaseKey("ssTaxabilityMode", "loop")
+            helpmsg = ("’loop’: compute SS taxable fraction dynamically via the self-consistent loop. "
+                       "’value’: pin SS taxable fraction to a fixed value (enter below). "
+                       "’optimize’: solve taxable SS exactly within the LP using binary variables (expert).")
+            ret = kz.getRadio("SS taxability method", choices, "ssTaxabilityMode", help=helpmsg)
+        with col2:
+            if kz.getCaseKey("ssTaxabilityMode") == "value":
+                kz.initCaseKey("ssTaxabilityValue", 0.85)
+                helpmsg = ("\u03a8 \u2208 [0, 0.85]. "
+                           "Use 0.0 (PI below lower threshold), 0.5 (mid-range), or 0.85 (high PI).")
+                ret = kz.getNum("Fixed SS tax fraction \u03a8", "ssTaxabilityValue",
+                                min_value=0.0, max_value=0.85, step=0.05, format="%.2f",
+                                help=helpmsg)
 
         st.divider()
         st.markdown("#### :orange[Solver]")

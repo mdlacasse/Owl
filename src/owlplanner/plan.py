@@ -1911,6 +1911,7 @@ class Plan:
             tss_idx = self.vm["tss"].idx(n)
             z0_idx = self.vm["zs"].idx(n, 0)
             z1_idx = self.vm["zs"].idx(n, 1)
+            bigMBar = bigM * self.gamma_n[n]
 
             # === p^lo_n = max(0, Π_n − 𝒫^lo) ===
             # Lower bound ≥ 0 from default variable bounds; explicit inequality enforces the max.
@@ -1928,18 +1929,18 @@ class Plan:
             # Upper bounds: q_n ≤ Δ𝒫 (from B.setRange below) and q_n ≤ p^lo_n.
             self.A.addNewRow({q_idx: 1, plo_idx: -1}, -np.inf, 0)               # q ≤ p^lo
             # q_n ≥ Δ𝒫 − M·(1 − z0)  →  q_n − M·z0 ≥ Δ𝒫 − M
-            self.A.addNewRow({q_idx: 1, z0_idx: -bigM}, delta_p - bigM, np.inf)
+            self.A.addNewRow({q_idx: 1, z0_idx: -bigMBar}, delta_p - bigMBar, np.inf)
             # q_n ≥ p^lo_n − M·z0  →  q_n − p^lo_n + M·z0 ≥ 0
-            self.A.addNewRow({q_idx: 1, plo_idx: -1, z0_idx: bigM}, 0, np.inf)
+            self.A.addNewRow({q_idx: 1, plo_idx: -1, z0_idx: bigMBar}, 0, np.inf)
             self.B.setRange(q_idx, 0, delta_p)                                   # q ≤ Δ𝒫
 
             # === t^σ_n = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n) via binary z^σ_{1n} ===
             # Upper bound t^σ_n ≤ 0.5·q_n + 0.85·p^hi_n.
             self.A.addNewRow({tss_idx: 1, q_idx: -0.5, phi_idx: -0.85}, -np.inf, 0)
             # t^σ_n ≥ 0.85·ζ̄_n − M·(1 − z1)  →  t^σ_n − M·z1 ≥ 0.85·ζ̄_n − M
-            self.A.addNewRow({tss_idx: 1, z1_idx: -bigM}, 0.85 * zetaBar_n - bigM, np.inf)
+            self.A.addNewRow({tss_idx: 1, z1_idx: -bigMBar}, 0.85 * zetaBar_n - bigMBar, np.inf)
             # t^σ_n ≥ 0.5·q_n + 0.85·p^hi_n − M·z1  →  t^σ_n − 0.5·q − 0.85·p^hi + M·z1 ≥ 0
-            self.A.addNewRow({tss_idx: 1, q_idx: -0.5, phi_idx: -0.85, z1_idx: bigM}, 0, np.inf)
+            self.A.addNewRow({tss_idx: 1, q_idx: -0.5, phi_idx: -0.85, z1_idx: bigMBar}, 0, np.inf)
             self.B.setRange(tss_idx, 0, 0.85 * zetaBar_n)                        # t^σ ≤ 0.85·ζ̄
 
     def _configure_Medicare_binary_variables(self, options):
