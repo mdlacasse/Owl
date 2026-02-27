@@ -76,7 +76,9 @@ def createJackAndJillPlan(name):
 def test_case1():
     p = createJackAndJillPlan('case1')
     p.setRates('historical', 1969)
-    p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500, 'solver': solver, 'withSSTaxability': 0.85})
+    p.solve('maxSpending', options={
+        'maxRothConversion': 100, 'bequest': 500, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(SPENDING1, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(500_000, rel=REL_TOL, abs=ABS_TOL)
@@ -85,7 +87,9 @@ def test_case1():
 def test_case1_fixed_rates():
     p = createJackAndJillPlan('case1_fixed')
     p.setRates('user', values=[6.0, 4.0, 3.3, 2.8])
-    p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 500, 'solver': solver, 'withSSTaxability': 0.85})
+    p.solve('maxSpending', options={
+        'maxRothConversion': 100, 'bequest': 500, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(SPENDING1_FIXED, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1_FIXED, rel=REL_TOL, abs=ABS_TOL)
@@ -94,7 +98,9 @@ def test_case1_fixed_rates():
 def test_case2():
     p = createJackAndJillPlan('case2')
     p.setRates('historical', 1969)
-    p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
@@ -104,7 +110,9 @@ def test_config1():
     name = 'testconfig'
     p = createJackAndJillPlan(name)
     p.setRates('historical', 1969)
-    p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
@@ -113,12 +121,16 @@ def test_config1():
     full_filename = 'case_' + name + '.toml'
     assert os.path.isfile(full_filename)
     p2 = owl.readConfig(base_filename)
-    p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p2.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p2.caseStatus == "solved"
     assert p2.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p2.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
     p3 = owl.readConfig(full_filename)
-    p3.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p3.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p3.caseStatus == "solved"
     assert p3.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p3.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
@@ -129,7 +141,9 @@ def test_config2():
     name = 'testconfig'
     p = createJackAndJillPlan(name)
     p.setRates('historical', 1969)
-    p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
@@ -137,7 +151,9 @@ def test_config2():
     p.saveConfig(iostring)
     # print('iostream:', iostream.getvalue())
     p2 = owl.readConfig(iostring)
-    p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p2.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p2.caseStatus == "solved"
     assert p2.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p2.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
@@ -147,13 +163,17 @@ def test_clone1():
     name = 'testclone1.1'
     p = createJackAndJillPlan(name)
     p.setRates('historical', 1969)
-    p.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
     name2 = 'testclone1.2'
     p2 = owl.clone(p, name2)
-    p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p2.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p2.caseStatus == "solved"
     assert p2.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p2.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
@@ -163,13 +183,17 @@ def test_clone2():
     name = 'testclone2.1'
     p = createJackAndJillPlan(name)
     p.setRates('historical', 1969)
-    p.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 10, 'solver': solver, 'withSSTaxability': 0.85})
+    p.solve('maxSpending', options={
+        'maxRothConversion': 100, 'bequest': 10, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(SPENDING2, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(10_000, rel=REL_TOL, abs=ABS_TOL)
     name2 = 'testclone2.2'
     p2 = owl.clone(p, name2)
-    p2.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 10, 'solver': solver, 'withSSTaxability': 0.85})
+    p2.solve('maxSpending', options={
+        'maxRothConversion': 100, 'bequest': 10, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p2.caseStatus == "solved"
     assert p2.basis == pytest.approx(SPENDING2, rel=REL_TOL, abs=ABS_TOL)
     assert p2.bequest == pytest.approx(10_000, rel=REL_TOL, abs=ABS_TOL)
@@ -198,7 +222,9 @@ def test_stochastic_reproducibility():
     assert p1.rateSeed == test_seed
 
     # Solve the case
-    p1.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p1.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p1.caseStatus == "solved", f"Solve failed with status: {p1.caseStatus}"
 
     # Save key results for comparison
@@ -221,7 +247,9 @@ def test_stochastic_reproducibility():
     assert p2.rateSeed == test_seed
 
     # Solve the case
-    p2.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p2.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p2.caseStatus == "solved"
 
     # Verify results are identical (reproducible)
@@ -240,7 +268,9 @@ def test_stochastic_reproducibility():
     tau_kn_before_mc = p3.tau_kn.copy()
 
     # Solve once to set solverOptions and objective
-    p3.solve('maxBequest', options={'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85})
+    p3.solve('maxBequest', options={
+        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    })
     assert p3.caseStatus == "solved"
 
     # Run Monte-Carlo (which should override reproducibility and regenerate rates)

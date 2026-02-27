@@ -1377,7 +1377,7 @@ class Plan:
         vm.mark_binary_start()
         vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
         vm.add_if(medi, "zm", Nmed, self.N_q)       # IRMAA bracket selection binaries
-        vm.add_if(ss_lp,"zs", self.N_n, 2)          # z^σ family (2 per year) for SS min() ops
+        vm.add_if(ss_lp, "zs", self.N_n, 2)          # z^σ family (2 per year) for SS min() ops
         self.vm = vm
 
         self.nvars = vm.nvars
