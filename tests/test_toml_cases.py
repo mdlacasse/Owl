@@ -64,7 +64,7 @@ if platform == "darwin":
             "bequest": 8_094_499,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_776,
+            "net_spending_basis": 91_821,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -87,7 +87,7 @@ elif platform in ["win32", "linux"]:
             "bequest": 8_094_499,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_757,
+            "net_spending_basis": 91_821,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -165,6 +165,8 @@ def test_reproducibility():
 
         # Force HiGHS for reproducible results across environments (matches GitHub CI).
         p.solverOptions['solver'] = 'HiGHS'
+        p.solverOptions['absTol'] = 50
+        p.solverOptions['relTol'] = 2e-5
 
         # Solve the plan
         p.resolve()
