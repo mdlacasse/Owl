@@ -80,7 +80,7 @@ def test_ss_feasible_and_bounded():
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
         pension=[0, 10], pension_ages=[65, 65],
     )
-    p.solve('maxSpending', {'solver': solver})
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -107,7 +107,7 @@ def test_ss_max_bracket():
         # $3,500/month each = $42,000/year each (monthly dollar units for setPension)
         pension=[3_500, 3_500], pension_ages=[65, 65],
     )
-    p.solve('maxSpending', {'solver': solver})
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -131,7 +131,7 @@ def test_ss_partial_bracket():
         ss_pias=[1_500, 1_200], ss_ages=[67, 67],
         pension=[5, 0], pension_ages=[65, 65],
     )
-    p.solve('maxSpending', {'solver': solver})
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -193,7 +193,7 @@ def test_ss_dynamic_psi_varies():
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
     )
     assert p.ssecTaxFraction is None, "Expected dynamic SC-loop mode (no tax_fraction)"
-    p.solve('maxSpending', {'solver': solver})
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -216,7 +216,7 @@ def test_ss_lp_feasible_and_bounded():
         pension=[0, 10], pension_ages=[65, 65],
         expectancy=[73, 73],
     )
-    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize'})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize', 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -240,14 +240,16 @@ def test_ss_lp_max_bracket():
         pension=[3_500, 3_500], pension_ages=[65, 65],
         expectancy=[73, 73],
     )
-    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize'})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize', 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     joint_mask = np.arange(p.N_n) < p.n_d
     joint_ss_mask = ss_mask & joint_mask
     assert joint_ss_mask.any(), "Expected some joint SS-active years"
     psi_joint = p.Psi_n[joint_ss_mask]
-    assert np.all(psi_joint > 0.84), f"Expected Psi_n≈0.85 for joint SS years, got min={psi_joint.min():.4f}"
+    assert np.all(psi_joint > 0.84), (
+        f"Expected Psi_n≈0.85 for joint SS years, got min={psi_joint.min():.4f}"
+    )
 
 
 def test_ss_lp_vs_loop_consistency():
@@ -270,12 +272,12 @@ def test_ss_lp_vs_loop_consistency():
         expectancy=[73, 73],
     )
     # SC-loop solve
-    p.solve('maxSpending', {'solver': solver})
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"SC-loop solver failed: {p.caseStatus}"
     obj_loop = p.g_n[0]   # nominal spending in year 0 (objective proxy)
 
     # LP-based solve (exact MIP formulation)
-    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize'})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize', 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"LP solver failed: {p.caseStatus}"
     obj_lp = p.g_n[0]
     psi_lp = p.Psi_n.copy()
@@ -309,7 +311,7 @@ def test_historical_crash_years_feasible():
         expectancy=[73, 73],
         rate_year=1972,   # year 1 = 1973 crash (-37%), year 2 = 1974 crash (-26%)
     )
-    p.solve('maxSpending', {'solver': solver})
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', (
         f"Solver failed under 1973–74 crash rates: {p.caseStatus}"
     )
@@ -332,12 +334,12 @@ def test_ss_fixed_fraction():
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
     )
     # SC-loop solve for reference
-    p.solve('maxSpending', {'solver': solver})
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"SC-loop solver failed: {p.caseStatus}"
     obj_loop = p.g_n[0]
 
     # Fixed-fraction solve
-    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 0.5})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 0.5, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Fixed-fraction solver failed: {p.caseStatus}"
     obj_fixed = p.g_n[0]
 
@@ -361,7 +363,7 @@ def test_ss_fixed_fraction_zero():
         taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
     )
-    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 0.0})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 0.0, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver failed: {p.caseStatus}"
 
     # Psi_n must be uniformly 0.0
