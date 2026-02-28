@@ -206,15 +206,15 @@ def test_ss_lp_feasible_and_bounded():
     LP-based SS taxability (withSSTaxability='optimize') should produce
     Psi_n values bounded in [0, 0.85] for all SS-active years.
 
-    Uses a shortened expectancy=[73, 73] (N_n≈10 vs 17) to keep the MIP small:
-    Jack (66→73) gets SS from age 67; Jill (63→73) gets SS from age 70.
+    Uses a shortened expectancy=[74, 74] (N_n≈11 vs 17) to keep the MIP small:
+    Jack (66→74) gets SS from age 67; Jill (63→74) gets SS from age 70.
     """
     p = _make_couple_plan(
         'ss_lp_feasible',
         taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
         pension=[0, 10], pension_ages=[65, 65],
-        expectancy=[73, 73],
+        expectancy=[74, 74],
     )
     p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize', 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
@@ -230,7 +230,7 @@ def test_ss_lp_max_bracket():
     LP-based SS taxability: high-income household should yield Psi_n ≈ 0.85
     during joint SS years, matching the SC-loop result.
 
-    Uses expectancy=[73, 73] (N_n≈10): Jill's SS starts at year 3 (age 66),
+    Uses expectancy=[74, 74] (N_n≈10): Jill's SS starts at year 3 (age 66),
     giving joint SS years 3–6 to verify the 85% cap — without a full 17-year MIP.
     """
     p = _make_couple_plan(
@@ -238,7 +238,7 @@ def test_ss_lp_max_bracket():
         taxable=[100, 50], tax_deferred=[500, 200], tax_free=[100, 50],
         ss_pias=[2_500, 2_000], ss_ages=[66, 66],
         pension=[3_500, 3_500], pension_ages=[65, 65],
-        expectancy=[73, 73],
+        expectancy=[74, 74],
     )
     p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize', 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
@@ -261,15 +261,15 @@ def test_ss_lp_vs_loop_consistency():
     iterative SC-loop, which can oscillate.  Psi_n values may legitimately differ
     because the LP finds a different (better) allocation.
 
-    Uses expectancy=[73, 73] (N_n≈10) to keep the MIP small: Jack (66→73) has SS
-    years 1–6 and Jill (63→73) has SS years 7–9, giving 9/10 SS-active years.
+    Uses expectancy=[74, 74] (N_n≈10) to keep the MIP small: Jack (66→74) has SS
+    years 1–6 and Jill (63→74) has SS years 7–9, giving 9/10 SS-active years.
     """
     p = _make_couple_plan(
         'ss_consistency',
         taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
         pension=[500, 200], pension_ages=[65, 65],
-        expectancy=[73, 73],
+        expectancy=[74, 74],
     )
     # SC-loop solve
     p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
@@ -302,13 +302,13 @@ def test_historical_crash_years_feasible():
     The SC loop must set Psi_n = 0 when provisional income PI < 0 (large capital losses).
 
     Uses rate_year=1972 so that plan years 1–2 use 1973–74 historical returns
-    (-37% and -26% equities), and expectancy=[73, 73] for a small N_n≈10 plan.
+    (-37% and -26% equities), and expectancy=[74, 74] for a small N_n≈10 plan.
     """
     p = _make_couple_plan(
         'ss_crash_years',
         taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
-        expectancy=[73, 73],
+        expectancy=[74, 74],
         rate_year=1972,   # year 1 = 1973 crash (-37%), year 2 = 1974 crash (-26%)
     )
     p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})

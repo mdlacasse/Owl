@@ -463,7 +463,7 @@ are claimed at the latest date at which both spouses have claimed benefits.
 Survivor benefits rule provides the largest of both benefits to the survivor. Complex
 cases involving divorce or deceased spouses are not considered.
 
-**Owl** does not optimize social security benefits.
+**Owl** does not optimize when to claim social security benefits.
 You have to design (and explore) your own strategy, which
 might often involves personal goals such as ensuring maximum
 survivor benefits, or maximum lifetime benefits.
@@ -692,13 +692,14 @@ The *Advanced options* expander contains:
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
 Choose *value* to pin it to a fixed fraction Ψ ∈ [0, 0.85]: use 0.0 for low provisional income,
 0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
-exactly within the LP using binary variables; this can be slower.
+exactly within the LP using binary variables; this can be slower and require additional configuration
+like increasing the `gap` to 1% using the *Extra solver options*.
 
 Different mixed-integer linear programming solvers can be selected.
 Choose `default` to auto-select MOSEK when available, otherwise HiGHS.
 The *Extra solver options (expert)* field accepts a JSON dictionary (e.g. `{"key": "value"}`)
 that is merged into the solver options; leave empty unless experimenting.
-This option is mostly for verification purposes.
+This option is mostly for developer use and verification purposes.
 All solvers tested
 (HiGHS, COIN-OR Branch-and-Cut solver through PuLP, HiGHS through PuLP, and MOSEK)
 provided very similar results.
