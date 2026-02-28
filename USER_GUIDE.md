@@ -17,9 +17,11 @@ A plan starts with the names of the individuals, their birth years and life expe
 Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 ```python
 import owlplanner as owl
-# Jack was born in 1963 and expects to live to age 89. Jill was born in 1966 and hopes to live to age 92.
+import datetime
+year = datetime.date.today().year
+# Jack is 63 years old and expects to live to age 89. Jill is 60 and hopes to live to age 92.
 # Plan starts on Jan 1st of this year.
-plan = owl.Plan(['Jack', 'Jill'], ["1963-01-15", "1966-01-15"], [89, 92], 'jack & jill - tutorial')
+plan = owl.Plan(['Jack', 'Jill'], [f"{year-63}-01-15", f"{year-60}-01-15"], [89, 92], 'jack & jill - tutorial')
 # On January 1st, Jack has $90.5k in a taxable investment account,
 # $600.5k in a tax-deferred account and $70k from 2 tax-free accounts.
 # Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
@@ -131,27 +133,27 @@ print(plan.summaryString())
 ```
 The output of the last command reports that if future rates are exactly like those observed
 starting from 1969 and the following years, Jack and Jill could afford an annual spending of
- \\$97k starting this year
-(with a basis of \\$88.8k - the basis multiplies the profile which can vary over the course of the plan).
+ \\$100k starting this year
+(with a basis of \\$91.8k - the basis multiplies the profile which can vary over the course of the plan).
 The summary also contains some details:
 ```
 Synopsis
                                                                     Case name: jack & jill - tutorial
-Net yearly spending basis . . . . . . . . . . . . . . . . . . . . . . . . . .: $90,333
-                                                   Net spending for year 2026: $98,830
-                                          Net spending remaining in year 2026: $98,830
-                                                           Total net spending: $2,764,191
-                                                         [Total net spending]: $7,632,120
-                                                       Total Roth conversions: $342,708
-                                                     [Total Roth conversions]: $448,854
-                                            Total tax paid on ordinary income: $215,128
-                                          [Total tax paid on ordinary income]: $433,372
+Net yearly spending basis . . . . . . . . . . . . . . . . . . . . . . . . . .: $91,804
+                                                   Net spending for year 2026: $100,439
+                                          Net spending remaining in year 2026: $100,439
+                                                           Total net spending: $2,809,192
+                                                         [Total net spending]: $7,756,371
+                                                       Total Roth conversions: $265,487
+                                                     [Total Roth conversions]: $329,719
+                                            Total tax paid on ordinary income: $177,820
+                                          [Total tax paid on ordinary income]: $342,415
                                                »  Subtotal in tax bracket 10%: $75,360
                                               » [Subtotal in tax bracket 10%]: $204,198
-                                            »  Subtotal in tax bracket 12/15%: $107,740
-                                           » [Subtotal in tax bracket 12/15%]: $195,020
-                                            »  Subtotal in tax bracket 22/25%: $32,028
-                                           » [Subtotal in tax bracket 22/25%]: $34,154
+                                            »  Subtotal in tax bracket 12/15%: $70,102
+                                           » [Subtotal in tax bracket 12/15%]: $103,742
+                                            »  Subtotal in tax bracket 22/25%: $32,358
+                                           » [Subtotal in tax bracket 22/25%]: $34,474
                                             »  Subtotal in tax bracket 24/28%: $0
                                            » [Subtotal in tax bracket 24/28%]: $0
                                             »  Subtotal in tax bracket 32/33%: $0
@@ -169,14 +171,14 @@ Net yearly spending basis . . . . . . . . . . . . . . . . . . . . . . . . . .: $
                                                  Total Medicare premiums paid: $129,044
                                                [Total Medicare premiums paid]: $376,613
                                                       Year of partial bequest: 2052
-                                              Sum of spousal transfer to Jill: $385,601
-                                            [Sum of spousal transfer to Jill]: $1,667,527
+                                              Sum of spousal transfer to Jill: $385,453
+                                            [Sum of spousal transfer to Jill]: $1,666,891
                                         »  Spousal transfer to Jill - taxable: $0
                                        » [Spousal transfer to Jill - taxable]: $0
-                                        »  Spousal transfer to Jill - tax-def: $20,279
-                                       » [Spousal transfer to Jill - tax-def]: $87,695
-                                       »  Spousal transfer to Jill - tax-free: $365,322
-                                      » [Spousal transfer to Jill - tax-free]: $1,579,832
+                                        »  Spousal transfer to Jill - tax-def: $47,595
+                                       » [Spousal transfer to Jill - tax-def]: $205,825
+                                       »  Spousal transfer to Jill - tax-free: $337,858
+                                      » [Spousal transfer to Jill - tax-free]: $1,461,066
                                 Sum of post-tax non-spousal bequest from Jack: $0
                               [Sum of post-tax non-spousal bequest from Jack]: $0
                           »  Post-tax non-spousal bequest from Jack - taxable: $0
@@ -194,7 +196,7 @@ Net yearly spending basis . . . . . . . . . . . . . . . . . . . . . . . . . .: $
                                      [Total after-tax value of final bequest]: $1,991,047
                                         [» After-tax value of savings assets]: $1,991,047
                                    [» Fixed assets liquidated at end of plan]: $0
-                                      [» With heirs assuming tax liability of: $0
+                                     [» With heirs assuming tax liability of]: $0
                                           [» After paying remaining debts of]: $0
                             »  Post-tax final bequest account value - taxable: $0
                            » [Post-tax final bequest account value - taxable]: $0
@@ -209,9 +211,9 @@ Net yearly spending basis . . . . . . . . . . . . . . . . . . . . . . . . . .: $
                                                           Jill's life horizon: 2026 -> 2058
                                                          Jill's years planned: 33
                                                  Number of decision variables: 1029
-                                                        Number of constraints: 911
-                                                                  Convergence: monotonic
-                                                             Case executed on: 2026-01-26 at 23:25:47
+                                                        Number of constraints: 893
+                                                                  Convergence: oscillatory
+                                                             Case executed on: 2026-02-28 at 15:08:39
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
 ```python
