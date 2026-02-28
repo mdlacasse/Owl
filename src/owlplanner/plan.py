@@ -1838,8 +1838,9 @@ class Plan:
         z^σ_{0n}, z^σ_{1n} to compute taxable Social Security exactly within the LP,
         eliminating the need to update Psi_n in the self-consistent loop for SS.
 
-        The formulation is exact when total SS benefits ζ̄_n ≥ H_2 - H_1 for all n
-        (ζ̄_n ≥ $12,000 for MFJ or ≥ $9,000 for single). A warning is issued otherwise.
+        Filing status is per-year: for a couple, status switches from MFJ to Single
+        in year n_d when the first spouse dies. The 50% tier uses q_n ≤ min(Δ𝒫_n, ζ̄_n, p^lo_n),
+        matching the IRS formula exactly.
 
         Provisional income Π_n = (non-SS ordinary income) + Q_n + 0.5·ζ̄_n is built using
         the same coefficient structure as the Medicare MAGI constraint, adjusted for the
@@ -1849,11 +1850,6 @@ class Plan:
             return
 
         bigM = u.get_numeric_option(options, "bigMss", BIGM_AMO, min_value=0)
-        status = self.N_i - 1  # 0 = single, 1 = MFJ
-        ss_lo = tx.ssTaxabilityLo[status]   # 𝒫^lo: lower provisional income threshold
-        ss_hi = tx.ssTaxabilityHi[status]   # 𝒫^hi: upper provisional income threshold
-        delta_p = ss_hi - ss_lo             # H_2 - H_1: bracket width
-
         tau_0 = self.tau_kn[0, :]
 
         for n in range(self.N_n):
@@ -1868,11 +1864,11 @@ class Plan:
                 self.B.setRange(self.vm["zs"].idx(n, 1), 0, 0)
                 continue
 
-            if zetaBar_n > 0 and zetaBar_n < delta_p:
-                self.mylog.vprint(
-                    f"Warning: year {n}: ζ̄_n={zetaBar_n:.0f} < Δ𝒫={delta_p:.0f}; "
-                    f"SS taxability LP may slightly overestimate T_ss (inner min ignored)."
-                )
+            # Per-year filing status: for couple, switch to Single at n_d.
+            status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
+            ss_lo_n = tx.ssTaxabilityLo[status_n]
+            ss_hi_n = tx.ssTaxabilityHi[status_n]
+            delta_p_n = ss_hi_n - ss_lo_n
 
             # === Build Π_n LP coefficients ===
             # Π_n = e_n - t^σ_n + LP_income_terms + params, where the LP income terms
@@ -1924,24 +1920,24 @@ class Plan:
 
             # === p^lo_n = max(0, Π_n − 𝒫^lo) ===
             # Lower bound ≥ 0 from default variable bounds; explicit inequality enforces the max.
-            # Row: p^lo_n + pi_row_coeffs ≥ rhs_pi − ss_lo
+            # Row: p^lo_n + pi_row_coeffs ≥ rhs_pi − ss_lo_n
             row_plo = dict(pi_row)
             row_plo[plo_idx] = row_plo.get(plo_idx, 0) + 1
-            self.A.addNewRow(row_plo, rhs_pi - ss_lo, np.inf)
+            self.A.addNewRow(row_plo, rhs_pi - ss_lo_n, np.inf)
 
             # === p^hi_n = max(0, Π_n − 𝒫^hi) ===
             row_phi = dict(pi_row)
             row_phi[phi_idx] = row_phi.get(phi_idx, 0) + 1
-            self.A.addNewRow(row_phi, rhs_pi - ss_hi, np.inf)
+            self.A.addNewRow(row_phi, rhs_pi - ss_hi_n, np.inf)
 
-            # === q_n = min(Δ𝒫, p^lo_n) via binary z^σ_{0n} ===
-            # Upper bounds: q_n ≤ Δ𝒫 (from B.setRange below) and q_n ≤ p^lo_n.
+            # === q_n = min(Δ𝒫_n, ζ̄_n, p^lo_n) via binary z^σ_{0n} ===
+            # Upper bounds: q_n ≤ min(Δ𝒫_n, ζ̄_n) (setRange) and q_n ≤ p^lo_n (constraint).
             self.A.addNewRow({q_idx: 1, plo_idx: -1}, -np.inf, 0)               # q ≤ p^lo
-            # q_n ≥ Δ𝒫 − M·(1 − z0)  →  q_n − M·z0 ≥ Δ𝒫 − M
-            self.A.addNewRow({q_idx: 1, z0_idx: -bigMBar}, delta_p - bigMBar, np.inf)
+            # q_n ≥ Δ𝒫_n − M·(1 − z0)  →  q_n − M·z0 ≥ Δ𝒫_n − M
+            self.A.addNewRow({q_idx: 1, z0_idx: -bigMBar}, delta_p_n - bigMBar, np.inf)
             # q_n ≥ p^lo_n − M·z0  →  q_n − p^lo_n + M·z0 ≥ 0
             self.A.addNewRow({q_idx: 1, plo_idx: -1, z0_idx: bigMBar}, 0, np.inf)
-            self.B.setRange(q_idx, 0, delta_p)                                   # q ≤ Δ𝒫
+            self.B.setRange(q_idx, 0, min(delta_p_n, zetaBar_n))               # q ≤ min(Δ𝒫_n, ζ̄_n)
 
             # === t^σ_n = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n) via binary z^σ_{1n} ===
             # Upper bound t^σ_n ≤ 0.5·q_n + 0.85·p^hi_n.
@@ -2726,7 +2722,7 @@ class Plan:
 
         ss_n = np.sum(self.zetaBar_in, axis=0)
         new_Psi_n = tx.compute_social_security_taxability(
-            self.N_i, self.MAGI_n, ss_n, ssec_tax_fraction=None
+            self.N_i, self.MAGI_n, ss_n, ssec_tax_fraction=None, n_d=self.n_d
         )
 
         # 30% damping blend: damp oscillation near threshold boundaries.

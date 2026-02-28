@@ -129,7 +129,7 @@ rates_preTCJA = np.array([0.10, 0.15, 0.25, 0.28, 0.33, 0.35, 0.396])
 ###############################################################################
 
 
-def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None):
+def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None, n_d=None):
     """
     Compute the fraction of Social Security benefits subject to federal income tax
     using the IRS provisional income (PI) formula.
@@ -138,6 +138,14 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     IRS thresholds (frozen in nominal dollars since 1983/1994):
       - Married filing jointly: 0% below $32k, ramp to 50% at $44k, 85% above $44k
       - Single:                 0% below $25k, ramp to 50% at $34k, 85% above $34k
+
+    For a couple, filing status switches from MFJ to Single in the year n_d when
+    the first spouse dies; n_d is the index of that year (pass n_d when N_i == 2).
+
+    From table in IRS publication 915:
+
+    Taxable_n = min(0.85*ss_n,
+                    0.50*min(ss_n, hi - lo, max(0, PI - lo)) + 0.85*max(0, PI - hi))
 
     Parameters
     ----------
@@ -149,6 +157,8 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
         Total Social Security benefits per year
     ssec_tax_fraction : float or None
         If provided, return constant array with this value (overrides PI computation)
+    n_d : int or None
+        Index year when first spouse dies (N_i==2 only). If None, MFJ is used for all years.
 
     Returns
     -------
@@ -157,21 +167,29 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     """
     N_n = len(MAGI_n)
     if ssec_tax_fraction is not None:
-        return np.ones(N_n) * ssec_tax_fraction
+        return np.full(N_n, ssec_tax_fraction)
 
-    status = N_i - 1  # 0=single, 1=MFJ
-    lo = ssTaxabilityLo[status]
-    hi = ssTaxabilityHi[status]
+    # Filing status per year: for couples, switch from MFJ (1) to Single (0) at n_d.
+    status_n = np.full(N_n, N_i - 1)
+    if N_i == 2 and n_d is not None and n_d < N_n:
+        status_n[n_d:] = 0
+
+    lo_n = ssTaxabilityLo[status_n]
+    hi_n = ssTaxabilityHi[status_n]
 
     pi_n = MAGI_n - 0.5 * ss_n
 
+    # 50% tier: 0.50 * min(ss_n, hi - lo, max(0, PI - lo)); in [lo, hi), PI - lo < hi - lo.
+    amount_50 = 0.5 * np.minimum(ss_n, np.minimum(hi_n - lo_n, np.maximum(0.0, pi_n - lo_n)))
+    # 85% tier: 0.85 * max(0, PI - hi); total capped at 0.85*ss_n.
+    amount_85_extra = 0.85 * np.maximum(0.0, pi_n - hi_n)
     taxable_ss = np.where(
-        pi_n < lo,
+        pi_n < lo_n,
         0.0,
         np.where(
-            pi_n < hi,
-            0.5 * (pi_n - lo),
-            np.minimum(0.85 * ss_n, 0.85 * (pi_n - hi) + 0.5 * (hi - lo)),
+            pi_n < hi_n,
+            amount_50,
+            np.minimum(amount_50 + amount_85_extra, 0.85 * ss_n),
         ),
     )
     new_Psi_n = np.full(N_n, 0.85)
