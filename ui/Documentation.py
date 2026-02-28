@@ -736,6 +736,7 @@ for that reason they do not start at 1.
 
 # --- Results tab ---
 with tab_results:
+    st.markdown("Results from a case can be visualized in three different ways.")
     with st.expander(":material/stacked_line_chart: Graphs", expanded=True):
         st.markdown("""
 This page displays various plots from a single scenario based on the selections made
@@ -881,6 +882,7 @@ Most likely, this will not happen unless you devise unusually long Monte Carlo r
 
 # --- Tools & Help tab ---
 with tab_tools:
+    st.markdown("This section describes tools available to the user and summarizes the *Help* section.")
     with st.expander(":material/settings: Settings", expanded=True):
         st.markdown("""
 This page allows to select different backends for plotting the graphs.
@@ -953,6 +955,7 @@ This page is mainly used for debugging purposes.
 
 # --- Tips tab ---
 with tab_tips:
+    st.markdown("Here are a few tips that can help while using **Owl**.")
     with st.expander(":material/lightbulb_2: Recommendations on Optimization and Roth Conversions", expanded=True):
         st.markdown("""
 **Owl** can optimize explicitly for Medicare costs but these can sometimes be

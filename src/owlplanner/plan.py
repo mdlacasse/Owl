@@ -1859,6 +1859,15 @@ class Plan:
         for n in range(self.N_n):
             zetaBar_n = np.sum(self.zetaBar_in[:, n])
 
+            # No SS income this year: fix variables to 0 and skip all 8 constraints.
+            # tss_n MUST be fixed (it appears in taxable income with -1 coefficient).
+            # z0_n, z1_n should be fixed to remove them from MIP branching.
+            if zetaBar_n == 0:
+                self.B.setRange(self.vm["tss"].idx(n), 0, 0)
+                self.B.setRange(self.vm["zs"].idx(n, 0), 0, 0)
+                self.B.setRange(self.vm["zs"].idx(n, 1), 0, 0)
+                continue
+
             if zetaBar_n > 0 and zetaBar_n < delta_p:
                 self.mylog.vprint(
                     f"Warning: year {n}: ζ̄_n={zetaBar_n:.0f} < Δ𝒫={delta_p:.0f}; "

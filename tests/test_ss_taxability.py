@@ -22,7 +22,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import os
 import numpy as np
 import pytest
 from datetime import date
@@ -259,12 +258,16 @@ def test_ss_lp_vs_loop_consistency():
     The LP formulation is exact (MIP), so it may find a better optimum than the
     iterative SC-loop, which can oscillate.  Psi_n values may legitimately differ
     because the LP finds a different (better) allocation.
+
+    Uses expectancy=[73, 73] (N_n≈10) to keep the MIP small: Jack (66→73) has SS
+    years 1–6 and Jill (63→73) has SS years 7–9, giving 9/10 SS-active years.
     """
     p = _make_couple_plan(
         'ss_consistency',
         taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
         pension=[500, 200], pension_ages=[65, 65],
+        expectancy=[73, 73],
     )
     # SC-loop solve
     p.solve('maxSpending', {'solver': solver})
@@ -291,37 +294,31 @@ def test_ss_lp_vs_loop_consistency():
         assert np.all(psi_ss >= 0.0 - 1e-6), f"Psi_n (LP) went negative: {psi_ss.min():.4f}"
 
 
-@pytest.mark.toml
 def test_historical_crash_years_feasible():
     """
-    Regression test: verify that historical crash years (1973-74 bear market) do not
-    cause infeasibility.  The SC loop correctly sets Psi_n = 0 when provisional income
-    PI < 0 (large capital losses), so the LP remains feasible.
+    Regression test: verify that 1973–74 bear-market rates do not cause infeasibility.
+    The SC loop must set Psi_n = 0 when provisional income PI < 0 (large capital losses).
 
-    Loads jack+jill example, runs a short historical range covering the 1973-74
-    bear market, and asserts that at least some runs succeed.
+    Uses rate_year=1972 so that plan years 1–2 use 1973–74 historical returns
+    (-37% and -26% equities), and expectancy=[73, 73] for a small N_n≈10 plan.
     """
-    exdir = "./examples/"
-    case = "Case_jack+jill"
-    file = os.path.join(exdir, case)
-    if not os.path.exists(file + ".toml"):
-        pytest.skip(f"Example case not found: {file}.toml")
-
-    p = owl.readConfig(file)
-
-    hfp_path = os.path.join(exdir, "HFP_jack+jill.xlsx")
-    if not os.path.exists(hfp_path):
-        pytest.skip(f"HFP file not found: {hfp_path}")
-    p.readHFP(hfp_path)
-
-    # Force HiGHS for reproducible results across environments (matches GitHub CI).
-    p.solverOptions['solver'] = 'HiGHS'
-    options = p.solverOptions
-    objective = p.objective
-    # Run 1969-1975: covers 1973-74 crash years.
-    n, df = p.runHistoricalRange(objective, options, 1969, 1975, figure=False)
-    assert len(df) >= 1, "Expected at least one feasible historical run in 1969-1975"
-    assert n >= 1, "Expected at least one successful historical run"
+    p = _make_couple_plan(
+        'ss_crash_years',
+        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
+        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
+        expectancy=[73, 73],
+        rate_year=1972,   # year 1 = 1973 crash (-37%), year 2 = 1974 crash (-26%)
+    )
+    p.solve('maxSpending', {'solver': solver})
+    assert p.caseStatus == 'solved', (
+        f"Solver failed under 1973–74 crash rates: {p.caseStatus}"
+    )
+    # Psi_n must stay in [0, 0.85] even under extreme negative returns.
+    ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
+    if ss_mask.any():
+        psi_ss = p.Psi_n[ss_mask]
+        assert np.all(psi_ss >= 0.0 - 1e-6), f"Psi_n went negative: {psi_ss.min():.4f}"
+        assert np.all(psi_ss <= 0.85 + 1e-6), f"Psi_n exceeded 0.85: {psi_ss.max():.4f}"
 
 
 def test_ss_fixed_fraction():
