@@ -688,7 +688,7 @@ Choose *loop* to compute it dynamically via the self-consistent loop (recommende
 Choose *value* to pin it to a fixed fraction Ψ ∈ [0, 0.85]: use 0.0 for low provisional income,
 0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
 exactly within the LP using binary variables; this can be slower and require additional configuration
-like increasing the `gap` to 1% using the *Extra solver options*.
+like increasing the `gap` to ~2% using the *Extra solver options* (i.e. `{"gap":2e-2}`).
 
 Different mixed-integer linear programming solvers can be selected.
 Choose `default` to auto-select MOSEK when available, otherwise HiGHS.
