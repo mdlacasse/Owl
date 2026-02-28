@@ -42,7 +42,8 @@ ret = kz.titleBar(":material/person_add: Create Case")
 if ret is None:
     st.info(
         "#### Start here\n\n"
-        "Create a new case by providing a name below, or load one from a TOML case file, or simply load one of the example files available.\n\n"
+        "Create a new case by providing a name below, or load one from a TOML case file,"
+        " or simply load one of the example files available.\n\n"
         "*Consult at the :material/help: [Documentation](Documentation) for more details.*"
     )
     col1, col2, col3 = st.columns(3, gap="large")

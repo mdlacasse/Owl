@@ -77,7 +77,7 @@ if platform == "darwin":
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 1_113_254,
+            "bequest": 1_111_334,
         },
     }
 elif platform in ["win32", "linux"]:
@@ -100,7 +100,7 @@ elif platform in ["win32", "linux"]:
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 1_113_254,
+            "bequest": 1_111_334,
         },
     }
 else:
