@@ -27,7 +27,8 @@ col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col1:
     st.markdown("# :material/help: Documentation")
     kz.divider("orange")
-    st.markdown("## :orange[The **Owl** Retirement Planner]\n-------")
+    st.markdown("## :orange[The **Owl** Retirement Planner]")
+    # st.markdown("## :orange[The **Owl** Retirement Planner]\n-------")
     st.markdown("""
 ### **Owl** - *Optimal Wealth Lab*
 #### A retirement financial exploration tool based on linear programming
@@ -65,10 +66,10 @@ with col3:
 st.markdown("""
 -------
 ### :orange[Table of Contents]
-*Use the tabs below to navigate documentation by section.*
 """)
+st.caption("*Use the tabs below to navigate documentation by section.*")
 
-st.markdown("---")
+# st.markdown("---")
 
 # Tabs for bite-sized navigation
 tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_tips = st.tabs([
@@ -83,9 +84,9 @@ tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_tips = st.tabs([
 # --- Overview tab ---
 with tab_overview:
     st.markdown("""
-### :orange[Getting Started with the User Interface]
-The functions of each page are described below in the same order as they appear in the menu bar:
-Typically, pages would be accessed in order, starting from left to right and from the top down.
+#### Getting Started with the User Interface
+The functions of each page are described in the documentation in the same order as they appear in the menu bar:
+Typically, pages in the menu  would be accessed in order, starting from left to right and from the top down.
 
 A `Case selector` box located at the top of each page allows
 you to navigate between the different scenarios created.
@@ -107,7 +108,7 @@ Graphs report values in thousands, either in nominal value or in today's \\$, as
 
 There are five sections in the menu bar:
 **Plan Setup**, **Results**, **Simulations**, **Tools**, and **Help**.
-The sections below follow the same logical order.
+The documentation can also be navigated along the same menus.
 """)
 
     with st.expander(":material/folder: Case Definition", expanded=True):
@@ -131,6 +132,7 @@ For new *cases*, every page of this section should be visited and parameters
 entered according to your personal situation. To make this process easier,
 a progress bar tracking which page has been visited is shown at the bottom of the page.
 This bar can also be used to navigate between the pages of the *Plan Setup* section.
+The sections below describe the pages under the *Plan Setup* tab and follow the same logical order.
 """)
 
     with st.expander(":material/person_add: Create Case", expanded=True):

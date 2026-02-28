@@ -30,19 +30,24 @@ from datetime import date
 import owlplanner as owl
 from owlplanner import tax2026 as tx
 
+# Force HiGHS for reproducible results across environments (matches GitHub CI).
+solver = 'HiGHS'
+
 
 def _make_couple_plan(name, taxable, tax_deferred, tax_free, ss_pias, ss_ages,
-                      pension=None, pension_ages=None, rate_year=2000):
+                      pension=None, pension_ages=None, rate_year=2000, expectancy=None):
     """
     Create a minimal Jack+Jill-style couple plan using historical rates.
 
     Note: setPension() amounts are monthly $ (same units as SS PIAs).
+    expectancy defaults to [80, 80]; pass a shorter value to reduce MIP size.
     """
     thisyear = date.today().year
     inames = ['Jack', 'Jill']
     # Jack 66 (past SS age), Jill 63 — both within expected SS window.
     dobs = [f"{thisyear - 66}-01-15", f"{thisyear - 63}-01-16"]
-    expectancy = [80, 80]
+    if expectancy is None:
+        expectancy = [80, 80]
 
     p = owl.Plan(inames, dobs, expectancy, name)
     p.setSpendingProfile('flat', 60)
@@ -76,7 +81,7 @@ def test_ss_feasible_and_bounded():
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
         pension=[0, 10], pension_ages=[65, 65],
     )
-    p.solve('maxSpending', {})
+    p.solve('maxSpending', {'solver': solver})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -103,7 +108,7 @@ def test_ss_max_bracket():
         # $3,500/month each = $42,000/year each (monthly dollar units for setPension)
         pension=[3_500, 3_500], pension_ages=[65, 65],
     )
-    p.solve('maxSpending', {})
+    p.solve('maxSpending', {'solver': solver})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -127,7 +132,7 @@ def test_ss_partial_bracket():
         ss_pias=[1_500, 1_200], ss_ages=[67, 67],
         pension=[5, 0], pension_ages=[65, 65],
     )
-    p.solve('maxSpending', {})
+    p.solve('maxSpending', {'solver': solver})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -189,7 +194,7 @@ def test_ss_dynamic_psi_varies():
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
     )
     assert p.ssecTaxFraction is None, "Expected dynamic SC-loop mode (no tax_fraction)"
-    p.solve('maxSpending', {})
+    p.solve('maxSpending', {'solver': solver})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -201,14 +206,18 @@ def test_ss_lp_feasible_and_bounded():
     """
     LP-based SS taxability (withSSTaxability='optimize') should produce
     Psi_n values bounded in [0, 0.85] for all SS-active years.
+
+    Uses a shortened expectancy=[73, 73] (N_n≈10 vs 17) to keep the MIP small:
+    Jack (66→73) gets SS from age 67; Jill (63→73) gets SS from age 70.
     """
     p = _make_couple_plan(
         'ss_lp_feasible',
         taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
         pension=[0, 10], pension_ages=[65, 65],
+        expectancy=[73, 73],
     )
-    p.solve('maxSpending', {'withSSTaxability': 'optimize'})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
@@ -221,14 +230,18 @@ def test_ss_lp_max_bracket():
     """
     LP-based SS taxability: high-income household should yield Psi_n ≈ 0.85
     during joint SS years, matching the SC-loop result.
+
+    Uses expectancy=[73, 73] (N_n≈10): Jill's SS starts at year 3 (age 66),
+    giving joint SS years 3–6 to verify the 85% cap — without a full 17-year MIP.
     """
     p = _make_couple_plan(
         'ss_lp_max',
         taxable=[100, 50], tax_deferred=[500, 200], tax_free=[100, 50],
         ss_pias=[2_500, 2_000], ss_ages=[66, 66],
         pension=[3_500, 3_500], pension_ages=[65, 65],
+        expectancy=[73, 73],
     )
-    p.solve('maxSpending', {'withSSTaxability': 'optimize'})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     joint_mask = np.arange(p.N_n) < p.n_d
@@ -254,12 +267,12 @@ def test_ss_lp_vs_loop_consistency():
         pension=[500, 200], pension_ages=[65, 65],
     )
     # SC-loop solve
-    p.solve('maxSpending', {})
+    p.solve('maxSpending', {'solver': solver})
     assert p.caseStatus == 'solved', f"SC-loop solver failed: {p.caseStatus}"
     obj_loop = p.g_n[0]   # nominal spending in year 0 (objective proxy)
 
     # LP-based solve (exact MIP formulation)
-    p.solve('maxSpending', {'withSSTaxability': 'optimize'})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize'})
     assert p.caseStatus == 'solved', f"LP solver failed: {p.caseStatus}"
     obj_lp = p.g_n[0]
     psi_lp = p.Psi_n.copy()
@@ -301,6 +314,8 @@ def test_historical_crash_years_feasible():
         pytest.skip(f"HFP file not found: {hfp_path}")
     p.readHFP(hfp_path)
 
+    # Force HiGHS for reproducible results across environments (matches GitHub CI).
+    p.solverOptions['solver'] = 'HiGHS'
     options = p.solverOptions
     objective = p.objective
     # Run 1969-1975: covers 1973-74 crash years.
@@ -320,12 +335,12 @@ def test_ss_fixed_fraction():
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
     )
     # SC-loop solve for reference
-    p.solve('maxSpending', {})
+    p.solve('maxSpending', {'solver': solver})
     assert p.caseStatus == 'solved', f"SC-loop solver failed: {p.caseStatus}"
     obj_loop = p.g_n[0]
 
     # Fixed-fraction solve
-    p.solve('maxSpending', {'withSSTaxability': 0.5})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 0.5})
     assert p.caseStatus == 'solved', f"Fixed-fraction solver failed: {p.caseStatus}"
     obj_fixed = p.g_n[0]
 
@@ -349,7 +364,7 @@ def test_ss_fixed_fraction_zero():
         taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
     )
-    p.solve('maxSpending', {'withSSTaxability': 0.0})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 0.0})
     assert p.caseStatus == 'solved', f"Solver failed: {p.caseStatus}"
 
     # Psi_n must be uniformly 0.0
