@@ -41,7 +41,7 @@ Fixed rates equal to historical average over selected range.
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"historical average"`) |
-| `frm` | Yes | int |  |
+| `from` | Yes | int |  |
 | `to` | Yes | int |  |
 
 **Example:**
@@ -49,7 +49,7 @@ Fixed rates equal to historical average over selected range.
 ```toml
 [rates_selection]
 method = "historical average"
-frm = 1969
+from = 1969
 to = 2002
 ```
 
@@ -94,15 +94,15 @@ Historical year-by-year returns over selected range.
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"historical"`) |
-| `frm` | Yes | int | Starting historical year (inclusive). |
-| `to` | No | int | Ending historical year (inclusive). Defaults to frm if not provided. |
+| `from` | Yes | int | Starting historical year (inclusive). |
+| `to` | No | int | Ending historical year (inclusive). Defaults to `from` if not provided. |
 
 **Example:**
 
 ```toml
 [rates_selection]
 method = "historical"
-frm = 1969
+from = 1969
 ```
 
 ### :orange[Stochastic models]
@@ -114,7 +114,7 @@ Historical bootstrap model for sequence-of-returns analysis. Supports IID, block
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"bootstrap_sor"`) |
-| `frm` | Yes | int | First historical year (inclusive). |
+| `from` | Yes | int | First historical year (inclusive). |
 | `to` | Yes | int | Last historical year (inclusive). |
 | `bootstrap_type` | No | str | Type of bootstrap to perform. Defaults to iid |
 | `block_size` | No | int | Block length for block-based bootstraps. |
@@ -126,7 +126,7 @@ Historical bootstrap model for sequence-of-returns analysis. Supports IID, block
 ```toml
 [rates_selection]
 method = "bootstrap_sor"
-frm = 1969
+from = 1969
 to = 2002
 ```
 
@@ -137,7 +137,7 @@ Multivariate normal model using historical mean and covariance.
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"histochastic"`) |
-| `frm` | Yes | int |  |
+| `from` | Yes | int |  |
 | `to` | Yes | int |  |
 
 **Example:**
@@ -145,7 +145,7 @@ Multivariate normal model using historical mean and covariance.
 ```toml
 [rates_selection]
 method = "histochastic"
-frm = 1969
+from = 1969
 to = 2002
 ```
 
@@ -157,8 +157,8 @@ Multivariate normal stochastic model using user-provided mean and volatility.
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"stochastic"`) |
 | `values` | Yes | list[float] | Mean returns in percent. |
-| `stdev` | Yes | list[float] | Standard deviations in percent. |
-| `corr` | No | 4x4 matrix or list[6] | Pearson correlation coefficient (-1 to 1). Matrix or upper-triangle off-diagonals. Standard in finance/statistics. |
+| `standard_deviations` | Yes | list[float] | Standard deviations in percent. |
+| `correlations` | No | 4x4 matrix or list[6] | Pearson correlation coefficient (-1 to 1). Matrix or upper-triangle off-diagonals. Standard in finance/statistics. |
 
 **Example:**
 
@@ -166,7 +166,7 @@ Multivariate normal stochastic model using user-provided mean and volatility.
 [rates_selection]
 method = "stochastic"
 values = [7.0, 4.5, 3.5, 2.5]
-stdev = [17.0, 8.0, 6.0, 2.0]
+standard_deviations = [17.0, 8.0, 6.0, 2.0]
 ```
 
 ### :orange[DataFrame model]
@@ -182,7 +182,7 @@ Sequential or year-based rates read from a pandas DataFrame.
 | `n_years` | Yes | int | Number of years required for plan horizon. |
 | `offset` | No | int | Number of initial rows to skip before reading sequentially. |
 | `in_percent` | No | bool | If True (default), values are percent (7.0 = 7%) and divided by 100. Pass False if values are already decimal (0.07 = 7%). |
-| `frm` | No | int | Starting year (if year column present). |
+| `from` | No | int | Starting year (if year column present). |
 | `to` | No | int | Ending year (if year column present). |
 
 **Example:**

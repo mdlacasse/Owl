@@ -86,7 +86,7 @@ with tab_overview:
     st.markdown("""
 #### Getting Started with the User Interface
 The functions of each page are described in the documentation in the same order as they appear in the menu bar:
-Typically, pages in the menu  would be accessed in order, starting from left to right and from the top down.
+Typically, pages in the menu would be accessed in order, starting from left to right and from the top down.
 
 A `Case selector` box located at the top of each page allows
 you to navigate between the different scenarios created.
@@ -101,14 +101,14 @@ The **Typical Workflow** section (Tips tab) goes through a more specific example
 **Owl** uses a full year as the standard unit of time. Most values are therefore entered and
 reported as yearly values. These include wages, income, rates, etc. To better align
 with numbers from the Social Security Administration, social security
-and pensions are entered as a monthly values.
+and pensions are entered as monthly values.
 Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars.
 Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
 
 There are five sections in the menu bar:
 **Plan Setup**, **Results**, **Simulations**, **Tools**, and **Help**.
-The documentation can also be navigated along the same menus.
+The documentation is structured along the same menus.
 """)
 
     with st.expander(":material/folder: Case Definition", expanded=True):
@@ -120,8 +120,7 @@ asset allocation ratios, anticipated rates of return, and optimization parameter
 A *run* is the execution of a *case* using a single instance of rates, either constant or varying.
 
 **Owl** helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
-the planner can explore the impacts of differing assumptions and strategies on their portfolio
-at the end of their planning period.
+the planner can explore the impacts of differing assumptions and strategies on their financial situation.
 """)
 
 # --- Plan Setup tab ---
@@ -158,7 +157,7 @@ have passed according to the specified life expectancies.
 A typical workflow will involve creating
 a base *case*, and copying it a few times with slight changes in its parameters
 in order to investigate their effects.
-Copy renames the *case* by appending a number counter in parenthesis, just as creating
+Copy renames the *case* by appending a number counter in parentheses, just as creating
 a copy of a file on Windows.
 It is recommended to rename each *case* to reflect the change in parameters.
 When copying a scenario, make sure to visit all pages in the **Plan Setup**
@@ -166,12 +165,8 @@ section and verify that all parameters are as intended.
 When all *cases* have successfully run,
 results of related *cases* are compared side-by-side with differences
 in the **Reports** section.
-Related *cases* are determined by having the same individual's names:
+Related *cases* are determined by having the same individuals' names:
 anything else can change between *cases*.
-
-##### Initializing the life parameters of a scenario
-When no case is yet selected, the **Create Case** page shows three options side by side.
-Choose one to get started.
 
 ##### Creating a case from scratch
 Enter a name in the **Create a New Case** text box and press Enter.
@@ -238,7 +233,7 @@ file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_tem
 to fill in the values using the user interface, but this last approach does not provide
 Excel capabilities for cross-column calculations.
 
-This file goes five year back in time in order to capture previous contributions and
+This file goes five years back in time in order to capture previous contributions and
 conversions to Roth accounts.
 Entries in columns other than contributions or conversions to Roth accounts
 for past years will be ignored by **Owl** but can be left there for documentation purposes.
@@ -255,8 +250,8 @@ put covering the sum of all potential gains resulting from contributions
 made over the last five years.
 However, if funds were converted through a Roth backdoor, this is
 still considered as a conversion, and retainer will include the contribution amount.
-While this approach is somehow more restrictive than
-the actual rules, it avoids unnecessary penalties while being a somehow simple approach.
+While this approach is somewhat more restrictive than the actual IRS rules,
+it avoids unnecessary penalties and is simple to implement.
 An exact calculation would require to know (and input) the annual rates of return for
 the last five years and asset allocation ratios, and the same for all future years.
 Note that in certain *cases*, constraints on Roth withdrawals can make a zero bequest impossible
@@ -449,8 +444,8 @@ After making sure that all entries are valid, paste these data into the tool.
 Enter birth year and month and number of years the individual is planning
 to continue to work, if any.
 
-Note that the year and month entered are the month when you receive your first
-benefits. Most likely, you will have claimed a month earlier as the first
+Note that the year and month entered correspond to when you receive your first
+benefit payment. Most likely, you will have claimed a month earlier as the first
 check follows the month when you claim benefits.
 
 **Owl** considers the exact FRA associated with the individual's birth year and adjusts the PIA
@@ -460,7 +455,7 @@ when benefits do not cover the full year.
 This is important for bridging the transition to retirement.
 Spousal benefits are calculated under the assumption that those benefits
 are claimed at the latest date at which both spouses have claimed benefits.
-Survivor benefits rule provides the largest of both benefits to the survivor. Complex
+Survivor benefits rules provide the larger of the two benefits to the survivor. Complex
 cases involving divorce or deceased spouses are not considered.
 
 **Owl** does not optimize when to claim social security benefits.
@@ -483,7 +478,7 @@ when enabling a reduction.
 Pensions amounts, if any, are also entered on this page.
 While social security is always adjusted for inflation, pensions can optionally be
 indexed for inflation by selecting the corresponding button.
-As for social security, the selected month age, combined with your birth month,
+As for social security, the exact age in years and months, combined with your birth month,
 determines the exact time benefits start in the first year and the total
 annual amount for the first year is adjusted accordingly.
 """)
@@ -500,7 +495,7 @@ Three types of savings accounts are considered and are tracked separately for sp
 
 Account values are assumed to be known at the beginning of the current year,
 which is not always possible. For that purpose,
-the `Account balance date` has the effect of back projecting the amounts entered
+the `Account balance date` has the effect of back-projecting the amounts entered
 to the beginning of the year using the return rates and allocations
 assumed for the first year. If withdrawals contributing to the
 net spending were already performed for the current year,
@@ -512,11 +507,11 @@ how much is left to the surviving spouse while the second determines
 how to split potential surplus budget moneys between the taxable accounts of the spouses.
 When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
 surplus moneys in the taxable account of the first individual to pass. Otherwise,
-the optimizer will find creative solutions that can generate surpluses in order
+the optimizer will find unexpected solutions that can generate surpluses in order
 to maximize the final bequest. Finally, when fractions between accounts are not all equal,
 it can take longer to solve (minutes) as these *cases* trigger the use
 of binary variables which involves more complex algorithms.
-In some situations, creative transfers from tax-deferred savings accounts to taxable
+In some situations, unconventional transfers from tax-deferred savings accounts to taxable
 savings accounts, through surpluses and deposits, can be part of the optimal solution.
 
 Setting a surplus fraction that deposits some or all surpluses in the survivor's account
@@ -550,7 +545,7 @@ of individual savings account is associated with its own asset allocation ratios
 It is wise to be more aggressive in tax-exempt accounts and more conservative in
 taxable investment accounts. This choice will naturally push the optimizer
 to load more assets into the tax-exempt accounts through Roth conversions.
-These Roth conversions can be artificially driven by the better return rates
+These Roth conversions can be disproportionately driven by the better return rates
 provided by the tax-exempt accounts. A more neutral approach is to select `individual`.
 For `individual`, it is assumed that all savings accounts of a given
 individual follow the same allocation ratios. You should experiment with both.
@@ -590,7 +585,7 @@ These rates are the annual rates of return for each of the assets considered.
 The types of asset are described in the previous section.
 Rates for the S&P 500 equities include dividends.
 A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
-[here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition) for 2025.
+[here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition).
 
 An option to set the dividend rate for your stock portfolio is available.
 This [reference](https://us500.com/tools/data/sp500-dividend-yield) provides
@@ -742,14 +737,14 @@ with tab_results:
         st.markdown("""
 This page displays various plots from a single scenario based on the selections made
 in the **Plan Setup** section.
-This simulation uses a single instance of a series of rates, either constant or varying,
+This simulation uses a single series of rates, either constant or varying,
 as selected in the **Plan Setup** section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, or maximize the bequest under the constraint of a net spending amount.
 Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
-A button allows to re-run the *case* which would generate a different result
+A button allows you to re-run the *case* which would generate a different result
 if the chosen rates are `histochastic` or `stochastic`. Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
@@ -779,7 +774,7 @@ displaying sums of income, bequest, and spending values over the duration of the
 Note that all tables are scrollable and can be seen in full-screen mode.
 If multiple *cases* were configured and run (most likely through copying and
 modifying the parameters), they will be compared in that panel provided they were made
-for the same individuals and years spans. Column on the left shows the values for the selected case
+for the same individuals and year spans. Column on the left shows the values for the selected case
 while those on the right shows the differences.
 The contents of the synopsis can be downloaded as a plain text file by
 clicking the button below it.
@@ -815,7 +810,7 @@ There are two different ways to run multiple scenarios and generate a histogram 
         st.markdown("""
 This page is for backtesting your scenario over a selected range of past years,
 and generate a histogram of results.
-User can run multiple simulations,
+Users can run multiple simulations,
 each starting at a different year within a range of historical years.
 Each simulation assumes that the rates follow the same sequence that happened in the past,
 starting from a selected year in the past, and then offset by one year, and so on.
@@ -846,7 +841,7 @@ $N$ is the number of runs (from the year range and, if used, augmented sampling)
 $P$ the probability of success,
 $\\bar{x}$ is the resulting average, and $M$ is the median.
 
-If the `Beneficiary fractions` are not all unity, two histograms will be displayed:
+If the `Beneficiary fractions` are not all equal to 1, two histograms will be displayed:
 one for the partial bequest left at the passing of the first spouse
 and the other for the distribution of values of the objective being optimized,
 either maximum net spending or maximum bequest left at the passing
@@ -862,10 +857,10 @@ a histogram is shown, with a probability of success.
 The mean outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
 of cases $N$ and the probability of success $P$, which is the percentage of cases that succeeded.
 Cases that failed are termed infeasible, as the optimizer could not find
-values that could satisty all constraints.
+values that could satisfy all constraints.
 
 As is the case for **Historical Range**,
-if the `Beneficiary fractions` are not all unity, two histograms will also be displayed:
+if the `Beneficiary fractions` are not all equal to 1, two histograms will also be displayed:
 one for the partial bequest left at the passing of the first spouse
 and the other for the distribution of values of the objective being optimized,
 either maximum net spending or maximum bequest left at the passing

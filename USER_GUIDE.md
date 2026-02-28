@@ -17,7 +17,7 @@ A plan starts with the names of the individuals, their birth years and life expe
 Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
 ```python
 import owlplanner as owl
-# Jack was born in 1962 and expects to live to age 89. Jill was born in 1965 and hopes to live to age 92.
+# Jack was born in 1963 and expects to live to age 89. Jill was born in 1966 and hopes to live to age 92.
 # Plan starts on Jan 1st of this year.
 plan = owl.Plan(['Jack', 'Jill'], ["1963-01-15", "1966-01-15"], [89, 92], 'jack & jill - tutorial')
 # On January 1st, Jack has $90.5k in a taxable investment account,
@@ -240,13 +240,17 @@ See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/notebooks/
 ---------------------------------------------------------------
 ## Requirements
 
+### Dependencies
+
 Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
 The user front-end was built on Streamlit.
 Package `odfpy` might be required if one read files created by LibreOffice. These dependencies
-will be installed by pip using the installation guide [here](INSTALL.md)..
+will be installed by pip using the installation guide [here](INSTALL.md).
+
+### Running Owl
 
 The simplest way to get started with Owl is to use the `streamlit` browser-based user interface
-that is started by the `owlplanner.cmd` script, which  will start a user interface on your own browser.
+that is started by the `owlplanner.cmd` (Windows) or `owlplanner.sh` (Linux/macOS) script, which will start a user interface on your own browser.
 Here is a screenshot of one of the multiple tabs of the interface:
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/OwlUI.png?raw=true" width="100%">
@@ -261,9 +265,9 @@ For simulating your own realizations, use the files beginning with the word *tem
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
 Notebooks with detailed explanations can be found in
-[tutorial_1](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb),
-[tutorial_2](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb), and
-[tutorial_3](https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb).
+[tutorial_1](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_1.ipynb),
+[tutorial_2](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_2.ipynb), and
+[tutorial_3](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_3.ipynb).
 
 Finally, you will also need the capability to read and edit Excel files.
 One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.

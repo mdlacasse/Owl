@@ -60,7 +60,7 @@ your computer and can be used to reproduce a case at a later time.
 
 Copyright &copy; 2024-2026 - Martin-D. Lacasse
 
-Disclaimers: This code is for educatonal purposes only and does not constitute financial advice.
+Disclaimers: This code is for educational purposes only and does not constitute financial advice.
 
 Code output has been verified with analytical solutions when applicable, and comparative approaches otherwise.
 Nevertheless, accuracy of results is not guaranteed.
