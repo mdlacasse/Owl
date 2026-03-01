@@ -25,6 +25,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 
 
+def _bound_key(lb, ub):
+    """Classify a bound pair as a MOSEK-style key string."""
+    if np.isclose(lb, ub):
+        return "fx"
+    elif ub == np.inf and lb == -np.inf:
+        return "fr"
+    elif ub == np.inf:
+        return "lo"
+    elif lb == -np.inf:
+        return "up"
+    else:
+        return "ra"
+
+
 class Row:
     """
     Solver-neutral API to accommodate Mosek/HiGHS.
@@ -94,16 +108,7 @@ class ConstraintMatrix:
         self.Aval.append(row.val)
         self.lb.append(lb)
         self.ub.append(ub)
-        if lb == ub:
-            self.key.append("fx")
-        elif ub == np.inf and lb == -np.inf:
-            self.key.append("fr")
-        elif ub == np.inf:
-            self.key.append("lo")
-        elif lb == -np.inf:
-            self.key.append("up")
-        else:
-            self.key.append("ra")
+        self.key.append(_bound_key(lb, ub))
         self.ncons += 1
 
     def addNewRow(self, rowDic, lb, ub):
@@ -135,10 +140,7 @@ class ConstraintMatrix:
         lb = np.array(self.lb)
         ub = np.array(self.ub)
         for ii in range(self.ncons):
-            ind = self.Aind[ii]
-            val = self.Aval[ii]
-            for jj in range(len(ind)):
-                Alu[ii, ind[jj]] = val[jj]
+            Alu[ii, self.Aind[ii]] = self.Aval[ii]
 
         return Alu, lb, ub
 
@@ -176,39 +178,25 @@ class Bounds:
         self.ind.append(ii)
         self.lb.append(lb)
         self.ub.append(ub)
-        if np.isclose(lb, ub):
-            self.key.append("fx")
-        elif ub == np.inf and lb == -np.inf:
-            self.key.append("fr")
-        elif ub == np.inf:
-            self.key.append("lo")
-        elif lb == -np.inf:
-            self.key.append("up")
-        else:
-            self.key.append("ra")
+        self.key.append(_bound_key(lb, ub))
 
     def keys(self):
         keys = ["lo"] * self.nvars
-        for ii in range(len(self.ind)):
-            keys[self.ind[ii]] = self.key[ii]
-
+        for idx, key in zip(self.ind, self.key):
+            keys[idx] = key
         return keys
 
     def arrays(self):
         lb = np.zeros(self.nvars)
         ub = np.ones(self.nvars) * np.inf
-        for ii in range(len(self.ind)):
-            lb[self.ind[ii]] = self.lb[ii]
-            ub[self.ind[ii]] = self.ub[ii]
-
+        lb[self.ind] = self.lb
+        ub[self.ind] = self.ub
         return lb, ub
 
     def integralityArray(self):
         # All variables continuous by default.
         integrality = np.zeros(self.nvars, dtype=int)
-        for ii in range(len(self.integrality)):
-            integrality[self.integrality[ii]] = 1
-
+        integrality[self.integrality] = 1
         return integrality
 
     def integralityList(self):

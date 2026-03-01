@@ -164,8 +164,7 @@ def _checkColumns(df, iname, colList, required_cols=None):
     # Make an explicit copy to avoid SettingWithCopyWarning
     df = df.loc[:, ~df.columns.str.contains("^Unnamed")].copy()
 
-    allowed = colList if required_cols is None else colList
-    cols_to_drop = [col for col in df.columns if col == "" or col not in allowed]
+    cols_to_drop = [col for col in df.columns if col == "" or col not in colList]
     if cols_to_drop:
         df = df.drop(cols_to_drop, axis=1)
 
@@ -260,55 +259,7 @@ def _conditionHouseTables(dfDict, mylog):
             isInList = df["type"].isin(types[page])
             df = df[isInList]
 
-            # Convert percentage columns from decimal to percentage if needed
-            # UI uses 0-100 range for percentages (e.g., 4.5 = 4.5%)
-            # If Excel read percentage-formatted cells, values might be decimals (0.045)
-            # Convert values < 1.0 to percentage format (multiply by 100)
-            if page == "Debts" and "rate" in df.columns:
-                # If rate values are less than 1, assume they're decimals (0.045 = 4.5%)
-                # and convert to percentages (4.5) to match UI format (0-100 range)
-                mask = (df["rate"] < 1.0) & (df["rate"] > 0)
-                if mask.any():
-                    df.loc[mask, "rate"] = df.loc[mask, "rate"] * 100.0
-                    mylog.vprint(f"Converted {mask.sum()} rate value(s) from decimal to percentage in Debts table.")
-
-            elif page == "Fixed Assets":
-                # Convert rate and commission if they're decimals
-                # Both should be in 0-100 range to match UI format
-                if "rate" in df.columns:
-                    mask = (df["rate"] < 1.0) & (df["rate"] > 0)
-                    if mask.any():
-                        df.loc[mask, "rate"] = df.loc[mask, "rate"] * 100.0
-                        mylog.vprint(
-                            f"Converted {mask.sum()} rate value(s) from decimal "
-                            f"to percentage in Fixed Assets table."
-                        )
-                if "commission" in df.columns:
-                    mask = (df["commission"] < 1.0) & (df["commission"] > 0)
-                    if mask.any():
-                        df.loc[mask, "commission"] = df.loc[mask, "commission"] * 100.0
-                        mylog.vprint(
-                            f"Converted {mask.sum()} commission value(s) from decimal "
-                            f"to percentage in Fixed Assets table."
-                        )
-                # Validate and reset "year" column (reference year) if in the past
-                if "year" in df.columns:
-                    thisyear = date.today().year
-                    mask = df["year"] < thisyear
-                    if mask.any():
-                        df.loc[mask, "year"] = thisyear
-                        mylog.vprint(
-                            f"Reset {mask.sum()} reference year value(s) to {thisyear} "
-                            f"in Fixed Assets table (years cannot be in the past)."
-                        )
-
-            # Convert "active" column to boolean if it exists.
-            # Excel may read booleans as strings ("True"/"False") or numbers (1/0).
-            if "active" in df.columns:
-                df["active"] = df["active"].apply(u.convert_to_bool).astype(bool)
-
-            houseDic[page] = df
-            mylog.vprint(f"Found {len(df)} valid row(s) in {page} table.")
+            houseDic[page] = conditionDebtsAndFixedAssetsDF(df, page, mylog=mylog, convert_decimal_pct=True)
         else:
             houseDic[page] = pd.DataFrame(columns=items[page])
             mylog.vprint(f"Table for {page} not found. Assuming empty table.")
@@ -316,7 +267,13 @@ def _conditionHouseTables(dfDict, mylog):
     return houseDic
 
 
-def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None):
+_pctCols = {
+    "Debts": ["rate"],
+    "Fixed Assets": ["rate", "commission"],
+}
+
+
+def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pct=False):
     """
     Condition a DataFrame for Debts or Fixed Assets by:
     - Creating an empty DataFrame with proper columns if df is None or empty
@@ -331,6 +288,9 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None):
         Type of table: "Debts" or "Fixed Assets"
     mylog : logger, optional
         Logger instance for optional UI/log output
+    convert_decimal_pct : bool, optional
+        When True, percentage columns (see _pctCols) with values in (0, 1) are
+        multiplied by 100 to convert Excel decimal fractions to percent format.
 
     Returns
     -------
@@ -395,12 +355,30 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None):
                 # Float columns: convert to float64, fill NaN with 0.0
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0).astype("float64")
 
+    # Convert decimal percentages to percent format if requested (e.g. 0.045 → 4.5)
+    if convert_decimal_pct and len(df) > 0 and tableType in _pctCols:
+        for col in _pctCols[tableType]:
+            if col in df.columns:
+                mask = (df[col] > 0) & (df[col] < 1)
+                if mask.any():
+                    df.loc[mask, col] = df.loc[mask, col] * 100.0
+                    if mylog is not None:
+                        mylog.vprint(
+                            f"Converted {mask.sum()} {col} value(s) from decimal "
+                            f"to percentage in {tableType} table."
+                        )
+
     # For Fixed Assets, validate and reset "year" column if in the past
     if tableType == "Fixed Assets" and "year" in df.columns and len(df) > 0:
         thisyear = date.today().year
         mask = df["year"] < thisyear
         if mask.any():
             df.loc[mask, "year"] = thisyear
+            if mylog is not None:
+                mylog.vprint(
+                    f"Reset {mask.sum()} reference year value(s) to {thisyear} "
+                    f"in Fixed Assets table (years cannot be in the past)."
+                )
 
     if mylog is not None:
         mylog.vprint(f"Found {len(df)} valid row(s) in {tableType} table.")

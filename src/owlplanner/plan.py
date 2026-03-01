@@ -1104,7 +1104,6 @@ class Plan:
         If no argument is given, use the values that have been stored in self.timeLists.
         """
         if timeLists is not None:
-            timelists.check(timeLists, self.inames, self.horizons)
             self.timeLists = timeLists
 
         # Now fill in parameters which are in $.
