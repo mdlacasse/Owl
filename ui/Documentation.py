@@ -113,13 +113,20 @@ There are five sections in the menu bar:
 The documentation is structured along the same menus.
 """)
 
-    with st.expander(":material/folder: Case Definition", expanded=True):
+    with st.expander(":material/folder: Definitions", expanded=True):
         st.markdown("""
 A *case* is a collection of parameters that fully defines a retirement scenario. A *case* contains
 individual's life parameters, financial profile, fixed income sources, savings account balances,
 asset allocation ratios, anticipated rates of return, and optimization parameters.
+It also holds a reference to its *Household Financial Profile*, if one is used.
 
 A *run* is the execution of a *case* using a single instance of rates, either constant or varying.
+
+A *Household Financial Profile* (HFP) is an optional Excel workbook that holds the year-by-year
+time-series data for the household: anticipated wages and other income, taxable and retirement
+contributions, Roth conversions, and large expenses for each individual, plus optional debts and
+fixed assets. When no HFP is provided, wages and contributions are assumed to be zero.
+See *Input and Output Files* below for a detailed description of both files.
 
 **Owl** helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
 the planner can explore the impacts of differing assumptions and strategies on their financial situation.
@@ -141,8 +148,8 @@ individual demographics (names, birth dates, life expectancies),
 savings account balances, asset allocation ratios,
 fixed income sources (social security, pensions),
 run options (objective, Roth conversion strategy, solver options),
-and the rates selection. It does **not** contain the time-series data from the
-*Household Financial Profile*.
+the rates selection, and the filename of the associated *HFP* workbook (if any).
+It does **not** contain the time-series data from the *Household Financial Profile* itself.
 
 In practice, **users never need to write or edit this file by hand** — the interface
 generates it automatically as parameters are entered across the **Plan Setup** pages.
@@ -171,7 +178,7 @@ Two optional sheets extend the workbook:
 A blank template is available
 [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true).
 The naming convention when saving from the interface is `HFP_<case>.xlsx`.
-Both files must use the same `<case>` to be recognized as a pair.
+The case file stores the HFP filename internally; matching `<case>` names simply makes the pair easy to identify.
 
 ---
 
