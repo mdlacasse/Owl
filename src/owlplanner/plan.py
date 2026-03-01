@@ -1932,12 +1932,15 @@ class Plan:
 
             # === q_n = min(Δ𝒫_n, ζ̄_n, p^lo_n) via binary z^σ_{0n} ===
             # Upper bounds: q_n ≤ min(Δ𝒫_n, ζ̄_n) (setRange) and q_n ≤ p^lo_n (constraint).
+            # When ζ̄_n < Δ𝒫_n, the effective upper bound on q is ζ̄_n; using Δ𝒫_n in the big-M
+            # lower bound of constraint (3b) would force q ≥ Δ𝒫_n > ζ̄_n, causing infeasibility.
+            q_ub = min(delta_p_n, zetaBar_n)
             self.A.addNewRow({q_idx: 1, plo_idx: -1}, -np.inf, 0)               # q ≤ p^lo
-            # q_n ≥ Δ𝒫_n − M·(1 − z0)  →  q_n − M·z0 ≥ Δ𝒫_n − M
-            self.A.addNewRow({q_idx: 1, z0_idx: -bigMBar}, delta_p_n - bigMBar, np.inf)
+            # q_n ≥ min(Δ𝒫_n, ζ̄_n) − M·(1 − z0)  →  q_n − M·z0 ≥ q_ub − M
+            self.A.addNewRow({q_idx: 1, z0_idx: -bigMBar}, q_ub - bigMBar, np.inf)
             # q_n ≥ p^lo_n − M·z0  →  q_n − p^lo_n + M·z0 ≥ 0
             self.A.addNewRow({q_idx: 1, plo_idx: -1, z0_idx: bigMBar}, 0, np.inf)
-            self.B.setRange(q_idx, 0, min(delta_p_n, zetaBar_n))               # q ≤ min(Δ𝒫_n, ζ̄_n)
+            self.B.setRange(q_idx, 0, q_ub)                                     # q ≤ min(Δ𝒫_n, ζ̄_n)
 
             # === t^σ_n = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n) via binary z^σ_{1n} ===
             # Upper bound t^σ_n ≤ 0.5·q_n + 0.85·p^hi_n.

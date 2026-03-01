@@ -296,6 +296,35 @@ def test_ss_lp_vs_loop_consistency():
         assert np.all(psi_ss >= 0.0 - 1e-6), f"Psi_n (LP) went negative: {psi_ss.min():.4f}"
 
 
+def test_ss_lp_low_ss_high_income():
+    """
+    LP mode: single person with SS below bracket width (ζ̄ < ΔP=$9k) and high other income
+    (PI > Lo + ζ̄ = $31k).  Previously caused LP infeasibility: the big-M lower bound in the
+    q constraint forced q ≥ ΔP > ζ̄ while setRange enforced q ≤ ζ̄.
+
+    Setup:
+      - Single person, age 66, expectancy 74 (N_n ≈ 8 years)
+      - SS PIA $500/month → annual ζ̄ ≈ $6,000 < ΔP=$9,000 (single threshold)
+      - IRA balance $400k → large withdrawals drive PI >> Lo + ζ̄ = $31,000
+    """
+    thisyear = date.today().year
+    p = owl.Plan(['Kim'], [f'{thisyear - 66}-06-01'], [74], 'ss_lp_low_ss')
+    p.setSpendingProfile('flat', 60)
+    p.setAccountBalances(taxable=[0], taxDeferred=[400], taxFree=[0], startDate='1-1')
+    p.setInterpolationMethod('s-curve')
+    p.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setPension([0], [65])
+    p.setSocialSecurity([500], [67])   # $500/month PIA → ζ̄ ≈ $6k/year < ΔP=$9k (single)
+    p.setRates('historical', 2000)
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize', 'withMedicare': 'None'})
+    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus} (expected 'solved')"
+    ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
+    assert ss_mask.any(), "Expected some SS-active years"
+    psi_ss = p.Psi_n[ss_mask]
+    assert np.all(psi_ss <= 0.85 + 1e-6), f"Psi_n exceeded 0.85: {psi_ss.max():.4f}"
+    assert np.all(psi_ss >= 0.0 - 1e-6), f"Psi_n went negative: {psi_ss.min():.4f}"
+
+
 def test_historical_crash_years_feasible():
     """
     Regression test: verify that 1973–74 bear-market rates do not cause infeasibility.
