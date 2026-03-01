@@ -210,11 +210,11 @@ all indexed by year:
 - **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
   (stocks, corporate bonds, T-notes, common assets) for each account type over time.
 
-**`Synopsis_<case>.txt`** — *Comparison summary*
+**`Synopsis_<case>.txt`** — *Case summary*
 
-A plain-text table comparing key metrics (spending, bequest, taxes, etc.) across all
-*cases* that share the same individuals' names, providing a quick side-by-side view
-of the impact of different planning assumptions.
+A plain-text table of key metrics (spending, bequest, taxes, etc.) for the solved *case*.
+When multiple *cases* sharing the same individuals' names have been solved, additional columns
+show the differences between cases for a quick side-by-side comparison.
 """)
 
 # --- Plan Setup tab ---
