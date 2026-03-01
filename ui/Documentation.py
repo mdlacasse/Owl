@@ -84,12 +84,14 @@ tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_tips = st.tabs([
 # --- Overview tab ---
 with tab_overview:
     st.markdown("""
-#### Getting Started with the User Interface
-The functions of each page are described in the documentation in the same order as they appear in the menu bar:
-Typically, pages in the menu would be accessed in order, starting from left to right and from the top down.
+#### Getting Started with Owl
+The menu at the top allows to navigate through the different pages of the application.
+Typically, pages under the *Plan Setup* tab would be accessed successively in order,
+starting from the top down. Once completed, the user would move to the second tab, *Results*,
+to visualize the results.
 
 A `Case selector` box located at the top of each page allows
-you to navigate between the different scenarios created.
+to navigate between the different scenarios created.
 This box is present on all pages in **Plan Setup** and **Results** sections.
 The *case* being currently displayed is marked with a small red triangle.
 
@@ -121,6 +123,98 @@ A *run* is the execution of a *case* using a single instance of rates, either co
 
 **Owl** helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
 the planner can explore the impacts of differing assumptions and strategies on their financial situation.
+""")
+
+    with st.expander(":material/sync_alt: Input and Output Files"):
+        st.markdown("""
+Every *case* in **Owl** is fully described by two input files and produces three output files.
+Together they capture the complete data flow from configuration to results.
+In the file names below, `<case>` stands for the *case* name and `<individual>` stands
+for an individual's first name (e.g., *Jack* or *Jill*).
+
+##### :material/upload: Input Files
+
+**`Case_<case>.toml`** — *Case parameter file*
+
+This human-readable text file encodes all the scalar parameters of a *case*:
+individual demographics (names, birth dates, life expectancies),
+savings account balances, asset allocation ratios,
+fixed income sources (social security, pensions),
+run options (objective, Roth conversion strategy, solver options),
+and the rates selection. It does **not** contain the time-series data from the
+*Household Financial Profile*.
+
+In practice, **users never need to write or edit this file by hand** — the interface
+generates it automatically as parameters are entered across the **Plan Setup** pages.
+Many ready-to-use example cases can be loaded directly from the **Create Case** page,
+making it easy to get started without any manual file preparation.
+Once a *case* has run successfully, its case file can be downloaded from the **Reports** page
+and reloaded at any future session to restore the exact same configuration.
+When uploaded on the **Create Case** page,
+all fields in **Plan Setup** are populated automatically.
+The naming convention when saving from the interface is `Case_<case>.toml`.
+
+**`HFP_<case>.xlsx`** — *Household Financial Profile workbook*
+
+This Excel workbook holds the year-by-year time-series data that cannot be expressed
+as single scalars in the case file. It must contain one sheet per individual, named
+after that individual (e.g., *Jack* and *Jill*), each with a **Wages and Contributions**
+table covering five years of history through the last year of the plan. Columns include:
+anticipated wages, other income, taxable contributions, 401k and Roth 401k contributions,
+IRA and Roth IRA contributions, manual Roth conversions, and big-ticket items.
+
+Two optional sheets extend the workbook:
+- **`Debts`** — mortgage and loan entries (label, type, start year, term, principal, rate).
+- **`Fixed Assets`** — illiquid assets such as real estate or fixed annuities
+  (label, type, reference year, cost basis, value, growth rate, year of disposition, commission).
+
+A blank template is available
+[here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true).
+The naming convention when saving from the interface is `HFP_<case>.xlsx`.
+Both files must use the same `<case>` to be recognized as a pair.
+
+---
+
+##### :material/download: Output Files
+
+After a *case* has been solved, the **Reports** page offers the following downloads:
+
+**`Case_<case>.toml`** — *Saved case parameter file*
+
+Identical in format to the input case file and fully round-trips: re-uploading it
+recreates the exact same *case* configuration. If the HFP data were edited directly
+in the UI (rather than loaded from a file), this file alone is not sufficient to
+reproduce the run — the HFP workbook must also be saved.
+
+**`HFP_<case>.xlsx`** — *Saved Household Financial Profile workbook*
+
+The HFP workbook as currently loaded or edited in the session. Saving it alongside
+`Case_<case>.toml` guarantees a fully reproducible *case*.
+
+**`Workbook_<case>.xlsx`** — *Output worksheets*
+
+The primary numerical output of a solved *case*. Contains one worksheet per topic,
+all indexed by year:
+- **Income** — net spending, taxable ordinary income, taxable capital gains and dividends,
+  total tax bills and Medicare premiums.
+- **Cash Flow** — full breakdown of all money inflows and outflows for the household.
+- **`<individual>`'s Sources** *(one sheet per individual)* — year-by-year sources of spending
+  (wages, social security, pension, taxable/tax-deferred/tax-free withdrawals, RMDs,
+  Roth conversions, big-ticket items).
+- **Household Sources** — fixed-asset proceeds (ordinary income, capital gains, tax-free)
+  and debt payments.
+- **`<individual>`'s Accounts** *(one sheet per individual)* — balances, contributions,
+  deposits, withdrawals, and Roth conversions for each of the three account types.
+- **Federal Income Tax** — income allocated to each tax bracket, NIIT, LTCG tax,
+  early-withdrawal penalty, and the fraction of Social Security that is taxable.
+- **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
+  (stocks, corporate bonds, T-notes, common assets) for each account type over time.
+
+**`Synopsis_<case>.txt`** — *Comparison summary*
+
+A plain-text table comparing key metrics (spending, bequest, taxes, etc.) across all
+*cases* that share the same individuals' names, providing a quick side-by-side view
+of the impact of different planning assumptions.
 """)
 
 # --- Plan Setup tab ---

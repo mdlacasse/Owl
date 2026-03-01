@@ -1067,7 +1067,9 @@ In this case, the objective function will need to consider the sum over all year
 	LP as a mixed-integer program (MIP) using the continuous variables
 	$p^{\sigma,\mathrm{lo}}_n$, $p^{\sigma,\mathrm{hi}}_n$, $q^{\sigma}_n$, and
 	$t^{\sigma}_n$, together with two binary variables $z^{\sigma}_{0n}$ and
-	$z^{\sigma}_{1n}$ per year.
+	$z^{\sigma}_{1n}$ per year $n$ for which $\sum_i\bar{\zeta}_{in}>0$;
+	in years with no Social Security income all four continuous variables and
+	both binaries are trivially fixed to zero and excluded from the MIP enumeration.
 	The non-negativity of $p^{\sigma,\mathrm{lo}}_n$ and $p^{\sigma,\mathrm{hi}}_n$
 	combined with the lower-bound constraints
 	$p^{\sigma,\mathrm{lo}}_n \ge \Pi_n - \mathcal{P}^{\mathrm{lo}}_n$ and
