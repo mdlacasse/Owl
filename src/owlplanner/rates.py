@@ -125,7 +125,9 @@ def get_fixed_rates_decimal(method):
     raise ValueError(f"Unknown fixed rate method '{method}'.")
 
 
-where = os.path.dirname(sys.modules["owlplanner"].__file__)
+_pkg_file = sys.modules["owlplanner"].__file__
+assert _pkg_file is not None, "Could not determine owlplanner package location"
+where = os.path.dirname(_pkg_file)
 file = os.path.join(where, "data/rates.csv")
 try:
     df = pd.read_csv(file)

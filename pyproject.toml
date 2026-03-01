@@ -68,6 +68,23 @@ dev = [
 ]
 
 
+[tool.mypy]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pandas.*",
+    "plotly.*",
+    "scipy.*",
+    "pulp.*",
+    "mosek.*",
+    "openpyxl.*",
+    "toml.*",
+    "seaborn.*",
+    "loguru.*",
+]
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 120
 indent-width = 4

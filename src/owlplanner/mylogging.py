@@ -30,7 +30,7 @@ try:
     from loguru import logger as loguru_logger
     HAS_LOGURU = True
 except ImportError:
-    loguru_logger = None
+    loguru_logger = None  # type: ignore[assignment]
     HAS_LOGURU = False
 
 

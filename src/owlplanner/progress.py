@@ -20,8 +20,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from owlplanner import utils as u
+if TYPE_CHECKING:
+    from owlplanner.mylogging import Logger
 
 
 class Progress:
@@ -39,7 +41,7 @@ class Progress:
         prog.finish()
     """
 
-    def __init__(self, mylog: Optional[object] = None):
+    def __init__(self, mylog: Optional["Logger"] = None):
         """
         Initialize the progress indicator.
 

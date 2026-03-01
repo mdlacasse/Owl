@@ -13,6 +13,7 @@ Copyright (C) 2025-2026 The Owlplanner Authors
 """
 ###########################################################################
 from abc import ABC, abstractmethod
+from typing import Any, Optional
 import numpy as np
 
 
@@ -27,15 +28,15 @@ class BaseRateModel(ABC):
 
     model_name = "base"
     description = "Abstract rate model."
-    more_info = None
+    more_info: Optional[str] = None
 
     # Model characteristics
     deterministic = False
     constant = False
 
     # Parameter schema
-    required_parameters = {}
-    optional_parameters = {}
+    required_parameters: dict[str, Any] = {}
+    optional_parameters: dict[str, Any] = {}
 
     #######################################################################
     # Initialization

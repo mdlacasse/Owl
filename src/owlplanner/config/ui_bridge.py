@@ -269,7 +269,7 @@ def ui_to_config(uidic: dict) -> dict:
 
     start_date = uidic.get("startDate")
     if hasattr(start_date, "strftime"):
-        start_date = start_date.strftime("%Y-%m-%d")
+        start_date = start_date.strftime("%Y-%m-%d")  # type: ignore[union-attr]
     elif start_date is None:
         start_date = "today"
 

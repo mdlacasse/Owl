@@ -202,6 +202,7 @@ class Plan:
         self.interpWidth = 5
 
         self._description = ''
+        self._config_extra = None
         self.defaultPlots = "nominal"
         self.defaultSolver = "default"
         self._plotterName = None
