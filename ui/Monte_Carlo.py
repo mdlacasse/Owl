@@ -29,7 +29,7 @@ import owlbridge as owb
 ret = kz.titleBar(":material/finance: Monte Carlo")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("Case(s) must be first created before running this page.")
+    st.info("A case must first be created before running this page.")
 else:
     if kz.getCaseKey("rateType") != "varying" or (
         kz.getCaseKey("varyingType") is None or "stochastic" not in kz.getCaseKey("varyingType")

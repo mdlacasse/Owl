@@ -87,7 +87,7 @@ def getToggleInput(i, key, thing):
 ret = kz.titleBar(":material/currency_exchange: Fixed Income")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("Case(s) must be first created before running this page.")
+    st.info("A case must first be created before running this page.")
 else:
     st.markdown("#### :orange[Social Security]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")

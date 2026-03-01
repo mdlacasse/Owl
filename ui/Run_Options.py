@@ -48,7 +48,7 @@ def initProfile():
 ret = kz.titleBar(":material/tune: Run Options")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("Case(s) must be first created before running this page.")
+    st.info("A case must first be created before running this page.")
 else:
     kz.runOncePerCase(initProfile)
 
@@ -65,7 +65,7 @@ else:
         if kz.getCaseKey("objective") == "Net spending":
             kz.initCaseKey("bequest", 0)
             helpmsg_bequest = ("Desired bequest from savings accounts only (in today's \\$k). "
-                               "Fixed assets liquidated at end of plan are added separately.")
+                               "Fixed assets liquidated at the end of the plan are added separately.")
             bequest = kz.getNum("Desired bequest from savings accounts (\\$k)", "bequest",
                                 help=helpmsg_bequest)
 
@@ -185,7 +185,7 @@ else:
 
             kz.initCaseKey("noLateSurplus", False)
             helpmsg = ("Disallow cash-flow surpluses in the last two years of the plan.")
-            ret = kz.getToggle("Disallow cash-flow surpluses in last 2 years",
+            ret = kz.getToggle("Disallow cash-flow surpluses in the last 2 years",
                                "noLateSurplus", help=helpmsg)
 
         st.divider()
@@ -238,7 +238,7 @@ else:
     st.markdown("#### :orange[Spending Profile]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
-        helpmsg = "Spending can be constant during the duration of the plan or be adjusted for lifestyle."
+        helpmsg = "Spending can be constant for the duration of the plan or be adjusted for lifestyle."
         ret = kz.getRadio("Type of profile", profileChoices, "spendingProfile", help=helpmsg, callback=owb.setProfile)
         if kz.getCaseKey("spendingProfile") == "smile":
             helpmsg = "Time in year before spending starts decreasing."

@@ -86,7 +86,7 @@ kz.initCaseKey("varyingType", varyingChoices[0])
 ret = kz.titleBar(":material/monitoring: Rates Selection")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("Case(s) must be first created before running this page.")
+    st.info("A case must first be created before running this page.")
 else:
     kz.runOncePerCase(initRates)
     kz.initCaseKey("yfrm", owb.FROM)
@@ -319,7 +319,7 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
         with col2:
             kz.initCaseKey("yOBBBA", 2032)
             thisyear = date.today().year
-            helpmsg = "Year at which the OBBBA tax rates are speculated to be expired and return to pre-TCJA rates."
+            helpmsg = "Year at which the OBBBA tax rates are projected to expire and return to pre-TCJA rates."
             ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 

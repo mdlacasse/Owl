@@ -44,7 +44,7 @@ if ret is None:
         "#### Start here\n\n"
         "Create a new case by providing a name below, or load one from a TOML case file,"
         " or simply load one of the example files available.\n\n"
-        "*Consult at the :material/help: [Documentation](Documentation) for more details.*"
+        "*Consult the :material/help: [Documentation](Documentation) for more details.*"
     )
     col1, col2, col3 = st.columns(3, gap="large")
     with col1:
@@ -177,7 +177,7 @@ else:
         datemsg = """
 Calculations are the same if you were born on any day after the 2nd of the month.
 Social Security has special rules for those born on the 1st or 2nd.
-Ask your favorite AI about it if you're curious.
+See SSA documentation for details.
 """
         longmsg = """See the documentation for suggested resources on estimating longevity."""
         if iname0:
@@ -217,7 +217,7 @@ Ask your favorite AI about it if you're curious.
     cantcreate = kz.isIncomplete() or diz1
     if not cantcreate and kz.getCaseKey("plan") is None:
         st.info("""Any parameter on this page can now be changed, including the case name.
-Once changes are complete click the `Create case` button."""
+Once changes are complete, click the `Create case` button."""
                 )
 
     cantcopy = kz.caseHasNoPlan()
@@ -258,7 +258,7 @@ Once changes are complete click the `Create case` button."""
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
         helpmsg = """`Copy parameters` carries over all parameters to a new case.
-Click the `Create case` button once all parameters on this page are right."""
+Click the `Create case` button once all parameters on this page are set."""
         st.button("Copy parameters :material/content_copy:", on_click=kz.copyCase,
                   disabled=cantcopy, help=helpmsg)
     with col2:

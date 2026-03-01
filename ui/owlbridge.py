@@ -108,7 +108,7 @@ def _checkPlan(func):
     def wrapper(*args, **kwargs):
         plan = kz.getCaseKey("plan")
         if plan is None:
-            st.error(f"Plan not yet created. Preventing to execute method {func.__name__}().")
+            st.error(f"Plan not yet created. Cannot execute method {func.__name__}().")
             return None
         return func(plan, *args, **kwargs)
 

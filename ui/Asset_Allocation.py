@@ -105,7 +105,7 @@ def checkAllAllocs():
 ret = kz.titleBar(":material/percent: Asset Allocation")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("Case(s) must be first created before running this page.")
+    st.info("A case must first be created before running this page.")
 else:
     st.markdown("#### :orange[Type of Allocation]")
     choices = ["individual", "account"]

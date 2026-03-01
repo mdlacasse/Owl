@@ -29,7 +29,7 @@ import owlbridge as owb
 ret = kz.titleBar(":material/history: Historical Range")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("Case(s) must be first created before running this page.")
+    st.info("A case must first be created before running this page.")
 else:
     kz.initCaseKey("hyfrm", owb.FROM)
     kz.initCaseKey("hyto", owb.TO)
@@ -72,7 +72,7 @@ current scenario with historical data over selected year range.""")
     with st.expander("*Advanced options*"):
         st.caption("""
 :warning: Augmented sampling requires a lot of computing time and is unlikely to complete on the Community Cloud.
-Consider self-hosting *Owl* for using this option.:warning:
+Consider self-hosting *Owl* for using this option.
 
 Changing any of these options only affects the next run.
 """)

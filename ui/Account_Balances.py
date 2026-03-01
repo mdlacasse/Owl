@@ -29,7 +29,7 @@ import case_progress as cp
 ret = kz.titleBar(":material/savings: Account Balances")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("Case(s) must be first created before running this page.")
+    st.info("A case must first be created before running this page.")
 else:
     st.markdown("#### :orange[Savings Account Balances]")
     accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-free"}

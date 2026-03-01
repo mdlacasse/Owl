@@ -41,7 +41,7 @@ def loadWCExample(file):
 ret = kz.titleBar(":material/home: Financial Profile")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("Case(s) must be first created before running this page.")
+    st.info("A case must first be created before running this page.")
 else:
     if kz.getCaseKey("timeList0") is None:
         kz.runOncePerCase(owb.resetTimeLists)
@@ -98,7 +98,7 @@ that has not yet been uploaded.""")
     st.divider()
     st.markdown("### :material/work_history: :orange[Wages and Contributions]")
     st.markdown("""Wages and contributions for each individual.
-Current year is highligthed in blue. The cells before are for the previous five years, used exclusively to track past
+Current year is highlighted in blue. The cells before are for the previous five years, used exclusively to track past
 Roth contributions and conversions. This historical data ensures compliance with the IRS five-year maturation rule.
 For these initial five years, only Roth-related entries are read; all other columns are ignored.""")
 

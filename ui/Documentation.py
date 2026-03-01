@@ -85,7 +85,7 @@ tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_tips = st.tabs([
 with tab_overview:
     st.markdown("""
 #### Getting Started with Owl
-The menu at the top allows to navigate through the different pages of the application.
+The menu at the top allows you to navigate through the different pages of the application.
 Typically, pages under the *Plan Setup* tab would be accessed successively in order,
 starting from the top down. Once completed, the user would move to the second tab, *Results*,
 to visualize the results.
