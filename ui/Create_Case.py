@@ -250,7 +250,7 @@ Once changes are complete, click the `Create case` button."""
                 st.markdown("##### :orange[Load Example HFP Workbook]")
                 st.markdown("Read associated HFP workbook.")
                 helpmsg = "Load associated HFP workbook from GitHub"
-                st.button("Load workbook associated with example case", help=helpmsg,
+                st.button("Load example workbook", help=helpmsg,
                           key="create_hfp_example_btn",
                           on_click=_loadHFPExample, args=[tomlexcase])
         st.divider()

@@ -92,7 +92,7 @@ that has not yet been uploaded.""")
             st.markdown("#### :orange[Load Example HFP Workbook]")
             st.markdown("Read associated HFP workbook.")
             helpmsg = "Load associated HFP workbook from GitHub"
-            st.button("Load workbook associated with example case", help=helpmsg,
+            st.button("Load example workbook", help=helpmsg,
                       on_click=loadWCExample, args=[tomlexcase])
 
     st.divider()
@@ -127,7 +127,7 @@ For these initial five years, only Roth-related entries are read; all other colu
                 kz.setCaseKey("timeList" + str(i), newdf)
                 st.rerun()
 
-        st.button("Reset timetables to zero", help="Reset all values to zero.", on_click=owb.resetTimeLists)
+        st.button("Reset to zero", help="Reset all values to zero.", on_click=owb.resetTimeLists)
 
     st.divider()
     st.markdown("### :material/account_balance: :orange[Debts and Fixed Assets]")

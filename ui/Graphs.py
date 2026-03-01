@@ -46,9 +46,9 @@ else:
                           callback=owb.setDefaultPlots)
 
     with col3:
-        helpmsg = "Click to refresh if some graphs are not showing."
+        helpmsg = "Re-run the case, or generate a new set of stochastic rates."
         st.button(
-            "Re-run single case",
+            "Re-run",
             help=helpmsg,
             on_click=owb.runPlan,
             disabled=kz.caseIsNotRunReady(),

@@ -69,7 +69,7 @@ workbook, to reproduce it in the future.""")
             st.code(lines, height=400, language="toml")
 
             st.download_button(
-                "Download Case parameter file", data=lines,
+                "Download case file", data=lines,
                 file_name=f"Case_{caseName}.toml", mime="application/toml"
             )
 
@@ -86,7 +86,7 @@ describing the flow of money, the first one as input to the case, and the second
         col1, col2 = st.columns(2, gap="large")
         with col1:
             hfp_clicked = st.download_button(
-                label="Download Financial Profile workbook",
+                label="Download financial profile",
                 help="Download Household Financial Profile (HFP) as an Excel workbook.",
                 data=hfp_buffer,
                 file_name=f"HFP_{caseName}.xlsx",
