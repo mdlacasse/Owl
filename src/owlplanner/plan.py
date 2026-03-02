@@ -1355,6 +1355,7 @@ class Plan:
         """
         medi = options.get("withMedicare", "loop") == "optimize"
         ss_lp = options.get("withSSTaxability", "loop") == "optimize"
+        ltcg_lp = options.get("withLTCG", "loop") == "optimize"
         Nmed = self.N_n - self.nm
 
         # Stack all variables in a single block vector with all binary variables at the end.
@@ -1374,6 +1375,10 @@ class Plan:
         vm.add_if(ss_lp, "phi", self.N_n)           # p^hi_n = max(0, Π_n − 𝒫^hi)
         vm.add_if(ss_lp, "q", self.N_n)             # q_n    = min(𝒫^hi−𝒫^lo, p^lo_n)
         vm.add_if(ss_lp, "tss", self.N_n)            # t^σ_n  = min(0.85·ζ̄_n, 0.5·q_n + 0.85·p^hi_n)
+        # LTCG bracket LP variables (continuous) — no binary vars needed (convex cost function).
+        vm.add_if(ltcg_lp, "ltcg0", self.N_n)       # Q_n in 0% capital gains bracket
+        vm.add_if(ltcg_lp, "ltcg15", self.N_n)      # Q_n in 15% capital gains bracket
+        vm.add_if(ltcg_lp, "ltcg20", self.N_n)      # Q_n in 20% capital gains bracket
         vm.mark_binary_start()
         vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
         vm.add_if(medi, "zm", Nmed, self.N_q)       # IRMAA bracket selection binaries
@@ -1412,10 +1417,11 @@ class Plan:
         self._add_initial_balances()
         self._add_surplus_deposit_linking(options)
         self._add_account_balance_carryover()
-        self._add_net_cash_flow()
+        self._add_net_cash_flow(options)
         self._add_income_profile()
         self._add_taxable_income(options)
         self._configure_ss_taxability_lp(options)
+        self._configure_ltcg_lp(options)
         self._configure_Medicare_binary_variables(options)
         self._add_Medicare_costs(options)
         self._configure_exclusion_binary_variables(options)
@@ -1683,7 +1689,8 @@ class Plan:
                         )
                     self.A.addRow(row, rhs, rhs)
 
-    def _add_net_cash_flow(self):
+    def _add_net_cash_flow(self, options=None):
+        ltcg_lp = options is not None and options.get("withLTCG", "loop") == "optimize"
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
         tau_0prev[tau_0prev < 0] = 0
         for n in range(self.N_n):
@@ -1698,7 +1705,9 @@ class Plan:
             row.addElem(self.vm["s"].idx(n), 1)
             row.addElem(self.vm["m"].idx(n), 1)
             for i in range(self.N_i):
-                fac = self.psi_n[n] * self.alpha_ijkn[i, 0, 0, n]
+                # When LTCG is LP-managed, psi_n plays no role in constraints — the LP
+                # variables ltcg15_n and ltcg20_n carry the LTCG tax directly.
+                fac = 0.0 if ltcg_lp else self.psi_n[n] * self.alpha_ijkn[i, 0, 0, n]
                 rhs += (
                     self.omega_in[i, n]
                     + self.other_inc_in[i, n]
@@ -1717,6 +1726,11 @@ class Plan:
 
             for t in range(self.N_t):
                 row.addElem(self.vm["f"].idx(t, n), self.theta_tn[t, n])
+
+            # When LTCG is LP-managed, add the explicit bracket tax terms to the constraint.
+            if ltcg_lp:
+                row.addElem(self.vm["ltcg15"].idx(n), 0.15)
+                row.addElem(self.vm["ltcg20"].idx(n), 0.20)
 
             self.A.addRow(row, rhs, rhs)
 
@@ -1950,6 +1964,86 @@ class Plan:
             # t^σ_n ≥ 0.5·q_n + 0.85·p^hi_n − M·z1  →  t^σ_n − 0.5·q − 0.85·p^hi + M·z1 ≥ 0
             self.A.addNewRow({tss_idx: 1, q_idx: -0.5, phi_idx: -0.85, z1_idx: bigMBar}, 0, np.inf)
             self.B.setRange(tss_idx, 0, 0.85 * zetaBar_n)                        # t^σ ≤ 0.85·ζ̄
+
+    def _configure_ltcg_lp(self, options):
+        """
+        Configure LTCG tax using LP bracket-allocation variables (pure LP, no binaries).
+
+        Introduces per-year variables ltcg0_n, ltcg15_n, ltcg20_n partitioning total LTCG
+        across the 0%, 15%, and 20% capital-gains brackets. Because the LTCG cost function is
+        convex (0 < 0.15 < 0.20), the LP naturally minimises tax without binary variables.
+
+        The bracket boundaries depend on e_n (ordinary income below standard deduction). Since
+        e_n ≤ sigmaBar_n < T15 always, all bracket constraints are plain linear inequalities.
+
+        Constraints per year n:
+          (1) ltcg0_n + e_n ≤ T15_n            (cap on 0% allocation)
+          (2) ltcg0_n + ltcg15_n + e_n ≤ T20_n (cap on 0%+15% allocation)
+          (3) ltcg0_n + ltcg15_n + ltcg20_n ≥ Q_n (LP expression)   (partition lower bound)
+
+        Because the LP minimises tax, constraint (3) is tight when Q_n > 0 and the bound
+        is inactive (all-zero) when Q_n ≤ 0 (no LTCG in loss years).
+
+        The tax in the cash-flow constraint becomes 0.15·ltcg15_n + 0.20·ltcg20_n, replacing
+        the psi_n·Q_n terms that previously required SC-loop iteration.
+        """
+        if options.get("withLTCG", "loop") != "optimize":
+            return
+
+        tau_0 = self.tau_kn[0, :]
+        # Use the same roll as _aggregateResults so the partition constraint is consistent
+        # with the Q_n computation used for reporting.
+        tau_0prev = np.roll(tau_0, 1)
+
+        for n in range(self.N_n):
+            # Per-year filing status: couple switches to Single at n_d.
+            status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
+
+            # Inflation-adjusted bracket thresholds.
+            T15_n = self.gamma_n[n] * tx.capGainRates[status_n][0]
+            T20_n = self.gamma_n[n] * tx.capGainRates[status_n][1]
+
+            # Previous year's equity return for capital-gains rate on sold shares.
+            # max(0,...) matches capital_gains_rate computation in _aggregateResults.
+            cap_rate = max(0.0, tau_0prev[n] - self.mu)
+
+            ltcg0_idx = self.vm["ltcg0"].idx(n)
+            ltcg15_idx = self.vm["ltcg15"].idx(n)
+            ltcg20_idx = self.vm["ltcg20"].idx(n)
+            e_idx = self.vm["e"].idx(n)
+
+            # === Bracket upper-bound constraints ===
+            # (1) ltcg0 + e_n ≤ T15_n
+            self.A.addNewRow({ltcg0_idx: 1, e_idx: 1}, -np.inf, T15_n)
+            # (2) ltcg0 + ltcg15 + e_n ≤ T20_n
+            self.A.addNewRow({ltcg0_idx: 1, ltcg15_idx: 1, e_idx: 1}, -np.inf, T20_n)
+
+            # === Partition lower-bound constraint: ltcg0+ltcg15+ltcg20 ≥ Q_portfolio+Q_fixed ===
+            # Q_portfolio_n = sum_i alpha_i00n * [mu*(b_i0n + d_in - w_i0n) + cap_rate*w_i0n
+            #                                     + 0.5*mu*kappa_i0n]
+            # Rearranged: sum_i alpha_i00n * [mu*b_i0n + (cap_rate-mu)*w_i0n + mu*d_in]
+            # The kappa half-period correction goes to the RHS.
+            rhs_q = self.fixed_assets_capital_gains_n[n]
+            row_q = {ltcg0_idx: 1, ltcg15_idx: 1, ltcg20_idx: 1}
+            for i in range(self.N_i):
+                alpha = self.alpha_ijkn[i, 0, 0, n]
+                if alpha == 0:
+                    continue
+                b_idx = self.vm["b"].idx(i, 0, n)
+                w_idx = self.vm["w"].idx(i, 0, n)
+                d_idx = self.vm["d"].idx(i, n)
+                row_q[b_idx] = row_q.get(b_idx, 0) - alpha * self.mu
+                row_q[w_idx] = row_q.get(w_idx, 0) - alpha * (cap_rate - self.mu)
+                row_q[d_idx] = row_q.get(d_idx, 0) - alpha * self.mu
+                rhs_q += alpha * 0.5 * self.mu * self.kappa_ijn[i, 0, n]
+
+            # (3) ltcg0 + ltcg15 + ltcg20 − Q_portfolio_LP_vars ≥ Q_fixed + kappa_correction
+            self.A.addNewRow(row_q, rhs_q, np.inf)
+
+            # Variable bounds: ltcg0 ≤ T15_n, ltcg15 ≤ T20_n − T15_n (bracket widths).
+            self.B.setRange(ltcg0_idx, 0, T15_n)
+            self.B.setRange(ltcg15_idx, 0, T20_n - T15_n)
+            # ltcg20 is unbounded above (the 20% bracket has no cap).
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -2283,6 +2377,7 @@ class Plan:
             "maxTime",
             "units",
             "verbose",
+            "withLTCG",
             "withMedicare",
             "withSCLoop",
             "withSSTaxability",
@@ -2755,13 +2850,16 @@ class Plan:
             self._update_Psi_n()
 
         self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
-        ltcg_n = np.maximum(self.Q_n, 0)
-        tx_income_n = self.e_n + ltcg_n
-        cg_tax_n = tx.capitalGainTax(self.N_i, tx_income_n, ltcg_n, self.gamma_n[:-1], self.n_d, self.N_n)
-        self.psi_n = np.zeros(self.N_n)
-        has_ltcg = ltcg_n > 0
-        self.psi_n[has_ltcg] = cg_tax_n[has_ltcg] / ltcg_n[has_ltcg]
-        self.U_n = cg_tax_n
+        if "ltcg0" not in self.vm:
+            # SC-loop LTCG: compute psi_n from current portfolio returns and update for next solve.
+            ltcg_n = np.maximum(self.Q_n, 0)
+            tx_income_n = self.e_n + ltcg_n
+            cg_tax_n = tx.capitalGainTax(self.N_i, tx_income_n, ltcg_n, self.gamma_n[:-1], self.n_d, self.N_n)
+            self.psi_n = np.zeros(self.N_n)
+            has_ltcg = ltcg_n > 0
+            self.psi_n[has_ltcg] = cg_tax_n[has_ltcg] / ltcg_n[has_ltcg]
+            self.U_n = cg_tax_n
+        # else: LTCG is in the LP; psi_n stays 0 and U_n is set by _aggregateResults.
         # Compute Medicare through self-consistent loop.
         if includeMedicare:
             self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
@@ -2827,7 +2925,21 @@ class Plan:
         )
         # Add fixed assets capital gains.
         self.Q_n += self.fixed_assets_capital_gains_n
-        self.U_n = self.psi_n * self.Q_n
+        if "ltcg0" in vm:
+            # LTCG LP: extract bracket variables and compute tax and effective rate from them.
+            self.ltcg0_n = vm["ltcg0"].extract(x)
+            self.ltcg15_n = vm["ltcg15"].extract(x)
+            self.ltcg20_n = vm["ltcg20"].extract(x)
+            self.U_n = 0.15 * self.ltcg15_n + 0.20 * self.ltcg20_n
+            # When Q_n < T15 the LP may set ltcg0 > Q_n (free 0% bucket), clip for clean reporting.
+            total_ltcg = np.maximum(self.Q_n, 0)
+            excess = np.maximum(0, self.ltcg0_n - total_ltcg)
+            self.ltcg0_n = np.maximum(0, self.ltcg0_n - excess)
+            has_ltcg = self.Q_n > 0
+            self.psi_n = np.zeros(Nn)
+            self.psi_n[has_ltcg] = self.U_n[has_ltcg] / self.Q_n[has_ltcg]
+        else:
+            self.U_n = self.psi_n * self.Q_n
 
         # Also add back non-taxable part of SS.
         self.MAGI_n = (self.G_n + self.e_n + self.Q_n
