@@ -27,8 +27,7 @@ class Progress:
     _HOURGLASSES = ["⏳", "⌛"]
     _TXT = "Calculations in progress. Please wait... &nbsp; &nbsp;"
 
-    def __init__(self, mylog):
-        self.mylog = mylog
+    def __init__(self):
         self.counter = 0
 
     def start(self):

@@ -43,3 +43,24 @@ def test_capital_gain_tax_reaches_20_percent_bracket():
     expected = 0.20 * ltcg20 + 0.15 * ltcg15
 
     assert cg_tax_n[0] == pytest.approx(expected)
+
+
+def test_capital_gain_tax_all_ltcg_in_20pct_bracket():
+    """When ordinary income alone exceeds the 20% threshold, all LTCG is taxed at 20%."""
+    Ni = 1
+    Nn = 1
+    nd = 1
+    gamma_n = np.array([1.0])
+
+    # Ordinary income alone is above the 20% threshold (545,500 for single).
+    threshold20 = tx.capGainRates[0][1]  # 545_500
+    ltcg = 50_000.0
+    ord_income = threshold20 + 10_000.0  # well above threshold20; ltcg15 branch = 0
+
+    tx_income_n = np.array([ord_income + ltcg])
+    ltcg_n = np.array([ltcg])
+
+    cg_tax_n = tx.capitalGainTax(Ni, tx_income_n, ltcg_n, gamma_n, nd, Nn)
+
+    # All LTCG is at 20%; the ltcg15 = 0 branch is exercised.
+    assert cg_tax_n[0] == pytest.approx(0.20 * ltcg)

@@ -34,6 +34,14 @@ from . import utils as u
 from . import tax2026 as tx
 from .rate_models.constants import RATE_DISPLAY_NAMES_SHORT
 
+_FORMAT_STRINGS = {
+    "currency": "$#,##0_);[Red]($#,##0)",
+    "percent2": "#.00%",
+    "percent1": "#.0%",
+    "percent0": "#0%",
+    "pct_value": "0.00",
+}
+
 
 def _save_workbook(wb, basename, overwrite, mylog):
     """Save workbook to file with overwrite prompt."""
@@ -67,23 +75,15 @@ def _save_workbook(wb, basename, overwrite, mylog):
 
 def _format_spreadsheet(ws, ftype):
     """Beautify spreadsheet worksheet with appropriate number formatting."""
-    if ftype == "currency":
-        fstring = "$#,##0_);[Red]($#,##0)"
-    elif ftype == "percent2":
-        fstring = "#.00%"
-    elif ftype == "percent1":
-        fstring = "#.0%"
-    elif ftype == "percent0":
-        fstring = "#0%"
-    elif ftype == "pct_value":
-        fstring = "0.00"
-    elif ftype == "summary":
+    if ftype == "summary":
         for col in ws.columns:
             column = col[0].column_letter
             width = max(len(str(col[0].value)) + 20, 40)
             ws.column_dimensions[column].width = width
-            return None
-    else:
+        return None
+
+    fstring = _FORMAT_STRINGS.get(ftype)
+    if fstring is None:
         raise RuntimeError(f"Unknown format: {ftype}.")
 
     for cell in ws[1] + ws["A"]:
@@ -102,8 +102,13 @@ def _format_spreadsheet(ws, ftype):
     return None
 
 
-def _format_debts_sheet(ws):
-    """Format Debts sheet with appropriate column formatting."""
+def _format_col_sheet(ws, col_formats, default_fmt=None, lowercase=True):
+    """Format a DataFrame sheet: style header, set column widths, apply per-column number formats.
+
+    col_formats : dict mapping column-name string → Excel format string
+    default_fmt : format string applied to columns not in col_formats (None = skip them)
+    lowercase   : if True, column names are lowercased before lookup (default True)
+    """
     from openpyxl.utils import get_column_letter
 
     for cell in ws[1]:
@@ -113,95 +118,45 @@ def _format_debts_sheet(ws):
     col_map = {}
     for idx, cell in enumerate(header_row, start=1):
         col_letter = get_column_letter(idx)
-        col_name = str(cell.value).lower() if cell.value else ""
+        col_name = (str(cell.value).lower() if lowercase else str(cell.value)) if cell.value else ""
         col_map[col_letter] = col_name
         width = max(len(str(cell.value)) + 4, 10)
         ws.column_dimensions[col_letter].width = width
 
     for col_letter, col_name in col_map.items():
-        if col_name in ["year", "term"]:
-            fstring = "0"
-        elif col_name in ["rate"]:
-            fstring = "#,##0.00"
-        elif col_name in ["amount"]:
-            fstring = "$#,##0_);[Red]($#,##0)"
-        else:
+        fstring = col_formats.get(col_name, default_fmt)
+        if fstring is None:
             continue
-
         for row in ws.iter_rows(min_row=2):
             for cell in row:
                 if cell.column_letter == col_letter:
                     cell.number_format = fstring
 
-    return None
+
+def _format_debts_sheet(ws):
+    """Format Debts sheet with appropriate column formatting."""
+    _format_col_sheet(ws, col_formats={
+        "year": "0", "term": "0",
+        "rate": "#,##0.00",
+        "amount": "$#,##0_);[Red]($#,##0)",
+    })
 
 
 def _format_fixed_assets_sheet(ws):
     """Format Fixed Assets sheet with appropriate column formatting."""
-    from openpyxl.utils import get_column_letter
-
-    for cell in ws[1]:
-        cell.style = "Pandas"
-
-    header_row = ws[1]
-    col_map = {}
-    for idx, cell in enumerate(header_row, start=1):
-        col_letter = get_column_letter(idx)
-        col_name = str(cell.value).lower() if cell.value else ""
-        col_map[col_letter] = col_name
-        width = max(len(str(cell.value)) + 4, 10)
-        ws.column_dimensions[col_letter].width = width
-
-    for col_letter, col_name in col_map.items():
-        if col_name in ["yod"]:
-            fstring = "0"
-        elif col_name in ["rate", "commission"]:
-            fstring = "#,##0.00"
-        elif col_name in ["basis", "value"]:
-            fstring = "$#,##0_);[Red]($#,##0)"
-        else:
-            continue
-
-        for row in ws.iter_rows(min_row=2):
-            for cell in row:
-                if cell.column_letter == col_letter:
-                    cell.number_format = fstring
-
-    return None
+    _format_col_sheet(ws, col_formats={
+        "yod": "0",
+        "rate": "#,##0.00", "commission": "#,##0.00",
+        "basis": "$#,##0_);[Red]($#,##0)", "value": "$#,##0_);[Red]($#,##0)",
+    })
 
 
 def _format_federal_income_tax_sheet(ws):
-    """Format Federal Income Tax sheet with currency for $ columns and percent for SS % taxed."""
-    from openpyxl.utils import get_column_letter
-
-    for cell in ws[1]:
-        cell.style = "Pandas"
-
-    header_row = ws[1]
-    col_map = {}
-    for idx, cell in enumerate(header_row, start=1):
-        col_letter = get_column_letter(idx)
-        col_name = str(cell.value) if cell.value else ""
-        col_map[col_letter] = col_name
-        width = max(len(str(cell.value)) + 4, 10)
-        ws.column_dimensions[col_letter].width = width
-
-    currency_fmt = "$#,##0_);[Red]($#,##0)"
-    percent_fmt = "#.0%"
-    for col_letter, col_name in col_map.items():
-        if col_name == "year":
-            fstring = "0"
-        elif col_name == "SS % taxed":
-            fstring = percent_fmt
-        else:
-            fstring = currency_fmt
-
-        for row in ws.iter_rows(min_row=2):
-            for cell in row:
-                if cell.column_letter == col_letter:
-                    cell.number_format = fstring
-
-    return None
+    """Format Federal Income Tax sheet: currency for $ columns, percent for SS % taxed."""
+    _format_col_sheet(ws, col_formats={
+        "year": "0",
+        "SS % taxed": "#.0%",
+    }, default_fmt="$#,##0_);[Red]($#,##0)", lowercase=False)
 
 
 def build_summary_dic(plan, N=None):
@@ -390,9 +345,9 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
             sheet.append(row)
         _format_spreadsheet(sheet, datatype)
 
+    ws = wb.active  # Save reference before add_config_sheet("first") may displace it
     add_config_sheet("first")
 
-    ws = wb.active
     ws.title = "Income"
     incomeDic = {
         "net spending": plan.g_n,

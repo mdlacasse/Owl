@@ -175,7 +175,7 @@ def runHistorical(plan):
 
     objective, options = kz.getSolveParameters()
     try:
-        mybar = progress.Progress(None)
+        mybar = progress.Progress()
         fig, summary = plan1.runHistoricalRange(
             objective, options, hyfrm, hyto, figure=True, progcall=mybar,
             augmented=augmented, log_x=log_x)
@@ -199,7 +199,7 @@ def runMC(plan):
 
     objective, options = kz.getSolveParameters()
     try:
-        mybar = progress.Progress(None)
+        mybar = progress.Progress()
         fig, summary = plan1.runMC(objective, options, N, figure=True, progcall=mybar, log_x=log_x)
         kz.storeCaseKey("monteCarloPlot", fig)
         kz.storeCaseKey("monteCarloSummary", summary)

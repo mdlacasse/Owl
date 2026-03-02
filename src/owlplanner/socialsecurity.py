@@ -29,6 +29,40 @@ _SELF_REDUCTION_RATE = 5 / 9 / 100 * 12       # 5/9 of 1% per month × 12 ≈ 0.
 _SPOUSAL_REDUCTION_RATE = 25 / 36 / 100 * 12  # 25/36 of 1% per month × 12 ≈ 0.08333/yr (spousal)
 
 
+def _ssa_age(convage, bornOnFirstDays):
+    """Convert conventional age to SSA age (adds 1/12 if born on the 1st of the month).
+
+    Per SSA rules (POMS RS 00615.015), a person born on the 1st attains their age on the
+    last day of the prior month, so at any conventional age X they have been that age for
+    one extra month relative to someone born mid-month.  Born-on-2nd attains age on the
+    1st of the birth month — no prior-month shift, so no adjustment is applied.
+    """
+    return convage + (1/12 if bornOnFirstDays else 0)
+
+
+def _reduction_factor(diff, delay_rate, first_36_rate, base_at_3):
+    """
+    Return benefit factor given FRA-minus-SSA-age difference and reduction parameters.
+
+    Parameters
+    ----------
+    diff : float
+        FRA minus SSA claiming age (negative = claiming after FRA).
+    delay_rate : float
+        Increase rate per year for claiming after FRA (0.08 for own benefit, 0 for spousal).
+    first_36_rate : float
+        Reduction rate per year for the first 36 months before FRA.
+    base_at_3 : float
+        Benefit factor at exactly 3 years before FRA (transition point to the slower rate).
+    """
+    if diff <= 0:
+        return 1.0 - delay_rate * diff
+    elif diff <= 3:
+        return 1.0 - first_36_rate * diff
+    else:
+        return base_at_3 - 0.05 * (diff - 3)
+
+
 def getFRAs(yobs):
     """
     Return full retirement age (FRA) based on birth year.
@@ -67,6 +101,67 @@ def getFRAs(yobs):
             fras[i] = 65
 
     return fras
+
+
+def getSurvivorFRAs(yobs):
+    """
+    Return survivor full retirement age (FRA) based on birth year.
+
+    The survivor FRA schedule is distinct from the retirement FRA schedule and is shifted
+    approximately 2 birth-year cohorts later, per the 1983 Social Security Amendments.
+
+    - Birth year >= 1962: FRA is 67
+    - Birth year 1957–1961: FRA increases by 2 months per year (66+2/12 to 66+10/12)
+    - Birth year 1945–1956: FRA is 66
+    - Birth year 1940–1944: FRA increases by 2 months per year (65+2/12 to 65+10/12)
+    - Birth year <= 1939: FRA is 65
+
+    Parameters
+    ----------
+    yobs : array-like
+        Array of birth years, one for each individual.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of survivor FRA values in fractional years (1/12 increments).
+    """
+    fras = np.zeros(len(yobs))
+
+    for i in range(len(yobs)):
+        if yobs[i] >= 1962:
+            fras[i] = 67
+        elif yobs[i] >= 1957:
+            fras[i] = 66 + 2 * (yobs[i] - 1956) / 12
+        elif yobs[i] >= 1945:
+            fras[i] = 66
+        elif yobs[i] >= 1940:
+            fras[i] = 65 + 2 * (yobs[i] - 1939) / 12
+        else:
+            fras[i] = 65
+
+    return fras
+
+
+def _survivor_factor(survivor_fra, survivor_age):
+    """
+    Return the benefit factor for a survivor claiming before their survivor FRA.
+
+    Per SSA rules, a survivor claiming between age 60 and their survivor FRA receives a
+    reduced benefit, linearly interpolated from 100% at survivor FRA down to 71.5% at 60.
+    At or above survivor FRA the factor is 1.0; at age 60 it is always 0.715 regardless
+    of which survivor FRA schedule applies.
+
+    Parameters
+    ----------
+    survivor_fra : float
+        Survivor full retirement age in fractional years.
+    survivor_age : float
+        Survivor's age (fractional years) at the time the survivor benefit begins.
+    """
+    if survivor_age >= survivor_fra:
+        return 1.0
+    return 1.0 - 0.285 * (survivor_fra - survivor_age) / (survivor_fra - 60)
 
 
 def getSpousalBenefits(pias):
@@ -123,8 +218,10 @@ def getSelfFactor(fra, convage, bornOnFirstDays):
     - After FRA: Benefits are increased by 8% per year (up to 132% at age 70)
 
     The function automatically adjusts for Social Security age if the birthday is on
-    the 1st or 2nd day of the month (adds 1/12 year to conventional age), consistent
-    with SSA rules that treat both days the same for age calculation purposes.
+    the 1st day of the month (adds 1/12 year to conventional age).  Per POMS RS 00615.015,
+    born-on-1st individuals attain each age on the last day of the prior month, so at any
+    given conventional age they have been that age one month longer.  Born-on-2nd attains
+    age on the 1st of the birth month — no prior-month shift, so no adjustment is applied.
 
     Parameters
     ----------
@@ -134,8 +231,8 @@ def getSelfFactor(fra, convage, bornOnFirstDays):
         Conventional age when benefits start, in years (can be fractional with 1/12 increments).
         Must be between 62 and 70 inclusive.
     bornOnFirstDays : bool
-        True if birthday is on the 1st or 2nd day of the month, False otherwise.
-        If True, the function adds 1/12 year to convert to Social Security age.
+        True if birthday is on the 1st day of the month only, False otherwise (including 2nd).
+        If True, 1/12 year is added to convert conventional age to SSA age.
 
     Returns
     -------
@@ -153,19 +250,8 @@ def getSelfFactor(fra, convage, bornOnFirstDays):
     if convage < 62 or convage > 70:
         raise ValueError(f"Age {convage} out of range.")
 
-    # Add a month to conventional age if born on the 1st or 2nd (SSA treats both the same).
-    offset = 0 if not bornOnFirstDays else 1/12
-    ssage = convage + offset
-
-    diff = fra - ssage
-    if diff <= 0:
-        return 1. - .08 * diff
-    elif diff <= 3:
-        # Reduction of 20% over first 36 months.
-        return 1. - _SELF_REDUCTION_RATE * diff
-    else:
-        # Then 5% per tranche of 12 months.
-        return .8 - 0.05 * (diff - 3)
+    diff = fra - _ssa_age(convage, bornOnFirstDays)
+    return _reduction_factor(diff, 0.08, _SELF_REDUCTION_RATE, 0.8)
 
 
 def getSpousalFactor(fra, convage, bornOnFirstDays):
@@ -178,8 +264,10 @@ def getSpousalFactor(fra, convage, bornOnFirstDays):
     - At or after FRA: Full spousal benefit (50% of spouse's PIA, no increase for delay)
 
     The function automatically adjusts for Social Security age if the birthday is on
-    the 1st or 2nd day of the month (adds 1/12 year to conventional age), consistent
-    with SSA rules that treat both days the same for age calculation purposes.
+    the 1st day of the month (adds 1/12 year to conventional age).  Per POMS RS 00615.015,
+    born-on-1st individuals attain each age on the last day of the prior month, so at any
+    given conventional age they have been that age one month longer.  Born-on-2nd attains
+    age on the 1st of the birth month — no prior-month shift, so no adjustment is applied.
 
     Parameters
     ----------
@@ -189,14 +277,15 @@ def getSpousalFactor(fra, convage, bornOnFirstDays):
         Conventional age when benefits start, in years (can be fractional with 1/12 increments).
         Must be at least 62 (no maximum, but no increase beyond FRA).
     bornOnFirstDays : bool
-        True if birthday is on the 1st or 2nd day of the month, False otherwise.
-        If True, the function adds 1/12 year to convert to Social Security age.
+        True if birthday is on the 1st day of the month only, False otherwise (including 2nd).
+        If True, 1/12 year is added to convert conventional age to SSA age.
 
     Returns
     -------
     float
         Factor to multiply spousal benefit. Examples:
-        - 0.325 = 32.5% reduction factor (claiming at 62 with FRA of 66)
+        - 0.70 = 70% of spousal benefit (claiming at 62 with FRA of 66)
+        - 0.65 = 65% of spousal benefit (claiming at 62 with FRA of 67)
         - 1.0 = 100% of spousal benefit (claiming at or after FRA)
         Note: Unlike self benefits, spousal benefits do not increase beyond FRA.
 
@@ -208,19 +297,41 @@ def getSpousalFactor(fra, convage, bornOnFirstDays):
     if convage < 62:
         raise ValueError(f"Age {convage} out of range.")
 
-    # Add a month to conventional age if born on the 1st or 2nd (SSA treats both the same).
-    offset = 0 if not bornOnFirstDays else 1/12
-    ssage = convage + offset
+    diff = fra - _ssa_age(convage, bornOnFirstDays)
+    return _reduction_factor(diff, 0.0, _SPOUSAL_REDUCTION_RATE, 0.75)
 
-    diff = fra - ssage
-    if diff <= 0:
-        return 1.
-    elif diff <= 3:
-        # Reduction of 25% over first 36 months.
-        return 1. - _SPOUSAL_REDUCTION_RATE * diff
-    else:
-        # Then 5% per tranche of 12 months.
-        return .75 - 0.05 * (diff - 3)
+
+def _add_spousal_benefit(zeta_in, i, nd, spousal_amount, fra, yobs, mobs, ages, tobs, thisyear):
+    """
+    Apply spousal benefit to zeta_in[i, :] starting from the later of both spouses' claim dates.
+
+    The spousal benefit begins when the last spouse has started collecting (since the
+    spousal benefit requires the higher-earning spouse to be collecting first).
+    """
+    latest_claim_year = float(np.max(yobs + (mobs - 1) / 12 + ages))
+    claim_age = latest_claim_year - yobs[i] - (mobs[i] - 1) / 12
+    payment_claim_year = latest_claim_year + 1/12
+    ns2 = max(0, int(payment_claim_year) - thisyear)
+    spousal_factor = getSpousalFactor(fra, claim_age, bool(tobs[i] == 1))
+    zeta_in[i, ns2:nd] += spousal_amount * spousal_factor
+    zeta_in[i, ns2] -= spousal_amount * spousal_factor * (payment_claim_year % 1.)
+
+
+def _apply_survivor_benefit(zeta_in, earlier_idx, survivor_idx, death_year_n, survivor_horizon,
+                            pia_earlier, survivor_factor):
+    """Assign the surviving spouse's benefit from the year of first death onward.
+
+    Two SSA rules are applied in order:
+    1. 82.5% PIA floor (CFR § 404.391): survivor receives max(deceased actual, 0.825 × PIA).
+    2. Survivor claiming-age reduction: if the survivor is below their survivor FRA at the
+       time of death, the benefit is further reduced linearly toward 71.5% at age 60.
+
+    Note: zeta_in is still in monthly units here (×12 annualisation happens after this call),
+    so pia_earlier is also monthly.
+    """
+    deceased_benefit = zeta_in[earlier_idx, death_year_n - 1]
+    survivor_benefit = max(deceased_benefit, 0.825 * pia_earlier) * survivor_factor
+    zeta_in[survivor_idx, death_year_n:survivor_horizon] = survivor_benefit
 
 
 def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i, N_n,
@@ -270,22 +381,25 @@ def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i
     pias = np.asarray(pias, dtype=np.int32)
     ages = np.asarray(ages, dtype=np.float64).copy()
 
-    # Derive i_d, i_s, n_d from horizons
+    # Identify which spouse dies first (shorter horizon) so survivor benefit can be applied later.
     if N_i == 2 and np.min(horizons) != np.max(horizons):
-        n_d = int(np.min(horizons))
-        i_d = int(np.argmax(horizons == n_d))
-        i_s = (i_d + 1) % 2
+        death_year_n = int(np.min(horizons))
+        earlier_idx = int(np.argmax(horizons == death_year_n))
+        survivor_idx = (earlier_idx + 1) % 2
     else:
-        n_d = N_n
-        i_d = 0
-        i_s = -1
+        death_year_n = N_n
+        earlier_idx = 0
+        survivor_idx = -1
 
     fras = getFRAs(yobs)
     spousalBenefits = getSpousalBenefits(pias)
 
     zeta_in = np.zeros((N_i, N_n))
     for i in range(N_i):
+        # Eligibility: born on 1st or 2nd can claim in their birthday month (or prior for 1st).
+        # Factor shift: only born on 1st attains age one month early, warranting +1/12 SSA age.
         bornOnFirstDays = (tobs[i] <= 2)
+        bornOnFirst = (tobs[i] == 1)
         eligible = 62 if bornOnFirstDays else 62 + 1/12
         if round(ages[i] * 12) < round(eligible * 12):
             ages[i] = eligible
@@ -293,26 +407,30 @@ def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i
         janage = ages[i] + (mobs[i] - 1) / 12
         paymentJanage = janage + 1/12
         paymentIage = int(paymentJanage)
-        paymentRealns = yobs[i] + paymentIage - thisyear
-        ns = max(0, paymentRealns)
+        payment_start_n = yobs[i] + paymentIage - thisyear
+        ns = max(0, payment_start_n)
         nd = horizons[i]
         zeta_in[i, ns:nd] = pias[i]
-        if paymentRealns >= 0:
+        if payment_start_n >= 0:
             zeta_in[i, ns] *= 1 - (paymentJanage % 1.)
 
-        zeta_in[i, :] *= getSelfFactor(fras[i], ages[i], bool(bornOnFirstDays))
+        zeta_in[i, :] *= getSelfFactor(fras[i], ages[i], bornOnFirst)
 
         if N_i == 2 and spousalBenefits[i] > 0:
-            claimYear = max(yobs + (mobs - 1) / 12 + ages)
-            claimAge = claimYear - yobs[i] - (mobs[i] - 1) / 12
-            paymentClaimYear = claimYear + 1/12
-            ns2 = max(0, int(paymentClaimYear) - thisyear)
-            spousalFactor = getSpousalFactor(fras[i], claimAge, bool(bornOnFirstDays))
-            zeta_in[i, ns2:nd] += spousalBenefits[i] * spousalFactor
-            zeta_in[i, ns2] -= spousalBenefits[i] * spousalFactor * (paymentClaimYear % 1.)
+            _add_spousal_benefit(zeta_in, i, nd, spousalBenefits[i],
+                                 fras[i], yobs, mobs, ages, tobs, thisyear)
 
-    if N_i == 2 and n_d < N_n and zeta_in[i_d, n_d - 1] > zeta_in[i_s, n_d - 1]:
-        zeta_in[i_s, n_d:horizons[i_s]] = zeta_in[i_d, n_d - 1]
+    if N_i == 2 and death_year_n < N_n:
+        # Compute the survivor's age at the death year to apply the claiming-age reduction.
+        survivor_fra = getSurvivorFRAs([yobs[survivor_idx]])[0]
+        survivor_age_at_death = ((thisyear + death_year_n) - yobs[survivor_idx]
+                                 - (mobs[survivor_idx] - 1) / 12)
+        survivor_factor = _survivor_factor(survivor_fra, survivor_age_at_death)
+        # Effective benefit: 82.5% PIA floor first, then survivor claiming-age reduction.
+        deceased_effective = max(zeta_in[earlier_idx, death_year_n - 1], 0.825 * pias[earlier_idx])
+        if deceased_effective * survivor_factor > zeta_in[survivor_idx, death_year_n - 1]:
+            _apply_survivor_benefit(zeta_in, earlier_idx, survivor_idx, death_year_n,
+                                    horizons[survivor_idx], pias[earlier_idx], survivor_factor)
 
     zeta_in *= 12
 

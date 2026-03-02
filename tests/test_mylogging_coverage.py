@@ -98,12 +98,11 @@ def test_reset_verbose_with_stack():
 
 
 def test_reset_verbose_empty_stack():
-    """Test resetVerbose when stack is empty (uses _prevState)."""
+    """Test resetVerbose when stack is empty (no-op)."""
     logger = log.Logger(verbose=True)
     logger._verboseStack = []  # Empty stack
-    logger._prevState = False
     logger.resetVerbose()
-    assert logger._verbose is False
+    assert logger._verbose is True  # Unchanged when stack is empty
 
 
 def test_print_method():

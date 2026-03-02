@@ -55,8 +55,9 @@ class Progress:
         """
         Display the progress header.
         """
-        if self.mylog is not None:
-            self.mylog.print("|--- progress ---|")
+        if self.mylog is None:
+            return
+        self.mylog.print("|--- progress ---|")
 
     def show(self, n: int, N: int):
         """
@@ -76,5 +77,6 @@ class Progress:
         """
         Finish the progress display by printing a newline.
         """
-        if self.mylog is not None:
-            self.mylog.print()
+        if self.mylog is None:
+            return
+        self.mylog.print()

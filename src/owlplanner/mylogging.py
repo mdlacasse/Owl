@@ -37,7 +37,6 @@ except ImportError:
 class Logger(object):
     def __init__(self, verbose=True, logstreams=None):
         self._verbose = verbose
-        self._prevState = self._verbose
         self._verboseStack = []  # Stack to track verbose states for proper restoration
         self._use_loguru = False
 
@@ -70,21 +69,15 @@ class Logger(object):
             self.vprint("Using logstream as stream logger.")
 
     def setVerbose(self, verbose=True):
-        # Push current state onto stack before changing it
-        self._verboseStack.append(self._verbose)
-        self._prevState = self._verbose
+        prev = self._verbose
+        self._verboseStack.append(prev)
         self._verbose = verbose
         self.vprint("Setting verbose to", verbose)
-        return self._prevState
+        return prev
 
     def resetVerbose(self):
-        # Pop the previous state from the stack if available
         if self._verboseStack:
             self._verbose = self._verboseStack.pop()
-            self._prevState = self._verbose
-        else:
-            # Fallback to _prevState if stack is empty (shouldn't happen in normal usage)
-            self._verbose = self._prevState
 
     def __deepcopy__(self, memo):
         """
@@ -95,8 +88,6 @@ class Logger(object):
         # Determine logstreams parameter for new instance
         if self._use_loguru:
             logstreams = "loguru"
-        elif self._logstreams is None:
-            logstreams = None
         elif self._logstreams == [sys.stdout, sys.stderr]:
             # Default case - will be recreated as [sys.stdout, sys.stderr]
             logstreams = None
@@ -112,7 +103,6 @@ class Logger(object):
 
         # Copy the verbose stack state
         new_logger._verboseStack = copy.deepcopy(self._verboseStack, memo)
-        new_logger._prevState = self._prevState
 
         return new_logger
 
@@ -163,6 +153,3 @@ class Logger(object):
             loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
             return
         self._stream_print(*args, tag=tag, stream_index=0, **kwargs)
-
-
-# Log filtering utility functions removed - no longer needed since StringIO guarantees ordered messages
