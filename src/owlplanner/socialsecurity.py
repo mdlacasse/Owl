@@ -4,6 +4,12 @@ Social Security benefit calculation rules and utilities.
 This module implements Social Security rules including full retirement age
 calculations, benefit computations, and related retirement planning functions.
 
+Limitation: The SSA family maximum (CFR § 404.403) is not modeled. When multiple
+beneficiaries are entitled on one worker's record, SSA may reduce total benefits.
+Omission of this cap may overstate benefits (and thus understate taxes) in some
+cases, though it typically affects only workers with high PIAs and multiple
+auxiliaries.
+
 Copyright (C) 2025-2026 The Owlplanner Authors
 
 This program is free software: you can redistribute it and/or modify
@@ -18,7 +24,12 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+Public API (used by plan.py): getFRAs, compute_social_security_benefits.
+All other functions are internal and may change without notice.
 """
+
+__all__ = ['getFRAs', 'compute_social_security_benefits']
 
 import numpy as np
 from datetime import date
@@ -63,83 +74,77 @@ def _reduction_factor(diff, delay_rate, first_36_rate, base_at_3):
         return base_at_3 - 0.05 * (diff - 3)
 
 
-def getFRAs(yobs):
+def getFRAs(yobs, mobs, tobs):
     """
-    Return full retirement age (FRA) based on birth year.
+    Return full retirement age (FRA) based on birth date.
 
-    The FRA is determined by birth year according to Social Security rules:
-    - Birth year >= 1960: FRA is 67
-    - Birth year 1955–1959: FRA increases by 2 months for each year after 1954 (66+2/12 to 66+10/12)
+    The FRA is determined by birth date according to Social Security rules
+    (POMS RS 00615.003). Per SSA, a person born on the 1st of a month attains
+    age on the last day of the prior month; for FRA boundaries, Jan 1 is
+    treated as the prior year (e.g., 1/1/60 → 66+10/12; 1/2/60 → 67).
+    - Birth year >= 1960 (or 1/1/60): FRA is 67 (or 66+10/12 for 1/1/60)
+    - Birth year 1955–1959: FRA increases by 2 months for each year after 1954
     - Birth year 1943–1954: FRA is 66
-    - Birth year 1938–1942: FRA increases by 2 months for each year after 1937 (65+2/12 to 65+10/12)
+    - Birth year 1938–1942: FRA increases by 2 months for each year after 1937
     - Birth year <= 1937: FRA is 65
 
     Parameters
     ----------
     yobs : array-like
         Array of birth years, one for each individual.
+    mobs : array-like
+        Birth months (1–12), one per individual.
+    tobs : array-like
+        Birth day-of-month, one per individual.
 
     Returns
     -------
     numpy.ndarray
-        Array of FRA values in fractional years (1/12 increments), one for each individual.
-        Ages are returned in Social Security age format. Comparisons to FRA should be
-        done using Social Security age (which accounts for birthday-on-first adjustments).
+        Array of FRA values in fractional years (1/12 increments), one per individual.
     """
-    fras = np.zeros(len(yobs))
+    yobs = np.asarray(yobs)
+    n = len(yobs)
+    mobs = np.broadcast_to(np.asarray(mobs), n)
+    tobs = np.broadcast_to(np.asarray(tobs), n)
+    # Jan 1 special case: SSA treats 1/1 as prior year for FRA boundaries.
+    eff_yobs = np.where((mobs == 1) & (tobs == 1), yobs - 1, yobs)
 
-    for i in range(len(yobs)):
-        if yobs[i] >= 1960:
+    fras = np.zeros(n)
+    for i in range(n):
+        y = eff_yobs[i]
+        if y >= 1960:
             fras[i] = 67
-        elif yobs[i] >= 1955:
-            fras[i] = 66 + 2*(yobs[i] - 1954)/12
-        elif yobs[i] >= 1943:
+        elif y >= 1955:
+            fras[i] = 66 + 2*(y - 1954)/12
+        elif y >= 1943:
             fras[i] = 66
-        elif yobs[i] >= 1938:
-            fras[i] = 65 + 2*(yobs[i] - 1937)/12
+        elif y >= 1938:
+            fras[i] = 65 + 2*(y - 1937)/12
         else:
             fras[i] = 65
-
     return fras
 
 
-def getSurvivorFRAs(yobs):
-    """
-    Return survivor full retirement age (FRA) based on birth year.
-
-    The survivor FRA schedule is distinct from the retirement FRA schedule and is shifted
-    approximately 2 birth-year cohorts later, per the 1983 Social Security Amendments.
-
-    - Birth year >= 1962: FRA is 67
-    - Birth year 1957–1961: FRA increases by 2 months per year (66+2/12 to 66+10/12)
-    - Birth year 1945–1956: FRA is 66
-    - Birth year 1940–1944: FRA increases by 2 months per year (65+2/12 to 65+10/12)
-    - Birth year <= 1939: FRA is 65
-
-    Parameters
-    ----------
-    yobs : array-like
-        Array of birth years, one for each individual.
-
-    Returns
-    -------
-    numpy.ndarray
-        Array of survivor FRA values in fractional years (1/12 increments).
-    """
-    fras = np.zeros(len(yobs))
-
-    for i in range(len(yobs)):
-        if yobs[i] >= 1962:
+def getSurvivorFRAs(yobs, mobs, tobs):
+    """Return survivor FRA from birth date. Same Jan-1 rule as getFRAs. Internal use only."""
+    yobs = np.asarray(yobs)
+    n = len(yobs)
+    mobs = np.broadcast_to(np.asarray(mobs), n)
+    tobs = np.broadcast_to(np.asarray(tobs), n)
+    eff_yobs = np.where((mobs == 1) & (tobs == 1), yobs - 1, yobs)
+    fras = np.zeros(n)
+    for i in range(n):
+        y = eff_yobs[i]
+        if y >= 1962:
             fras[i] = 67
-        elif yobs[i] >= 1957:
-            fras[i] = 66 + 2 * (yobs[i] - 1956) / 12
-        elif yobs[i] >= 1945:
+        elif y >= 1957:
+            fras[i] = 66 + 2 * (y - 1956) / 12
+        elif y >= 1945:
             fras[i] = 66
-        elif yobs[i] >= 1940:
-            fras[i] = 65 + 2 * (yobs[i] - 1939) / 12
+        elif y >= 1940:
+            fras[i] = 65 + 2 * (y - 1939) / 12
         else:
             fras[i] = 65
-
     return fras
 
 
@@ -322,7 +327,7 @@ def _apply_survivor_benefit(zeta_in, earlier_idx, survivor_idx, death_year_n, su
     """Assign the surviving spouse's benefit from the year of first death onward.
 
     Two SSA rules are applied in order:
-    1. 82.5% PIA floor (CFR § 404.391): survivor receives max(deceased actual, 0.825 × PIA).
+    1. 82.5% PIA floor (CFR § 404.338): survivor receives max(deceased actual, 0.825 × PIA).
     2. Survivor claiming-age reduction: if the survivor is below their survivor FRA at the
        time of death, the benefit is further reduced linearly toward 71.5% at age 60.
 
@@ -391,7 +396,7 @@ def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i
         earlier_idx = 0
         survivor_idx = -1
 
-    fras = getFRAs(yobs)
+    fras = getFRAs(yobs, mobs, tobs)
     spousalBenefits = getSpousalBenefits(pias)
 
     zeta_in = np.zeros((N_i, N_n))
@@ -422,7 +427,11 @@ def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i
 
     if N_i == 2 and death_year_n < N_n:
         # Compute the survivor's age at the death year to apply the claiming-age reduction.
-        survivor_fra = getSurvivorFRAs([yobs[survivor_idx]])[0]
+        survivor_fra = getSurvivorFRAs(
+            yobs[survivor_idx:survivor_idx + 1],
+            mobs[survivor_idx:survivor_idx + 1],
+            tobs[survivor_idx:survivor_idx + 1],
+        )[0]
         survivor_age_at_death = ((thisyear + death_year_n) - yobs[survivor_idx]
                                  - (mobs[survivor_idx] - 1) / 12)
         survivor_factor = _survivor_factor(survivor_fra, survivor_age_at_death)

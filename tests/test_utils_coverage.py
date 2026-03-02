@@ -84,11 +84,11 @@ def test_rescale_array():
 
 
 def test_rescale_list():
-    """Test rescale with list (modifies in place)."""
+    """Test rescale with list returns a new list without modifying the original."""
     lst = [1.0, 2.0, 3.0]
     result = utils.rescale(lst, 2.0)
-    assert lst == [2.0, 4.0, 6.0]  # Modified in place
-    assert result == lst
+    assert result == [2.0, 4.0, 6.0]
+    assert lst == [1.0, 2.0, 3.0]  # Original must be unchanged
 
 
 def test_get_units_none():

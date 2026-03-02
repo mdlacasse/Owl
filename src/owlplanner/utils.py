@@ -50,14 +50,12 @@ def pc(value, f=1, mul=100) -> str:
 def rescale(vals, fac):
     """
     Rescale all elements of a list or a NumPy array by factor fac.
+    Returns a new object; the input is never modified in-place.
     """
     if isinstance(vals, (float, int)) or isinstance(vals, np.ndarray):
         return vals * fac
     else:
-        for i in range(len(vals)):
-            vals[i] *= fac
-
-    return vals
+        return [v * fac for v in vals]
 
 
 def getUnits(units) -> int:

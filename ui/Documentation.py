@@ -115,18 +115,22 @@ The documentation is structured along the same menus.
 
     with st.expander(":material/folder: Definitions", expanded=True):
         st.markdown("""
-A *case* is a collection of parameters that fully defines a retirement scenario. A *case* contains
+**Case**
+> A *case* is a collection of parameters that fully defines a retirement scenario. A *case* contains
 the case name and a short description, the individual's life parameters, fixed income sources, savings account balances,
 asset allocation ratios, anticipated rates of return, and optimization parameters.
 It also holds a reference to its *Household Financial Profile*, if one is used.
 
-A *Household Financial Profile* (HFP) is an optional Excel workbook that holds the year-by-year
+**Household Financial Profile**
+> A *Household Financial Profile* (HFP) is an
+optional Excel workbook that holds the year-by-year
 time-series data for the household: anticipated wages and other income, taxable and retirement
 contributions, Roth conversions, and large expenses for each individual, plus optional debts and
 fixed assets. When no HFP is provided, wages and contributions are assumed to be zero.
 See *Input and Output Files* below for a detailed description of both files.
 
-A *run* is the execution of a *case* using a single instance of parameters,
+**Run**
+> A *run* is the execution of a *case* using a single instance of parameters,
 including rates, either constant or varying.
 
 **Owl** helps the planner to create and run *cases*. By carefully selecting and modifying parameters,

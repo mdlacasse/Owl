@@ -582,7 +582,7 @@ class Plan:
         ages = np.array(ages)
         ages_orig = ages.copy()
 
-        fras = socsec.getFRAs(self.yobs)
+        fras = socsec.getFRAs(self.yobs, self.mobs, self.tobs)
         self.mylog.vprint("SS monthly PIAs set to", [u.d(pias[i]) for i in range(self.N_i)])
         self.mylog.vprint("SS FRAs(s)", [fras[i] for i in range(self.N_i)])
 
