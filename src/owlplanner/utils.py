@@ -34,11 +34,9 @@ def d(value, f=0, latex=False) -> str:
         return "NaN"
 
     if latex:
-        mystr = "\\${:,." + str(f) + "f}"
+        return f"\\${value:,.{f}f}"
     else:
-        mystr = "${:,." + str(f) + "f}"
-
-    return mystr.format(value)
+        return f"${value:,.{f}f}"
 
 
 def pc(value, f=1, mul=100) -> str:
@@ -46,9 +44,7 @@ def pc(value, f=1, mul=100) -> str:
     Return a string formatting decimal value in percent.
     Number of decimals of percent controlled by `f` which defaults to 1.
     """
-    mystr = "{:." + str(f) + "f}%"
-
-    return mystr.format(mul * value)
+    return f"{mul * value:.{f}f}%"
 
 
 def rescale(vals, fac):
@@ -162,8 +158,7 @@ def heaviside(x) -> int:
 
 def roundCents(values, decimals=2):
     """
-    Round values in NumPy array down to second decimal.
-    Using fix which is floor towards zero.
+    Round values in NumPy array to given decimal places (half toward zero).
     Default is to round to cents (decimals = 2).
     """
     multiplier = 10**decimals
@@ -184,7 +179,7 @@ def parseDobs(dobs):
     icount = len(dobs)
     yobs = []
     mobs = []
-    tobs = []
+    days = []
     for i in range(icount):
         ls = dobs[i].split("-")
         if len(ls) != 3:
@@ -196,9 +191,9 @@ def parseDobs(dobs):
 
         yobs.append(ls[0])
         mobs.append(ls[1])
-        tobs.append(ls[2])
+        days.append(ls[2])
 
-    return np.array(yobs, dtype=np.int32), np.array(mobs, dtype=np.int32), np.array(tobs, dtype=np.int32)
+    return np.array(yobs, dtype=np.int32), np.array(mobs, dtype=np.int32), np.array(days, dtype=np.int32)
 
 
 def is_row_active(row):
@@ -350,7 +345,7 @@ def convert_to_bool(val):
     # Handle numeric values (1/0)
     try:
         num_val = float(val)
-        return bool(num_val) if num_val != 0 else False
+        return bool(num_val)
     except (ValueError, TypeError):
         # Can't convert, default to True
         return True

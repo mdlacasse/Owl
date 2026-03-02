@@ -61,19 +61,24 @@ def compute_pension_benefits(amounts, ages, yobs, mobs, horizons, N_i, N_n, this
 
     amounts = np.asarray(amounts, dtype=np.float64)
     ages = np.asarray(ages, dtype=np.float64)
+    yobs = np.asarray(yobs, dtype=int)
+    mobs = np.asarray(mobs, dtype=int)
+    horizons = np.asarray(horizons, dtype=int)
 
     pi_in = np.zeros((N_i, N_n))
     for i in range(N_i):
         if amounts[i] != 0:
-            yearage = ages[i] + (mobs[i] - 1) / 12
-            iage = int(yearage)
-            fraction = 1 - (yearage % 1.0)
-            realns = iage - thisyear + yobs[i]
-            ns = max(0, realns)
-            nd = horizons[i]
-            pi_in[i, ns:nd] = amounts[i]
-            if realns >= 0:
-                pi_in[i, ns] *= fraction
+            # Age as fractional year: e.g., age 65, born in July → 65 + 6/12 = 65.5
+            age_with_month = ages[i] + (mobs[i] - 1) / 12
+            start_age = int(age_with_month)
+            # Fraction of first year pension is received (1.0 if born in Jan, ~1/12 if born in Dec)
+            first_year_fraction = 1 - (age_with_month % 1.0)
+            start_idx_raw = start_age - thisyear + yobs[i]
+            start_idx = max(0, start_idx_raw)
+            end_idx = horizons[i]
+            pi_in[i, start_idx:end_idx] = amounts[i]
+            if start_idx_raw >= 0:
+                pi_in[i, start_idx] *= first_year_fraction
 
     pi_in *= 12
     return pi_in

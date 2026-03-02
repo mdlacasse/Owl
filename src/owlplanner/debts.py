@@ -22,10 +22,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ######################################################################
 import numpy as np
-import pandas as pd  # noqa: F401
 from datetime import date
 
 from . import utils as u
+
+
+def _active_loans(debts_df):
+    """Yield (start_year, term, end_year, principal, rate) for each active loan row."""
+    for _, debt in debts_df.iterrows():
+        if not u.is_row_active(debt):
+            continue
+        start_year = int(debt["year"])
+        term = int(debt["term"])
+        yield start_year, term, start_year + term, float(debt["amount"]), float(debt["rate"])
 
 
 def calculate_monthly_payment(principal, annual_rate, term_years):
@@ -147,23 +156,9 @@ def get_debt_payments_for_year(debts_df, year):
 
     total_payments = 0.0
 
-    for _, debt in debts_df.iterrows():
-        # Skip if active column exists and is False (treat NaN/None as True)
-        if not u.is_row_active(debt):
-            continue
-
-        start_year = int(debt["year"])
-        term = int(debt["term"])
-        end_year = start_year + term
-
-        # Check if loan is active in this year
+    for start_year, term, end_year, principal, rate in _active_loans(debts_df):
         if start_year <= year < end_year:
-            principal = float(debt["amount"])
-            rate = float(debt["rate"])
-
-            # Calculate annual payment (payment amount is constant for fixed-rate loans)
-            annual_payment = calculate_annual_payment(principal, rate, term)
-            total_payments += annual_payment
+            total_payments += calculate_annual_payment(principal, rate, term)
 
     return total_payments
 
@@ -189,24 +184,10 @@ def get_debt_balances_for_year(debts_df, year):
 
     total_balance = 0.0
 
-    for _, debt in debts_df.iterrows():
-        # Skip if active column exists and is False (treat NaN/None as True)
-        if not u.is_row_active(debt):
-            continue
-
-        start_year = int(debt["year"])
-        term = int(debt["term"])
-        end_year = start_year + term
-
-        # Check if loan is active at end of this year
+    for start_year, term, end_year, principal, rate in _active_loans(debts_df):
         if start_year <= year < end_year:
-            principal = float(debt["amount"])
-            rate = float(debt["rate"])
-
-            # Calculate remaining balance at end of year
             years_elapsed = year - start_year + 1
-            remaining_balance = calculate_remaining_balance(principal, rate, term, years_elapsed)
-            total_balance += remaining_balance
+            total_balance += calculate_remaining_balance(principal, rate, term, years_elapsed)
 
     return total_balance
 
@@ -241,24 +222,10 @@ def get_debt_payments_array(debts_df, N_n, thisyear=None):
 
     payments_n = np.zeros(N_n)
 
-    for _, debt in debts_df.iterrows():
-        # Skip if active column exists and is False (treat NaN/None as True)
-        if not u.is_row_active(debt):
-            continue
-
-        start_year = int(debt["year"])
-        term = int(debt["term"])
-        end_year = start_year + term
-        principal = float(debt["amount"])
-        rate = float(debt["rate"])
-
-        # Calculate annual payment (payment amount is constant for fixed-rate loans)
+    for start_year, term, end_year, principal, rate in _active_loans(debts_df):
         annual_payment = calculate_annual_payment(principal, rate, term)
-
-        # Add payments for each year the loan is active within the plan horizon
         for n in range(N_n):
-            year = thisyear + n
-            if start_year <= year < end_year:
+            if start_year <= thisyear + n < end_year:
                 payments_n[n] += annual_payment
 
     return payments_n
@@ -294,22 +261,9 @@ def get_remaining_debt_balance(debts_df, N_n, thisyear=None):
     end_year = thisyear + N_n - 1
     total_balance = 0.0
 
-    for _, debt in debts_df.iterrows():
-        # Skip if active column exists and is False (treat NaN/None as True)
-        if not u.is_row_active(debt):
-            continue
-
-        start_year = int(debt["year"])
-        term = int(debt["term"])
-        loan_end_year = start_year + term
-        principal = float(debt["amount"])
-        rate = float(debt["rate"])
-
-        # Check if loan is still active at the end of the plan
+    for start_year, term, loan_end_year, principal, rate in _active_loans(debts_df):
         if start_year <= end_year < loan_end_year:
-            # Calculate remaining balance at end of plan horizon
             years_elapsed = end_year - start_year + 1
-            remaining_balance = calculate_remaining_balance(principal, rate, term, years_elapsed)
-            total_balance += remaining_balance
+            total_balance += calculate_remaining_balance(principal, rate, term, years_elapsed)
 
     return total_balance

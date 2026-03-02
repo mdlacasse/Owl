@@ -23,7 +23,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ######################################################################
 import numpy as np
-import pandas as pd  # noqa: F401
+import pandas as pd
 from datetime import date
 
 from . import utils as u
@@ -32,6 +32,13 @@ from . import utils as u
 # Primary residence exclusion limits (2025 tax year)
 RESIDENCE_EXCLUSION_SINGLE = 250_000
 RESIDENCE_EXCLUSION_MARRIED = 500_000
+
+
+def _get_reference_year(asset, thisyear):
+    """Return asset reference year, defaulting to thisyear for backward compatibility."""
+    if "year" in asset.index and not pd.isna(asset["year"]):
+        return int(asset["year"])
+    return thisyear
 
 
 def calculate_future_value(current_value, annual_rate, years):
@@ -112,11 +119,7 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
         basis = float(asset["basis"])
         value_at_reference = float(asset["value"])  # Value at reference year
         annual_rate = float(asset["rate"])
-        # Get reference year, defaulting to thisyear for backward compatibility
-        if "year" in asset.index and not pd.isna(asset["year"]):
-            reference_year = int(asset["year"])
-        else:
-            reference_year = thisyear
+        reference_year = _get_reference_year(asset, thisyear)
         yod = int(asset["yod"])  # Year of disposition
         commission_pct = float(asset["commission"]) / 100.0
 
@@ -177,25 +180,9 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
             else:
                 # Loss or no gain: proceeds are tax-free
                 tax_free_n[n] += proceeds
-        elif asset_type in ["collectibles", "precious metals"]:
-            # Collectibles and precious metals: special capital gains treatment
-            # (28% max rate, but we just report as capital gains here)
-            if gain > 0:
-                capital_gains_n[n] += gain
-                tax_free_n[n] += basis
-            else:
-                # Loss: only proceeds are tax-free
-                tax_free_n[n] += proceeds
-        elif asset_type in ["real estate", "stocks"]:
-            # Real estate and stocks: standard capital gains
-            if gain > 0:
-                capital_gains_n[n] += gain
-                tax_free_n[n] += basis
-            else:
-                # Loss: only proceeds are tax-free
-                tax_free_n[n] += proceeds
         else:
-            # Unknown type: treat as capital gains
+            # All other types (collectibles, precious metals, real estate, stocks, unknown):
+            # standard capital gains treatment
             if gain > 0:
                 capital_gains_n[n] += gain
                 tax_free_n[n] += basis
@@ -244,11 +231,7 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
         if not u.is_row_active(asset):
             continue
 
-        # Get reference year, defaulting to thisyear for backward compatibility
-        if "year" in asset.index and not pd.isna(asset["year"]):
-            reference_year = int(asset["year"])
-        else:
-            reference_year = thisyear
+        reference_year = _get_reference_year(asset, thisyear)
         yod = int(asset["yod"])  # Year of disposition
 
         # Skip if asset reference year is after the plan ends
