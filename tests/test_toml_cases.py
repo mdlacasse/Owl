@@ -64,7 +64,7 @@ if platform == "darwin":
             "bequest": 8_094_499,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_821,
+            "net_spending_basis": 91_753,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -87,7 +87,7 @@ elif platform in ["win32", "linux"]:
             "bequest": 8_094_499,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_821,
+            "net_spending_basis": 91_753,
             "bequest": 400_000,
         },
         "Case_joe": {

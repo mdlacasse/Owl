@@ -105,6 +105,10 @@ $b_{ikn}$ is a multidimensional array depending on subscripts $i, k,$ and $n$.
 	individuals in the plan. The time period for all decision variables is annual.
 	For spouses, the end of year $n_d-1$ is when the first individual is assumed to pass while
 	the survivor will decease at the end of year $N_n-1$ of the plan.
+\item [$p$]
+	Index for long-term capital gains (LTCG) tax rate brackets.
+	$p \in \{0, 1, 2\}$ corresponds to the 0\%, 15\%, and 20\% LTCG rates, respectively,
+	giving $N_p = 3$ brackets.
 \item [$q$]
 	Index for income brackets related to Medicare premium adjustments.
 	$q$ goes from 0 to $N_q - 1$, from low to high.
@@ -191,11 +195,23 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	$p^{\sigma,\mathrm{hi}}_n = \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{hi}}_n)$.
 	These continuous non-negative variables are present only when the solver option
 	\texttt{withSSTaxability="optimize"} is selected.
-\item [$q^{\sigma}_n$]
+\item [$p^{\sigma,\mathrm{min}}_n$]
 	50\%-zone Social Security taxability allocation,
 	equal to $\min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n)$ and bounded in
 	$[0,\,\Delta\mathcal{P}]$.
 	Only present when \texttt{withSSTaxability="optimize"} is selected.
+	Together with $p^{\sigma,\mathrm{lo}}_n$ and $p^{\sigma,\mathrm{hi}}_n$, all SS
+	taxability LP variables use the letter $p$ for consistency.
+\item [$q_{pn}$]
+	Portion of LTCG and qualified dividends allocated to bracket $p$ in year $n$,
+	where $p=0$, $1$, $2$ correspond to the 0\%, 15\%, and 20\% LTCG rate brackets,
+	respectively. These $N_p = 3$ continuous non-negative LP variables are always present
+	and together partition the total LTCG via $q_{0n} + q_{1n} + q_{2n} \ge Q_n$.
+	The bracket widths are enforced by $q_{0n} + e_n \le T^{15}_n$ and
+	$q_{0n} + q_{1n} + e_n \le T^{20}_n$, where $T^{15}_n$ and $T^{20}_n$ are the
+	inflation-adjusted MAGI thresholds above which the 15\% and 20\% rates apply.
+	Since the cost function is strictly convex ($0 < 0.15 < 0.20$), no binary variables
+	are required: the LP naturally fills the lowest-cost bracket first.
 \item [$t^{\sigma}_n$]
 	Taxable Social Security amount in year $n$, bounded in
 	$[0,\;0.85\sum_i\bar{\zeta}_{in}]$.
@@ -450,12 +466,6 @@ as savings account balances are assumed to be rebalanced periodically.
 \item [$\phi_j$]
 	Fraction of savings account $j$ that is left to surviving spouse $i_s$ as a beneficiary
 	at the death of individual $i_d$, the first spouse to pass.
-\item [$\psi_n$]
-	Effective income tax rate on long-term capital gains (LTCG) and qualified dividends.
-	The rate is computed from the LTCG tax brackets using total taxable income, so it is an
-	average (total LTCG tax divided by total LTCG) rather than a marginal rate.
-	If adjusted self-consistently for income, then $\psi$ becomes time series $\psi_n$.
-	This is distinct from the Social Security tax fraction $\Psi$.
 \item [$\Psi_n$]
 	Effective fraction of Social Security benefits subject to income tax in year $n$,
 	bounded in $[0, 0.85]$.
@@ -607,15 +617,15 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	net spending is being maximized.
 
 \item [$U_n$]
-	Amount of income tax paid on long-term capital gains (LTCG) and qualified dividends in year $n$,
+	Amount of income tax paid on long-term capital gains (LTCG) and qualified dividends in year $n$.
+	The LTCG tax is computed exactly by the LP bracket variables $q_{pn}$:
 	\begin{equation}
-		U_n = \psi_n Q_n.
+		U_n = 0.15\,q_{1n} + 0.20\,q_{2n}.
 	\end{equation}
-	We assume that qualified dividends and long-term
-	capital gains are taxed at the same preferential rate $\psi_n$, which is the case for most situations.
-	Here $\psi_n$ is an \emph{effective} rate (total LTCG tax divided by total LTCG) rather than a marginal rate.
-	When $Q_n > 0$, we compute $\psi_n = U_n / Q_n$ after determining $U_n$ from the LTCG brackets
-	using total taxable income (ordinary income plus long-term capital gains).
+	We assume that qualified dividends and long-term capital gains are taxed at the same
+	preferential rate, which is the case for most situations.
+	For reporting purposes, the effective rate $\psi_n = U_n / Q_n$ is computed after
+	the solve when $Q_n > 0$; it is not a formulation variable.
 
 \item [$J_n$]
 	Net investment income tax (NIIT) paid in year $n$. The NIIT is 3.8\% and applies
@@ -932,17 +942,36 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 	\begin{eqnarray}
 		\label{Eq:C4}
 		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_i (1-\mathcal{H}(n - n_{i,59\frac{1}{2}})) w_{i1n}\nonumber\\
-                + m_n + s_n + \sum_t f_{tn} \theta^x_{tn} &&\nonumber \\
-		+ \psi_n\sum_i \alpha_{i00n} \left[\mu(b_{i0n} - w_{i0n} + d_{in})
-		+ w_{i0n}\max(0, \tau_{0(n-1)} - \mu)\right] 
+                + m_n + s_n + \sum_t f_{tn} \theta^x_{tn} + U_n
 		&=& \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in} \nonumber\\
                 && + \sum_i [\omega_{in} + \upsilon_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] \nonumber \\
-		&& - 0.5\psi_n\mu\sum_i \alpha_{i00n}\kappa_{i0n} \nonumber \\
                 && - \mathcal{D}_n - J_n.
 	\end{eqnarray}
 	Notice that we do not consider market losses or tax-loss harvesting,
 	and we do not track individual stock purchases over the years.
 	We also treat $J_n$ as a parameter as it is computed through a self-consistent loop.
+
+\paragraph*{LTCG bracket constraints}
+	The LTCG tax $U_n = 0.15\,q_{1n} + 0.20\,q_{2n}$ is determined by three LP bracket
+	allocation variables $q_{pn}$ ($p \in \{0,1,2\}$).
+	The partition constraint
+	\begin{equation}
+		\label{Eq:LTCG1}
+		q_{0n} + q_{1n} + q_{2n} \ge Q_n
+	\end{equation}
+	ensures the allocations cover the total LTCG $Q_n$.
+	The bracket upper-bound constraints
+	\begin{eqnarray}
+		\label{Eq:LTCG2}
+		q_{0n} + e_n &\le& T^{15}_n, \\
+		q_{0n} + q_{1n} + e_n &\le& T^{20}_n \label{Eq:LTCG3}
+	\end{eqnarray}
+	prevent overflow into higher-rate brackets.
+	Here $T^{15}_n$ and $T^{20}_n$ are the inflation-adjusted MAGI thresholds above which
+	the 15\% and 20\% LTCG rates apply, and $e_n$ is the ordinary taxable income that
+	already occupies the lower part of the income range.
+	Since the cost is convex ($0\% < 15\% < 20\%$), no binary variables are needed:
+	the LP naturally allocates gains to the cheapest bracket first.
 
 	We want the net spending to be predictable and smooth. For that purpose, we use
 \begin{equation}
@@ -1040,9 +1069,9 @@ In this case, the objective function will need to consider the sum over all year
 		\label{Eq:TaxableSSSimpl}
 		\mathcal{T}_n =
 		\min\Bigl(0.85\!\sum_i\bar{\zeta}_{in},\;
-		      0.5\,q^{\sigma}_n + 0.85\,p^{\sigma,\mathrm{hi}}_n\Bigr),
+		      0.5\,p^{\sigma,\mathrm{min}}_n + 0.85\,p^{\sigma,\mathrm{hi}}_n\Bigr),
 		\qquad
-		q^{\sigma}_n = \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n).
+		p^{\sigma,\mathrm{min}}_n = \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n).
 	\end{equation}
 	This condition holds for virtually all retirees, since combined annual SS benefits
 	nearly always exceed \$12{,}000 (MFJ) or \$9{,}000 (single).
@@ -1065,7 +1094,7 @@ In this case, the objective function will need to consider the sum over all year
 	all max/min operations in
 	Eqs.~(\ref{Eq:plo_phi})--(\ref{Eq:TaxableSSSimpl}) are encoded exactly within the
 	LP as a mixed-integer program (MIP) using the continuous variables
-	$p^{\sigma,\mathrm{lo}}_n$, $p^{\sigma,\mathrm{hi}}_n$, $q^{\sigma}_n$, and
+	$p^{\sigma,\mathrm{lo}}_n$, $p^{\sigma,\mathrm{hi}}_n$, $p^{\sigma,\mathrm{min}}_n$, and
 	$t^{\sigma}_n$, together with two binary variables $z^{\sigma}_{0n}$ and
 	$z^{\sigma}_{1n}$ per year $n$ for which $\sum_i\bar{\zeta}_{in}>0$;
 	in years with no Social Security income all four continuous variables and
@@ -1078,35 +1107,35 @@ In this case, the objective function will need to consider the sum over all year
 	the optimizer pushes these variables to their lower bounds at the optimum.
 	The two $\min(\cdot,\cdot)$ operations in Eq.~(\ref{Eq:TaxableSSSimpl}) are
 	formulated via big-$\mathcal{M}$ lower-bound constraints.
-	For $q^{\sigma}_n = \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n)$,
+	For $p^{\sigma,\mathrm{min}}_n = \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n)$,
 	the upper bounds
 	\begin{equation}
-		q^{\sigma}_n \le \Delta\mathcal{P},
+		p^{\sigma,\mathrm{min}}_n \le \Delta\mathcal{P},
 		\qquad
-		q^{\sigma}_n \le p^{\sigma,\mathrm{lo}}_n
+		p^{\sigma,\mathrm{min}}_n \le p^{\sigma,\mathrm{lo}}_n
 	\end{equation}
 	are complemented by binary-controlled lower bounds that force the optimizer to the
 	tighter constraint:
 	\begin{equation}
 		\label{Eq:BinQ}
-		q^{\sigma}_n - \mathcal{M}\,z^{\sigma}_{0n} \;\ge\; \Delta\mathcal{P} - \mathcal{M},
+		p^{\sigma,\mathrm{min}}_n - \mathcal{M}\,z^{\sigma}_{0n} \;\ge\; \Delta\mathcal{P} - \mathcal{M},
 		\qquad
-		q^{\sigma}_n - p^{\sigma,\mathrm{lo}}_n + \mathcal{M}\,z^{\sigma}_{0n} \;\ge\; 0.
+		p^{\sigma,\mathrm{min}}_n - p^{\sigma,\mathrm{lo}}_n + \mathcal{M}\,z^{\sigma}_{0n} \;\ge\; 0.
 	\end{equation}
 	Analogously, for
 	$t^{\sigma}_n = \min\bigl(0.85\sum_i\bar{\zeta}_{in},\;
-	                            0.5\,q^{\sigma}_n+0.85\,p^{\sigma,\mathrm{hi}}_n\bigr)$:
+	                            0.5\,p^{\sigma,\mathrm{min}}_n+0.85\,p^{\sigma,\mathrm{hi}}_n\bigr)$:
 	\begin{equation}
 		t^{\sigma}_n \le 0.85\!\sum_i\bar{\zeta}_{in},
 		\qquad
-		t^{\sigma}_n \le 0.5\,q^{\sigma}_n + 0.85\,p^{\sigma,\mathrm{hi}}_n,
+		t^{\sigma}_n \le 0.5\,p^{\sigma,\mathrm{min}}_n + 0.85\,p^{\sigma,\mathrm{hi}}_n,
 	\end{equation}
 	\begin{equation}
 		\label{Eq:BinT}
 		t^{\sigma}_n - \mathcal{M}\,z^{\sigma}_{1n}
 		\;\ge\; 0.85\!\sum_i\bar{\zeta}_{in} - \mathcal{M},
 		\qquad
-		t^{\sigma}_n - 0.5\,q^{\sigma}_n - 0.85\,p^{\sigma,\mathrm{hi}}_n
+		t^{\sigma}_n - 0.5\,p^{\sigma,\mathrm{min}}_n - 0.85\,p^{\sigma,\mathrm{hi}}_n
 		  + \mathcal{M}\,z^{\sigma}_{1n} \;\ge\; 0.
 	\end{equation}
 	In this formulation $t^{\sigma}_n$ is an LP variable rather than the fixed parameter
@@ -1395,6 +1424,25 @@ with $q_m$ running from $C_m$ to $C_s - 1$, where
 	= N_i(N_j(N_n+1) + N_n) + (N_t + 3) N_n + N_q(N_n - n_m).
 \]
 
+\paragraph*{LTCG bracket allocations (\boldmath$q$)}
+For LTCG bracket allocation variables $q_{pn}$ we will use
+\begin{equation}
+	y[q_q(p, n)] = q_{pn},
+\end{equation}
+where
+\begin{equation}
+	q_q(p, n) = q_*(C_q, p, n, 0; N_p, N_n, 1),
+\end{equation}
+with $q_q$ running from $C_q$ to $C_s - 1$, where
+\[
+	C_q = q_C(C_m, N_n, 1, 1)
+	= N_i(N_j(N_n+1) + N_n) + (N_t + 3) N_n + N_q(N_n - n_m),
+\]
+\[
+	C_s = q_C(C_q, N_p, N_n, 1)
+	= N_i(N_j(N_n+1) + N_n) + (N_t + 3 + N_p) N_n + N_q(N_n - n_m).
+\]
+
 \paragraph*{Surplus (\boldmath$s$)}
 Surplus can be generated if big-ticket items are received (inheritance, sale of a house, etc.)
 or due to RMDs. Surplus $s$ is then deposited to taxable savings accounts according
@@ -1409,7 +1457,7 @@ where
 with $q_s$ running from $C_s$ to $C_w - 1$, where
 \[
 	C_w = q_C(C_s, N_n, 1, 1)
-	= N_i(N_j(N_n+1) + N_n) + (N_t + 4) N_n + N_q(N_n - n_m).
+	= N_i(N_j(N_n+1) + N_n) + (N_t + 4 + N_p) N_n + N_q(N_n - n_m).
 \]
 
 \paragraph*{Withdrawals (\boldmath$w$)}
@@ -1424,7 +1472,7 @@ where
 with $q_w$ running from $C_w$ to $C_x - 1$, where
 \[
 C_x = q_C(C_w, N_i, N_j, N_n)
-= N_i(N_j(2N_n + 1) + (N_t + 4) N_n) + N_q(N_n - n_m).
+= N_i(N_j(2N_n + 1) + (N_t + 4 + N_p) N_n) + N_q(N_n - n_m).
 \]
 
 \paragraph*{Roth conversions (\boldmath$x$)}
@@ -1439,15 +1487,16 @@ where
 with $q_x$ running from $C_x$ to $C_* - 1$, where
 \begin{equation}
 	\label{Eq:Cstar}
-C_* = q_C(C_x, N_i, N_n, 1) = N_i(N_j(2N_n + 1) + (N_t + N_i + 3) N_n).
+C_* = q_C(C_x, N_i, N_n, 1) = N_i(N_j(2N_n + 1) + (N_t + N_i + 3 + N_p) N_n).
 \end{equation}
 
-With $N_i = 2, N_j = 3, N_k = 4, N_t = 7$ we have $27 N_n + 6$ variables. When
-IRMAA is optimized, $h_{qn}$ adds $N_q(N_n - n_m)$ more variables.
+With $N_i = 2, N_j = 3, N_k = 4, N_t = 7, N_p = 3$ we have $(27 + N_p) N_n + 6 = 30 N_n + 6$ variables.
+The $N_p N_n = 3N_n$ additional variables are the LTCG bracket allocations $q_{pn}$.
+When IRMAA is optimized, $h_{qn}$ adds $N_q(N_n - n_m)$ more variables.
 If the time resolution is increased to months, the number of variables scales accordingly.
 Adding binary variables $z_{nz}^x$ with $z \in \{0, 1, 2, 3\}$ can add $4N_n$ more decision variables,
 while adding $z^m_{qn}$ adds $N_q(N_n - n_m)$ more, resulting in
-$(27 N_n + 6) + N_q(N_n - n_m) + 4N_n + N_q(N_n - n_m)$ variables.
+$(30 N_n + 6) + N_q(N_n - n_m) + 4N_n + N_q(N_n - n_m)$ variables.
 
 \section{Reverse mapping of indices}
 The inverse functions for the index-mapping functions will be derived for the
@@ -1707,21 +1756,20 @@ we add $N_n$ more rows to $A_ey = v$ as
 	A_e[J_5(n), q_g(n)] &=& 1, \nonumber \\
 	A_e[J_5(n), q_m(n)] &=& 1, \nonumber \\
 	A_e[J_5(n), q_s(n)] &=& 1, \nonumber \\
-	A_e[J_5(n), q_b(i, 0, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
-	A_e[J_5(n), q_d(i, n)] &=& \psi_n\mu\alpha_{i00n}, \nonumber \\
 	A_e[J_5(n), q_{f}(t, n)] &=& \theta^x_{tn}, \nonumber \\
-	A_e[J_5(n), q_w(i, j ,n)] &=& -1 + 0.1\,\delta(j,1)\,(1-\mathcal{H}(n-n_{i,59\frac{1}{2}}))
-		+ \delta(j, 0)\psi_n\alpha_{i00n}(\max(0, \tau_{0n-1}) - \mu), \nonumber \\
+	A_e[J_5(n), q_w(i, j ,n)] &=& -1 + 0.1\,\delta(j,1)\,(1-\mathcal{H}(n-n_{i,59\frac{1}{2}})), \nonumber \\
+	A_e[J_5(n), q_q(1, n)] &=& 0.15, \nonumber \\
+	A_e[J_5(n), q_q(2, n)] &=& 0.20, \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall n \in \{0,\ldots, N_n-1\}, \nonumber
 \end{eqnarray}
-where $v$ is
+where $q_q(p, n)$ is the flat index of $q_{pn}$ in the solution vector, and $v$ is
 \begin{equation}
 	v[J_5(n)] = \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in}
 	+ \sum_i [\omega_{in} + \upsilon_{in} + \bar\zeta_{in} + \bar{\pi}_{in}]
-	- 0.5\psi_n\mu\sum_i \alpha_{i00n}\kappa_{i0n} - \mathcal{D}_n.
+	- \mathcal{D}_n.
 \end{equation}
 
 The condition of having a predictable net spending expressed as an
