@@ -1964,19 +1964,23 @@ class Plan:
         0%, 15%, and 20% capital-gains brackets. Because the LTCG cost function is convex
         (0 < 0.15 < 0.20), the LP naturally minimises tax without binary variables.
 
-        The bracket boundaries depend on e_n (ordinary income below standard deduction). Since
-        e_n ≤ sigmaBar_n < T15 always, all bracket constraints are plain linear inequalities.
+        T15_n and T20_n are thresholds on TOTAL taxable income (ordinary + LTCG, after the
+        standard deduction). Capital gains are "stacked" on top of ordinary taxable income G_n.
+        Using G_n from the previous SC iteration (self.G_n) as a parameter (consistent with
+        the SC-loop treatment of Psi_n, J_n, M_n), the bracket constraints are:
 
         Constraints per year n:
-          (1) q[0,n] + e_n ≤ T15_n              (cap on 0% allocation)
-          (2) q[0,n] + q[1,n] + e_n ≤ T20_n     (cap on 0%+15% allocation)
-          (3) q[0,n] + q[1,n] + q[2,n] ≥ Q_n    (partition lower bound)
-          (4) c_n = 0.15*q[1,n] + 0.20*q[2,n]   (LTCG tax definition)
+          (1) q[0,n] ≤ max(0, T15_n − G_n)               (cap on 0% allocation)
+          (2) q[0,n] + q[1,n] ≤ max(0, T20_n − G_n)      (cap on 0%+15% allocation)
+          (3) q[0,n] + q[1,n] + q[2,n] ≥ Q_n             (partition lower bound)
+
+        G_n is initialised to 0 for the first iteration and updated from _aggregateResults
+        after each solve. Constraints (1) and (2) become variable upper bounds.
+
+        U_n = 0.15*q[1,n] + 0.20*q[2,n] is computed as a derived quantity after solving.
 
         Because the LP minimises tax, constraint (3) is tight when Q_n > 0 and the bound
         is inactive (all-zero) when Q_n ≤ 0 (no LTCG in loss years).
-
-        c_n replaces the psi_n·Q_n terms that previously required SC-loop iteration.
         """
         tau_0 = self.tau_kn[0, :]
         # Use the same roll as _aggregateResults so the partition constraint is consistent
@@ -1998,13 +2002,17 @@ class Plan:
             q0_idx = self.vm["q"].idx(0, n)   # p=0: 0% bracket
             q1_idx = self.vm["q"].idx(1, n)   # p=1: 15% bracket
             q2_idx = self.vm["q"].idx(2, n)   # p=2: 20% bracket
-            e_idx = self.vm["e"].idx(n)
 
             # === Bracket upper-bound constraints ===
-            # (1) q[0,n] + e_n ≤ T15_n
-            self.A.addNewRow({q0_idx: 1, e_idx: 1}, -np.inf, T15_n)
-            # (2) q[0,n] + q[1,n] + e_n ≤ T20_n
-            self.A.addNewRow({q0_idx: 1, q1_idx: 1, e_idx: 1}, -np.inf, T20_n)
+            # LTCG is stacked on top of ordinary taxable income G_n (from previous SC iteration).
+            # G_n is initialised to 0 for the first iteration (zero ordinary income assumption).
+            # room15_n / room20_n = T15/T20 threshold minus ordinary income already filling the bracket.
+            room15_n = max(0.0, T15_n - self.G_n[n])
+            room20_n = max(0.0, T20_n - self.G_n[n])
+            # (1) q[0,n] ≤ room15_n (enforced via variable upper bound)
+            self.B.setRange(q0_idx, 0, room15_n)
+            # (2) q[0,n] + q[1,n] ≤ room20_n
+            self.A.addNewRow({q0_idx: 1, q1_idx: 1}, -np.inf, room20_n)
 
             # === Partition lower-bound constraint: q[0]+q[1]+q[2] ≥ Q_portfolio+Q_fixed ===
             # Q_portfolio_n = sum_i alpha_i00n * [mu*(b_i0n + d_in - w_i0n) + cap_rate*w_i0n
@@ -2028,9 +2036,8 @@ class Plan:
             # (3) q[0]+q[1]+q[2] − Q_portfolio_LP_vars ≥ Q_fixed + kappa_correction
             self.A.addNewRow(row_q, rhs_q, np.inf)
 
-            # Variable bounds: q[0] ≤ T15_n, q[1] ≤ T20_n − T15_n (bracket widths).
-            self.B.setRange(q0_idx, 0, T15_n)
-            self.B.setRange(q1_idx, 0, T20_n - T15_n)
+            # q[1] upper bound = remaining 15% bracket width after stacking ordinary income.
+            self.B.setRange(q1_idx, 0, max(0.0, room20_n - room15_n))
             # q[2] is unbounded above (the 20% bracket has no cap).
 
     def _configure_Medicare_binary_variables(self, options):
@@ -2824,6 +2831,7 @@ class Plan:
             # Reset all nonlinear quantities to their starting values for a fresh solve.
             self.Psi_n = np.ones(self.N_n) * (fixedPsi if fixedPsi is not None else 0.85)
             self.MAGI_n = np.zeros(self.N_n)
+            self.G_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
             self.psi_n = np.zeros(self.N_n)

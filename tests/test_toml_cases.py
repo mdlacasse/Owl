@@ -61,46 +61,46 @@ if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100_000,
-            "bequest": 8_094_499,
+            "bequest": 8_057_784,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_753,
+            "net_spending_basis": 91_711,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 87_461,
+            "net_spending_basis": 87_155,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 168_294,
+            "net_spending_basis": 167_983,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 1_111_334,
+            "bequest": 1_097_364,
         },
     }
 elif platform in ["win32", "linux"]:
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100_000,
-            "bequest": 8_094_499,
+            "bequest": 8_057_784,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_753,
+            "net_spending_basis": 91_711,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 87_461,
+            "net_spending_basis": 87_155,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 168_294,
+            "net_spending_basis": 167_983,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 1_111_334,
+            "bequest": 1_097_364,
         },
     }
 else:

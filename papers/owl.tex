@@ -207,11 +207,12 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	where $p=0$, $1$, $2$ correspond to the 0\%, 15\%, and 20\% LTCG rate brackets,
 	respectively. These $N_p = 3$ continuous non-negative LP variables are always present
 	and together partition the total LTCG via $q_{0n} + q_{1n} + q_{2n} \ge Q_n$.
-	The bracket widths are enforced by $q_{0n} + e_n \le T^{15}_n$ and
-	$q_{0n} + q_{1n} + e_n \le T^{20}_n$, where $T^{15}_n$ and $T^{20}_n$ are the
-	inflation-adjusted MAGI thresholds above which the 15\% and 20\% rates apply.
-	Since the cost function is strictly convex ($0 < 0.15 < 0.20$), no binary variables
-	are required: the LP naturally fills the lowest-cost bracket first.
+	The bracket widths are enforced by $q_{0n} \le \max(0, T^{15}_n - G_n)$ and
+	$q_{0n} + q_{1n} \le \max(0, T^{20}_n - G_n)$, where $T^{15}_n$ and $T^{20}_n$ are the
+	inflation-adjusted total taxable income thresholds above which the 15\% and 20\% rates
+	apply, and $G_n = \sum_t f_{tn}$ is the ordinary taxable income (evaluated from the
+	previous SC iteration). Since the cost function is strictly convex ($0 < 0.15 < 0.20$),
+	no binary variables are required: the LP naturally fills the lowest-cost bracket first.
 \item [$t^{\sigma}_n$]
 	Taxable Social Security amount in year $n$, bounded in
 	$[0,\;0.85\sum_i\bar{\zeta}_{in}]$.
@@ -960,16 +961,20 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 		q_{0n} + q_{1n} + q_{2n} \ge Q_n
 	\end{equation}
 	ensures the allocations cover the total LTCG $Q_n$.
-	The bracket upper-bound constraints
+	The bracket upper-bound constraints prevent overflow into higher-rate brackets.
+	Because LTCG is stacked on top of ordinary taxable income $G_n = \sum_t f_{tn}$,
+	the room available in each bracket depends on how much of the threshold is already
+	occupied by ordinary income.  Using the value of $G_n$ from the previous SC iteration
+	as a parameter (consistent with the treatment of $\Psi_n$, $\mathcal{J}_n$, and
+	$\mathcal{M}_n$), the constraints are
 	\begin{eqnarray}
 		\label{Eq:LTCG2}
-		q_{0n} + e_n &\le& T^{15}_n, \\
-		q_{0n} + q_{1n} + e_n &\le& T^{20}_n \label{Eq:LTCG3}
+		q_{0n} &\le& \max(0,\; T^{15}_n - G_n), \\
+		q_{0n} + q_{1n} &\le& \max(0,\; T^{20}_n - G_n), \label{Eq:LTCG3}
 	\end{eqnarray}
-	prevent overflow into higher-rate brackets.
-	Here $T^{15}_n$ and $T^{20}_n$ are the inflation-adjusted MAGI thresholds above which
-	the 15\% and 20\% LTCG rates apply, and $e_n$ is the ordinary taxable income that
-	already occupies the lower part of the income range.
+	where $T^{15}_n$ and $T^{20}_n$ are the inflation-adjusted total taxable income
+	thresholds above which the 15\% and 20\% LTCG rates apply.
+	These constraints converge together with the SC loop.
 	Since the cost is convex ($0\% < 15\% < 20\%$), no binary variables are needed:
 	the LP naturally allocates gains to the cheapest bracket first.
 
