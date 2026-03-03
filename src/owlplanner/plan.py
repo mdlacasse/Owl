@@ -253,7 +253,6 @@ class Plan:
             self.i_s = -1
 
         # Default parameters:
-        self.psi_n = np.zeros(self.N_n)  # Long-term income tax rate on capital gains (decimal)
         # Fraction of SS benefits subject to federal income tax (initial: 0.85).
         # Refined each SC-loop iteration by _update_Psi_n() using the IRS provisional income formula.
         self.Psi_n = np.ones(self.N_n) * 0.85
@@ -1701,7 +1700,6 @@ class Plan:
             row = self.A.newRow({self.vm["g"].idx(n): 1})
             row.addElem(self.vm["s"].idx(n), 1)
             row.addElem(self.vm["m"].idx(n), 1)
-            # LTCG tax is carried by c_n; psi_n plays no role in cash-flow constraints.
             for i in range(self.N_i):
                 rhs += (
                     self.omega_in[i, n]
@@ -1966,8 +1964,7 @@ class Plan:
 
         T15_n and T20_n are thresholds on TOTAL taxable income (ordinary + LTCG, after the
         standard deduction). Capital gains are "stacked" on top of ordinary taxable income G_n.
-        Using G_n from the previous SC iteration (self.G_n) as a parameter (consistent with
-        the SC-loop treatment of Psi_n, J_n, M_n), the bracket constraints are:
+        The bracket constraints are:
 
         Constraints per year n:
           (1) q[0,n] ≤ max(0, T15_n − G_n)               (cap on 0% allocation)
@@ -2431,8 +2428,7 @@ class Plan:
             raise ValueError(f"Slack value {lambdha} out of range.")
         self.lambdha = lambdha / 100
 
-        # Reset long-term capital gain tax rate and MAGI to zero.
-        self.psi_n = np.zeros(self.N_n)
+        # Reset MAGI to zero.
         self.MAGI_n = np.zeros(self.N_n)
         self.J_n = np.zeros(self.N_n)
         self.M_n = np.zeros(self.N_n)
@@ -2834,7 +2830,6 @@ class Plan:
             self.G_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
-            self.psi_n = np.zeros(self.N_n)
             return
 
         self._aggregateResults(x, short=True)
@@ -2845,7 +2840,7 @@ class Plan:
             self._update_Psi_n()
 
         self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
-        # LTCG tax is always in the LP (c_n variable); U_n and psi_n are set by _aggregateResults.
+        # LTCG tax is in the LP via q bracket variables; U_n is set by _aggregateResults.
         # Compute Medicare through self-consistent loop.
         if includeMedicare:
             self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
@@ -2918,10 +2913,6 @@ class Plan:
         total_ltcg = np.maximum(self.Q_n, 0)
         excess = np.maximum(0, self.q_pn[0, :] - total_ltcg)
         self.q_pn[0, :] = np.maximum(0, self.q_pn[0, :] - excess)
-        # psi_n: derived reporting quantity (effective LTCG rate = U_n / Q_n).
-        has_ltcg = self.Q_n > 0
-        self.psi_n = np.zeros(Nn)
-        self.psi_n[has_ltcg] = self.U_n[has_ltcg] / self.Q_n[has_ltcg]
 
         # Also add back non-taxable part of SS.
         self.MAGI_n = (self.G_n + self.e_n + self.Q_n

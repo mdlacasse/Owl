@@ -87,12 +87,14 @@ stdDeduction_OBBBA = np.array([16_100, 32_200])    # Single, MFJ
 # These are current for 2026  (2025TY) per individual.
 extra65Deduction = np.array([2_000, 1_600])        # Single, MFJ
 
-# These are current for 2026 (2025TY).
-# Thresholds setting capital gains brackets 0%, 15%, 20%.
+# LTCG bracket thresholds: taxable income above which 15% and 20% rates apply.
+# Source: IRS Topic 409, Publication 550. Values indexed for inflation annually.
+# Single [0]: 0%→15% at [0], 15%→20% at [1]. MFJ [1]: same structure.
+# TODO: Update annually. Verify against IRS.gov/taxtopics/tc409 for current tax year.
 capGainRates = np.array(
     [
-        [49_450, 545_500],
-        [98_900, 613_700],
+        [49_450, 545_500],   # Single
+        [98_900, 613_700],   # Married filing jointly
     ]
 )
 

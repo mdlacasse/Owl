@@ -4,8 +4,8 @@ Tests for LTCG tax computation via LP bracket-allocation variables q_{pn} (p=0,1
 The LP bracket formulation is always used (no SC-loop fallback). Validates that:
 - The solver produces a feasible solution for typical plans.
 - q[0,n] + q[1,n] + q[2,n] == Q_n for all years (partition constraint is tight).
-- c_n == 0.15*q[1,n] + 0.20*q[2,n] exactly (LTCG tax definition).
-- psi_n is consistent with c_n / Q_n.
+- U_n == 0.15*q[1,n] + 0.20*q[2,n] exactly (LTCG tax definition).
+- Effective LTCG rate U_n/Q_n is in [0%, 20%] when Q_n > 0.
 - 15% bracket is used when Q_n > T15_n − e_n (large-taxable-account plan).
 
 Copyright (C) 2025-2026 The Owlplanner Authors
@@ -117,14 +117,15 @@ def test_ltcg_lp_tax_identity():
 
 
 def test_ltcg_lp_psi_consistency():
-    """psi_n == U_n / Q_n in years with positive LTCG."""
+    """Effective LTCG rate U_n/Q_n is in [0%, 20%] in years with positive LTCG."""
     p = _make_single_plan('ltcg_psi', taxable=2000, tax_deferred=0, tax_free=0)
     p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved'
     has_ltcg = p.Q_n > 0
     if has_ltcg.any():
-        expected_psi = np.where(has_ltcg, p.U_n / np.maximum(p.Q_n, 1e-8), 0.0)
-        np.testing.assert_allclose(p.psi_n[has_ltcg], expected_psi[has_ltcg], atol=1e-6)
+        effective_rate = p.U_n[has_ltcg] / np.maximum(p.Q_n[has_ltcg], 1e-8)
+        np.testing.assert_array_less(-1e-6, effective_rate)
+        np.testing.assert_array_less(effective_rate, 0.20 + 1e-6)
 
 
 def test_ltcg_lp_15pct_bracket_used():
@@ -141,6 +142,24 @@ def test_ltcg_lp_15pct_bracket_used():
     assert np.all(p.q_pn[2] == pytest.approx(0, abs=1.0)), "Unexpected 20% bracket LTCG."
 
 
+def test_ltcg_lp_rate_within_bounds():
+    """Effective LTCG rate U_n/Q_n is in [0%, 20%] for all years with positive LTCG.
+
+    Uses a large taxable account (generates LTCG) combined with a large tax-deferred
+    account (generates ordinary income via withdrawals) to ensure that ordinary income
+    stacks into the LTCG brackets, producing positive LTCG tax U_n > 0 in some years.
+    """
+    p = _make_single_plan('ltcg_rate_bounds', taxable=2000, tax_deferred=1000, tax_free=0)
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    assert p.caseStatus == 'solved'
+    has_ltcg = p.Q_n > 0
+    assert has_ltcg.any(), "Expected positive LTCG in at least one year."
+    assert np.any(p.U_n > 0), "Expected positive LTCG tax in at least one year."
+    rate = p.U_n[has_ltcg] / p.Q_n[has_ltcg]
+    assert np.all(rate >= -1e-6), f"Negative LTCG rate: min={rate.min():.4f}"
+    assert np.all(rate <= 0.20 + 1e-6), f"LTCG rate exceeds 20%: max={rate.max():.4f}"
+
+
 def test_ltcg_lp_nonnegative():
     """All LTCG bracket variables are non-negative."""
     p = _make_couple_plan(
@@ -153,3 +172,60 @@ def test_ltcg_lp_nonnegative():
     assert np.all(p.q_pn[0] >= -1.0), "q[0,n] has negative values"
     assert np.all(p.q_pn[1] >= -1.0), "q[1,n] has negative values"
     assert np.all(p.q_pn[2] >= -1.0), "q[2,n] has negative values"
+
+
+def test_ltcg_lp_matches_capital_gain_tax():
+    """
+    Cross-validate LP LTCG tax U_n against tax2026.capitalGainTax().
+
+    Given a solved plan with G_n (ordinary taxable income) and Q_n (LTCG + qualified
+    dividends), the LP-derived U_n should match the reference capitalGainTax computation
+    for years with positive Q_n.
+    """
+    from owlplanner import tax2026 as tx
+
+    p = _make_single_plan('ltcg_crossval', taxable=2000, tax_deferred=500, tax_free=0)
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    assert p.caseStatus == 'solved'
+    _assert_ltcg_matches_ref(p, tx)
+
+
+def test_ltcg_lp_matches_capital_gain_tax_couple():
+    """Cross-validate LP U_n vs capitalGainTax for a couple (MFJ→Single at n_d)."""
+    from owlplanner import tax2026 as tx
+
+    p = _make_couple_plan(
+        'ltcg_crossval_couple',
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
+    )
+    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    assert p.caseStatus == 'solved'
+    _assert_ltcg_matches_ref(p, tx)
+
+
+def _assert_ltcg_matches_ref(plan, tax_module):
+    """Compare plan.U_n to tax_module.capitalGainTax() for years with positive Q_n."""
+    tx_income_n = plan.G_n + plan.Q_n
+    ltcg_n = np.maximum(plan.Q_n, 0)
+
+    ref_cg_tax = tax_module.capitalGainTax(
+        plan.N_i,
+        tx_income_n,
+        ltcg_n,
+        plan.gamma_n,
+        plan.n_d,
+        plan.N_n,
+    )
+
+    has_ltcg = plan.Q_n > 0
+    if has_ltcg.any():
+        np.testing.assert_allclose(
+            plan.U_n[has_ltcg],
+            ref_cg_tax[has_ltcg],
+            atol=1.0,
+            err_msg="LP U_n does not match tax2026.capitalGainTax()",
+        )

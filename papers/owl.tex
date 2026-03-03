@@ -135,7 +135,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	spousal taxable accounts depending on parameter $\eta$.
 \item [$e_{n}$]
 	Adjusted standard exemption for year $n$. This is a variable as the taxable income can
-        sometimes be less that the standard exemption $\bar{\sigma}_n$, leading to a
+        sometimes be less than the standard exemption $\bar{\sigma}_n$, leading to a
 	negative taxable income if the inflation-adjusted standard exemption is simply subtracted
 	from the gross taxable income $G_n$ in years of low income.
 \item [$f_{t n}$]
@@ -167,9 +167,9 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	(as opposed to using a big-$\mathcal{M}$ method). One of the brackets, say $q'$, will contain
 	the MAGI from two years before $\mathbb{G}_{(n-2)}$, and therefore
 	\begin{equation}
-		h_{qn} = \delta_(q, q') \mathbb{G}_{(n-2)},
+		h_{qn} = \delta_{q,q'} \mathbb{G}_{(n-2)},
 	\end{equation}
-	where $\delta()$ is a discrete Kronecker function, such that
+	where $\delta_{q,q'}$ is the Kronecker delta (1 if $q=q'$, 0 otherwise), such that
 	\begin{equation}
 		\mathbb{G}_{(n-2)} = \sum_q h_{qn}.
 	\end{equation}
@@ -191,14 +191,19 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$p^{\sigma,\mathrm{lo}}_n$, $p^{\sigma,\mathrm{hi}}_n$]
 	Excess provisional income above the lower and upper Social Security taxability
 	thresholds, respectively:
-	$p^{\sigma,\mathrm{lo}}_n = \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{lo}}_n)$ and
-	$p^{\sigma,\mathrm{hi}}_n = \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{hi}}_n)$.
-	These continuous non-negative variables are present only when the solver option
-	\texttt{withSSTaxability="optimize"} is selected.
+	\begin{eqnarray}
+		p^{\sigma,\mathrm{lo}}_n &=& \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{lo}}_n), \\
+		p^{\sigma,\mathrm{hi}}_n &=& \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{hi}}_n).
+	\end{eqnarray}
+	These continuous non-negative variables are present only when the associated solver option
+	\texttt{withSSTaxability} is set to \texttt{="optimize"}.
+	See Eq.~(\ref{Eq:plo_phi}) for the formal constraint formulation.
 \item [$p^{\sigma,\mathrm{min}}_n$]
-	50\%-zone Social Security taxability allocation,
-	equal to $\min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n)$ and bounded in
-	$[0,\,\Delta\mathcal{P}]$.
+	50\%-zone Social Security taxability allocation, bounded in $[0,\,\Delta\mathcal{P}]$,
+	where $\Delta\mathcal{P} := \mathcal{P}^{\mathrm{hi}}_n - \mathcal{P}^{\mathrm{lo}}_n$ is the 50\%-zone width (see Parameters):
+	\begin{equation}
+		p^{\sigma,\mathrm{min}}_n = \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n).
+	\end{equation}
 	Only present when \texttt{withSSTaxability="optimize"} is selected.
 	Together with $p^{\sigma,\mathrm{lo}}_n$ and $p^{\sigma,\mathrm{hi}}_n$, all SS
 	taxability LP variables use the letter $p$ for consistency.
@@ -206,13 +211,19 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	Portion of LTCG and qualified dividends allocated to bracket $p$ in year $n$,
 	where $p=0$, $1$, $2$ correspond to the 0\%, 15\%, and 20\% LTCG rate brackets,
 	respectively. These $N_p = 3$ continuous non-negative LP variables are always present
-	and together partition the total LTCG via $q_{0n} + q_{1n} + q_{2n} \ge Q_n$.
-	The bracket widths are enforced by $q_{0n} \le \max(0, T^{15}_n - G_n)$ and
-	$q_{0n} + q_{1n} \le \max(0, T^{20}_n - G_n)$, where $T^{15}_n$ and $T^{20}_n$ are the
-	inflation-adjusted total taxable income thresholds above which the 15\% and 20\% rates
-	apply, and $G_n = \sum_t f_{tn}$ is the ordinary taxable income (evaluated from the
-	previous SC iteration). Since the cost function is strictly convex ($0 < 0.15 < 0.20$),
+	and together partition the total LTCG:
+	\begin{eqnarray}
+		q_{0n} + q_{1n} + q_{2n} &\ge& Q_n, \label{Eq:qpart} \\
+		q_{0n} &\le& \max\!\left(0,\; T^{15}_n - G_n\right), \label{Eq:q0cap} \\
+		q_{0n} + q_{1n} &\le& \max\!\left(0,\; T^{20}_n - G_n\right), \label{Eq:q1cap}
+	\end{eqnarray}
+	where $T^{15}_n$ and $T^{20}_n$ are the inflation-adjusted total taxable income
+	thresholds above which the 15\% and 20\% rates apply (see Parameters), and
+	$G_n = \sum_t f_{tn}$ is the ordinary taxable income (formally defined in the
+	Intermediate Variables section).
+	Since the cost function is strictly convex ($0 < 0.15 < 0.20$),
 	no binary variables are required: the LP naturally fills the lowest-cost bracket first.
+	See Eqs.~(\ref{Eq:LTCG2})--(\ref{Eq:LTCG3}) for the full constraint formulation.
 \item [$t^{\sigma}_n$]
 	Taxable Social Security amount in year $n$, bounded in
 	$[0,\;0.85\sum_i\bar{\zeta}_{in}]$.
@@ -287,6 +298,17 @@ Parameter values are either set by the user, historical data, or by the tax code
 	Factor to reduce spending profile after the passing of one spouse. It is typically
 	assumed to be 0.6. That is, we are assuming that the surviving spouse can live with
 	60\% of the net spending amount that was available to the couple.
+\item [$n_d$]
+	Year index at which the first spouse ($i_d$) is assumed to pass.
+	For single individuals, $n_d = N_n$.  For couples, $n_d$ is derived from the
+	life-expectancy inputs so that the end of year $n_d - 1$ coincides with the
+	assumed date of death of $i_d$.
+	Filing status, tax brackets, Social Security thresholds, and LTCG thresholds
+	all change at $n = n_d$ (from married filing jointly to single).
+\item [$n_m$]
+	Year index at which Medicare first applies (i.e., when the youngest individual
+	in the plan turns 65).  For $n < n_m$ no Medicare cost $m_n$ is incurred.
+	Used in the Medicare constraints; see the Medicare paragraph in the Constraints section.
 \item [$\rho_{in}$]
 	Required minimum distribution for individual $i$ in year $n$. Expressed in fractions
 	which are determined from IRS tables. These tables are simple if spouses are less than 10 years apart,
@@ -298,12 +320,14 @@ Parameter values are either set by the user, historical data, or by the tax code
 	Bounds for federal income tax brackets. We define $\Gamma_{(-1)n} := 0$, so that
 	$\Gamma_{0n}$ is the upper bound for the 10\% tax bracket in year $n$. As the filing status
 	can change for couples, and so can the tax code, $\Gamma_{tn}$ will be changing over $n$.
+	Inflation-adjusted brackets are $\bar{\Gamma}_{tn} = \gamma_n \Gamma_{tn}$.
 \item [$\Delta_{tn}$]
 	Difference between upper bound $\Gamma_t$ and lower bound $\Gamma_{t-1}$
 	of a federal income tax bracket,
 	\begin{equation}
 		\Delta_{tn} = \Gamma_{tn} - \Gamma_{(t-1)n}.
 	\end{equation}
+	Inflation-adjusted bracket widths are $\bar{\Delta}_{tn} = \gamma_n \Delta_{tn}$.
 	Once adjusted for inflation,
 	the taxable income can be expressed as in Eq.~(\ref{Eq:G_n}). These data are 7 time series.
 	The filing status changes after the passing of one spouse ($n \ge n_d$) and income tax
@@ -315,6 +339,15 @@ Parameter values are either set by the user, historical data, or by the tax code
         While these rates were extended indefinitely by Congress in 2025, they could still
 	revert back to 2017 or similar higher rates in the future to
 	.10, .15, .25, .28, .33, .35, and .396. See Eq.~(\ref{Eq:IncTax1}) for its use.
+\item [$T^{15}_n$, $T^{20}_n$]
+	Inflation-adjusted total taxable income thresholds above which the 15\% and 20\%
+	long-term capital gains (LTCG) tax rates apply, respectively.
+	LTCG is taxed at 0\% when total taxable income (ordinary + LTCG) is below $T^{15}_n$,
+	at 15\% between $T^{15}_n$ and $T^{20}_n$, and at 20\% above $T^{20}_n$.
+	In 2026, $(T^{15}, T^{20}) = (\$49{,}450,\;\$545{,}500)$ for single filers and
+	$(\$98{,}900,\;\$613{,}700)$ for married filing jointly.
+	Filing status changes at $n = n_d$ for couples.
+	Used in the LTCG bracket constraints; see Eqs.~(\ref{Eq:LTCG2})--(\ref{Eq:LTCG3}).
 \item [$\alpha_{ijkn}$]
 	Desired asset allocation for savings account $j$ of individual $i$ in
 	assets class $k$ during year $n$.
@@ -399,17 +432,26 @@ where $N$ is either $n_d$ or $N_n$,or using an s-curve as in
 	Social security benefits for individual $i$ in year $n$. Starting age and the passing
 	of one individual for spouses will determine the time series. $\bar{\zeta}_{in}$ is
 	the same series adjusted for inflation.
-\item [$\mathcal{P}^{\mathrm{lo}}_n$, $\mathcal{P}^{\mathrm{hi}}_n$]
+\item [$\mathcal{P}^{\mathrm{lo}}_n$, $\mathcal{P}^{\mathrm{hi}}_n$, $\Delta\mathcal{P}$]
 	Lower and upper provisional income thresholds for Social Security taxability,
 	following IRS Publication~915.
 	Below $\mathcal{P}^{\mathrm{lo}}_n$ no Social Security is taxable;
 	between $\mathcal{P}^{\mathrm{lo}}_n$ and $\mathcal{P}^{\mathrm{hi}}_n$ up to 50\% of benefits
 	enter taxable income; above $\mathcal{P}^{\mathrm{hi}}_n$ up to 85\% of benefits are taxable.
+	We define $\Delta\mathcal{P} := \mathcal{P}^{\mathrm{hi}}_n - \mathcal{P}^{\mathrm{lo}}_n$
+	(the 50\%-zone width; \$9{,}000 for single, \$12{,}000 for MFJ).
 	For single filers $(\mathcal{P}^{\mathrm{lo}}, \mathcal{P}^{\mathrm{hi}}) = (\$25{,}000,\, \$34{,}000)$;
 	for married filing jointly
 	$(\mathcal{P}^{\mathrm{lo}}, \mathcal{P}^{\mathrm{hi}}) = (\$32{,}000,\, \$44{,}000)$.
 	Unlike income-tax brackets, these thresholds are \emph{not} indexed for inflation;
 	the time subscript $n$ reflects only the change in filing status at $n = n_d$.
+\item [$\mathbb{G}^{\mathrm{NIIT}}$]
+	Statutory modified adjusted gross income (MAGI) threshold above which the
+	net investment income tax (NIIT) of 3.8\% applies.
+	$\mathbb{G}^{\mathrm{NIIT}}$ is not indexed for inflation.
+	In 2026, $\mathbb{G}^{\mathrm{NIIT}} = \$200{,}000$ for single filers and
+	$\$250{,}000$ for married filing jointly, with filing status changing at $n = n_d$.
+	See the definition of $J_n$ in the Intermediate Variables section.
 \item [$\epsilon_{N_n}$]
 	Desired amount to leave as a bequest at the end of the final year of the plan, $N_n-1$,
 	which is the beginning of year $N_n$. This amount is the after-tax value of the estate
@@ -567,6 +609,17 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	This approach ignores additional IRS
 	rules around tax-free interests which are insignificant in most cases.
 
+\item [$\Pi_n$]
+	Provisional income for Social Security taxability in year $n$ (IRS Publication~915):
+	$\Pi_n = \mathbb{G}_n - \tfrac{1}{2}\sum_i\bar{\zeta}_{in}$.
+	Used to determine the taxable portion of Social Security; see Eq.~(\ref{Eq:PI})
+	and the Social Security taxability paragraph in the Constraints section.
+
+\item [$\mathcal{T}_n$]
+	Amount of Social Security benefits subject to federal income tax in year $n$.
+	$\mathcal{T}_n$ is computed from the IRS formula in Eqs.~(\ref{Eq:TaxableSS})--(\ref{Eq:TaxableSSSimpl}),
+	and $\Psi_n = \mathcal{T}_n / \sum_i\bar{\zeta}_{in}$.
+
 \item [$\mathbb{I}_n$]
 	Interests and taxable gains earned from taxable account.
 	\begin{equation}
@@ -598,8 +651,9 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 		n_{i,59\frac{1}{2}} = \max\bigl(0,\; 59 - Y_0 + y_{\mathrm{obs},i}
 		             + \mathbf{1}[m_{\mathrm{obs},i} > 6]\bigr),
 	\end{equation}
-	where $Y_0$ is the current calendar year and $m_{\mathrm{obs},i} \in \{1,\ldots,12\}$
-	is the birth month.  The indicator $\mathbf{1}[m>6]$ adds one year for individuals born
+	where $Y_0$ is the current calendar year, $y_{\mathrm{obs},i}$ is the birth year of
+	individual $i$, and $m_{\mathrm{obs},i} \in \{1,\ldots,12\}$ is the birth month.
+	The indicator $\mathbf{1}[m>6]$ adds one year for individuals born
 	in July--December, whose 59½ birthday falls in January--June of the following year.
 	Tax-free ($j=2$) Roth withdrawals are not subject to this penalty because the
 	5-year maturation constraints already restrict withdrawals to penalty-free amounts;
@@ -625,13 +679,11 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	\end{equation}
 	We assume that qualified dividends and long-term capital gains are taxed at the same
 	preferential rate, which is the case for most situations.
-	For reporting purposes, the effective rate $\psi_n = U_n / Q_n$ is computed after
-	the solve when $Q_n > 0$; it is not a formulation variable.
 
 \item [$J_n$]
 	Net investment income tax (NIIT) paid in year $n$. The NIIT is 3.8\% and applies
 	when modified adjusted gross income $\mathbb{G}_n$ exceeds the statutory threshold
-	$\mathbb{G}^{\mathrm{NIIT}}$ (not indexed for inflation). We compute
+	$\mathbb{G}^{\mathrm{NIIT}}$ (formally defined in the Parameters section; not indexed for inflation). We compute
 	\begin{equation}
 		J_n = 0.038\ \max\left(0,\ \min\left(\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}},\ \mathbb{I}_n + Q_n\right)\right),
 	\end{equation}
@@ -671,6 +723,7 @@ where
 \end{eqnarray}
 This is a consequence that the allocation ratios are normalized to unity, i.e.,
 \begin{equation}
+	\label{Eq:AlphaNorm}
 	\sum_k \alpha_{ijkn} = 1.
 \end{equation}
 In this formulation where the $\alpha_{ijkn}$ are prescribed,
@@ -706,6 +759,7 @@ add the market returns to the savings balances.
 \paragraph*{Standard exemption}
 	The standard exemption is constrained by
 	\begin{equation}
+		\label{Eq:StdExemp}
 		0 \le e_n \le \bar{\sigma}_n.
 	\end{equation}
 	Variable $e_n$ is required for accounting for years when the taxable ordinary
@@ -717,7 +771,7 @@ add the market returns to the savings balances.
 	As withdrawals and conversions are at the beginning of the year 
 	we impose that
 	\begin{equation}
-		w_{ijn} + \delta(j, 1)x_{in} \le b_{ijn},
+		w_{ijn} + \delta_{j, 1} x_{in} \le b_{ijn},
 	\end{equation}
 	which just states that account balances need to be larger than withdrawals and possible Roth conversions.
 
@@ -791,9 +845,9 @@ add the market returns to the savings balances.
 	according to variable $\eta$ as described in Eq.~(\ref{Eq:eta}),
 	\begin{equation}
 		\label{Eq:eta2}
-		d_{in} = [\delta(i, 0)(1 - \eta) + \delta(i, 1)\eta] s_n .
+		d_{in} = [\delta_{i, 0} (1 - \eta) + \delta_{i, 1}\eta] s_n .
 	\end{equation}
-	Otherwise, for $n \ge n_d$, variable $\eta$ gets redefined as $\eta = \delta(1, i_s)$.
+	Otherwise, for $n \ge n_d$, variable $\eta$ gets redefined as $\eta = \delta_{1, i_s}$.
 	Surplus can be caused by large influx of money coming from big-ticket items, compulsory RMDs,
 	or the disposition of fixed assets.
 
@@ -885,10 +939,10 @@ add the market returns to the savings balances.
 	\begin{eqnarray}
 		\label{Eq:C3a}
 		b_{ij(n+1)} &=& [b_{ijn} - w_{ijn} + 0.5\kappa_{ijn}](1 + \mathcal{T}_{ijn})
-		+ [\delta(j, 2) - \delta(j, 1)]x_{in} (1 + \mathcal{T}_{ijn}/2)
+		+ [\delta_{j, 2} - \delta_{j, 1} ]x_{in} (1 + \mathcal{T}_{ijn}/2)
 		\nonumber \\
 		&& 
-		+\ \delta(j, 0) d_{in} + 0.5 \kappa_{ijn},
+		+\ \delta_{j, 0} d_{in} + 0.5 \kappa_{ijn},
 	\end{eqnarray}
 	where we use discrete Kronecker $\delta$ functions for selecting the specific accounts involved
 	in Roth conversions. These conversions are made such that asset allocation
@@ -900,8 +954,8 @@ add the market returns to the savings balances.
 		\label{Eq:C3}
 		b_{ij(n+1)} - (b_{ijn} - w_{ijn}) (1 + \mathcal{T}_{ijn})
 		&& \nonumber \\
-		-\ [\delta(j, 2) - \delta(j, 1)]x_{in}(1 + \mathcal{T}_{ijn}/2)
-		-\ \delta(j, 0) d_{in}
+		-\ [\delta_{j, 2} - \delta_{j, 1}]x_{in}(1 + \mathcal{T}_{ijn}/2)
+		-\ \delta_{j, 0} d_{in}
 		&=& \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
 	\end{eqnarray}
 
@@ -920,7 +974,7 @@ add the market returns to the savings balances.
 		\label{Eq:C3b}
 		b_{ij(n+1)}
 		% && \nonumber \\
-		- \ [b_{ijn} + \delta(j, 0)d_{in} - w_{ijn} + (\delta(j, 2) - \delta(j, 1))x_{in}]
+		- \ [b_{ijn} + \delta_{j, 0} d_{in} - w_{ijn} + (\delta_{j, 2} - \delta_{j, 1})x_{in}]
 		(1 + \mathcal{T}_{ijn})
 		&=& \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
 		\nonumber
@@ -952,32 +1006,6 @@ simultaneous Roth conversions and withdrawals from tax-free accounts.
 	and we do not track individual stock purchases over the years.
 	We also treat $J_n$ as a parameter as it is computed through a self-consistent loop.
 
-\paragraph*{LTCG bracket constraints}
-	The LTCG tax $U_n = 0.15\,q_{1n} + 0.20\,q_{2n}$ is determined by three LP bracket
-	allocation variables $q_{pn}$ ($p \in \{0,1,2\}$).
-	The partition constraint
-	\begin{equation}
-		\label{Eq:LTCG1}
-		q_{0n} + q_{1n} + q_{2n} \ge Q_n
-	\end{equation}
-	ensures the allocations cover the total LTCG $Q_n$.
-	The bracket upper-bound constraints prevent overflow into higher-rate brackets.
-	Because LTCG is stacked on top of ordinary taxable income $G_n = \sum_t f_{tn}$,
-	the room available in each bracket depends on how much of the threshold is already
-	occupied by ordinary income.  Using the value of $G_n$ from the previous SC iteration
-	as a parameter (consistent with the treatment of $\Psi_n$, $\mathcal{J}_n$, and
-	$\mathcal{M}_n$), the constraints are
-	\begin{eqnarray}
-		\label{Eq:LTCG2}
-		q_{0n} &\le& \max(0,\; T^{15}_n - G_n), \\
-		q_{0n} + q_{1n} &\le& \max(0,\; T^{20}_n - G_n), \label{Eq:LTCG3}
-	\end{eqnarray}
-	where $T^{15}_n$ and $T^{20}_n$ are the inflation-adjusted total taxable income
-	thresholds above which the 15\% and 20\% LTCG rates apply.
-	These constraints converge together with the SC loop.
-	Since the cost is convex ($0\% < 15\% < 20\%$), no binary variables are needed:
-	the LP naturally allocates gains to the cheapest bracket first.
-
 	We want the net spending to be predictable and smooth. For that purpose, we use
 \begin{equation}
 	\label{Eq:C5a}
@@ -1003,6 +1031,30 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 	-g_n \bar{\xi}_0 + g_0 (1 + \lambda) \bar{\xi}_n &\geq&  0.
 \end{eqnarray}
 In this case, the objective function will need to consider the sum over all years when optimizing net spending.
+
+\paragraph*{LTCG bracket constraints}
+	The LTCG tax $U_n = 0.15\,q_{1n} + 0.20\,q_{2n}$ is determined by three LP bracket
+	allocation variables $q_{pn}$ ($p \in \{0,1,2\}$).
+	The partition constraint
+	\begin{equation}
+		\label{Eq:LTCG1}
+		q_{0n} + q_{1n} + q_{2n} \ge Q_n
+	\end{equation}
+	ensures the allocations cover the total LTCG $Q_n$.
+	The bracket upper-bound constraints prevent overflow into higher-rate brackets.
+	Because LTCG is stacked on top of ordinary taxable income $G_n = \sum_t f_{tn}$,
+	the room available in each bracket depends on how much of the threshold is already
+	occupied by ordinary income. The constraints can be expressed as
+	\begin{eqnarray}
+		\label{Eq:LTCG2}
+		q_{0n} &\le& \max(0,\; T^{15}_n - G_n), \\
+		q_{0n} + q_{1n} &\le& \max(0,\; T^{20}_n - G_n), \label{Eq:LTCG3}
+	\end{eqnarray}
+	where $T^{15}_n$ and $T^{20}_n$ are the inflation-adjusted total taxable income
+	thresholds above which the 15\% and 20\% LTCG rates apply.
+	These constraints converge together with the SC loop.
+	Since the cost is convex ($0\% < 15\% < 20\%$), no binary variables are needed:
+	the LP naturally allocates gains to the cheapest bracket first.
 
 \paragraph*{Taxable ordinary income}
 	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:G_n}) and (\ref{Eq:Tx2}),
@@ -1236,7 +1288,7 @@ In this case, the objective function will need to consider the sum over all year
 		\label{Eq:MediCosts}
 		m_n = \sum_{q=0}^{N_q - 1} z_{qn}^m \bar{\mathcal{C}}_{qn},
 	\end{equation}
-	as $z_{qn}^m = \delta(q, q')$ can only select a unique bracket $q'$.
+	as $z_{qn}^m = \delta_{q,q'}$ can only select a unique bracket $q'$.
 	For $n \ge 2$, Eq.~(\ref{Eq:MedDecomp}) can be expanded using
 	Eqs.~(\ref{Eq:Tx2}) and (\ref{Eq:Qx2}) as
 	\begin{eqnarray}
@@ -1583,10 +1635,10 @@ For $e_n \le \bar{\sigma}_n$ we add
 Non-negativity of $e_n$ provides the lower bound.
 
 \paragraph*{Withdrawal limits}
-For $w_{ijn} + \delta(j,1)x_{in} \le b_{ijn}$ we add:
+For $w_{ijn} + \delta_{j,1} x_{in} \le b_{ijn}$ we add:
 \begin{eqnarray}
 	A_u[I_3(i, j, n), q_{w}(i, j, n)] &=& 1, \nonumber \\
-	A_u[I_3(i, j, n), q_{x}(i, n)] &=& \delta(j, 1), \nonumber \\
+	A_u[I_3(i, j, n), q_{x}(i, n)] &=& \delta_{j, 1}, \nonumber \\
 	A_u[I_3(i, j, n), q_{b}(i, j, n)] &=& -1, \nonumber \\
 	u[I_3(i, j, n)] &=& 0, \nonumber \\
 	&&\qquad\forall i \in \{0,\ldots, N_i - 1\},\nonumber\\
@@ -1686,9 +1738,9 @@ with $N_iN_jN_n$ rows as
 	\label{Eq:B1}
 	A_e[J_0(i, j, n), q_b(i, j, n+1)] &=& 1, \nonumber \\
 	A_e[J_0(i, j, n), q_b(i, j, n)] &=& -(1 + \mathcal{T}_{ijn}), \nonumber \\
-	A_e[J_0(i, j, n), q_x(i, n)] &=& -(\delta(j, 2) - \delta(j, 1))(1 + \mathcal{T}_{ijn}), \nonumber \\
+	A_e[J_0(i, j, n), q_x(i, n)] &=& -(\delta_{j, 2} - \delta_{j, 1})(1 + \mathcal{T}_{ijn}), \nonumber \\
 	A_e[J_0(i, j, n), q_w(i, j, n)] &=& (1 + \mathcal{T}_{ijn}), \nonumber \\
-	A_e[J_0(i, j, n), q_d(i, n)] &=& -\delta(j, 0)(1 + \mathcal{T}_{ijn}), \\
+	A_e[J_0(i, j, n), q_d(i, n)] &=& -\delta_{j, 0}(1 + \mathcal{T}_{ijn}), \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 	&&\qquad\forall n \in \{0,\ldots, N_n-1\}, \nonumber
@@ -1762,7 +1814,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 	A_e[J_5(n), q_m(n)] &=& 1, \nonumber \\
 	A_e[J_5(n), q_s(n)] &=& 1, \nonumber \\
 	A_e[J_5(n), q_{f}(t, n)] &=& \theta^x_{tn}, \nonumber \\
-	A_e[J_5(n), q_w(i, j ,n)] &=& -1 + 0.1\,\delta(j,1)\,(1-\mathcal{H}(n-n_{i,59\frac{1}{2}})), \nonumber \\
+	A_e[J_5(n), q_w(i, j ,n)] &=& -1 + 0.1\,\delta_{j,1}\,(1-\mathcal{H}(n-n_{i,59\frac{1}{2}})), \nonumber \\
 	A_e[J_5(n), q_q(1, n)] &=& 0.15, \nonumber \\
 	A_e[J_5(n), q_q(2, n)] &=& 0.20, \nonumber \\
 	&&\qquad\forall t \in \{0,\ldots, N_t-1\},\nonumber\\
@@ -1822,17 +1874,17 @@ to leave to his/her surviving spouse $i_s$
 in the year $n_d  - 1 < N_n - 1$ following the year of passing. 
 To account for that event in year $n_d$, Eq.~(\ref{Eq:C3b}) needs to be rewritten as
 \begin{eqnarray}
-	b_{ij(n+1)} &=& [1 - \delta(n, n_d-1)\delta(i, i_d)] \nonumber \\
-	&&\times \Bigl\{\left[b_{ijn} + \delta(j, 0)d_{ij} - w_{ijn}
-	+ (\delta(j, 2) - \delta(j, 1))x_{in}
+	b_{ij(n+1)} &=& [1 - \delta_{n, n_d-1}\delta_{i, i_d}] \nonumber \\
+	&&\times \Bigl\{\left[b_{ijn} + \delta_{j, 0}d_{ij} - w_{ijn}
+	+ (\delta_{j, 2} - \delta_{j, 1})x_{in}
 	\right](1 + \mathcal{T}_{ijn})
 	+ \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2) 
 	\Bigr\}\nonumber \\
-	&& + [\phi_j\delta(n, n_d-1)\delta(i, i_s)] \nonumber  \\
+	&& + [\phi_j\delta_{n, n_d-1}\delta_{i, i_s}] \nonumber  \\
 	&& \times \Bigl\{\left[b_{i_djn}
-	+ \delta(j, 0)d_{i_dn}
+	+ \delta_{j, 0}d_{i_dn}
 	- w_{i_djn}
-	+ (\delta(j, 2) - \delta(j, 1))x_{i_dn}
+	+ (\delta_{j, 2} - \delta_{j, 1})x_{i_dn}
 	\right] (1 + \mathcal{T}_{i_djn})
 	\nonumber\\
 	&& + \kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2) 
@@ -1850,43 +1902,43 @@ Rewriting the last equation as a constraint results in
 \begin{eqnarray}
 	&&b_{ij(n+1)} 
 	  \nonumber  \\
-	&& - [1 - \delta(n, n_d-1)\delta(i, i_d)] \nonumber\\
-	&& \times \Bigl\{ \left[b_{ijn} + \delta(j, 0)d_{in} - w_{ijn}
-	+ (\delta(j, 2) - \delta(j, 1))x_{ikn} \right](1 + \mathcal{T}_{ijn}) \Bigr\}
+	&& - [1 - \delta_{n, n_d-1}\delta_{i, i_d}] \nonumber\\
+	&& \times \Bigl\{ \left[b_{ijn} + \delta_{j, 0}d_{in} - w_{ijn}
+	+ (\delta_{j, 2} - \delta_{j, 1})x_{ikn} \right](1 + \mathcal{T}_{ijn}) \Bigr\}
 	\nonumber \\
-	&&- [\phi_j\delta(n, n_d-1)\delta(i, i_s)] \nonumber \\
-	&& \times \Bigl\{ \left[b_{i_djn} + \delta(j, 0)d_{in} - w_{ijn}
-	+ (\delta(j, 2) - \delta(j, 1))x_{i_dkn}
+	&&- [\phi_j\delta_{n, n_d-1}\delta_{i, i_s}] \nonumber \\
+	&& \times \Bigl\{ \left[b_{i_djn} + \delta_{j, 0}d_{in} - w_{ijn}
+	+ (\delta_{j, 2} - \delta_{j, 1})x_{i_dkn}
 	\right](1 + \mathcal{T}_{i_djn})
 	\Bigr\}
 	\nonumber \\
-	&=& [1 - \delta(n, n_d-1)\delta(i, i_d)] \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2)
+	&=& [1 - \delta_{n, n_d-1}\delta_{i, i_d}] \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2)
 	\nonumber\\ &&
-	+ [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
+	+ [\phi_j\delta_{n, n_d-1}\delta_{i, i_s}]
 	\kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2).
 \end{eqnarray}
 We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
 \begin{eqnarray}
         \label{Eq:B2}
         A_e[J_0(i, j, n), q_b(i, j, n+1)] &=& 1, \nonumber \\
-        A_e[J_0(i, j, n), q_b(i, j, n)] &=& - [1 - \delta(n, n_d-1)\delta(i, i_d)]
+        A_e[J_0(i, j, n), q_b(i, j, n)] &=& - [1 - \delta_{n, n_d-1}\delta_{i, i_d}]
 		(1 + \mathcal{T}_{ijn}), \nonumber \\
-        A_e[J_0(i, j, n), q_d(i, j, n)] &=& - [1 - \delta(n, n_d-1)\delta(i, i_d)]
-		\delta(j, 0) (1 + \mathcal{T}_{ijn}), \nonumber \\
-        A_e[J_0(i, j, n), q_w(i, j, n)] &=& [1 - \delta(n, n_d-1)\delta(i, i_d)]
+        A_e[J_0(i, j, n), q_d(i, j, n)] &=& - [1 - \delta_{n, n_d-1}\delta_{i, i_d}]
+		\delta_{j, 0} (1 + \mathcal{T}_{ijn}), \nonumber \\
+        A_e[J_0(i, j, n), q_w(i, j, n)] &=& [1 - \delta_{n, n_d-1}\delta_{i, i_d}]
 	(1 + \mathcal{T}_{ijn}),\nonumber \\
-        A_e[J_0(i, j, n), q_x(i, n)] &=& - [1 - \delta(n, n_d-1)\delta(i, i_d)]
-                (\delta(j, 2) - \delta(j, 1))
+        A_e[J_0(i, j, n), q_x(i, n)] &=& - [1 - \delta_{n, n_d-1}\delta_{i, i_d}]
+                (\delta_{j, 2} - \delta_{j, 1})
 		(1 + \mathcal{T}_{ijn}), \nonumber \\
 		\text{when $N_i =2$ and $i = i_s$,} && \nonumber\\
-        A_e[J_0(i, j, n), q_b(i_d, j, n)] &=& - [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
+        A_e[J_0(i, j, n), q_b(i_d, j, n)] &=& - [\phi_j\delta_{n, n_d-1}\delta_{i, i_s}]
 		(1 + \mathcal{T}_{i_djn}), \nonumber \\
-        A_e[J_0(i, j, n), q_d(i_d, n)] &=&  -[\phi_j\delta(n, n_d-1)\delta(i, i_s)]
-		\delta(j, 0)(1 + \mathcal{T}_{i_djn}), \nonumber \\
-        A_e[J_0(i, j, n), q_w(i_d, j, n)] &=& [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
+        A_e[J_0(i, j, n), q_d(i_d, n)] &=&  -[\phi_j\delta_{n, n_d-1}\delta_{i, i_s}]
+		\delta_{j, 0}(1 + \mathcal{T}_{i_djn}), \nonumber \\
+        A_e[J_0(i, j, n), q_w(i_d, j, n)] &=& [\phi_j\delta_{n, n_d-1}\delta_{i, i_s}]
 	(1 + \mathcal{T}_{i_djn}), \nonumber\\
-        A_e[J_0(i, j, n), q_x(i_d, n)] &=& - [\phi_j\delta(n, n_d-1)\delta(i, i_s)]
-                (\delta(j, 2) - \delta(j, 1))
+        A_e[J_0(i, j, n), q_x(i_d, n)] &=& - [\phi_j\delta_{n, n_d-1}\delta_{i, i_s}]
+                (\delta_{j, 2} - \delta_{j, 1})
 		(1 + \mathcal{T}_{i_djn}), \nonumber \\
                 \nonumber \\
         &&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
@@ -1896,9 +1948,9 @@ We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
 where $v$ is
 \begin{eqnarray}
 	v[J_0(i, j, n)] 
-	&=& [1 - \delta(n, n_d-1)\delta(i, i_d)] \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2)
+	&=& [1 - \delta_{n, n_d-1}\delta_{i, i_d}] \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2)
 	\nonumber \\
-	&& + [\phi_j\delta(n, n_d-1)\delta(i, i_s)]\kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2). 
+	&& + [\phi_j\delta_{n, n_d-1}\delta_{i, i_s}]\kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2). 
 \end{eqnarray}
 While the last two equations may look cumbersome, their net effect is only to include
 a few more terms when $n=n_d-1$. 
@@ -1944,7 +1996,7 @@ There are a few ways by which a retirement plan can be optimized. For maximizing
 the constraint of a desired bequest, we introduce the following relation
 \begin{equation}
 	\label{Eq:Bequest}
-	E_n = \sum_{i,j} (1 - \nu\delta(j, 1)) b_{ijn},
+	E_n = \sum_{i,j} (1 - \nu\delta_{j, 1}) b_{ijn},
 \end{equation}
 which is the value of the estate in nominal dollars at year $n$,
 taking into consideration the heir's marginal income tax rate $\nu$ on the ($j=1$) tax-deferred account. 
@@ -1956,11 +2008,11 @@ dollars, the final amount in year $N_n$ will need to be
 \end{equation}
 Fixing a bequest value amounts to adding the following constraint
 \begin{equation}
-	\sum_{i,j} b_{ijN_n} (1 - \nu\delta(j, 1)) = \epsilon_{N_n} \gamma_{N_n},
+	\sum_{i,j} b_{ijN_n} (1 - \nu\delta_{j, 1}) = \epsilon_{N_n} \gamma_{N_n},
 \end{equation}
 which would add one more row to $A_ey = v$ as
 \begin{eqnarray}
-	A_e[I(0), q_b(i, j, N_n)] &=& (1 - \nu\delta(j, 1)) \nonumber \\
+	A_e[I(0), q_b(i, j, N_n)] &=& (1 - \nu\delta_{j, 1}) \nonumber \\
 	v[I(0)] &=& \epsilon_{N_n}\gamma_{N_n} \\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
@@ -2021,7 +2073,7 @@ The objective function would then be derived from Eq.~(\ref{Eq:Bequest}) as
 minimizing the inner product $c\cdot y$, where $c$ is
 \begin{eqnarray}
 	\label{Eq:MaxBequest}
-	c[q_b(i, j, N_n)] &=& -(1 - \nu\delta(j, 1)),\\
+	c[q_b(i, j, N_n)] &=& -(1 - \nu\delta_{j, 1}),\\
 	&&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
 	&&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
 \end{eqnarray}

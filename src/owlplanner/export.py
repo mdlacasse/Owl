@@ -437,7 +437,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         TxDic[tname] = plan.T_tn[t, :]
     TxDic["total"] = plan.T_n
     TxDic["NIIT"] = plan.J_n
-    TxDic["LTCG"] = plan.U_n
+    TxDic["LTCG tax"] = plan.U_n
     TxDic["10% penalty"] = plan.P_n
     ss_n = np.sum(plan.zetaBar_in, axis=0)
     TxDic["SS % taxed"] = np.where(ss_n > 0, plan.Psi_n, 0)
