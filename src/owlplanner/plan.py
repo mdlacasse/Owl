@@ -1913,10 +1913,10 @@ class Plan:
                            + 0.5 * self.kappa_ijn[i, 0, n] * afac)   # half-period contribution yield
 
             # Variable index shorthands.
-            plo_idx  = self.vm["plo"].idx(n)
-            phi_idx  = self.vm["phi"].idx(n)
+            plo_idx = self.vm["plo"].idx(n)
+            phi_idx = self.vm["phi"].idx(n)
             pmin_idx = self.vm["pmin"].idx(n)
-            tss_idx  = self.vm["tss"].idx(n)
+            tss_idx = self.vm["tss"].idx(n)
             z0_idx = self.vm["zs"].idx(n, 0)
             z1_idx = self.vm["zs"].idx(n, 1)
             bigMBar = bigM * self.gamma_n[n]

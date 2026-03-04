@@ -23,7 +23,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import pytest
-import numpy as np
 from datetime import date
 
 from owlplanner import tax2026 as tx
