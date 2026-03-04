@@ -2506,7 +2506,7 @@ class Plan:
                 self.mylog.print("Solver failed:", solverMsg, solverSuccess)
                 break
 
-            if not withSCLoop:
+            if not withSCLoop and it >= 1:
                 # When Medicare is in loop mode, M_n was zero in the constraint for this
                 # single solve. Update M_n (and J_n) from solution for reporting.
                 if includeMedicare:
@@ -2517,7 +2517,9 @@ class Plan:
                     )
                 break
 
-            self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)
+            # When withSCLoop=False, only update G_n (needed for LTCG bracket accuracy)
+            # by passing includeMedicare=False; this preserves the no-Medicare-loop behavior.
+            self._computeNLstuff(xx, includeMedicare if withSCLoop else False, fixedPsi=fixed_psi)
 
             delta = xx - old_x
             # Only consider account balances in dX.
