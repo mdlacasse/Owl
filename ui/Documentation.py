@@ -729,7 +729,7 @@ control how much year-to-year serial structure is retained:
 - `iid` *(independent and identically distributed)* — draws individual years independently
   at random with replacement. Each year of the plan is equally likely to be any year from
   the selected window, with no memory of the previous draw. This is non-parametric
-  resampling, unlike `histochastic` which fits a Gaussian.
+  resampling.
 - `block` — draws consecutive fixed-length blocks of years, preserving short-run momentum
   and mean-reversion patterns within each block.
 - `circular` — like block bootstrap, but wraps around the dataset ends to avoid edge effects
