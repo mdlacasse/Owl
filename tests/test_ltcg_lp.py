@@ -202,7 +202,12 @@ def test_ltcg_lp_matches_capital_gain_tax_couple():
         ss_pias=[2_333, 2_083],
         ss_ages=[67, 70],
     )
-    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    p.solve('maxSpending', {
+        'solver': solver,
+        'withMedicare': 'None',
+        'relTol': 1e-5,
+        'gap': 5e-5,
+    })
     assert p.caseStatus == 'solved'
     _assert_ltcg_matches_ref(p, tx)
 
