@@ -32,8 +32,7 @@ from owlplanner import mylogging as log
 
 # All data goes from 1928 to 2025. Update the TO value when data
 # becomes available for subsequent years.
-FROM = 1928
-TO = 2025
+FROM, TO = 1928, 2025
 
 # Canonical fixed rates (decimal). Single source of truth for UI/config sync.
 _DEF_RATES = np.array([0.1101, 0.0736, 0.0503, 0.0251])   # 30-year trailing avg

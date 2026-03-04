@@ -29,6 +29,9 @@ import owlplanner as owl
 # solver = 'MOSEK'
 solver = 'HiGHS'
 
+# Year range used in testHistorical* tests.
+HIST_START, HIST_END = 1948, 1958
+
 
 def test_constructor1():
     inames = ['Joe']
@@ -560,7 +563,7 @@ def test_Historical1():
     p.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
     p.setPension([0], [65])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withSCLoop': False}
-    p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=False)
+    p.runHistoricalRange('maxSpending', options, HIST_START, HIST_END, figure=False)
 
 
 def test_Historical2():
@@ -579,7 +582,7 @@ def test_Historical2():
     p.setHeirsTaxRate(33)
 
     options = {'maxRothConversion': 100, 'noRothConversions': 'Jill', 'withSCLoop': True}
-    p.runHistoricalRange('maxSpending', options, 1928, 1958, figure=False)
+    p.runHistoricalRange('maxSpending', options, HIST_START, HIST_END, figure=False)
 
 
 def test_fire_roth_ladder():
