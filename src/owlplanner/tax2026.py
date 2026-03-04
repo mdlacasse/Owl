@@ -4,6 +4,11 @@ Tax calculation module for 2026 tax year rules.
 This module handles all tax calculations including income tax brackets,
 capital gains tax, and other tax-related computations based on 2026 tax rules.
 
+Note: Medicare Part D IRMAA surcharges are NOT modeled here. CMS 2026 Part D
+monthly surcharges per person range from +$14.50 (>$109k MAGI) to +$91.00
+(≥$500k MAGI). This results in a modest underestimate of Medicare costs for
+higher-income households.
+
 Copyright (C) 2025-2026 The Owlplanner Authors
 
 This program is free software: you can redistribute it and/or modify
@@ -69,7 +74,9 @@ irmaaCosts = np.cumsum(irmaaFees)
 # COLA from 2017: [2.0, 2.8, 1.6, 1.3, 5.9, 8.7, 3.2, 2.5, 2.8]
 # For 2026, I used a 35.1% adjustment from 2017, rounded to closest 10.
 #
-# These are speculated.
+# These are permanently superseded by OBBBA (signed 2025) and retained only for
+# hypothetical modeling scenarios (yOBBBA parameter). They will not apply unless
+# a future Congress reinstates pre-TCJA law.
 taxBrackets_preTCJA = np.array(
     [
         [12_600, 51_270, 124_160, 258_920, 562_960, 565_260, 9_999_999],   # Single
@@ -77,7 +84,7 @@ taxBrackets_preTCJA = np.array(
     ]
 )
 
-# These are speculated (adjusted for inflation to 2026).
+# Permanently superseded by OBBBA; retained for hypothetical yOBBBA modeling only.
 stdDeduction_preTCJA = np.array([8_580, 17_160])   # Single, MFJ
 #########################################################################
 
@@ -114,7 +121,8 @@ niitRate = 0.038
 # on social security for low-income households. This expires in 2029.
 # These numbers are hard-coded below as the tax code will likely change
 # the rules for eligibility and will require a code review.
-# Bonus decreases linearly above threshold by 1% / $1k over threshold.
+# Bonus decreases by $6 per $100 of MAGI above threshold; fully phased out
+# at threshold + $100,000 (i.e., $175k single / $250k MFJ).
 bonusThreshold = np.array([75_000, 150_000])
 
 # IRS Social Security taxability thresholds (frozen since 1983/1994 — not inflation-indexed).
@@ -320,6 +328,10 @@ def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
 def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
     """
     Compute Medicare costs directly.
+
+    Note: Only Medicare Part B IRMAA surcharges are included. Part D IRMAA
+    surcharges (+$14.50 to +$91.00/month per person for MAGI >$109k) are not
+    modeled, resulting in a modest cost underestimate for higher-income filers.
     """
     thisyear = date.today().year
     Ni = len(yobs)
@@ -389,7 +401,7 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
             if thisyear + n - yobs[i] >= 65:
                 sigmaBar[n] += extra65Deduction[filingStatus] * gamma_n[n]
                 if thisyear + n <= OBBBA_BONUS_EXPIRATION_YEAR:
-                    sigmaBar[n] += 6000 * max(0, 1 - 0.06*max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
+                    sigmaBar[n] += max(0, 6000 - 0.06*max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
 
         # Fill in future tax rates for year n.
         if thisyear + n < yOBBBA:

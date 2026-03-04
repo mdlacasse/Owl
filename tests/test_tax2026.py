@@ -23,9 +23,38 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import pytest
+import numpy as np
 from datetime import date
 
 from owlplanner import tax2026 as tx
+
+
+# ---------------------------------------------------------------------------
+# Helper: extract OBBBA bonus from taxParams() for a single person aged 65.
+# ---------------------------------------------------------------------------
+
+def _obbba_bonus_single(magi):
+    """Return the OBBBA $6k bonus added to sigmaBar[0] for a 65-year-old single filer."""
+    thisyear = date.today().year
+    yobs = [thisyear - 65]
+    gamma_n = np.ones(1)
+    magi_n = np.array([float(magi)])
+    N_n = 1
+    sigmaBar, _, _ = tx.taxParams(yobs, 0, N_n, N_n, gamma_n, magi_n)
+    # Subtract standard deduction and 65+ additional deduction to isolate the bonus.
+    return sigmaBar[0] - float(tx.stdDeduction_OBBBA[0]) - float(tx.extra65Deduction[0])
+
+
+def _obbba_bonus_mfj_total(magi):
+    """Return total OBBBA bonus added to sigmaBar[0] for a MFJ couple both aged 65."""
+    thisyear = date.today().year
+    yobs = [thisyear - 65, thisyear - 65]
+    gamma_n = np.ones(1)
+    magi_n = np.array([float(magi)])
+    N_n = 1
+    sigmaBar, _, _ = tx.taxParams(yobs, 0, N_n, N_n, gamma_n, magi_n)
+    # Subtract standard deduction and both 65+ additional deductions.
+    return sigmaBar[0] - float(tx.stdDeduction_OBBBA[1]) - 2 * float(tx.extra65Deduction[1])
 
 
 # ---------------------------------------------------------------------------
@@ -123,3 +152,35 @@ def test_rho_in_longevity_over_120_raises():
     yobs = [thisyear - 60]
     with pytest.raises(RuntimeError, match="over 120"):
         tx.rho_in(yobs, [121], 20)
+
+
+# ---------------------------------------------------------------------------
+# OBBBA 65+ bonus deduction phaseout (OBBBA §1002)
+# Phaseout: $6 per $100 of MAGI above threshold. Full phaseout at threshold + $100k.
+# Single threshold: $75,000. MFJ threshold: $150,000.
+# ---------------------------------------------------------------------------
+
+def test_obbba_bonus_at_threshold():
+    """Single filer at exactly the $75k threshold receives the full $6,000 bonus."""
+    assert _obbba_bonus_single(75_000) == pytest.approx(6000)
+
+
+def test_obbba_bonus_phaseout_midpoint():
+    """Single filer $50k above threshold ($125k MAGI) receives half the bonus ($3,000)."""
+    assert _obbba_bonus_single(125_000) == pytest.approx(3000)
+
+
+def test_obbba_bonus_fully_phased_out():
+    """Single filer at threshold + $100k ($175k MAGI) receives no bonus."""
+    assert _obbba_bonus_single(175_000) == pytest.approx(0)
+
+
+def test_obbba_bonus_below_threshold():
+    """Single filer below threshold ($50k MAGI) receives the full $6,000 bonus."""
+    assert _obbba_bonus_single(50_000) == pytest.approx(6000)
+
+
+def test_obbba_bonus_mfj_threshold():
+    """MFJ couple at $100k MAGI (above $75k single threshold, below $150k MFJ threshold)
+    each receives the full $6,000 bonus, confirming the MFJ threshold is used."""
+    assert _obbba_bonus_mfj_total(100_000) == pytest.approx(12000)
