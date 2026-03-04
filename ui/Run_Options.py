@@ -156,6 +156,18 @@ else:
         st.caption(":warning: When maximizing spending with a bequest target, the desired bequest should be at least "
                    "as large as the survivor's safety net (in today's \\$), otherwise optimization may be infeasible.")
 
+    txbl0 = kz.getCaseKey("txbl0") or 0
+    if txbl0 > 0 and net0 > 0.60 * txbl0:
+        st.caption(f":warning: {iname0}'s minimum taxable balance (\\${net0:.0f}k) exceeds 60% of their"
+                   f" initial taxable balance (\\${txbl0:.0f}k)."
+                   f" The problem may become infeasible during market downturns.")
+    if ni == 2:
+        txbl1 = kz.getCaseKey("txbl1") or 0
+        if txbl1 > 0 and net1 > 0.60 * txbl1:
+            st.caption(f":warning: {iname1}'s minimum taxable balance (\\${net1:.0f}k) exceeds 60% of their"
+                       f" initial taxable balance (\\${txbl1:.0f}k)."
+                       f" The problem may become infeasible during market downturns.")
+
     st.divider()
     with st.expander("*Advanced options*"):
         st.markdown("#### :orange[Calculations]")
