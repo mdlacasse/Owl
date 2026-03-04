@@ -184,7 +184,8 @@ else:
                                "amoRoth", help=helpmsg)
 
             kz.initCaseKey("noLateSurplus", False)
-            helpmsg = ("Disallow cash-flow surpluses in the last two years of the plan.")
+            helpmsg = ("Disallow cash-flow surpluses in the last two years of the plan."
+                       " This avoids sheltering transfers when market goes down in last years.")
             ret = kz.getToggle("Disallow cash-flow surpluses in the last 2 years",
                                "noLateSurplus", help=helpmsg)
 
@@ -195,7 +196,7 @@ else:
             choices = ["loop", "value", "optimize"]
             kz.initCaseKey("ssTaxabilityMode", "loop")
             helpmsg = ("’loop’: compute SS taxable fraction dynamically via the self-consistent loop. "
-                       "’value’: pin SS taxable fraction to a fixed value (enter below). "
+                       "’value’: pin SS taxable fraction to a fixed value (enter in box). "
                        "’optimize’: solve taxable SS exactly within the LP using binary variables (expert).")
             ret = kz.getRadio("SS taxability method", choices, "ssTaxabilityMode", help=helpmsg)
         with col2:
