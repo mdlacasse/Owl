@@ -1425,6 +1425,20 @@ class Plan:
         self._build_objective_vector(objective, options)
 
     def _add_rmd_inequalities(self):
+        """
+        Enforce Required Minimum Distributions (RMDs) on tax-deferred accounts (j=1) only.
+
+        RMD rules:
+        - Traditional IRA, SEP-IRA, and 401(k) balances (aggregated in j=1) are subject to RMDs
+          starting at the age specified by rho_in() (SECURE 1.0/2.0 birth-year cohorts).
+        - Roth IRA accounts (j=2) are exempt from RMDs during the original owner's lifetime
+          (IRC §408A(c)(5)).
+        - Roth 401(k) accounts were subject to RMDs prior to 2024, but SECURE 2.0 Act §325
+          eliminated Roth 401(k) RMDs effective for tax years beginning after December 31, 2023.
+          Since plans modeled here start in 2024 or later, treating all Roth (j=2) as exempt
+          from RMDs is correct for all currently supported scenarios.
+        - Inherited IRA / beneficiary RMDs are not modeled.
+        """
         for i in range(self.N_i):
             if self.beta_ij[i, 1] > 0:
                 for n in range(self.horizons[i]):
@@ -1453,11 +1467,22 @@ class Plan:
 
     def _add_roth_maturation_constraints(self):
         """
-        Withdrawals from Roth accounts are subject to the 5-year rule for conversion.
-        Conversions and gains are subject to the 5-year rule since conversion.
-        Contributions can be withdrawn at any time (without 59.5 penalty) but
-        gains on contributions are subject to the 5-year rule since the opening of the account.
-        A retainer is put on all conversions and associated gains, and gains on all recent contributions.
+        Enforce the Roth 5-year seasoning rule for conversions and contribution gains.
+
+        IRS rules (simplified here):
+        - Roth contribution *principal* can be withdrawn tax- and penalty-free at any time.
+        - Roth *earnings* on contributions require both (a) account age ≥ 5 years AND
+          (b) age ≥ 59½ (or other exception) to be penalty-free.
+        - Each Roth *conversion* carries its own 5-year clock; conversion principal converted
+          before age 59½ is subject to the 10% penalty if withdrawn within 5 years of conversion.
+
+        Simplification: This implementation applies a single unified 5-year lookback that retains
+        all recent conversions (at compounded value) and the gains-only portion of recent
+        contributions as a minimum balance floor. Contribution *principal* is not separately tracked
+        and freed — the constraint treats it as part of the 5-year retainer, making it intentionally
+        conservative (preventing some valid early withdrawals of contribution principal). This never
+        allows a withdrawal that would violate IRS rules; it only restricts some withdrawals that
+        would technically be permitted. Exact per-dollar basis tracking is out of scope for an LP.
         """
         # Assume 10% per year for contributions and conversions for past 5 years.
         # Future years will use the assumed returns.
@@ -1490,6 +1515,18 @@ class Plan:
                 self.A.addRow(row, rhs, np.inf)
 
     def _add_roth_conversion_constraints(self, options):
+        """
+        Enforce Roth conversion limits and add converted amounts to taxable income.
+
+        Tax treatment: Roth conversions are fully taxable as ordinary income (IRC §408A(d)(3)).
+
+        Pro-rata rule (not modeled): If the tax-deferred account (j=1) contains a mix of
+        pre-tax and after-tax (nondeductible) contributions, IRS Form 8606 requires the taxable
+        fraction of each conversion to be computed pro-rata across all IRA balances. This tool
+        assumes 100% of the j=1 balance is pre-tax (no cost basis from nondeductible contributions),
+        so all conversions are treated as fully taxable. Users with significant IRA basis should
+        be aware of this limitation and consult a tax professional.
+        """
         # Values in file supercedes everything.
         if "maxRothConversion" in options and options["maxRothConversion"] == "file":
             for i in range(self.N_i):

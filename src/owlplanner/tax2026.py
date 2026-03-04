@@ -469,9 +469,22 @@ def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
 def rho_in(yobs, longevity, N_n):
     """
     Return Required Minimum Distribution fractions for each individual.
-    This implementation does not support spouses with more than
-    10-year difference.
-    It starts at age 73 until it goes to 75 in 2033.
+
+    RMD ages by birth year (SECURE 1.0 / SECURE 2.0 Act):
+      - Born before 1949:   RMD age 70  (pre-SECURE 1.0)
+      - Born 1949–1950:     RMD age 72  (SECURE 1.0, effective 2020)
+      - Born 1951–1959:     RMD age 73  (SECURE 2.0 Act §107, effective 2023)
+      - Born 1960 or later: RMD age 75  (SECURE 2.0 Act §107, effective 2033)
+
+    Uses the IRS Uniform Lifetime Table III (effective 2022, Publication 590-B).
+    Table starts at age 72; index [0] = age 72 (divisor 27.4).
+
+    Limitations:
+      - Does not support spouses with more than a 10-year age gap (IRS Joint Life
+        Expectancy Table would apply in that case).
+      - Inherited IRA / beneficiary RMD rules are not modeled.
+      - RMDs apply only to tax-deferred accounts (j=1). Roth accounts (j=2) are
+        exempt; Roth 401(k) RMDs were eliminated by SECURE 2.0 §325 for 2024+.
     """
     # Notice that table starts at age 72.
     rmdTable = [
