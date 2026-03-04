@@ -2241,7 +2241,7 @@ class Plan:
             self.mylog.vprint(f"Running historical range from {ystart} to {yend} (augmented: {len(reverse_roll_pairs)}"
                               f" variants per year, {N} runs).")
         else:
-            reverse_roll_pairs = [(False, 0)]
+            reverse_roll_pairs = [(reverse, roll)]
             N = n_years
             self.mylog.vprint(f"Running historical range from {ystart} to {yend}.")
 

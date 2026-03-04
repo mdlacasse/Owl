@@ -170,6 +170,10 @@ def runHistorical(plan):
     hyto = kz.getCaseKey("hyto")
     augmented = kz.getCaseKey("augmented_sampling")
     augmented = False if augmented is None else bool(augmented)
+    reverse = kz.getCaseKey("reverse_sequence")
+    reverse = False if reverse is None else bool(reverse)
+    roll = kz.getCaseKey("roll_sequence")
+    roll = 0 if roll is None else int(roll)
     log_x = kz.getCaseKey("histogram_log_x_historical")
     log_x = False if log_x is None else bool(log_x)
 
@@ -178,7 +182,7 @@ def runHistorical(plan):
         mybar = progress.Progress()
         fig, summary = plan1.runHistoricalRange(
             objective, options, hyfrm, hyto, figure=True, progcall=mybar,
-            augmented=augmented, log_x=log_x)
+            reverse=reverse, roll=roll, augmented=augmented, log_x=log_x)
         kz.storeCaseKey("histoPlot", fig)
         kz.storeCaseKey("histoSummary", summary)
     except Exception as e:
