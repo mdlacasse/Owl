@@ -566,7 +566,7 @@ cases involving divorce or deceased spouses are not considered.
 
 **Owl** does not optimize when to claim social security benefits.
 You have to design (and explore) your own strategy, which
-might often involves personal goals such as ensuring maximum
+often involves personal goals such as ensuring maximum
 survivor benefits, or maximum lifetime benefits.
 A great website for guidance on when to start taking social security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
@@ -759,8 +759,8 @@ A **self-consistent loop** is an iterative method used for values that are diffi
 to integrate into the linear program: the net investment income tax (NIIT),
 the capital gains rate (0, 15, or 20%), the phase out of the additional exemption for seniors,
 the taxable fraction of Social Security benefits (computed from the IRS provisional income
-formula — 0% below \\$32k PI for MFJ / \\$25k for single, ramping to 50% then 85% above
-\\$44k MFJ / \\$34k single), and Medicare/IRMAA when Medicare is enabled. The loop solves,
+formula — 0% below \\$25k PI (single) / \\$32k (MFJ); 50% between those and \\$34k (single) / \\$44k (MFJ);
+up to 85% above the upper threshold), and Medicare/IRMAA when Medicare is enabled. The loop solves,
 recalculates these values from the solution, re-solves, and repeats until convergence.
 The *Self-consistent loop calculations* toggle in *Advanced options* turns this on or off;
 turning it off defaults all these values to their conservative upper bounds (e.g. 85% SS
@@ -1105,7 +1105,7 @@ set maximum Roth conversions to 0.
 set maximum Roth conversions to a very large number, say, \\$800k.
 4) Compare all *cases* on the **Reports** page.
 
-As mentionned above, the most actionable information is located on the first few lines
+As mentioned above, the most actionable information is located on the first few lines
 of the **Sources** tables on the Worksheets page.
 This is where withdrawals and conversions are displayed for this year and the next few years.
 """)
