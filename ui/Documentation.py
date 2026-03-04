@@ -76,7 +76,7 @@ tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_tips = st.tabs([
     "Overview",
     "Plan Setup",
     "Results",
-    "Simulations",
+    "Stress Tests",
     "Tools & Help",
     "Tips",
 ])
@@ -109,7 +109,7 @@ are entered and reported in unit dollars.
 Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
 
 There are five sections in the menu bar:
-**Plan Setup**, **Results**, **Simulations**, **Tools**, and **Help**.
+**Plan Setup**, **Results**, **Stress Tests**, **Tools**, and **Help**.
 The documentation is structured along the same menus.
 """)
 
@@ -906,7 +906,7 @@ through the widget on the Create Case page, and the *Household Financial Profile
 through the uploader on either the Create Case or the Financial Profile page.
 """)
 
-# --- Simulations tab ---
+# --- Stress Tests tab ---
 with tab_sim:
     st.markdown("""
 There are two different ways to run multiple scenarios and generate a histogram of results.

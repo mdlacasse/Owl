@@ -48,7 +48,7 @@ pages = {
         st.Page("Worksheets.py", icon=":material/data_table:"),
         st.Page("Reports.py", icon=":material/description:"),
     ],
-    "Simulations": [
+    "Stress Tests": [
         st.Page("Historical_Range.py", icon=":material/history:"),
         st.Page("Monte_Carlo.py", icon=":material/finance:"),
     ],
