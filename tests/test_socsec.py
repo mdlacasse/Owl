@@ -372,6 +372,20 @@ def test_compute_ss_survivor_pia_floor():
     assert zeta_in[1, 15] == pytest.approx(expected_annual, rel=0.01)
 
 
+def test_survivor_min_age_60():
+    """Survivor under 60 at death: factor clamped to age-60 floor (71.5%)."""
+    # Age 55 is below SSA minimum; factor must equal the age-60 value (0.715).
+    assert ss._survivor_factor(67, 55) == pytest.approx(ss._survivor_factor(67, 60))
+    assert ss._survivor_factor(67, 55) == pytest.approx(0.715)
+    # Age 59 is also below minimum; same result.
+    assert ss._survivor_factor(67, 59) == pytest.approx(0.715)
+    # Confirm floor holds for a different survivor FRA schedule.
+    assert ss._survivor_factor(66, 55) == pytest.approx(0.715)
+    # Age 60 itself returns exactly 0.715 (unchanged by either FRA schedule).
+    assert ss._survivor_factor(66, 60) == pytest.approx(0.715)
+    assert ss._survivor_factor(67, 60) == pytest.approx(0.715)
+
+
 def test_compute_ss_trim():
     """Trim reduces benefits from trim_year onward by trim_pct percent."""
     from datetime import date

@@ -4,11 +4,28 @@ Social Security benefit calculation rules and utilities.
 This module implements Social Security rules including full retirement age
 calculations, benefit computations, and related retirement planning functions.
 
-Limitation: The SSA family maximum (CFR § 404.403) is not modeled. When multiple
-beneficiaries are entitled on one worker's record, SSA may reduce total benefits.
-Omission of this cap may overstate benefits (and thus understate taxes) in some
-cases, though it typically affects only workers with high PIAs and multiple
-auxiliaries.
+Limitations and known omissions:
+
+- SSA family maximum (CFR § 404.403) is not modeled. When multiple beneficiaries
+  are entitled on one worker's record, SSA may reduce total benefits. Omission of
+  this cap may overstate benefits (and thus understate taxes) in some cases, though
+  it typically affects only workers with high PIAs and multiple auxiliaries.
+
+- WEP (Windfall Elimination Provision) and GPO (Government Pension Offset) are not
+  modeled. Both were fully repealed by the Social Security Fairness Act (signed
+  January 5, 2025), effective for benefits payable January 2024 and later.
+  No modeling is required.
+
+- Earnings test not modeled: the SSA earnings test withholds benefits for recipients
+  below FRA who earn above an annual threshold (e.g., $24,480 in 2026 for those
+  under FRA all year). This tool assumes users are retired with no earned income
+  above the exempt amount.
+
+- Survivor benefit timing: survivor benefits are modeled as claimed immediately in
+  the year of the spouse's death (if the survivor is at least 60). In practice, a
+  survivor may choose to defer claiming to maximize lifetime benefits (e.g., take
+  their own growing benefit to age 70 then switch). This deferral strategy is not
+  modeled.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 
@@ -155,7 +172,8 @@ def _survivor_factor(survivor_fra, survivor_age):
     Per SSA rules, a survivor claiming between age 60 and their survivor FRA receives a
     reduced benefit, linearly interpolated from 100% at survivor FRA down to 71.5% at 60.
     At or above survivor FRA the factor is 1.0; at age 60 it is always 0.715 regardless
-    of which survivor FRA schedule applies.
+    of which survivor FRA schedule applies. Survivor benefits cannot be claimed before
+    age 60; ages below 60 are clamped to 60 (the SSA minimum claiming age for survivors).
 
     Parameters
     ----------
@@ -163,7 +181,9 @@ def _survivor_factor(survivor_fra, survivor_age):
         Survivor full retirement age in fractional years.
     survivor_age : float
         Survivor's age (fractional years) at the time the survivor benefit begins.
+        Values below 60 are treated as 60.
     """
+    survivor_age = max(survivor_age, 60)   # Cannot claim survivor benefits before age 60
     if survivor_age >= survivor_fra:
         return 1.0
     return 1.0 - 0.285 * (survivor_fra - survivor_age) / (survivor_fra - 60)
@@ -434,7 +454,8 @@ def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i
         )[0]
         survivor_age_at_death = ((thisyear + death_year_n) - yobs[survivor_idx]
                                  - (mobs[survivor_idx] - 1) / 12)
-        survivor_factor = _survivor_factor(survivor_fra, survivor_age_at_death)
+        # SSA: survivor benefits cannot begin before age 60; clamp for the factor calculation.
+        survivor_factor = _survivor_factor(survivor_fra, max(survivor_age_at_death, 60))
         # Effective benefit: 82.5% PIA floor first, then survivor claiming-age reduction.
         deceased_effective = max(zeta_in[earlier_idx, death_year_n - 1], 0.825 * pias[earlier_idx])
         if deceased_effective * survivor_factor > zeta_in[survivor_idx, death_year_n - 1]:
