@@ -674,46 +674,143 @@ and the other for the width of the transition, measured in +/- years from the in
 
     with st.expander(":material/monitoring: Rates Selection"):
         st.markdown("""
-This page allows you to select the return rates over the
-time span of the *case*. All rates are nominal and annual.
-There are two major types of rates (labeled *constant* and *varying* in the UI):
-- *Constant* — staying the same from one year to another:
-    - `conservative`,
-    - `optimistic`,
-    - `historical average` - i.e., average over a range of past years,
-    - `user` - rates are provided by the user.
-- *Varying* - changing from year to year:
-    - `historical` - using a rate sequence which happened in the past,
-    - `histochastic` - using stochastic rates derived from statistics over a time range of historical rates,
-    - `stochastic` - using stochastic rates created from statistical parameters specified by the user.
+This page controls the annual rates of return used throughout the plan.
+All rates are **nominal** (not inflation-adjusted) and expressed as yearly percentages.
+Owl tracks four asset classes:
+- **S&P 500** — U.S. large-cap equities; rates include dividends. When not using historical
+  data, this label can represent any mix of equities (domestic, international, emerging, etc.).
+- **Corporate Bonds Baa** — Investment-grade corporate debt with moderate default risk.
+- **10-year Treasury Notes** — Medium-term U.S. government debt; interest is state/local tax-exempt.
+- **Cash Assets / Inflation** — TIPS-like securities assumed to track inflation, holding constant
+  real value.
 
-These rates are the annual rates of return for each of the assets considered.
-The types of asset are described in the previous section.
-Rates for the S&P 500 equities include dividends.
-A roundup of expert opinions on stock and bond return forecasts for the next decade can be found
+---
+##### Constant rates
+Constant rates stay the same for every year of the plan. Choose from:
+- `conservative` — a pessimistic but plausible set of forecasts.
+- `optimistic` — a more bullish set of forecasts.
+- `historical average` — arithmetic means computed over a selectable historical window
+  (1928–present by default). Because averages can be negative when the window is narrow,
+  the rate fields allow negative values in this mode.
+- `user` — enter your own values for each asset class.
+
+A roundup of expert stock and bond return forecasts can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition).
 
-An option to set the dividend rate for your stock portfolio is available.
-This [reference](https://us500.com/tools/data/sp500-dividend-yield) provides
-historical S&P 500 dividend yields over different periods.
-This page also includes some adjustments related to future tax rates. One is the anticipated
-tax rate that heirs will pay on the tax-deferred portion of the bequest. Another setting is related
-to the year when the OBBBA rates are anticipated to return to pre-Tax Cuts and Jobs Act
-rates.
+---
+##### Varying rates
+Varying rates change year by year, enabling realistic uncertainty modeling.
+There are five methods:
 
-For **varying** rate types (historical, histochastic, stochastic), the *Advanced options*
-offers **Rate sequence** controls for time reversal and rolling of the historical (or stochastic)
-rate series:
-- **Reverse sequence** – When enabled, the rate sequence is reversed along the time axis
-  (e.g. the last year of the series becomes the first year of the plan). Useful for stress-testing
-  with a “worst years first” scenario.
-- **Roll (years)** – Shifts the rate sequence by a number of years (0 = no shift); values wrap
-  around so that years that fall off one end reappear at the other. Allows starting the plan
-  at a different point in the same historical or stochastic sequence.
+**`historical`** — Replays the exact year-by-year returns from a selected historical window
+in chronological order. Each year of the plan receives the return from one calendar year of
+history; the plan horizon must fit within the selected window.
+This is deterministic (no randomness) and is the right choice for backtesting: *"how would
+this strategy have performed starting in 1970?"*
+
+**`histochastic`** — Computes the mean returns, volatilities, and cross-asset covariance
+from the selected historical window, then draws samples from the **fitted multivariate
+normal distribution**. Each year of the plan is an independent draw from that distribution.
+Unlike `bootstrap_sor`, no actual historical years are resampled — only their statistical
+summary (mean and covariance) is used. The result is parametric and Gaussian, but with
+parameters grounded in history rather than supplied by the user.
+
+**`stochastic`** — Identical in method to `histochastic`: draws independently from a
+multivariate normal distribution each year. The difference is that the mean returns,
+volatilities, and cross-asset correlations are **user-supplied** in the *Stochastic
+Parameters* panel rather than derived from a historical window. Use this when you have a
+specific return/risk view that differs from any historical period.
+
+**`bootstrap_sor`** *(Sequence-of-Returns bootstrap)* — Resamples **actual historical years**
+from the selected window to build synthetic rate sequences. Because real observations are
+used directly (not a fitted distribution), extreme events, fat tails, and cross-asset
+patterns that occurred in history are naturally preserved. Four resampling strategies
+control how much year-to-year serial structure is retained:
+- `iid` *(independent and identically distributed)* — draws individual years independently
+  at random with replacement. Each year of the plan is equally likely to be any year from
+  the selected window, with no memory of the previous draw. This is non-parametric
+  resampling, unlike `histochastic` which fits a Gaussian.
+- `block` — draws consecutive fixed-length blocks of years, preserving short-run momentum
+  and mean-reversion patterns within each block.
+- `circular` — like block bootstrap, but wraps around the dataset ends to avoid edge effects
+  near the beginning and end of the historical record.
+- `stationary` — draws variable-length blocks from a geometric distribution, which produces
+  a stationary output process with the correct unconditional mean and covariance.
+
+The block size is adjustable (1 = iid; larger values preserve more serial structure).
+`bootstrap_sor` is well-suited for Monte Carlo stress-testing when you want history-derived
+randomness that respects multi-year market cycles.
+
+**`var`** *(Vector Autoregression, order 1)* — Fits a VAR(1) model to the selected
+historical window and then simulates new rate paths from that model. A VAR(1) captures
+explicit year-to-year relationships across all four asset classes simultaneously: each
+year's return depends linearly on last year's returns plus a multivariate normal shock.
+This means momentum (positive serial correlation) and mean-reversion (negative serial
+correlation) observed in the historical data are naturally reproduced. `var` is the most
+statistically sophisticated method and is particularly appropriate when the sequence and
+persistence of returns matter, as is often the case for sequence-of-returns risk analysis.
+
+---
+##### Historical range
+For all methods that reference history (`historical`, `histochastic`, `bootstrap_sor`,
+`historical average`, and `var`), a **Starting year / Ending year** selector appears.
+The range determines which calendar years are included in the dataset from which rates
+are drawn or statistics are computed. At least two years are required. For `historical`,
+the ending year is fixed by the starting year plus the plan horizon.
+
+---
+##### Stochastic parameters
+When `stochastic` is selected, a panel with three sub-sections appears:
+- **Means (%)** — expected annual return for each asset class.
+- **Volatility (%)** — standard deviation of annual returns for each asset class.
+- **Correlation matrix** — Pearson correlations between every pair of asset classes.
+  Values range from −1 (perfect inverse) to +1 (perfect co-movement); 0 means no
+  linear relationship. The diagonal is always 1. The matrix must be positive semi-definite,
+  i.e., you cannot set correlations to arbitrary values — the optimizer will warn if the
+  matrix is invalid.
+
+For the other varying methods, these fields are displayed but disabled; the statistical
+parameters are derived automatically from the historical data.
+
+---
+##### Which method enables Monte Carlo?
+Monte Carlo simulations (see the **Stress Tests** page) require a **stochastic** method —
+one that generates a fresh random sample for each simulation trial. The four methods that
+support Monte Carlo are: `histochastic`, `stochastic`, `bootstrap_sor`, and `var`.
+The `historical` method is deterministic (it always produces the same sequence for a
+given starting year) and therefore cannot be used for Monte Carlo.
+
+---
+##### Dividend rate and tax settings
+An option to set the dividend rate for your stock portfolio is available under
+*Advanced options*. This [reference](https://us500.com/tools/data/sp500-dividend-yield)
+provides historical S&P 500 dividend yields over different periods.
+
+Two tax-related settings are also accessible:
+- **Heirs marginal tax rate** — the marginal rate your beneficiaries would pay on
+  inherited tax-deferred balances. Used to compute the after-tax value of a bequest.
+- **OBBBA expiration year** — the projected year when the One Big Beautiful Budget Act
+  tax rates are expected to revert to pre-Tax Cuts and Jobs Act levels. Owl uses different
+  tax brackets before and after this year.
+
+---
+##### Rate sequence controls (Advanced options)
+For all varying methods, two tools let you shift the temporal position of the rate series:
+- **Reverse sequence** — reverses the rate series along the time axis (last year becomes
+  first). Useful for stress-testing a "worst years first" scenario.
+- **Roll (years)** — shifts the series by a given number of years; values wrap around
+  so no data is lost. Allows starting the plan at a different point in the same sequence.
 
 The `roll` operation is applied before `reverse`.
-These options apply only to varying rates; these operations do not apply to constant rates
-since the same rate is used every year.
+These controls do not apply to constant rates since the same value is used every year.
+
+---
+##### Reproducible rates (Advanced options)
+For the four stochastic methods (`histochastic`, `stochastic`, `bootstrap_sor`, `var`),
+an option to **Enable reproducible rates** is available. When checked, the random number
+generator is seeded with a fixed value so the same rate sequence is produced every time
+the case is run. This is useful for isolating the effect of other parameters (spending
+targets, allocations, Roth strategy) while holding the random scenario constant.
 """)
 
     with st.expander(":material/tune: Run Options"):
@@ -956,30 +1053,51 @@ of the surviving spouse, depending on the objective function being optimized.
 
     with st.expander(":material/finance: Monte Carlo"):
         st.markdown("""
-This page runs a Monte Carlo simulation using time sequences of
-annual rates of return that are generated using statistical methods. At the end of the run,
-a histogram is shown, with a probability of success.
+This page runs a Monte Carlo simulation by generating many independent sequences of annual
+rates of return and solving the full optimization for each one. At the end of the run a
+histogram is displayed together with a probability of success.
 
 The mean outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are the number
-of cases $N$ and the probability of success $P$, which is the percentage of cases that succeeded.
-Cases that failed are termed infeasible, as the optimizer could not find
-values that could satisfy all constraints.
+of trials $N$ and the probability of success $P$, which is the fraction of trials for which
+the optimizer found a feasible solution. Trials that failed are termed *infeasible* — the
+optimizer could not simultaneously satisfy all constraints (spending floor, bequest target, etc.)
+for that particular rate sequence.
 
-As is the case for **Historical Range**,
-if the `Beneficiary fractions` are not all equal to 1, two histograms will also be displayed:
-one for the partial bequest left at the passing of the first spouse
-and the other for the distribution of values of the objective being optimized,
-either maximum net spending or maximum bequest left at the passing
-of the surviving spouse.
+##### Prerequisite: a stochastic rate method
+Monte Carlo requires a rate method that generates a new random sequence for each trial.
+The four eligible methods (set on the **Rates Selection** page) are:
+- `histochastic` — i.i.d. resampling of historical years.
+- `stochastic` — multivariate normal draws using user-supplied mean, volatility, and
+  correlation parameters.
+- `bootstrap_sor` — block-bootstrap resampling of the historical window (iid, block,
+  circular, or stationary).
+- `var` — VAR(1) simulation capturing year-to-year serial correlations fitted on the
+  historical window.
 
-Linear programming solutions are more expensive than event-driven forward simulators.
-Therefore, when considering Monte Carlo simulations, consider:
-- Turning off Medicare calculations completely, or at least using self-consistent loop,
-- Installing **Owl** and running on your local computer as it can sometimes be
-faster than running on the Streamlit host, depending on your hardware.
-Moreover, the community server has a
-CPU time limit that will stop a session after the quota is reached.
-Most likely, this will not happen unless you devise unusually long Monte Carlo runs.
+The `historical` method is deterministic (always the same sequence for a given starting
+year) and therefore cannot be used for Monte Carlo; the **Run** button is disabled when it
+is selected.
+
+##### Choosing the number of trials
+A few hundred trials is usually sufficient for a rough success-rate estimate. Increasing $N$
+narrows the confidence interval on $P$ but increases run time proportionally. For final
+analysis consider 500–1000 trials; for quick exploration 100–200 suffices.
+
+##### Beneficiary fractions
+If the `Beneficiary fractions` (set on the **Plan Setup / Contributions** page) are not
+all equal to 1, two histograms will be displayed: one for the partial bequest at the
+passing of the first spouse, and one for the distribution of the primary objective
+(maximum spending or maximum final bequest) at the passing of the surviving spouse.
+
+##### Performance considerations
+Each Monte Carlo trial requires solving a full LP or MIP, which is more expensive than
+event-driven forward simulators. To improve throughput:
+- Use `Medicare off` or the `self-consistent loop` option — the full MIP Medicare option
+  adds binary variables to every trial and can be several times slower.
+- Use `stochastic` or `histochastic` rather than `var` or `bootstrap_sor` if speed matters;
+  the simpler sampling methods have lower per-trial overhead.
+- Consider installing **Owl** locally — your own hardware may outperform the Community Cloud
+  server, which also has a CPU-time quota that may terminate long sessions.
 """)
 
 # --- Tools & Help tab ---

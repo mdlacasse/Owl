@@ -130,6 +130,26 @@ from = 1969
 to = 2002
 ```
 
+#### `var`
+
+Parametric VAR(1) model fitted on a historical window. Captures year-to-year serial correlations (momentum, mean-reversion) and contemporaneous cross-asset correlations. Generates unlimited synthetic sequences. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/README.md)
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"var"`) |
+| `from` | Yes | int | First historical year used for fitting (inclusive). |
+| `to` | Yes | int | Last historical year used for fitting (inclusive). |
+| `shrink` | No | bool | If `true` (default), apply spectral shrinkage to the transition matrix when its spectral radius ≥ 0.95, ensuring stationarity. |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "var"
+from = 1969
+to = 2024
+```
+
 #### `histochastic`
 
 Multivariate normal model using historical mean and covariance.

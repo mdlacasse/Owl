@@ -92,7 +92,7 @@ Rates use standard financial conventions:
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred accounts |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
-| `method` | string | Method for determining rates. Valid values: `"default"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"stochastic"`, `"histochastic"`, `"bootstrap_sor"`, `"dataframe"` |
+| `method` | string | Method for determining rates. Valid values: `"default"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"stochastic"`, `"histochastic"`, `"bootstrap_sor"`, `"var"`, `"dataframe"` |
 
 ### :orange[Conditional parameters based on `method`]
 
@@ -107,19 +107,27 @@ Rates use standard financial conventions:
 | `standard_deviations` | list of 4 floats | Volatility in percent for each rate type (e.g., `17` for 17% annualized standard deviation) |
 | `correlations` | list of 6 floats | Pearson correlation coefficient (range -1 to 1) for upper triangle: (1,2), (1,3), (1,4), (2,3), (2,4), (3,4). Standard representation in finance and statistics. |
 
-#### :orange[For method = "stochastic" or "histochastic"]
+#### :orange[For method = "stochastic", "histochastic", "bootstrap_sor", or "var"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `rate_seed` | integer | Random seed for reproducible stochastic rates |
 | `reproducible_rates` | boolean | Whether stochastic rates should be reproducible |
 
-#### :orange[For method = "historical", "historical average", or "histochastic"]
+#### :orange[For method = "historical", "historical average", "histochastic", "bootstrap_sor", or "var"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `from` | integer | Starting year for historical data range (must be between 1928 and 2025) |
 | `to` | integer | Ending year for historical data range (must be between 1928 and 2025, and greater than `from`) |
 
-#### :orange[For method = "historical", "histochastic", or "stochastic" (varying rates only)]
+#### :orange[For method = "bootstrap_sor"]
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `bootstrap_type` | string | Type of bootstrap resampling. Valid values: `"iid"` (independent draws), `"block"`, `"circular"`, `"stationary"`. Default is `"iid"` |
+| `block_size` | integer | Block length for block/circular/stationary bootstraps. Ignored when `bootstrap_type = "iid"`. Default is `1` |
+| `crisis_years` | list of integers | *(TOML only)* Calendar years to overweight in sampling (e.g. `[1929, 2008]`) |
+| `crisis_weight` | float | *(TOML only)* Sampling multiplier applied to crisis years. Default is `1.0` (no overweighting) |
+
+#### :orange[For method = "historical", "histochastic", "bootstrap_sor", "var", or "stochastic" (varying rates only)]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `reverse_sequence` | boolean | If true, reverse the rate sequence along the time axis (e.g. last year first). Default is `false`. Ignored for fixed/constant rate methods. Used for both single-scenario and Historical Range runs. |

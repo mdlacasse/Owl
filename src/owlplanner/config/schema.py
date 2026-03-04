@@ -108,6 +108,9 @@ class RatesSelection(BaseModel):
     reproducible_rates: Optional[bool] = Field(default=False, description="Reproducible stochastic")
     reverse_sequence: Optional[bool] = Field(default=False, description="Reverse rate sequence")
     roll_sequence: Optional[int] = Field(default=0, description="Roll rate sequence")
+    bootstrap_type: Optional[str] = Field(default=None, description="Bootstrap type for bootstrap_sor")
+    block_size: Optional[int] = Field(default=None, description="Block size for block-based bootstraps")
+    shrink: Optional[bool] = Field(default=None, description="Spectral shrinkage for VAR(1)")
 
 
 class AssetAllocation(BaseModel):

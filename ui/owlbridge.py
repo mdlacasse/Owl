@@ -35,6 +35,11 @@ import owlplanner as owl
 from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes
 from owlplanner.mylogging import Logger
+from owlplanner.rate_models.constants import (
+    VARYING_TYPE_UI,
+    HISTORICAL_RANGE_METHODS,
+    STOCHASTIC_METHODS,
+)
 from moseklicense import hasMOSEK
 
 import sskeys as kz
@@ -304,6 +309,42 @@ def _setRates(plan):
                 kz.pushCaseKey(f"mean{j}", mean[j])
                 kz.pushCaseKey(f"stdev{j}", stdev[j])
             # Correlations: Pearson coefficient (-1 to 1), standard representation.
+            q = 1
+            for k1 in range(plan.N_k):
+                for k2 in range(k1 + 1, plan.N_k):
+                    kz.pushCaseKey(f"corr{q}", corr[k1, k2])
+                    q += 1
+
+        elif varyingType in ("bootstrap_sor", "var"):
+            reproducible = kz.getCaseKey("reproducibleRates")
+            seed = kz.getCaseKey("rateSeed") if reproducible else None
+            plan.setReproducible(reproducible, seed=seed)
+
+            reverse_seq = kz.getCaseKey("reverse_sequence")
+            roll_seq = kz.getCaseKey("roll_sequence")
+            reverse_seq = False if reverse_seq is None else bool(reverse_seq)
+            roll_seq = 0 if roll_seq is None else int(roll_seq)
+
+            kwargs = {}
+            if varyingType == "bootstrap_sor":
+                bt = kz.getCaseKey("bootstrapType")
+                bs = kz.getCaseKey("blockSize")
+                if bt is not None:
+                    kwargs["bootstrap_type"] = bt
+                if bs is not None:
+                    kwargs["block_size"] = int(bs)
+
+            plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq, **kwargs)
+
+            kz.setCaseKey("rateSeed", plan.rateSeed)
+            kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
+            kz.setCaseKey("reverse_sequence", plan.rateReverse)
+            kz.setCaseKey("roll_sequence", plan.rateRoll)
+
+            mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
+            for j in range(4):
+                kz.pushCaseKey(f"mean{j}", mean[j])
+                kz.pushCaseKey(f"stdev{j}", stdev[j])
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1 + 1, plan.N_k):
@@ -980,9 +1021,13 @@ def genDic(plan):
     elif plan.rateMethod == "dataframe":
         dic["rateType"] = "constant"
         dic["fixedType"] = "user"
-    elif plan.rateMethod in ["histochastic", "historical", "stochastic"]:
+    elif plan.rateMethod in ["histochastic", "historical", "stochastic", "bootstrap_sor", "var"]:
         dic["rateType"] = "varying"
         dic["varyingType"] = plan.rateMethod
+        if plan.rateMethod == "bootstrap_sor":
+            params = plan.rateModel.params
+            dic["bootstrapType"] = params.get("bootstrap_type", "iid")
+            dic["blockSize"] = params.get("block_size", 1)
 
     # Initialize in both cases. Plan stores rateValues in percent when set; else use tau_kn (decimal).
     for k1 in range(plan.N_k):
@@ -991,7 +1036,7 @@ def genDic(plan):
         else:
             dic[f"fxRate{k1}"] = 100 * plan.tau_kn[k1, -1]
 
-    if plan.rateMethod in ["historical average", "histochastic", "historical"]:
+    if plan.rateMethod in ["historical average", "histochastic", "historical", "bootstrap_sor", "var"]:
         dic["yfrm"] = plan.rateFrm
         dic["yto"] = plan.rateTo
     elif plan.rateMethod == "dataframe":
@@ -1002,7 +1047,7 @@ def genDic(plan):
         # Rates availability are trailing by 1 year.
         dic["yto"] = date.today().year - 1
 
-    if plan.rateMethod in ["stochastic", "histochastic"]:
+    if plan.rateMethod in ["stochastic", "histochastic", "bootstrap_sor", "var"]:
         qq = 1
         for k1 in range(plan.N_k):
             if plan.rateValues is not None:

@@ -32,9 +32,10 @@ if ret is None or kz.caseHasNoPlan():
     st.info("A case must first be created before running this page.")
 else:
     if kz.getCaseKey("rateType") != "varying" or (
-        kz.getCaseKey("varyingType") is None or "stochastic" not in kz.getCaseKey("varyingType")
+        kz.getCaseKey("varyingType") not in owb.STOCHASTIC_METHODS
     ):
-        st.info("Rates must be set to *stochastic* or *histochastic* to run Monte Carlo simulations.")
+        st.info("Rates must be set to a stochastic method (*histochastic*, *stochastic*, *var*, or *bootstrap_sor*) "
+                "to run Monte Carlo simulations.")
     else:
         st.markdown("Generate a histogram of results obtained from running multiple scenarios with stochastic rates.")
         kz.initCaseKey("histogram_log_x_mc", False)

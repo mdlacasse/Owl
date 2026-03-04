@@ -2294,8 +2294,9 @@ class Plan:
         """
         Run Monte Carlo simulations on plan.
         """
-        if self.rateMethod not in ("stochastic", "histochastic"):
-            self.mylog.print("It is pointless to run Monte Carlo simulations with fixed rates.")
+        if not hasattr(self, "rateModel") or self.rateModel is None \
+                or getattr(self.rateModel, "deterministic", True):
+            self.mylog.print("Monte Carlo simulations require a stochastic rate method.")
             return
 
         self.mylog.vprint(f"Running {N} Monte Carlo simulations.")

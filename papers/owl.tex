@@ -2099,4 +2099,308 @@ otherwise equivalent. The weight $\varepsilon$ is chosen small (e.g.\ of order
 $10^{-9}$ in the same units as $y$) so that the primary objective dominates; it is
 often enabled by default when optimizing Medicare (IRMAA) to stabilize bracket selection.
 
+
+\chapter{Rate models for return scenarios}
+
+The optimization model described in the preceding chapters requires a sequence
+$\{\tau_{kn}\}_{n=0}^{N_n-1}$ of annual returns for each asset class $k$ over the plan
+horizon.
+Owl provides several models for generating this sequence, ranging from simple
+fixed-rate assumptions to fully stochastic simulation.
+This chapter describes the models available and the statistical algorithms
+underlying the stochastic ones.
+
+\section{Historical data}
+
+All built-in models draw on an annual dataset covering the period from
+$\mathcal{Y}_{\min} = 1928$ through the most recently completed calendar year
+$\mathcal{Y}_{\max}$, containing $N_y = \mathcal{Y}_{\max} - \mathcal{Y}_{\min} + 1$
+annual observations~\cite{shiller2000}.
+Four asset-class return time series are included, corresponding to the index $k$:
+\begin{description}[leftmargin=4em,style=multiline]
+\item [$k=0$]
+    S\&P 500 total return, including dividends.
+\item [$k=1$]
+    Moody's Baa corporate bond total return (investment-grade
+    bonds with a moderate default premium).
+\item [$k=2$]
+    10-year U.S.\ Treasury note total return.
+\item [$k=3$]
+    Consumer Price Index (CPI) inflation.
+    This series serves a dual role: it drives the cumulative inflation
+    factor $\gamma_n$ (see Chapter~2), and, as the {\em cash asset},
+    it proxies a Treasury Inflation-Protected Security (TIPS) with a real
+    yield of zero so that holding cash preserves but does not grow purchasing
+    power.
+\end{description}
+All values are stored in percent (e.g.\ $7.0$ for a 7\% annual return).
+A user-selected sub-range $[\mathcal{Y}_{\mathrm{frm}},\mathcal{Y}_{\mathrm{to}}]
+\subseteq [\mathcal{Y}_{\min}, \mathcal{Y}_{\max}]$ is used
+by the historical, histochastic, bootstrap, and VAR(1) models.
+We denote the window width by $N_w = \mathcal{Y}_{\mathrm{to}} -
+\mathcal{Y}_{\mathrm{frm}} + 1$, and the observed return of asset class $k$ in
+calendar year $y$ by $r_{k,y}$.
+
+\section{Fixed rate methods}
+
+The simplest approach assigns a constant return to every year of the plan,
+$\tau_{kn} = \tau_k$ for all $n$.
+Four variants are supported:
+\begin{description}[leftmargin=4em,style=multiline]
+\item [\texttt{default}]
+    Trailing 30-year historical averages, updated annually.
+\item [\texttt{conservative} and \texttt{optimistic}]
+    Preset rates based on long-term expert forecasts.
+\item [\texttt{historical average}]
+    The arithmetic mean over the selected historical window,
+    \begin{equation}
+        \tau_k = \frac{1}{N_w}\sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}
+                 r_{k,y}.
+    \end{equation}
+\item [\texttt{user}]
+    Freely specified by the user for each asset class.
+\end{description}
+
+\section{Deterministic varying rates: \texttt{historical}}
+
+The \texttt{historical} method assigns recorded returns directly to each year
+of the plan:
+\begin{equation}
+    \tau_{kn} = r_{k,\,\mathcal{Y}_{\mathrm{frm}}+n},
+    \qquad n = 0, \ldots, N_n - 1.
+\end{equation}
+If the plan horizon $N_n$ exceeds the window width $N_w$, the sequence is
+repeated cyclically.
+Two sequence-transformation options apply before the plan runs:
+a {\em reverse} option reflects the sequence as
+$\tau_{kn} \leftarrow r_{k,\,\mathcal{Y}_{\mathrm{to}}-n}$,
+and a {\em roll} option shifts it by $s$ positions as
+$\tau_{kn} \leftarrow r_{k,\,\mathcal{Y}_{\mathrm{frm}}+((n+s)\bmod N_w)}$.
+These two options are also available for all other methods that use a
+historical window.
+
+\section{Stochastic models}
+
+Stochastic methods draw $N_n$ annual return vectors
+$\bm{\tau}_n = (\tau_{0n}, \tau_{1n}, \tau_{2n}, \tau_{3n})^\top \in \mathbb{R}^{N_k}$
+from a probability distribution calibrated on historical data.
+Because random number generation is involved, a seed can be fixed to obtain
+reproducible results across runs.
+Each fresh draw of $N_n$ vectors constitutes one scenario; running many
+independent scenarios yields a Monte Carlo distribution of outcomes.
+
+\subsection{Multivariate normal: \texttt{histochastic} and \texttt{stochastic}}
+
+Both methods model annual returns as draws from a multivariate normal
+distribution,
+\begin{equation}
+    \bm{\tau}_n \overset{\mathrm{iid}}{\sim}
+    \mathcal{N}(\bm{\mu},\,\bm{\Sigma}),
+    \qquad n = 0, \ldots, N_n - 1.
+\end{equation}
+For \texttt{histochastic}, the mean vector $\bm{\mu}$ and the
+$N_k \times N_k$ covariance matrix $\bm{\Sigma}$ are estimated from the
+selected historical window:
+\begin{eqnarray}
+    \mu_k &=& \frac{1}{N_w}
+              \sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}} r_{k,y},
+    \\
+    \Sigma_{kk'} &=& \frac{1}{N_w-1}
+              \sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}
+              (r_{k,y} - \mu_k)(r_{k',y} - \mu_{k'}).
+\end{eqnarray}
+For \texttt{stochastic}, the user supplies $\bm{\mu}$ directly, together
+with the standard deviations $\sigma_k = \sqrt{\Sigma_{kk}}$ and the Pearson
+correlation coefficients $\rho_{kk'} \in [-1,1]$, from which the covariance
+matrix is assembled as $\Sigma_{kk'} = \rho_{kk'}\sigma_k\sigma_{k'}$.
+In both cases, samples are generated as $\bm{\tau}_n = \bm{\mu} + L\bm{z}_n$,
+where $L$ is the lower-triangular Cholesky factor of $\bm{\Sigma}$ and
+$\bm{z}_n \sim \mathcal{N}(\mathbf{0}, I)$.
+By construction, the multivariate normal model treats each year's returns as
+independent of all other years; it captures cross-sectional correlation
+among asset classes but no serial (year-to-year) autocorrelation.
+
+\subsection{Bootstrap sequence-of-returns: \texttt{bootstrap\_sor}}
+
+The bootstrap sequence-of-returns model resamples $N_n$ annual return vectors
+directly from the observed window
+$\{\bm{r}_y\}_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}$, where
+$\bm{r}_y = (r_{0,y},\ldots,r_{N_k-1,y})^\top$.
+Resampling from actual data preserves the empirical marginal distributions
+exactly, including skewness, fat tails, and any departure from normality.
+Four resampling strategies are supported.
+
+\paragraph*{IID bootstrap}
+Each year is drawn independently and with replacement from the full
+window~\cite{efron1979}:
+\begin{equation}
+    \bm{\tau}_n = \bm{r}_{y_n},
+    \qquad y_n \overset{\mathrm{iid}}{\sim}
+    \mathrm{Uniform}\{\mathcal{Y}_{\mathrm{frm}}, \ldots, \mathcal{Y}_{\mathrm{to}}\}.
+\end{equation}
+This is the simplest and default variant; it destroys all serial correlation
+present in the original data.
+
+\paragraph*{Block bootstrap}
+To preserve short-run serial correlation, the block bootstrap of
+Künsch~\cite{kunsch1989} draws $\lceil N_n/b \rceil$ starting positions
+$s_\ell$ uniformly from
+$\{\mathcal{Y}_{\mathrm{frm}}, \ldots, \mathcal{Y}_{\mathrm{to}}-b+1\}$
+and concatenates the corresponding blocks of $b$ consecutive years,
+truncating to $N_n$ years:
+\begin{equation}
+    (\bm{\tau}_0, \ldots, \bm{\tau}_{N_n-1})
+    = (\bm{r}_{s_1}, \ldots, \bm{r}_{s_1+b-1},\;
+       \bm{r}_{s_2}, \ldots, \bm{r}_{s_2+b-1},\; \ldots).
+\end{equation}
+The parameter $b$ is the block size, chosen by the user.
+
+\paragraph*{Circular block bootstrap}
+A variant due to Politis and Romano~\cite{politisromano1992} treats the
+historical window as circular, wrapping from $\mathcal{Y}_{\mathrm{to}}$
+back to $\mathcal{Y}_{\mathrm{frm}}$.
+Starting positions are drawn uniformly from the full window
+$\{\mathcal{Y}_{\mathrm{frm}}, \ldots, \mathcal{Y}_{\mathrm{to}}\}$,
+and block membership wraps around modulo $N_w$.
+This removes the boundary effect present in the block bootstrap, where
+observations near the endpoints of the window are underrepresented.
+
+\paragraph*{Stationary bootstrap}
+In the stationary bootstrap of Politis and Romano~\cite{politisromano1994},
+block lengths are random rather than fixed.
+Each block length $L_\ell$ is drawn from a geometric distribution,
+\begin{equation}
+    P(L_\ell = \ell) = p_b\,(1-p_b)^{\ell-1},
+    \qquad \ell = 1, 2, \ldots,
+\end{equation}
+with parameter $p_b = 1/b$, so that the expected block length equals $b$.
+This choice produces a strictly stationary bootstrap distribution, resolving
+the boundary discontinuities of the fixed-block method while still
+approximately preserving serial correlation at lags up to order $b$.
+
+\subsection{Vector autoregression: \texttt{var}}
+
+The VAR(1) model~\cite{campbellviceira2002,lutkepohl2005} extends the
+multivariate normal approach by explicitly capturing year-to-year serial
+correlations in asset returns, such as momentum and mean-reversion.
+The generating model is
+\begin{equation}
+    \label{Eq:VAR1}
+    \bm{y}_t = \mathbf{c} + \mathbf{A}\bm{y}_{t-1} + \bm{\varepsilon}_t,
+    \qquad \bm{\varepsilon}_t \sim \mathcal{N}(\mathbf{0}, \bm{\Sigma}),
+\end{equation}
+where $\bm{y}_t \in \mathbb{R}^{N_k}$ is the vector of asset-class returns at
+time $t$, $\mathbf{c} \in \mathbb{R}^{N_k}$ is a constant intercept vector,
+$\mathbf{A} \in \mathbb{R}^{N_k \times N_k}$ is the transition matrix encoding
+one-period predictability, and $\bm{\Sigma}$ is the contemporaneous residual
+covariance matrix.
+For $\mathbf{A} = 0$, Eq.~(\ref{Eq:VAR1}) reduces to the multivariate normal
+model of the \texttt{histochastic} method.
+
+\paragraph*{Parameter estimation}
+Given $N_w$ historical observations
+$\bm{y}_1, \ldots, \bm{y}_{N_w}$,
+parameters $\mathbf{c}$ and $\mathbf{A}$ are estimated jointly by ordinary
+least squares (OLS).
+Stacking observations into matrices
+\begin{eqnarray}
+    Y &=& [\bm{y}_2 \mid \cdots \mid \bm{y}_{N_w}]^\top
+          \;\in\; \mathbb{R}^{(N_w-1)\times N_k}, \\
+    X &=& [\,\mathbf{1} \;\mid\; \bm{y}_1 \;\mid \cdots \mid\; \bm{y}_{N_w-1}\,]^\top
+          \;\in\; \mathbb{R}^{(N_w-1)\times (N_k+1)},
+\end{eqnarray}
+the OLS solution $B = (X^\top X)^{-1} X^\top Y$ yields the intercept
+$\mathbf{c} = B[0,:]$ and transition matrix $\mathbf{A} = B[1:,:]^\top$.
+The residual covariance is estimated as
+\begin{equation}
+    \bm{\Sigma} = \frac{(Y - XB)^\top(Y - XB)}{N_w - N_k - 1}.
+\end{equation}
+
+\paragraph*{Stationarity and spectral shrinkage}
+Stationarity of the VAR(1) process requires that all eigenvalues of
+$\mathbf{A}$ have modulus strictly less than one.
+Let $\rho(\mathbf{A}) = \max_i |\lambda_i(\mathbf{A})|$ denote the spectral
+radius.
+If $\rho(\mathbf{A}) \ge 0.95$ (near or above the unit circle), the
+transition matrix is rescaled as
+\begin{equation}
+    \mathbf{A} \;\leftarrow\; \frac{0.95}{\rho(\mathbf{A})}\,\mathbf{A},
+\end{equation}
+ensuring $\rho(\mathbf{A}) = 0.95 < 1$ while preserving the direction of
+every eigenmode.
+This spectral shrinkage step can be disabled by the user, at the cost of
+potentially non-stationary sequences.
+
+\paragraph*{Sequence generation}
+Starting from $\bm{y}_0 = \bm{\mu}$ (the historical sample mean),
+sequences are generated recursively from Eq.~(\ref{Eq:VAR1}) using
+$\bm{\varepsilon}_t = L\bm{z}_t$, where $L$ is the Cholesky factor of
+$\bm{\Sigma}$ and $\bm{z}_t \sim \mathcal{N}(\mathbf{0}, I)$.
+The VAR(1) model produces synthetic sequences of arbitrary length while
+capturing both the cross-sectional covariance structure and the
+serial autocorrelation of asset returns.
+
+\section{Monte Carlo and stress testing}
+
+In Monte Carlo mode, Owl calls one of the stochastic models independently
+$N_s$ times, each time solving the full optimization problem with a different
+rate scenario.
+The distribution of resulting optimal spending or bequest values across the
+$N_s$ scenarios provides a probabilistic assessment of the retirement plan.
+
+In stress-testing mode (Historical Range), the \texttt{historical} method
+is applied repeatedly: the starting year $\mathcal{Y}_{\mathrm{frm}}$ is
+advanced one year at a time over a specified calendar range, producing one
+deterministic solve per starting year.
+This sweep is equivalent to asking: ``How would this plan have fared had the
+retiree begun at every historical starting year?''
+When used with the reverse or roll options, additional sequence
+configurations can be explored without altering the underlying
+historical data.
+
+\renewcommand{\bibname}{References}
+\begin{thebibliography}{99}
+
+\bibitem{shiller2000}
+R.~J. Shiller,
+\textit{Irrational Exuberance},
+Princeton University Press, Princeton, NJ, 2000.
+Historical return data available at
+\texttt{http://www.econ.yale.edu/\textasciitilde shiller/data.htm}.
+
+\bibitem{efron1979}
+B.~Efron,
+``Bootstrap methods: another look at the jackknife,''
+\textit{The Annals of Statistics}, vol.~7, no.~1, pp.~1--26, 1979.
+
+\bibitem{kunsch1989}
+H.~R. Künsch,
+``The jackknife and the bootstrap for general stationary observations,''
+\textit{The Annals of Statistics}, vol.~17, no.~3, pp.~1217--1241, 1989.
+
+\bibitem{politisromano1992}
+D.~N. Politis and J.~P. Romano,
+``A circular block resampling procedure for stationary data,''
+in \textit{Exploring the Limits of Bootstrap},
+R.~LePage and L.~Billard, Eds.
+Wiley, New York, 1992, pp.~263--270.
+
+\bibitem{politisromano1994}
+D.~N. Politis and J.~P. Romano,
+``The stationary bootstrap,''
+\textit{Journal of the American Statistical Association},
+vol.~89, no.~428, pp.~1303--1313, 1994.
+
+\bibitem{campbellviceira2002}
+J.~Y. Campbell and L.~M. Viceira,
+\textit{Strategic Asset Allocation: Portfolio Choice for Long-Term Investors},
+Oxford University Press, Oxford, 2002.
+
+\bibitem{lutkepohl2005}
+H.~Lütkepohl,
+\textit{New Introduction to Multiple Time Series Analysis},
+Springer-Verlag, Berlin, 2005.
+
+\end{thebibliography}
+
 \end{document}

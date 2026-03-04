@@ -26,7 +26,6 @@ from datetime import date
 import sskeys as kz
 import owlbridge as owb
 import case_progress as cp
-from owlplanner.rate_models.constants import VARYING_TYPE_UI
 
 
 def _get_fx_rates():
@@ -43,7 +42,7 @@ FXRATES = _get_fx_rates()
 
 rateChoices = ["constant", "varying"]
 fixedChoices = list(FXRATES)
-varyingChoices = list(VARYING_TYPE_UI)
+varyingChoices = list(owb.VARYING_TYPE_UI)
 
 
 def updateFixedRates(key, pull=True):
@@ -103,6 +102,31 @@ Unless historical, S&P 500 can be used to represent any mix of equities
     helpFixed = """A 2025 roundup of expert opinions on stock and bond return
 forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition)."""
+    helpVarying = """Select the method used to generate annual rates:
+
+- **historical**: exact year-by-year returns from the selected historical range, applied sequentially.
+- **histochastic**: randomly draws years from the selected historical range, preserving its empirical \
+mean and covariance.
+- **stochastic**: generates rates from a multivariate normal distribution using user-supplied means, \
+volatilities, and correlations.
+- **bootstrap_sor**: resamples blocks or individual years from the historical range \
+(IID, block, circular, or stationary bootstrap).
+- **var**: parametric VAR(1) model capturing year-to-year serial correlations (momentum, \
+mean-reversion) fitted on the selected historical window."""
+    helpYfrm = "First year of historical data included in the range. Must be at least 2 years before the ending year."
+    helpYto = ("Last year of historical data included in the range. "
+               "For *historical* method, fixed by the starting year and plan horizon. "
+               "At least 2 years of data are required for statistical calculations.")
+    helpBootstrapType = """Resampling strategy used to build synthetic rate sequences:
+
+- **iid**: draw individual years independently at random (no serial structure).
+- **block**: draw consecutive fixed-length blocks, preserving short-run serial correlation.
+- **circular**: block bootstrap that wraps around the dataset ends to avoid edge effects.
+- **stationary**: variable-length blocks drawn from a geometric distribution, \
+preserving stationarity."""
+    helpCorr = ("Pearson correlation coefficient between the two asset-class returns. "
+                "Ranges from -1 (perfectly inversely correlated) to +1 (perfectly correlated). "
+                "0 means no linear relationship.")
 
     st.markdown("#### :orange[Type of Rates]")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
@@ -147,13 +171,14 @@ forecasts for the next decade can be found
 
     elif kz.getCaseKey("rateType") == "varying":
         with col2:
-            kz.getRadio("Select varying rates", varyingChoices, "varyingType", callback=updateRates)
+            kz.getRadio("Select varying rates", varyingChoices, "varyingType", callback=updateRates,
+                        help=helpVarying)
 
     else:
         st.error("Logic error")
 
     if (kz.getCaseKey("rateType") == "constant" and "hist" in kz.getCaseKey("fixedType")) or (
-        kz.getCaseKey("rateType") == "varying" and "hist" in kz.getCaseKey("varyingType")
+        kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") in owb.HISTORICAL_RANGE_METHODS
     ):
         # Enforce yto >= yfrm + 2 (min 2 years for statistics) before rendering
         # so neither widget is ever in an invalid state (avoids Streamlit deadlock).
@@ -177,6 +202,7 @@ forecasts for the next decade can be found
                 min_value=owb.FROM,
                 max_value=maxValue,
                 callback=updateRates,
+                help=helpYfrm,
             )
 
         with col4:
@@ -188,7 +214,22 @@ forecasts for the next decade can be found
                 min_value=kz.getCaseKey("yfrm") + 2,     # At least 2 years needed for statistics.
                 disabled=ishistorical,
                 callback=updateRates,
+                help=helpYto,
             )
+
+    if kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "bootstrap_sor":
+        kz.initCaseKey("bootstrapType", "iid")
+        kz.initCaseKey("blockSize", 1)
+        bootstrap_choices = ["iid", "block", "circular", "stationary"]
+        col1, col2, col3 = st.columns([2.08, 1, 1], gap="large", vertical_alignment="top")
+        with col1:
+            kz.getRadio("Bootstrap type", bootstrap_choices, "bootstrapType", callback=updateRates,
+                        help=helpBootstrapType)
+        with col2:
+            bt = kz.getCaseKey("bootstrapType")
+            kz.getIntNum("Block size", "blockSize", min_value=1, max_value=50, step=1,
+                         disabled=(bt == "iid"), callback=updateRates,
+                         help="Block length for block/circular/stationary bootstraps.")
 
     if kz.getCaseKey("rateType") == "varying":
         st.divider()
@@ -220,19 +261,23 @@ forecasts for the next decade can be found
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("stdev0", 0)
-            kz.getNum("S&P 500", "stdev0", disabled=ro, step=1.0, callback=updateRates)
+            kz.getNum("S&P 500", "stdev0", disabled=ro, step=1.0, callback=updateRates,
+                      help=helpmsgSP500)
 
         with col2:
             kz.initCaseKey("stdev1", 0)
-            kz.getNum("Bonds Baa", "stdev1", disabled=ro, step=1.0, callback=updateRates)
+            kz.getNum("Bonds Baa", "stdev1", disabled=ro, step=1.0, callback=updateRates,
+                      help=helpmsgBaa)
 
         with col3:
             kz.initCaseKey("stdev2", 0)
-            kz.getNum("10-y Treasury Notes", "stdev2", disabled=ro, step=1.0, callback=updateRates)
+            kz.getNum("10-y Treasury Notes", "stdev2", disabled=ro, step=1.0, callback=updateRates,
+                      help=helpmsgTnote)
 
         with col4:
             kz.initCaseKey("stdev3", 0)
-            kz.getNum("Cash Assets/Inflation", "stdev3", disabled=ro, step=1.0, callback=updateRates)
+            kz.getNum("Cash Assets/Inflation", "stdev3", disabled=ro, step=1.0, callback=updateRates,
+                      help=helpmsgCash)
 
         st.markdown("##### Correlation matrix")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
@@ -243,7 +288,7 @@ forecasts for the next decade can be found
         with col2:
             kz.initCaseKey("corr1", 0.0)
             kz.getNum("(1,2)", "corr1", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
             kz.initCaseKey("diag2", 1.0)
             kz.getNum("Bonds Baa", "diag2", disabled=True, format="%.2f",
                       callback=None)
@@ -251,10 +296,10 @@ forecasts for the next decade can be found
         with col3:
             kz.initCaseKey("corr2", 0.0)
             kz.getNum("(1,3)", "corr2", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
             kz.initCaseKey("corr4", 0.0)
             kz.getNum("(2,3)", "corr4", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
             kz.initCaseKey("diag3", 1.0)
             kz.getNum("10-y Treasury Notes", "diag3", disabled=True, format="%.2f",
                       callback=None)
@@ -262,13 +307,13 @@ forecasts for the next decade can be found
         with col4:
             kz.initCaseKey("corr3", 0.0)
             kz.getNum("(1,4)", "corr3", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
             kz.initCaseKey("corr5", 0.0)
             kz.getNum("(2,4)", "corr5", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
             kz.initCaseKey("corr6", 0.0)
             kz.getNum("(3,4)", "corr6", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates)
+                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
             kz.initCaseKey("diag4", 1.0)
             kz.getNum("Cash Assets/Inflation", "diag4", disabled=True, format="%.2f",
                       callback=None)
@@ -324,7 +369,7 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
         # Reproducibility checkbox - only for stochastic and histochastic methods.
-        if kz.getCaseKey("varyingType") in ["stochastic", "histochastic"]:
+        if kz.getCaseKey("varyingType") in ["stochastic", "histochastic", "bootstrap_sor", "var"]:
             st.markdown("#####")
             st.markdown("#### :orange[Rate Generation]")
             kz.initCaseKey("reproducibleRates", False)

@@ -227,6 +227,10 @@ def config_to_ui(diconf: dict) -> dict:
         dic["yfrm"] = FROM
         dic["yto"] = date.today().year - 1
 
+    if rate_method == "bootstrap_sor":
+        dic["bootstrapType"] = rs.get("bootstrap_type", "iid")
+        dic["blockSize"] = rs.get("block_size", 1)
+
     if rate_method in STOCHASTIC_METHODS:
         means = rs.get("values", [6.0, 4.0, 3.3, 2.8])
         stdevs = rs.get("standard_deviations", [17.0, 8.0, 10.0, 3.0])
@@ -433,6 +437,10 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
         rs["standard_deviations"] = [_get_ui(uidic, f"stdev{k}", 0, float) for k in range(4)]
         # Correlations: Pearson coefficient (-1 to 1). Standard in finance/statistics.
         rs["correlations"] = [_get_ui(uidic, f"corr{q}", 0, float) for q in range(1, 7)]
+    if method == "bootstrap_sor":
+        rs["bootstrap_type"] = uidic.get("bootstrapType", "iid")
+        rs["block_size"] = _get_ui(uidic, "blockSize", 1, int)
+
     if method in STOCHASTIC_METHODS:
         rs["reproducible_rates"] = bool(uidic.get("reproducibleRates", False))
         seed = uidic.get("rateSeed")

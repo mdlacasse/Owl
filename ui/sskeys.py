@@ -26,6 +26,7 @@ from datetime import date
 import copy
 import re
 import json
+from owlplanner.rate_models.constants import STOCHASTIC_METHODS
 
 
 ss = st.session_state
@@ -179,9 +180,9 @@ def caseIsNotRunReady():
 
 def caseIsNotMCReady():
     """
-    Check that rates are set to stochastic or histochastic method before MC run.
+    Check that rates are set to a stochastic method before MC run.
     """
-    return caseIsNotRunReady() or getCaseKey("rateType") != "varying" or "stochastic" not in getCaseKey("varyingType")
+    return caseIsNotRunReady() or getCaseKey("rateType") != "varying" or getCaseKey("varyingType") not in STOCHASTIC_METHODS
 
 
 def currentCaseDic() -> dict:

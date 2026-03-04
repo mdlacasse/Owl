@@ -38,6 +38,7 @@ from owlplanner.rate_models.builtin import (
 )
 from owlplanner.rate_models.dataframe import DataFrameRateModel
 from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
+from owlplanner.rate_models.var_model import VARRateModel
 
 
 # ------------------------------------------------------------
@@ -55,6 +56,7 @@ _RATE_MODEL_REGISTRY = {
     "histochastic": HistochasticRateModel,
     "dataframe": DataFrameRateModel,
     "bootstrap_sor": BootstrapSORRateModel,
+    "var": VARRateModel,
 }
 
 BUILTIN_CORE_METHODS = frozenset({
