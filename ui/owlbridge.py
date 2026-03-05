@@ -320,7 +320,7 @@ def _setRates(plan):
                     kz.pushCaseKey(f"corr{q}", corr[k1, k2])
                     q += 1
 
-        elif varyingType in ("bootstrap_sor", "var"):
+        elif varyingType in ("bootstrap_sor", "var", "garch_dcc"):
             reproducible = kz.getCaseKey("reproducibleRates")
             seed = kz.getCaseKey("rateSeed") if reproducible else None
             plan.setReproducible(reproducible, seed=seed)
@@ -1026,7 +1026,7 @@ def genDic(plan):
     elif plan.rateMethod == "dataframe":
         dic["rateType"] = "constant"
         dic["fixedType"] = "user"
-    elif plan.rateMethod in ["histochastic", "historical", "stochastic", "bootstrap_sor", "var"]:
+    elif plan.rateMethod in ["histochastic", "historical", "stochastic", "bootstrap_sor", "var", "garch_dcc"]:
         dic["rateType"] = "varying"
         dic["varyingType"] = plan.rateMethod
         if plan.rateMethod == "bootstrap_sor":
@@ -1041,7 +1041,7 @@ def genDic(plan):
         else:
             dic[f"fxRate{k1}"] = 100 * plan.tau_kn[k1, -1]
 
-    if plan.rateMethod in ["historical average", "histochastic", "historical", "bootstrap_sor", "var"]:
+    if plan.rateMethod in ["historical average", "histochastic", "historical", "bootstrap_sor", "var", "garch_dcc"]:
         dic["yfrm"] = plan.rateFrm
         dic["yto"] = plan.rateTo
     elif plan.rateMethod == "dataframe":
@@ -1052,7 +1052,7 @@ def genDic(plan):
         # Rates availability are trailing by 1 year.
         dic["yto"] = date.today().year - 1
 
-    if plan.rateMethod in ["stochastic", "histochastic", "bootstrap_sor", "var"]:
+    if plan.rateMethod in ["stochastic", "histochastic", "bootstrap_sor", "var", "garch_dcc"]:
         qq = 1
         for k1 in range(plan.N_k):
             if plan.rateValues is not None:

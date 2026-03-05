@@ -2340,9 +2340,86 @@ The VAR(1) model produces synthetic sequences of arbitrary length while
 capturing both the cross-sectional covariance structure and the
 serial autocorrelation of asset returns.
 
+\subsection{DCC-GARCH(1,1): \texttt{garch\_dcc}}
+
+The DCC-GARCH(1,1) model~\cite{engle2002,bollerslev1986} extends the
+multivariate normal approach by allowing both the per-asset conditional
+variance and the cross-asset correlation matrix to vary over time.
+It is fitted in two steps on the selected historical window.
+
+\paragraph*{Step 1 --- per-asset GARCH(1,1)}
+Let $\varepsilon_{k,t} = y_{k,t} - \mu_k$ be the demeaned return of
+asset class $k$ at year $t$.  The conditional variance $h_{k,t}$
+evolves as
+\begin{equation}
+    \label{Eq:GARCH11}
+    h_{k,t} = \omega_k + \alpha_k\,\varepsilon_{k,t-1}^2
+              + \beta_k\,h_{k,t-1},
+\end{equation}
+with $h_{k,0} = \mathrm{Var}(\varepsilon_k)$.
+The parameters $(\omega_k, \alpha_k, \beta_k)$ are estimated
+independently for each asset by maximising the Gaussian
+log-likelihood
+\begin{equation}
+    \ell_k = -\tfrac{1}{2}\sum_{t=1}^{N_w}
+             \bigl[\ln h_{k,t} + \varepsilon_{k,t}^2/h_{k,t}\bigr],
+\end{equation}
+subject to $\omega_k > 0$, $\alpha_k, \beta_k > 0$, and the
+covariance-stationarity constraint $\alpha_k + \beta_k < 1$.
+Optimisation uses L-BFGS-B; if convergence fails, an EWMA
+fallback ($\alpha_k = 0.06$, $\beta_k = 0.94$) is used instead.
+
+The standardised residuals $z_{k,t} = \varepsilon_{k,t}/\sqrt{h_{k,t}}$
+are passed to the second step.
+
+\paragraph*{Step 2 --- DCC dynamics}
+Let $\overline{\mathbf{Q}} = \frac{1}{N_w}\mathbf{Z}^\top\mathbf{Z}$
+be the unconditional covariance of $\mathbf{Z} = [z_{k,t}]$.
+The quasi-correlation matrix $\mathbf{Q}_t$ evolves as
+\begin{equation}
+    \label{Eq:DCC}
+    \mathbf{Q}_t = (1 - a - b)\,\overline{\mathbf{Q}}
+                  + a\,\bm{z}_{t-1}\bm{z}_{t-1}^\top
+                  + b\,\mathbf{Q}_{t-1},
+\end{equation}
+with $a, b > 0$ and $a + b < 1$.  The time-varying correlation matrix
+is obtained by normalising:
+\begin{equation}
+    \mathbf{R}_t = \mathrm{diag}(\mathbf{Q}_t)^{-1/2}\,
+                  \mathbf{Q}_t\,
+                  \mathrm{diag}(\mathbf{Q}_t)^{-1/2}.
+\end{equation}
+The DCC parameters $(a, b)$ are estimated by maximising the
+concentrated log-likelihood
+\begin{equation}
+    \ell_{\mathrm{DCC}} = -\tfrac{1}{2}\sum_{t=1}^{N_w}
+    \bigl[\ln|\mathbf{R}_t| + \bm{z}_t^\top\mathbf{R}_t^{-1}\bm{z}_t\bigr].
+\end{equation}
+
+\paragraph*{Sequence generation}
+Warm-start states $\mathbf{Q}_0$ and $\bm{h}_0 = (h_{1,N_w},\ldots,h_{N_k,N_w})$
+are obtained from a forward pass through the historical data.
+Each simulated year is then drawn as
+\begin{equation}
+    \bm{y}_t = \bm{\mu}
+               + \mathrm{diag}(\bm{h}_t)^{1/2}\,
+                 L(\mathbf{R}_t)\,\bm{z}_t,
+    \qquad \bm{z}_t \sim \mathcal{N}(\mathbf{0}, I),
+\end{equation}
+where $L(\mathbf{R}_t)$ is the lower Cholesky factor of $\mathbf{R}_t$,
+followed by GARCH and DCC updates via Eqs.~(\ref{Eq:GARCH11})
+and~(\ref{Eq:DCC}).
+This produces sequences that exhibit \emph{volatility clustering} ---
+large shocks in one year increase conditional variance in the next ---
+and \emph{time-varying cross-asset correlations} that spike during
+simulated market-stress episodes, consistent with empirical evidence
+in financial return data.
+
 \section{Monte Carlo and stress testing}
 
-In Monte Carlo mode, Owl calls one of the stochastic models independently
+In Monte Carlo mode, Owl calls one of the stochastic models
+(\texttt{histochastic}, \texttt{stochastic}, \texttt{bootstrap\_sor},
+\texttt{var}, or \texttt{garch\_dcc}) independently
 $N_s$ times, each time solving the full optimization problem with a different
 rate scenario.
 The distribution of resulting optimal spending or bequest values across the
@@ -2400,6 +2477,18 @@ Oxford University Press, Oxford, 2002.
 H.~Lütkepohl,
 \textit{New Introduction to Multiple Time Series Analysis},
 Springer-Verlag, Berlin, 2005.
+
+\bibitem{bollerslev1986}
+T.~Bollerslev,
+``Generalized autoregressive conditional heteroskedasticity,''
+\textit{Journal of Econometrics}, vol.~31, no.~3, pp.~307--327, 1986.
+
+\bibitem{engle2002}
+R.~F. Engle,
+``Dynamic conditional correlation: a simple class of multivariate generalized
+autoregressive conditional heteroskedasticity models,''
+\textit{Journal of Business \& Economic Statistics},
+vol.~20, no.~3, pp.~339--350, 2002.
 
 \end{thebibliography}
 

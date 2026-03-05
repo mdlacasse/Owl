@@ -705,7 +705,7 @@ A roundup of expert stock and bond return forecasts can be found
 ---
 ##### Varying rates
 Varying rates change year by year, enabling realistic uncertainty modeling.
-There are five methods:
+There are six methods:
 
 **`historical`** — Replays the exact year-by-year returns from a selected historical window
 in chronological order. Each year of the plan receives the return from one calendar year of
@@ -755,6 +755,18 @@ correlation) observed in the historical data are naturally reproduced. `var` is 
 statistically sophisticated method and is particularly appropriate when the sequence and
 persistence of returns matter, as is often the case for sequence-of-returns risk analysis.
 
+**`garch_dcc`** *(Dynamic Conditional Correlation GARCH, Engle 2002)* — Fits a
+DCC-GARCH(1,1) model to the selected historical window using a two-step maximum
+likelihood procedure. In the first step, a univariate GARCH(1,1) model is estimated
+independently for each asset class, capturing **volatility clustering** — the well-documented
+tendency for large return moves (up or down) to be followed by further large moves.
+In the second step, a DCC layer is fitted to the standardised residuals, modelling
+**time-varying cross-asset correlations** that spike during market-stress episodes. Each
+simulated year inherits the conditional variance and correlation state from the previous
+year, making `garch_dcc` the only Owl method to reproduce both heteroskedasticity and
+correlation dynamics. It is most useful when realistic tail behaviour and stress-period
+contagion are important, such as for retirement scenarios that include equity-heavy portfolios.
+
 ---
 ##### Method comparison
 
@@ -769,11 +781,12 @@ persistence of returns matter, as is often the case for sequence-of-returns risk
 | `stochastic` | Varying | Stochastic | Full control over means, volatilities, and correlations | Accuracy depends entirely on user inputs |
 | `bootstrap_sor` | Varying | Stochastic | Preserves fat tails and extreme historical events | IID mode discards year-to-year serial structure |
 | `var` | Varying | Stochastic | Captures momentum and mean-reversion across all asset classes | More complex; sensitive to choice of historical window |
+| `garch_dcc` | Varying | Stochastic | Realistic volatility clustering and time-varying correlations | Higher per-trial cost; requires ≥ 15 years of history |
 
 ---
 ##### Historical range
 For all methods that reference history (`historical`, `histochastic`, `bootstrap_sor`,
-`historical average`, and `var`), a **Starting year / Ending year** selector appears.
+`historical average`, `var`, and `garch_dcc`), a **Starting year / Ending year** selector appears.
 The range determines which calendar years are included in the dataset from which rates
 are drawn or statistics are computed. At least two years are required. For `historical`,
 the ending year is fixed by the starting year plus the plan horizon.
@@ -796,7 +809,7 @@ parameters are derived automatically from the historical data.
 ##### Which method enables Monte Carlo?
 Monte Carlo simulations (see the **Stress Tests** page) require a **stochastic** method —
 one that generates a fresh random sample for each simulation trial. The four methods that
-support Monte Carlo are: `histochastic`, `stochastic`, `bootstrap_sor`, and `var`.
+support Monte Carlo are: `histochastic`, `stochastic`, `bootstrap_sor`, `var`, and `garch_dcc`.
 The `historical` method is deterministic (it always produces the same sequence for a
 given starting year) and therefore cannot be used for Monte Carlo.
 
@@ -826,11 +839,23 @@ These controls do not apply to constant rates since the same value is used every
 
 ---
 ##### Reproducible rates (Advanced options)
-For the four stochastic methods (`histochastic`, `stochastic`, `bootstrap_sor`, `var`),
+For the five stochastic methods (`histochastic`, `stochastic`, `bootstrap_sor`, `var`, `garch_dcc`),
 an option to **Enable reproducible rates** is available. When checked, the random number
 generator is seeded with a fixed value so the same rate sequence is produced every time
 the case is run. This is useful for isolating the effect of other parameters (spending
 targets, allocations, Roth strategy) while holding the random scenario constant.
+
+---
+##### References
+- Engle, R. F. (2002). *Dynamic Conditional Correlation: A Simple Class of Multivariate Generalized
+  Autoregressive Conditional Heteroskedasticity Models.*
+  Journal of Business & Economic Statistics, 20(3), 339–350.
+  *(Foundational paper for the `garch_dcc` method.)*
+- Campbell, J. Y., & Viceira, L. M. (2002). *Strategic Asset Allocation: Portfolio Choice for
+  Long-Term Investors.* Oxford University Press.
+  *(Basis for the `var` method.)*
+- Efron, B., & Tibshirani, R. J. (1993). *An Introduction to the Bootstrap.*
+  Chapman & Hall/CRC. *(Foundation for `bootstrap_sor` resampling methods.)*
 """)
 
     with st.expander(":material/tune: Run Options"):
@@ -1085,7 +1110,7 @@ for that particular rate sequence.
 
 ##### Prerequisite: a stochastic rate method
 Monte Carlo requires a rate method that generates a new random sequence for each trial.
-The four eligible methods (set on the **Rates Selection** page) are:
+The five eligible methods (set on the **Rates Selection** page) are:
 - `histochastic` — i.i.d. resampling of historical years.
 - `stochastic` — multivariate normal draws using user-supplied mean, volatility, and
   correlation parameters.
@@ -1093,6 +1118,8 @@ The four eligible methods (set on the **Rates Selection** page) are:
   circular, or stationary).
 - `var` — VAR(1) simulation capturing year-to-year serial correlations fitted on the
   historical window.
+- `garch_dcc` — DCC-GARCH(1,1) simulation with time-varying volatility and cross-asset
+  correlations fitted on the historical window.
 
 The `historical` method is deterministic (always the same sequence for a given starting
 year) and therefore cannot be used for Monte Carlo; the **Run** button is disabled when it
@@ -1114,7 +1141,7 @@ Each Monte Carlo trial requires solving a full LP or MIP, which is more expensiv
 event-driven forward simulators. To improve throughput:
 - Use `Medicare off` or the `self-consistent loop` option — the full MIP Medicare option
   adds binary variables to every trial and can be several times slower.
-- Use `stochastic` or `histochastic` rather than `var` or `bootstrap_sor` if speed matters;
+- Use `stochastic` or `histochastic` rather than `var`, `bootstrap_sor`, or `garch_dcc` if speed matters;
   the simpler sampling methods have lower per-trial overhead.
 - Consider installing **Owl** locally — your own hardware may outperform the Community Cloud
   server, which also has a CPU-time quota that may terminate long sessions.

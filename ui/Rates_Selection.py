@@ -119,7 +119,7 @@ preserving stationarity."""
                 "0 means no linear relationship.")
 
     st.markdown("#### :orange[Type of Rates]")
-    col1, col2, col3 = st.columns([1,1,2], gap="large", vertical_alignment="bottom")
+    col1, col2, col3 = st.columns([1, 1, 2], gap="large", vertical_alignment="bottom")
     with col1:
         helpmsg = "Rates can be constant for the duration of the plan or change annually."
         kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates, help=helpmsg)
@@ -363,7 +363,7 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
         # Reproducibility checkbox - only for stochastic and histochastic methods.
-        if kz.getCaseKey("varyingType") in ["stochastic", "histochastic", "bootstrap_sor", "var"]:
+        if kz.getCaseKey("varyingType") in ["stochastic", "histochastic", "bootstrap_sor", "var", "garch_dcc"]:
             st.markdown("#####")
             st.markdown("#### :orange[Rate Generation]")
             kz.initCaseKey("reproducibleRates", False)
