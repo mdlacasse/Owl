@@ -730,15 +730,15 @@ automatically translated to `gaussian` when loaded.)*
 
 **`lognormal`** — Like `gaussian`, the mean returns, volatilities, and cross-asset
 correlations are **user-supplied**. However, samples are drawn from a **log-normal**
-distribution: arithmetic parameters are converted to log-space (μ_Z, Σ_Z), a multivariate
-normal is sampled in log-space, and returns are recovered as R = exp(Z) − 1. Advantages
+distribution: arithmetic parameters are converted to log-space ($\mu_Z$, $\Sigma_Z$), a multivariate
+normal is sampled in log-space, and returns are recovered as $R = \exp(Z) - 1$. Advantages
 over `gaussian`: returns are strictly bounded below by −100% (no total-loss artefacts),
 the distribution is naturally right-skewed (large gains more probable than large losses),
 and it is consistent with **Geometric Brownian Motion** — the foundation of most option
 pricing theory.
 
 **`histolognormal`** — Like `histogaussian` but fits a **log-normal** model to the
-historical window. Log-returns (ln(1 + r)) are computed from history; their mean and
+historical window. Log-returns $\ln(1 + r)$ are computed from history; their mean and
 covariance are estimated directly in log-space, and samples are drawn from that fitted
 distribution and exponentiated. Inherits all the right-skew and lower-bound advantages
 of `lognormal` while deriving its parameters from history rather than user input.
@@ -951,12 +951,12 @@ The *Advanced options* expander contains:
 - *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*
 - *Disallow same-year Roth conversions and tax-free withdrawals*
 - *Disallow cash-flow surpluses in the last two years of the plan*
-- *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction Ψ.
+- *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\Psi$.
 - *Solver* selection (default, HiGHS, PuLP/CBC, PuLP/HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
-Choose *value* to pin it to a fixed fraction Ψ ∈ [0, 0.85]: use 0.0 for low provisional income,
+Choose *value* to pin it to a fixed fraction $\Psi \in [0, 0.85]$: use 0.0 for low provisional income,
 0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
 exactly within the LP using binary variables; this can be slower and require additional configuration
 like increasing the `gap` to ~2% using the *Extra solver options* (i.e. `{"gap":2e-2}`).
