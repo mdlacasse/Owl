@@ -2,6 +2,53 @@
 
 ---
 
+## Version 2026.03.05
+
+### Rate models
+- **VAR(1) rate model**: New `var` method — a parametric Vector Autoregression model fitted by
+  Ordinary Least Squares on a historical window. Captures year-to-year serial correlations
+  (momentum and mean-reversion) across all four asset classes simultaneously, with optional
+  spectral shrinkage for stationarity. Useful for sequence-of-returns risk analysis when
+  persistence of returns matters.
+- **Bootstrap and VAR in UI**: `bootstrap_sor` and `var` are now exposed in the Rates Selection
+  and Monte Carlo pages alongside `histochastic` and `stochastic`.
+- **Monte Carlo guard fix**: `runMC()` now uses `rateModel.deterministic` attribute instead of a
+  hardcoded method-name check, so any current or future stochastic model works automatically.
+
+### Rates Selection UI redesign
+- **Selectbox with description**: The constant-preset and varying-method selectors are now
+  `st.selectbox` widgets (replacing horizontal radio buttons) with a concise description caption
+  below each, surfaced directly from the rate model's metadata.
+- **User-facing model descriptions**: All rate model `description` attributes updated to be
+  concise and user-oriented rather than developer-oriented.
+
+### Bug fixes
+- **Historical range runs**: `reverse_sequence` and `roll_sequence` options were silently ignored
+  in non-augmented historical range runs — `plan.py` hardcoded `(False, 0)` and `owlbridge.py`
+  never read them from session state.
+- **Minimum balance warning**: Run Options page now shows a warning when the minimum balance
+  constraint is set so high it may cause infeasibility.
+
+### UI
+- **Rename Simulations → Stress Tests**: Page and all documentation references updated.
+- **Tooltips**: Rewording of several Run Options tooltips for clarity.
+
+### Documentation
+- **Rates Selection section**: Full rewrite covering all five varying methods, including
+  `bootstrap_sor` sub-strategies and `var`; added sequence-of-returns risk note for constant
+  rates; added method-comparison table (Rate type, Character, Pros, Cons).
+- **Monte Carlo section**: Expanded with prerequisite method guidance, trial-count
+  recommendations, and performance tips.
+- **PARAMETERS.md / RATE_MODELS.md**: Updated for new `var` model.
+- **owl.tex/pdf**: Updated with VAR(1) methodology.
+
+### Tests
+- `test_rate_model_var.py` — 24 new tests: shape, reproducibility, fitting internals, Cholesky
+  structure, shrinkage, parameter validation, reverse/roll transforms, and MC integration.
+- `test_export.py` — new export regression tests.
+
+---
+
 ## Version 2026.02.24
 
 ### HFP (Household Financial Profile)
