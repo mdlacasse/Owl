@@ -182,7 +182,8 @@ def caseIsNotMCReady():
     """
     Check that rates are set to a stochastic method before MC run.
     """
-    return caseIsNotRunReady() or getCaseKey("rateType") != "varying" or getCaseKey("varyingType") not in STOCHASTIC_METHODS
+    return (caseIsNotRunReady() or getCaseKey("rateType") != "varying"
+            or getCaseKey("varyingType") not in STOCHASTIC_METHODS)
 
 
 def currentCaseDic() -> dict:

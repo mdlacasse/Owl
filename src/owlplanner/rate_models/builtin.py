@@ -114,7 +114,10 @@ class UserRateModel(BaseRateModel):
 
 class HistoricalRateModel(BaseRateModel):
     model_name = "historical"
-    description = "Replays the exact year-by-year returns from the historical window in order. Deterministic — best for backtesting."
+    description = (
+        "Replays the exact year-by-year returns from the historical window in order. "
+        "Deterministic — best for backtesting."
+    )
     deterministic = True
     constant = False
     required_parameters = {
@@ -190,7 +193,10 @@ class HistoricalAverageRateModel(BaseRateModel):
 
 class StochasticRateModel(BaseRateModel):
     model_name = "stochastic"
-    description = "Samples from a multivariate normal distribution with means, volatilities, and correlations you specify below."
+    description = (
+        "Samples from a multivariate normal distribution with means, volatilities, "
+        "and correlations you specify below."
+    )
     deterministic = False
     constant = False
     required_parameters = {
@@ -265,7 +271,10 @@ class StochasticRateModel(BaseRateModel):
 
 class HistochasticRateModel(BaseRateModel):
     model_name = "histochastic"
-    description = "Samples from a multivariate normal distribution fitted to the selected historical window. Parametric and Gaussian, parameters grounded in history."
+    description = (
+        "Samples from a multivariate normal distribution fitted to the selected historical window. "
+        "Parametric and Gaussian, parameters grounded in history."
+    )
     deterministic = False
     constant = False
     required_parameters = {
