@@ -730,8 +730,8 @@ automatically translated to `gaussian` when loaded.)*
 
 **`lognormal`** — Like `gaussian`, the mean returns, volatilities, and cross-asset
 correlations are **user-supplied**. However, samples are drawn from a **log-normal**
-distribution: arithmetic parameters are converted to log-space ($\mu_Z$, $\Sigma_Z$), a multivariate
-normal is sampled in log-space, and returns are recovered as $R = \exp(Z) - 1$. Advantages
+distribution: arithmetic parameters are converted to log-space ($\\mu_Z$, $\\Sigma_Z$), a multivariate
+normal is sampled in log-space, and returns are recovered as $R = \\exp(Z) - 1$. Advantages
 over `gaussian`: returns are strictly bounded below by −100% (no total-loss artefacts),
 the distribution is naturally right-skewed (large gains more probable than large losses),
 and it is consistent with **Geometric Brownian Motion** — the foundation of most option
@@ -951,7 +951,7 @@ The *Advanced options* expander contains:
 - *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*
 - *Disallow same-year Roth conversions and tax-free withdrawals*
 - *Disallow cash-flow surpluses in the last two years of the plan*
-- *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\Psi$.
+- *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
 - *Solver* selection (default, HiGHS, PuLP/CBC, PuLP/HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
