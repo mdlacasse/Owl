@@ -129,7 +129,7 @@ preserving stationarity."""
                 "0 means no linear relationship.")
 
     st.markdown("#### :orange[Type of Rates]")
-    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    col1, col2, col3 = st.columns([1,1,2], gap="large", vertical_alignment="bottom")
     with col1:
         helpmsg = "Rates can be constant for the duration of the plan or change annually."
         kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates, help=helpmsg)
@@ -142,6 +142,7 @@ preserving stationarity."""
         with col2:
             fxType = kz.getSelectbox("Select constant rates", fixedChoices, "fixedType", updateFixedRates,
                                      help=helpFixed)
+        with col3:
             st.caption(owb.getMethodDescription(fxType))
 
         st.divider()
@@ -174,6 +175,7 @@ preserving stationarity."""
         with col2:
             varyingType = kz.getSelectbox("Select varying rates", varyingChoices, "varyingType",
                                           callback=updateRates, help=helpVarying)
+        with col3:
             st.caption(owb.getMethodDescription(varyingType))
 
     else:
