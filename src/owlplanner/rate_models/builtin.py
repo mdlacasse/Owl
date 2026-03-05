@@ -40,7 +40,7 @@ def _validate_historical_range(frm: int, to: int) -> None:
 
 class DefaultRateModel(BaseRateModel):
     model_name = "default"
-    description = "30-year trailing historical average deterministic rates."
+    description = "Fixed rates equal to the 30-year trailing historical average. A reasonable middle-ground assumption."
     deterministic = True
     constant = True
     required_parameters = {}
@@ -53,7 +53,7 @@ class DefaultRateModel(BaseRateModel):
 
 class OptimisticRateModel(BaseRateModel):
     model_name = "optimistic"
-    description = "Optimistic fixed rates based on industry forecasts."
+    description = "Bullish fixed rates based on industry forecasts for the next decade."
     deterministic = True
     constant = True
     required_parameters = {}
@@ -66,7 +66,7 @@ class OptimisticRateModel(BaseRateModel):
 
 class ConservativeRateModel(BaseRateModel):
     model_name = "conservative"
-    description = "Conservative fixed rate assumptions."
+    description = "Pessimistic but plausible fixed rates. Use for stress-testing worst-case scenarios."
     deterministic = True
     constant = True
     required_parameters = {}
@@ -83,7 +83,7 @@ class ConservativeRateModel(BaseRateModel):
 
 class UserRateModel(BaseRateModel):
     model_name = "user"
-    description = "User-specified fixed annual rates (percent)."
+    description = "Enter your own fixed annual returns for each asset class below."
     deterministic = True
     constant = True
     required_parameters = {
@@ -114,7 +114,7 @@ class UserRateModel(BaseRateModel):
 
 class HistoricalRateModel(BaseRateModel):
     model_name = "historical"
-    description = "Historical year-by-year returns over selected range."
+    description = "Replays the exact year-by-year returns from the historical window in order. Deterministic — best for backtesting."
     deterministic = True
     constant = False
     required_parameters = {
@@ -151,7 +151,7 @@ class HistoricalRateModel(BaseRateModel):
 
 class HistoricalAverageRateModel(BaseRateModel):
     model_name = "historical average"
-    description = "Fixed rates equal to historical average over selected range."
+    description = "Fixed rates equal to the arithmetic mean over the selected historical window."
     deterministic = True
     constant = True
     required_parameters = {
@@ -190,7 +190,7 @@ class HistoricalAverageRateModel(BaseRateModel):
 
 class StochasticRateModel(BaseRateModel):
     model_name = "stochastic"
-    description = "Multivariate normal stochastic model using user-provided mean and volatility."
+    description = "Samples from a multivariate normal distribution with means, volatilities, and correlations you specify below."
     deterministic = False
     constant = False
     required_parameters = {
@@ -265,7 +265,7 @@ class StochasticRateModel(BaseRateModel):
 
 class HistochasticRateModel(BaseRateModel):
     model_name = "histochastic"
-    description = "Multivariate normal model using historical mean and covariance."
+    description = "Samples from a multivariate normal distribution fitted to the selected historical window. Parametric and Gaussian, parameters grounded in history."
     deterministic = False
     constant = False
     required_parameters = {

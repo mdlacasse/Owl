@@ -684,6 +684,25 @@ def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
     )
 
 
+def getSelectbox(text, choices, nkey, callback=setpull, disabled=False, help=None):
+    widget_key = genCaseKey(nkey)
+    case_value = getCaseKey(nkey)
+    if widget_key in ss:
+        widget_value = ss[widget_key]
+    elif case_value is not None:
+        widget_value = case_value
+    else:
+        widget_value = choices[0]
+    try:
+        index = choices.index(widget_value)
+    except ValueError:
+        st.error(f"Value '{widget_value}' not available. Defaulting to '{choices[0]}'.")
+        widget_value = choices[0]
+        index = 0
+    return st.selectbox(text, choices, index=index, on_change=callback, args=[nkey],
+                        disabled=disabled, help=help, key=widget_key)
+
+
 def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
     widget_key = genCaseKey(nkey)
     initGlobalKey(widget_key, getCaseKey(nkey))

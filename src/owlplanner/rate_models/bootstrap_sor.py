@@ -39,8 +39,8 @@ class BootstrapSORRateModel(BaseRateModel):
     model_name = "bootstrap_sor"
 
     description = (
-        "Historical bootstrap model for sequence-of-returns analysis. "
-        "Supports IID, block, circular, and stationary bootstrap variants.  Defaults to IID."
+        "Resamples actual historical years to build synthetic sequences, preserving fat tails and extreme events. "
+        "Choose IID, block, circular, or stationary resampling strategy."
     )
 
     more_info = "https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/bootstrap_sor.md"

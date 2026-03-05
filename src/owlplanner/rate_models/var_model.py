@@ -45,9 +45,8 @@ class VARRateModel(BaseRateModel):
     model_name = "var"
 
     description = (
-        "Parametric VAR(1) model that captures year-to-year serial correlations "
-        "(momentum, mean-reversion) and contemporaneous cross-asset correlations. "
-        "Fit by OLS on a historical window; generates unlimited synthetic sequences."
+        "VAR(1) model fitted by Ordinary Least Squares (OLS) on the historical window. "
+        "Captures momentum and mean-reversion — each year's returns depend on the previous year across all four asset classes."
     )
 
     more_info = "https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/README.md"

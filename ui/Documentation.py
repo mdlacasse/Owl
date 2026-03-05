@@ -697,6 +697,11 @@ Constant rates stay the same for every year of the plan. Choose from:
 A roundup of expert stock and bond return forecasts can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition).
 
+> **Note:** Constant rates produce a single deterministic outcome and do not capture
+> **sequence-of-returns risk** — the danger that poor returns early in retirement can
+> permanently deplete a portfolio even if the long-run average is favorable. For a more
+> realistic assessment of that risk, use one of the varying stochastic methods below.
+
 ---
 ##### Varying rates
 Varying rates change year by year, enabling realistic uncertainty modeling.
@@ -749,6 +754,22 @@ This means momentum (positive serial correlation) and mean-reversion (negative s
 correlation) observed in the historical data are naturally reproduced. `var` is the most
 statistically sophisticated method and is particularly appropriate when the sequence and
 persistence of returns matter, as is often the case for sequence-of-returns risk analysis.
+
+---
+##### Method comparison
+
+| Method | Rate type | Character | Pros | Cons |
+|---|---|---|---|---|
+| `conservative` | Constant | Deterministic | Simple; clearly stress-tests the downside | Single outcome; no uncertainty modeling |
+| `default` | Constant | Deterministic | Reasonable middle-ground baseline | Single outcome; no uncertainty modeling |
+| `optimistic` | Constant | Deterministic | Simple; tests bullish scenario | Single outcome; no uncertainty modeling |
+| `historical average` | Constant | Deterministic | Grounded in a specific historical period | Sensitive to choice of historical window |
+| `user` | Constant | Deterministic | Full control over all return assumptions | Accuracy depends entirely on user inputs |
+| `historical` | Varying | Deterministic | Exact historical replay; no modeling assumptions | No Monte Carlo; one path per start year |
+| `histochastic` | Varying | Stochastic | History-grounded statistics; no user parameters needed | Assumes normally distributed returns; draws are independent |
+| `stochastic` | Varying | Stochastic | Full control over means, volatilities, and correlations | Accuracy depends entirely on user inputs |
+| `bootstrap_sor` | Varying | Stochastic | Preserves fat tails and extreme historical events | IID mode discards year-to-year serial structure |
+| `var` | Varying | Stochastic | Captures momentum and mean-reversion across all asset classes | More complex; sensitive to choice of historical window |
 
 ---
 ##### Historical range

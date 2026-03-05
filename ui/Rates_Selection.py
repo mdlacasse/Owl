@@ -140,8 +140,9 @@ preserving stationarity."""
             updateFixedRates(fxType, False)
 
         with col2:
-            fxType = kz.getRadio("Select constant rates", fixedChoices, "fixedType", updateFixedRates,
-                                 help=helpFixed)
+            fxType = kz.getSelectbox("Select constant rates", fixedChoices, "fixedType", updateFixedRates,
+                                     help=helpFixed)
+            st.caption(owb.getMethodDescription(fxType))
 
         st.divider()
         ro = fxType != "user"
@@ -171,8 +172,9 @@ preserving stationarity."""
 
     elif kz.getCaseKey("rateType") == "varying":
         with col2:
-            kz.getRadio("Select varying rates", varyingChoices, "varyingType", callback=updateRates,
-                        help=helpVarying)
+            varyingType = kz.getSelectbox("Select varying rates", varyingChoices, "varyingType",
+                                          callback=updateRates, help=helpVarying)
+            st.caption(owb.getMethodDescription(varyingType))
 
     else:
         st.error("Logic error")

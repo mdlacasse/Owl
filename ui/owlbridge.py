@@ -56,6 +56,11 @@ def getFixedRates(method):
     return get_fixed_rate_values(method)
 
 
+def getMethodDescription(method):
+    from owlplanner.rate_models.loader import get_rate_model_metadata
+    return get_rate_model_metadata(method).get("description", "")
+
+
 def createPlan():
     name = kz.currentCaseName()
     inames = [kz.getCaseKey("iname0")]
