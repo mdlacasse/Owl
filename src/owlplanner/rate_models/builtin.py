@@ -40,7 +40,8 @@ def _validate_historical_range(frm: int, to: int) -> None:
 
 class Trailing30RateModel(BaseRateModel):
     model_name = "trailing-30"
-    description = "Fixed rates equal to the 30-year trailing historical average. A reasonable middle-ground assumption."
+    description = ("Fixed rates equal to the 30-year trailing historical average."
+                   " A long-run backward-looking assumption.")
     deterministic = True
     constant = True
     required_parameters = {}
