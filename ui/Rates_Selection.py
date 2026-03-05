@@ -102,17 +102,7 @@ Unless historical, S&P 500 can be used to represent any mix of equities
     helpFixed = """A 2025 roundup of expert opinions on stock and bond return
 forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition)."""
-    helpVarying = """Select the method used to generate annual rates:
-
-- **historical**: exact year-by-year returns from the selected historical range, applied sequentially.
-- **histochastic**: randomly draws years from the selected historical range, preserving its empirical \
-mean and covariance.
-- **stochastic**: generates rates from a multivariate normal distribution using user-supplied means, \
-volatilities, and correlations.
-- **bootstrap_sor**: resamples blocks or individual years from the historical range \
-(IID, block, circular, or stationary bootstrap).
-- **var**: parametric VAR(1) model capturing year-to-year serial correlations (momentum, \
-mean-reversion) fitted on the selected historical window."""
+    helpVarying = "Select the method used to generate annual rates of return. See the description on the right."
     helpYfrm = "First year of historical data included in the range. Must be at least 2 years before the ending year."
     helpYto = ("Last year of historical data included in the range. "
                "For *historical* method, fixed by the starting year and plan horizon. "
