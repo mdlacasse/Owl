@@ -687,10 +687,10 @@ Owl tracks four asset classes:
 ---
 ##### Constant rates
 Constant rates stay the same for every year of the plan. Choose from:
-- `trailing-30` — fixed rates equal to the 30-year trailing historical average. A reasonable middle-ground assumption.
+- `trailing-30` — fixed rates equal to the 30-year trailing geometric mean of annual returns. A reasonable middle-ground assumption.
 - `conservative` — a pessimistic but plausible set of forecasts.
 - `optimistic` — a more bullish set of forecasts.
-- `historical average` — arithmetic means computed over a selectable historical window
+- `historical average` — geometric means computed over a selectable historical window
   (1928–present by default). Because averages can be negative when the window is narrow,
   the rate fields allow negative values in this mode.
 - `user` — enter your own values for each asset class.
@@ -738,7 +738,7 @@ and it is consistent with **Geometric Brownian Motion** — the foundation of mo
 pricing theory.
 
 **`histolognormal`** — Like `histogaussian` but fits a **log-normal** model to the
-historical window. Log-returns $\ln(1 + r)$ are computed from history; their mean and
+historical window. Log-returns $\\ln(1 + r)$ are computed from history; their mean and
 covariance are estimated directly in log-space, and samples are drawn from that fitted
 distribution and exponentiated. Inherits all the right-skew and lower-bound advantages
 of `lognormal` while deriving its parameters from history rather than user input.
@@ -789,7 +789,7 @@ contagion are important, such as for retirement scenarios that include equity-he
 
 | Method | Rate type | Character | Pros | Cons |
 |---|---|---|---|---|
-| `trailing-30` | Constant | Deterministic | Long-run historical average; no parameters | Single outcome; no uncertainty modeling |
+| `trailing-30` | Constant | Deterministic | Long-run geometric mean of trailing 30 years; no parameters | Single outcome; no uncertainty modeling |
 | `conservative` | Constant | Deterministic | Simple; clearly stress-tests the downside | Single outcome; no uncertainty modeling |
 | `optimistic` | Constant | Deterministic | Simple; tests bullish scenario | Single outcome; no uncertainty modeling |
 | `historical average` | Constant | Deterministic | Grounded in a specific historical period | Sensitive to choice of historical window |
@@ -956,7 +956,7 @@ The *Advanced options* expander contains:
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
-Choose *value* to pin it to a fixed fraction $\Psi \in [0, 0.85]$: use 0.0 for low provisional income,
+Choose *value* to pin it to a fixed fraction $\\Psi \\in [0, 0.85]$: use 0.0 for low provisional income,
 0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
 exactly within the LP using binary variables; this can be slower and require additional configuration
 like increasing the `gap` to ~2% using the *Extra solver options* (i.e. `{"gap":2e-2}`).

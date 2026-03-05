@@ -19,6 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+# flake8: noqa: E402
 
 import streamlit as st
 import pandas as pd
@@ -26,6 +27,11 @@ from datetime import date
 import copy
 import re
 import json
+import sys
+
+sys.path.insert(0, "./src")
+sys.path.insert(0, "../src")
+
 from owlplanner.rate_models.constants import STOCHASTIC_METHODS
 
 

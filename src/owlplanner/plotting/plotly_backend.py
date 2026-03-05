@@ -315,7 +315,7 @@ class PlotlyBackend(PlotBackend):
         return fig
 
     def plot_rates_distributions(self, frm, to, SP500, BondsBaa, TNotes, Inflation, FROM):
-        """Plot histograms of the rates distributions."""
+        """Plot histograms of the rates distributions. Annotated mean is geometric (compound) mean."""
         # Create subplot figure
         fig = make_subplots(
             rows=1, cols=4,
@@ -340,7 +340,7 @@ class PlotlyBackend(PlotBackend):
 
         # Add histograms
         for i, dat in enumerate(data):
-            mean_val = np.mean(dat)
+            mean_val = u.geometric_mean_pct(dat)
             label = f"<>: {u.pc(mean_val, 2, 1)}"
 
             fig.add_trace(

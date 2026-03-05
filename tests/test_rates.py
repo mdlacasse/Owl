@@ -42,13 +42,13 @@ def _model_config(method, **kwargs):
 
 
 def test_trailing_30_matches_30yr_historical_average():
-    """Verify trailing-30 rates equal the 30-year trailing average from historical data."""
+    """Verify trailing-30 rates equal the 30-year trailing geometric mean from historical data."""
     means, _, _, _ = getRatesDistributions(frm=TO - 29, to=TO, in_percent=False)
     expected = np.array(means)
     actual = np.array(get_fixed_rates_decimal("trailing-30"))
     np.testing.assert_array_almost_equal(
         actual, expected, decimal=5,
-        err_msg="trailing-30 must match 30-year trailing avg from historical rates",
+        err_msg="trailing-30 must match 30-year trailing geometric mean from historical rates",
     )
 
 
@@ -72,7 +72,7 @@ class TestBuiltinRateModelInitialization:
         assert series.shape == (1, 4)
 
     def test_trailing_30_rates_values(self):
-        """Test that trailing-30 rates match computed 30-year historical average."""
+        """Test that trailing-30 rates match computed 30-year geometric mean."""
         m = BuiltinRateModel(_model_config("trailing-30"))
         series = m.generate(1)
         expected = np.array(get_fixed_rates_decimal("trailing-30"))

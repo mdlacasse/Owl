@@ -117,7 +117,7 @@ def generate_historical_average_series(
     mylog=None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Generate Nx4 fixed series from historical average, and return distribution params.
+    Generate Nx4 fixed series from historical geometric mean, and return distribution params.
 
     Returns:
         (rate_series, means, stdev, corr) - series in decimal, params for metadata

@@ -40,8 +40,8 @@ def _validate_historical_range(frm: int, to: int) -> None:
 
 class Trailing30RateModel(BaseRateModel):
     model_name = "trailing-30"
-    description = ("Fixed rates equal to the 30-year trailing historical average."
-                   " A long-run backward-looking assumption.")
+    description = ("Fixed rates equal to the 30-year trailing geometric mean of annual returns. "
+                   "A long-run backward-looking assumption.")
     deterministic = True
     constant = True
     required_parameters = {}
@@ -155,7 +155,7 @@ class HistoricalRateModel(BaseRateModel):
 
 class HistoricalAverageRateModel(BaseRateModel):
     model_name = "historical average"
-    description = "Fixed rates equal to the arithmetic mean over the selected historical window."
+    description = "Fixed rates equal to the geometric mean over the selected historical window."
     deterministic = True
     constant = True
     required_parameters = {

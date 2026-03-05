@@ -2148,14 +2148,14 @@ $\tau_{kn} = \tau_k$ for all $n$.
 Four variants are supported:
 \begin{description}[leftmargin=4em,style=multiline]
 \item [\texttt{default}]
-    Trailing 30-year historical averages, updated annually.
+    Trailing 30-year geometric mean of annual returns, updated annually.
 \item [\texttt{conservative} and \texttt{optimistic}]
     Preset rates based on long-term expert forecasts.
 \item [\texttt{historical average}]
-    The arithmetic mean over the selected historical window,
+    The geometric mean over the selected historical window,
     \begin{equation}
-        \tau_k = \frac{1}{N_w}\sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}
-                 r_{k,y}.
+        \tau_k = \exp\biggl(\frac{1}{N_w}\sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}
+                 \ln(1 + r_{k,y})\biggr) - 1.
     \end{equation}
 \item [\texttt{user}]
     Freely specified by the user for each asset class.

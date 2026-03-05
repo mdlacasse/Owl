@@ -327,7 +327,7 @@ class MatplotlibBackend(PlotBackend):
         return fig
 
     def plot_rates_distributions(self, frm, to, SP500, BondsBaa, TNotes, Inflation, FROM):
-        """Plot histograms of the rates distributions."""
+        """Plot histograms of the rates distributions. Annotated mean is geometric (compound) mean."""
         title = f"Rates from {frm} to {to}"
         # Bring year values to indices.
         frm -= FROM
@@ -345,7 +345,8 @@ class MatplotlibBackend(PlotBackend):
         data = [dat0, dat1, dat2, dat3]
         for ax_i, dat, subtitle in zip(ax, data, RATE_DISPLAY_NAMES_SHORT):
             ax_i.set_title(subtitle)
-            ax_i.hist(dat, bins=nbins, label="<>: " + u.pc(np.mean(dat), 2, 1))
+            mean_val = u.geometric_mean_pct(dat)
+            ax_i.hist(dat, bins=nbins, label="<>: " + u.pc(mean_val, 2, 1))
             ax_i.legend(loc="upper left", fontsize=8, framealpha=0.7)
 
         return fig

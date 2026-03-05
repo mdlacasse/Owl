@@ -29,6 +29,7 @@ import os
 import sys
 
 from owlplanner import mylogging as log
+from owlplanner.utils import geometric_mean_pct
 
 # All data goes from 1928 to 2025. Update the TO value when data
 # becomes available for subsequent years.
@@ -151,19 +152,20 @@ TBills = df["T-Bills"]
 # Inflation rate as U.S. CPI index (%) since 1928.
 Inflation = df["Inflation"]
 
-# 30-year trailing average (decimal). Computed from historical data for S&P 500,
-# Bonds Baa, T-Notes, Inflation. Single source of truth for "trailing-30" method.
+# 30-year trailing average (decimal). Geometric mean of annual returns over the last 30 years.
+# Single source of truth for "trailing-30" method.
 _TRAILING_30_YEARS = 30
 _trailing_data = df[["S&P 500", "Bonds Baa", "T-Notes", "Inflation"]].tail(_TRAILING_30_YEARS)
-_TRAILING_30_RATES = np.array(_trailing_data.mean().values / 100.0, dtype=float)
+_TRAILING_30_RATES = np.asarray(geometric_mean_pct(_trailing_data.values, axis=0) / 100.0, dtype=float)
 
 
 def getRatesDistributions(frm=None, to=None, mylog=None, in_percent=True, *, df=None):
     """
-    Pre-compute normal distribution parameters for the series above.
-    This calculation takes into account the correlations between
-    the different rates. Function returns means, stdev, correlation matrix,
-    and covariance matrix.
+    Pre-compute distribution parameters for the series above.
+    Means are the geometric mean of annual returns over the window (the constant
+    annual return that would compound to the same multi-year result). Stdev, corr,
+    and covar are computed from the same data. This calculation takes into account
+    the correlations between the different rates.
 
     By default (in_percent=True), means and stdev are returned in percent
     (e.g. 7.0 = 7%), matching the units expected by setRates(). Pass
@@ -226,15 +228,15 @@ def getRatesDistributions(frm=None, to=None, mylog=None, in_percent=True, *, df=
             raise ValueError("DataFrame must have at least 2 rows for computing statistics.")
 
     # ── Shared statistics block ───────────────────────────────────────────────
-    means = data.mean()
+    # Geometric mean return: use shared helper; convert from percent to decimal.
+    means = np.asarray(geometric_mean_pct(data.values, axis=0) / 100.0, dtype=float)
     stdev = data.std()
     covar = data.cov()
 
-    mylog.vprint("means: (%)\n", means)
+    mylog.vprint("means: (%)\n", means * 100.0)
     mylog.vprint("standard deviation: (%)\n", stdev)
 
-    # Convert to NumPy array and from percent to decimal.
-    means = np.array(means) / 100.0
+    # means are already decimal; stdev/covar in percent² — convert to decimal.
     stdev = np.array(stdev) / 100.0
     covar = np.array(covar) / 10000.0
     # Build correlation matrix by dividing by the stdev for each column and row.

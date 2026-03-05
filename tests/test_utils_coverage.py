@@ -14,6 +14,72 @@ import pandas as pd
 import owlplanner.utils as utils
 
 
+def test_geometric_mean_pct_constant():
+    """Geometric mean of constant returns equals that constant."""
+    arr = np.array([10.0, 10.0, 10.0])  # 10% every year
+    result = utils.geometric_mean_pct(arr)
+    assert result == pytest.approx(10.0, rel=1e-10)
+
+
+def test_geometric_mean_pct_two_periods():
+    """Geometric mean of 0% and 20% is sqrt(1.2)-1 in percent."""
+    arr = np.array([0.0, 20.0])
+    result = utils.geometric_mean_pct(arr)
+    # (1 * 1.2)^0.5 - 1 = sqrt(1.2) - 1 ≈ 0.095445, so ~9.5445%
+    expected_pct = 100.0 * (np.sqrt(1.2) - 1.0)
+    assert result == pytest.approx(expected_pct, rel=1e-9)
+
+
+def test_geometric_mean_pct_axis0():
+    """With axis=0, returns per-column geometric mean (n_years, n_assets)."""
+    # Two assets, three years: asset0 = [0, 0, 0] -> 0%; asset1 = [0, 20, 0] -> same as two_periods
+    arr = np.array([[0.0, 0.0], [0.0, 20.0], [0.0, 0.0]])
+    result = utils.geometric_mean_pct(arr, axis=0)
+    assert result.shape == (2,)
+    assert result[0] == pytest.approx(0.0, rel=1e-10)
+    expected_1 = 100.0 * (np.cbrt(1.0 * 1.2 * 1.0) - 1.0)  # (1*1.2*1)^(1/3)-1
+    assert result[1] == pytest.approx(expected_1, rel=1e-9)
+
+
+def test_geometric_mean_pct_axis_none_flattens():
+    """With axis=None (default), 2d array is flattened and returns scalar."""
+    arr = np.array([[10.0, 10.0], [10.0, 10.0]])
+    result = utils.geometric_mean_pct(arr)
+    assert isinstance(result, float)
+    assert result == pytest.approx(10.0, rel=1e-10)
+
+
+def test_geometric_mean_pct_single_element():
+    """Single element returns that value."""
+    assert utils.geometric_mean_pct(np.array([7.0])) == pytest.approx(7.0, rel=1e-10)
+    assert utils.geometric_mean_pct(np.array([[5.0, 6.0]]), axis=0) == pytest.approx([5.0, 6.0], rel=1e-10)
+
+
+def test_geometric_mean_pct_empty():
+    """Empty array returns nan (scalar) or array of nans."""
+    result_none = utils.geometric_mean_pct(np.array([]))
+    assert np.isnan(result_none)
+    result_axis0 = utils.geometric_mean_pct(np.zeros((0, 4)), axis=0)
+    assert result_axis0.shape == (4,)
+    assert np.all(np.isnan(result_axis0))
+
+
+def test_geometric_mean_pct_clipping_below_neg100():
+    """Rates at or below -100% are clipped so log is defined."""
+    arr = np.array([10.0, -100.0])  # -100% clips to 1+r >= 1e-10
+    result = utils.geometric_mean_pct(arr)
+    assert np.isfinite(result)
+    assert result < 0  # Geometric mean should be negative
+    # With clip, factor for -100% is 1e-10; mean log is (log(1.1)+log(1e-10))/2, exp(...)-1 is negative
+    assert result >= -100.0
+
+
+def test_geometric_mean_pct_list_input():
+    """Accept list input (converted to array)."""
+    result = utils.geometric_mean_pct([10.0, 10.0])
+    assert result == pytest.approx(10.0, rel=1e-10)
+
+
 def test_d_nan():
     """Test d function with NaN value."""
     result = utils.d(np.nan)

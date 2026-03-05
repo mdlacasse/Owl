@@ -57,18 +57,19 @@ def getHFP(exdir, case, check_exists=True):
 # Expected objective function values for reproducibility testing
 # Format: {case_name: {"net_spending_basis": value, "bequest": value}}
 # Values are in today's dollars and rounded to the nearest dollar
+# Updated after switching historical average from arithmetic to geometric mean (Mar 2026).
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100_000,
-            "bequest": 8_057_784,
+            "bequest": 5_812_386,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_711,
+            "net_spending_basis": 91_713,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 87_155,
+            "net_spending_basis": 80_710,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
@@ -84,14 +85,14 @@ elif platform in ["win32", "linux"]:
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100_000,
-            "bequest": 8_057_784,
+            "bequest": 5_812_386,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_711,
+            "net_spending_basis": 91_713,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 87_155,
+            "net_spending_basis": 80_710,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {

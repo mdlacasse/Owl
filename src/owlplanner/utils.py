@@ -47,6 +47,40 @@ def pc(value, f=1, mul=100) -> str:
     return f"{mul * value:.{f}f}%"
 
 
+def geometric_mean_pct(arr, axis=None):
+    """
+    Geometric mean of annual returns, with input and output in percent.
+
+    For return rates r_i in percent, computes
+    100 * (exp(mean(log(1 + r_i/100))) - 1).
+    Appropriate for compound returns; use for consistency with getRatesDistributions.
+    Values at or below -100%% are clipped so that 1 + r/100 is at least 1e-10
+    to avoid log(0).
+
+    Parameters
+    ----------
+    arr : array-like
+        Return rates in percent (e.g. 7.0 for 7%).
+    axis : int, optional
+        Axis along which to compute the mean. None (default) flattens and returns
+        a scalar. Use axis=0 for a (n_years, n_assets) array to get per-asset
+        geometric means as a 1d array.
+
+    Returns
+    -------
+    float or np.ndarray
+        Geometric mean in percent. Scalar if axis is None, else 1d array.
+    """
+    arr = np.asarray(arr, dtype=float)
+    if arr.size == 0:
+        return np.nan if axis is None else np.full(arr.shape[1] if arr.ndim > 1 else 0, np.nan, dtype=float)
+    # log1p(x) = log(1+x) for better accuracy when x is small; clip so 1+x >= 1e-10
+    x = np.clip(arr / 100.0, -1.0 + 1e-10, None)
+    log_mean = np.mean(np.log1p(x), axis=axis)
+    out = 100.0 * (np.exp(log_mean) - 1.0)
+    return float(out) if axis is None else np.asarray(out, dtype=float)
+
+
 def rescale(vals, fac):
     """
     Rescale all elements of a list or a NumPy array by factor fac.

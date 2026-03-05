@@ -21,7 +21,7 @@ method = "conservative"
 
 #### `trailing-30`
 
-Fixed rates equal to the 30-year trailing historical average. A reasonable middle-ground assumption.
+Fixed rates equal to the 30-year trailing geometric mean of annual returns. A reasonable middle-ground assumption.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -36,7 +36,7 @@ method = "trailing-30"
 
 #### `historical average`
 
-Fixed rates equal to the arithmetic mean over the selected historical window.
+Fixed rates equal to the geometric mean over the selected historical window.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
