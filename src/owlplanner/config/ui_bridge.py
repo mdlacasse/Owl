@@ -205,6 +205,10 @@ def config_to_ui(diconf: dict) -> dict:
     dic["objective"] = "Net spending" if obj == "maxSpending" else "Bequest"
 
     rate_method = rs.get("method", "historical average")
+    if rate_method == "stochastic":
+        rate_method = "gaussian"  # backward compatibility
+    if rate_method == "histochastic":
+        rate_method = "histogaussian"  # backward compatibility
     if rate_method == "dataframe":
         logger.warning("Dataframe rate method is not supported in UI; mapping to 'user'.")
         rate_method = "user"
@@ -419,7 +423,7 @@ def _ui_rate_method_to_config(uidic: dict) -> str:
     rate_type = uidic.get("rateType", "constant")
     if rate_type == "constant":
         return uidic.get("fixedType", "historical average")
-    return uidic.get("varyingType", "histochastic")
+    return uidic.get("varyingType", "histogaussian")
 
 
 def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
@@ -433,7 +437,7 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
     elif method in METHODS_WITH_VALUES:
         # UI and config use percent; Plan converts to decimal at boundary.
         rs["values"] = [_get_ui(uidic, f"fxRate{k}", 0, float) for k in range(4)]
-    if method == "stochastic":
+    if method in ("gaussian", "lognormal"):
         rs["standard_deviations"] = [_get_ui(uidic, f"stdev{k}", 0, float) for k in range(4)]
         # Correlations: Pearson coefficient (-1 to 1). Standard in finance/statistics.
         rs["correlations"] = [_get_ui(uidic, f"corr{q}", 0, float) for q in range(1, 7)]

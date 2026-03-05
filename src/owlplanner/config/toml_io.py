@@ -22,8 +22,18 @@ def sanitize_config(diconf: dict, *, log_stream=None) -> None:
     Apply domain-specific sanitization to a loaded config dict (in place).
 
     Corrects values that may be invalid due to time passage (e.g. case from prior year).
+    Translates deprecated rate method aliases for backward compatibility.
     Add new rules here as they emerge.
     """
+    # Translate deprecated rate method aliases (backward compatibility)
+    rs = diconf.get("rates_selection")
+    if isinstance(rs, dict):
+        method = rs.get("method")
+        if method == "stochastic":
+            rs["method"] = "gaussian"
+        elif method == "histochastic":
+            rs["method"] = "histogaussian"
+
     so = diconf.get("solver_options")
     if so is None:
         return

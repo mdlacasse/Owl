@@ -6,7 +6,7 @@ The following rate models are available via the `method` field in `[rates_select
 
 #### `conservative`
 
-Conservative fixed rate assumptions.
+Pessimistic but plausible fixed rates. Use for stress-testing worst-case scenarios.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -21,7 +21,7 @@ method = "conservative"
 
 #### `default`
 
-30-year trailing historical average deterministic rates.
+Fixed rates equal to the 30-year trailing historical average. A reasonable middle-ground assumption.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -36,12 +36,12 @@ method = "default"
 
 #### `historical average`
 
-Fixed rates equal to historical average over selected range.
+Fixed rates equal to the arithmetic mean over the selected historical window.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"historical average"`) |
-| `from` | Yes | int |  |
+| `frm` | Yes | int |  |
 | `to` | Yes | int |  |
 
 **Example:**
@@ -49,13 +49,13 @@ Fixed rates equal to historical average over selected range.
 ```toml
 [rates_selection]
 method = "historical average"
-from = 1969
+frm = 1969
 to = 2002
 ```
 
 #### `optimistic`
 
-Optimistic fixed rates based on industry forecasts.
+Bullish fixed rates based on industry forecasts for the next decade.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -70,7 +70,7 @@ method = "optimistic"
 
 #### `user`
 
-User-specified fixed annual rates (percent).
+Enter your own fixed annual returns for each asset class below.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -89,32 +89,32 @@ values = [7.0, 4.5, 3.5, 2.5]
 
 #### `historical`
 
-Historical year-by-year returns over selected range.
+Replays the exact year-by-year returns from the historical window in order. Deterministic — best for backtesting.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"historical"`) |
-| `from` | Yes | int | Starting historical year (inclusive). |
-| `to` | No | int | Ending historical year (inclusive). Defaults to `from` if not provided. |
+| `frm` | Yes | int | Starting historical year (inclusive). |
+| `to` | No | int | Ending historical year (inclusive). Defaults to frm if not provided. |
 
 **Example:**
 
 ```toml
 [rates_selection]
 method = "historical"
-from = 1969
+frm = 1969
 ```
 
 ### :orange[Stochastic models]
 
 #### `bootstrap_sor`
 
-Historical bootstrap model for sequence-of-returns analysis. Supports IID, block, circular, and stationary bootstrap variants.  Defaults to IID. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/bootstrap_sor.md)
+Resamples actual historical years to build synthetic sequences, preserving fat tails and extreme events. Choose IID, block, circular, or stationary resampling strategy. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/bootstrap_sor.md)
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"bootstrap_sor"`) |
-| `from` | Yes | int | First historical year (inclusive). |
+| `frm` | Yes | int | First historical year (inclusive). |
 | `to` | Yes | int | Last historical year (inclusive). |
 | `bootstrap_type` | No | str | Type of bootstrap to perform. Defaults to iid |
 | `block_size` | No | int | Block length for block-based bootstraps. |
@@ -126,38 +126,57 @@ Historical bootstrap model for sequence-of-returns analysis. Supports IID, block
 ```toml
 [rates_selection]
 method = "bootstrap_sor"
-from = 1969
+frm = 1969
 to = 2002
 ```
 
-#### `var`
+#### `garch_dcc`
 
-Parametric VAR(1) model fitted on a historical window. Captures year-to-year serial correlations (momentum, mean-reversion) and contemporaneous cross-asset correlations. Generates unlimited synthetic sequences. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/README.md)
+DCC-GARCH(1,1) model (Engle 2002) fitted by two-step MLE on historical data. Captures time-varying volatility (GARCH) and time-varying cross-asset correlations (DCC). Produces realistic volatility clustering and correlation spikes during market stress. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/README.md)
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"var"`) |
-| `from` | Yes | int | First historical year used for fitting (inclusive). |
-| `to` | Yes | int | Last historical year used for fitting (inclusive). |
-| `shrink` | No | bool | If `true` (default), apply spectral shrinkage to the transition matrix when its spectral radius ≥ 0.95, ensuring stationarity. |
+| `method` | Yes | str | model name (`"garch_dcc"`) |
+| `frm` | Yes | int | First year of historical window. |
+| `to` | Yes | int | Last year of historical window. |
 
 **Example:**
 
 ```toml
 [rates_selection]
-method = "var"
-from = 1969
+method = "garch_dcc"
+frm = 1928
 to = 2024
+```
+
+#### `gaussian`
+
+Samples from a multivariate normal (Gaussian) distribution with means, volatilities, and correlations you specify below.
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"gaussian"`) |
+| `values` | Yes | list[float] | Mean returns in percent. |
+| `stdev` | Yes | list[float] | Standard deviations in percent. |
+| `corr` | No | 4x4 matrix or list[6] | Pearson correlation coefficient (-1 to 1). Matrix or upper-triangle off-diagonals. Standard in finance/statistics. |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "gaussian"
+values = [7.0, 4.5, 3.5, 2.5]
+stdev = [17.0, 8.0, 6.0, 2.0]
 ```
 
 #### `histochastic`
 
-Multivariate normal model using historical mean and covariance.
+Samples from a multivariate normal distribution fitted to the selected historical window. Parametric and Gaussian, parameters grounded in history.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"histochastic"`) |
-| `from` | Yes | int |  |
+| `frm` | Yes | int |  |
 | `to` | Yes | int |  |
 
 **Example:**
@@ -165,45 +184,82 @@ Multivariate normal model using historical mean and covariance.
 ```toml
 [rates_selection]
 method = "histochastic"
-from = 1969
+frm = 1969
 to = 2002
 ```
 
-#### `stochastic`
+#### `histolognormal`
 
-Multivariate normal stochastic model using user-provided mean and volatility.
+Fits a correlated log-normal model to the selected historical window and samples from it. Log-space parameters (mean and covariance of log-returns) are estimated directly from history. Returns are right-skewed and bounded below by -100%.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"stochastic"`) |
-| `values` | Yes | list[float] | Mean returns in percent. |
-| `standard_deviations` | Yes | list[float] | Standard deviations in percent. |
-| `correlations` | No | 4x4 matrix or list[6] | Pearson correlation coefficient (-1 to 1). Matrix or upper-triangle off-diagonals. Standard in finance/statistics. |
+| `method` | Yes | str | model name (`"histolognormal"`) |
+| `frm` | Yes | int |  |
+| `to` | Yes | int |  |
 
 **Example:**
 
 ```toml
 [rates_selection]
-method = "stochastic"
+method = "histolognormal"
+frm = 1928
+to = 2024
+```
+
+#### `lognormal`
+
+Samples from a correlated log-normal distribution with arithmetic means, volatilities, and correlations you specify below. Log-normal returns are strictly bounded below by -100% and are right-skewed, consistent with Geometric Brownian Motion theory.
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"lognormal"`) |
+| `values` | Yes | list[float] | Arithmetic mean returns in percent. |
+| `stdev` | Yes | list[float] | Standard deviations in percent. |
+| `corr` | No | 4x4 matrix or list[6] | Pearson correlation coefficient (-1 to 1). Matrix or upper-triangle off-diagonals. Standard in finance/statistics. |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "lognormal"
 values = [7.0, 4.5, 3.5, 2.5]
-standard_deviations = [17.0, 8.0, 6.0, 2.0]
+stdev = [17.0, 8.0, 6.0, 2.0]
+```
+
+#### `var`
+
+VAR(1) model fitted by Ordinary Least Squares (OLS) on the historical window. Captures momentum and mean-reversion — each year's returns depend on the previous year across all four asset classes. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/README.md)
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"var"`) |
+| `frm` | Yes | int | First historical year used for fitting (inclusive). |
+| `to` | Yes | int | Last historical year used for fitting (inclusive). |
+| `shrink` | No | bool | If True, apply spectral shrinkage to A when its spectral radius >= 0.95, ensuring stationarity. |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "var"
+frm = 1928
+to = 2024
 ```
 
 ### :orange[DataFrame model]
 
 #### `dataframe`
 
-Sequential or year-based rates read from a pandas DataFrame.
+Sequential rates read from a pandas DataFrame (no year column).
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"dataframe"`) |
 | `df` | Yes | pandas.DataFrame | Must contain columns: ['S&P 500','Bonds Baa','T-Notes','Inflation'] |
-| `n_years` | Yes | int | Number of years required for plan horizon. |
+| `n_years` | Yes | int | Number of years (rows) required for plan horizon. |
 | `offset` | No | int | Number of initial rows to skip before reading sequentially. |
-| `in_percent` | No | bool | If True (default), values are percent (7.0 = 7%) and divided by 100. Pass False if values are already decimal (0.07 = 7%). |
-| `from` | No | int | Starting year (if year column present). |
-| `to` | No | int | Ending year (if year column present). |
+| `in_percent` | No | bool | If True (default), DataFrame values are in percent (e.g. 7.0 = 7%) and are divided by 100 internally. Pass False if values are already in decimal (e.g. 0.07 = 7%). |
 
 **Example:**
 

@@ -31,7 +31,7 @@ class DataFrameRateModel(BaseRateModel):
 
     Rates are read sequentially from the DataFrame. Row order defines the
     sequence; no year column is used. Historical data with year indexing
-    is handled by built-in methods (e.g. historical, histochastic) which
+    is handled by built-in methods (e.g. historical, histogaussian) which
     read from the package's data directory.
     """
 

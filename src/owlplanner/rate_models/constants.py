@@ -29,16 +29,26 @@ RATE_METHODS_NO_REGEN = (
 )
 
 # Methods requiring frm/to year range.
-HISTORICAL_RANGE_METHODS = ("historical", "historical average", "histochastic", "bootstrap_sor", "var", "garch_dcc")
+HISTORICAL_RANGE_METHODS = (
+    "historical", "historical average", "histogaussian", "histolognormal",
+    "bootstrap_sor", "var", "garch_dcc",
+)
 
 # Methods using stochastic generation; need seed, support regenRates.
-STOCHASTIC_METHODS = ("stochastic", "histochastic", "bootstrap_sor", "var", "garch_dcc")
+STOCHASTIC_METHODS = (
+    "gaussian", "lognormal",
+    "histogaussian", "histolognormal",
+    "bootstrap_sor", "var", "garch_dcc",
+)
 
 # Methods that store user-provided values (for plan_to_config).
-METHODS_WITH_VALUES = ("user", "stochastic")
+METHODS_WITH_VALUES = ("user", "gaussian", "lognormal")
 
 # Methods the UI treats as "fixed" type (vs varying).
 FIXED_TYPE_UI = ("default", "conservative", "optimistic", "historical average", "user")
 
-# Methods the UI treats as "varying" type.
-VARYING_TYPE_UI = ("historical", "histochastic", "stochastic", "var", "bootstrap_sor", "garch_dcc")
+# Methods the UI treats as "varying" type (alphabetically ordered for selector).
+VARYING_TYPE_UI = (
+    "bootstrap_sor", "garch_dcc", "gaussian", "histogaussian",
+    "histolognormal", "historical", "lognormal", "var",
+)

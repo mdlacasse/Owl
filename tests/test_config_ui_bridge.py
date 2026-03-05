@@ -32,6 +32,20 @@ def test_sanitize_config_start_roth_past_year():
     assert "reset to" in log.getvalue()
 
 
+def test_sanitize_config_stochastic_translated_to_gaussian():
+    """sanitize_config translates deprecated method=stochastic to gaussian (backward compat)."""
+    diconf = {"rates_selection": {"method": "stochastic", "values": [7, 4, 3, 2]}}
+    sanitize_config(diconf)
+    assert diconf["rates_selection"]["method"] == "gaussian"
+
+
+def test_sanitize_config_histochastic_translated_to_histogaussian():
+    """sanitize_config translates deprecated method=histochastic to histogaussian (backward compat)."""
+    diconf = {"rates_selection": {"method": "histochastic", "from": 1970, "to": 1990}}
+    sanitize_config(diconf)
+    assert diconf["rates_selection"]["method"] == "histogaussian"
+
+
 def test_load_toml_start_roth_past_year_reset():
     """startRothConversions in the past is reset when config file is read (via sanitize_config)."""
     from datetime import date

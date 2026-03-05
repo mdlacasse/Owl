@@ -228,7 +228,7 @@ user
 historical
 historical average
 stochastic
-histochastic
+histogaussian
 ```
 
 These automatically map to the old `rates.py` implementation.

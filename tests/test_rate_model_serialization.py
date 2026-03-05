@@ -5,8 +5,8 @@ Covers:
 - Direct unit tests for StochasticRateModel.from_config / to_config
 - Direct unit tests for default BaseRateModel.from_config / to_config
 - DataFrameRateModel.to_config returning {}
-- Full plan → config → plan round-trip for stochastic and bootstrap_sor
-- config_to_plan with stochastic TOML keys (exercises the alias-normalization bug fix)
+- Full plan → config → plan round-trip for stochastic, lognormal, histolognormal, and bootstrap_sor
+- config_to_plan with stochastic and lognormal TOML keys (alias-normalization)
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 """
@@ -425,7 +425,8 @@ class TestStochasticRoundTrip:
         diconf = plan_to_config(p)
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
 
-        assert p2.rateMethod == "stochastic"
+        # method is canonicalized to "gaussian" when saved (stochastic is deprecated alias)
+        assert p2.rateMethod == "gaussian"
         assert p2.rateValues == pytest.approx([7.0, 4.0, 3.3, 2.8])
         assert p2.rateStdev == pytest.approx([17.0, 8.0, 10.0, 3.0])
 
@@ -467,6 +468,115 @@ class TestStochasticRoundTrip:
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
 
         assert np.allclose(p2.rateCorr, np.eye(4))
+
+
+# ===========================================================================
+# Lognormal config_to_plan + full round-trip
+# ===========================================================================
+
+class TestLognormalConfigToPlan:
+
+    def test_config_to_plan_with_toml_aliases(self):
+        """config_to_plan correctly processes standard_deviations for lognormal."""
+        rates = _base_rates_section("lognormal")
+        rates.update({
+            "values": [7.0, 4.5, 3.5, 2.5],
+            "standard_deviations": [17.0, 8.0, 6.0, 2.0],
+        })
+        plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
+
+        assert plan.rateMethod == "lognormal"
+        assert plan.tau_kn.shape == (4, plan.N_n)
+        assert plan.rateValues == pytest.approx([7.0, 4.5, 3.5, 2.5])
+        assert plan.rateStdev == pytest.approx([17.0, 8.0, 6.0, 2.0])
+
+
+class TestLognormalRoundTrip:
+
+    def test_values_and_stdev_preserved(self):
+        """plan → config → plan preserves rateValues and rateStdev for lognormal."""
+        p = _make_plan()
+        p.setRates("lognormal", values=[7.0, 4.5, 3.5, 2.5], stdev=[17.0, 8.0, 6.0, 2.0])
+
+        diconf = plan_to_config(p)
+        p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
+
+        assert p2.rateMethod == "lognormal"
+        assert p2.rateValues == pytest.approx([7.0, 4.5, 3.5, 2.5])
+        assert p2.rateStdev == pytest.approx([17.0, 8.0, 6.0, 2.0])
+
+    def test_config_contains_toml_names(self):
+        """plan_to_config writes standard_deviations for lognormal."""
+        p = _make_plan()
+        p.setRates("lognormal", values=[7.0, 4.5, 3.5, 2.5], stdev=[17.0, 8.0, 6.0, 2.0])
+
+        diconf = plan_to_config(p)
+        rates = diconf["rates_selection"]
+
+        assert rates["method"] == "lognormal"
+        assert "standard_deviations" in rates
+
+    def test_correlation_preserved(self):
+        """plan → config → plan preserves correlation matrix for lognormal."""
+        p = _make_plan()
+        corr_upper = [0.2, 0.1, 0.0, 0.3, 0.1, 0.2]
+        p.setRates(
+            "lognormal",
+            values=[7.0, 4.5, 3.5, 2.5],
+            stdev=[17.0, 8.0, 6.0, 2.0],
+            corr=corr_upper,
+        )
+
+        diconf = plan_to_config(p)
+        p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
+
+        assert np.allclose(p.rateCorr, p2.rateCorr, atol=1e-9)
+
+
+# ===========================================================================
+# Histolognormal config_to_plan + full round-trip
+# ===========================================================================
+
+class TestHistolognormalConfigToPlan:
+
+    def test_config_to_plan_with_from_alias(self):
+        """config_to_plan correctly processes TOML 'from' key for histolognormal."""
+        rates = _base_rates_section("histolognormal")
+        rates.update({"from": 1950, "to": 2020})
+        plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
+
+        assert plan.rateMethod == "histolognormal"
+        assert plan.tau_kn.shape == (4, plan.N_n)
+        assert plan.rateFrm == 1950
+        assert plan.rateTo == 2020
+
+
+class TestHistolognormalRoundTrip:
+
+    def test_frm_to_preserved(self):
+        """plan → config → plan preserves rateFrm and rateTo for histolognormal."""
+        p = _make_plan()
+        p.setRates("histolognormal", frm=1950, to=2020)
+
+        diconf = plan_to_config(p)
+        p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
+
+        assert p2.rateMethod == "histolognormal"
+        assert p2.rateFrm == 1950
+        assert p2.rateTo == 2020
+
+    def test_config_contains_from_key(self):
+        """plan_to_config writes 'from' (not 'frm') for histolognormal."""
+        p = _make_plan()
+        p.setRates("histolognormal", frm=1950, to=2020)
+
+        diconf = plan_to_config(p)
+        rates = diconf["rates_selection"]
+
+        assert rates["method"] == "histolognormal"
+        assert "from" in rates
+        assert rates["from"] == 1950
+        assert rates["to"] == 2020
 
 
 # ===========================================================================

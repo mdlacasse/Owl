@@ -145,6 +145,102 @@ def generate_histochastic_series(
     return rate_series, means, stdev, corr
 
 
+def generate_lognormal_series(
+    N: int,
+    values_pct: list[float] | np.ndarray,
+    stdev_pct: list[float] | np.ndarray,
+    corr=None,
+    rng: np.random.Generator | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Generate Nx4 log-normal rate series from user-specified arithmetic mean and volatility.
+
+    Converts arithmetic (mean, std) to log-space parameters, then samples from
+    a multivariate normal in log-space and exponentiates: R = exp(Z) - 1.
+
+    Args:
+        N: Number of years
+        values_pct: Arithmetic mean returns in percent (length 4)
+        stdev_pct: Arithmetic standard deviations in percent (length 4)
+        corr: Correlation matrix (4x4) or off-diagonal list (6). None = identity.
+        rng: Random generator. If None, uses default_rng().
+
+    Returns:
+        (rate_series, means, stdev, corr) - series in decimal, params for metadata
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    means = np.array(values_pct, dtype=float) / 100.0
+    stdev = np.array(stdev_pct, dtype=float) / 100.0
+
+    # Convert arithmetic parameters to log-space
+    sigma_z2 = np.log(1.0 + (stdev / (1.0 + means)) ** 2)
+    mu_z = np.log(1.0 + means) - sigma_z2 / 2.0
+    sigma_z = np.sqrt(sigma_z2)
+
+    if corr is None:
+        corr_matrix = np.identity(4)
+    else:
+        corr_matrix = _build_corr_matrix(corr)
+
+    Sigma_z = _build_covar(sigma_z, corr_matrix)
+    Z = rng.multivariate_normal(mu_z, Sigma_z, size=N)
+    rate_series = np.exp(Z) - 1.0
+
+    return rate_series, means, stdev, corr_matrix
+
+
+def generate_histolognormal_series(
+    N: int,
+    frm: int,
+    to: int,
+    rng: np.random.Generator,
+    mylog=None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Generate Nx4 log-normal series fitted to a historical window.
+
+    Computes log-returns from history, estimates log-space mean and covariance
+    directly, then samples from a multivariate normal and exponentiates.
+
+    Returns:
+        (rate_series, means, stdev, corr) - series in decimal, arithmetic params for metadata
+    """
+    _, _, _, covar = getRatesDistributions(frm, to, mylog, in_percent=False)
+    # Re-load raw historical data to compute log-returns
+    if not (FROM <= frm <= TO):
+        raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
+    if not (FROM <= to <= TO):
+        raise ValueError(f"Upper range 'to={to}' out of bounds.")
+    if frm >= to:
+        raise ValueError("Unacceptable range.")
+
+    ifrm = frm - FROM
+    ito = to - FROM
+    data = np.column_stack([
+        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+    ])
+
+    lr = np.log(1.0 + data)           # log-returns, shape (T, 4)
+    mu_z = lr.mean(axis=0)            # log-space mean
+    Sigma_z = np.cov(lr.T)            # log-space covariance
+
+    Z = rng.multivariate_normal(mu_z, Sigma_z, size=N)
+    rate_series = np.exp(Z) - 1.0
+
+    # Convert back to arithmetic statistics for UI display
+    sigma_z = np.sqrt(np.diag(Sigma_z))
+    means = np.exp(mu_z + 0.5 * np.diag(Sigma_z)) - 1.0
+    stdev = (means + 1.0) * np.sqrt(np.exp(np.diag(Sigma_z)) - 1.0)
+    corr = Sigma_z / np.outer(sigma_z, sigma_z)
+
+    return rate_series, means, stdev, corr
+
+
 def generate_stochastic_series(
     N: int,
     values_pct: list[float] | np.ndarray,

@@ -2189,7 +2189,7 @@ reproducible results across runs.
 Each fresh draw of $N_n$ vectors constitutes one scenario; running many
 independent scenarios yields a Monte Carlo distribution of outcomes.
 
-\subsection{Multivariate normal: \texttt{histochastic} and \texttt{stochastic}}
+\subsection{Multivariate normal: \texttt{histochastic} and \texttt{gaussian}}
 
 Both methods model annual returns as draws from a multivariate normal
 distribution,
@@ -2209,7 +2209,7 @@ selected historical window:
               \sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}
               (r_{k,y} - \mu_k)(r_{k',y} - \mu_{k'}).
 \end{eqnarray}
-For \texttt{stochastic}, the user supplies $\bm{\mu}$ directly, together
+For \texttt{gaussian}, the user supplies $\bm{\mu}$ directly, together
 with the standard deviations $\sigma_k = \sqrt{\Sigma_{kk}}$ and the Pearson
 correlation coefficients $\rho_{kk'} \in [-1,1]$, from which the covariance
 matrix is assembled as $\Sigma_{kk'} = \rho_{kk'}\sigma_k\sigma_{k'}$.
@@ -2219,6 +2219,83 @@ $\bm{z}_n \sim \mathcal{N}(\mathbf{0}, I)$.
 By construction, the multivariate normal model treats each year's returns as
 independent of all other years; it captures cross-sectional correlation
 among asset classes but no serial (year-to-year) autocorrelation.
+The method name \texttt{stochastic} is retained as a backward-compatible
+alias for \texttt{gaussian}; existing case files continue to work unchanged.
+
+\subsection{Log-normal models: \texttt{lognormal} and \texttt{histolognormal}}
+
+Geometric Brownian Motion (GBM)~\cite{hull2017} --- the foundation of most
+option-pricing theory --- implies that the price relative $1 + \tau_{k,n}$
+is log-normally distributed.
+The log-normal model enforces $\tau_{k,n} > -1$ by construction (no
+total-loss artefacts are possible), produces a right-skewed marginal
+distribution (large gains are more likely than a symmetric normal would
+suggest), and is consistent with continuous-time finance theory.
+
+\paragraph*{Parameter conversion}
+Given the arithmetic mean $m_k$ and arithmetic standard deviation $s_k$
+of asset-class $k$ (both in decimal), the corresponding log-space parameters
+are~\cite{hull2017}
+\begin{eqnarray}
+    \sigma_{Z,k}^2 &=& \ln\!\left(1 + \left(\frac{s_k}{1+m_k}\right)^{\!2}\right),
+    \label{Eq:sigmaZ}\\
+    \mu_{Z,k}      &=& \ln(1 + m_k) - \tfrac{1}{2}\sigma_{Z,k}^2.
+    \label{Eq:muZ}
+\end{eqnarray}
+One can verify that $\mathbb{E}[\exp(Z_k)] - 1 = m_k$ and
+$\mathrm{Var}[\exp(Z_k) - 1] = s_k^2$ when
+$Z_k \sim \mathcal{N}(\mu_{Z,k},\,\sigma_{Z,k}^2)$.
+
+\paragraph*{Sampling}
+A log-space covariance matrix is assembled from the log-space standard
+deviations $\sigma_{Z,k} = \sqrt{\sigma_{Z,k}^2}$ and the Pearson
+correlation matrix $\mathbf{C}$ with entries $\rho_{kk'}$,
+\begin{equation}
+    (\bm{\Sigma}_Z)_{kk'} = \rho_{kk'}\,\sigma_{Z,k}\,\sigma_{Z,k'}.
+\end{equation}
+Then $N_n$ vectors of log-returns are drawn jointly,
+\begin{equation}
+    \bm{Z}_n \overset{\mathrm{iid}}{\sim}
+    \mathcal{N}(\bm{\mu}_Z,\,\bm{\Sigma}_Z),
+    \qquad n = 0, \ldots, N_n - 1,
+\end{equation}
+and annual returns are recovered by exponentiation,
+\begin{equation}
+    \tau_{k,n} = \exp(Z_{k,n}) - 1.
+\end{equation}
+Applying the correlation matrix directly in log-space is a standard
+approximation, exact for jointly log-normal variates and accurate
+for moderate return magnitudes.
+
+\paragraph*{\texttt{lognormal} --- user-supplied parameters}
+The user provides arithmetic means $m_k$ and standard deviations $s_k$
+(in percent) together with Pearson correlations $\rho_{kk'}$.
+These are converted to log-space via
+Eqs.~(\ref{Eq:sigmaZ})--(\ref{Eq:muZ}) before sampling.
+
+\paragraph*{\texttt{histolognormal} --- history-calibrated parameters}
+Parameters are estimated directly in log-space from the selected
+historical window without any intermediate conversion to arithmetic
+parameters.
+Let $\ell_{k,y} = \ln(1 + r_{k,y})$ be the log-return of asset class $k$
+in calendar year $y$.  Then
+\begin{eqnarray}
+    \mu_{Z,k} &=& \frac{1}{N_w}
+                  \sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}
+                  \ell_{k,y},
+    \\
+    (\bm{\Sigma}_Z)_{kk'} &=& \frac{1}{N_w-1}
+                  \sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}
+                  (\ell_{k,y} - \mu_{Z,k})(\ell_{k',y} - \mu_{Z,k'}).
+\end{eqnarray}
+Arithmetic statistics displayed in the UI are recovered from the
+log-space moments via the inverse of
+Eqs.~(\ref{Eq:sigmaZ})--(\ref{Eq:muZ}):
+\begin{eqnarray}
+    m_k &=& \exp\!\left(\mu_{Z,k} + \tfrac{1}{2}(\bm{\Sigma}_Z)_{kk}\right) - 1,
+    \\
+    s_k &=& (1 + m_k)\sqrt{\exp\!\left((\bm{\Sigma}_Z)_{kk}\right) - 1}.
+\end{eqnarray}
 
 \subsection{Bootstrap sequence-of-returns: \texttt{bootstrap\_sor}}
 
@@ -2418,8 +2495,9 @@ in financial return data.
 \section{Monte Carlo and stress testing}
 
 In Monte Carlo mode, Owl calls one of the stochastic models
-(\texttt{histochastic}, \texttt{stochastic}, \texttt{bootstrap\_sor},
-\texttt{var}, or \texttt{garch\_dcc}) independently
+(\texttt{histochastic}, \texttt{histolognormal}, \texttt{gaussian},
+\texttt{lognormal}, \texttt{bootstrap\_sor}, \texttt{var},
+or \texttt{garch\_dcc}) independently
 $N_s$ times, each time solving the full optimization problem with a different
 rate scenario.
 The distribution of resulting optimal spending or bequest values across the
@@ -2489,6 +2567,13 @@ R.~F. Engle,
 autoregressive conditional heteroskedasticity models,''
 \textit{Journal of Business \& Economic Statistics},
 vol.~20, no.~3, pp.~339--350, 2002.
+
+\bibitem{hull2017}
+J.~C. Hull,
+\textit{Options, Futures, and Other Derivatives}, 10th~ed.,
+Pearson, Hoboken, NJ, 2017.
+(Chapters~15--16 derive the log-normal / GBM return model and the
+arithmetic-to-log-space parameter conversion.)
 
 \end{thebibliography}
 

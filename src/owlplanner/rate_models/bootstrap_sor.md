@@ -5,7 +5,7 @@
 
 The `bootstrap_sor` model generates retirement return sequences using historical resampling techniques rather than parametric distributions (e.g., normal or lognormal models).
 
-Unlike `stochastic` and `histochastic`, which assume multivariate normal returns, bootstrap SOR:
+Unlike `gaussian` and `histogaussian`, which assume multivariate normal returns, bootstrap SOR:
 
 * Uses **actual historical return vectors**
 * Preserves empirical cross-asset correlation
@@ -276,7 +276,7 @@ crisis_weight = 3.0
 | Method                     | Parametric                | Preserves Tails | Preserves Serial Corr | Preserves Cross Corr |
 | -------------------------- | ------------------------- | --------------- | --------------------- | -------------------- |
 | stochastic                 | Yes (Normal)              | ❌               | ❌                     | ✅                    |
-| histochastic               | Yes (Normal, hist params) | ❌               | ❌                     | ✅                    |
+| histogaussian              | Yes (Normal, hist params) | ❌               | ❌                     | ✅                    |
 | historical                 | No                        | ✅               | ✅                     | ✅                    |
 | bootstrap_sor (iid)        | No                        | ✅               | ❌                     | ✅                    |
 | bootstrap_sor (block)      | No                        | ✅               | ✅                     | ✅                    |

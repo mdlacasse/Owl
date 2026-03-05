@@ -228,7 +228,7 @@ preserving stationarity."""
     if kz.getCaseKey("rateType") == "varying":
         st.divider()
         st.markdown("#### :orange[Stochastic Parameters]")
-        ro = kz.getCaseKey("varyingType") != "stochastic"
+        ro = kz.getCaseKey("varyingType") not in ("gaussian", "lognormal")
         st.markdown("##### Means (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
@@ -363,7 +363,10 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
         # Reproducibility checkbox - only for stochastic and histochastic methods.
-        if kz.getCaseKey("varyingType") in ["stochastic", "histochastic", "bootstrap_sor", "var", "garch_dcc"]:
+        if kz.getCaseKey("varyingType") in [
+            "gaussian", "lognormal", "histogaussian", "histolognormal",
+            "bootstrap_sor", "var", "garch_dcc",
+        ]:
             st.markdown("#####")
             st.markdown("#### :orange[Rate Generation]")
             kz.initCaseKey("reproducibleRates", False)

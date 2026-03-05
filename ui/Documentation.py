@@ -705,7 +705,7 @@ A roundup of expert stock and bond return forecasts can be found
 ---
 ##### Varying rates
 Varying rates change year by year, enabling realistic uncertainty modeling.
-There are six methods:
+There are eight methods:
 
 **`historical`** — Replays the exact year-by-year returns from a selected historical window
 in chronological order. Each year of the plan receives the return from one calendar year of
@@ -713,18 +713,34 @@ history; the plan horizon must fit within the selected window.
 This is deterministic (no randomness) and is the right choice for backtesting: *"how would
 this strategy have performed starting in 1970?"*
 
-**`histochastic`** — Computes the mean returns, volatilities, and cross-asset covariance
+**`histogaussian`** — Computes the mean returns, volatilities, and cross-asset covariance
 from the selected historical window, then draws samples from the **fitted multivariate
 normal distribution**. Each year of the plan is an independent draw from that distribution.
 Unlike `bootstrap_sor`, no actual historical years are resampled — only their statistical
 summary (mean and covariance) is used. The result is parametric and Gaussian, but with
-parameters grounded in history rather than supplied by the user.
+parameters grounded in history rather than supplied by the user. *(Old configs with
+`method = "histochastic"` are automatically translated to `histogaussian` when loaded.)*
 
-**`stochastic`** — Identical in method to `histochastic`: draws independently from a
-multivariate normal distribution each year. The difference is that the mean returns,
-volatilities, and cross-asset correlations are **user-supplied** in the *Stochastic
-Parameters* panel rather than derived from a historical window. Use this when you have a
-specific return/risk view that differs from any historical period.
+**`gaussian`** — Draws independently from a multivariate normal distribution each year.
+The mean returns, volatilities, and cross-asset correlations are **user-supplied** in the
+*Stochastic Parameters* panel. Use this when you have a specific return/risk view that
+differs from any historical period. *(Old configs with `method = "stochastic"` are
+automatically translated to `gaussian` when loaded.)*
+
+**`lognormal`** — Like `gaussian`, the mean returns, volatilities, and cross-asset
+correlations are **user-supplied**. However, samples are drawn from a **log-normal**
+distribution: arithmetic parameters are converted to log-space (μ_Z, Σ_Z), a multivariate
+normal is sampled in log-space, and returns are recovered as R = exp(Z) − 1. Advantages
+over `gaussian`: returns are strictly bounded below by −100% (no total-loss artefacts),
+the distribution is naturally right-skewed (large gains more probable than large losses),
+and it is consistent with **Geometric Brownian Motion** — the foundation of most option
+pricing theory.
+
+**`histolognormal`** — Like `histogaussian` but fits a **log-normal** model to the
+historical window. Log-returns (ln(1 + r)) are computed from history; their mean and
+covariance are estimated directly in log-space, and samples are drawn from that fitted
+distribution and exponentiated. Inherits all the right-skew and lower-bound advantages
+of `lognormal` while deriving its parameters from history rather than user input.
 
 **`bootstrap_sor`** *(Sequence-of-Returns bootstrap)* — Resamples **actual historical years**
 from the selected window to build synthetic rate sequences. Because real observations are
@@ -776,24 +792,26 @@ contagion are important, such as for retirement scenarios that include equity-he
 | `optimistic` | Constant | Deterministic | Simple; tests bullish scenario | Single outcome; no uncertainty modeling |
 | `historical average` | Constant | Deterministic | Grounded in a specific historical period | Sensitive to choice of historical window |
 | `user` | Constant | Deterministic | Full control over all return assumptions | Accuracy depends entirely on user inputs |
-| `historical` | Varying | Deterministic | Exact historical replay; no modeling assumptions | No Monte Carlo; one path per start year |
-| `histochastic` | Varying | Stochastic | History-grounded statistics; no user parameters needed | Assumes normally distributed returns; draws are independent |
-| `stochastic` | Varying | Stochastic | Full control over means, volatilities, and correlations | Accuracy depends entirely on user inputs |
 | `bootstrap_sor` | Varying | Stochastic | Preserves fat tails and extreme historical events | IID mode discards year-to-year serial structure |
-| `var` | Varying | Stochastic | Captures momentum and mean-reversion across all asset classes | More complex; sensitive to choice of historical window |
 | `garch_dcc` | Varying | Stochastic | Realistic volatility clustering and time-varying correlations | Higher per-trial cost; requires ≥ 15 years of history |
+| `gaussian` | Varying | Stochastic | Full control over means, volatilities, and correlations | Accuracy depends entirely on user inputs; unbounded downside |
+| `histogaussian` | Varying | Stochastic | History-grounded statistics; no user parameters needed | Assumes normally distributed returns; draws are independent |
+| `histolognormal` | Varying | Stochastic | History-grounded log-normal; bounded below −100%; right-skewed | Draws are independent; log-normal approximation |
+| `historical` | Varying | Deterministic | Exact historical replay; no modeling assumptions | No Monte Carlo; one path per start year |
+| `lognormal` | Varying | Stochastic | User-specified parameters; bounded below −100%; right-skewed; GBM-consistent | Accuracy depends entirely on user inputs |
+| `var` | Varying | Stochastic | Captures momentum and mean-reversion across all asset classes | More complex; sensitive to choice of historical window |
 
 ---
 ##### Historical range
-For all methods that reference history (`historical`, `histochastic`, `bootstrap_sor`,
-`historical average`, `var`, and `garch_dcc`), a **Starting year / Ending year** selector appears.
+For all methods that reference history (`historical`, `histogaussian`, `histolognormal`,
+`bootstrap_sor`, `historical average`, `var`, and `garch_dcc`), a **Starting year / Ending year** selector appears.
 The range determines which calendar years are included in the dataset from which rates
 are drawn or statistics are computed. At least two years are required. For `historical`,
 the ending year is fixed by the starting year plus the plan horizon.
 
 ---
 ##### Stochastic parameters
-When `stochastic` is selected, a panel with three sub-sections appears:
+When `gaussian` or `lognormal` is selected, a panel with three sub-sections appears:
 - **Means (%)** — expected annual return for each asset class.
 - **Volatility (%)** — standard deviation of annual returns for each asset class.
 - **Correlation matrix** — Pearson correlations between every pair of asset classes.
@@ -808,8 +826,9 @@ parameters are derived automatically from the historical data.
 ---
 ##### Which method enables Monte Carlo?
 Monte Carlo simulations (see the **Stress Tests** page) require a **stochastic** method —
-one that generates a fresh random sample for each simulation trial. The four methods that
-support Monte Carlo are: `histochastic`, `stochastic`, `bootstrap_sor`, `var`, and `garch_dcc`.
+one that generates a fresh random sample for each simulation trial. The methods that
+support Monte Carlo are: `histogaussian`, `histolognormal`, `gaussian`,
+`lognormal`, `bootstrap_sor`, `var`, and `garch_dcc`.
 The `historical` method is deterministic (it always produces the same sequence for a
 given starting year) and therefore cannot be used for Monte Carlo.
 
@@ -839,7 +858,7 @@ These controls do not apply to constant rates since the same value is used every
 
 ---
 ##### Reproducible rates (Advanced options)
-For the five stochastic methods (`histochastic`, `stochastic`, `bootstrap_sor`, `var`, `garch_dcc`),
+For the stochastic methods (`histogaussian`, `histolognormal`, `gaussian`, `lognormal`, `bootstrap_sor`, `var`, `garch_dcc`),
 an option to **Enable reproducible rates** is available. When checked, the random number
 generator is seeded with a fixed value so the same rate sequence is produced every time
 the case is run. This is useful for isolating the effect of other parameters (spending
@@ -856,6 +875,8 @@ targets, allocations, Roth strategy) while holding the random scenario constant.
   *(Basis for the `var` method.)*
 - Efron, B., & Tibshirani, R. J. (1993). *An Introduction to the Bootstrap.*
   Chapman & Hall/CRC. *(Foundation for `bootstrap_sor` resampling methods.)*
+- Hull, J. C. (2017). *Options, Futures, and Other Derivatives* (10th ed.). Pearson.
+  *(Basis for the `lognormal` and `histolognormal` log-normal / GBM framework.)*
 """)
 
     with st.expander(":material/tune: Run Options"):
@@ -993,7 +1014,7 @@ Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
 A button allows you to re-run the *case* which would generate a different result
-if the chosen rates are `histochastic` or `stochastic`. Each graph can be seen
+if the chosen rates are `histogaussian` or `gaussian`. Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools & Help tab).
@@ -1110,10 +1131,11 @@ for that particular rate sequence.
 
 ##### Prerequisite: a stochastic rate method
 Monte Carlo requires a rate method that generates a new random sequence for each trial.
-The five eligible methods (set on the **Rates Selection** page) are:
-- `histochastic` — i.i.d. resampling of historical years.
-- `stochastic` — multivariate normal draws using user-supplied mean, volatility, and
-  correlation parameters.
+The eligible methods (set on the **Rates Selection** page) are:
+- `histogaussian` — multivariate normal draws with mean and covariance fitted on a historical window.
+- `histolognormal` — log-normal draws with parameters fitted on a historical window; returns bounded below −100%.
+- `gaussian` — multivariate normal draws using user-supplied mean, volatility, and correlation parameters.
+- `lognormal` — log-normal draws using user-supplied arithmetic mean, volatility, and correlation parameters; returns bounded below −100%.
 - `bootstrap_sor` — block-bootstrap resampling of the historical window (iid, block,
   circular, or stationary).
 - `var` — VAR(1) simulation capturing year-to-year serial correlations fitted on the
@@ -1141,8 +1163,6 @@ Each Monte Carlo trial requires solving a full LP or MIP, which is more expensiv
 event-driven forward simulators. To improve throughput:
 - Use `Medicare off` or the `self-consistent loop` option — the full MIP Medicare option
   adds binary variables to every trial and can be several times slower.
-- Use `stochastic` or `histochastic` rather than `var`, `bootstrap_sor`, or `garch_dcc` if speed matters;
-  the simpler sampling methods have lower per-trial overhead.
 - Consider installing **Owl** locally — your own hardware may outperform the Community Cloud
   server, which also has a CPU-time quota that may terminate long sessions.
 """)

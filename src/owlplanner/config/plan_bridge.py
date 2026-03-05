@@ -329,13 +329,18 @@ def plan_to_config(myplan: "Plan") -> dict:
         diconf["fixed_income"]["social_security_trim_year"] = int(trim_year)
 
     # Rates Selection
+    rate_method = myplan.rateMethod
+    if rate_method == "stochastic":
+        rate_method = "gaussian"
+    elif rate_method == "histochastic":
+        rate_method = "histogaussian"
     diconf["rates_selection"] = {
         "heirs_rate_on_tax_deferred_estate": float(100 * myplan.nu),
         "dividend_rate": float(100 * myplan.mu),
         "obbba_expiration_year": myplan.yOBBBA,
-        "method": myplan.rateMethod,
+        "method": rate_method,
     }
-    if myplan.rateMethod in STOCHASTIC_METHODS:
+    if rate_method in STOCHASTIC_METHODS:
         if myplan.rateSeed is not None:
             diconf["rates_selection"]["rate_seed"] = int(myplan.rateSeed)
         diconf["rates_selection"]["reproducible_rates"] = bool(myplan.reproducibleRates)

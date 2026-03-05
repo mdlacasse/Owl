@@ -492,7 +492,7 @@ class PlotlyBackend(PlotBackend):
         # Update layout
         title = pname + "<br>"
         title += f"Rates Correlations (N={N_n}) {rate_method}"
-        if rate_method in ["historical", "histochastic"]:
+        if rate_method in ["historical", "histochastic", "histogaussian"]:
             title += f" ({rate_frm}-{rate_to})"
         if tag:
             title += " - " + tag

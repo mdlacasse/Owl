@@ -104,7 +104,7 @@ class RatesSelection(BaseModel):
     values: Optional[List[float]] = None  # user, stochastic
     standard_deviations: Optional[List[float]] = None  # stochastic
     correlations: Optional[List[float]] = None  # stochastic
-    rate_seed: Optional[int] = None  # stochastic, histochastic
+    rate_seed: Optional[int] = None  # gaussian, histogaussian
     reproducible_rates: Optional[bool] = Field(default=False, description="Reproducible stochastic")
     reverse_sequence: Optional[bool] = Field(default=False, description="Reverse rate sequence")
     roll_sequence: Optional[int] = Field(default=0, description="Roll rate sequence")

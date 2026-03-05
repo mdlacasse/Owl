@@ -33,7 +33,9 @@ from owlplanner.rate_models.builtin import (
     UserRateModel,
     HistoricalRateModel,
     HistoricalAverageRateModel,
-    StochasticRateModel,
+    GaussianRateModel,
+    LognormalRateModel,
+    HistolognormalRateModel,
     HistochasticRateModel,
 )
 from owlplanner.rate_models.dataframe import DataFrameRateModel
@@ -46,6 +48,9 @@ from owlplanner.rate_models.garch_dcc import GARCHDCCRateModel
 # Unified registry of all built-in rate models
 # ------------------------------------------------------------
 
+# Deprecated method aliases; resolved at load_rate_model() lookup, not in registry
+_METHOD_ALIASES = {"stochastic": "gaussian", "histochastic": "histogaussian"}
+
 _RATE_MODEL_REGISTRY = {
     "default": DefaultRateModel,
     "optimistic": OptimisticRateModel,
@@ -53,8 +58,10 @@ _RATE_MODEL_REGISTRY = {
     "user": UserRateModel,
     "historical": HistoricalRateModel,
     "historical average": HistoricalAverageRateModel,
-    "stochastic": StochasticRateModel,
-    "histochastic": HistochasticRateModel,
+    "gaussian": GaussianRateModel,
+    "lognormal": LognormalRateModel,
+    "histolognormal": HistolognormalRateModel,
+    "histogaussian": HistochasticRateModel,
     "dataframe": DataFrameRateModel,
     "bootstrap_sor": BootstrapSORRateModel,
     "var": VARRateModel,
@@ -63,7 +70,8 @@ _RATE_MODEL_REGISTRY = {
 
 BUILTIN_CORE_METHODS = frozenset({
     "default", "optimistic", "conservative", "user",
-    "historical", "historical average", "stochastic", "histochastic",
+    "historical", "historical average", "gaussian", "histogaussian",
+    "lognormal", "histolognormal",
 })
 
 ALLOWED_METHODS = frozenset(_RATE_MODEL_REGISTRY.keys())
@@ -80,7 +88,10 @@ def load_rate_model(method, method_file=None):
     Priority order:
         1. External plugin (if method_file provided)
         2. Registry lookup (builtin + extended models)
+
+    Deprecated method aliases (e.g. stochastic → gaussian) are resolved before lookup.
     """
+    method = _METHOD_ALIASES.get(method, method)
 
     # ------------------------------------------------------------
     # 1. External plugin file

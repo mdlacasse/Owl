@@ -191,11 +191,11 @@ class HistoricalAverageRateModel(BaseRateModel):
 # Stochastic models
 # ---------------------------------------------------------------------------
 
-class StochasticRateModel(BaseRateModel):
-    model_name = "stochastic"
+class GaussianRateModel(BaseRateModel):
+    model_name = "gaussian"
     description = (
-        "Samples from a multivariate normal distribution with means, volatilities, "
-        "and correlations you specify below."
+        "Samples from a multivariate normal (Gaussian) distribution with means, "
+        "volatilities, and correlations you specify below."
     )
     deterministic = False
     constant = False
@@ -269,8 +269,128 @@ class StochasticRateModel(BaseRateModel):
         return series
 
 
+class LognormalRateModel(BaseRateModel):
+    model_name = "lognormal"
+    description = (
+        "Samples from a correlated log-normal distribution with arithmetic means, "
+        "volatilities, and correlations you specify below. "
+        "Log-normal returns are strictly bounded below by -100% and are right-skewed, "
+        "consistent with Geometric Brownian Motion theory."
+    )
+    deterministic = False
+    constant = False
+    required_parameters = {
+        "values": {
+            "type": "list[float]",
+            "length": 4,
+            "description": "Arithmetic mean returns in percent.",
+            "example": "[7.0, 4.5, 3.5, 2.5]",
+        },
+        "stdev": {
+            "type": "list[float]",
+            "length": 4,
+            "description": "Standard deviations in percent.",
+            "example": "[17.0, 8.0, 6.0, 2.0]",
+        },
+    }
+    optional_parameters = {
+        "corr": {
+            "type": "4x4 matrix or list[6]",
+            "description": (
+                "Pearson correlation coefficient (-1 to 1). "
+                "Matrix or upper-triangle off-diagonals. Standard in finance/statistics."
+            ),
+            "example": "[0.2, 0.1, 0.0, 0.3, 0.1, 0.2]",
+        }
+    }
+
+    @classmethod
+    def from_config(cls, rates_section: dict) -> dict:
+        section = _normalize_aliases(dict(rates_section))
+        allowed = set(cls.required_parameters) | set(cls.optional_parameters)
+        return {k: v for k, v in section.items() if k in allowed}
+
+    @classmethod
+    def to_config(cls, **params) -> dict:
+        result = {}
+        if "values" in params and params["values"] is not None:
+            result["values"] = list(np.array(params["values"]).tolist())
+        if "stdev" in params and params["stdev"] is not None:
+            result["standard_deviations"] = list(np.array(params["stdev"]).tolist())
+        if "corr" in params and params["corr"] is not None:
+            corr = np.array(params["corr"])
+            Nk = corr.shape[0]
+            result["correlations"] = [float(corr[k1, k2]) for k1 in range(Nk) for k2 in range(k1 + 1, Nk)]
+        return result
+
+    def __init__(self, config, seed=None, logger=None):
+        config = _normalize_aliases(dict(config or {}))
+        rate_seed = config.pop("rate_seed", seed)
+        super().__init__(config, seed=seed, logger=logger)
+        self._rng = np.random.default_rng(rate_seed)
+        self._values = self.get_param("values")
+        self._stdev = self.get_param("stdev")
+        self._corr = self.get_param("corr")
+        if self._corr is not None:
+            corr_matrix = impl._build_corr_matrix(self._corr)
+            self.params["corr"] = corr_matrix.copy()
+
+    def generate(self, N):
+        series, means, stdev_arr, corr_matrix = impl.generate_lognormal_series(
+            N,
+            self._values,
+            self._stdev,
+            corr=self._corr,
+            rng=self._rng,
+        )
+        self.params["corr"] = corr_matrix.copy()
+        return series
+
+
+class HistolognormalRateModel(BaseRateModel):
+    model_name = "histolognormal"
+    description = (
+        "Fits a correlated log-normal model to the selected historical window "
+        "and samples from it. Log-space parameters (mean and covariance of log-returns) "
+        "are estimated directly from history. Returns are right-skewed and bounded below by -100%."
+    )
+    deterministic = False
+    constant = False
+    required_parameters = {
+        "frm": {
+            "type": "int",
+            "example": "1928",
+        },
+        "to": {
+            "type": "int",
+            "example": "2024",
+        },
+    }
+    optional_parameters = {}
+
+    def __init__(self, config, seed=None, logger=None):
+        config = _normalize_aliases(dict(config or {}))
+        rate_seed = config.pop("rate_seed", seed)
+        super().__init__(config, seed=seed, logger=logger)
+        self._rng = np.random.default_rng(rate_seed)
+        frm = self.get_param("frm")
+        to = self.get_param("to")
+        _validate_historical_range(frm, to)
+        self._frm = frm
+        self._to = to
+
+    def generate(self, N):
+        series, means, stdev_arr, corr_arr = impl.generate_histolognormal_series(
+            N, self._frm, self._to, self._rng, self.logger
+        )
+        self.params["values"] = means.copy()
+        self.params["stdev"] = stdev_arr.copy()
+        self.params["corr"] = corr_arr.copy()
+        return series
+
+
 class HistochasticRateModel(BaseRateModel):
-    model_name = "histochastic"
+    model_name = "histogaussian"
     description = (
         "Samples from a multivariate normal distribution fitted to the selected historical window. "
         "Parametric and Gaussian, parameters grounded in history."
@@ -310,9 +430,20 @@ class HistochasticRateModel(BaseRateModel):
         return series
 
 
+# Backward-compatible aliases for code that imports by canonical names
+HistogaussianRateModel = HistochasticRateModel
+
+
+# Backward-compatible alias for code that imports StochasticRateModel
+StochasticRateModel = GaussianRateModel
+
+
 # ---------------------------------------------------------------------------
 # Registry and backward-compatibility shim
 # ---------------------------------------------------------------------------
+
+# Deprecated method aliases; resolved in BuiltinRateModel.__new__ before lookup
+_BUILTIN_METHOD_ALIASES = {"stochastic": "gaussian", "histochastic": "histogaussian"}
 
 _BUILTIN_REGISTRY = {
     "default": DefaultRateModel,
@@ -321,8 +452,10 @@ _BUILTIN_REGISTRY = {
     "user": UserRateModel,
     "historical": HistoricalRateModel,
     "historical average": HistoricalAverageRateModel,
-    "stochastic": StochasticRateModel,
-    "histochastic": HistochasticRateModel,
+    "gaussian": GaussianRateModel,
+    "lognormal": LognormalRateModel,
+    "histolognormal": HistolognormalRateModel,
+    "histogaussian": HistochasticRateModel,
 }
 
 
@@ -336,6 +469,10 @@ class BuiltinRateModel:
     def __new__(cls, config, seed=None, logger=None):
         config = dict(config or {})
         method = config.get("method")
+        if method in _BUILTIN_METHOD_ALIASES:
+            config = dict(config)
+            config["method"] = _BUILTIN_METHOD_ALIASES[method]
+            method = config["method"]
         if method not in _BUILTIN_REGISTRY:
             raise ValueError(f"Unknown builtin rate method '{method}'.")
         return _BUILTIN_REGISTRY[method](config, seed=seed, logger=logger)
