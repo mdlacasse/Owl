@@ -18,6 +18,15 @@ from datetime import date, datetime
 from typing import Any
 
 from owlplanner.config.constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
+from owlplanner.config.defaults import (
+    DEFAULT_DOB,
+    DEFAULT_DIVIDEND_RATE,
+    DEFAULT_HEIRS_RATE,
+    DEFAULT_LIFE_EXPECTANCY,
+    DEFAULT_OBBBA_YEAR,
+    DEFAULT_PENSION_AGE,
+    DEFAULT_SS_AGE,
+)
 from owlplanner.config.schema import KNOWN_SECTIONS
 from owlplanner.rates import FROM
 from owlplanner.rate_models.constants import (
@@ -115,9 +124,9 @@ def config_to_ui(diconf: dict) -> dict:
         dic["smileDelay"] = 0
 
     dic["survivor"] = int(op.get("surviving_spouse_spending_percent", 60))
-    dic["divRate"] = float(rs.get("dividend_rate", 1.8))
-    dic["heirsTx"] = float(rs.get("heirs_rate_on_tax_deferred_estate", 30.0))
-    dic["yOBBBA"] = int(rs.get("obbba_expiration_year", 2032))
+    dic["divRate"] = float(rs.get("dividend_rate", DEFAULT_DIVIDEND_RATE))
+    dic["heirsTx"] = float(rs.get("heirs_rate_on_tax_deferred_estate", DEFAULT_HEIRS_RATE))
+    dic["yOBBBA"] = int(rs.get("obbba_expiration_year", DEFAULT_OBBBA_YEAR))
     dic["surplusFraction"] = float(sa.get("spousal_surplus_deposit_fraction", 0.5))
     dic["plots"] = res.get("default_plots", "nominal")
     dic["allocType"] = aa.get("type", "individual")
@@ -126,25 +135,25 @@ def config_to_ui(diconf: dict) -> dict:
     for j in range(3):
         dic[f"benf{j}"] = sa.get("beneficiary_fractions", [1.0, 1.0, 1.0])[j]
 
-    dobs = bi.get("date_of_birth", ["1965-01-15"] * ni)
-    life = bi.get("life_expectancy", [89] * ni)
+    dobs = bi.get("date_of_birth", [DEFAULT_DOB] * ni)
+    life = bi.get("life_expectancy", [DEFAULT_LIFE_EXPECTANCY] * ni)
     ss_amt = fi.get("social_security_pia_amounts", [0] * ni)
-    ss_ages = fi.get("social_security_ages", [67.0] * ni)
+    ss_ages = fi.get("social_security_ages", [DEFAULT_SS_AGE] * ni)
     ss_trim_pct = fi.get("social_security_trim_pct", 0)
     ss_trim_year = fi.get("social_security_trim_year")
     p_amt = fi.get("pension_monthly_amounts", [0.0] * ni)
-    p_ages = fi.get("pension_ages", [65.0] * ni)
+    p_ages = fi.get("pension_ages", [DEFAULT_PENSION_AGE] * ni)
     p_idx = fi.get("pension_indexed", [True] * ni)
 
     for i in range(ni):
         dic[f"iname{i}"] = names[i] if i < len(names) else ""
-        dic[f"dob{i}"] = dobs[i] if i < len(dobs) else "1965-01-15"
-        dic[f"life{i}"] = life[i] if i < len(life) else 89
-        sy, sm = _age_float_to_ym(ss_ages[i] if i < len(ss_ages) else 67.0)
+        dic[f"dob{i}"] = dobs[i] if i < len(dobs) else DEFAULT_DOB
+        dic[f"life{i}"] = life[i] if i < len(life) else DEFAULT_LIFE_EXPECTANCY
+        sy, sm = _age_float_to_ym(ss_ages[i] if i < len(ss_ages) else DEFAULT_SS_AGE)
         dic[f"ssAge_y{i}"] = sy
         dic[f"ssAge_m{i}"] = sm
         dic[f"ssAmt{i}"] = ss_amt[i] if i < len(ss_amt) else 0
-        py, pm = _age_float_to_ym(p_ages[i] if i < len(p_ages) else 65.0)
+        py, pm = _age_float_to_ym(p_ages[i] if i < len(p_ages) else DEFAULT_PENSION_AGE)
         dic[f"pAge_y{i}"] = py
         dic[f"pAge_m{i}"] = pm
         dic[f"pAmt{i}"] = p_amt[i] if i < len(p_amt) else 0.0
@@ -272,8 +281,8 @@ def ui_to_config(uidic: dict) -> dict:
         if n is None:
             n = ""
         names.append(n)
-        dobs.append(_get_ui(uidic, f"dob{i}", "1965-01-15"))
-        life.append(_get_ui(uidic, f"life{i}", 89, int))
+        dobs.append(_get_ui(uidic, f"dob{i}", DEFAULT_DOB))
+        life.append(_get_ui(uidic, f"life{i}", DEFAULT_LIFE_EXPECTANCY, int))
 
     start_date = uidic.get("startDate")
     if hasattr(start_date, "strftime"):
@@ -303,9 +312,9 @@ def ui_to_config(uidic: dict) -> dict:
             "social_security_ages": [],
         },
         "rates_selection": {
-            "heirs_rate_on_tax_deferred_estate": _get_ui(uidic, "heirsTx", 30, float),
-            "dividend_rate": _get_ui(uidic, "divRate", 1.8, float),
-            "obbba_expiration_year": _get_ui(uidic, "yOBBBA", 2032, int),
+            "heirs_rate_on_tax_deferred_estate": _get_ui(uidic, "heirsTx", DEFAULT_HEIRS_RATE, float),
+            "dividend_rate": _get_ui(uidic, "divRate", DEFAULT_DIVIDEND_RATE, float),
+            "obbba_expiration_year": _get_ui(uidic, "yOBBBA", DEFAULT_OBBBA_YEAR, int),
             "method": _ui_rate_method_to_config(uidic),
             "reverse_sequence": bool(uidic.get("reverse_sequence", False)),
             "roll_sequence": _get_ui(uidic, "roll_sequence", 0, int),
@@ -344,13 +353,13 @@ def ui_to_config(uidic: dict) -> dict:
 
     # Fixed income
     for i in range(ni):
-        sy = _get_ui(uidic, f"ssAge_y{i}", 67, int)
+        sy = _get_ui(uidic, f"ssAge_y{i}", int(DEFAULT_SS_AGE), int)
         sm = _get_ui(uidic, f"ssAge_m{i}", 0, int)
         diconf["fixed_income"]["social_security_ages"].append(sy + sm / 12.0)
         diconf["fixed_income"]["social_security_pia_amounts"].append(
             _get_ui(uidic, f"ssAmt{i}", 0, int)
         )
-        py = _get_ui(uidic, f"pAge_y{i}", 65, int)
+        py = _get_ui(uidic, f"pAge_y{i}", int(DEFAULT_PENSION_AGE), int)
         pm = _get_ui(uidic, f"pAge_m{i}", 0, int)
         diconf["fixed_income"]["pension_ages"].append(py + pm / 12.0)
         diconf["fixed_income"]["pension_monthly_amounts"].append(
@@ -420,10 +429,18 @@ def ui_to_config(uidic: dict) -> dict:
 
 
 def _ui_rate_method_to_config(uidic: dict) -> str:
+    """Map UI rate type to config method name. Resolve deprecated aliases."""
     rate_type = uidic.get("rateType", "constant")
     if rate_type == "constant":
-        return uidic.get("fixedType", "historical average")
-    return uidic.get("varyingType", "histogaussian")
+        method = uidic.get("fixedType", "historical average")
+    else:
+        method = uidic.get("varyingType", "histogaussian")
+    # Backward compatibility: deprecated aliases
+    if method == "stochastic":
+        method = "gaussian"
+    elif method == "histochastic":
+        method = "histogaussian"
+    return method
 
 
 def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:

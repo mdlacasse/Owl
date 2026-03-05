@@ -84,7 +84,7 @@ def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
     rates_section = dict(known["rates_selection"])
 
     plan.setDividendRate(float(rates_section.get("dividend_rate", 1.8)))
-    plan.setHeirsTaxRate(float(rates_section["heirs_rate_on_tax_deferred_estate"]))
+    plan.setHeirsTaxRate(float(rates_section.get("heirs_rate_on_tax_deferred_estate", 30.0)))
     plan.yOBBBA = int(rates_section.get("obbba_expiration_year", 2032))
 
     rates_section.pop("dividend_rate", None)
@@ -156,7 +156,7 @@ def _apply_optimization_to_plan(plan: "Plan", known: dict) -> None:
     op = known["optimization_parameters"]
     plan.objective = op["objective"]
     profile = op["spending_profile"]
-    survivor = int(op["surviving_spouse_spending_percent"])
+    survivor = int(op.get("surviving_spouse_spending_percent", 60))
     if profile == "smile":
         dip = int(op.get("smile_dip", 15))
         increase = int(op.get("smile_increase", 12))

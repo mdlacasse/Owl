@@ -103,7 +103,7 @@ else:
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
-            kz.initCaseKey("ssAge_y0", 65)
+            kz.initCaseKey("ssAge_y0", 67)
             kz.initCaseKey("ssAge_m0", 0)
             m0 = kz.getCaseKey("ssAge_m0")
             maxyear = 70 if m0 == 0 else 69
@@ -126,7 +126,7 @@ else:
                 msg2_spouse = "Claiming age in years and months. Minimum: 62 years."
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
-                kz.initCaseKey("ssAge_y1", 65)
+                kz.initCaseKey("ssAge_y1", 67)
                 kz.initCaseKey("ssAge_m1", 0)
                 m1 = kz.getCaseKey("ssAge_m1")
                 maxyear = 70 if m1 == 0 else 69

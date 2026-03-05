@@ -188,7 +188,7 @@ See SSA documentation for details.
                                  min_value="1945-01-01", max_value="2000-12-31", help=datemsg, disabled=diz2)
 
             with incol2:
-                kz.initCaseKey("life0", 80)
+                kz.initCaseKey("life0", 89)
                 ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0",
                                    max_value=120, help=longmsg, disabled=diz1)
 
@@ -209,7 +209,7 @@ See SSA documentation for details.
                                      min_value="1945-01-01", max_value="2000-12-31", help=datemsg, disabled=diz2)
 
                 with incol2:
-                    kz.initCaseKey("life1", 80)
+                    kz.initCaseKey("life1", 89)
                     ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1",
                                        max_value=120, help=longmsg, disabled=diz1)
 

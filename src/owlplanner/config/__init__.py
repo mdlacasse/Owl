@@ -16,6 +16,7 @@ from .plan_bridge import apply_config_to_plan, config_to_plan, plan_to_config
 from .schema import CaseConfig
 from .toml_io import load_toml, save_toml, sanitize_config
 from .ui_bridge import config_to_ui, ui_to_config
+from .defaults import default_config
 
 
 # Backward compatibility
@@ -74,6 +75,7 @@ __all__ = [
     "apply_config_to_plan",
     "config_to_ui",
     "ui_to_config",
+    "default_config",
     "CaseConfig",
     "translate_old_keys",
 ]

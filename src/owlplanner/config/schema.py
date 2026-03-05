@@ -44,10 +44,15 @@ class BasicInfo(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    status: str = Field(description="Filing status: single or married")
-    names: List[str] = Field(min_length=1, max_length=2, description="Individual names")
+    status: str = Field(default="single", description="Filing status: single or married")
+    names: List[str] = Field(
+        default=[""],
+        min_length=1,
+        max_length=2,
+        description="Individual names",
+    )
     date_of_birth: Optional[List[str]] = None  # Default applied in bridge
-    life_expectancy: List[int] = Field(description="Life expectancy in years")
+    life_expectancy: List[int] = Field(default=[89], description="Life expectancy in years")
     start_date: Optional[str] = Field(default="today", description="Plan start date")
 
 
@@ -56,9 +61,15 @@ class SavingsAssets(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    taxable_savings_balances: List[float] = Field(description="Taxable account balances ($k)")
-    tax_deferred_savings_balances: List[float] = Field(description="Tax-deferred balances ($k)")
-    tax_free_savings_balances: List[float] = Field(description="Tax-free balances ($k)")
+    taxable_savings_balances: List[float] = Field(
+        default=[0.0], description="Taxable account balances ($k)"
+    )
+    tax_deferred_savings_balances: List[float] = Field(
+        default=[0.0], description="Tax-deferred balances ($k)"
+    )
+    tax_free_savings_balances: List[float] = Field(
+        default=[0.0], description="Tax-free balances ($k)"
+    )
     beneficiary_fractions: Optional[List[float]] = None  # Married only
     spousal_surplus_deposit_fraction: Optional[float] = None  # Married only
 
@@ -77,10 +88,10 @@ class FixedIncome(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     pension_monthly_amounts: Optional[List[float]] = None
-    pension_ages: List[float] = Field(description="Age at pension start")
-    pension_indexed: List[bool] = Field(description="Whether pension is inflation-indexed")
+    pension_ages: List[float] = Field(default=[65.0], description="Age at pension start")
+    pension_indexed: List[bool] = Field(default=[True], description="Whether pension is inflation-indexed")
     social_security_pia_amounts: Optional[List[int]] = None
-    social_security_ages: List[float] = Field(description="Age at SS start")
+    social_security_ages: List[float] = Field(default=[67.0], description="Age at SS start (FRA)")
     social_security_trim_pct: Optional[int] = Field(
         default=0, description="% reduction in SS benefits from trim_year onward"
     )
@@ -94,18 +105,20 @@ class RatesSelection(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    heirs_rate_on_tax_deferred_estate: float = Field(description="Heirs tax rate (%)")
+    heirs_rate_on_tax_deferred_estate: float = Field(default=30.0, description="Heirs tax rate (%)")
     dividend_rate: Optional[float] = Field(default=1.8, description="Dividend rate (%)")
     obbba_expiration_year: Optional[int] = Field(default=2032, description="OBBBA expiry year")
-    method: str = Field(description="Rate method")
+    method: str = Field(default="historical average", description="Rate method")
     # Conditional fields (present based on method)
     from_: Optional[int] = Field(default=None, alias="from", description="Historical start year")
     to: Optional[int] = Field(default=None, description="Historical end year")
-    values: Optional[List[float]] = None  # user, stochastic
-    standard_deviations: Optional[List[float]] = None  # stochastic
-    correlations: Optional[List[float]] = None  # stochastic
-    rate_seed: Optional[int] = None  # gaussian, histogaussian
-    reproducible_rates: Optional[bool] = Field(default=False, description="Reproducible stochastic")
+    values: Optional[List[float]] = None  # user, gaussian, lognormal
+    standard_deviations: Optional[List[float]] = None  # gaussian, lognormal
+    correlations: Optional[List[float]] = None  # gaussian, lognormal
+    rate_seed: Optional[int] = None  # gaussian, histogaussian, lognormal, histolognormal
+    reproducible_rates: Optional[bool] = Field(
+        default=False, description="Reproducible stochastic (gaussian, histogaussian, etc.)"
+    )
     reverse_sequence: Optional[bool] = Field(default=False, description="Reverse rate sequence")
     roll_sequence: Optional[int] = Field(default=0, description="Roll rate sequence")
     bootstrap_type: Optional[str] = Field(default=None, description="Bootstrap type for bootstrap_sor")
@@ -118,10 +131,10 @@ class AssetAllocation(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    interpolation_method: str = Field(description="linear or s-curve")
-    interpolation_center: float = Field(description="Interpolation center (years)")
-    interpolation_width: float = Field(description="Interpolation width (years)")
-    type: str = Field(description="account, individual, or spouses")
+    interpolation_method: str = Field(default="s-curve", description="linear or s-curve")
+    interpolation_center: float = Field(default=15.0, description="Interpolation center (years)")
+    interpolation_width: float = Field(default=5.0, description="Interpolation width (years)")
+    type: str = Field(default="individual", description="account, individual, or spouses")
     # Conditional: generic for individual/spouses, taxable/tax-deferred/tax-free for account
     generic: Optional[List[List[List[int]]]] = None
     taxable: Optional[List[List[List[int]]]] = None
@@ -134,9 +147,9 @@ class OptimizationParameters(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    spending_profile: str = Field(description="flat or smile")
+    spending_profile: str = Field(default="smile", description="flat or smile")
     surviving_spouse_spending_percent: int = Field(default=60, description="Survivor %")
-    objective: str = Field(description="maxSpending or maxBequest")
+    objective: str = Field(default="maxSpending", description="maxSpending or maxBequest")
     smile_dip: Optional[int] = Field(default=15, description="Smile profile dip %")
     smile_increase: Optional[int] = Field(default=12, description="Smile profile increase %")
     smile_delay: Optional[int] = Field(default=0, description="Smile profile delay years")

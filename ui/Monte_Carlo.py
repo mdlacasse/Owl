@@ -34,8 +34,11 @@ else:
     if kz.getCaseKey("rateType") != "varying" or (
         kz.getCaseKey("varyingType") not in owb.STOCHASTIC_METHODS
     ):
-        st.info("Rates must be set to a stochastic method (*histogaussian*, *gaussian*, *var*, or *bootstrap_sor*) "
-                "to run Monte Carlo simulations.")
+        methods_str = ", ".join(owb.STOCHASTIC_METHODS)
+        st.info(
+            f"Rates must be set to a stochastic method ({methods_str}) "
+            "to run Monte Carlo simulations."
+        )
     else:
         st.markdown("Generate a histogram of results obtained from running multiple scenarios with stochastic rates.")
         kz.initCaseKey("histogram_log_x_mc", False)

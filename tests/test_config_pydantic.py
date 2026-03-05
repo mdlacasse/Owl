@@ -160,3 +160,25 @@ def test_config_schema_can_validate():
     assert case_config.basic_info.names == ["Joe"]
     assert "user" in extra
     assert extra["user"]["notes"] == "My custom notes"
+
+
+def test_default_config_validates_and_builds_plan():
+    """default_config() produces a valid config that config_to_plan can use."""
+    from owlplanner.config import config_to_plan, config_to_ui, default_config
+    from owlplanner.config.schema import config_dict_to_model
+
+    for ni in (1, 2):
+        diconf = default_config(ni=ni)
+        # Schema validation
+        case_config, extra = config_dict_to_model(diconf)
+        assert len(case_config.basic_info.names) == ni
+        assert case_config.basic_info.status == ("single" if ni == 1 else "married")
+        # Plan build (use placeholder names and case name for Plan constructor)
+        diconf["case_name"] = "test_default"
+        diconf["basic_info"]["names"] = ["Joe"] if ni == 1 else ["Joe", "Jill"]
+        p = config_to_plan(diconf, verbose=False, loadHFP=False)
+        assert p.N_i == ni
+        # config_to_ui round-trip
+        ui = config_to_ui(diconf)
+        assert ui["life0"] == 89
+        assert ui["allocType"] == "individual"

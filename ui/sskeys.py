@@ -273,8 +273,17 @@ def createNewCase(case):
 
     # Create logs StringIO when case is created
     from io import StringIO
+
+    from owlplanner.config import config_to_ui, default_config
+
     logs_strio = StringIO()
-    ss.cases[casename] = {"name": casename, "caseStatus": "unknown", "logs": logs_strio, "id": None}
+    base = {"name": casename, "caseStatus": "unknown", "logs": logs_strio, "id": None}
+    # Eagerly populate all config keys from default_config so scratch-built cases
+    # have complete config independent of which pages the user visits.
+    defaults_ui = config_to_ui(default_config(ni=1))
+    base.update(defaults_ui)
+    base["name"] = casename  # Override case name from user input
+    ss.cases[casename] = base
     setCurrentCase(casename)
 
 
@@ -348,14 +357,53 @@ def storeCaseKey(key, val):
     return val
 
 
+def _get_default_ui_keys(ni: int) -> dict:
+    """Return default UI keys from config (single source of truth)."""
+    from owlplanner.config import config_to_ui, default_config
+
+    return config_to_ui(default_config(ni=ni))
+
+
+def ensureCaseConfigDefaults(ni: int | None = None) -> None:
+    """
+    Merge missing config-derived keys into the current case.
+
+    Fills any keys present in default_config that are missing from the case,
+    e.g. when status switches to married (spouse keys) or for legacy cases.
+    Does not overwrite existing keys.
+    """
+    if ss.currentCase is None or ss.currentCase not in ss.cases:
+        return
+    if ni is None:
+        status = ss.cases[ss.currentCase].get("status", "single")
+        ni = 2 if status == "married" else 1
+    defaults = _get_default_ui_keys(ni)
+    case = ss.cases[ss.currentCase]
+    for k, v in defaults.items():
+        if k not in case:
+            case[k] = v
+
+
 def initCaseKey(key, val):
     """
-    Only set the case local key if unset.
+    Set the case key if unset. Uses config defaults when the key is
+    present in default_config output; otherwise uses the provided val.
+
+    This consolidates default logic so config keys (life expectancy, SS age,
+    rates, etc.) come from the config layer rather than scattered page literals.
     """
-    if ss.currentCase is None:
+    if ss.currentCase is None or ss.currentCase not in ss.cases:
         return
-    if key not in ss.cases[ss.currentCase]:
-        setCaseKey(key, val)
+    case = ss.cases[ss.currentCase]
+    if key in case:
+        return
+    status = case.get("status", "single")
+    ni = 2 if status == "married" else 1
+    defaults = _get_default_ui_keys(ni)
+    if key in defaults:
+        storeCaseKey(key, defaults[key])
+    else:
+        storeCaseKey(key, val)
 
 
 def getCaseKey(key):
@@ -738,6 +786,11 @@ def flagCurrentCase(caseName):
 def titleBar(txt):
     choices = onlyCaseNames()
     helpmsg = "Switch to a different case."
+
+    # Ensure current case has all config-derived defaults (handles legacy cases,
+    # status changes to married, etc.)
+    if currentCaseName() and currentCaseName() in ss.cases:
+        ensureCaseConfigDefaults()
 
     header = st.container()
     # header.title("Here is a sticky header")
