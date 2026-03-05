@@ -687,6 +687,7 @@ Owl tracks four asset classes:
 ---
 ##### Constant rates
 Constant rates stay the same for every year of the plan. Choose from:
+- `trailing-30` — fixed rates equal to the 30-year trailing historical average. A reasonable middle-ground assumption.
 - `conservative` — a pessimistic but plausible set of forecasts.
 - `optimistic` — a more bullish set of forecasts.
 - `historical average` — arithmetic means computed over a selectable historical window

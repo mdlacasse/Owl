@@ -14,17 +14,17 @@ RATE_DISPLAY_NAMES_SHORT = ("S&P 500", "Bonds Baa", "T-Notes", "Inflation")
 
 # Built-in method name sets. Must stay in sync with loader._RATE_MODEL_REGISTRY.
 
-# Methods using canonical fixed preset rates (default, optimistic, conservative).
-FIXED_PRESET_METHODS = ("default", "optimistic", "conservative")
+# Methods using canonical fixed preset rates (trailing-30, optimistic, conservative).
+FIXED_PRESET_METHODS = ("trailing-30", "optimistic", "conservative")
 
 # Methods that produce same rate every year; reverse/roll are no-ops.
 CONSTANT_RATE_METHODS = (
-    "default", "optimistic", "conservative", "user", "historical average"
+    "trailing-30", "optimistic", "conservative", "user", "historical average"
 )
 
 # Methods that produce deterministic series; no regeneration needed.
 RATE_METHODS_NO_REGEN = (
-    "default", "optimistic", "conservative", "user",
+    "trailing-30", "optimistic", "conservative", "user",
     "historical average", "historical",
 )
 
@@ -45,7 +45,7 @@ STOCHASTIC_METHODS = (
 METHODS_WITH_VALUES = ("user", "gaussian", "lognormal")
 
 # Methods the UI treats as "fixed" type (vs varying).
-FIXED_TYPE_UI = ("default", "conservative", "optimistic", "historical average", "user")
+FIXED_TYPE_UI = ("trailing-30", "conservative", "optimistic", "historical average", "user")
 
 # Methods the UI treats as "varying" type (alphabetically ordered for selector).
 VARYING_TYPE_UI = (

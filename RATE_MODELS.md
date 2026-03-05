@@ -19,19 +19,19 @@ Pessimistic but plausible fixed rates. Use for stress-testing worst-case scenari
 method = "conservative"
 ```
 
-#### `default`
+#### `trailing-30`
 
 Fixed rates equal to the 30-year trailing historical average. A reasonable middle-ground assumption.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"default"`) |
+| `method` | Yes | str | model name (`"trailing-30"`) |
 
 **Example:**
 
 ```toml
 [rates_selection]
-method = "default"
+method = "trailing-30"
 ```
 
 #### `historical average`

@@ -92,7 +92,7 @@ Rates use standard financial conventions:
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred accounts |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Budget Act) provisions expire. Default is `2032` |
-| `method` | string | Method for determining rates. Valid values: `"default"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"stochastic"`, `"histochastic"`, `"bootstrap_sor"`, `"var"`, `"dataframe"` |
+| `method` | string | Method for determining rates. Valid values: `"trailing-30"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"stochastic"`, `"histochastic"`, `"bootstrap_sor"`, `"var"`, `"dataframe"` |
 
 ### :orange[Conditional parameters based on `method`]
 

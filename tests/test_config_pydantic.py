@@ -136,7 +136,7 @@ def test_plan_created_programmatically_has_no_extra():
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 

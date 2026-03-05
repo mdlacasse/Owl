@@ -33,6 +33,8 @@ def sanitize_config(diconf: dict, *, log_stream=None) -> None:
             rs["method"] = "gaussian"
         elif method == "histochastic":
             rs["method"] = "histogaussian"
+        elif method == "default":
+            rs["method"] = "trailing-30"
 
     so = diconf.get("solver_options")
     if so is None:

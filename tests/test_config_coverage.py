@@ -19,7 +19,7 @@ def test_save_config_stringio():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     if not hasattr(p, 'solverOptions'):
         p.solverOptions = {}
@@ -37,7 +37,7 @@ def test_save_config_bytesio():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     if not hasattr(p, 'solverOptions'):
         p.solverOptions = {}
@@ -53,7 +53,7 @@ def test_save_config_invalid_type():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     if not hasattr(p, 'solverOptions'):
         p.solverOptions = {}
@@ -90,7 +90,7 @@ social_security_ages = [67]
 heirs_rate_on_tax_deferred_estate = 35.0
 dividend_rate = 2.0
 obbba_expiration_year = 2032
-method = "default"
+method = "trailing-30"
 from = 1926
 to = 2023
 
@@ -146,7 +146,7 @@ social_security_ages = [67]
 heirs_rate_on_tax_deferred_estate = 35.0
 dividend_rate = 2.0
 obbba_expiration_year = 2032
-method = "default"
+method = "trailing-30"
 from = 1926
 to = 2023
 
@@ -239,7 +239,7 @@ def test_save_config_with_smile_profile():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("smile", percent=60, dip=15, increase=12, delay=5)
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     if not hasattr(p, 'solverOptions'):
         p.solverOptions = {}
@@ -293,7 +293,7 @@ def test_save_config_married_couple():
     p = owl.Plan(['Joe', 'Jane'], ["1961-01-15", "1962-01-15"], [80, 82], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]], [[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100, 50], taxDeferred=[200, 100], taxFree=[50, 25])
     p.setBeneficiaryFractions([0.5, 0.3, 0.2])
     if not hasattr(p, 'solverOptions'):
@@ -314,7 +314,7 @@ def test_save_config_account_allocation():
     p.setAllocationRatios("account", taxable=[[[70, 30, 0, 0], [70, 30, 0, 0]]],
                           taxDeferred=[[[60, 40, 0, 0], [60, 40, 0, 0]]],
                           taxFree=[[[50, 50, 0, 0], [50, 50, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     # Need to set solverOptions attribute for saveConfig
     if not hasattr(p, 'solverOptions'):
@@ -332,7 +332,7 @@ def test_save_config_file_error():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
 
     # Use a path that should cause an error (invalid directory)
@@ -346,7 +346,7 @@ def test_save_config_no_double_case_prefix(tmp_path):
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "joe")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
 
     for name in ("Case_joe", "case_joe", "CASE_joe"):

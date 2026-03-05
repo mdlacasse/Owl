@@ -20,7 +20,7 @@ from owlplanner.config import config_to_plan, plan_to_config
 from owlplanner.rate_models._builtin_impl import _build_corr_matrix
 from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
 from owlplanner.rate_models.builtin import (
-    DefaultRateModel,
+    Trailing30RateModel,
     HistoricalAverageRateModel,
     HistoricalRateModel,
     StochasticRateModel,
@@ -323,8 +323,8 @@ class TestDefaultToConfig:
         assert result == {"from": 1969, "to": 2000}
 
     def test_model_with_no_params_returns_empty(self):
-        """DefaultRateModel has no declared parameters; to_config returns {}."""
-        assert DefaultRateModel.to_config() == {}
+        """Trailing30RateModel has no declared parameters; to_config returns {}."""
+        assert Trailing30RateModel.to_config() == {}
 
     def test_extra_kwargs_filtered(self):
         """to_config drops kwargs that are not in the model's declared parameters."""

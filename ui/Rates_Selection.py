@@ -38,7 +38,7 @@ def _get_fx_rates():
             result[m] = [0, 0, 0, 0]  # placeholder; computed at runtime
         elif m == "user":
             result[m] = owb.getFixedRates("conservative")  # default initial values
-        elif m in ("default", "conservative", "optimistic"):
+        elif m in ("trailing-30", "conservative", "optimistic"):
             result[m] = owb.getFixedRates(m)
         else:
             result[m] = owb.getFixedRates("conservative")
@@ -58,7 +58,7 @@ def updateFixedRates(key, pull=True):
     else:
         fxType = key
 
-    if fxType in ("default", "conservative", "optimistic"):
+    if fxType in ("trailing-30", "conservative", "optimistic"):
         rates = FXRATES[fxType]
         for j in range(4):
             kz.pushCaseKey(f"fxRate{j}", rates[j])

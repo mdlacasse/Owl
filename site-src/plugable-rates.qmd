@@ -85,7 +85,7 @@ This replaces your `RATE_METHODS_NO_REGEN` logic for plugins.
 
 # 🧱 Step 2 — Built-in Rate Models
 
-The built-in methods (default, optimistic, conservative, user, historical,
+The built-in methods (trailing-30, optimistic, conservative, user, historical,
 historical average, histochastic, stochastic) are implemented in
 `BuiltinRateModel`, which uses helper functions in `owlplanner.rate_models._builtin_impl`.
 The rate model loader (`load_rate_model`) resolves builtin method names to

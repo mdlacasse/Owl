@@ -192,7 +192,7 @@ This demonstrates:
 
 Once this works:
 
-- Move `"default"`
+- Move `"trailing-30"`
 - Move `"optimistic"`
 - Move `"conservative"`
 - Move `"historical average"`

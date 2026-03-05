@@ -7,7 +7,7 @@ investment return and inflation rate series used by `Plan.setRates()`.
 
 It supports:
 
-* Original built-in methods (default, stochastic, historical, etc.)
+* Original built-in methods (trailing-30, stochastic, historical, etc.)
 * Built-in new models (e.g. `dataframe`)
 * External plugin rate models loaded at runtime
 * UI discovery of available models and required parameters

@@ -27,7 +27,7 @@ import pathlib
 from urllib.parse import urlparse
 
 from owlplanner.rate_models.builtin import (
-    DefaultRateModel,
+    Trailing30RateModel,
     OptimisticRateModel,
     ConservativeRateModel,
     UserRateModel,
@@ -49,10 +49,14 @@ from owlplanner.rate_models.garch_dcc import GARCHDCCRateModel
 # ------------------------------------------------------------
 
 # Deprecated method aliases; resolved at load_rate_model() lookup, not in registry
-_METHOD_ALIASES = {"stochastic": "gaussian", "histochastic": "histogaussian"}
+_METHOD_ALIASES = {
+    "stochastic": "gaussian",
+    "histochastic": "histogaussian",
+    "default": "trailing-30",
+}
 
 _RATE_MODEL_REGISTRY = {
-    "default": DefaultRateModel,
+    "trailing-30": Trailing30RateModel,
     "optimistic": OptimisticRateModel,
     "conservative": ConservativeRateModel,
     "user": UserRateModel,
@@ -69,7 +73,7 @@ _RATE_MODEL_REGISTRY = {
 }
 
 BUILTIN_CORE_METHODS = frozenset({
-    "default", "optimistic", "conservative", "user",
+    "trailing-30", "optimistic", "conservative", "user",
     "historical", "historical average", "gaussian", "histogaussian",
     "lognormal", "histolognormal",
 })

@@ -31,7 +31,7 @@ from owlplanner.rate_models.loader import (
 def test_list_available_rate_models_contains_expected():
     models = list_available_rate_models()
 
-    assert "default" in models
+    assert "trailing-30" in models
     assert "user" in models
     assert "gaussian" in models
     assert "histogaussian" in models

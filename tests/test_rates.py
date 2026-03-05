@@ -29,6 +29,7 @@ from owlplanner.rate_models.builtin import BuiltinRateModel
 from owlplanner.rates import (
     FROM,
     TO,
+    get_fixed_rates_decimal,
     getRatesDistributions,
 )
 
@@ -40,41 +41,52 @@ def _model_config(method, **kwargs):
     return cfg
 
 
-class TestBuiltinRateModelInitialization:
-    """Tests for BuiltinRateModel initialization and default method."""
+def test_trailing_30_matches_30yr_historical_average():
+    """Verify trailing-30 rates equal the 30-year trailing average from historical data."""
+    means, _, _, _ = getRatesDistributions(frm=TO - 29, to=TO, in_percent=False)
+    expected = np.array(means)
+    actual = np.array(get_fixed_rates_decimal("trailing-30"))
+    np.testing.assert_array_almost_equal(
+        actual, expected, decimal=5,
+        err_msg="trailing-30 must match 30-year trailing avg from historical rates",
+    )
 
-    def test_default_initialization(self):
-        """Test that BuiltinRateModel defaults produce expected rates."""
-        m = BuiltinRateModel(_model_config("default"))
+
+class TestBuiltinRateModelInitialization:
+    """Tests for BuiltinRateModel initialization and trailing-30 method."""
+
+    def test_trailing_30_initialization(self):
+        """Test that BuiltinRateModel trailing-30 produces expected rates."""
+        m = BuiltinRateModel(_model_config("trailing-30"))
         series = m.generate(5)
         assert series.shape == (5, 4)
-        expected = np.array([0.1101, 0.0736, 0.0503, 0.0251])
+        expected = np.array(get_fixed_rates_decimal("trailing-30"))
         np.testing.assert_array_almost_equal(series[0], expected, decimal=4)
 
     def test_initialization_with_logger(self):
         """Test initialization with custom logger."""
         from owlplanner import mylogging
         mylog = mylogging.Logger(verbose=False)
-        m = BuiltinRateModel(_model_config("default"), logger=mylog)
+        m = BuiltinRateModel(_model_config("trailing-30"), logger=mylog)
         series = m.generate(1)
         assert series.shape == (1, 4)
 
-    def test_default_rates_values(self):
-        """Test that default rates match predefined values."""
-        m = BuiltinRateModel(_model_config("default"))
+    def test_trailing_30_rates_values(self):
+        """Test that trailing-30 rates match computed 30-year historical average."""
+        m = BuiltinRateModel(_model_config("trailing-30"))
         series = m.generate(1)
-        expected = np.array([0.1101, 0.0736, 0.0503, 0.0251])
+        expected = np.array(get_fixed_rates_decimal("trailing-30"))
         np.testing.assert_array_almost_equal(series[0], expected, decimal=4)
 
 
 class TestBuiltinRateModelMethods:
     """Tests for built-in rate methods."""
 
-    def test_set_method_default(self):
-        """Test default method."""
-        m = BuiltinRateModel(_model_config("default"))
+    def test_set_method_trailing_30(self):
+        """Test trailing-30 method."""
+        m = BuiltinRateModel(_model_config("trailing-30"))
         series = m.generate(5)
-        expected = np.array([0.1101, 0.0736, 0.0503, 0.0251])
+        expected = np.array(get_fixed_rates_decimal("trailing-30"))
         np.testing.assert_array_almost_equal(series[0], expected, decimal=4)
 
     def test_set_method_optimistic(self):
@@ -245,9 +257,9 @@ class TestBuiltinRateModelMethods:
 class TestBuiltinRateModelGenSeries:
     """Tests for rate series generation."""
 
-    def test_gen_series_default(self):
-        """Test generating series with default method."""
-        m = BuiltinRateModel(_model_config("default"))
+    def test_gen_series_trailing_30(self):
+        """Test generating series with trailing-30 method."""
+        m = BuiltinRateModel(_model_config("trailing-30"))
         N = 10
         series = m.generate(N)
         assert series.shape == (N, 4)
@@ -531,7 +543,7 @@ class TestRatesEdgeCases:
 
     def test_set_method_multiple_times(self):
         """Test creating models with different methods."""
-        m1 = BuiltinRateModel(_model_config("default"))
+        m1 = BuiltinRateModel(_model_config("trailing-30"))
         s1 = m1.generate(1)
         m2 = BuiltinRateModel(_model_config("optimistic"))
         s2 = m2.generate(1)
@@ -542,13 +554,13 @@ class TestRatesEdgeCases:
 
     def test_gen_series_zero_length(self):
         """Test generating series with zero length."""
-        m = BuiltinRateModel(_model_config("default"))
+        m = BuiltinRateModel(_model_config("trailing-30"))
         series = m.generate(0)
         assert series.shape == (0, 4)
 
     def test_gen_series_single_year(self):
         """Test generating series for single year."""
-        m = BuiltinRateModel(_model_config("default"))
+        m = BuiltinRateModel(_model_config("trailing-30"))
         series = m.generate(1)
         assert series.shape == (1, 4)
 

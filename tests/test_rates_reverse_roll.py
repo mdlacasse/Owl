@@ -180,7 +180,7 @@ social_security_ages = [67]
 heirs_rate_on_tax_deferred_estate = 35.0
 dividend_rate = 2.0
 obbba_expiration_year = 2032
-method = "default"
+method = "trailing-30"
 from = 1928
 to = 2025
 
@@ -236,22 +236,22 @@ class TestConstantRateReverseRollNoOp:
         return p, strio
 
     def test_default_with_reverse_logs_warning(self):
-        """setRates('default', reverse=True) logs warning and leaves tau_kn unchanged."""
+        """setRates('trailing-30', reverse=True) logs warning and leaves tau_kn unchanged."""
         p, strio = self._make_plan_with_log()
-        p.setRates("default")
+        p.setRates("trailing-30")
         tau_no_transform = p.tau_kn.copy()
-        p.setRates("default", reverse=True)
+        p.setRates("trailing-30", reverse=True)
         log_output = strio.getvalue()
         assert "reverse and roll are ignored" in log_output or "ignored for constant" in log_output
         # For constant rates all columns are identical; reverse leaves it unchanged
         np.testing.assert_array_almost_equal(p.tau_kn, tau_no_transform)
 
     def test_default_with_roll_logs_warning(self):
-        """setRates('default', roll=2) logs warning and leaves tau_kn unchanged."""
+        """setRates('trailing-30', roll=2) logs warning and leaves tau_kn unchanged."""
         p, strio = self._make_plan_with_log()
-        p.setRates("default")
+        p.setRates("trailing-30")
         tau_no_transform = p.tau_kn.copy()
-        p.setRates("default", roll=2)
+        p.setRates("trailing-30", roll=2)
         log_output = strio.getvalue()
         assert "reverse and roll are ignored" in log_output or "ignored for constant" in log_output
         np.testing.assert_array_almost_equal(p.tau_kn, tau_no_transform)

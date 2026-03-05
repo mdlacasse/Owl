@@ -38,8 +38,8 @@ def _validate_historical_range(frm: int, to: int) -> None:
 # Fixed-preset models
 # ---------------------------------------------------------------------------
 
-class DefaultRateModel(BaseRateModel):
-    model_name = "default"
+class Trailing30RateModel(BaseRateModel):
+    model_name = "trailing-30"
     description = "Fixed rates equal to the 30-year trailing historical average. A reasonable middle-ground assumption."
     deterministic = True
     constant = True
@@ -48,7 +48,7 @@ class DefaultRateModel(BaseRateModel):
 
     def generate(self, N):
         from owlplanner.rates import get_fixed_rates_decimal
-        return impl.generate_fixed_series(N, get_fixed_rates_decimal("default"))
+        return impl.generate_fixed_series(N, get_fixed_rates_decimal("trailing-30"))
 
 
 class OptimisticRateModel(BaseRateModel):
@@ -443,10 +443,14 @@ StochasticRateModel = GaussianRateModel
 # ---------------------------------------------------------------------------
 
 # Deprecated method aliases; resolved in BuiltinRateModel.__new__ before lookup
-_BUILTIN_METHOD_ALIASES = {"stochastic": "gaussian", "histochastic": "histogaussian"}
+_BUILTIN_METHOD_ALIASES = {
+    "stochastic": "gaussian",
+    "histochastic": "histogaussian",
+    "default": "trailing-30",
+}
 
 _BUILTIN_REGISTRY = {
-    "default": DefaultRateModel,
+    "trailing-30": Trailing30RateModel,
     "optimistic": OptimisticRateModel,
     "conservative": ConservativeRateModel,
     "user": UserRateModel,

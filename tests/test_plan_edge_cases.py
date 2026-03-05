@@ -319,7 +319,7 @@ def test_check_case_status_decorator():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     # Set caseStatus to something other than "solved" to test decorator
     p.caseStatus = "unsuccessful"
@@ -353,7 +353,7 @@ def test_solve_invalid_objective():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
 
     with pytest.raises(ValueError, match="Objective.*is not one of"):
@@ -365,7 +365,7 @@ def test_solve_invalid_option():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
 
     p.solve("maxSpending", options={"invalid_option": True})
@@ -377,7 +377,7 @@ def test_solve_max_bequest_no_net_spending():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("default")
+    p.setRates("trailing-30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
 
     with pytest.raises(RuntimeError, match="needs netSpending option"):

@@ -1021,7 +1021,7 @@ def genDic(plan):
     else:
         dic["objective"] = "Bequest"
 
-    if plan.rateMethod in ["default", "conservative", "optimistic", "historical average", "user"]:
+    if plan.rateMethod in ["trailing-30", "conservative", "optimistic", "historical average", "user"]:
         dic["rateType"] = "constant"
         dic["fixedType"] = plan.rateMethod
     elif plan.rateMethod == "dataframe":
