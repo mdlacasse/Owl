@@ -240,7 +240,8 @@ def test_ss_lp_max_bracket():
         pension=[3_500, 3_500], pension_ages=[65, 65],
         expectancy=[74, 74],
     )
-    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize', 'withMedicare': 'None'})
+    p.solve('maxSpending', {'solver': solver, 'withSSTaxability': 'optimize',
+                            'gap': 1e-5, 'relTol': 1e-5, 'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     joint_mask = np.arange(p.N_n) < p.n_d
