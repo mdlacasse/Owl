@@ -789,11 +789,12 @@ contagion are important, such as for retirement scenarios that include equity-he
 
 | Method | Rate type | Character | Pros | Cons |
 |---|---|---|---|---|
+| `trailing-30` | Constant | Deterministic | Long-run historical average; no parameters | Single outcome; no uncertainty modeling |
 | `conservative` | Constant | Deterministic | Simple; clearly stress-tests the downside | Single outcome; no uncertainty modeling |
 | `optimistic` | Constant | Deterministic | Simple; tests bullish scenario | Single outcome; no uncertainty modeling |
 | `historical average` | Constant | Deterministic | Grounded in a specific historical period | Sensitive to choice of historical window |
 | `user` | Constant | Deterministic | Full control over all return assumptions | Accuracy depends entirely on user inputs |
-| `bootstrap_sor` | Varying | Stochastic | Preserves fat tails and extreme historical events | IID mode discards year-to-year serial structure |
+| `bootstrap_sor` | Varying | Stochastic | Preserves fat tails and extreme historical events | IID (independent and identically distributed) mode discards year-to-year serial structure |
 | `garch_dcc` | Varying | Stochastic | Realistic volatility clustering and time-varying correlations | Higher per-trial cost; requires ≥ 15 years of history |
 | `gaussian` | Varying | Stochastic | Full control over means, volatilities, and correlations | Accuracy depends entirely on user inputs; unbounded downside |
 | `histogaussian` | Varying | Stochastic | History-grounded statistics; no user parameters needed | Assumes normally distributed returns; draws are independent |
