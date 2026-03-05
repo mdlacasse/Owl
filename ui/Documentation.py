@@ -761,7 +761,6 @@ persistence of returns matter, as is often the case for sequence-of-returns risk
 | Method | Rate type | Character | Pros | Cons |
 |---|---|---|---|---|
 | `conservative` | Constant | Deterministic | Simple; clearly stress-tests the downside | Single outcome; no uncertainty modeling |
-| `default` | Constant | Deterministic | Reasonable middle-ground baseline | Single outcome; no uncertainty modeling |
 | `optimistic` | Constant | Deterministic | Simple; tests bullish scenario | Single outcome; no uncertainty modeling |
 | `historical average` | Constant | Deterministic | Grounded in a specific historical period | Sensitive to choice of historical window |
 | `user` | Constant | Deterministic | Full control over all return assumptions | Accuracy depends entirely on user inputs |
@@ -1105,7 +1104,7 @@ narrows the confidence interval on $P$ but increases run time proportionally. Fo
 analysis consider 500–1000 trials; for quick exploration 100–200 suffices.
 
 ##### Beneficiary fractions
-If the `Beneficiary fractions` (set on the **Plan Setup / Contributions** page) are not
+If the `Beneficiary fractions` (set on the **Plan Setup / Account Balances** page) are not
 all equal to 1, two histograms will be displayed: one for the partial bequest at the
 passing of the first spouse, and one for the distribution of the primary objective
 (maximum spending or maximum final bequest) at the passing of the surviving spouse.

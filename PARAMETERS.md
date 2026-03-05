@@ -91,7 +91,7 @@ Rates use standard financial conventions:
 |-----------|------|-------------|
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred accounts |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
-| `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
+| `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Budget Act) provisions expire. Default is `2032` |
 | `method` | string | Method for determining rates. Valid values: `"default"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"stochastic"`, `"histochastic"`, `"bootstrap_sor"`, `"var"`, `"dataframe"` |
 
 ### :orange[Conditional parameters based on `method`]
@@ -153,16 +153,16 @@ Asset allocation strategy and how it changes over time.
 #### :orange[For type = "account"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `taxable` | 3D array | Asset allocation bounds for taxable accounts. Structure: `[[[initial_stocks, initial_bonds, initial_fixed, initial_real_estate], [final_stocks, final_bonds, final_fixed, final_real_estate]]]` for each individual |
+| `taxable` | 3D array | Asset allocation bounds for taxable accounts. Structure: `[[[initial_stocks, initial_bonds, initial_tnotes, initial_cash], [final_stocks, final_bonds, final_tnotes, final_cash]]]` for each individual. The four classes are: S&P 500 (stocks), Corporate Baa bonds, 10-year Treasury notes, and cash/inflation |
 | `tax-deferred` | 3D array | Asset allocation bounds for tax-deferred accounts (same structure as `taxable`) |
 | `tax-free` | 3D array | Asset allocation bounds for tax-free accounts (same structure as `taxable`) |
 
 #### :orange[For type = "individual" or "spouses"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `generic` | 3D array | Generic asset allocation bounds. Structure: `[[[initial_stocks, initial_bonds, initial_fixed, initial_real_estate], [final_stocks, final_bonds, final_fixed, final_real_estate]], ...]` for each individual. For single individuals, only one pair is needed |
+| `generic` | 3D array | Generic asset allocation bounds. Structure: `[[[initial_stocks, initial_bonds, initial_tnotes, initial_cash], [final_stocks, final_bonds, final_tnotes, final_cash]], ...]` for each individual. For single individuals, only one pair is needed |
 
-**Note:** All allocation values are percentages that should sum to 100 for each time point. The four asset classes are: stocks, bonds, fixed assets, and real estate.
+**Note:** All allocation values are percentages that should sum to 100 for each time point. The four asset classes are: stocks (S&P 500), corporate bonds (Baa), 10-year Treasury notes, and cash/inflation (e.g. TIPS).
 
 -------
 
