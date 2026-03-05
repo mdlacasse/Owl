@@ -5,6 +5,14 @@
 ## Version 2026.03.05
 
 ### Rate models
+- **Lognormal rate model**: New `lognormal` method — samples from a correlated log-normal
+  distribution with user-specified arithmetic means, volatilities, and correlations. Returns
+  are strictly bounded below by −100% and right-skewed, consistent with Geometric Brownian
+  Motion. Contrasts with `gaussian`/`stochastic` which allow unbounded (negative) returns.
+- **Histolognormal rate model**: New `histolognormal` method — fits a correlated log-normal
+  model to the selected historical window and samples from it. Log-space mean and covariance
+  are estimated directly from history; returns are right-skewed and bounded below −100%.
+  Provides a history-grounded alternative to user-parameterized `lognormal`.
 - **VAR(1) rate model**: New `var` method — a parametric Vector Autoregression model fitted by
   Ordinary Least Squares on a historical window. Captures year-to-year serial correlations
   (momentum and mean-reversion) across all four asset classes simultaneously, with optional
