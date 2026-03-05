@@ -46,7 +46,7 @@ def test_rate_user_metadata():
     meta = get_rate_model_metadata("user")
 
     assert meta["model_name"] == "user"
-    assert "User-specified" in meta["description"]
+    assert "Enter your own" in meta["description"]
     assert "values" in meta["required_parameters"]
     assert meta["required_parameters"]["values"]["length"] == 4
 
