@@ -50,5 +50,5 @@ FIXED_TYPE_UI = ("default", "conservative", "optimistic", "historical average", 
 # Methods the UI treats as "varying" type (alphabetically ordered for selector).
 VARYING_TYPE_UI = (
     "bootstrap_sor", "garch_dcc", "gaussian", "histogaussian",
-    "histolognormal", "historical", "lognormal", "var",
+    "lognormal", "histolognormal", "historical", "var",
 )

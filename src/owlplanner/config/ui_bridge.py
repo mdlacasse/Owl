@@ -28,7 +28,7 @@ from owlplanner.config.defaults import (
     DEFAULT_SS_AGE,
 )
 from owlplanner.config.schema import KNOWN_SECTIONS
-from owlplanner.rates import FROM
+from owlplanner.rates import FROM, get_fixed_rate_values
 from owlplanner.rate_models.constants import (
     FIXED_TYPE_UI,
     HISTORICAL_RANGE_METHODS,
@@ -229,7 +229,7 @@ def config_to_ui(diconf: dict) -> dict:
         dic["varyingType"] = rate_method
 
     # Config and UI use percent (7 = 7%); Plan uses decimal internally.
-    values = rs.get("values", [6.0, 4.0, 3.3, 2.8])
+    values = rs.get("values", get_fixed_rate_values("conservative"))
     for k in range(4):
         dic[f"fxRate{k}"] = float(values[k] if k < len(values) else 0)
 
@@ -245,7 +245,7 @@ def config_to_ui(diconf: dict) -> dict:
         dic["blockSize"] = rs.get("block_size", 1)
 
     if rate_method in STOCHASTIC_METHODS:
-        means = rs.get("values", [6.0, 4.0, 3.3, 2.8])
+        means = rs.get("values", get_fixed_rate_values("conservative"))
         stdevs = rs.get("standard_deviations", [17.0, 8.0, 10.0, 3.0])
         # Correlations: Pearson coefficient (-1 to 1), standard in finance/statistics.
         corr = rs.get("correlations", [0.4, 0.26, -0.22, 0.84, -0.39, -0.39])

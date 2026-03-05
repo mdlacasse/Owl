@@ -29,13 +29,20 @@ import case_progress as cp
 
 
 def _get_fx_rates():
-    """Build FXRATES with conservative/optimistic from backend (single source of truth)."""
-    return {
-        "conservative": owb.getFixedRates("conservative"),
-        "optimistic": owb.getFixedRates("optimistic"),
-        "historical average": [0, 0, 0, 0],  # placeholder; computed at runtime
-        "user": owb.getFixedRates("conservative"),  # default initial values
-    }
+    """Build FXRATES from canonical fixed rate methods. Single source of truth."""
+    # Use FIXED_TYPE_UI order; values from owlplanner.rates.get_fixed_rate_values
+    methods = owb.FIXED_TYPE_UI
+    result = {}
+    for m in methods:
+        if m == "historical average":
+            result[m] = [0, 0, 0, 0]  # placeholder; computed at runtime
+        elif m == "user":
+            result[m] = owb.getFixedRates("conservative")  # default initial values
+        elif m in ("default", "conservative", "optimistic"):
+            result[m] = owb.getFixedRates(m)
+        else:
+            result[m] = owb.getFixedRates("conservative")
+    return result
 
 
 FXRATES = _get_fx_rates()
@@ -51,7 +58,7 @@ def updateFixedRates(key, pull=True):
     else:
         fxType = key
 
-    if fxType in ["conservative", "optimistic"]:
+    if fxType in ("default", "conservative", "optimistic"):
         rates = FXRATES[fxType]
         for j in range(4):
             kz.pushCaseKey(f"fxRate{j}", rates[j])
@@ -119,7 +126,7 @@ preserving stationarity."""
                 "0 means no linear relationship.")
 
     st.markdown("#### :orange[Type of Rates]")
-    col1, col2, col3 = st.columns([1, 1, 2], gap="large", vertical_alignment="bottom")
+    col1, col2, col3 = st.columns([1, 1, 2.07], gap="large", vertical_alignment="bottom")
     with col1:
         helpmsg = "Rates can be constant for the duration of the plan or change annually."
         kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates, help=helpmsg)

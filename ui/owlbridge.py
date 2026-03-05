@@ -36,9 +36,10 @@ from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes
 from owlplanner.mylogging import Logger
 from owlplanner.rate_models.constants import (
-    VARYING_TYPE_UI,
+    FIXED_TYPE_UI,
     HISTORICAL_RANGE_METHODS,
     STOCHASTIC_METHODS,
+    VARYING_TYPE_UI,
 )
 from moseklicense import hasMOSEK
 

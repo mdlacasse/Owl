@@ -12,6 +12,8 @@ from __future__ import annotations
 import copy
 from datetime import date
 
+from owlplanner.rates import get_fixed_rate_values
+
 
 # Default constants (aligned with SSA/actuarial conventions)
 DEFAULT_LIFE_EXPECTANCY = 89
@@ -78,7 +80,7 @@ def default_config(ni: int = 1) -> dict:
             "method": "historical average",
             "from": 1969,
             "to": this_year - 1,
-            "values": [6.0, 4.0, 3.3, 2.8],
+            "values": get_fixed_rate_values("conservative"),
             "reverse_sequence": False,
             "roll_sequence": 0,
         },
