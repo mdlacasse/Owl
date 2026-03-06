@@ -687,7 +687,7 @@ Owl tracks four asset classes:
 ---
 ##### Constant rates
 Constant rates stay the same for every year of the plan. Choose from:
-- `trailing-30` — fixed rates equal to the 30-year trailing geometric mean of annual returns. A reasonable middle-ground assumption.
+- `trailing-30` — constant rates equal to the 30-year trailing geometric mean of annual returns. A reasonable middle-ground assumption.
 - `conservative` — a pessimistic but plausible set of forecasts.
 - `optimistic` — a more bullish set of forecasts.
 - `historical average` — geometric means computed over a selectable historical window
@@ -1313,7 +1313,7 @@ Therefore, as a deliberate choice in design, state tax and complex federal tax r
 not included into **Owl**. As can be seen from this
 [graph](https://marottaonmoney.com/wp-content/uploads/2023/04/Historical-Effective-Rates-Through-2023.jpg),
 income tax rates have varied a lot over the last century. Assuming that current rates will
-stay fixed for the next 30 years is just unrealistic. But the best assumption
+stay the same for the next 30 years is just unrealistic. But the best assumption
 we have is to predict rates from what we currently know,
 or by projecting historical data into the future.
 This approach allows us to frame the problem within a range of likely scenarios.

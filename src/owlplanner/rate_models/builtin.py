@@ -35,12 +35,12 @@ def _validate_historical_range(frm: int, to: int) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Fixed-preset models
+# Constant-preset models
 # ---------------------------------------------------------------------------
 
 class Trailing30RateModel(BaseRateModel):
     model_name = "trailing-30"
-    description = ("Fixed rates equal to the 30-year trailing geometric mean of annual returns. "
+    description = ("Constant rates equal to the 30-year trailing geometric mean of annual returns. "
                    "A long-run backward-looking assumption.")
     deterministic = True
     constant = True
@@ -54,7 +54,7 @@ class Trailing30RateModel(BaseRateModel):
 
 class OptimisticRateModel(BaseRateModel):
     model_name = "optimistic"
-    description = "Bullish fixed rates based on industry forecasts for the next decade."
+    description = "Bullish constant rates based on industry forecasts for the next decade."
     deterministic = True
     constant = True
     required_parameters = {}
@@ -67,7 +67,7 @@ class OptimisticRateModel(BaseRateModel):
 
 class ConservativeRateModel(BaseRateModel):
     model_name = "conservative"
-    description = "Pessimistic but plausible fixed rates. Use for stress-testing worst-case scenarios."
+    description = "Pessimistic but plausible constant rates. Use for stress-testing worst-case scenarios."
     deterministic = True
     constant = True
     required_parameters = {}
@@ -79,12 +79,12 @@ class ConservativeRateModel(BaseRateModel):
 
 
 # ---------------------------------------------------------------------------
-# User-specified fixed rates
+# User-specified constant rates
 # ---------------------------------------------------------------------------
 
 class UserRateModel(BaseRateModel):
     model_name = "user"
-    description = "Enter your own fixed annual returns for each asset class below."
+    description = "Enter your own constant annual returns for each asset class below."
     deterministic = True
     constant = True
     required_parameters = {
@@ -155,7 +155,7 @@ class HistoricalRateModel(BaseRateModel):
 
 class HistoricalAverageRateModel(BaseRateModel):
     model_name = "historical average"
-    description = "Fixed rates equal to the geometric mean over the selected historical window."
+    description = "Constant rates equal to the geometric mean over the selected historical window."
     deterministic = True
     constant = True
     required_parameters = {
