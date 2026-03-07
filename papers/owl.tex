@@ -550,21 +550,20 @@ Roth withdrawals.
 \subsection*{Implementation in Owl}
 
 The NIIT is computed annually from MAGI and net investment income (dividends,
-interest, LTCG, and any rent or trust income entered via \code{net inv})
-using the IRS formula described above.
+interest, LTCG, and any rent or trust income entered via the optional
+\code{net inv} column; when absent, that column defaults to zero.
+Rent and trust income from \code{net inv} is included in NII and also flows
+into cash-flow and taxable-income as ordinary income.
+The tax uses the IRS formula described above.
 Because the NIIT depends on the solution, it is held fixed during each solver
 pass and updated from the new income values until it converges.
+The threshold is fixed in nominal dollars; its real impact over time is
+correctly reflected in the model.
 Reference: \cite{irc1411}.
 
 \subsection*{Limitations and assumptions}
 
-Rent and trust income enters the NIIT computation via the optional \code{net inv}
-column of the household financial plan spreadsheet. This amount is included in
-net investment income alongside interest and dividends, and also flows into the
-cash-flow and taxable-income calculations as ordinary income.
-When the column is absent, it defaults to zero.
-Because the threshold is fixed in nominal dollars, its real impact grows over
-time; this is correctly reflected in the model.
+None.
 
 \section{Ordinary Income Tax}
 \label{sec:ordincome}
