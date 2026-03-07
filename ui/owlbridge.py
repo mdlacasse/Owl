@@ -905,7 +905,7 @@ def createCaseFromFile(strio):
 
 def genDic(plan):
     """
-    From Plan to to UI.
+    From Plan to UI.
     """
 
     accName = ["txbl", "txDef", "txFree"]

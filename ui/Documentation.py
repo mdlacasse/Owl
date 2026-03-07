@@ -45,7 +45,7 @@ It provides different realizations of a financial strategy through the rigorous
 mathematical optimization of relevant decision variables.
 **Owl** is designed for US retirees as it considers US federal tax laws,
 Medicare premiums, rules for 401k including required minimum distributions,
-maturation rules for Roth accounts and conversions, social security rules, etc.
+maturation rules for Roth accounts and conversions, Social Security rules, etc.
 Using a mixed-integer linear programming approach,
 two different objectives can currently be optimized: either
 maximize the net spending amount under the constraint of a desired bequest,
@@ -53,7 +53,7 @@ or maximize an after-tax bequest under the constraint of a desired net spending 
 In each case, Roth conversions are optimized to reduce the tax burden,
 while federal income tax and Medicare premiums (including IRMAA) are calculated.
 A full description of the package can be found on the GitHub
-open [repository](https://github.com/mdlacasse/Owl), and the mathematical
+the [repository](https://github.com/mdlacasse/Owl), and the mathematical
 formulation of the optimization problem can be found
 [here](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf).
 """)
@@ -90,7 +90,7 @@ Typically, pages under the *Plan Setup* tab would be accessed successively in or
 starting from the top down. Once completed, the user would move to the second tab, *Results*,
 to visualize the results.
 
-A `Case selector` box located at the top of each page allows
+A `Case selector` box located at the top of each page allows you
 to navigate between the different scenarios created.
 This box is present on all pages in **Plan Setup** and **Results** sections.
 The *case* being currently displayed is marked with a small red triangle.
@@ -102,7 +102,7 @@ The **Typical Workflow** section (Tips tab) goes through a more specific example
 
 **Owl** uses a full year as the standard unit of time. Most values are therefore entered and
 reported as yearly values. These include wages, income, rates, etc. To better align
-with numbers from the Social Security Administration, social security
+with numbers from the Social Security Administration, Social Security
 and pensions are entered as monthly values.
 Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars.
@@ -151,7 +151,7 @@ for an individual's first name (e.g., *Jack* or *Jill*).
 This human-readable text file encodes all the scalar parameters of a *case*:
 individual demographics (names, birth dates, life expectancies),
 savings account balances, asset allocation ratios,
-fixed income sources (social security, pensions),
+fixed income sources (Social Security, pensions),
 run options (objective, Roth conversion strategy, solver options),
 the rates selection, and the filename of the associated *HFP* workbook (if any).
 It does **not** contain the time-series data from the *Household Financial Profile* itself.
@@ -211,7 +211,7 @@ all indexed by year:
   total tax bills and Medicare premiums.
 - **Cash Flow** — full breakdown of all money inflows and outflows for the household.
 - **`<individual>`'s Sources** *(one sheet per individual)* — year-by-year sources of spending
-  (wages, social security, pension, taxable/tax-deferred/tax-free withdrawals, RMDs,
+  (wages, Social Security, pension, taxable/tax-deferred/tax-free withdrawals, RMDs,
   Roth conversions, big-ticket items).
 - **Household Sources** — fixed-asset proceeds (ordinary income, capital gains, tax-free)
   and debt payments.
@@ -252,12 +252,12 @@ This page also allows you to copy and/or rename scenarios, as well as delete the
 
 For creating a scenario from scratch, (first) name(s), marital status,
 birth date(s), and life expectancies are required.
-The reason for asking the birth date is that social security rules
+The reason for asking the birth date is that Social Security rules
 have special considerations when born on the first days of the month.
 If you're not born on a 1st or 2nd day of the month, any other day of the
 month will generate the same results.
 
-*Cases* start on Jan 1st of this year and ends on December 31st of the year when all individuals
+*Cases* start on Jan 1st of this year and end on December 31st of the year when all individuals
 have passed according to the specified life expectancies.
 
 A typical workflow will involve creating
@@ -379,12 +379,12 @@ For the purpose of planning, there is no clear definition of retirement age. The
 however, from which you will stop having anticipated income, or diminished income due to decreasing your
 work load. This transition can be gradual or sudden, and can be explored through these wages
 and contributions tables. The only *hard* dates are the years when you intend to receive
-a pension or collect social security, and these years are entered elsewhere on the
+a pension or collect Social Security, and these years are entered elsewhere on the
 **Fixed Income** page.
 
 Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term that includes
 contributions to 403b as well or any other tax-deferred account, with the exception
-of IRAs accounts which are treated separately to facilitate data entry.
+of IRA accounts which are treated separately to facilitate data entry.
 Contributions to your 401k/403b must also include your employer's
 contributions, if any. As these data can be entered in Excel,
 one can use the native calculator to enter a percentage
@@ -420,7 +420,7 @@ If a file was originally associated with a *case* file, a message will remind th
 If values were entered or edited directly in the table,
 values can be saved directly in Excel format by clicking
 the `Download Financial Profile workbook` on the
-**Reports** page. This allows to rerun the same *case* at a later time
+**Reports** page. This allows you to rerun the same *case* at a later time
 by reloading the same **Household Financial Profile** workbook (which contains the Wages and Contributions data).
 
 ##### :material/account_balance: Debts and Fixed Assets
@@ -446,7 +446,7 @@ The *Debts* worksheet looks like the following:
 | | | | | | | |
 
 where:
-- *active* is a Boolean value (`TRUE` or `FALSE`) that allows to turn debts on or off in the
+- *active* is a Boolean value (`TRUE` or `FALSE`) that allows you to turn debts on or off in the
   calculations. This is useful for *case* comparison purposes. If not specified or set to `TRUE`,
   the debt is included in calculations. Boolean values are marked in all caps as `TRUE` or `FALSE` in Excel.
 - *name* is a unique identifier for the debt (e.g., "Primary Mortgage", "Car Loan", "HELOC").
@@ -485,7 +485,7 @@ The *Fixed Assets* worksheet looks like the following:
 | | | | | | | | | |
 
 where:
-- *active* is a Boolean value (`TRUE` or `FALSE`) that allows to turn fixed assets on or off in the
+- *active* is a Boolean value (`TRUE` or `FALSE`) that allows you to turn fixed assets on or off in the
   calculations. This is useful for *case* comparison purposes. If not specified or set to `TRUE`,
   the asset is included in calculations.
 - *name* is a unique identifier for the fixed asset (e.g., "Primary Residence", "Rental Property").
@@ -523,10 +523,10 @@ where:
     with st.expander(":material/currency_exchange: Fixed Income"):
         st.markdown("""
 This page is for entering data related to the individual's anticipated fixed income
-from pensions and social security.
+from pensions and Social Security.
 Unlike other parts of the user interface, amounts on this page are
 monthly amounts in today's \\$ and not in thousands.
-The monthly amounts to be entered for social security are the Primary Insurance Amounts (PIA)
+The monthly amounts to be entered for Social Security are the Primary Insurance Amounts (PIA)
 which are a critical part used by the Social Security Administration (SSA) for calculating benefits.
 The PIA monthly amounts are always in today's \\$: this means that PIA numbers need to
 be updated every year as they are modified by cost of living adjustments (COLA).
@@ -564,11 +564,11 @@ are claimed at the latest date at which both spouses have claimed benefits.
 Survivor benefits rules provide the larger of the two benefits to the survivor. Complex
 cases involving divorce or deceased spouses are not considered.
 
-**Owl** does not optimize when to claim social security benefits.
+**Owl** does not optimize when to claim Social Security benefits.
 You have to design (and explore) your own strategy, which
 often involves personal goals such as ensuring maximum
 survivor benefits, or maximum lifetime benefits.
-A great website for guidance on when to start taking social security is
+A great website for guidance on when to start taking Social Security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
 And obviously there are
 [ssa.tools](https://ssa.tools), and [ssa.gov](https://ssa.gov).
@@ -581,10 +581,10 @@ Use 0% reduction for the baseline case. The starting year field is disabled when
 the reduction percentage is zero. Both percentage and starting year must be provided
 when enabling a reduction.
 
-Pensions amounts, if any, are also entered on this page.
-While social security is always adjusted for inflation, pensions can optionally be
+Pension amounts, if any, are also entered on this page.
+While Social Security is always adjusted for inflation, pensions can optionally be
 indexed for inflation by selecting the corresponding button.
-As for social security, the exact age in years and months, combined with your birth month,
+As for Social Security, the exact age in years and months, combined with your birth month,
 determines the exact time benefits start in the first year and the total
 annual amount for the first year is adjusted accordingly.
 """)
@@ -732,7 +732,7 @@ automatically translated to `gaussian` when loaded.)*
 correlations are **user-supplied**. However, samples are drawn from a **log-normal**
 distribution: arithmetic parameters are converted to log-space ($\\mu_Z$, $\\Sigma_Z$), a multivariate
 normal is sampled in log-space, and returns are recovered as $R = \\exp(Z) - 1$. Advantages
-over `gaussian`: returns are strictly bounded below by −100% (no total-loss artefacts),
+over `gaussian`: returns are strictly bounded below by −100% (no total-loss artifacts),
 the distribution is naturally right-skewed (large gains more probable than large losses),
 and it is consistent with **Geometric Brownian Motion** — the foundation of most option
 pricing theory.
@@ -777,11 +777,11 @@ DCC-GARCH(1,1) model to the selected historical window using a two-step maximum
 likelihood procedure. In the first step, a univariate GARCH(1,1) model is estimated
 independently for each asset class, capturing **volatility clustering** — the well-documented
 tendency for large return moves (up or down) to be followed by further large moves.
-In the second step, a DCC layer is fitted to the standardised residuals, modelling
+In the second step, a DCC layer is fitted to the standardized residuals, modelling
 **time-varying cross-asset correlations** that spike during market-stress episodes. Each
 simulated year inherits the conditional variance and correlation state from the previous
 year, making `garch_dcc` the only Owl method to reproduce both heteroskedasticity and
-correlation dynamics. It is most useful when realistic tail behaviour and stress-period
+correlation dynamics. It is most useful when realistic tail behavior and stress-period
 contagion are important, such as for retirement scenarios that include equity-heavy portfolios.
 
 ---
@@ -985,7 +985,7 @@ Values default to 15%, 12%, and 0 year respectively, but they are fully configur
 for experimentation and to fit your anticipated lifestyle.
 
 A `slack` variable can also be adjusted. This variable allows the net spending to deviate from
-the desired profile in order to maximize the objective. This is provided mostly for educational purpose
+the desired profile in order to maximize the objective. This is provided mostly for educational purposes
 as maximizing the total net spending will involve leaving the savings invested for as long as possible,
 and therefore this will favor smaller spending early in the *case* and larger towards the end.
 This tension between maximizing a dollar amount and the utility of money then becomes evident.
@@ -1039,7 +1039,7 @@ indicating that these lines contain actionable items for the current year.
 
     with st.expander(":material/description: Reports"):
         st.markdown("""
-This page allows to compare *cases* and save files for future use.
+This page allows you to compare *cases* and save files for future use.
 First, it shows a synopsis of the computed scenario by
 displaying sums of income, bequest, and spending values over the duration of the *case*.
 Note that all tables are scrollable and can be seen in full-screen mode.
@@ -1049,7 +1049,7 @@ for the same individuals and year spans. Column on the left shows the values for
 while those on the right shows the differences.
 The contents of the synopsis can be downloaded as a plain text file by
 clicking the button below it.
-An additional button allows to rerun all *cases*,
+An additional button allows you to rerun all *cases*,
 ensuring that the table provides an accurate comparison
 of the parameters selected for each case.
 
@@ -1062,7 +1062,7 @@ The `Download Financial Profile workbook` will save the data displayed on the
 on the **Worksheets** page as a single Excel workbook.
 
 Similarly, all parameters used to generate the *case* are collected in *toml* format and displayed.
-The `Download Case parameter file` button allows to save the parameters of the selected scenario
+The `Download Case parameter file` button allows you to save the parameters of the selected scenario
 to a *case* file for future use.
 
 With the *case* parameter file and the **Household Financial Profile** workbook,
@@ -1174,7 +1174,7 @@ with tab_tools:
     st.markdown("This section describes tools available to the user and summarizes the *Help* section.")
     with st.expander(":material/settings: Settings", expanded=True):
         st.markdown("""
-This page allows to select different backends for plotting the graphs.
+This page allows you to select different backends for plotting the graphs.
 The `plotly` package is currently the default as the graphs generated are interactive
 while `matplotlib` graphs are not.
 Plots generated by `matplotlib`, however, have a more traditional look
