@@ -169,13 +169,13 @@ values = [7.0, 4.5, 3.5, 2.5]
 stdev = [17.0, 8.0, 6.0, 2.0]
 ```
 
-#### `histochastic`
+#### `histogaussian`
 
 Samples from a multivariate normal distribution fitted to the selected historical window. Parametric and Gaussian, parameters grounded in history.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"histochastic"`) |
+| `method` | Yes | str | model name (`"histogaussian"`) |
 | `frm` | Yes | int |  |
 | `to` | Yes | int |  |
 
@@ -183,7 +183,7 @@ Samples from a multivariate normal distribution fitted to the selected historica
 
 ```toml
 [rates_selection]
-method = "histochastic"
+method = "histogaussian"
 frm = 1969
 to = 2002
 ```

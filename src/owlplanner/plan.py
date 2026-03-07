@@ -913,7 +913,7 @@ class Plan:
 
     def setInterpolationMethod(self, method, center=15, width=5):
         """
-        Interpolate assets allocation ratios from initial value (today) to
+        Interpolate asset allocation ratios from initial value (today) to
         final value (at the end of horizon).
 
         Two interpolation methods are supported: linear and s-curve.
@@ -1054,7 +1054,7 @@ class Plan:
         self.ARCoord = allocType
         self.caseStatus = "modified"
 
-        self.mylog.vprint(f"Interpolating assets allocation ratios using '{self.interpMethod}' method.")
+        self.mylog.vprint(f"Interpolating asset allocation ratios using '{self.interpMethod}' method.")
 
     def readHFP(self, filename, filename_for_logging=None):
         """

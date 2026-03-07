@@ -843,7 +843,7 @@ provides historical S&P 500 dividend yields over different periods.
 Two tax-related settings are also accessible:
 - **Heirs marginal tax rate** — the marginal rate your beneficiaries would pay on
   inherited tax-deferred balances. Used to compute the after-tax value of a bequest.
-- **OBBBA expiration year** — the projected year when the One Big Beautiful Budget Act
+- **OBBBA expiration year** — the projected year when the One Big Beautiful Bill Act
   tax rates are expected to revert to pre-Tax Cuts and Jobs Act levels. Owl uses different
   tax brackets before and after this year.
 
