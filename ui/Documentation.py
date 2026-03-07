@@ -124,7 +124,7 @@ It also holds a reference to its *Household Financial Profile*, if one is used.
 **Household Financial Profile**
 > A *Household Financial Profile* (HFP) is an
 optional Excel workbook that holds the year-by-year
-time-series data for the household: anticipated wages and other income, taxable and retirement
+time-series data for the household: anticipated wages, other income, net investment income (rent, trust), taxable and retirement
 contributions, Roth conversions, and large expenses for each individual, plus optional debts and
 fixed assets. When no HFP is provided, wages and contributions are assumed to be zero.
 See *Input and Output Files* below for a detailed description of both files.
@@ -172,7 +172,7 @@ This Excel workbook holds the year-by-year time-series data that cannot be expre
 as single scalars in the case file. It must contain one sheet per individual, named
 after that individual (e.g., *Jack* and *Jill*), each with a **Wages and Contributions**
 table covering five years of history through the last year of the plan. Columns include:
-anticipated wages, other income, taxable contributions, 401k and Roth 401k contributions,
+anticipated wages, other income, net inv, taxable contributions, 401k and Roth 401k contributions,
 IRA and Roth IRA contributions, manual Roth conversions, and big-ticket items.
 
 Two optional sheets extend the workbook:
@@ -211,7 +211,7 @@ all indexed by year:
   total tax bills and Medicare premiums.
 - **Cash Flow** — full breakdown of all money inflows and outflows for the household.
 - **`<individual>`'s Sources** *(one sheet per individual)* — year-by-year sources of spending
-  (wages, Social Security, pension, taxable/tax-deferred/tax-free withdrawals, RMDs,
+  (wages, other income, net inv, Social Security, pension, taxable/tax-deferred/tax-free withdrawals, RMDs,
   Roth conversions, big-ticket items).
 - **Household Sources** — fixed-asset proceeds (ordinary income, capital gains, tax-free)
   and debt payments.
