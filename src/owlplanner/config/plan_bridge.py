@@ -76,7 +76,10 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
     )
     pension_ages = np.array(known["fixed_income"]["pension_ages"])
     pension_indexed = known["fixed_income"]["pension_indexed"]
-    plan.setPension(pension_amounts, pension_ages, pension_indexed)
+    survivor_frac = known["fixed_income"].get("pension_survivor_fraction")
+    if survivor_frac is not None:
+        survivor_frac = [float(x) for x in survivor_frac]
+    plan.setPension(pension_amounts, pension_ages, pension_indexed, survivor_fraction=survivor_frac)
 
 
 def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
@@ -319,6 +322,7 @@ def plan_to_config(myplan: "Plan") -> dict:
         "pension_monthly_amounts": myplan.pensionAmounts.tolist(),
         "pension_ages": myplan.pensionAges.tolist(),
         "pension_indexed": myplan.pensionIsIndexed,
+        "pension_survivor_fraction": myplan.pensionSurvivorFraction.tolist(),
         "social_security_pia_amounts": myplan.ssecAmounts.tolist(),
         "social_security_ages": myplan.ssecAges.tolist(),
     }

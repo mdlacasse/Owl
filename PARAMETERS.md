@@ -64,6 +64,7 @@ Pension and Social Security information.
 | `pension_monthly_amounts` | list of `N_i` floats | Monthly pension amount for each individual (in dollars). Use `0` if no pension |
 | `pension_ages` | list of `N_i` floats | Age at which pension starts for each individual |
 | `pension_indexed` | list of `N_i` booleans | Whether each pension is indexed for inflation |
+| `pension_survivor_fraction` | list of `N_i` floats | Fraction of pension (0–1) continuing to surviving spouse. 0 = single-life. Typical: 0, 0.5, 0.75, 1.0 |
 | `social_security_pia_amounts` | list of `N_i` integers | Primary Insurance Amount (PIA) for Social Security for each individual (in dollars) |
 | `social_security_ages` | list of `N_i` floats | Age at which Social Security benefits start for each individual |
 | `social_security_trim_pct` | integer | *(Optional)* Percentage reduction applied to Social Security benefits from `social_security_trim_year` onward. Range 0–100. Use to model trust-fund shortfall scenarios (e.g. 23). Omit or set to 0 for no reduction |
@@ -284,6 +285,7 @@ HFP_file_name = "HFP_example.xlsx"
 pension_monthly_amounts = [0, 0]
 pension_ages = [65.0, 65.0]
 pension_indexed = [false, false]
+pension_survivor_fraction = [0, 0]
 social_security_pia_amounts = [2360, 1642]
 social_security_ages = [70.0, 67.0]
 

@@ -68,6 +68,7 @@ def default_config(ni: int = 1) -> dict:
             "pension_monthly_amounts": [0.0] * ni,
             "pension_ages": [DEFAULT_PENSION_AGE] * ni,
             "pension_indexed": [True] * ni,
+            "pension_survivor_fraction": [0.0] * ni,
             "social_security_pia_amounts": [0] * ni,
             "social_security_ages": [DEFAULT_SS_AGE] * ni,
             "social_security_trim_pct": 0,

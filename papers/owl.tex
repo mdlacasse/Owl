@@ -58,7 +58,7 @@
 \clearpage
 
 \begin{abstract}
-This document describes the mathematical foundations of Owl (Optimal Wealth Lab), a Python application that optimizes US retirement planning using mixed-integer linear programming. Owl models federal tax laws, Medicare premiums, Social Security rules, Roth conversions, and account dynamics jointly within a single optimization framework. The self-consistent iteration loop and MIP reformulations handle nonlinear tax interactions. Chapters~1--3 present the conceptual model for a general audience; Chapters~4--9 provide the formal mathematical formulation, constraint structure, and rate models for implementers and extenders.
+This document describes the mathematical foundations of Owl (Optimal Wealth Lab), a Python application that optimizes US retirement planning using mixed-integer linear programming. Owl models federal tax laws, Medicare premiums, Social Security rules, pension income, Roth conversions, and account dynamics jointly within a single optimization framework. The self-consistent iteration loop and MIP reformulations handle nonlinear tax interactions. Chapters~1--3 present the conceptual model for a general audience; Chapters~4--9 provide the formal mathematical formulation, constraint structure, and rate models for implementers and extenders.
 \end{abstract}
 
 \chapter{Introduction}
@@ -100,9 +100,9 @@ later chapters.
 
 The remainder of this document is organized as follows.
 Chapter~2 surveys the US retirement tax rules that Owl models---Social
-Security benefits, Roth account rules, Medicare premiums, capital gains tax,
-the Net Investment Income Tax, and ordinary income tax---with notes on how
-each is implemented and where known limitations apply.
+Security benefits, pension income, Roth account rules, Medicare premiums,
+capital gains tax, the Net Investment Income Tax, and ordinary income
+tax---with notes on how each is implemented and where known limitations apply.
 Chapter~3 describes the overall model architecture: how account balances
 evolve over time, how asset allocation glide paths are specified, how
 spending objectives are formulated, and how the self-consistent iteration
@@ -361,11 +361,28 @@ In both cases no pension income is credited before the commencement year.
 Pension income enters the cash-flow constraint as ordinary income
 alongside wages, other income, and Social Security benefits.
 
+\subsection*{Joint-and-survivor option}
+
+When a pension holder elects a joint-and-survivor (J\&S) option, the surviving
+spouse receives a fraction $\rho_i$ (e.g., 50\%, 75\%, or 100\%) of the
+primary's pension after the primary's death.
+The user specifies the \emph{actual} monthly amount received (already
+actuarially reduced if J\&S was elected) and the survivor fraction
+$\rho_i \in [0,1]$.
+For married couples, when individual $i_d$ (first to pass) dies at the end
+of year $n_d - 1$, the survivor $i_s$ receives
+$\rho_{i_d} \times \pi_{i_d, n_d-1}$ per year from year $n_d$ until the
+survivor's horizon, where $\pi_{i_d, n_d-1}$ is the primary's pre-inflation
+annual benefit.
+If the primary's pension is inflation-indexed, this survivor benefit is
+multiplied by the same cumulative inflation factor $\gamma_n$ applied to the
+primary's pension; both the primary and the survivor therefore track the same
+cost-of-living adjustment.
+The resulting inflation-adjusted survivor benefit is added to
+$\bar{\pi}_{i_s,n}$ and enters the cash-flow constraint as ordinary income.
+
 \subsection*{Limitations and assumptions}
 
-Pension survivorship rules (e.g.\ joint-and-survivor annuity options) are
-not modeled; the pension is assumed to cease at the death of the individual
-who holds it.
 Early-commencement reductions and late-commencement credits are not modeled.
 
 \section{Roth Account Rules}
@@ -743,7 +760,6 @@ second when both choices are equivalent.
 The weight is small enough that it never overrides the primary objective.
 
 \section{The Self-Consistent Iteration Loop}
-\label{sec:scloop}
 
 Several quantities that enter the LP constraints are nonlinear functions of
 the income variables being optimized.
@@ -1644,6 +1660,10 @@ add the market returns to the savings balances.
 	Otherwise, for $n \ge n_d$, variable $\eta$ gets redefined as $\eta = \delta_{1, i_s}$.
 	Surplus can be caused by large influx of money coming from big-ticket items, compulsory RMDs,
 	or the disposition of fixed assets.
+	The \texttt{noLateSurplus} option pins surplus to zero in the final two plan years.
+	This is useful because during market downturns, large sums can otherwise be recycled
+	through the taxable account in those years with little tax or growth consequence,
+	since the long-term compounding benefit of such deposits vanishes near the end of the plan.
 
 \subsection{Account balances}
 	Contributions are assumed to be made at half-year to better represent periodic contributions
@@ -3020,10 +3040,6 @@ $\bm{z}_n \sim \mathcal{N}(\mathbf{0}, I)$.
 By construction, the multivariate normal model treats each year's returns as
 independent of all other years; it captures cross-sectional correlation
 among asset classes but no serial (year-to-year) autocorrelation.
-The method names \texttt{stochastic} and \texttt{histochastic} are
-deprecated aliases for \texttt{gaussian} and \texttt{histogaussian}
-respectively; they are still accepted for backward compatibility but
-new cases should use the canonical names.
 
 \subsection{Log-normal models: \texttt{lognormal} and \texttt{histolognormal}}
 

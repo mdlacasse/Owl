@@ -220,6 +220,8 @@ to estimate {iname1}'s PIA.""")
     st.markdown("#### :orange[Pension]")
     msg_pension1 = "Monthly benefit received from pension."
     msg_pension2 = "Age at which pension benefits start. In years and months."
+    msg_surv = ("If you elected a joint-and-survivor (J+S) option, the surviving spouse receives "
+                "this percentage of your pension after your death. 0 = single-life annuity.")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("pAge_y0", 65)
@@ -230,7 +232,14 @@ to estimate {iname1}'s PIA.""")
             getIntInput(0, "pAge_y", "starting at age...", 65, msg_pension2)
         with incol2:
             getIntInput(0, "pAge_m", "...and month(s)", 0, msg_pension2, max_val=11, prompt=False)
-        getToggleInput(0, "pIdx", "Inflation adjusted")
+
+        incol1, incol2 = st.columns(2, gap="large", vertical_alignment="bottom")
+        with incol1:
+            getToggleInput(0, "pIdx", "Inflation adjusted")
+        with incol2:
+            if kz.getCaseKey("status") == "married":
+                kz.initCaseKey("pSurv0", 0)
+                kz.getIntNum("Survivor (%)", "pSurv0", min_value=0, max_value=100, step=5, help=msg_surv)
 
     with col2:
         if kz.getCaseKey("status") == "married":
@@ -242,7 +251,13 @@ to estimate {iname1}'s PIA.""")
                 getIntInput(1, "pAge_y", "starting at age...", 65, msg_pension2)
             with incol2:
                 getIntInput(1, "pAge_m", "...and month(s)", 0, msg_pension2, max_val=11, prompt=False)
-            getToggleInput(1, "pIdx", "Inflation adjusted")
+
+            incol1, incol2 = st.columns(2, gap="large", vertical_alignment="bottom")
+            with incol1:
+                getToggleInput(1, "pIdx", "Inflation adjusted")
+            with incol2:
+                kz.initCaseKey("pSurv1", 0)
+                kz.getIntNum("Survivor (%)", "pSurv1", min_value=0, max_value=100, step=5, help=msg_surv)
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()

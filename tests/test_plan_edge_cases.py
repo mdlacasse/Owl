@@ -203,6 +203,19 @@ def test_set_pension_invalid_lengths():
         p.setPension([1000, 2000], [65])  # Wrong length for amounts
 
 
+def test_set_pension_survivor_fraction():
+    """Test setPension with survivor_fraction stores correctly."""
+    p = owl.Plan(['Jack', 'Jill'], ["1962-01-15", "1965-01-15"], [89, 92], "test")
+    p.setPension([0, 1000], [65, 65], survivor_fraction=[0, 0.5])
+    assert hasattr(p, "pensionSurvivorFraction")
+    assert p.pensionSurvivorFraction[0] == 0.0
+    assert p.pensionSurvivorFraction[1] == 0.5
+    # Single individual: survivor_fraction defaults to [0]
+    p2 = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p2.setPension([500], [65])
+    assert p2.pensionSurvivorFraction[0] == 0.0
+
+
 def test_set_social_security_invalid_lengths():
     """Test setSocialSecurity with mismatched lengths."""
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")

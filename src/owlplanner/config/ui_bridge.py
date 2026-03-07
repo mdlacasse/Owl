@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 # Account type ordering for UI widget keys (txbl, txDef, txFree)
 ACC_UI = ["txbl", "txDef", "txFree"]
+
 # Account type ordering for config (alias for shared constant)
 ACC_CONF = ACCOUNT_TYPES
 
@@ -144,6 +145,7 @@ def config_to_ui(diconf: dict) -> dict:
     p_amt = fi.get("pension_monthly_amounts", [0.0] * ni)
     p_ages = fi.get("pension_ages", [DEFAULT_PENSION_AGE] * ni)
     p_idx = fi.get("pension_indexed", [True] * ni)
+    p_surv = fi.get("pension_survivor_fraction", [0.0] * ni)
 
     for i in range(ni):
         dic[f"iname{i}"] = names[i] if i < len(names) else ""
@@ -158,6 +160,7 @@ def config_to_ui(diconf: dict) -> dict:
         dic[f"pAge_m{i}"] = pm
         dic[f"pAmt{i}"] = p_amt[i] if i < len(p_amt) else 0.0
         dic[f"pIdx{i}"] = p_idx[i] if i < len(p_idx) else True
+        dic[f"pSurv{i}"] = int(round((p_surv[i] if i < len(p_surv) else 0.0) * 100))
 
     dic["ssTrimPct"] = int(ss_trim_pct) if ss_trim_pct is not None else 0
     dic["ssTrimYear"] = int(ss_trim_year) if ss_trim_year is not None else 2033
@@ -308,6 +311,7 @@ def ui_to_config(uidic: dict) -> dict:
             "pension_monthly_amounts": [],
             "pension_ages": [],
             "pension_indexed": [],
+            "pension_survivor_fraction": [],
             "social_security_pia_amounts": [],
             "social_security_ages": [],
         },
@@ -368,6 +372,9 @@ def ui_to_config(uidic: dict) -> dict:
         diconf["fixed_income"]["pension_indexed"].append(
             bool(uidic.get(f"pIdx{i}", True))
         )
+        pct = _get_ui(uidic, f"pSurv{i}", 0, int)
+        frac = min(100, max(0, pct)) / 100.0
+        diconf["fixed_income"]["pension_survivor_fraction"].append(frac)
     diconf["fixed_income"]["social_security_trim_pct"] = _get_ui(
         uidic, "ssTrimPct", 0, int
     )

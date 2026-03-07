@@ -270,6 +270,7 @@ class Plan:
         self.pensionAmounts = np.zeros(self.N_i, dtype=np.int32)
         self.pensionAges = 65 * np.ones(self.N_i, dtype=np.int32)
         self.pensionIsIndexed = [False] * self.N_i
+        self.pensionSurvivorFraction = np.zeros(self.N_i)
         self.ssecAmounts = np.zeros(self.N_i, dtype=np.int32)
         self.ssecAges = 67 * np.ones(self.N_i, dtype=np.int32)
         self.ssecTrimPct = 0
@@ -517,10 +518,22 @@ class Plan:
         self.nu = nu
         self.caseStatus = "modified"
 
-    def setPension(self, amounts, ages, indexed=None):
+    def setPension(self, amounts, ages, indexed=None, survivor_fraction=None):
         """
         Set value of pension for each individual and commencement age.
         Units are in $.
+
+        Parameters
+        ----------
+        amounts : array-like
+            Monthly pension amounts per individual ($)
+        ages : array-like
+            Commencement ages per individual
+        indexed : list of bool, optional
+            Whether each pension is inflation-indexed
+        survivor_fraction : list of float, optional
+            Fraction of pension continuing to surviving spouse (0-1).
+            Default: [0] * N_i (single-life, no survivor).
         """
         if len(amounts) != self.N_i:
             raise ValueError(f"Amounts must have {self.N_i} entries.")
@@ -528,6 +541,10 @@ class Plan:
             raise ValueError(f"Ages must have {self.N_i} entries.")
         if indexed is None:
             indexed = [False] * self.N_i
+        if survivor_fraction is None:
+            survivor_fraction = [0.0] * self.N_i
+        if len(survivor_fraction) != self.N_i:
+            raise ValueError(f"survivor_fraction must have {self.N_i} entries.")
 
         self.mylog.vprint("Setting monthly pension of", [u.d(amounts[i]) for i in range(self.N_i)],
                           "at age(s)", [int(ages[i]) for i in range(self.N_i)])
@@ -541,6 +558,7 @@ class Plan:
         self.pensionAmounts = np.array(amounts, dtype=np.int32)
         self.pensionAges = np.array(ages)
         self.pensionIsIndexed = indexed
+        self.pensionSurvivorFraction = np.array(survivor_fraction, dtype=np.float64)
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
@@ -1337,10 +1355,11 @@ class Plan:
             self.DeltaBar_tn = self.Delta_tn * gamma_n[:-1]
             self.zetaBar_in = self.zeta_in * gamma_n[:-1]
             self.xiBar_n = self.xi_n * gamma_n[:-1]
-            self.piBar_in = np.array(self.pi_in)
-            for i in range(self.N_i):
-                if self.pensionIsIndexed[i]:
-                    self.piBar_in[i] *= gamma_n[:-1]
+            self.piBar_in = pension.compute_piBar_in(
+                self.pi_in, gamma_n[:-1], self.pensionIsIndexed,
+                self.pensionSurvivorFraction, self.n_d, self.i_d, self.i_s,
+                self.horizons, self.N_i, self.N_n,
+            )
 
             self.nm, self.Lbar_nq, self.Cbar_nq = tx.mediVals(self.yobs, self.horizons, gamma_n, self.N_n, self.N_irmaa)
 

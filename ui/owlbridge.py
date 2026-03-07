@@ -965,6 +965,8 @@ def genDic(plan):
         dic[f"pAge_m{i}"] = round((plan.pensionAges[i] % 1.) * 12)
         dic[f"pAmt{i}"] = plan.pensionAmounts[i]
         dic[f"pIdx{i}"] = plan.pensionIsIndexed[i]
+        frac = plan.pensionSurvivorFraction[i] if hasattr(plan, "pensionSurvivorFraction") else 0.0
+        dic[f"pSurv{i}"] = int(round(frac * 100))
         for j1 in range(plan.N_j):
             dic[accName[j1] + str(i)] = plan.beta_ij[i, j1] / 1000
 

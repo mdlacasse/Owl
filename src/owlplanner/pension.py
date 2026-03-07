@@ -82,3 +82,56 @@ def compute_pension_benefits(amounts, ages, yobs, mobs, horizons, N_i, N_n, this
 
     pi_in *= 12
     return pi_in
+
+
+def compute_piBar_in(pi_in, gamma_n, indexed, survivor_fraction, n_d, i_d, i_s,
+                     horizons, N_i, N_n):
+    """
+    Apply inflation scaling and survivor logic to primary pension; return piBar_in.
+
+    Parameters
+    ----------
+    pi_in : ndarray
+        Shape (N_i, N_n), annual pension benefits (primary only)
+    gamma_n : ndarray
+        Length N_n, cumulative inflation factors
+    indexed : list of bool
+        Whether each pension is inflation-indexed
+    survivor_fraction : array
+        Fraction of pension continuing to surviving spouse (0-1) per individual
+    n_d : int
+        Year index of first death
+    i_d : int
+        Index of first-to-die individual
+    i_s : int
+        Index of survivor (-1 if single or same horizon)
+    horizons : array
+        Year index when each individual's horizon ends
+    N_i, N_n : int
+        Number of individuals and plan years
+
+    Returns
+    -------
+    piBar_in : ndarray
+        Shape (N_i, N_n), inflation-adjusted pension with survivor benefits
+    """
+    piBar_in = np.array(pi_in, dtype=np.float64)
+
+    # Apply inflation to each individual's own pension using their indexing flag.
+    for i in range(N_i):
+        if indexed[i]:
+            piBar_in[i] *= gamma_n
+
+    # Add survivor benefit using the primary's pre-inflation amount (pi_in), then
+    # apply the primary's indexing so the benefit tracks the same cost-of-living
+    # adjustment as the primary's pension.
+    if (N_i == 2 and n_d < N_n and i_s >= 0
+            and survivor_fraction[i_d] > 0
+            and pi_in[i_d, n_d - 1] > 0):
+        survivor_raw = survivor_fraction[i_d] * pi_in[i_d, n_d - 1]
+        if indexed[i_d]:
+            piBar_in[i_s, n_d:horizons[i_s]] += survivor_raw * gamma_n[n_d:horizons[i_s]]
+        else:
+            piBar_in[i_s, n_d:horizons[i_s]] += survivor_raw
+
+    return piBar_in

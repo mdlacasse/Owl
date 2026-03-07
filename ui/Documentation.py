@@ -584,6 +584,9 @@ when enabling a reduction.
 Pension amounts, if any, are also entered on this page.
 While Social Security is always adjusted for inflation, pensions can optionally be
 indexed for inflation by selecting the corresponding button.
+For married couples, a joint-and-survivor option can be specified: enter the
+percentage (0–100) that the surviving spouse will receive after your death.
+Use 0 for a single-life annuity; common values for joint-and-survivor J+S are 50%, 75%, or 100%.
 As for Social Security, the exact age in years and months, combined with your birth month,
 determines the exact time benefits start in the first year and the total
 annual amount for the first year is adjusted accordingly.

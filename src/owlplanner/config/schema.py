@@ -90,6 +90,10 @@ class FixedIncome(BaseModel):
     pension_monthly_amounts: Optional[List[float]] = None
     pension_ages: List[float] = Field(default=[65.0], description="Age at pension start")
     pension_indexed: List[bool] = Field(default=[True], description="Whether pension is inflation-indexed")
+    pension_survivor_fraction: Optional[List[float]] = Field(
+        default=None,
+        description="Fraction of pension (0-1) continuing to surviving spouse. 0 = single-life.",
+    )
     social_security_pia_amounts: Optional[List[int]] = None
     social_security_ages: List[float] = Field(default=[67.0], description="Age at SS start (FRA)")
     social_security_trim_pct: Optional[int] = Field(
