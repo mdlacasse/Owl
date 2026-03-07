@@ -6,7 +6,7 @@ The following rate models are available via the `method` field in `[rates_select
 
 #### `conservative`
 
-Pessimistic but plausible fixed rates. Use for stress-testing worst-case scenarios.
+Pessimistic but plausible constant rates. Use for stress-testing worst-case scenarios.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -19,24 +19,9 @@ Pessimistic but plausible fixed rates. Use for stress-testing worst-case scenari
 method = "conservative"
 ```
 
-#### `trailing-30`
-
-Fixed rates equal to the 30-year trailing geometric mean of annual returns. A reasonable middle-ground assumption.
-
-| Parameter | Required | Type | Description |
-|-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"trailing-30"`) |
-
-**Example:**
-
-```toml
-[rates_selection]
-method = "trailing-30"
-```
-
 #### `historical average`
 
-Fixed rates equal to the geometric mean over the selected historical window.
+Constant rates equal to the geometric mean over the selected historical window.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -55,7 +40,7 @@ to = 2002
 
 #### `optimistic`
 
-Bullish fixed rates based on industry forecasts for the next decade.
+Bullish constant rates based on industry forecasts for the next decade.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -68,9 +53,24 @@ Bullish fixed rates based on industry forecasts for the next decade.
 method = "optimistic"
 ```
 
+#### `trailing-30`
+
+Constant rates equal to the 30-year trailing geometric mean of annual returns. A long-run backward-looking assumption.
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"trailing-30"`) |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "trailing-30"
+```
+
 #### `user`
 
-Enter your own fixed annual returns for each asset class below.
+Enter your own constant annual returns for each asset class below.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -251,7 +251,7 @@ to = 2024
 
 #### `dataframe`
 
-Sequential rates read from a pandas DataFrame (no year column).
+Sequential rates read from a pandas DataFrame (no year column). Programmatic use only — DataFrame cannot be serialized to TOML.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
@@ -267,5 +267,5 @@ Sequential rates read from a pandas DataFrame (no year column).
 [rates_selection]
 method = "dataframe"
 df = "value"
-n_years = 2000
+n_years = 40
 ```

@@ -49,7 +49,7 @@ import progress
 
 def getFixedRates(method):
     """
-    Return canonical fixed rate values (percent) for conservative, optimistic, default.
+    Return canonical fixed rate values (percent) for conservative, optimistic, trailing-30.
 
     Single source of truth: values come from owlplanner.rates to stay in sync
     with the backend. Use this instead of duplicating FXRATES in the UI.
@@ -292,7 +292,7 @@ def _setRates(plan):
             elif adjusted_range:
                 st.warning("Ending year adjusted to be after starting year.")
 
-            # Set reproducibility for histogaussian methods (histochastic is deprecated alias)
+            # Set reproducibility for histogaussian methods
             if varyingType in ("histochastic", "histogaussian"):
                 reproducible = kz.getCaseKey("reproducibleRates")
                 seed = kz.getCaseKey("rateSeed") if reproducible else None

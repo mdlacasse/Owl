@@ -515,3 +515,87 @@ def test_set_account_balances_with_start_date():
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50], startDate="2024-01-01")
     assert p.beta_ij is not None
     assert p.startDate == "2024-01-01"
+
+
+# ---------------------------------------------------------------------------
+# "net inv" integration tests
+# ---------------------------------------------------------------------------
+
+def _make_single_netinv_plan(net_inv_annual=0):
+    """
+    Single-individual plan used for 'net inv' integration tests.
+    Returns a fully configured, unsolved Plan with net_inv set in every year.
+    """
+    thisyear = date.today().year
+    p = owl.Plan(['Joe'], [f"{thisyear - 66}-01-15"], [80], "netinv_test", verbose=False)
+    p.setSpendingProfile('flat', 60)
+    p.setAccountBalances(taxable=[200], taxDeferred=[800], taxFree=[100], startDate="1-1")
+    p.setInterpolationMethod('s-curve')
+    p.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setPension([0], [65])
+    p.setSocialSecurity([0], [67])
+    p.setRates('historical', 2000)
+    p.zeroWagesAndContributions()
+    if net_inv_annual != 0:
+        df = p.timeLists['Joe']
+        df['net inv'] = net_inv_annual   # constant in all rows
+        p.setContributions()
+    return p
+
+
+def test_netinv_zero_by_default():
+    """netinv_in is all zeros when 'net inv' column is not set."""
+    p = _make_single_netinv_plan(0)
+    assert np.all(p.netinv_in == 0.0)
+
+
+def test_netinv_populated_after_set_contributions():
+    """netinv_in is non-zero after setting 'net inv' in the timeLists."""
+    p = _make_single_netinv_plan(10_000)
+    # At least some years inside the horizon should be 10 000
+    assert np.any(p.netinv_in[0, :] == 10_000)
+    # Years beyond the individual's horizon remain zero
+    assert p.netinv_in[0, p.horizons[0]:].sum() == 0.0
+
+
+def test_netinv_increases_spending():
+    """Adding 'net inv' income raises the optimal spending level."""
+    p_base = _make_single_netinv_plan(0)
+    p_base.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    assert p_base.caseStatus == 'solved'
+
+    p_rich = _make_single_netinv_plan(20_000)
+    p_rich.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    assert p_rich.caseStatus == 'solved'
+
+    assert p_rich.g_n[0] > p_base.g_n[0], (
+        "Plan with net inv should have higher spending than base plan"
+    )
+
+
+def test_netinv_increases_niit():
+    """Large 'net inv' income pushes NII above NIIT threshold, raising J_n."""
+    # Base plan with no net inv
+    p_base = _make_single_netinv_plan(0)
+    p_base.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    assert p_base.caseStatus == 'solved'
+
+    # Plan with very large net inv (well above $200k NIIT threshold for single filer)
+    p_niit = _make_single_netinv_plan(300_000)
+    p_niit.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    assert p_niit.caseStatus == 'solved'
+
+    # NIIT should be higher for the plan with large net inv
+    assert np.sum(p_niit.J_n) > np.sum(p_base.J_n), (
+        "Large net inv income should result in higher total NIIT"
+    )
+
+
+def test_netinv_in_sources_dict():
+    """'net inv' appears in sources_in after solving."""
+    p = _make_single_netinv_plan(5_000)
+    p.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    assert p.caseStatus == 'solved'
+    assert 'net inv' in p.sources_in
+    # Values should match netinv_in
+    np.testing.assert_array_equal(p.sources_in['net inv'], p.netinv_in)

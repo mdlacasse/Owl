@@ -361,6 +361,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "net spending": plan.g_n,
         "all wages": np.sum(plan.omega_in, axis=0),
         "all other inc": np.sum(plan.other_inc_in, axis=0),
+        "all net inv": np.sum(plan.netinv_in, axis=0),
         "all pensions": np.sum(plan.piBar_in, axis=0),
         "all soc sec": np.sum(plan.zetaBar_in, axis=0),
         "all BTI's": np.sum(plan.Lambda_in, axis=0),
@@ -380,6 +381,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     srcDic = {
         "wages": plan.sources_in["wages"],
         "other inc": plan.sources_in["other inc"],
+        "net inv": plan.sources_in["net inv"],
         "social sec": plan.sources_in["ssec"],
         "pension": plan.sources_in["pension"],
         "txbl acc wdrwl": plan.sources_in["txbl acc wdrwl"],
@@ -500,6 +502,7 @@ def plan_to_csv(plan, basename, mylog):
     planData["Tax bills + Med."] = plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n
     planData["all wages"] = np.sum(plan.omega_in, axis=0)
     planData["all other inc"] = np.sum(plan.other_inc_in, axis=0)
+    planData["all net inv"] = np.sum(plan.netinv_in, axis=0)
     planData["all pensions"] = np.sum(plan.piBar_in, axis=0)
     planData["all soc sec"] = np.sum(plan.zetaBar_in, axis=0)
     planData["all BTI's"] = np.sum(plan.Lambda_in, axis=0)

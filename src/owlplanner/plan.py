@@ -279,6 +279,7 @@ class Plan:
         # Parameters from timeLists initialized to zero.
         self.omega_in = np.zeros((self.N_i, self.N_n))
         self.other_inc_in = np.zeros((self.N_i, self.N_n))
+        self.netinv_in = np.zeros((self.N_i, self.N_n))
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
         # Go back 5 years for maturation rules on IRA and Roth.
         self.myRothX_in = np.zeros((self.N_i, self.N_n + 5))
@@ -1086,6 +1087,7 @@ class Plan:
                 'year',
                 'anticipated wages',
                 'other inc' (optional; defaults to zero if absent),
+                'net inv' (optional; defaults to zero if absent),
                 'taxable ctrb',
                 '401k ctrb',
                 'Roth 401k ctrb',
@@ -1130,6 +1132,7 @@ class Plan:
             h = self.horizons[i]
             self.omega_in[i, :h] = self.timeLists[iname]["anticipated wages"].iloc[5:5+h]
             self.other_inc_in[i, :h] = self.timeLists[iname]["other inc"].iloc[5:5+h]
+            self.netinv_in[i, :h] = self.timeLists[iname]["net inv"].iloc[5:5+h]
             self.Lambda_in[i, :h] = self.timeLists[iname]["big-ticket items"].iloc[5:5+h]
 
             # Values for last 5 years of Roth conversion and contributions stored at the end
@@ -1282,6 +1285,7 @@ class Plan:
         # Reset parameters with zeros.
         self.omega_in[:, :] = 0.0
         self.other_inc_in[:, :] = 0.0
+        self.netinv_in[:, :] = 0.0
         self.Lambda_in[:, :] = 0.0
         self.myRothX_in[:, :] = 0.0
         self.kappa_ijn[:, :, :] = 0.0
@@ -1290,6 +1294,7 @@ class Plan:
             "year",
             "anticipated wages",
             "other inc",
+            "net inv",
             "taxable ctrb",
             "401k ctrb",
             "Roth 401k ctrb",
@@ -1760,6 +1765,7 @@ class Plan:
                 rhs += (
                     self.omega_in[i, n]
                     + self.other_inc_in[i, n]
+                    + self.netinv_in[i, n]
                     + self.zetaBar_in[i, n]
                     + self.piBar_in[i, n]
                     + self.Lambda_in[i, n]
@@ -1800,9 +1806,11 @@ class Plan:
             for i in range(self.N_i):
                 if ss_lp:
                     # Taxable SS is an LP variable (tss_n); omit the Psi_n*zetaBar parameter.
-                    rhs += (self.omega_in[i, n] + self.other_inc_in[i, n] + self.piBar_in[i, n])
+                    rhs += (self.omega_in[i, n] + self.other_inc_in[i, n]
+                            + self.netinv_in[i, n] + self.piBar_in[i, n])
                 else:
                     rhs += (self.omega_in[i, n] + self.other_inc_in[i, n]
+                            + self.netinv_in[i, n]
                             + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n])
                 row.addElem(self.vm["w"].idx(i, 1, n), -1)
                 row.addElem(self.vm["x"].idx(i, n), -1)
@@ -1965,6 +1973,7 @@ class Plan:
 
                 rhs_pi += (self.omega_in[i, n]
                            + self.other_inc_in[i, n]
+                           + self.netinv_in[i, n]
                            + self.piBar_in[i, n]
                            + 0.5 * self.kappa_ijn[i, 0, n] * afac)   # half-period contribution yield
 
@@ -2153,6 +2162,7 @@ class Plan:
                 # MAGI includes total Social Security (taxable + non-taxable) for IRMAA.
                 sumoni = (self.omega_in[i, n2]
                           + self.other_inc_in[i, n2]
+                          + self.netinv_in[i, n2]
                           + self.zetaBar_in[i, n2]
                           + self.piBar_in[i, n2]
                           + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
@@ -2981,7 +2991,8 @@ class Plan:
         I_in = ((self.b_ijn[:, 0, :-1] + self.d_in - self.w_ijn[:, 0, :])
                 * np.sum(self.alpha_ijkn[:, 0, 1:, :Nn] * np.maximum(0, self.tau_kn[1:, :]), axis=1))
         # Sum over individuals to share losses across spouses; clamp to non-negative.
-        self.I_n = np.maximum(0, np.sum(I_in, axis=0))
+        # Also add net investment income from rent/trust (netinv_in) for NIIT purposes.
+        self.I_n = np.maximum(0, np.sum(I_in, axis=0)) + np.sum(self.netinv_in, axis=0)
 
         # Stop after building minimum required for self-consistent loop.
         if short:
@@ -3039,6 +3050,7 @@ class Plan:
         sources = {}
         sources["wages"] = self.omega_in
         sources["other inc"] = self.other_inc_in
+        sources["net inv"] = self.netinv_in
         sources["ssec"] = self.zetaBar_in
         sources["pension"] = self.piBar_in
         sources["txbl acc wdrwl"] = self.w_ijn[:, 0, :]

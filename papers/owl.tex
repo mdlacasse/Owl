@@ -9,6 +9,11 @@
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{url}
+\urlstyle{tt}
+\makeatletter
+\g@addto@macro\UrlBreaks{\do\=\do\"\do\_\do\-}
+\makeatother
+\newcommand{\code}[1]{\url{#1}}
 \geometry{letterpaper}
 
 \graphicspath{{./images}}
@@ -223,6 +228,8 @@ Each individual has their own sheet with the following year-indexed columns:
     year;
   \item \textit{other inc} --- other ordinary income not captured elsewhere
     (optional; defaults to zero);
+  \item \textit{net inv} --- rent and trust distributions that count as net
+    investment income for NIIT (optional; defaults to zero);
   \item \textit{taxable ctrb} --- contributions to the taxable brokerage
     account;
   \item \textit{401k ctrb} --- traditional 401(k) contributions;
@@ -306,7 +313,7 @@ Thresholds are \$25,000/\$34,000 (single) and \$32,000/\$44,000 (MFJ), frozen
 since 1983 and 1994 respectively.
 Reference: IRS Publication~915 \cite{irs915}.
 
-Owl also accepts a \texttt{trim\_pct} and \texttt{trim\_year} to model a
+Owl also accepts a \code{trim_pct} and \code{trim_year} to model a
 projected reduction in SS benefits, for example to reflect a potential trust
 fund depletion scenario.
 
@@ -314,9 +321,9 @@ fund depletion scenario.
 
 SS benefit amounts, FRA schedules, spousal benefits, and survivor benefits
 are computed from the PIA inputs and each individual's date of birth.
-SS taxability is computed iteratively in the SC loop using the provisional
-income formula; an exact MIP formulation is also available via the option
-\texttt{withSSTaxability="optimize"} \cite{irs915}.
+SS taxability is computed iteratively using the provisional income formula,
+updated at each pass until it converges; a more exact method is also available
+via the option \code{withSSTaxability="optimize"} \cite{irs915}.
 
 \subsection*{Limitations and assumptions}
 
@@ -364,22 +371,19 @@ alongside wages, other income, and Social Security benefits.
 \subsection*{Joint-and-survivor option}
 
 When a pension holder elects a joint-and-survivor (J\&S) option, the surviving
-spouse receives a fraction $\rho_i$ (e.g., 50\%, 75\%, or 100\%) of the
-primary's pension after the primary's death.
+spouse receives a fraction (e.g., 50\%, 75\%, or 100\%) of the primary's
+pension after the primary's death.
 The user specifies the \emph{actual} monthly amount received (already
-actuarially reduced if J\&S was elected) and the survivor fraction
-$\rho_i \in [0,1]$.
-For married couples, when individual $i_d$ (first to pass) dies at the end
-of year $n_d - 1$, the survivor $i_s$ receives
-$\rho_{i_d} \times \pi_{i_d, n_d-1}$ per year from year $n_d$ until the
-survivor's horizon, where $\pi_{i_d, n_d-1}$ is the primary's pre-inflation
-annual benefit.
-If the primary's pension is inflation-indexed, this survivor benefit is
-multiplied by the same cumulative inflation factor $\gamma_n$ applied to the
-primary's pension; both the primary and the survivor therefore track the same
-cost-of-living adjustment.
-The resulting inflation-adjusted survivor benefit is added to
-$\bar{\pi}_{i_s,n}$ and enters the cash-flow constraint as ordinary income.
+actuarially reduced if J\&S was elected) and the survivor fraction as a number
+between 0 and 1.
+Starting in the year after the first spouse passes away, the surviving spouse
+receives that fraction of the deceased's pension each year for the remainder of
+their horizon.
+If the primary's pension is inflation-indexed, the survivor benefit follows the
+same cost-of-living adjustment, so both the primary's pension (while alive) and
+the survivor benefit grow at the same rate over time.
+The resulting survivor benefit is added to the surviving spouse's pension income
+and enters the cash-flow as ordinary income.
 
 \subsection*{Limitations and assumptions}
 
@@ -423,8 +427,8 @@ month.
 Conversion amounts are added to taxable ordinary income in the year of
 conversion.
 Conversion behavior can be further controlled via the options
-\texttt{maxRothConversion}, \texttt{noRothConversions},
-\texttt{startRothConversions}, and \texttt{swapRothConverters}
+\code{maxRothConversion}, \code{noRothConversions},
+\code{startRothConversions}, and \code{swapRothConverters}
 \cite{irc408a,irs590b}.
 
 \subsection*{Limitations and assumptions}
@@ -467,17 +471,18 @@ Filing status transitions from MFJ to single at the first spouse's death.
 
 \subsection*{Implementation in Owl}
 
-Medicare IRMAA is modeled as a mixed-integer program: a binary variable
-selects the applicable IRMAA bracket and a continuous variable decomposes MAGI
-across brackets, yielding the exact cumulative premium for the chosen bracket.
-Two modes are available: \texttt{withMedicare="loop"} (default) computes
-IRMAA costs after each SC-loop iteration; \texttt{withMedicare="optimize"}
-incorporates costs exactly as MIP constraints within the optimization.
+Owl determines which IRMAA bracket applies to each year's MAGI and computes
+the exact cumulative premium for that bracket.
+Two computation modes are available.
+The default, \code{withMedicare="loop"}, computes IRMAA costs after each
+solver pass.
+Setting \code{withMedicare="optimize"} folds bracket selection
+directly into the optimization for an exact result.
 The two-year MAGI lookback is fully implemented.
 Because IRMAA in plan year $n$ depends on MAGI from year $n-2$, the first two
 plan years require MAGI values from before the plan start.
-These are supplied by the user via the \texttt{previousMAGIs} option
-as a two-element list $[\mathrm{MAGI}_{-2}, \mathrm{MAGI}_{-1}]$ in plan units;
+These are supplied by the user via the \code{previousMAGIs} option
+as a list of the two MAGI values from two and one years before the plan start;
 both default to zero if omitted, which may underestimate IRMAA surcharges
 in the first two plan years for higher-income households.
 Reference: \cite{cms2026}.
@@ -511,12 +516,12 @@ These thresholds are indexed for inflation annually.
 \subsection*{Implementation in Owl}
 
 LTCG bracket allocation is always active (no option required).
-LP variables partition total LTCG across the three rate brackets.
-Because the marginal cost is strictly increasing (0\% $<$ 15\% $<$ 20\%),
-the optimizer naturally fills the cheapest brackets first without requiring
-binary variables.
-Bracket upper bounds depend on how much of each ordinary-income threshold is
-already occupied; these bounds are updated each SC-loop iteration.
+Total gains are split across the three rate brackets; because the rates
+increase (0\%, 15\%, 20\%), the optimizer naturally uses the lowest-rate
+brackets first.
+The upper limit of each bracket depends on how much ordinary income already
+occupies the corresponding threshold; these limits are refined at each solver
+pass until they converge.
 The total LTCG tax is derived from the bracket allocation after solving.
 Reference: \cite{irs409}.
 
@@ -536,7 +541,8 @@ Affordable Care Act on net investment income (NII) for taxpayers whose MAGI
 exceeds \$200,000 (single) or \$250,000 (MFJ).
 Reference: IRC~§~1411 \cite{irc1411}; IRS Form~8960.
 The thresholds are \emph{not} indexed for inflation.
-Tax~$= 3.8\% \times \min(\text{NII},\, \text{MAGI} - \text{threshold})$.
+The tax equals 3.8\% of the lesser of net investment income and the amount by
+which MAGI exceeds the applicable threshold.
 NII includes dividends, interest, LTCG, rents, and royalties, but excludes
 wages, Social Security benefits, tax-deferred retirement distributions, and
 Roth withdrawals.
@@ -544,17 +550,19 @@ Roth withdrawals.
 \subsection*{Implementation in Owl}
 
 The NIIT is computed annually from MAGI and net investment income (dividends,
-interest, and LTCG) using the IRS formula: 3.8\% of the lesser of net
-investment income and the excess of MAGI over the applicable threshold.
-Because the NIIT depends on the LP solution, it is treated as a fixed-cost
-term in the cash-flow constraint and updated each SC-loop iteration.
+interest, LTCG, and any rent or trust income entered via \code{net inv})
+using the IRS formula described above.
+Because the NIIT depends on the solution, it is held fixed during each solver
+pass and updated from the new income values until it converges.
 Reference: \cite{irc1411}.
 
 \subsection*{Limitations and assumptions}
 
-NIIT on rent and trust income is not modeled, but Owl accommodates an easy
-extension: additional income amounts may be added to the net investment income
-total via extra columns in the input file.
+Rent and trust income enters the NIIT computation via the optional \code{net inv}
+column of the household financial plan spreadsheet. This amount is included in
+net investment income alongside interest and dividends, and also flows into the
+cash-flow and taxable-income calculations as ordinary income.
+When the column is absent, it defaults to zero.
 Because the threshold is fixed in nominal dollars, its real impact grows over
 time; this is correctly reflected in the model.
 
@@ -593,18 +601,18 @@ first spouse's death.
 
 Owl can also model a future reversion to pre-OBBBA tax rates
 (10\%, 15\%, 25\%, 28\%, 33\%, 35\%, 39.6\%) from a user-specified calendar
-year (\texttt{yOBBBA} parameter), enabling scenario analysis of potential
+year (\code{yOBBBA} parameter), enabling scenario analysis of potential
 future tax law changes.
 
 \subsection*{Implementation in Owl}
 
-Ordinary income is allocated across the seven tax brackets using
-piecewise-linear LP variables, with bracket widths and rates updated each
-year for inflation and for the OBBBA sunset schedule.
+Ordinary income is allocated across the seven tax brackets, with bracket
+widths and rates updated each year for inflation and for the OBBBA sunset
+schedule.
 RMD fractions are computed per individual and year from the IRS Uniform
 Lifetime Table.
-The OBBBA~65+ bonus deduction phaseout is computed from post-solution MAGI
-and updated each SC-loop iteration.
+The OBBBA~65+ bonus deduction phaseout is computed from the current MAGI
+and refined at each solver pass.
 Reference: \cite{irs17,secure2,obbba2025}.
 
 \subsection*{Limitations and assumptions}
@@ -799,8 +807,8 @@ well-posed plans.
 
 Two optional MIP formulations replace portions of the SC loop with exact
 binary constraints, eliminating the corresponding nonlinearity entirely:
-\texttt{withSSTaxability="optimize"} models SS taxability as an exact
-piecewise-linear MIP; \texttt{withMedicare="optimize"} models IRMAA
+\code{withSSTaxability="optimize"} models SS taxability as an exact
+piecewise-linear MIP; \code{withMedicare="optimize"} models IRMAA
 bracket selection within the optimization itself.
 These exact formulations are more computationally demanding but guarantee
 the globally optimal bracket assignment without relying on iterative
@@ -840,7 +848,7 @@ objective vector.
 Any LP or MIP solver that accepts this standard input format can be used.
 
 The default solver is \textbf{HiGHS}, a high-performance open-source LP
-and MIP solver accessed through PuLP via the \texttt{highspy} Python
+and MIP solver accessed through PuLP via the \code{highspy} Python
 package.
 An optional interface to \textbf{MOSEK}, a commercial solver requiring a
 separate license, is also supported and generally provides faster solution
@@ -981,7 +989,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 		p^{\sigma,\mathrm{hi}}_n &=& \max(0,\,\Pi_n - \mathcal{P}^{\mathrm{hi}}_n).
 	\end{eqnarray}
 	These continuous non-negative variables are present only when the associated solver option
-	\texttt{withSSTaxability} is set to \texttt{="optimize"}.
+	\code{withSSTaxability="optimize"}.
 	See Eq.~(\ref{Eq:plo_phi}) for the formal constraint formulation.
 \item [$p^{\sigma,\mathrm{min}}_n$]
 	50\%-zone Social Security taxability allocation, bounded in $[0,\,\Delta\mathcal{P}]$,
@@ -989,7 +997,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	\begin{equation}
 		p^{\sigma,\mathrm{min}}_n = \min(\Delta\mathcal{P},\,p^{\sigma,\mathrm{lo}}_n).
 	\end{equation}
-	Only present when \texttt{withSSTaxability="optimize"} is selected.
+	Only present when \code{withSSTaxability="optimize"} is selected.
 	Together with $p^{\sigma,\mathrm{lo}}_n$ and $p^{\sigma,\mathrm{hi}}_n$, all SS
 	taxability LP variables use the letter $p$ for consistency.
 \item [$q_{pn}$]
@@ -1014,7 +1022,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	$[0,\;0.85\sum_i\bar{\zeta}_{in}]$.
 	In the default SC-loop mode this quantity equals $\Psi_n\sum_i\bar{\zeta}_{in}$
 	and is treated as a fixed parameter; with the solver option
-	\texttt{withSSTaxability="optimize"} it becomes an LP decision variable computed
+	\code{withSSTaxability="optimize"} it becomes an LP decision variable computed
 	exactly from the IRS formula without iteration.
 \item [$z_{*}^*$]
 	Binary variables are all designated by the letter $z$, but a superscript is
@@ -1264,6 +1272,12 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 	Other ordinary income for individual $i$ in year $n$, beyond wages, pension, and Social Security.
 	This is a user-supplied time series (e.g., rental income, alimony) loaded from the household
 	financial plan spreadsheet.
+\item [$\nu_{in}$]
+	Net investment income from rent or trust distributions for individual $i$ in year $n$.
+	User-supplied time series loaded from the \code{net inv} column of the household financial
+	plan spreadsheet. It enters cash-flow and taxable-income constraints as ordinary income
+	and is also included in the net investment income total for NIIT computation.
+	Defaults to zero when the column is absent.
 \item [$\mathcal{A}_n^*$]
 	Amounts resulting from the proceeds of liquidation of fixed assets. The liquidation of these
 	fixed assets can generate a taxable income, marked with a superscript $x$ as $\mathcal{A}_n^x$,
@@ -1342,7 +1356,7 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	\begin{eqnarray}
 		\label{Eq:Tx2}
 		G_n &=&  \mathcal{A}_n^x +
-		\sum_i [\omega_{in} + \upsilon_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]
+		\sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]
 		- e_n
 		\nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in}]
@@ -1418,12 +1432,13 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	and $\Psi_n = \mathcal{S}_n / \sum_i\bar{\zeta}_{in}$.
 
 \item [$\mathbb{I}_n$]
-	Interests and taxable gains earned from taxable account.
+	Interest and dividend income from the taxable account, plus rent and trust income from the \code{net inv} column.
+	Used as the base for NIIT computation (together with $Q_n$).
 	\begin{equation}
-		\mathbb{I}_n = \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
-		     + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}].
+		\mathbb{I}_n = \max\left(0,\ \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
+		     + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]\right) + \sum_i \nu_{in}.
 	\end{equation}
-	Note that $\mathbb{I}$ can be negative by definition, and $\tau$ will need to be clamped to zero if so.
+	Only positive returns are taxable; the interest/dividend component is clamped to zero before adding $\nu_{in}$.
 
 \item [$P_n$]
 	Amount of 10\% early withdrawal penalty in year $n$.
@@ -1611,8 +1626,8 @@ add the market returns to the savings balances.
 		b_{i0n} \ge \beta^{\min}_i\,\gamma_n,
 		\qquad n \in \{1, \ldots, \mathrm{horizon}_i - 1\}.
 	\end{equation}
-	This is controlled by the \texttt{minTaxableBalance} option.
-	The constraint is omitted when \texttt{minTaxableBalance} is not specified.
+	This is controlled by the \code{minTaxableBalance} option.
+	The constraint is omitted when \code{minTaxableBalance} is not specified.
 
 \subsection{Initial balances}
 	The initial balances $\beta_{ij}$ are one of the main inputs of the model.
@@ -1660,7 +1675,7 @@ add the market returns to the savings balances.
 	Otherwise, for $n \ge n_d$, variable $\eta$ gets redefined as $\eta = \delta_{1, i_s}$.
 	Surplus can be caused by large influx of money coming from big-ticket items, compulsory RMDs,
 	or the disposition of fixed assets.
-	The \texttt{noLateSurplus} option pins surplus to zero in the final two plan years.
+	The \code{noLateSurplus} option pins surplus to zero in the final two plan years.
 	This is useful because during market downturns, large sums can otherwise be recycled
 	through the taxable account in those years with little tax or growth consequence,
 	since the long-term compounding benefit of such deposits vanishes near the end of the plan.
@@ -1802,7 +1817,7 @@ binary variables excluding simultaneous overwithdrawals and deposits, and
 	wages, other ordinary income, Social Security and pension benefits, proceeds from liquidation of fixed assets, and big-ticket items.
 	Then we subtract potential surplus $s_{n}$ and all taxes, penalties, debts, and Medicare premiums paid:
 	\begin{eqnarray}
-		g_n &=& \sum_i [\omega_{in} + \upsilon_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ]
+		g_n &=& \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ]
 		+ \sum_{i,j} w_{ijn} + \sum_i \Lambda^\pm_{in} + \sum_{*=x,c,f} \mathcal{A}_n^*  \nonumber \\
 		&& - s_{n} - P_n - T_n - U_n - J_n - m_n - \mathcal{D}_n.
 	\end{eqnarray}
@@ -1813,7 +1828,7 @@ binary variables excluding simultaneous overwithdrawals and deposits, and
 		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_i (1-\mathcal{H}(n - n_{i,59\frac{1}{2}})) w_{i1n}\nonumber\\
                 + m_n + s_n + \sum_t f_{tn} \theta^x_{tn} + U_n
 		&=& \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in} \nonumber\\
-                && + \sum_i [\omega_{in} + \upsilon_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] \nonumber \\
+                && + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] \nonumber \\
                 && - \mathcal{D}_n - J_n.
 	\end{eqnarray}
 	Notice that we do not consider market losses or tax-loss harvesting,
@@ -1876,7 +1891,7 @@ In this case, the objective function will need to consider the sum over all year
 	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:G_n}) and (\ref{Eq:Tx2}),
 	\begin{eqnarray}
 		\sum_t f_{tn} &=& \mathcal{A}^x_n +
-		\sum_i [\omega_{in} + \upsilon_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]  \nonumber \\
+		\sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]  \nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in} ]
 		\nonumber\\
 		&& + \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
@@ -1889,7 +1904,7 @@ In this case, the objective function will need to consider the sum over all year
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
-		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in} ]
+		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in} ]
 		\nonumber \\
 		&& 		+ 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n}.
 	\end{eqnarray}
@@ -1963,7 +1978,7 @@ In this case, the objective function will need to consider the sum over all year
 	The SC loop terminates when the change in the objective function (net spending
 	or bequest) falls below a prescribed tolerance.
 
-	Alternatively, when the solver option \texttt{withSSTaxability="optimize"} is set,
+	Alternatively, when the solver option \code{withSSTaxability="optimize"} is set,
 	all max/min operations in
 	Eqs.~(\ref{Eq:plo_phi})--(\ref{Eq:TaxableSSSimpl}) are encoded exactly within the
 	LP as a mixed-integer program (MIP) using the continuous variables
@@ -2021,7 +2036,7 @@ In this case, the objective function will need to consider the sum over all year
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
-		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \bar{\pi}_{in} ]
+		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\pi}_{in} ]
 		\nonumber \\
 		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n},
 	\end{eqnarray}
@@ -2111,11 +2126,13 @@ In this case, the objective function will need to consider the sum over all year
 		\label{Eq:MedDecomp2}
 		\sum_{q=0}^{N_q-1} h_{qn} &=&
 		\mathcal{A}^x_{(n-2)} + \mathcal{A}^c_{(n-2)}
-		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \nonumber \\
+		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)} \nonumber \\
+		&& \quad + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \nonumber \\
 		&& - e_{(n-2)} - \sum_i [w_{i1(n-2)} + x_{i(n-2)}] \nonumber \\
-		&& - \sum_i \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})
-		\left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] \nonumber \\
-		&& + \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu)] \nonumber \\
+		&& - \sum_i \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})\right. \nonumber \\
+		&&\quad\left.\cdot\left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] \nonumber \\
+		&& + \sum_i \bigl[w_{i0(n-2)}\alpha_{i00(n-2)} \nonumber \\
+		&&\quad \cdot \max(0, \tau_{0\max(0, n-3)} - \mu)\bigr] \nonumber \\
 		&& + 0.5\sum_{i} \left[\kappa_{i0(n-2)} \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}]
 		+ \mu\alpha_{i00(n-2)}\right)\right]. \nonumber
 	\end{eqnarray}
@@ -2130,7 +2147,7 @@ In this case, the objective function will need to consider the sum over all year
 		+ \mu\alpha_{i00(n-2)}\right)\Bigr] \\
 		&- \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu)] \\
 		&= \mathcal{A}^x_{(n-2)} + \mathcal{A}^c_{(n-2)}
-		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \\
+		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \\
 		&\quad + 0.5\sum_{i} \Bigl[\kappa_{i0(n-2)} \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}]
 		+ \mu\alpha_{i00(n-2)}\right)\Bigr].
 		\end{aligned}
@@ -2387,7 +2404,7 @@ then $(i, j, k, n) = q_*^{-1}(z; N_i, N_j, N_k, N_n, C)$ is obtained from
 \end{eqnarray}
 While this holds for all cases presented in the previous section, this can be easily simplified
 for cases having fewer active indices. However, some modern languages can accomplish this
-mapping rather easily by providing \texttt{reshape()} functions.
+mapping rather easily by providing \code{reshape()} functions.
 
 \chapter{Building constraint matrices}
 Let's first define generic index-mapping functions $I$ and $J$ as
@@ -2592,14 +2609,17 @@ Eqs.~(\ref{Eq:Tx2}) and (\ref{Eq:Qx2}) and implemented as
 	A_e[J_3(n), q_{w}(i, 1, n-2)] &=& -1, \nonumber \\
 	A_e[J_3(n), q_{x}(i, n-2)] &=& -1, \nonumber \\
 	A_e[J_3(n), q_{b}(i, 0, n-2)] &=&
-	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}, \nonumber \\
+	    - \mu \alpha_{i00(n-2)} \nonumber \\
+	    &&\quad -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}, \nonumber \\
 	A_e[J_3(n), q_{d}(i, n-2)] &=&
-	    - \mu \alpha_{i00(n-2)} -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}, \nonumber \\
+	    - \mu \alpha_{i00(n-2)} \nonumber \\
+	    &&\quad -\sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}, \nonumber \\
 	A_e[J_3(n), q_{w}(i, 0, n-2)] &=&
-	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
-	    - \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu), \nonumber \\
+	    \mu \alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)} \nonumber \\
+	    && \quad - \alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu), \nonumber \\
 	v[J_3(n)] &=& \mathcal{A}^x_{n-2} + \mathcal{A}^c_{n-2}
-	+ \sum_i \left[\omega_{i(n-2)} + \upsilon_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right] \nonumber \\
+	+ \sum_i \left[\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)} \right. \nonumber \\
+	&& \quad \left. + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} \right] \nonumber \\
 	&& + 0.5 \sum_i \left[\kappa_{i0(n-2)}  \left(
 	  \mu\alpha_{i00(n-2)} + \sum_{k\neq 0} \alpha_{i0k(n-2)}\tau_{k(n-2)}
 	  \right)\right],\nonumber \\
@@ -2641,7 +2661,7 @@ we add $N_n$ more rows to $A_ey = v$ as
 where $q_q(p, n)$ is the flat index of $q_{pn}$ in the solution vector, and $v$ is
 \begin{equation}
 	v[J_5(n)] = \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in}
-	+ \sum_i [\omega_{in} + \upsilon_{in} + \bar\zeta_{in} + \bar{\pi}_{in}]
+	+ \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar\zeta_{in} + \bar{\pi}_{in}]
 	- \mathcal{D}_n.
 \end{equation}
 
@@ -2675,7 +2695,7 @@ the right-hand side as a parameter updated each SC-loop iteration.
 with
 \begin{eqnarray}
 	v[J_7(n)] &=&
-	\mathcal{A}^x_n + \Psi_n\sum_i\bar{\zeta}_{in} + \sum_i [\omega_{in} + \upsilon_{in} + \bar{\pi}_{in}]
+	\mathcal{A}^x_n + \Psi_n\sum_i\bar{\zeta}_{in} + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\pi}_{in}]
 	+ 0.5\sum_{i} \kappa_{i0n} \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}.
 \end{eqnarray}
 
@@ -2873,8 +2893,8 @@ we impose the inequality constraint
 \end{equation}
 where $\lambda$ is the fractional tolerance by which annual net spending
 is allowed to deviate from the desired profile.
-It is set via the \texttt{spendingSlack} option (an integer percentage,
-e.g.\ \texttt{spendingSlack=10} gives $\lambda=0.10$); the default is
+It is set via the \code{spendingSlack} option (an integer percentage,
+e.g.\ \code{spendingSlack=10} gives $\lambda=0.10$); the default is
 $\lambda=0$ (strict profile).
 It should be noticed that when $\lambda = 0$ the two last equations are
 equivalent.
@@ -2984,7 +3004,7 @@ Four variants are supported:
 
 \section{Deterministic varying rates: \texttt{historical}}
 
-The \texttt{historical} method assigns recorded returns directly to each year
+The \code{historical} method assigns recorded returns directly to each year
 of the plan:
 \begin{equation}
     \tau_{kn} = r_{k,\,\mathcal{Y}_{\mathrm{frm}}+n},
@@ -3019,7 +3039,7 @@ distribution,
     \mathcal{N}(\bm{\mu},\,\bm{\Sigma}),
     \qquad n = 0, \ldots, N_n - 1.
 \end{equation}
-For \texttt{histogaussian}, the mean vector $\bm{\mu}$ and the
+For \code{histogaussian}, the mean vector $\bm{\mu}$ and the
 $N_k \times N_k$ covariance matrix $\bm{\Sigma}$ are estimated from the
 selected historical window:
 \begin{eqnarray}
@@ -3030,7 +3050,7 @@ selected historical window:
               \sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}
               (r_{ky} - \mu_k)(r_{k',y} - \mu_{k'}).
 \end{eqnarray}
-For \texttt{gaussian}, the user supplies $\bm{\mu}$ directly, together
+For \code{gaussian}, the user supplies $\bm{\mu}$ directly, together
 with the standard deviations $\sigma_k = \sqrt{\Sigma_{kk}}$ and the Pearson
 correlation coefficients $\rho_{kk'} \in [-1,1]$, from which the covariance
 matrix is assembled as $\Sigma_{kk'} = \rho_{kk'}\sigma_k\sigma_{k'}$.
@@ -3191,7 +3211,7 @@ $\mathbf{A} \in \mathbb{R}^{N_k \times N_k}$ is the transition matrix encoding
 one-period predictability, and $\bm{\Sigma}$ is the contemporaneous residual
 covariance matrix.
 For $\mathbf{A} = 0$, Eq.~(\ref{Eq:VAR1}) reduces to the multivariate normal
-model of the \texttt{histogaussian} method.
+model of the \code{histogaussian} method.
 
 \paragraph*{Parameter estimation}
 Given $N_w$ historical observations
@@ -3313,32 +3333,32 @@ in financial return data.
 
 \section{User-supplied rates: \texttt{dataframe}}
 
-The \texttt{dataframe} method allows the user to bypass all built-in rate
+The \code{dataframe} method allows the user to bypass all built-in rate
 models and supply the return matrix $\{\tau_{kn}\}$ directly as a
-pandas \texttt{DataFrame} (one column per asset class, one row per plan year).
+pandas \code{DataFrame} (one column per asset class, one row per plan year).
 This is useful for custom scenarios, external forecasts, or deterministic
 stress tests not expressible through the other methods.
 When the DataFrame has fewer rows than the plan horizon $N_n$, the sequence
-is repeated cyclically, matching the behavior of the \texttt{historical}
+is repeated cyclically, matching the behavior of the \code{historical}
 method.
 No statistical estimation or sampling is performed; the user bears full
 responsibility for the consistency and units of the supplied data.
 This method is accessed programmatically via the Python API
-(\texttt{setRates("dataframe", ...)}); it is not available through the
+(\code{setRates("dataframe", ...)}); it is not available through the
 TOML configuration file.
 
 \section{Monte Carlo and stress testing}
 
 In Monte Carlo mode, Owl calls one of the stochastic models
-(\texttt{histogaussian}, \texttt{histolognormal}, \texttt{gaussian},
-\texttt{lognormal}, \texttt{bootstrap\_sor}, \texttt{var},
-or \texttt{garch\_dcc}) independently
+(\code{histogaussian}, \code{histolognormal}, \code{gaussian},
+\code{lognormal}, \code{bootstrap_sor}, \code{var},
+or \code{garch_dcc}) independently
 $N_s$ times, each time solving the full optimization problem with a different
 rate scenario.
 The distribution of resulting optimal spending or bequest values across the
 $N_s$ scenarios provides a probabilistic assessment of the retirement plan.
 
-In stress-testing mode (Historical Range), the \texttt{historical} method
+In stress-testing mode (Historical Range), the \code{historical} method
 is applied repeatedly: the starting year $\mathcal{Y}_{\mathrm{frm}}$ is
 advanced one year at a time over a specified calendar range, producing one
 deterministic solve per starting year.
@@ -3352,7 +3372,7 @@ historical data.
 
 \chapter{Source File Reference}
 
-The Owl Python package is located under \texttt{src/owlplanner/}.
+The Owl Python package is located under \code{src/owlplanner/}.
 The table below summarizes the primary source files and their roles.
 
 \begin{description}[style=nextline, leftmargin=2.5cm, font=\ttfamily]
@@ -3365,7 +3385,7 @@ the objective functions, and post-solution analysis.
 This is the largest and most complex file.
 
 \item[abcapi.py]
-A solver-neutral constraint-building API used by \texttt{plan.py}.
+A solver-neutral constraint-building API used by \code{plan.py}.
 Provides an abstract interface for adding rows to the constraint matrix,
 keeping the model description independent of any specific LP solver.
 
@@ -3383,7 +3403,7 @@ benefit trim for policy scenarios.
 \item[timelists.py]
 Reads and validates the Wages and Contributions time-horizon spreadsheet
 (one tab per individual) and the Fixed Assets and Debts tables.
-Returns year-indexed data structures consumed by \texttt{plan.py}.
+Returns year-indexed data structures consumed by \code{plan.py}.
 
 \item[fixedassets.py]
 Models fixed-income assets (real estate, annuities, collectibles, etc.),
@@ -3396,35 +3416,35 @@ schedules from the Debts table.
 
 \item[rates.py]
 Loads and pre-processes the historical market-return data from
-\texttt{data/rates.csv} (equity, bond, and inflation series from 1928 to
+\code{data/rates.csv} (equity, bond, and inflation series from 1928 to
 present) and provides utilities for constructing rate scenarios.
 
 \item[rate\_models/]
 A pluggable system of rate model classes inheriting from
-\texttt{BaseRateModel}.
+\code{BaseRateModel}.
 Built-in models (historical, fixed, gaussian, histogaussian, lognormal, histolognormal, bootstrap SOR, VAR, GARCH)
-are in \texttt{builtin.py} and \texttt{\_builtin\_impl.py}.
+are in \code{builtin.py} and \code{_builtin_impl.py}.
 Custom rate models are discoverable at runtime if they subclass
-\texttt{BaseRateModel} and are importable.
+\code{BaseRateModel} and are importable.
 
 \item[config/schema.py]
 Pydantic~v2 models defining the full case configuration schema.
 All plan parameters (account balances, claiming ages, rate method, options,
-etc.) are validated here before being passed to \texttt{plan.py}.
+etc.) are validated here before being passed to \code{plan.py}.
 
 \item[config/toml\_io.py]
-TOML file loading and saving for \texttt{.toml} case files.
+TOML file loading and saving for \code{.toml} case files.
 Also handles backward compatibility for older file formats.
 
 \item[plotting/]
-Visualization backends: \texttt{plotly\_backend.py} for interactive plots
-in the Streamlit UI, and \texttt{matplotlib\_backend.py} for static plots
+Visualization backends: \code{plotly_backend.py} for interactive plots
+in the Streamlit UI, and \code{matplotlib_backend.py} for static plots
 used in the CLI and Jupyter notebooks.
 
 \item[cli/]
-A Click-based command-line interface registered as the \texttt{owlcli}
+A Click-based command-line interface registered as the \code{owlcli}
 entry point.
-Supports \texttt{list} (enumerate available case files) and \texttt{run}
+Supports \code{list} (enumerate available case files) and \code{run}
 (solve a case from a TOML file) commands.
 
 \end{description}
@@ -3436,48 +3456,48 @@ Supports \texttt{list} (enumerate available case files) and \texttt{run}
 M.-D. Lacasse,
 ``Optimal Wealth Lab (Owl),''
 GitHub repository, 2025.
-\texttt{https://github.com/mdlacasse/owl}.
+\url{https://github.com/mdlacasse/owl}.
 
 \bibitem{ssa-poms}
 Social Security Administration,
 \textit{Program Operations Manual System (POMS)},
 RS~00615.003 (Full Retirement Age), RS~00615.015 (SSA age computation),
-\texttt{https://secure.ssa.gov/poms.nsf/lnx/0300615003}.
+\url{https://secure.ssa.gov/poms.nsf/lnx/0300615003}.
 
 \bibitem{irs915}
 Internal Revenue Service,
 \textit{Publication 915: Social Security and Equivalent Railroad Retirement Benefits},
-\texttt{https://www.irs.gov/pub/irs-pdf/p915.pdf}.
+\url{https://www.irs.gov/pub/irs-pdf/p915.pdf}.
 
 \bibitem{irc408a}
 Internal Revenue Code \S~408A,
 ``Roth Individual Retirement Accounts,''
-\texttt{https://www.law.cornell.edu/uscode/text/26/408A}.
+\url{https://www.law.cornell.edu/uscode/text/26/408A}.
 
 \bibitem{irs590b}
 Internal Revenue Service,
 \textit{Publication 590-B: Distributions from Individual Retirement Arrangements (IRAs)},
-\texttt{https://www.irs.gov/pub/irs-pdf/p590b.pdf}.
+\url{https://www.irs.gov/pub/irs-pdf/p590b.pdf}.
 
 \bibitem{cms2026}
 Centers for Medicare \& Medicaid Services,
 ``2026 Medicare Parts A \& B Premiums and Deductibles,''
-\texttt{https://www.cms.gov/newsroom/fact-sheets/}.
+\url{https://www.cms.gov/newsroom/fact-sheets/}.
 
 \bibitem{irs409}
 Internal Revenue Service,
 ``Topic No.\ 409: Capital Gains and Losses,''
-\texttt{https://www.irs.gov/taxtopics/tc409}.
+\url{https://www.irs.gov/taxtopics/tc409}.
 
 \bibitem{irc1411}
 Internal Revenue Code \S~1411,
 ``Imposition of Tax (Net Investment Income),''
-\texttt{https://www.law.cornell.edu/uscode/text/26/1411}.
+\url{https://www.law.cornell.edu/uscode/text/26/1411}.
 
 \bibitem{irs17}
 Internal Revenue Service,
 \textit{Publication 17: Your Federal Income Tax},
-\texttt{https://www.irs.gov/pub/irs-pdf/p17.pdf}.
+\url{https://www.irs.gov/pub/irs-pdf/p17.pdf}.
 
 \bibitem{obbba2025}
 One Big Beautiful Bill Act (OBBBA), signed July~4, 2025.

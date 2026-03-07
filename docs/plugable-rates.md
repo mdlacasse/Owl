@@ -1,5 +1,9 @@
 # Towards plugable rate models
 
+> **Note:** This document describes an earlier design proposal. The current
+> implementation uses `BuiltinRateModel` (in `builtin.py`) and `load_rate_model`
+> (in `loader.py`) with `method_file` for external plugins. See
+> `src/owlplanner/rate_models/README.md` for the current architecture.
 
 Given the existing Plan/Rates structure, we want to design a plugin
 system for rate generation that allows easy addition of new models
@@ -166,7 +170,7 @@ def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None
     # Seed logic (unchanged)
     # ----------------------------------------
 
-    if method in ["stochastic", "histochastic"]:
+    if method in ["gaussian", "histogaussian"]:
         if self.reproducibleRates and not override_reproducible:
             if self.rateSeed is None:
                 raise RuntimeError("Config error: reproducibleRates is True but rateSeed is None.")

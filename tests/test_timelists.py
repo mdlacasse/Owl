@@ -412,6 +412,109 @@ class TestHFPWriteRead:
         assert processed_df.loc[2, "active"]  # pd.NA -> True
         assert not processed_df.loc[3, "active"]  # False
 
+    def test_backward_compat_net_inv_missing(self):
+        """Test that HFP without 'net inv' column loads with zeros (backward compat)."""
+        birth_year = 1970
+        remaining_years = 30
+        expectancy = (thisyear - birth_year) + remaining_years
+        p = owl.Plan(
+            ["Alice"],
+            ["1970-01-15"],
+            [expectancy],
+            "Test Plan",
+            verbose=False
+        )
+        p.zeroWagesAndContributions()
+        # Remove "net inv" to simulate old HFP format
+        alice_df = p.timeLists["Alice"].drop(columns=["net inv"])
+        p.timeLists["Alice"] = alice_df
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
+
+            p2 = owl.Plan(
+                ["Alice"],
+                ["1970-01-15"],
+                [expectancy],
+                "Test Plan 2",
+                verbose=False
+            )
+            p2.readHFP(tmp_path)
+
+            assert "net inv" in p2.timeLists["Alice"].columns
+            assert (p2.timeLists["Alice"]["net inv"] == 0).all()
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def test_net_inv_preserved(self):
+        """Test that 'net inv' values are preserved on write and read."""
+        birth_year = 1970
+        remaining_years = 30
+        expectancy = (thisyear - birth_year) + remaining_years
+        p = owl.Plan(
+            ["Alice"],
+            ["1970-01-15"],
+            [expectancy],
+            "Test Plan",
+            verbose=False
+        )
+        p.zeroWagesAndContributions()
+        alice_df = p.timeLists["Alice"]
+        alice_df.loc[alice_df["year"] == 2025, "net inv"] = 12_000
+        alice_df.loc[alice_df["year"] == 2026, "net inv"] = 14_000
+        p.setContributions()
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            wb = p.saveContributions()
+            wb.save(tmp_path)
+
+            p2 = owl.Plan(
+                ["Alice"],
+                ["1970-01-15"],
+                [expectancy],
+                "Test Plan 2",
+                verbose=False
+            )
+            p2.readHFP(tmp_path)
+
+            alice_df2 = p2.timeLists["Alice"]
+            assert alice_df2.loc[alice_df2["year"] == 2025, "net inv"].iloc[0] == 12_000
+            assert alice_df2.loc[alice_df2["year"] == 2026, "net inv"].iloc[0] == 14_000
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def test_net_inv_in_populated_after_set_contributions(self):
+        """Test that netinv_in array is populated correctly from timeLists after setContributions."""
+        birth_year = 1970
+        remaining_years = 30
+        expectancy = (thisyear - birth_year) + remaining_years
+        p = owl.Plan(
+            ["Alice"],
+            ["1970-01-15"],
+            [expectancy],
+            "Test Plan",
+            verbose=False
+        )
+        p.zeroWagesAndContributions()
+        alice_df = p.timeLists["Alice"]
+        # Set a net inv value in a specific year
+        target_year = thisyear + 1
+        alice_df.loc[alice_df["year"] == target_year, "net inv"] = 8_000
+        p.setContributions()
+
+        # Find the year index in p.year_n
+        import numpy as np
+        year_indices = np.where(p.year_n == target_year)[0]
+        assert len(year_indices) > 0, f"Year {target_year} not in plan horizon"
+        n = year_indices[0]
+        assert p.netinv_in[0, n] == 8_000
+
     def test_write_read_married_couple(self):
         """Test write and read for married couple with both having data."""
         # Create a plan for married couple

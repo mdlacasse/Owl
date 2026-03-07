@@ -127,7 +127,7 @@ def generate_historical_average_series(
     return rate_series, means, stdev, corr
 
 
-def generate_histochastic_series(
+def generate_histogaussian_series(
     N: int,
     frm: int,
     to: int,
@@ -174,6 +174,17 @@ def generate_lognormal_series(
     means = np.array(values_pct, dtype=float) / 100.0
     stdev = np.array(stdev_pct, dtype=float) / 100.0
 
+    if np.any(stdev < 0):
+        raise ValueError(
+            "Lognormal model requires non-negative standard deviations. "
+            f"Got stdev in percent: {np.array(stdev_pct).tolist()}"
+        )
+    if np.any(means <= -1.0):
+        raise ValueError(
+            "Lognormal model requires mean returns > -100% (1 + mean > 0). "
+            f"Got means in percent: {np.array(values_pct).tolist()}"
+        )
+
     # Convert arithmetic parameters to log-space
     sigma_z2 = np.log(1.0 + (stdev / (1.0 + means)) ** 2)
     mu_z = np.log(1.0 + means) - sigma_z2 / 2.0
@@ -206,6 +217,11 @@ def generate_histolognormal_series(
 
     Returns:
         (rate_series, means, stdev, corr) - series in decimal, arithmetic params for metadata
+
+    Note:
+        If any historical return is exactly -100% (decimal -1.0), log(1 + r) = -inf
+        and the model will produce invalid results. This is extremely rare in
+        real historical data.
     """
     _, _, _, covar = getRatesDistributions(frm, to, mylog, in_percent=False)
     # Re-load raw historical data to compute log-returns
@@ -267,6 +283,12 @@ def generate_stochastic_series(
 
     means = np.array(values_pct, dtype=float) / 100.0
     stdev = np.array(stdev_pct, dtype=float) / 100.0
+
+    if np.any(stdev < 0):
+        raise ValueError(
+            "Gaussian model requires non-negative standard deviations. "
+            f"Got stdev in percent: {np.array(stdev_pct).tolist()}"
+        )
 
     if corr is None:
         corr_matrix = np.identity(Nk)

@@ -70,7 +70,7 @@ Required unless using historical calibration (see below).
 Type: 4×4 matrix or 6-value flattened list
 Description: Cross-asset contemporaneous correlation matrix.
 
-Same format as current stochastic method.
+Same format as current gaussian method.
 
 
 ### `autocorrelation_lag1`

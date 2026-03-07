@@ -30,7 +30,8 @@ class BaseRateModel(ABC):
     description = "Abstract rate model."
     more_info: Optional[str] = None
 
-    # Model characteristics
+    # Model characteristics (use class attributes, not @property, for correct
+    # metadata in get_metadata() and markdown generation)
     deterministic = False
     constant = False
 

@@ -2,6 +2,37 @@
 
 ---
 
+## Version 2026.03.07
+
+### New feature: "net inv" column in HFP
+
+A new optional column `net inv` (net investment income from rent or trust distributions) is
+supported in the Wages and Contributions spreadsheet.
+
+- **LP constraints**: `netinv_in` enters the cash-flow, taxable-income, SS-taxability
+  provisional-income, and MAGI/IRMAA lookback constraints alongside `other_inc_in`.
+- **NIIT**: `netinv_in` is added to `I_n` (interest/dividend NII) before `computeNIIT()` is
+  called, so rent and trust income is now correctly subject to the 3.8% net investment income tax.
+- **Backward compatible**: HFP files without the column default to zero on read; the column is
+  written on every save.
+- **Sources sheet**: `"net inv"` appears in each individual's Sources sheet in the Excel workbook.
+
+### Pension survivor benefits
+- **Joint-and-survivor (J&S) option**: Surviving spouse receives a configurable fraction (0–100%) of the primary's pension after death. Config: `pension_survivor_fraction`; UI: Fixed Income page.
+
+### Documentation
+- **`tax2026.computeNIIT()`**: Removed stale "not yet modeled" comment; docstring now states
+  that `I_n` already includes rent/trust income from `net inv`.
+- **`papers/owl.tex`**: Added `ν_{in}` to the parameter symbol table; added `+ ν_{in}` to all
+  constraint equations that previously contained `υ_{in}`; updated the NIIT implementation and
+  limitations subsections.
+- **`PARAMETERS.md`**: Documented `other inc` and `net inv` optional columns with descriptions.
+
+### Bug fixes
+ - Audited rate models and fixed check for attributes.
+
+---
+
 ## Version 2026.03.05
 
 ### Rate models

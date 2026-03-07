@@ -171,7 +171,6 @@ class BootstrapSORRateModel(BaseRateModel):
             raise ValueError("Crisis weighting produced zero probability mass.")
 
         weights /= total
-        weights /= weights.sum()
 
         return weights
 

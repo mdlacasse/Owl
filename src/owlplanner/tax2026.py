@@ -448,9 +448,8 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
 
 def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
     """
-    Compute ACA tax on Dividends (Q) and Interests (I).
-    For accounting for rent and/or trust income, one can easily add a column
-    to the Wages and Contributions file and add yearly amount to Q_n + I_n below.
+    Compute ACA tax on dividends (Q), interest (I), and other net investment income.
+    I_n already includes rent and trust income from the 'net inv' column of the HFP.
     """
     J_n = np.zeros(N_n)
     status = N_i - 1

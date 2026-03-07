@@ -320,19 +320,21 @@ or large influx of after-tax money, debts, and fixed assets.
 
 ##### :material/work_history: Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
-The **Wages and Contributions** table contains 10 columns titled as follows:
+The **Wages and Contributions** table contains 11 columns titled as follows:
 
-|year|anticipated wages|other inc|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|Roth conv|big-ticket items|
-|--|--|--|--|--|--|--|--|--|--|
-|2021 | | | | | | | | | |
-| ... | | | | | | | | | |
-|2026 | | | | | | | | | |
-|2027 | | | | | | | | | |
-| ... | | | | | | | | | |
-|20XX | | | | | | | | | |
+|year|anticipated wages|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|Roth conv|big-ticket items|
+|--|--|--|--|--|--|--|--|--|--|--|
+|2021 | | | | | | | | | | |
+| ... | | | | | | | | | | |
+|2026 | | | | | | | | | | |
+|2027 | | | | | | | | | | |
+| ... | | | | | | | | | | |
+|20XX | | | | | | | | | | |
 
 The *other inc* column is optional; older HFP files without it will default to zero.
 It contributes to ordinary income (e.g., part-time work, consulting, royalties).
+The *net inv* column is optional; older HFP files without it will default to zero.
+It captures rent and trust distributions that count as net investment income for NIIT (3.8% surtax).
 Note that column names are case sensitive and all entries are in lower case.
 The easiest way to complete the process of filling this file is either to start from the template
 file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) or
@@ -690,7 +692,7 @@ Owl tracks four asset classes:
 ---
 ##### Constant rates
 Constant rates stay the same for every year of the plan. Choose from:
-- `trailing-30` — constant rates equal to the 30-year trailing geometric mean of annual returns. A reasonable middle-ground assumption.
+- `trailing-30` — constant rates equal to the 30-year trailing geometric mean of annual returns. A long-run backward-looking assumption.
 - `conservative` — a pessimistic but plausible set of forecasts.
 - `optimistic` — a more bullish set of forecasts.
 - `historical average` — geometric means computed over a selectable historical window
@@ -792,7 +794,7 @@ contagion are important, such as for retirement scenarios that include equity-he
 
 | Method | Rate type | Character | Pros | Cons |
 |---|---|---|---|---|
-| `trailing-30` | Constant | Deterministic | Long-run geometric mean of trailing 30 years; no parameters | Single outcome; no uncertainty modeling |
+| `trailing-30` | Constant | Deterministic | Backward-looking 30-year trailing geometric mean; no parameters | Single outcome; no uncertainty modeling |
 | `conservative` | Constant | Deterministic | Simple; clearly stress-tests the downside | Single outcome; no uncertainty modeling |
 | `optimistic` | Constant | Deterministic | Simple; tests bullish scenario | Single outcome; no uncertainty modeling |
 | `historical average` | Constant | Deterministic | Grounded in a specific historical period | Sensitive to choice of historical window |

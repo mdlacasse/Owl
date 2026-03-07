@@ -7,7 +7,7 @@ investment return and inflation rate series used by `Plan.setRates()`.
 
 It supports:
 
-* Original built-in methods (trailing-30, stochastic, historical, etc.)
+* Original built-in methods (trailing-30, gaussian, historical, etc.)
 * Built-in new models (e.g. `dataframe`)
 * External plugin rate models loaded at runtime
 * UI discovery of available models and required parameters
@@ -19,7 +19,7 @@ It supports:
 ```
 rate_models/
 ├── base.py          # Abstract base class for all rate models
-├── basic.py         # Wrapper for built-in methods (BasicRateModel)
+├── builtin.py       # Built-in methods (BuiltinRateModel shim + concrete classes)
 ├── dataframe.py     # Built-in DataFrame-based rate model
 ├── loader.py        # Model resolution and discovery system
 └── README.md
@@ -48,7 +48,7 @@ class BaseRateModel:
         Must return array shape (N, 4)
 
         Columns:
-        [S&P 500, Corporate Baa, T Bonds, Inflation]
+        [S&P 500, Bonds Baa, T-Notes, Inflation]
 
         All values must be decimal (0.05 = 5%).
         """
@@ -56,23 +56,13 @@ class BaseRateModel:
 
 
 
-## Optional Properties
+## Optional Class Attributes
+
+Use class attributes (not `@property`) so `get_metadata()` works correctly:
 
 ```python
-@property
-def deterministic(self) -> bool:
-    """
-    True if model produces identical output for same inputs.
-    """
-```
-
-```python
-@property
-def constant(self) -> bool:
-    """
-    True if model produces time-constant rates (no year-to-year variation).
-    Used to suppress reverse/roll.
-    """
+deterministic = False  # True if model produces identical output for same inputs
+constant = False     # True if time-constant rates (suppresses reverse/roll)
 ```
 
 Default behavior:
@@ -172,7 +162,7 @@ from owlplanner.rate_models.loader import (
 models = list_available_rate_models()
 
 print(models)
-# ['default', 'stochastic', 'historical', 'dataframe', ...]
+# ['bootstrap_sor', 'conservative', 'dataframe', 'gaussian', 'garch_dcc', ...]
 ```
 
 
@@ -180,7 +170,7 @@ print(models)
 ## Retrieve Model Metadata
 
 ```python
-meta = get_rate_model_metadata("stochastic")
+meta = get_rate_model_metadata("gaussian")
 
 print(meta)
 ```
@@ -189,7 +179,7 @@ Example output:
 
 ```python
 {
-    "model_name": "stochastic",
+    "model_name": "gaussian",
     "description": "Random draws from multivariate normal distribution.",
     "required_parameters": {
         "values": {"type": "list[float]", "length": 4},
@@ -214,20 +204,21 @@ meta = get_rate_model_metadata(
 
 
 
-# 4️⃣ Basic Models
+# 4️⃣ Built-in Models
 
-Basic methods are wrapped by `BasicRateModel`.
+Built-in methods are wrapped by `BuiltinRateModel` (backward-compatibility shim)
+and implemented as concrete `BaseRateModel` subclasses.
 
-Supported basic methods:
+Supported built-in methods:
 
 ```
-default
+trailing-30
 optimistic
 conservative
 user
 historical
 historical average
-stochastic
+gaussian
 histogaussian
 ```
 
@@ -276,9 +267,8 @@ class RateModel(BaseRateModel):
     required_parameters = {}
     optional_parameters = {}
 
-    @property
-    def deterministic(self):
-        return False
+    deterministic = False  # Use class attribute, not @property, for correct metadata
+    constant = False
 
     def generate(self, N):
         return np.zeros((N, 4))

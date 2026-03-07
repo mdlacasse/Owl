@@ -62,7 +62,7 @@ All calculations are indexed for inflation, which is either provided as a fixed 
 or through historical values, as are all other rates used for the calculations.
 These rates can be used for backtesting different scenarios by choosing
 *historical* rates, or by choosing *historical average* rates over a historical year range,
-or what I coined "*histochastic*" rates which are
+or *histogaussian* rates which are
 generated using the statistical distribution of observed historical rates.
 
 Portfolios available for experimenting include assets from the S&P 500, Corporate Bonds Baa, Treasury 10-y Notes,
@@ -80,11 +80,11 @@ flat or follow a *smile* curve which is also adjustable through three simple par
 
 * Available rates are from 1928 to last year and can be used to test historical performance.
 
-* Fixed rates can also be provided, as well as *histochastic* rates, which are generated using
+* Fixed rates can also be provided, as well as *histogaussian* rates, which are generated using
 the statistical characteristics (means and covariance matrix) of
 a selected historical year range.
 
-* Pure *stochastic* rates can also be generated
+* Pure *gaussian* rates can also be generated
 if the user provides means, volatility (expressed as standard deviation), and optionally
 the correlations between the different assets return rates provided as a matrix, or a list of
 the off-diagonal elements (see documentation for details).

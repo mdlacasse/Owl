@@ -28,11 +28,12 @@ from . import utils as u
 
 # Expected headers in each excel sheet, one per individual.
 # Optional columns (e.g. "other inc") default to zero when absent for backward compatibility.
-_optionalTimeHorizonItems = ["other inc"]
+_optionalTimeHorizonItems = ["other inc", "net inv"]
 _timeHorizonItems = [
     "year",
     "anticipated wages",
     "other inc",
+    "net inv",
     "taxable ctrb",
     "401k ctrb",
     "Roth 401k ctrb",

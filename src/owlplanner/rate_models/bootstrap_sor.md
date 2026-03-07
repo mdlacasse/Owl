@@ -275,7 +275,7 @@ crisis_weight = 3.0
 
 | Method                     | Parametric                | Preserves Tails | Preserves Serial Corr | Preserves Cross Corr |
 | -------------------------- | ------------------------- | --------------- | --------------------- | -------------------- |
-| stochastic                 | Yes (Normal)              | ❌               | ❌                     | ✅                    |
+| gaussian                   | Yes (Normal)              | ❌               | ❌                     | ✅                    |
 | histogaussian              | Yes (Normal, hist params) | ❌               | ❌                     | ✅                    |
 | historical                 | No                        | ✅               | ✅                     | ✅                    |
 | bootstrap_sor (iid)        | No                        | ✅               | ❌                     | ✅                    |

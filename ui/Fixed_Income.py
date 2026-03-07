@@ -220,7 +220,7 @@ to estimate {iname1}'s PIA.""")
     st.markdown("#### :orange[Pension]")
     msg_pension1 = "Monthly benefit received from pension."
     msg_pension2 = "Age at which pension benefits start. In years and months."
-    msg_surv = ("If you elected a joint-and-survivor (J+S) option, the surviving spouse receives "
+    msg_surv = ("If you elected a joint-and-survivor (J&S) option, the surviving spouse receives "
                 "this percentage of your pension after your death. 0 = single-life annuity.")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:

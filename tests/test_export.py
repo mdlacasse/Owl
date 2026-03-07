@@ -466,3 +466,55 @@ def test_plan_to_csv_row_count_matches_plan_years(joe_plan, tmp_path, monkeypatc
     plan_to_csv(joe_plan, joe_plan._name, joe_plan.mylog)
     df = pd.read_csv(tmp_path / f"worksheet_{joe_plan._name}.csv", index_col=0)
     assert len(df) == joe_plan.N_n
+
+
+def test_plan_to_csv_has_all_net_inv_column(joe_plan, tmp_path, monkeypatch):
+    """'all net inv' column is present in CSV output."""
+    monkeypatch.chdir(tmp_path)
+    plan_to_csv(joe_plan, joe_plan._name, joe_plan.mylog)
+    df = pd.read_csv(tmp_path / f"worksheet_{joe_plan._name}.csv", index_col=0)
+    assert "all net inv" in df.columns
+
+
+# ---------------------------------------------------------------------------
+# Cash Flow balance
+# ---------------------------------------------------------------------------
+
+def test_cash_flow_sheet_has_all_net_inv_column(joe_plan):
+    """'all net inv' column is present in the Cash Flow worksheet."""
+    wb = joe_plan.saveWorkbook(saveToFile=False)
+    cf_ws = next(ws for ws in wb.worksheets if ws.title == "Cash Flow")
+    headers = [cell.value for cell in cf_ws[1]]
+    assert "all net inv" in headers
+
+
+def test_cash_flow_sheet_balances_to_zero(joe_plan):
+    """Each row of the Cash Flow sheet sums to zero (net spending == sum of all other columns).
+
+    Convention: inflows are positive, outflows (taxes, deposits, debt, spending) are
+    included with their natural sign in the dict, so the algebraic row sum is zero.
+    Equivalently: 'net spending' equals the sum of all remaining columns.
+    """
+    import numpy as np
+
+    p = joe_plan
+    # Reconstruct the cash-flow dict the same way export.py does, then check balance.
+    inflows = (
+        np.sum(p.omega_in, axis=0)        # all wages
+        + np.sum(p.other_inc_in, axis=0)  # all other inc
+        + np.sum(p.netinv_in, axis=0)     # all net inv
+        + np.sum(p.piBar_in, axis=0)      # all pensions
+        + np.sum(p.zetaBar_in, axis=0)    # all soc sec
+        + np.sum(p.Lambda_in, axis=0)     # all BTI's
+        + p.fixed_assets_ordinary_income_n
+        + p.fixed_assets_capital_gains_n
+        + p.fixed_assets_tax_free_n
+        - p.debt_payments_n               # debt pmts (negative flow)
+        + np.sum(p.w_ijn, axis=(0, 1))    # all wdrwls
+        - np.sum(p.d_in, axis=0)          # all deposits (negative flow)
+        - p.T_n - p.J_n                   # ord taxes (negative flow)
+        - p.U_n                           # div taxes (negative flow)
+        - p.m_n - p.M_n                   # Medicare (negative flow)
+    )
+    np.testing.assert_allclose(inflows, p.g_n, atol=1.0,
+                               err_msg="Cash Flow sheet does not balance: sum of columns != net spending")

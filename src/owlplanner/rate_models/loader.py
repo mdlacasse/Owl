@@ -36,7 +36,7 @@ from owlplanner.rate_models.builtin import (
     GaussianRateModel,
     LognormalRateModel,
     HistolognormalRateModel,
-    HistochasticRateModel,
+    HistogaussianRateModel,
 )
 from owlplanner.rate_models.dataframe import DataFrameRateModel
 from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
@@ -65,7 +65,7 @@ _RATE_MODEL_REGISTRY = {
     "gaussian": GaussianRateModel,
     "lognormal": LognormalRateModel,
     "histolognormal": HistolognormalRateModel,
-    "histogaussian": HistochasticRateModel,
+    "histogaussian": HistogaussianRateModel,
     "dataframe": DataFrameRateModel,
     "bootstrap_sor": BootstrapSORRateModel,
     "var": VARRateModel,

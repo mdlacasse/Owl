@@ -242,7 +242,7 @@ Gaussian almost always understates risk.
 
 # 🏁 Recommended Practical Workflow
 
-1. Run Gaussian stochastic (baseline)
+1. Run gaussian (baseline)
 2. Run IID bootstrap
 3. Run block bootstrap
 4. Run crisis overweight

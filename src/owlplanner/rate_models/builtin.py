@@ -390,7 +390,7 @@ class HistolognormalRateModel(BaseRateModel):
         return series
 
 
-class HistochasticRateModel(BaseRateModel):
+class HistogaussianRateModel(BaseRateModel):
     model_name = "histogaussian"
     description = (
         "Samples from a multivariate normal distribution fitted to the selected historical window. "
@@ -422,7 +422,7 @@ class HistochasticRateModel(BaseRateModel):
         self._to = to
 
     def generate(self, N):
-        series, means, stdev_arr, corr_arr = impl.generate_histochastic_series(
+        series, means, stdev_arr, corr_arr = impl.generate_histogaussian_series(
             N, self._frm, self._to, self._rng, self.logger
         )
         self.params["values"] = means.copy()
@@ -431,8 +431,8 @@ class HistochasticRateModel(BaseRateModel):
         return series
 
 
-# Backward-compatible aliases for code that imports by canonical names
-HistogaussianRateModel = HistochasticRateModel
+# Backward-compatible alias for code that imports HistochasticRateModel
+HistochasticRateModel = HistogaussianRateModel
 
 
 # Backward-compatible alias for code that imports StochasticRateModel
@@ -460,7 +460,7 @@ _BUILTIN_REGISTRY = {
     "gaussian": GaussianRateModel,
     "lognormal": LognormalRateModel,
     "histolognormal": HistolognormalRateModel,
-    "histogaussian": HistochasticRateModel,
+    "histogaussian": HistogaussianRateModel,
 }
 
 

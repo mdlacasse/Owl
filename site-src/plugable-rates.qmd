@@ -3,6 +3,11 @@ title: Towards plugable rate models
 format: gfm
 ---
 
+::: {.callout-note}
+## Design document
+
+This document describes an earlier design proposal. The current implementation uses `BuiltinRateModel` (in `builtin.py`) and `load_rate_model()` (in `loader.py`). See `src/owlplanner/rate_models/README.md` for the actual architecture.
+:::
 
 Given the existing Plan/Rates structure, we want to design a plugin system for rate generation that allows easy addition of new models without modifying the core `Rates` class. This will enable experiments with different rate generation techniques while maintaining the integrity of the existing codebase.
 
@@ -86,7 +91,7 @@ This replaces your `RATE_METHODS_NO_REGEN` logic for plugins.
 # 🧱 Step 2 — Built-in Rate Models
 
 The built-in methods (trailing-30, optimistic, conservative, user, historical,
-historical average, histochastic, stochastic) are implemented in
+historical average, histogaussian, gaussian) are implemented in
 `BuiltinRateModel`, which uses helper functions in `owlplanner.rate_models._builtin_impl`.
 The rate model loader (`load_rate_model`) resolves builtin method names to
 `BuiltinRateModel`. There is no legacy `Rates` class; the single API is
@@ -137,7 +142,7 @@ def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None
     # Seed logic (unchanged)
     # ----------------------------------------
 
-    if method in ["stochastic", "histochastic"]:
+    if method in ["gaussian", "histogaussian"]:
         if self.reproducibleRates and not override_reproducible:
             if self.rateSeed is None:
                 raise RuntimeError("Config error: reproducibleRates is True but rateSeed is None.")

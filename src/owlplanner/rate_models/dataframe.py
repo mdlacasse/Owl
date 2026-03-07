@@ -33,10 +33,19 @@ class DataFrameRateModel(BaseRateModel):
     sequence; no year column is used. Historical data with year indexing
     is handled by built-in methods (e.g. historical, histogaussian) which
     read from the package's data directory.
+
+    Programmatic use only: the DataFrame cannot be serialized to TOML, so
+    this model is not loadable from config files.
     """
 
     model_name = "dataframe"
-    description = "Sequential rates read from a pandas DataFrame (no year column)."
+    description = (
+        "Sequential rates read from a pandas DataFrame (no year column). "
+        "Programmatic use only — DataFrame cannot be serialized to TOML."
+    )
+
+    deterministic = True
+    constant = False
 
     required_parameters = {
         "df": {
@@ -46,6 +55,7 @@ class DataFrameRateModel(BaseRateModel):
         "n_years": {
             "type": "int",
             "description": "Number of years (rows) required for plan horizon.",
+            "example": "40",
         },
     }
 
@@ -74,18 +84,6 @@ class DataFrameRateModel(BaseRateModel):
     def to_config(cls, **params) -> dict:
         """DataFrame cannot be serialized to TOML; return empty dict."""
         return {}
-
-    #######################################################################
-    # Properties
-    #######################################################################
-
-    @property
-    def deterministic(self):
-        return True
-
-    @property
-    def constant(self):
-        return False
 
     #######################################################################
     # Generate
