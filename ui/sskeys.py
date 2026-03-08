@@ -432,8 +432,8 @@ def getDict(key=ss.currentCase):
 
 
 def getAccountBalances(ni):
-    bal = [[], [], []]
-    accounts = ["txbl", "txDef", "txFree"]
+    bal = [[], [], [], []]
+    accounts = ["txbl", "txDef", "txFree", "hsa"]
     for j, acc in enumerate(accounts):
         for i in range(ni):
             bal[j].append(getCaseKey(acc + str(i)))
@@ -565,7 +565,7 @@ def getIndividualAllocationRatios():
 
 
 def getAccountAllocationRatios():
-    accounts = [[], [], []]
+    accounts = [[], [], [], []]
     ni = 2 if getCaseKey("status") == "married" else 1
     for i in range(ni):
         for j1 in range(3):
@@ -576,6 +576,13 @@ def getAccountAllocationRatios():
                 final.append(int(getCaseKey(f"j{j1}_fin%{k1}_{i}")))
             tmp = [initial, final]
             accounts[j1].append(tmp)
+        # HSA uses "jhsa_" prefix to avoid collision with j3_ (individual mode)
+        hsa_initial = []
+        hsa_final = []
+        for k1 in range(4):
+            hsa_initial.append(int(getCaseKey(f"jhsa_init%{k1}_{i}") or 0))
+            hsa_final.append(int(getCaseKey(f"jhsa_fin%{k1}_{i}") or 0))
+        accounts[3].append([hsa_initial, hsa_final])
 
     return accounts
 

@@ -40,11 +40,13 @@ def _apply_assets_to_plan(plan: "Plan", known: dict, icount: int) -> None:
     start_date = known["basic_info"].get("start_date", "today")
     balances = {}
     for acc in ACCOUNT_TYPES:
-        balances[acc] = list(known["savings_assets"][ACCOUNT_KEY_MAP[acc]])
+        key = ACCOUNT_KEY_MAP[acc]
+        balances[acc] = list(known["savings_assets"].get(key, [0.0] * icount))
     plan.setAccountBalances(
         taxable=balances["taxable"],
         taxDeferred=balances["tax-deferred"],
         taxFree=balances["tax-free"],
+        hsa=balances["hsa"],
         startDate=start_date,
     )
     if icount == 2:
@@ -133,16 +135,20 @@ def _apply_asset_allocation_to_plan(plan: "Plan", known: dict) -> None:
     alloc_type = known["asset_allocation"]["type"]
     if alloc_type == "account":
         bounds_ar = {}
-        for a_type in ACCOUNT_TYPES:
+        for a_type in ACCOUNT_TYPES[:3]:   # taxable, tax-deferred, tax-free
             bounds_ar[a_type] = np.array(
                 known["asset_allocation"][a_type],
                 dtype=np.float64,
             )
+        # HSA allocation is optional; defaults to None (inherits tax-free in plan.py)
+        hsa_alloc = known["asset_allocation"].get("hsa")
+        hsa_ar = np.array(hsa_alloc, dtype=np.float64) if hsa_alloc is not None else None
         plan.setAllocationRatios(
             alloc_type,
             taxable=bounds_ar["taxable"],
             taxDeferred=bounds_ar["tax-deferred"],
             taxFree=bounds_ar["tax-free"],
+            hsa=hsa_ar,
         )
     elif alloc_type in ["individual", "spouses"]:
         bounds_generic = np.array(
@@ -365,11 +371,20 @@ def plan_to_config(myplan: "Plan") -> dict:
         "type": myplan.ARCoord,
     }
     if myplan.ARCoord == "account":
-        for acc_type in ACCOUNT_TYPES:
+        for acc_type in ACCOUNT_TYPES[:3]:   # taxable, tax-deferred, tax-free
             val = myplan.boundsAR[acc_type]
             diconf["asset_allocation"][acc_type] = (
                 val.tolist() if hasattr(val, "tolist") else val
             )
+        # Save HSA allocation only when it differs from tax-free (avoids bloating old TOML files)
+        hsa_val = myplan.boundsAR.get("hsa")
+        tf_val = myplan.boundsAR.get("tax-free")
+        if hsa_val is not None:
+            import numpy as _np
+            hsa_arr = _np.array(hsa_val)
+            tf_arr = _np.array(tf_val)
+            if not _np.array_equal(hsa_arr, tf_arr):
+                diconf["asset_allocation"]["hsa"] = hsa_arr.tolist()
     else:
         val = myplan.boundsAR["generic"]
         diconf["asset_allocation"]["generic"] = (

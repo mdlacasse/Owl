@@ -2,6 +2,17 @@
 
 ---
 
+## Version 2026.03.09
+
+### New feature: support for HSA accounts
+
+- A fourth type of savings account HSA) is now in the mix. The tax advantage of HSA
+is used to pay Medicare and IRMAA premiums.
+- Formulation is modified to account for withdrawals
+- Contributions made through W&C table
+- New tests for HSA
+- Documentation update
+
 ## Version 2026.03.07
 
 ### New feature: "net inv" column in HFP
@@ -18,7 +29,8 @@ supported in the Wages and Contributions spreadsheet.
 - **Sources sheet**: `"net inv"` appears in each individual's Sources sheet in the Excel workbook.
 
 ### Pension survivor benefits
-- **Joint-and-survivor (J&S) option**: Surviving spouse receives a configurable fraction (0–100%) of the primary's pension after death. Config: `pension_survivor_fraction`; UI: Fixed Income page.
+- **Joint-and-survivor (J&S) option**: Surviving spouse receives a configurable fraction
+(0–100%) of the primary's pension after death. Config: `pension_survivor_fraction`; UI: Fixed Income page.
 
 ### Documentation
 - **`tax2026.computeNIIT()`**: Removed stale "not yet modeled" comment; docstring now states

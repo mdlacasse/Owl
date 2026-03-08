@@ -32,10 +32,11 @@ if ret is None or kz.caseHasNoPlan():
     st.info("A case must first be created before running this page.")
 else:
     st.markdown("#### :orange[Savings Account Balances]")
-    accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-free"}
+    accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-free", "hsa": "HSA"}
     hdetails = {"txbl": "Brokerage and savings accounts excluding emergency fund. ",
                 "txDef": "IRA, 401k, 403b and the like. ",
-                "txFree": "Roth IRA, Roth 401k, Roth 403b and the like. "}
+                "txFree": "Roth IRA, Roth 401k, Roth 403b and the like. ",
+                "hsa": "Health Savings Account (triple tax-advantaged). "}
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         iname = kz.getCaseKey("iname0")
@@ -66,25 +67,31 @@ else:
         st.divider()
         with st.expander("*Advanced options*"):
             st.markdown("#### :orange[Survivor's Spousal Beneficiary Fractions]")
-            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+            helpmsg = "Fraction of account left to surviving spouse."
+            hsahelp = ("Fraction of HSA left to surviving spouse. "
+                       "IRS rules allow a spouse beneficiary to inherit the HSA intact "
+                       "(full tax-advantaged status). Defaults to 1.0.")
+            col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
             with col1:
                 nkey = "benf" + str(0)
                 kz.initCaseKey(nkey, 1)
-                helpmsg = "Fraction of account left to surviving spouse."
                 ret = kz.getNum(accounts["txbl"].capitalize(), nkey, format="%.2f", max_value=1.0,
                                 step=0.05, help=helpmsg)
-
             with col2:
                 nkey = "benf" + str(1)
                 kz.initCaseKey(nkey, 1)
                 ret = kz.getNum(accounts["txDef"].capitalize(), nkey, format="%.2f", max_value=1.0,
                                 step=0.05, help=helpmsg)
-
             with col3:
                 nkey = "benf" + str(2)
                 kz.initCaseKey(nkey, 1)
                 ret = kz.getNum(accounts["txFree"].capitalize(), nkey, format="%.2f", max_value=1.0,
                                 step=0.05, help=helpmsg)
+            with col4:
+                nkey = "benf" + str(3)
+                kz.initCaseKey(nkey, 1)
+                ret = kz.getNum("HSA", nkey, format="%.2f", max_value=1.0,
+                                step=0.05, help=hsahelp)
 
             st.markdown("#####")
             st.markdown("#### :orange[Cash Flow Surplus Deposit Fraction]")

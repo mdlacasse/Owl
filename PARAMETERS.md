@@ -38,7 +38,8 @@ Initial account balances and beneficiary information.
 | `taxable_savings_balances` | list of `N_i` floats | Initial balance in taxable accounts for each individual (in thousands of dollars) |
 | `tax_deferred_savings_balances` | list of `N_i` floats | Initial balance in tax-deferred accounts (e.g., 401k, traditional IRA) for each individual (in thousands of dollars) |
 | `tax_free_savings_balances` | list of `N_i` floats | Initial balance in tax-free accounts (e.g., Roth IRA, Roth 401k) for each individual (in thousands of dollars) |
-| `beneficiary_fractions` | list of 3 floats | *(Married only)* Fraction of each account type (taxable, tax-deferred, tax-free) bequeathed to the surviving spouse. Each value should be between 0.0 and 1.0 |
+| `hsa_savings_balances` | list of `N_i` floats | *(Optional)* Initial balance in Health Savings Accounts (HSA) for each individual (in thousands of dollars). Defaults to `[0.0]` (or `[0.0, 0.0]` for married). HSA contributions must stop at Medicare enrollment (~age 65); see `HSA ctrb` column in the HFP file |
+| `beneficiary_fractions` | list of 3 or 4 floats | *(Married only)* Fraction of each account type (taxable, tax-deferred, tax-free, and optionally HSA) bequeathed to the surviving spouse. Each value should be between 0.0 and 1.0. The HSA fraction defaults to `1.0` (spouse inherits intact, per IRS rules). A 3-element list is accepted for backward compatibility and is automatically extended with `1.0` for HSA |
 | `spousal_surplus_deposit_fraction` | float | *(Married only)* Fraction of surplus to deposit in the second spouse's taxable account. Value between 0.0 and 1.0 |
 
 -------
@@ -51,10 +52,11 @@ Reference to the Excel file containing wages, contributions, and other time-vary
 |-----------|------|-------------|
 | `HFP_file_name` | string | Name of the Excel file (`.xlsx`) containing wages, contributions, Roth conversions, and big-ticket items. Use `"None"` if no file is associated with the case |
 
-**Note:** The Excel file should contain one sheet per individual with columns for: year, anticipated wages, other inc (optional), net inv (optional), taxable contributions, 401k contributions, Roth 401k contributions, IRA contributions, Roth IRA contributions, Roth conversions, and big-ticket items.
+**Note:** The Excel file should contain one sheet per individual with columns for: year, anticipated wages, other inc (optional), net inv (optional), taxable contributions, 401k contributions, Roth 401k contributions, IRA contributions, Roth IRA contributions, HSA ctrb (optional), Roth conversions, and big-ticket items.
 
 - `other inc`: Other ordinary income beyond wages, pension, and Social Security (e.g., alimony, rental income treated as ordinary). Optional; defaults to zero if absent.
 - `net inv`: Net investment income from rent or trust distributions ($). Enters cash-flow and taxable-income constraints as ordinary income, and also flows into NIIT computation. Optional; defaults to zero if absent.
+- `HSA ctrb`: Annual HSA contribution amount in dollars (not thousands). Contributions are pre-tax and reduce AGI, MAGI, and Social Security provisional income. Must stop at Medicare enrollment (~age 65); any values entered beyond that age are automatically zeroed. Optional; defaults to zero if absent. 2026 limits: $4,400 (self-only) / $8,750 (family); add $1,000 catch-up if age 55+.
 
 -------
 
@@ -93,7 +95,7 @@ Rates use standard financial conventions:
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred accounts |
+| `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred and HSA accounts. Non-spouse HSA beneficiaries must include the full inherited HSA balance as ordinary income (IRC §223(f)(8)(B)) |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
 | `method` | string | Method for determining rates. Valid values: `"trailing-30"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"gaussian"`, `"histogaussian"`, `"lognormal"`, `"histolognormal"`, `"bootstrap_sor"`, `"var"`, `"dataframe"` |
@@ -162,6 +164,7 @@ Asset allocation strategy and how it changes over time.
 | `taxable` | 3D array | Asset allocation bounds for taxable accounts. Structure: `[[[initial_stocks, initial_bonds, initial_tnotes, initial_cash], [final_stocks, final_bonds, final_tnotes, final_cash]]]` for each individual. The four classes are: S&P 500 (stocks), Corporate Baa bonds, 10-year Treasury notes, and cash/inflation |
 | `tax-deferred` | 3D array | Asset allocation bounds for tax-deferred accounts (same structure as `taxable`) |
 | `tax-free` | 3D array | Asset allocation bounds for tax-free accounts (same structure as `taxable`) |
+| `hsa` | 3D array | *(Optional)* Asset allocation bounds for HSA accounts (same structure as `taxable`). When omitted, HSA uses the same allocation as `tax-free` |
 
 #### :orange[For type = "individual" or "spouses"]
 | Parameter | Type | Description |
@@ -278,7 +281,8 @@ start_date = "2026-01-01"
 taxable_savings_balances = [100.0, 50.0]
 tax_deferred_savings_balances = [500.0, 300.0]
 tax_free_savings_balances = [200.0, 150.0]
-beneficiary_fractions = [1.0, 1.0, 1.0]
+hsa_savings_balances = [30.0, 20.0]
+beneficiary_fractions = [1.0, 1.0, 1.0, 1.0]
 spousal_surplus_deposit_fraction = 0.5
 
 [household_financial_profile]

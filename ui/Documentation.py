@@ -53,7 +53,7 @@ or maximize an after-tax bequest under the constraint of a desired net spending 
 In each case, Roth conversions are optimized to reduce the tax burden,
 while federal income tax and Medicare premiums (including IRMAA) are calculated.
 A full description of the package can be found on the GitHub
-the [repository](https://github.com/mdlacasse/Owl), and the mathematical
+[repository](https://github.com/mdlacasse/Owl), and the mathematical
 formulation of the optimization problem can be found
 [here](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf).
 """)
@@ -124,7 +124,7 @@ It also holds a reference to its *Household Financial Profile*, if one is used.
 **Household Financial Profile**
 > A *Household Financial Profile* (HFP) is an
 optional Excel workbook that holds the year-by-year
-time-series data for the household: anticipated wages, other income, net investment income (rent, trust), taxable and retirement
+time-series data for the household: anticipated wages, other income, net investment income (rent, trust), taxable, retirement, and HSA
 contributions, Roth conversions, and large expenses for each individual, plus optional debts and
 fixed assets. When no HFP is provided, wages and contributions are assumed to be zero.
 See *Input and Output Files* below for a detailed description of both files.
@@ -173,7 +173,7 @@ as single scalars in the case file. It must contain one sheet per individual, na
 after that individual (e.g., *Jack* and *Jill*), each with a **Wages and Contributions**
 table covering five years of history through the last year of the plan. Columns include:
 anticipated wages, other income, net inv, taxable contributions, 401k and Roth 401k contributions,
-IRA and Roth IRA contributions, manual Roth conversions, and big-ticket items.
+IRA and Roth IRA contributions, HSA contributions, manual Roth conversions, and big-ticket items.
 
 Two optional sheets extend the workbook:
 - **`Debts`** — mortgage and loan entries (label, type, start year, term, principal, rate).
@@ -211,12 +211,13 @@ all indexed by year:
   total tax bills and Medicare premiums.
 - **Cash Flow** — full breakdown of all money inflows and outflows for the household.
 - **`<individual>`'s Sources** *(one sheet per individual)* — year-by-year sources of spending
-  (wages, other income, net inv, Social Security, pension, taxable/tax-deferred/tax-free withdrawals, RMDs,
+  (wages, other income, net inv, Social Security, pension, taxable/tax-deferred/tax-free/HSA withdrawals, RMDs,
   Roth conversions, big-ticket items).
 - **Household Sources** — fixed-asset proceeds (ordinary income, capital gains, tax-free)
   and debt payments.
 - **`<individual>`'s Accounts** *(one sheet per individual)* — balances, contributions,
-  deposits, withdrawals, and Roth conversions for each of the three account types.
+  deposits, withdrawals, and Roth conversions for each of the four account types
+  (taxable, tax-deferred, tax-free, HSA).
 - **Federal Income Tax** — income allocated to each tax bracket, NIIT, LTCG tax,
   early-withdrawal penalty, and the fraction of Social Security that is taxable.
 - **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
@@ -320,10 +321,10 @@ or large influx of after-tax money, debts, and fixed assets.
 
 ##### :material/work_history: Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
-The **Wages and Contributions** table contains 11 columns titled as follows:
+The **Wages and Contributions** table contains 12 columns titled as follows:
 
-|year|anticipated wages|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|Roth conv|big-ticket items|
-|--|--|--|--|--|--|--|--|--|--|--|
+|year|anticipated wages|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|big-ticket items|
+|--|--|--|--|--|--|--|--|--|--|--|--|
 |2021 | | | | | | | | | | |
 | ... | | | | | | | | | | |
 |2026 | | | | | | | | | | |
@@ -335,6 +336,8 @@ The *other inc* column is optional; older HFP files without it will default to z
 It contributes to ordinary income (e.g., part-time work, consulting, royalties).
 The *net inv* column is optional; older HFP files without it will default to zero.
 It captures rent and trust distributions that count as net investment income for NIIT (3.8% surtax).
+The *HSA ctrb* column is optional; older HFP files without it will default to zero.
+HSA contributions are pre-tax and reduce AGI; they are automatically zeroed at Medicare enrollment (~age 65).
 Note that column names are case sensitive and all entries are in lower case.
 The easiest way to complete the process of filling this file is either to start from the template
 file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) or
@@ -599,10 +602,11 @@ annual amount for the first year is adjusted accordingly.
 This page allows you to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
 
-Three types of savings accounts are considered and are tracked separately for spouses:
+Four types of savings accounts are considered and are tracked separately for spouses:
 - Taxable savings accounts (e.g., investment accounts, CDs),
 - Tax-deferred savings accounts (e.g., 401k, 403b, IRA),
-- Tax-free savings accounts (e.g., Roth 401k, Roth IRA).
+- Tax-free savings accounts (e.g., Roth 401k, Roth IRA),
+- Health Savings Accounts (HSA) — triple tax-advantaged: contributions are pre-tax, growth is tax-free, and qualified medical withdrawals (including Medicare Parts B/D and Medigap premiums) are tax-free.
 
 Account values are assumed to be known at the beginning of the current year,
 which is not always possible. For that purpose,
@@ -616,6 +620,9 @@ For married couples, the spousal `Beneficiary fractions` associated with each ac
 can be configured, as well as a surplus deposit fraction. The first one controls
 how much is left to the surviving spouse while the second determines
 how to split potential surplus budget moneys between the taxable accounts of the spouses.
+The HSA beneficiary fraction defaults to 1.0: a surviving spouse inherits an HSA intact,
+preserving its full triple tax-advantaged status (IRS rules). Non-spouse heirs must include
+the full inherited HSA balance as ordinary income.
 When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
 surplus moneys in the taxable account of the first individual to pass. Otherwise,
 the optimizer will find unexpected solutions that can generate surpluses in order
@@ -652,7 +659,8 @@ considered to merely track inflation and therefore remain at constant value.
 
 Two choices of asset allocations are possible:
 `account` and `individual`. For `account` type, each type
-of individual savings account is associated with its own asset allocation ratios.
+of individual savings account is associated with its own asset allocation ratios,
+including a separate allocation for the HSA account (defaults to the same as tax-free if not set).
 It is wise to be more aggressive in tax-exempt accounts and more conservative in
 taxable investment accounts. This choice will naturally push the optimizer
 to load more assets into the tax-exempt accounts through Roth conversions.
@@ -701,7 +709,7 @@ Constant rates stay the same for every year of the plan. Choose from:
 - `user` — enter your own values for each asset class.
 
 A roundup of expert stock and bond return forecasts can be found
-[here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition).
+[here](https://www.morningstar.com/markets/experts-forecast-stock-bond-returns-2026-edition).
 
 > **Note:** Constant rates produce a single deterministic outcome and do not capture
 > **sequence-of-returns risk** — the danger that poor returns early in retirement can
@@ -847,7 +855,7 @@ provides historical S&P 500 dividend yields over different periods.
 
 Two tax-related settings are also accessible:
 - **Heirs marginal tax rate** — the marginal rate your beneficiaries would pay on
-  inherited tax-deferred balances. Used to compute the after-tax value of a bequest.
+  inherited tax-deferred and HSA balances. Used to compute the after-tax value of a bequest.
 - **OBBBA expiration year** — the projected year when the One Big Beautiful Bill Act
   tax rates are expected to revert to pre-Tax Cuts and Jobs Act levels. Owl uses different
   tax brackets before and after this year.
@@ -1026,6 +1034,10 @@ in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools & Help tab).
 
+When the plan includes an HSA, an additional **HSA Activity** graph is displayed
+showing the annual balance, contributions, and withdrawals for each individual's HSA account.
+This graph appears right after the **Savings Balance** graph.
+
 """)
 
     with st.expander(":material/data_table: Worksheets"):
@@ -1040,6 +1052,9 @@ jointly as a single Excel workbook by clicking on the `Download Worksheets` on t
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 The first line of the individual's **Sources** worksheets is highlighted in blue
 indicating that these lines contain actionable items for the current year.
+When the plan includes an HSA, the worksheets include additional HSA columns:
+HSA withdrawals in the **Sources** table, and HSA balances, contributions, and withdrawals
+in the **Accounts** table.
 """)
 
     with st.expander(":material/description: Reports"):
@@ -1101,7 +1116,7 @@ runs: one run per year in that range by default.
   and gives a broader view of outcomes. When off, only the default sequence
   (no reverse, no roll) is used—one run per year.
   As the number of rate sequences can reach several thousands,
-  **it is recommended to run this options
+  **it is recommended to run this option
   only when self-hosting Owl** as it is likely to timeout on the
   Community Cloud server due to the long computing time.
 - **Log scale (x-axis)** – When on, the result histogram uses log-spaced bins and a log-scale x-axis

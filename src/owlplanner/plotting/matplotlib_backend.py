@@ -402,7 +402,7 @@ class MatplotlibBackend(PlotBackend):
         years_n = np.array(year_n)
         years_n = np.append(years_n, [years_n[-1] + 1])
         y2stack = {}
-        jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}
+        jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2, "hsa": 3}
         kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
         figures = []
         for jkey in jDic:
@@ -431,7 +431,7 @@ class MatplotlibBackend(PlotBackend):
         elif ARCoord == "individual":
             acList = [ARCoord]
         elif ARCoord == "account":
-            acList = ["taxable", "tax-deferred", "tax-free"]
+            acList = ["taxable", "tax-deferred", "tax-free", "hsa"]
         else:
             raise ValueError(f"Unknown coordination {ARCoord}.")
         figures = []
@@ -466,6 +466,37 @@ class MatplotlibBackend(PlotBackend):
         fig, ax = self._stack_plot(year_n_full, inames, title, range(len(inames)),
                                    savings, stypes, "upper left", yformat)
 
+        return fig
+
+    def plot_hsa(self, year_n, hsa_data, gamma_n, value, title, inames):
+        """Plot HSA balance, contributions, and withdrawals over time."""
+        year_n_full = np.append(year_n, [year_n[-1] + 1])
+        if value == "nominal":
+            yformat = r"\$k (nominal)"
+            scale_full = 1.0
+            scale = 1.0
+        else:
+            yformat = r"\$k (" + str(year_n[0]) + r"\$)"
+            scale_full = gamma_n
+            scale = gamma_n[:-1]
+
+        fig, ax = plt.subplots(1, 1)
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        for i, iname in enumerate(inames):
+            c = colors[i % len(colors)]
+            bal = hsa_data["balance"][i] / (scale_full * 1000)
+            ctrb = hsa_data["contributions"][i] / (scale * 1000)
+            wdrwl = hsa_data["withdrawals"][i] / (scale * 1000)
+            ax.fill_between(year_n_full, bal, alpha=0.3, color=c, label=f"balance {iname}")
+            ax.plot(year_n_full, bal, color=c)
+            ax.plot(year_n, ctrb, "--", color=c, label=f"contributions {iname}")
+            ax.plot(year_n, wdrwl, ":", color=c, label=f"withdrawals {iname}")
+
+        ax.set_title(title)
+        ax.set_ylabel(yformat)
+        ax.legend(loc="upper right", fontsize=8)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:,.0f}"))
+        fig.tight_layout()
         return fig
 
     def plot_sources(self, year_n, sources_in, gamma_n, value, title, inames):

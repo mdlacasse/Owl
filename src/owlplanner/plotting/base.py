@@ -94,6 +94,11 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
+    def plot_hsa(self, year_n, hsa_data, gamma_n, value, title, inames):
+        """Plot HSA balance, contributions, and withdrawals over time."""
+        pass
+
+    @abstractmethod
     def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames):
         """Plot taxes over time."""
         pass

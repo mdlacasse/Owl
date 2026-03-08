@@ -70,6 +70,9 @@ class SavingsAssets(BaseModel):
     tax_free_savings_balances: List[float] = Field(
         default=[0.0], description="Tax-free balances ($k)"
     )
+    hsa_savings_balances: List[float] = Field(
+        default=[0.0], description="HSA balances ($k)"
+    )
     beneficiary_fractions: Optional[List[float]] = None  # Married only
     spousal_surplus_deposit_fraction: Optional[float] = None  # Married only
 

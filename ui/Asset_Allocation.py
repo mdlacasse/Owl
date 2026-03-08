@@ -42,7 +42,7 @@ def getPercentInput(i, j, keybase, text, defval=0):
     )
 
 
-ACC = ["taxable", "tax-deferred", "tax-free"]
+ACC = ["taxable", "tax-deferred", "tax-free", "HSA"]
 ASSET = ["S&P 500", "Bonds Baa", "T-Notes", "Cash Assets"]
 DEFALLOC = [60, 20, 10, 10]
 
@@ -60,6 +60,17 @@ def getIndividualAllocs(i, iname, title, deco):
 def getAccountAllocs(i, iname, j, title, deco):
     mydeco = f"j{j}_" + deco
     st.markdown(f"###### {iname}'s {title} allocation for {ACC[j]} account (%)")
+    cols = st.columns(4, gap="large", vertical_alignment="top")
+    for k1 in range(4):
+        with cols[k1]:
+            getPercentInput(i, k1, mydeco, ASSET[k1], DEFALLOC[k1])
+    checkAccountAllocs(i, mydeco)
+
+
+def getHSAAllocs(i, iname, title, deco):
+    """HSA allocation uses 'jhsa_' prefix to avoid collision with j3_ (individual mode)."""
+    mydeco = "jhsa_" + deco
+    st.markdown(f"###### {iname}'s {title} allocation for HSA account (%)")
     cols = st.columns(4, gap="large", vertical_alignment="top")
     for k1 in range(4):
         with cols[k1]:
@@ -91,7 +102,8 @@ def checkAllAllocs():
     if kz.getCaseKey("allocType") == "individual":
         decos = ["j3_init%", "j3_fin%"]
     else:
-        decos = ["j0_init%", "j0_fin%", "j1_init%", "j1_fin%", "j2_init%", "j2_fin%"]
+        decos = ["j0_init%", "j0_fin%", "j1_init%", "j1_fin%", "j2_init%", "j2_fin%",
+                 "jhsa_init%", "jhsa_fin%"]
     Ni = 1
     if kz.getCaseKey("status") == "married":
         Ni += 1
@@ -135,6 +147,9 @@ Using `individual` avoids creating an artificial bias in Roth conversions."""
             getAccountAllocs(0, iname0, j, "initial", "init%")
             getAccountAllocs(0, iname0, j, "final", "fin%")
             st.divider()
+        getHSAAllocs(0, iname0, "initial", "init%")
+        getHSAAllocs(0, iname0, "final", "fin%")
+        st.divider()
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
             st.markdown(f"#### :orange[Account Asset Allocation ({iname1})]")
@@ -142,6 +157,9 @@ Using `individual` avoids creating an artificial bias in Roth conversions."""
                 getAccountAllocs(1, iname1, j, "initial", "init%")
                 getAccountAllocs(1, iname1, j, "final", "fin%")
                 st.divider()
+            getHSAAllocs(1, iname1, "initial", "init%")
+            getHSAAllocs(1, iname1, "final", "fin%")
+            st.divider()
 
     st.markdown("#### :orange[Interpolation]")
     choices = ["linear", "s-curve"]

@@ -188,11 +188,11 @@ class Plan:
         self.setLogstreams(verbose, logstreams)
 
         # 7 tax brackets, 6 IRMAA (Medicare) brackets, 3 LTCG brackets,
-        # 3 types of accounts, 4 classes of assets.
+        # 4 types of accounts (j=3 is HSA), 4 classes of assets.
         self.N_t = 7
         self.N_irmaa = 6
         self.N_p = 3
-        self.N_j = 3
+        self.N_j = 4
         self.N_k = 4
         # 4 binary variables for exclusions.
         self.N_zx = 4
@@ -260,7 +260,8 @@ class Plan:
         self.mu = 0.0172  # Dividend rate (decimal)
         self.nu = 0.300   # Heirs tax rate (decimal)
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
-        self.phi_j = np.array([1, 1, 1])  # Fractions left to other spouse at death
+        self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
+        self.n_hsa_i = np.full(self.N_i, self.N_n, dtype=int)  # Year HSA contributions stop (default: never)
         self.smileDip = 15  # Percent to reduce smile profile
         self.smileIncrease = 12  # Percent to increse profile over time span
 
@@ -491,8 +492,11 @@ class Plan:
     def setBeneficiaryFractions(self, phi):
         """
         Set fractions of savings accounts that is left to surviving spouse.
-        Default is [1, 1, 1] for taxable, tax-deferred, and tax-free accounts.
+        Default is [1, 1, 1, 1] for taxable, tax-deferred, tax-free, and HSA accounts.
+        A 3-element list (legacy) is auto-extended with 1.0 for the HSA account.
         """
+        if len(phi) == self.N_j - 1:
+            phi = list(phi) + [1.0]
         if len(phi) != self.N_j:
             raise ValueError(f"Fractions must have {self.N_j} entries.")
         for j in range(self.N_j):
@@ -891,11 +895,11 @@ class Plan:
 
         self.mylog.vprint("Regenerated stochastic rate series.")
 
-    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, startDate=None, units="k"):
+    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, hsa=None, startDate=None, units="k"):
         """
-        Three lists containing the balance of all assets in each category for
-        each spouse.  For single individuals, these lists will contain only
-        one entry. Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
+        Three lists (plus optional HSA) containing the balance of all assets in each category
+        for each spouse.  For single individuals, these lists will contain only one entry.
+        Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
         plurals = ["", "y", "ies"][self.N_i]
         if len(taxable) != self.N_i:
@@ -914,6 +918,10 @@ class Plan:
         self.bet_ji[0][:] = taxable
         self.bet_ji[1][:] = taxDeferred
         self.bet_ji[2][:] = taxFree
+        if hsa is not None:
+            if len(hsa) != self.N_i:
+                raise ValueError(f"hsa must have {self.N_i} entr{plurals}.")
+            self.bet_ji[3][:] = [v * fac for v in hsa]
         self.beta_ij = self.bet_ji.transpose()
 
         # If none was given, default is to begin plan on today's date.
@@ -924,11 +932,42 @@ class Plan:
         self.mylog.vprint("Taxable balances:", *[u.d(taxable[i]) for i in range(self.N_i)])
         self.mylog.vprint("Tax-deferred balances:", *[u.d(taxDeferred[i]) for i in range(self.N_i)])
         self.mylog.vprint("Tax-free balances:", *[u.d(taxFree[i]) for i in range(self.N_i)])
+        if hsa is not None:
+            hsa_arr = self.bet_ji[3]
+            self.mylog.vprint("HSA balances:", *[u.d(hsa_arr[i]) for i in range(self.N_i)])
         self.mylog.vprint("Sum of all savings accounts:", u.d(np.sum(taxable) + np.sum(taxDeferred) + np.sum(taxFree)))
         self.mylog.vprint(
             "Post-tax total wealth of approximately",
             u.d(np.sum(taxable) + 0.7 * np.sum(taxDeferred) + np.sum(taxFree)),
         )
+
+    def setHSA(self, balances, medicare_ages=None, units="k"):
+        """
+        Set HSA (Health Savings Account) initial balances and Medicare enrollment ages.
+        HSA contributions stop when Medicare enrollment begins (~age 65).
+
+        Parameters
+        ----------
+        balances : list
+            Initial HSA balance per individual (in $k by default).
+        medicare_ages : list, optional
+            Age at which HSA contributions stop for each individual (default: 65).
+        units : str, optional
+            Units for balances: 'k' (default), 'M', or '1'.
+        """
+        self.setAccountBalances(
+            taxable=list(self.bet_ji[0]),
+            taxDeferred=list(self.bet_ji[1]),
+            taxFree=list(self.bet_ji[2]),
+            hsa=balances,
+            units=units,
+        )
+        thisyear = date.today().year
+        ages = medicare_ages if medicare_ages is not None else [65] * self.N_i
+        for i in range(self.N_i):
+            n_hsa = self.yobs[i] + ages[i] - thisyear
+            self.n_hsa_i[i] = min(max(0, n_hsa), self.N_n)
+        self.mylog.vprint("HSA contribution stop years:", [int(self.n_hsa_i[i]) for i in range(self.N_i)])
 
     def setInterpolationMethod(self, method, center=15, width=5):
         """
@@ -956,7 +995,7 @@ class Plan:
 
         self.mylog.vprint(f"Asset allocation interpolation method set to '{method}'.")
 
-    def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None, taxFree=None, generic=None):
+    def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None, taxFree=None, hsa=None, generic=None):
         """
         Single function for setting all types of asset allocations.
         Allocation types are 'account', 'individual', and 'spouses'.
@@ -1011,6 +1050,7 @@ class Plan:
             alpha[0] = np.array(taxable)
             alpha[1] = np.array(taxDeferred)
             alpha[2] = np.array(taxFree)
+            alpha[3] = np.array(hsa) if hsa is not None else np.array(taxFree)  # HSA inherits tax-free by default
             for i in range(self.N_i):
                 Nin = self.horizons[i] + 1
                 for j in range(self.N_j):
@@ -1023,6 +1063,7 @@ class Plan:
             self.boundsAR["taxable"] = taxable
             self.boundsAR["tax-deferred"] = taxDeferred
             self.boundsAR["tax-free"] = taxFree
+            self.boundsAR["hsa"] = hsa if hsa is not None else taxFree
 
         elif allocType == "individual":
             if len(generic) != self.N_i:
@@ -1142,6 +1183,11 @@ class Plan:
             self.kappa_ijn[i, 1, :h] += self.timeLists[iname]["IRA ctrb"][5:h+5]
             self.kappa_ijn[i, 2, :h] = self.timeLists[iname]["Roth 401k ctrb"][5:h+5]
             self.kappa_ijn[i, 2, :h] += self.timeLists[iname]["Roth IRA ctrb"][5:h+5]
+            self.kappa_ijn[i, 3, :h] = self.timeLists[iname]["HSA ctrb"][5:h+5]
+            # Zero HSA contributions after Medicare enrollment year.
+            n_stop = self.n_hsa_i[i]
+            if n_stop < h:
+                self.kappa_ijn[i, 3, n_stop:h] = 0.0
             self.myRothX_in[i, :h] = self.timeLists[iname]["Roth conv"][5:h+5]
 
             # Last 5 years are at the end of the N_n array.
@@ -1150,6 +1196,7 @@ class Plan:
             self.kappa_ijn[i, 1, -5:] += self.timeLists[iname]["IRA ctrb"][:5]
             self.kappa_ijn[i, 2, -5:] = self.timeLists[iname]["Roth 401k ctrb"][:5]
             self.kappa_ijn[i, 2, -5:] += self.timeLists[iname]["Roth IRA ctrb"][:5]
+            self.kappa_ijn[i, 3, -5:] = self.timeLists[iname]["HSA ctrb"][:5]
             self.myRothX_in[i, -5:] = self.timeLists[iname]["Roth conv"][:5]
 
         self.caseStatus = "modified"
@@ -1300,6 +1347,7 @@ class Plan:
             "Roth 401k ctrb",
             "IRA ctrb",
             "Roth IRA ctrb",
+            "HSA ctrb",
             "Roth conv",
             "big-ticket items",
         ]
@@ -1645,7 +1693,7 @@ class Plan:
                           self.vm["x"].idx(i, n): -1,
                           self.vm["b"].idx(i, 1, n): 1}
                 self.A.addNewRow(rowDic, 0, np.inf)
-                for j in [0, 2]:
+                for j in [0, 2, 3]:
                     rowDic = {self.vm["w"].idx(i, j, n): -1,
                               self.vm["b"].idx(i, j, n): 1}
                     self.A.addNewRow(rowDic, 0, np.inf)
@@ -1669,7 +1717,8 @@ class Plan:
                 row.addElem(self.vm["b"].idx(i, 0, self.N_n), 1)
                 row.addElem(self.vm["b"].idx(i, 1, self.N_n), 1 - self.nu)
                 row.addElem(self.vm["b"].idx(i, 2, self.N_n), 1)
-            self.A.addRow(row, total_bequest_value, total_bequest_value)
+                row.addElem(self.vm["b"].idx(i, 3, self.N_n), 1 - self.nu)   # HSA: heirs pay ordinary income tax
+            self.A.addRow(row, total_bequest_value, np.inf)
         elif objective == "maxBequest":
             spending = u.get_monetary_option(options, "netSpending", 1)
             self.B.setRange(self.vm["g"].idx(0), spending, spending)
@@ -1775,6 +1824,8 @@ class Plan:
                 row.addElem(self.vm["w"].idx(i, 1, n), -1 + penalty)
                 # maturation constraints govern; no 10% penalty
                 row.addElem(self.vm["w"].idx(i, 2, n), -1)
+                # HSA: qualified medical withdrawals are tax-free (simplified model)
+                row.addElem(self.vm["w"].idx(i, 3, n), -1)
 
             for t in range(self.N_t):
                 row.addElem(self.vm["f"].idx(t, n), self.theta_tn[t, n])
@@ -1812,6 +1863,8 @@ class Plan:
                     rhs += (self.omega_in[i, n] + self.other_inc_in[i, n]
                             + self.netinv_in[i, n]
                             + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n])
+                # HSA contributions are pre-tax deductions (reduce ordinary taxable income).
+                rhs -= self.kappa_ijn[i, 3, n]
                 row.addElem(self.vm["w"].idx(i, 1, n), -1)
                 row.addElem(self.vm["x"].idx(i, n), -1)
                 # Only positive returns are taxable (interest/dividends); losses don't reduce income.
@@ -1976,6 +2029,7 @@ class Plan:
                            + self.netinv_in[i, n]
                            + self.piBar_in[i, n]
                            + 0.5 * self.kappa_ijn[i, 0, n] * afac)   # half-period contribution yield
+                rhs_pi -= self.kappa_ijn[i, 3, n]   # HSA contributions reduce provisional income
 
             # Variable index shorthands.
             plo_idx = self.vm["plo"].idx(n)
@@ -2167,6 +2221,7 @@ class Plan:
                           + self.piBar_in[i, n2]
                           + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
                 rhs += sumoni
+                rhs -= self.kappa_ijn[i, 3, n2]   # HSA contributions reduce MAGI
 
             self.A.addRow(row, rhs, rhs)
 
@@ -2218,6 +2273,7 @@ class Plan:
                 c_arr[self.vm["b"].idx(i, 0, self.N_n)] = -1
                 c_arr[self.vm["b"].idx(i, 1, self.N_n)] = -(1 - self.nu)
                 c_arr[self.vm["b"].idx(i, 2, self.N_n)] = -1
+                c_arr[self.vm["b"].idx(i, 3, self.N_n)] = -(1 - self.nu)   # HSA: heirs pay ordinary income tax
         else:
             raise RuntimeError("Internal error in objective function.")
 
@@ -3010,7 +3066,7 @@ class Plan:
         if Ni == 2 and n_d < Nn:
             nx = n_d - 1
             i_d = self.i_d
-            part_j = np.zeros(3)
+            part_j = np.zeros(Nj)
             for j in range(Nj):
                 ksumj = np.sum(self.alpha_ijkn[i_d, j, :, nx] * self.tau_kn[:, nx], axis=0)
                 Tauh = 1 + 0.5 * ksumj
@@ -3024,7 +3080,8 @@ class Plan:
 
             self.partialEstate_j = part_j
             partialBequest_j = part_j * (1 - self.phi_j)
-            partialBequest_j[1] *= 1 - self.nu
+            partialBequest_j[1] *= 1 - self.nu   # tax-deferred: heirs pay ordinary income tax
+            partialBequest_j[3] *= 1 - self.nu   # HSA: non-spouse heirs include full balance in ordinary income
             self.partialBequest = np.sum(partialBequest_j) / self.gamma_n[n_d]
         else:
             self.partialBequest = 0
@@ -3058,6 +3115,7 @@ class Plan:
         sources["+dist"] = self.dist_in
         sources["RothX"] = self.x_in
         sources["tax-free wdrwl"] = self.w_ijn[:, 2, :]
+        sources["HSA wdrwl"] = self.w_ijn[:, 3, :]
         sources["BTI"] = self.Lambda_in
         # Debts and fixed assets (debts are negative as expenses)
         # Show as household totals, not split between individuals
@@ -3071,12 +3129,14 @@ class Plan:
         savings["taxable"] = self.b_ijn[:, 0, :]
         savings["tax-deferred"] = self.b_ijn[:, 1, :]
         savings["tax-free"] = self.b_ijn[:, 2, :]
+        savings["hsa"] = self.b_ijn[:, 3, :]
 
         self.sources_in = sources
         self.savings_in = savings
 
         estate_j = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
-        estate_j[1] *= 1 - self.nu
+        estate_j[1] *= 1 - self.nu   # tax-deferred: heirs pay ordinary income tax
+        estate_j[3] *= 1 - self.nu   # HSA: non-spouse heirs include full balance in ordinary income
         # Subtract remaining debt balance from estate
         total_estate = np.sum(estate_j) - self.remaining_debt_balance
         self.bequest = max(0.0, total_estate) / self.gamma_n[-1]
@@ -3238,9 +3298,9 @@ class Plan:
     def showAssetComposition(self, tag="", value=None, figure=False):
         """
         Plot the composition of each savings account in thousands of dollars
-        during the simulation time. This function will generate three
-        graphs, one for taxable accounts, one the tax-deferred accounts,
-        and one for tax-free accounts.
+        during the simulation time. This function will generate four
+        graphs, one for taxable accounts, one for tax-deferred accounts,
+        one for tax-free accounts, and one for HSA accounts.
 
         A tag string can be set to add information to the title of the plot.
 
@@ -3320,6 +3380,36 @@ class Plan:
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
+        return None
+
+    @_checkCaseStatus
+    def showHSA(self, tag="", value=None, figure=False):
+        """
+        Plot HSA activity (balance, contributions, withdrawals) over time.
+
+        Returns None if all HSA balances, contributions, and withdrawals are zero.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
+        """
+        hsa_bal = self.b_ijn[:, 3, :]
+        hsa_ctrb = self.kappa_ijn[:, 3, :self.N_n]
+        hsa_wdrwl = self.w_ijn[:, 3, :]
+        if (np.abs(hsa_bal).sum() + np.abs(hsa_ctrb).sum() + np.abs(hsa_wdrwl).sum()) < 1.0:
+            return None
+        value = self._checkValueType(value)
+        title = self._name + "\nHSA Activity"
+        if tag:
+            title += " - " + tag
+        hsa_data = {
+            "balance": hsa_bal,
+            "contributions": hsa_ctrb,
+            "withdrawals": hsa_wdrwl,
+        }
+        fig = self._plotter.plot_hsa(self.year_n, hsa_data, self.gamma_n, value, title, self.inames)
+        if figure:
+            return fig
         self._plotter.jupyter_renderer(fig)
         return None
 

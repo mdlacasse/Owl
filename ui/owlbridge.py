@@ -622,7 +622,7 @@ def _setAllocationRatios(plan):
     elif kz.getCaseKey("allocType") == "account":
         try:
             acc = kz.getAccountAllocationRatios()
-            plan.setAllocationRatios("account", taxable=acc[0], taxDeferred=acc[1], taxFree=acc[2])
+            plan.setAllocationRatios("account", taxable=acc[0], taxDeferred=acc[1], taxFree=acc[2], hsa=acc[3])
         except Exception as e:
             st.error(f"Setting asset allocation failed: {e}")
             return
@@ -632,8 +632,7 @@ def _setAllocationRatios(plan):
 
 @_checkPlan
 def plotSingleResults(plan):
-    c = 0
-    n = 2
+    c, n = 0, 2
     cols = st.columns(n, gap="medium")
     fig = plan.showRates(figure=True)
     if fig:
@@ -661,31 +660,36 @@ def plotSingleResults(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
-    fig = plan.showAccounts(figure=True)
-    if fig:
-        cols[c].markdown("#### :orange[Savings Balance]")
-        renderPlot(fig, cols[c])
-        c = (c + 1) % n
-
     fig = plan.showTaxes(figure=True)
     if fig:
         cols[c].markdown("#### :orange[Federal Taxes and Medicare (+IRMAA)]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
-    c = 0
+    fig = plan.showHSA(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[HSA Activity]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+
+    fig = plan.showAccounts(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Savings Balance]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+
     figs = plan.showAssetComposition(figure=True)
     if figs:
-        # st.divider()
         st.markdown("#### :orange[Asset Composition]")
-        col1, col2, _ = st.columns([0.6, 0.2, 0.2], gap="medium")
+        c, n = 0, 2
+        cols = st.columns(n, gap="medium")
         for fig in figs:
             if fig:
-                renderPlot(fig, col1)
+                renderPlot(fig, cols[c])
             else:
-                col1.markdown("#\n<div style='text-align: center'> This plot is empty </div>",
+                cols[c].markdown("#\n<div style='text-align: center'> This plot is empty </div>",
                               unsafe_allow_html=True)
-            # c = (c + 1) % n
+            c = (c + 1) % n
 
 
 @_checkPlan

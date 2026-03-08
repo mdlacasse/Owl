@@ -774,7 +774,7 @@ class PlotlyBackend(PlotBackend):
         years_n = np.append(years_n, [years_n[-1] + 1])
 
         # Define account and asset type mappings
-        jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}
+        jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2, "hsa": 3}
         kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
 
         figures = []
@@ -840,7 +840,7 @@ class PlotlyBackend(PlotBackend):
         elif ARCoord == "individual":
             acList = [ARCoord]
         elif ARCoord == "account":
-            acList = ["taxable", "tax-deferred", "tax-free"]
+            acList = ["taxable", "tax-deferred", "tax-free", "hsa"]
         else:
             raise ValueError(f"Unknown coordination {ARCoord}.")
 
@@ -947,6 +947,57 @@ class PlotlyBackend(PlotBackend):
         # Format y-axis as currency
         fig.update_yaxes(tickformat=",.0f")
 
+        return fig
+
+    def plot_hsa(self, year_n, hsa_data, gamma_n, value, title, inames):
+        """Plot HSA balance, contributions, and withdrawals over time."""
+        year_n_full = np.append(year_n, [year_n[-1] + 1])
+        if value == "nominal":
+            yformat = "$k (nominal)"
+            scale_full = 1.0
+            scale = 1.0
+        else:
+            yformat = f"$k ({year_n[0]}$)"
+            scale_full = gamma_n
+            scale = gamma_n[:-1]
+
+        fig = go.Figure()
+        title_html = title.replace("\n", "<br>")
+        colors = [
+            "#636EFA", "#EF553B", "#00CC96", "#AB63FA",
+            "#FFA15A", "#19D3F3", "#FF6692", "#B6E880",
+        ]
+        for i, iname in enumerate(inames):
+            c = colors[i % len(colors)]
+            bal = hsa_data["balance"][i] / (scale_full * 1000)
+            ctrb = hsa_data["contributions"][i] / (scale * 1000)
+            wdrwl = hsa_data["withdrawals"][i] / (scale * 1000)
+            fig.add_trace(go.Scatter(
+                x=year_n_full, y=bal,
+                name=f"balance {iname}",
+                fill="tozeroy", opacity=0.4,
+                line=dict(color=c),
+            ))
+            fig.add_trace(go.Scatter(
+                x=year_n, y=ctrb,
+                name=f"contributions {iname}",
+                line=dict(color=c, dash="dash"),
+            ))
+            fig.add_trace(go.Scatter(
+                x=year_n, y=wdrwl,
+                name=f"withdrawals {iname}",
+                line=dict(color=c, dash="dot"),
+            ))
+
+        fig.update_layout(
+            title=title_html,
+            yaxis_title=yformat,
+            template=self.template,
+            showlegend=True,
+            legend=_LEGEND_BOTTOM,
+            margin=dict(b=150),
+        )
+        fig.update_yaxes(tickformat=",.0f")
         return fig
 
     def plot_sources(self, year_n, sources_in, gamma_n, value, title, inames):

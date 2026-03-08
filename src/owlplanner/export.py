@@ -222,7 +222,8 @@ def build_summary_dic(plan, N=None):
 
     if plan.N_i == 2 and plan.n_d < plan.N_n and N == plan.N_n:
         p_j = plan.partialEstate_j * (1 - plan.phi_j)
-        p_j[1] *= 1 - plan.nu
+        p_j[1] *= 1 - plan.nu   # tax-deferred: heirs pay ordinary income tax
+        p_j[3] *= 1 - plan.nu   # HSA: non-spouse heirs include full balance in ordinary income
         nx = plan.n_d - 1
         ynx = plan.year_n[nx]
         ynxNow = 1.0 / plan.gamma_n[nx + 1]
@@ -240,6 +241,8 @@ def build_summary_dic(plan, N=None):
         dic[f"» [Spousal transfer to {iname_s} - tax-def]"] = f"{u.d(q_j[1])}"
         dic[f"»  Spousal transfer to {iname_s} - tax-free"] = f"{u.d(ynxNow * q_j[2])}"
         dic[f"» [Spousal transfer to {iname_s} - tax-free]"] = f"{u.d(q_j[2])}"
+        dic[f"»  Spousal transfer to {iname_s} - HSA"] = f"{u.d(ynxNow * q_j[3])}"
+        dic[f"» [Spousal transfer to {iname_s} - HSA]"] = f"{u.d(q_j[3])}"
         dic[f" Sum of post-tax non-spousal bequest from {iname_d}"] = f"{u.d(ynxNow * totOthers)}"
         dic[f"[Sum of post-tax non-spousal bequest from {iname_d}]"] = f"{u.d(totOthers)}"
         dic[f"»  Post-tax non-spousal bequest from {iname_d} - taxable"] = f"{u.d(ynxNow * p_j[0])}"
@@ -248,11 +251,14 @@ def build_summary_dic(plan, N=None):
         dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-def]"] = f"{u.d(p_j[1])}"
         dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-free"] = f"{u.d(ynxNow * p_j[2])}"
         dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-free]"] = f"{u.d(p_j[2])}"
+        dic[f"»  Post-tax non-spousal bequest from {iname_d} - HSA"] = f"{u.d(ynxNow * p_j[3])}"
+        dic[f"» [Post-tax non-spousal bequest from {iname_d} - HSA]"] = f"{u.d(p_j[3])}"
 
     if N == plan.N_n:
         estate = np.sum(plan.b_ijn[:, :, plan.N_n], axis=0)
-        heirsTaxLiability = estate[1] * plan.nu
-        estate[1] *= 1 - plan.nu
+        heirsTaxLiability = (estate[1] + estate[3]) * plan.nu   # tax-deferred and HSA
+        estate[1] *= 1 - plan.nu   # tax-deferred: heirs pay ordinary income tax
+        estate[3] *= 1 - plan.nu   # HSA: non-spouse heirs include full balance in ordinary income
         endyear = plan.year_n[-1]
         lyNow = 1.0 / plan.gamma_n[-1]
         debts = plan.remaining_debt_balance
@@ -276,6 +282,8 @@ def build_summary_dic(plan, N=None):
         dic["» [Post-tax final bequest account value - tax-def]"] = f"{u.d(estate[1])}"
         dic["»  Post-tax final bequest account value - tax-free"] = f"{u.d(lyNow * estate[2])}"
         dic["» [Post-tax final bequest account value - tax-free]"] = f"{u.d(estate[2])}"
+        dic["»  Post-tax final bequest account value - HSA"] = f"{u.d(lyNow * estate[3])}"
+        dic["» [Post-tax final bequest account value - HSA]"] = f"{u.d(estate[3])}"
 
     dic["Case starting date"] = str(plan.startDate)
     dic["Cumulative inflation factor at end of final year"] = f"{plan.gamma_n[N]:.2f}"
@@ -389,6 +397,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "+distributions": plan.sources_in["+dist"],
         "Roth conv": plan.sources_in["RothX"],
         "tax-free wdrwl": plan.sources_in["tax-free wdrwl"],
+        "HSA wdrwl": plan.sources_in["HSA wdrwl"],
         "big-ticket items": plan.sources_in["BTI"],
     }
     for i in range(plan.N_i):
@@ -417,6 +426,9 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "tax-free bal": plan.b_ijn[:, 2, :-1],
         "tax-free ctrb": plan.kappa_ijn[:, 2, :plan.N_n],
         "tax-free wdrwl": plan.w_ijn[:, 2, :],
+        "HSA bal": plan.b_ijn[:, 3, :-1],
+        "HSA ctrb": plan.kappa_ijn[:, 3, :plan.N_n],
+        "HSA wdrwl": plan.w_ijn[:, 3, :],
     }
     for i in range(plan.N_i):
         ws = wb.create_sheet(plan.inames[i] + "'s Accounts")
@@ -428,6 +440,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
             plan.b_ijn[i][1][-1],
             0, 0, 0, 0,
             plan.b_ijn[i][2][-1],
+            0, 0,
+            plan.b_ijn[i][3][-1],
             0, 0,
         ]
         ws.append(lastRow)
@@ -455,7 +469,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         ws.append(row)
     _format_federal_income_tax_sheet(ws)
 
-    jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2}
+    jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2, "hsa": 3}
     kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
     year_n = np.append(plan.year_n, [plan.year_n[-1] + 1])
     for i in range(plan.N_i):
@@ -528,6 +542,9 @@ def plan_to_csv(plan, basename, mylog):
         planData[plan.inames[i] + " tx-free bal"] = plan.b_ijn[i, 2, :-1]
         planData[plan.inames[i] + " tx-free ctrb"] = plan.kappa_ijn[i, 2, :plan.N_n]
         planData[plan.inames[i] + " tax-free wdrwl"] = plan.w_ijn[i, 2, :]
+        planData[plan.inames[i] + " HSA bal"] = plan.b_ijn[i, 3, :-1]
+        planData[plan.inames[i] + " HSA ctrb"] = plan.kappa_ijn[i, 3, :plan.N_n]
+        planData[plan.inames[i] + " HSA wdrwl"] = plan.w_ijn[i, 3, :]
         planData[plan.inames[i] + " big-ticket items"] = plan.Lambda_in[i, :]
 
     for k, name in enumerate(RATE_DISPLAY_NAMES_SHORT):

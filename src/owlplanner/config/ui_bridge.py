@@ -38,8 +38,8 @@ from owlplanner.rate_models.constants import (
 
 logger = logging.getLogger(__name__)
 
-# Account type ordering for UI widget keys (txbl, txDef, txFree)
-ACC_UI = ["txbl", "txDef", "txFree"]
+# Account type ordering for UI widget keys (txbl, txDef, txFree, hsa)
+ACC_UI = ["txbl", "txDef", "txFree", "hsa"]
 
 # Account type ordering for config (alias for shared constant)
 ACC_CONF = ACCOUNT_TYPES
@@ -133,8 +133,13 @@ def config_to_ui(diconf: dict) -> dict:
     dic["allocType"] = aa.get("type", "individual")
     dic["timeListsFileName"] = hfp.get("HFP_file_name", "None")
 
-    for j in range(3):
-        dic[f"benf{j}"] = sa.get("beneficiary_fractions", [1.0, 1.0, 1.0])[j]
+    benf_defaults = [1.0, 1.0, 1.0, 1.0]
+    benf_vals = sa.get("beneficiary_fractions", benf_defaults)
+    # Auto-extend 3-element legacy lists to 4 (HSA defaults to 1.0).
+    if len(benf_vals) < 4:
+        benf_vals = list(benf_vals) + [1.0] * (4 - len(benf_vals))
+    for j in range(4):
+        dic[f"benf{j}"] = benf_vals[j]
 
     dobs = bi.get("date_of_birth", [DEFAULT_DOB] * ni)
     life = bi.get("life_expectancy", [DEFAULT_LIFE_EXPECTANCY] * ni)
@@ -179,12 +184,20 @@ def config_to_ui(diconf: dict) -> dict:
                 dic[f"j3_init%{k}_{i}"] = int(g[0][k])
                 dic[f"j3_fin%{k}_{i}"] = int(g[1][k])
         else:
-            for j, acc in enumerate(ACC_CONF):
+            for j, acc in enumerate(ACC_CONF[:3]):   # taxable/tax-deferred/tax-free (j0/j1/j2 keys)
                 arr = aa.get(acc, [[[60, 40, 0, 0], [70, 30, 0, 0]]])
                 a = arr[i] if i < len(arr) else [[60, 40, 0, 0], [70, 30, 0, 0]]
                 for k in range(4):
                     dic[f"j{j}_init%{k}_{i}"] = int(a[0][k])
                     dic[f"j{j}_fin%{k}_{i}"] = int(a[1][k])
+            # HSA account allocation (jhsa_ prefix to avoid collision with j3_ for individual mode)
+            # Default: inherit tax-free allocation
+            tf_arr = aa.get("tax-free", [[[60, 40, 0, 0], [70, 30, 0, 0]]])
+            hsa_arr = aa.get("hsa", tf_arr)
+            hsa_a = hsa_arr[i] if i < len(hsa_arr) else (tf_arr[i] if i < len(tf_arr) else [[60, 40, 0, 0], [70, 30, 0, 0]])
+            for k in range(4):
+                dic[f"jhsa_init%{k}_{i}"] = int(hsa_a[0][k])
+                dic[f"jhsa_fin%{k}_{i}"] = int(hsa_a[1][k])
 
     # Solver options
     for key in SOLVER_OPT_KEYS:
@@ -349,7 +362,7 @@ def ui_to_config(uidic: dict) -> dict:
         ]
     if ni == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = [
-            _get_ui(uidic, f"benf{j}", 1, float) for j in range(3)
+            _get_ui(uidic, f"benf{j}", 1, float) for j in range(4)
         ]
         diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = _get_ui(
             uidic, "surplusFraction", 0.5, float
@@ -389,12 +402,18 @@ def ui_to_config(uidic: dict) -> dict:
     # Asset allocation
     alloc_type = uidic.get("allocType", "individual")
     if alloc_type == "account":
-        for j, acc in enumerate(ACC_CONF):
+        for j, acc in enumerate(ACC_CONF[:3]):   # taxable/tax-deferred/tax-free (j0/j1/j2 keys)
             diconf["asset_allocation"][acc] = []
             for i in range(ni):
                 init = [_get_ui(uidic, f"j{j}_init%{k}_{i}", 0, int) for k in range(4)]
                 fin = [_get_ui(uidic, f"j{j}_fin%{k}_{i}", 0, int) for k in range(4)]
                 diconf["asset_allocation"][acc].append([init, fin])
+        # HSA account allocation (jhsa_ keys; saved as "hsa" in config)
+        diconf["asset_allocation"]["hsa"] = []
+        for i in range(ni):
+            init = [_get_ui(uidic, f"jhsa_init%{k}_{i}", 0, int) for k in range(4)]
+            fin = [_get_ui(uidic, f"jhsa_fin%{k}_{i}", 0, int) for k in range(4)]
+            diconf["asset_allocation"]["hsa"].append([init, fin])
     else:
         diconf["asset_allocation"]["generic"] = []
         for i in range(ni):

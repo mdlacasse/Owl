@@ -127,9 +127,9 @@ Appendix~A provides a reference guide to the Python source files.
 
 \section{Overview}
 
-Retirement income in the United States comes from three broad account types:
+Retirement income in the United States comes from four broad account types:
 taxable brokerage accounts, tax-deferred accounts such as traditional 401(k)s
-and IRAs, and tax-free Roth accounts.
+and IRAs, tax-free Roth accounts, and Health Savings Accounts (HSAs).
 Withdrawals from these accounts interact with multiple simultaneously computed taxes
 and premiums: ordinary income tax (with bracket stacking), long-term capital gains
 (LTCG) tax, the Net Investment Income Tax (NIIT), Medicare Part~B premium surcharges,
@@ -149,9 +149,9 @@ exact simultaneous computation.
 
 \section{Savings Accounts}
 
-US retirement savings are held in three fundamentally different account types,
+US retirement savings are held in four fundamentally different account types,
 each with its own tax treatment, contribution rules, and withdrawal constraints.
-Owl models all three types and optimizes across them jointly.
+Owl models all four types and optimizes across them jointly.
 For married couples, each spouse holds their own independent set of accounts;
 balances, contribution histories, claiming ages, and Required Minimum Distribution
 (RMD) schedules are tracked
@@ -209,6 +209,24 @@ Owl supports contributions to Roth~401(k) and Roth~IRA accounts, and
 optimizes Roth conversion amounts annually subject to user-specified
 constraints and tax-bracket considerations.
 
+\subsection*{Health Savings Accounts (HSA)}
+
+HSAs are the only triple tax-advantaged savings vehicle in the US tax code:
+contributions are pre-tax (reducing ordinary income and MAGI), growth is
+tax-free, and qualified medical withdrawals are entirely tax-free at any age.
+After age~65 (Medicare enrollment), non-qualified withdrawals are taxed as
+ordinary income, effectively making the HSA a second traditional IRA without
+Required Minimum Distributions.
+A surviving spouse inherits the account intact, preserving its full
+tax-advantaged status.
+Crucially, Medicare Parts~B and~D premiums, IRMAA surcharges, Medigap premiums,
+and out-of-pocket medical costs all qualify as HSA withdrawals, so the optimizer
+can fund these expenses entirely tax-free.
+Annual contribution limits are set by the IRS (approximately \$4,400 for
+self-only and \$8,750 for family coverage in 2026) and must cease at Medicare
+enrollment.
+See Section~\ref{sec:hsa} for the detailed rules and implementation.
+
 \section{Household Financial Profile and Cash Flow}
 \label{sec:cfhfp}
 
@@ -236,6 +254,8 @@ Each individual has their own sheet with the following year-indexed columns:
   \item \textit{Roth 401k ctrb} --- Roth 401(k) contributions;
   \item \textit{IRA ctrb} --- traditional IRA contributions;
   \item \textit{Roth IRA ctrb} --- Roth IRA contributions;
+  \item \textit{HSA ctrb} --- Health Savings Account contributions (optional;
+    defaults to zero; automatically zeroed at Medicare enrollment age);
   \item \textit{Roth conv} --- planned or historical Roth conversion amounts;
     the five years preceding the plan start date are used to implement the
     five-year lookback rule (Section~\ref{sec:roth});
@@ -334,7 +354,7 @@ before their FRA.
 Survivor benefits are assumed to be claimed in the year of the spouse's death;
 the strategy of deferring survivor benefits to a later age is not optimized.
 The Windfall Elimination Provision (WEP) and Government Pension Offset (GPO)
-were repealed by the Social Security Fairness Act of January~2025 and therefore
+were repealed by the Social Security Fairness Act (signed January~5, 2025) and therefore
 require no modeling.
 
 \section{Pension Income}
@@ -444,6 +464,127 @@ fully taxable ordinary income.
 Users with significant IRA after-tax (nondeductible) basis should be aware of
 this limitation.
 Roth conversions are also disallowed in the last two years of the plan horizon.
+
+\section{Health Savings Accounts}
+\label{sec:hsa}
+
+\subsection*{Rules}
+
+A Health Savings Account (HSA) is a tax-advantaged account available to
+individuals enrolled in a High-Deductible Health Plan (HDHP).
+HSAs offer a unique triple tax advantage: contributions are pre-tax (above the
+line, reducing AGI), investment growth is tax-free, and withdrawals used for
+qualified medical expenses are tax-free at any age.
+After age~65, non-qualified withdrawals are taxed as ordinary income---making
+the HSA functionally equivalent to a traditional IRA for general use, but
+without Required Minimum Distributions.
+Reference: IRC~§~223 \cite{irc223}; IRS Publication~969 \cite{irs969}.
+
+Eligibility requires enrollment in a High-Deductible Health Plan (HDHP)
+and no disqualifying coverage (e.g., Medicare, non-HDHP insurance).
+Enrollment in any part of Medicare (Part~A, B, C, or D) immediately
+disqualifies one from contributing; existing HSA balances may still be
+withdrawn for qualified expenses.
+Annual contribution limits for 2026 are \$4,400 for self-only coverage and
+\$8,750 for family coverage, with an additional \$1,000 catch-up for
+individuals age~55 and older (each spouse with family coverage may add
+\$1,000 to their own account if both are 55+).
+Contributions must cease once the account owner enrolls in Medicare, which
+typically occurs at age~65.
+Reference: IRC~§~223(b)(7) \cite{irc223}; IRS Publication~969 \cite{irs969}.
+
+A surviving spouse who is the named beneficiary inherits the HSA intact and
+may treat it as their own HSA, preserving all three tax advantages.
+A non-spouse beneficiary must include the full account balance in taxable
+income in the year of inheritance.
+Reference: IRC~§~223(f)(8)(B) \cite{irc223}.
+
+\subsection*{Implementation in Owl}
+
+Owl models the HSA as a fourth savings account type alongside taxable,
+tax-deferred, and Roth accounts.
+Because the dominant retiree use is funding qualified medical expenses, all
+HSA withdrawals are treated as tax-free (simplified model); see Limitations below.
+The key modeling choices are as follows.
+\begin{itemize}[nosep]
+  \item \textit{Contributions reduce taxable income.}
+    Annual HSA contributions are deducted from ordinary taxable income, from
+    provisional income used to compute Social Security taxability, and from
+    the modified adjusted gross income (MAGI) used in the two-year Medicare
+    IRMAA lookback.
+    Contributions are zeroed automatically at Medicare enrollment age.
+  \item \textit{Withdrawals are tax-free and fund any expense.}
+    HSA withdrawals enter the annual cash-flow balance at full dollar value,
+    identical to Roth account withdrawals, and are excluded from taxable income.
+    Because Medicare Parts~B and~D premiums, IRMAA surcharges, Medigap
+    premiums, and other out-of-pocket medical costs are all qualified
+    expenses under IRS Publication~969, the optimizer automatically routes
+    HSA funds to cover these costs tax-free whenever doing so improves the
+    household's after-tax outcome.
+  \item \textit{No Required Minimum Distributions.}
+    Unlike tax-deferred accounts, HSAs are never subject to mandatory annual
+    distributions.
+  \item \textit{Cannot exceed account balance.}
+    As with taxable and Roth accounts, the optimizer may not withdraw more
+    than the current HSA balance in any year.
+  \item \textit{Bequest at heirs' tax rate.}
+    The HSA balance remaining at the end of the plan is valued after the
+    heirs' assumed marginal income tax rate, identical to the treatment of
+    tax-deferred accounts.
+    A surviving spouse inherits the HSA intact with no tax (the full balance
+    transfers to their own HSA), but a non-spouse beneficiary must include
+    the full amount in ordinary income.
+    The reported estate value applies the same discount.
+  \item \textit{Asset allocation.}
+    In account-specific allocation mode, the HSA defaults to the same
+    allocation as the Roth account, reflecting that both grow tax-free.
+    Users may also specify a separate HSA allocation.
+  \item \textit{Spousal transfer at death.}
+    At the death of the first spouse, the full HSA balance transfers to the
+    surviving spouse's HSA account, preserving its tax-advantaged status.
+\end{itemize}
+
+\subsection*{Limitations and assumptions}
+
+\textbf{Withdrawals.}
+All HSA withdrawals are treated as qualified medical expenses and therefore
+entirely tax-free.
+Non-medical withdrawals after age~65---which would be taxable as ordinary
+income---are not separately tracked.
+Before age~65, non-qualified withdrawals incur ordinary income tax plus a
+20\% penalty; Owl does not model this penalty because all withdrawals are
+assumed qualified.
+This simplification is conservative for the dominant retiree use case:
+funding Medicare premiums and out-of-pocket health costs.
+Future work may introduce a more detailed model that distinguishes medical
+from non-medical withdrawals.
+
+\textbf{Contributions.}
+The annual IRS contribution limit (\$4,400 self-only and \$8,750 family for
+2026) is not enforced as an optimizer constraint; users are responsible for
+not exceeding it in the \textit{HSA ctrb} column of the Household Financial
+Profile.
+The catch-up contribution (\$1,000 for age~55+) is not automatically applied;
+users aged 55+ must add it manually if desired.
+Self-only vs.\ family coverage is not distinguished; the applicable limit is
+the user's responsibility.
+The mandatory contribution stop at Medicare enrollment is enforced by zeroing
+contributions from that year forward when using the \texttt{setHSA()} method.
+If Medicare enrollment occurs mid-year, the IRS allows prorated contributions
+for months before enrollment; Owl zeroes the entire year, which is conservative.
+
+\textbf{Eligibility.}
+Owl assumes the user is HSA-eligible (enrolled in an HDHP with no
+disqualifying coverage).
+HDHP status, disqualifying coverage, and dependent status are not verified.
+
+\textbf{Bequests.}
+Non-spouse beneficiary inheritance is modeled by applying the heirs'
+marginal income tax rate to the terminal HSA balance, identical to the
+treatment of tax-deferred accounts.
+The simplified qualified-withdrawal model (all HSA withdrawals tax-free
+during the plan horizon) is not extended to non-qualified withdrawals after
+age~65; those remain deferred to a future path.
 
 \section{Medicare and IRMAA Premiums}
 
@@ -669,9 +810,9 @@ modeled.
 
 \section{Account Dynamics}
 
-Each individual maintains up to three savings accounts: a taxable brokerage
-account, a tax-deferred account, and a Roth account.
-A married couple therefore has up to six accounts in total, tracked and
+Each individual maintains up to four savings accounts: a taxable brokerage
+account, a tax-deferred account, a Roth account, and a Health Savings Account (HSA).
+A married couple therefore has up to eight accounts in total, tracked and
 optimized jointly.
 
 At the start of each plan year each account balance grows by the year's
@@ -693,9 +834,14 @@ During the year the following flows are applied:
     starting age;
   \item any spending surplus---income exceeding expenses in a given
     year---is deposited back into the taxable account;
+  \item HSA contributions reduce ordinary income (pre-tax) and cease at
+    Medicare enrollment;
+    HSA withdrawals fund qualified medical expenses entirely tax-free and
+    are not included in taxable income;
   \item at the death of the first spouse, a user-specified fraction
     of each account is transferred to the surviving spouse's
-    corresponding account, reflecting beneficiary designations.
+    corresponding account, reflecting beneficiary designations;
+    the surviving spouse inherits the HSA intact at full tax-advantaged status.
 \end{itemize}
 
 The balance at the start of the following year is the result of all of
@@ -882,8 +1028,9 @@ $b_{ikn}$ is a multidimensional array depending on subscripts $i, k,$ and $n$.
 	or $N_i= 1$ for single individuals. The first individual to pass
 	is denoted by $i_d$ while the survivor is $i_s$.
 \item [$j$]
-	Type of savings account. $j$ goes from 0 to $N_j - 1$, for taxable, tax-deferred,
-	and tax-free accounts respectively. Therefore $N_j = 3$.
+	Type of savings account. $j$ goes from 0 to $N_j - 1$, for taxable ($j=0$),
+	tax-deferred ($j=1$), tax-free Roth ($j=2$), and Health Savings Account ($j=3$)
+	respectively. Therefore $N_j = 4$.
 \item[$k$]
 	Type of asset class. $k$ goes from 0 to $N_k - 1$, for S\&P 500,
 	Baa corporate bonds, Treasury notes, and cash, respectively,
@@ -977,6 +1124,8 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	Withdrawal from account $j$ belonging to individual $i$ at the beginning of year $n$.
 	For the $(j=1)$ tax-deferred savings account, $w_{i1n}$ is referred to as a distribution for
 	tax purposes as it is a taxable withdrawal, and will always satisfy required minimum distributions.
+	For the $(j=3)$ HSA, $w_{i3n}$ represents qualified medical withdrawals, which are entirely
+	tax-free and excluded from taxable income (simplified model; see Section~\ref{sec:hsa}).
 \item [$x_{in}$]
 	Roth conversion performed by individual $i$ during year $n$.
 	These events are taxable as ordinary income.
@@ -1102,6 +1251,12 @@ Parameter values are either set by the user, historical data, or by the tax code
 	Year index at which Medicare first applies (i.e., when the youngest individual
 	in the plan turns 65).  For $n < n_m$ no Medicare cost $m_n$ is incurred.
 	Used in the Medicare constraints; see the Medicare paragraph in the Constraints section.
+\item [$\mathcal{N}^{\mathrm{hsa}}_i$]
+	Year index at which individual $i$ enrolls in Medicare and HSA contributions must
+	cease (typically when individual $i$ turns~65).
+	For $n \ge \mathcal{N}^{\mathrm{hsa}}_i$, the contribution parameter $\kappa_{i3n}$
+	is set to zero by the user via the \texttt{setHSA()} method or the
+	\textit{HSA ctrb} time-series column.
 \item [$\rho_{in}$]
 	Required minimum distribution for individual $i$ in year $n$. Expressed in fractions
 	which are determined from IRS tables. These tables are simple if spouses are less than 10 years apart,
@@ -1128,7 +1283,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 \item [$\theta^x_{tn}$]
 	Tax rate for ordinary income tax bracket $t$ in year $n$. Using $N_t$ time series allows one to adjust income
 	tax rates in the foreseeable future.
-	For example, in 2024 the rates (in decimal) are .10, .12, .22, .24, .32, .35, and .37.
+	For example, as of 2026 the rates (in decimal) are .10, .12, .22, .24, .32, .35, and .37.
         While these rates were extended indefinitely by Congress in 2025, they could still
 	revert in the future to 2017 or similar higher rates
 	(.10, .15, .25, .28, .33, .35, and .396). See Eq.~(\ref{Eq:IncTax1}) for its use.
@@ -1264,6 +1419,11 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 		\kappa_{ijkn} = \alpha_{ijkn}\kappa_{ijn}.
 	\end{equation}
 	as savings account balances are assumed to be rebalanced periodically.
+	For the $(j=3)$ HSA, contributions $\kappa_{i3n}$ are pre-tax: they reduce ordinary
+	taxable income, provisional income for Social Security taxability, and MAGI for
+	Medicare IRMAA purposes in year $n$.
+	HSA contributions are zeroed for $n \ge \mathcal{N}^{\mathrm{hsa}}_i$, when
+	individual $i$ enrolls in Medicare (typically at age~65).
 \item [$\omega_{in}$]
 	Sum of wages earned by individual $i$ during year $n$.
 	Do not confuse wages $\omega$ with withdrawals $w$.
@@ -3455,7 +3615,7 @@ Supports \code{list} (enumerate available case files) and \code{run}
 M.-D. Lacasse,
 ``Optimal Wealth Lab (Owl),''
 GitHub repository, 2025.
-\url{https://github.com/mdlacasse/owl}.
+\url{https://github.com/mdlacasse/Owl}.
 
 \bibitem{ssa-poms}
 Social Security Administration,
@@ -3478,10 +3638,20 @@ Internal Revenue Service,
 \textit{Publication 590-B: Distributions from Individual Retirement Arrangements (IRAs)},
 \url{https://www.irs.gov/pub/irs-pdf/p590b.pdf}.
 
+\bibitem{irc223}
+Internal Revenue Code \S~223,
+``Health Savings Accounts,''
+\url{https://www.law.cornell.edu/uscode/text/26/223}.
+
+\bibitem{irs969}
+Internal Revenue Service,
+\textit{Publication 969: Health Savings Accounts and Other Tax-Favored Health Plans},
+\url{https://www.irs.gov/pub/irs-pdf/p969.pdf}.
+
 \bibitem{cms2026}
 Centers for Medicare \& Medicaid Services,
 ``2026 Medicare Parts A \& B Premiums and Deductibles,''
-\url{https://www.cms.gov/newsroom/fact-sheets/}.
+\url{https://www.cms.gov/newsroom/fact-sheets/2026-medicare-parts-b-premiums-deductibles}.
 
 \bibitem{irs409}
 Internal Revenue Service,
