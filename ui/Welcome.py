@@ -88,7 +88,7 @@ or resell your financial data, whether cloud-hosted, or self-hosted on your devi
 kz.divider("orange")
 
 # Benefits
-st.markdown("### :orange[How is **Owl** different?]")
+st.markdown("### :orange[How is **Owl** different? Optimization, not just projection.]")
 st.markdown(
     "Most **retirement calculators** give you one rigid path. **Owl** **optimizes** "
     "your plan given your assumptions so you can:"
@@ -105,7 +105,7 @@ with col3:
 \nPrivacy by design. Whether cloud or self-hosted, we never store, view, or monetize your financial info.""")
 
 kz.divider("orange")
-st.markdown("### :orange[Ready for a demo?]")
+st.markdown("### :orange[Ready for a demo? Run your first case in 3 steps.]")
 
 with st.expander(":material/rocket_launch: *Explore some case examples*"):
     # ---- Quick start demo: lead with 3-step journey ----
@@ -142,7 +142,7 @@ with st.expander(":material/science: *See what Owl models—and its limitations*
 """)
 
 kz.divider("orange")
-st.markdown("### :orange[Ready to go deeper?]")
+st.markdown("### :orange[Ready to go deeper? Design and run your own cases.]")
 with st.expander(":material/edit_note: *Run your own cases*"):
     st.markdown("""Design your own case and save your progress locally.
 Return anytime by uploading your own configuration files—no cloud account required.""")
