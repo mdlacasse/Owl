@@ -1,5 +1,9 @@
 case_name = "kim+sam-bequest"
-description = "This is the case of Kim and Sam used as an example case for optimizing bequest and Roth conversions. A Household Financial Profile called 'HFP_kim+sam.xslx' is associated with this case."
+description = """
+Kim and Sam want to maximize the after-tax estate they leave to their heirs while maintaining a fixed $145k annual spending floor. Like the spending variant, they have HSAs and plan to downsize their home in 2038.
+
+This case demonstrates maxBequest optimization: the solver balances Roth conversions (to reduce future RMDs and heirs' tax burden) against the need to preserve liquidity for spending. Fixed assets and HSA qualified withdrawals add complexity to the tax-efficient withdrawal sequence.
+"""
 
 [basic_info]
 status = "married"
@@ -12,6 +16,7 @@ start_date = "2026-01-01"
 taxable_savings_balances = [ 650.0, 250.0,]
 tax_deferred_savings_balances = [ 1500.0, 500.0,]
 tax_free_savings_balances = [ 60.0, 40.0,]
+hsa_savings_balances = [ 35.0, 28.0,]
 beneficiary_fractions = [ 1.0, 1.0, 1.0,]
 spousal_surplus_deposit_fraction = 0.5
 

@@ -1,5 +1,9 @@
 case_name = "drawdowncalc-comparison-1"
-description = "This is a case involving a single individual. Case is used for comparing with @hugcity's DrawdownCalc. For max bequest, it should yield $90,882, while an $80k net spending should leave $678,625 as a bequest."
+description = """
+Charles is a single retiree used for cross-tool validation with @hugcity's DrawdownCalc. This minimal case (no HFP, flat spending, fixed user-defined rates) isolates the core withdrawal optimization logic for comparison.
+
+Reference benchmarks: max bequest ≈ $90,882; at $80k net spending, bequest ≈ $678,625. Use this case to verify Owl's results against other retirement planning tools.
+"""
 
 [basic_info]
 status = "single"

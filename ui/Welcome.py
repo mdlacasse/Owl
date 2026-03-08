@@ -21,6 +21,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from pathlib import Path
+
 import streamlit as st
 
 import sskeys as kz
@@ -105,7 +107,7 @@ with col3:
 kz.divider("orange")
 st.markdown("### :orange[Ready for a demo?]")
 
-with st.expander("*Explore some case examples*"):
+with st.expander(":material/rocket_launch: *Explore some case examples*"):
     # ---- Quick start demo: lead with 3-step journey ----
     st.markdown("#### :orange[Run your first case in 3 steps]")
     st.markdown("Use the **Jack & Jill** example to see results in under a minute.")
@@ -128,9 +130,20 @@ with st.expander("*Explore some case examples*"):
     st.caption("You’ve run your first case. Explore other Plan Setup pages to change assumptions. Explore other cases.")
 
 kz.divider("orange")
+st.markdown("### :orange[Curious what Owl can do? The scope is substantial.]")
+modeling_md = Path(__file__).resolve().parent.parent / "docs" / "modeling-capabilities.md"
+with st.expander(":material/science: *See what Owl models—and its limitations*"):
+    try:
+        st.markdown(modeling_md.read_text())
+    except OSError:
+        st.markdown("""
+[Modeling capabilities & limitations](https://github.com/mdlacasse/Owl/blob/main/docs/modeling-capabilities.md)
+— full reference on GitHub.
+""")
 
+kz.divider("orange")
 st.markdown("### :orange[Ready to go deeper?]")
-with st.expander("*Run your own cases*"):
+with st.expander(":material/edit_note: *Run your own cases*"):
     st.markdown("""Design your own case and save your progress locally.
 Return anytime by uploading your own configuration files—no cloud account required.""")
     st.markdown("#### :orange[Get the sample case files]")

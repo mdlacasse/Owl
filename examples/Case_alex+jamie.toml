@@ -1,5 +1,9 @@
 case_name = "Alex+Jamie"
-description = "A case where there is big difference in longevity."
+description = """
+Alex and Jamie face a stark longevity gap: Alex has a shorter life expectancy (72) while Jamie may live to 90. This creates unique planning challenges—how much to spend now vs. preserve for the survivor, and how to structure Roth conversions when one spouse will likely outlive the other by two decades.
+
+This case showcases Owl's handling of asymmetric life expectancies, the AMO (at-most-one) Roth and AMO surplus options for aggressive optimization, and the importance of survivor spending assumptions. The 60% surviving-spouse factor means Jamie's longer horizon drives much of the strategy.
+"""
 
 [basic_info]
 status = "married"

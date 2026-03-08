@@ -49,6 +49,13 @@ def _apply_assets_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         hsa=balances["hsa"],
         startDate=start_date,
     )
+    # Set n_hsa_i so HSA contributions from HFP are zeroed at Medicare age.
+    # (Do not call setHSA here—it would re-apply unit scaling and corrupt balances.)
+    thisyear = date.today().year
+    ages = [65] * icount
+    for i in range(icount):
+        n_hsa = plan.yobs[i] + ages[i] - thisyear
+        plan.n_hsa_i[i] = min(max(0, n_hsa), plan.N_n)
     if icount == 2:
         phi_j = known["savings_assets"]["beneficiary_fractions"]
         plan.setBeneficiaryFractions(phi_j)

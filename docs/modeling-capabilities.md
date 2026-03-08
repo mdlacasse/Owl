@@ -1,10 +1,11 @@
-# Owl Modeling Capabilities Reference
+### Modeling Capabilities
 
 This document summarizes all modeling components in Owl (Optimal Wealth Lab), how each is implemented, and the assumptions and limitations that apply. It serves as a quick reference for understanding the scope and boundaries of the optimizer.
 
 | Component | Modeling approach | Assumptions & limitations |
 |------------|--------------------|---------------------------|
 | **Taxable accounts** | Dividend and interest yield proportional to balance each year; capital gains when optimizer elects to sell. All realized gains treated as long-term. | All gains treated as long-term; short-term gains (holding period &lt; 1 year) not distinguished. Withdrawals assumed to sell most recent purchases first. |
+| **Safety net (taxable)** | Optional inflation-indexed minimum balance per individual's taxable account. Enforced from year 2 through each individual's life horizon. Config: `minTaxableBalance`. | First year excluded. Can cause infeasibility if minimum exceeds initial balance or desired bequest is smaller than survivor's safety net. |
 | **Tax-deferred accounts** (401k, IRA, 403b) | Pre-tax contributions from Wages and Contributions table. Withdrawals taxed as ordinary income. RMDs enforced as minimum withdrawal floors from age 70–75 (birth-year dependent). 10% early withdrawal penalty before age 59½. | Pro-rata rule (IRS Form 8606) not modeled; entire balance treated as pre-tax. Early withdrawal exceptions (72(t), disability, etc.) not modeled. |
 | **Roth accounts** | After-tax contributions. Five-year maturation rule enforced via minimum-balance constraints (recent conversions + contribution gains retained). Age 59½ threshold per individual. Conversions taxable as ordinary income in year of conversion. | Contribution principal not separately tracked; some valid early withdrawals of principal conservatively disallowed. Pro-rata rule not modeled. Roth conversions disallowed in last two years of plan horizon. |
 | **Health Savings Accounts (HSA)** | Fourth account type. Pre-tax contributions reduce ordinary income, provisional income, and MAGI. Contributions zeroed at Medicare enrollment age. All withdrawals treated as qualified (tax-free). Spouse inherits intact. | All withdrawals assumed qualified; pre-65 non-qualified penalty (20%) not modeled. IRS contribution limits not enforced; user responsible. HDHP eligibility assumed, not verified. Catch-up ($1,000 for 55+) not auto-applied. Mid-year Medicare: entire year zeroed (IRS allows proration). |

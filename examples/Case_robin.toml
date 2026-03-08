@@ -1,0 +1,64 @@
+case_name = "robin"
+description = """
+Robin is a 65-year-old single retiree who recently left a career in school administration. Robin has built a modest nest egg across three account types and has some HSA savings from the final years on a high-deductible health plan. Social Security will be claimed at 67 to maximize the monthly benefit. Robin owns a home outright (no mortgage) and does not plan to sell it — the home passes to heirs as part of the estate.
+
+This case is representative of one of the most common retirement situations: a single retiree with moderate savings and a Social Security-dependent income plan. It demonstrates Owl's account-type asset allocation (keeping equities in Roth and HSA, bonds in tax-deferred), which is a common tax-location strategy recommended by financial advisors. The HFP file records the final five working years, including 401k and Roth IRA catch-up contributions and HSA deposits.
+"""
+
+[basic_info]
+status = "single"
+names = [ "Robin",]
+date_of_birth = [ "1961-01-15",]
+life_expectancy = [ 91,]
+start_date = "2026-01-01"
+
+[savings_assets]
+taxable_savings_balances = [ 18.0,]
+tax_deferred_savings_balances = [ 175.0,]
+tax_free_savings_balances = [ 38.0,]
+hsa_savings_balances = [ 12.0,]
+
+[household_financial_profile]
+HFP_file_name = "HFP_robin.xlsx"
+
+[fixed_income]
+pension_monthly_amounts = [ 0,]
+pension_ages = [ 65.0,]
+pension_indexed = [ false,]
+social_security_pia_amounts = [ 1420,]
+social_security_ages = [ 67.0,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 30.0
+dividend_rate = 1.8
+obbba_expiration_year = 2032
+method = "historical average"
+from = 1990
+to = 2023
+
+[asset_allocation]
+interpolation_method = "linear"
+interpolation_center = 15.0
+interpolation_width = 5.0
+type = "account"
+taxable = [ [ [ 50, 50, 0, 0,], [ 30, 70, 0, 0,],],]
+tax-deferred = [ [ [ 35, 65, 0, 0,], [ 20, 80, 0, 0,],],]
+tax-free = [ [ [ 80, 20, 0, 0,], [ 60, 40, 0, 0,],],]
+hsa = [ [ [ 80, 20, 0, 0,], [ 60, 40, 0, 0,],],]
+
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 60
+objective = "maxSpending"
+
+[solver_options]
+maxRothConversion = 50
+startRothConversions = 2026
+bequest = 50
+withSCLoop = true
+withMedicare = "loop"
+solver = "default"
+spendingSlack = 0
+
+[results]
+default_plots = "today"

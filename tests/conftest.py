@@ -5,7 +5,8 @@ Freezes date.today() to 2026-01-01 across all owlplanner source modules and
 test modules so that tests are immune to calendar year rollover.  When the
 project is deliberately advanced to a new tax year, update _FROZEN_DATE below,
 increment birth years in examples/*.toml, and refresh the expected values in
-test_toml_cases.py.
+test_toml_cases.py. If HFP structure changes, run scripts/update_hfp_coverage.py
+to sync HSA contributions, Debts, and Fixed Assets in example HFPs.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 

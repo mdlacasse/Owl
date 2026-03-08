@@ -413,6 +413,10 @@ class MatplotlibBackend(PlotBackend):
                 y2stack[namek] = np.zeros((len(inames), len(years_n)))
                 for i in range(len(inames)):
                     y2stack[namek][i][:] = b_ijkn[i][jDic[jkey]][kDic[kkey]][:] / infladjust
+            # Skip account types with no data
+            if all(np.abs(y2stack[n]).sum() <= 1.0 for n in stackNames):
+                figures.append(None)
+                continue
             title = name + "\nAsset Composition - " + jkey
             if tag:
                 title += " - " + tag

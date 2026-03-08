@@ -1,5 +1,9 @@
 case_name = "jack+jill"
-description = "This example aims to demonstrate some of Owl's capabilities. Jack and Jill are a married couple a few years from retirement. A Household Financial Profile called 'HFP_jack+jill.xlsx' is associated with this case. This case uses the historical rate sequence of 1969 as a test case for guiding spending amounts from a near worst-case historical scenario. This case also demonstrates that the optimal strategy for Roth conversions does not necessarily involve surfing a tax bracket.  \nA good exercise for learning Owl's capabilities is to duplicate this case and compare two scenarios: one with optimized Roth conversions and one without. Another possible exercise could involve comparing a historical retirement in 1969 vs. one taken in 1966. Or anything else you can think of..."
+description = """
+Jack and Jill are a married couple in their early sixties, a few years from retirement.  Jill has a modest pension from her teaching career, and they've elected a 50% joint-and-survivor option so the survivor receives half of her benefit. Both have built solid nest eggs across taxable, tax-deferred, and Roth accounts—plus they've been maxing out their HSAs while still on an HDHP (high-deductible health plan). They're carrying a small mortgage on their home and plan to sell a vacation property in 2035 to simplify their life.
+
+This case showcases Owl's full feature set: pension survivor benefits, HSA accounts, fixed assets (real estate disposition), and debt (mortgage payments). It uses the historical rate sequence of 1969—a near worst-case scenario—to stress-test their plan.  You'll see that optimal Roth conversion strategy doesn't always mean surfing a tax bracket; sometimes converting more in down years pays off. Try duplicating this case and comparing with and without Roth conversions, or swap in a different historical sequence like 1966.
+"""
 
 [basic_info]
 status = "married"
@@ -12,7 +16,8 @@ start_date = "2026-01-01"
 taxable_savings_balances = [ 90.5, 60.2,]
 tax_deferred_savings_balances = [ 600.5, 150.0,]
 tax_free_savings_balances = [ 70.6, 40.8,]
-beneficiary_fractions = [ 1.0, 1.0, 1.0,]
+hsa_savings_balances = [ 25.0, 18.0,]
+beneficiary_fractions = [ 1.0, 1.0, 1.0, 1.0,]
 spousal_surplus_deposit_fraction = 0.5
 
 [household_financial_profile]
@@ -22,6 +27,7 @@ HFP_file_name = "HFP_jack+jill.xlsx"
 pension_monthly_amounts = [ 0.0, 10.5,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ false, false,]
+pension_survivor_fraction = [ 0.0, 0.5,]
 social_security_pia_amounts = [ 2360, 1642,]
 social_security_ages = [ 70.0, 62.083333333333336,]
 

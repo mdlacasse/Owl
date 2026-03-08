@@ -337,7 +337,7 @@ It contributes to ordinary income (e.g., part-time work, consulting, royalties).
 The *net inv* column is optional; older HFP files without it will default to zero.
 It captures rent and trust distributions that count as net investment income for NIIT (3.8% surtax).
 The *HSA ctrb* column is optional; older HFP files without it will default to zero.
-HSA contributions are pre-tax and reduce AGI; they are automatically zeroed at Medicare enrollment (~age 65).
+HSA contributions are pre-tax and reduce AGI; they are automatically zeroed at Medicare enrollment (~age 65). Entries past age 65 are ignored.
 Note that column names are case sensitive and all entries are in lower case.
 The easiest way to complete the process of filling this file is either to start from the template
 file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) or

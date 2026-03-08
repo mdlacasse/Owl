@@ -57,51 +57,61 @@ def getHFP(exdir, case, check_exists=True):
 # Expected objective function values for reproducibility testing
 # Format: {case_name: {"net_spending_basis": value, "bequest": value}}
 # Values are in today's dollars and rounded to the nearest dollar
-# Updated after switching historical average from arithmetic to geometric mean (Mar 2026).
+# Updated Mar 2026: cases enhanced for broader feature coverage (HSA, pension survivor,
+# fixed assets, debts).
+# Updated after HFP dollar conversion ($ not $k) in update_hfp_coverage.py
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100_000,
-            "bequest": 5_812_386,
+            "bequest": 7_847_751,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_713,
+            "net_spending_basis": 94_576,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 80_710,
+            "net_spending_basis": 93_396,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 167_983,
+            "net_spending_basis": 189_117,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 1_097_364,
+            "bequest": 2_097_193,
+        },
+        "Case_robin": {
+            "net_spending_basis": 28_929,
+            "bequest": 50_000,
         },
     }
 elif platform in ["win32", "linux"]:
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100_000,
-            "bequest": 5_812_386,
+            "bequest": 7_847_751,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 91_713,
+            "net_spending_basis": 94_576,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 80_710,
+            "net_spending_basis": 93_396,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 167_983,
+            "net_spending_basis": 189_117,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 1_097_364,
+            "bequest": 2_097_193,
+        },
+        "Case_robin": {
+            "net_spending_basis": 28_929,
+            "bequest": 50_000,
         },
     }
 else:
@@ -203,3 +213,20 @@ def test_reproducibility():
                 rel=rel_tol,
                 abs=rel_tol,
             ), f"{case}: Bequest mismatch."
+
+
+@pytest.mark.toml
+def test_robin_fixed_assets_bequest():
+    """
+    Verify that Robin's primary home (yod=0 → past plan end) appears as a
+    non-zero fixed-asset bequest value. Spending/bequest reproducibility is
+    covered by test_reproducibility via EXPECTED_OBJECTIVE_VALUES.
+    """
+    exdir = "./examples/"
+    p = owl.readConfig(os.path.join(exdir, "Case_robin.toml"))
+    p.readHFP(os.path.join(exdir, "HFP_robin.xlsx"))
+    p.resolve()
+    home_bequest = p.getFixedAssetsBequestValueInTodaysDollars()
+    assert home_bequest == pytest.approx(312_529, rel=1e-3), (
+        f"Home bequest mismatch: {home_bequest:.2f} (deterministic, solver-independent)"
+    )

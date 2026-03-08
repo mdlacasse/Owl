@@ -63,7 +63,7 @@
 \clearpage
 
 \begin{abstract}
-This document describes the mathematical foundations of Owl (Optimal Wealth Lab), a Python application that optimizes US retirement planning using mixed-integer linear programming. Owl models federal tax laws, Medicare premiums, Social Security rules, pension income, Roth conversions, and account dynamics jointly within a single optimization framework. The self-consistent iteration loop and MIP reformulations handle nonlinear tax interactions. Chapters~1--3 present the conceptual model for a general audience; Chapters~4--9 provide the formal mathematical formulation, constraint structure, and rate models for implementers and extenders.
+This document describes the mathematical foundations of Owl (Optimal Wealth Lab), a Python application that optimizes US retirement planning using mixed-integer linear programming. Owl models federal tax laws, Medicare premiums, Social Security rules, pension income, Roth conversions, Health Savings Accounts, and account dynamics jointly within a single optimization framework. The self-consistent iteration loop and MIP reformulations handle nonlinear tax interactions. Chapters~1--3 present the conceptual model for a general audience; Chapters~4--9 provide the formal mathematical formulation, constraint structure, and rate models for implementers and extenders.
 \end{abstract}
 
 \chapter{Introduction}
@@ -94,7 +94,7 @@ This document is intended for two audiences.
 Chapters~1 through~3 require only basic financial literacy: familiarity
 with retirement account types, tax-deferred vs.\ tax-free savings, Social
 Security, and Medicare is sufficient to follow the discussion.
-Chapters~4 through~8 require mathematical maturity: comfort with
+Chapters~4 through~9 require mathematical maturity: comfort with
 linear algebra, index notation, and the basics of linear and
 mixed-integer programming is assumed.
 Chapter~9 additionally assumes familiarity with probability distributions
@@ -255,7 +255,7 @@ Each individual has their own sheet with the following year-indexed columns:
   \item \textit{IRA ctrb} --- traditional IRA contributions;
   \item \textit{Roth IRA ctrb} --- Roth IRA contributions;
   \item \textit{HSA ctrb} --- Health Savings Account contributions (optional;
-    defaults to zero; automatically zeroed at Medicare enrollment age);
+    defaults to zero; automatically zeroed at Medicare enrollment age; entries past age~65 are ignored);
   \item \textit{Roth conv} --- planned or historical Roth conversion amounts;
     the five years preceding the plan start date are used to implement the
     five-year lookback rule (Section~\ref{sec:roth});
@@ -512,7 +512,7 @@ The key modeling choices are as follows.
     provisional income used to compute Social Security taxability, and from
     the modified adjusted gross income (MAGI) used in the two-year Medicare
     IRMAA lookback.
-    Contributions are zeroed automatically at Medicare enrollment age.
+    Contributions are zeroed automatically at Medicare enrollment age; HFP entries past age~65 are ignored.
   \item \textit{Withdrawals are tax-free and fund any expense.}
     HSA withdrawals enter the annual cash-flow balance at full dollar value,
     identical to Roth account withdrawals, and are excluded from taxable income.
@@ -569,9 +569,12 @@ users aged 55+ must add it manually if desired.
 Self-only vs.\ family coverage is not distinguished; the applicable limit is
 the user's responsibility.
 The mandatory contribution stop at Medicare enrollment is enforced by zeroing
-contributions from that year forward when using the \texttt{setHSA()} method.
+contributions from that year forward. \texttt{setHSA()} is invoked either
+explicitly or automatically when loading from configuration (e.g., TOML).
+HFP entries in the \textit{HSA ctrb} column for years when the individual
+is age~65 or older are overwritten with zero.
 If Medicare enrollment occurs mid-year, the IRS allows prorated contributions
-for months before enrollment; Owl zeroes the entire year, which is conservative.
+for months before enrollment \cite{irs8889}; Owl zeroes the entire year, which is conservative.
 
 \textbf{Eligibility.}
 Owl assumes the user is HSA-eligible (enrolled in an HDHP with no
@@ -623,14 +626,14 @@ The two-year MAGI lookback is fully implemented.
 Because IRMAA in plan year $n$ depends on MAGI from year $n-2$, the first two
 plan years require MAGI values from before the plan start.
 These are supplied by the user via the \code{previousMAGIs} option
-as a list of the two MAGI values from two and one years before the plan start;
-both default to zero if omitted, which may underestimate IRMAA surcharges
+as a list of the two MAGI values from two and one years before the plan start.
+When not supplied, both default to zero, which may underestimate IRMAA surcharges
 in the first two plan years for higher-income households.
 Reference: \cite{cms2026}.
 
 \subsection*{Limitations and assumptions}
 
-Medicare Part~D IRMAA surcharges are not modeled.
+Medicare Part~D (both base premiums and IRMAA surcharges) is not modeled.
 CMS 2026 Part~D monthly surcharges range from \$14.50 to \$91.00 per person
 for MAGI above \$109k, resulting in a modest underestimate of Medicare costs
 for higher-income households.
@@ -731,7 +734,7 @@ Reference: \cite{obbba2025}.
 Required Minimum Distributions (RMDs) are mandatory annual withdrawals from
 tax-deferred accounts, beginning at age~70 for those born before 1949,
 age~72 for those born 1949--1950, age~73 for those born 1951--1959, and
-age~75 for those born in 1960 or later, per SECURE~2.0 Act~§~107
+age~75 for those born in 1960 or later (effective 2033), per SECURE~2.0 Act~§~107
 \cite{secure2}.
 RMD fractions are taken from the IRS Uniform Lifetime Table~III (effective
 2022), as published in IRS Publication~590-B \cite{irs590b}.
@@ -1129,6 +1132,8 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$x_{in}$]
 	Roth conversion performed by individual $i$ during year $n$.
 	These events are taxable as ordinary income.
+	Roth conversions are forced to zero in the last two years of each
+	individual's horizon (see Limitations in Section~\ref{sec:roth}).
 \item [$p^{\sigma,\mathrm{lo}}_n$, $p^{\sigma,\mathrm{hi}}_n$]
 	Excess provisional income above the lower and upper Social Security taxability
 	thresholds, respectively:
@@ -1254,9 +1259,10 @@ Parameter values are either set by the user, historical data, or by the tax code
 \item [$\mathcal{N}^{\mathrm{hsa}}_i$]
 	Year index at which individual $i$ enrolls in Medicare and HSA contributions must
 	cease (typically when individual $i$ turns~65).
-	For $n \ge \mathcal{N}^{\mathrm{hsa}}_i$, the contribution parameter $\kappa_{i3n}$
-	is set to zero by the user via the \texttt{setHSA()} method or the
-	\textit{HSA ctrb} time-series column.
+	For $n \ge \mathcal{N}^{\mathrm{hsa}}_i$, the contribution $\kappa_{i3n}$
+	is zero; values in the \textit{HSA ctrb} column for those years are ignored.
+	$\mathcal{N}^{\mathrm{hsa}}_i$ is set by \texttt{setHSA()}, which is invoked
+	explicitly or automatically when loading from configuration.
 \item [$\rho_{in}$]
 	Required minimum distribution for individual $i$ in year $n$. Expressed in fractions
 	which are determined from IRS tables. These tables are simple if spouses are less than 10 years apart,
@@ -1758,7 +1764,9 @@ add the market returns to the savings balances.
 	\end{eqnarray}
 
 \subsection{Roth conversions}
-	Roth conversions cannot be larger than the balance at the beginning of the year in the account:
+	Roth conversions $x_{in}$ are forced to zero in the last two years of
+	each individual's horizon (see Section~\ref{sec:roth}).
+	Otherwise, Roth conversions cannot be larger than the balance at the beginning of the year in the account:
 	\begin{equation}
 		x_{in} \le b_{i1n}.
 	\end{equation}
@@ -3647,6 +3655,11 @@ Internal Revenue Code \S~223,
 Internal Revenue Service,
 \textit{Publication 969: Health Savings Accounts and Other Tax-Favored Health Plans},
 \url{https://www.irs.gov/pub/irs-pdf/p969.pdf}.
+
+\bibitem{irs8889}
+Internal Revenue Service,
+\textit{Form 8889: Health Savings Accounts (HSAs)},
+\url{https://www.irs.gov/pub/irs-pdf/f8889.pdf}.
 
 \bibitem{cms2026}
 Centers for Medicare \& Medicaid Services,

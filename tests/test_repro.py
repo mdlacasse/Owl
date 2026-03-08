@@ -31,17 +31,18 @@ import owlplanner as owl
 
 solver = 'HiGHS'
 # solver = 'MOSEK'
+# Updated after HFP dollar conversion ($ not $k) in update_hfp_coverage.py
 if platform == "darwin":
-    SPENDING1 = 86_773
-    BEQUEST1 = 827_581
-    SPENDING2 = 96_891
-    SPENDING1_FIXED = 92_464
+    SPENDING1 = 87_685
+    BEQUEST1 = 867_082
+    SPENDING2 = 97_710
+    SPENDING1_FIXED = 93_854
     BEQUEST1_FIXED = 500_000
 elif platform in ["win32", "linux"]:
-    SPENDING1 = 86_773
-    BEQUEST1 = 827_581
-    SPENDING2 = 96_891
-    SPENDING1_FIXED = 92_464
+    SPENDING1 = 87_685
+    BEQUEST1 = 867_082
+    SPENDING2 = 97_710
+    SPENDING1_FIXED = 93_854
     BEQUEST1_FIXED = 500_000
 else:
     print(f"Unknown platform {platform}")

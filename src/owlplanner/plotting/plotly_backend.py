@@ -799,6 +799,11 @@ class PlotlyBackend(PlotBackend):
                     if np.abs(np.sum(values[i])) > 1.0:  # Only show non-zero series (use abs for debts)
                         stack_data.append((values[i], f"{namek} {inames[i]}"))
 
+            # Skip account types with no data
+            if not stack_data:
+                figures.append(None)
+                continue
+
             # Add stacked area traces
             for data, dname in stack_data:
                 fig.add_trace(go.Scatter(

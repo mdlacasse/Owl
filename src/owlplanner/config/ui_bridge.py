@@ -21,6 +21,7 @@ from owlplanner.config.constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
 from owlplanner.config.defaults import (
     DEFAULT_DOB,
     DEFAULT_DIVIDEND_RATE,
+    DEFAULT_GENERIC_ALLOCATION,
     DEFAULT_HEIRS_RATE,
     DEFAULT_LIFE_EXPECTANCY,
     DEFAULT_OBBBA_YEAR,
@@ -178,23 +179,29 @@ def config_to_ui(diconf: dict) -> dict:
 
         alloc_type = aa.get("type", "individual")
         if alloc_type == "individual" or alloc_type == "spouses":
-            generic = aa.get("generic", [[[60, 40, 0, 0], [70, 30, 0, 0]]])
-            g = generic[i] if i < len(generic) else [[60, 40, 0, 0], [70, 30, 0, 0]]
+            generic = aa.get("generic", DEFAULT_GENERIC_ALLOCATION)
+            g = generic[i] if i < len(generic) else DEFAULT_GENERIC_ALLOCATION[0]
             for k in range(4):
                 dic[f"j3_init%{k}_{i}"] = int(g[0][k])
                 dic[f"j3_fin%{k}_{i}"] = int(g[1][k])
         else:
             for j, acc in enumerate(ACC_CONF[:3]):   # taxable/tax-deferred/tax-free (j0/j1/j2 keys)
-                arr = aa.get(acc, [[[60, 40, 0, 0], [70, 30, 0, 0]]])
-                a = arr[i] if i < len(arr) else [[60, 40, 0, 0], [70, 30, 0, 0]]
+                arr = aa.get(acc, DEFAULT_GENERIC_ALLOCATION)
+                a = arr[i] if i < len(arr) else DEFAULT_GENERIC_ALLOCATION[0]
                 for k in range(4):
                     dic[f"j{j}_init%{k}_{i}"] = int(a[0][k])
                     dic[f"j{j}_fin%{k}_{i}"] = int(a[1][k])
             # HSA account allocation (jhsa_ prefix to avoid collision with j3_ for individual mode)
             # Default: inherit tax-free allocation
-            tf_arr = aa.get("tax-free", [[[60, 40, 0, 0], [70, 30, 0, 0]]])
+            tf_arr = aa.get("tax-free", DEFAULT_GENERIC_ALLOCATION)
             hsa_arr = aa.get("hsa", tf_arr)
-            hsa_a = hsa_arr[i] if i < len(hsa_arr) else (tf_arr[i] if i < len(tf_arr) else [[60, 40, 0, 0], [70, 30, 0, 0]])
+            # Three-level fallback for individual i:
+            #   1. use hsa_arr[i] if HSA has an explicit entry for this person
+            #   2. fall back to tf_arr[i] if tax-free covers this person
+            #      (hsa_arr is already tf_arr when no 'hsa' key exists in the config)
+            #   3. fall back to DEFAULT_GENERIC_ALLOCATION[0] if neither array covers this person
+            hsa_a = (hsa_arr[i] if i < len(hsa_arr) else (tf_arr[i] if i < len(tf_arr)
+                     else DEFAULT_GENERIC_ALLOCATION[0]))
             for k in range(4):
                 dic[f"jhsa_init%{k}_{i}"] = int(hsa_a[0][k])
                 dic[f"jhsa_fin%{k}_{i}"] = int(hsa_a[1][k])

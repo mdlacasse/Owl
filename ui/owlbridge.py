@@ -686,10 +686,7 @@ def plotSingleResults(plan):
         for fig in figs:
             if fig:
                 renderPlot(fig, cols[c])
-            else:
-                cols[c].markdown("#\n<div style='text-align: center'> This plot is empty </div>",
-                              unsafe_allow_html=True)
-            c = (c + 1) % n
+                c = (c + 1) % n
 
 
 @_checkPlan

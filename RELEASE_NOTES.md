@@ -11,6 +11,7 @@ is used to pay Medicare and IRMAA premiums.
 - Formulation is modified to account for withdrawals
 - Contributions made through W&C table
 - New tests for HSA
+- Rewrite examples to use new capabilities and extend coverage
 - Documentation update
 
 ## Version 2026.03.07

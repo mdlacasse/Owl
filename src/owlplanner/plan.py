@@ -1185,6 +1185,12 @@ class Plan:
             self.kappa_ijn[i, 2, :h] += self.timeLists[iname]["Roth IRA ctrb"][5:h+5]
             self.kappa_ijn[i, 3, :h] = self.timeLists[iname]["HSA ctrb"][5:h+5]
             # Zero HSA contributions after Medicare enrollment year.
+            # If n_hsa_i was never set (still at default N_n), initialize from yobs and age 65
+            # so programmatic plans that bypass config still get correct Medicare cutoff.
+            if self.n_hsa_i[i] >= self.N_n:
+                thisyear = date.today().year
+                n_hsa = self.yobs[i] + 65 - thisyear
+                self.n_hsa_i[i] = min(max(0, n_hsa), self.N_n)
             n_stop = self.n_hsa_i[i]
             if n_stop < h:
                 self.kappa_ijn[i, 3, n_stop:h] = 0.0
@@ -1248,7 +1254,8 @@ class Plan:
         Returns:
         --------
         float
-            Fixed assets bequest value in today's dollars.
+            Fixed assets bequest value in today's dollars. HFP monetary values
+            (basis, value) are stored in dollars; the UI divides by 1000 for k$ display.
             Returns 0.0 if rates not set, gamma_n not calculated, or no fixed assets.
         """
         if self.fixed_assets_bequest_value == 0.0:
@@ -3310,6 +3317,8 @@ class Plan:
         value = self._checkValueType(value)
         figures = self._plotter.plot_asset_composition(self.year_n, self.inames, self.b_ijkn,
                                                        self.gamma_n, value, self._name, tag)
+        if all(f is None for f in figures):
+            return None
         if figure:
             return figures
 
