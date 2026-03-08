@@ -3092,13 +3092,15 @@ The coefficient vector $c$ can be augmented with a small positive weight $\varep
 to break ties without changing the primary objective in practice. In addition to the
 coefficients of the chosen primary objective (max spending or max bequest), the
 implementation adds the following contributions to $c$:
-\begin{eqnarray}
-	c[q_x(i, n)] &\leftarrow& c[q_x(i, n)] + \varepsilon, \nonumber \\
-	&&\qquad\forall i \in \{0,\ldots, N_i-1\}, \; \forall n \in \{0,\ldots, N_n-1\}, \\
-	c[q_w(1, j, n)] &\leftarrow& c[q_w(1, j, n)] + \varepsilon, \nonumber \\
-	&&\qquad\forall j \in \{0,\ldots, N_j-1\}, \; \forall n \in \{0,\ldots, N_n-1\},
+\begin{equation}
+\begin{aligned}
+	c[q_x(i, n)] &\leftarrow c[q_x(i, n)] + \varepsilon, \\
+	&\qquad\forall i \in \{0,\ldots, N_i-1\}, \; \forall n \in \{0,\ldots, N_n-1\}, \\
+	c[q_w(1, j, n)] &\leftarrow c[q_w(1, j, n)] + \varepsilon, \\
+	&\qquad\forall j \in \{0,\ldots, N_j-1\}, \; \forall n \in \{0,\ldots, N_n-1\},
 	\quad \text{when } N_i = 2.
-\end{eqnarray}
+\end{aligned}
+\end{equation}
 The first line penalizes Roth conversions $x_{in}$, so that among solutions with the
 same primary objective value the solver prefers fewer or smaller conversions (reducing
 churn). The second line penalizes withdrawals $w_{1jn}$ from the second individual
@@ -3119,6 +3121,7 @@ This chapter describes the models available and the statistical algorithms
 underlying the stochastic ones.
 
 \section{Historical data}
+\label{sec:historical-data}
 
 All built-in models draw on an annual dataset covering the period from
 $\mathcal{Y}_{\min} = 1928$ through the most recently completed calendar year
@@ -3148,6 +3151,22 @@ by the historical, histogaussian, bootstrap, and VAR(1) models.
 We denote the window width by $N_w = \mathcal{Y}_{\mathrm{to}} -
 \mathcal{Y}_{\mathrm{frm}} + 1$, and the observed return of asset class $k$ in
 calendar year $y$ by $r_{ky}$.
+
+\paragraph*{Sequence transformations: reverse and roll.}
+Two optional transforms apply to the extracted sequence before it is used.
+The {\em reverse} option reflects the sequence in time,
+$\tau_{kn} \leftarrow r_{k,\,\mathcal{Y}_{\mathrm{to}}-n}$,
+so that the earliest calendar year in the window maps to plan year $N_n-1$
+and the latest to plan year $0$.
+The {\em roll} option shifts the sequence by $s$ positions,
+$\tau_{kn} \leftarrow r_{k,\,\mathcal{Y}_{\mathrm{frm}}+((n+s)\bmod N_w)}$,
+with positive $s$ advancing toward later years (and wrapping).
+Both transforms preserve the set of returns in the window while altering the
+order; they are useful for exploring sequence-of-returns sensitivity without
+changing the underlying data.
+Reverse and roll are supported by all methods that use a historical window
+(historical, histogaussian, histolognormal, bootstrap, VAR, GARCH).
+Constant-rate methods ignore them.
 
 \section{Constant rate methods}
 
@@ -3179,13 +3198,8 @@ of the plan:
 \end{equation}
 If the plan horizon $N_n$ exceeds the window width $N_w$, the sequence is
 repeated cyclically.
-Two sequence-transformation options apply before the plan runs:
-a {\em reverse} option reflects the sequence as
-$\tau_{kn} \leftarrow r_{k,\,\mathcal{Y}_{\mathrm{to}}-n}$,
-and a {\em roll} option shifts it by $s$ positions as
-$\tau_{kn} \leftarrow r_{k,\,\mathcal{Y}_{\mathrm{frm}}+((n+s)\bmod N_w)}$.
-These two options are also available for all other methods that use a
-historical window.
+The reverse and roll transforms (see \S\,\ref{sec:historical-data}) are applied
+before the plan runs.
 
 \section{Stochastic models}
 
@@ -3528,12 +3542,18 @@ $N_s$ scenarios provides a probabilistic assessment of the retirement plan.
 In stress-testing mode (Historical Range), the \code{historical} method
 is applied repeatedly: the starting year $\mathcal{Y}_{\mathrm{frm}}$ is
 advanced one year at a time over a specified calendar range, producing one
-deterministic solve per starting year.
+deterministic solve per starting year (by default).
 This sweep is equivalent to asking: ``How would this plan have fared had the
 retiree begun at every historical starting year?''
-When used with the reverse or roll options, additional sequence
-configurations can be explored without altering the underlying
-historical data.
+When the {\em augmented} option is enabled, the run is expanded: for each
+starting year, every $(reverse, roll)$ pair in
+$\{\mathrm{false}, \mathrm{true}\} \times \{0, \ldots, N_n-1\}$ is executed,
+yielding $2 N_n$ sequences per year instead of one.
+For a 30-year plan over 50 years of history, that produces $50 \times 60 =
+3000$ outcomes rather than 50, providing a much denser sample for the
+result histogram while still using only observed historical returns.
+Reverse and roll (see \S\,\ref{sec:historical-data}) alter the ordering of
+the same returns; augmented mode systematically explores all such orderings.
 
 \appendix
 
