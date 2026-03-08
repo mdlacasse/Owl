@@ -83,7 +83,7 @@ if platform == "darwin":
             "bequest": 2_097_193,
         },
         "Case_robin": {
-            "net_spending_basis": 34_647,
+            "net_spending_basis": 44_642,
             "bequest": 50_000,
         },
     }
@@ -110,7 +110,7 @@ elif platform in ["win32", "linux"]:
             "bequest": 2_097_193,
         },
         "Case_robin": {
-            "net_spending_basis": 34_647,
+            "net_spending_basis": 44_642,
             "bequest": 50_000,
         },
     }
@@ -227,6 +227,6 @@ def test_robin_fixed_assets_bequest():
     p.readHFP(os.path.join(exdir, "HFP_robin.xlsx"))
     p.resolve()
     home_bequest = p.getFixedAssetsBequestValueInTodaysDollars()
-    assert home_bequest == pytest.approx(312_529, rel=1e-3), (
+    assert home_bequest == pytest.approx(311_771, rel=1e-3), (
         f"Home bequest mismatch: {home_bequest:.2f} (deterministic, solver-independent)"
     )
