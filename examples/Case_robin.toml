@@ -25,7 +25,7 @@ HFP_file_name = "HFP_robin.xlsx"
 pension_monthly_amounts = [ 0,]
 pension_ages = [ 65.0,]
 pension_indexed = [ false,]
-social_security_pia_amounts = [ 1420,]
+social_security_pia_amounts = [ 1984,]
 social_security_ages = [ 67.0,]
 
 [rates_selection]

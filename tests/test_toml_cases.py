@@ -83,7 +83,7 @@ if platform == "darwin":
             "bequest": 2_097_193,
         },
         "Case_robin": {
-            "net_spending_basis": 28_929,
+            "net_spending_basis": 34_647,
             "bequest": 50_000,
         },
     }
@@ -110,7 +110,7 @@ elif platform in ["win32", "linux"]:
             "bequest": 2_097_193,
         },
         "Case_robin": {
-            "net_spending_basis": 28_929,
+            "net_spending_basis": 34_647,
             "bequest": 50_000,
         },
     }
