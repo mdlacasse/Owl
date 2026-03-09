@@ -91,8 +91,8 @@ stdDeduction_preTCJA = np.array([8_580, 17_160])   # Single, MFJ
 # These are current for 2026 (2025TY).
 stdDeduction_OBBBA = np.array([16_100, 32_200])    # Single, MFJ
 
-# These are current for 2026  (2025TY) per individual.
-extra65Deduction = np.array([2_000, 1_600])        # Single, MFJ
+# These are current for 2026 per individual. Source: IRS Rev. Proc. 2025-32.
+extra65Deduction = np.array([2_050, 1_650])        # Single, MFJ (per spouse)
 
 # LTCG bracket thresholds: taxable income above which 15% and 20% rates apply.
 # Source: IRS Topic 409, Publication 550. Values indexed for inflation annually.
@@ -108,6 +108,41 @@ capGainRates = np.array(
 ###############################################################################
 # End of section where rates need to be actualized every year.
 ###############################################################################
+
+###############################################################################
+# ACA Premium Tax Credit constants (updated annually by HHS and IRS).
+###############################################################################
+
+# Federal Poverty Level base amounts (48 contiguous states + DC).
+# Indexed by household size: [single (1 person), couple (2 persons)].
+# Per-year: 2025 HHS, 2026 HHS. For 2027+ we use 2026 until next update.
+_ACA_FPL = {
+    2025: np.array([15_650.0, 21_150.0]),
+    2026: np.array([15_960.0, 21_640.0]),
+}
+# Default for backward compatibility and lookup
+acaFPL = _ACA_FPL[2025]
+
+# 2025 plan year: IRS Rev. Proc. 2024-35. IRA suspends indexing; 8.5% cap above 400%.
+# Breakpoints: 150%, 200%, 250%, 300%, 400%. Below 150%: 0%.
+_ACA_BREAKPOINTS_2025 = np.array([1.50, 2.00, 2.50, 3.00, 4.00])
+_ACA_CONTRIB_PCT_2025 = np.array([0.0, 0.02, 0.04, 0.06, 0.085])
+_ACA_CONTRIB_CAP_2025 = 0.085   # ARP/IRA cap above 400% FPL
+
+# 2026 plan year: IRS Rev. Proc. 2025-25. IRA expires; no subsidy above 400%.
+# NOTE: As of 2026, Congress has considered extending IRA subsidies (8.5% cap above 400%).
+# If an extension is enacted, update to IRA-style rules (0% below 150%, 8.5% cap).
+_ACA_BREAKPOINTS_2026 = np.array([1.33, 1.50, 2.00, 2.50, 3.00, 4.00])
+_ACA_CONTRIB_PCT_2026 = np.array([0.021, 0.0419, 0.066, 0.0844, 0.0996, 0.0996])
+# No cap above 400%: full SLCSP (no PTC)
+
+# ACA LP bracket configuration (2026+ rules; used only in withACA="optimize" mode).
+N_ACA_Q = 7  # number of ACA brackets: 6 intervals up to 400% FPL + 1 bracket above 400%
+# LP bracket thresholds as multiples of FPL (6 thresholds → 7 brackets, constant structure).
+_ACA_LP_BREAKPOINTS = _ACA_BREAKPOINTS_2026  # [1.33, 1.50, 2.00, 2.50, 3.00, 4.00]
+# Contribution rates per LP bracket (constant-within-bracket approximation of piecewise function).
+# Brackets 0-5: 2026 rates. Bracket 6 (>400% FPL): cost = full SLCSP (handled via za*slcsp in plan.py).
+_ACA_LP_CONTRIB = np.append(_ACA_CONTRIB_PCT_2026, 0.0)  # q=6 not used in proportional sum
 
 ###############################################################################
 # Data that is unlikely to change.
@@ -351,6 +386,187 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
                         costs[n] += gamma_n[n] * irmaaFees[q]
 
     return costs
+
+
+def _aca_contrib_pct(ratio, breakpoints, contrib_pct):
+    """Interpolate contribution percentage from FPL ratio. Caller handles ratio below/above range."""
+    idx = int(np.searchsorted(breakpoints, ratio, side='right')) - 1
+    idx = max(0, min(idx, len(breakpoints) - 2))
+    lo, hi = breakpoints[idx], breakpoints[idx + 1]
+    t = (ratio - lo) / (hi - lo)
+    return contrib_pct[idx] + t * (contrib_pct[idx + 1] - contrib_pct[idx])
+
+
+def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
+    """
+    Compute net ACA marketplace premium costs (after Premium Tax Credit) for each year.
+
+    The Premium Tax Credit (PTC) = max(0, SLCSP - cap_pct * MAGI), where cap_pct
+    is a piecewise-linear function of MAGI/FPL. Net cost = min(SLCSP, cap_pct * MAGI).
+    Rules are year-aware: 2025 uses Rev. Proc. 2024-35 (8.5% cap above 400%);
+    2026+ uses Rev. Proc. 2025-25 (no subsidy above 400%).
+
+    Eligibility: individual i is ACA-eligible in year n when:
+      - thisyear + n - yobs[i] < 65 (not yet on Medicare), AND
+      - n < horizons[i] (within planning horizon).
+
+    For a couple where both are pre-65, household size = 2 (joint marketplace plan).
+    When only one is pre-65, household size = 1 (individual plan for the remaining person).
+
+    Note: ACA uses current-year MAGI (no 2-year lag like Medicare IRMAA).
+
+    Below 138% FPL the individual qualifies for Medicaid rather than marketplace
+    subsidies. This function returns the full SLCSP in that edge case and emits
+    no warning; callers should check for Medicaid eligibility if desired.
+
+    Parameters
+    ----------
+    yobs : array-like
+        Year of birth for each individual.
+    horizons : array-like
+        Planning horizon (year index) for each individual.
+    magi_n : array
+        Modified Adjusted Gross Income per plan year, length N_n (plan dollars).
+    gamma_n : array
+        Inflation factors per year, length >= N_n.
+    slcsp_annual : float
+        Today-dollar annual benchmark Silver plan (SLCSP) premium for the full
+        household. Inflated internally using gamma_n.
+    N_n : int
+        Number of plan years.
+    thisyear : int, optional
+        Plan start year. Defaults to date.today().year. Used for testing.
+
+    Returns
+    -------
+    aca_costs_n : array
+        Net annual ACA premium (SLCSP minus PTC) after subsidy, per year (plan dollars).
+        Zero for years where no individuals are ACA-eligible or slcsp_annual == 0.
+    """
+    if slcsp_annual <= 0:
+        return np.zeros(N_n)
+
+    if thisyear is None:
+        thisyear = date.today().year
+    Ni = len(yobs)
+    costs = np.zeros(N_n)
+    fpl_max_year = max(_ACA_FPL.keys())  # Use for calendar years beyond latest
+
+    for n in range(N_n):
+        # Determine ACA-eligible individuals for this year.
+        eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
+        nelig = len(eligible)
+        if nelig == 0:
+            continue
+
+        calendar_year = thisyear + n
+        fpl_year = calendar_year if calendar_year in _ACA_FPL else fpl_max_year
+        fpl_base = _ACA_FPL[fpl_year]
+
+        hh_size = min(nelig, 2)
+        fpl = fpl_base[hh_size - 1] * gamma_n[n]
+        slcsp = slcsp_annual * gamma_n[n]
+        magi = magi_n[n]
+
+        # Below 138% FPL: Medicaid territory; return full premium (no PTC).
+        if magi < 1.38 * fpl:
+            costs[n] = slcsp
+            continue
+
+        ratio = magi / fpl
+        if calendar_year < 2026:
+            # 2025 rules: Rev. Proc. 2024-35, 8.5% cap above 400%
+            if ratio < _ACA_BREAKPOINTS_2025[0]:
+                cap_pct = 0.0
+            elif ratio >= _ACA_BREAKPOINTS_2025[-1]:
+                cap_pct = _ACA_CONTRIB_CAP_2025
+            else:
+                cap_pct = _aca_contrib_pct(ratio, _ACA_BREAKPOINTS_2025, _ACA_CONTRIB_PCT_2025)
+        else:
+            # 2026+ rules: Rev. Proc. 2025-25, no PTC above 400%
+            if ratio >= _ACA_BREAKPOINTS_2026[-1]:
+                costs[n] = slcsp
+                continue
+            if ratio < _ACA_BREAKPOINTS_2026[0]:
+                cap_pct = _ACA_CONTRIB_PCT_2026[0]
+            else:
+                cap_pct = _aca_contrib_pct(ratio, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026)
+
+        costs[n] = min(slcsp, cap_pct * magi)
+
+    return costs
+
+
+def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
+    """
+    Return (N_aca, Lbar_aca_nq, cap_pct_aca_q, slcsp_aca_n) for the ACA LP/MIP formulation.
+
+    Uses 2026+ ACA rules (N_ACA_Q = 7 brackets). Bracket thresholds are FPL-based and
+    inflation-adjusted via gamma_n. Household size (1 or 2) determines which FPL base to use.
+    FPL base is year-aware (2025 vs 2026 from _ACA_FPL); contribution rates use 2026 table only.
+
+    Limitations:
+      - No year-awareness for contribution rates: always 2026 rules. Plans starting in 2025
+        use 2026 rates; SC-loop mode (acaCosts) is year-aware.
+      - MAGI below 138% FPL: LP uses bracket 0 at 2.1% instead of full SLCSP (Medicaid).
+
+    Parameters
+    ----------
+    yobs : array-like
+        Year of birth for each individual.
+    horizons : array-like
+        Planning horizon (year index) for each individual.
+    gamma_n : array
+        Inflation factors per year, length >= Nn.
+    slcsp_annual : float
+        Today-dollar annual benchmark Silver plan premium for the full household.
+    Nn : int
+        Number of plan years.
+
+    Returns
+    -------
+    N_aca : int
+        Number of ACA-eligible plan years (0 = no ACA in LP).
+    Lbar_aca_nq : ndarray, shape (N_aca, N_ACA_Q-1)
+        Inflation-adjusted FPL bracket thresholds per year ($).
+    cap_pct_aca_q : ndarray, shape (N_ACA_Q,)
+        Contribution rates per bracket (constant across years).
+    slcsp_aca_n : ndarray, shape (N_aca,)
+        Inflation-adjusted SLCSP premium cap per year ($).
+    """
+    empty = (0, np.zeros((0, N_ACA_Q - 1)), _ACA_LP_CONTRIB.copy(), np.zeros(0))
+    if slcsp_annual <= 0:
+        return empty
+
+    thisyear = date.today().year
+    Ni = len(yobs)
+    fpl_max_year = max(_ACA_FPL.keys())
+
+    # N_aca = first year when no individual is ACA-eligible (age < 65 and within horizon).
+    n_aca_i = [min(max(0, yobs[i] + 65 - thisyear), horizons[i]) for i in range(Ni)]
+    N_aca = min(max(n_aca_i), Nn)
+
+    if N_aca == 0:
+        return empty
+
+    Lbar = np.zeros((N_aca, N_ACA_Q - 1))
+    slcsp_aca_n = np.zeros(N_aca)
+
+    for nn in range(N_aca):
+        n = nn  # ACA uses current year (no 2-year lag like Medicare)
+        eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
+        hh_size = min(len(eligible), 2)
+        if hh_size == 0:
+            continue  # No ACA-eligible individuals this year; thresholds stay zero
+
+        calendar_year = thisyear + n
+        fpl_year = calendar_year if calendar_year in _ACA_FPL else fpl_max_year
+        fpl = _ACA_FPL[fpl_year][hh_size - 1] * gamma_n[n]
+
+        Lbar[nn] = _ACA_LP_BREAKPOINTS * fpl
+        slcsp_aca_n[nn] = slcsp_annual * gamma_n[n]
+
+    return N_aca, Lbar, _ACA_LP_CONTRIB.copy(), slcsp_aca_n
 
 
 def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):

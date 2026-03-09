@@ -214,6 +214,9 @@ def config_to_ui(diconf: dict) -> dict:
     with_med = so.get("withMedicare", "loop")
     dic["computeMedicare"] = with_med != "None"
     dic["optimizeMedicare"] = with_med == "optimize"
+    aca = known.get("aca_settings") or {}
+    dic["slcspAnnual"] = float(aca.get("slcsp_annual", 0))
+    dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
 
     ss_taxability = so.get("withSSTaxability", "loop")
     if isinstance(ss_taxability, (int, float)):
@@ -438,6 +441,10 @@ def ui_to_config(uidic: dict) -> dict:
     optimize_med = uidic.get("optimizeMedicare", False)
     diconf["solver_options"]["withMedicare"] = (
         "None" if not compute_med else ("optimize" if optimize_med else "loop")
+    )
+    diconf["aca_settings"] = {"slcsp_annual": _get_ui(uidic, "slcspAnnual", 0, float)}
+    diconf["solver_options"]["withACA"] = (
+        "optimize" if uidic.get("optimizeACA") else "loop"
     )
 
     ss_mode = uidic.get("ssTaxabilityMode", "loop")

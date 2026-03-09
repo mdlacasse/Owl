@@ -65,7 +65,7 @@ For activating this environment:
 ./owlenv/Scripts/activate.ps1
 
 # MacOS or Linux
-source ./owlenv/Scripts/activate
+source ./owlenv/bin/activate
 ```
 More details on how to create a virtual environment using *venv* can be found
 [here](https://python.land/virtual-environments/virtualenv).

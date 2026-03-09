@@ -217,18 +217,20 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
-    def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames):
-        """Plot taxes over time."""
+    def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames, A_n=None):
+        """Plot taxes over time. A_n: optional ACA costs per year."""
         fig = go.Figure()
 
         # Calculate data based on value type
         if value == "nominal":
             income_tax_data = T_n / 1000
             medicare_data = M_n / 1000
+            aca_data = A_n / 1000 if A_n is not None else None
             y_title = "$k (nominal)"
         else:
             income_tax_data = T_n / gamma_n[:-1] / 1000
             medicare_data = M_n / gamma_n[:-1] / 1000
+            aca_data = A_n / gamma_n[:-1] / 1000 if A_n is not None else None
             y_title = f"$k ({year_n[0]}$)"
 
         # Add income taxes line
@@ -246,6 +248,15 @@ class PlotlyBackend(PlotBackend):
             name="Medicare",
             line=dict(width=2, dash="dot")
         ))
+
+        # Add ACA line when configured
+        if aca_data is not None and (aca_data > 0).any():
+            fig.add_trace(go.Scatter(
+                x=year_n,
+                y=aca_data,
+                name="ACA",
+                line=dict(width=2, dash="dash")
+            ))
 
         title = title.replace("\n", "<br>")
         # Update layout

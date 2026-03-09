@@ -214,6 +214,12 @@ def build_summary_dic(plan, N=None):
     dic[" Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
     dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
 
+    aca_total = np.sum(plan.aca_costs_n[:N], axis=0)
+    if aca_total > 0:
+        aca_totalNow = np.sum(plan.aca_costs_n[:N] / plan.gamma_n[:N], axis=0)
+        dic[" Total ACA premiums paid"] = f"{u.d(aca_totalNow)}"
+        dic["[Total ACA premiums paid]"] = f"{u.d(aca_total)}"
+
     totDebtPayments = np.sum(plan.debt_payments_n[:N], axis=0)
     if totDebtPayments > 0:
         totDebtPaymentsNow = np.sum(plan.debt_payments_n[:N] / plan.gamma_n[:N], axis=0)
@@ -361,7 +367,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "net spending": plan.g_n,
         "taxable ord. income": plan.G_n,
         "taxable gains/divs": plan.Q_n,
-        "Tax bills + Med.": plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n,
+        "Tax bills + Med.": plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n,
     }
     fillsheet(ws, incomeDic, "currency")
 
@@ -382,6 +388,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "ord taxes": -plan.T_n - plan.J_n,
         "div taxes": -plan.U_n,
         "Medicare": -plan.m_n - plan.M_n,
+        "ACA premiums": -plan.aca_costs_n,
     }
     ws = wb.create_sheet("Cash Flow")
     fillsheet(ws, cashFlowDic, "currency")
@@ -513,7 +520,7 @@ def plan_to_csv(plan, basename, mylog):
     planData["net spending"] = plan.g_n
     planData["taxable ord. income"] = plan.G_n
     planData["taxable gains/divs"] = plan.Q_n
-    planData["Tax bills + Med."] = plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n
+    planData["Tax bills + Med."] = plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n
     planData["all wages"] = np.sum(plan.omega_in, axis=0)
     planData["all other inc"] = np.sum(plan.other_inc_in, axis=0)
     planData["all net inv"] = np.sum(plan.netinv_in, axis=0)
@@ -529,6 +536,7 @@ def plan_to_csv(plan, basename, mylog):
     planData["ord taxes"] = -plan.T_n - plan.J_n
     planData["div taxes"] = -plan.U_n
     planData["Medicare"] = -plan.m_n - plan.M_n
+    planData["ACA premiums"] = -plan.aca_costs_n
 
     for i in range(plan.N_i):
         planData[plan.inames[i] + " txbl bal"] = plan.b_ijn[i, 0, :-1]

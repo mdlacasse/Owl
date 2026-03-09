@@ -17,8 +17,9 @@ stochastic rates for performing Monte Carlo analyses,
 or fixed rates either derived from historical averages, or set by the user.
 
 Owl is designed for US retirees as it considers US federal tax laws,
-Medicare premiums, rules for 401k including required minimum distributions,
-maturation rules for Roth accounts and conversions, social security rules, etc.
+ACA marketplace premiums (pre-65), Medicare premiums, rules for 401k including
+required minimum distributions, maturation rules for Roth accounts and conversions,
+social security rules, etc.
 
 There are three ways to run Owl (from easiest to more complex):
 
@@ -35,9 +36,16 @@ Follow these [instructions](INSTALL.md) to install from the source code and self
 ---------------------------------------------------------------
 ## Documentation
 
-- Documentation for the app user interface is available from the interface [itself](https://owlplanner.streamlit.app/Documentation).
-- Installation guide and software requirements can be found [here](INSTALL.md).
-- User guide for the underlying Python package as used in a Jupyter notebook can be found [here](USER_GUIDE.md).
+| Document | Description |
+|---------|-------------|
+| [INSTALL.md](INSTALL.md) | Installation guide, Python environment setup, and developer build steps |
+| [USER_GUIDE.md](USER_GUIDE.md) | Python API usage with examples for Jupyter notebooks and scripts |
+| [PARAMETERS.md](PARAMETERS.md) | Complete reference for TOML case file parameters |
+| [RATE_MODELS.md](RATE_MODELS.md) | Available rate models (historical, stochastic, bootstrap, etc.) |
+| [docs/modeling-capabilities.md](docs/modeling-capabilities.md) | Summary of modeled components, assumptions, and limitations |
+| [papers/owl.tex](papers/) | Mathematical foundations (PDF build via LaTeX) |
+
+Documentation for the app user interface is also available from the [Streamlit UI](https://owlplanner.streamlit.app/Documentation).
 
 ---------------------------------------------------------------------
 

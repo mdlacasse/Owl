@@ -76,7 +76,7 @@ The compose file maps the host-side port to the container-side port.
 ```yml
 services:
   owl:
-    image: owldocker.{static or bare}
+    image: owlplanner/owldocker.static   # or owlplanner/owldocker.bare
     restart: always
     ports:
       - 8501:8501

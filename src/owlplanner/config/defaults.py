@@ -103,6 +103,7 @@ def default_config(ni: int = 1) -> dict:
             "smile_delay": 0,
         },
         "solver_options": {},
+        "aca_settings": {"slcsp_annual": 0},
         "results": {"default_plots": "nominal"},
     }
 

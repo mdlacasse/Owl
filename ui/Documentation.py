@@ -933,13 +933,19 @@ Income-Related Monthly Adjusted Amounts (IRMAA). Values default to zero.
 A warning appears if Medicare is on while the self-consistent loop is off,
 since Medicare in loop mode requires the loop to compute premiums iteratively.
 
+The **ACA Marketplace (Pre-65)** section allows entering the annual benchmark Silver plan (SLCSP) premium
+for years before Medicare. Set to 0 to omit ACA costs. *Optimize ACA (expert)* in *Advanced options*
+co-optimizes ACA bracket selection within the LP, enabling the optimizer to shift MAGI across ACA brackets
+for improved plan objectives (can be slower; applies 2026 rules only); it only applies when SLCSP > 0.
+
 A **self-consistent loop** is an iterative method used for values that are difficult
 to integrate into the linear program: the net investment income tax (NIIT),
 the capital gains rate (0, 15, or 20%), the phase out of the additional exemption for seniors,
 the taxable fraction of Social Security benefits (computed from the IRS provisional income
 formula — 0% below \\$25k PI (single) / \\$32k (MFJ); 50% between those and \\$34k (single) / \\$44k (MFJ);
-up to 85% above the upper threshold), and Medicare/IRMAA when Medicare is enabled. The loop solves,
-recalculates these values from the solution, re-solves, and repeats until convergence.
+up to 85% above the upper threshold), Medicare/IRMAA when Medicare is enabled, and ACA marketplace
+premiums when ACA is enabled. The loop solves, recalculates these values from the solution,
+re-solves, and repeats until convergence.
 The *Self-consistent loop calculations* toggle in *Advanced options* turns this on or off;
 turning it off defaults all these values to their conservative upper bounds (e.g. 85% SS
 taxability for all years).
@@ -957,10 +963,22 @@ or to reflect a personal preference for keeping a buffer in taxable accounts.
 
 The *Advanced options* expander contains:
 - *Self-consistent loop calculations* – when on, iteratively computes NIIT, capital gains rates,
-  phase out of senior exemptions, the taxable fraction of SS benefits, and Medicare/IRMAA
-  (when Medicare is enabled).
+  phase out of senior exemptions, the taxable fraction of SS benefits, Medicare/IRMAA
+  (when Medicare is enabled), and ACA premiums (when ACA is enabled).
 - *Optimize Medicare (expert)* – integrates Medicare into the optimization; enabled only when
   Medicare and IRMAA calculations are on.
+- *Optimize ACA (expert)* – co-optimizes ACA bracket selection within the LP, enabling the optimizer
+  to shift MAGI across brackets for improved objectives (can be slower; applies 2026 rules only);
+  enabled only when SLCSP > 0.
+
+These two optimize modes operate on nearly disjoint time ranges — ACA covers pre-65 years,
+Medicare covers 65+ years (with a 2-year MAGI lag) — and can be enabled independently or together
+without conflict. Setting both simultaneously allows the LP to optimally balance the brief overlap
+period where pre-Medicare MAGI also determines early IRMAA amounts.
+*Guidance*: enable *Optimize ACA* for early retirees with long pre-65 periods where ACA costs dominate;
+enable *Optimize Medicare* for high-income retirees where IRMAA surcharges are significant;
+enable both when retiring in the early 60s with high income, so the LP can trade off ACA costs
+against future IRMAA simultaneously.
 - *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*
 - *Disallow same-year Roth conversions and tax-free withdrawals*
 - *Disallow cash-flow surpluses in the last two years of the plan*

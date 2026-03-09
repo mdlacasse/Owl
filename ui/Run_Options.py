@@ -36,6 +36,8 @@ kz.initCaseKey("smileIncrease", 12)
 kz.initCaseKey("smileDelay", 0)
 kz.initCaseKey("computeMedicare", True)
 kz.initCaseKey("optimizeMedicare", False)
+kz.initCaseKey("slcspAnnual", 0)
+kz.initCaseKey("optimizeACA", False)
 kz.initCaseKey("withSCLoop", True)
 kz.initCaseKey("ssTaxabilityMode", "loop")
 kz.initCaseKey("ssTaxabilityValue", 0.85)
@@ -134,6 +136,16 @@ else:
                     ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
     st.divider()
+    st.markdown("#### :orange[ACA Marketplace (Pre-65)]")
+    helpmsg = ("Annual premium for the second-lowest-cost Silver plan in your area. "
+               "Used to compute Premium Tax Credit. Set to 0 to exclude ACA costs. "
+               "Applies only in years before Medicare (age 65). "
+               "See [Healthcare.gov](https://healthcare.gov) for your SLCSP.")
+    cols = st.columns(3, gap="large", vertical_alignment="top")
+    with cols[0]:
+        kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0., help=helpmsg)
+
+    st.divider()
     st.markdown("#### :orange[Safety Net]")
     helpmsg = ("Maintain a minimum inflation-adjusted taxable balance (today’s \\$k)"
                " from year 2 through life expectancy. This should ideally be less than the initial balance.")
@@ -182,6 +194,10 @@ else:
                        " without adjusting additional solver parameters.")
             medioff = not medion
             ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff)
+            acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
+            helpmsg_aca = ("Co-optimize ACA bracket selection within the LP. "
+                          "More accurate but slower. Only applies when SLCSP > 0.")
+            ret = kz.getToggle("Optimize ACA (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff)
         with col2:
             kz.initCaseKey("amoSurplus", True)
             helpmsg = ("Enable at-most-one (AMO) exclusive constraints between surplus deposits"

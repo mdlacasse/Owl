@@ -7,7 +7,9 @@
 ------------------------------------------------------------------------------------
 ### About
 This document describes the underlying Owl package and how to use it within
-Python scripts or in Jupyter notebooks.
+Python scripts or in Jupyter notebooks. Owl models federal tax laws, ACA
+marketplace premiums (pre-65), Medicare IRMAA, Social Security, pension
+income, Roth conversions, and account dynamics.
 
 -----------------------------------------------------------------------
 ## An example of Owl's functionality
@@ -91,7 +93,10 @@ plan.showSources(value='nominal')
 ```
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/sourcesPlot.png?raw=true" width="75%">
 
-For taxes, the following call will display Medicare premiums (including Part B IRMAA fees) and federal income tax
+For taxes, the following call will display federal income tax, Medicare premiums
+(including Part B IRMAA fees), and ACA marketplace premiums when configured via
+`plan.setACA()`. ACA costs also appear in the summary (`summaryString()`) and in the
+Excel export (Cash Flow sheet).
 ```python
 plan.showTaxes(value='nominal')
 ```
@@ -251,8 +256,9 @@ will be installed by pip using the installation guide [here](INSTALL.md).
 
 ### Running Owl
 
-The simplest way to get started with Owl is to use the `streamlit` browser-based user interface
-that is started by the `owlplanner.cmd` (Windows) or `owlplanner.sh` (Linux/macOS) script, which will start a user interface on your own browser.
+The simplest way to get started with Owl is to use the Streamlit browser-based user interface.
+Run `streamlit run ui/main.py` from the project root, or use the `owlplanner.cmd` (Windows) or
+`owlplanner.sh` (Linux/macOS) script if available, which will start the interface in your browser.
 Here is a screenshot of one of the multiple tabs of the interface:
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/OwlUI.png?raw=true" width="100%">
@@ -276,7 +282,7 @@ One can have an Excel license, or use the LibreOffice free alternative. You can 
 
 ---------------------------------------------------------------------
 
-Copyright &copy; 2024 - Martin-D. Lacasse
+Copyright &copy; 2024-2026 - Martin-D. Lacasse
 
 Disclaimers: I am not a financial planner. You make your own decisions.
 This program comes with no guarantee. Use at your own risk.

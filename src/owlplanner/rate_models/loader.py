@@ -199,9 +199,9 @@ def _categorize(entry):
     return "stochastic"
 
 
-# ------------------------------------------------------------
-# Markdown generation
-# ------------------------------------------------------------
+# TOML key aliases: internal param names → canonical TOML keys (match PARAMETERS.md)
+_TOML_DISPLAY_KEYS = {"frm": "from"}
+
 
 def generate_rate_models_markdown():
     """
@@ -276,14 +276,16 @@ def generate_rate_models_markdown():
 
             # Required parameters in declared order
             for name, p in required.items():
+                doc_name = _TOML_DISPLAY_KEYS.get(name, name)
                 lines.append(
-                    f"| `{name}` | Yes | {p.get('type', '')} | {p.get('description', '')} |"
+                    f"| `{doc_name}` | Yes | {p.get('type', '')} | {p.get('description', '')} |"
                 )
 
             # Optional parameters
             for name, p in optional.items():
+                doc_name = _TOML_DISPLAY_KEYS.get(name, name)
                 lines.append(
-                    f"| `{name}` | No | {p.get('type', '')} | {p.get('description', '')} |"
+                    f"| `{doc_name}` | No | {p.get('type', '')} | {p.get('description', '')} |"
                 )
 
             lines.append("")
@@ -298,7 +300,7 @@ def generate_rate_models_markdown():
             lines.append(f'method = "{method}"')
 
             for name, p in required.items():
-
+                doc_name = _TOML_DISPLAY_KEYS.get(name, name)
                 example_value = p.get("example")
 
                 if example_value is None:
@@ -313,7 +315,7 @@ def generate_rate_models_markdown():
                     else:
                         example_value = '"value"'
 
-                lines.append(f"{name} = {example_value}")
+                lines.append(f"{doc_name} = {example_value}")
 
             lines.append("```")
             lines.append("")

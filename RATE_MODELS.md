@@ -26,7 +26,7 @@ Constant rates equal to the geometric mean over the selected historical window.
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"historical average"`) |
-| `frm` | Yes | int |  |
+| `from` | Yes | int |  |
 | `to` | Yes | int |  |
 
 **Example:**
@@ -34,7 +34,7 @@ Constant rates equal to the geometric mean over the selected historical window.
 ```toml
 [rates_selection]
 method = "historical average"
-frm = 1969
+from = 1969
 to = 2002
 ```
 
@@ -94,7 +94,7 @@ Replays the exact year-by-year returns from the historical window in order. Dete
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"historical"`) |
-| `frm` | Yes | int | Starting historical year (inclusive). |
+| `from` | Yes | int | Starting historical year (inclusive). |
 | `to` | No | int | Ending historical year (inclusive). Defaults to frm if not provided. |
 
 **Example:**
@@ -102,7 +102,7 @@ Replays the exact year-by-year returns from the historical window in order. Dete
 ```toml
 [rates_selection]
 method = "historical"
-frm = 1969
+from = 1969
 ```
 
 ### :orange[Stochastic models]
@@ -114,7 +114,7 @@ Resamples actual historical years to build synthetic sequences, preserving fat t
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"bootstrap_sor"`) |
-| `frm` | Yes | int | First historical year (inclusive). |
+| `from` | Yes | int | First historical year (inclusive). |
 | `to` | Yes | int | Last historical year (inclusive). |
 | `bootstrap_type` | No | str | Type of bootstrap to perform. Defaults to iid |
 | `block_size` | No | int | Block length for block-based bootstraps. |
@@ -126,7 +126,7 @@ Resamples actual historical years to build synthetic sequences, preserving fat t
 ```toml
 [rates_selection]
 method = "bootstrap_sor"
-frm = 1969
+from = 1969
 to = 2002
 ```
 
@@ -137,7 +137,7 @@ DCC-GARCH(1,1) model (Engle 2002) fitted by two-step MLE on historical data. Cap
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"garch_dcc"`) |
-| `frm` | Yes | int | First year of historical window. |
+| `from` | Yes | int | First year of historical window. |
 | `to` | Yes | int | Last year of historical window. |
 
 **Example:**
@@ -145,7 +145,7 @@ DCC-GARCH(1,1) model (Engle 2002) fitted by two-step MLE on historical data. Cap
 ```toml
 [rates_selection]
 method = "garch_dcc"
-frm = 1928
+from = 1928
 to = 2024
 ```
 
@@ -176,7 +176,7 @@ Samples from a multivariate normal distribution fitted to the selected historica
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"histogaussian"`) |
-| `frm` | Yes | int |  |
+| `from` | Yes | int |  |
 | `to` | Yes | int |  |
 
 **Example:**
@@ -184,7 +184,7 @@ Samples from a multivariate normal distribution fitted to the selected historica
 ```toml
 [rates_selection]
 method = "histogaussian"
-frm = 1969
+from = 1969
 to = 2002
 ```
 
@@ -195,7 +195,7 @@ Fits a correlated log-normal model to the selected historical window and samples
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"histolognormal"`) |
-| `frm` | Yes | int |  |
+| `from` | Yes | int |  |
 | `to` | Yes | int |  |
 
 **Example:**
@@ -203,7 +203,7 @@ Fits a correlated log-normal model to the selected historical window and samples
 ```toml
 [rates_selection]
 method = "histolognormal"
-frm = 1928
+from = 1928
 to = 2024
 ```
 
@@ -234,7 +234,7 @@ VAR(1) model fitted by Ordinary Least Squares (OLS) on the historical window. Ca
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"var"`) |
-| `frm` | Yes | int | First historical year used for fitting (inclusive). |
+| `from` | Yes | int | First historical year used for fitting (inclusive). |
 | `to` | Yes | int | Last historical year used for fitting (inclusive). |
 | `shrink` | No | bool | If True, apply spectral shrinkage to A when its spectral radius >= 0.95, ensuring stationarity. |
 
@@ -243,7 +243,7 @@ VAR(1) model fitted by Ordinary Least Squares (OLS) on the historical window. Ca
 ```toml
 [rates_selection]
 method = "var"
-frm = 1928
+from = 1928
 to = 2024
 ```
 

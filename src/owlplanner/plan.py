@@ -262,6 +262,11 @@ class Plan:
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
         self.n_hsa_i = np.full(self.N_i, self.N_n, dtype=int)  # Year HSA contributions stop (default: never)
+        self.slcsp_annual = 0.0             # Today-dollar annual ACA benchmark Silver plan premium ($)
+        self.ACA_n = np.zeros(self.N_n)    # Net ACA cost (after subsidy) per year (plan $)
+        self._aca_lp = False               # True when withACA="optimize" is active
+        self.maca_n = np.zeros(self.N_n)   # ACA LP cost variable extraction result
+        self.N_aca = 0                     # Number of ACA-eligible plan years (LP mode)
         self.smileDip = 15  # Percent to reduce smile profile
         self.smileIncrease = 12  # Percent to increse profile over time span
 
@@ -969,6 +974,34 @@ class Plan:
             self.n_hsa_i[i] = min(max(0, n_hsa), self.N_n)
         self.mylog.vprint("HSA contribution stop years:", [int(self.n_hsa_i[i]) for i in range(self.N_i)])
 
+    def setACA(self, slcsp, units="k"):
+        """
+        Configure ACA marketplace health insurance premium for pre-Medicare years.
+
+        Sets the annual benchmark Silver plan (SLCSP) premium for this household.
+        The Premium Tax Credit reduces this by the amount that household income exceeds
+        the required self-contribution (a piecewise-linear % of MAGI keyed to FPL).
+        ACA costs are only assessed in years where at least one individual is under 65
+        and within their planning horizon.
+
+        Parameters
+        ----------
+        slcsp : float or list of float
+            Annual benchmark Silver plan premium in today's dollars (default units: $k).
+            If a scalar, applied uniformly across all plan years (inflation-adjusted).
+            If a list of length N_n, used as-is (each entry inflated for that year).
+        units : str
+            Unit multiplier: 'k' ($k, default), 'M' ($M), '1' (dollars).
+        """
+        fac = u.getUnits(units)
+        if np.isscalar(slcsp):
+            self.slcsp_annual = float(slcsp) * fac
+            self.mylog.vprint(f"ACA benchmark premium set to ${self.slcsp_annual / 1000:.1f}k/year (today's $).")
+        else:
+            raise ValueError("setACA: slcsp must be a scalar (today's $). For per-year amounts use a list "
+                             "with a future per-year API.")
+        self.caseStatus = "modified"
+
     def setInterpolationMethod(self, method, center=15, width=5):
         """
         Interpolate asset allocation ratios from initial value (today) to
@@ -1423,6 +1456,12 @@ class Plan:
 
             self.nm, self.Lbar_nq, self.Cbar_nq = tx.mediVals(self.yobs, self.horizons, gamma_n, self.N_n, self.N_irmaa)
 
+            if self.slcsp_annual > 0:
+                self.N_aca, self.Lbar_aca_nq, self.cap_pct_aca_q, self.slcsp_aca_n = \
+                    tx.acaVals(self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n)
+            else:
+                self.N_aca = 0
+
             self._adjustedParameters = True
 
         # return None
@@ -1435,6 +1474,8 @@ class Plan:
         """
         medi = options.get("withMedicare", "loop") == "optimize"
         ss_lp = options.get("withSSTaxability", "loop") == "optimize"
+        aca_lp = options.get("withACA", "loop") == "optimize"
+        self._aca_lp = aca_lp and self.slcsp_annual > 0 and self.N_aca > 0
         Nmed = self.N_n - self.nm
 
         # Stack all variables in a single block vector with all binary variables at the end.
@@ -1445,6 +1486,8 @@ class Plan:
         vm.add("f", self.N_t, self.N_n)
         vm.add("g", self.N_n)
         vm.add_if(medi, "h", Nmed, self.N_irmaa)    # IRMAA bracket portions (Medicare optimize)
+        vm.add_if(self._aca_lp, "haca", self.N_aca, tx.N_ACA_Q)  # ACA MAGI bracket portions (optimize)
+        vm.add_if(self._aca_lp, "maca", self.N_n)  # ACA LP cost variable (optimize mode only)
         vm.add("m", self.N_n)
         vm.add("q", self.N_p, self.N_n)             # q_{pn}: LTCG bracket allocations (p=0,1,2)
         vm.add("s", self.N_n)
@@ -1459,6 +1502,7 @@ class Plan:
         vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)   # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)         # z^σ family (2 per year) for SS min() ops
+        vm.add_if(self._aca_lp, "za", self.N_aca, tx.N_ACA_Q)   # ACA bracket selection binaries
         self.vm = vm
 
         self.nvars = vm.nvars
@@ -1500,6 +1544,8 @@ class Plan:
         self._configure_ltcg_constraints()
         self._configure_Medicare_binary_variables(options)
         self._add_Medicare_costs(options)
+        self._configure_ACA_binary_variables(options)
+        self._add_ACA_costs(options)
         self._configure_exclusion_binary_variables(options)
         self._build_objective_vector(objective, options)
 
@@ -1807,7 +1853,7 @@ class Plan:
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
         tau_0prev[tau_0prev < 0] = 0
         for n in range(self.N_n):
-            rhs = -self.M_n[n] - self.J_n[n]
+            rhs = -self.M_n[n] - self.J_n[n] - self.ACA_n[n]
             # Add fixed assets proceeds (positive cash flow)
             rhs += (self.fixed_assets_tax_free_n[n]
                     + self.fixed_assets_ordinary_income_n[n]
@@ -1817,6 +1863,8 @@ class Plan:
             row = self.A.newRow({self.vm["g"].idx(n): 1})
             row.addElem(self.vm["s"].idx(n), 1)
             row.addElem(self.vm["m"].idx(n), 1)
+            if "maca" in self.vm:
+                row.addElem(self.vm["maca"].idx(n), 1)
             for i in range(self.N_i):
                 rhs += (
                     self.omega_in[i, n]
@@ -2270,6 +2318,117 @@ class Plan:
                 row.addElem(self.vm["zm"].idx(nn, q), -self.Cbar_nq[nn, q])
             self.A.addRow(row, 0, 0)
 
+    def _configure_ACA_binary_variables(self, options):
+        """
+        Build ACA MIP constraints (withACA="optimize" mode only).
+
+        Three constraint groups:
+          a) SOS1: exactly one ACA bracket selected per year.
+          b) MAGI decomposition: sum_q haca[nn, q] = MAGI_n (current year, no 2-year lag).
+          c) Bracket bounds (Big-M): MAGI portion in bracket q is within its FPL thresholds.
+
+        Note: ACA uses current-year MAGI (no 2-year lag like Medicare IRMAA).
+        Note: MAGI below 138% FPL qualifies for Medicaid — the LP places it in the lowest
+              bracket at the base contribution rate (2.1%) rather than returning full SLCSP.
+        """
+        if not self._aca_lp:
+            return
+
+        bigM = u.get_numeric_option(options, "bigMaca", BIGM_AMO, min_value=0)
+        tau_0 = self.tau_kn[0, :]
+
+        # a) SOS1: exactly one bracket selected per year.
+        for nn in range(self.N_aca):
+            row = self.A.newRow()
+            for q in range(tx.N_ACA_Q):
+                row.addElem(self.vm["za"].idx(nn, q), 1)
+            self.A.addRow(row, 1, 1)
+
+        # b) MAGI decomposition: sum_q haca[nn, q] = current-year MAGI.
+        for nn in range(self.N_aca):
+            n = nn  # ACA uses current year (no lag)
+            tau_prev = tau_0[max(0, n - 1)]
+
+            rhs_magi = (self.fixed_assets_ordinary_income_n[n]
+                        + self.fixed_assets_capital_gains_n[n])
+
+            row_magi = {}
+            row_magi[self.vm["e"].idx(n)] = -1
+
+            for i in range(self.N_i):
+                afac = (self.mu * self.alpha_ijkn[i, 0, 0, n]
+                        + np.sum(self.alpha_ijkn[i, 0, 1:, n] * np.maximum(0, self.tau_kn[1:, n])))
+                bfac = self.alpha_ijkn[i, 0, 0, n] * max(0, tau_prev - self.mu)
+
+                w1_idx = self.vm["w"].idx(i, 1, n)
+                x_idx = self.vm["x"].idx(i, n)
+                b_idx = self.vm["b"].idx(i, 0, n)
+                d_idx = self.vm["d"].idx(i, n)
+                w0_idx = self.vm["w"].idx(i, 0, n)
+
+                row_magi[w1_idx] = row_magi.get(w1_idx, 0) - 1
+                row_magi[x_idx] = row_magi.get(x_idx, 0) - 1
+                row_magi[b_idx] = row_magi.get(b_idx, 0) - afac
+                row_magi[d_idx] = row_magi.get(d_idx, 0) - afac
+                row_magi[w0_idx] = row_magi.get(w0_idx, 0) + (afac - bfac)
+
+                rhs_magi += (self.omega_in[i, n]
+                             + self.other_inc_in[i, n]
+                             + self.netinv_in[i, n]
+                             + self.zetaBar_in[i, n]    # full SS (not 0.5×SS; ACA uses MAGI)
+                             + self.piBar_in[i, n]
+                             + 0.5 * self.kappa_ijn[i, 0, n] * afac)
+                rhs_magi -= self.kappa_ijn[i, 3, n]     # HSA contributions reduce MAGI
+
+            for q in range(tx.N_ACA_Q):
+                haca_idx = self.vm["haca"].idx(nn, q)
+                row_magi[haca_idx] = row_magi.get(haca_idx, 0) + 1
+
+            self.A.addNewRow(row_magi, rhs_magi, rhs_magi)
+
+        # c) Bracket bounds: Lbar[nn, q-1]*za[q] <= haca[q] <= Lbar[nn, q]*za[q].
+        for nn in range(self.N_aca):
+            for q in range(tx.N_ACA_Q):
+                haca_idx = self.vm["haca"].idx(nn, q)
+                za_idx = self.vm["za"].idx(nn, q)
+
+                lower = 0 if q == 0 else self.Lbar_aca_nq[nn, q - 1]
+                if lower > 0:
+                    self.A.addNewRow({haca_idx: 1, za_idx: -lower}, 0, np.inf)
+
+                if q < tx.N_ACA_Q - 1:
+                    upper = self.Lbar_aca_nq[nn, q]
+                    self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0)
+                else:
+                    # Last bracket (above 400% FPL): use BigM as upper bound so haca = 0 when za = 0.
+                    upper = bigM * self.gamma_n[nn]
+                    self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0)
+
+    def _add_ACA_costs(self, options):
+        """
+        Add ACA cost constraints for the LP/MIP formulation (optimize mode only).
+
+        In optimize mode: maca_n = sum_{q=0}^{5} cap_pct_q * haca[nn,q] + slcsp_aca_n[nn]*za[nn,6].
+        For brackets 0-5: proportional cost. For bracket 6 (above 400% FPL): fixed cost = SLCSP.
+        In loop mode: maca variable does not exist; ACA_n (SC loop) goes in the cash-flow RHS.
+        """
+        if not self._aca_lp:
+            return  # Loop mode: no maca variable; ACA_n from SC loop is in the cash-flow RHS.
+
+        # Pin post-ACA years to zero (individual is on Medicare; no ACA cost).
+        for n in range(self.N_aca, self.N_n):
+            self.B.setRange(self.vm["maca"].idx(n), 0, 0)
+
+        # Cost constraint: maca_n = sum_{q=0}^{5} cap_pct_q * haca[nn,q] + slcsp*za[nn,6].
+        # Bracket 6 (>400% FPL): 2026 rules impose full SLCSP (no PTC), not proportional to MAGI.
+        for nn in range(self.N_aca):
+            row = self.A.newRow({self.vm["maca"].idx(nn): 1})
+            for q in range(tx.N_ACA_Q - 1):  # q=0..5 only; bracket 6 uses fixed SLCSP
+                row.addElem(self.vm["haca"].idx(nn, q), -self.cap_pct_aca_q[q])
+            row.addElem(self.vm["za"].idx(nn, tx.N_ACA_Q - 1), -self.slcsp_aca_n[nn])
+            self.A.addRow(row, 0, 0)
+            self.B.setRange(self.vm["maca"].idx(nn), 0, self.slcsp_aca_n[nn])
+
     def _build_objective_vector(self, objective, options):
         c_arr = np.zeros(self.nvars)
         if objective == "maxSpending":
@@ -2499,6 +2658,8 @@ class Plan:
             "maxTime",
             "units",
             "verbose",
+            "withACA",        # ACA handling: "loop" (default) or "optimize"
+            "bigMaca",        # Big-M for ACA bracket upper bounds (default: BIGM_AMO)
             "withMedicare",
             "withSCLoop",
             "withSSTaxability",
@@ -2562,6 +2723,9 @@ class Plan:
         self.MAGI_n = np.zeros(self.N_n)
         self.J_n = np.zeros(self.N_n)
         self.M_n = np.zeros(self.N_n)
+        self.ACA_n = np.zeros(self.N_n)
+        self.maca_n = np.zeros(self.N_n)
+        self._aca_lp = False   # Will be set to True in _buildOffsetMap when withACA="optimize"
 
         self._adjustParameters(self.gamma_n, self.MAGI_n)
         self._buildOffsetMap(myoptions)
@@ -2952,7 +3116,7 @@ class Plan:
 
     def _computeNLstuff(self, x, includeMedicare, fixedPsi=None):
         """
-        Compute MAGI, Medicare costs, long-term capital gain tax rate, and
+        Compute MAGI, Medicare costs, ACA costs, long-term capital gain tax rate, and
         net investment income tax (NIIT).
         """
         if x is None:
@@ -2962,6 +3126,7 @@ class Plan:
             self.G_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
+            self.ACA_n = np.zeros(self.N_n)
             return
 
         self._aggregateResults(x, short=True)
@@ -2976,6 +3141,11 @@ class Plan:
         # Compute Medicare through self-consistent loop.
         if includeMedicare:
             self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
+        # Compute ACA costs through self-consistent loop (uses current-year MAGI, no 2-year lag).
+        # In optimize mode (withACA="optimize"), ACA_n stays zero; maca_n carries the cost.
+        if self.slcsp_annual > 0 and not self._aca_lp:
+            self.ACA_n = tx.acaCosts(self.yobs, self.horizons, self.MAGI_n, self.gamma_n[:-1],
+                                     self.slcsp_annual, self.N_n)
 
         return None
 
@@ -3006,7 +3176,10 @@ class Plan:
         self.g_n = vm["g"].extract(x)
         if "h" in vm:
             self.h_qn = vm["h"].extract(x)
+        if "haca" in vm:
+            self.haca_qn = vm["haca"].extract(x)
         self.m_n = vm["m"].extract(x)
+        self.maca_n = vm["maca"].extract(x) if "maca" in vm else np.zeros(self.N_n)
         self.s_n = vm["s"].extract(x)
         self.w_ijn = vm["w"].extract(x)
         self.x_in = vm["x"].extract(x)
@@ -3151,6 +3324,11 @@ class Plan:
         self.basis = self.g_n[0] / self.xi_n[0]
 
         return None
+
+    @property
+    def aca_costs_n(self):
+        """ACA net premium costs per year: LP result (optimize mode) or SC-loop result (loop mode)."""
+        return self.maca_n if self._aca_lp else self.ACA_n
 
     @_checkCaseStatus
     def estate(self):
@@ -3460,8 +3638,11 @@ class Plan:
             title += " - " + tag
         # All taxes: ordinary income, dividends, and NIIT.
         allTaxes = self.T_n + self.U_n + self.J_n
-        fig = self._plotter.plot_taxes(self.year_n, allTaxes, self.m_n + self.M_n, self.gamma_n,
-                                       value, title, self.inames)
+        aca_n = self.aca_costs_n if self.slcsp_annual > 0 else None
+        fig = self._plotter.plot_taxes(
+            self.year_n, allTaxes, self.m_n + self.M_n, self.gamma_n,
+            value, title, self.inames, A_n=aca_n
+        )
         if figure:
             return fig
 

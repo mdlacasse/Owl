@@ -27,10 +27,10 @@ from io import StringIO, BytesIO
 
 
 cases = ["alex+jamie", "jack+jill", "joe", "john+sally",
-         "jon+jane", "kim+sam-bequest", "kim+sam-spending", "robin"]
+         "jon+jane", "kim+sam-bequest", "kim+sam-spending", "morgan", "robin"]
 
 
-wages = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam", "robin"]
+wages = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam", "morgan", "robin"]
 
 
 whereami = os.path.dirname(__file__)

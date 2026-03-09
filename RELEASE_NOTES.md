@@ -4,6 +4,13 @@
 
 ## Version 2026.03.09
 
+### ACA marketplace (pre-65) UI exposure
+
+- **Run Options**: New *ACA Marketplace (Pre-65)* section with SLCSP benchmark premium input. *Optimize ACA (expert)* toggle in Advanced options (enabled only when SLCSP > 0).
+- **Config / UI bridge**: `aca_settings` and `withACA` flow through config_to_ui, ui_to_config, and genDic.
+- **Documentation**: ACA added to self-consistent loop description; Optimize ACA listed in Advanced options; USER_GUIDE clarified for showTaxes vs. ACA in summary/export.
+- **Example**: Case_morgan illustrates ACA modeling with pre-65 retiree.
+
 ### New feature: support for HSA accounts
 
 - A fourth type of savings account HSA) is now in the mix. The tax advantage of HSA

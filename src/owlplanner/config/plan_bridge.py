@@ -204,6 +204,16 @@ def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
     plan.yOBBBA = max(plan.yOBBBA, this_year)
 
 
+def _apply_aca_to_plan(plan: "Plan", known: dict) -> None:
+    """Apply ACA settings from config to plan."""
+    aca = known.get("aca_settings")
+    if aca is None:
+        return
+    slcsp = aca.get("slcsp_annual", 0.0)
+    if slcsp and float(slcsp) > 0:
+        plan.setACA(slcsp=float(slcsp), units="k")
+
+
 def config_to_plan(
     diconf: dict,
     dirname: str = "",
@@ -268,6 +278,7 @@ def config_to_plan(
     _apply_asset_allocation_to_plan(p, known)
     _apply_optimization_to_plan(p, known)
     _apply_solver_options_to_plan(p, known)
+    _apply_aca_to_plan(p, known)
 
     p.setDefaultPlots(known["results"]["default_plots"])
 
@@ -293,6 +304,7 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
     _apply_asset_allocation_to_plan(plan, known)
     _apply_optimization_to_plan(plan, known)
     _apply_solver_options_to_plan(plan, known)
+    _apply_aca_to_plan(plan, known)
 
     plan.setDefaultPlots(known.get("results", {}).get("default_plots", "nominal"))
 
@@ -411,6 +423,10 @@ def plan_to_config(myplan: "Plan") -> dict:
 
     diconf["solver_options"] = dict(myplan.solverOptions)
     diconf["results"] = {"default_plots": myplan.defaultPlots}
+
+    # ACA settings (only emit when configured)
+    if getattr(myplan, "slcsp_annual", 0.0) > 0:
+        diconf["aca_settings"] = {"slcsp_annual": myplan.slcsp_annual / 1000}  # $ → $k
 
     # Merge user-defined sections for round-trip
     extra = getattr(myplan, "_config_extra", None)

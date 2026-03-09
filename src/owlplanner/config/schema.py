@@ -32,6 +32,7 @@ KNOWN_SECTIONS = {
     "optimization_parameters",
     "solver_options",
     "results",
+    "aca_settings",
 }
 
 
@@ -162,6 +163,17 @@ class OptimizationParameters(BaseModel):
     smile_delay: Optional[int] = Field(default=0, description="Smile profile delay years")
 
 
+class ACASettings(BaseModel):
+    """ACA marketplace health insurance configuration."""
+
+    model_config = ConfigDict(extra="allow")
+
+    slcsp_annual: float = Field(
+        default=0.0,
+        description="Annual benchmark Silver plan (SLCSP) premium in today's dollars ($k)",
+    )
+
+
 class Results(BaseModel):
     """Result display parameters."""
 
@@ -191,6 +203,7 @@ class CaseConfig(BaseModel):
     optimization_parameters: OptimizationParameters
     solver_options: Dict[str, Any] = Field(default_factory=dict)
     results: Results
+    aca_settings: Optional[ACASettings] = None
 
 
 def config_dict_to_model(diconf: dict) -> tuple[CaseConfig, dict]:

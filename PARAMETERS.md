@@ -196,6 +196,18 @@ Parameters controlling the optimization objective and spending profile.
 
 -------
 
+## :orange[[aca_settings]]
+
+*(Optional)* ACA marketplace health insurance for pre-65 years. When omitted or `slcsp_annual = 0`, no ACA costs are modeled.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `slcsp_annual` | float | Annual benchmark Silver plan (SLCSP) premium in today's dollars (in `units`). Set to 0 to disable ACA. Inflated internally by the plan's inflation factor. |
+
+**Note:** ACA costs apply only in years when at least one individual is under 65 and within their planning horizon. The Premium Tax Credit (PTC) is computed from MAGI and Federal Poverty Level; net cost = SLCSP minus PTC. Use `withACA` in `[solver_options]` to choose loop (default) or optimize mode.
+
+-------
+
 ## :orange[[solver_options]]
 
 Options controlling the optimization solver and constraints.
@@ -208,6 +220,7 @@ Options controlling the optimization solver and constraints.
 | `amoSurplus` | boolean | *(Advanced)* Whether to enforce XOR constraints preventing simultaneous surplus deposits and withdrawals from taxable or tax-free accounts. | `true` |
 | `bequest` | float | Target bequest value in today's dollars (in `units`). Used when `objective = "maxSpending"`. | `1` (if omitted with `maxSpending`) |
 | `bigMamo` | float | *(Advanced)* Big-M value for at-most-one (AMO) constraints (mutually exclusive operations). Should exceed any individual withdrawal, conversion, or surplus deposit. | `5e7` |
+| `bigMaca` | float | *(Advanced)* Big-M value for the upper bound on the above-400%-FPL ACA MAGI bracket (when `withACA = "optimize"`). Should exceed any plausible annual MAGI. | `5e7` |
 | `bigMss` | float | *(Advanced)* Big-M value for the Social Security taxability MIP formulation (when `withSSTaxability = "optimize"`). Should exceed provisional income and related quantities. | Same as `bigMamo` |
 | `epsilon` | float | *(Advanced)* Lexicographic weight added to the objective to break ties. Adds a linearly increasing penalty to Roth conversions (earlier years are cheaper) to frontload conversions, and when `N_i = 2`, also penalizes withdrawals of spouse 2 to favor withdrawals from spouse 1. Use a very small value so the primary objective dominates. | `1e-8` |
 | `gap` | float | *(Advanced)* Relative MILP gap used by solvers and to scale convergence tolerances. | `1e-4` (default); if `withMedicare = "optimize"` and unset, set to `3e-3` (or `3e-2` when `maxRothConversion <= 15`) |
@@ -227,6 +240,7 @@ Options controlling the optimization solver and constraints.
 | `swapRothConverters` | integer | *(Advanced)* For plans involving spouses, only allow one spouse to perform Roth conversions per year. The year provided determines a transition year when roles are swapped. The sign selects who converts first: positive means person 1 can convert first and person 2 any time after; negative year means person 2 before and person 1 after. This option overrides the `noRothConversions` option. | `0` |
 | `units` | string | Units for amounts. Valid values: `"1"` (dollars), `"k"` (thousands), `"M"` (millions). | `"k"` |
 | `verbose` | boolean | Enable solver verbosity/output where supported. | `false` |
+| `withACA` | string | ACA marketplace premium handling (when `slcsp_annual` > 0). `"loop"` (default): compute ACA cost in SC loop each iteration using the exact piecewise-linear ACA formula. `"optimize"`: co-optimize ACA bracket selection within the LP — enables the optimizer to shift MAGI across brackets for better plan objectives (expert; can be slower; applies 2026 rules only). | `"loop"` |
 | `withMedicare` | string | Medicare IRMAA handling. Valid values: `"None"`, `"loop"`, `"optimize"` (expert). | `"loop"` |
 | `withSCLoop` | boolean | Whether to run the self-consistent loop to full convergence. When `false`, the solver always performs exactly two iterations: the first establishes ordinary income (`G_n`) so that LTCG bracket room is computed correctly; the second is the accepted solve. Medicare IRMAA and SS taxability are not converged in this mode — Medicare premiums are computed for display only. Useful for speed in Monte Carlo runs where full convergence is not required. | `true` |
 | `withSSTaxability` | string or float | Social Security taxable-fraction (Ψ) handling. Use `"loop"` to compute Ψ dynamically each SC-loop iteration (recommended). Use `"optimize"` to solve Ψ exactly as a MIP decision variable (expert). Use a float in [0, 0.85] to pin Ψ to a fixed value — `0.0` (PI well below lower threshold), `0.5` (mid-range PI), or `0.85` (PI above upper threshold). | `"loop"` |
@@ -249,7 +263,7 @@ Parameters controlling result display and output.
 
 Any TOML section not listed in this document is treated as user-defined and **preserved on load and save**. You can add custom sections (e.g. `[user]`, `[custom_metadata]`, `[notes]`) to store notes, tags, or other data. These sections are ignored by Owl for planning but are round-tripped when you save a case file after loading one that contained them.
 
-**Reserved section names** (do not use for custom data): `basic_info`, `savings_assets`, `household_financial_profile`, `fixed_income`, `rates_selection`, `asset_allocation`, `optimization_parameters`, `solver_options`, `results`, plus root-level keys `case_name` and `description`.
+**Reserved section names** (do not use for custom data): `basic_info`, `savings_assets`, `household_financial_profile`, `fixed_income`, `rates_selection`, `asset_allocation`, `optimization_parameters`, `solver_options`, `aca_settings`, `results`, plus root-level keys `case_name` and `description`.
 
 -------
 

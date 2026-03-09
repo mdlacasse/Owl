@@ -510,6 +510,8 @@ def getSolveParameters():
     medion = getCaseKey("computeMedicare")
     mediopt = getCaseKey("optimizeMedicare")
     options["withMedicare"] = "None" if not medion else ("optimize" if mediopt else "loop")
+    acaopt = getCaseKey("optimizeACA")
+    options["withACA"] = "optimize" if acaopt else "loop"
 
     # SS taxability — "loop", "optimize", or numeric fixed fraction.
     ss_mode = getCaseKey("ssTaxabilityMode")
@@ -702,6 +704,7 @@ def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, 
     return st.text_area(
         text,
         disabled=disabled,
+        height="content",
         on_change=callback,
         args=[nkey],
         placeholder=placeholder,

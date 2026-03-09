@@ -99,6 +99,6 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames):
-        """Plot taxes over time."""
+    def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames, A_n=None):
+        """Plot taxes over time. A_n: optional ACA costs per year (when slcsp_annual > 0)."""
         pass
