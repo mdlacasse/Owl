@@ -122,7 +122,7 @@ class ConstraintMatrix:
 
     def keys(self):
         """
-        Return list of keys for each row used by MOSEK.
+        Return list of MOSEK-style bound keys for each constraint row.
         """
         return self.key
 

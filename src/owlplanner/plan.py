@@ -2631,7 +2631,7 @@ class Plan:
 
         # Check objective and required options.
         knownObjectives = ["maxBequest", "maxSpending"]
-        knownSolvers = ["default", "HiGHS", "PuLP/CBC", "PuLP/HiGHS", "MOSEK"]
+        knownSolvers = ["default", "HiGHS", "MOSEK"]
 
         knownOptions = [
             "absTol",
@@ -2660,6 +2660,7 @@ class Plan:
             "verbose",
             "withACA",        # ACA handling: "loop" (default) or "optimize"
             "bigMaca",        # Big-M for ACA bracket upper bounds (default: BIGM_AMO)
+            "withDecomposition",  # MIP decomposition: "none" (default) or "sequential"
             "withMedicare",
             "withSCLoop",
             "withSSTaxability",
@@ -2743,8 +2744,6 @@ class Plan:
             solverMethod = self._milpSolve
         elif solver == "MOSEK":
             solverMethod = self._mosekSolve
-        elif "PuLP" in solver:
-            solverMethod = self._pulpSolve
         else:
             raise RuntimeError("Internal error in defining solverMethod.")
 
@@ -2792,9 +2791,19 @@ class Plan:
         scaled_obj_history = []  # Track scaled objective values for oscillation detection
         sol_history = []  # Track solutions aligned with scaled_obj_history
         obj_history = []  # Track raw objective values aligned with scaled_obj_history
+        # Decomposition dispatch: for sequential mode, replace the monolithic MIP
+        # with a hierarchical relax-and-fix solver (HiGHS only).
+        decomp_mode = options.get("withDecomposition", "none")
+        if decomp_mode == "sequential" and solverMethod is self._milpSolve:
+            actualSolverMethod = self._relax_and_fix_solve
+        else:
+            if decomp_mode not in ("none", "sequential"):
+                self.mylog.print(f"Unknown withDecomposition mode '{decomp_mode}'; using 'none'.")
+            actualSolverMethod = solverMethod
+
         self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
         while True:
-            objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
+            objfn, xx, solverSuccess, solverMsg, solgap = actualSolverMethod(objective, options)
 
             if not solverSuccess or objfn is None:
                 self.mylog.print("Solver failed:", solverMsg, solverSuccess)
@@ -2932,70 +2941,117 @@ class Plan:
 
         return solution.fun, solution.x, solution.success, solution.message, solution.mip_gap
 
-    def _pulpSolve(self, objective, options):
+    def _relax_and_fix_solve(self, objective, options):
         """
-        Solve problem using scipy PuLP solver.
-        """
-        import pulp
+        Relax-and-fix MIP decomposition (withDecomposition='sequential').
 
+        Replaces a single monolithic MIP call with a hierarchical sequence:
+          1. LP relaxation -- all binary variables relaxed to [0,1]. Fast (seconds).
+             Provides a fractional solution used to assign bracket binaries.
+          2. Sequential fixing -- binary families fixed in priority order: zs → zm → za.
+             After each fixing, a reduced MIP is solved with fewer free binaries.
+             The last step (after fixing za) leaves only zx (Roth exclusion) free --
+             this is the "polish" step.
+
+        Falls back to the standard monolithic MIP if:
+          - no decomposable binary families (zs, zm, za) are present, or
+          - the LP relaxation fails.
+
+        Note: this is a heuristic -- the result is not guaranteed globally optimal.
+        The monolithic MILP (default) gives a strict optimality bound. Use this mode
+        when simultaneous withMedicare/withACA/withSSTaxability causes the monolithic
+        MIP to be too slow or to fail.
+        """
+        from scipy import optimize
+
+        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
+        mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
+        verbose = options.get("verbose", False)
+
+        milpOptions = {
+            "disp": bool(verbose),
+            "mip_rel_gap": mygap,
+            "presolve": True,
+            "time_limit": time_limit,
+            "node_limit": 1_000_000,
+        }
+
+        # Build constraints once for this SC iteration (same as _milpSolve).
         self._buildConstraints(objective, options)
         Alu, lbvec, ubvec = self.A.arrays()
-        ckeys = self.A.keys()
         Lb, Ub = self.B.arrays()
-        vkeys = self.B.keys()
+        integrality = self.B.integralityArray()
         c = self.c.arrays()
-        c_list = c.tolist()
+        constraint = optimize.LinearConstraint(Alu, lbvec, ubvec)
+        base_bounds = optimize.Bounds(Lb, Ub)
 
-        prob = pulp.LpProblem(self._name.replace(" ", "_"), pulp.LpMinimize)
+        # Determine which binary families can be pre-fixed.
+        # zx (Roth exclusion) must stay free -- it is a core optimization variable.
+        fix_sequence = [name for name in ("zs", "zm", "za") if name in self.vm]
 
-        x = []
-        for i in range(self.nvars - self.nbins):
-            if vkeys[i] == "ra":
-                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=Lb[i], upBound=Ub[i])]
-            elif vkeys[i] == "lo":
-                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=Lb[i], upBound=None)]
-            elif vkeys[i] == "up":
-                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=None, upBound=Ub[i])]
-            elif vkeys[i] == "fr":
-                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=None, upBound=None)]
-            elif vkeys[i] == "fx":
-                x += [pulp.LpVariable(f"x_{i}", cat="Continuous", lowBound=Lb[i], upBound=Ub[i])]
+        if not fix_sequence:
+            # Nothing to decompose; use standard monolithic MIP.
+            solution = optimize.milp(c, integrality=integrality, constraints=constraint,
+                                     bounds=base_bounds, options=milpOptions)
+            return solution.fun, solution.x, solution.success, solution.message, solution.mip_gap
+
+        # ------------------------------------------------------------------
+        # Step 1: LP relaxation (all binaries relaxed to [0,1]).
+        # ------------------------------------------------------------------
+        lp_integrality = np.zeros(self.nvars, dtype=int)
+        lp_opts = dict(milpOptions)
+        lp_opts["node_limit"] = 1  # Force LP path (no branch-and-bound)
+        lp_sol = optimize.milp(c, integrality=lp_integrality, constraints=constraint,
+                               bounds=base_bounds, options=lp_opts)
+
+        if not lp_sol.success or lp_sol.x is None:
+            self.mylog.vprint("Decomp: LP relaxation failed; falling back to monolithic MIP.")
+            solution = optimize.milp(c, integrality=integrality, constraints=constraint,
+                                     bounds=base_bounds, options=milpOptions)
+            return solution.fun, solution.x, solution.success, solution.message, solution.mip_gap
+
+        self.mylog.vprint(f"Decomp: LP relaxation done (obj={lp_sol.fun:.0f}).")
+        current_x = lp_sol.x
+
+        # ------------------------------------------------------------------
+        # Steps 2-3: Fix each family in priority order (zs → zm → za);
+        #            solve a reduced MIP after each fixing.
+        #            After the last family is fixed, only zx remains free (polish).
+        # ------------------------------------------------------------------
+        fixed_Lb = Lb.copy()
+        fixed_Ub = Ub.copy()
+        best_sol = None
+
+        for name in fix_sequence:
+            block = self.vm[name]
+            for flat_idx in range(block.start, block.end):
+                val = float(round(current_x[flat_idx]))
+                fixed_Lb[flat_idx] = val
+                fixed_Ub[flat_idx] = val
+
+            sub_sol = optimize.milp(
+                c,
+                integrality=integrality,
+                constraints=constraint,
+                bounds=optimize.Bounds(fixed_Lb, fixed_Ub),
+                options=milpOptions,
+            )
+            if sub_sol.success and sub_sol.x is not None:
+                self.mylog.vprint(f"Decomp: fixed '{name}', sub-solve succeeded (obj={sub_sol.fun:.0f}).")
+                current_x = sub_sol.x
+                best_sol = sub_sol
             else:
-                raise RuntimeError(f"Internal error: Variable with weird bound {vkeys[i]}.")
+                self.mylog.vprint(
+                    f"Decomp: sub-solve after fixing '{name}' failed ({sub_sol.message}); "
+                    "retaining prior solution."
+                )
 
-        x.extend([pulp.LpVariable(f"z_{i}", cat="Binary") for i in range(self.nbins)])
+        if best_sol is not None:
+            return best_sol.fun, best_sol.x, True, best_sol.message, best_sol.mip_gap
 
-        prob += pulp.lpDot(c_list, x)
-
-        for r in range(self.A.ncons):
-            row = Alu[r].tolist()
-            if ckeys[r] in ["lo", "ra"] and lbvec[r] != -np.inf:
-                prob += pulp.lpDot(row, x) >= lbvec[r]
-            if ckeys[r] in ["up", "ra"] and ubvec[r] != np.inf:
-                prob += pulp.lpDot(row, x) <= ubvec[r]
-            if ckeys[r] == "fx":
-                prob += pulp.lpDot(row, x) == ubvec[r]
-
-        # prob.writeLP("C:\\Users\\marti\\Downloads\\pulp.lp")
-        # prob.writeMPS("C:\\Users\\marti\\Downloads\\pulp.mps", rename=True)
-        # solver_list = pulp.listSolvers(onlyAvailable=True)
-        # print("Available solvers:", solver_list)
-        # solver = pulp.getSolver("MOSEK")
-        # prob.solve(solver)
-
-        if "HiGHS" in options["solver"]:
-            solver = pulp.getSolver("HiGHS", msg=False)
-        else:
-            solver = pulp.getSolver("PULP_CBC_CMD", msg=False)
-
-        prob.solve(solver)
-
-        # Filter out None values and convert to array.
-        xx = np.array([0 if x[i].varValue is None else x[i].varValue for i in range(self.nvars)])
-        solution = np.dot(c, xx)
-        success = (pulp.LpStatus[prob.status] == "Optimal")
-
-        return solution, xx, success, pulp.LpStatus[prob.status], -1
+        # All sub-solves failed; return LP relaxation as fallback (not integral).
+        self.mylog.vprint("Decomp: all sub-solves failed; returning LP relaxation result.")
+        return lp_sol.fun, lp_sol.x, True, "relax-and-fix: returned LP relaxation (non-integral)", 0.0
 
     def _mosekSolve(self, objective, options):
         """

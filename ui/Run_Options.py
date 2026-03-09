@@ -196,7 +196,7 @@ else:
             ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff)
             acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
             helpmsg_aca = ("Co-optimize ACA bracket selection within the LP. "
-                          "More accurate but slower. Only applies when SLCSP > 0.")
+                           "More accurate but slower. Only applies when SLCSP > 0.")
             ret = kz.getToggle("Optimize ACA (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff)
         with col2:
             kz.initCaseKey("amoSurplus", True)
@@ -238,7 +238,7 @@ else:
 
         st.divider()
         st.markdown("#### :orange[Solver]")
-        choices = ["default", "HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
+        choices = ["default", "HiGHS"]
         kz.initCaseKey("solver", choices[0])
         kz.initCaseKey("xtraOptions", "")
 
