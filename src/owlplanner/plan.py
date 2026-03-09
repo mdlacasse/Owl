@@ -2726,7 +2726,8 @@ class Plan:
         self.M_n = np.zeros(self.N_n)
         self.ACA_n = np.zeros(self.N_n)
         self.maca_n = np.zeros(self.N_n)
-        self._aca_lp = False   # Will be set to True in _buildOffsetMap when withACA="optimize"
+        self._aca_lp = False            # Will be set to True in _buildOffsetMap when withACA="optimize"
+        self._highs_warm_start = None   # MIP warm-start hint; reset each solve(), updated each SC iter
 
         self._adjustParameters(self.gamma_n, self.MAGI_n)
         self._buildOffsetMap(myoptions)
@@ -2904,42 +2905,101 @@ class Plan:
 
         return None
 
-    def _milpSolve(self, objective, options):
+    def _run_highs(self, c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value,
+                   integrality, options, warm_x=None):
         """
-        Solve problem using scipy HiGHS solver.
-        """
-        from scipy import optimize
+        Run one HiGHS MIP (or LP when integrality is all-zero) solve directly via highspy.
 
-        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)  # seconds
+        Parameters mirror the arrays produced by self.A.to_csr() / self.B.arrays():
+          c          — objective coefficients (nvars,)
+          Lb, Ub     — variable lower/upper bounds (nvars,)
+          lbvec, ubvec — constraint lower/upper bounds (ncons,)
+          a_start    — CSR row-starts, length ncons
+          a_index    — CSR column indices
+          a_value    — CSR non-zero values
+          integrality — 0=continuous, 1=integer, per variable (nvars,)
+          warm_x     — optional prior solution vector for MIP warm-starting
+
+        Returns (objfn, xx, success, msg, gap) matching the _milpSolve contract.
+        """
+        import highspy
+
+        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
         mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
         verbose = options.get("verbose", False)
 
-        # Optimize solver parameters
-        milpOptions = {
-            "disp": bool(verbose),
-            "mip_rel_gap": mygap,    # Internal default in milp is 1e-4
-            "presolve": True,
-            "time_limit": time_limit,
-            "node_limit": 1_000_000    # Limit search nodes for faster solutions
-        }
+        h = highspy.Highs()
+        h.setOptionValue("output_flag", bool(verbose))
+        h.setOptionValue("mip_rel_gap", float(mygap))
+        h.setOptionValue("time_limit", float(time_limit))
+        h.setOptionValue("mip_max_nodes", 1_000_000)
+        h.setOptionValue("presolve", "on")
 
+        inf = highspy.kHighsInf
+        col_lb = np.where(np.isneginf(Lb), -inf, Lb).astype(np.float64)
+        col_ub = np.where(np.isposinf(Ub),  inf, Ub).astype(np.float64)
+        row_lb = np.where(np.isneginf(lbvec), -inf, lbvec).astype(np.float64)
+        row_ub = np.where(np.isposinf(ubvec),  inf, ubvec).astype(np.float64)
+
+        h.passModel(
+            len(c), len(lbvec), len(a_value),
+            int(highspy.MatrixFormat.kRowwise),  # 2 — NOT 1 (kColwise)
+            int(highspy.ObjSense.kMinimize),     # 1
+            0.0,                                 # offset
+            c.astype(np.float64),
+            col_lb, col_ub,
+            row_lb, row_ub,
+            a_start.astype(np.int32),
+            a_index.astype(np.int32),
+            a_value.astype(np.float64),
+            integrality.astype(np.int32),
+        )
+
+        if warm_x is not None:
+            all_idx = np.arange(len(c), dtype=np.int32)
+            h.setSolution(len(c), all_idx, warm_x.astype(np.float64))
+
+        h.run()
+
+        ms = h.getModelStatus()
+        _, pstatus = h.getInfoValue("primal_solution_status")
+        success = (
+            ms in (highspy.HighsModelStatus.kOptimal, highspy.HighsModelStatus.kObjectiveBound)
+            or pstatus == highspy.kSolutionStatusFeasible
+        )
+
+        if success:
+            sol = h.getSolution()
+            xx = np.array(sol.col_value, dtype=np.float64)
+            obj_val = float(h.getObjectiveValue())
+            _, gap = h.getInfoValue("mip_gap")
+        else:
+            xx = np.zeros(len(c))
+            obj_val = None
+            gap = -1.0
+
+        return obj_val, xx, success, h.modelStatusToString(ms), float(gap)
+
+    def _milpSolve(self, objective, options):
+        """
+        Solve using HiGHS directly via highspy, with MIP warm-start between SC iterations.
+        The solution from each successful iteration is stored in self._highs_warm_start and
+        passed as a hint to the next iteration, reducing branch-and-bound nodes when bracket
+        assignments are stable across iterations.
+        """
         self._buildConstraints(objective, options)
-        Alu, lbvec, ubvec = self.A.arrays()
+        a_start, a_index, a_value = self.A.to_csr()
         Lb, Ub = self.B.arrays()
+        lbvec = np.array(self.A.lb)
+        ubvec = np.array(self.A.ub)
         integrality = self.B.integralityArray()
         c = self.c.arrays()
 
-        bounds = optimize.Bounds(Lb, Ub)
-        constraint = optimize.LinearConstraint(Alu, lbvec, ubvec)
-        solution = optimize.milp(
-            c,
-            integrality=integrality,
-            constraints=constraint,
-            bounds=bounds,
-            options=milpOptions,
-        )
-
-        return solution.fun, solution.x, solution.success, solution.message, solution.mip_gap
+        result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value,
+                                 integrality, options, warm_x=self._highs_warm_start)
+        if result[2]:  # success — store for next SC iteration
+            self._highs_warm_start = result[1].copy()
+        return result
 
     def _relax_and_fix_solve(self, objective, options):
         """
@@ -2962,56 +3022,44 @@ class Plan:
         when simultaneous withMedicare/withACA/withSSTaxability causes the monolithic
         MIP to be too slow or to fail.
         """
-        from scipy import optimize
-
-        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
-        mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
-        verbose = options.get("verbose", False)
-
-        milpOptions = {
-            "disp": bool(verbose),
-            "mip_rel_gap": mygap,
-            "presolve": True,
-            "time_limit": time_limit,
-            "node_limit": 1_000_000,
-        }
-
-        # Build constraints once for this SC iteration (same as _milpSolve).
+        # Build constraints once for this SC iteration.
         self._buildConstraints(objective, options)
-        Alu, lbvec, ubvec = self.A.arrays()
+        a_start, a_index, a_value = self.A.to_csr()
         Lb, Ub = self.B.arrays()
+        lbvec = np.array(self.A.lb)
+        ubvec = np.array(self.A.ub)
         integrality = self.B.integralityArray()
         c = self.c.arrays()
-        constraint = optimize.LinearConstraint(Alu, lbvec, ubvec)
-        base_bounds = optimize.Bounds(Lb, Ub)
 
         # Determine which binary families can be pre-fixed.
         # zx (Roth exclusion) must stay free -- it is a core optimization variable.
         fix_sequence = [name for name in ("zs", "zm", "za") if name in self.vm]
 
         if not fix_sequence:
-            # Nothing to decompose; use standard monolithic MIP.
-            solution = optimize.milp(c, integrality=integrality, constraints=constraint,
-                                     bounds=base_bounds, options=milpOptions)
-            return solution.fun, solution.x, solution.success, solution.message, solution.mip_gap
+            # Nothing to decompose; delegate to standard monolithic MIP.
+            result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value,
+                                     integrality, options, warm_x=self._highs_warm_start)
+            if result[2]:
+                self._highs_warm_start = result[1].copy()
+            return result
 
         # ------------------------------------------------------------------
-        # Step 1: LP relaxation (all binaries relaxed to [0,1]).
+        # Step 1: LP relaxation (integrality all-zero → HiGHS solves as LP).
         # ------------------------------------------------------------------
-        lp_integrality = np.zeros(self.nvars, dtype=int)
-        lp_opts = dict(milpOptions)
-        lp_opts["node_limit"] = 1  # Force LP path (no branch-and-bound)
-        lp_sol = optimize.milp(c, integrality=lp_integrality, constraints=constraint,
-                               bounds=base_bounds, options=lp_opts)
+        lp_integrality = np.zeros(self.nvars, dtype=np.int32)
+        lp_result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value,
+                                    lp_integrality, options, warm_x=self._highs_warm_start)
 
-        if not lp_sol.success or lp_sol.x is None:
+        if not lp_result[2]:
             self.mylog.vprint("Decomp: LP relaxation failed; falling back to monolithic MIP.")
-            solution = optimize.milp(c, integrality=integrality, constraints=constraint,
-                                     bounds=base_bounds, options=milpOptions)
-            return solution.fun, solution.x, solution.success, solution.message, solution.mip_gap
+            result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value,
+                                     integrality, options, warm_x=self._highs_warm_start)
+            if result[2]:
+                self._highs_warm_start = result[1].copy()
+            return result
 
-        self.mylog.vprint(f"Decomp: LP relaxation done (obj={lp_sol.fun:.0f}).")
-        current_x = lp_sol.x
+        self.mylog.vprint(f"Decomp: LP relaxation done (obj={lp_result[0]:.0f}).")
+        current_x = lp_result[1]
 
         # ------------------------------------------------------------------
         # Steps 2-3: Fix each family in priority order (zs → zm → za);
@@ -3020,7 +3068,7 @@ class Plan:
         # ------------------------------------------------------------------
         fixed_Lb = Lb.copy()
         fixed_Ub = Ub.copy()
-        best_sol = None
+        best_result = None
 
         for name in fix_sequence:
             block = self.vm[name]
@@ -3029,29 +3077,26 @@ class Plan:
                 fixed_Lb[flat_idx] = val
                 fixed_Ub[flat_idx] = val
 
-            sub_sol = optimize.milp(
-                c,
-                integrality=integrality,
-                constraints=constraint,
-                bounds=optimize.Bounds(fixed_Lb, fixed_Ub),
-                options=milpOptions,
-            )
-            if sub_sol.success and sub_sol.x is not None:
-                self.mylog.vprint(f"Decomp: fixed '{name}', sub-solve succeeded (obj={sub_sol.fun:.0f}).")
-                current_x = sub_sol.x
-                best_sol = sub_sol
+            sub_result = self._run_highs(c, fixed_Lb, fixed_Ub, lbvec, ubvec,
+                                         a_start, a_index, a_value,
+                                         integrality, options, warm_x=current_x)
+            if sub_result[2]:
+                self.mylog.vprint(f"Decomp: fixed '{name}', sub-solve succeeded (obj={sub_result[0]:.0f}).")
+                current_x = sub_result[1]
+                best_result = sub_result
             else:
                 self.mylog.vprint(
-                    f"Decomp: sub-solve after fixing '{name}' failed ({sub_sol.message}); "
+                    f"Decomp: sub-solve after fixing '{name}' failed ({sub_result[3]}); "
                     "retaining prior solution."
                 )
 
-        if best_sol is not None:
-            return best_sol.fun, best_sol.x, True, best_sol.message, best_sol.mip_gap
+        if best_result is not None:
+            self._highs_warm_start = best_result[1].copy()
+            return best_result
 
         # All sub-solves failed; return LP relaxation as fallback (not integral).
         self.mylog.vprint("Decomp: all sub-solves failed; returning LP relaxation result.")
-        return lp_sol.fun, lp_sol.x, True, "relax-and-fix: returned LP relaxation (non-integral)", 0.0
+        return lp_result[0], lp_result[1], True, "relax-and-fix: returned LP relaxation (non-integral)", 0.0
 
     def _mosekSolve(self, objective, options):
         """
