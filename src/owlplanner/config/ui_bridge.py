@@ -217,6 +217,7 @@ def config_to_ui(diconf: dict) -> dict:
     aca = known.get("aca_settings") or {}
     dic["slcspAnnual"] = float(aca.get("slcsp_annual", 0))
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
+    dic["useDecomposition"] = so.get("withDecomposition", "none") == "sequential"
 
     ss_taxability = so.get("withSSTaxability", "loop")
     if isinstance(ss_taxability, (int, float)):
@@ -446,6 +447,10 @@ def ui_to_config(uidic: dict) -> dict:
     diconf["solver_options"]["withACA"] = (
         "optimize" if uidic.get("optimizeACA") else "loop"
     )
+    optimize_med = uidic.get("optimizeMedicare", False)
+    optimize_aca = uidic.get("optimizeACA", False)
+    use_decomp = uidic.get("useDecomposition", False) and (optimize_med or optimize_aca)
+    diconf["solver_options"]["withDecomposition"] = "sequential" if use_decomp else "none"
 
     ss_mode = uidic.get("ssTaxabilityMode", "loop")
     if ss_mode == "value":

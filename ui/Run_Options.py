@@ -38,6 +38,7 @@ kz.initCaseKey("computeMedicare", True)
 kz.initCaseKey("optimizeMedicare", False)
 kz.initCaseKey("slcspAnnual", 0)
 kz.initCaseKey("optimizeACA", False)
+kz.initCaseKey("useDecomposition", False)
 kz.initCaseKey("withSCLoop", True)
 kz.initCaseKey("ssTaxabilityMode", "loop")
 kz.initCaseKey("ssTaxabilityValue", 0.85)
@@ -198,6 +199,14 @@ else:
             helpmsg_aca = ("Co-optimize ACA bracket selection within the LP. "
                            "More accurate but slower. Only applies when SLCSP > 0.")
             ret = kz.getToggle("Optimize ACA (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff)
+            decompoff = not (kz.getCaseKey("optimizeMedicare") or kz.getCaseKey("optimizeACA"))
+            helpmsg_decomp = ("Use sequential relax-and-fix MIP decomposition. "
+                              "Fixes Medicare and ACA bracket binaries sequentially before solving, "
+                              "reducing the number of simultaneous binary variables and speeding up "
+                              "convergence when both Optimize Medicare and Optimize ACA are active. "
+                              "Heuristic: not guaranteed globally optimal.")
+            ret = kz.getToggle("Sequential MIP decomposition (expert)", "useDecomposition",
+                               help=helpmsg_decomp, disabled=decompoff)
         with col2:
             kz.initCaseKey("amoSurplus", True)
             helpmsg = ("Enable at-most-one (AMO) exclusive constraints between surplus deposits"

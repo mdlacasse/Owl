@@ -512,6 +512,8 @@ def getSolveParameters():
     options["withMedicare"] = "None" if not medion else ("optimize" if mediopt else "loop")
     acaopt = getCaseKey("optimizeACA")
     options["withACA"] = "optimize" if acaopt else "loop"
+    decomp = getCaseKey("useDecomposition") and (mediopt or acaopt)
+    options["withDecomposition"] = "sequential" if decomp else "none"
 
     # SS taxability — "loop", "optimize", or numeric fixed fraction.
     ss_mode = getCaseKey("ssTaxabilityMode")
