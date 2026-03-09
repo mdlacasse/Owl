@@ -983,6 +983,7 @@ against future IRMAA simultaneously.
 - *Disallow same-year Roth conversions and tax-free withdrawals*
 - *Disallow cash-flow surpluses in the last two years of the plan*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
+- *Sequential MIP decomposition* (expert): when Optimize Medicare or Optimize ACA is active, fixes bracket binary variables sequentially before the final solve to reduce MIP complexity.
 - *Solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.

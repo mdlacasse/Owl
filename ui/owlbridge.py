@@ -1014,6 +1014,7 @@ def genDic(plan):
 
     dic["slcspAnnual"] = getattr(plan, "slcsp_annual", 0.0) / 1000
     dic["optimizeACA"] = plan.solverOptions.get("withACA", "loop") == "optimize"
+    dic["useDecomposition"] = plan.solverOptions.get("withDecomposition", "none") == "sequential"
 
     ss_val = plan.solverOptions.get("withSSTaxability", "loop")
     if isinstance(ss_val, (int, float)):
