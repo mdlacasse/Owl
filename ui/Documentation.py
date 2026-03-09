@@ -983,7 +983,7 @@ against future IRMAA simultaneously.
 - *Disallow same-year Roth conversions and tax-free withdrawals*
 - *Disallow cash-flow surpluses in the last two years of the plan*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *Solver* selection (default, HiGHS, PuLP/CBC, PuLP/HiGHS, or MOSEK if available), plus optional extra solver options.
+- *Solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
@@ -997,9 +997,7 @@ Choose `default` to auto-select MOSEK when available, otherwise HiGHS.
 The *Extra solver options (expert)* field accepts a JSON dictionary (e.g. `{"key": "value"}`)
 that is merged into the solver options; leave empty unless experimenting.
 This option is mostly for developer use and verification purposes.
-All solvers tested
-(HiGHS, COIN-OR Branch-and-Cut solver through PuLP, HiGHS through PuLP, and MOSEK)
-provided very similar results.
+Both solvers tested (HiGHS and MOSEK) provided very similar results.
 Due to the mixed-integer formulation, solver performance is sometimes unpredictable.
 In general, CBC tends to be slower, partly because of the algorithm,
 and partly because it solves the problem through a model description saved in
