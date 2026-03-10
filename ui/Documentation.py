@@ -979,11 +979,19 @@ period where pre-Medicare MAGI also determines early IRMAA amounts.
 enable *Optimize Medicare* for high-income retirees where IRMAA surcharges are significant;
 enable both when retiring in the early 60s with high income, so the LP can trade off ACA costs
 against future IRMAA simultaneously.
+- *Optimize LTCG brackets (expert)* – replaces the self-consistent loop for LTCG ordinary income
+  stacking with an exact MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
+  so the optimizer simultaneously finds the best withdrawal strategy and bracket assignment.
+  Can be slower due to additional binary variables; most useful for high-income plans where LTCG bracket
+  placement significantly affects the objective.
+- *Optimize NIIT (expert)* – replaces the self-consistent loop for NIIT with an exact MILP formulation.
+  Binary variables determine whether MAGI exceeds the NIIT threshold ($200k single / $250k MFJ) each year.
+  Most effective when *Optimize LTCG* is also enabled, since MAGI depends on ordinary income stacking.
 - *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*
 - *Disallow same-year Roth conversions and tax-free withdrawals*
 - *Disallow cash-flow surpluses in the last two years of the plan*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *MIP decomposition* (expert): when Optimize Medicare or Optimize ACA is active, an alternative solve strategy can be selected. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
+- *MIP decomposition* (expert): when any of Optimize Medicare, Optimize ACA, Optimize LTCG, or Optimize NIIT is active, an alternative solve strategy can be selected. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
 - *Solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.

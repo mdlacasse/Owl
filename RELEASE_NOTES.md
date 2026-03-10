@@ -2,6 +2,94 @@
 
 ---
 
+## Version 2026.03.10
+
+### New feature: LTCG and NIIT exact MIP formulations
+
+- **`withLTCG="optimize"`**: Long-term capital gains bracket selection is now available as an
+  exact MILP formulation. Binary variables (`zl`) replace the self-consistent loop's heuristic
+  bracket assignment for ordinary income stacking, giving provably correct LTCG tax rates.
+- **`withNIIT="optimize"`**: Net Investment Income Tax (3.8%) can now be embedded in the MIP
+  as a binary selection on whether MAGI exceeds the $200k/$250k threshold (`zj`). Most
+  effective when used together with `withLTCG="optimize"`.
+- Both modes are exposed in the UI as expert toggles under Advanced Options.
+- New tests: `tests/test_ltcg_lp.py` (LTCG MILP, 6 new tests) and `tests/test_niit_milp.py`
+  (NIIT MILP, 6 new tests).
+
+### New feature: MIP decomposition (`withDecomposition`)
+
+When multiple `"optimize"` flags are active simultaneously (Medicare, ACA, LTCG, NIIT, SS
+taxability), the monolithic MIP can be slow due to the combined binary variable count
+(~400 binaries for a typical two-person plan). Two decomposition strategies are now available:
+
+- **`"sequential"` (relax-and-fix heuristic)**: Solves the LP relaxation, then rounds and
+  fixes bracket binary families one at a time (`zl → zs → zj → zm → za`), re-solving a
+  reduced MIP after each fix. Fast, but not guaranteed globally optimal.
+- **`"benders"` (certified global optimum)**: Classical Benders decomposition separating
+  bracket-selection binaries (master MIP: `zl`, `zm`, `za`, `zs`, `zj`) from continuous
+  planning variables (subproblem LP/MIP). Generates dual-based optimality cuts at each
+  iteration to certify global optimality within the specified `gap`. In practice, convergence
+  occurs in 1–3 iterations. Supports both HiGHS and MOSEK.
+- `"none"` (default): monolithic MIP, unchanged from previous behavior.
+- Both modes fall back to monolithic MIP when no bracket binaries are present.
+- New solver option `bendersMaxIter` (default 50) controls maximum Benders iterations.
+- New tests: `tests/test_decomposition.py` (11 tests covering sequential, Benders,
+  jack+jill, bequest objective, prevMAGI regression, and max-iter termination).
+
+### HiGHS: direct API (scipy removed)
+
+- HiGHS is now called directly via `highspy` — the `scipy.optimize.linprog` proxy has been
+  removed. This eliminates an unnecessary dependency and avoids format-conversion overhead.
+- `abcapi.py`: Added `ConstraintMatrix.to_csr()` returning `(a_start, a_index, a_value)` in
+  HiGHS rowwise CSR format. Warm-start support via `self._highs_warm_start` in `solve()`.
+- New internal helpers: `_run_highs()`, `_run_highs_lp_with_duals()`, `_run_mosek_lp_with_duals()`,
+  `_run_mosek_mip()`, `_run_lp_with_duals()`, `_run_mip()`.
+- **PuLP/CBC and PuLP/HiGHS removed**: Only HiGHS (direct) and MOSEK are supported.
+  Solver selector in the UI updated to show only `default`, `HiGHS`, and `MOSEK`.
+
+### UI and configuration
+
+- **Run Options**: New expert toggles for *Optimize LTCG brackets* and *Optimize NIIT*.
+  New *MIP decomposition* radio (`none` / `sequential` / `benders`) enabled when any optimize
+  mode is active.
+- **`withMedicare` / `noRothConversions`**: Legacy TOML values using capital `"None"` are
+  now silently coerced to lowercase `"none"` for consistency.
+- **`config_to_ui` / `ui_to_config`**: `withDecomposition` wired through both directions;
+  legacy boolean `True` coerced to `"sequential"`.
+- **PARAMETERS.md**: Added `withDecomposition` and `bendersMaxIter` entries.
+- **Documentation page**: Updated solver section; removed CBC/PuLP references; added
+  description of sequential and Benders modes.
+
+### owlcli: schema-driven solver options
+
+- **`schema.py` as single source of truth**: `SolverOptions` Pydantic model in `schema.py`
+  defines every known solver option with its type and validation. `parse_solver_options()`
+  coerces and validates raw dicts through the schema; used by TOML load, `plan_bridge`, and
+  the CLI so option handling is consistent everywhere.
+- **`--help-solver-options`**: `owlcli run --help-solver-options` now parses PARAMETERS.md
+  at runtime to display the full formatted solver-options table directly in the terminal —
+  always in sync with the documentation, no hardcoded list.
+- **`--solver-opt KEY=VALUE`**: Any solver option can be overridden on the command line via
+  `--solver-opt withMedicare=optimize --solver-opt withDecomposition=benders`. Values are
+  mapped through `CLI_SOLVER_OVERRIDE_MAP` (for snake_case aliases like `max-time`) and
+  then validated by `parse_solver_options()`.
+- **Solver choices updated**: `--solver` now accepts only `default`, `HiGHS`, and `MOSEK`
+  (PuLP/CBC and PuLP/HiGHS removed).
+- **PARAMETERS.md fixes**: Updated `solver` to remove PuLP entries; `noRothConversions` and
+  `withMedicare` `"None"` values normalized to lowercase `"none"` throughout; `withDecomposition`
+  fix-sequence corrected to include LTCG and NIIT (`zl → zs → zj → zm → za`).
+
+### Bug fixes
+
+- **Benders + 2-person prevMAGI regression**: For plans where both individuals are already
+  on Medicare at plan start (`nm=0`), zm pre-fixing is now skipped in Benders mode.
+  All zm positions are pinned to their LP-relaxation h-based values in the master bounds,
+  preventing SP LP infeasibility on iterations 2+.
+- **Benders convergence**: Two missing termination checks added after the master MIP step —
+  gap check (close if UB−LB ≤ tolerance) and stall detection (terminate if z* is unchanged).
+
+---
+
 ## Version 2026.03.09
 
 ### ACA marketplace (pre-65) UI exposure

@@ -19,7 +19,7 @@ from owlplanner.rate_models.constants import (
 from owlplanner.rate_models.loader import load_rate_model
 
 from .constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
-from .schema import KNOWN_SECTIONS
+from .schema import KNOWN_SECTIONS, parse_solver_options
 
 if TYPE_CHECKING:
     from owlplanner.plan import Plan
@@ -184,7 +184,8 @@ def _apply_optimization_to_plan(plan: "Plan", known: dict) -> None:
 
 def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
     """Apply solver options from config to plan."""
-    plan.solverOptions = dict(known.get("solver_options", {}))
+    raw = known.get("solver_options", {})
+    plan.solverOptions = parse_solver_options(raw)
     if "withMedicare" not in plan.solverOptions:
         plan.solverOptions["withMedicare"] = "loop"
     if "withSSTaxability" not in plan.solverOptions:

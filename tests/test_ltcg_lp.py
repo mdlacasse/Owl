@@ -279,7 +279,7 @@ class TestLTCGMilp:
             T15_n = p.gamma_n[n] * tx.capGainRates[status_n][0]
             room = max(0.0, T15_n - p.G_n[n])
             assert p.q_pn[0, n] <= room + 1.0, (
-                f"Year {n}: q[0]={p.q_pn[0,n]:.1f} exceeds room15={room:.1f} "
+                f"Year {n}: q[0]={p.q_pn[0, n]:.1f} exceeds room15={room:.1f} "
                 f"(G_n={p.G_n[n]:.1f}, T15={T15_n:.1f})"
             )
 

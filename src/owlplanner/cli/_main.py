@@ -34,11 +34,15 @@ from .cmd_run import cmd_run
     type=click.Choice(LOG_LEVELS, case_sensitive=False),
     default="INFO",
     show_default=True,
-    help="Set logging verbosity.",
+    help="Logging verbosity (TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL).",
 )
 @click.pass_context
 def cli(ctx, log_level: str):
-    """SSG command-line interface."""
+    """Owl (Optimal Wealth Lab) retirement planning CLI.
+
+    List and run OWL case files (.toml) from the command line.
+    Use 'owlcli run --help' for solver options.
+    """
     ctx.ensure_object(dict)
     ctx.obj["log_level"] = log_level.upper()
 
