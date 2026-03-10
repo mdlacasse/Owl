@@ -212,11 +212,12 @@ def config_to_ui(diconf: dict) -> dict:
             dic[key] = so[key]
 
     with_med = so.get("withMedicare", "loop")
-    dic["computeMedicare"] = with_med != "None"
+    dic["computeMedicare"] = with_med not in ("none", "None")
     dic["optimizeMedicare"] = with_med == "optimize"
     aca = known.get("aca_settings") or {}
     dic["slcspAnnual"] = float(aca.get("slcsp_annual", 0))
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
+    dic["useDecomposition"] = so.get("withDecomposition", "none")
 
     ss_taxability = so.get("withSSTaxability", "loop")
     if isinstance(ss_taxability, (int, float)):
@@ -440,12 +441,21 @@ def ui_to_config(uidic: dict) -> dict:
     compute_med = uidic.get("computeMedicare", True)
     optimize_med = uidic.get("optimizeMedicare", False)
     diconf["solver_options"]["withMedicare"] = (
-        "None" if not compute_med else ("optimize" if optimize_med else "loop")
+        "none" if not compute_med else ("optimize" if optimize_med else "loop")
     )
     diconf["aca_settings"] = {"slcsp_annual": _get_ui(uidic, "slcspAnnual", 0, float)}
     diconf["solver_options"]["withACA"] = (
         "optimize" if uidic.get("optimizeACA") else "loop"
     )
+    optimize_med = uidic.get("optimizeMedicare", False)
+    optimize_aca = uidic.get("optimizeACA", False)
+    use_decomp = uidic.get("useDecomposition", "none")
+    # Coerce legacy boolean (old TOML/session): True → "sequential", False → "none".
+    if isinstance(use_decomp, bool):
+        use_decomp = "sequential" if use_decomp else "none"
+    if use_decomp != "none" and not (optimize_med or optimize_aca):
+        use_decomp = "none"
+    diconf["solver_options"]["withDecomposition"] = use_decomp
 
     ss_mode = uidic.get("ssTaxabilityMode", "loop")
     if ss_mode == "value":

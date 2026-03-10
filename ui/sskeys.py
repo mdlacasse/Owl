@@ -509,9 +509,20 @@ def getSolveParameters():
     # These need translation.
     medion = getCaseKey("computeMedicare")
     mediopt = getCaseKey("optimizeMedicare")
-    options["withMedicare"] = "None" if not medion else ("optimize" if mediopt else "loop")
+    options["withMedicare"] = "none" if not medion else ("optimize" if mediopt else "loop")
     acaopt = getCaseKey("optimizeACA")
     options["withACA"] = "optimize" if acaopt else "loop"
+    ltcgopt = getCaseKey("optimizeLTCG")
+    options["withLTCG"] = "optimize" if ltcgopt else "loop"
+    niitopt = getCaseKey("optimizeNIIT")
+    options["withNIIT"] = "optimize" if niitopt else "loop"
+    decomp_mode = getCaseKey("useDecomposition") or "none"
+    # Treat legacy boolean True as "sequential"; force "none" if no optimize mode is active.
+    if decomp_mode is True:
+        decomp_mode = "sequential"
+    if not (mediopt or acaopt or ltcgopt or niitopt):
+        decomp_mode = "none"
+    options["withDecomposition"] = decomp_mode
 
     # SS taxability — "loop", "optimize", or numeric fixed fraction.
     ss_mode = getCaseKey("ssTaxabilityMode")
@@ -727,6 +738,10 @@ def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
     else:
         # No value anywhere, use default
         widget_value = choices[0]
+
+    # Coerce legacy boolean values (True → first non-"none" choice, False → first choice).
+    if isinstance(widget_value, bool):
+        widget_value = choices[1] if widget_value and len(choices) > 1 else choices[0]
 
     # Find the index for the determined value
     try:

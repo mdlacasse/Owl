@@ -122,9 +122,24 @@ class ConstraintMatrix:
 
     def keys(self):
         """
-        Return list of keys for each row used by MOSEK.
+        Return list of MOSEK-style bound keys for each constraint row.
         """
         return self.key
+
+    def to_csr(self):
+        """
+        Build CSR (row-wise sparse) arrays for direct highspy passModel calls.
+        Avoids the dense O(ncons × nvars) matrix allocation used by arrays().
+        Returns (a_start, a_index, a_value) as int32 / float64 numpy arrays,
+        where a_start[i] is the index of the first non-zero in row i (length = ncons).
+        """
+        from itertools import chain
+        lengths = [len(row) for row in self.Aind]
+        num_nz = sum(lengths)
+        a_start = np.concatenate([[0], np.cumsum(lengths)[:-1]]).astype(np.int32)
+        a_index = np.fromiter(chain.from_iterable(self.Aind), dtype=np.int32, count=num_nz)
+        a_value = np.fromiter(chain.from_iterable(self.Aval), dtype=np.float64, count=num_nz)
+        return a_start, a_index, a_value
 
     def lists(self):
         """
@@ -221,7 +236,7 @@ class Objective:
 
     def arrays(self):
         """
-        Return an array for scipy/HiGHS dense representation.
+        Return a dense array for HiGHS (MOSEK uses lists()).
         """
         c = np.zeros(self.nvars)
         for ii in range(len(self.ind)):

@@ -1,4 +1,4 @@
-case_name = "Alex+Jamie"
+case_name = "alex+jamie"
 description = """
 Alex and Jamie face a stark longevity gap: Alex has a shorter life expectancy (72) while Jamie may live to 90. This creates unique planning challenges—how much to spend now vs. preserve for the survivor, and how to structure Roth conversions when one spouse will likely outlive the other by two decades.
 
@@ -52,7 +52,7 @@ objective = "maxSpending"
 
 [solver_options]
 maxRothConversion = 400.0
-noRothConversions = "None"
+noRothConversions = "none"
 startRothConversions = 2026
 bequest = 0
 solver = "default"

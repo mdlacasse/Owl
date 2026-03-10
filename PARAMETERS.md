@@ -230,18 +230,24 @@ Options controlling the optimization solver and constraints.
 | `maxTime` | float | *(Advanced)* Solver time limit in seconds. | `900` |
 | `netSpending` | float | Target net spending amount in today's dollars (in `units`). Used when `objective = "maxBequest"`. | Required for `maxBequest` |
 | `noLateSurplus` | boolean | Disallow surplus deposits in the final two years of the plan. | `false` |
-| `noRothConversions` | string | Name of individual for whom Roth conversions are disabled, or `"None"` to allow conversions for all. | `"None"` |
+| `noRothConversions` | string | Name of individual for whom Roth conversions are disabled, or `"none"` to allow conversions for all. | `"none"` |
 | `oppCostX` | float | *(Advanced)* Opportunity cost applied to Roth conversions (percent). | `0` |
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |
 | `relTol` | float | *(Advanced)* Relative convergence tolerance for the self-consistent loop objective. | `max(5e-5, gap / 300)` |
-| `solver` | string | Solver to use for optimization. Valid values: `"default"`, `"HiGHS"`, `"PuLP/CBC"`, `"PuLP/HiGHS"`, `"MOSEK"`. `"default"` automatically selects MOSEK when available and licensed, otherwise falls back to HiGHS. | `"default"` |
+| `solver` | string | Solver to use for optimization. Valid values: `"default"`, `"HiGHS"`, `"MOSEK"`. `"default"` automatically selects MOSEK when available and licensed, otherwise falls back to HiGHS. | `"default"` |
 | `spendingSlack` | integer | Percentage allowed to deviate from the spending profile (0-50). | `0` |
 | `startRothConversions` | integer | Year when Roth conversions can begin (clamped to the current year). | Current year |
 | `swapRothConverters` | integer | *(Advanced)* For plans involving spouses, only allow one spouse to perform Roth conversions per year. The year provided determines a transition year when roles are swapped. The sign selects who converts first: positive means person 1 can convert first and person 2 any time after; negative year means person 2 before and person 1 after. This option overrides the `noRothConversions` option. | `0` |
 | `units` | string | Units for amounts. Valid values: `"1"` (dollars), `"k"` (thousands), `"M"` (millions). | `"k"` |
 | `verbose` | boolean | Enable solver verbosity/output where supported. | `false` |
 | `withACA` | string | ACA marketplace premium handling (when `slcsp_annual` > 0). `"loop"` (default): compute ACA cost in SC loop each iteration using the exact piecewise-linear ACA formula. `"optimize"`: co-optimize ACA bracket selection within the LP — enables the optimizer to shift MAGI across brackets for better plan objectives (expert; can be slower; applies 2026 rules only). | `"loop"` |
-| `withMedicare` | string | Medicare IRMAA handling. Valid values: `"None"`, `"loop"`, `"optimize"` (expert). | `"loop"` |
+| `withLTCG` | string | Long-term capital gains (LTCG) bracket handling. `"loop"` (default): ordinary income stacking computed in SC loop. `"optimize"`: exact MILP formulation for LTCG bracket selection — binary variables determine which 0%/15%/20% bracket applies each year (expert; adds `zl` binary family). | `"loop"` |
+| `bigMltcg` | float | *(Advanced)* Big-M value for LTCG bracket binary constraints (when `withLTCG = "optimize"`). Scaled by the inflation factor γ_n each year. Defaults to `3 × T20_n` per year when omitted. | Auto |
+| `withNIIT` | string | Net Investment Income Tax (NIIT) handling. `"loop"` (default): NIIT computed after each SC iteration. `"optimize"`: exact MILP formulation — binary variable determines whether MAGI exceeds the NIIT threshold ($200k single / $250k MFJ) each year (expert; adds `zj` binary family; most effective when `withLTCG = "optimize"` is also set). | `"loop"` |
+| `bigMniit` | float | *(Advanced)* Big-M value for NIIT threshold binary constraints (when `withNIIT = "optimize"`). Scaled by the inflation factor γ_n each year. Defaults to `3 × T20_n` per year when omitted. | Auto |
+| `withDecomposition` | string | *(Advanced)* MIP decomposition strategy for plans with multiple `"optimize"` flags active simultaneously. `"none"` (default): monolithic MIP. `"sequential"`: relax-and-fix heuristic — fixes bracket binary families (LTCG → SS taxability → NIIT → Medicare → ACA) one at a time from an LP relaxation; fast but not globally optimal. `"benders"`: classical Benders decomposition — separates bracket selection (master: `zl`, `zm`, `za`, `zs`, `zj`) from continuous planning (subproblem); certifies global optimality within `gap` tolerance via accumulated dual cuts; slower per iteration but reliable. Silently ignored when no bracket-selection binaries are present. HiGHS and MOSEK supported. | `"none"` |
+| `bendersMaxIter` | integer | *(Advanced)* Maximum number of Benders iterations when `withDecomposition = "benders"`. Each iteration solves a subproblem LP (for the dual cut) plus a subproblem MIP (for the upper bound) plus a master MIP (for the new lower bound). In practice, convergence typically occurs within 1–3 iterations because the LP relaxation's bracket assignment is nearly globally optimal. | `50` |
+| `withMedicare` | string | Medicare IRMAA handling. Valid values: `"none"`, `"loop"`, `"optimize"` (expert). | `"loop"` |
 | `withSCLoop` | boolean | Whether to run the self-consistent loop to full convergence. When `false`, the solver always performs exactly two iterations: the first establishes ordinary income (`G_n`) so that LTCG bracket room is computed correctly; the second is the accepted solve. Medicare IRMAA and SS taxability are not converged in this mode — Medicare premiums are computed for display only. Useful for speed in Monte Carlo runs where full convergence is not required. | `true` |
 | `withSSTaxability` | string or float | Social Security taxable-fraction (Ψ) handling. Use `"loop"` to compute Ψ dynamically each SC-loop iteration (recommended). Use `"optimize"` to solve Ψ exactly as a MIP decision variable (expert). Use a float in [0, 0.85] to pin Ψ to a fixed value — `0.0` (PI well below lower threshold), `0.5` (mid-range PI), or `0.85` (PI above upper threshold). | `"loop"` |
 
@@ -335,7 +341,7 @@ objective = "maxSpending"
 
 [solver_options]
 maxRothConversion = 100
-noRothConversions = "None"
+noRothConversions = "none"
 startRothConversions = 2026
 withMedicare = "loop"
 withSSTaxability = "loop"

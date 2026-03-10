@@ -542,7 +542,7 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
-    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None, log_x=False):
+    def plot_histogram_results(self, objective, df, N, year_n, n_d=None, N_i=1, phi_j=None, log_x=False):  # noqa: C901
         """Show a histogram of values from historical data or Monte Carlo simulations.
 
         If log_x is True, use log-spaced bins and a log-scale x-axis (log-normal style).

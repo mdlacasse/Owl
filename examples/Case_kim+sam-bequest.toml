@@ -57,7 +57,7 @@ objective = "maxBequest"
 [solver_options]
 netSpending = 145
 maxRothConversion = 100
-noRothConversions = "None"
+noRothConversions = "none"
 startRothConversions = 2026
 solver = "default"
 spendingSlack = 0
