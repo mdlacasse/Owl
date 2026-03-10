@@ -38,6 +38,8 @@ kz.initCaseKey("computeMedicare", True)
 kz.initCaseKey("optimizeMedicare", False)
 kz.initCaseKey("slcspAnnual", 0)
 kz.initCaseKey("optimizeACA", False)
+kz.initCaseKey("optimizeLTCG", False)
+kz.initCaseKey("optimizeNIIT", False)
 kz.initCaseKey("useDecomposition", "none")
 kz.initCaseKey("withSCLoop", True)
 kz.initCaseKey("ssTaxabilityMode", "loop")
@@ -199,7 +201,16 @@ else:
             helpmsg_aca = ("Co-optimize ACA bracket selection within the LP. "
                            "More accurate but slower. Only applies when SLCSP > 0.")
             ret = kz.getToggle("Optimize ACA (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff)
-            decompoff = not (kz.getCaseKey("optimizeMedicare") or kz.getCaseKey("optimizeACA"))
+            helpmsg_ltcg = ("Optimize LTCG bracket selection using binary variables. "
+                            "Replaces self-consistent loop for LTCG ordinary income stacking. "
+                            "More accurate but slower.")
+            ret = kz.getToggle("Optimize LTCG brackets (expert)", "optimizeLTCG", help=helpmsg_ltcg)
+            helpmsg_niit = ("Optimize NIIT (Net Investment Income Tax) within the MIP. "
+                            "Replaces self-consistent loop for NIIT computation. "
+                            "Only effective when Optimize LTCG is also enabled.")
+            ret = kz.getToggle("Optimize NIIT (expert)", "optimizeNIIT", help=helpmsg_niit)
+            decompoff = not (kz.getCaseKey("optimizeMedicare") or kz.getCaseKey("optimizeACA")
+                             or kz.getCaseKey("optimizeLTCG") or kz.getCaseKey("optimizeNIIT"))
             decomp_choices = ["none", "sequential", "benders"]
             helpmsg_decomp = (
                 "'none': monolithic MIP (default). "

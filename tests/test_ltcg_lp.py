@@ -234,3 +234,86 @@ def _assert_ltcg_matches_ref(plan, tax_module):
             atol=1.0,
             err_msg="LP U_n does not match tax2026.capitalGainTax()",
         )
+
+
+# ---------------------------------------------------------------------------
+# Tests for withLTCG="optimize" (MILP regime binary formulation)
+# ---------------------------------------------------------------------------
+
+class TestLTCGMilp:
+    """Tests for the LTCG MILP formulation (withLTCG="optimize")."""
+
+    def _solve_milp(self, extra_options=None):
+        """Single-individual plan solved with withLTCG='optimize'."""
+        p = _make_single_plan('ltcg_milp', taxable=1000, tax_deferred=500, tax_free=200,
+                              rate_year=1997)
+        opts = {'solver': solver, 'withMedicare': 'None', 'withLTCG': 'optimize'}
+        if extra_options:
+            opts.update(extra_options)
+        p.solve('maxSpending', opts)
+        return p
+
+    def test_ltcg_milp_feasible(self):
+        """withLTCG='optimize' produces a feasible solution."""
+        p = self._solve_milp()
+        assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
+
+    def test_ltcg_milp_gn_matches_f_sum(self):
+        """G_n == sum(f_tn) in MILP mode (gn equality constraint is tight)."""
+        p = self._solve_milp()
+        assert p.caseStatus == 'solved'
+        # G_n is set from the gn LP variable in MILP mode (via _aggregateResults),
+        # which is constrained equal to sum(f_tn). Verify consistency.
+        gn_from_f = np.sum(p.f_tn, axis=0)
+        np.testing.assert_allclose(p.G_n, gn_from_f, atol=1.0,
+                                   err_msg="G_n does not match sum(f_tn) in MILP mode")
+
+    def test_ltcg_milp_q0_room_constraint(self):
+        """q[0,n] ≤ max(0, T15_n - G_n) for all years."""
+        from owlplanner import tax2026 as tx
+        p = self._solve_milp()
+        assert p.caseStatus == 'solved'
+        n_d = p.n_d
+        for n in range(p.N_n):
+            status_n = 0 if (p.N_i == 2 and n >= n_d) else p.N_i - 1
+            T15_n = p.gamma_n[n] * tx.capGainRates[status_n][0]
+            room = max(0.0, T15_n - p.G_n[n])
+            assert p.q_pn[0, n] <= room + 1.0, (
+                f"Year {n}: q[0]={p.q_pn[0,n]:.1f} exceeds room15={room:.1f} "
+                f"(G_n={p.G_n[n]:.1f}, T15={T15_n:.1f})"
+            )
+
+    def test_ltcg_milp_tax_identity(self):
+        """U_n == 0.15*q[1,n] + 0.20*q[2,n] in MILP mode."""
+        p = self._solve_milp()
+        assert p.caseStatus == 'solved'
+        expected = 0.15 * p.q_pn[1] + 0.20 * p.q_pn[2]
+        np.testing.assert_allclose(p.U_n, expected, atol=0.01)
+
+    def test_ltcg_milp_matches_loop_result(self):
+        """withLTCG='optimize' gives spending within 1% of SC-loop result."""
+        p_milp = self._solve_milp()
+        p_loop = _make_single_plan('ltcg_loop', taxable=1000, tax_deferred=500, tax_free=200,
+                                   rate_year=1997)
+        p_loop.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+        assert p_milp.caseStatus == 'solved'
+        assert p_loop.caseStatus == 'solved'
+        rel_diff = abs(p_milp.g_n[0] - p_loop.g_n[0]) / max(abs(p_loop.g_n[0]), 1)
+        assert rel_diff < 0.01, (
+            f"MILP spending {p_milp.g_n[0]:.0f} differs from loop {p_loop.g_n[0]:.0f} "
+            f"by {100*rel_diff:.2f}%"
+        )
+
+    def test_ltcg_milp_unknown_option_ignored(self):
+        """'withLTCG' must be in knownOptions (not silently ignored as unknown)."""
+        p = _make_single_plan('ltcg_opt_known', taxable=500, tax_deferred=200, tax_free=100)
+        # Passing withLTCG should not emit "Ignoring unknown solver option" warning.
+        import io
+        import logging
+        log_capture = io.StringIO()
+        handler = logging.StreamHandler(log_capture)
+        logging.getLogger().addHandler(handler)
+        p.solve('maxSpending', {'withLTCG': 'optimize', 'withMedicare': 'None'})
+        logging.getLogger().removeHandler(handler)
+        output = log_capture.getvalue()
+        assert 'Ignoring unknown solver option' not in output or 'withLTCG' not in output
