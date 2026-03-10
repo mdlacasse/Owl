@@ -1475,7 +1475,13 @@ class Plan:
         medi = options.get("withMedicare", "loop") == "optimize"
         ss_lp = options.get("withSSTaxability", "loop") == "optimize"
         aca_lp = options.get("withACA", "loop") == "optimize"
+        ltcg_lp = options.get("withLTCG", "loop") == "optimize"
+        niit_lp = options.get("withNIIT", "loop") == "optimize"
         self._aca_lp = aca_lp and self.slcsp_annual > 0 and self.N_aca > 0
+        self._ltcg_lp = ltcg_lp
+        self._niit_lp = niit_lp
+        self._bigMltcg = options.get("bigMltcg", None)   # None → use T20_n per year
+        self._bigMniit = options.get("bigMniit", None)   # None → use 3*T20_n per year
         Nmed = self.N_n - self.nm
 
         # Stack all variables in a single block vector with all binary variables at the end.
@@ -1498,11 +1504,16 @@ class Plan:
         vm.add_if(ss_lp, "phi", self.N_n)           # p^hi_n = max(0, Π_n − 𝒫^hi)
         vm.add_if(ss_lp, "pmin", self.N_n)          # p^{σ,min}_n = min(𝒫^hi−𝒫^lo, p^lo_n)
         vm.add_if(ss_lp, "tss", self.N_n)           # t^σ_n  = min(0.85·ζ̄_n, 0.5·p^{σ,min}_n + 0.85·p^hi_n)
+        vm.add_if(ltcg_lp, "gn", self.N_n)          # G_n: ordinary taxable income (LTCG MILP)
+        vm.add_if(niit_lp, "magi", self.N_n)        # MAGI_n LP variable (NIIT MILP)
+        vm.add_if(niit_lp, "Jn", self.N_n)          # J_n: NIIT tax LP variable (NIIT MILP)
         vm.mark_binary_start()
         vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)   # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)         # z^σ family (2 per year) for SS min() ops
         vm.add_if(self._aca_lp, "za", self.N_aca, tx.N_ACA_Q)   # ACA bracket selection binaries
+        vm.add_if(ltcg_lp, "zl", 2, self.N_n)       # 2×N_n regime binaries (LTCG MILP)
+        vm.add_if(niit_lp, "zj", self.N_n)          # N_n NIIT threshold binaries
         self.vm = vm
 
         self.nvars = vm.nvars
@@ -1546,6 +1557,8 @@ class Plan:
         self._add_Medicare_costs(options)
         self._configure_ACA_binary_variables(options)
         self._add_ACA_costs(options)
+        self._add_magi_lp(options)
+        self._configure_NIIT_binary_variables(options)
         self._configure_exclusion_binary_variables(options)
         self._build_objective_vector(objective, options)
 
@@ -1853,7 +1866,9 @@ class Plan:
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
         tau_0prev[tau_0prev < 0] = 0
         for n in range(self.N_n):
-            rhs = -self.M_n[n] - self.J_n[n] - self.ACA_n[n]
+            rhs = -self.M_n[n] - self.ACA_n[n]
+            if not getattr(self, "_niit_lp", False):
+                rhs -= self.J_n[n]
             # Add fixed assets proceeds (positive cash flow)
             rhs += (self.fixed_assets_tax_free_n[n]
                     + self.fixed_assets_ordinary_income_n[n]
@@ -1888,6 +1903,10 @@ class Plan:
             # LTCG tax from bracket variables q[1,n] and q[2,n] directly.
             row.addElem(self.vm["q"].idx(1, n), 0.15)
             row.addElem(self.vm["q"].idx(2, n), 0.20)
+
+            # NIIT: when optimize mode, use LP variable Jn; otherwise already in rhs.
+            if getattr(self, "_niit_lp", False):
+                row.addElem(self.vm["Jn"].idx(n), 1)
 
             self.A.addRow(row, rhs, rhs)
 
@@ -2130,7 +2149,14 @@ class Plan:
 
     def _configure_ltcg_constraints(self):
         """
-        Configure LTCG tax using LP bracket-allocation variables (pure LP, no binaries).
+        Configure LTCG tax using LP bracket-allocation variables.
+
+        When self._ltcg_lp is False (default, 'loop' mode):
+          Pure LP, no binaries. Uses SC-loop G_n parameter for bracket room.
+
+        When self._ltcg_lp is True ('optimize' mode):
+          MILP big-M formulation with G_n as a continuous LP variable and zl binaries
+          to select which LTCG bracket applies. Globally optimal within gap.
 
         Introduces per-year variables q_{pn} (p=0,1,2) partitioning total LTCG across the
         0%, 15%, and 20% capital-gains brackets. Because the LTCG cost function is convex
@@ -2140,18 +2166,14 @@ class Plan:
         standard deduction). Capital gains are "stacked" on top of ordinary taxable income G_n.
         The bracket constraints are:
 
-        Constraints per year n:
+        LP mode constraints per year n:
           (1) q[0,n] ≤ max(0, T15_n − G_n)               (cap on 0% allocation)
           (2) q[0,n] + q[1,n] ≤ max(0, T20_n − G_n)      (cap on 0%+15% allocation)
           (3) q[0,n] + q[1,n] + q[2,n] ≥ Q_n             (partition lower bound)
 
-        G_n is initialised to 0 for the first iteration and updated from _aggregateResults
-        after each solve. Constraints (1) and (2) become variable upper bounds.
+        MILP mode replaces (1) and (2) with big-M binary constraints using gn and zl.
 
         U_n = 0.15*q[1,n] + 0.20*q[2,n] is computed as a derived quantity after solving.
-
-        Because the LP minimises tax, constraint (3) is tight when Q_n > 0 and the bound
-        is inactive (all-zero) when Q_n ≤ 0 (no LTCG in loss years).
         """
         tau_0 = self.tau_kn[0, :]
         # Use the same roll as _aggregateResults so the partition constraint is consistent
@@ -2174,18 +2196,77 @@ class Plan:
             q1_idx = self.vm["q"].idx(1, n)   # p=1: 15% bracket
             q2_idx = self.vm["q"].idx(2, n)   # p=2: 20% bracket
 
-            # === Bracket upper-bound constraints ===
-            # LTCG is stacked on top of ordinary taxable income G_n (from previous SC iteration).
-            # G_n is initialised to 0 for the first iteration (zero ordinary income assumption).
-            # room15_n / room20_n = T15/T20 threshold minus ordinary income already filling the bracket.
-            room15_n = max(0.0, T15_n - self.G_n[n])
-            room20_n = max(0.0, T20_n - self.G_n[n])
-            # (1) q[0,n] ≤ room15_n (enforced via variable upper bound)
-            self.B.setRange(q0_idx, 0, room15_n)
-            # (2) q[0,n] + q[1,n] ≤ room20_n
-            self.A.addNewRow({q0_idx: 1, q1_idx: 1}, -np.inf, room20_n)
+            if self._ltcg_lp:
+                # =========================================================
+                # MILP mode: G_n is a continuous LP variable (gn), bracket
+                # room is encoded via big-M binary constraints with zl.
+                # =========================================================
+                gn_idx = self.vm["gn"].idx(n)
+                zl15_idx = self.vm["zl"].idx(0, n)   # regime binary: G_n < T15
+                zl20_idx = self.vm["zl"].idx(1, n)   # regime binary: G_n < T20
 
-            # === Partition lower-bound constraint: q[0]+q[1]+q[2] ≥ Q_portfolio+Q_fixed ===
+                # Big-M: scale with gamma_n[n] (nominal dollars grow with inflation), following
+                # the pattern used elsewhere (e.g., bigMBar = bigM * gamma_n[n] in SS taxability).
+                # Default: 3*T20_n (already gamma-scaled, safe upper bound on G_n).
+                # Using T20_n alone is too tight — G_n can exceed T15+T20 in Roth conversion years.
+                base_Mltcg = getattr(self, "_bigMltcg", None)
+                if base_Mltcg is None or base_Mltcg <= 0:
+                    M_ltcg = 3.0 * T20_n   # gamma_n[n] already embedded in T20_n
+                else:
+                    M_ltcg = base_Mltcg * self.gamma_n[n]
+
+                # G_n equality: gn = sum_t f_tn  (ordinary taxable income)
+                row_gn = {gn_idx: 1}
+                for t in range(self.N_t):
+                    row_gn[self.vm["f"].idx(t, n)] = row_gn.get(self.vm["f"].idx(t, n), 0) - 1
+                self.A.addNewRow(row_gn, 0, 0)
+
+                # Big-M link for zl15: G_n + M*zl15 in [T15, T15+M]
+                # Equivalent to: if zl15=0 then G_n = T15 (exactly), if zl15=1 then G_n <= T15+M
+                # More precisely: T15 <= G_n + M*zl15 <= T15+M
+                # When zl15=0: T15 <= G_n <= T15 → G_n=T15 (at threshold)
+                # When zl15=1: T15 <= G_n+M <= T15+M → G_n >= T15-M (always true), G_n <= T15
+                # Actually we want: zl15=1 iff G_n >= T15
+                # Use: G_n - M*(1-zl15) <= T15  and  G_n >= T15 - M*zl15
+                # Simplified: G_n + M*zl15 >= T15  (if zl15=0 → G_n >= T15)
+                #             G_n + M*zl15 <= T15+M (always feasible)
+                # Better: addNewRow({gn_idx:1, zl15_idx:M_ltcg}, T15_n, T15_n+M_ltcg)
+                self.A.addNewRow({gn_idx: 1, zl15_idx: M_ltcg}, T15_n, T15_n + M_ltcg)
+                self.A.addNewRow({gn_idx: 1, zl20_idx: M_ltcg}, T20_n, T20_n + M_ltcg)
+
+                # q[0] room15 upper bound: q0 + G_n + M*zl15 <= T15 + M
+                # → q0 <= T15 - G_n + M*(1-zl15) (unlimited when zl15=1, i.e. G_n>=T15)
+                self.A.addNewRow({q0_idx: 1, gn_idx: 1, zl15_idx: M_ltcg}, -np.inf, T15_n + M_ltcg)
+                # q[0] forced zero when G_n >= T15 (zl15=1): q0 - M*zl15 <= 0
+                self.A.addNewRow({q0_idx: 1, zl15_idx: -M_ltcg}, -np.inf, 0)
+
+                # q[0]+q[1] room20 upper bound: q0+q1 + G_n + M*zl20 <= T20 + M
+                self.A.addNewRow({q0_idx: 1, q1_idx: 1, gn_idx: 1, zl20_idx: M_ltcg}, -np.inf, T20_n + M_ltcg)
+                # q[0]+q[1] forced zero when G_n >= T20 (zl20=1): q0+q1 - M*zl20 <= 0
+                self.A.addNewRow({q0_idx: 1, q1_idx: 1, zl20_idx: -M_ltcg}, -np.inf, 0)
+
+                # Monotonicity: zl15 <= zl20 (if G_n <= T15 then G_n <= T20, so room for 0% implies room for 15%)
+                # zl15 - zl20 <= 0  →  addNewRow({zl15:1, zl20:-1}, -inf, 0)
+                self.A.addNewRow({zl15_idx: 1, zl20_idx: -1}, -np.inf, 0)
+
+            else:
+                # =========================================================
+                # LP (loop) mode: use SC-loop G_n parameter for bracket room.
+                # =========================================================
+                # LTCG is stacked on top of ordinary taxable income G_n (from previous SC iteration).
+                # G_n is initialised to 0 for the first iteration (zero ordinary income assumption).
+                # room15_n / room20_n = T15/T20 threshold minus ordinary income already filling the bracket.
+                room15_n = max(0.0, T15_n - self.G_n[n])
+                room20_n = max(0.0, T20_n - self.G_n[n])
+                # (1) q[0,n] ≤ room15_n (enforced via variable upper bound)
+                self.B.setRange(q0_idx, 0, room15_n)
+                # (2) q[0,n] + q[1,n] ≤ room20_n
+                self.A.addNewRow({q0_idx: 1, q1_idx: 1}, -np.inf, room20_n)
+                # q[1] upper bound = remaining 15% bracket width after stacking ordinary income.
+                self.B.setRange(q1_idx, 0, max(0.0, room20_n - room15_n))
+                # q[2] is unbounded above (the 20% bracket has no cap).
+
+            # === Partition lower-bound constraint (both modes): q[0]+q[1]+q[2] ≥ Q_n ===
             # Q_portfolio_n = sum_i alpha_i00n * [mu*(b_i0n + d_in - w_i0n) + cap_rate*w_i0n
             #                                     + 0.5*mu*kappa_i0n]
             # Rearranged: sum_i alpha_i00n * [mu*b_i0n + (cap_rate-mu)*w_i0n + mu*d_in]
@@ -2207,9 +2288,138 @@ class Plan:
             # (3) q[0]+q[1]+q[2] − Q_portfolio_LP_vars ≥ Q_fixed + kappa_correction
             self.A.addNewRow(row_q, rhs_q, np.inf)
 
-            # q[1] upper bound = remaining 15% bracket width after stacking ordinary income.
-            self.B.setRange(q1_idx, 0, max(0.0, room20_n - room15_n))
-            # q[2] is unbounded above (the 20% bracket has no cap).
+    def _add_magi_lp(self, options):
+        """
+        Add MAGI equality constraints when withNIIT='optimize'.
+
+        Links vm["magi"].idx(n) to:
+          MAGI_n = G_n + e_n + Q_n + zetaBar_n - tss_n
+        where:
+          - G_n = sum_t f_tn  (ordinary taxable income, via gn LP var or direct f_tn sum)
+          - e_n = standard deduction headroom
+          - Q_n = portfolio LTCG (sum of q vars minus portfolio LP terms)
+          - zetaBar_n = total SS benefits (parameter)
+          - tss_n = taxable SS (LP var when withSSTaxability=optimize, else Psi_n*zetaBar_n param)
+
+        Rewritten as equality constraint with all LP vars on LHS:
+          magi_n - gn_n - e_n - Q_LP_expr = zetaBar_n - tss_or_param
+        """
+        if not self._niit_lp:
+            return
+
+        tau_0 = self.tau_kn[0, :]
+        tau_0prev = np.roll(tau_0, 1)
+
+        zetaBar_n = np.sum(self.zetaBar_in, axis=0)
+
+        for n in range(self.N_n):
+            magi_idx = self.vm["magi"].idx(n)
+            e_idx = self.vm["e"].idx(n)
+            cap_rate = max(0.0, tau_0prev[n] - self.mu)
+
+            # Build MAGI equality row:
+            # magi_n = G_n + e_n + Q_n + (1-Psi_n)*zetaBar_n
+            # where Q_n = sum_i alpha_i00n*[mu*b + (cr-mu)*w + mu*d] + rhs_q (fixed assets)
+            # Rewrite: magi_n - e_n - Q_lp_terms = zetaBar_n - tss_n + fixed_asset_cg
+            row = {magi_idx: 1, e_idx: -1}
+
+            # G_n contribution: either via gn LP var or directly from f_tn vars
+            if "gn" in self.vm:
+                row[self.vm["gn"].idx(n)] = row.get(self.vm["gn"].idx(n), 0) - 1
+            else:
+                for t in range(self.N_t):
+                    f_idx = self.vm["f"].idx(t, n)
+                    row[f_idx] = row.get(f_idx, 0) - 1
+
+            # Q_n LP expression: same as partition constraint in _configure_ltcg_constraints
+            rhs_magi = self.fixed_assets_capital_gains_n[n]
+            q0_idx = self.vm["q"].idx(0, n)
+            q1_idx = self.vm["q"].idx(1, n)
+            q2_idx = self.vm["q"].idx(2, n)
+            row[q0_idx] = row.get(q0_idx, 0) - 1
+            row[q1_idx] = row.get(q1_idx, 0) - 1
+            row[q2_idx] = row.get(q2_idx, 0) - 1
+            for i in range(self.N_i):
+                alpha = self.alpha_ijkn[i, 0, 0, n]
+                if alpha == 0:
+                    continue
+                b_idx = self.vm["b"].idx(i, 0, n)
+                w_idx = self.vm["w"].idx(i, 0, n)
+                d_idx = self.vm["d"].idx(i, n)
+                row[b_idx] = row.get(b_idx, 0) + alpha * self.mu
+                row[w_idx] = row.get(w_idx, 0) + alpha * (cap_rate - self.mu)
+                row[d_idx] = row.get(d_idx, 0) + alpha * self.mu
+                rhs_magi -= alpha * 0.5 * self.mu * self.kappa_ijn[i, 0, n]
+
+            # SS: zetaBar_n (parameter) minus taxable SS
+            rhs_magi += zetaBar_n[n]
+            if "tss" in self.vm:
+                # tss is an LP var: subtract it from LHS
+                tss_idx = self.vm["tss"].idx(n)
+                row[tss_idx] = row.get(tss_idx, 0) + 1  # +1 because moved to LHS: magi - tss = rhs
+            else:
+                # Use Psi_n parameter: taxable SS = Psi_n * zetaBar_n
+                rhs_magi -= self.Psi_n[n] * zetaBar_n[n]
+
+            self.A.addNewRow(row, rhs_magi, rhs_magi)
+
+    def _configure_NIIT_binary_variables(self, options):
+        """
+        Add NIIT big-M binary constraints when withNIIT='optimize'.
+
+        For each year n, links J_n (NIIT tax) to MAGI_n via a threshold binary zj:
+          J_n = max(0, 0.038 * (MAGI_n - T_niit))
+
+        Modeled with binary zj_n:
+          zj=1 iff MAGI_n > T_niit (NIIT threshold exceeded)
+
+        Big-M constraints:
+          (1) J_n >= 0.038*(MAGI_n - T_niit) - M*(1-zj)  [NIIT rate when above threshold]
+          (2) J_n <= M*zj                                  [J=0 when below threshold]
+          (3) MAGI_n <= T_niit + M*zj                     [MAGI bounded by threshold when zj=0]
+        """
+        if not self._niit_lp:
+            return
+
+        for n in range(self.N_n):
+            # Per-year filing status: couple switches to Single at n_d.
+            status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
+            T_niit = 200000.0 if status_n == 0 else 250000.0  # NOT inflation-adjusted
+
+            # Big-M: scale with gamma_n[n] following the convention used elsewhere in the code.
+            # Default: 3*T20_n (already gamma-scaled via T20_n = gamma_n[n]*capGainRates).
+            T20_n = self.gamma_n[n] * tx.capGainRates[status_n][1]
+            base_Mniit = getattr(self, "_bigMniit", None)
+            if base_Mniit is None or base_Mniit <= 0:
+                M_niit = 3.0 * T20_n   # gamma_n[n] already embedded in T20_n
+            else:
+                M_niit = base_Mniit * self.gamma_n[n]
+
+            Jn_idx = self.vm["Jn"].idx(n)
+            magi_idx = self.vm["magi"].idx(n)
+            zj_idx = self.vm["zj"].idx(n)
+
+            # Bounds on Jn and magi
+            self.B.setRange(Jn_idx, 0, M_niit)
+            self.B.setRange(magi_idx, 0, M_niit)
+
+            # (1) J_n >= 0.038*(MAGI_n - T_niit) - M*(1-zj)
+            #   → J_n - 0.038*MAGI_n + M*zj >= 0.038*(-T_niit) + M*(-1)
+            #   Wait, rearranging: J_n - 0.038*MAGI_n - M*zj >= -0.038*T_niit - M
+            #   But addNewRow lb <= row <= ub, so:
+            #   lb = -0.038*T_niit - M_niit, row = {Jn:1, magi:-0.038, zj:-M_niit}
+            self.A.addNewRow(
+                {Jn_idx: 1, magi_idx: -0.038, zj_idx: -M_niit},
+                -0.038 * T_niit - M_niit, np.inf
+            )
+
+            # (2) J_n <= M*zj
+            #   → J_n - M*zj <= 0
+            self.A.addNewRow({Jn_idx: 1, zj_idx: -M_niit}, -np.inf, 0)
+
+            # (3) MAGI_n <= T_niit + M*zj
+            #   → MAGI_n - M*zj <= T_niit
+            self.A.addNewRow({magi_idx: 1, zj_idx: -M_niit}, -np.inf, T_niit)
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -2660,6 +2870,10 @@ class Plan:
             "verbose",
             "withACA",        # ACA handling: "loop" (default) or "optimize"
             "bigMaca",        # Big-M for ACA bracket upper bounds (default: BIGM_AMO)
+            "withLTCG",       # LTCG handling: "loop" (default) or "optimize"
+            "bigMltcg",       # Big-M for LTCG bracket constraints (default: T20_n per year)
+            "withNIIT",       # NIIT handling: "loop" (default) or "optimize"
+            "bigMniit",       # Big-M for NIIT threshold constraints (default: 3*T20_n per year)
             "bendersMaxIter",      # Maximum Benders iterations (default: 50)
             "withDecomposition",  # MIP decomposition: "none" (default), "sequential", or "benders"
             "withMedicare",
@@ -2728,6 +2942,8 @@ class Plan:
         self.ACA_n = np.zeros(self.N_n)
         self.maca_n = np.zeros(self.N_n)
         self._aca_lp = False            # Will be set to True in _buildOffsetMap when withACA="optimize"
+        self._ltcg_lp = False           # Will be set to True in _buildOffsetMap when withLTCG="optimize"
+        self._niit_lp = False           # Will be set to True in _buildOffsetMap when withNIIT="optimize"
         self._highs_warm_start = None   # MIP warm-start hint; reset each solve(), updated each SC iter
 
         self._adjustParameters(self.gamma_n, self.MAGI_n)
@@ -3255,7 +3471,7 @@ class Plan:
 
         # Determine which binary families can be pre-fixed.
         # zx (Roth exclusion) must stay free -- it is a core optimization variable.
-        fix_sequence = [name for name in ("zs", "zm", "za") if name in self.vm]
+        fix_sequence = [name for name in ("zl", "zs", "zj", "zm", "za") if name in self.vm]
 
         if not fix_sequence:
             # Nothing to decompose; delegate to monolithic MIP.
@@ -3270,7 +3486,7 @@ class Plan:
             self.mylog.vprint("Decomp: LP relaxation failed; falling back to monolithic MIP.")
             return self._run_mip(self.A, self.B, self.c, options)
 
-        self.mylog.vprint(f"Decomp: LP relaxation done (obj={lp_result[0]:.0f}).")
+        self.mylog.vprint(f"Decomp: LP relaxation done (obj={-lp_result[0]:.0f}).")
         current_x = lp_result[1]
 
         # ------------------------------------------------------------------
@@ -3293,7 +3509,7 @@ class Plan:
 
             sub_result = self._run_mip(self.A, self.B, self.c, options, col_overrides=col_overrides)
             if sub_result[2]:
-                self.mylog.vprint(f"Decomp: fixed '{name}', sub-solve succeeded (obj={sub_result[0]:.0f}).")
+                self.mylog.vprint(f"Decomp: fixed '{name}', sub-solve succeeded (obj={-sub_result[0]:.0f}).")
                 current_x = sub_result[1]
                 best_result = sub_result
             else:
@@ -3334,9 +3550,9 @@ class Plan:
         ncons = self.A.ncons
         nvars = self.A.nvars
 
-        # Identify master binary columns: zm (Medicare), za (ACA), zs (SS taxability).
+        # Identify master binary columns: zl (LTCG), zm (Medicare), za (ACA), zs (SS taxability), zj (NIIT).
         master_cols = []
-        for name in ("zm", "za", "zs"):
+        for name in ("zl", "zm", "za", "zs", "zj"):
             if name in self.vm:
                 blk = self.vm[name]
                 master_cols.extend(range(blk.start, blk.end))
@@ -3571,7 +3787,8 @@ class Plan:
         if "tss" not in self.vm and fixedPsi is None:
             self._update_Psi_n()
 
-        self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
+        if not getattr(self, "_niit_lp", False):
+            self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
         # LTCG tax is in the LP via q bracket variables; U_n is set by _aggregateResults.
         # Compute Medicare through self-consistent loop.
         if includeMedicare:
@@ -3654,9 +3871,16 @@ class Plan:
         excess = np.maximum(0, self.q_pn[0, :] - total_ltcg)
         self.q_pn[0, :] = np.maximum(0, self.q_pn[0, :] - excess)
 
+        # Extract NIIT LP variable when in optimize mode.
+        if "Jn" in vm:
+            self.J_n = vm["Jn"].extract(x)
+
         # Also add back non-taxable part of SS.
-        self.MAGI_n = (self.G_n + self.e_n + self.Q_n
-                       + np.sum((1 - self.Psi_n) * self.zetaBar_in, axis=0))
+        if "magi" in vm:
+            self.MAGI_n = vm["magi"].extract(x)
+        else:
+            self.MAGI_n = (self.G_n + self.e_n + self.Q_n
+                           + np.sum((1 - self.Psi_n) * self.zetaBar_in, axis=0))
 
         # Only positive returns count as interest/dividend income (matches _add_taxable_income).
         I_in = ((self.b_ijn[:, 0, :-1] + self.d_in - self.w_ijn[:, 0, :])

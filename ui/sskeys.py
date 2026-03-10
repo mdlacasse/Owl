@@ -512,11 +512,15 @@ def getSolveParameters():
     options["withMedicare"] = "none" if not medion else ("optimize" if mediopt else "loop")
     acaopt = getCaseKey("optimizeACA")
     options["withACA"] = "optimize" if acaopt else "loop"
+    ltcgopt = getCaseKey("optimizeLTCG")
+    options["withLTCG"] = "optimize" if ltcgopt else "loop"
+    niitopt = getCaseKey("optimizeNIIT")
+    options["withNIIT"] = "optimize" if niitopt else "loop"
     decomp_mode = getCaseKey("useDecomposition") or "none"
     # Treat legacy boolean True as "sequential"; force "none" if no optimize mode is active.
     if decomp_mode is True:
         decomp_mode = "sequential"
-    if not (mediopt or acaopt):
+    if not (mediopt or acaopt or ltcgopt or niitopt):
         decomp_mode = "none"
     options["withDecomposition"] = decomp_mode
 
