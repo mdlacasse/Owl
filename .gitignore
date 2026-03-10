@@ -96,3 +96,6 @@ secrets/
 # --------------------------------------------------
 CLAUDE.md
 .claude
+
+# Local dev Dockerfile (not for upstream PRs)
+docker/Dockerfile.dev
