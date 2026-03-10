@@ -1661,7 +1661,7 @@ class Plan:
         else:
             # Don't exclude anyone by default.
             i_xcluded = -1
-            if "noRothConversions" in options and options["noRothConversions"] != "None":
+            if "noRothConversions" in options and options["noRothConversions"] not in ("none", "None"):
                 rhsopt = options["noRothConversions"]
                 try:
                     i_xcluded = self.inames.index(rhsopt)
@@ -2660,7 +2660,8 @@ class Plan:
             "verbose",
             "withACA",        # ACA handling: "loop" (default) or "optimize"
             "bigMaca",        # Big-M for ACA bracket upper bounds (default: BIGM_AMO)
-            "withDecomposition",  # MIP decomposition: "none" (default) or "sequential"
+            "bendersMaxIter",      # Maximum Benders iterations (default: 50)
+            "withDecomposition",  # MIP decomposition: "none" (default), "sequential", or "benders"
             "withMedicare",
             "withSCLoop",
             "withSSTaxability",
@@ -2795,10 +2796,17 @@ class Plan:
         # Decomposition dispatch: for sequential mode, replace the monolithic MIP
         # with a hierarchical relax-and-fix solver (HiGHS only).
         decomp_mode = options.get("withDecomposition", "none")
-        if decomp_mode == "sequential" and solverMethod is self._milpSolve:
+        # Use __func__ comparison to identify solver regardless of bound method identity.
+        is_milp = getattr(solverMethod, "__func__", None) is Plan._milpSolve
+        is_mosek = getattr(solverMethod, "__func__", None) is Plan._mosekSolve
+        is_decomposable = is_milp or is_mosek
+        self._decomp_use_mosek = is_mosek   # consumed by _relax_and_fix_solve / _benders_solve
+        if decomp_mode == "sequential" and is_decomposable:
             actualSolverMethod = self._relax_and_fix_solve
+        elif decomp_mode == "benders" and is_decomposable:
+            actualSolverMethod = self._benders_solve
         else:
-            if decomp_mode not in ("none", "sequential"):
+            if decomp_mode not in ("none", "sequential", "benders"):
                 self.mylog.print(f"Unknown withDecomposition mode '{decomp_mode}'; using 'none'.")
             actualSolverMethod = solverMethod
 
@@ -2980,6 +2988,226 @@ class Plan:
 
         return obj_val, xx, success, h.modelStatusToString(ms), float(gap)
 
+    def _run_highs_lp_with_duals(self, A, B, c_obj, options, col_overrides=None):
+        """
+        Solve LP (no integrality) via HiGHS and return primal + row dual variables.
+        Used by Benders decomposition for optimality cut generation.
+
+        A, B, c_obj are abcapi objects (ConstraintMatrix, Bounds, Objective).
+        col_overrides: optional dict {col_idx: (lb, ub)} to pin specific columns.
+
+        Returns (obj, x, row_dual, success) where row_dual[i] is the dual variable
+        for row i (positive = lower bound active, negative = upper bound active).
+        Returns (None, zeros, zeros, False) on failure.
+        """
+        import highspy
+
+        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
+        verbose = options.get("verbose", False)
+
+        a_start, a_index, a_value = A.to_csr()
+        Lb, Ub = B.arrays()
+        if col_overrides:
+            for col, (lb, ub) in col_overrides.items():
+                Lb[col] = lb
+                Ub[col] = ub
+        lbvec = np.array(A.lb)
+        ubvec = np.array(A.ub)
+        c = c_obj.arrays()
+
+        h = highspy.Highs()
+        h.setOptionValue("output_flag", bool(verbose))
+        h.setOptionValue("time_limit", float(time_limit))
+
+        inf = highspy.kHighsInf
+        h.passModel(
+            len(c), len(lbvec), len(a_value),
+            int(highspy.MatrixFormat.kRowwise),
+            int(highspy.ObjSense.kMinimize),
+            0.0,
+            c.astype(np.float64),
+            np.where(np.isneginf(Lb), -inf, Lb).astype(np.float64),
+            np.where(np.isposinf(Ub), inf, Ub).astype(np.float64),
+            np.where(np.isneginf(lbvec), -inf, lbvec).astype(np.float64),
+            np.where(np.isposinf(ubvec), inf, ubvec).astype(np.float64),
+            a_start.astype(np.int32),
+            a_index.astype(np.int32),
+            a_value.astype(np.float64),
+            np.zeros(len(c), dtype=np.int32),   # LP: all continuous
+        )
+        h.run()
+
+        ms = h.getModelStatus()
+        if ms == highspy.HighsModelStatus.kOptimal:
+            sol = h.getSolution()
+            return (
+                float(h.getObjectiveValue()),
+                np.array(sol.col_value, dtype=np.float64),
+                np.array(sol.row_dual, dtype=np.float64),
+                True,
+            )
+        return None, np.zeros(len(c)), np.zeros(len(lbvec)), False
+
+    def _build_mosek_task(self, A, B, c_obj, col_overrides=None, int_vars=None, verbose=False):
+        """
+        Build and populate a MOSEK task from abcapi objects.
+        Configures the objective, variable/constraint bounds, and constraint matrix.
+        Caller is responsible for setting solver parameters before calling task.optimize().
+        Returns (task, ncons, nvars).
+        """
+        import mosek
+
+        bdic = {
+            "fx": mosek.boundkey.fx,
+            "fr": mosek.boundkey.fr,
+            "lo": mosek.boundkey.lo,
+            "ra": mosek.boundkey.ra,
+            "up": mosek.boundkey.up,
+        }
+
+        Aind, Aval, clb, cub = A.lists()
+        ckeys = A.keys()
+        vlb, vub = B.arrays()
+        vkeys = list(B.keys())     # copy so overrides don't mutate B
+        cind, cval = c_obj.lists()
+        ncons = A.ncons
+        nvars = A.nvars
+
+        if col_overrides:
+            for col, (lb, ub) in col_overrides.items():
+                vlb[col] = lb
+                vub[col] = ub
+                vkeys[col] = abc._bound_key(lb, ub)
+
+        task = mosek.Task()
+        task.set_Stream(mosek.streamtype.err, lambda t: self.mylog.vprint(t.strip()))
+        if verbose:
+            task.set_Stream(mosek.streamtype.msg, lambda t: self.mylog.vprint(t.strip()))
+        task.appendcons(ncons)
+        task.appendvars(nvars)
+
+        for ii in range(len(cind)):
+            task.putcj(cind[ii], cval[ii])
+        for ii in range(nvars):
+            task.putvarbound(ii, bdic[vkeys[ii]], float(vlb[ii]), float(vub[ii]))
+        if int_vars:
+            for ii in int_vars:
+                task.putvartype(int(ii), mosek.variabletype.type_int)
+        for i in range(ncons):
+            task.putarow(i, Aind[i], Aval[i])
+            task.putconbound(i, bdic[ckeys[i]], float(clb[i]), float(cub[i]))
+        task.putobjsense(mosek.objsense.minimize)
+
+        return task, ncons, nvars
+
+    def _run_mosek_lp_with_duals(self, A, B, c_obj, options, col_overrides=None):
+        """
+        Solve LP via MOSEK using abcapi objects; return primal + row dual variables.
+        Same return signature as _run_highs_lp_with_duals: (obj, x, row_dual, success).
+
+        A, B, c_obj are abcapi objects (ConstraintMatrix, Bounds, Objective).
+        col_overrides: optional dict {col_idx: (lb, ub)} to pin specific columns.
+        """
+        import mosek
+
+        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
+        task, ncons, nvars = self._build_mosek_task(A, B, c_obj, col_overrides=col_overrides)
+        task.putdouparam(mosek.dparam.optimizer_max_time, float(time_limit))
+
+        try:
+            task.optimize()
+        except mosek.Error:
+            return None, np.zeros(nvars), np.zeros(ncons), False
+
+        solsta = task.getsolsta(mosek.soltype.bas)
+        if solsta == mosek.solsta.optimal:
+            return (
+                float(task.getprimalobj(mosek.soltype.bas)),
+                np.array(task.getxx(mosek.soltype.bas)),
+                np.array(task.gety(mosek.soltype.bas)),
+                True,
+            )
+        return None, np.zeros(nvars), np.zeros(ncons), False
+
+    def _run_mosek_mip(self, A, B, c_obj, options, lp_relax=False, col_overrides=None):
+        """
+        Solve MIP (or LP when lp_relax=True) via MOSEK using abcapi objects.
+        Same return signature as _run_highs: (obj, x, success, msg, gap).
+
+        A, B, c_obj are abcapi objects (ConstraintMatrix, Bounds, Objective).
+        lp_relax: if True, treat all variables as continuous (LP solve).
+        col_overrides: optional dict {col_idx: (lb, ub)} to pin specific columns.
+        """
+        import mosek
+
+        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
+        mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
+        verbose = options.get("verbose", False)
+        int_vars = [] if lp_relax else B.integralityList()
+        task, ncons, nvars = self._build_mosek_task(A, B, c_obj, col_overrides=col_overrides,
+                                                    int_vars=int_vars, verbose=verbose)
+        task.putdouparam(mosek.dparam.mio_max_time, float(time_limit))
+        task.putdouparam(mosek.dparam.mio_tol_rel_gap, float(mygap))
+
+        try:
+            task.optimize()
+        except mosek.Error as e:
+            return None, np.zeros(nvars), False, f"MOSEK: {e.msg}", -1.0
+
+        if int_vars:
+            sol = mosek.soltype.itg
+            solsta = task.getsolsta(sol)
+            success = solsta in (mosek.solsta.integer_optimal, mosek.solsta.prim_feas)
+            gap = task.getdouinf(mosek.dinfitem.mio_obj_rel_gap) if success else -1.0
+        else:
+            sol = mosek.soltype.bas
+            solsta = task.getsolsta(sol)
+            success = (solsta == mosek.solsta.optimal)
+            gap = 0.0
+
+        if success:
+            return (
+                float(task.getprimalobj(sol)),
+                np.array(task.getxx(sol)),
+                True,
+                f"MOSEK: {solsta}",
+                float(gap),
+            )
+        return None, np.zeros(nvars), False, f"MOSEK: {solsta}", -1.0
+
+    def _run_lp_with_duals(self, A, B, c_obj, options, col_overrides=None):
+        """Dispatcher: LP solve with dual extraction for Benders (HiGHS or MOSEK)."""
+        if getattr(self, "_decomp_use_mosek", False):
+            return self._run_mosek_lp_with_duals(A, B, c_obj, options, col_overrides)
+        return self._run_highs_lp_with_duals(A, B, c_obj, options, col_overrides)
+
+    def _run_mip(self, A, B, c_obj, options, lp_relax=False, col_overrides=None, update_warm=True):
+        """
+        Dispatcher: MIP (or LP when lp_relax=True) solve for decomposition methods.
+        A, B, c_obj are abcapi objects (ConstraintMatrix, Bounds, Objective).
+        For HiGHS, uses and optionally updates self._highs_warm_start.
+        For MOSEK, delegates to _run_mosek_mip (no warm-start management needed).
+        """
+        if getattr(self, "_decomp_use_mosek", False):
+            return self._run_mosek_mip(A, B, c_obj, options, lp_relax=lp_relax, col_overrides=col_overrides)
+        # HiGHS path: extract CSR arrays from abcapi objects.
+        a_start, a_index, a_value = A.to_csr()
+        Lb, Ub = B.arrays()
+        if col_overrides:
+            for col, (lb, ub) in col_overrides.items():
+                Lb[col] = lb
+                Ub[col] = ub
+        lbvec = np.array(A.lb)
+        ubvec = np.array(A.ub)
+        integrality = np.zeros(A.nvars, dtype=np.int32) if lp_relax else B.integralityArray()
+        c = c_obj.arrays()
+        warm = self._highs_warm_start if update_warm else None
+        result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value, integrality, options,
+                                 warm_x=warm)
+        if result[2] and update_warm:
+            self._highs_warm_start = result[1].copy()
+        return result
+
     def _milpSolve(self, objective, options):
         """
         Solve using HiGHS directly via highspy, with MIP warm-start between SC iterations.
@@ -3024,39 +3252,23 @@ class Plan:
         """
         # Build constraints once for this SC iteration.
         self._buildConstraints(objective, options)
-        a_start, a_index, a_value = self.A.to_csr()
-        Lb, Ub = self.B.arrays()
-        lbvec = np.array(self.A.lb)
-        ubvec = np.array(self.A.ub)
-        integrality = self.B.integralityArray()
-        c = self.c.arrays()
 
         # Determine which binary families can be pre-fixed.
         # zx (Roth exclusion) must stay free -- it is a core optimization variable.
         fix_sequence = [name for name in ("zs", "zm", "za") if name in self.vm]
 
         if not fix_sequence:
-            # Nothing to decompose; delegate to standard monolithic MIP.
-            result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value,
-                                     integrality, options, warm_x=self._highs_warm_start)
-            if result[2]:
-                self._highs_warm_start = result[1].copy()
-            return result
+            # Nothing to decompose; delegate to monolithic MIP.
+            return self._run_mip(self.A, self.B, self.c, options)
 
         # ------------------------------------------------------------------
-        # Step 1: LP relaxation (integrality all-zero → HiGHS solves as LP).
+        # Step 1: LP relaxation (lp_relax=True → solver treats as LP).
         # ------------------------------------------------------------------
-        lp_integrality = np.zeros(self.nvars, dtype=np.int32)
-        lp_result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value,
-                                    lp_integrality, options, warm_x=self._highs_warm_start)
+        lp_result = self._run_mip(self.A, self.B, self.c, options, lp_relax=True, update_warm=False)
 
         if not lp_result[2]:
             self.mylog.vprint("Decomp: LP relaxation failed; falling back to monolithic MIP.")
-            result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value,
-                                     integrality, options, warm_x=self._highs_warm_start)
-            if result[2]:
-                self._highs_warm_start = result[1].copy()
-            return result
+            return self._run_mip(self.A, self.B, self.c, options)
 
         self.mylog.vprint(f"Decomp: LP relaxation done (obj={lp_result[0]:.0f}).")
         current_x = lp_result[1]
@@ -3066,20 +3278,20 @@ class Plan:
         #            solve a reduced MIP after each fixing.
         #            After the last family is fixed, only zx remains free (polish).
         # ------------------------------------------------------------------
-        fixed_Lb = Lb.copy()
-        fixed_Ub = Ub.copy()
+        col_overrides = {}
         best_result = None
+
+        # Seed HiGHS warm-start from LP solution before the first sub-solve.
+        if not getattr(self, "_decomp_use_mosek", False):
+            self._highs_warm_start = current_x
 
         for name in fix_sequence:
             block = self.vm[name]
             for flat_idx in range(block.start, block.end):
                 val = float(round(current_x[flat_idx]))
-                fixed_Lb[flat_idx] = val
-                fixed_Ub[flat_idx] = val
+                col_overrides[flat_idx] = (val, val)
 
-            sub_result = self._run_highs(c, fixed_Lb, fixed_Ub, lbvec, ubvec,
-                                         a_start, a_index, a_value,
-                                         integrality, options, warm_x=current_x)
+            sub_result = self._run_mip(self.A, self.B, self.c, options, col_overrides=col_overrides)
             if sub_result[2]:
                 self.mylog.vprint(f"Decomp: fixed '{name}', sub-solve succeeded (obj={sub_result[0]:.0f}).")
                 current_x = sub_result[1]
@@ -3091,12 +3303,179 @@ class Plan:
                 )
 
         if best_result is not None:
-            self._highs_warm_start = best_result[1].copy()
             return best_result
 
         # All sub-solves failed; return LP relaxation as fallback (not integral).
         self.mylog.vprint("Decomp: all sub-solves failed; returning LP relaxation result.")
         return lp_result[0], lp_result[1], True, "relax-and-fix: returned LP relaxation (non-integral)", 0.0
+
+    def _benders_solve(self, objective, options):
+        """
+        Benders decomposition (withDecomposition='benders').
+
+        Guarantees global optimality (within gap tolerance) via classical Benders decomposition:
+          - Master problem (MP): optimizes over bracket-selection binaries zm, za, zs.
+            Contains only the AMO constraints (one bracket per year) and Benders cuts.
+          - Subproblem (SP): given fixed zm*, za*, zs*, solves for all continuous variables
+            and Roth exclusion binaries zx.
+
+        Algorithm:
+          1. LP relaxation of the full problem → LB_init, initial z* (rounded).
+          2. Loop:
+             a. Fix z*; solve SP as LP (relax zx too) → LP dual pi → Benders cut.
+             b. Fix z*; solve SP as MIP (zx free) → UB update.
+             c. Check convergence: (UB - LB) / |UB| <= gap.
+             d. Solve master MIP with accumulated cuts → new LB, new z*.
+          3. Return best feasible solution found.
+
+        Falls back to monolithic MIP if no bracket binaries (zm, za, zs) are present.
+        """
+        self._buildConstraints(objective, options)
+        ncons = self.A.ncons
+        nvars = self.A.nvars
+
+        # Identify master binary columns: zm (Medicare), za (ACA), zs (SS taxability).
+        master_cols = []
+        for name in ("zm", "za", "zs"):
+            if name in self.vm:
+                blk = self.vm[name]
+                master_cols.extend(range(blk.start, blk.end))
+
+        if not master_cols:
+            return self._run_mip(self.A, self.B, self.c, options)
+
+        master_col_set = set(master_cols)
+        n_master = len(master_cols)
+        master_col_to_pos = {col: pos for pos, col in enumerate(master_cols)}
+
+        # Build column-to-row mapping (transpose of A) for efficient cut coefficient computation.
+        # Uses self.A.Aind / self.A.Aval (list-of-lists from abcapi.ConstraintMatrix).
+        col_rows = [[] for _ in range(nvars)]
+        for i, (inds, vals) in enumerate(zip(self.A.Aind, self.A.Aval)):
+            for j, v in zip(inds, vals):
+                col_rows[j].append((i, float(v)))
+
+        # Identify master-only rows: all non-zeros lie in master columns.
+        # These are the AMO constraints (Σ_q zm[n,q] = 1, etc.).
+        master_only_rows = [
+            i for i, inds in enumerate(self.A.Aind)
+            if inds and all(j in master_col_set for j in inds)
+        ]
+
+        # ---------------------------------------------------------------
+        # Master problem: variables = [z_0, ..., z_{n_master-1}, eta]
+        # Built using abcapi objects for solver-neutral interface.
+        # ---------------------------------------------------------------
+        mp_nvars = n_master + 1
+        eta_pos = n_master
+        BIG_ETA = 1e12
+
+        mp_B = abc.Bounds(mp_nvars, 0)     # no auto-binary; set manually below
+        for pos in range(n_master):
+            mp_B.setBinary(pos)            # z vars: [0, 1] binary
+        mp_B.setRange(eta_pos, -BIG_ETA, BIG_ETA)   # eta: continuous, unbounded
+
+        mp_c_obj = abc.Objective(mp_nvars)
+        mp_c_obj.setElem(eta_pos, 1.0)    # minimize eta
+
+        # Build static AMO rows in master A, remapping column indices to [0, n_master].
+        mp_A_static_rows = []   # list of (rowDic, lb, ub) for the AMO rows
+        for i in master_only_rows:
+            rowDic = {master_col_to_pos[j]: v for j, v in zip(self.A.Aind[i], self.A.Aval[i])}
+            mp_A_static_rows.append((rowDic, self.A.lb[i], self.A.ub[i]))
+
+        def _build_master_A(cuts):
+            """Return a fresh abcapi.ConstraintMatrix for the master MIP."""
+            mp_A = abc.ConstraintMatrix(mp_nvars)
+            for rowDic, lb, ub in mp_A_static_rows:
+                mp_A.addNewRow(rowDic, lb, ub)
+            for alpha, beta in cuts:
+                # Cut: eta >= alpha + beta^T z  <=>  eta - beta^T z >= alpha
+                cut_dic = {eta_pos: 1.0}
+                for pos in range(n_master):
+                    b = float(beta[pos])
+                    if b != 0.0:
+                        cut_dic[pos] = -b
+                mp_A.addNewRow(cut_dic, float(alpha), np.inf)
+            return mp_A
+
+        # ---------------------------------------------------------------
+        # Benders parameters and state.
+        # ---------------------------------------------------------------
+        max_iter = int(options.get("bendersMaxIter", 50))
+        mygap = float(options.get("gap", GAP))
+        UB = np.inf
+        LB = -np.inf
+        best_x = None
+        benders_cuts = []   # list of (alpha, beta_array)
+
+        # ---- Initial LP relaxation: provides LB and starting z* ----
+        lp_obj, lp_x, _, lp_ok = self._run_lp_with_duals(self.A, self.B, self.c, options)
+        if not lp_ok:
+            self.mylog.vprint("Benders: LP relaxation failed; falling back to monolithic MIP.")
+            return self._run_mip(self.A, self.B, self.c, options)
+
+        LB = lp_obj
+        self.mylog.vprint(f"Benders: LP relaxation LB = {LB:.0f}.")
+
+        # Initialize z* by rounding the LP solution at master binary positions.
+        z_star = np.array([round(lp_x[col]) for col in master_cols], dtype=np.float64)
+
+        # ---------------------------------------------------------------
+        # Benders main loop.
+        # ---------------------------------------------------------------
+        for biter in range(max_iter):
+            # -- Step A: Fix master binaries; solve SP as LP for dual extraction. --
+            sp_overrides = {col: (float(z_star[pos]), float(z_star[pos]))
+                            for pos, col in enumerate(master_cols)}
+
+            sp_lp_obj, _, pi, sp_lp_ok = self._run_lp_with_duals(
+                self.A, self.B, self.c, options, col_overrides=sp_overrides)
+            if not sp_lp_ok:
+                self.mylog.vprint(f"Benders iter {biter + 1}: SP LP failed; terminating early.")
+                break
+
+            # -- Step B: Generate Benders optimality cut. --
+            # beta_j = -sum_i pi_i * A[i,j] (by LP envelope theorem; sensitivity to z_j)
+            # cut: eta >= alpha + beta^T z, tight at z* (alpha = sp_lp_obj - beta^T z*)
+            beta = np.array([
+                -sum(pi[r] * v for r, v in col_rows[col])
+                for col in master_cols
+            ])
+            alpha = sp_lp_obj - float(beta @ z_star)
+            benders_cuts.append((alpha, beta))
+
+            # -- Step C: Fix master binaries; solve SP as MIP (zx free) to update UB. --
+            sp_mip_res = self._run_mip(self.A, self.B, self.c, options, col_overrides=sp_overrides)
+            if sp_mip_res[2] and sp_mip_res[0] is not None:
+                sp_mip_obj = sp_mip_res[0]
+                if sp_mip_obj < UB:
+                    UB = sp_mip_obj
+                    best_x = sp_mip_res[1].copy()
+            if UB < np.inf:
+                gap_val = (UB - LB) / max(abs(UB), 1.0)
+                self.mylog.vprint(
+                    f"Benders iter {biter + 1}: LB={LB:.0f}, UB={UB:.0f}, gap={gap_val:.4f}.")
+                if gap_val <= mygap:
+                    self.mylog.vprint(f"Benders: converged after {biter + 1} iterations.")
+                    break
+
+            # -- Step D: Solve master MIP with accumulated cuts → new LB and z*. --
+            mp_A = _build_master_A(benders_cuts)
+            mp_res = self._run_mip(mp_A, mp_B, mp_c_obj, options, update_warm=False)
+            if not mp_res[2] or mp_res[0] is None:
+                self.mylog.vprint(f"Benders iter {biter + 1}: master MIP failed; terminating.")
+                break
+            LB = max(LB, mp_res[0])
+            z_star = np.round(mp_res[1][:n_master]).astype(np.float64)
+
+        # Return best feasible solution, or fall back to monolithic MIP.
+        if best_x is not None:
+            final_gap = (UB - LB) / max(abs(UB), 1.0) if UB < np.inf and LB > -np.inf else -1.0
+            return UB, best_x, True, f"Benders ({len(benders_cuts)} cuts)", float(final_gap)
+
+        self.mylog.vprint("Benders: no feasible solution found; falling back to monolithic MIP.")
+        return self._run_mip(self.A, self.B, self.c, options)
 
     def _mosekSolve(self, objective, options):
         """
@@ -3104,69 +3483,24 @@ class Plan:
         """
         import mosek
 
-        bdic = {
-            "fx": mosek.boundkey.fx,
-            "fr": mosek.boundkey.fr,
-            "lo": mosek.boundkey.lo,
-            "ra": mosek.boundkey.ra,
-            "up": mosek.boundkey.up,
-        }
-
-        solverMsg = str()
-
-        def _streamPrinter(text):
-            self.mylog.vprint(text.strip())
-
         self._buildConstraints(objective, options)
-        Aind, Aval, clb, cub = self.A.lists()
-        ckeys = self.A.keys()
-        vlb, vub = self.B.arrays()
-        integrality = self.B.integralityList()
-        vkeys = self.B.keys()
-        cind, cval = self.c.lists()
-
         time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
         mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
-
         verbose = options.get("verbose", False)
+        int_vars = self.B.integralityList()
 
-        task = mosek.Task()
+        task, ncons, nvars = self._build_mosek_task(self.A, self.B, self.c,
+                                                    int_vars=int_vars, verbose=verbose)
         task.putdouparam(mosek.dparam.mio_max_time, time_limit)        # Default -1
         # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)       # Default 1e-10
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, mygap)          # Default 1e-4
         # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-5)   # Default 1e-5
         # task.putdouparam(mosek.iparam.mio_heuristic_level, 3)        # Default -1
 
-        # task.set_Stream(mosek.streamtype.wrn, _streamPrinter)
-        task.set_Stream(mosek.streamtype.err, _streamPrinter)
-        if verbose:
-            # task.set_Stream(mosek.streamtype.log, _streamPrinter)
-            task.set_Stream(mosek.streamtype.msg, _streamPrinter)
-
-        task.appendcons(self.A.ncons)
-        task.appendvars(self.A.nvars)
-
-        for ii in range(len(cind)):
-            task.putcj(cind[ii], cval[ii])
-
-        for ii in range(self.nvars):
-            task.putvarbound(ii, bdic[vkeys[ii]], vlb[ii], vub[ii])
-
-        for ii in range(len(integrality)):
-            task.putvartype(integrality[ii], mosek.variabletype.type_int)
-
-        for ii in range(self.A.ncons):
-            task.putarow(ii, Aind[ii], Aval[ii])
-            task.putconbound(ii, bdic[ckeys[ii]], clb[ii], cub[ii])
-
-        task.putobjsense(mosek.objsense.minimize)
-
         try:
             trmcode = task.optimize()
         except mosek.Error as e:
-            solverMsg = f"MOSEK: {e.msg}"
-            xx = np.zeros(self.A.nvars)
-            return 0.0, xx, False, solverMsg, -1
+            return 0.0, np.zeros(nvars), False, f"MOSEK: {e.msg}", -1
 
         # Problem MUST contain binary variables to make these calls.
         solsta = task.getsolsta(mosek.soltype.itg)

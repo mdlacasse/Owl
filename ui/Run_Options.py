@@ -38,7 +38,7 @@ kz.initCaseKey("computeMedicare", True)
 kz.initCaseKey("optimizeMedicare", False)
 kz.initCaseKey("slcspAnnual", 0)
 kz.initCaseKey("optimizeACA", False)
-kz.initCaseKey("useDecomposition", False)
+kz.initCaseKey("useDecomposition", "none")
 kz.initCaseKey("withSCLoop", True)
 kz.initCaseKey("ssTaxabilityMode", "loop")
 kz.initCaseKey("ssTaxabilityValue", 0.85)
@@ -111,9 +111,9 @@ else:
     with col3:
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
-            choices = ["None", iname0, iname1]
+            choices = ["none", iname0, iname1]
             kz.initCaseKey("noRothConversions", choices[0])
-            helpmsg = "`None` means no exclusion. To exclude both spouses, set `Maximum annual Roth conversion` to 0."
+            helpmsg = "`none` means no exclusion. To exclude both spouses, set `Maximum annual Roth conversion` to 0."
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions",
                               disabled=fromFile, help=helpmsg)
 
@@ -200,12 +200,16 @@ else:
                            "More accurate but slower. Only applies when SLCSP > 0.")
             ret = kz.getToggle("Optimize ACA (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff)
             decompoff = not (kz.getCaseKey("optimizeMedicare") or kz.getCaseKey("optimizeACA"))
-            helpmsg_decomp = ("Use sequential relax-and-fix MIP decomposition. "
-                              "Fixes Medicare and ACA bracket binaries sequentially before solving, "
-                              "reducing the number of simultaneous binary variables and speeding up "
-                              "convergence when both Optimize Medicare and Optimize ACA are active. "
-                              "Heuristic: not guaranteed globally optimal.")
-            ret = kz.getToggle("Sequential MIP decomposition (expert)", "useDecomposition",
+            decomp_choices = ["none", "sequential", "benders"]
+            helpmsg_decomp = (
+                "'none': monolithic MIP (default). "
+                "'sequential': relax-and-fix heuristic — fixes Medicare/ACA/SS bracket binaries "
+                "sequentially; fast but not guaranteed globally optimal. "
+                "'benders': classical Benders decomposition — certified globally optimal within "
+                "the MIP gap; slower per iteration but provably correct. "
+                "Only applies when Optimize Medicare or Optimize ACA is active."
+            )
+            ret = kz.getRadio("MIP decomposition (expert)", decomp_choices, "useDecomposition",
                                help=helpmsg_decomp, disabled=decompoff)
         with col2:
             kz.initCaseKey("amoSurplus", True)

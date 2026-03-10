@@ -983,7 +983,7 @@ against future IRMAA simultaneously.
 - *Disallow same-year Roth conversions and tax-free withdrawals*
 - *Disallow cash-flow surpluses in the last two years of the plan*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *Sequential MIP decomposition* (expert): when Optimize Medicare or Optimize ACA is active, fixes bracket binary variables sequentially before the final solve to reduce MIP complexity.
+- *MIP decomposition* (expert): when Optimize Medicare or Optimize ACA is active, an alternative solve strategy can be selected. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
 - *Solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
@@ -998,13 +998,10 @@ Choose `default` to auto-select MOSEK when available, otherwise HiGHS.
 The *Extra solver options (expert)* field accepts a JSON dictionary (e.g. `{"key": "value"}`)
 that is merged into the solver options; leave empty unless experimenting.
 This option is mostly for developer use and verification purposes.
-Both solvers tested (HiGHS and MOSEK) provided very similar results.
-Due to the mixed-integer formulation, solver performance is sometimes unpredictable.
-In general, CBC tends to be slower, partly because of the algorithm,
-and partly because it solves the problem through a model description saved in
-a temporary file requiring I/O.
+Both solvers (HiGHS and MOSEK) provide very similar results.
 In most cases, `MOSEK` will provide the best performance.
-Otherwise, selecting `HiGHS` will provide comparable results in a little more time.
+Selecting `HiGHS` will provide comparable results in a little more time.
+Both solvers support all decomposition modes (sequential and Benders).
 
 The time profile modulating the net spending amount
 can be selected to either be `flat` or follow a `smile` shape.
