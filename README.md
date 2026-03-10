@@ -27,10 +27,10 @@ There are three ways to run Owl (from easiest to more complex):
 [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
 
 1) **Docker Container:** Run Owl locally on your computer using a Docker image.
-Follow these [instructions](docker/README.md) for using this option.
+Follow these <a href="docker/README.md" target="_blank" rel="noopener noreferrer">instructions</a> for using this option.
 
 1) **Self-hosting:** Run Owl locally on your computer using Python code and libraries.
-Follow these [instructions](INSTALL.md) to install from the source code and self-host on your own computer.
+Follow these <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">instructions</a> to install from the source code and self-host on your own computer.
 
 
 ---------------------------------------------------------------
@@ -38,19 +38,19 @@ Follow these [instructions](INSTALL.md) to install from the source code and self
 
 | Document | Description |
 |---------|-------------|
-| [INSTALL.md](INSTALL.md) | Installation guide, Python environment setup, and developer build steps |
-| [USER_GUIDE.md](USER_GUIDE.md) | Python API usage with examples for Jupyter notebooks and scripts |
-| [PARAMETERS.md](PARAMETERS.md) | Complete reference for TOML case file parameters |
-| [RATE_MODELS.md](RATE_MODELS.md) | Available rate models (historical, stochastic, bootstrap, etc.) |
-| [docs/modeling-capabilities.md](docs/modeling-capabilities.md) | Summary of modeled components, assumptions, and limitations |
-| [papers/owl.tex](papers/) | Mathematical foundations (PDF build via LaTeX) |
+| <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">INSTALL.md</a> | Installation guide, Python environment setup, and developer build steps |
+| <a href="USER_GUIDE.md" target="_blank" rel="noopener noreferrer">USER_GUIDE.md</a> | Python API usage with examples for Jupyter notebooks and scripts |
+| <a href="PARAMETERS.md" target="_blank" rel="noopener noreferrer">PARAMETERS.md</a> | Complete reference for TOML case file parameters |
+| <a href="RATE_MODELS.md" target="_blank" rel="noopener noreferrer">RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
+| <a href="docs/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">docs/modeling-capabilities.md</a> | Summary of modeled components, assumptions, and limitations |
+| <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.tex</a> | Mathematical foundations (PDF build via LaTeX) |
 
 Documentation for the app user interface is also available from the [Streamlit UI](https://owlplanner.streamlit.app/Documentation).
 
 ---------------------------------------------------------------------
 
 ## Credits and Acknowledgements
-See [CREDITS.md](CREDITS.md).
+See <a href="CREDITS.md" target="_blank" rel="noopener noreferrer">CREDITS.md</a>.
 
 ## Bugs and Feature Requests
 Please submit bugs and feature requests through
