@@ -16,7 +16,6 @@ the Free Software Foundation, either version 3 of the License, or
 """
 
 import numpy as np
-import pytest
 from datetime import date
 
 import owlplanner as owl

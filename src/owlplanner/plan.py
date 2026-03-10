@@ -1028,7 +1028,8 @@ class Plan:
 
         self.mylog.vprint(f"Asset allocation interpolation method set to '{method}'.")
 
-    def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None, taxFree=None, hsa=None, generic=None):
+    def setAllocationRatios(self, allocType, taxable=None, taxDeferred=None,  # noqa: C901
+                            taxFree=None, hsa=None, generic=None):
         """
         Single function for setting all types of asset allocations.
         Allocation types are 'account', 'individual', and 'spouses'.
@@ -2442,17 +2443,22 @@ class Plan:
                 row.addElem(self.vm["h"].idx(nn, q), 1)
 
             if n < 2:
+                # MAGI for the first two plan years is known (prevMAGI from user-supplied data).
                 self.A.addRow(row, self.prevMAGI[n], self.prevMAGI[n])
-                # Fix bracket selection for known previous MAGI.
-                magi = self.prevMAGI[n]
-                qsel = 0
-                for q in range(1, self.N_irmaa):
-                    if magi > self.Lbar_nq[nn, q - 1]:
-                        qsel = q
-                for q in range(self.N_irmaa):
-                    idx = self.vm["zm"].idx(nn, q)
-                    val = 1 if q == qsel else 0
-                    self.B.setRange(idx, val, val)
+                # In monolithic MIP mode, pre-fix the bracket to eliminate binary variables.
+                # Skip pre-fixing for Benders decomposition: the master-SP architecture
+                # requires all zm columns to remain free so the master can assign brackets
+                # consistently with the subproblem LP.
+                if options.get("withDecomposition", "none") != "benders":
+                    magi = self.prevMAGI[n]
+                    qsel = 0
+                    for q in range(1, self.N_irmaa):
+                        if magi > self.Lbar_nq[nn, q - 1]:
+                            qsel = q
+                    for q in range(self.N_irmaa):
+                        idx = self.vm["zm"].idx(nn, q)
+                        val = 1 if q == qsel else 0
+                        self.B.setRange(idx, val, val)
                 continue
 
             n2 = n - 2
@@ -3501,9 +3507,13 @@ class Plan:
         if not getattr(self, "_decomp_use_mosek", False):
             self._highs_warm_start = current_x
 
+        Lb_all, Ub_all = self.B.arrays()
+
         for name in fix_sequence:
             block = self.vm[name]
             for flat_idx in range(block.start, block.end):
+                if Lb_all[flat_idx] >= Ub_all[flat_idx] - 1e-9:   # already fixed, skip
+                    continue
                 val = float(round(current_x[flat_idx]))
                 col_overrides[flat_idx] = (val, val)
 
@@ -3525,7 +3535,7 @@ class Plan:
         self.mylog.vprint("Decomp: all sub-solves failed; returning LP relaxation result.")
         return lp_result[0], lp_result[1], True, "relax-and-fix: returned LP relaxation (non-integral)", 0.0
 
-    def _benders_solve(self, objective, options):
+    def _benders_solve(self, objective, options):  # noqa: C901
         """
         Benders decomposition (withDecomposition='benders').
 
@@ -3547,15 +3557,20 @@ class Plan:
         Falls back to monolithic MIP if no bracket binaries (zm, za, zs) are present.
         """
         self._buildConstraints(objective, options)
-        ncons = self.A.ncons
         nvars = self.A.nvars
 
         # Identify master binary columns: zl (LTCG), zm (Medicare), za (ACA), zs (SS taxability), zj (NIIT).
+        # Exclude columns that are already hard-fixed (Lb == Ub), e.g. zm years with known prevMAGI.
+        # Including fixed columns in the master causes the SP to become infeasible when the master
+        # assigns a value that conflicts with the fixed bound in self.B.
+        Lb_all, Ub_all = self.B.arrays()
         master_cols = []
         for name in ("zl", "zm", "za", "zs", "zj"):
             if name in self.vm:
                 blk = self.vm[name]
-                master_cols.extend(range(blk.start, blk.end))
+                for col in range(blk.start, blk.end):
+                    if Lb_all[col] < Ub_all[col] - 1e-9:   # skip fixed columns
+                        master_cols.append(col)
 
         if not master_cols:
             return self._run_mip(self.A, self.B, self.c, options)
@@ -3606,7 +3621,7 @@ class Plan:
             for rowDic, lb, ub in mp_A_static_rows:
                 mp_A.addNewRow(rowDic, lb, ub)
             for alpha, beta in cuts:
-                # Cut: eta >= alpha + beta^T z  <=>  eta - beta^T z >= alpha
+                # Optimality cut: eta >= alpha + beta^T z  <=>  eta - beta^T z >= alpha
                 cut_dic = {eta_pos: 1.0}
                 for pos in range(n_master):
                     b = float(beta[pos])
@@ -3632,10 +3647,58 @@ class Plan:
             return self._run_mip(self.A, self.B, self.c, options)
 
         LB = lp_obj
-        self.mylog.vprint(f"Benders: LP relaxation LB = {LB:.0f}.")
+        self.mylog.vprint(f"Benders: LP relaxation UB = {-LB:.0f}.")
 
-        # Initialize z* by rounding the LP solution at master binary positions.
-        z_star = np.array([round(lp_x[col]) for col in master_cols], dtype=np.float64)
+        # Initialize z* from the LP solution.
+        # For bracket-selector families that have a companion h (MAGI-portion) block
+        # (zm↔h for Medicare, za↔haca for ACA), use the dominant h-bracket rather than
+        # rounding the fractional zm value directly.  Rounding zm can assign a bracket
+        # whose MAGI range is incompatible with the continuous variables in the LP solution,
+        # making the SP LP infeasible on the very first iteration.  Using argmax(h) is
+        # robust: the h values reflect where MAGI is actually allocated in the LP relaxation,
+        # so the selected bracket always contains the LP-optimal MAGI.
+        # For other families (zs, zl, zj) that have no companion h block, fall back to
+        # rounding the LP values.
+        h_companions = {name: h_name
+                        for name, h_name in (("zm", "h"), ("za", "haca"))
+                        if name in self.vm and h_name in self.vm
+                        and self.vm[name].shape == self.vm[h_name].shape}
+        h_init_pos = set()
+        z_star = np.zeros(n_master, dtype=np.float64)
+        for name, h_name in h_companions.items():
+            z_blk = self.vm[name]
+            h_blk = self.vm[h_name]
+            Nrows, Nq = z_blk.shape
+            for nn in range(Nrows):
+                h_vals = np.array([lp_x[h_blk.idx(nn, q)] for q in range(Nq)])
+                best_q = int(np.argmax(h_vals))
+                for q in range(Nq):
+                    col = z_blk.idx(nn, q)
+                    if col in master_col_to_pos:
+                        pos = master_col_to_pos[col]
+                        z_star[pos] = 1.0 if q == best_q else 0.0
+                        h_init_pos.add(pos)
+        for pos, col in enumerate(master_cols):
+            if pos not in h_init_pos:
+                z_star[pos] = float(round(lp_x[col]))
+
+        # Fix all zm (Medicare bracket) positions in the master problem bounds to their
+        # h-based values.  The Medicare IRMAA bracket selection is tightly coupled to
+        # continuous MAGI variables: any bracket that differs from the LP relaxation's
+        # h-based assignment will make the SP LP infeasible (MAGI can't fit in the
+        # wrong bracket range).  By pinning zm in the master, we avoid wasted iterations
+        # where the master proposes infeasible bracket changes.  Medicare bracket
+        # optimization is still handled correctly by the SC loop's self-consistent
+        # iteration; the master only needs to decompose over other binary families
+        # (zl, zs, zj, za).
+        if "zm" in self.vm:
+            z_blk = self.vm["zm"]
+            for nn in range(z_blk.shape[0]):
+                for q in range(z_blk.shape[1]):
+                    col = z_blk.idx(nn, q)
+                    if col in master_col_to_pos:
+                        pos = master_col_to_pos[col]
+                        mp_B.setRange(pos, z_star[pos], z_star[pos])
 
         # ---------------------------------------------------------------
         # Benders main loop.
@@ -3671,7 +3734,7 @@ class Plan:
             if UB < np.inf:
                 gap_val = (UB - LB) / max(abs(UB), 1.0)
                 self.mylog.vprint(
-                    f"Benders iter {biter + 1}: LB={LB:.0f}, UB={UB:.0f}, gap={gap_val:.4f}.")
+                    f"Benders iter {biter + 1}: LB={-UB:.0f}, UB={-LB:.0f}, gap={gap_val:.4f}.")
                 if gap_val <= mygap:
                     self.mylog.vprint(f"Benders: converged after {biter + 1} iterations.")
                     break
@@ -3683,7 +3746,18 @@ class Plan:
                 self.mylog.vprint(f"Benders iter {biter + 1}: master MIP failed; terminating.")
                 break
             LB = max(LB, mp_res[0])
-            z_star = np.round(mp_res[1][:n_master]).astype(np.float64)
+            z_star_new = np.round(mp_res[1][:n_master]).astype(np.float64)
+            # Convergence check: gap closed after master update.
+            if UB < np.inf:
+                gap_val = (UB - LB) / max(abs(UB), 1.0)
+                if gap_val <= mygap:
+                    self.mylog.vprint(f"Benders: converged after {biter + 1} iterations.")
+                    break
+            # Stall detection: master returned the same z_star → no further progress possible.
+            if np.array_equal(z_star_new, z_star):
+                self.mylog.vprint(f"Benders iter {biter + 1}: z* unchanged; terminating.")
+                break
+            z_star = z_star_new
 
         # Return best feasible solution, or fall back to monolithic MIP.
         if best_x is not None:

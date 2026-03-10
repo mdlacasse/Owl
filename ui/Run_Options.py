@@ -221,7 +221,7 @@ else:
                 "Only applies when Optimize Medicare or Optimize ACA is active."
             )
             ret = kz.getRadio("MIP decomposition (expert)", decomp_choices, "useDecomposition",
-                               help=helpmsg_decomp, disabled=decompoff)
+                              help=helpmsg_decomp, disabled=decompoff)
         with col2:
             kz.initCaseKey("amoSurplus", True)
             helpmsg = ("Enable at-most-one (AMO) exclusive constraints between surplus deposits"

@@ -14,9 +14,9 @@ the Free Software Foundation, either version 3 of the License, or
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # Known top-level section names (used for extracting unknown keys)
@@ -180,6 +180,111 @@ class Results(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     default_plots: str = Field(default="nominal", description="nominal or today")
+
+
+class SolverOptions(BaseModel):
+    """
+    Solver options for the optimization routine.
+
+    Single source of truth for option names, types, and validation.
+    Accepts both camelCase (internal/TOML) and snake_case (CLI via alias).
+    Unknown keys are preserved (extra='allow') for forward compatibility.
+    """
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    # Core solver selection and limits
+    solver: Optional[Literal["default", "HiGHS", "MOSEK"]] = None
+    maxTime: Optional[float] = Field(default=None, alias="max_time", description="Solver time limit (seconds)")
+    gap: Optional[float] = None
+    verbose: Optional[bool] = None
+
+    # Tolerances
+    absTol: Optional[float] = None
+    relTol: Optional[float] = None
+    epsilon: Optional[float] = None
+
+    # Iteration limits
+    maxIter: Optional[int] = None
+    bendersMaxIter: Optional[int] = None
+
+    # Roth conversion options (float or "file")
+    maxRothConversion: Optional[Union[float, str]] = None
+    noRothConversions: Optional[str] = None
+
+    startRothConversions: Optional[int] = None
+    swapRothConverters: Optional[int] = None
+
+    @field_validator("maxRothConversion", mode="before")
+    @classmethod
+    def _coerce_max_roth(cls, v: Any) -> Any:
+        if v is None or v == "file":
+            return v
+        if isinstance(v, (int, float)):
+            return float(v)
+        if isinstance(v, str) and v.strip():
+            try:
+                return float(v)
+            except ValueError:
+                return v  # e.g. "file" stays as str
+        return v
+
+    # Objectives and constraints
+    bequest: Optional[float] = None
+    netSpending: Optional[float] = None
+    minTaxableBalance: Optional[List[float]] = None
+    spendingSlack: Optional[int] = None
+    noLateSurplus: Optional[bool] = None
+
+    # AMO / Big-M
+    amoConstraints: Optional[bool] = None
+    amoRoth: Optional[bool] = None
+    amoSurplus: Optional[bool] = None
+    bigMamo: Optional[float] = None
+    bigMaca: Optional[float] = None
+    bigMss: Optional[float] = None
+    bigMltcg: Optional[float] = None
+    bigMniit: Optional[float] = None
+
+    # Medicare, ACA, LTCG, NIIT, SS taxability
+    withMedicare: Optional[Union[str, bool]] = None
+    withACA: Optional[str] = None
+    withLTCG: Optional[str] = None
+    withNIIT: Optional[str] = None
+    withSSTaxability: Optional[Union[str, float]] = None
+    withDecomposition: Optional[str] = None
+    withSCLoop: Optional[bool] = None
+
+    # Other
+    previousMAGIs: Optional[List[float]] = None
+    oppCostX: Optional[float] = None
+    units: Optional[str] = None
+
+
+def parse_solver_options(raw: dict) -> dict:
+    """
+    Validate and coerce solver options through the schema.
+
+    Single source of truth for parsing: used by TOML load, plan_bridge, and CLI.
+    Returns a dict suitable for plan.solverOptions.
+    """
+    if not raw:
+        return {}
+    validated = SolverOptions.model_validate(raw)
+    # Exclude None to avoid overwriting plan defaults
+    dumped = validated.model_dump(by_alias=False, exclude_none=True)
+    # model_dump includes extras when extra='allow'; merge model_extra if present
+    extras = getattr(validated, "model_extra", None)
+    if extras:
+        dumped.update(extras)
+    return dumped
+
+
+# Map CLI flag names (snake_case) to schema field names (camelCase)
+CLI_SOLVER_OVERRIDE_MAP = {
+    "max_time": "maxTime",
+    "max-time": "maxTime",
+}
 
 
 class CaseConfig(BaseModel):
