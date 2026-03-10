@@ -1,0 +1,23 @@
+# docker/Dockerfile.dev — builds from local source for development
+
+FROM python:3.13-alpine
+
+WORKDIR /app
+
+RUN apk update; apk upgrade; apk add bash curl git
+
+COPY docker/runentrypoint.sh /usr/bin/entrypoint.sh
+RUN chmod 555 /usr/bin/entrypoint.sh
+
+RUN python -m pip install --no-cache-dir --upgrade pip
+
+# Copy local source (build context must be repo root)
+COPY . /app/owl/
+
+RUN cd /app/owl && grep -vi mosek requirements.txt | python -m pip install -r /dev/stdin
+
+EXPOSE 8501
+
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+
+ENTRYPOINT ["/bin/bash", "/usr/bin/entrypoint.sh"]
