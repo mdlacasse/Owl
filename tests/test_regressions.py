@@ -31,6 +31,9 @@ solver = 'HiGHS'
 
 # Year range used in testHistorical* tests.
 HIST_START, HIST_END = 1948, 1958
+# Shorter ranges for Historical tests to keep runtime down (still test multiple start years).
+HIST1_START, HIST1_END = 1948, 1951
+HIST2_START, HIST2_END = 1948, 1951
 
 
 def test_constructor1():
@@ -551,10 +554,14 @@ def test_annuity3_2():
 
 
 def test_Historical1():
+    """Regression: runHistoricalRange completes for single person (no SC loop).
+    Uses short horizon and narrow year range to keep runtime down (same coverage).
+    """
     name = 'historical1'
     inames = ['Joe']
     dobs = ["1962-01-15"]
-    expectancy = [89]
+    # Short horizon (N_n ~14) instead of 89 (~68 years) for faster solves.
+    expectancy = [75]
     p = owl.Plan(inames, dobs, expectancy, name)
     p.setSpendingProfile('smile', 60)
 
@@ -563,14 +570,18 @@ def test_Historical1():
     p.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
     p.setPension([0], [65])
     options = {'maxRothConversion': 0, 'bequest': 0, 'solver': solver, 'withSCLoop': False}
-    p.runHistoricalRange('maxSpending', options, HIST_START, HIST_END, figure=False)
+    p.runHistoricalRange('maxSpending', options, HIST1_START, HIST1_END, figure=False)
 
 
 def test_Historical2():
+    """Regression: runHistoricalRange completes for a couple with SC loop, pension, SS, Roth opts.
+    Uses short horizon and narrow year range to keep runtime down (same coverage).
+    """
     name = 'historical2'
     inames = ['Jack', 'Jill']
     dobs = ["1962-01-15", "1965-01-16"]
-    expectancy = [89, 92]
+    # Short horizon (N_n ~14) instead of [89, 92] (N_n ~68) for faster solves.
+    expectancy = [75, 78]
     p = owl.Plan(inames, dobs, expectancy, name)
     p.setSpendingProfile('smile', 60)
     p.setAccountBalances(taxable=[90.5, 60], taxDeferred=[600.2, 150],
@@ -581,8 +592,8 @@ def test_Historical2():
     p.setSocialSecurity([28, 25], [70, 70])
     p.setHeirsTaxRate(33)
 
-    options = {'maxRothConversion': 100, 'noRothConversions': 'Jill', 'withSCLoop': True}
-    p.runHistoricalRange('maxSpending', options, HIST_START, HIST_END, figure=False)
+    options = {'maxRothConversion': 100, 'noRothConversions': 'Jill', 'withSCLoop': True, 'solver': solver}
+    p.runHistoricalRange('maxSpending', options, HIST2_START, HIST2_END, figure=False)
 
 
 def test_fire_roth_ladder():

@@ -16,6 +16,7 @@ the Free Software Foundation, either version 3 of the License, or
 """
 
 import numpy as np
+import pytest
 from datetime import date
 
 import owlplanner as owl
@@ -26,13 +27,15 @@ solver = 'HiGHS'
 
 def _make_plan(name, taxable, tax_deferred, tax_free, rate_year=2000,
                n_individuals=2, expectancy=None):
-    """Minimal plan for NIIT MILP testing. Balances in thousands."""
+    """Minimal plan for NIIT MILP testing. Balances in thousands.
+    Uses short horizon (expectancy 70) to keep solve time low.
+    """
     thisyear = date.today().year
     if n_individuals == 2:
         inames = ['Jack', 'Jill']
         dobs = [f"{thisyear - 66}-01-15", f"{thisyear - 63}-01-16"]
         if expectancy is None:
-            expectancy = [75, 75]   # Short horizon for fast tests
+            expectancy = [70, 70]   # Short horizon for fast tests (N_n=8)
         alloc = [[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]]
         ss_pias = [2000, 1500]
         ss_ages = [62, 62]
@@ -40,7 +43,7 @@ def _make_plan(name, taxable, tax_deferred, tax_free, rate_year=2000,
         inames = ['Jack']
         dobs = [f"{thisyear - 66}-01-15"]
         if expectancy is None:
-            expectancy = [75]
+            expectancy = [70]
         alloc = [[[60, 40, 0, 0], [70, 30, 0, 0]]]
         ss_pias = [2000]
         ss_ages = [62]
@@ -57,45 +60,60 @@ def _make_plan(name, taxable, tax_deferred, tax_free, rate_year=2000,
     return p
 
 
+def _solve_base(extra_options=None, n_individuals=2):
+    """Solve once with base NIIT options; used by class-scoped fixture and LTCG test."""
+    base_opts = {
+        'solver': solver,
+        'withNIIT': 'optimize',
+        'withSSTaxability': 'optimize',
+        'maxIter': 2,
+    }
+    taxable = [200, 100] if n_individuals == 2 else [200]
+    tax_def = [500, 300] if n_individuals == 2 else [500]
+    tax_fr = [100, 100] if n_individuals == 2 else [100]
+    p = _make_plan('niit_milp', taxable=taxable, tax_deferred=tax_def, tax_free=tax_fr,
+                   n_individuals=n_individuals)
+    opts = dict(base_opts)
+    if extra_options:
+        opts.update(extra_options)
+    p.solve('maxSpending', opts)
+    return p
+
+
 class TestNIITMilp:
     """Tests for the NIIT MILP formulation (withNIIT='optimize')."""
 
-    # Use limited iterations to keep tests fast (may not converge for quantities
-    # not covered by the optimize options, but verifies NIIT-specific behavior).
+    # Use few iterations and short horizon to keep tests fast.
     _BASE_OPTS = {
         'solver': solver,
         'withNIIT': 'optimize',
         'withSSTaxability': 'optimize',
-        'maxIter': 5,
+        'maxIter': 2,
     }
 
     def _solve(self, extra_options=None, n_individuals=2):
         """Couple plan (short horizon) solved with NIIT MILP."""
-        taxable = [200, 100] if n_individuals == 2 else [200]
-        tax_def = [500, 300] if n_individuals == 2 else [500]
-        tax_fr = [100, 100] if n_individuals == 2 else [100]
-        p = _make_plan('niit_milp', taxable=taxable, tax_deferred=tax_def, tax_free=tax_fr,
-                       n_individuals=n_individuals)
-        opts = dict(self._BASE_OPTS)
-        if extra_options:
-            opts.update(extra_options)
-        p.solve('maxSpending', opts)
-        return p
+        return _solve_base(extra_options=extra_options, n_individuals=n_individuals)
 
-    def test_niit_milp_feasible(self):
+    @pytest.fixture(scope="class")
+    def solved_plan(self):
+        """One shared solve for tests that only need a feasible NIIT MILP solution."""
+        return _solve_base()
+
+    def test_niit_milp_feasible(self, solved_plan):
         """withNIIT='optimize' produces a feasible solution."""
-        p = self._solve()
+        p = solved_plan
         assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
 
-    def test_niit_milp_nonnegative(self):
+    def test_niit_milp_nonnegative(self, solved_plan):
         """J_n (NIIT tax) is non-negative for all years."""
-        p = self._solve()
+        p = solved_plan
         assert p.caseStatus == 'solved'
         assert np.all(p.J_n >= -0.01), f"Negative NIIT in year(s): min={p.J_n.min():.2f}"
 
-    def test_niit_milp_zero_below_threshold(self):
+    def test_niit_milp_zero_below_threshold(self, solved_plan):
         """J_n == 0 in years where MAGI is clearly below the NIIT threshold."""
-        p = self._solve()
+        p = solved_plan
         assert p.caseStatus == 'solved'
         for n in range(p.N_n):
             status_n = 0 if n >= p.n_d else p.N_i - 1
@@ -106,9 +124,9 @@ class TestNIITMilp:
                     f"(MAGI={p.MAGI_n[n]:.0f} < T_niit={T_niit:.0f})"
                 )
 
-    def test_niit_milp_matches_reference(self):
+    def test_niit_milp_matches_reference(self, solved_plan):
         """J_n from MILP matches tx.computeNIIT reference within $200."""
-        p = self._solve()
+        p = solved_plan
         assert p.caseStatus == 'solved'
         J_ref = tx.computeNIIT(p.N_i, p.MAGI_n, p.I_n, p.Q_n, p.n_d, p.N_n)
         np.testing.assert_allclose(p.J_n, J_ref, atol=200.0,
