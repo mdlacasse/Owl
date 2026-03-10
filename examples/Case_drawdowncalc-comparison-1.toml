@@ -55,7 +55,7 @@ startRothConversions = 2026
 solver = "default"
 spendingSlack = 0
 withSCLoop = false
-withMedicare = "None"
+withMedicare = "none"
 
 [results]
 default_plots = "today"
