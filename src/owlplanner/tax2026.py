@@ -28,7 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 from datetime import date
 
-from owlplanner.tables import JOINT_LIFE_TABLE
+from owlplanner.data.irs_joint_table import JOINT_LIFE_TABLE
 
 # Sentinel: used as default yOBBBA meaning "OBBBA never expires / far future".
 _YEAR_FAR_FUTURE = 2099
