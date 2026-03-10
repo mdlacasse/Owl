@@ -4,7 +4,8 @@ Tests for tax2026.py: taxBrackets() and rho_in() edge cases.
 Coverage targets:
   - taxBrackets() — single, MFJ, spouse-death transition, OBBBA→preTCJA transition,
     invalid N_i, and past yOBBBA error paths
-  - rho_in() — RuntimeError guards for >10 year age gap and longevity > 120
+  - rho_in() — Table II (Joint Life) for >10 year age gap, Table III otherwise,
+    and RuntimeError guard for longevity > 120
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 
@@ -140,18 +141,76 @@ def test_taxBrackets_past_yobbba_raises():
 # rho_in()
 # ---------------------------------------------------------------------------
 
-def test_rho_in_age_difference_over_10_raises():
-    thisyear = date.today().year
-    yobs = [thisyear - 60, thisyear - 72]  # 12-year age gap
-    with pytest.raises(RuntimeError, match="age difference"):
-        tx.rho_in(yobs, [85, 85], 20)
-
-
 def test_rho_in_longevity_over_120_raises():
     thisyear = date.today().year
     yobs = [thisyear - 60]
     with pytest.raises(RuntimeError, match="over 120"):
         tx.rho_in(yobs, [121], 20)
+
+
+# ---------------------------------------------------------------------------
+# rho_in() — Table II (Joint and Last Survivor) vs Table III (Uniform Lifetime)
+# Reference values from IRS Publication 590-B, Appendix B, Table II (2022+).
+# ---------------------------------------------------------------------------
+
+def test_rho_in_table_ii_used_when_gap_over_10():
+    """Owner with spouse >10 years younger uses Table II (lower RMD fraction)."""
+    thisyear = date.today().year
+    # Owner age 73, spouse age 58 → gap = 15 → Table II applies
+    owner_yob = thisyear - 73
+    spouse_yob = thisyear - 58
+    rho = tx.rho_in([owner_yob, spouse_yob], [90, 90], 1)
+    # Table II factor for owner=73, spouse=58 is larger than Table III (26.5),
+    # so the RMD fraction should be smaller than 1/26.5.
+    table_iii_fraction = 1.0 / 26.5
+    assert rho[0][0] < table_iii_fraction
+
+
+def test_rho_in_table_iii_used_when_gap_exactly_10():
+    """Age gap of exactly 10 years uses Table III (the rule is 'more than 10')."""
+    thisyear = date.today().year
+    # Owner age 73, spouse age 63 → gap = 10 → Table III applies
+    owner_yob = thisyear - 73
+    spouse_yob = thisyear - 63
+    rho = tx.rho_in([owner_yob, spouse_yob], [90, 90], 1)
+    # Table III factor for age 73 is 26.5
+    assert rho[0][0] == pytest.approx(1.0 / 26.5)
+
+
+def test_rho_in_table_iii_used_when_gap_under_10():
+    """Age gap under 10 years uses Table III."""
+    thisyear = date.today().year
+    owner_yob = thisyear - 73
+    spouse_yob = thisyear - 68  # gap = 5
+    rho = tx.rho_in([owner_yob, spouse_yob], [90, 90], 1)
+    assert rho[0][0] == pytest.approx(1.0 / 26.5)
+
+
+def test_rho_in_table_iii_used_when_spouse_older():
+    """Spouse older than owner (negative gap) uses Table III."""
+    thisyear = date.today().year
+    owner_yob = thisyear - 73
+    spouse_yob = thisyear - 80  # spouse is older
+    rho = tx.rho_in([owner_yob, spouse_yob], [90, 90], 1)
+    assert rho[0][0] == pytest.approx(1.0 / 26.5)
+
+
+def test_rho_in_table_ii_spot_check_owner73_spouse58():
+    """Spot-check: owner=73, spouse=58 → Table II factor from IRS Pub 590-B."""
+    thisyear = date.today().year
+    rho = tx.rho_in([thisyear - 73, thisyear - 58], [90, 90], 1)
+    from owlplanner.tables import JOINT_LIFE_TABLE
+    expected = 1.0 / JOINT_LIFE_TABLE[73][58]
+    assert rho[0][0] == pytest.approx(expected)
+
+
+def test_rho_in_table_ii_no_longer_raises_for_large_gap():
+    """Plan creation with >10 year age gap should no longer raise RuntimeError."""
+    thisyear = date.today().year
+    yobs = [thisyear - 72, thisyear - 48]  # 24-year gap
+    rho = tx.rho_in(yobs, [90, 90], 5)
+    assert rho.shape == (2, 5)
+    assert np.any(rho[0] > 0)
 
 
 # ---------------------------------------------------------------------------

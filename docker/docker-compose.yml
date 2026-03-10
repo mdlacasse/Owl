@@ -1,6 +1,8 @@
 services:
   owl:
-    image: owlplanner/owldocker
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
     restart: always
     ports:
       - 8501:8501
