@@ -38,6 +38,9 @@ kz.initCaseKey("computeMedicare", True)
 kz.initCaseKey("optimizeMedicare", False)
 kz.initCaseKey("slcspAnnual", 0)
 kz.initCaseKey("optimizeACA", False)
+kz.initCaseKey("optimizeLTCG", False)
+kz.initCaseKey("optimizeNIIT", False)
+kz.initCaseKey("useDecomposition", "none")
 kz.initCaseKey("withSCLoop", True)
 kz.initCaseKey("ssTaxabilityMode", "loop")
 kz.initCaseKey("ssTaxabilityValue", 0.85)
@@ -110,9 +113,9 @@ else:
     with col3:
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
-            choices = ["None", iname0, iname1]
+            choices = ["none", iname0, iname1]
             kz.initCaseKey("noRothConversions", choices[0])
-            helpmsg = "`None` means no exclusion. To exclude both spouses, set `Maximum annual Roth conversion` to 0."
+            helpmsg = "`none` means no exclusion. To exclude both spouses, set `Maximum annual Roth conversion` to 0."
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions",
                               disabled=fromFile, help=helpmsg)
 
@@ -196,8 +199,29 @@ else:
             ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff)
             acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
             helpmsg_aca = ("Co-optimize ACA bracket selection within the LP. "
-                          "More accurate but slower. Only applies when SLCSP > 0.")
+                           "More accurate but slower. Only applies when SLCSP > 0.")
             ret = kz.getToggle("Optimize ACA (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff)
+            helpmsg_ltcg = ("Optimize LTCG bracket selection using binary variables. "
+                            "Replaces self-consistent loop for LTCG ordinary income stacking. "
+                            "More accurate but slower.")
+            ret = kz.getToggle("Optimize LTCG brackets (expert)", "optimizeLTCG", help=helpmsg_ltcg)
+            helpmsg_niit = ("Optimize NIIT (Net Investment Income Tax) within the MIP. "
+                            "Replaces self-consistent loop for NIIT computation. "
+                            "Only effective when Optimize LTCG is also enabled.")
+            ret = kz.getToggle("Optimize NIIT (expert)", "optimizeNIIT", help=helpmsg_niit)
+            decompoff = not (kz.getCaseKey("optimizeMedicare") or kz.getCaseKey("optimizeACA")
+                             or kz.getCaseKey("optimizeLTCG") or kz.getCaseKey("optimizeNIIT"))
+            decomp_choices = ["none", "sequential", "benders"]
+            helpmsg_decomp = (
+                "'none': monolithic MIP (default). "
+                "'sequential': relax-and-fix heuristic — fixes Medicare/ACA/SS bracket binaries "
+                "sequentially; fast but not guaranteed globally optimal. "
+                "'benders': classical Benders decomposition — certified globally optimal within "
+                "the MIP gap; slower per iteration but provably correct. "
+                "Only applies when Optimize Medicare or Optimize ACA is active."
+            )
+            ret = kz.getRadio("MIP decomposition (expert)", decomp_choices, "useDecomposition",
+                              help=helpmsg_decomp, disabled=decompoff)
         with col2:
             kz.initCaseKey("amoSurplus", True)
             helpmsg = ("Enable at-most-one (AMO) exclusive constraints between surplus deposits"
@@ -238,7 +262,7 @@ else:
 
         st.divider()
         st.markdown("#### :orange[Solver]")
-        choices = ["default", "HiGHS", "PuLP/CBC", "PuLP/HiGHS"]
+        choices = ["default", "HiGHS"]
         kz.initCaseKey("solver", choices[0])
         kz.initCaseKey("xtraOptions", "")
 

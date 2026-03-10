@@ -979,11 +979,20 @@ period where pre-Medicare MAGI also determines early IRMAA amounts.
 enable *Optimize Medicare* for high-income retirees where IRMAA surcharges are significant;
 enable both when retiring in the early 60s with high income, so the LP can trade off ACA costs
 against future IRMAA simultaneously.
+- *Optimize LTCG brackets (expert)* – replaces the self-consistent loop for LTCG ordinary income
+  stacking with an exact MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
+  so the optimizer simultaneously finds the best withdrawal strategy and bracket assignment.
+  Can be slower due to additional binary variables; most useful for high-income plans where LTCG bracket
+  placement significantly affects the objective.
+- *Optimize NIIT (expert)* – replaces the self-consistent loop for NIIT with an exact MILP formulation.
+  Binary variables determine whether MAGI exceeds the NIIT threshold ($200k single / $250k MFJ) each year.
+  Most effective when *Optimize LTCG* is also enabled, since MAGI depends on ordinary income stacking.
 - *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*
 - *Disallow same-year Roth conversions and tax-free withdrawals*
 - *Disallow cash-flow surpluses in the last two years of the plan*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *Solver* selection (default, HiGHS, PuLP/CBC, PuLP/HiGHS, or MOSEK if available), plus optional extra solver options.
+- *MIP decomposition* (expert): when any of Optimize Medicare, Optimize ACA, Optimize LTCG, or Optimize NIIT is active, an alternative solve strategy can be selected. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
+- *Solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
@@ -997,15 +1006,10 @@ Choose `default` to auto-select MOSEK when available, otherwise HiGHS.
 The *Extra solver options (expert)* field accepts a JSON dictionary (e.g. `{"key": "value"}`)
 that is merged into the solver options; leave empty unless experimenting.
 This option is mostly for developer use and verification purposes.
-All solvers tested
-(HiGHS, COIN-OR Branch-and-Cut solver through PuLP, HiGHS through PuLP, and MOSEK)
-provided very similar results.
-Due to the mixed-integer formulation, solver performance is sometimes unpredictable.
-In general, CBC tends to be slower, partly because of the algorithm,
-and partly because it solves the problem through a model description saved in
-a temporary file requiring I/O.
+Both solvers (HiGHS and MOSEK) provide very similar results.
 In most cases, `MOSEK` will provide the best performance.
-Otherwise, selecting `HiGHS` will provide comparable results in a little more time.
+Selecting `HiGHS` will provide comparable results in a little more time.
+Both solvers support all decomposition modes (sequential and Benders).
 
 The time profile modulating the net spending amount
 can be selected to either be `flat` or follow a `smile` shape.

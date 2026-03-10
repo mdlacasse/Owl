@@ -19,7 +19,7 @@ from owlplanner.rate_models.constants import (
 from owlplanner.rate_models.loader import load_rate_model
 
 from .constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
-from .schema import KNOWN_SECTIONS
+from .schema import KNOWN_SECTIONS, parse_solver_options
 
 if TYPE_CHECKING:
     from owlplanner.plan import Plan
@@ -184,19 +184,30 @@ def _apply_optimization_to_plan(plan: "Plan", known: dict) -> None:
 
 def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
     """Apply solver options from config to plan."""
-    plan.solverOptions = dict(known.get("solver_options", {}))
+    raw = known.get("solver_options", {})
+    plan.solverOptions = parse_solver_options(raw)
     if "withMedicare" not in plan.solverOptions:
         plan.solverOptions["withMedicare"] = "loop"
     if "withSSTaxability" not in plan.solverOptions:
         plan.solverOptions["withSSTaxability"] = "loop"
+    if "withLTCG" not in plan.solverOptions:
+        plan.solverOptions["withLTCG"] = "loop"
+    if "withNIIT" not in plan.solverOptions:
+        plan.solverOptions["withNIIT"] = "loop"
     if "withSCLoop" not in plan.solverOptions:
         plan.solverOptions["withSCLoop"] = True
     with_medicare = plan.solverOptions.get("withMedicare")
     if isinstance(with_medicare, bool):
         # Legacy TOML compat: pre-2025 files used withMedicare = true/false.
-        plan.solverOptions["withMedicare"] = "loop" if with_medicare else "None"
-    name_opt = plan.solverOptions.get("noRothConversions", "None")
-    if name_opt != "None" and name_opt not in plan.inames:
+        plan.solverOptions["withMedicare"] = "loop" if with_medicare else "none"
+    elif with_medicare == "None":
+        # Legacy TOML compat: old files used capital "None".
+        plan.solverOptions["withMedicare"] = "none"
+    name_opt = plan.solverOptions.get("noRothConversions", "none")
+    if name_opt == "None":
+        # Legacy TOML compat: old files used capital "None".
+        name_opt = plan.solverOptions["noRothConversions"] = "none"
+    if name_opt != "none" and name_opt not in plan.inames:
         raise ValueError(f"Unknown name {name_opt} for noRothConversions.")
     this_year = date.today().year
     year = plan.solverOptions.get("startRothConversions", this_year)

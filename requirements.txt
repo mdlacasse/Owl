@@ -312,8 +312,6 @@ ptyprocess==0.7.0 ; os_name != 'nt' or (sys_platform != 'emscripten' and sys_pla
     # via
     #   pexpect
     #   terminado
-pulp==3.3.0
-    # via owlplanner
 pure-eval==0.2.3
     # via stack-data
 pyarrow==23.0.1

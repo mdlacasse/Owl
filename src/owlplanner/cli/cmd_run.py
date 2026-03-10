@@ -25,6 +25,10 @@ from loguru import logger
 import owlplanner as owl
 from pathlib import Path
 
+from owlplanner.config.schema import CLI_SOLVER_OVERRIDE_MAP, parse_solver_options
+
+from .params_help import print_solver_options_help
+
 
 def validate_toml(ctx, param, value: Path):
     if value is None:
@@ -48,7 +52,30 @@ def validate_toml(ctx, param, value: Path):
     return value
 
 
-@click.command(name="run")
+def _parse_solver_opts(value):
+    """Parse KEY=VALUE pairs for --solver-opt. Returns list of (key, value) tuples.
+    Values are strings; schema coerces on validation."""
+    if not value:
+        return []
+    result = []
+    for item in value:
+        if "=" not in item:
+            raise click.BadParameter(
+                f"Each --solver-opt must be KEY=VALUE (e.g. solver=HiGHS). Got: {item!r}"
+            )
+        key, _, val = item.partition("=")
+        key = key.strip()
+        if not key:
+            raise click.BadParameter("Option key cannot be empty")
+        result.append((key, val.strip()))
+    return result
+
+
+@click.command(
+    name="run",
+    epilog="Solver options can also be set in the [solver_options] section of the TOML file. "
+    "Use --help-solver-options to list all options from PARAMETERS.md.",
+)
 @click.argument(
     "filename",
     type=click.Path(exists=False, dir_okay=False, path_type=Path),
@@ -60,25 +87,80 @@ def validate_toml(ctx, param, value: Path):
     type=click.Choice(["no", "first", "last"], case_sensitive=False),
     default="first",
     show_default=True,
-    help="Include config TOML sheet at the first or last position.",
+    help="Include case TOML as a worksheet: first tab, last tab, or omit.",
 )
-def cmd_run(filename: Path, with_config: str):
-    """Run the solver for an input OWL plan file.
+@click.option(
+    "--solver",
+    type=click.Choice(["default", "HiGHS", "MOSEK"], case_sensitive=True),
+    default=None,
+    help="Solver to use. 'default' picks MOSEK if licensed, else HiGHS.",
+)
+@click.option(
+    "--max-time",
+    type=float,
+    default=None,
+    help="Solver time limit in seconds.",
+)
+@click.option(
+    "--gap",
+    type=float,
+    default=None,
+    help="MIP relative gap tolerance (e.g. 1e-4).",
+)
+@click.option(
+    "--verbose/--no-verbose",
+    "verbose",
+    default=None,
+    help="Enable solver verbosity.",
+)
+@click.option(
+    "--solver-opt",
+    "solver_opts",
+    multiple=True,
+    help="Override solver option as KEY=VALUE. Repeat for multiple. E.g. --solver-opt maxRothConversion=50.",
+)
+@click.option(
+    "--help-solver-options",
+    is_flag=True,
+    is_eager=True,
+    expose_value=False,
+    callback=lambda ctx, param, value: (print_solver_options_help(), ctx.exit(0)) if value else None,
+    help="Show all solver options (parsed from PARAMETERS.md) and exit.",
+)
+def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose, solver_opts):
+    """Run the retirement planning optimizer on an OWL case file.
 
-    FILENAME is the OWL plan file to run. If no extension is provided,
-    .toml will be appended. The file must exist.
+    Loads the case from FILENAME (a .toml file), solves the optimization
+    problem, and writes results to an Excel workbook. The output file is
+    named by appending '_results.xlsx' to the input stem.
 
-    An output Excel file with results will be created in the current directory.
-    The output filename is derived from the input filename by appending
-    '_results.xlsx' to the stem of the input filename.
-
-    Optionally include the case configuration as a TOML worksheet.
-
+    Solver options are read from the [solver_options] section of the TOML
+    file. Command-line flags override those values. Use --solver-opt to
+    set any option (see PARAMETERS.md for the full list).
     """
     logger.debug(f"Executing the run command with file: {filename}")
 
     plan = owl.readConfig(str(filename), logstreams="loguru", loadHFP=True)
-    plan.solve(plan.objective, plan.solverOptions)
+    opts = dict(plan.solverOptions)
+
+    if solver is not None:
+        opts["solver"] = solver
+    if max_time is not None:
+        opts["maxTime"] = max_time
+    if gap is not None:
+        opts["gap"] = gap
+    if verbose is not None:
+        opts["verbose"] = verbose
+    for key, val in _parse_solver_opts(solver_opts):
+        canonical_key = CLI_SOLVER_OVERRIDE_MAP.get(key, key)
+        opts[canonical_key] = val
+
+    try:
+        opts = parse_solver_options(opts)
+    except Exception as e:
+        raise click.BadParameter(str(e)) from e
+
+    plan.solve(plan.objective, opts)
     click.echo(f"Case status: {plan.caseStatus}")
     if plan.caseStatus == "solved":
         output_filename = filename.with_name(filename.stem + "_results.xlsx")

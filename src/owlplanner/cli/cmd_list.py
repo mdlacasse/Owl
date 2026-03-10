@@ -34,10 +34,10 @@ import owlplanner as owl
     default=".",
 )
 def cmd_list(directory):
-    """
-    List OWL plan files in a directory.
+    """List OWL case files (.toml) in a directory.
 
-    DIRECTORY defaults to the current directory.
+    Shows file name, plan name, and whether the associated Household Financial
+    Plan (HFP) file exists. DIRECTORY defaults to the current directory.
     """
     logger.debug(f"Listing plans in directory: {directory}")
 
