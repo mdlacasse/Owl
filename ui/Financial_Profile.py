@@ -88,11 +88,12 @@ that has not yet been uploaded.""")
                 st.rerun()
     with col2:
         tomlexcase = kz.getCaseKey("tomlexcase")
+        mytype = "primary" if kz.getCaseKey("stTimeLists") is None else "secondary"
         if tomlexcase is not None and tomlex.hasHFPExample(tomlexcase):
             st.markdown("#### :orange[Load Example HFP Workbook]")
             st.markdown("Read associated HFP workbook.")
             helpmsg = "Load associated HFP workbook from GitHub"
-            st.button("Load example workbook", help=helpmsg,
+            st.button("Load example workbook", help=helpmsg, type=mytype,
                       on_click=loadWCExample, args=[tomlexcase])
 
     st.divider()
