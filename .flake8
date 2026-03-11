@@ -6,5 +6,5 @@ extend-exclude = .venv,*/site-packages/*
 per-file-ignores =
     ui/Documentation.py: E501
     */Documentation.py: E501
-    src/owlplanner/data/irs_joint_table.py: E501
-    */irs_joint_table.py: E501
+    src/owlplanner/data/irs_590b_table_ii.py: E501
+    */irs_590b_table_ii.py: E501

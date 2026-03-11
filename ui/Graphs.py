@@ -20,6 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import time
 import streamlit as st
 
 import sskeys as kz
@@ -31,35 +32,51 @@ ret = kz.titleBar(":material/stacked_line_chart: Graphs")
 if ret is None or kz.caseHasNoPlan():
     st.info("A case must first be created before running this page.")
 else:
-    if kz.caseIsRunReady():
-        owb.runPlan()
-    elif kz.caseHasNotRun():
-        st.info("Case definition is not yet complete. Please visit all pages in *Plan Setup*.")
+    if kz.isSolving():
+        # --- SOLVING STATE: spinner + Stop button + poll ---
+        st.markdown("Optimize a single scenario based on the parameters selected in the **Plan Setup** section.")
+        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
+        with col3:
+            st.button("Stop Solve", type="secondary", on_click=owb.stopSolve)
 
-    st.markdown("Optimize a single scenario based on the parameters selected in the **Plan Setup** section.")
-    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
-    with col1:
-        choices = ["nominal", "today"]
-        kz.initCaseKey("plots", choices[0])
-        helpmsg = "Plot can be in today's dollars or in nominal value."
-        ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg,
-                          callback=owb.setDefaultPlots)
-
-    with col3:
-        helpmsg = "Re-run the case, or generate a new set of stochastic rates."
-        st.button(
-            "Re-run",
-            help=helpmsg,
-            on_click=owb.runPlan,
-            disabled=kz.caseIsNotRunReady(),
-        )
-
-    if kz.isCaseUnsolved():
-        st.divider()
-        st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
+        with st.spinner("Solving... please wait."):
+            done = owb.pollSolveThread()
+            if done:
+                st.rerun()
+            else:
+                time.sleep(0.5)
+                st.rerun()
     else:
-        if kz.getGlobalKey("plotGlobalBackend") == "plotly":
-            st.markdown("")
-            st.caption("Tip: Click on legend items in the graphs below to show or hide individual curves.")
-        st.divider()
-        owb.plotSingleResults()
+        # --- NORMAL STATE: auto-run if ready, show Re-run button ---
+        if kz.caseIsRunReady() and not kz.getCaseKey("autoRunBlocked"):
+            owb.runPlan()
+            st.rerun()
+        elif kz.caseHasNotRun():
+            st.info("Case definition is not yet complete. Please visit all pages in *Plan Setup*.")
+
+        st.markdown("Optimize a single scenario based on the parameters selected in the **Plan Setup** section.")
+        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
+        with col1:
+            choices = ["nominal", "today"]
+            kz.initCaseKey("plots", choices[0])
+            helpmsg = "Plot can be in today's dollars or in nominal value."
+            ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg,
+                              callback=owb.setDefaultPlots)
+        with col3:
+            helpmsg = "Re-run the case, or generate a new set of stochastic rates."
+            st.button(
+                "Re-run",
+                help=helpmsg,
+                on_click=owb.runPlan,
+                disabled=kz.caseIsNotRunReady(),
+            )
+
+        if kz.isCaseUnsolved():
+            st.divider()
+            st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
+        else:
+            if kz.getGlobalKey("plotGlobalBackend") == "plotly":
+                st.markdown("")
+                st.caption("Tip: Click on legend items in the graphs below to show or hide individual curves.")
+            st.divider()
+            owb.plotSingleResults()

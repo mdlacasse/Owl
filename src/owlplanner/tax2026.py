@@ -28,7 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 from datetime import date
 
-from owlplanner.data.irs_joint_table import JOINT_LIFE_TABLE
+from owlplanner.data.irs_590b import JOINT_LIFE_TABLE, UNIFORM_LIFETIME_DIVISOR_BY_AGE
 
 # Sentinel: used as default yOBBBA meaning "OBBBA never expires / far future".
 _YEAR_FAR_FUTURE = 2099
@@ -705,59 +705,6 @@ def rho_in(yobs, longevity, N_n):
       - RMDs apply only to tax-deferred accounts (j=1). Roth accounts (j=2) are
         exempt; Roth 401(k) RMDs were eliminated by SECURE 2.0 §325 for 2024+.
     """
-    # Notice that table starts at age 72.
-    rmdTable = [
-        27.4,
-        26.5,
-        25.5,
-        24.6,
-        23.7,
-        22.9,
-        22.0,
-        21.1,
-        20.2,
-        19.4,
-        18.5,
-        17.7,
-        16.8,
-        16.0,
-        15.2,
-        14.4,
-        13.7,
-        12.9,
-        12.2,
-        11.5,
-        10.8,
-        10.1,
-        9.5,
-        8.9,
-        8.4,
-        7.8,
-        7.3,
-        6.8,
-        6.4,
-        6.0,
-        5.6,
-        5.2,
-        4.9,
-        4.6,
-        4.3,
-        4.1,
-        3.9,
-        3.7,
-        3.5,
-        3.4,
-        3.3,
-        3.1,
-        3.0,
-        2.9,
-        2.8,
-        2.7,
-        2.5,
-        2.3,
-        2.0
-    ]
-
     N_i = len(yobs)
     if np.any(np.array(longevity) > 120):
         raise RuntimeError(
@@ -785,6 +732,6 @@ def rho_in(yobs, longevity, N_n):
                 spouse_key = min(max(spouse_age, 20), 120)
                 rho[i][n] = 1.0 / JOINT_LIFE_TABLE[owner_key][spouse_key]
             else:
-                rho[i][n] = 1.0 / rmdTable[yage - 72]
+                rho[i][n] = 1.0 / UNIFORM_LIFETIME_DIVISOR_BY_AGE[yage]
 
     return rho

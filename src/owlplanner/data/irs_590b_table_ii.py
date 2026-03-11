@@ -9,6 +9,8 @@ younger than the account owner. Indexed as JOINT_LIFE_TABLE[owner_age][spouse_ag
 # For use when spouse is sole designated beneficiary and more than 10 years younger than owner.
 # Indexed as: JOINT_LIFE_TABLE[owner_age][spouse_age]
 # Owner/spouse ages 20-120 (120 represents '120+' in the IRS table).
+
+
 JOINT_LIFE_TABLE = {
     20: {20: 72.0, 21: 71.5, 22: 71.0, 23: 70.6, 24: 70.2, 25: 69.8, 26: 69.5, 27: 69.1, 28: 68.8, 29: 68.5},
     21: {20: 71.5, 21: 71.0, 22: 70.5, 23: 70.0, 24: 69.6, 25: 69.2, 26: 68.8, 27: 68.5, 28: 68.1, 29: 67.8},

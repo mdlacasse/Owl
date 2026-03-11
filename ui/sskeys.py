@@ -151,6 +151,10 @@ def isIncomplete():
     )
 
 
+def isSolving():
+    return bool(getCaseKey("solving"))
+
+
 def caseHasNotRun():
     return getCaseKey("caseStatus") not in ["solved", "unsuccessful"]
 
@@ -356,6 +360,7 @@ def setCaseKey(key, val):
 def flagModified():
     ss.cases[ss.currentCase]["caseStatus"] = "modified"
     ss.cases[ss.currentCase]["summaryDf"] = None
+    ss.cases[ss.currentCase]["autoRunBlocked"] = False
 
 
 def storeCaseKey(key, val):

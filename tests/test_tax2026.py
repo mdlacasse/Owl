@@ -199,7 +199,7 @@ def test_rho_in_table_ii_spot_check_owner73_spouse58():
     """Spot-check: owner=73, spouse=58 → Table II factor from IRS Pub 590-B."""
     thisyear = date.today().year
     rho = tx.rho_in([thisyear - 73, thisyear - 58], [90, 90], 1)
-    from owlplanner.data.irs_joint_table import JOINT_LIFE_TABLE
+    from owlplanner.data.irs_590b import JOINT_LIFE_TABLE
     expected = 1.0 / JOINT_LIFE_TABLE[73][58]
     assert rho[0][0] == pytest.approx(expected)
 
