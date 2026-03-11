@@ -695,15 +695,18 @@ def rho_in(yobs, longevity, N_n):
 
     Uses IRS Publication 590-B (effective 2022) tables:
       - Table III (Uniform Lifetime): single filers and married couples with
-        spouse 10 or fewer years younger.
+        spouse 10 or fewer years younger, or when spouse is no longer alive.
       - Table II (Joint and Last Survivor): married couples where the spouse is
-        the sole designated beneficiary and more than 10 years younger than the
-        account owner. Table starts at age 72; index [0] = age 72 (divisor 27.4).
+        the sole designated beneficiary, more than 10 years younger than the
+        account owner, and still alive. Table starts at age 72; index [0] = age 72 (divisor 27.4).
 
     Limitations:
       - Inherited IRA / beneficiary RMD rules are not modeled.
       - RMDs apply only to tax-deferred accounts (j=1). Roth accounts (j=2) are
         exempt; Roth 401(k) RMDs were eliminated by SECURE 2.0 §325 for 2024+.
+      - The spouse is assumed to be the sole designated beneficiary (not verified).
+      - Age difference is computed from birth years; at the 10-year boundary, this
+        may differ by 1 year from actual Dec 31 ages depending on birth months.
     """
     N_i = len(yobs)
     if np.any(np.array(longevity) > 120):
@@ -720,12 +723,14 @@ def rho_in(yobs, longevity, N_n):
         # Use Table II when spouse is sole beneficiary and >10 years younger.
         j = 1 - i  # index of the other spouse
         use_table2 = N_i == 2 and (yobs[j] - yobs[i]) > 10
+        # Spouse's planning horizon (years from thisyear); after this, revert to Table III.
+        spouse_horizon = yobs[j] + longevity[j] - thisyear + 1 if use_table2 else N_n
         for n in range(N_n):
             yage = agenow + n
 
             if yage < yrmd:
                 pass  # rho[i][n] = 0
-            elif use_table2:
+            elif use_table2 and n < spouse_horizon:
                 # IRS Pub 590-B Table II (Joint and Last Survivor)
                 spouse_age = (thisyear - yobs[j]) + n
                 owner_key = min(max(yage, 20), 120)

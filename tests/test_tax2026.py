@@ -213,6 +213,29 @@ def test_rho_in_table_ii_no_longer_raises_for_large_gap():
     assert np.any(rho[0] > 0)
 
 
+def test_rho_in_table_ii_reverts_to_table_iii_after_spouse_dies():
+    """Table II must NOT be used after the younger spouse's planning horizon ends."""
+    thisyear = date.today().year
+    # Owner born 20 years before spouse; owner is 73 now.
+    yobs = [thisyear - 73, thisyear - 53]  # 20-year gap → Table II eligible
+    # Spouse dies at age 60 (horizon = 7 years from now).
+    longevity = [95, 60]
+    spouse_horizon = yobs[1] + longevity[1] - thisyear + 1  # = 8 years
+
+    N_n = 25
+    rho = tx.rho_in(yobs, longevity, N_n)
+
+    # Before spouse dies: owner should use Table II (lower fraction than Table III).
+    rho_table3_before = 1.0 / tx.UNIFORM_LIFETIME_DIVISOR_BY_AGE[73]
+    assert rho[0, 0] < rho_table3_before, "Expected Table II (lower RMD) before spouse death"
+
+    # After spouse dies: owner must switch to Table III.
+    rho_table3_after = 1.0 / tx.UNIFORM_LIFETIME_DIVISOR_BY_AGE[73 + spouse_horizon]
+    assert rho[0, spouse_horizon] == pytest.approx(rho_table3_after), (
+        "Expected Table III after spouse death"
+    )
+
+
 # ---------------------------------------------------------------------------
 # OBBBA 65+ bonus deduction phaseout (OBBBA §1002)
 # Phaseout: $6 per $100 of MAGI above threshold. Full phaseout at threshold + $100k.

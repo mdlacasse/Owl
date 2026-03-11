@@ -21,8 +21,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # flake8: noqa: E402
 
-import threading
-
 import streamlit as st
 import pandas as pd
 from io import StringIO, BytesIO
@@ -142,8 +140,18 @@ def prepareRun(plan):
     _setContributions(plan, "set")
 
 
-def _runPlanSync(plan):
-    """Synchronous solve used by runAllCases (blocking)."""
+def runAllCases():
+    currentCase = kz.currentCaseName()
+    for case in kz.onlyCaseNames():
+        # Being here, current case must be fine.
+        if case != currentCase:
+            kz.switchToCaseName(case)
+            runPlan()
+    kz.switchToCaseName(currentCase)
+
+
+@_checkPlan
+def runPlan(plan):
     prepareRun(plan)
 
     objective, options = kz.getSolveParameters()
@@ -162,77 +170,6 @@ def _runPlanSync(plan):
     else:
         kz.storeCaseKey("summaryDf", None)
         kz.storeCaseKey("casetoml", "")
-
-
-def runAllCases():
-    currentCase = kz.currentCaseName()
-    for case in kz.onlyCaseNames():
-        # Being here, current case must be fine.
-        if case != currentCase:
-            kz.switchToCaseName(case)
-            plan = kz.getCaseKey("plan")
-            if plan is not None:
-                _runPlanSync(plan)
-    kz.switchToCaseName(currentCase)
-
-
-@_checkPlan
-def runPlan(plan):
-    kz.storeCaseKey("autoRunBlocked", False)
-    prepareRun(plan)
-
-    objective, options = kz.getSolveParameters()
-
-    result_holder = {"done": False}
-    kz.storeCaseKey("solveResultHolder", result_holder)
-    kz.storeCaseKey("solving", True)
-
-    def _solve():
-        try:
-            plan.solve(objective, options=options)
-            result_holder["caseStatus"] = plan.caseStatus
-            result_holder["success"] = True
-        except Exception as e:
-            result_holder["error"] = str(e)
-            result_holder["success"] = False
-        finally:
-            result_holder["done"] = True
-
-    thread = threading.Thread(target=_solve, daemon=True)
-    thread.start()
-
-
-@_checkPlan
-def pollSolveThread(plan):
-    """Check if background solve thread has finished; process results if so.
-    Returns True if done, False if still running."""
-    result_holder = kz.getCaseKey("solveResultHolder") or {}
-    if not result_holder.get("done"):
-        return False
-
-    kz.storeCaseKey("solving", False)
-    if result_holder.get("success"):
-        kz.storeCaseKey("caseStatus", plan.caseStatus)
-        if plan.caseStatus == "solved":
-            kz.storeCaseKey("summaryDf", plan.summaryDf())
-            kz.storeCaseKey("casetoml", getCaseString().getvalue())
-        else:
-            kz.storeCaseKey("summaryDf", None)
-            kz.storeCaseKey("casetoml", "")
-    else:
-        error = result_holder.get("error", "Unknown error")
-        st.error(f"Solution failed: {error}")
-        kz.storeCaseKey("caseStatus", "exception")
-        kz.storeCaseKey("summaryDf", None)
-    return True
-
-
-def stopSolve():
-    """Abandon the running solve thread (daemon — will die with session).
-    Case reverts to whatever status it had before the solve started."""
-    kz.storeCaseKey("solving", False)
-    kz.storeCaseKey("solveResultHolder", {})
-    kz.storeCaseKey("autoRunBlocked", True)
 
 
 @_checkPlan
