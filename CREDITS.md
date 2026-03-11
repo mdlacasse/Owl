@@ -10,6 +10,7 @@ Martin-D. Lacasse (mdlacasse)
  stochastic rate generation, reproducilibty, testing, and more to come...
  Benjamin Quinn (blquinn) for improvements and bug fixes,
  Dale Seng (sengsational) for great insights, testing, bug fixes, and suggestions,
+ Eric Stratten (mechovision) for expanded IRS joint table,
  Josh Williams (noimjosh) for Docker image code,
  Gene Wood (gene1wood) for improvements and bug fixes.
 

@@ -838,9 +838,9 @@ Itemized deductions are not modeled; only the standard deduction (plus the
 65+ and OBBBA bonus deductions) is applied.
 The OBBBA~65+ bonus deduction phaseout is computed outside the LP (as a
 post-solution update) because it is a nonlinear function of MAGI.
-The IRS Joint Life Expectancy Table (applicable to spouses with a spousal age
-gap exceeding ten years) is not used; the Uniform Lifetime Table is applied
-to all individuals.
+The IRS Uniform Lifetime Table III is used for standard cases.
+When the spouse is the sole designated beneficiary and more than ten years younger
+than the account owner, IRS Table II (Joint and Last Survivor, Pub.\ 590-B) is applied instead.
 Inherited IRA and beneficiary RMD rules are not modeled.
 
 \chapter{Model Architecture and Solution Approach}
@@ -1069,8 +1069,7 @@ objective vector.
 Any LP or MIP solver that accepts this standard input format can be used.
 
 The default solver is \textbf{HiGHS}, a high-performance open-source LP
-and MIP solver accessed through PuLP via the \code{highspy} Python
-package.
+and MIP solver accessed directly via the \code{highspy} Python package.
 An optional interface to \textbf{MOSEK}, a commercial solver requiring a
 separate license, is also supported and generally provides faster solution
 times for large MIP problems.
@@ -1355,11 +1354,9 @@ Parameter values are either set by the user, historical data, or by the tax code
 	explicitly or automatically when loading from configuration.
 \item [$\rho_{in}$]
 	Required minimum distribution for individual $i$ in year $n$. Expressed in fractions
-	which are determined from IRS tables. These tables are simple if spouses are less than 10 years apart,
-	but a little more complex otherwise, as the ages of both spouses need to be taken into account.
-	Current implementation only supports spouses being less than 10 years apart.
-	An error message is generated if spouses are more than 10 years apart
-        and the calculation is aborted.
+	determined from IRS tables. The IRS Uniform Lifetime Table III (Pub.\ 590-B) is used in
+	standard cases. When the spouse is the sole designated beneficiary and more than ten years
+	younger than the account owner, the Joint and Last Survivor Table II is used instead.
 \item [$\Gamma_{tn}$]
 	Bounds for federal income tax brackets. We define $\Gamma_{(-1)n} := 0$, so that
 	$\Gamma_{0n}$ is the upper bound for the 10\% tax bracket in year $n$. As the filing status
@@ -2492,8 +2489,8 @@ using that language, but most of these applications are
 proprietary and require a license and additional software installation.
 These languages allow the problem to be stated at a high level and
 steps to cast the problem in a form suitable for solution are performed automatically.
-There are also object-oriented language extensions, such as Python's Pyomo
-and PuLP that can ease the process of solving these problems.
+There are also object-oriented language extensions, such as Python's Pyomo,
+that can ease the process of solving these problems.
 For completeness, however, we present here a simple
 index mapping approach that allows solving this problem using a generic
 linear programming solver.
@@ -3712,7 +3709,7 @@ The table below summarizes the primary source files and their roles.
 
 \item[plan.py]
 The core optimization engine.
-Constructs and solves the LP/MIP using PuLP with HiGHS (default) or MOSEK.
+Constructs and solves the LP/MIP using HiGHS (default, via \code{highspy}) or MOSEK directly.
 Implements the self-consistent iteration loop, all constraint-building methods,
 the objective functions, and post-solution analysis.
 This is the largest and most complex file.
