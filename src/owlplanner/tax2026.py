@@ -28,6 +28,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 from datetime import date
 
+from owlplanner.data.irs_joint_table import JOINT_LIFE_TABLE
+
 # Sentinel: used as default yOBBBA meaning "OBBBA never expires / far future".
 _YEAR_FAR_FUTURE = 2099
 
@@ -691,12 +693,14 @@ def rho_in(yobs, longevity, N_n):
       - Born 1951–1959:     RMD age 73  (SECURE 2.0 Act §107, effective 2023)
       - Born 1960 or later: RMD age 75  (SECURE 2.0 Act §107, effective 2033)
 
-    Uses the IRS Uniform Lifetime Table III (effective 2022, Publication 590-B).
-    Table starts at age 72; index [0] = age 72 (divisor 27.4).
+    Uses IRS Publication 590-B (effective 2022) tables:
+      - Table III (Uniform Lifetime): single filers and married couples with
+        spouse 10 or fewer years younger.
+      - Table II (Joint and Last Survivor): married couples where the spouse is
+        the sole designated beneficiary and more than 10 years younger than the
+        account owner. Table starts at age 72; index [0] = age 72 (divisor 27.4).
 
     Limitations:
-      - Does not support spouses with more than a 10-year age gap (IRS Joint Life
-        Expectancy Table would apply in that case).
       - Inherited IRA / beneficiary RMD rules are not modeled.
       - RMDs apply only to tax-deferred accounts (j=1). Roth accounts (j=2) are
         exempt; Roth 401(k) RMDs were eliminated by SECURE 2.0 §325 for 2024+.
@@ -755,8 +759,6 @@ def rho_in(yobs, longevity, N_n):
     ]
 
     N_i = len(yobs)
-    if N_i == 2 and abs(yobs[0] - yobs[1]) > 10:
-        raise RuntimeError("RMD: Unsupported age difference of more than 10 years.")
     if np.any(np.array(longevity) > 120):
         raise RuntimeError(
             "RMD: Unsupported life expectancy over 120 years."
@@ -768,11 +770,20 @@ def rho_in(yobs, longevity, N_n):
         agenow = thisyear - yobs[i]
         # Account for increase of RMD age between 2023 and 2032.
         yrmd = 70 if yobs[i] < 1949 else 72 if 1949 <= yobs[i] <= 1950 else 73 if 1951 <= yobs[i] <= 1959 else 75
+        # Use Table II when spouse is sole beneficiary and >10 years younger.
+        j = 1 - i  # index of the other spouse
+        use_table2 = N_i == 2 and (yobs[j] - yobs[i]) > 10
         for n in range(N_n):
             yage = agenow + n
 
             if yage < yrmd:
                 pass  # rho[i][n] = 0
+            elif use_table2:
+                # IRS Pub 590-B Table II (Joint and Last Survivor)
+                spouse_age = (thisyear - yobs[j]) + n
+                owner_key = min(max(yage, 20), 120)
+                spouse_key = min(max(spouse_age, 20), 120)
+                rho[i][n] = 1.0 / JOINT_LIFE_TABLE[owner_key][spouse_key]
             else:
                 rho[i][n] = 1.0 / rmdTable[yage - 72]
 
