@@ -3477,7 +3477,10 @@ class Plan:
 
         # Determine which binary families can be pre-fixed.
         # zx (Roth exclusion) must stay free -- it is a core optimization variable.
-        fix_sequence = [name for name in ("zl", "zs", "zj", "zm", "za") if name in self.vm]
+        # Put zl (LTCG) last and do not round it: rounding zl from the LP often yields
+        # infeasible or very poor solutions. We fix the other families from the LP, then
+        # solve one MIP with zl and zx free so the solver chooses LTCG brackets.
+        fix_sequence = [name for name in ("zs", "zj", "zm", "za", "zl") if name in self.vm]
 
         if not fix_sequence:
             # Nothing to decompose; delegate to monolithic MIP.
@@ -3496,9 +3499,8 @@ class Plan:
         current_x = lp_result[1]
 
         # ------------------------------------------------------------------
-        # Steps 2-3: Fix each family in priority order (zs → zm → za);
-        #            solve a reduced MIP after each fixing.
-        #            After the last family is fixed, only zx remains free (polish).
+        # Steps 2-3: Fix each family in order (zs, zj, zm, za). Do NOT fix zl:
+        #            leave zl free and solve one MIP so LTCG brackets are chosen by the solver.
         # ------------------------------------------------------------------
         col_overrides = {}
         best_result = None
@@ -3511,13 +3513,22 @@ class Plan:
 
         for name in fix_sequence:
             block = self.vm[name]
-            for flat_idx in range(block.start, block.end):
-                if Lb_all[flat_idx] >= Ub_all[flat_idx] - 1e-9:   # already fixed, skip
-                    continue
-                val = float(round(current_x[flat_idx]))
-                col_overrides[flat_idx] = (val, val)
 
-            sub_result = self._run_mip(self.A, self.B, self.c, options, col_overrides=col_overrides)
+            if name == "zl":
+                # Do not round zl: run a MIP with zl (and zx) free; other families already fixed.
+                # This avoids the poor/infeasible solutions from rounding LTCG binaries from the LP.
+                self.mylog.vprint("Decomp: solving MIP with zl (LTCG) free (no rounding).")
+                sub_result = self._run_mip(self.A, self.B, self.c, options, col_overrides=col_overrides)
+            else:
+                # Round this family from current_x and fix.
+                for flat_idx in range(block.start, block.end):
+                    if Lb_all[flat_idx] >= Ub_all[flat_idx] - 1e-9:   # already fixed, skip
+                        continue
+                    val = float(round(current_x[flat_idx]))
+                    col_overrides[flat_idx] = (val, val)
+
+                sub_result = self._run_mip(self.A, self.B, self.c, options, col_overrides=col_overrides)
+
             if sub_result[2]:
                 self.mylog.vprint(f"Decomp: fixed '{name}', sub-solve succeeded (obj={-sub_result[0]:.0f}).")
                 current_x = sub_result[1]
@@ -3531,9 +3542,11 @@ class Plan:
         if best_result is not None:
             return best_result
 
-        # All sub-solves failed; return LP relaxation as fallback (not integral).
-        self.mylog.vprint("Decomp: all sub-solves failed; returning LP relaxation result.")
-        return lp_result[0], lp_result[1], True, "relax-and-fix: returned LP relaxation (non-integral)", 0.0
+        # All sub-solves failed. Fall back to monolithic MIP (may be slow / not converge).
+        self.mylog.vprint(
+            "Decomp: all sub-solves failed; falling back to monolithic MIP (no LP relaxation return)."
+        )
+        return self._run_mip(self.A, self.B, self.c, options)
 
     def _benders_solve(self, objective, options):  # noqa: C901
         """

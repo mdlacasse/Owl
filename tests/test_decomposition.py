@@ -110,6 +110,23 @@ class TestSequentialDecomposition:
         assert p.g_n is not None
         assert p.g_n[0] > 0
 
+    def test_sequential_ltcg_only(self):
+        """Sequential + only LTCG optimize must yield feasible integer solution.
+
+        When only zl (LTCG) binaries are present, relax-and-fix may fail from LP rounding;
+        the code then falls back to monolithic MIP so we never return a non-integral solution.
+        Regression test for LTCG sequential bug.
+        """
+        p = _make_simple_plan("seq_ltcg_only")
+        p.solve("maxSpending", options={
+            "withLTCG": "optimize",
+            "withDecomposition": "sequential",
+            "withMedicare": "loop",
+        })
+        assert p.caseStatus == "solved"
+        assert p.g_n is not None
+        assert p.g_n[0] > 0
+
 
 # ---------------------------------------------------------------------------
 # Benders decomposition tests
