@@ -7,6 +7,7 @@ Covers:
 - Benders converges without error on jack+jill with Medicare optimize.
 - Benders and monolithic agree within tolerance on a simple single-person case.
 - Fallback to monolithic when no bracket binaries are present.
+- Regression: Medicare + LTCG sequential/Benders must not collapse spending (zl left to subproblem).
 """
 
 from datetime import date
@@ -127,6 +128,38 @@ class TestSequentialDecomposition:
         assert p.g_n is not None
         assert p.g_n[0] > 0
 
+    def test_medicare_ltcg_sequential_spending_reasonable(self):
+        """Medicare + LTCG sequential must not collapse net spending (regression for zl rounding).
+
+        When both withMedicare=optimize and withLTCG=optimize are used with sequential
+        decomposition, zl is no longer rounded from the LP; it is left free in the final
+        MIP. This test asserts that sequential spending stays within 95% of the loop
+        baseline. Without the fix, sequential could drop to ~67k vs ~94k (loop).
+        """
+        p_loop = _make_jack_jill("med_ltcg_loop")
+        p_loop.solve("maxSpending", options={
+            "solver": "HiGHS",
+            "withMedicare": "loop",
+            "withLTCG": "loop",
+        })
+        assert p_loop.caseStatus == "solved", "Baseline (loop) should solve."
+        spending_loop = p_loop.g_n[0]
+
+        p_seq = _make_jack_jill("med_ltcg_seq")
+        p_seq.solve("maxSpending", options={
+            "solver": "HiGHS",
+            "withMedicare": "optimize",
+            "withLTCG": "optimize",
+            "withDecomposition": "sequential",
+        })
+        assert p_seq.caseStatus == "solved", "Medicare+LTCG sequential should solve."
+        spending_seq = p_seq.g_n[0]
+
+        assert spending_seq >= 0.95 * spending_loop, (
+            f"Medicare+LTCG sequential spending {spending_seq:.0f} should be >= 95% of "
+            f"loop baseline {spending_loop:.0f} (regression: zl rounding collapsed spending)."
+        )
+
 
 # ---------------------------------------------------------------------------
 # Benders decomposition tests
@@ -193,6 +226,36 @@ class TestBendersDecomposition:
         })
         assert p.g_n is not None
         assert p.g_n[0] > 0
+
+    def test_medicare_ltcg_benders_spending_reasonable(self):
+        """Medicare + LTCG Benders must not collapse net spending (regression for zl in master).
+
+        zl (LTCG) is excluded from the Benders master; the subproblem optimizes zl and zx.
+        This test asserts that Benders spending stays within 95% of the loop baseline.
+        """
+        p_loop = _make_jack_jill("med_ltcg_loop_bend")
+        p_loop.solve("maxSpending", options={
+            "solver": "HiGHS",
+            "withMedicare": "loop",
+            "withLTCG": "loop",
+        })
+        assert p_loop.caseStatus == "solved", "Baseline (loop) should solve."
+        spending_loop = p_loop.g_n[0]
+
+        p_bend = _make_jack_jill("med_ltcg_bend")
+        p_bend.solve("maxSpending", options={
+            "solver": "HiGHS",
+            "withMedicare": "optimize",
+            "withLTCG": "optimize",
+            "withDecomposition": "benders",
+        })
+        assert p_bend.caseStatus == "solved", "Medicare+LTCG Benders should solve."
+        spending_bend = p_bend.g_n[0]
+
+        assert spending_bend >= 0.95 * spending_loop, (
+            f"Medicare+LTCG Benders spending {spending_bend:.0f} should be >= 95% of "
+            f"loop baseline {spending_loop:.0f} (regression: zl in master collapsed spending)."
+        )
 
     def test_benders_vs_monolithic_jack_jill(self):
         """Benders and monolithic agree within gap on jack+jill with Medicare optimize."""

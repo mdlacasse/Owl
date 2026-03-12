@@ -3553,10 +3553,11 @@ class Plan:
         Benders decomposition (withDecomposition='benders').
 
         Guarantees global optimality (within gap tolerance) via classical Benders decomposition:
-          - Master problem (MP): optimizes over bracket-selection binaries zm, za, zs.
-            Contains only the AMO constraints (one bracket per year) and Benders cuts.
-          - Subproblem (SP): given fixed zm*, za*, zs*, solves for all continuous variables
-            and Roth exclusion binaries zx.
+          - Master problem (MP): optimizes over bracket-selection binaries zm, za, zs, zj.
+            zl (LTCG) is excluded: rounding or master choices for zl lead to poor/infeasible
+            subproblems (same issue as sequential). The subproblem optimizes zl and zx.
+          - Subproblem (SP): given fixed zm*, za*, zs*, zj*, solves for continuous variables,
+            zl (LTCG), and zx (Roth exclusion).
 
         Algorithm:
           1. LP relaxation of the full problem → LB_init, initial z* (rounded).
@@ -3567,18 +3568,17 @@ class Plan:
              d. Solve master MIP with accumulated cuts → new LB, new z*.
           3. Return best feasible solution found.
 
-        Falls back to monolithic MIP if no bracket binaries (zm, za, zs) are present.
+        Falls back to monolithic MIP if no bracket binaries (zm, za, zs, zj) are present.
         """
         self._buildConstraints(objective, options)
         nvars = self.A.nvars
 
-        # Identify master binary columns: zl (LTCG), zm (Medicare), za (ACA), zs (SS taxability), zj (NIIT).
+        # Identify master binary columns: zm, za, zs, zj. Exclude zl (LTCG): the subproblem
+        # will optimize zl (and zx) so we avoid the poor solutions from rounding/choosing zl in the master.
         # Exclude columns that are already hard-fixed (Lb == Ub), e.g. zm years with known prevMAGI.
-        # Including fixed columns in the master causes the SP to become infeasible when the master
-        # assigns a value that conflicts with the fixed bound in self.B.
         Lb_all, Ub_all = self.B.arrays()
         master_cols = []
-        for name in ("zl", "zm", "za", "zs", "zj"):
+        for name in ("zm", "za", "zs", "zj"):
             if name in self.vm:
                 blk = self.vm[name]
                 for col in range(blk.start, blk.end):
@@ -3700,10 +3700,8 @@ class Plan:
         # continuous MAGI variables: any bracket that differs from the LP relaxation's
         # h-based assignment will make the SP LP infeasible (MAGI can't fit in the
         # wrong bracket range).  By pinning zm in the master, we avoid wasted iterations
-        # where the master proposes infeasible bracket changes.  Medicare bracket
-        # optimization is still handled correctly by the SC loop's self-consistent
-        # iteration; the master only needs to decompose over other binary families
-        # (zl, zs, zj, za).
+        # where the master proposes infeasible bracket changes.  The master then
+        # optimizes over zs, zj, za (zl is excluded and optimized in the subproblem).
         if "zm" in self.vm:
             z_blk = self.vm["zm"]
             for nn in range(z_blk.shape[0]):
