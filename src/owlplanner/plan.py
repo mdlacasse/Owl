@@ -3663,6 +3663,11 @@ class Plan:
         LB = -np.inf
         best_x = None
         benders_cuts = []   # list of (alpha, beta_array)
+        # Display scale: same as _scSolve so printed LB/UB match "Objective" units.
+        if objective == "maxSpending":
+            display_scale = 1.0 / self.xi_n[0]
+        else:
+            display_scale = 1.0 / self.gamma_n[-1]
 
         # ---- Initial LP relaxation: provides LB and starting z* ----
         lp_obj, lp_x, _, lp_ok = self._run_lp_with_duals(self.A, self.B, self.c, options)
@@ -3671,7 +3676,7 @@ class Plan:
             return self._run_mip(self.A, self.B, self.c, options)
 
         LB = lp_obj
-        self.mylog.vprint(f"Benders: LP relaxation UB = {-LB:.0f}.")
+        self.mylog.vprint(f"Benders: LP relaxation UB = {-LB * display_scale:.0f}.")
 
         # Initialize z* from the LP solution.
         # For bracket-selector families that have a companion h (MAGI-portion) block
@@ -3756,7 +3761,8 @@ class Plan:
             if UB < np.inf:
                 gap_val = (UB - LB) / max(abs(UB), 1.0)
                 self.mylog.vprint(
-                    f"Benders iter {biter + 1}: LB={-UB:.0f}, UB={-LB:.0f}, gap={gap_val:.4f}.")
+                    f"Benders iter {biter + 1}: LB={-UB * display_scale:.0f}, "
+                    f"UB={-LB * display_scale:.0f}, gap={gap_val:.4f}.")
                 if gap_val <= mygap:
                     self.mylog.vprint(f"Benders: converged after {biter + 1} iterations.")
                     break
