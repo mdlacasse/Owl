@@ -913,7 +913,7 @@ the *Roth conv* column on the
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
 
-The **Medicare** section has a toggle *Medicare and IRMAA calculations*.
+The **Medicare** section has a toggle *Medicare and IRMAA calculations* (Part B and Part D).
 When turned off, Medicare premiums are ignored (set to zero); this is the fastest option but least accurate.
 When turned on (the default), Medicare premiums are computed via a self-consistent loop: the optimizer
 finds the best strategy, then Medicare premiums are calculated from that strategy's income (MAGI),
@@ -930,6 +930,10 @@ Medicare premiums start automatically in the year each individual reaches age 65
 If anyone in the case is age 64 or older, inputs appear for `MAGI for [year] ($k)`
 for the prior 1 or 2 years (nominal thousands). These values are needed for
 Income-Related Monthly Adjusted Amounts (IRMAA). Values default to zero.
+*Include Part D premiums* is on by default; Part B and Part D IRMAA surcharges (same MAGI brackets) are then included.
+Turn it off if you have other drug coverage (e.g. employer, VA).
+*Part D base premium (\$/month per person)* is optional (default 0 = IRMAA only);
+use it to add a monthly base (e.g. national average ~\$39–47).
 A warning appears if Medicare is on while the self-consistent loop is off,
 since Medicare in loop mode requires the loop to compute premiums iteratively.
 
