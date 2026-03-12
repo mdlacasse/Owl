@@ -44,10 +44,11 @@ taxability), the monolithic MIP can be slow due to the combined binary variable 
   fixes bracket binary families one at a time (`zl → zs → zj → zm → za`), re-solving a
   reduced MIP after each fix. Fast, but not guaranteed globally optimal.
 - **`"benders"` (certified global optimum)**: Classical Benders decomposition separating
-  bracket-selection binaries (master MIP: `zl`, `zm`, `za`, `zs`, `zj`) from continuous
-  planning variables (subproblem LP/MIP). Generates dual-based optimality cuts at each
-  iteration to certify global optimality within the specified `gap`. In practice, convergence
-  occurs in 1–3 iterations. Supports both HiGHS and MOSEK.
+  bracket-selection binaries (master MIP: `zm`, `za`, `zs`, `zj`) from continuous
+  planning variables (subproblem LP/MIP, which also optimizes `zl` and `zx`). Generates
+  dual-based optimality cuts at each iteration to certify global optimality within the
+  specified `gap`. In practice, convergence occurs in 1–3 iterations. Supports both
+  HiGHS and MOSEK.
 - `"none"` (default): monolithic MIP, unchanged from previous behavior.
 - Both modes fall back to monolithic MIP when no bracket binaries are present.
 - New solver option `bendersMaxIter` (default 50) controls maximum Benders iterations.

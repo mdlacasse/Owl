@@ -318,3 +318,67 @@ class TestBendersDecomposition:
         })
         # Just verify it completes without error.
         assert p.g_n is not None
+
+    def test_benders_vs_monolithic_full_optimize(self):
+        """Benders and monolithic agree within gap when all optimize flags are active."""
+        gap = 2e-3
+
+        # Monolithic baseline with all relevant optimize modes enabled.
+        p_mono = _make_jack_jill("mono_full_opt")
+        p_mono.solve("maxSpending", options={
+            "withMedicare": "optimize",
+            "withACA": "optimize",
+            "withLTCG": "optimize",
+            "withNIIT": "optimize",
+            "gap": gap,
+        })
+        spending_mono = p_mono.g_n[0]
+
+        # Benders with the same optimize configuration.
+        p_bend = _make_jack_jill("benders_full_opt")
+        p_bend.solve("maxSpending", options={
+            "withMedicare": "optimize",
+            "withACA": "optimize",
+            "withLTCG": "optimize",
+            "withNIIT": "optimize",
+            "withDecomposition": "benders",
+            "gap": gap,
+        })
+        spending_benders = p_bend.g_n[0]
+
+        assert spending_mono > 0
+        assert spending_benders > 0
+        rel_diff = abs(spending_benders - spending_mono) / max(spending_mono, 1.0)
+        assert rel_diff <= 10 * gap, (
+            f"Benders ({spending_benders:.0f}) and monolithic ({spending_mono:.0f}) "
+            f"differ by {rel_diff:.4f}, expected <= {10 * gap:.4f}."
+        )
+
+    def test_benders_bequest_vs_monolithic(self):
+        """Benders and monolithic agree within gap for bequest objective."""
+        gap = 2e-3
+
+        p_mono = _make_simple_plan("mono_bequest")
+        p_mono.solve("maxBequest", options={
+            "withMedicare": "optimize",
+            "gap": gap,
+            "netSpending": 40,
+        })
+        bequest_mono = p_mono.g_n[-1]
+
+        p_bend = _make_simple_plan("benders_bequest_compare")
+        p_bend.solve("maxBequest", options={
+            "withMedicare": "optimize",
+            "withDecomposition": "benders",
+            "gap": gap,
+            "netSpending": 40,
+        })
+        bequest_benders = p_bend.g_n[-1]
+
+        assert bequest_mono >= 0
+        assert bequest_benders >= 0
+        rel_diff = abs(bequest_benders - bequest_mono) / max(bequest_mono, 1.0)
+        assert rel_diff <= 10 * gap, (
+            f"Benders bequest ({bequest_benders:.0f}) and monolithic ({bequest_mono:.0f}) "
+            f"differ by {rel_diff:.4f}, expected <= {10 * gap:.4f}."
+        )
