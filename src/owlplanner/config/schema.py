@@ -248,6 +248,8 @@ class SolverOptions(BaseModel):
 
     # Medicare, ACA, LTCG, NIIT, SS taxability
     withMedicare: Optional[Union[str, bool]] = None
+    includeMedicarePartD: Optional[bool] = None
+    medicarePartDBasePremium: Optional[float] = None
     withACA: Optional[str] = None
     withLTCG: Optional[str] = None
     withNIIT: Optional[str] = None

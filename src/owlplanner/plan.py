@@ -1455,7 +1455,18 @@ class Plan:
                 self.horizons, self.N_i, self.N_n,
             )
 
-            self.nm, self.Lbar_nq, self.Cbar_nq = tx.mediVals(self.yobs, self.horizons, gamma_n, self.N_n, self.N_irmaa)
+            # Part D: include by default; base premium optional (monthly -> annual).
+            self._include_medicare_part_d = self.solverOptions.get("includeMedicarePartD", True)
+            part_d_base_monthly = self.solverOptions.get("medicarePartDBasePremium")
+            self._medicare_part_d_base_annual_per_person = (
+                float(part_d_base_monthly) * 12 if part_d_base_monthly is not None else 0.0
+            )
+
+            self.nm, self.Lbar_nq, self.Cbar_nq = tx.mediVals(
+                self.yobs, self.horizons, gamma_n, self.N_n, self.N_irmaa,
+                include_part_d=self._include_medicare_part_d,
+                part_d_base_annual_per_person=self._medicare_part_d_base_annual_per_person,
+            )
 
             if self.slcsp_annual > 0:
                 self.N_aca, self.Lbar_aca_nq, self.cap_pct_aca_q, self.slcsp_aca_n = \
@@ -3877,7 +3888,13 @@ class Plan:
         # LTCG tax is in the LP via q bracket variables; U_n is set by _aggregateResults.
         # Compute Medicare through self-consistent loop.
         if includeMedicare:
-            self.M_n = tx.mediCosts(self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n)
+            include_part_d = getattr(self, "_include_medicare_part_d", True)
+            part_d_base = getattr(self, "_medicare_part_d_base_annual_per_person", 0.0)
+            self.M_n = tx.mediCosts(
+                self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, self.gamma_n[:-1], self.N_n,
+                include_part_d=include_part_d,
+                part_d_base_annual_per_person=part_d_base,
+            )
         # Compute ACA costs through self-consistent loop (uses current-year MAGI, no 2-year lag).
         # In optimize mode (withACA="optimize"), ACA_n stays zero; maca_n carries the cost.
         if self.slcsp_annual > 0 and not self._aca_lp:

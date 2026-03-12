@@ -60,11 +60,13 @@ def getHFP(exdir, case, check_exists=True):
 # Updated Mar 2026: cases enhanced for broader feature coverage (HSA, pension survivor,
 # fixed assets, debts).
 # Updated after HFP dollar conversion ($ not $k) in update_hfp_coverage.py
+# Updated after Medicare Part D inclusion (Part D IRMAA increases Medicare cost when MAGI > bracket 0,
+# reducing optimal bequest relative to Part B-only baseline).
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100_000,
-            "bequest": 7_864_850,
+            "bequest": 7_852_451,
         },
         "Case_jack+jill": {
             "net_spending_basis": 94_398,
@@ -91,7 +93,7 @@ elif platform in ["win32", "linux"]:
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100_000,
-            "bequest": 7_864_850,
+            "bequest": 7_852_451,
         },
         "Case_jack+jill": {
             "net_spending_basis": 94_398,

@@ -704,12 +704,13 @@ When not supplied, both default to zero, which may underestimate IRMAA surcharge
 in the first two plan years for higher-income households.
 Reference: \cite{cms2026}.
 
-\subsection*{Limitations and assumptions}
+\subsection*{Part~D and assumptions}
 
-Medicare Part~D (both base premiums and IRMAA surcharges) is not modeled.
-CMS 2026 Part~D monthly surcharges range from \$14.50 to \$91.00 per person
-for MAGI above \$109k, resulting in a modest underestimate of Medicare costs
-for higher-income households.
+Medicare Part~D is modeled using the same MAGI brackets and two-year lookback as Part~B.
+Part~D IRMAA surcharges (CMS 2026) are included by default; the optional Part~D base
+premium is configurable (default zero).
+Users can disable Part~D via \code{includeMedicarePartD=false} when they have other
+drug coverage (e.g., employer or VA).
 IRMAA thresholds in Owl are assumed to scale with the general inflation rate;
 in practice, CMS adjusts brackets annually but not necessarily by the Consumer
 Price Index (CPI).

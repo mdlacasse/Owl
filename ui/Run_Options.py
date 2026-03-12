@@ -130,13 +130,26 @@ else:
             st.markdown(":material/warning: Medicare is on while self-consistent loop is off.")
 
     if kz.getCaseKey("computeMedicare"):
-        helpmsg = "MAGI in nominal $k for current and previous years."
+        helpmsg = "MAGI in nominal \\$k for current and previous years."
         years = owb.backYearsMAGI()
         for ii in range(2):
             kz.initCaseKey("MAGI" + str(ii), 0)
             if years[ii] > 0:
                 with cols[1+ii]:
                     ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
+
+        cols = st.columns(3, gap="large", vertical_alignment="top")
+        with cols[0]:
+            kz.initCaseKey("includeMedicarePartD", True)
+            helpmsg_partd = ("Include Medicare Part D premiums (IRMAA surcharges use same MAGI brackets as Part B). "
+                             "Turn off if you have other drug coverage (e.g. employer, VA).")
+            kz.getToggle("Include Part D premiums", "includeMedicarePartD", help=helpmsg_partd)
+        with cols[1]:
+            kz.initCaseKey("medicarePartDBasePremium", None)
+            helpmsg_partd_base = ("Optional monthly Part D base premium per person (today's \\$). "
+                                  "Set to 0 to omit. National average ~\\$$39–47$ per month.")
+            kz.getNum("Part D base premium ($/month per person)", "medicarePartDBasePremium",
+                      min_value=0., help=helpmsg_partd_base)
 
     st.divider()
     st.markdown("#### :orange[ACA Marketplace (Pre-65)]")

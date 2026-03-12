@@ -154,7 +154,7 @@ While the solutions generated are very close to one another, Owl will pick the s
 for being conservative. While sometimes computationally costly,
 a comparison with a full Medicare optimization should always be performed.
 
-* Part D is not included in the IRMAA calculations. Only Part B is taken into account, which is considerably more significant.
+* Medicare Part B and Part D (including IRMAA) are included; Part D base premium is optional and can be disabled if you have other drug coverage.
 * Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.
 
 The solution from an optimization algorithm has only two states: feasible and infeasible.

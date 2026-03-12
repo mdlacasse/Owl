@@ -4,10 +4,9 @@ Tax calculation module for 2026 tax year rules.
 This module handles all tax calculations including income tax brackets,
 capital gains tax, and other tax-related computations based on 2026 tax rules.
 
-Note: Medicare Part D IRMAA surcharges are NOT modeled here. CMS 2026 Part D
-monthly surcharges per person range from +$14.50 (>$109k MAGI) to +$91.00
-(≥$500k MAGI). This results in a modest underestimate of Medicare costs for
-higher-income households.
+Medicare Part B and Part D premiums (including IRMAA surcharges) are modeled.
+Part B and Part D use the same MAGI brackets and two-year lookback. Part D
+base premium is configurable (default 0); Part D IRMAA amounts follow CMS 2026.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 
@@ -61,8 +60,15 @@ irmaaBrackets = np.array(
 # Index [0] stores the standard Medicare Part B basic premium (monthly $202.90 for 2026).
 # Following values are incremental IRMAA Part B monthly fees; cumulative = total/month.
 # Single brackets [0]: ≤$109k, $109–137k, $137–171k, $171–205k, $205–500k, ≥$500k.
-irmaaFees = 12 * np.array([202.90, 81.20, 121.70, 121.70, 121.70, 40.70])
-irmaaCosts = np.cumsum(irmaaFees)
+partB_irmaa_fees = 12 * np.array([202.90, 81.20, 121.70, 121.70, 121.70, 40.70])
+partB_irmaa_costs = np.cumsum(partB_irmaa_fees)
+
+# Part D IRMAA: same 6 brackets as Part B. Source: CMS 2026 Part D IRMAA.
+# Monthly surcharges per bracket (cumulative): $0, $14.50, $36.30, $58.10, $79.90, $91.00.
+# Stored as incremental monthly fees (bracket 0 = 0; brackets 1–5 = surcharge increments).
+partD_irmaa_monthly = np.array([0.0, 14.50, 21.80, 21.80, 21.80, 11.10])
+partD_irmaa_fees = 12 * partD_irmaa_monthly
+partD_irmaa_costs = np.cumsum(partD_irmaa_fees)
 
 #########################################################################
 # Make projection for pre-TCJA using 2017 to current year.
@@ -245,16 +251,22 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     return new_Psi_n
 
 
-def mediVals(yobs, horizons, gamma_n, Nn, Nq):
+def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_base_annual_per_person=0.0):
     """
     Return tuple (nm, L, C) of year index when Medicare starts and vectors L, and C
     defining end points of constant piecewise linear functions representing IRMAA fees.
-    Costs C include the fact that one or two indivuals have to pay. Eligibility is built-in.
+    Costs C include Part B plus Part D (base + IRMAA) when include_part_d is True.
+    Costs C include the fact that one or two individuals have to pay. Eligibility is built-in.
+
+    Part B and Part D use the same MAGI brackets (two-year lookback). Part D base
+    is added per eligible person; Part D IRMAA uses CMS 2026 amounts.
     """
     thisyear = date.today().year
-    assert Nq == len(irmaaCosts), f"Inconsistent value of Nq: {Nq}."
+    assert Nq == len(partB_irmaa_costs), f"Inconsistent value of Nq: {Nq}."
     assert Nq == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
     Ni = len(yobs)
+    # Combined per-person cumulative costs: Part B + Part D IRMAA when enabled
+    costs_per_person = partB_irmaa_costs + (partD_irmaa_costs if include_part_d else 0.0)
     # What index year will Medicare start? 65 - age for each individual.
     nm = yobs + 65 - thisyear
     nm = np.maximum(0, nm)
@@ -279,7 +291,9 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq):
             else:
                 status = 1   # married filing jointly
             Lbar[nn] = gamma_n[n] * irmaaBrackets[status][1:]
-            Cbar[nn] = imed * gamma_n[n] * irmaaCosts
+            Cbar[nn] = imed * gamma_n[n] * costs_per_person
+            if include_part_d and part_d_base_annual_per_person != 0:
+                Cbar[nn] += imed * gamma_n[n] * part_d_base_annual_per_person
         else:
             raise RuntimeError("mediVals: This should never happen.")
 
@@ -362,30 +376,33 @@ def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
     return cgTax_n
 
 
-def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn):
+def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=True, part_d_base_annual_per_person=0.0):
     """
-    Compute Medicare costs directly.
+    Compute Medicare costs directly (Part B + Part D when include_part_d is True).
 
-    Note: Only Medicare Part B IRMAA surcharges are included. Part D IRMAA
-    surcharges (+$14.50 to +$91.00/month per person for MAGI >$109k) are not
-    modeled, resulting in a modest cost underestimate for higher-income filers.
+    Uses the same MAGI brackets and two-year lookback for both Part B and Part D.
+    Part D IRMAA amounts follow CMS 2026. Part D base is optional (configurable).
     """
     thisyear = date.today().year
     Ni = len(yobs)
+    fees_b = partB_irmaa_fees
+    fees_d = partD_irmaa_fees if include_part_d else np.zeros_like(partB_irmaa_fees)
     costs = np.zeros(Nn)
     for n in range(Nn):
         status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
-                # Start with the (inflation-adjusted) basic Medicare part B premium.
-                costs[n] += gamma_n[n] * irmaaFees[0]
+                # Part B basic premium
+                costs[n] += gamma_n[n] * fees_b[0]
+                if include_part_d and part_d_base_annual_per_person != 0:
+                    costs[n] += gamma_n[n] * part_d_base_annual_per_person
                 if n < 2:
                     mymagi = prevmagi[n]
                 else:
                     mymagi = magi[n - 2]
                 for q in range(1, 6):
                     if mymagi > gamma_n[n] * irmaaBrackets[status][q]:
-                        costs[n] += gamma_n[n] * irmaaFees[q]
+                        costs[n] += gamma_n[n] * (fees_b[q] + fees_d[q])
 
     return costs
 

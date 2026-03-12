@@ -2,6 +2,24 @@
 
 ---
 
+## Version 2026.03.12
+
+### Medicare Part D
+- Part D premiums (IRMAA surcharges, same MAGI brackets as Part B) now included by default.
+- Optional Part D base premium: `medicarePartDBasePremium` (monthly $ per person); default 0.
+- `includeMedicarePartD` solver option (default `true`); set `false` for other drug coverage (e.g. employer, VA).
+- Schema, PARAMETERS.md, modeling-capabilities.md, owl.tex, and Run Options UI updated. TOML reproducibility baselines updated (Case_john+sally bequest).
+
+---
+
+## Version 2026.03.11
+
+### Decomposition fixes
+- Benders: skip zm pre-fixing when both individuals already on Medicare at plan start (`nm=0`); prevents SP LP infeasibility on later iterations.
+- Benders: add gap and stall termination checks after master MIP step.
+
+---
+
 ## Version 2026.03.10
 
 ### New feature: LTCG and NIIT exact MIP formulations
