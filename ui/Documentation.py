@@ -932,8 +932,8 @@ for the prior 1 or 2 years (nominal thousands). These values are needed for
 Income-Related Monthly Adjusted Amounts (IRMAA). Values default to zero.
 *Include Part D premiums* is on by default; Part B and Part D IRMAA surcharges (same MAGI brackets) are then included.
 Turn it off if you have other drug coverage (e.g. employer, VA).
-*Part D base premium (\$/month per person)* is optional (default 0 = IRMAA only);
-use it to add a monthly base (e.g. national average ~\$39–47).
+*Part D base premium (\\$/month per person)* is optional (default 0 = IRMAA only);
+use it to add a monthly base (e.g. national average ~\\$39–47).
 A warning appears if Medicare is on while the self-consistent loop is off,
 since Medicare in loop mode requires the loop to compute premiums iteratively.
 
