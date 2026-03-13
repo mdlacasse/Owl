@@ -198,35 +198,27 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
         cols = st.columns(total_pages)
         for idx, (col, page_info) in enumerate(zip(cols, CASE_SETUP_PAGES)):
             with col:
-                # Determine status
                 is_current = (idx == current_idx)
                 is_visited = is_page_visited(page_info["key"])
 
-                # Choose icon and color
+                # Page icon colored by status: current=orange, visited=green, unvisited=gray
                 if is_current:
-                    # icon = "🟠"  # Filled circle (emoji)
-                    # icon = "spinner"
                     color = "orange"
-                    label = f":{color}[:material/radio_button_unchecked:]"
                 elif is_visited:
-                    # icon = "🟢"  # Filled circle (emoji)
                     color = "green"
-                    label = f":{color}[:material/radio_button_checked:]"
                 else:
-                    # icon = "⚪"  # Empty circle (emoji)
                     color = "gray"
-                    label = f":{color}[:material/radio_button_unchecked:]"
+                label = f":{color}[{page_info['icon']}]"
 
                 st.page_link(
                     page_info["file"],
                     label=label,
-                    # icon=icon,
                     width="stretch",
                     disabled=is_current,
                 )
                 st.markdown(
                     f'<div style="text-align: left; margin-top: -0.9em; margin-left: 1em;'
-                    f' font-size: 0.7em; color: {color};">'
+                    f' font-size: 0.75em; color: {color};">'
                     f'{page_info["name"]}'
                     f'</div>',
                     unsafe_allow_html=True
