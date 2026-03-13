@@ -47,7 +47,7 @@ CASE_SETUP_PAGES = [
         "name": "Account Balances",
         "file": "Account_Balances.py",
         "icon": ":material/savings:",
-        "key": "savings_assets"
+        "key": "account_balances"
     },
     {
         "name": "Asset Allocation",
@@ -62,10 +62,16 @@ CASE_SETUP_PAGES = [
         "key": "rates_selection"
     },
     {
+        "name": "Goals",
+        "file": "Goals.py",
+        "icon": ":material/target:",
+        "key": "goals"
+    },
+    {
         "name": "Run Options",
         "file": "Run_Options.py",
         "icon": ":material/tune:",
-        "key": "optimization_params"
+        "key": "run_options"
     },
 ]
 

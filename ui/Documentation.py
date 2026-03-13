@@ -894,14 +894,42 @@ targets, allocations, Roth strategy) while holding the random scenario constant.
   *(Basis for the `lognormal` and `histolognormal` log-normal / GBM framework.)*
 """)
 
+    with st.expander(":material/target: Goals"):
+        st.markdown("""
+The **Goals** page is where you define the optimization objective and spending preferences.
+
+##### :material/flag: Objective
+Choose whether to **maximize net spending** (subject to a desired bequest) or **maximize bequest**
+(subject to a desired annual net spending amount). The quantity not maximized becomes the constraint.
+- When maximizing net spending, enter the **Desired bequest from savings accounts** in today's \\$k.
+  Fixed assets liquidated at the end of the plan are added to bequest separately; the page shows
+  their contribution when applicable.
+- When maximizing bequest, enter the **Desired annual net spending** in today's \\$k.
+
+All objective and constraint values are in today's dollars (thousands).
+
+##### :material/shield: Safety Net
+You can enforce a **minimum taxable balance** (today's \\$k) for each spouse from year 2 through
+life expectancy. The amount is inflation-adjusted over the plan. This should ideally be smaller
+than each spouse's initial taxable balance; the page shows a warning if the minimum exceeds 60%
+of initial taxable balance or if it is larger than the desired bequest when maximizing spending.
+
+##### :material/show_chart: Spending Profile
+The **type of profile** can be *flat* (constant real spending over time) or *smile* (adjusted for
+lifestyle: a dip in the “slow-go” years, then an increase or decrease over the plan). For *smile*,
+you can set the **smile delay** (years before the dip starts), **smile dip** (%), and **smile increase** (%).
+**Profile slack** allows spending to deviate from the profile by a percentage to help the optimizer.
+For married couples, **Survivor's spending (%)** sets the spending level for the surviving spouse
+(typically 60%). A preview of the selected profile is shown on the page.
+
+These settings determine the *basis* for net spending or the constraint level; they work together
+with the options on the **Run Options** page (Roth conversions, Medicare, solver, etc.).
+""")
+
     with st.expander(":material/tune: Run Options"):
         st.markdown("""
-This page allows you to select the objective function to optimize.
-One can choose between maximizing the net spending amount subject to the constraint
-of a desired bequest, or maximizing a bequest, subject to the constraint of providing
-a desired net spending amount.
-As one of the two choices (net spending or bequest) is selected as the value to maximize,
-the other becomes a constraint to obey.
+This page configures Roth conversions, Medicare, ACA, the self-consistent loop, and solver options.
+The **objective**, **safety net**, and **spending profile** are set on the **Goals** page.
 
 The maximum amount for Roth conversions and which spouse can execute them is configurable.
 Roth conversions are optimized for reducing taxes and maximizing the selected objective function,
@@ -1014,30 +1042,6 @@ Both solvers (HiGHS and MOSEK) provide very similar results.
 In most cases, `MOSEK` will provide the best performance.
 Selecting `HiGHS` will provide comparable results in a little more time.
 Both solvers support all decomposition modes (sequential and Benders).
-
-The time profile modulating the net spending amount
-can be selected to either be `flat` or follow a `smile` shape.
-The *smile* shape has three configurable parameters: a `dip` percentage
-a linear `increase` (or decrease if negative), over the time period (apart from inflation),
-and a time `delay`, in years from today, before the non-flat behavior starts to act.
-Values default to 15%, 12%, and 0 year respectively, but they are fully configurable
-for experimentation and to fit your anticipated lifestyle.
-
-A `slack` variable can also be adjusted. This variable allows the net spending to deviate from
-the desired profile in order to maximize the objective. This is provided mostly for educational purposes
-as maximizing the total net spending will involve leaving the savings invested for as long as possible,
-and therefore this will favor smaller spending early in the *case* and larger towards the end.
-This tension between maximizing a dollar amount and the utility of money then becomes evident.
-While the health of the individuals and therefore the utility of money is higher at the beginning
-of retirement, maximizing the total spending or bequest will pull in the opposite direction.
-
-For married couples, the survivor's
-net spending percentage is also configurable. A value of 60% is typically used.
-The selected profile multiplies
-the net spending *basis* which sets the resulting spending
-amounts over the duration of the *case*.
-Notice that *smile* curves are re-scaled to have the same total spending as flat curves:
-for that reason they do not start at 1.
 """)
 
 # --- Results tab ---
