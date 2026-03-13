@@ -74,7 +74,7 @@ st.caption("*Use the tabs below to navigate documentation by section.*")
 # Tabs for bite-sized navigation
 tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_help, tab_tips = st.tabs([
     "Overview",
-    "Plan Setup",
+    "Case Setup",
     "Results",
     "Stress Tests",
     "Tools",
@@ -87,13 +87,13 @@ with tab_overview:
     st.markdown("""
 #### Getting Started with Owl
 The menu at the top allows you to navigate through the different pages of the application.
-Typically, pages under the *Plan Setup* tab would be accessed successively in order,
+Typically, pages under the *Case Setup* tab would be accessed successively in order,
 starting from the top down. Once completed, the user would move to the second tab, *Results*,
 to visualize the results.
 
 A `Case selector` box located at the top of each page allows you
 to navigate between the different scenarios created.
-This box is present on all pages in **Plan Setup** and **Results** sections.
+This box is present on all pages in **Case Setup** and **Results** sections.
 The *case* being currently displayed is marked with a small red triangle.
 
 A typical workflow for exploring different scenarios involves starting with a base
@@ -110,7 +110,7 @@ are entered and reported in unit dollars.
 Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
 
 There are five sections in the menu bar:
-**Plan Setup**, **Results**, **Stress Tests**, **Tools**, and **Help**.
+**Case Setup**, **Results**, **Stress Tests**, **Tools**, and **Help**.
 The documentation is structured along the same menus.
 """)
 
@@ -158,13 +158,13 @@ the rates selection, and the filename of the associated *HFP* workbook (if any).
 It does **not** contain the time-series data from the *Household Financial Profile* itself.
 
 In practice, **users never need to write or edit this file by hand** — the interface
-generates it automatically as parameters are entered across the **Plan Setup** pages.
+generates it automatically as parameters are entered across the **Case Setup** pages.
 Many ready-to-use example cases can be loaded directly from the **Create Case** page,
 making it easy to get started without any manual file preparation.
 Once a *case* has run successfully, its case file can be downloaded from the **Reports** page
 and reloaded at any future session to restore the exact same configuration.
 When uploaded on the **Create Case** page,
-all fields in **Plan Setup** are populated automatically.
+all fields in **Case Setup** are populated automatically.
 The naming convention when saving from the interface is `Case_<case>.toml`.
 
 **`HFP_<case>.xlsx`** — *Household Financial Profile workbook*
@@ -231,15 +231,15 @@ When multiple *cases* sharing the same individuals' names have been solved, addi
 show the differences between cases for a quick side-by-side comparison.
 """)
 
-# --- Plan Setup tab ---
+# --- Case Setup tab ---
 with tab_plan:
     st.markdown("""
 This section contains the steps for creating and configuring *case* scenarios.
 For new *cases*, every page of this section should be visited and parameters
 entered according to your personal situation. To make this process easier,
 a progress bar tracking which page has been visited is shown at the bottom of the page.
-This bar can also be used to navigate between the pages of the *Plan Setup* section.
-The sections below describe the pages under the *Plan Setup* tab and follow the same logical order.
+This bar can also be used to navigate between the pages of the *Case Setup* section.
+The sections below describe the pages under the *Case Setup* tab and follow the same logical order.
 """)
 
     with st.expander("Create Case", expanded=True):
@@ -268,7 +268,7 @@ in order to investigate their effects.
 Copy renames the *case* by appending a number counter in parentheses, just as creating
 a copy of a file on Windows.
 It is recommended to rename each *case* to reflect the change in parameters.
-When copying a scenario, make sure to visit all pages in the **Plan Setup**
+When copying a scenario, make sure to visit all pages in the **Case Setup**
 section and verify that all parameters are as intended.
 When all *cases* have successfully run,
 results of related *cases* are compared side-by-side with differences
@@ -295,7 +295,7 @@ An example is provided
 [here](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true) and more
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
 Using a *case* file
-will populate all the fields in the **Plan Setup** section,
+will populate all the fields in the **Case Setup** section,
 except those in the *Household Financial Profile* (HFP) which get populated
 separately by an Excel workbook (see next section).
 
@@ -1051,9 +1051,9 @@ with tab_results:
     with st.expander("Graphs", expanded=True):
         st.markdown("""
 This page displays various plots from a single scenario based on the selections made
-in the **Plan Setup** section.
+in the **Case Setup** section.
 This simulation uses a single series of rates, either constant or varying,
-as selected in the **Plan Setup** section.
+as selected in the **Case Setup** section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, or maximize the bequest under the constraint of a net spending amount.
 Various plots show the results, which can be displayed in today's \\$ or
@@ -1206,7 +1206,7 @@ narrows the confidence interval on $P$ but increases run time proportionally. Fo
 analysis consider 500–1000 trials; for quick exploration 100–200 suffices.
 
 ##### Beneficiary fractions
-If the `Beneficiary fractions` (set on the **Plan Setup / Account Balances** page) are not
+If the `Beneficiary fractions` (set on the **Case Setup / Account Balances** page) are not
 all equal to 1, two histograms will be displayed: one for the partial bequest at the
 passing of the first spouse, and one for the distribution of the primary objective
 (maximum spending or maximum final bequest) at the passing of the surviving spouse.

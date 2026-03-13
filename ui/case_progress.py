@@ -2,7 +2,7 @@
 Case setup progress tracking component for Streamlit UI.
 
 This module provides a progress bar component that tracks which pages have
-been visited per case to show completion progress in the Plan Setup section.
+been visited per case to show completion progress in the Case Setup section.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 
@@ -23,7 +23,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import streamlit as st
 import sskeys as kz
 
-# Define the Plan Setup pages in order
+# Define the Case Setup pages in order
 CASE_SETUP_PAGES = [
     {
         "name": "Create Case",
@@ -78,8 +78,8 @@ CASE_SETUP_PAGES = [
 
 def get_current_page_index():
     """
-    Determine which Plan Setup page is currently being viewed.
-    Returns the index in CASE_SETUP_PAGES, or None if not a Plan Setup page.
+    Determine which Case Setup page is currently being viewed.
+    Returns the index in CASE_SETUP_PAGES, or None if not a Case Setup page.
     """
     import os
     import inspect
@@ -149,7 +149,7 @@ def is_page_visited(page_key):
 
 def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
     """
-    Display a progress bar showing which Plan Setup pages have been visited.
+    Display a progress bar showing which Case Setup pages have been visited.
     The step indicators are clickable for navigation to other pages.
 
     Parameters:
@@ -161,7 +161,7 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
     """
     current_idx = get_current_page_index()
 
-    # Only show progress bar on Plan Setup pages
+    # Only show progress bar on Case Setup pages
     if current_idx is None:
         return
 
@@ -184,7 +184,7 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
     if show_percentage:
         st.markdown(
             f'<div style="font-size: 0.85em; margin-bottom: 0.2em;">'
-            f'<strong>Plan Setup Progress:</strong> ({progress*100:.0f}%) - Step {current_idx + 1} of {total_pages}'
+            f'<strong>Case Setup Progress:</strong> ({progress*100:.0f}%) - Step {current_idx + 1} of {total_pages}'
             f'<br><span style="font-size: 0.75em; color: #666;">Click on any step below to navigate</span>'
             f'</div>',
             unsafe_allow_html=True
@@ -248,7 +248,7 @@ def show_simple_progress_bar():
     progress = visited_count / total_pages
     current_page_name = CASE_SETUP_PAGES[current_idx]["name"]
 
-    st.markdown(f"**Plan Setup:** Step {current_idx + 1}/{total_pages} - {current_page_name}")
+    st.markdown(f"**Case Setup:** Step {current_idx + 1}/{total_pages} - {current_page_name}")
     st.progress(progress)
 
 
@@ -268,5 +268,5 @@ def show_minimal_progress():
     visited = sum(1 for p in CASE_SETUP_PAGES if is_page_visited(p["key"]))
 
     # Compact display
-    st.markdown(f"**Plan Setup Progress:** {visited}/{total} pages visited")
+    st.markdown(f"**Case Setup Progress:** {visited}/{total} pages visited")
     st.progress(visited / total)

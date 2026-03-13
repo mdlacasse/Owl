@@ -34,7 +34,7 @@ kz.init()
 st.logo("https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png", size="large")
 
 pages = {
-    "Plan Setup": [
+    "Case Setup": [
         st.Page("Create_Case.py", icon=":material/person_add:"),
         st.Page("Financial_Profile.py", icon=":material/home:"),
         st.Page("Fixed_Income.py", icon=":material/currency_exchange:"),

@@ -127,7 +127,7 @@ with st.expander("*Explore some case examples*"):
         st.page_link("Graphs.py", label="View Graphs", icon=":material/stacked_line_chart:")
 
     st.markdown("")
-    st.caption("You’ve run your first case. Explore other Plan Setup pages to change assumptions. Explore other cases.")
+    st.caption("You’ve run your first case. Explore other Case Setup pages to change assumptions. Explore other cases.")
 
 kz.divider("orange")
 st.markdown("### :orange[Curious what Owl can do? The scope is substantial.]")

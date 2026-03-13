@@ -262,7 +262,7 @@ Click the `Create case` button once all parameters on this page are set."""
         st.button("Copy parameters :material/content_copy:", on_click=kz.copyCase,
                   disabled=cantcopy, help=helpmsg)
     with col2:
-        helpmsg = "`Create case` opens up all other pages in the **Plan Setup** section."
+        helpmsg = "`Create case` opens up all other pages in the **Case Setup** section."
         st.button("Create case :material/add:", on_click=owb.createPlan, disabled=cantcreate,
                   type='primary', help=helpmsg)
 
