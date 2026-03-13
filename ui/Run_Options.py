@@ -224,5 +224,6 @@ else:
             ret = kz.getText("Extra solver options (expert)", "xtra_options",
                              placeholder='{"key": "value"}', help=helpmsg)
 
+    st.divider()
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar(divider=False)
