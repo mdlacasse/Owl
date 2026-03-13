@@ -40,7 +40,7 @@ pages = {
         st.Page("Fixed_Income.py", icon=":material/currency_exchange:"),
         st.Page("Account_Balances.py", icon=":material/savings:"),
         st.Page("Asset_Allocation.py", icon=":material/percent:"),
-        st.Page("Rates_Selection.py", icon=":material/monitoring:"),
+        st.Page("Rates.py", icon=":material/monitoring:"),
         st.Page("Goals.py", icon=":material/target:"),
         st.Page("Run_Options.py", icon=":material/tune:"),
     ],

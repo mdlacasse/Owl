@@ -72,12 +72,13 @@ st.caption("*Use the tabs below to navigate documentation by section.*")
 # st.markdown("---")
 
 # Tabs for bite-sized navigation
-tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_tips = st.tabs([
+tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_help, tab_tips = st.tabs([
     "Overview",
     "Plan Setup",
     "Results",
     "Stress Tests",
-    "Tools & Help",
+    "Tools",
+    "Help",
     "Tips",
 ])
 
@@ -685,7 +686,7 @@ will appear, one for the timing of the inflection point measured in years from n
 and the other for the width of the transition, measured in +/- years from the inflection point.
 """)
 
-    with st.expander("Rates Selection"):
+    with st.expander("Rates"):
         st.markdown("""
 This page controls the annual rates of return used throughout the plan.
 All rates are **nominal** (not inflation-adjusted) and expressed as yearly percentages.
@@ -1062,7 +1063,7 @@ A button allows you to re-run the *case* which would generate a different result
 if the chosen rates are `histogaussian` or `gaussian`. Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
-selected in the Settings section (Tools & Help tab).
+selected in the Settings section (Tools tab).
 
 When the plan includes an HSA, an additional **HSA Activity** graph is displayed
 showing the annual balance, contributions, and withdrawals for each individual's HSA account.
@@ -1154,7 +1155,7 @@ runs: one run per year in that range by default.
   distribution is right-skewed.
 - **Rate sequence** – When augmented sampling is off, **Reverse sequence** and **Roll (years)** can
   be applied to the rate sequence for each run
- (same behavior as on the **Rates Selection** page),
+ (same behavior as on the **Rates** page),
   giving one variant per year.
 
 A histogram of results and a success rate is displayed at the end of the run.
@@ -1183,7 +1184,7 @@ for that particular rate sequence.
 
 ##### Prerequisite: a stochastic rate method
 Monte Carlo requires a rate method that generates a new random sequence for each trial.
-The eligible methods (set on the **Rates Selection** page) are:
+The eligible methods (set on the **Rates** page) are:
 - `histogaussian` — multivariate normal draws with mean and covariance fitted on a historical window.
 - `histolognormal` — log-normal draws with parameters fitted on a historical window; returns bounded below −100%.
 - `gaussian` — multivariate normal draws using user-supplied mean, volatility, and correlation parameters.
@@ -1219,9 +1220,9 @@ event-driven forward simulators. To improve throughput:
   server, which also has a CPU-time quota that may terminate long sessions.
 """)
 
-# --- Tools & Help tab ---
+# --- Tools tab ---
 with tab_tools:
-    st.markdown("This section describes tools available to the user and summarizes the *Help* section.")
+    st.markdown("This section describes tools available to the user.")
     with st.expander("Settings", expanded=True):
         st.markdown("""
 This page allows you to select different backends for plotting the graphs.
@@ -1281,15 +1282,24 @@ Messages coming from the underlying **Owl** calculation engine are displayed on 
 This page is mainly used for debugging purposes.
 """)
 
-    with st.expander("Help pages"):
+# --- Help tab ---
+with tab_help:
+    st.markdown("Help resources in the application menu.")
+    with st.expander("Welcome"):
         st.markdown("""
-**Welcome** — The landing page of the application. It shows new users how to quickly get started by using an example *case* file.
-
-**Documentation** — These very pages.
-
-**Parameters Reference** — Displays reference tables for parameter settings. Useful for understanding keys in case configuration files (TOML).
-
-**About Owl** — Credits and disclaimers.
+The landing page of the application. It shows new users how to quickly get started by using an example *case* file.
+""")
+    with st.expander("Documentation"):
+        st.markdown("""
+These very pages. Full user guide and reference for all sections of the application.
+""")
+    with st.expander("Parameters Reference"):
+        st.markdown("""
+Displays reference tables for parameter settings. Useful for understanding keys in case configuration files (TOML).
+""")
+    with st.expander("About Owl"):
+        st.markdown("""
+Credits and disclaimers.
 """)
 
 # --- Tips tab ---

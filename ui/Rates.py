@@ -1,5 +1,5 @@
 """
-Rates Selection page for Owl retirement planner Streamlit UI.
+Rates page for Owl retirement planner Streamlit UI.
 
 This module provides the interface for selecting rate of return assumptions
 for different asset classes, including fixed and varying rate options.
@@ -89,7 +89,7 @@ kz.initCaseKey("rateType", rateChoices[0])
 kz.initCaseKey("fixedType", fixedChoices[0])
 kz.initCaseKey("varyingType", varyingChoices[0])
 
-ret = kz.titleBar(":material/monitoring: Rates Selection")
+ret = kz.titleBar(":material/monitoring: Rates")
 
 if ret is None or kz.caseHasNoPlan():
     st.info("A case must first be created before running this page.")

@@ -56,10 +56,10 @@ CASE_SETUP_PAGES = [
         "key": "asset_allocation"
     },
     {
-        "name": "Rates Selection",
-        "file": "Rates_Selection.py",
+        "name": "Rates",
+        "file": "Rates.py",
         "icon": ":material/monitoring:",
-        "key": "rates_selection"
+        "key": "rates"
     },
     {
         "name": "Goals",
