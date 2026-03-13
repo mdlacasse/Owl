@@ -21,7 +21,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import streamlit as st
-from datetime import date
 
 import sskeys as kz
 import owlbridge as owb

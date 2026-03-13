@@ -107,7 +107,7 @@ with col3:
 kz.divider("orange")
 st.markdown("### :orange[Ready for a demo? Run your first case in 3 steps.]")
 
-with st.expander(":material/rocket_launch: *Explore some case examples*"):
+with st.expander("*Explore some case examples*"):
     # ---- Quick start demo: lead with 3-step journey ----
     st.markdown("#### :orange[Run your first case in 3 steps]")
     st.markdown("Use the **Jack & Jill** example to see results in under a minute.")
@@ -132,7 +132,7 @@ with st.expander(":material/rocket_launch: *Explore some case examples*"):
 kz.divider("orange")
 st.markdown("### :orange[Curious what Owl can do? The scope is substantial.]")
 modeling_md = Path(__file__).resolve().parent.parent / "docs" / "modeling-capabilities.md"
-with st.expander(":material/science: *See what Owl models—and its limitations*"):
+with st.expander("*See what Owl models—and its limitations*"):
     try:
         st.markdown(modeling_md.read_text())
     except OSError:
@@ -143,7 +143,7 @@ with st.expander(":material/science: *See what Owl models—and its limitations*
 
 kz.divider("orange")
 st.markdown("### :orange[Ready to go deeper? Design and run your own cases.]")
-with st.expander(":material/edit_note: *Run your own cases*"):
+with st.expander("*Run your own cases*"):
     st.markdown("""Design your own case and save your progress locally.
 Return anytime by uploading your own configuration files—no cloud account required.""")
     st.markdown("#### :orange[Get the sample case files]")

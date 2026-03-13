@@ -113,7 +113,7 @@ There are five sections in the menu bar:
 The documentation is structured along the same menus.
 """)
 
-    with st.expander(":material/folder: Definitions", expanded=True):
+    with st.expander("Definitions", expanded=True):
         st.markdown("""
 **Case**
 > A *case* is a collection of parameters that fully defines a retirement scenario. A *case* contains
@@ -137,14 +137,14 @@ including rates, either constant or varying.
 the planner can explore the impacts of differing assumptions and strategies on their financial situation.
 """)
 
-    with st.expander(":material/sync_alt: Input and Output Files"):
+    with st.expander("Input and Output Files"):
         st.markdown("""
 Every *case* in **Owl** is fully described by two input files and produces three output files.
 Together they capture the complete data flow from configuration to results.
 In the file names below, `<case>` stands for the *case* name and `<individual>` stands
 for an individual's first name (e.g., *Jack* or *Jill*).
 
-##### :material/upload: Input Files
+##### Input Files
 
 **`Case_<case>.toml`** — *Case parameter file*
 
@@ -187,7 +187,7 @@ The case file stores the HFP filename internally; matching `<case>` names simply
 
 ---
 
-##### :material/download: Output Files
+##### Output Files
 
 After a *case* has been solved, the **Reports** page offers the following downloads:
 
@@ -241,7 +241,7 @@ This bar can also be used to navigate between the pages of the *Plan Setup* sect
 The sections below describe the pages under the *Plan Setup* tab and follow the same logical order.
 """)
 
-    with st.expander(":material/person_add: Create Case", expanded=True):
+    with st.expander("Create Case", expanded=True):
         st.markdown("""
 The **Create Case** page is where every new scenario begins.
 When no case is yet selected, the page displays three columns side by side:
@@ -304,7 +304,7 @@ Case parameter files can have any name but when saving from the interface,
 their name will start with *Case_* followed by the *case* name.
 """)
 
-    with st.expander(":material/home: Financial Profile"):
+    with st.expander("Financial Profile"):
         st.markdown("""
 The *Household Financial Profile* (HFP) contains two major sections,
 one representing *Wages and Contributions* for each individual, and
@@ -319,7 +319,7 @@ These data include future wages and contributions,
 past and future Roth contributions and conversions, large expenses
 or large influx of after-tax money, debts, and fixed assets.
 
-##### :material/work_history: Wages and Contributions
+##### Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
 The **Wages and Contributions** table contains 12 columns titled as follows:
 
@@ -428,7 +428,7 @@ the `Download Financial Profile workbook` on the
 **Reports** page. This allows you to rerun the same *case* at a later time
 by reloading the same **Household Financial Profile** workbook (which contains the Wages and Contributions data).
 
-##### :material/account_balance: Debts and Fixed Assets
+##### Debts and Fixed Assets
 These tables contain current or future debts and existing fixed assets.
 Note that no optimization is taking place on debts, as the question
 *"Should I pay my mortgage or leave my money invested?"* has to consider risk,
@@ -525,7 +525,7 @@ where:
 - Assets disposed during the plan (yod within plan duration) generate taxable proceeds in the year of disposition.
 """)
 
-    with st.expander(":material/currency_exchange: Fixed Income"):
+    with st.expander("Fixed Income"):
         st.markdown("""
 This page is for entering data related to the individual's anticipated fixed income
 from pensions and Social Security.
@@ -597,7 +597,7 @@ determines the exact time benefits start in the first year and the total
 annual amount for the first year is adjusted accordingly.
 """)
 
-    with st.expander(":material/savings: Account Balances"):
+    with st.expander("Account Balances"):
         st.markdown("""
 This page allows you to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
@@ -639,7 +639,7 @@ When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
 """)
 
-    with st.expander(":material/percent: Asset Allocation"):
+    with st.expander("Asset Allocation"):
         st.markdown("""
 This page allows you to select how to partition your assets between 4 investment options,
 one equity and three fixed-income securities:
@@ -685,7 +685,7 @@ will appear, one for the timing of the inflection point measured in years from n
 and the other for the width of the transition, measured in +/- years from the inflection point.
 """)
 
-    with st.expander(":material/monitoring: Rates Selection"):
+    with st.expander("Rates Selection"):
         st.markdown("""
 This page controls the annual rates of return used throughout the plan.
 All rates are **nominal** (not inflation-adjusted) and expressed as yearly percentages.
@@ -894,11 +894,11 @@ targets, allocations, Roth strategy) while holding the random scenario constant.
   *(Basis for the `lognormal` and `histolognormal` log-normal / GBM framework.)*
 """)
 
-    with st.expander(":material/target: Goals"):
+    with st.expander("Goals"):
         st.markdown("""
 The **Goals** page is where you define the optimization objective and spending preferences.
 
-##### :material/flag: Objective
+##### Objective
 Choose whether to **maximize net spending** (subject to a desired bequest) or **maximize bequest**
 (subject to a desired annual net spending amount). The quantity not maximized becomes the constraint.
 - When maximizing net spending, enter the **Desired bequest from savings accounts** in today's \\$k.
@@ -908,13 +908,13 @@ Choose whether to **maximize net spending** (subject to a desired bequest) or **
 
 All objective and constraint values are in today's dollars (thousands).
 
-##### :material/shield: Safety Net
+##### Safety Net
 You can enforce a **minimum taxable balance** (today's \\$k) for each spouse from year 2 through
 life expectancy. The amount is inflation-adjusted over the plan. This should ideally be smaller
 than each spouse's initial taxable balance; the page shows a warning if the minimum exceeds 60%
 of initial taxable balance or if it is larger than the desired bequest when maximizing spending.
 
-##### :material/show_chart: Spending Profile
+##### Spending Profile
 The **type of profile** can be *flat* (constant real spending over time) or *smile* (adjusted for
 lifestyle: a dip in the “slow-go” years, then an increase or decrease over the plan). For *smile*,
 you can set the **smile delay** (years before the dip starts), **smile dip** (%), and **smile increase** (%).
@@ -926,7 +926,7 @@ These settings determine the *basis* for net spending or the constraint level; t
 with the options on the **Run Options** page (Roth conversions, Medicare, solver, etc.).
 """)
 
-    with st.expander(":material/tune: Run Options"):
+    with st.expander("Run Options"):
         st.markdown("""
 This page configures Roth conversions, Medicare, ACA, the self-consistent loop, and solver options.
 The **objective**, **safety net**, and **spending profile** are set on the **Goals** page.
@@ -1047,7 +1047,7 @@ Both solvers support all decomposition modes (sequential and Benders).
 # --- Results tab ---
 with tab_results:
     st.markdown("Results from a case can be visualized in three different ways.")
-    with st.expander(":material/stacked_line_chart: Graphs", expanded=True):
+    with st.expander("Graphs", expanded=True):
         st.markdown("""
 This page displays various plots from a single scenario based on the selections made
 in the **Plan Setup** section.
@@ -1070,7 +1070,7 @@ This graph appears right after the **Savings Balance** graph.
 
 """)
 
-    with st.expander(":material/data_table: Worksheets"):
+    with st.expander("Worksheets"):
         st.markdown("""
 This page shows the various worksheets containing annual transactions
 and savings account balances in nominal \\$.
@@ -1087,7 +1087,7 @@ HSA withdrawals in the **Sources** table, and HSA balances, contributions, and w
 in the **Accounts** table.
 """)
 
-    with st.expander(":material/description: Reports"):
+    with st.expander("Reports"):
         st.markdown("""
 This page allows you to compare *cases* and save files for future use.
 First, it shows a synopsis of the computed scenario by
@@ -1127,7 +1127,7 @@ with tab_sim:
 There are two different ways to run multiple scenarios and generate a histogram of results.
 """)
 
-    with st.expander(":material/history: Historical Range", expanded=True):
+    with st.expander("Historical Range", expanded=True):
         st.markdown("""
 This page is for backtesting your scenario over a selected range of past years,
 and generate a histogram of results.
@@ -1169,7 +1169,7 @@ either maximum net spending or maximum bequest left at the passing
 of the surviving spouse, depending on the objective function being optimized.
 """)
 
-    with st.expander(":material/finance: Monte Carlo"):
+    with st.expander("Monte Carlo"):
         st.markdown("""
 This page runs a Monte Carlo simulation by generating many independent sequences of annual
 rates of return and solving the full optimization for each one. At the end of the run a
@@ -1222,7 +1222,7 @@ event-driven forward simulators. To improve throughput:
 # --- Tools & Help tab ---
 with tab_tools:
     st.markdown("This section describes tools available to the user and summarizes the *Help* section.")
-    with st.expander(":material/settings: Settings", expanded=True):
+    with st.expander("Settings", expanded=True):
         st.markdown("""
 This page allows you to select different backends for plotting the graphs.
 The `plotly` package is currently the default as the graphs generated are interactive
@@ -1275,13 +1275,13 @@ clicking on the three vertical dots located on the upper right of the app
 and selecting the **Settings** option.
 """)
 
-    with st.expander(":material/error: Logs"):
+    with st.expander("Logs"):
         st.markdown("""
 Messages coming from the underlying **Owl** calculation engine are displayed on this page.
 This page is mainly used for debugging purposes.
 """)
 
-    with st.expander(":material/campaign: Help pages"):
+    with st.expander("Help pages"):
         st.markdown("""
 **Welcome** — The landing page of the application. It shows new users how to quickly get started by using an example *case* file.
 
@@ -1295,7 +1295,7 @@ This page is mainly used for debugging purposes.
 # --- Tips tab ---
 with tab_tips:
     st.markdown("Here are a few tips that can help while using **Owl**.")
-    with st.expander(":material/lightbulb_2: Recommendations on Optimization and Roth Conversions", expanded=True):
+    with st.expander("Recommendations on Optimization and Roth Conversions", expanded=True):
         st.markdown("""
 **Owl** can optimize explicitly for Medicare costs but these can sometimes be
 costly computations. This approach is included in the current version but
@@ -1320,7 +1320,7 @@ To account for the effects of potential changes in future income tax rates,
 one can use a termination year for current tax rates to revert to higher rates.
 """)
 
-    with st.expander(":material/rule_settings: Typical Workflow"):
+    with st.expander("Typical Workflow"):
         st.markdown("""
 A typical workflow would look like the following:
 
@@ -1347,7 +1347,7 @@ of the **Sources** tables on the Worksheets page.
 This is where withdrawals and conversions are displayed for this year and the next few years.
 """)
 
-    with st.expander(":material/mindfulness: Scope of Use"):
+    with st.expander("Scope of Use"):
         st.markdown("""
 In general, computer modeling is not about predicting the future,
 but rather about exploring possibilities.

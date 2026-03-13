@@ -88,7 +88,7 @@ if ret is None:
                 kz.initCaseKey("tomlexcase", case)
                 st.rerun()
 else:
-    with st.expander(":material/add: *Create or load another case*"):
+    with st.expander("*Create or load another case*"):
         col1, col2, col3 = st.columns(3, gap="large")
         with col1:
             st.markdown("#### :orange[Create a New Case]")

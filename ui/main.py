@@ -60,7 +60,7 @@ pages = {
     "Help": [
         st.Page("Welcome.py", icon=":material/campaign:", default=True),
         st.Page("Documentation.py", icon=":material/help:"),
-        st.Page("Parameters_Reference.py", icon=":material/tune:"),
+        st.Page("Parameters_Reference.py", icon=":material/menu_book:"),
         st.Page("About_Owl.py", icon=":material/info:"),
     ],
 }

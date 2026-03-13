@@ -25,7 +25,7 @@ import streamlit as st
 import sskeys as kz
 
 
-st.markdown("# :material/tune: Parameters Reference")
+st.markdown("# :material/menu_book: Parameters Reference")
 kz.divider("orange")
 
 parameters_path = Path(__file__).resolve().parents[1] / "PARAMETERS.md"
