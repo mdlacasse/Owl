@@ -201,14 +201,16 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
                 is_current = (idx == current_idx)
                 is_visited = is_page_visited(page_info["key"])
 
-                # Page icon colored by status: current=orange, visited=green, unvisited=gray
+                # Page icon colored by status: current=orange, visited=green+check, unvisited=gray
                 if is_current:
                     color = "orange"
+                    label = f":{color}[{page_info['icon']}]"
                 elif is_visited:
                     color = "green"
+                    label = f":{color}[{page_info['icon']}] :green[:material/check:]"
                 else:
                     color = "gray"
-                label = f":{color}[{page_info['icon']}]"
+                    label = f":{color}[{page_info['icon']}]"
 
                 st.page_link(
                     page_info["file"],
