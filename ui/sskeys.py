@@ -71,8 +71,10 @@ init()
 def genCaseKey(key):
     """
     This function is to generate global keys that are uniquely associated with a case.
+    Uses case name when 'id' is not set (e.g. before a plan exists) to avoid "None_key" keys.
     """
-    return f"{getCaseKey('id')}_{key}"
+    case_id = getCaseKey("id") or ss.currentCase
+    return f"{case_id}_{key}"
 
 
 def getKeyInCase(key, casename):
@@ -127,6 +129,11 @@ def getIndex(item, choices):
 
 def currentCaseName() -> str:
     return ss.currentCase
+
+
+def has_current_case() -> bool:
+    """True if a current case is set and exists in ss.cases (guards against reconnect state)."""
+    return ss.currentCase is not None and ss.currentCase in ss.cases
 
 
 def switchToCase(key):
@@ -329,11 +336,21 @@ def dumpCase(case=None):
 
 
 def setpull(key):
-    return setCaseKey(key, ss[genCaseKey(key)])
+    if ss.currentCase is None or ss.currentCase not in ss.cases:
+        return None
+    gen_key = genCaseKey(key)
+    if gen_key not in ss:
+        return None
+    return setCaseKey(key, ss[gen_key])
 
 
 def storepull(key):
-    return storeCaseKey(key, ss[genCaseKey(key)])
+    if ss.currentCase is None or ss.currentCase not in ss.cases:
+        return None
+    gen_key = genCaseKey(key)
+    if gen_key not in ss:
+        return None
+    return storeCaseKey(key, ss[gen_key])
 
 
 def pushCaseKey(key, val=None):

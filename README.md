@@ -43,7 +43,7 @@ Follow these <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">inst
 | <a href="PARAMETERS.md" target="_blank" rel="noopener noreferrer">PARAMETERS.md</a> | Complete reference for TOML case file parameters |
 | <a href="RATE_MODELS.md" target="_blank" rel="noopener noreferrer">RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
 | <a href="docs/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">docs/modeling-capabilities.md</a> | Summary of modeled components, assumptions, and limitations |
-| <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.tex</a> | Mathematical foundations (PDF build via LaTeX) |
+| <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.pdf</a> | Mathematical foundations |
 
 Documentation for the app user interface is also available from the [Streamlit UI](https://owlplanner.streamlit.app/Documentation).
 

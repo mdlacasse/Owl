@@ -1210,7 +1210,9 @@ def _get_case_logger():
     # No plan exists yet - get or create the current case's log stream
     log_stream = kz.getCaseKey("logs")
     if log_stream is None:
-        # Create a new StringIO for this case if it doesn't exist
+        # Only create/store if the current case actually exists (e.g. avoid after reconnect)
+        if not kz.has_current_case():
+            return None
         log_stream = StringIO()
         kz.storeCaseKey("logs", log_stream)
 
