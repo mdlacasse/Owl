@@ -141,7 +141,11 @@ def switchToCase(key):
     # format_func adds 🔻 for display only; strip it if it leaked into the stored value.
     if isinstance(name, str) and name.endswith("🔻"):
         name = name[:-1]
-    ss.currentCase = name
+    # Only set currentCase if the case exists (guards against reconnect/stale widget state).
+    if name in ss.cases:
+        ss.currentCase = name
+    elif ss.currentCase is not None and ss.currentCase not in ss.cases:
+        ss.currentCase = list(ss.cases)[0] if ss.cases else None
 
 
 def switchToCaseName(casename):
@@ -376,6 +380,8 @@ def flagModified():
 
 
 def storeCaseKey(key, val):
+    if ss.currentCase is None or ss.currentCase not in ss.cases:
+        return None
     ss.cases[ss.currentCase][key] = val
     return val
 

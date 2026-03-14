@@ -63,6 +63,9 @@ def getMethodDescription(method):
 
 
 def createPlan():
+    if not kz.has_current_case():
+        st.error("No case selected or current case no longer exists. Please select or create a case.")
+        return
     name = kz.currentCaseName()
     inames = [kz.getCaseKey("iname0")]
     description = kz.getCaseKey("description")
