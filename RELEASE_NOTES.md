@@ -2,6 +2,25 @@
 
 ---
 
+## Version 2026.03.24
+
+### Streamlit Worksheets: optional ages and hide-zero columns
+
+- **`[results]` / `Plan`**: New boolean options `worksheet_show_ages` and `worksheet_hide_zero_columns`
+  (default `false`), round-tripped in the case TOML like `default_plots`.
+- **Worksheets page**: *Table display options* expander with toggles; choices sync to the plan and
+  save with the case file. Layout: two controls in the first columns of a three-column row.
+- **Show ages**: Adds per-person age columns (integer, December 31 of each row year). Cells are
+  empty after that individual's plan horizon and for missing years. On-screen tables only —
+  Excel download from **Reports** is unchanged.
+- **Hide all-zero columns**: Drops numeric columns where every value is zero (tolerance); `year`
+  is never dropped. On-screen only; Excel unchanged.
+- **Docs**: `PARAMETERS.md` (`[results]` table and example TOML); **Help → Parameters Reference**
+  unchanged (renders `PARAMETERS.md`). **Documentation** (Results → Worksheets) updated.
+- **Tests**: `tests/test_worksheet_display_utils.py` for age and zero-column helpers.
+
+---
+
 ## Version 2026.03.12
 
 ### Medicare Part D

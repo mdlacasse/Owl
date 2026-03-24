@@ -21,6 +21,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 ######################################################################
+from datetime import date
+
 import numpy as np
 import pandas as pd
 
@@ -427,3 +429,53 @@ def detect_oscillation(obj_history, tolerance, max_cycle_length=15):
                 return cycle_len
 
     return None
+
+
+def age_on_dec_31(year: int, yob: int, mob: int, dob: int) -> int:
+    """
+    Integer age on December 31 of ``year`` for a birth date (yob, mob, dob).
+
+    Used for worksheet display; not SSA insurance-age rules.
+    """
+    ref = date(year, 12, 31)
+    birth = date(int(yob), int(mob), int(dob))
+    if ref < birth:
+        return 0
+    return ref.year - birth.year - ((ref.month, ref.day) < (birth.month, birth.day))
+
+
+def worksheet_age_on_dec_31_or_blank(
+    year: int, yob: int, mob: int, dob: int, last_alive_calendar_year: int
+) -> int | None:
+    """
+    Age on December 31 of ``year``, or None if that year is after the individual's
+    last modeled calendar year (inclusive of ``last_alive_calendar_year``).
+    """
+    if year > last_alive_calendar_year:
+        return None
+    return age_on_dec_31(year, yob, mob, dob)
+
+
+def drop_all_zero_numeric_columns(df: pd.DataFrame, protected: set | None = None, tol: float = 1e-9):
+    """
+    Return a copy of ``df`` without columns where every entry is numeric and |value| <= tol.
+
+    Columns with any non-numeric value (after coercion) are kept. Column names in
+    ``protected`` are never dropped.
+    """
+    protected = protected or set()
+    if df is None or df.empty:
+        return df
+    out = df.copy()
+    to_drop = []
+    for col in out.columns:
+        if col in protected:
+            continue
+        s = pd.to_numeric(out[col], errors="coerce")
+        if s.isna().any():
+            continue
+        if (s.abs() <= tol).all():
+            to_drop.append(col)
+    if not to_drop:
+        return out
+    return out.drop(columns=to_drop)

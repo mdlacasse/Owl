@@ -259,11 +259,13 @@ Options controlling the optimization solver and constraints.
 
 ## :orange[[results]]
 
-Parameters controlling result display and output.
+Parameters controlling result display and output (graphs and the Streamlit **Worksheets** tables). These keys are stored on the `Plan`, round-trip in the case TOML, and can be changed from the **Worksheets** page (*Table display options* expander) as well as by editing the file.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `default_plots` | string | Default plot display mode. Valid values: `"nominal"` (nominal dollars), `"today"` (today's dollars) |
+| `worksheet_show_ages` | boolean | When `true` (default `false`), the Streamlit **Worksheets** page adds per-person **age** columns next to `year`. Each value is the individual's integer age on **December 31** of that row's calendar year. The cell is empty for years after that person's plan horizon (consistent with `basic_info.life_expectancy` and the plan horizon). Does **not** change columns in the Excel workbook downloaded from **Reports**. |
+| `worksheet_hide_zero_columns` | boolean | When `true` (default `false`), the Streamlit **Worksheets** page omits numeric columns where every value is zero (within a small tolerance). The `year` column is never removed. Does **not** change the Excel workbook downloaded from **Reports**. |
 
 -------
 
@@ -358,6 +360,9 @@ maxTime = 900
 
 [results]
 default_plots = "nominal"
+# Optional Streamlit Worksheets table options (defaults shown):
+worksheet_show_ages = false
+worksheet_hide_zero_columns = false
 
 # Optional: user-defined sections are preserved on load/save
 [user]
