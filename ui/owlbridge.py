@@ -32,6 +32,7 @@ sys.path.insert(0, "./src")
 sys.path.insert(0, "../src")
 
 import owlplanner as owl
+from owlplanner.utils import drop_all_zero_numeric_columns, worksheet_age_on_dec_31_or_blank
 from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes
 from owlplanner.mylogging import Logger
@@ -100,6 +101,9 @@ def createPlan():
     plot_val = kz.getCaseKey("plots")
     if plot_val:
         plan.setDefaultPlots(plot_val)
+
+    plan.setWorksheetShowAges(bool(kz.getCaseKey("worksheetShowAges")))
+    plan.setWorksheetHideZeroColumns(bool(kz.getCaseKey("worksheetHideZeroColumns")))
 
     # Force to pull key and set profile if key was defined.
     if kz.getCaseKey("spendingProfile"):
@@ -717,6 +721,18 @@ def setDefaultPlots(plan, key):
     plan.setDefaultPlots(val)
 
 
+@_checkPlan
+def setWorksheetShowAges(plan, key):
+    val = kz.storepull(key)
+    plan.setWorksheetShowAges(val)
+
+
+@_checkPlan
+def setWorksheetHideZeroColumns(plan, key):
+    val = kz.storepull(key)
+    plan.setWorksheetHideZeroColumns(val)
+
+
 def setGlobalPlotBackend(key):
     val = kz.getGlobalKey("_"+key)
     kz.storeGlobalKey(key, val)
@@ -742,6 +758,95 @@ def highlight_year_row(row):
     return [""] * len(row)
 
 
+def _person_index_for_worksheet(sheet_name, inames):
+    """Return individual index if sheet is ``{iname}'s …``; else None (household sheet)."""
+    for i, iname in enumerate(inames):
+        if sheet_name.startswith(f"{iname}'s "):
+            return i
+    return None
+
+
+def _last_alive_calendar_year(plan, i):
+    """Last calendar year included in the plan horizon for individual ``i`` (same rule as Plan vprint)."""
+    return int(plan.year_n[0]) + int(plan.horizons[i]) - 1
+
+
+def _worksheet_age_int_cell(y, plan, i, last_alive_year):
+    """Nullable integer age for one row, or ``pd.NA`` when year missing or individual deceased."""
+    if pd.isna(y):
+        return pd.NA
+    yi = int(y)
+    v = worksheet_age_on_dec_31_or_blank(
+        yi, int(plan.yobs[i]), int(plan.mobs[i]), int(plan.tobs[i]), last_alive_year
+    )
+    if v is None:
+        return pd.NA
+    return int(v)
+
+
+def _insert_worksheet_age_columns(df, plan, sheet_name):
+    """Insert age columns immediately after ``year``. Returns (df_copy, list of age column names)."""
+    years = pd.to_numeric(df["year"], errors="coerce")
+    idx = df.columns.get_loc("year") + 1
+    dfc = df.copy()
+    age_cols = []
+    pi = _person_index_for_worksheet(sheet_name, plan.inames)
+    if pi is not None:
+        col = f"age ({plan.inames[pi]})"
+        last_y = _last_alive_calendar_year(plan, pi)
+        vals = [_worksheet_age_int_cell(y, plan, pi, last_y) for y in years]
+        dfc.insert(idx, col, pd.Series(vals, dtype="Int64", index=dfc.index))
+        age_cols.append(col)
+    else:
+        for i in range(plan.N_i):
+            col = f"age ({plan.inames[i]})"
+            last_y = _last_alive_calendar_year(plan, i)
+            vals = [_worksheet_age_int_cell(y, plan, i, last_y) for y in years]
+            dfc.insert(idx + i, col, pd.Series(vals, dtype="Int64", index=dfc.index))
+            age_cols.append(col)
+    return dfc, age_cols
+
+
+def _worksheet_df_for_streamlit_display(df):
+    """Match legacy string rendering for non-age columns; keep ages as nullable integers."""
+    out = df.copy()
+    for col in out.columns:
+        if isinstance(col, str) and col.startswith("age ("):
+            continue
+        out[col] = out[col].astype(str)
+    return out
+
+
+def _prepare_worksheet_dataframe(df, plan, sheet_name):
+    """
+    Optionally drop all-zero numeric columns and insert age columns.
+    Federal sheet: caller formats ``SS % taxed`` after this returns.
+    """
+    dfc = df.copy()
+    if plan.worksheetHideZeroColumns and "year" in dfc.columns:
+        dfc = drop_all_zero_numeric_columns(dfc, protected={"year"})
+    if plan.worksheetShowAges and "year" in dfc.columns:
+        dfc, _ = _insert_worksheet_age_columns(dfc, plan, sheet_name)
+    return dfc
+
+
+def _worksheet_column_config(columns, dollars, pct_sheets, federal_tax_sheet):
+    colfor = {}
+    num_format = "%.2f" if pct_sheets else "%.3f"
+    for col in columns:
+        if col == "year":
+            colfor[col] = st.column_config.NumberColumn(None, format="%d", width="small")
+        elif isinstance(col, str) and col.startswith("age ("):
+            colfor[col] = st.column_config.NumberColumn(None, format="%d", width="small")
+        elif federal_tax_sheet and col == "SS % taxed":
+            colfor[col] = st.column_config.TextColumn(None)
+        elif dollars:
+            colfor[col] = st.column_config.NumberColumn(None, format="accounting", step=1)
+        else:
+            colfor[col] = st.column_config.NumberColumn(None, format=num_format)
+    return colfor
+
+
 @_checkPlan
 def showWorkbook(plan):
     wb = plan.saveWorkbook(saveToFile=False)
@@ -750,7 +855,7 @@ def showWorkbook(plan):
 
     currencySheets = ["Income", "Cash Flow", "Sources", "Accounts"]
     for name in wb.sheetnames:
-        if name == "Summary":
+        if name == "Summary" or name.startswith("Config"):
             continue
 
         dollars = False
@@ -759,61 +864,72 @@ def showWorkbook(plan):
                 dollars = True
                 break
 
-        pctSheets = "Allocations" in name or name == "Rates"
-        federalTaxSheet = name == "Federal Income Tax"
+        pct_sheets = "Allocations" in name or name == "Rates"
+        federal_tax_sheet = name == "Federal Income Tax"
 
         ws = wb[name]
         df = pd.DataFrame(ws.values)
         new_header = df.iloc[0]
         df = df[1:]
         df.columns = new_header
-        if federalTaxSheet:
+
+        if federal_tax_sheet:
+            df = _prepare_worksheet_dataframe(df, plan, name)
             if "SS % taxed" in df.columns:
                 df = df.copy()
                 df["SS % taxed"] = (100 * df["SS % taxed"].astype(float)).map(lambda x: f"{x:.1f}%")
-            colfor = {}
-            for col in df.columns:
-                if col == "year":
-                    colfor[col] = st.column_config.NumberColumn(None, format="%d", width="small")
-                elif col == "SS % taxed":
-                    colfor[col] = st.column_config.TextColumn(None)
-                else:
-                    colfor[col] = st.column_config.NumberColumn(None, format="accounting", step=1)
-        elif dollars:
-            colfor = {}
-            for col in df.columns:
-                if col == "year":
-                    colfor[col] = st.column_config.NumberColumn(None, format="%d", width="small")
-                else:
-                    # colfor[col] = st.column_config.NumberColumn(None, format="$ %,.0f")
-                    colfor[col] = st.column_config.NumberColumn(None, format="accounting", step=1)
         else:
-            colfor = {}
-            num_format = "%.2f" if pctSheets else "%.3f"
-            for col in df.columns:
-                if col == "year":
-                    colfor[col] = st.column_config.NumberColumn(None, format="%d", width="small")
-                else:
-                    colfor[col] = st.column_config.NumberColumn(None, format=num_format)
+            df = _prepare_worksheet_dataframe(df, plan, name)
+
+        colfor = _worksheet_column_config(df.columns, dollars, pct_sheets, federal_tax_sheet)
 
         st.markdown(f"#### :orange[{name}]")
         if "Accounts" in name:
             display_df = df.style.apply(highlight_year_row, axis=1)
             st.dataframe(display_df, width="stretch", column_config=colfor, hide_index=True)
         else:
-            st.dataframe(df.astype(str), width="stretch", column_config=colfor, hide_index=True)
+            st.dataframe(
+                _worksheet_df_for_streamlit_display(df),
+                width="stretch",
+                column_config=colfor,
+                hide_index=True,
+            )
 
-        if federalTaxSheet:
-            st.caption(
+        if federal_tax_sheet:
+            cap = (
                 "Values are in nominal $, rounded to the nearest dollar. "
                 "SS % taxed is the fraction of Social Security benefits subject to federal tax."
             )
+            if plan.worksheetShowAges:
+                cap += (
+                    " Ages are as of December 31 of each row's calendar year; "
+                    "blank after an individual's plan horizon."
+                )
+            st.caption(cap)
         elif dollars:
-            st.caption("Values are in nominal $, rounded to the nearest dollar.")
-        elif pctSheets:
-            st.caption("Values are in percent, with 2 decimal places.")
+            cap = "Values are in nominal $, rounded to the nearest dollar."
+            if plan.worksheetShowAges:
+                cap += (
+                    " Ages are as of December 31 of each row's calendar year; "
+                    "blank after an individual's plan horizon."
+                )
+            st.caption(cap)
+        elif pct_sheets:
+            cap = "Values are in percent, with 2 decimal places."
+            if plan.worksheetShowAges:
+                cap += (
+                    " Ages are as of December 31 of each row's calendar year; "
+                    "blank after an individual's plan horizon."
+                )
+            st.caption(cap)
         else:
-            st.caption("Values are fractional.")
+            cap = "Values are fractional."
+            if plan.worksheetShowAges:
+                cap += (
+                    " Ages are as of December 31 of each row's calendar year; "
+                    "blank after an individual's plan horizon."
+                )
+            st.caption(cap)
 
 
 @_checkPlan
@@ -958,6 +1074,8 @@ def genDic(plan):
     dic["yOBBBA"] = plan.yOBBBA
     dic["surplusFraction"] = plan.eta
     dic["plots"] = plan.defaultPlots
+    dic["worksheetShowAges"] = plan.worksheetShowAges
+    dic["worksheetHideZeroColumns"] = plan.worksheetHideZeroColumns
     dic["allocType"] = plan.ARCoord
     dic["timeListsFileName"] = plan.timeListsFileName
     for j1 in range(plan.N_j):

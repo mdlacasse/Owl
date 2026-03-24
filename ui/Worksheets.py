@@ -38,4 +38,25 @@ else:
     if kz.isCaseUnsolved():
         st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
     else:
+        kz.initCaseKey("worksheetShowAges", False)
+        kz.initCaseKey("worksheetHideZeroColumns", False)
+        with st.expander("*Table display options*", expanded=False):
+            help_age = (
+                "Add per-person age columns (age on December 31 of each row's calendar year). "
+                "Stored in the case file under [results]."
+            )
+            help_hide = (
+                "Hide numeric columns where every value is zero. "
+                "Stored in the case file under [results]."
+            )
+            col_a, col_b, _ = st.columns(3)
+            with col_a:
+                kz.getToggle("Show ages", "worksheetShowAges", callback=owb.setWorksheetShowAges, help=help_age)
+            with col_b:
+                kz.getToggle(
+                    "Hide columns that are all zeros",
+                    "worksheetHideZeroColumns",
+                    callback=owb.setWorksheetHideZeroColumns,
+                    help=help_hide,
+                )
         owb.showWorkbook()

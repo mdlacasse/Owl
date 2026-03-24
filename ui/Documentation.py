@@ -1086,6 +1086,13 @@ indicating that these lines contain actionable items for the current year.
 When the plan includes an HSA, the worksheets include additional HSA columns:
 HSA withdrawals in the **Sources** table, and HSA balances, contributions, and withdrawals
 in the **Accounts** table.
+
+Use the **Table display options** expander at the top of the page to optionally
+**show ages** (integer age on December 31 of each row's calendar year, with empty cells
+after that person's plan horizon) and to **hide columns that are all zeros**.
+Those choices apply only to the on-screen tables; the Excel workbook from **Reports**
+is unchanged. They are saved in the case parameter file under `[results]` (see
+**Help → Parameters Reference** for `worksheet_show_ages` and `worksheet_hide_zero_columns`).
 """)
 
     with st.expander("Reports"):

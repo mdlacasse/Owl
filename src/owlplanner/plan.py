@@ -206,6 +206,8 @@ class Plan:
         self._description = ''
         self._config_extra = None
         self.defaultPlots = "nominal"
+        self.worksheetShowAges = False
+        self.worksheetHideZeroColumns = False
         self.defaultSolver = "default"
         self._plotterName = None
         # Pick a default plotting backend here.
@@ -460,6 +462,16 @@ class Plan:
 
         self.defaultPlots = self._checkValueType(value)
         self.mylog.vprint(f"Setting plots default value to '{value}'.")
+
+    def setWorksheetShowAges(self, value):
+        """Enable or disable age columns in Streamlit worksheet tables."""
+        self.worksheetShowAges = bool(value)
+        self.mylog.vprint(f"Setting worksheet show ages to {self.worksheetShowAges}.")
+
+    def setWorksheetHideZeroColumns(self, value):
+        """Enable or hide all-zero numeric columns in Streamlit worksheet tables."""
+        self.worksheetHideZeroColumns = bool(value)
+        self.mylog.vprint(f"Setting worksheet hide zero columns to {self.worksheetHideZeroColumns}.")
 
     def setPlotBackend(self, backend: str):
         """

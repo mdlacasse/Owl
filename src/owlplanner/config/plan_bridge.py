@@ -291,7 +291,10 @@ def config_to_plan(
     _apply_solver_options_to_plan(p, known)
     _apply_aca_to_plan(p, known)
 
-    p.setDefaultPlots(known["results"]["default_plots"])
+    res = known.get("results", {})
+    p.setDefaultPlots(res.get("default_plots", "nominal"))
+    p.setWorksheetShowAges(bool(res.get("worksheet_show_ages", False)))
+    p.setWorksheetHideZeroColumns(bool(res.get("worksheet_hide_zero_columns", False)))
 
     return p
 
@@ -317,7 +320,10 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
     _apply_solver_options_to_plan(plan, known)
     _apply_aca_to_plan(plan, known)
 
-    plan.setDefaultPlots(known.get("results", {}).get("default_plots", "nominal"))
+    res = known.get("results", {})
+    plan.setDefaultPlots(res.get("default_plots", "nominal"))
+    plan.setWorksheetShowAges(bool(res.get("worksheet_show_ages", False)))
+    plan.setWorksheetHideZeroColumns(bool(res.get("worksheet_hide_zero_columns", False)))
 
 
 def plan_to_config(myplan: "Plan") -> dict:
@@ -433,7 +439,11 @@ def plan_to_config(myplan: "Plan") -> dict:
         diconf["optimization_parameters"]["smile_delay"] = int(myplan.smileDelay)
 
     diconf["solver_options"] = dict(myplan.solverOptions)
-    diconf["results"] = {"default_plots": myplan.defaultPlots}
+    diconf["results"] = {
+        "default_plots": myplan.defaultPlots,
+        "worksheet_show_ages": bool(myplan.worksheetShowAges),
+        "worksheet_hide_zero_columns": bool(myplan.worksheetHideZeroColumns),
+    }
 
     # ACA settings (only emit when configured)
     if getattr(myplan, "slcsp_annual", 0.0) > 0:

@@ -180,6 +180,14 @@ class Results(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     default_plots: str = Field(default="nominal", description="nominal or today")
+    worksheet_show_ages: bool = Field(
+        default=False,
+        description="Show per-person age columns (Dec 31) in Streamlit Worksheets tables",
+    )
+    worksheet_hide_zero_columns: bool = Field(
+        default=False,
+        description="Hide numeric columns that are all zero in Streamlit Worksheets tables",
+    )
 
 
 class SolverOptions(BaseModel):

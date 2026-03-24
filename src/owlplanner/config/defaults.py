@@ -104,7 +104,11 @@ def default_config(ni: int = 1) -> dict:
         },
         "solver_options": {},
         "aca_settings": {"slcsp_annual": 0},
-        "results": {"default_plots": "nominal"},
+        "results": {
+            "default_plots": "nominal",
+            "worksheet_show_ages": False,
+            "worksheet_hide_zero_columns": False,
+        },
     }
 
     if ni == 2:

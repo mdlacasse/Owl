@@ -131,6 +131,8 @@ def config_to_ui(diconf: dict) -> dict:
     dic["yOBBBA"] = int(rs.get("obbba_expiration_year", DEFAULT_OBBBA_YEAR))
     dic["surplusFraction"] = float(sa.get("spousal_surplus_deposit_fraction", 0.5))
     dic["plots"] = res.get("default_plots", "nominal")
+    dic["worksheetShowAges"] = bool(res.get("worksheet_show_ages", False))
+    dic["worksheetHideZeroColumns"] = bool(res.get("worksheet_hide_zero_columns", False))
     dic["allocType"] = aa.get("type", "individual")
     dic["timeListsFileName"] = hfp.get("HFP_file_name", "None")
 
@@ -364,7 +366,11 @@ def ui_to_config(uidic: dict) -> dict:
             "smile_delay": _get_ui(uidic, "smileDelay", 0, int),
         },
         "solver_options": {},
-        "results": {"default_plots": uidic.get("plots", "nominal")},
+        "results": {
+            "default_plots": uidic.get("plots", "nominal"),
+            "worksheet_show_ages": bool(uidic.get("worksheetShowAges", False)),
+            "worksheet_hide_zero_columns": bool(uidic.get("worksheetHideZeroColumns", False)),
+        },
     }
 
     # Savings: UI $k = config $k (per doc: tables dollars, UI thousands except fixed income)
