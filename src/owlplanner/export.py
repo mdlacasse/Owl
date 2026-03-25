@@ -164,7 +164,7 @@ def build_summary_dic(plan, N=None):
     if N is None:
         N = plan.N_n
     if not (0 < N <= plan.N_n):
-        raise ValueError(f"Value N={N} is out of reange")
+        raise ValueError(f"Value N={N} is out of range")
 
     now = plan.year_n[0]
     dic = {}
@@ -297,7 +297,6 @@ def build_summary_dic(plan, N=None):
         dic[f"{plan.inames[i]:>14}'s life horizon"] = f"{now} -> {now + plan.horizons[i] - 1}"
         dic[f"{plan.inames[i]:>14}'s years planned"] = f"{plan.horizons[i]}"
 
-    dic["Case name"] = plan._name
     dic["Number of decision variables"] = str(plan.A.nvars)
     dic["Number of constraints"] = str(plan.A.ncons)
     dic["Convergence"] = plan.convergenceType
@@ -327,14 +326,13 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
 
     Returns wb if saveToFile is False, else None.
     """
+    if with_config not in {"no", "first", "last"}:
+        raise ValueError(f"Invalid with_config option '{with_config}'.")
+
     wb = Workbook()
 
     def add_config_sheet(position):
-        if with_config == "no":
-            return
-        if with_config not in {"no", "first", "last"}:
-            raise ValueError(f"Invalid with_config option '{with_config}'.")
-        if position != with_config:
+        if with_config == "no" or position != with_config:
             return
 
         config_buffer = StringIO()

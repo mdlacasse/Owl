@@ -130,7 +130,7 @@ def test_summary_dic_invalid_n_zero():
     p = get_joe_plan()
     assert p.caseStatus == "solved"
 
-    with pytest.raises(ValueError, match="out of reange"):
+    with pytest.raises(ValueError, match="out of range"):
         p.summaryDic(N=0)
 
 
@@ -139,7 +139,7 @@ def test_summary_dic_invalid_n_negative():
     p = get_joe_plan()
     assert p.caseStatus == "solved"
 
-    with pytest.raises(ValueError, match="out of reange"):
+    with pytest.raises(ValueError, match="out of range"):
         p.summaryDic(N=-5)
 
 
@@ -149,7 +149,7 @@ def test_summary_dic_invalid_n_too_large():
     assert p.caseStatus == "solved"
 
     total_years = p.N_n
-    with pytest.raises(ValueError, match="out of reange"):
+    with pytest.raises(ValueError, match="out of range"):
         p.summaryDic(N=total_years + 1)
 
 
