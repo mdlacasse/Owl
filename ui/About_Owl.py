@@ -34,7 +34,7 @@ kz.divider("orange")
 st.markdown(f"This is Owl version {owb.version()} running on Streamlit {st.__version__}.")
 # st.balloons()
 
-credits_md = (Path(__file__).parent.parent / "CREDITS.md").read_text()
+credits_md = (Path(__file__).parent.parent / "CREDITS.md").read_text(encoding="utf-8")
 credits_md = credits_md.replace(
     "## Credits and Acknowledgements",
     "#### :orange[Credits and Acknowledgements]",

@@ -88,6 +88,12 @@ pip install --upgrade -r requirements.txt
 ```
 You can also install the Owl package directly from the [Python Package Index](http://pypi.org).
 
+The default install does not include Jupyter. If you want to run the notebooks in the `notebooks/` directory, install the optional extra (from the same repository root, after the steps above):
+
+```shell
+pip install -e ".[notebooks]"
+```
+
 ### Running the Streamlit frontend locally
 Once Owl's source code and all its dependencies as been installed,
 one can run the Owl user interface locally:
@@ -111,7 +117,8 @@ python -m build
 pip install -e .
 ```
 The -e instructs `pip` to install in *editable* mode and use the live version
-in the current directory tree.
+in the current directory tree. Use `pip install -e ".[notebooks]"` instead of
+`pip install -e .` if you also need Jupyter for the `notebooks/` tutorials.
 
 ### Publishing a version (for reference only)
 Run checks before all commits:
