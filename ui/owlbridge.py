@@ -886,13 +886,15 @@ def showWorkbook(plan):
         st.markdown(f"#### :orange[{name}]")
         if "Accounts" in name:
             display_df = df.style.apply(highlight_year_row, axis=1)
-            st.dataframe(display_df, width="stretch", column_config=colfor, hide_index=True)
+            st.dataframe(display_df, width="stretch", column_config=colfor,
+                         hide_index=True, placeholder="-")
         else:
             st.dataframe(
                 _worksheet_df_for_streamlit_display(df),
                 width="stretch",
                 column_config=colfor,
                 hide_index=True,
+                placeholder="-",
             )
 
         if federal_tax_sheet:
