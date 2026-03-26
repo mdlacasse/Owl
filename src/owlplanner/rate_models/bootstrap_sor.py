@@ -184,6 +184,21 @@ class BootstrapSORRateModel(BaseRateModel):
         return self._rng.choice(n, p=probs)
 
     #######################################################################
+    # Representative Sample
+    #######################################################################
+
+    def representative_sample(self, N: int):
+        """
+        Return the full historical pool this model resamples from.
+
+        Rather than drawing a finite bootstrap sample (which would still look
+        like the pool, but with sampling noise), we return the exact source
+        data.  This gives the clearest picture of the distribution properties
+        that the bootstrap method preserves.
+        """
+        return self._historical_data.copy()
+
+    #######################################################################
     # Generate
     #######################################################################
 

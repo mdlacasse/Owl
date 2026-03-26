@@ -407,7 +407,7 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
-    def plot_rates_correlations(self, pname, tau_kn, N_n, rate_method, rate_frm=None, rate_to=None,
+    def plot_rates_correlations(self, pname, tau_kn, rate_method, rate_frm=None, rate_to=None,
                                 tag="", share_range=False):
         """Plot correlations between various rates."""
         # Create DataFrame with rate data
@@ -501,9 +501,10 @@ class PlotlyBackend(PlotBackend):
                         fig.update_yaxes(range=[minval, maxval], row=i+1, col=j+1)
 
         # Update layout
+        N_samples = tau_kn.shape[1]
         title = pname + "<br>"
-        title += f"Rates Correlations (N={N_n}) {rate_method}"
-        if rate_method in ["historical", "histochastic", "histogaussian"]:
+        title += f"Rates Correlations (N={N_samples}) {rate_method}"
+        if rate_method in ["historical", "histochastic", "histogaussian", "histolognormal", "bootstrap_sor"]:
             title += f" ({rate_frm}-{rate_to})"
         if tag:
             title += " - " + tag

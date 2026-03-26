@@ -259,7 +259,7 @@ class MatplotlibBackend(PlotBackend):
 
         return None, description
 
-    def plot_rates_correlations(self, name, tau_kn, N_n, rate_method, rate_frm=None, rate_to=None,
+    def plot_rates_correlations(self, name, tau_kn, rate_method, rate_frm=None, rate_to=None,
                                 tag="", share_range=False):
         """Plot correlations between various rates."""
         rate_names = RATE_DISPLAY_NAMES
@@ -284,9 +284,10 @@ class MatplotlibBackend(PlotBackend):
             if i % imod != 0:
                 ax.axhline(y=0, color="grey", linewidth=1, linestyle=":")
 
+        N_samples = tau_kn.shape[1]
         title = name + "\n"
-        title += f"Rates Correlations (N={N_n}) {rate_method}"
-        if rate_method in ("historical", "histochastic", "histogaussian"):
+        title += f"Rates Correlations (N={N_samples}) {rate_method}"
+        if rate_method in ("historical", "histochastic", "histogaussian", "histolognormal", "bootstrap_sor"):
             title += f" ({rate_frm}-{rate_to})"
 
         if tag != "":

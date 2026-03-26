@@ -852,6 +852,33 @@ For the other varying methods, these fields are displayed but disabled; the stat
 parameters are derived automatically from the historical data.
 
 ---
+##### Rate plots
+Two graphs are displayed at the bottom of the Rates page.
+
+**Selected Rates Over Time Horizon** shows the actual year-by-year rate sequence that will
+be used in the current plan run. For stochastic methods this is one specific realization
+drawn when you last changed a setting; re-running the case (or changing any parameter)
+draws a fresh sequence. For constant and `historical` methods the sequence is always the same.
+
+**Correlations Between Return Rates** (varying methods only) shows the statistical
+properties of the selected rate model across all four asset classes: histograms on the
+diagonal, scatter plots in the upper triangle, and kernel-density contours in the lower
+triangle. To make this graph representative of the method's distributional properties
+— rather than the noisy statistics of a single plan-horizon realization of 30–50 points —
+the underlying data source varies by method:
+
+| Method(s) | Data shown in the correlation graph |
+|---|---|
+| `historical`, constant presets | The actual plan-horizon sequence (deterministic — no need for a larger sample) |
+| `bootstrap_sor` | The **full historical pool** (frm–to window) that the bootstrap draws from — exact source distribution, no sampling noise |
+| `histogaussian`, `histolognormal` | 2 000 synthetic draws from the parametric distribution fitted to the selected historical window |
+| `gaussian`, `lognormal` | 2 000 synthetic draws from the user-supplied means, volatilities, and correlations |
+| `var`, `garch_dcc` | 2 000 synthetic draws from the fitted model |
+
+The sample count **N** shown in the graph title reflects the actual number of data points
+plotted, so it will differ from the plan horizon for stochastic methods.
+
+---
 ##### Which method enables Monte Carlo?
 Monte Carlo simulations (see the **Stress Tests** page) require a **stochastic** method —
 one that generates a fresh random sample for each simulation trial. The methods that

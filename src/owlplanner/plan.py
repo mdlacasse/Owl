@@ -4180,7 +4180,20 @@ class Plan:
                 self.mylog.print("Warning: Cannot plot correlations for constant rates (no variation in rate values).")
                 return None
 
-        fig = self._plotter.plot_rates_correlations(self._name, self.tau_kn, self.N_n, self.rateMethod,
+        # For stochastic models, build a large representative sample so that
+        # the histograms and scatter plots reflect the method's distribution
+        # rather than the properties of the single N_n-year realization.
+        # Deterministic models (historical, constant) already have the correct
+        # data in tau_kn.
+        _N_REPR = 2000
+        rateModel = getattr(self, "rateModel", None)
+        if rateModel is not None and not rateModel.deterministic:
+            repr_series = rateModel.representative_sample(_N_REPR)  # (M, 4) decimal
+            display_tau_kn = repr_series.transpose()                # (4, M)
+        else:
+            display_tau_kn = self.tau_kn
+
+        fig = self._plotter.plot_rates_correlations(self._name, display_tau_kn, self.rateMethod,
                                                     self.rateFrm, self.rateTo, tag, shareRange)
 
         if figure:

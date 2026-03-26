@@ -118,6 +118,20 @@ class BaseRateModel(ABC):
     # Required Interface
     #######################################################################
 
+    def representative_sample(self, N: int) -> np.ndarray:
+        """
+        Return an (M, 4) array representative of this model's distribution,
+        suitable for plotting histograms and correlations.
+
+        The default implementation calls generate(N), producing N synthetic
+        years from the model's parametric distribution.  Subclasses may
+        override this to return a more informative data source (e.g. the
+        exact historical pool for bootstrap models).
+
+        Returns decimal-format rates, same convention as generate().
+        """
+        return self.generate(N)
+
     @abstractmethod
     def generate(self, N) -> np.ndarray:
         """
