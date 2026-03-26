@@ -126,9 +126,9 @@ Rates use standard financial conventions:
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred and HSA accounts. Non-spouse HSA beneficiaries must include the full inherited HSA balance as ordinary income (IRC §223(f)(8)(B)) |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
-| `method` | string | Method for determining rates. Valid values: `"trailing-30"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"gaussian"`, `"histogaussian"`, `"lognormal"`, `"histolognormal"`, `"bootstrap_sor"`, `"var"`, `"dataframe"` |
+| `method` | string | Method for determining rates. Valid values: `"trailing-30"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"gaussian"`, `"histogaussian"`, `"lognormal"`, `"histolognormal"`, `"bootstrap_sor"`, `"var"`, `"garch_dcc"`, `"dataframe"` |
 
-**Deprecated aliases:** `stochastic` and `histochastic` are deprecated aliases for `gaussian` and `histogaussian` respectively; they are accepted for backward compatibility but new cases should use the canonical names.
+**Deprecated aliases:** `stochastic` and `histochastic` are deprecated aliases for `gaussian` and `histogaussian` respectively; and `default` is an alias for `trailing-30`. All are accepted for backward compatibility but new cases should use the canonical names.
 
 ### :orange[Conditional parameters based on `method`]
 
@@ -143,17 +143,22 @@ Rates use standard financial conventions:
 | `standard_deviations` | list of 4 floats | Volatility in percent for each rate type (e.g., `17` for 17% annualized standard deviation) |
 | `correlations` | list of 6 floats | Pearson correlation coefficient (range -1 to 1) for upper triangle: (1,2), (1,3), (1,4), (2,3), (2,4), (3,4). Standard representation in finance and statistics. |
 
-#### :orange[For method = "gaussian", "histogaussian", "lognormal", "histolognormal", "bootstrap_sor", or "var"]
+#### :orange[For method = "gaussian", "histogaussian", "lognormal", "histolognormal", "bootstrap_sor", "var", or "garch_dcc"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `rate_seed` | integer | Random seed for reproducible stochastic rates |
 | `reproducible_rates` | boolean | Whether stochastic rates should be reproducible |
 
-#### :orange[For method = "historical", "historical average", "histogaussian", "histolognormal", "bootstrap_sor", or "var"]
+#### :orange[For method = "historical", "historical average", "histogaussian", "histolognormal", "bootstrap_sor", "var", or "garch_dcc"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `from` | integer | Starting year for historical data range (must be between 1928 and 2025) |
-| `to` | integer | Ending year for historical data range (must be between 1928 and 2025, and greater than `from`) |
+| `to` | integer | Ending year for historical data range (must be between 1928 and 2025, and greater than `from`). `garch_dcc` requires at least 15 years of data (`to - from ≥ 15`) |
+
+#### :orange[For method = "var"]
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `shrink` | boolean | *(Optional)* When `true`, applies spectral shrinkage to the VAR(1) coefficient matrix to improve stability and reduce estimation error, especially for short historical windows. Default is `false` |
 
 #### :orange[For method = "bootstrap_sor"]
 | Parameter | Type | Description |
@@ -163,7 +168,7 @@ Rates use standard financial conventions:
 | `crisis_years` | list of integers | *(TOML only)* Calendar years to overweight in sampling (e.g. `[1929, 2008]`) |
 | `crisis_weight` | float | *(TOML only)* Sampling multiplier applied to crisis years. Default is `1.0` (no overweighting) |
 
-#### :orange[For method = "historical", "histogaussian", "histolognormal", "bootstrap_sor", "var", "gaussian", or "lognormal" (varying rates only)]
+#### :orange[For method = "historical", "histogaussian", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "gaussian", or "lognormal" (varying rates only)]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `reverse_sequence` | boolean | If true, reverse the rate sequence along the time axis (e.g. last year first). Default is `false`. Ignored for fixed/constant rate methods. Used for both single-scenario and Historical Range runs. |
@@ -179,10 +184,10 @@ Asset allocation strategy and how it changes over time.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `interpolation_method` | string | Method for interpolating asset allocation over time. Valid values: `"linear"`, `"s-curve"` |
-| `interpolation_center` | float | Center point of the interpolation curve (in years from start). Ignored for `"linear"` |
-| `interpolation_width` | float | Width of the interpolation curve (in years). Ignored for `"linear"` |
-| `type` | string | Type of allocation strategy. Valid values: `"account"`, `"individual"`, `"spouses"` |
+| `interpolation_method` | string | Method for gliding the allocation from initial to final values over time. `"linear"` = straight-line transition (equal steps each year). `"s-curve"` = smooth sigmoid (slow change at first, fast in the middle, slow again at the end), controlled by `interpolation_center` and `interpolation_width`. |
+| `interpolation_center` | float | For `"s-curve"`: the year (measured from the start of the plan) at which the transition is halfway complete — the inflection point of the sigmoid. Ignored for `"linear"`. |
+| `interpolation_width` | float | For `"s-curve"`: controls the steepness of the transition. Smaller values produce a sharper change; larger values spread the change over more years (±`width` years around the center). Ignored for `"linear"`. |
+| `type` | string | How the allocation is defined. `"individual"` — each person has their own set of ratios applied identically to all their accounts. `"account"` — separate ratios for each account type (taxable, tax-deferred, tax-free, HSA), allowing more aggressive allocation in tax-free accounts. `"spouses"` — a single shared set of ratios applied across all accounts and both spouses simultaneously, reducing the number of parameters needed. *(Note: `"spouses"` is only available via the Python API, not the Streamlit UI.)* |
 
 ### :orange[Conditional parameters based on `type`]
 
@@ -194,10 +199,15 @@ Asset allocation strategy and how it changes over time.
 | `tax-free` | 3D array | Asset allocation bounds for tax-free accounts (same structure as `taxable`) |
 | `hsa` | 3D array | *(Optional)* Asset allocation bounds for HSA accounts (same structure as `taxable`). When omitted, HSA uses the same allocation as `tax-free` |
 
-#### :orange[For type = "individual" or "spouses"]
+#### :orange[For type = "individual"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `generic` | 3D array | Generic asset allocation bounds. Structure: `[[[initial_stocks, initial_bonds, initial_tnotes, initial_cash], [final_stocks, final_bonds, final_tnotes, final_cash]], ...]` for each individual. For single individuals, only one pair is needed |
+| `generic` | 3D array | Asset allocation bounds, one `[initial, final]` pair per individual. Structure: `[[[s0, b0, t0, c0], [sf, bf, tf, cf]], [[s0, b0, t0, c0], [sf, bf, tf, cf]]]` for a married couple (two pairs), or `[[[s0, b0, t0, c0], [sf, bf, tf, cf]]]` for a single. All four accounts (taxable, tax-deferred, tax-free, HSA) use the same ratios for a given individual. |
+
+#### :orange[For type = "spouses" *(Python API only)*]
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `generic` | 2D array | A single `[initial, final]` allocation pair shared by both spouses and applied uniformly across all their accounts. Structure: `[[s0, b0, t0, c0], [sf, bf, tf, cf]]`. Simpler to configure than `"individual"` when both spouses follow the same investment strategy. |
 
 **Note:** All allocation values are percentages that should sum to 100 for each time point. The four asset classes are: stocks (S&P 500), corporate bonds (Baa), 10-year Treasury notes, and cash/inflation (e.g. TIPS).
 
@@ -267,7 +277,7 @@ Options controlling the optimization solver and constraints.
 | `startRothConversions` | integer | Year when Roth conversions can begin (clamped to the current year). | Current year |
 | `swapRothConverters` | integer | *(Advanced)* For plans involving spouses, only allow one spouse to perform Roth conversions per year. The year provided determines a transition year when roles are swapped. The sign selects who converts first: positive means person 1 can convert first and person 2 any time after; negative year means person 2 before and person 1 after. This option overrides the `noRothConversions` option. | `0` |
 | `units` | string | Units for amounts. Valid values: `"1"` (dollars), `"k"` (thousands), `"M"` (millions). | `"k"` |
-| `verbose` | boolean | Enable solver verbosity/output where supported. | `false` |
+| `verbose` | boolean | When `true`, prints detailed solver iteration logs to the console. Supported by HiGHS and MOSEK; output format varies by solver. Useful for diagnosing infeasibility or slow convergence. | `false` |
 | `withACA` | string | ACA marketplace premium handling (when `slcsp_annual` > 0). `"loop"` (default): compute ACA cost in SC loop each iteration using the exact piecewise-linear ACA formula. `"optimize"`: co-optimize ACA bracket selection within the LP — enables the optimizer to shift MAGI across brackets for better plan objectives (expert; can be slower; applies 2026 rules only). | `"loop"` |
 | `withLTCG` | string | Long-term capital gains (LTCG) bracket handling. `"loop"` (default): ordinary income stacking computed in SC loop. `"optimize"`: exact MILP formulation for LTCG bracket selection — binary variables determine which 0%/15%/20% bracket applies each year (expert; adds `zl` binary family). | `"loop"` |
 | `bigMltcg` | float | *(Advanced)* Big-M value for LTCG bracket binary constraints (when `withLTCG = "optimize"`). Scaled by the inflation factor γ_n each year. Defaults to `3 × T20_n` per year when omitted. | Auto |
@@ -279,7 +289,7 @@ Options controlling the optimization solver and constraints.
 | `includeMedicarePartD` | boolean | Whether to include Medicare Part D premiums (IRMAA surcharges use same MAGI brackets as Part B). Set to `false` if you have other drug coverage (e.g., employer, VA). | `true` |
 | `medicarePartDBasePremium` | float | *(Optional)* Monthly Part D base premium per person in today's dollars. Omit or set to 0 to model IRMAA only. National average is roughly $39–47/month. | `0` (no base) |
 | `withSCLoop` | boolean | Whether to run the self-consistent loop to full convergence. When `false`, the solver always performs exactly two iterations: the first establishes ordinary income (`G_n`) so that LTCG bracket room is computed correctly; the second is the accepted solve. Medicare IRMAA and SS taxability are not converged in this mode — Medicare premiums are computed for display only. Useful for speed in Monte Carlo runs where full convergence is not required. | `true` |
-| `withSSTaxability` | string or float | Social Security taxable-fraction (Ψ) handling. Use `"loop"` to compute Ψ dynamically each SC-loop iteration (recommended). Use `"optimize"` to solve Ψ exactly as a MIP decision variable (expert). Use a float in [0, 0.85] to pin Ψ to a fixed value — `0.0` (PI well below lower threshold), `0.5` (mid-range PI), or `0.85` (PI above upper threshold). | `"loop"` |
+| `withSSTaxability` | string or float | Controls how the taxable fraction of Social Security benefits (Ψ) is determined. The IRS provisional income (PI) formula taxes 0% of SS below $25k/$32k PI (single/MFJ), up to 50% between those and $34k/$44k, and up to 85% above. `"loop"` — recomputes Ψ each SC-loop iteration based on that year's projected income (recommended). `"optimize"` — encodes the IRS piecewise formula exactly as a MIP with binary variables (expert; can require a larger `gap`). Float in [0, 0.85] — pins Ψ to a fixed value: `0.0` (income well below the lower threshold), `0.5` (income in the mid range), or `0.85` (income above the upper threshold). | `"loop"` |
 
 **Note:** The solver options dictionary is passed directly to the optimization routine. Only the options listed above are validated; other options may be accepted but are not documented here.
 

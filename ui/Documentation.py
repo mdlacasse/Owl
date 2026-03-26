@@ -51,7 +51,8 @@ two different objectives can currently be optimized: either
 maximize the net spending amount under the constraint of a desired bequest,
 or maximize an after-tax bequest under the constraint of a desired net spending amount.
 In each case, Roth conversions are optimized to reduce the tax burden,
-while federal income tax and Medicare premiums (including IRMAA) are calculated.
+while federal income tax and Medicare premiums (including IRMAA — Income-Related Monthly Adjustment
+Amounts, which impose income-based surcharges on Medicare Parts B and D) are calculated.
 A full description of the package can be found on the GitHub
 [repository](https://github.com/mdlacasse/Owl), and the mathematical
 formulation of the optimization problem can be found
@@ -997,7 +998,7 @@ Use it for single-case analysis; do not use it for Monte Carlo or multiple scena
 Medicare premiums start automatically in the year each individual reaches age 65.
 If anyone in the case is age 64 or older, inputs appear for `MAGI for [year] ($k)`
 for the prior 1 or 2 years (nominal thousands). These values are needed for
-Income-Related Monthly Adjusted Amounts (IRMAA). Values default to zero.
+IRMAA surcharges. Values default to zero.
 *Include Part D premiums* is on by default; Part B and Part D IRMAA surcharges (same MAGI brackets) are then included.
 Turn it off if you have other drug coverage (e.g. employer, VA).
 *Part D base premium (\\$/month per person)* is optional (default 0 = IRMAA only);
@@ -1010,17 +1011,22 @@ for years before Medicare. Set to 0 to omit ACA costs. *Optimize ACA (expert)* i
 co-optimizes ACA bracket selection within the LP, enabling the optimizer to shift MAGI across ACA brackets
 for improved plan objectives (can be slower; applies 2026 rules only); it only applies when SLCSP > 0.
 
-A **self-consistent loop** is an iterative method used for values that are difficult
-to integrate into the linear program: the net investment income tax (NIIT),
-the capital gains rate (0, 15, or 20%), the phase out of the additional exemption for seniors,
-the taxable fraction of Social Security benefits (computed from the IRS provisional income
-formula — 0% below \\$25k PI (single) / \\$32k (MFJ); 50% between those and \\$34k (single) / \\$44k (MFJ);
-up to 85% above the upper threshold), Medicare/IRMAA when Medicare is enabled, and ACA marketplace
+A **self-consistent loop** is an iterative method used for values that depend on the
+solution itself and are therefore difficult to integrate directly into the linear program.
+These include: the net investment income tax (NIIT, a 3.8% surtax on investment income
+above $200k/$250k single/MFJ); the long-term capital gains rate (0%, 15%, or 20%,
+determined by ordinary taxable income); the phase-out of the additional standard
+deduction for seniors; the taxable fraction of Social Security benefits — which depends
+on *provisional income* (PI), defined as adjusted gross income plus half of SS benefits
+plus tax-exempt interest: 0% of SS is taxable below \\$25k PI (single) or \\$32k (MFJ),
+up to 50% between those thresholds and \\$34k (single) / \\$44k (MFJ), and up to 85%
+above the upper threshold — Medicare/IRMAA when Medicare is enabled, and ACA marketplace
 premiums when ACA is enabled. The loop solves, recalculates these values from the solution,
 re-solves, and repeats until convergence.
 The *Self-consistent loop calculations* toggle in *Advanced options* turns this on or off;
-turning it off defaults all these values to their conservative upper bounds (e.g. 85% SS
-taxability for all years).
+turning it off defaults all these values to their worst-case upper bounds (e.g. 85% SS
+taxability every year, maximum capital gains rate), which simplifies the model but
+produces a more conservative (lower spending / lower bequest) estimate.
 
 **Safety Net** settings allow you to enforce a minimum balance in each spouse's taxable account.
 The amount is specified in today's dollars and is indexed for inflation over the plan horizon.
@@ -1099,7 +1105,8 @@ Various plots show the results, which can be displayed in today's \\$ or
 in nominal value.
 
 A button allows you to re-run the *case* which would generate a different result
-if the chosen rates are `histogaussian` or `gaussian`. Each graph can be seen
+if the chosen rate method is stochastic (`histogaussian`, `histolognormal`, `gaussian`,
+`lognormal`, `bootstrap_sor`, `var`, or `garch_dcc`). Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools tab).
