@@ -1063,7 +1063,7 @@ against future IRMAA simultaneously.
   Can be slower due to additional binary variables; most useful for high-income plans where LTCG bracket
   placement significantly affects the objective.
 - *Optimize NIIT (expert)* – replaces the self-consistent loop for NIIT with an exact MILP formulation.
-  Binary variables determine whether MAGI exceeds the NIIT threshold ($200k single / $250k MFJ) each year.
+  Binary variables determine whether MAGI exceeds the NIIT threshold (\\$200k single / \\$250k MFJ) each year.
   Most effective when *Optimize LTCG* is also enabled, since MAGI depends on ordinary income stacking.
 - *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*
 - *Disallow same-year Roth conversions and tax-free withdrawals*
