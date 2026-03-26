@@ -124,11 +124,11 @@ It also holds a reference to its *Household Financial Profile*, if one is used.
 
 **Household Financial Profile**
 > A *Household Financial Profile* (HFP) is an
-optional Excel workbook that holds the year-by-year
-time-series data for the household: anticipated wages, other income, net investment income (rent, trust), taxable, retirement, and HSA
-contributions, Roth conversions, and large expenses for each individual, plus optional debts and
-fixed assets. When no HFP is provided, wages and contributions are assumed to be zero.
-See *Input and Output Files* below for a detailed description of both files.
+optional Excel workbook with one **Wages and Contributions** sheet per person (exact column headers required; see *Input and Output Files*)
+and optional household sheets *Debts* and *Fixed Assets*. Time-series fields include wages, *other inc*, *net inv*,
+tax-deferred and Roth contributions (*ctrb* columns), *HSA ctrb*, *Roth conv*, and *big-ticket items*.
+When no HFP is provided, wages and contributions are assumed to be zero.
+See *Input and Output Files* and *Financial Profile* below for full detail.
 
 **Run**
 > A *run* is the execution of a *case* using a single instance of parameters,
@@ -169,17 +169,22 @@ The naming convention when saving from the interface is `Case_<case>.toml`.
 
 **`HFP_<case>.xlsx`** — *Household Financial Profile workbook*
 
-This Excel workbook holds the year-by-year time-series data that cannot be expressed
-as single scalars in the case file. It must contain one sheet per individual, named
-after that individual (e.g., *Jack* and *Jill*), each with a **Wages and Contributions**
-table covering five years of history through the last year of the plan. Columns include:
-anticipated wages, other income, net inv, taxable contributions, 401k and Roth 401k contributions,
-IRA and Roth IRA contributions, HSA contributions, manual Roth conversions, and big-ticket items.
+This Excel workbook holds year-by-year data that are not stored in the case TOML file.
+It must contain **one sheet per individual**, with a tab name that **exactly** matches that person in the *case*
+(e.g., *Jack* and *Jill*). Each person sheet is a **Wages and Contributions** table: **all** of the following
+headers must be present (lowercase; column order may vary); enter `0` where a concept does not apply:
+`year`, `anticipated wages`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
+`Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `big-ticket items`. The legacy header `other inc.` is read as `other inc`.
+Numeric cells are **nominal dollars** (not thousands), independent of spending/bequest *units* in the case file.
+On load, the planner keeps rows from five calendar years before the **current** year through the last year of
+each person's plan horizon; missing years in that span are filled with zeros; the sheet must extend through
+each person's final plan year. **Any other column** on a person sheet (including scratch/helper columns) is
+**dropped** when the file is read and is not used in the model.
 
-Two optional sheets extend the workbook:
-- **`Debts`** — mortgage and loan entries (label, type, start year, term, principal, rate).
-- **`Fixed Assets`** — illiquid assets such as real estate or fixed annuities
-  (label, type, reference year, cost basis, value, growth rate, year of disposition, commission).
+Two optional **worksheets** (separate tabs) extend the workbook:
+- **`Debts`** — columns `active`, `name`, `type` (`loan` or `mortgage`), `year`, `term`, `amount`, `rate`.
+- **`Fixed Assets`** — columns `active`, `name`, `type`, `year`, `basis`, `value`, `rate`, `yod`, `commission`
+  (allowed `type` values are listed under *Financial Profile → Debts and Fixed Assets*).
 
 A blank template is available
 [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true).
@@ -333,13 +338,12 @@ The **Wages and Contributions** table contains 12 columns titled as follows:
 | ... | | | | | | | | | | |
 |20XX | | | | | | | | | | |
 
-The *other inc* column is optional; older HFP files without it will default to zero.
-It contributes to ordinary income (e.g., part-time work, consulting, royalties).
-The *net inv* column is optional; older HFP files without it will default to zero.
-It captures rent and trust distributions that count as net investment income for NIIT (3.8% surtax).
-The *HSA ctrb* column is optional; older HFP files without it will default to zero.
-HSA contributions are pre-tax and reduce AGI; they are automatically zeroed at Medicare enrollment (~age 65). Entries past age 65 are ignored.
-Note that column names are case sensitive and all entries are in lower case.
+All twelve columns must be present on each person sheet; use 0 where a category does not apply.
+Any other column on that sheet is dropped on read (see *Input and Output Files*).
+The *other inc* column captures other ordinary income (e.g., part-time work, consulting, royalties).
+The *net inv* column captures rent and trust distributions that count as net investment income for NIIT (3.8% surtax).
+The *HSA ctrb* column holds HSA contributions in nominal dollars; they are pre-tax and reduce AGI. Values are automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
+Note that column names are case sensitive and headers use lower case (the legacy header *other inc.* is read as *other inc*).
 The easiest way to complete the process of filling this file is either to start from the template
 file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) or
 to fill in the values using the user interface, but this last approach does not provide
@@ -374,6 +378,7 @@ expectancy values provided.
 While loading an Excel workbook, missing years or empty cells will be filled with zero values,
 while years outside the time span of the *case* will simply be ignored with the exception
 of five-year back history.
+The last `year` row for each person must be that individual's final plan year (from life expectancy), or loading fails.
 
 The column *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment
@@ -395,9 +400,9 @@ Contributions to your 401k/403b must also include your employer's
 contributions, if any. As these data can be entered in Excel,
 one can use the native calculator to enter a percentage
 of the anticipated wages for contributions to savings accounts as an easier way to enter the data.
-For this purpose, additional columns can coexist in the Excel file
-and can be used for tracking other quantities from which
-the needed values can be derived. These extra columns will be ignored when the file is processed.
+For scratch space or Excel formulas, use **separate worksheets** (not extra columns on a person sheet):
+the reader **drops** every column on a person sheet whose header is not in the canonical list above
+(blank and `Unnamed` columns are removed as well). Only those headers are loaded into the planner.
 
 Manual Roth conversions can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in **Owl**.

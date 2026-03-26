@@ -2,6 +2,21 @@
 
 ---
 
+## Version 2026.03.26
+
+### Breaking change: HFP person sheets require all columns
+
+- **Household Financial Profile**: Each person worksheet must include **every** time-horizon column
+  (`year`, `anticipated wages`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`,
+  `Roth 401k ctrb`, `IRA ctrb`, `Roth IRA ctrb`, `HSA ctrb`, `Roth conv`,
+  `big-ticket items`). Omitting a column is an error; use `0` where unused.
+- **Examples**: All `examples/HFP_*.xlsx` workbooks checked; every person sheet includes the full header set.
+- **Template**: `examples/HFP_template.xlsx` includes `HSA ctrb` (and all other required columns) on each person sheet.
+- **Loader**: Clearer `ValueError` listing missing headers; legacy `other inc.` still normalized to `other inc`.
+- **Docs**: `PARAMETERS.md` HFP section expanded; Streamlit **Documentation → Financial Profile** aligned.
+- **Tests**: `tests/test_timelists.py` expects errors for workbooks missing required columns; example HFPs guarded by schema check.
+- **Version**: `2026.03.26` (`src/owlplanner/version.py`).
+
 ## Version 2026.03.24
 
 ### Streamlit Worksheets: optional ages and hide-zero columns

@@ -1169,21 +1169,25 @@ class Plan:
         The HFP file contains wages, contributions, Roth conversions,
         big-ticket items (per individual), and optionally Debts and Fixed Assets.
         File can be an excel, or odt file with one tab named after each
-        spouse and must have the following column headers:
+        spouse and must have the following column headers (all required;
+        use 0 where a concept does not apply):
 
                 'year',
                 'anticipated wages',
-                'other inc' (optional; defaults to zero if absent),
-                'net inv' (optional; defaults to zero if absent),
+                'other inc',
+                'net inv',
                 'taxable ctrb',
                 '401k ctrb',
                 'Roth 401k ctrb',
                 'IRA ctrb',
                 'Roth IRA ctrb',
+                'HSA ctrb',
                 'Roth conv',
                 'big-ticket items'
 
-        in any order. A template is provided as an example.
+        in any order. Legacy header 'other inc.' is read as 'other inc'.
+        Optional workbook sheets 'Debts' and 'Fixed Assets' follow timelists formats.
+        A template is provided as an example.
         Missing rows (years) are populated with zero values.
 
         Parameters

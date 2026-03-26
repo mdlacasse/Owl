@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """
-Add the optional 'other inc' column to HFP Excel files.
-Inserts the column after 'anticipated wages' and before 'taxable ctrb'.
-Fills with zeros. Run from project root: python scripts/add_other_inc_column.py
+Migration helper: add 'other inc' (and related columns) to older HFP Excel files.
+
+Current Owl releases require every person sheet to include all time-horizon headers
+(see PARAMETERS.md and owlplanner.timelists._timeHorizonItems). This script was
+written when *other inc* was new; run it (or merge columns manually) if you have a
+legacy workbook missing *other inc* or the legacy *other inc.* header.
+
+Inserts *other inc* after *anticipated wages* when missing. Run from project root:
+  python scripts/add_other_inc_column.py
 """
 import os
 import sys

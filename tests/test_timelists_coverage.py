@@ -28,11 +28,14 @@ def test_read_time_horizons_dict_input():
         'Joe': pd.DataFrame({
             'year': [2024, 2025, 2026],
             'anticipated wages': [0, 0, 0],
+            'other inc': [0, 0, 0],
+            'net inv': [0, 0, 0],
             'taxable ctrb': [0, 0, 0],
             '401k ctrb': [0, 0, 0],
             'Roth 401k ctrb': [0, 0, 0],
             'IRA ctrb': [0, 0, 0],
             'Roth IRA ctrb': [0, 0, 0],
+            'HSA ctrb': [0, 0, 0],
             'Roth conv': [0, 0, 0],
             'big-ticket items': [0, 0, 0]
         })
@@ -58,11 +61,14 @@ def test_read_time_horizons_file_with_name():
     df = pd.DataFrame({
         'year': [2024, 2025, 2026],
         'anticipated wages': [0, 0, 0],
+        'other inc': [0, 0, 0],
+        'net inv': [0, 0, 0],
         'taxable ctrb': [0, 0, 0],
         '401k ctrb': [0, 0, 0],
         'Roth 401k ctrb': [0, 0, 0],
         'IRA ctrb': [0, 0, 0],
         'Roth IRA ctrb': [0, 0, 0],
+        'HSA ctrb': [0, 0, 0],
         'Roth conv': [0, 0, 0],
         'big-ticket items': [0, 0, 0]
     })
@@ -100,7 +106,7 @@ def test_check_columns_missing_column():
         'wages': [0, 0]
     })
 
-    with pytest.raises(ValueError, match="Column.*not found"):
+    with pytest.raises(ValueError, match="missing required column"):
         timelists._checkColumns(df, 'Joe', ['year', 'wages', 'contributions'])
 
 
@@ -148,11 +154,14 @@ def test_condition_timetables_negative_values():
     df = pd.DataFrame({
         'year': [thisyear, thisyear + 1],
         'anticipated wages': [-100, 0],  # Negative value
+        'other inc': [0, 0],
+        'net inv': [0, 0],
         'taxable ctrb': [0, 0],
         '401k ctrb': [0, 0],
         'Roth 401k ctrb': [0, 0],
         'IRA ctrb': [0, 0],
         'Roth IRA ctrb': [0, 0],
+        'HSA ctrb': [0, 0],
         'Roth conv': [0, 0],
         'big-ticket items': [0, 0]
     })
@@ -175,11 +184,14 @@ def test_condition_timetables_big_ticket_can_be_negative():
     df = pd.DataFrame({
         'year': [thisyear, thisyear + 1],
         'anticipated wages': [0, 0],
+        'other inc': [0, 0],
+        'net inv': [0, 0],
         'taxable ctrb': [0, 0],
         '401k ctrb': [0, 0],
         'Roth 401k ctrb': [0, 0],
         'IRA ctrb': [0, 0],
         'Roth IRA ctrb': [0, 0],
+        'HSA ctrb': [0, 0],
         'Roth conv': [0, 0],
         'big-ticket items': [-50, 0]  # Can be negative
     })
@@ -237,11 +249,14 @@ def test_read_with_house_tables_active_column_string():
         'Joe': pd.DataFrame({
             'year': [thisyear, thisyear + 1],
             'anticipated wages': [0, 0],
+            'other inc': [0, 0],
+            'net inv': [0, 0],
             'taxable ctrb': [0, 0],
             '401k ctrb': [0, 0],
             'Roth 401k ctrb': [0, 0],
             'IRA ctrb': [0, 0],
             'Roth IRA ctrb': [0, 0],
+            'HSA ctrb': [0, 0],
             'Roth conv': [0, 0],
             'big-ticket items': [0, 0]
         }),
@@ -274,11 +289,14 @@ def test_read_with_house_tables_active_column_numeric():
         'Joe': pd.DataFrame({
             'year': [thisyear, thisyear + 1],
             'anticipated wages': [0, 0],
+            'other inc': [0, 0],
+            'net inv': [0, 0],
             'taxable ctrb': [0, 0],
             '401k ctrb': [0, 0],
             'Roth 401k ctrb': [0, 0],
             'IRA ctrb': [0, 0],
             'Roth IRA ctrb': [0, 0],
+            'HSA ctrb': [0, 0],
             'Roth conv': [0, 0],
             'big-ticket items': [0, 0]
         }),
@@ -311,11 +329,14 @@ def test_read_with_house_tables_active_column_nan():
         'Joe': pd.DataFrame({
             'year': [thisyear, thisyear + 1],
             'anticipated wages': [0, 0],
+            'other inc': [0, 0],
+            'net inv': [0, 0],
             'taxable ctrb': [0, 0],
             '401k ctrb': [0, 0],
             'Roth 401k ctrb': [0, 0],
             'IRA ctrb': [0, 0],
             'Roth IRA ctrb': [0, 0],
+            'HSA ctrb': [0, 0],
             'Roth conv': [0, 0],
             'big-ticket items': [0, 0]
         }),
@@ -347,11 +368,14 @@ def test_condition_timetables_adds_missing_years():
     df = pd.DataFrame({
         'year': [thisyear, thisyear + 2],  # Missing some years
         'anticipated wages': [0, 0],
+        'other inc': [0, 0],
+        'net inv': [0, 0],
         'taxable ctrb': [0, 0],
         '401k ctrb': [0, 0],
         'Roth 401k ctrb': [0, 0],
         'IRA ctrb': [0, 0],
         'Roth IRA ctrb': [0, 0],
+        'HSA ctrb': [0, 0],
         'Roth conv': [0, 0],
         'big-ticket items': [0, 0]
     })
