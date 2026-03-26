@@ -341,8 +341,6 @@ The **Wages and Contributions** table contains 12 columns titled as follows:
 
 All twelve columns must be present on each person sheet; use 0 where a category does not apply.
 Any other column on that sheet is dropped on read (see *Input and Output Files*).
-The *other inc* column captures other ordinary income (e.g., part-time work, consulting, royalties).
-The *net inv* column captures rent and trust distributions that count as net investment income for NIIT (3.8% surtax).
 The *HSA ctrb* column holds HSA contributions in nominal dollars; they are pre-tax and reduce AGI. Values are automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
 Note that column names are case sensitive and headers use lower case (the legacy header *other inc.* is read as *other inc*).
 The easiest way to complete the process of filling this file is either to start from the template
@@ -381,10 +379,18 @@ After loading, each person's table always runs through that individual's final p
 those rows in the file.
 
 The column *anticipated wages* is the annual amount
-(gross minus tax-deferred contributions) that you anticipate to receive from employment
-or other sources (e.g., rentals).
-This column does not include dividends from your taxable investment accounts,
-as they will be calculated based on your assumptions for future return rates.
+(gross minus tax-deferred contributions) that you anticipate to receive from employment.
+This column is not meant to include all your ordinary income. For
+example, interests from your taxable investment accounts
+will be automatically calculated based on the assumptions you made for future return rates.
+
+The *other inc* column is next in the table (after *anticipated wages*):
+use it for other **ordinary** income that is not wages, pension, or Social Security—e.g. part-time or consulting income,
+alimony, or rental flows you treat as ordinary. It is included in cash flow and ordinary-income tax logic like wages.
+
+The *net inv* column follows *other inc*: use it for net investment income such as rent or trust distributions that the
+model counts as ordinary income for cash flow and taxable income, and that also enter the Net Investment Income Tax
+(NIIT, 3.8% surtax) when applicable. Use `0` if you do not model that income separately.
 
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your
@@ -396,13 +402,14 @@ a pension or collect Social Security, and these years are entered elsewhere on t
 Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term that includes
 contributions to 403b as well or any other tax-deferred account, with the exception
 of IRA accounts which are treated separately to facilitate data entry.
-Contributions to your 401k/403b must also include your employer's
+Contributions to your 401k/403b **must** also include your employer's
 contributions, if any. As these data can be entered in Excel,
 one can use the native calculator to enter a percentage
 of the anticipated wages for contributions to savings accounts as an easier way to enter the data.
-For scratch space or Excel formulas, use **separate worksheets** (not extra columns on a person sheet):
+For scratch space or Excel formulas, you can use **separate worksheets** or extra columns on a person sheet:
 the reader **drops** every column on a person sheet whose header is not in the canonical list above
-(blank and `Unnamed` columns are removed as well). Only those headers are loaded into the planner.
+(blank and `Unnamed` columns are removed as well). Only columns with the headers described above
+are loaded into the planner.
 
 Manual Roth conversions can be specified in the column marked *Roth conv*.
 This column is provided to override the Roth conversion optimization in **Owl**.
