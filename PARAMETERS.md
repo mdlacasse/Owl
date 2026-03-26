@@ -46,17 +46,45 @@ Initial account balances and beneficiary information.
 
 ## :orange[[household_financial_profile]]
 
-Reference to the Excel file containing wages, contributions, and other time-varying financial data.
+Reference to the **Household Financial Profile (HFP)** workbook: wages, contributions, Roth activity, and optional household debts and fixed assets. Scalar balances and solver targets stay in the TOML file; year-by-year cash flows live in the HFP.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `HFP_file_name` | string | Name of the Excel file (`.xlsx`) containing wages, contributions, Roth conversions, and big-ticket items. Use `"None"` if no file is associated with the case |
+| `HFP_file_name` | string | Filename of the HFP workbook (typically `.xlsx`). Resolved relative to the directory of the case TOML when loading. Use `"None"` if the case has no HFP (wages and contributions are then zero unless set another way). |
 
-**Note:** The Excel file should contain one sheet per individual with columns for: year, anticipated wages, other inc (optional), net inv (optional), taxable contributions, 401k contributions, Roth 401k contributions, IRA contributions, Roth IRA contributions, HSA ctrb (optional), Roth conversions, and big-ticket items.
+### HFP workbook layout
 
-- `other inc`: Other ordinary income beyond wages, pension, and Social Security (e.g., alimony, rental income treated as ordinary). Optional; defaults to zero if absent.
-- `net inv`: Net investment income from rent or trust distributions ($). Enters cash-flow and taxable-income constraints as ordinary income, and also flows into NIIT computation. Optional; defaults to zero if absent.
-- `HSA ctrb`: Annual HSA contribution amount in dollars (not thousands). Contributions are pre-tax and reduce AGI, MAGI, and Social Security provisional income. Must stop at Medicare enrollment (~age 65); any values entered beyond that age are automatically zeroed. Optional; defaults to zero if absent. 2026 limits: $4,400 (self-only) / $8,750 (family); add $1,000 catch-up if age 55+.
+- **Person sheets (required):** One worksheet per individual. The sheet name must **exactly** match the corresponding entry in `[basic_info]` `names` (e.g. `Jack` and `Jill`).
+- **Years:** Rows should cover the calendar year range the planner uses: from five years before the **current** calendar year through the last year of each person’s plan horizon. Rows with `year` outside that range are filtered out; **missing years in range** are inserted with zeros. The last row’s `year` for each person must reach that person’s final plan year (derived from life expectancy), or loading fails.
+- **Column headers:** Use the **exact** strings below (lowercase; column order may vary). **Every column must be present** on each person sheet; enter `0` where a concept does not apply. The legacy header `other inc.` is accepted and normalized to `other inc`. **Any other column** on a person sheet (including helper or calculated columns), and blank or `Unnamed` columns, are **dropped** when the file is read; they are not preserved in the planner. A blank template is [HFP_template.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true).
+- **Units:** All numeric cells on person sheets are **nominal dollars** (full dollars), not thousands. This is independent of `[solver_options]` `units` (`k` / `1` / `M`), which applies to amounts in the TOML case file and solver options such as `bequest` and `netSpending`.
+- **Optional household sheets:** The workbook may include sheets named **`Debts`** and **`Fixed Assets`**. If omitted, debts and fixed assets are treated as empty. See column lists under *Optional sheets* below.
+- **Roth conversion caps:** When `[solver_options]` `maxRothConversion` is `"file"`, per-year limits are taken from the HFP time lists (see solver options).
+
+#### Person sheet columns (all required)
+
+| Header | Meaning |
+|--------|---------|
+| `year` | Calendar year |
+| `anticipated wages` | Expected annual wages (gross minus tax-deferred contributions through payroll), nominal $ |
+| `other inc` | Other ordinary income (e.g. part-time work, consulting, royalties), nominal $ |
+| `net inv` | Net investment income from rent or trust distributions treated as ordinary income; also feeds NIIT, nominal $ |
+| `taxable ctrb` | Contributions to taxable / after-tax investment accounts, nominal $ |
+| `401k ctrb` | Traditional employer plan / 401(k) deferrals, nominal $ |
+| `Roth 401k ctrb` | Roth employer plan contributions, nominal $ |
+| `IRA ctrb` | Traditional IRA contributions, nominal $ |
+| `Roth IRA ctrb` | Roth IRA contributions, nominal $ |
+| `HSA ctrb` | HSA contributions, nominal **dollars** (not $k). Pre-tax; reduce AGI, MAGI, and SS provisional income. Values after Medicare enrollment (~65) are ignored. 2026 IRS limits: $4,400 (self-only) / $8,750 (family); +$1,000 catch-up if 55+ |
+| `Roth conv` | Roth conversions from tax-deferred accounts, nominal $ |
+| `big-ticket items` | Large one-off expenses or after-tax inflows (may be negative), nominal $ |
+
+#### Optional sheet `Debts`
+
+Columns: `active`, `name`, `type`, `year`, `term`, `amount`, `rate`. Allowed `type` values: `loan`, `mortgage`.
+
+#### Optional sheet `Fixed Assets`
+
+Columns: `active`, `name`, `type`, `year`, `basis`, `value`, `rate`, `yod`, `commission`. Allowed `type` values: `collectibles`, `fixed annuity`, `precious metals`, `real estate`, `residence`, `stocks`.
 
 -------
 
@@ -279,7 +307,7 @@ Any TOML section not listed in this document is treated as user-defined and **pr
 
 ## :orange[Notes on data types]
 
-- **Floats**: All monetary amounts are typically in thousands of dollars unless otherwise specified
+- **Floats**: In the TOML case file, monetary amounts are typically in **thousands of dollars** unless otherwise specified (see `[solver_options]` `units`). **HFP workbook** monetary cells on person sheets are always **nominal dollars** (full dollars), regardless of `units`.
 - **Integers**: Used for years, ages, and counts
 - **Booleans**: `true` or `false` in TOML
 - **ISO Dates**: Format `"YYYY-MM-DD"` (e.g., `"1967-01-15"`)

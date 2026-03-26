@@ -26,6 +26,8 @@ import tempfile
 import os
 from datetime import date
 
+import pytest
+
 import owlplanner as owl
 
 # Get current year for calculating life expectancies
@@ -87,8 +89,8 @@ class TestHFPWriteRead:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
-    def test_backward_compat_other_inc_missing(self):
-        """Test that HFP without 'other inc' column loads with zeros (backward compat)."""
+    def test_hfp_rejects_missing_other_inc_column(self):
+        """HFP must include 'other inc'; missing column raises ValueError."""
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
@@ -100,11 +102,9 @@ class TestHFPWriteRead:
             verbose=False
         )
         p.zeroWagesAndContributions()
-        # Remove "other inc" to simulate old HFP format
         alice_df = p.timeLists["Alice"].drop(columns=["other inc"])
         p.timeLists["Alice"] = alice_df
 
-        # Write to temp file (manually, to preserve missing column)
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
             tmp_path = tmp.name
         try:
@@ -117,10 +117,8 @@ class TestHFPWriteRead:
                 "Test Plan 2",
                 verbose=False
             )
-            p2.readHFP(tmp_path)
-
-            assert "other inc" in p2.timeLists["Alice"].columns
-            assert (p2.timeLists["Alice"]["other inc"] == 0).all()
+            with pytest.raises(Exception, match="missing required column"):
+                p2.readHFP(tmp_path)
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
@@ -412,8 +410,8 @@ class TestHFPWriteRead:
         assert processed_df.loc[2, "active"]  # pd.NA -> True
         assert not processed_df.loc[3, "active"]  # False
 
-    def test_backward_compat_net_inv_missing(self):
-        """Test that HFP without 'net inv' column loads with zeros (backward compat)."""
+    def test_hfp_rejects_missing_net_inv_column(self):
+        """HFP must include 'net inv'; missing column raises ValueError."""
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
@@ -425,7 +423,6 @@ class TestHFPWriteRead:
             verbose=False
         )
         p.zeroWagesAndContributions()
-        # Remove "net inv" to simulate old HFP format
         alice_df = p.timeLists["Alice"].drop(columns=["net inv"])
         p.timeLists["Alice"] = alice_df
 
@@ -441,10 +438,8 @@ class TestHFPWriteRead:
                 "Test Plan 2",
                 verbose=False
             )
-            p2.readHFP(tmp_path)
-
-            assert "net inv" in p2.timeLists["Alice"].columns
-            assert (p2.timeLists["Alice"]["net inv"] == 0).all()
+            with pytest.raises(Exception, match="missing required column"):
+                p2.readHFP(tmp_path)
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
@@ -589,3 +584,24 @@ class TestHFPWriteRead:
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
+
+
+def test_example_hfp_workbooks_have_required_person_sheet_columns():
+    """Shipped examples/HFP_*.xlsx files include every time-horizon header on each person sheet."""
+    from pathlib import Path
+
+    import pandas as pd
+
+    from owlplanner.timelists import _timeHorizonItems
+
+    root = Path(__file__).resolve().parents[1]
+    required = set(_timeHorizonItems)
+    for path in sorted((root / "examples").glob("HFP*.xlsx")):
+        xl = pd.ExcelFile(path)
+        for sheet in xl.sheet_names:
+            if sheet in ("Debts", "Fixed Assets"):
+                continue
+            df = pd.read_excel(path, sheet_name=sheet, nrows=0)
+            cols = {str(c) for c in df.columns if not str(c).startswith("Unnamed")}
+            missing = required - cols
+            assert not missing, f"{path.name} sheet {sheet!r} missing columns {sorted(missing)}"

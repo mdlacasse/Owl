@@ -26,9 +26,8 @@ import pandas as pd
 from . import utils as u
 
 
-# Expected headers in each excel sheet, one per individual.
-# Optional columns (e.g. "other inc") default to zero when absent for backward compatibility.
-_optionalTimeHorizonItems = ["other inc", "net inv", "HSA ctrb"]
+# Expected headers in each excel sheet, one per individual (all required).
+# Unused concepts should be filled with 0; see examples/HFP_template.xlsx.
 _timeHorizonItems = [
     "year",
     "anticipated wages",
@@ -43,9 +42,7 @@ _timeHorizonItems = [
     "Roth conv",
     "big-ticket items",
 ]
-_requiredTimeHorizonItems = [
-    col for col in _timeHorizonItems if col not in _optionalTimeHorizonItems
-]
+_requiredTimeHorizonItems = list(_timeHorizonItems)
 
 
 _debtItems = [
@@ -105,10 +102,11 @@ def read(finput, inames, horizons, mylog, filename=None):
     """
     Read listed parameters from an excel spreadsheet or through
     a dictionary of dataframes through Pandas.
-    Use one sheet for each individual with required columns:
-    year, anticipated wages, taxable ctrb, 401k ctrb, Roth 401k ctrb,
-    IRA ctrb, Roth IRA ctrb, Roth conv, and big-ticket items.
-    Optional column "other inc" (other ordinary income) defaults to zero if absent.
+    Use one sheet for each individual with required columns (exact header text):
+    year, anticipated wages, other inc, net inv, taxable ctrb, 401k ctrb,
+    Roth 401k ctrb, IRA ctrb, Roth IRA ctrb, HSA ctrb, Roth conv,
+    big-ticket items. Column order may vary; omitting a column is an error
+    (use 0 for unused rows). Legacy header "other inc." is accepted as "other inc".
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     Return a dictionary of dataframes by individual's names.
 
@@ -170,11 +168,14 @@ def _checkColumns(df, iname, colList, required_cols=None):
     if cols_to_drop:
         df = df.drop(cols_to_drop, axis=1)
 
-    # Check that all required columns are present.
     required = required_cols if required_cols is not None else colList
-    for item in required:
-        if item not in df.columns:
-            raise ValueError(f"Column {item} not found for {iname}.")
+    missing = [item for item in required if item not in df.columns]
+    if missing:
+        raise ValueError(
+            f"HFP sheet {iname!r} is missing required column(s): {missing}. "
+            "Every listed header must be present; enter 0 where a concept does not apply. "
+            "See examples/HFP_template.xlsx."
+        )
 
     return df
 
@@ -201,11 +202,6 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
         df = _checkColumns(
             df, iname, _timeHorizonItems, required_cols=_requiredTimeHorizonItems
         )
-
-        # Add optional columns with zeros if missing (backward compatibility)
-        for col in _optionalTimeHorizonItems:
-            if col not in df.columns:
-                df[col] = 0
 
         # Ensure columns are in the correct order
         df = df[_timeHorizonItems].copy()
