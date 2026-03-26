@@ -23,6 +23,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import streamlit as st
 from datetime import date
 
+from owlplanner.rate_models.constants import GARCH_DCC_MIN_OBSERVATIONS
+
 import sskeys as kz
 import owlbridge as owb
 import case_progress as cp
@@ -181,29 +183,52 @@ preserving stationarity."""
     if (kz.getCaseKey("rateType") == "constant" and "hist" in kz.getCaseKey("fixedType")) or (
         kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") in owb.HISTORICAL_RANGE_METHODS
     ):
-        # Enforce yto >= yfrm + 2 (min 2 years for statistics) before rendering
-        # so neither widget is ever in an invalid state (avoids Streamlit deadlock).
+        is_garch_ui = (
+            kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "garch_dcc"
+        )
+        min_year_gap = (GARCH_DCC_MIN_OBSERVATIONS - 1) if is_garch_ui else 2
+        # Enforce yto >= yfrm + min_year_gap before rendering so neither widget is
+        # ever in an invalid state (avoids Streamlit deadlock).
         yfrm_val = kz.getCaseKey("yfrm")
         yto_val = kz.getCaseKey("yto")
         if yfrm_val is not None and yto_val is not None:
-            yto_val = min(owb.TO, max(yto_val, yfrm_val + 2))
-            yfrm_val = max(owb.FROM, min(yfrm_val, yto_val - 2))
+            yto_val = min(owb.TO, max(yto_val, yfrm_val + min_year_gap))
+            yfrm_val = max(owb.FROM, min(yfrm_val, yto_val - min_year_gap))
             kz.pushCaseKey("yfrm", yfrm_val)
             kz.pushCaseKey("yto", yto_val)
         # Sync case -> widget keys so number_inputs show current values (needed when normalization was skipped).
         kz.pushCaseKey("yfrm")
         kz.pushCaseKey("yto")
 
+        if is_garch_ui:
+            help_yfrm = (
+                "First year of historical data in the range. "
+                f"DCC-GARCH needs at least {GARCH_DCC_MIN_OBSERVATIONS} calendar years inclusive "
+                "(ending year − starting year + 1)."
+            )
+            help_yto = (
+                "Last year of historical data in the range. "
+                f"DCC-GARCH needs at least {GARCH_DCC_MIN_OBSERVATIONS} calendar years inclusive."
+            )
+        else:
+            help_yfrm = helpYfrm
+            help_yto = helpYto
+
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col3:
-            maxValue = owb.TO if kz.getCaseKey("varyingType") == "historical" else kz.getCaseKey("yto") - 1
+            if kz.getCaseKey("varyingType") == "historical":
+                maxValue = owb.TO
+            elif is_garch_ui:
+                maxValue = kz.getCaseKey("yto") - (GARCH_DCC_MIN_OBSERVATIONS - 1)
+            else:
+                maxValue = kz.getCaseKey("yto") - 1
             kz.getIntNum(
                 "Starting year",
                 "yfrm",
                 min_value=owb.FROM,
                 max_value=maxValue,
                 callback=updateRates,
-                help=helpYfrm,
+                help=help_yfrm,
             )
 
         with col4:
@@ -212,10 +237,10 @@ preserving stationarity."""
                 "Ending year",
                 "yto",
                 max_value=owb.TO,
-                min_value=kz.getCaseKey("yfrm") + 2,     # At least 2 years needed for statistics.
+                min_value=kz.getCaseKey("yfrm") + min_year_gap,
                 disabled=ishistorical,
                 callback=updateRates,
-                help=helpYto,
+                help=help_yto,
             )
 
     if kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "bootstrap_sor":

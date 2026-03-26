@@ -347,7 +347,13 @@ def _setRates(plan):
                 if bs is not None:
                     kwargs["block_size"] = int(bs)
 
-            plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq, **kwargs)
+            try:
+                plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq, **kwargs)
+            except ValueError as e:
+                if varyingType == "garch_dcc":
+                    st.error(str(e))
+                    return False
+                raise
 
             kz.setCaseKey("rateSeed", plan.rateSeed)
             kz.setCaseKey("reproducibleRates", plan.reproducibleRates)

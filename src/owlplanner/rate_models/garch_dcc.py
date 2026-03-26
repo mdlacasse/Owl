@@ -37,7 +37,7 @@ from scipy.optimize import minimize
 from numpy.linalg import cholesky, eigvalsh, LinAlgError
 
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
+from owlplanner.rate_models.constants import GARCH_DCC_MIN_OBSERVATIONS, REQUIRED_RATE_COLUMNS
 from owlplanner.rates import FROM, TO
 
 
@@ -125,9 +125,9 @@ class GARCHDCCRateModel(BaseRateModel):
         data = self._load_historical_slice()
         T = len(data)
 
-        if T < 15:
+        if T < GARCH_DCC_MIN_OBSERVATIONS:
             raise ValueError(
-                f"DCC-GARCH(1,1) requires at least 15 observations; "
+                f"DCC-GARCH(1,1) requires at least {GARCH_DCC_MIN_OBSERVATIONS} observations; "
                 f"frm={self.frm}, to={self.to} yields only {T}."
             )
 
