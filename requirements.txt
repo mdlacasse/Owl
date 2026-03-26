@@ -176,4 +176,4 @@ watchdog==6.0.0 ; sys_platform != 'darwin'
     # via streamlit
 win32-setctime==1.2.0 ; sys_platform == 'win32'
     # via loguru
-mosek=11.1.9
+mosek==11.1.9
