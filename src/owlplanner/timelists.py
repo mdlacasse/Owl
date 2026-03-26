@@ -234,9 +234,12 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
 
         timeLists[iname] = df
 
-        if df["year"].iloc[-1] != endyear - 1:
-            raise ValueError(f"""Time horizon for {iname} too short.\n\t
-It should end in {endyear}, not {df['year'].iloc[-1]}""")
+        last_expected = endyear - 1
+        if df["year"].iloc[-1] != last_expected:
+            raise ValueError(
+                f"Time horizon for {iname} inconsistent after conditioning: last year is "
+                f"{df['year'].iloc[-1]}, expected {last_expected} (inclusive end of plan for this person)."
+            )
 
     return timeLists
 

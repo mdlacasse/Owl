@@ -176,9 +176,10 @@ headers must be present (lowercase; column order may vary); enter `0` where a co
 `year`, `anticipated wages`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
 `Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `big-ticket items`. The legacy header `other inc.` is read as `other inc`.
 Numeric cells are **nominal dollars** (not thousands), independent of spending/bequest *units* in the case file.
-On load, the planner keeps rows from five calendar years before the **current** year through the last year of
-each person's plan horizon; missing years in that span are filled with zeros; the sheet must extend through
-each person's final plan year. **Any other column** on a person sheet (including scratch/helper columns) is
+On load, the planner keeps rows from five calendar years before the **current** year through each person's
+last plan year (from demographics). Years outside that window are ignored; **every missing year inside the window,
+including the last plan year, is added with zeros**—you need not type every year in Excel. **Any other column**
+on a person sheet (including scratch/helper columns) is
 **dropped** when the file is read and is not used in the model.
 
 Two optional **worksheets** (separate tabs) extend the workbook:
@@ -373,12 +374,11 @@ the last five years and asset allocation ratios, and the same for all future yea
 Note that in certain *cases*, constraints on Roth withdrawals can make a zero bequest impossible
 if Roth conversions took place in the five years before passing.
 
-In the table above, year 20XX represents the last row which could be the last year based on the life
-expectancy values provided.
-While loading an Excel workbook, missing years or empty cells will be filled with zero values,
-while years outside the time span of the *case* will simply be ignored with the exception
-of five-year back history.
-The last `year` row for each person must be that individual's final plan year (from life expectancy), or loading fails.
+In the table above, year 20XX illustrates the last plan year for that person (from life expectancy in the *case*).
+While loading a workbook, missing years or empty cells in the allowed window are filled with zeros; years outside
+each person's plan span (plus the five-year lookback) are ignored.
+After loading, each person's table always runs through that individual's final plan year—even if you omitted
+those rows in the file.
 
 The column *anticipated wages* is the annual amount
 (gross minus tax-deferred contributions) that you anticipate to receive from employment
