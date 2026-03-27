@@ -131,7 +131,7 @@ preserving stationarity."""
     col1, col2, col3 = st.columns([1, 1, 2.07], gap="large", vertical_alignment="bottom")
     with col1:
         helpmsg = "Rates can be constant for the duration of the plan or change annually."
-        kz.getRadio("## Annual rates type", rateChoices, "rateType", updateRates, help=helpmsg)
+        kz.getRadio("Annual rates type", rateChoices, "rateType", updateRates, help=helpmsg)
 
     if kz.getCaseKey("rateType") == "constant":
         fxType = kz.getCaseKey("fixedType")
