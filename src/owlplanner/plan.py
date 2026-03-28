@@ -2472,20 +2472,21 @@ class Plan:
             if n < 2:
                 # MAGI for the first two plan years is known (prevMAGI from user-supplied data).
                 self.A.addRow(row, self.prevMAGI[n], self.prevMAGI[n])
-                # In monolithic MIP mode, pre-fix the bracket to eliminate binary variables.
-                # Skip pre-fixing for Benders decomposition: the master-SP architecture
-                # requires all zm columns to remain free so the master can assign brackets
-                # consistently with the subproblem LP.
-                if options.get("withDecomposition", "none") != "benders":
-                    magi = self.prevMAGI[n]
-                    qsel = 0
-                    for q in range(1, self.N_irmaa):
-                        if magi > self.Lbar_nq[nn, q - 1]:
-                            qsel = q
-                    for q in range(self.N_irmaa):
-                        idx = self.vm["zm"].idx(nn, q)
-                        val = 1 if q == qsel else 0
-                        self.B.setRange(idx, val, val)
+                # Pre-fix the bracket to match the known MAGI.  This applies in all solver modes,
+                # including Benders: the correct bracket is deterministic, so these zm variables
+                # are hard-fixed (Lb == Ub) and automatically excluded from master_cols by
+                # _benders_solve.  Leaving them free would expose h-based argmax init to bracket-
+                # boundary ambiguity (e.g. prevMAGI exactly at a bracket edge), causing the
+                # Benders SP LP to become infeasible on the first iteration.
+                magi = self.prevMAGI[n]
+                qsel = 0
+                for q in range(1, self.N_irmaa):
+                    if magi > self.Lbar_nq[nn, q - 1]:
+                        qsel = q
+                for q in range(self.N_irmaa):
+                    idx = self.vm["zm"].idx(nn, q)
+                    val = 1 if q == qsel else 0
+                    self.B.setRange(idx, val, val)
                 continue
 
             n2 = n - 2
