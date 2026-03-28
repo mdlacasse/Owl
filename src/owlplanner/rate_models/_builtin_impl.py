@@ -119,12 +119,15 @@ def generate_historical_average_series(
     """
     Generate Nx4 fixed series from historical geometric mean, and return distribution params.
 
+    Uses geometric means as the fixed rates: the constant annual return that
+    replicates the same compound growth as the historical window.
+
     Returns:
-        (rate_series, means, stdev, corr) - series in decimal, params for metadata
+        (rate_series, means, stdev, corr) - series in decimal, geometric params for metadata
     """
-    means, stdev, corr, _ = getRatesDistributions(frm, to, mylog, in_percent=False)
-    rate_series = np.tile(means, (N, 1))
-    return rate_series, means, stdev, corr
+    dist = getRatesDistributions(frm, to, mylog, in_percent=False)
+    rate_series = np.tile(dist.geo_means, (N, 1))
+    return rate_series, dist.geo_means, dist.stdev, dist.corr
 
 
 def generate_histogaussian_series(
@@ -137,12 +140,16 @@ def generate_histogaussian_series(
     """
     Generate Nx4 stochastic series from historical distribution params.
 
+    Uses the arithmetic mean of historical returns as the Gaussian center, with
+    sample covariance computed from the same window. This is the standard
+    maximum-likelihood fit of a multivariate normal to the historical data.
+
     Returns:
-        (rate_series, means, stdev, corr) - series in decimal, params for metadata
+        (rate_series, means, stdev, corr) - series in decimal, arithmetic params for metadata
     """
-    means, stdev, corr, covar = getRatesDistributions(frm, to, mylog, in_percent=False)
-    rate_series = rng.multivariate_normal(means, covar, size=N)
-    return rate_series, means, stdev, corr
+    dist = getRatesDistributions(frm, to, mylog, in_percent=False)
+    rate_series = rng.multivariate_normal(dist.arith_means, dist.covar, size=N)
+    return rate_series, dist.arith_means, dist.stdev, dist.corr
 
 
 def generate_lognormal_series(
@@ -223,7 +230,8 @@ def generate_histolognormal_series(
         and the model will produce invalid results. This is extremely rare in
         real historical data.
     """
-    _, _, _, covar = getRatesDistributions(frm, to, mylog, in_percent=False)
+    dist = getRatesDistributions(frm, to, mylog, in_percent=False)
+    covar = dist.covar
     # Re-load raw historical data to compute log-returns
     if not (FROM <= frm <= TO):
         raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
@@ -269,7 +277,7 @@ def generate_stochastic_series(
 
     Args:
         N: Number of years
-        values_pct: Mean returns in percent (length 4)
+        values_pct: Arithmetic mean returns in percent (length 4)
         stdev_pct: Standard deviations in percent (length 4)
         corr: Correlation matrix (4x4) or off-diagonal list (6). None = identity.
         rng: Random generator. If None, uses default_rng().

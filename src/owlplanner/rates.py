@@ -27,9 +27,37 @@ import numpy as np
 import pandas as pd
 import os
 import sys
+from typing import NamedTuple
 
 from owlplanner import mylogging as log
 from owlplanner.utils import geometric_mean_pct
+
+
+class RatesDistribution(NamedTuple):
+    """
+    Return type of :func:`getRatesDistributions`.
+
+    Attributes
+    ----------
+    geo_means : ndarray, shape (4,)
+        Geometric mean of annual returns over the window — the constant annual
+        rate that compounds to the same multi-year result as the historical data.
+        Use for deterministic (fixed-rate) models.
+    arith_means : ndarray, shape (4,)
+        Arithmetic (sample) mean of annual returns over the window — the
+        expected single-year return.  Use as the center of Gaussian models.
+    stdev : ndarray, shape (4,)
+        Sample standard deviations computed from the arithmetic return data.
+    corr : ndarray, shape (4, 4)
+        Pearson correlation matrix (always in decimal, unaffected by in_percent).
+    covar : ndarray, shape (4, 4)
+        Sample covariance matrix (always in decimal, unaffected by in_percent).
+    """
+    geo_means: np.ndarray
+    arith_means: np.ndarray
+    stdev: np.ndarray
+    corr: np.ndarray
+    covar: np.ndarray
 
 # All data goes from 1928 to 2025. Update the TO value when data
 # becomes available for subsequent years.
@@ -228,15 +256,18 @@ def getRatesDistributions(frm=None, to=None, mylog=None, in_percent=True, *, df=
             raise ValueError("DataFrame must have at least 2 rows for computing statistics.")
 
     # ── Shared statistics block ───────────────────────────────────────────────
-    # Geometric mean return: use shared helper; convert from percent to decimal.
-    means = np.asarray(geometric_mean_pct(data.values, axis=0) / 100.0, dtype=float)
+    # Geometric mean: constant annual rate that replicates the same compound growth.
+    geo_means = np.asarray(geometric_mean_pct(data.values, axis=0) / 100.0, dtype=float)
+    # Arithmetic mean: expected single-year return (center of Gaussian models).
+    arith_means = np.asarray(data.values.mean(axis=0) / 100.0, dtype=float)
     stdev = data.std()
     covar = data.cov()
 
-    mylog.vprint("means: (%)\n", means * 100.0)
+    mylog.vprint("geometric means: (%)\n", geo_means * 100.0)
+    mylog.vprint("arithmetic means: (%)\n", arith_means * 100.0)
     mylog.vprint("standard deviation: (%)\n", stdev)
 
-    # means are already decimal; stdev/covar in percent² — convert to decimal.
+    # geo/arith means already decimal; stdev/covar in percent² — convert to decimal.
     stdev = np.array(stdev) / 100.0
     covar = np.array(covar) / 10000.0
     # Build correlation matrix by dividing by the stdev for each column and row.
@@ -248,7 +279,9 @@ def getRatesDistributions(frm=None, to=None, mylog=None, in_percent=True, *, df=
     mylog.vprint("correlation matrix: \n\t\t%s" % str(corr).replace("\n", "\n\t\t"))
 
     if in_percent:
-        means = means * 100
+        geo_means = geo_means * 100
+        arith_means = arith_means * 100
         stdev = stdev * 100
     # corr and covar are correlation-derived (unitless or decimal); never converted
-    return means, stdev, corr, covar
+    return RatesDistribution(geo_means=geo_means, arith_means=arith_means,
+                             stdev=stdev, corr=corr, covar=covar)

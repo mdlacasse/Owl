@@ -195,7 +195,7 @@ class HistoricalAverageRateModel(BaseRateModel):
 class GaussianRateModel(BaseRateModel):
     model_name = "gaussian"
     description = (
-        "Samples from a multivariate normal (Gaussian) distribution with means, "
+        "Samples from a multivariate normal (Gaussian) distribution with arithmetic means, "
         "volatilities, and correlations you specify below."
     )
     deterministic = False
@@ -204,7 +204,7 @@ class GaussianRateModel(BaseRateModel):
         "values": {
             "type": "list[float]",
             "length": 4,
-            "description": "Mean returns in percent.",
+            "description": "Arithmetic mean returns in percent.",
             "example": "[7.0, 4.5, 3.5, 2.5]",
         },
         "stdev": {
@@ -352,8 +352,9 @@ class HistolognormalRateModel(BaseRateModel):
     model_name = "histolognormal"
     description = (
         "Fits a correlated log-normal model to the selected historical window "
-        "and samples from it. Log-space parameters (mean and covariance of log-returns) "
-        "are estimated directly from history. Returns are right-skewed and bounded below by -100%."
+        "and samples from it. Log-space parameters are estimated from historical log-returns; "
+        "reported means and volatilities are the equivalent arithmetic statistics. "
+        "Returns are right-skewed and bounded below by -100%."
     )
     deterministic = False
     constant = False
@@ -393,8 +394,8 @@ class HistolognormalRateModel(BaseRateModel):
 class HistogaussianRateModel(BaseRateModel):
     model_name = "histogaussian"
     description = (
-        "Samples from a multivariate normal distribution fitted to the selected historical window. "
-        "Parametric and Gaussian, parameters grounded in history."
+        "Samples from a multivariate normal distribution fitted to the selected historical window "
+        "using arithmetic means and sample covariances. Parametric and Gaussian, parameters grounded in history."
     )
     deterministic = False
     constant = False

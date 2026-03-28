@@ -4297,7 +4297,8 @@ class Plan:
             return figures
 
         for fig in figures:
-            self._plotter.jupyter_renderer(fig)
+            if fig is not None:
+                self._plotter.jupyter_renderer(fig)
         return None
 
     @_checkCaseStatus

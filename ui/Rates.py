@@ -261,7 +261,7 @@ preserving stationarity."""
         st.divider()
         st.markdown("#### :orange[Stochastic Parameters]")
         ro = kz.getCaseKey("varyingType") not in ("gaussian", "lognormal")
-        st.markdown("##### Means (%)")
+        st.markdown("##### Arithmetic Means (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("mean0", 0)

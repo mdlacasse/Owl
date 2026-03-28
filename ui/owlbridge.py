@@ -317,15 +317,16 @@ def _setRates(plan):
                 kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
             kz.setCaseKey("reverse_sequence", plan.rateReverse)
             kz.setCaseKey("roll_sequence", plan.rateRoll)
-            mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
+            dist = owl.getRatesDistributions(yfrm, yto, plan.mylog)
+            # histogaussian is centered on the arithmetic mean (standard Gaussian fit).
             for j in range(4):
-                kz.pushCaseKey(f"mean{j}", mean[j])
-                kz.pushCaseKey(f"stdev{j}", stdev[j])
+                kz.pushCaseKey(f"mean{j}", dist.arith_means[j])
+                kz.pushCaseKey(f"stdev{j}", dist.stdev[j])
             # Correlations: Pearson coefficient (-1 to 1), standard representation.
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1 + 1, plan.N_k):
-                    kz.pushCaseKey(f"corr{q}", corr[k1, k2])
+                    kz.pushCaseKey(f"corr{q}", dist.corr[k1, k2])
                     q += 1
 
         elif varyingType in ("bootstrap_sor", "var", "garch_dcc", "histolognormal"):
@@ -360,14 +361,16 @@ def _setRates(plan):
             kz.setCaseKey("reverse_sequence", plan.rateReverse)
             kz.setCaseKey("roll_sequence", plan.rateRoll)
 
-            mean, stdev, corr, covar = owl.getRatesDistributions(yfrm, yto, plan.mylog)
+            dist = owl.getRatesDistributions(yfrm, yto, plan.mylog)
+            # bootstrap_sor/var/garch_dcc: arithmetic mean of historical pool for reference.
+            # histolognormal: reports equivalent arithmetic statistics after log-space fit.
             for j in range(4):
-                kz.pushCaseKey(f"mean{j}", mean[j])
-                kz.pushCaseKey(f"stdev{j}", stdev[j])
+                kz.pushCaseKey(f"mean{j}", dist.arith_means[j])
+                kz.pushCaseKey(f"stdev{j}", dist.stdev[j])
             q = 1
             for k1 in range(plan.N_k):
                 for k2 in range(k1 + 1, plan.N_k):
-                    kz.pushCaseKey(f"corr{q}", corr[k1, k2])
+                    kz.pushCaseKey(f"corr{q}", dist.corr[k1, k2])
                     q += 1
 
         elif varyingType in ("stochastic", "gaussian", "lognormal"):
