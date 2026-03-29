@@ -59,9 +59,11 @@ class RatesDistribution(NamedTuple):
     corr: np.ndarray
     covar: np.ndarray
 
+
 # All data goes from 1928 to 2025. Update the TO value when data
 # becomes available for subsequent years.
 FROM, TO = 1928, 2025
+
 
 # Canonical fixed rates (decimal). Single source of truth for UI/config sync.
 _OPTIMISTIC_RATES = np.array([0.086, 0.049, 0.033, 0.025])  # MorningStar 2023

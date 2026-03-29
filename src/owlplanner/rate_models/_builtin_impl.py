@@ -230,8 +230,6 @@ def generate_histolognormal_series(
         and the model will produce invalid results. This is extremely rare in
         real historical data.
     """
-    dist = getRatesDistributions(frm, to, mylog, in_percent=False)
-    covar = dist.covar
     # Re-load raw historical data to compute log-returns
     if not (FROM <= frm <= TO):
         raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
