@@ -1134,12 +1134,19 @@ When the plan includes an HSA, the worksheets include additional HSA columns:
 HSA withdrawals in the **Sources** table, and HSA balances, contributions, and withdrawals
 in the **Accounts** table.
 
-Use the **Table display options** expander at the top of the page to optionally
-**show ages** (integer age on December 31 of each row's calendar year, with empty cells
-after that person's plan horizon) and to **hide columns that are all zeros**.
-Those choices apply only to the on-screen tables; the Excel workbook from **Reports**
-is unchanged. They are saved in the case parameter file under `[results]` (see
-**Help → Parameters Reference** for `worksheet_show_ages` and `worksheet_hide_zero_columns`).
+Use the **Table display and save options** expander at the top of the page to control
+how worksheets are shown and saved:
+- **Show ages**: adds a per-person age column (integer age on December 31 of each row's calendar year,
+  blank after that person's plan horizon). Applies to both the on-screen tables and the saved Excel workbook.
+- **Hide columns that are all zeros**: omits all-zero numeric columns from the on-screen tables only;
+  the saved Excel workbook always retains all columns.
+- **Show/save in real (today's) dollars**: divides all currency values by the cumulative inflation factor,
+  converting nominal to today's dollars. Applies to both the on-screen tables and the saved Excel workbook;
+  the saved filename gains a `_real` suffix.
+
+These settings are saved in the case parameter file under `[results]` (see
+**Help → Parameters Reference** for `worksheet_show_ages`, `worksheet_hide_zero_columns`,
+and `worksheet_real_dollars`).
 """)
 
     with st.expander("Reports"):

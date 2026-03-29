@@ -104,6 +104,7 @@ def createPlan():
 
     plan.setWorksheetShowAges(bool(kz.getCaseKey("worksheetShowAges")))
     plan.setWorksheetHideZeroColumns(bool(kz.getCaseKey("worksheetHideZeroColumns")))
+    plan.setWorksheetRealDollars(bool(kz.getCaseKey("worksheetRealDollars")))
 
     # Force to pull key and set profile if key was defined.
     if kz.getCaseKey("spendingProfile"):
@@ -742,6 +743,12 @@ def setWorksheetHideZeroColumns(plan, key):
     plan.setWorksheetHideZeroColumns(val)
 
 
+@_checkPlan
+def setWorksheetRealDollars(plan, key):
+    val = kz.storepull(key)
+    plan.setWorksheetRealDollars(val)
+
+
 def setGlobalPlotBackend(key):
     val = kz.getGlobalKey("_"+key)
     kz.storeGlobalKey(key, val)
@@ -828,14 +835,15 @@ def _worksheet_df_for_streamlit_display(df):
 
 def _prepare_worksheet_dataframe(df, plan, sheet_name):
     """
-    Optionally drop all-zero numeric columns and insert age columns.
+    Optionally drop all-zero numeric columns.
+    Age columns are included upstream by plan_to_excel when worksheetShowAges=True.
     Federal sheet: caller formats ``SS % taxed`` after this returns.
     """
     dfc = df.copy()
     if plan.worksheetHideZeroColumns and "year" in dfc.columns:
-        dfc = drop_all_zero_numeric_columns(dfc, protected={"year"})
-    if plan.worksheetShowAges and "year" in dfc.columns:
-        dfc, _ = _insert_worksheet_age_columns(dfc, plan, sheet_name)
+        # Protect age columns from zero-column filtering
+        protected = {"year"} | {c for c in dfc.columns if isinstance(c, str) and c.startswith("age (")}
+        dfc = drop_all_zero_numeric_columns(dfc, protected=protected)
     return dfc
 
 
@@ -906,41 +914,24 @@ def showWorkbook(plan):
                 placeholder="-",
             )
 
+        dollar_label = "real (today's) $" if getattr(plan, "worksheetRealDollars", False) else "nominal $"
+        age_note = (
+            " Ages are as of December 31 of each row's calendar year; "
+            "blank after an individual's plan horizon."
+        ) if plan.worksheetShowAges else ""
+
         if federal_tax_sheet:
             cap = (
-                "Values are in nominal $, rounded to the nearest dollar. "
+                f"Values are in {dollar_label}, rounded to the nearest dollar. "
                 "SS % taxed is the fraction of Social Security benefits subject to federal tax."
             )
-            if plan.worksheetShowAges:
-                cap += (
-                    " Ages are as of December 31 of each row's calendar year; "
-                    "blank after an individual's plan horizon."
-                )
-            st.caption(cap)
+            st.caption(cap + age_note)
         elif dollars:
-            cap = "Values are in nominal $, rounded to the nearest dollar."
-            if plan.worksheetShowAges:
-                cap += (
-                    " Ages are as of December 31 of each row's calendar year; "
-                    "blank after an individual's plan horizon."
-                )
-            st.caption(cap)
+            st.caption(f"Values are in {dollar_label}, rounded to the nearest dollar." + age_note)
         elif pct_sheets:
-            cap = "Values are in percent, with 2 decimal places."
-            if plan.worksheetShowAges:
-                cap += (
-                    " Ages are as of December 31 of each row's calendar year; "
-                    "blank after an individual's plan horizon."
-                )
-            st.caption(cap)
+            st.caption("Values are in percent, with 2 decimal places." + age_note)
         else:
-            cap = "Values are fractional."
-            if plan.worksheetShowAges:
-                cap += (
-                    " Ages are as of December 31 of each row's calendar year; "
-                    "blank after an individual's plan horizon."
-                )
-            st.caption(cap)
+            st.caption("Values are fractional." + age_note)
 
 
 @_checkPlan
@@ -1087,6 +1078,7 @@ def genDic(plan):
     dic["plots"] = plan.defaultPlots
     dic["worksheetShowAges"] = plan.worksheetShowAges
     dic["worksheetHideZeroColumns"] = plan.worksheetHideZeroColumns
+    dic["worksheetRealDollars"] = plan.worksheetRealDollars
     dic["allocType"] = plan.ARCoord
     dic["timeListsFileName"] = plan.timeListsFileName
     for j1 in range(plan.N_j):

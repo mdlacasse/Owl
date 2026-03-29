@@ -2,6 +2,33 @@
 
 ---
 
+## Version 2026.03.29
+
+### Worksheets: age columns in saved Excel and real-dollar display/save
+
+- **`worksheet_show_ages`**: Age columns are now included in the **saved Excel workbook** (not just
+  the on-screen tables). The final balance row in each *Accounts* sheet also carries the correct age
+  (or a blank cell when beyond the individual's plan horizon).
+- **`worksheet_real_dollars`** (new): When `true`, all currency values in both the on-screen tables
+  and the saved Excel workbook are divided by the cumulative inflation factor `gamma_n`, converting
+  nominal dollars to today's (real) dollars. The saved filename gains a `_real` suffix
+  (`Workbook_<case>_real.xlsx`) to distinguish it from the nominal version. Toggled from the
+  *Worksheets* page and round-tripped in the case TOML under `[results]`.
+- **`worksheet_hide_zero_columns`**: Clarified as display-only; the saved Excel always retains all
+  columns. Age columns are protected from zero-column filtering.
+- **Worksheets page**: Expander renamed to *Table display and save options*; third toggle added for
+  the new real-dollars option.
+- **Reports page**: Download filename now reflects the `_real` suffix when `worksheet_real_dollars`
+  is enabled.
+- **Default solver time limit**: `maxTime` default changed from 900 s to 180 s. Shorter per-iteration
+  limits leverage SC-loop warm-starting and dramatically reduce total solve time on hard MILP cases.
+- **Docs**: `PARAMETERS.md` (`[results]` table updated; `worksheet_real_dollars` entry added;
+  example TOML updated). **Documentation** (Worksheets section) updated.
+- **Tests**: 9 new tests in `tests/test_export.py` covering age columns in saved Excel, real-dollar
+  scaling, `_real` filename suffix, and zero-column preservation.
+
+---
+
 ## Version 2026.03.26
 
 ### Breaking change: HFP person sheets require all columns
@@ -15,7 +42,6 @@
 - **Loader**: Clearer `ValueError` listing missing headers; legacy `other inc.` still normalized to `other inc`.
 - **Docs**: `PARAMETERS.md` HFP section expanded; Streamlit **Documentation → Financial Profile** aligned.
 - **Tests**: `tests/test_timelists.py` expects errors for workbooks missing required columns; example HFPs guarded by schema check.
-- **Version**: `2026.03.26` (`src/owlplanner/version.py`).
 
 ## Version 2026.03.24
 

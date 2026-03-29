@@ -40,7 +40,8 @@ else:
     else:
         kz.initCaseKey("worksheetShowAges", False)
         kz.initCaseKey("worksheetHideZeroColumns", False)
-        with st.expander("*Table display options*", expanded=False):
+        kz.initCaseKey("worksheetRealDollars", False)
+        with st.expander("*Table display and save options*", expanded=False):
             help_age = (
                 "Add per-person age columns (age on December 31 of each row's calendar year). "
                 "Stored in the case file under [results]."
@@ -49,7 +50,12 @@ else:
                 "Hide numeric columns where every value is zero. "
                 "Stored in the case file under [results]."
             )
-            col_a, col_b, _ = st.columns(3)
+            help_real = (
+                "Display and save all currency values in inflation-adjusted (today's) dollars. "
+                "The saved Excel filename will have '_real' appended. "
+                "Stored in the case file under [results]."
+            )
+            col_a, col_b, col_c = st.columns(3)
             with col_a:
                 kz.getToggle("Show ages", "worksheetShowAges", callback=owb.setWorksheetShowAges, help=help_age)
             with col_b:
@@ -58,5 +64,12 @@ else:
                     "worksheetHideZeroColumns",
                     callback=owb.setWorksheetHideZeroColumns,
                     help=help_hide,
+                )
+            with col_c:
+                kz.getToggle(
+                    "Show/save in real (today's) dollars",
+                    "worksheetRealDollars",
+                    callback=owb.setWorksheetRealDollars,
+                    help=help_real,
                 )
         owb.showWorkbook()

@@ -297,13 +297,14 @@ Options controlling the optimization solver and constraints.
 
 ## :orange[[results]]
 
-Parameters controlling result display and output (graphs and the Streamlit **Worksheets** tables). These keys are stored on the `Plan`, round-trip in the case TOML, and can be changed from the **Worksheets** page (*Table display options* expander) as well as by editing the file.
+Parameters controlling result display and output (graphs and the Streamlit **Worksheets** tables). These keys are stored on the `Plan`, round-trip in the case TOML, and can be changed from the **Worksheets** page (*Table display and save options* expander) as well as by editing the file.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `default_plots` | string | Default plot display mode. Valid values: `"nominal"` (nominal dollars), `"today"` (today's dollars) |
-| `worksheet_show_ages` | boolean | When `true` (default `false`), the Streamlit **Worksheets** page adds per-person **age** columns next to `year`. Each value is the individual's integer age on **December 31** of that row's calendar year. The cell is empty for years after that person's plan horizon (consistent with `basic_info.life_expectancy` and the plan horizon). Does **not** change columns in the Excel workbook downloaded from **Reports**. |
-| `worksheet_hide_zero_columns` | boolean | When `true` (default `false`), the Streamlit **Worksheets** page omits numeric columns where every value is zero (within a small tolerance). The `year` column is never removed. Does **not** change the Excel workbook downloaded from **Reports**. |
+| `worksheet_show_ages` | boolean | When `true` (default `false`), adds per-person **age** columns next to `year` in both the on-screen tables and the saved Excel workbook. Each value is the individual's integer age on **December 31** of that row's calendar year. The cell is blank for years after that person's plan horizon. |
+| `worksheet_hide_zero_columns` | boolean | When `true` (default `false`), the Streamlit **Worksheets** page omits numeric columns where every value is zero (within a small tolerance). The `year` and age columns are never removed. Applies to the **on-screen display only** — the saved Excel workbook always retains all columns. |
+| `worksheet_real_dollars` | boolean | When `true` (default `false`), all currency values in both the on-screen tables and the saved Excel workbook are divided by the cumulative inflation factor `gamma_n`, converting nominal dollars to today's (real) dollars. The saved Excel filename gains a `_real` suffix to distinguish it from the nominal version. |
 
 -------
 
@@ -398,9 +399,10 @@ maxTime = 180
 
 [results]
 default_plots = "nominal"
-# Optional Streamlit Worksheets table options (defaults shown):
+# Optional Streamlit Worksheets display and save options (defaults shown):
 worksheet_show_ages = false
 worksheet_hide_zero_columns = false
+worksheet_real_dollars = false
 
 # Optional: user-defined sections are preserved on load/save
 [user]

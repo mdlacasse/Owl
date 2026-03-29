@@ -295,6 +295,7 @@ def config_to_plan(
     p.setDefaultPlots(res.get("default_plots", "nominal"))
     p.setWorksheetShowAges(bool(res.get("worksheet_show_ages", False)))
     p.setWorksheetHideZeroColumns(bool(res.get("worksheet_hide_zero_columns", False)))
+    p.setWorksheetRealDollars(bool(res.get("worksheet_real_dollars", False)))
 
     return p
 
@@ -324,6 +325,7 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
     plan.setDefaultPlots(res.get("default_plots", "nominal"))
     plan.setWorksheetShowAges(bool(res.get("worksheet_show_ages", False)))
     plan.setWorksheetHideZeroColumns(bool(res.get("worksheet_hide_zero_columns", False)))
+    plan.setWorksheetRealDollars(bool(res.get("worksheet_real_dollars", False)))
 
 
 def plan_to_config(myplan: "Plan") -> dict:
@@ -443,6 +445,7 @@ def plan_to_config(myplan: "Plan") -> dict:
         "default_plots": myplan.defaultPlots,
         "worksheet_show_ages": bool(myplan.worksheetShowAges),
         "worksheet_hide_zero_columns": bool(myplan.worksheetHideZeroColumns),
+        "worksheet_real_dollars": bool(myplan.worksheetRealDollars),
     }
 
     # ACA settings (only emit when configured)

@@ -27,12 +27,68 @@ from os.path import isfile
 from pathlib import Path
 
 from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 from openpyxl.utils.dataframe import dataframe_to_rows
 
 from . import config
 from . import utils as u
 from . import tax2026 as tx
 from .rate_models.constants import RATE_DISPLAY_NAMES_SHORT
+from .utils import worksheet_age_on_dec_31_or_blank
+
+
+def _person_index_for_worksheet(sheet_name, inames):
+    """Return individual index if sheet is ``{iname}'s …``; else None (household sheet)."""
+    for i, iname in enumerate(inames):
+        if sheet_name.startswith(f"{iname}'s "):
+            return i
+    return None
+
+
+def _last_alive_calendar_year(plan, i):
+    """Last calendar year included in the plan horizon for individual ``i``."""
+    return int(plan.year_n[0]) + int(plan.horizons[i]) - 1
+
+
+def _worksheet_age_int_cell(y, plan, i, last_alive_year):
+    """Integer age for one row, or None when year is missing or individual is deceased."""
+    try:
+        yi = int(y)
+    except (TypeError, ValueError):
+        return None
+    v = worksheet_age_on_dec_31_or_blank(
+        yi, int(plan.yobs[i]), int(plan.mobs[i]), int(plan.tobs[i]), last_alive_year
+    )
+    return None if v is None else int(v)
+
+
+def _insert_age_cols_into_df(df, plan, sheet_name):
+    """Insert age column(s) immediately after 'year' in df. Returns modified copy.
+
+    Uses None (not pd.NA) for blank cells so openpyxl can serialize them.
+    """
+    years = pd.to_numeric(df["year"], errors="coerce")
+    idx = df.columns.get_loc("year") + 1
+    dfc = df.copy()
+    pi = _person_index_for_worksheet(sheet_name, plan.inames)
+    persons = [pi] if pi is not None else range(plan.N_i)
+    for offset, i in enumerate(persons):
+        col = f"age ({plan.inames[i]})"
+        last_y = _last_alive_calendar_year(plan, i)
+        vals = [_worksheet_age_int_cell(y, plan, i, last_y) for y in years]
+        dfc.insert(idx + offset, col, pd.Series(vals, dtype=object, index=dfc.index))
+    return dfc
+
+
+def _format_age_cols_in_ws(ws):
+    """Apply integer format to any column whose header starts with 'age ('."""
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+    for col_idx, header in enumerate(headers, start=1):
+        if isinstance(header, str) and header.startswith("age ("):
+            col_letter = get_column_letter(col_idx)
+            for cell in ws[col_letter][1:]:
+                cell.number_format = "0"
+
 
 _FORMAT_STRINGS = {
     "currency": "$#,##0_);[Red]($#,##0)",
@@ -343,19 +399,29 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         for row_idx, line in enumerate(config_buffer.getvalue().splitlines(), start=1):
             ws_config.cell(row=row_idx, column=1, value=line)
 
-    def fillsheet(sheet, dic, datatype, op=lambda x: x):
+    real = getattr(plan, "worksheetRealDollars", False)
+    inv_gamma = (1.0 / plan.gamma_n[:plan.N_n]) if real else None
+
+    def fillsheet(sheet, dic, datatype, op=lambda x: x, scale=None, sheet_name=None):
         rawData = {}
         rawData["year"] = plan.year_n
         if datatype == "currency":
             for key in dic:
-                rawData[key] = u.roundCents(op(dic[key]))
+                val = op(dic[key])
+                if scale is not None:
+                    val = val * scale
+                rawData[key] = u.roundCents(val)
         else:
             for key in dic:
                 rawData[key] = op(dic[key])
         df = pd.DataFrame(rawData)
+        if plan.worksheetShowAges and sheet_name is not None and "year" in df.columns:
+            df = _insert_age_cols_into_df(df, plan, sheet_name)
         for row in dataframe_to_rows(df, index=False, header=True):
             sheet.append(row)
         _format_spreadsheet(sheet, datatype)
+        if plan.worksheetShowAges and sheet_name is not None:
+            _format_age_cols_in_ws(sheet)
 
     ws = wb.active  # Save reference before add_config_sheet("first") may displace it
     add_config_sheet("first")
@@ -367,7 +433,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "taxable gains/divs": plan.Q_n,
         "Tax bills + Med.": plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n,
     }
-    fillsheet(ws, incomeDic, "currency")
+    fillsheet(ws, incomeDic, "currency", scale=inv_gamma, sheet_name="Income")
 
     cashFlowDic = {
         "net spending": plan.g_n,
@@ -389,7 +455,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "ACA premiums": -plan.aca_costs_n,
     }
     ws = wb.create_sheet("Cash Flow")
-    fillsheet(ws, cashFlowDic, "currency")
+    fillsheet(ws, cashFlowDic, "currency", scale=inv_gamma, sheet_name="Cash Flow")
 
     srcDic = {
         "wages": plan.sources_in["wages"],
@@ -406,8 +472,9 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "big-ticket items": plan.sources_in["BTI"],
     }
     for i in range(plan.N_i):
-        ws = wb.create_sheet(plan.inames[i] + "'s Sources")
-        fillsheet(ws, srcDic, "currency", op=lambda x, i=i: x[i])
+        sname = plan.inames[i] + "'s Sources"
+        ws = wb.create_sheet(sname)
+        fillsheet(ws, srcDic, "currency", op=lambda x, i=i: x[i], scale=inv_gamma, sheet_name=sname)
 
     householdSrcDic = {
         "FA ord inc": plan.sources_in["FA ord inc"],
@@ -416,7 +483,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "debt pmts": plan.sources_in["debt pmts"],
     }
     ws = wb.create_sheet("Household Sources")
-    fillsheet(ws, householdSrcDic, "currency", op=lambda x: x[0])
+    fillsheet(ws, householdSrcDic, "currency", op=lambda x: x[0], scale=inv_gamma, sheet_name="Household Sources")
 
     accDic = {
         "taxable bal": plan.b_ijn[:, 0, :-1],
@@ -436,21 +503,31 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "HSA wdrwl": plan.w_ijn[:, 3, :],
     }
     for i in range(plan.N_i):
-        ws = wb.create_sheet(plan.inames[i] + "'s Accounts")
-        fillsheet(ws, accDic, "currency", op=lambda x, i=i: x[i])
+        aname = plan.inames[i] + "'s Accounts"
+        ws = wb.create_sheet(aname)
+        fillsheet(ws, accDic, "currency", op=lambda x, i=i: x[i], scale=inv_gamma, sheet_name=aname)
+        scale_final = (1.0 / plan.gamma_n[plan.N_n]) if real else 1.0
+        final_year = plan.year_n[-1] + 1
+
         lastRow = [
-            plan.year_n[-1] + 1,
-            plan.b_ijn[i][0][-1],
+            final_year,
+            float(u.roundCents(plan.b_ijn[i][0][-1] * scale_final)),
             0, 0, 0,
-            plan.b_ijn[i][1][-1],
+            float(u.roundCents(plan.b_ijn[i][1][-1] * scale_final)),
             0, 0, 0, 0,
-            plan.b_ijn[i][2][-1],
+            float(u.roundCents(plan.b_ijn[i][2][-1] * scale_final)),
             0, 0,
-            plan.b_ijn[i][3][-1],
+            float(u.roundCents(plan.b_ijn[i][3][-1] * scale_final)),
             0, 0,
         ]
+        if plan.worksheetShowAges:
+            last_y = _last_alive_calendar_year(plan, i)
+            age_cell = _worksheet_age_int_cell(final_year, plan, i, last_y)  # None or int
+            lastRow.insert(1, age_cell)
         ws.append(lastRow)
         _format_spreadsheet(ws, "currency")
+        if plan.worksheetShowAges:
+            _format_age_cols_in_ws(ws)
 
     TxDic = {}
     for t in range(plan.N_t):
@@ -468,11 +545,18 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         if key == "SS % taxed":
             rawData[key] = TxDic[key]
         else:
-            rawData[key] = u.roundCents(TxDic[key])
+            val = TxDic[key]
+            if real:
+                val = val * inv_gamma
+            rawData[key] = u.roundCents(val)
     df = pd.DataFrame(rawData)
+    if plan.worksheetShowAges and "year" in df.columns:
+        df = _insert_age_cols_into_df(df, plan, "Federal Income Tax")
     for row in dataframe_to_rows(df, index=False, header=True):
         ws.append(row)
     _format_federal_income_tax_sheet(ws)
+    if plan.worksheetShowAges:
+        _format_age_cols_in_ws(ws)
 
     jDic = {"taxable": 0, "tax-deferred": 1, "tax-free": 2, "hsa": 3}
     kDic = {"stocks": 0, "C bonds": 1, "T notes": 2, "common": 3}
@@ -505,6 +589,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     if saveToFile:
         if basename is None:
             basename = plan._name
+        if real:
+            basename = basename + "_real"
         _save_workbook(wb, basename, overwrite, plan.mylog)
         return None
 

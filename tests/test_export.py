@@ -518,3 +518,127 @@ def test_cash_flow_sheet_balances_to_zero(joe_plan):
     )
     np.testing.assert_allclose(inflows, p.g_n, atol=1.0,
                                err_msg="Cash Flow sheet does not balance: sum of columns != net spending")
+
+
+# ---------------------------------------------------------------------------
+# worksheetShowAges — age columns in saved Excel
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def joe_plan_with_ages(joe_plan):
+    """Joe's plan with worksheetShowAges enabled; restored afterward."""
+    joe_plan.setWorksheetShowAges(True)
+    yield joe_plan
+    joe_plan.setWorksheetShowAges(False)
+
+
+def test_save_workbook_includes_age_columns_when_show_ages(joe_plan_with_ages):
+    """Age column is present in Income sheet header when worksheetShowAges=True."""
+    wb = joe_plan_with_ages.saveWorkbook(saveToFile=False)
+    ws = wb["Income"]
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+    assert any(isinstance(h, str) and h.startswith("age (") for h in headers)
+
+
+def test_save_workbook_age_column_follows_year(joe_plan_with_ages):
+    """Age column appears immediately after 'year' column."""
+    wb = joe_plan_with_ages.saveWorkbook(saveToFile=False)
+    ws = wb["Income"]
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+    year_idx = headers.index("year")
+    assert isinstance(headers[year_idx + 1], str) and headers[year_idx + 1].startswith("age (")
+
+
+def test_save_workbook_no_age_columns_by_default(joe_plan):
+    """No age columns present when worksheetShowAges=False (default)."""
+    wb = joe_plan.saveWorkbook(saveToFile=False)
+    ws = wb["Income"]
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+    assert not any(isinstance(h, str) and h.startswith("age (") for h in headers)
+
+
+def test_save_workbook_accounts_sheet_includes_age_column(joe_plan_with_ages):
+    """Accounts sheet includes an age column and extra final-balance row works."""
+    p = joe_plan_with_ages
+    wb = p.saveWorkbook(saveToFile=False)
+    ws = wb[p.inames[0] + "'s Accounts"]
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+    assert any(isinstance(h, str) and h.startswith("age (") for h in headers)
+    # Extra final-balance row must exist (N_n data rows + 1 header + 1 extra)
+    rows = list(ws.iter_rows(values_only=True))
+    assert len(rows) == p.N_n + 2  # header + N_n data rows + 1 final row
+
+
+# ---------------------------------------------------------------------------
+# worksheetRealDollars — inflation-adjusted values
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def joe_plan_real(joe_plan):
+    """Joe's plan with worksheetRealDollars enabled; restored afterward."""
+    joe_plan.setWorksheetRealDollars(True)
+    yield joe_plan
+    joe_plan.setWorksheetRealDollars(False)
+
+
+def test_save_workbook_real_dollars_scales_income(joe_plan_real):
+    """First-year net spending in real workbook equals nominal / gamma_n[0] within $1."""
+
+    p = joe_plan_real
+    p.setWorksheetRealDollars(False)
+    wb_nom = p.saveWorkbook(saveToFile=False)
+    p.setWorksheetRealDollars(True)
+    wb_real = p.saveWorkbook(saveToFile=False)
+
+    nom_rows = list(wb_nom["Income"].iter_rows(min_row=2, values_only=True))
+    real_rows = list(wb_real["Income"].iter_rows(min_row=2, values_only=True))
+    nom_val = nom_rows[0][1]   # column B = net spending (no age col in nominal)
+    real_val = real_rows[0][1]
+    gamma0 = p.gamma_n[0]
+    assert abs(real_val - nom_val / gamma0) <= 1.0
+
+
+def test_save_workbook_real_dollars_does_not_scale_rates(joe_plan_real):
+    """Rates sheet values stay in percent range (0–100) when real dollars is on."""
+    wb = joe_plan_real.saveWorkbook(saveToFile=False)
+    ws = wb["Rates"]
+    rows = list(ws.iter_rows(min_row=2, values_only=True))
+    assert all(
+        0 <= float(v) <= 100
+        for row in rows
+        for v in row[1:]
+        if v is not None
+    )
+
+
+def test_save_workbook_real_appends_real_suffix(tmp_path, joe_plan_real, monkeypatch):
+    """Saving with worksheetRealDollars=True appends '_real' to the filename."""
+    monkeypatch.chdir(tmp_path)
+    basename = "testcase"
+    joe_plan_real.saveWorkbook(overwrite=True, basename=basename)
+    assert (tmp_path / "workbook_testcase_real.xlsx").exists()
+
+
+def test_save_workbook_nominal_no_real_suffix(tmp_path, joe_plan, monkeypatch):
+    """Saving with worksheetRealDollars=False produces the standard filename."""
+    monkeypatch.chdir(tmp_path)
+    basename = "testcase2"
+    joe_plan.saveWorkbook(overwrite=True, basename=basename)
+    assert (tmp_path / "workbook_testcase2.xlsx").exists()
+    assert not (tmp_path / "workbook_testcase2_real.xlsx").exists()
+
+
+# ---------------------------------------------------------------------------
+# worksheetHideZeroColumns — zero-column filtering is display-only (not saved)
+# ---------------------------------------------------------------------------
+
+def test_save_workbook_preserves_zero_columns_when_hide_enabled(joe_plan):
+    """HSA columns are present in saved Excel even when worksheetHideZeroColumns=True."""
+    joe_plan.setWorksheetHideZeroColumns(True)
+    try:
+        wb = joe_plan.saveWorkbook(saveToFile=False)
+    finally:
+        joe_plan.setWorksheetHideZeroColumns(False)
+    ws = wb[joe_plan.inames[0] + "'s Accounts"]
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+    assert any("HSA" in str(h) for h in headers)

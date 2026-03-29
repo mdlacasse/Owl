@@ -208,6 +208,7 @@ class Plan:
         self.defaultPlots = "nominal"
         self.worksheetShowAges = False
         self.worksheetHideZeroColumns = False
+        self.worksheetRealDollars = False
         self.defaultSolver = "default"
         self._plotterName = None
         # Pick a default plotting backend here.
@@ -472,6 +473,11 @@ class Plan:
         """Enable or hide all-zero numeric columns in Streamlit worksheet tables."""
         self.worksheetHideZeroColumns = bool(value)
         self.mylog.vprint(f"Setting worksheet hide zero columns to {self.worksheetHideZeroColumns}.")
+
+    def setWorksheetRealDollars(self, value):
+        """Enable or disable real-dollar (inflation-adjusted) worksheet display and save."""
+        self.worksheetRealDollars = bool(value)
+        self.mylog.vprint(f"Setting worksheet real dollars to {self.worksheetRealDollars}.")
 
     def setPlotBackend(self, backend: str):
         """

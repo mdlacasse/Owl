@@ -188,6 +188,10 @@ class Results(BaseModel):
         default=False,
         description="Hide numeric columns that are all zero in Streamlit Worksheets tables",
     )
+    worksheet_real_dollars: bool = Field(
+        default=False,
+        description="Display and save worksheet values in real (inflation-adjusted) dollars",
+    )
 
 
 class SolverOptions(BaseModel):
@@ -203,7 +207,9 @@ class SolverOptions(BaseModel):
 
     # Core solver selection and limits
     solver: Optional[Literal["default", "HiGHS", "MOSEK"]] = None
-    maxTime: Optional[float] = Field(default=None, alias="max_time", description="Per-iteration solver time limit (seconds). Default 180; shorter limits leverage SC-loop warm-starting for hard MILP cases.")
+    maxTime: Optional[float] = Field(default=None, alias="max_time",
+                                     description="Per-iteration solver time limit (seconds). "
+                                     "Default 180; shorter limits leverage SC-loop warm-starting for hard MILP cases.")
     gap: Optional[float] = None
     verbose: Optional[bool] = None
 

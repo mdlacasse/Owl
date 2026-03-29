@@ -101,11 +101,12 @@ describing the flow of money, the first one as input to the case, and the second
                 st.rerun()
 
         with col2:
+            real_suffix = "_real" if kz.getCaseKey("worksheetRealDollars") else ""
             download2 = st.download_button(
                 label="Download Worksheets",
                 help="Download Worksheets as an Excel workbook.",
                 data=owb.saveWorkbook(),
-                file_name=f"Workbook_{caseName}.xlsx",
+                file_name=f"Workbook_{caseName}{real_suffix}.xlsx",
                 mime="application/vnd.ms-excel",
                 disabled=kz.isCaseUnsolved(),
             )
