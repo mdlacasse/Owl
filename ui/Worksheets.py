@@ -43,17 +43,14 @@ else:
         kz.initCaseKey("worksheetRealDollars", False)
         with st.expander("*Table display and save options*", expanded=False):
             help_age = (
-                "Add per-person age columns (age on December 31 of each row's calendar year). "
-                "Stored in the case file under [results]."
+                "Add per-person age columns (age on December 31 of each row's calendar year)."
             )
             help_hide = (
-                "Hide numeric columns where every value is zero. "
-                "Stored in the case file under [results]."
+                "Hide numeric columns where every value is zero."
             )
             help_real = (
                 "Display and save all currency values in inflation-adjusted (today's) dollars. "
-                "The saved Excel filename will have '_real' appended. "
-                "Stored in the case file under [results]."
+                "The saved Excel filename will have '_real' appended."
             )
             col_a, col_b, col_c = st.columns(3)
             with col_a:
