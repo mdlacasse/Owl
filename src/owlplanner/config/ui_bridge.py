@@ -133,6 +133,7 @@ def config_to_ui(diconf: dict) -> dict:
     dic["plots"] = res.get("default_plots", "nominal")
     dic["worksheetShowAges"] = bool(res.get("worksheet_show_ages", False))
     dic["worksheetHideZeroColumns"] = bool(res.get("worksheet_hide_zero_columns", False))
+    dic["worksheetRealDollars"] = bool(res.get("worksheet_real_dollars", False))
     dic["allocType"] = aa.get("type", "individual")
     dic["timeListsFileName"] = hfp.get("HFP_file_name", "None")
 
@@ -370,6 +371,7 @@ def ui_to_config(uidic: dict) -> dict:
             "default_plots": uidic.get("plots", "nominal"),
             "worksheet_show_ages": bool(uidic.get("worksheetShowAges", False)),
             "worksheet_hide_zero_columns": bool(uidic.get("worksheetHideZeroColumns", False)),
+            "worksheet_real_dollars": bool(uidic.get("worksheetRealDollars", False)),
         },
     }
 

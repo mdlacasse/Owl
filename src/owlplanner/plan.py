@@ -3622,21 +3622,6 @@ class Plan:
         if not master_cols:
             return self._run_mip(self.A, self.B, self.c, options)
 
-        # If every master column is a zm (Medicare bracket), Benders will pin all of them to
-        # the LP relaxation's h-based assignment, leaving the master with no degrees of freedom.
-        # It degenerates into a single SP solve that is no better than the LP guess and may be
-        # suboptimal.  The monolithic MIP is both globally correct and typically faster in this
-        # case, so fall back immediately.  (Pre-fixed prevMAGI zm are already excluded from
-        # master_cols, so this only fires when ALL remaining master variables are zm.)
-        if "zm" in self.vm:
-            zm_col_set = set(range(self.vm["zm"].start, self.vm["zm"].end))
-            if all(col in zm_col_set for col in master_cols):
-                self.mylog.vprint(
-                    "Benders: all master variables are Medicare brackets (zm) — "
-                    "falling back to monolithic MIP for globally optimal bracket assignment."
-                )
-                return self._run_mip(self.A, self.B, self.c, options)
-
         master_col_set = set(master_cols)
         n_master = len(master_cols)
         master_col_to_pos = {col: pos for pos, col in enumerate(master_cols)}

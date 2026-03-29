@@ -201,6 +201,36 @@ def test_plan_to_config_omits_trim_when_zero():
     assert "social_security_trim_year" not in out["fixed_income"]
 
 
+def test_worksheet_real_dollars_ui_to_config_and_apply():
+    """UI worksheetRealDollars round-trips through ui_to_config and apply_config_to_plan."""
+    diconf = _minimal_config_for_rates()
+    uidic = config_to_ui(diconf)
+    uidic["worksheetRealDollars"] = True
+
+    out = ui_to_config(uidic)
+    assert out["results"]["worksheet_real_dollars"] is True
+
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setRates("trailing-30")
+    if not hasattr(p, "solverOptions"):
+        p.solverOptions = {}
+    p.setWorksheetRealDollars(False)
+
+    apply_config_to_plan(p, out)
+    assert p.worksheetRealDollars is True
+
+
+def test_config_to_ui_worksheet_real_dollars():
+    """config_to_ui maps results.worksheet_real_dollars to worksheetRealDollars."""
+    diconf = _minimal_config_for_rates()
+    diconf["results"]["worksheet_real_dollars"] = True
+    uidic = config_to_ui(diconf)
+    assert uidic["worksheetRealDollars"] is True
+
+
 def test_apply_config_to_plan():
     """apply_config_to_plan syncs config to existing plan."""
     p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
