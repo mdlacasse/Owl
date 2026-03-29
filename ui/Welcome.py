@@ -134,7 +134,7 @@ st.markdown("### :orange[Curious what Owl can do? The scope is substantial.]")
 modeling_md = Path(__file__).resolve().parent.parent / "docs" / "modeling-capabilities.md"
 with st.expander("*See what Owl models—and its limitations*"):
     try:
-        st.markdown(modeling_md.read_text())
+        st.markdown(modeling_md.read_text(encoding="utf-8"))
     except OSError:
         st.markdown("""
 [Modeling capabilities & limitations](https://github.com/mdlacasse/Owl/blob/main/docs/modeling-capabilities.md)

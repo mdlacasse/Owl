@@ -34,4 +34,4 @@ This document summarizes all modeling components in Owl (Optimal Wealth Lab), ho
 
 ---
 
-*Source: Derived from `papers/owl.tex`, `src/owlplanner/plan.py`, `src/owlplanner/tax2026.py`, and related modules. Tax year 2026 rules.*
+*Tax year 2026 rules.*
