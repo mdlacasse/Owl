@@ -66,17 +66,17 @@ Reference to the **Household Financial Profile (HFP)** workbook: wages, contribu
 | Header | Meaning |
 |--------|---------|
 | `year` | Calendar year |
-| `anticipated wages` | Expected annual wages (gross minus tax-deferred contributions through payroll), nominal $ |
-| `other inc` | Other ordinary income (e.g. part-time work, consulting, royalties), nominal $ |
-| `net inv` | Net investment income from rent or trust distributions treated as ordinary income; also feeds NIIT, nominal $ |
-| `taxable ctrb` | Contributions to taxable / after-tax investment accounts, nominal $ |
-| `401k ctrb` | Traditional employer plan / 401(k) deferrals, nominal $ |
-| `Roth 401k ctrb` | Roth employer plan contributions, nominal $ |
-| `IRA ctrb` | Traditional IRA contributions, nominal $ |
-| `Roth IRA ctrb` | Roth IRA contributions, nominal $ |
-| `HSA ctrb` | HSA contributions, nominal **dollars** (not $k). Pre-tax; reduce AGI, MAGI, and SS provisional income. Values after Medicare enrollment (~65) are ignored. 2026 IRS limits: $4,400 (self-only) / $8,750 (family); +$1,000 catch-up if 55+ |
-| `Roth conv` | Roth conversions from tax-deferred accounts, nominal $ |
-| `big-ticket items` | Large one-off expenses or after-tax inflows (may be negative), nominal $ |
+| `anticipated wages` | Expected annual wages (gross minus tax-deferred contributions through payroll), nominal \$ |
+| `other inc` | Other ordinary income (e.g. part-time work, consulting, royalties), nominal \$ |
+| `net inv` | Net investment income from rent or trust distributions treated as ordinary income; also feeds NIIT, nominal \$ |
+| `taxable ctrb` | Contributions to taxable / after-tax investment accounts, nominal \$ |
+| `401k ctrb` | Traditional employer plan / 401(k) deferrals, nominal \$ |
+| `Roth 401k ctrb` | Roth employer plan contributions, nominal \$ |
+| `IRA ctrb` | Traditional IRA contributions, nominal \$ |
+| `Roth IRA ctrb` | Roth IRA contributions, nominal \$ |
+| `HSA ctrb` | HSA contributions, nominal **dollars** (not \$k). Pre-tax; reduce AGI, MAGI, and SS provisional income. Values after Medicare enrollment (~65) are ignored. 2026 IRS limits: \$4,400 (self-only) / \$8,750 (family); +\$1,000 catch-up if 55+ |
+| `Roth conv` | Roth conversions from tax-deferred accounts, nominal \$ |
+| `big-ticket items` | Large one-off expenses or after-tax inflows (may be negative), nominal \$ |
 
 #### Optional sheet `Debts`
 
@@ -280,16 +280,16 @@ Options controlling the optimization solver and constraints.
 | `verbose` | boolean | When `true`, prints detailed solver iteration logs to the console. Supported by HiGHS and MOSEK; output format varies by solver. Useful for diagnosing infeasibility or slow convergence. | `false` |
 | `withACA` | string | ACA marketplace premium handling (when `slcsp_annual` > 0). `"loop"` (default): compute ACA cost in SC loop each iteration using the exact piecewise-linear ACA formula. `"optimize"`: co-optimize ACA bracket selection within the LP — enables the optimizer to shift MAGI across brackets for better plan objectives (expert; can be slower; applies 2026 rules only). | `"loop"` |
 | `withLTCG` | string | Long-term capital gains (LTCG) bracket handling. `"loop"` (default): ordinary income stacking computed in SC loop. `"optimize"`: exact MILP formulation for LTCG bracket selection — binary variables determine which 0%/15%/20% bracket applies each year (expert; adds `zl` binary family). | `"loop"` |
-| `bigMltcg` | float | *(Advanced)* Big-M value for LTCG bracket binary constraints (when `withLTCG = "optimize"`). Scaled by the inflation factor γ_n each year. Defaults to `3 × T20_n` per year when omitted. | Auto |
-| `withNIIT` | string | Net Investment Income Tax (NIIT) handling. `"loop"` (default): NIIT computed after each SC iteration. `"optimize"`: exact MILP formulation — binary variable determines whether MAGI exceeds the NIIT threshold ($200k single / $250k MFJ) each year (expert; adds `zj` binary family; most effective when `withLTCG = "optimize"` is also set). | `"loop"` |
-| `bigMniit` | float | *(Advanced)* Big-M value for NIIT threshold binary constraints (when `withNIIT = "optimize"`). Scaled by the inflation factor γ_n each year. Defaults to `3 × T20_n` per year when omitted. | Auto |
+| `bigMltcg` | float | *(Advanced)* Big-M value for LTCG bracket binary constraints (when `withLTCG = "optimize"`). Scaled by the inflation factor $\gamma_n$ each year. Defaults to `3 × T20_n` per year when omitted. | Auto |
+| `withNIIT` | string | Net Investment Income Tax (NIIT) handling. `"loop"` (default): NIIT computed after each SC iteration. `"optimize"`: exact MILP formulation — binary variable determines whether MAGI exceeds the NIIT threshold (\$200k single / \$250k MFJ) each year (expert; adds `zj` binary family; most effective when `withLTCG = "optimize"` is also set). | `"loop"` |
+| `bigMniit` | float | *(Advanced)* Big-M value for NIIT threshold binary constraints (when `withNIIT = "optimize"`). Scaled by the inflation factor $\gamma_n$ each year. Defaults to `3 × T20_n` per year when omitted. | Auto |
 | `withDecomposition` | string | *(Advanced)* MIP decomposition strategy for plans with multiple `"optimize"` flags active simultaneously. `"none"` (default): monolithic MIP. `"sequential"`: relax-and-fix heuristic — fixes bracket binary families (LTCG → SS taxability → NIIT → Medicare → ACA) one at a time from an LP relaxation; fast but not globally optimal. `"benders"`: classical Benders decomposition — separates bracket selection (master: `zm`, `za`, `zs`, `zj`) from continuous planning (subproblem, which also optimizes `zl` and `zx`); certifies global optimality within `gap` tolerance via accumulated dual cuts; slower per iteration but reliable. Silently ignored when no bracket-selection binaries are present. HiGHS and MOSEK supported. | `"none"` |
 | `bendersMaxIter` | integer | *(Advanced)* Maximum number of Benders iterations when `withDecomposition = "benders"`. Each iteration solves a subproblem LP (for the dual cut) plus a subproblem MIP (for the upper bound) plus a master MIP (for the new lower bound). In practice, convergence typically occurs within 1–3 iterations because the LP relaxation's bracket assignment is nearly globally optimal. | `50` |
 | `withMedicare` | string | Medicare Part B and Part D IRMAA handling. Valid values: `"none"`, `"loop"`, `"optimize"` (expert). When not `"none"`, Part B and Part D premiums (including IRMAA) are included; Part D can be disabled or given a base premium via the options below. | `"loop"` |
 | `includeMedicarePartD` | boolean | Whether to include Medicare Part D premiums (IRMAA surcharges use same MAGI brackets as Part B). Set to `false` if you have other drug coverage (e.g., employer, VA). | `true` |
-| `medicarePartDBasePremium` | float | *(Optional)* Monthly Part D base premium per person in today's dollars. Omit or set to 0 to model IRMAA only. National average is roughly $39–47/month. | `0` (no base) |
+| `medicarePartDBasePremium` | float | *(Optional)* Monthly Part D base premium per person in today's dollars. Omit or set to 0 to model IRMAA only. National average is roughly \$39–47/month. | `0` (no base) |
 | `withSCLoop` | boolean | Whether to run the self-consistent loop to full convergence. When `false`, the solver always performs exactly two iterations: the first establishes ordinary income (`G_n`) so that LTCG bracket room is computed correctly; the second is the accepted solve. Medicare IRMAA and SS taxability are not converged in this mode — Medicare premiums are computed for display only. Useful for speed in Monte Carlo runs where full convergence is not required. | `true` |
-| `withSSTaxability` | string or float | Controls how the taxable fraction of Social Security benefits (Ψ) is determined. The IRS provisional income (PI) formula taxes 0% of SS below $25k/$32k PI (single/MFJ), up to 50% between those and $34k/$44k, and up to 85% above. `"loop"` — recomputes Ψ each SC-loop iteration based on that year's projected income (recommended). `"optimize"` — encodes the IRS piecewise formula exactly as a MIP with binary variables (expert; can require a larger `gap`). Float in [0, 0.85] — pins Ψ to a fixed value: `0.0` (income well below the lower threshold), `0.5` (income in the mid range), or `0.85` (income above the upper threshold). | `"loop"` |
+| `withSSTaxability` | string or float | Controls how the taxable fraction of Social Security benefits (Ψ) is determined. The IRS provisional income (PI) formula taxes 0% of SS below \$25k/\$32k PI (single/MFJ), up to 50% between those and \$34k/\$44k, and up to 85% above. `"loop"` — recomputes Ψ each SC-loop iteration based on that year's projected income (recommended). `"optimize"` — encodes the IRS piecewise formula exactly as a MIP with binary variables (expert; can require a larger `gap`). Float in [0, 0.85] — pins Ψ to a fixed value: `0.0` (income well below the lower threshold), `0.5` (income in the mid range), or `0.85` (income above the upper threshold). | `"loop"` |
 
 **Note:** The solver options dictionary is passed directly to the optimization routine. Only the options listed above are validated; other options may be accepted but are not documented here.
 
