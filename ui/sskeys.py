@@ -300,6 +300,10 @@ def createNewCase(case):
     defaults_ui = config_to_ui(default_config(ni=1))
     base.update(defaults_ui)
     base["name"] = casename  # Override case name from user input
+    # Match createCaseFromFile / genDic: runtime keys not produced by config_to_ui.
+    base.setdefault("plan", None)
+    base["summaryDf"] = None
+    base.setdefault("casetoml", "")
     ss.cases[casename] = base
     setCurrentCase(casename)
 
