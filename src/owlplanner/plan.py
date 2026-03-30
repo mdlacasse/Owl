@@ -3006,7 +3006,7 @@ class Plan:
         else:
             raise RuntimeError("Internal error in defining solverMethod.")
 
-        self.mylog.vprint(f"Using '{solver}' solver.")
+        self.mylog.vprint(f"Using '{solver}' solver for optimizing {objective}.")
         myoptions_txt = textwrap.fill(f"{myoptions}", initial_indent="\t", subsequent_indent="\t", width=100)
         self.mylog.vprint(f"Solver options:\n{myoptions_txt}.")
         self._scSolve(objective, myoptions, solverMethod)
