@@ -192,7 +192,8 @@ else:
             if kz.getCaseKey("ssTaxabilityMode") == "value":
                 kz.initCaseKey("ssTaxabilityValue", 0.85)
                 helpmsg = ("SS taxable fraction \u2208 [0, 0.85]. "
-                           "Use 0.0 (Provisional income (PI) below lower threshold), 0.5 (mid-range), or 0.85 (high PI).")
+                           "Use 0.0 (Provisional income (PI) below lower threshold), "
+                           "0.5 (mid-range), or 0.85 (high PI).")
                 ret = kz.getNum("Fixed SS taxable fraction", "ssTaxabilityValue",
                                 min_value=0.0, max_value=0.85, step=0.05, format="%.2f",
                                 help=helpmsg)

@@ -1,0 +1,80 @@
+case_name = "jordan+taylor"
+description = "This is an edge case for a high-net-worth couple in retirement. It demonstrates the purchase and sale of a house and stocks. For testing purposes, it contains previous MAGIS that are at the high end of IRMAA brackets."
+
+[basic_info]
+status = "married"
+names = [ "Jordan", "Taylor",]
+date_of_birth = [ "1959-01-15", "1960-01-15",]
+life_expectancy = [ 92, 93,]
+start_date = "2026-01-01"
+
+[savings_assets]
+taxable_savings_balances = [ 1000.0, 100.0,]
+tax_deferred_savings_balances = [ 4000.0, 750.0,]
+tax_free_savings_balances = [ 2000.0, 50.0,]
+hsa_savings_balances = [ 0.0, 0.0,]
+beneficiary_fractions = [ 0.28, 0.28, 0.28, 1.0,]
+spousal_surplus_deposit_fraction = 0.0
+
+[household_financial_profile]
+HFP_file_name = "HFP_jordan+taylor.xlsx"
+
+[fixed_income]
+pension_monthly_amounts = [ 1000, 0,]
+pension_ages = [ 65.0, 65.0,]
+pension_indexed = [ true, false,]
+pension_survivor_fraction = [ 0.5, 0.0,]
+social_security_pia_amounts = [ 3500, 2000,]
+social_security_ages = [ 70.0, 62.75,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 33.0
+dividend_rate = 1.7
+obbba_expiration_year = 2032
+method = "user"
+values = [ 6.5, 4.0, 3.3, 2.8,]
+from = 1928
+to = 2025
+reverse_sequence = false
+roll_sequence = 0
+
+[asset_allocation]
+interpolation_method = "s-curve"
+interpolation_center = 15.0
+interpolation_width = 6.0
+type = "individual"
+generic = [ [ [ 60.0, 20.0, 20.0, 0.0,], [ 70.0, 20.0, 10.0, 0.0,],], [ [ 60.0, 20.0, 20.0, 0.0,], [ 70.0, 20.0, 10.0, 0.0,],],]
+
+[optimization_parameters]
+spending_profile = "smile"
+surviving_spouse_spending_percent = 60
+objective = "maxBequest"
+smile_dip = 15
+smile_increase = 12
+smile_delay = 0
+
+[solver_options]
+netSpending = 240.0
+maxRothConversion = 400.0
+noRothConversions = "Taylor"
+startRothConversions = 2026
+solver = "default"
+spendingSlack = 0
+amoRoth = true
+amoSurplus = true
+withSCLoop = true
+noLateSurplus = false
+withMedicare = "optimize"
+withACA = "loop"
+withLTCG = "loop"
+withNIIT = "loop"
+withDecomposition = "benders"
+withSSTaxability = 0.85
+minTaxableBalance = [ 130.0, 0.0,]
+previousMAGIs = [ 400.0, 420.0,]
+gap = 0.003
+
+[results]
+default_plots = "today"
+worksheet_show_ages = false
+worksheet_hide_zero_columns = true
