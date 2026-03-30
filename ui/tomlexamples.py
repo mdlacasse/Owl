@@ -20,17 +20,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-# import requests
 import streamlit as st
 import os
 from io import StringIO, BytesIO
 
 
-cases = ["alex+jamie", "jack+jill", "joe", "john+sally",
-         "jon+jane", "kim+sam-bequest", "kim+sam-spending", "morgan", "robin"]
+cases = ["alex+jamie", "jack+jill", "joe", "john+sally", "jon+jane", "jordan+taylor",
+         "kim+sam-bequest", "kim+sam-spending", "morgan", "robin"]
 
 
-wages = ["jack+jill", "joe", "john+sally", "jon+jane", "kim+sam", "morgan", "robin"]
+wages = ["alex+jamie", "jack+jill", "joe", "john+sally", "jon+jane", "jordan+taylor",
+         "kim+sam", "morgan", "robin"]
 
 
 whereami = os.path.dirname(__file__)

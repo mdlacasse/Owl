@@ -265,7 +265,7 @@ Options controlling the optimization solver and constraints.
 | `maxIter` | integer | *(Advanced)* Maximum number of iterations for the self-consistent loop. Must be at least 1. | `29` |
 | `maxRothConversion` | float or string | Maximum annual Roth conversion amount (in `units`). Use `"file"` to take per-year limits from time lists; omit for no cap (except last year). | No cap unless provided |
 | `minTaxableBalance` | array | Minimum taxable account balance per spouse (in today's `units`). Values are indexed for inflation. Constraints apply from year 2 through each individual's life horizon. | Omit for no minimum |
-| `maxTime` | float | *(Advanced)* Per-iteration solver time limit in seconds. The self-consistent loop re-solves with warm-starting, so shorter limits often converge faster on hard MILP cases. Increase only if individual solves are being cut off before finding a first feasible solution. | `180` |
+| `maxTime` | float | *(Advanced)* Per-iteration solver time limit in seconds. | `900` |
 | `netSpending` | float | Target net spending amount in today's dollars (in `units`). Used when `objective = "maxBequest"`. | Required for `maxBequest` |
 | `noLateSurplus` | boolean | Disallow surplus deposits in the final two years of the plan. | `false` |
 | `noRothConversions` | string | Name of individual for whom Roth conversions are disabled, or `"none"` to allow conversions for all. | `"none"` |
@@ -395,7 +395,7 @@ amoRoth = true
 amoSurplus = true
 withSCLoop = true
 maxIter = 29
-maxTime = 180
+maxTime = 900
 
 [results]
 default_plots = "nominal"
