@@ -12,7 +12,7 @@ start_date = "2026-01-01"
 taxable_savings_balances = [ 1000.0, 100.0,]
 tax_deferred_savings_balances = [ 4000.0, 750.0,]
 tax_free_savings_balances = [ 2000.0, 50.0,]
-hsa_savings_balances = [ 0.0, 0.0,]
+hsa_savings_balances = [ 50.0, 0.0,]
 beneficiary_fractions = [ 0.28, 0.28, 0.28, 1.0,]
 spousal_surplus_deposit_fraction = 0.0
 
@@ -64,13 +64,13 @@ amoRoth = true
 amoSurplus = true
 withSCLoop = true
 noLateSurplus = false
-withMedicare = "optimize"
+withMedicare = "loop"
 withACA = "loop"
 withLTCG = "loop"
 withNIIT = "loop"
-withDecomposition = "benders"
+withDecomposition = "none"
 withSSTaxability = 0.85
-minTaxableBalance = [ 130.0, 0.0,]
+minTaxableBalance = [ 120.0, 0.0,]
 previousMAGIs = [ 400.0, 420.0,]
 gap = 0.003
 
