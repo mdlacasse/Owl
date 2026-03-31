@@ -902,10 +902,12 @@ def showWorkbook(plan):
 
         st.markdown(f"#### :orange[{name}]")
         if "Accounts" in name:
+            acct_note = " Opening balance as of Jan 1st of that year."
             display_df = df.style.apply(highlight_year_row, axis=1)
             st.dataframe(display_df, width="stretch", column_config=colfor,
                          hide_index=True, placeholder="-")
         else:
+            acct_note = ""
             st.dataframe(
                 _worksheet_df_for_streamlit_display(df),
                 width="stretch",
@@ -927,7 +929,7 @@ def showWorkbook(plan):
             )
             st.caption(cap + age_note)
         elif dollars:
-            st.caption(f"Values are in {dollar_label}, rounded to the nearest dollar." + age_note)
+            st.caption(f"Values are in {dollar_label}, rounded to the nearest dollar." + acct_note + age_note)
         elif pct_sheets:
             st.caption("Values are in percent, with 2 decimal places." + age_note)
         else:
