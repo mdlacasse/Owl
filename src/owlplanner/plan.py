@@ -3516,7 +3516,7 @@ class Plan:
         self.mylog.vprint(f"Decomp: LP relaxation obj={-lp_result[0]:.0f}.")
 
         # Round all bracket-selector binaries at once.
-        # For zm: use MAGI_n-based bracket determination (solver-independent, avoids LP degeneracy).
+        # For zm: use MAGI_n[n-2] (2-year Medicare lag) — solver-independent.
         # For za: use argmax of companion haca-block.
         # For other families (zs, zl, zj): round the fractional LP value directly.
         Lb_all, Ub_all = self.B.arrays()
@@ -3598,8 +3598,8 @@ class Plan:
           - SP LP (zx and continuous relaxed): generates optimality cut via LP duals.
           - SP MIP (zx free, continuous free): provides the true upper bound.
 
-        z* initialization: zm uses MAGI_n from previous SC iteration (solver-independent);
-        za uses argmax of companion haca-block; zs/zl/zj round the LP value directly.
+        z* initialization: zm uses MAGI_n[n-2] (2-year Medicare lag, solver-independent);
+        za uses argmax(haca) from LP relaxation; zs/zl/zj round LP directly.
 
         The algorithm terminates when the gap closes, when the master z* stalls,
         when the SP LP is infeasible for the current z*, or when max_iter is reached.
@@ -3697,8 +3697,8 @@ class Plan:
         self.mylog.vprint(f"Benders: LP relaxation obj = {-LB * display_scale:.0f}.")
 
         # Initialize z* from LP solution.
-        # For zm: use MAGI_n-based bracket determination (solver-independent).
-        # For za: use argmax of companion haca-block.
+        # For zm: use MAGI_n[n-2] (2-year Medicare lag) — solver-independent.
+        # For za: use argmax of companion haca-block from LP relaxation.
         # For other families (zs, zl, zj): round the fractional LP value directly.
         zm_init_pos = set()
         za_init_pos = set()
