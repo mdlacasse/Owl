@@ -2,6 +2,42 @@
 
 ---
 
+## Version 2026.04.02
+
+### New objective: `maxHybrid` — blended spending and bequest optimization
+
+- **`maxHybrid` objective**: A third optimization objective that blends spending and bequest into a
+  single LP objective. Controlled by a `spendingWeight` parameter *h* ∈ [0, 1]: `h=1` maximizes
+  spending only, `h=0` maximizes bequest only, and `h=0.5` gives equal weight to both (terms are
+  normalized to present-value dollars before blending, making the midpoint a genuine balance point
+  for typical plans).
+- **`spendingFloor`** (new solver option): Hard lower bound on annual net spending (today's \\$k)
+  for `maxHybrid`. The spending profile scales all subsequent years relative to this floor.
+  Use `0` (or omit) for no floor; a floor is recommended to prevent degenerate zero-spending solutions
+  when growth rates are high.
+- **`spendingWeight`** (new solver option): Blend weight *h* for `maxHybrid`. Defaults to `0.5`.
+- **`timePreference`** (new solver option): Subjective time preference rate (%/year). Discounts
+  future spending exponentially — values above 0 shift the optimal spending profile earlier, reducing
+  end-of-life back-loading. Supported for `maxSpending` and `maxHybrid`. No effect on `maxBequest`.
+- **Spending profile for `maxHybrid`**: The profile acts as a floor-only constraint (not bilateral).
+  `spendingSlack` repurposed as a one-sided cap: spending may exceed the floor by at most `slack`%;
+  set to `0` (default) to allow unrestricted spending above the floor.
+- **UI (Goals page)**: New *Hybrid* choice in the Maximize radio group. When selected, a *Spending
+  floor* number input and a *Spending weight (h)* slider (0–1, step 0.05) appear. *Profile slack*
+  help text updated to explain its dual role. *Time preference* slider added to the Spending Profile
+  section (0–10 %/year, step 0.5).
+- **Schema**: `SolverOptions` gains `spendingWeight`, `spendingFloor`, and `timePreference` fields;
+  `objective` description updated to include `"maxHybrid"`.
+- **Docs**: `PARAMETERS.md` (`[optimization_parameters]` objective values; three new `[solver_options]`
+  rows; `spendingSlack` description updated). `ui/Documentation.py` (intro paragraph; Goals expander
+  expanded to three-objective descriptions). `docs/modeling-capabilities.md` (**Objectives** and
+  **Spending profile** rows updated).
+- **Tests**: New `tests/test_hybrid_objective.py` with 13 tests covering solvability, h=0/h=1
+  ordering, floor binding, slack cap, time preference front-loading, default weight, option
+  ignore/reject behavior.
+
+---
+
 ## Version 2026.03.29
 
 ### Worksheets: age columns in saved Excel and real-dollar display/save

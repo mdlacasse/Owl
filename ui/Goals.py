@@ -49,10 +49,9 @@ else:
     st.markdown("#### :orange[Objective]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
-        choices = ["Net spending", "Bequest"]
-        helpmsg = "Value is in today's \\$k."
+        choices = ["Net spending", "Bequest", "Hybrid"]
         kz.initCaseKey("objective", choices[0])
-        helpmsg = "Choose one quantity to maximize; the other is then treated as a constraint."
+        helpmsg = "Choose a quantity to maximize. Hybrid blends spending and bequest with a weight parameter."
         ret = kz.getRadio("Maximize", choices, "objective", help=helpmsg)
 
     with col2:
@@ -71,10 +70,25 @@ else:
                 st.info(f"Fixed assets contribute an additional"
                         f" \\${fixed_assets_bequest_k:,.0f}k to bequest (in today's \\$).")
 
-        else:
+        elif kz.getCaseKey("objective") == "Bequest":
             kz.initCaseKey("netSpending", 0)
             helpmsg_spending = "Desired annual net spending in today's \\$k (the constraint when maximizing bequest)."
             ret = kz.getNum("Desired annual net spending (\\$k)", "netSpending", help=helpmsg_spending)
+
+        else:  # Hybrid
+            kz.initCaseKey("spendingFloor", 0)
+            helpmsg_floor = ("Minimum annual net spending in today's \\$k. "
+                             "Use 0 for no floor. The spending profile scales all years relative to this.")
+            kz.getNum("Spending floor (\\$k)", "spendingFloor", min_value=0.0, help=helpmsg_floor)
+
+    with col3:
+        if kz.getCaseKey("objective") == "Hybrid":
+            kz.initCaseKey("spendingWeight", 0.5)
+            helpmsg_weight = ("Weight for spending vs. bequest (0 to 1). "
+                              "h=1 maximizes spending only; h=0 maximizes bequest only. "
+                              "Both terms are normalized to today's dollars before blending.")
+            kz.getSlider("Spending weight (h)", "spendingWeight",
+                         min_value=0.0, max_value=1.0, step=0.05, help=helpmsg_weight)
 
     st.divider()
     st.markdown("#### :orange[Safety Net]")
@@ -117,27 +131,34 @@ else:
     with col1:
         helpmsg = "Spending can be constant for the duration of the plan or be adjusted for lifestyle."
         ret = kz.getRadio("Type of profile", profileChoices, "spendingProfile", help=helpmsg, callback=owb.setProfile)
-        if kz.getCaseKey("spendingProfile") == "smile":
-            helpmsg = "Time in year before spending starts decreasing."
-            ret = kz.getIntNum("Smile delay (in years from now)", "smileDelay", max_value=30,
-                               help=helpmsg, callback=owb.setProfile)
-    with col2:
-        kz.initCaseKey("spendingSlack", 0)
-        helpmsg = "Percentage allowed to deviate from spending profile."
-        ret = kz.getIntNum("Profile slack (%)", "spendingSlack", max_value=50, help=helpmsg)
-        if kz.getCaseKey("spendingProfile") == "smile":
-            helpmsg = "Percentage to decrease for the slow-go years."
-            ret = kz.getIntNum("Smile dip (%)", "smileDip", max_value=100, help=helpmsg,
-                               callback=owb.setProfile)
-    with col3:
         if kz.getCaseKey("status") == "married":
             helpmsg = "Percentage of spending required for the surviving spouse."
             ret = kz.getIntNum("Survivor's spending (%)", "survivor", max_value=100,
                                help=helpmsg, callback=owb.setProfile)
+    with col2:
+        kz.initCaseKey("spendingSlack", 0)
+        helpmsg = ("Percentage allowed to deviate from the spending profile. "
+                   "For Net spending and Bequest objectives, spending stays within ±slack% of the profile. "
+                   "For Hybrid, slack acts as a one-sided cap: spending can exceed the floor by up to slack%. "
+                   "Set to 0 for Hybrid to allow unrestricted spending above the profile floor.")
+        ret = kz.getIntNum("Profile slack (%)", "spendingSlack", max_value=100, help=helpmsg)
+        kz.initCaseKey("timePreference", 0.0)
+        helpmsg = ("Subjective time preference rate (%/year). Values above 0 increase the "
+                   "relative value of near-term spending, discouraging end-of-life back-loading. "
+                   "Has no effect on the Bequest objective.")
+        kz.getSlider("Time preference (%/year)", "timePreference",
+                     min_value=0.0, max_value=10.0, step=0.5, help=helpmsg)
+    with col3:
         if kz.getCaseKey("spendingProfile") == "smile":
+            helpmsg = "Time in year before spending starts decreasing."
+            ret = kz.getIntNum("Smile delay (in years from now)", "smileDelay", max_value=30,
+                               help=helpmsg, callback=owb.setProfile)
             helpmsg = "Percentage to increase (or decrease) over time period."
             ret = kz.getIntNum("Smile increase (%)", "smileIncrease",
                                min_value=-100, max_value=100, help=helpmsg, callback=owb.setProfile)
+            helpmsg = "Percentage to decrease for the slow-go years."
+            ret = kz.getIntNum("Smile dip (%)", "smileDip", max_value=100, help=helpmsg,
+                               callback=owb.setProfile)
 
     st.divider()
     col1, col2 = st.columns([0.6, 0.4], gap="small")

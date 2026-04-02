@@ -221,7 +221,7 @@ Parameters controlling the optimization objective and spending profile.
 |-----------|------|-------------|
 | `spending_profile` | string | Type of spending profile. Valid values: `"flat"`, `"smile"` |
 | `surviving_spouse_spending_percent` | integer | Percentage of spending amount for the surviving spouse (0-100). Default is `60` |
-| `objective` | string | Optimization objective. Valid values: `"maxSpending"`, `"maxBequest"` |
+| `objective` | string | Optimization objective. Valid values: `"maxSpending"`, `"maxBequest"`, `"maxHybrid"` |
 
 ### :orange[Conditional parameters for spending_profile = "smile"]
 | Parameter | Type | Description |
@@ -273,7 +273,10 @@ Options controlling the optimization solver and constraints.
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |
 | `relTol` | float | *(Advanced)* Relative convergence tolerance for the self-consistent loop objective. | `max(5e-5, gap / 300)` |
 | `solver` | string | Solver to use for optimization. Valid values: `"default"`, `"HiGHS"`, `"MOSEK"`. `"default"` automatically selects MOSEK when available and licensed, otherwise falls back to HiGHS. | `"default"` |
-| `spendingSlack` | integer | Percentage allowed to deviate from the spending profile (0-50). | `0` |
+| `spendingFloor` | float | Minimum annual net spending in today's dollars (in `units`) for `objective = "maxHybrid"`. Acts as a hard lower bound on the first-year spending variable; the spending profile then scales all subsequent years relative to this floor. Use `0` (or omit) for no floor. | `0` |
+| `spendingSlack` | integer | Percentage allowed to deviate from the spending profile. For `"maxSpending"` and `"maxBequest"`, spending stays within ±slack% of the profile. For `"maxHybrid"`, slack acts as a one-sided cap: spending can exceed the floor by at most slack%; set to `0` to allow unrestricted spending above the floor. (0–100) | `0` |
+| `spendingWeight` | float | Blend weight *h* ∈ [0, 1] for `objective = "maxHybrid"`. `h = 1` optimizes spending only (bequest weight = 0); `h = 0` optimizes bequest only (spending weight = 0); `h = 0.5` gives equal weight to both. Both terms are expressed in present-value dollars before blending, so `h = 0.5` is a genuine midpoint for typical plans. | `0.5` |
+| `timePreference` | float | Subjective time preference rate (%/year). Values above 0 discount future spending exponentially, shifting the optimal spending profile earlier. For `"maxHybrid"`, applies a per-year discount `(1/(1+ρ))^n` to spending coefficients. Also supported for `"maxSpending"`. Has no effect when `objective = "maxBequest"`. | `0` |
 | `startRothConversions` | integer | Year when Roth conversions can begin (clamped to the current year). | Current year |
 | `swapRothConverters` | integer | *(Advanced)* For plans involving spouses, only allow one spouse to perform Roth conversions per year. The year provided determines a transition year when roles are swapped. The sign selects who converts first: positive means person 1 can convert first and person 2 any time after; negative year means person 2 before and person 1 after. This option overrides the `noRothConversions` option. | `0` |
 | `units` | string | Units for amounts. Valid values: `"1"` (dollars), `"k"` (thousands), `"M"` (millions). | `"k"` |

@@ -1583,7 +1583,7 @@ class Plan:
         self._add_surplus_deposit_linking(options)
         self._add_account_balance_carryover()
         self._add_net_cash_flow(options)
-        self._add_income_profile()
+        self._add_income_profile(objective)
         self._add_taxable_income(options)
         self._configure_ss_taxability_lp(options)
         self._configure_ltcg_constraints()
@@ -1822,6 +1822,10 @@ class Plan:
         elif objective == "maxBequest":
             spending = u.get_monetary_option(options, "netSpending", 1)
             self.B.setRange(self.vm["g"].idx(0), spending, spending)
+        elif objective == "maxHybrid":
+            spending_floor = u.get_monetary_option(options, "spendingFloor", 0)
+            if spending_floor > 0:
+                self.B.setRange(self.vm["g"].idx(0), spending_floor, np.inf)
 
     def _add_initial_balances(self):
         # Back project balances to the beginning of the year.
@@ -1944,16 +1948,33 @@ class Plan:
 
             self.A.addRow(row, rhs, rhs)
 
-    def _add_income_profile(self):
-        spLo = 1 - self.lambdha
-        spHi = 1 + self.lambdha
-        for n in range(1, self.N_n):
-            rowDic = {self.vm["g"].idx(0): spLo * self.xiBar_n[n],
-                      self.vm["g"].idx(n): -self.xiBar_n[0]}
-            self.A.addNewRow(rowDic, -np.inf, 0)
-            rowDic = {self.vm["g"].idx(0): spHi * self.xiBar_n[n],
-                      self.vm["g"].idx(n): -self.xiBar_n[0]}
-            self.A.addNewRow(rowDic, 0, np.inf)
+    def _add_income_profile(self, objective):
+        # For maxHybrid the profile is a floor only: spending can freely exceed the profile shape.
+        # Slack (lambdha) is ignored — the lower bound uses the bare profile value.
+        # For all other objectives both bounds apply with the user-specified slack tolerance.
+        if objective == "maxHybrid":
+            # Lower bound (floor): g[n] ≥ g[0] × ratio_n  — bare profile, no slack.
+            # Upper bound (cap): g[n] ≤ g[0] × (1+λ) × ratio_n  — only when slack > 0.
+            # When slack=0 spending roams freely above the floor; slack provides an optional cap.
+            spHi = 1 + self.lambdha
+            for n in range(1, self.N_n):
+                rowDic = {self.vm["g"].idx(0): self.xiBar_n[n],
+                          self.vm["g"].idx(n): -self.xiBar_n[0]}
+                self.A.addNewRow(rowDic, -np.inf, 0)
+                if self.lambdha > 0:
+                    rowDic = {self.vm["g"].idx(0): spHi * self.xiBar_n[n],
+                              self.vm["g"].idx(n): -self.xiBar_n[0]}
+                    self.A.addNewRow(rowDic, 0, np.inf)
+        else:
+            spLo = 1 - self.lambdha
+            spHi = 1 + self.lambdha
+            for n in range(1, self.N_n):
+                rowDic = {self.vm["g"].idx(0): spLo * self.xiBar_n[n],
+                          self.vm["g"].idx(n): -self.xiBar_n[0]}
+                self.A.addNewRow(rowDic, -np.inf, 0)
+                rowDic = {self.vm["g"].idx(0): spHi * self.xiBar_n[n],
+                          self.vm["g"].idx(n): -self.xiBar_n[0]}
+                self.A.addNewRow(rowDic, 0, np.inf)
 
     def _add_taxable_income(self, options=None):
         ss_lp = options is not None and options.get("withSSTaxability", "loop") == "optimize"
@@ -2682,15 +2703,35 @@ class Plan:
 
     def _build_objective_vector(self, objective, options):
         c_arr = np.zeros(self.nvars)
+
+        # Time preference discount: ρ > 0 increases the relative value of near-term spending,
+        # counteracting the optimizer's tendency to back-load spending. Has no effect on maxBequest.
+        rho = u.get_numeric_option(options, "timePreference", 0.0, min_value=0) / 100.0
+        discount_n = np.array([(1.0 / (1.0 + rho)) ** n for n in range(self.N_n)])
+
         if objective == "maxSpending":
             for n in range(self.N_n):
-                c_arr[self.vm["g"].idx(n)] = -1/self.gamma_n[n]
+                c_arr[self.vm["g"].idx(n)] = -discount_n[n] / self.gamma_n[n]
         elif objective == "maxBequest":
             for i in range(self.N_i):
                 c_arr[self.vm["b"].idx(i, 0, self.N_n)] = -1
                 c_arr[self.vm["b"].idx(i, 1, self.N_n)] = -(1 - self.nu)
                 c_arr[self.vm["b"].idx(i, 2, self.N_n)] = -1
                 c_arr[self.vm["b"].idx(i, 3, self.N_n)] = -(1 - self.nu)   # HSA: heirs pay ordinary income tax
+        elif objective == "maxHybrid":
+            # Both terms expressed in present-value dollars for balanced weighting:
+            # - Spending: PV-weighted by discount_n/γₙ per year (same as maxSpending)
+            # - Bequest: nominal final balances divided by γ_N (terminal inflation factor → PV)
+            # This makes h=0.5 a genuine balance point: lifetime PV spending ≈ PV bequest.
+            h = float(options.get("spendingWeight", 0.5))
+            bequest_pv_scale = self.gamma_n[-1]
+            for n in range(self.N_n):
+                c_arr[self.vm["g"].idx(n)] -= h * discount_n[n] / self.gamma_n[n]
+            for i in range(self.N_i):
+                c_arr[self.vm["b"].idx(i, 0, self.N_n)] -= (1 - h) / bequest_pv_scale
+                c_arr[self.vm["b"].idx(i, 1, self.N_n)] -= (1 - h) * (1 - self.nu) / bequest_pv_scale
+                c_arr[self.vm["b"].idx(i, 2, self.N_n)] -= (1 - h) / bequest_pv_scale
+                c_arr[self.vm["b"].idx(i, 3, self.N_n)] -= (1 - h) * (1 - self.nu) / bequest_pv_scale
         else:
             raise RuntimeError("Internal error in objective function.")
 
@@ -2881,7 +2922,7 @@ class Plan:
         self.convergenceType = "undefined"
 
         # Check objective and required options.
-        knownObjectives = ["maxBequest", "maxSpending"]
+        knownObjectives = ["maxBequest", "maxSpending", "maxHybrid"]
         knownSolvers = ["default", "HiGHS", "MOSEK"]
 
         knownOptions = [
@@ -2903,7 +2944,10 @@ class Plan:
             "previousMAGIs",
             "relTol",
             "solver",
+            "spendingFloor",   # Minimum annual spending for maxHybrid (today's $k)
             "spendingSlack",
+            "spendingWeight",  # Blend weight h ∈ [0,1] for maxHybrid (1=spending, 0=bequest)
+            "timePreference",  # Subjective time discount rate (%/year) to front-load spending
             "startRothConversions",
             "swapRothConverters",
             "maxTime",
@@ -2948,6 +2992,14 @@ class Plan:
 
         if objective == "maxSpending" and "bequest" not in myoptions:
             self.mylog.vprint("Using bequest of $1.")
+
+        if objective == "maxHybrid" and "netSpending" in myoptions:
+            self.mylog.print("Ignoring netSpending option (not used in maxHybrid; use spendingFloor).")
+            myoptions.pop("netSpending")
+
+        if objective == "maxHybrid" and "bequest" in myoptions:
+            self.mylog.print("Ignoring bequest option (not used in maxHybrid; use spendingFloor).")
+            myoptions.pop("bequest")
 
         oppCostX = myoptions.get("oppCostX", 0.)
         self.xnet = 1 - oppCostX / 100.

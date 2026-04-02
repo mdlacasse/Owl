@@ -47,9 +47,9 @@ mathematical optimization of relevant decision variables.
 Medicare premiums, rules for 401k including required minimum distributions,
 maturation rules for Roth accounts and conversions, Social Security rules, etc.
 Using a mixed-integer linear programming approach,
-two different objectives can currently be optimized: either
-maximize the net spending amount under the constraint of a desired bequest,
-or maximize an after-tax bequest under the constraint of a desired net spending amount.
+three different objectives can currently be optimized: maximize net spending subject to a desired bequest;
+maximize an after-tax bequest subject to a desired net spending amount;
+or optimize a blend of both via a **hybrid** objective controlled by a spending weight parameter.
 In each case, Roth conversions are optimized to reduce the tax burden,
 while federal income tax and Medicare premiums (including IRMAA — Income-Related Monthly Adjustment
 Amounts, which impose income-based surcharges on Medicare Parts B and D) are calculated.
@@ -941,12 +941,18 @@ targets, allocations, Roth strategy) while holding the random scenario constant.
 The **Goals** page is where you define the optimization objective and spending preferences.
 
 ##### Objective
-Choose whether to **maximize net spending** (subject to a desired bequest) or **maximize bequest**
-(subject to a desired annual net spending amount). The quantity not maximized becomes the constraint.
-- When maximizing net spending, enter the **Desired bequest from savings accounts** in today's \\$k.
-  Fixed assets liquidated at the end of the plan are added to bequest separately; the page shows
-  their contribution when applicable.
-- When maximizing bequest, enter the **Desired annual net spending** in today's \\$k.
+Choose which quantity to maximize. Three objectives are available:
+- **Net spending** — maximize net spending subject to a desired bequest constraint. Enter the
+  **Desired bequest from savings accounts** in today's \\$k. Fixed assets liquidated at the end of
+  the plan are added to bequest separately; the page shows their contribution when applicable.
+- **Bequest** — maximize after-tax bequest subject to a desired annual net spending constraint.
+  Enter the **Desired annual net spending** in today's \\$k.
+- **Hybrid** — optimize a blend of spending and bequest simultaneously, controlled by a
+  **Spending weight (h)** slider (0 to 1). `h = 1` maximizes spending only; `h = 0` maximizes
+  bequest only; `h = 0.5` gives equal weight to both (in present-value dollars, so the midpoint
+  is a genuine balance). A **Spending floor** (today's \\$k) sets the minimum annual net spending
+  allowed; set to 0 for no floor. Unlike the other objectives, the spending profile acts as a
+  floor-only constraint for Hybrid — spending can roam freely above it (or be capped via *Profile slack*).
 
 All objective and constraint values are in today's dollars (thousands).
 
@@ -960,7 +966,13 @@ of initial taxable balance or if it is larger than the desired bequest when maxi
 The **type of profile** can be *flat* (constant real spending over time) or *smile* (adjusted for
 lifestyle: a dip in the “slow-go” years, then an increase or decrease over the plan). For *smile*,
 you can set the **smile delay** (years before the dip starts), **smile dip** (%), and **smile increase** (%).
-**Profile slack** allows spending to deviate from the profile by a percentage to help the optimizer.
+**Profile slack** controls how far spending can deviate from the profile. For *Net spending* and
+*Bequest* objectives, spending stays within ±slack% of the profile (bilateral bound). For the
+*Hybrid* objective, slack acts as a one-sided cap: spending can exceed the floor by at most slack%;
+set to 0 to allow unrestricted spending above the floor.
+**Time preference** (0–10 %/year) discounts future spending exponentially, shifting the optimal
+spending profile earlier in the plan and reducing end-of-life back-loading. Applies to *Net spending*
+and *Hybrid* objectives; has no effect on *Bequest*.
 For married couples, **Survivor's spending (%)** sets the spending level for the surviving spouse
 (typically 60%). A preview of the selected profile is shown on the page.
 

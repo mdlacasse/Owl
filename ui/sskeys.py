@@ -519,14 +519,16 @@ def getSolveParameters():
         return None
     if "spending" in maximize:
         objective = "maxSpending"
-    else:
+    elif "bequest" in maximize.lower():
         objective = "maxBequest"
+    else:
+        objective = "maxHybrid"
 
     options = {}
     optList = ["netSpending", "maxRothConversion", "noRothConversions",
                "startRothConversions", "bequest", "solver",
-               "spendingSlack", "oppCostX", "amoRoth", "amoSurplus", "withSCLoop",
-               "noLateSurplus",]
+               "spendingSlack", "spendingWeight", "spendingFloor", "timePreference", "oppCostX",
+               "amoRoth", "amoSurplus", "withSCLoop", "noLateSurplus",]
 
     for opt in optList:
         val = getCaseKey(opt)
@@ -748,6 +750,25 @@ def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, 
         placeholder=placeholder,
         help=help,
         key=widget_key
+    )
+
+
+def getSlider(text, nkey, min_value=0.0, max_value=1.0, step=0.05, disabled=False, help=None):
+    widget_key = genCaseKey(nkey)
+    kval = getCaseKey(nkey)
+    value = min_value if kval is None else float(kval)
+    initGlobalKey(widget_key, value)
+
+    return st.slider(
+        text,
+        disabled=disabled,
+        min_value=min_value,
+        max_value=max_value,
+        step=step,
+        help=help,
+        on_change=setpull,
+        args=[nkey],
+        key=widget_key,
     )
 
 

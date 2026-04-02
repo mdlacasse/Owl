@@ -243,7 +243,12 @@ def config_to_ui(diconf: dict) -> dict:
             dic["minTaxableBalance1"] = mbl[1] if len(mbl) > 1 else 0
 
     obj = op.get("objective", "maxSpending")
-    dic["objective"] = "Net spending" if obj == "maxSpending" else "Bequest"
+    if obj == "maxSpending":
+        dic["objective"] = "Net spending"
+    elif obj == "maxBequest":
+        dic["objective"] = "Bequest"
+    else:
+        dic["objective"] = "Hybrid"
 
     rate_method = rs.get("method", "historical average")
     if rate_method == "stochastic":
@@ -361,7 +366,11 @@ def ui_to_config(uidic: dict) -> dict:
         "optimization_parameters": {
             "spending_profile": uidic.get("spendingProfile", "smile"),
             "surviving_spouse_spending_percent": _get_ui(uidic, "survivor", 60, int),
-            "objective": "maxSpending" if "spending" in str(uidic.get("objective", "Net spending")) else "maxBequest",
+            "objective": (
+                "maxSpending" if "spending" in str(uidic.get("objective", "Net spending")).lower()
+                else "maxBequest" if "bequest" in str(uidic.get("objective", "")).lower()
+                else "maxHybrid"
+            ),
             "smile_dip": _get_ui(uidic, "smileDip", 15, int),
             "smile_increase": _get_ui(uidic, "smileIncrease", 12, int),
             "smile_delay": _get_ui(uidic, "smileDelay", 0, int),
