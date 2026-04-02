@@ -1,7 +1,7 @@
 
 # Owl - Optimal Wealth Lab
 
-## A retirement exploration tool based on linear programming
+## A retirement exploration tool based on mixed-integer linear programming
 
 <img align="right" src="papers/images/owl.png" width="250">
 
