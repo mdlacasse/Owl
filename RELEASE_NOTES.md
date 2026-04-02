@@ -437,7 +437,7 @@ supported in the Wages and Contributions spreadsheet.
 ## Version 2026.02.06
 ### Multiple scenarios
 - Add capabilities for running augmented historical range.
-- Add log scale option to hostograms
+- Add log scale option to histograms
 
 ---
 
@@ -550,7 +550,7 @@ supported in the Wages and Contributions spreadsheet.
 ## Version 2026.01.07
 - Normalize seed to fit in signed int32 (issue #59)
 - Remove animation
-- Update Adamodar rates for 2025
+- Update Damodaran rates for 2025
 - Make Kim+Sam cases consistent
 - Make minor edits in About page.
 
