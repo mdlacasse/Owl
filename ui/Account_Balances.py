@@ -33,17 +33,17 @@ if ret is None or kz.caseHasNoPlan():
 else:
     st.markdown("#### :orange[Savings Account Balances]")
     accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-free", "hsa": "HSA"}
-    hdetails = {"txbl": "Brokerage and savings accounts excluding emergency fund. ",
-                "txDef": "IRA, 401k, 403b and the like. ",
-                "txFree": "Roth IRA, Roth 401k, Roth 403b and the like. ",
-                "hsa": "Health Savings Account (triple tax-advantaged). "}
+    hdetails = {"txbl": "Sum of brokerage and savings accounts. ",
+                "txDef": "Sum of IRA, 401k, 403b and the like. ",
+                "txFree": "Sum of Roth IRA, Roth 401k, Roth 403b and the like. ",
+                "hsa": "Sum of Health Savings Account (triple tax-advantaged). "}
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         iname = kz.getCaseKey("iname0")
         for key in accounts:
             nkey = key + str(0)
             kz.initCaseKey(nkey, 0)
-            ret = kz.getNum(f"{iname}'s {accounts[key]} account ($k)", nkey,
+            ret = kz.getNum(f"{iname}'s {accounts[key]} accounts ($k)", nkey,
                             help=hdetails[key]+kz.help1000)
 
         today = date.today()
@@ -60,7 +60,7 @@ else:
             for key in accounts:
                 nkey = key + str(1)
                 kz.initCaseKey(nkey, 0)
-                ret = kz.getNum(f"{iname1}'s {accounts[key]} account ($k)", nkey,
+                ret = kz.getNum(f"{iname1}'s {accounts[key]} accounts ($k)", nkey,
                                 help=hdetails[key]+kz.help1000)
 
     if kz.getCaseKey("status") == "married":
