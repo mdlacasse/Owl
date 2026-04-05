@@ -15,9 +15,9 @@ cachetools==7.0.5
     # via streamlit
 certifi==2026.2.25
     # via requests
-charset-normalizer==3.4.6
+charset-normalizer==3.4.7
     # via requests
-click==8.3.1
+click==8.3.2
     # via
     #   owlplanner
     #   streamlit
@@ -78,7 +78,7 @@ numpy==2.2.6 ; python_full_version < '3.11'
     #   scipy
     #   seaborn
     #   streamlit
-numpy==2.4.3 ; python_full_version >= '3.11'
+numpy==2.4.4 ; python_full_version >= '3.11'
     # via
     #   contourpy
     #   highspy
@@ -99,18 +99,23 @@ packaging==26.0
     #   matplotlib
     #   plotly
     #   streamlit
-pandas==2.3.3
+pandas==2.3.3 ; python_full_version < '3.11'
     # via
     #   owlplanner
     #   seaborn
     #   streamlit
-pillow==12.1.1
+pandas==3.0.2 ; python_full_version >= '3.11'
+    # via
+    #   owlplanner
+    #   seaborn
+    #   streamlit
+pillow==12.2.0
     # via
     #   matplotlib
     #   streamlit
 plotly==6.6.0
     # via owlplanner
-protobuf==6.33.6
+protobuf==7.34.1
     # via streamlit
 pyarrow==23.0.1
     # via streamlit
@@ -126,13 +131,13 @@ python-dateutil==2.9.0.post0
     # via
     #   matplotlib
     #   pandas
-pytz==2026.1.post1
+pytz==2026.1.post1 ; python_full_version < '3.11'
     # via pandas
 referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.33.0
+requests==2.33.1
     # via streamlit
 rpds-py==0.30.0
     # via
@@ -148,7 +153,7 @@ six==1.17.0
     # via python-dateutil
 smmap==5.0.3
     # via gitdb
-streamlit==1.55.0
+streamlit==1.56.0
     # via owlplanner
 tenacity==9.1.4
     # via streamlit
@@ -168,7 +173,7 @@ typing-extensions==4.15.0
     #   typing-inspection
 typing-inspection==0.4.2
     # via pydantic
-tzdata==2025.3
+tzdata==2026.1 ; python_full_version < '3.11' or sys_platform == 'emscripten' or sys_platform == 'win32'
     # via pandas
 urllib3==2.6.3
     # via requests
@@ -176,4 +181,5 @@ watchdog==6.0.0 ; sys_platform != 'darwin'
     # via streamlit
 win32-setctime==1.2.0 ; sys_platform == 'win32'
     # via loguru
-mosek==11.1.9
+mosek==11.1.10
+watchdog
