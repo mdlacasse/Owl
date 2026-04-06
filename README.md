@@ -1,6 +1,13 @@
 
 # Owl - Optimal Wealth Lab
 
+[![Tests](https://github.com/mdlacasse/owl/actions/workflows/github-actions-runtests.yml/badge.svg)](https://github.com/mdlacasse/owl/actions/workflows/github-actions-runtests.yml)
+[![GitHub release](https://img.shields.io/github/v/release/mdlacasse/owl)](https://github.com/mdlacasse/owl/releases/latest)
+[![PyPI](https://img.shields.io/pypi/v/owlplanner)](https://pypi.org/project/owlplanner/)
+[![Python](https://img.shields.io/pypi/pyversions/owlplanner)](https://pypi.org/project/owlplanner/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://owlplanner.streamlit.app)
+
 ## A retirement exploration tool based on mixed-integer linear programming
 
 <img align="right" src="papers/images/owl.png" width="250">
