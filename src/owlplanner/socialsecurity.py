@@ -46,7 +46,7 @@ Public API (used by plan.py): getFRAs, compute_social_security_benefits.
 All other functions are internal and may change without notice.
 """
 
-__all__ = ['getFRAs', 'compute_social_security_benefits']
+__all__ = ['getFRAs', 'compute_social_security_benefits', 'build_own_benefit_table']
 
 import numpy as np
 from datetime import date
@@ -471,3 +471,96 @@ def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i
             zeta_in[:, trim_n:] *= trim
 
     return zeta_in, ages
+
+
+def build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, N_i, N_n, gamma_n,
+                            trim_pct=0, trim_year=None, N_K=97, thisyear=None):
+    """
+    Precompute own-benefit table B_own[N_i, N_K, N_n] for SS claiming-age LP optimization.
+
+    Each entry B_own[i, k, n] is the annual own SS benefit (in nominal, gamma-adjusted dollars)
+    that individual i would receive in year n if they claim at ages_k[k].
+    Spousal and survivor benefits are NOT included; they are handled as parameters via the SC loop.
+
+    Parameters
+    ----------
+    pias : array, shape (N_i,)
+        Monthly PIAs (Primary Insurance Amounts), one per individual.
+    fras : array, shape (N_i,)
+        Full retirement ages, one per individual.
+    yobs, mobs, tobs : arrays, shape (N_i,)
+        Birth year, month, and day-of-month, one per individual.
+    horizons : array, shape (N_i,)
+        Plan year index when each individual's horizon ends.
+    N_i, N_n : int
+        Number of individuals and planning years.
+    gamma_n : array, shape (N_n,)
+        Cumulative inflation factors for plan years 0..N_n-1.
+    trim_pct : float
+        SS benefit trim percentage (0 = no trim).
+    trim_year : int or None
+        Calendar year when trim begins (required if trim_pct > 0).
+    N_K : int
+        Number of claiming-age choices (default 97 = monthly from 62.0 to 70.0 inclusive).
+    thisyear : int or None
+        Current calendar year (default: date.today().year).
+
+    Returns
+    -------
+    B_own : ndarray, shape (N_i, N_K, N_n)
+        B_own[i, k, n] = annual own-benefit in nominal dollars for individual i claiming at
+        ages_k[k] in plan year n. Zero for years before benefit starts or past horizon.
+    ages_k : ndarray, shape (N_K,)
+        Conventional claiming ages: 62.0, 62+1/12, ..., 70.0.
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+
+    pias = np.asarray(pias, dtype=np.int32)
+    fras = np.asarray(fras, dtype=np.float64)
+
+    # Monthly claiming-age grid: 62.0, 62+1/12, ..., 70.0 (97 points over 96 months = 8 years).
+    ages_k = 62.0 + np.arange(N_K) / 12.0
+
+    B_own = np.zeros((N_i, N_K, N_n))
+
+    for i in range(N_i):
+        if pias[i] == 0:
+            continue   # No SS income; B_own[i,:,:] stays zero.
+        bornOnFirst = (tobs[i] == 1)
+        bornOnFirstDays = (tobs[i] <= 2)
+        eligible = 62.0 if bornOnFirstDays else 62.0 + 1.0 / 12
+        nd = min(int(horizons[i]), N_n)
+
+        for k in range(N_K):
+            claim_age = ages_k[k]
+            if claim_age < eligible:
+                continue   # Ineligible claiming age; skip.
+
+            factor = getSelfFactor(fras[i], claim_age, bornOnFirst)
+            benefit_real = pias[i] * 12 * factor   # annual benefit in today's dollars
+
+            # Payment start year (mirrors compute_social_security_benefits logic).
+            janage = claim_age + (mobs[i] - 1) / 12
+            paymentJanage = janage + 1.0 / 12
+            paymentIage = int(paymentJanage)
+            payment_start_n = yobs[i] + paymentIage - thisyear
+            ns = max(0, payment_start_n)
+
+            if ns >= nd:
+                continue   # Payment starts after horizon; no benefit within plan.
+
+            B_own[i, k, ns:nd] = benefit_real * gamma_n[ns:nd]
+
+            # Partial-year adjustment: in year ns, payments cover only the fraction of the
+            # year remaining after the first payment month (1 - fractional part of janage).
+            if payment_start_n >= 0:
+                B_own[i, k, ns] *= 1.0 - (paymentJanage % 1.0)
+
+    if trim_pct > 0 and trim_year is not None:
+        trim = 1.0 - trim_pct / 100.0
+        trim_n = max(0, trim_year - thisyear)
+        if 0 <= trim_n < N_n:
+            B_own[:, :, trim_n:] *= trim
+
+    return B_own, ages_k

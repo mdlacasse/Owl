@@ -27,7 +27,7 @@ import sskeys as kz
 import case_progress as cp
 
 
-def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, prompt=True):
+def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, prompt=True, disabled=False):
     """
     Integer input widget. Config stores some values as float (e.g. pension_monthly_amounts)
     and ages use year+month (pAge_y, pAge_m) from _age_float_to_ym in config_to_ui.
@@ -56,7 +56,7 @@ def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, pro
     return st.number_input(
         f"{own}{thing}", min_value=min_val, value=stored_value,
         on_change=kz.setpull, help=help, args=[nkey], key=kz.genCaseKey(nkey),
-        max_value=max_val,
+        max_value=max_val, disabled=disabled,
     )
 
 
@@ -90,6 +90,11 @@ if ret is None or kz.caseHasNoPlan():
     st.info("A case must first be created before running this page.")
 else:
     st.markdown("#### :orange[Social Security]")
+    _ss_mode = kz.getCaseKey("ssAgesMode") or "none"
+    _iname0 = kz.getCaseKey("iname0")
+    _iname1 = kz.getCaseKey("iname1")
+    ss_age0_disabled = _ss_mode in ("optimize", "both") or _ss_mode == _iname0
+    ss_age1_disabled = _ss_mode in ("optimize", "both") or _ss_mode == _iname1
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         dob0 = kz.getCaseKey("dob0")
@@ -100,6 +105,8 @@ else:
                     "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd). Maximum 70.")
         else:
             msg2 = "Claiming age in years and months. Minimum: 62, maximum: 70."
+        if ss_age0_disabled:
+            msg2 = msg2 + " (Set by optimizer — shown as last solved result.)"
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
         incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
         with incol1:
@@ -108,11 +115,13 @@ else:
             m0 = kz.getCaseKey("ssAge_m0")
             maxyear = 70 if m0 == 0 else 69
             minyear = 61 if specialcase0 else 62
-            ret = getIntInput(0, "ssAge_y", "claiming at age...", 67, msg2, min_val=minyear, max_val=maxyear)
+            ret = getIntInput(0, "ssAge_y", "claiming at age...", 67, msg2,
+                              min_val=minyear, max_val=maxyear, disabled=ss_age0_disabled)
         with incol2:
             maxmonth = 0 if ret == 70 else 11
             minmonth = 11 if (ret == 61 and specialcase0) else 0
-            getIntInput(0, "ssAge_m", "...and month(s)", 0, msg2, min_val=minmonth, max_val=maxmonth, prompt=False)
+            getIntInput(0, "ssAge_m", "...and month(s)", 0, msg2,
+                        min_val=minmonth, max_val=maxmonth, prompt=False, disabled=ss_age0_disabled)
 
     with col2:
         if kz.getCaseKey("status") == "married":
@@ -124,6 +133,8 @@ else:
                                "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd).")
             else:
                 msg2_spouse = "Claiming age in years and months. Minimum: 62 years."
+            if ss_age1_disabled:
+                msg2_spouse = msg2_spouse + " (Set by optimizer — shown as last solved result.)"
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("ssAge_y1", 67)
@@ -131,13 +142,14 @@ else:
                 m1 = kz.getCaseKey("ssAge_m1")
                 maxyear = 70 if m1 == 0 else 69
                 minyear = 61 if specialcase1 else 62
-                ret = getIntInput(1, "ssAge_y", "claiming at age...", 67, msg2_spouse, min_val=minyear, max_val=maxyear)
+                ret = getIntInput(1, "ssAge_y", "claiming at age...", 67, msg2_spouse,
+                                  min_val=minyear, max_val=maxyear, disabled=ss_age1_disabled)
             with incol2:
                 maxmonth = 0 if ret == 70 else 11
                 minmonth = 11 if (ret == 61 and specialcase1) else 0
                 getIntInput(
                     1, "ssAge_m", "...and month(s)", 0, msg2_spouse,
-                    min_val=minmonth, max_val=maxmonth, prompt=False
+                    min_val=minmonth, max_val=maxmonth, prompt=False, disabled=ss_age1_disabled
                 )
 
     col1, col2 = st.columns([.67, .33], gap="large", vertical_alignment="top")

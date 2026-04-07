@@ -352,6 +352,10 @@ def build_summary_dic(plan, N=None):
     for i in range(plan.N_i):
         dic[f"{plan.inames[i]:>14}'s life horizon"] = f"{now} -> {now + plan.horizons[i] - 1}"
         dic[f"{plan.inames[i]:>14}'s years planned"] = f"{plan.horizons[i]}"
+        if hasattr(plan, "ssecAges") and plan.ssecAmounts[i] > 0:
+            age_y = int(plan.ssecAges[i])
+            age_m = round((plan.ssecAges[i] - age_y) * 12)
+            dic[f"{plan.inames[i]:>14}'s SS claiming age"] = f"{age_y}y {age_m:02d}m"
 
     dic["Number of decision variables"] = str(plan.A.nvars)
     dic["Number of constraints"] = str(plan.A.ncons)

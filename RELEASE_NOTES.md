@@ -2,6 +2,36 @@
 
 ---
 
+## Version 2026.04.07
+
+### SS claiming age optimization (`withSSAges`)
+
+- **`withSSAges` solver option**: The MIP optimizer can now choose the optimal Social Security
+  claiming month for each individual (any month from age 62 to 70, i.e. 97 choices) as part of the
+  overall retirement plan optimization. Pass `"optimize"` to optimize all individuals, an individual
+  name (e.g. `"Jack"`) or list of names (e.g. `["Jack"]`) to optimize specific individuals only, or
+  `"fixed"` (default) to use the ages entered in `setSocialSecurity()`.
+- **Per-individual selection**: Particularly useful for couples where one spouse has already claimed —
+  pass that spouse's actual claiming age to `setSocialSecurity()` and optimize only the other spouse
+  by name. Individuals whose current age already exceeds their recorded claiming age are always treated
+  as fixed regardless of this option.
+- **LP formulation**: Own SS benefits are co-optimized directly in the LP via a precomputed benefit
+  table `B_own[i, k, n]` and binary claiming-month selectors `zssa[i, k]`. Spousal and survivor
+  benefit offsets are re-computed each SC iteration. Compatible with `withSSTaxability`,
+  `withMedicare`, `withLTCG`, and all other solver options.
+- **After solving**: `plan.ssecAges` contains the (possibly updated) optimal claiming ages.
+- **UI (Run Options page)**: New *Optimize SS claiming age* radio group. For single individuals:
+  `none` or the individual's name. For couples: `none`, each spouse's name, or `both`. Age inputs
+  on the Fixed Income page are shown as read-only for individuals being optimized; optimal ages are
+  written back after solving.
+- **Summary**: `plan.summaryString()` / `summaryDf()` now includes a *SS claiming age* line per
+  individual (for individuals with non-zero PIA), formatted as `"67y 03m"`.
+- **`PARAMETERS.md`**: New `withSSAges` entry documents all accepted values.
+- **Tests**: New `tests/test_ss_ages.py` with 17 tests covering unit tests for the benefit table,
+  single and couple optimization, partial (per-name) optimization, and flag reset between solves.
+
+---
+
 ## Version 2026.04.02
 
 ### New objective: `maxHybrid` — blended spending and bequest optimization

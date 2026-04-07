@@ -175,6 +175,12 @@ def runPlan(plan):
     if plan.caseStatus == "solved":
         kz.storeCaseKey("summaryDf", plan.summaryDf())
         kz.storeCaseKey("casetoml", getCaseString().getvalue())
+        # Write optimal SS claiming ages back to UI for individuals the optimizer chose.
+        if hasattr(plan, "ssecAges") and hasattr(plan, "_ssa_optimize_set"):
+            for i in plan._ssa_optimize_set:
+                if i < plan.N_i:
+                    kz.storeCaseKey(f"ssAge_y{i}", int(plan.ssecAges[i]))
+                    kz.storeCaseKey(f"ssAge_m{i}", round((plan.ssecAges[i] % 1.0) * 12))
     else:
         kz.storeCaseKey("summaryDf", None)
         kz.storeCaseKey("casetoml", "")
@@ -1150,6 +1156,23 @@ def genDic(plan):
     else:
         dic["ssTaxabilityMode"] = ss_val
         dic["ssTaxabilityValue"] = 0.85
+
+    _ssa_opt = plan.solverOptions.get("withSSAges", "fixed")
+    ni = plan.N_i
+    if isinstance(_ssa_opt, (list, tuple)):
+        _ssa_names = set(_ssa_opt)
+        if _ssa_names >= set(plan.inames):
+            dic["ssAgesMode"] = "both" if ni > 1 else plan.inames[0]
+        elif plan.inames[0] in _ssa_names:
+            dic["ssAgesMode"] = plan.inames[0]
+        elif ni > 1 and plan.inames[1] in _ssa_names:
+            dic["ssAgesMode"] = plan.inames[1]
+        else:
+            dic["ssAgesMode"] = "none"
+    elif _ssa_opt == "optimize":
+        dic["ssAgesMode"] = "both" if ni > 1 else plan.inames[0]
+    else:
+        dic["ssAgesMode"] = "none"
 
     if "previousMAGIs" in solverOptionKeys:
         dic["MAGI0"] = plan.solverOptions["previousMAGIs"][0]

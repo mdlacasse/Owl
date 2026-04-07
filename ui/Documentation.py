@@ -583,10 +583,25 @@ are claimed at the latest date at which both spouses have claimed benefits.
 Survivor benefits rules provide the larger of the two benefits to the survivor. Complex
 cases involving divorce or deceased spouses are not considered.
 
-**Owl** does not optimize when to claim Social Security benefits.
-You have to design (and explore) your own strategy, which
-often involves personal goals such as ensuring maximum
-survivor benefits, or maximum lifetime benefits.
+By default, **Owl** uses the claiming ages you enter and does not change them.
+However, on the **Run Options** page, under *Optimize SS claiming age*, you can select which
+individuals should have their SS claiming month optimized (any month between age 62 and 70,
+i.e., 97 monthly choices).
+For a single individual the choices are `none` and the individual's name.
+For couples the choices are `none`, each spouse's name, and `both` —
+which is particularly useful when one spouse has already started collecting and only
+the other's age should be optimized.
+The optimizer will choose the claiming month that maximizes the plan objective (spending or bequest),
+taking into account the interaction with taxes, Medicare, and Roth conversion strategy.
+After solving, the optimal claiming ages are written back to this page for reference,
+and the corresponding input fields are shown as read-only while that individual is being optimized.
+
+**Already-claiming individuals:** if an individual's current age equals or exceeds the age entered
+in the *claiming at age...* fields, **Owl** always treats that person's claiming age as fixed —
+regardless of the optimize setting. For a couple where one spouse is already receiving benefits,
+enter that spouse's *actual* claiming age here so the solver can recognize them as already claimed;
+their age fields will remain editable as reference values, while the other spouse's age can still be optimized.
+Selecting `none` always uses the entered ages as-is for all individuals.
 A great website for guidance on when to start taking Social Security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
 And obviously there are

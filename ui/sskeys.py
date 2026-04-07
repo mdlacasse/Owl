@@ -560,6 +560,16 @@ def getSolveParameters():
     else:
         options["withSSTaxability"] = ss_mode if ss_mode is not None else "loop"
 
+    # SS claiming ages — translate UI selection to withSSAges option.
+    ss_ages_mode = getCaseKey("ssAgesMode") or "none"
+    if ss_ages_mode == "none":
+        options["withSSAges"] = "fixed"
+    elif ss_ages_mode == "both":
+        options["withSSAges"] = "optimize"
+    else:
+        # ss_ages_mode is an individual name (or "optimize" for legacy) — pass directly.
+        options["withSSAges"] = ss_ages_mode
+
     if getCaseKey("readRothX"):
         options["maxRothConversion"] = "file"
 
