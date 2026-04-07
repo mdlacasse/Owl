@@ -6,6 +6,7 @@
 [![PyPI](https://img.shields.io/pypi/v/owlplanner)](https://pypi.org/project/owlplanner/)
 [![Python](https://img.shields.io/pypi/pyversions/owlplanner)](https://pypi.org/project/owlplanner/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Docker](https://img.shields.io/docker/v/owlplanner/owldocker.static?label=docker)](https://hub.docker.com/r/owlplanner/owldocker.static)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://owlplanner.streamlit.app)
 
 ## A retirement exploration tool based on mixed-integer linear programming
