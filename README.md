@@ -29,6 +29,8 @@ ACA marketplace premiums (pre-65), Medicare premiums, rules for 401k including
 required minimum distributions, maturation rules for Roth accounts and conversions,
 social security rules, etc.
 
+Among open-source retirement planning tools, Owl stands out for its unmatched capabilities and the rigor of its financial modeling. While the full API rewards those willing to invest time, the Streamlit web interface provides an accessible entry point for all users.
+
 There are three ways to run Owl (from easiest to more complex):
 
 1) **Streamlit Hub:** Run Owl remotely as hosted on the Streamlit Community Cloud at
@@ -46,11 +48,11 @@ Follow these <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">inst
 
 | Document | Description |
 |---------|-------------|
+| <a href="docs/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">docs/modeling-capabilities.md</a> | Summary of modeled components, assumptions, and limitations |
 | <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">INSTALL.md</a> | Installation guide, Python environment setup, and developer build steps |
 | <a href="USER_GUIDE.md" target="_blank" rel="noopener noreferrer">USER_GUIDE.md</a> | Python API usage with examples for Jupyter notebooks and scripts |
 | <a href="PARAMETERS.md" target="_blank" rel="noopener noreferrer">PARAMETERS.md</a> | Complete reference for TOML case file parameters |
 | <a href="RATE_MODELS.md" target="_blank" rel="noopener noreferrer">RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
-| <a href="docs/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">docs/modeling-capabilities.md</a> | Summary of modeled components, assumptions, and limitations |
 | <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.pdf</a> | Mathematical foundations |
 
 Documentation for the app user interface is also available from the [Streamlit UI](https://owlplanner.streamlit.app/Documentation).
