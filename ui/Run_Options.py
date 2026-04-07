@@ -121,6 +121,24 @@ else:
         kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0., help=helpmsg)
 
     st.divider()
+    st.markdown("#### :orange[Social Security Claiming Ages]")
+    helpmsg = ("Select which individuals should have their SS claiming month optimized "
+               "(any month between age 62 and 70). "
+               "For individuals already receiving benefits, the claiming age is always fixed. "
+               "Optimal ages are written back to the Fixed Income page after solving.")
+    col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+    with col1:
+        iname0 = kz.getCaseKey("iname0")
+        if kz.getCaseKey("status") == "married":
+            iname1 = kz.getCaseKey("iname1")
+            choices = ["none", iname0, iname1, "both"]
+        else:
+            choices = ["none", iname0]
+
+        kz.initCaseKey("ssAgesMode", "none")
+        ret = kz.getRadio("Optimize SS claiming age", choices, "ssAgesMode", help=helpmsg)
+
+    st.divider()
     with st.expander("*Advanced options*"):
         st.markdown("#### :orange[Calculations]")
         col1, col2 = st.columns([40, 60], gap="large", vertical_alignment="top")
@@ -197,27 +215,6 @@ else:
                 ret = kz.getNum("Fixed SS taxable fraction", "ssTaxabilityValue",
                                 min_value=0.0, max_value=0.85, step=0.05, format="%.2f",
                                 help=helpmsg)
-
-        st.divider()
-        st.markdown("#### :orange[Social Security Claiming Ages]")
-        helpmsg = ("Select which individuals should have their SS claiming month optimized "
-                   "(any month between age 62 and 70). "
-                   "For individuals already receiving benefits, the claiming age is always fixed. "
-                   "Optimal ages are written back to the Fixed Income page after solving.")
-        col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
-        with col1:
-            iname0 = kz.getCaseKey("iname0")
-            if kz.getCaseKey("status") == "married":
-                iname1 = kz.getCaseKey("iname1")
-                choices = ["none", iname0, iname1, "both"]
-            else:
-                choices = ["none", iname0]
-            # Normalize any legacy/stale value to a valid choice.
-            _cur = kz.getCaseKey("ssAgesMode")
-            if _cur not in choices:
-                kz.setCaseKey("ssAgesMode", "both" if _cur in ("optimize", "yes") else "none")
-            kz.initCaseKey("ssAgesMode", "none")
-            ret = kz.getRadio("Optimize SS claiming age", choices, "ssAgesMode", help=helpmsg)
 
         st.divider()
         st.markdown("#### :orange[Solver]")

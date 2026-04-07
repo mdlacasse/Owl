@@ -567,7 +567,7 @@ def getSolveParameters():
     elif ss_ages_mode == "both":
         options["withSSAges"] = "optimize"
     else:
-        # ss_ages_mode is an individual name (or "optimize" for legacy) — pass directly.
+        # ss_ages_mode is an individual name or "both" — pass directly.
         options["withSSAges"] = ss_ages_mode
 
     if getCaseKey("readRothX"):
