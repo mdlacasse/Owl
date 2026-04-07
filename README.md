@@ -1,7 +1,7 @@
 
 # Owl - Optimal Wealth Lab
 
-[![Tests](https://github.com/mdlacasse/owl/actions/workflows/github-actions-runtests.yml/badge.svg)](https://github.com/mdlacasse/owl/actions/workflows/github-actions-runtests.yml)
+[![CI](https://github.com/mdlacasse/owl/actions/workflows/github-actions-runtests.yml/badge.svg)](https://github.com/mdlacasse/owl/actions/workflows/github-actions-runtests.yml)
 [![GitHub release](https://img.shields.io/github/v/release/mdlacasse/owl)](https://github.com/mdlacasse/owl/releases/latest)
 [![PyPI](https://img.shields.io/pypi/v/owlplanner)](https://pypi.org/project/owlplanner/)
 [![Python](https://img.shields.io/pypi/pyversions/owlplanner)](https://pypi.org/project/owlplanner/)
