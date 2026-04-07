@@ -124,8 +124,7 @@ else:
     st.markdown("#### :orange[Social Security Claiming Ages]")
     helpmsg = ("Select which individuals should have their SS claiming month optimized "
                "(any month between age 62 and 70). "
-               "For individuals already receiving benefits, the claiming age is always fixed. "
-               "Optimal ages are written back to the Fixed Income page after solving.")
+               "Optimal ages are written back to the Fixed Income page and in the Synopsis after solving.")
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         iname0 = kz.getCaseKey("iname0")
@@ -136,7 +135,7 @@ else:
             choices = ["none", iname0]
 
         kz.initCaseKey("ssAgesMode", "none")
-        ret = kz.getRadio("Optimize SS claiming age", choices, "ssAgesMode", help=helpmsg)
+        ret = kz.getRadio("Optimize SS claiming age for...", choices, "ssAgesMode", help=helpmsg)
 
     st.divider()
     with st.expander("*Advanced options*"):
