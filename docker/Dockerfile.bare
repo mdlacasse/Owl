@@ -4,15 +4,21 @@ FROM python:3.14-alpine
 
 WORKDIR /app
 
-RUN apk update; apk upgrade; apk add curl git bash
+RUN apk update; apk upgrade --no-cache; apk add  --no-cache git bash
+RUN apk del curl busybox nghttp2
 
 COPY buildentrypoint.sh /usr/bin/entrypoint.sh
 COPY runentrypoint.sh /usr/bin/runentrypoint.sh
 
 RUN chmod 555 /usr/bin/entrypoint.sh /usr/bin/runentrypoint.sh
 
+RUN python -m venv /app/venv && \
+    adduser -D -u 1001 owl && chown -R owl /app
+
+USER owl
+
 EXPOSE 8501
 
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+HEALTHCHECK CMD wget -q --spider http://localhost:8501/_stcore/health || exit 1
 
 ENTRYPOINT ["/bin/bash", "/usr/bin/entrypoint.sh"]
