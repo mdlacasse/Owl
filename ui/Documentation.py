@@ -1325,11 +1325,11 @@ which show the distribution of *optimal* outcomes, this page answers a different
 ##### How it works
 
 For each scenario (historical start year or Monte Carlo draw), the optimizer solves the
-full plan and records the optimal spending basis $g_s$. These $S$ per-scenario bases are then
-passed to a **stochastic recourse linear program (LP)** that finds a common commitment $g^*$ minimizing
+full plan and records the optimal spending basis $g_s$. These $N_s$ per-scenario bases are then
+passed to a **stochastic recourse linear program (LP)** that finds a common commitment $g^*$ maximizing
 
 $$
-\\min_{g,\\,\\sigma}\\;-g + \\frac{\\lambda}{S}\\sum_s \\sigma_s
+\\max_{g,\\,\\sigma} \\ g - \\frac{\\lambda}{N_s}\\sum_s \\sigma_s
 \\quad\\text{s.t.}\\quad \\sigma_s \\ge g - g_s,\\; \\sigma_s \\ge 0
 $$
 
