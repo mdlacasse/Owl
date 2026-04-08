@@ -1325,11 +1325,13 @@ which show the distribution of *optimal* outcomes, this page answers a different
 ##### How it works
 
 For each scenario (historical start year or Monte Carlo draw), the optimizer solves the
-full plan and records the optimal spending basis $g_s$. These per-scenario bases are then
-passed to a **stochastic recourse LP** that finds a common commitment $g^*$ minimizing
+full plan and records the optimal spending basis $g_s$. These $S$ per-scenario bases are then
+passed to a **stochastic recourse linear program (LP)** that finds a common commitment $g^*$ minimizing
 
-$$\\min_{g,\\,\\sigma}\\;-g + \\frac{\\lambda}{S}\\sum_s \\sigma_s
-\\quad\\text{s.t.}\\quad \\sigma_s \\ge g - g_s,\\; \\sigma_s \\ge 0$$
+$$
+\\min_{g,\\,\\sigma}\\;-g + \\frac{\\lambda}{S}\\sum_s \\sigma_s
+\\quad\\text{s.t.}\\quad \\sigma_s \\ge g - g_s,\\; \\sigma_s \\ge 0
+$$
 
 where $\\sigma_s$ is the shortfall in scenario $s$ and $\\lambda$ controls risk aversion.
 The LP is swept over a range of $\\lambda$ values to trace the **efficient frontier**.
@@ -1355,7 +1357,7 @@ Two charts are shown side by side:
 - **Efficient frontier** — committed spending vs. expected shortfall magnitude (in today's
   dollars). This is the classical Pareto frontier between spending and downside risk.
 
-The committed spending $g^*$ and the actual achieved success rate are shown above the charts.
+The committed spending $\\ g^*$ and the actual achieved success rate are shown above the charts.
 """)
 
 # --- Tools tab ---
