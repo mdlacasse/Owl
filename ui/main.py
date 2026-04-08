@@ -52,6 +52,7 @@ pages = {
     "Stress Tests": [
         st.Page("Historical_Range.py", icon=":material/history:"),
         st.Page("Monte_Carlo.py", icon=":material/finance:"),
+        st.Page("Spending_Optimization.py", icon=":material/query_stats:"),
     ],
     "Tools": [
         st.Page("Settings.py", icon=":material/settings:"),

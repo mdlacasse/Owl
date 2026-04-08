@@ -205,14 +205,16 @@ def runHistorical(plan):
     objective, options = kz.getSolveParameters()
     try:
         mybar = progress.Progress()
-        fig, summary = plan1.runHistoricalRange(
+        fig, summary, fig2 = plan1.runHistoricalRange(
             objective, options, hyfrm, hyto, figure=True, progcall=mybar,
             reverse=reverse, roll=roll, augmented=augmented, log_x=log_x)
         kz.storeCaseKey("histoPlot", fig)
         kz.storeCaseKey("histoSummary", summary)
+        kz.storeCaseKey("histoBarPlot", fig2)
     except Exception as e:
         kz.storeCaseKey("histoPlot", None)
         kz.storeCaseKey("histoSummary", None)
+        kz.storeCaseKey("histoBarPlot", None)
         st.error(f"Historical solution failed: {e}")
         return
 
@@ -236,6 +238,72 @@ def runMC(plan):
         kz.storeCaseKey("monteCarloPlot", None)
         kz.storeCaseKey("monteCarloSummary", None)
         st.error(f"Monte Carlo solution failed: {e}")
+
+
+@_checkPlan
+def runStochasticSpending(plan):
+    plan1 = owl.clone(plan)
+    prepareRun(plan1)
+
+    scenario_method = kz.getCaseKey("stoch_scenario_method") or "historical"
+    target_sr = kz.getCaseKey("stoch_target_success_rate")
+    target_sr = 0.85 if target_sr is None else float(target_sr)
+
+    objective, options = kz.getSolveParameters()
+    try:
+        mybar = progress.Progress()
+        if scenario_method == "historical":
+            ystart = kz.getCaseKey("stoch_ystart") or FROM
+            yend = kz.getCaseKey("stoch_yend") or TO
+            reverse = bool(kz.getCaseKey("stoch_reverse_sequence") or False)
+            roll = int(kz.getCaseKey("stoch_roll_sequence") or 0)
+            result = plan1.runStochasticSpending(
+                objective, options, "historical",
+                ystart=ystart, yend=yend, progcall=mybar,
+                reverse=reverse, roll=roll)
+        else:
+            N = kz.getCaseKey("stoch_N_mc") or 200
+            result = plan1.runStochasticSpending(
+                objective, options, "mc",
+                N=N, progcall=mybar)
+
+        g_opt, lam = owl.g_for_success_rate(
+            target_sr,
+            result["lambdas"], result["frontier_g"], result["frontier_prob"])
+
+        import numpy as np
+        lam_idx = int(np.argmin(np.abs(result["lambdas"] - lam)))
+        actual_sr = 1.0 - float(result["frontier_prob"][lam_idx])
+        kz.storeCaseKey("stochResult", {
+            "g_opt": g_opt,
+            "lam": lam,
+            "target_success_rate": target_sr,
+            "actual_success_rate": actual_sr,
+        })
+
+        plotter = plan1._plotter
+        fig_frontier = plotter.plot_stochastic_frontier(
+            objective,
+            result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
+            target_sr, g_opt, result["year_n"])
+        fig_outcomes = plotter.plot_stochastic_outcomes(
+            objective,
+            result["start_years"], result["bases"], g_opt,
+            target_sr, result["year_n"])
+
+        kz.storeCaseKey("stochFrontierPlot", fig_frontier)
+        kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
+        kz.storeCaseKey("stochSummary", (
+            f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
+            f"Target success rate: {target_sr:.0%}\n"
+            f"Scenarios solved: {len(result['bases'])}"
+        ))
+    except Exception as e:
+        kz.storeCaseKey("stochFrontierPlot", None)
+        kz.storeCaseKey("stochOutcomePlot", None)
+        kz.storeCaseKey("stochSummary", None)
+        kz.storeCaseKey("stochResult", None)
+        st.error(f"Stochastic spending optimization failed: {e}")
 
 
 @_checkPlan

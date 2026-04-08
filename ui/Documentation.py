@@ -1213,7 +1213,7 @@ through the uploader on either the Create Case or the Financial Profile page.
 # --- Stress Tests tab ---
 with tab_sim:
     st.markdown("""
-There are two different ways to run multiple scenarios and generate a histogram of results.
+There are three pages for stress-testing your plan under different market scenarios.
 """)
 
     with st.expander("Historical Range", expanded=True):
@@ -1250,6 +1250,10 @@ A histogram of results and a success rate is displayed at the end of the run.
 $N$ is the number of runs (from the year range and, if used, augmented sampling),
 $P$ the probability of success,
 $\\bar{x}$ is the resulting average, and $M$ is the median.
+
+When augmented sampling is **off**, a bar chart is also displayed showing the optimal
+spending or bequest for each historical start year (in today's dollars). This gives a
+compact view of which starting periods were most and least favorable.
 
 If the `Beneficiary fractions` are not all equal to 1, two histograms will be displayed:
 one for the partial bequest left at the passing of the first spouse
@@ -1306,6 +1310,52 @@ event-driven forward simulators. To improve throughput:
   adds binary variables to every trial and can be several times slower.
 - Consider installing **Owl** locally — your own hardware may outperform the Community Cloud
   server, which also has a CPU-time quota that may terminate long sessions.
+""")
+
+    with st.expander("Spending Optimization"):
+        st.markdown("""
+This page finds a **committed first-year spending level** (in today's dollars) that is
+robust across a set of historical or Monte Carlo scenarios. Unlike the histogram pages,
+which show the distribution of *optimal* outcomes, this page answers a different question:
+
+> *Given that I must commit to the same spending level today regardless of which market
+> scenario actually unfolds, what is the highest amount I can commit while keeping the
+> probability of falling short below a chosen threshold?*
+
+##### How it works
+
+For each scenario (historical start year or Monte Carlo draw), the optimizer solves the
+full plan and records the optimal spending basis $g_s$. These per-scenario bases are then
+passed to a **stochastic recourse LP** that finds a common commitment $g^*$ minimizing
+
+$$\\min_{g,\\,\\sigma}\\;-g + \\frac{\\lambda}{S}\\sum_s \\sigma_s
+\\quad\\text{s.t.}\\quad \\sigma_s \\ge g - g_s,\\; \\sigma_s \\ge 0$$
+
+where $\\sigma_s$ is the shortfall in scenario $s$ and $\\lambda$ controls risk aversion.
+The LP is swept over a range of $\\lambda$ values to trace the **efficient frontier**.
+
+##### Controls
+
+- **Scenario method** — *Historical range*: uses historical rate sequences over the
+  selected year range (one run per year). *Monte Carlo*: uses the active stochastic rate
+  method; requires a stochastic method to be set on the **Rates** page.
+- **Target success rate** — the minimum fraction of scenarios that must meet the
+  commitment with no shortfall. The page finds the least conservative $\\lambda$ that
+  achieves this rate.
+- **Advanced options** (historical only) — *Roll* and *Reverse sequence* apply the same
+  rate-sequence transforms available on the **Historical Range** page, useful for
+  exploring sensitivity to sequence order.
+
+##### Output
+
+Two charts are shown side by side:
+
+- **Success rate curve** — committed spending vs. shortfall probability. The target point
+  is marked; moving left increases spending but also increases shortfall risk.
+- **Efficient frontier** — committed spending vs. expected shortfall magnitude (in today's
+  dollars). This is the classical Pareto frontier between spending and downside risk.
+
+The committed spending $g^*$ and the actual achieved success rate are shown above the charts.
 """)
 
 # --- Tools tab ---

@@ -203,6 +203,13 @@ def caseIsNotMCReady():
             or getCaseKey("varyingType") not in STOCHASTIC_METHODS)
 
 
+def caseIsNotStochReady():
+    """
+    Check that a plan exists before running stochastic spending optimization.
+    """
+    return caseIsNotRunReady()
+
+
 def currentCaseDic() -> dict:
     return ss.cases[ss.currentCase]
 

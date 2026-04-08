@@ -771,6 +771,111 @@ class PlotlyBackend(PlotBackend):
 
         return None, description
 
+    def plot_spending_by_year(self, objective, start_years, values, n_d, year_n):
+        """Bar chart of optimal spending or bequest by historical start year (today's dollars)."""
+        import io as _io
+        thisyear = int(year_n[0])
+        label = "Spending basis" if objective == "maxSpending" else "Bequest"
+        mean_val = float(np.mean(values))
+
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=start_years.tolist(),
+            y=(values / 1000).tolist(),
+            name=label,
+            marker_color="steelblue",
+            opacity=0.75,
+        ))
+        fig.add_hline(y=mean_val / 1000, line_dash="dash", line_color="navy",
+                      annotation_text=f"Mean {u.d(mean_val)}", annotation_position="top right")
+        fig.update_layout(
+            title=f"{label} by historical start year",
+            xaxis_title="Historical start year",
+            yaxis_title=f"{label} ({thisyear} $k)",
+            yaxis_tickformat="$,.0f",
+            template=self.template,
+            showlegend=False,
+        )
+        description = _io.StringIO()
+        print(f"{label} by start year: min {u.d(float(values.min()))}, "
+              f"max {u.d(float(values.max()))}, mean {u.d(mean_val)}.", file=description)
+        return fig, description
+
+    def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
+                                 target_success_rate, g_opt, year_n):
+        """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
+        thisyear = int(year_n[0])
+        shortfall_pct = (1.0 - target_success_rate) * 100
+
+        fig = make_subplots(rows=1, cols=2,
+                            subplot_titles=("Success rate curve", "Efficient frontier"))
+
+        fig.add_trace(go.Scatter(
+            x=(frontier_prob * 100).tolist(), y=(frontier_g / 1000).tolist(),
+            mode="lines", name="Frontier", line=dict(color="steelblue", width=2),
+        ), row=1, col=1)
+        fig.add_trace(go.Scatter(
+            x=[shortfall_pct], y=[g_opt / 1000],
+            mode="markers+text",
+            name=f"{target_success_rate*100:.0f}% success: {u.d(g_opt)}",
+            marker=dict(color="firebrick", size=10),
+            text=[f"{u.d(g_opt)}"],
+            textposition="top right",
+        ), row=1, col=1)
+        fig.add_vline(x=shortfall_pct, line_dash="dash", line_color="firebrick",
+                      opacity=0.5, row=1, col=1)
+
+        fig.add_trace(go.Scatter(
+            x=(frontier_shortfall / 1000).tolist(), y=(frontier_g / 1000).tolist(),
+            mode="lines", name="Shortfall cost", line=dict(color="darkorange", width=2),
+            showlegend=False,
+        ), row=1, col=2)
+
+        fig.update_xaxes(title_text="Shortfall probability (%)", ticksuffix="%", row=1, col=1)
+        fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$", row=1, col=1)
+        fig.update_xaxes(title_text=f"Expected shortfall ({thisyear} $k)", tickprefix="$", row=1, col=2)
+        fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$", row=1, col=2)
+        fig.update_layout(
+            title=f"Stochastic spending efficient frontier ({thisyear}$)",
+            template=self.template,
+            legend=_LEGEND_BOTTOM,
+        )
+        return fig
+
+    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n):
+        """Bar chart of achieved spending by scenario, colored by success/failure."""
+        thisyear = int(year_n[0])
+        achieved = np.minimum(g_opt, bases)
+        success = achieved >= g_opt - 1.0
+        label = "Spending" if objective == "maxSpending" else "Bequest"
+
+        x = start_years.tolist() if start_years is not None else list(range(len(bases)))
+        xlabel = "Historical start year" if start_years is not None else "Simulation"
+
+        fig = go.Figure()
+        if success.any():
+            x_ok = [x[i] for i in range(len(x)) if success[i]]
+            y_ok = (achieved[success] / 1000).tolist()
+            fig.add_trace(go.Bar(x=x_ok, y=y_ok, name="No shortfall",
+                                 marker_color="mediumseagreen", opacity=0.8))
+        if (~success).any():
+            x_fail = [x[i] for i in range(len(x)) if not success[i]]
+            y_fail = (achieved[~success] / 1000).tolist()
+            fig.add_trace(go.Bar(x=x_fail, y=y_fail, name="Shortfall",
+                                 marker_color="tomato", opacity=0.8))
+        fig.add_hline(y=g_opt / 1000, line_dash="dash", line_color="black",
+                      annotation_text=f"Commitment {u.d(g_opt)}", annotation_position="top right")
+        fig.update_layout(
+            title=f"Scenario outcomes — {target_success_rate*100:.0f}% target success rate",
+            xaxis_title=xlabel,
+            yaxis_title=f"Achieved {label.lower()} ({thisyear} $k)",
+            yaxis_tickprefix="$",
+            template=self.template,
+            barmode="overlay",
+            legend=_LEGEND_BOTTOM,
+        )
+        return fig
+
     def plot_asset_composition(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
         """Plot asset distribution over time."""
         # Set up value formatting

@@ -102,3 +102,54 @@ class PlotBackend(ABC):
     def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames, A_n=None):
         """Plot taxes over time. A_n: optional ACA costs per year (when slcsp_annual > 0)."""
         pass
+
+    @abstractmethod
+    def plot_spending_by_year(self, objective, start_years, values, n_d, year_n):
+        """Bar chart of optimal spending or bequest by historical start year (today's dollars).
+
+        Parameters
+        ----------
+        objective : str
+            "maxSpending" or "maxBequest" — used for axis/title labeling.
+        start_years : ndarray (S,)
+            Historical start year for each solved scenario.
+        values : ndarray (S,)
+            Optimal spending basis or bequest for each scenario (today's dollars).
+        n_d : int
+            Index of the first-to-die year (used for unit label).
+        """
+        pass
+
+    @abstractmethod
+    def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
+                                 target_success_rate, g_opt, year_n):
+        """Efficient frontier plot: committed spending vs. shortfall probability.
+
+        Marks the target success rate point on the curve.
+
+        Parameters
+        ----------
+        objective : str
+        frontier_prob : ndarray — shortfall probability at each lambda
+        frontier_g : ndarray — committed spending at each lambda (today's dollars)
+        frontier_shortfall : ndarray — expected shortfall at each lambda (today's dollars)
+        target_success_rate : float — user-chosen success rate (e.g. 0.90)
+        g_opt : float — optimal spending at target (today's dollars)
+        year_n : ndarray — plan calendar years (for axis label)
+        """
+        pass
+
+    @abstractmethod
+    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n):
+        """Bar chart of achieved spending by scenario, colored by success/failure.
+
+        Parameters
+        ----------
+        objective : str
+        start_years : ndarray or None — historical start years (None for MC, uses indices)
+        bases : ndarray (S,) — optimal spending basis per scenario (today's dollars)
+        g_opt : float — committed spending (today's dollars)
+        target_success_rate : float
+        year_n : ndarray
+        """
+        pass

@@ -535,3 +535,86 @@ class MatplotlibBackend(PlotBackend):
         fig, ax = self._line_income_plot(year_n, series, style, title, yformat)
 
         return fig
+
+    def plot_spending_by_year(self, objective, start_years, values, n_d, year_n):
+        """Bar chart of optimal spending or bequest by historical start year (today's dollars)."""
+        thisyear = int(year_n[0])
+        label = "Spending basis" if objective == "maxSpending" else "Bequest"
+        ylabel = f"{label} ({thisyear} $k)"
+
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.bar(start_years, values / 1000, color="steelblue", alpha=0.75, width=0.85)
+        ax.axhline(float(np.mean(values)) / 1000, color="navy", linestyle="--", linewidth=1.2,
+                   label=f"Mean {u.d(float(np.mean(values)))}")
+        ax.set_xlabel("Historical start year")
+        ax.set_ylabel(ylabel)
+        ax.set_title(f"{label} by historical start year")
+        ax.legend()
+        ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
+        plt.tight_layout()
+
+        description = io.StringIO()
+        print(f"{label} by start year: min {u.d(float(values.min()))}, "
+              f"max {u.d(float(values.max()))}, mean {u.d(float(values.mean()))}.", file=description)
+        return fig, description
+
+    def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
+                                 target_success_rate, g_opt, year_n):
+        """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
+        thisyear = int(year_n[0])
+        fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+
+        ax = axes[0]
+        ax.plot(frontier_prob * 100, frontier_g / 1000, color="steelblue", linewidth=1.5)
+        shortfall_pct = (1.0 - target_success_rate) * 100
+        ax.axvline(shortfall_pct, color="firebrick", linestyle="--", linewidth=1, alpha=0.7)
+        ax.scatter([shortfall_pct], [g_opt / 1000], color="firebrick", zorder=5, s=60,
+                   label=f"{target_success_rate*100:.0f}% success: {u.d(g_opt)}")
+        ax.set_xlabel("Shortfall probability (%)")
+        ax.set_ylabel(f"Committed spending ({thisyear} $k)")
+        ax.set_title("Success rate curve")
+        ax.xaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"{x:.0f}%"))
+        ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+
+        ax = axes[1]
+        ax.plot(frontier_shortfall / 1000, frontier_g / 1000, color="darkorange", linewidth=1.5)
+        ax.set_xlabel(f"Expected shortfall ({thisyear} $k)")
+        ax.set_ylabel(f"Committed spending ({thisyear} $k)")
+        ax.set_title("Efficient frontier")
+        ax.xaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
+        ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
+        ax.grid(True, alpha=0.3)
+
+        plt.suptitle(f"Stochastic spending efficient frontier ({thisyear}$)")
+        plt.tight_layout()
+        return fig
+
+    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n):
+        """Bar chart of achieved spending by scenario, colored by success/failure."""
+        thisyear = int(year_n[0])
+        achieved = np.minimum(g_opt, bases)
+        success = achieved >= g_opt - 1.0
+        label = "Spending" if objective == "maxSpending" else "Bequest"
+
+        x = start_years if start_years is not None else np.arange(len(bases))
+        xlabel = "Historical start year" if start_years is not None else "Simulation"
+
+        fig, ax = plt.subplots(figsize=(10, 4))
+        if success.any():
+            ax.bar(x[success], achieved[success] / 1000, color="mediumseagreen",
+                   alpha=0.8, width=0.85, label="No shortfall")
+        if (~success).any():
+            ax.bar(x[~success], achieved[~success] / 1000, color="tomato",
+                   alpha=0.8, width=0.85, label="Shortfall")
+        ax.axhline(g_opt / 1000, color="black", linestyle="--", linewidth=1.5,
+                   label=f"Commitment {u.d(g_opt)}")
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(f"Achieved {label.lower()} ({thisyear} $k)")
+        ax.set_title(f"Scenario outcomes — {target_success_rate*100:.0f}% target success rate")
+        ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3, axis="y")
+        plt.tight_layout()
+        return fig

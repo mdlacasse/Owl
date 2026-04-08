@@ -21,7 +21,9 @@ from owlplanner.plan import Plan                                              # 
 from owlplanner.plan import clone                                             # noqa: F401
 from owlplanner.config import readConfig, saveConfig                          # noqa: F401
 from owlplanner.rates import getRatesDistributions, RatesDistribution         # noqa: F401
+from owlplanner.stresstests import g_for_success_rate                         # noqa: F401
 from owlplanner.version import __version__                                    # noqa: F401
 
 # Make the package importable as 'owlplanner'
-__all__ = ['Plan', 'clone', 'readConfig', 'getRatesDistributions', 'RatesDistribution', '__version__']
+__all__ = ['Plan', 'clone', 'readConfig', 'getRatesDistributions', 'RatesDistribution',
+           'g_for_success_rate', '__version__']

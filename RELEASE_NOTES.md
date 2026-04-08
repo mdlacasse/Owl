@@ -2,96 +2,96 @@
 
 ---
 
+## Version 2026.04.08
+
+### Stochastic spending optimization + stress-test refactoring
+
+- **`runStochasticSpending`** (new): Collects per-scenario optimal spending bases across historical
+  or Monte Carlo scenarios, then solves a stochastic recourse LP to find a committed first-year
+  spending level $g^*$ that maximizes spending subject to a target shortfall probability. Sweeps a
+  risk-aversion parameter $\lambda$ to trace the efficient frontier (committed spending vs. expected
+  shortfall). Returns a dict with bases, lambdas, frontier arrays, and plan metadata.
+- **`g_for_success_rate`** (new, public API): Returns $(g^*, \lambda)$ for the least conservative
+  frontier point achieving a target success rate. Exported from `owlplanner`.
+- **New plots** (both backends): `plot_spending_by_year` — bar chart of optimal spending/bequest by
+  historical start year (plan-year dollars). `plot_stochastic_frontier` — success rate curve and
+  efficient frontier side by side. `plot_stochastic_outcomes` — scenario bar chart colored by
+  success/failure.
+- **Stress-test refactoring**: `runHistoricalRange` and `runMC` extracted from `plan.py` into
+  `src/owlplanner/stresstests.py` as `StressTestsMixin`. Public API unchanged.
+- **Historical Range page**: When augmented sampling is off, a per-start-year bar chart is shown
+  below the histogram.
+- **New UI page**: *Spending Optimization* (`:material/query_stats:`) under Stress Tests. Scenario
+  method radio (historical / Monte Carlo), target success rate slider, and an advanced options
+  expander with roll and reverse sequence controls for historical mode.
+- **Documentation**: Stress Tests section updated (three pages, new expander);
+  `modeling-capabilities.md` Simulation modes row updated.
+
+---
+
 ## Version 2026.04.07
 
 ### SS claiming age optimization (`withSSAges`)
 
-- **`withSSAges` solver option**: The MIP optimizer can now choose the optimal Social Security
-  claiming month for each individual (any month from age 62 to 70, i.e. 97 choices) as part of the
-  overall retirement plan optimization. Pass `"optimize"` to optimize all individuals, an individual
-  name (e.g. `"Jack"`) or list of names (e.g. `["Jack"]`) to optimize specific individuals only, or
-  `"fixed"` (default) to use the ages entered in `setSocialSecurity()`.
-- **Per-individual selection**: Particularly useful for couples where one spouse has already claimed —
-  pass that spouse's actual claiming age to `setSocialSecurity()` and optimize only the other spouse
-  by name. Individuals whose current age already exceeds their recorded claiming age are always treated
-  as fixed regardless of this option.
-- **LP formulation**: Own SS benefits are co-optimized directly in the LP via a precomputed benefit
-  table `B_own[i, k, n]` and binary claiming-month selectors `zssa[i, k]`. Spousal and survivor
-  benefit offsets are re-computed each SC iteration. Compatible with `withSSTaxability`,
-  `withMedicare`, `withLTCG`, and all other solver options.
-- **After solving**: `plan.ssecAges` contains the (possibly updated) optimal claiming ages.
-- **UI (Run Options page)**: New *Optimize SS claiming age* radio group. For single individuals:
-  `none` or the individual's name. For couples: `none`, each spouse's name, or `both`. Age inputs
-  on the Fixed Income page are shown as read-only for individuals being optimized; optimal ages are
-  written back after solving.
-- **Summary**: `plan.summaryString()` / `summaryDf()` now includes a *SS claiming age* line per
-  individual (for individuals with non-zero PIA), formatted as `"67y 03m"`.
-- **`PARAMETERS.md`**: New `withSSAges` entry documents all accepted values.
-- **Tests**: New `tests/test_ss_ages.py` with 17 tests covering unit tests for the benefit table,
-  single and couple optimization, partial (per-name) optimization, and flag reset between solves.
+- **`withSSAges` solver option**: The MIP optimizer now selects the optimal Social Security claiming
+  month per individual (age 62–70, 97 choices). Pass `"optimize"` for all individuals, a name or
+  list of names for specific individuals, or `"fixed"` (default) to use ages from
+  `setSocialSecurity()`.
+- **Per-individual selection**: Useful for couples where one spouse has already claimed — pass that
+  spouse's actual claiming age to `setSocialSecurity()` and optimize only the other. Individuals
+  whose current age exceeds their recorded claiming age are always treated as fixed.
+- **Formulation**: Own SS benefits co-optimized in the LP via a precomputed benefit table
+  `B_own[i, k, n]` and binary claiming-month selectors `zssa[i, k]`. Spousal and survivor benefit
+  offsets recomputed each SC iteration. Compatible with all other solver options.
+- **UI (Run Options)**: New *Optimize SS claiming age* radio group. Age inputs on the Fixed Income
+  page become read-only for optimized individuals; optimal ages written back after solving.
+- **`plan.ssecAges`**: Optimal claiming ages after solving. `summaryDf()` / `summaryString()`
+  include a *SS claiming age* line per individual with non-zero PIA (e.g. `"67y 03m"`).
+- **`PARAMETERS.md`**: New `withSSAges` entry.
+- **Tests**: 17 tests in `tests/test_ss_ages.py`.
 
 ---
 
 ## Version 2026.04.02
 
-### New objective: `maxHybrid` — blended spending and bequest optimization
+### New objective: `maxHybrid` — blended spending and bequest
 
-- **`maxHybrid` objective**: A third optimization objective that blends spending and bequest into a
-  single LP objective. Controlled by a `spendingWeight` parameter *h* ∈ [0, 1]: `h=1` maximizes
-  spending only, `h=0` maximizes bequest only, and `h=0.5` gives equal weight to both (terms are
-  normalized to present-value dollars before blending, making the midpoint a genuine balance point
-  for typical plans).
-- **`spendingFloor`** (new solver option): Hard lower bound on annual net spending (today's \\$k)
-  for `maxHybrid`. The spending profile scales all subsequent years relative to this floor.
-  Use `0` (or omit) for no floor; a floor is recommended to prevent degenerate zero-spending solutions
-  when growth rates are high.
-- **`spendingWeight`** (new solver option): Blend weight *h* for `maxHybrid`. Defaults to `0.5`.
-- **`timePreference`** (new solver option): Subjective time preference rate (%/year). Discounts
-  future spending exponentially — values above 0 shift the optimal spending profile earlier, reducing
-  end-of-life back-loading. Supported for `maxSpending` and `maxHybrid`. No effect on `maxBequest`.
-- **Spending profile for `maxHybrid`**: The profile acts as a floor-only constraint (not bilateral).
-  `spendingSlack` repurposed as a one-sided cap: spending may exceed the floor by at most `slack`%;
-  set to `0` (default) to allow unrestricted spending above the floor.
-- **UI (Goals page)**: New *Hybrid* choice in the Maximize radio group. When selected, a *Spending
-  floor* number input and a *Spending weight (h)* slider (0–1, step 0.05) appear. *Profile slack*
-  help text updated to explain its dual role. *Time preference* slider added to the Spending Profile
-  section (0–10 %/year, step 0.5).
-- **Schema**: `SolverOptions` gains `spendingWeight`, `spendingFloor`, and `timePreference` fields;
-  `objective` description updated to include `"maxHybrid"`.
-- **Docs**: `PARAMETERS.md` (`[optimization_parameters]` objective values; three new `[solver_options]`
-  rows; `spendingSlack` description updated). `ui/Documentation.py` (intro paragraph; Goals expander
-  expanded to three-objective descriptions). `docs/modeling-capabilities.md` (**Objectives** and
-  **Spending profile** rows updated).
-- **Tests**: New `tests/test_hybrid_objective.py` with 13 tests covering solvability, h=0/h=1
-  ordering, floor binding, slack cap, time preference front-loading, default weight, option
-  ignore/reject behavior.
+- **`maxHybrid` objective**: Blends spending and bequest into a single LP objective. Controlled by
+  `spendingWeight` *h* ∈ [0, 1]: `h=1` maximizes spending only, `h=0` maximizes bequest only,
+  `h=0.5` gives equal weight (both terms normalized to present-value dollars).
+- **`spendingFloor`** (new): Hard lower bound on annual net spending (today's \$k) for `maxHybrid`.
+  Recommended to prevent degenerate zero-spending solutions when growth rates are high.
+- **`spendingWeight`** (new): Blend weight *h*; defaults to `0.5`.
+- **`timePreference`** (new): Discounts future spending exponentially (%/year), shifting the optimal
+  spending profile earlier. Supported for `maxSpending` and `maxHybrid`.
+- **`spendingSlack` for `maxHybrid`**: Repurposed as a one-sided cap (spending ≤ floor × (1 + slack%));
+  set to `0` (default) for no cap.
+- **UI (Goals page)**: New *Hybrid* choice in the Maximize radio group with spending floor input and
+  spending weight slider (0–1, step 0.05). Time preference slider in Spending Profile section
+  (0–10 %/yr, step 0.5).
+- **Schema**: `SolverOptions` gains `spendingWeight`, `spendingFloor`, and `timePreference`.
+- **Docs**: `PARAMETERS.md`, Documentation (Goals expander), `modeling-capabilities.md`
+  (Objectives and Spending profile rows) updated.
+- **Tests**: 13 tests in `tests/test_hybrid_objective.py`.
 
 ---
 
 ## Version 2026.03.29
 
-### Worksheets: age columns in saved Excel and real-dollar display/save
+### Worksheets: age columns, real-dollar display, and solver time limit
 
-- **`worksheet_show_ages`**: Age columns are now included in the **saved Excel workbook** (not just
-  the on-screen tables). The final balance row in each *Accounts* sheet also carries the correct age
-  (or a blank cell when beyond the individual's plan horizon).
-- **`worksheet_real_dollars`** (new): When `true`, all currency values in both the on-screen tables
-  and the saved Excel workbook are divided by the cumulative inflation factor `gamma_n`, converting
-  nominal dollars to today's (real) dollars. The saved filename gains a `_real` suffix
-  (`Workbook_<case>_real.xlsx`) to distinguish it from the nominal version. Toggled from the
-  *Worksheets* page and round-tripped in the case TOML under `[results]`.
-- **`worksheet_hide_zero_columns`**: Clarified as display-only; the saved Excel always retains all
-  columns. Age columns are protected from zero-column filtering.
-- **Worksheets page**: Expander renamed to *Table display and save options*; third toggle added for
-  the new real-dollars option.
-- **Reports page**: Download filename now reflects the `_real` suffix when `worksheet_real_dollars`
-  is enabled.
-- **Default solver time limit**: `maxTime` default changed from 900 s to 180 s. Shorter per-iteration
-  limits leverage SC-loop warm-starting and dramatically reduce total solve time on hard MILP cases.
-- **Docs**: `PARAMETERS.md` (`[results]` table updated; `worksheet_real_dollars` entry added;
-  example TOML updated). **Documentation** (Worksheets section) updated.
-- **Tests**: 9 new tests in `tests/test_export.py` covering age columns in saved Excel, real-dollar
-  scaling, `_real` filename suffix, and zero-column preservation.
+- **`worksheet_show_ages`**: Age columns now included in the saved Excel workbook (not just
+  on-screen). Final balance row carries the correct age; blank beyond the individual's horizon.
+- **`worksheet_real_dollars`** (new): Divides all currency values by the cumulative inflation factor
+  $\gamma_n$, converting nominal to today's dollars in both on-screen tables and the saved workbook.
+  Saved filename gains a `_real` suffix. Toggled on the Worksheets page; round-tripped in TOML.
+- **`worksheet_hide_zero_columns`**: Clarified as display-only; saved Excel retains all columns.
+  Age columns protected from zero-column filtering.
+- **Worksheets page**: Expander renamed to *Table display and save options*; real-dollars toggle added.
+- **Default solver time limit**: `maxTime` default reduced from 900 s to 180 s, leveraging
+  SC-loop warm-starting to cut total solve time on hard MILP cases.
+- **Docs**: `PARAMETERS.md` (`[results]` table and example TOML); Documentation (Worksheets).
+- **Tests**: 9 new tests in `tests/test_export.py`.
 
 ---
 
@@ -99,139 +99,101 @@
 
 ### Breaking change: HFP person sheets require all columns
 
-- **Household Financial Profile**: Each person worksheet must include **every** time-horizon column
-  (`year`, `anticipated wages`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`,
-  `Roth 401k ctrb`, `IRA ctrb`, `Roth IRA ctrb`, `HSA ctrb`, `Roth conv`,
-  `big-ticket items`). Omitting a column is an error; use `0` where unused.
-- **Examples**: All `examples/HFP_*.xlsx` workbooks checked; every person sheet includes the full header set.
-- **Template**: `examples/HFP_template.xlsx` includes `HSA ctrb` (and all other required columns) on each person sheet.
-- **Loader**: Clearer `ValueError` listing missing headers; legacy `other inc.` still normalized to `other inc`.
-- **Docs**: `PARAMETERS.md` HFP section expanded; Streamlit **Documentation → Financial Profile** aligned.
-- **Tests**: `tests/test_timelists.py` expects errors for workbooks missing required columns; example HFPs guarded by schema check.
+- Each person worksheet must include every time-horizon column: `year`, `anticipated wages`,
+  `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
+  `Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `big-ticket items`. Omitting a column is an error.
+- Clearer `ValueError` listing missing headers; legacy `other inc.` still normalized.
+- All `examples/HFP_*.xlsx` workbooks and `HFP_template.xlsx` updated.
+- **Docs**: `PARAMETERS.md` HFP section; Documentation (Financial Profile) aligned.
+- **Tests**: `tests/test_timelists.py` expects errors for missing required columns.
+
+---
 
 ## Version 2026.03.24
 
-### Streamlit Worksheets: optional ages and hide-zero columns
+### Worksheets: optional ages and hide-zero columns
 
-- **`[results]` / `Plan`**: New boolean options `worksheet_show_ages` and `worksheet_hide_zero_columns`
-  (default `false`), round-tripped in the case TOML like `default_plots`.
-- **Worksheets page**: *Table display options* expander with toggles; choices sync to the plan and
-  save with the case file. Layout: two controls in the first columns of a three-column row.
-- **Show ages**: Adds per-person age columns (integer, December 31 of each row year). Cells are
-  empty after that individual's plan horizon and for missing years. On-screen tables only —
-  Excel download from **Reports** is unchanged.
-- **Hide all-zero columns**: Drops numeric columns where every value is zero (tolerance); `year`
-  is never dropped. On-screen only; Excel unchanged.
-- **Docs**: `PARAMETERS.md` (`[results]` table and example TOML); **Help → Parameters Reference**
-  unchanged (renders `PARAMETERS.md`). **Documentation** (Results → Worksheets) updated.
-- **Tests**: `tests/test_worksheet_display_utils.py` for age and zero-column helpers.
+- **`worksheet_show_ages`** and **`worksheet_hide_zero_columns`** (new `[results]` options,
+  default `false`): round-tripped in TOML.
+- **Worksheets page**: *Table display options* expander with both toggles.
+- **Show ages**: Per-person age columns (integer, Dec 31 of each year); blank beyond horizon.
+  On-screen only — saved Excel unchanged.
+- **Hide all-zero columns**: Drops numeric columns where every value is zero; `year` never dropped.
+  On-screen only.
+- **Docs**: `PARAMETERS.md` (`[results]` table and example TOML); Documentation (Worksheets).
+- **Tests**: `tests/test_worksheet_display_utils.py`.
 
 ---
 
 ## Version 2026.03.12
 
 ### Medicare Part D
+
 - Part D premiums (IRMAA surcharges, same MAGI brackets as Part B) now included by default.
-- Optional Part D base premium: `medicarePartDBasePremium` (monthly $ per person); default 0.
-- `includeMedicarePartD` solver option (default `true`); set `false` for other drug coverage (e.g. employer, VA).
-- Schema, PARAMETERS.md, modeling-capabilities.md, owl.tex, and Run Options UI updated. TOML reproducibility baselines updated (Case_john+sally bequest).
+- `medicarePartDBasePremium`: optional monthly base premium per person (default `0`).
+- `includeMedicarePartD` solver option (default `true`); set `false` for other drug coverage
+  (employer plan, VA, etc.).
+- Schema, `PARAMETERS.md`, `modeling-capabilities.md`, `owl.tex`, and Run Options UI updated.
 
 ---
 
 ## Version 2026.03.11
 
 ### Decomposition fixes
-- Benders: skip zm pre-fixing when both individuals already on Medicare at plan start (`nm=0`); prevents SP LP infeasibility on later iterations.
-- Benders: add gap and stall termination checks after master MIP step.
+
+- Benders: skip zm pre-fixing when both individuals are already on Medicare at plan start;
+  prevents SP LP infeasibility on later iterations.
+- Benders: gap check and stall-detection added after the master MIP step.
 
 ---
 
 ## Version 2026.03.10
 
-### New feature: LTCG and NIIT exact MIP formulations
+### LTCG and NIIT exact MIP formulations
 
-- **`withLTCG="optimize"`**: Long-term capital gains bracket selection is now available as an
-  exact MILP formulation. Binary variables (`zl`) replace the self-consistent loop's heuristic
-  bracket assignment for ordinary income stacking, giving provably correct LTCG tax rates.
-- **`withNIIT="optimize"`**: Net Investment Income Tax (3.8%) can now be embedded in the MIP
-  as a binary selection on whether MAGI exceeds the $200k/$250k threshold (`zj`). Most
-  effective when used together with `withLTCG="optimize"`.
-- Both modes are exposed in the UI as expert toggles under Advanced Options.
-- New tests: `tests/test_ltcg_lp.py` (LTCG MILP, 6 new tests) and `tests/test_niit_milp.py`
-  (NIIT MILP, 6 new tests).
+- **`withLTCG="optimize"`**: Binary variables (`zl`) replace the SC-loop heuristic for LTCG
+  bracket assignment, giving provably correct long-term capital gains tax rates.
+- **`withNIIT="optimize"`**: Binary selection (`zj`) on whether MAGI exceeds the \$200k/\$250k
+  NIIT threshold. Most effective combined with `withLTCG="optimize"`.
+- Both modes exposed as expert toggles in the UI (Advanced Options).
+- **Tests**: `tests/test_ltcg_lp.py` (6 tests) and `tests/test_niit_milp.py` (6 tests).
 
-### New feature: MIP decomposition (`withDecomposition`)
+### MIP decomposition (`withDecomposition`)
 
-When multiple `"optimize"` flags are active simultaneously (Medicare, ACA, LTCG, NIIT, SS
-taxability), the monolithic MIP can be slow due to the combined binary variable count
-(~400 binaries for a typical two-person plan). Two decomposition strategies are now available:
+When multiple `"optimize"` flags are active simultaneously, the monolithic MIP can be slow
+(~400 binaries for a typical two-person plan). Two strategies are available:
 
-- **`"sequential"` (relax-and-fix heuristic)**: Solves the LP relaxation, then rounds and
-  fixes bracket binary families one at a time (`zl → zs → zj → zm → za`), re-solving a
-  reduced MIP after each fix. Fast, but not guaranteed globally optimal.
-- **`"benders"` (certified global optimum)**: Classical Benders decomposition separating
-  bracket-selection binaries (master MIP: `zm`, `za`, `zs`, `zj`) from continuous
-  planning variables (subproblem LP/MIP, which also optimizes `zl` and `zx`). Generates
-  dual-based optimality cuts at each iteration to certify global optimality within the
-  specified `gap`. In practice, convergence occurs in 1–3 iterations. Supports both
-  HiGHS and MOSEK.
-- `"none"` (default): monolithic MIP, unchanged from previous behavior.
-- Both modes fall back to monolithic MIP when no bracket binaries are present.
-- New solver option `bendersMaxIter` (default 50) controls maximum Benders iterations.
-- New tests: `tests/test_decomposition.py` (11 tests covering sequential, Benders,
-  jack+jill, bequest objective, prevMAGI regression, and max-iter termination).
+- **`"sequential"` (relax-and-fix heuristic)**: LP relaxation → round and fix bracket families
+  one at a time (`zl → zs → zj → zm → za`) → solve reduced MIP. Fast but not globally optimal.
+- **`"benders"` (certified global optimum)**: Classical Benders decomposition — bracket-selection
+  binaries in the master MIP, continuous planning in the subproblem LP/MIP. Dual-based optimality
+  cuts certify global optimality. Converges in 1–3 iterations in practice. HiGHS and MOSEK supported.
+- **`"none"`** (default): monolithic MIP (unchanged).
+- `bendersMaxIter` option (default 50) caps Benders iterations.
+- **Tests**: 11 tests in `tests/test_decomposition.py`.
 
-### HiGHS: direct API (scipy removed)
+### HiGHS direct API
 
-- HiGHS is now called directly via `highspy` — the `scipy.optimize.linprog` proxy has been
-  removed. This eliminates an unnecessary dependency and avoids format-conversion overhead.
-- `abcapi.py`: Added `ConstraintMatrix.to_csr()` returning `(a_start, a_index, a_value)` in
-  HiGHS rowwise CSR format. Warm-start support via `self._highs_warm_start` in `solve()`.
-- New internal helpers: `_run_highs()`, `_run_highs_lp_with_duals()`, `_run_mosek_lp_with_duals()`,
-  `_run_mosek_mip()`, `_run_lp_with_duals()`, `_run_mip()`.
-- **PuLP/CBC and PuLP/HiGHS removed**: Only HiGHS (direct) and MOSEK are supported.
-  Solver selector in the UI updated to show only `default`, `HiGHS`, and `MOSEK`.
+- HiGHS is now called directly via `highspy`; the `scipy.optimize.linprog` proxy is removed.
+- **PuLP/CBC and PuLP/HiGHS removed**: only HiGHS (direct) and MOSEK are supported.
+- `abcapi.py`: `ConstraintMatrix.to_csr()` returns HiGHS rowwise CSR format. Warm-start via
+  `_highs_warm_start`.
+
+### `owlcli`: schema-driven solver options
+
+- `SolverOptions` Pydantic model in `schema.py` is the single source of truth; used by TOML
+  load, `plan_bridge`, and the CLI.
+- **`--help-solver-options`**: Parses `PARAMETERS.md` at runtime — always in sync with docs.
+- **`--solver-opt KEY=VALUE`**: Override any solver option on the command line.
+- **Solver choices**: `--solver` now accepts only `default`, `HiGHS`, and `MOSEK`.
 
 ### UI and configuration
 
-- **Run Options**: New expert toggles for *Optimize LTCG brackets* and *Optimize NIIT*.
-  New *MIP decomposition* radio (`none` / `sequential` / `benders`) enabled when any optimize
-  mode is active.
-- **`withMedicare` / `noRothConversions`**: Legacy TOML values using capital `"None"` are
-  now silently coerced to lowercase `"none"` for consistency.
-- **`config_to_ui` / `ui_to_config`**: `withDecomposition` wired through both directions;
-  legacy boolean `True` coerced to `"sequential"`.
-- **PARAMETERS.md**: Added `withDecomposition` and `bendersMaxIter` entries.
-- **Documentation page**: Updated solver section; removed CBC/PuLP references; added
-  description of sequential and Benders modes.
-
-### owlcli: schema-driven solver options
-
-- **`schema.py` as single source of truth**: `SolverOptions` Pydantic model in `schema.py`
-  defines every known solver option with its type and validation. `parse_solver_options()`
-  coerces and validates raw dicts through the schema; used by TOML load, `plan_bridge`, and
-  the CLI so option handling is consistent everywhere.
-- **`--help-solver-options`**: `owlcli run --help-solver-options` now parses PARAMETERS.md
-  at runtime to display the full formatted solver-options table directly in the terminal —
-  always in sync with the documentation, no hardcoded list.
-- **`--solver-opt KEY=VALUE`**: Any solver option can be overridden on the command line via
-  `--solver-opt withMedicare=optimize --solver-opt withDecomposition=benders`. Values are
-  mapped through `CLI_SOLVER_OVERRIDE_MAP` (for snake_case aliases like `max-time`) and
-  then validated by `parse_solver_options()`.
-- **Solver choices updated**: `--solver` now accepts only `default`, `HiGHS`, and `MOSEK`
-  (PuLP/CBC and PuLP/HiGHS removed).
-- **PARAMETERS.md fixes**: Updated `solver` to remove PuLP entries; `noRothConversions` and
-  `withMedicare` `"None"` values normalized to lowercase `"none"` throughout; `withDecomposition`
-  fix-sequence corrected to include LTCG and NIIT (`zl → zs → zj → zm → za`).
-
-### Bug fixes
-
-- **Benders + 2-person prevMAGI regression**: For plans where both individuals are already
-  on Medicare at plan start (`nm=0`), zm pre-fixing is now skipped in Benders mode.
-  All zm positions are pinned to their LP-relaxation h-based values in the master bounds,
-  preventing SP LP infeasibility on iterations 2+.
-- **Benders convergence**: Two missing termination checks added after the master MIP step —
-  gap check (close if UB−LB ≤ tolerance) and stall detection (terminate if z* is unchanged).
+- Run Options: expert toggles for *Optimize LTCG brackets* and *Optimize NIIT*; *MIP decomposition*
+  radio (`none` / `sequential` / `benders`).
+- `withDecomposition` wired through `config_to_ui` / `ui_to_config`; legacy boolean `True` coerced
+  to `"sequential"`.
+- **`PARAMETERS.md`**: `withDecomposition` and `bendersMaxIter` entries added.
 
 ---
 
@@ -239,533 +201,147 @@ taxability), the monolithic MIP can be slow due to the combined binary variable 
 
 ### ACA marketplace (pre-65) UI exposure
 
-- **Run Options**: New *ACA Marketplace (Pre-65)* section with SLCSP benchmark premium input. 
-   *Optimize ACA (expert)* toggle in Advanced options (enabled only when SLCSP > 0).
-- **Config / UI bridge**: `aca_settings` and `withACA` flow through config_to_ui, ui_to_config, and genDic.
-- **Documentation**: ACA added to self-consistent loop description;
-   Optimize ACA listed in Advanced options; USER_GUIDE clarified for showTaxes vs. ACA in summary/export.
-- **Example**: Case_morgan illustrates ACA modeling with pre-65 retiree.
+- **Run Options**: New *ACA Marketplace (Pre-65)* section with SLCSP benchmark premium input.
+  *Optimize ACA (expert)* toggle in Advanced Options (enabled only when SLCSP > 0).
+- Config/UI bridge: `aca_settings` and `withACA` wired through `config_to_ui`, `ui_to_config`,
+  and `genDic`.
+- **Example**: `Case_morgan` illustrates ACA modeling for a pre-65 retiree.
+- **Documentation**: ACA added to the self-consistent loop description.
 
-### New feature: support for HSA accounts
+### HSA accounts (fourth savings account type)
 
-- A fourth type of savings account HSA) is now in the mix. The tax advantage of HSA
-is used to pay Medicare and IRMAA premiums.
-- Formulation is modified to account for withdrawals
-- Contributions made through W&C table
-- New tests for HSA
-- Rewrite examples to use new capabilities and extend coverage
-- Documentation update
+- HSA balances tracked alongside taxable, tax-deferred, and tax-free accounts (`j=3`).
+- Pre-tax contributions reduce ordinary income, SS provisional income, and MAGI. Contributions
+  zeroed at Medicare enrollment age (IRC §223). All withdrawals treated as qualified (tax-free).
+- Non-spouse heirs include the full HSA balance in ordinary income (IRC §223(f)(8)(B)); bequest
+  discounted accordingly.
+- `setAccountBalances(hsa=...)` and `setHSA(balances, medicare_ages)` convenience method.
+  Account allocation, asset composition, and Fixed Income page updated.
+- **Tests**: 9 tests in `tests/test_hsa.py`.
+
+---
 
 ## Version 2026.03.07
 
-### New feature: "net inv" column in HFP
+### `"net inv"` column in HFP
 
-A new optional column `net inv` (net investment income from rent or trust distributions) is
-supported in the Wages and Contributions spreadsheet.
-
-- **LP constraints**: `netinv_in` enters the cash-flow, taxable-income, SS-taxability
-  provisional-income, and MAGI/IRMAA lookback constraints alongside `other_inc_in`.
-- **NIIT**: `netinv_in` is added to `I_n` (interest/dividend NII) before `computeNIIT()` is
-  called, so rent and trust income is now correctly subject to the 3.8% net investment income tax.
-- **Backward compatible**: HFP files without the column default to zero on read; the column is
-  written on every save.
-- **Sources sheet**: `"net inv"` appears in each individual's Sources sheet in the Excel workbook.
+- New optional `net inv` column (net investment income from rent or trust distributions) in the
+  Wages and Contributions spreadsheet. Enters cash-flow, taxable-income, SS-taxability, and MAGI
+  constraints; counted in NII for NIIT. Backward compatible (defaults to zero when absent).
+- `"net inv"` appears in each individual's Sources sheet in the workbook.
 
 ### Pension survivor benefits
-- **Joint-and-survivor (J&S) option**: Surviving spouse receives a configurable fraction
-(0–100%) of the primary's pension after death. Config: `pension_survivor_fraction`; UI: Fixed Income page.
 
-### Documentation
-- **`tax2026.computeNIIT()`**: Removed stale "not yet modeled" comment; docstring now states
-  that `I_n` already includes rent/trust income from `net inv`.
-- **`papers/owl.tex`**: Added `ν_{in}` to the parameter symbol table; added `+ ν_{in}` to all
-  constraint equations that previously contained `υ_{in}`; updated the NIIT implementation and
-  limitations subsections.
-- **`PARAMETERS.md`**: Documented `other inc` and `net inv` optional columns with descriptions.
-
-### Bug fixes
- - Audited rate models and fixed check for attributes.
+- **Joint-and-survivor (J&S) option**: Surviving spouse receives a configurable fraction (0–100%)
+  of the primary's pension after death. Config: `pension_survivor_fraction`; UI: Fixed Income page.
 
 ---
 
 ## Version 2026.03.05
 
 ### Rate models
-- **Lognormal rate model**: New `lognormal` method — samples from a correlated log-normal
-  distribution with user-specified arithmetic means, volatilities, and correlations. Returns
-  are strictly bounded below by −100% and right-skewed, consistent with Geometric Brownian
-  Motion. Contrasts with `gaussian`/`stochastic` which allow unbounded (negative) returns.
-- **Histolognormal rate model**: New `histolognormal` method — fits a correlated log-normal
-  model to the selected historical window and samples from it. Log-space mean and covariance
-  are estimated directly from history; returns are right-skewed and bounded below −100%.
-  Provides a history-grounded alternative to user-parameterized `lognormal`.
-- **VAR(1) rate model**: New `var` method — a parametric Vector Autoregression model fitted by
-  Ordinary Least Squares on a historical window. Captures year-to-year serial correlations
-  (momentum and mean-reversion) across all four asset classes simultaneously, with optional
-  spectral shrinkage for stationarity. Useful for sequence-of-returns risk analysis when
-  persistence of returns matters.
-- **Bootstrap and VAR in UI**: `bootstrap_sor` and `var` are now exposed in the Rates Selection
-  and Monte Carlo pages alongside `histochastic` and `stochastic`.
-- **Monte Carlo guard fix**: `runMC()` now uses `rateModel.deterministic` attribute instead of a
-  hardcoded method-name check, so any current or future stochastic model works automatically.
+
+- **`lognormal`** (new): Correlated log-normal with user-specified arithmetic means, volatilities,
+  and correlations. Returns bounded below −100%, consistent with Geometric Brownian Motion.
+- **`histolognormal`** (new): Fits a correlated log-normal to the selected historical window.
+  History-grounded alternative to `lognormal`.
+- **`var`** (new): VAR(1) model fitted by OLS on a historical window. Captures year-to-year serial
+  correlations across all four asset classes; optional spectral shrinkage for stationarity.
+- `bootstrap_sor` and `var` now exposed in the Rates Selection and Monte Carlo pages.
+- **MC guard fix**: `runMC()` uses `rateModel.deterministic` attribute instead of a hardcoded name
+  check.
 
 ### Rates Selection UI redesign
-- **Selectbox with description**: The constant-preset and varying-method selectors are now
-  `st.selectbox` widgets (replacing horizontal radio buttons) with a concise description caption
-  below each, surfaced directly from the rate model's metadata.
-- **User-facing model descriptions**: All rate model `description` attributes updated to be
-  concise and user-oriented rather than developer-oriented.
+
+- Constant-preset and varying-method selectors are now `st.selectbox` widgets with a concise
+  description caption surfaced from each model's metadata.
 
 ### Bug fixes
-- **Historical range runs**: `reverse_sequence` and `roll_sequence` options were silently ignored
-  in non-augmented historical range runs — `plan.py` hardcoded `(False, 0)` and `owlbridge.py`
-  never read them from session state.
-- **Minimum balance warning**: Run Options page now shows a warning when the minimum balance
-  constraint is set so high it may cause infeasibility.
 
-### UI
-- **Rename Simulations → Stress Tests**: Page and all documentation references updated.
-- **Tooltips**: Rewording of several Run Options tooltips for clarity.
-
-### Documentation
-- **Rates Selection section**: Full rewrite covering all five varying methods, including
-  `bootstrap_sor` sub-strategies and `var`; added sequence-of-returns risk note for constant
-  rates; added method-comparison table (Rate type, Character, Pros, Cons).
-- **Monte Carlo section**: Expanded with prerequisite method guidance, trial-count
-  recommendations, and performance tips.
-- **PARAMETERS.md / RATE_MODELS.md**: Updated for new `var` model.
-- **owl.tex/pdf**: Updated with VAR(1) methodology.
+- `reverse_sequence` and `roll_sequence` were silently ignored in non-augmented historical range
+  runs; both now read from session state and passed correctly.
+- Run Options page warns when the minimum balance constraint may cause infeasibility.
+- **Rename**: *Simulations* → *Stress Tests* throughout.
 
 ### Tests
-- `test_rate_model_var.py` — 24 new tests: shape, reproducibility, fitting internals, Cholesky
-  structure, shrinkage, parameter validation, reverse/roll transforms, and MC integration.
-- `test_export.py` — new export regression tests.
+
+- `test_rate_model_var.py`: 24 tests (shape, reproducibility, fitting, Cholesky, shrinkage,
+  parameter validation, reverse/roll, MC integration).
 
 ---
 
 ## Version 2026.02.24
 
 ### HFP (Household Financial Profile)
-- **Optional "other inc" column**: Wages and contributions tables support an optional *other inc* (other ordinary income) column for income such as part-time work, consulting, or royalties. Older HFP files without this column default to zero for backward compatibility. Files with the legacy "other inc." header are read correctly. `scripts/add_other_inc_column.py` adds the column to existing Excel files.
-- **Reports page warning**: When HFP values were edited in the UI, the Reports page now shows a warning advising users to download the Financial Profile workbook for reproducibility. The Case parameter file alone cannot reproduce the run when HFP data was edited.
-- **Drawdown test case**: `Case_drawdowncalc-comparison-1` now has `HFP_file_name = "None"` since it has no associated HFP (test case only). Most realistic cases should have an HFP.
-- **CLI README**: Updated example output and description for plans with no HFP and for edited values.
 
-### Configuration and TOML
-- **Issue #96**: Case-insensitive `case_` prefix check when saving TOML. Case files named with different casing (e.g., `case_foo`) are now handled correctly.
+- **Optional `"other inc"` column**: Other ordinary income (consulting, royalties, etc.) in the
+  wages and contributions table. Backward compatible; `scripts/add_other_inc_column.py` migrates
+  existing files.
+- **Reports page**: Warning shown when HFP values were edited in the UI (case file alone cannot
+  reproduce the run).
+
+### Configuration
+
+- Case-insensitive `case_` prefix check when saving TOML (issue #96).
 
 ### Code organization
-- **Extracted modules**: `pension.py` (pension benefit timing) and `spending.py` (spending profile generation) extracted for clarity and testability.
-- **Refactoring**: SS tax logic moved to `tax2026.py`, `setSocialSecurity` logic to `socialsecurity.py`; gamma/rate transform moved to `rates.py`, oscillation detection to `utils.py`. Documentation and PARAMETERS.md updated for SS trim and dynamic Psi_n.
 
-### Tests
-- Reproducibility test stability improvements: widened tolerances for HiGHS version differences across Python releases; fixed test_clone1 tolerance (REL_TOL vs ABS_TOL).
+- `pension.py` and `spending.py` extracted from `plan.py`. SS tax logic moved to `tax2026.py`;
+  `setSocialSecurity` logic to `socialsecurity.py`; gamma/rate transforms to `rates.py`;
+  oscillation detection to `utils.py`.
 
 ---
 
 ## Version 2026.02.23
 
-### Social Security accuracy improvements
-- **Dynamic SS taxability fraction**: `Psi_n` (the fraction of SS benefits subject to
-  federal income tax) is now computed each self-consistent-loop iteration using the IRS
-  provisional income formula instead of a fixed 85%. Thresholds follow IRS rules frozen
-  since 1983/1994 — MFJ: 0% below $32k PI, up to 50% to $44k, 85% above; Single: $25k/$34k.
-  A 30% damping blend ensures SC-loop convergence. Retirees with lower income now get a
-  more accurate (lower) tax on SS benefits, improving Roth conversion and spending results.
-- **`withSSTaxability` solver option**: pin `Psi_n` to a fixed value by passing a float in [0, 0.85] as `withSSTaxability` in solve options (e.g. `0.0`, `0.5`, `0.85`). Supersedes the old `tax_fraction` parameter to `setSocialSecurity()`.
-- **Corrected FRA table**: `getFRAs()` now returns the correct Full Retirement Age for
-  birth years 1938–1942 (65+2/12 to 65+10/12 per the SSA table), instead of the
-  incorrect 66.
+### Social Security accuracy
 
-### Social Security trim
-- **Remove `trim_year` fallback**: A TOML config with `social_security_trim_pct > 0`
-  but no `social_security_trim_year` now raises an error instead of silently defaulting
-  to 10 years from now. Supply both fields together.
-- **Better UI default**: The "Starting year" field for SS benefit reduction now defaults
-  to 2033 (the SSA Trustees Report projection for OASI trust-fund exhaustion) instead of
-  an arbitrary `current year + 10`.
-- **Disabled year widget**: The "Starting year" input is now greyed out in the UI when
-  the reduction percentage is 0.
+- **Dynamic SS taxability fraction**: `Psi_n` now computed each SC iteration from the IRS
+  provisional income formula (MFJ: \$32k/\$44k; single: \$25k/\$34k) with 30% damping for
+  convergence, replacing a fixed 85%. Retirees with lower income get more accurate (lower) SS taxation.
+- **`withSSTaxability`**: Pin `Psi_n` to a fixed value in [0, 0.85] (replaces `tax_fraction`
+  parameter to `setSocialSecurity()`).
+- **FRA table fix**: `getFRAs()` now returns the correct Full Retirement Age for birth years
+  1938–1942 (65+2/12 to 65+10/12 per SSA table).
 
-### Tests
-- TOML reproducibility tests now force HiGHS as the solver for consistent results across
-  environments (eliminates MOSEK vs. HiGHS non-determinism in the full test suite).
-- Updated regression baselines to reflect the corrected SS taxation calculations.
+### SS trim
+
+- `social_security_trim_pct > 0` without `social_security_trim_year` now raises an error instead
+  of silently defaulting to 10 years from now.
+- SS trust-fund exhaustion default changed to 2033 (SSA Trustees Report projection).
+- "Starting year" widget greyed out when reduction percentage is 0.
 
 ---
 
 ## Version 2026.02.20
 
 ### UI
-- **Create Case redesign**: Replace sentinel-based selectbox entries (`New Case...`, `Upload Case File...`) with explicit widgets. When no case is selected, the page shows three columns side by side: create from scratch, upload a TOML case file, and load an example. When a case is already active, a collapsible expander provides the same options for adding more cases.
-- **Inline HFP uploader**: After a case is created, an HFP upload widget appears directly on the Create Case page (when no HFP has been loaded yet), allowing a full case setup without leaving the page.
-- **Streamlit compatibility**: Remove version pin (`== 1.52.2`) and `altair < 5` restriction from `requirements.txt`; manage selectbox value entirely via session state to avoid the newer Streamlit "default value + Session State API" conflict.
+
+- **Create Case redesign**: Three columns (create, upload, load example) when no case is active;
+  collapsible expander when a case is already loaded.
+- **Inline HFP uploader**: After case creation, an HFP upload widget appears directly on the
+  Create Case page.
+- **Streamlit compatibility**: Version pin and `altair < 5` restriction removed from
+  `requirements.txt`.
 
 ---
 
 ## Version 2026.02.19
 
 ### Rate models
-- **BuiltinRateModel decomposition**: Replace single dispatcher with 8 concrete `BaseRateModel` subclasses (Default, Optimistic, Conservative, User, Historical, HistoricalAverage, Stochastic, Histochastic), each with its own metadata and `generate()`. `BuiltinRateModel` shim preserves backward compatibility.
-- **Stochastic UI fix**: Builtin rate model accepts config-style parameter names (`standard_deviations`, `correlations`) in addition to API names (`stdev`, `corr`). Fixes "Rate model 'builtin' requires parameter 'stdev'" when stochastic rates are selected in the UI. Name remap moved into `BuiltinRateModel.__init__`.
-- **getRatesDistributions** (issue #92): Standardize to return percent by default; add optional `df=` parameter to accept user-supplied DataFrame (e.g. from DataFrameRateModel) for distribution statistics.
-- **DataFrame rate model** (issue #92): Rename TNotes/TBills to T-Notes/T-Bills in CSV and `REQUIRED_RATE_COLUMNS`; add `in_percent` parameter to replace heuristic; align `RATE_DISPLAY_NAMES_SHORT` with column names for direct workbook→dataframe use; enforce bool type on `in_percent`.
-- **Rates UI**: Rename label 'fixed' to 'constant' in rates selection (radio, tooltips, section labels, `rateType` comparisons).
+
+- **`BuiltinRateModel` decomposition**: Single dispatcher replaced by 8 concrete `BaseRateModel`
+  subclasses. `BuiltinRateModel` shim preserves backward compatibility.
+- **Stochastic UI fix**: Builtin rate model now accepts config-style parameter names
+  (`standard_deviations`, `correlations`) in addition to API names.
+- **`getRatesDistributions`** (issue #92): Returns percent by default; accepts optional `df=`
+  parameter for user-supplied DataFrames.
+- **DataFrame rate model** (issue #92): Column names standardized (T-Notes/T-Bills); `in_percent`
+  parameter replaces heuristic; display names aligned with column names.
+- Rates UI: label `'fixed'` renamed to `'constant'`.
 
 ### Social Security
-- **SS trim**: Add trim percent and year to SS benefits (reduction from a given year onward). Config, schema, UI bridge, and Fixed Income page updated.
-- Fix SS trim params not properly saving from UI.
 
-### Code maintainability and reduction
-- **Config UI bridge**: Add `_get_ui` helper to replace repeated `uidic.get(key, default) or default` patterns (~30 occurrences).
-- **Rate display constants**: Add `RATE_DISPLAY_NAMES` and `RATE_DISPLAY_NAMES_SHORT` in `rate_models/constants.py`; use in plotting backends and plan.
-- **Plotly backend**: Extract legend/layout dicts to module constants (`_LEGEND_TOP`, `_LEGEND_BOTTOM`, `_LEGEND_BOTTOM_REVERSED`).
-- **Matplotlib backend**: Refactor `plot_rates_distributions` to use a loop over rate names/data.
-- Net ~90 lines removed.
-
-### UI
-- Rename "copy case" to "copy parameters".
-- Make asset names consistent everywhere (issue #92).
-- Change worksheets output to % (issue #92 partial).
-
-### Documentation and notebooks
-- Update documentation and doc alignment.
-- Fix broken notebooks.
-
-### Code quality
-- Flake8: fix E402 in `matplotlib_backend.py` (imports after `os.environ` for Jupyter); general lint fixes.
+- SS trim (reduction from a given year onward): config, schema, UI bridge, and Fixed Income page.
 
 ---
-
-## Version 2026.02.17
-
-### Rates API consolidation
-- **Single API**: Consolidate `Rates.setMethod` and `Plan.setRates` into one API. Use `Plan.setRates()` as the sole entry point.
-- **Remove Rates class**: Deprecate and remove the legacy `Rates` class from `rates.py`. Rate generation logic moved to `BuiltinRateModel` and `rate_models._builtin_impl`.
-- **New `rate_models/_builtin_impl.py`**: Helper functions for built-in rate methods (fixed, historical, stochastic) used by `BuiltinRateModel`.
-- **Canonical fixed rates**: Single source of truth in `rates.py`. Add `get_fixed_rates_decimal()`; remove duplicate definitions from `_builtin_impl`.
-
-### Rate model constants
-- **`rate_models/constants.py`**: Centralize method name sets (e.g. `FIXED_PRESET_METHODS`, `HISTORICAL_RANGE_METHODS`, `RATE_METHODS_NO_REGEN`, `STOCHASTIC_METHODS`) for use across plan, config, UI, and plotting.
-- Remove `CONSTANT_RATE_METHODS` and `RATE_METHODS_NO_REGEN` from `rates.py` (now in rate_models).
-
-### Documentation
-- Rename `LegacyRateModel` to `BasicRateModel` in plugable-rates docs.
-- Update plugable-rates Step 2 to reflect BuiltinRateModel architecture.
-
-### Tests
-- Migrate `test_rates.py` from `Rates.setMethod` to `BuiltinRateModel` and `Plan.setRates`.
-
----
-
-## Version 2026.02.16
-
-### Rates
-- **Pluggable rate model architecture**: New `owlplanner.rate_models` package with loader, base class, and pluggable model resolution.
-  - Basic methods (default, optimistic, conservative, user, historical, historical average, stochastic, histochastic) wrapped via `BasicRateModel`.
-  - Built-in `dataframe` and `bootstrap_sor` models.
-  - External plugin support via `method_file=` in `setRates`.
-- **DataFrame rate method** (issue #84): Supply rates from a pandas DataFrame with columns S&P 500, Bonds Baa, TNotes, Inflation; supports year-based or sequential mode with optional offset.
-- **Remove mean/means aliases**: Drop deprecated rate method aliases; use `historical average` only.
-
-### Constraints and optimization
-- **Safety net**: Add constraint for minimum taxable account balance per individual; configurable per spouse, applies from year 2 onward.
-- Add caption on infeasibility when safety net exceeds bequest target.
-- Enhance optimization page of UI.
-
-### Configuration and UI
-- Rename contributions -> Household Financial Profile (HFP) for consistency.
-- Discovery UI helpers for rate models and metadata.
-- Tooltip and wording improvements; fix int/float conversion for fixed income age.
-- Fix `startRothConversions` in examples; clamp year when in the past.
-- Highlight create-on-copy in UI.
-
-### Documentation and notebooks
-- Add README and docs for pluggable rate models and SOR (sequence-of-returns) models.
-- Update template notebook: fix outdated rate method names (`average` -> `historical average`, `fixed` -> `user`), remove obsolete "means" mention.
-
-### Code quality
-- Flake8 fixes across scripts (cumulative_returns_analysis, roth_case_study, time_time_correlation, etc.) and tests.
-- Remove undefined `sc_damping` from roth_case_study; fix type hints and line length.
-
----
-
-## Version 2026.02.13
-- Add capability to include user-defined tokens in configuration file
-
----
-
-## Version 2026.02.12
-- Improve integration wih MOSEK 
-
----
-
-## Version 2026.02.06
-### Multiple scenarios
-- Add capabilities for running augmented historical range.
-- Add log scale option to histograms
-
----
-
-## Version 2026.02.04
-
-### Optimization
-- Reduce default gap for MILP optimization with withMedicare is optimized.
-
----
-
-## Version 2026.02.02
-
-### Rates
-- **Rate sequence modifiers** (issue #77): Add reverse and roll options for varying rate methods.
-  - New `reverse_sequence` (boolean) and `roll_sequence` (integer) in `setRates`, config, and TOML.
-  - UI: Reverse toggle and Roll (years) in Rates Selection -> Advanced Options.
-  - Historical Range: same reverse/roll options in Advanced Options; `runHistoricalRange` accepts `reverse` and `roll` and applies them to each year’s historical sequence.
-  - Ignored for fixed/constant rate methods (with warning). Documented in PARAMETERS.md and Documentation.
-
-### Landing page and Quick Start
-- Update landing page (layout, link to repo, instructions for beginners).
-- Add short description of what optimization is performed.
-- Fix Quick Start line length (flake8).
-
-### UI and examples
-- Highlight current year in timelist and in worksheets (this year’s accounts).
-- Fix case status incorrectly set to modified when visiting Create Case page (getDate/sskeys).
-- Fix Joe’s example missing `withMedicare` option.
-- Fix Social Security URL on Fixed Income page.
-
-### Documentation and parameters
-- Sync Documentation.py with UI: TOC (Parameters Reference, Quick Start icon), Create Case labels, Output Files button names, Roth conversion toggle wording, Resources link, case file naming.
-- Update owl.tex description.
-- Document lexicographic weight and self-consistent loop default tolerance in docs.
-- PARAMETERS.md: document `reverse_sequence` and `roll_sequence`.
-
----
-
-## Version 2026.01.28
-- Recoded Medicare optimization algorithm for SOS1 formulation.
-- Updated documents and parameters.
-- Added lexicographic weight epsilon in solver options.
-
-## Version 2026.01.26
-- Updated Jupyter notebooks.
-- Improved logging.
-
-## Version 2026.01.21
-- Move "optimize" Medicare option to advanced section.
-- Add solver option to disable surpluses in late years.
-- Rename XOR → AMO as correct term.
-
-## Version 2026.01.20
-- Fix negative taxable gains in years of negative returns
-- Fix limits in UI not allowing negative rates
-- Add more control hooks on solver (xor, maxIter)
-- Clarify docs for reference year of fixed assets
-- Improve logging while reading fixed assets and debts
-- Bring most hard-coded constants to top of file
-- Enable Python 3.14 in GH CI
-- Investigate tests on GH failing due to different linear solver
-- Disallow conversions and surplus in last 2 years
-- Connect MOSEK logger with verbose keyword.
-
-## Version 2026.01.17
-- Add more parameters to control solver
-- Add capability to specify years from last in fixed assets
-- Document negative/zero fixed-asset disposition years and update UI tooltip
-- Add tests for negative/zero fixed-asset disposition years
-- Improved default values for broader case applicability.
-
-## Version 2026.01.16
-- Extend longevity table to 120 and add safety checks.
-- Add 15% of untaxed SS back to MAGI.
-- Update documentation (TeX).
-- Adjust reproducibility tests.
-
-## Version 2026.01.15
-- Fix LTCG tax computation (self-consistent stacking accuracy).
-- Add non-taxable portion of SS to MAGI.
-- Fix cash flow to include all fixed-asset proceeds.
-- Apply max Roth conversion cap across both spouses.
-- Clarify SS tax fraction vs LTCG effective rate.
-- Align documentation and reproducibility baselines with code.
-
-## Version 2026.01.12
-- Merge binary exclusion constraints for both spouses (one set per year instead of per individual)
-  - Update paper to reflect binary variables $z_{nz}$ shared across both spouses
-  - Reduce binary variable count from $4N_iN_n$ to $4N_n$ for married couples
-- Improve loop detection for oscillatory solutions
-- Expose tolerance and bigM parameters for solver experiments
-- Add 15-minute time limit for solution
-- Fix rare UI condition when starting Upload Case and hopping to Logs
-- Change convergence criteria to only consider objective function (not solution vector)
-- Split bigM between XOR exclusion constraints and IRMAA Medicare conditions.
-
-## Version 2026.01.08
-- Fix dividends being taxed twice on taxable account withdrawals
-- Remove int32 normalization of seed (reverted from 2026.01.07)
-- Remove unused file-based rates parameters (rateFile, rateSheetName, workbook_file, worksheet_name)
-  - Clean up leftover code from deprecated file method for reading rates
-  - Remove from plan.py, config.py, owlbridge.py, and Rates_Selection.py
-  - Update PARAMETERS.md to remove file method documentation
-- Add tip help to case delete operation in UI
-- Update paper PDF to reflect change in dividend tax calculation
-- Replace duplicate owl.tex and images with symlinks to avoid duplication
-- Refactor code in config.py, debts.py, fixedassets.py, and utils.py
-- Add tests to increase coverage and harden code.
-
-## Version 2026.01.07
-- Normalize seed to fit in signed int32 (issue #59)
-- Remove animation
-- Update Damodaran rates for 2025
-- Make Kim+Sam cases consistent
-- Make minor edits in About page.
-
-## Version 2026.01.05
-- Migrate examples and TOML configuration to snake_case (closing issue #52)
-    - Optimizer still uses camelCase for distinction
-- Add reproducibility flag and merge reproducibility branch
-- Add year field for Fixed Assets (issue #57)
-- Add check on Debts validation
-- Fix bug in timelist when missing years
-- Fix withMedicare config when no longer Boolean
-- Add confirm button to case delete in UI
-- Add preliminary file listing TOML parameters (PARAMETERS.md)
-- Add script to build container on macOS/Linux
-- Fix Streamlit race condition and column conditioning
-- Update all cases and repro tests for 2026
-- Improve documentation on self-consistent loops and Medicare
-- Improve documentation and terminology on fixed assets
-- Make Create Case page more consistent
-- Update About page to point to AUTHORS file
-- Add one-to-many map for HFP-case in examples
-- Update kim+sam example for sharing
-- Clean license and authorship
-- Improve Summary output styling
-
-## Version 2025.12.29
-- Integrate loguru logging system with global log and filters
-    - Split logger per object
-    - Add persistence in TOML file
-    - Update logger when case is renamed
-    - Use a stack for verbose status
-    - Address multiline logs (issue #36)
-    - Check case name in first line of log group
-- Add id to allow name change and log filtering (issue #36)
-- Fix issue #48 caused by past contributions
-- Propagate HFP filename to TOML if unedited
-- Fix minor HFP filename issues
-- Remove hydra-core dependency (pull request #44)
-- Simplify CLI, remove hydra dependencies
-- Fix SSA issues
-- Change word "claiming" to "starting" for SSA
-- Add different tool tip for those born on 1st and 2nd
-- Improve benefits explanations
-- Regenerate efficiency and no-correlation for fixed rates
-- Improve error message in tax202x
-- Warn on clearing logs for yOBBBA year rebase
-- Make OBBBA expiration year idiot-proof
-- Fix typo (issue #47)
-
-## Version 2025.12.20
-- Implement Debts and Fixed Assets capabilities
-    - Mortgages, loans, restricted stocks, etc. and fixed lump-sum annuities can now be modeled
-    - Include debts and fixed assets at end of plan in bequest
-- Extend Wages and Contributions page, renamed to Household Financial Profile
-- Add debt payment and fixed assets bequest reporting to Synopsis
-- Improve bequest-constraint logic
-- Add constraint on fixed assets
-- Fix bug in Debts and Fixed Assets tables
-- Include Debts and Fixed Assets in example HFPs
-- Improve UI
-- Improve integration with ssa.tools
-
-## Version 2025.12.16
-- Fix error message when dates are empty in Create_Case
-- Add fix to prevent stored TOML age from being out of range
-- Rename duplicate to copy
-- Fix input error on months
-- Prepare for new tax season
-- Carry minor fixes from dev version
-
-## Version 2025.12.11
-- Add more bubble help messages in Create Case
-- Fix bug in rates selection UI
-- Remove reliance on GitHub for graphics and example files
-- Update UI to use new file locations
-- Add new owl.png logo
-
-## Version 2025.12.10
-- Add date of birth due to social security rules when birthday on 1st and 2nd
-- Modify FRA calculations accordingly
-- Add integration to ssa.tools
-- Add Dale's help message for date of birth
-
-## Version 2025.12.09
-- Improve instructions for developers
-- Add link to ssa.tools on Fixed Income page
-- Fix bug on max age range for SS when month != 0
-- Add table of federal income tax itemized by bracket
-- Improve instructions for ssa.tools
-
-## Version 2025.12.05
-- Add instructions for obtaining PIA
-- Enhance documentation for obtaining PIA
-- Add generic reference for PIA calculation
-- Fix bug in Fixed Income UI
-- Fix error in month input
-- Add hint for birth month
-
-## Version 2025.12.03
-- Code Social Security to use monthly PIA instead of annual amount
-    - Add exact routines for FRA and increase/decrease factors due to claiming age
-    - Add exact spousal benefits
-- Adjust documentation for Social Security
-- Add birth month for more precise calculation on first year of Social Security
-- Add month to age for claiming Social Security
-
-### Version 2025.11.29
-- Fix Social Security for survivor benefits
-- Enhance documentation for SS amounts
-- Add caveat on account allocation ratios in documentation
-- Fix typo in documentation
-
-## Version 2025.11.09
-- Move development status to production/stable in pyproject
-- Make version propagate everywhere needed
-- Add node limit on MILP to avoid Streamlit server shutdown on memory consumption
-- Update documentation and README for clarity
-- Update section titles for clarity
-- Clarify options for running Owl in README
-- Update GitHub star request wording in Quick Start
-
-### Version 2025.11.05
-- Mention Owl as Optimal Wealth Lab
-- Port to Streamlit 1.50 which breaks many widgets
-- Fix UI bugs from port to Streamlit 1.50
-- Rework backprojection of assets to beginning of the year
-- Improve backprojection when not January 1
-- Rework Docker to smaller Alpine image and fix docs
-- Clarify instructions for Docker
-- Update FI Calc link to use full URL
-- Fix tests and error messages
-- Fix graph settings
-- Make case naming consistent
-
-## Version 2025.07.01
-- Add settings option for menu position (top or sidebar) thanks to Streamlit 1.46
-    - Default is top menu
-- Add Net Investment Income Tax calculations in self-consistent loop
-- Add capability to load example Wages and Contributions Excel file from GitHub directly from UI
-- Add constraint for 5-year maturation rule on Roth conversions
-- Extend Wages and Contributions table 5 years in the past for tracking recent contributions to tax-free accounts and Roth conversions
-- Add option in UI to turn off sticky header (useful for mobile or tablet use)
-- Add new case file allowing for direct comparison with DrawdownCalc
-    - Both versions agree to the dollar, demonstrating perfect agreement in compounding, withdrawals, and federal tax calculations
-    - Uses two different approaches: direct matrix encoding vs PuLP high-level language
-- Add option to use HiGHS library through PuLP for speed comparison
-    - Using HiGHS directly is the fastest option
-- Add RELEASE_NOTES file
-- Change color scheme in header gradient for visibility
-- Remove long-term capital tax rate from options
-    - Rate is now automatically calculated in self-consistent loop
-

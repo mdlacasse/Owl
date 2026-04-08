@@ -48,6 +48,7 @@ from . import mylogging as log
 from . import progress
 from .plotting.factory import PlotFactory
 from .rate_models.constants import HISTORICAL_RANGE_METHODS
+from .stresstests import StressTestsMixin
 from .varmap import VarMap
 
 
@@ -154,7 +155,7 @@ def _timer(func):
     return wrapper
 
 
-class Plan:
+class Plan(StressTestsMixin):
     """
     This is the main class of the Owl Project.
     """
@@ -876,9 +877,7 @@ class Plan:
         self._adjustedParameters = False
         self.caseStatus = "modified"
 
-        self.mylog.vprint(
-            f"Generated {self.N_n} years of rates using model '{method}'."
-        )
+        self.mylog.vprint(f"Generated {self.N_n} years of rates using model '{method}'.")
 
     def regenRates(self, override_reproducible=False):
         """
@@ -2874,136 +2873,7 @@ class Plan:
             c.setElem(idx, c_arr[idx])
         self.c = c
 
-    @_timer
-    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False,
-                           progcall=None, reverse=False, roll=0, augmented=False, log_x=False):
-        """
-        Run historical scenarios on plan over a range of years.
-
-        For each year in [ystart, yend], rates are set to the historical sequence
-        starting at that year.
-
-        If augmented is False, only (reverse=False, roll=0) is used (one run per year).
-        If augmented is True, every (reverse, roll) in {False, True} x {0, ..., N_n-1}
-        is run for each year, expanding the sample for the histogram.
-
-        If log_x is True, the result histogram uses log-spaced bins and a log-scale x-axis.
-        """
-        if yend + self.N_n > self.year_n[0]:
-            yend = self.year_n[0] - self.N_n - 1
-            self.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
-
-        if yend < ystart:
-            raise ValueError(f"Starting year is too large to support a lifespan of {self.N_n} years.")
-
-        n_years = yend - ystart + 1
-        if augmented:
-            reverse_roll_pairs = list(product([False, True], range(self.N_n)))
-            N = n_years * len(reverse_roll_pairs)
-            self.mylog.vprint(f"Running historical range from {ystart} to {yend} (augmented: {len(reverse_roll_pairs)}"
-                              f" variants per year, {N} runs).")
-        else:
-            reverse_roll_pairs = [(reverse, roll)]
-            N = n_years
-            self.mylog.vprint(f"Running historical range from {ystart} to {yend}.")
-
-        self.mylog.setVerbose(verbose)
-
-        if objective == "maxSpending":
-            columns = ["partial", objective]
-        elif objective == "maxBequest":
-            columns = ["partial", "final"]
-        else:
-            self.mylog.print(f"Invalid objective '{objective}'.")
-            raise ValueError(f"Invalid objective '{objective}'.")
-
-        df = pd.DataFrame(columns=columns)
-
-        if progcall is None:
-            progcall = progress.Progress(self.mylog)
-
-        if not verbose:
-            progcall.start()
-
-        step = 0
-        for year in range(ystart, yend + 1):
-            for rev, rll in reverse_roll_pairs:
-                self.setRates("historical", year, reverse=rev, roll=rll)
-                self.solve(objective, options)
-                if not verbose:
-                    step += 1
-                    progcall.show(step, N)
-                if self.caseStatus == "solved":
-                    if objective == "maxSpending":
-                        df.loc[len(df)] = [self.partialBequest, self.basis]
-                    elif objective == "maxBequest":
-                        df.loc[len(df)] = [self.partialBequest, self.bequest]
-
-        progcall.finish()
-        self.mylog.resetVerbose()
-
-        fig, description = self._plotter.plot_histogram_results(
-            objective, df, N, self.year_n, self.n_d, self.N_i, self.phi_j, log_x=log_x)
-        self.mylog.print(description.getvalue())
-
-        if figure:
-            return fig, description.getvalue()
-
-        return N, df
-
-    @_timer
-    def runMC(self, objective, options, N, verbose=False, figure=False, progcall=None, log_x=False):
-        """
-        Run Monte Carlo simulations on plan.
-        """
-        if not hasattr(self, "rateModel") or self.rateModel is None \
-                or getattr(self.rateModel, "deterministic", True):
-            self.mylog.print("Monte Carlo simulations require a stochastic rate method.")
-            return
-
-        self.mylog.vprint(f"Running {N} Monte Carlo simulations.")
-        self.mylog.setVerbose(verbose)
-
-        myoptions = options
-
-        if objective == "maxSpending":
-            columns = ["partial", objective]
-        elif objective == "maxBequest":
-            columns = ["partial", "final"]
-        else:
-            self.mylog.print(f"Invalid objective '{objective}'.")
-            return None
-
-        df = pd.DataFrame(columns=columns)
-
-        if progcall is None:
-            progcall = progress.Progress(self.mylog)
-
-        if not verbose:
-            progcall.start()
-
-        for n in range(N):
-            self.regenRates(override_reproducible=True)
-            self.solve(objective, myoptions)
-            if not verbose:
-                progcall.show(n + 1, N)
-            if self.caseStatus == "solved":
-                if objective == "maxSpending":
-                    df.loc[len(df)] = [self.partialBequest, self.basis]
-                elif objective == "maxBequest":
-                    df.loc[len(df)] = [self.partialBequest, self.bequest]
-
-        progcall.finish()
-        self.mylog.resetVerbose()
-
-        fig, description = self._plotter.plot_histogram_results(
-            objective, df, N, self.year_n, self.n_d, self.N_i, self.phi_j, log_x=log_x)
-        self.mylog.print(description.getvalue())
-
-        if figure:
-            return fig, description.getvalue()
-
-        return N, df
+    # runHistoricalRange, runMC, and runStochasticSpending are provided by StressTestsMixin.
 
     def resolve(self):
         """
