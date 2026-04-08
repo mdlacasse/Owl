@@ -825,11 +825,25 @@ class PlotlyBackend(PlotBackend):
         fig.add_vline(x=shortfall_pct, line_dash="dash", line_color="firebrick",
                       opacity=0.5, row=1, col=1)
 
+        idx = int(np.argmin(np.abs(frontier_g - g_opt)))
+        sf_at_target = float(frontier_shortfall[idx]) / 1000
+
         fig.add_trace(go.Scatter(
             x=(frontier_shortfall / 1000).tolist(), y=(frontier_g / 1000).tolist(),
             mode="lines", name="Shortfall cost", line=dict(color="darkorange", width=2),
             showlegend=False,
         ), row=1, col=2)
+        fig.add_trace(go.Scatter(
+            x=[sf_at_target], y=[g_opt / 1000],
+            mode="markers+text",
+            name=f"{target_success_rate*100:.0f}% success: {u.d(g_opt)}",
+            marker=dict(color="firebrick", size=10),
+            text=[f"{u.d(g_opt)}"],
+            textposition="top right",
+            showlegend=False,
+        ), row=1, col=2)
+        fig.add_vline(x=sf_at_target, line_dash="dash", line_color="firebrick",
+                      opacity=0.5, row=1, col=2)
 
         fig.update_xaxes(title_text="Shortfall probability (%)", ticksuffix="%", row=1, col=1)
         fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$", row=1, col=1)

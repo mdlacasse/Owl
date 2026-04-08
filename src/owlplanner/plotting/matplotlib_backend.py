@@ -578,8 +578,13 @@ class MatplotlibBackend(PlotBackend):
         ax.legend(fontsize=8)
         ax.grid(True, alpha=0.3)
 
+        idx = int(np.argmin(np.abs(frontier_g - g_opt)))
+        sf_at_target = frontier_shortfall[idx] / 1000
+
         ax = axes[1]
         ax.plot(frontier_shortfall / 1000, frontier_g / 1000, color="darkorange", linewidth=1.5)
+        ax.axvline(sf_at_target, color="firebrick", linestyle="--", linewidth=1, alpha=0.7)
+        ax.scatter([sf_at_target], [g_opt / 1000], color="firebrick", zorder=5, s=60)
         ax.set_xlabel(f"Expected shortfall ({thisyear} $k)")
         ax.set_ylabel(f"Committed spending ({thisyear} $k)")
         ax.set_title("Efficient frontier")
