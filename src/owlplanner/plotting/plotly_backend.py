@@ -812,7 +812,8 @@ class PlotlyBackend(PlotBackend):
 
         fig.add_trace(go.Scatter(
             x=(frontier_prob * 100).tolist(), y=(frontier_g / 1000).tolist(),
-            mode="lines", name="Frontier", line=dict(color="steelblue", width=2),
+            mode="lines", line=dict(color="steelblue", width=2),
+            showlegend=False,
         ), row=1, col=1)
         fig.add_trace(go.Scatter(
             x=[shortfall_pct], y=[g_opt / 1000],
@@ -830,7 +831,7 @@ class PlotlyBackend(PlotBackend):
 
         fig.add_trace(go.Scatter(
             x=(frontier_shortfall / 1000).tolist(), y=(frontier_g / 1000).tolist(),
-            mode="lines", name="Shortfall cost", line=dict(color="darkorange", width=2),
+            mode="lines", line=dict(color="darkorange", width=2),
             showlegend=False,
         ), row=1, col=2)
         fig.add_trace(go.Scatter(
