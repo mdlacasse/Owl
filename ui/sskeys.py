@@ -205,9 +205,9 @@ def caseIsNotMCReady():
 
 def caseIsNotStochReady():
     """
-    Check that a plan exists before running stochastic spending optimization.
+    Check that a plan exists and uses maxSpending before running stochastic spending optimization.
     """
-    return caseIsNotRunReady()
+    return caseIsNotRunReady() or getCaseKey("objective") != "Net spending"
 
 
 def currentCaseDic() -> dict:

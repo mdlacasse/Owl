@@ -51,6 +51,15 @@ The **efficient frontier** shows the trade-off between spending level and shortf
 Select a target success rate to find the committed spending that meets it.
 """)
 
+    objective = kz.getCaseKey("objective") or "Net spending"
+    if objective != "Net spending":
+        st.warning(
+            "Spending optimization requires **Net spending** as the objective. "
+            "For *Bequest* or *Hybrid* cases, spending is not the primary decision variable — "
+            "use the **Historical Range** or **Monte Carlo** pages to analyze outcome distributions."
+        )
+        st.stop()
+
     col1, col2, col3 = st.columns([1, 1, 0.5], gap="large")
     with col1:
         st.markdown("#### :orange[Scenario method]")
