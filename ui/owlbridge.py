@@ -240,6 +240,38 @@ def runMC(plan):
         st.error(f"Monte Carlo solution failed: {e}")
 
 
+def _apply_stochastic_target(result, target_sr, plotter):
+    """Recompute g_opt and regenerate plots from cached scenario data and a new target rate."""
+    import numpy as np
+    objective = result["objective"]
+    g_opt, lam = owl.g_for_success_rate(
+        target_sr, result["lambdas"], result["frontier_g"], result["frontier_prob"])
+    lam_idx = int(np.argmin(np.abs(result["lambdas"] - lam)))
+    actual_sr = 1.0 - float(result["frontier_prob"][lam_idx])
+
+    kz.storeCaseKey("stochResult", {
+        "g_opt": g_opt,
+        "lam": lam,
+        "target_success_rate": target_sr,
+        "actual_success_rate": actual_sr,
+    })
+    fig_frontier = plotter.plot_stochastic_frontier(
+        objective,
+        result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
+        target_sr, g_opt, result["year_n"])
+    fig_outcomes = plotter.plot_stochastic_outcomes(
+        objective,
+        result["start_years"], result["bases"], g_opt,
+        target_sr, result["year_n"])
+    kz.storeCaseKey("stochFrontierPlot", fig_frontier)
+    kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
+    kz.storeCaseKey("stochSummary", (
+        f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
+        f"Target success rate: {target_sr:.0%}\n"
+        f"Scenarios solved: {len(result['bases'])}"
+    ))
+
+
 @_checkPlan
 def runStochasticSpending(plan):
     plan1 = owl.clone(plan)
@@ -267,43 +299,33 @@ def runStochasticSpending(plan):
                 objective, options, "mc",
                 N=N, progcall=mybar)
 
-        g_opt, lam = owl.g_for_success_rate(
-            target_sr,
-            result["lambdas"], result["frontier_g"], result["frontier_prob"])
-
-        import numpy as np
-        lam_idx = int(np.argmin(np.abs(result["lambdas"] - lam)))
-        actual_sr = 1.0 - float(result["frontier_prob"][lam_idx])
-        kz.storeCaseKey("stochResult", {
-            "g_opt": g_opt,
-            "lam": lam,
-            "target_success_rate": target_sr,
-            "actual_success_rate": actual_sr,
-        })
-
-        plotter = plan1._plotter
-        fig_frontier = plotter.plot_stochastic_frontier(
-            objective,
-            result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
-            target_sr, g_opt, result["year_n"])
-        fig_outcomes = plotter.plot_stochastic_outcomes(
-            objective,
-            result["start_years"], result["bases"], g_opt,
-            target_sr, result["year_n"])
-
-        kz.storeCaseKey("stochFrontierPlot", fig_frontier)
-        kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
-        kz.storeCaseKey("stochSummary", (
-            f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
-            f"Target success rate: {target_sr:.0%}\n"
-            f"Scenarios solved: {len(result['bases'])}"
-        ))
+        result["objective"] = objective
+        kz.storeCaseKey("stochScenarioData", result)
+        _apply_stochastic_target(result, target_sr, plan1._plotter)
     except Exception as e:
         kz.storeCaseKey("stochFrontierPlot", None)
         kz.storeCaseKey("stochOutcomePlot", None)
         kz.storeCaseKey("stochSummary", None)
         kz.storeCaseKey("stochResult", None)
+        kz.storeCaseKey("stochScenarioData", None)
         st.error(f"Stochastic spending optimization failed: {e}")
+
+
+@_checkPlan
+def updateStochasticTarget(plan):
+    """Reapply a new target success rate to cached scenario data — no scenarios re-run."""
+    result = kz.getCaseKey("stochScenarioData")
+    if result is None:
+        return  # no data yet; slider fired before first run, silently ignore
+    # Read from the widget key directly — on_change fires before storeCaseKey runs.
+    widget_key = kz.genCaseKey("stoch_target_sr_slider")
+    raw = kz.ss.get(widget_key)
+    target_sr = (int(raw) / 100.0) if raw is not None else (kz.getCaseKey("stoch_target_success_rate") or 0.85)
+    kz.storeCaseKey("stoch_target_success_rate", target_sr)
+    try:
+        _apply_stochastic_target(result, target_sr, plan._plotter)
+    except Exception as e:
+        st.error(f"Failed to update target: {e}")
 
 
 @_checkPlan

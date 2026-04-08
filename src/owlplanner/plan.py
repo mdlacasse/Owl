@@ -26,7 +26,6 @@ import numpy as np
 import pandas as pd
 from datetime import date, datetime
 from functools import wraps
-from itertools import product
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 import time
@@ -45,7 +44,6 @@ from . import spending
 from . import debts as debts
 from . import fixedassets as fxasst
 from . import mylogging as log
-from . import progress
 from .plotting.factory import PlotFactory
 from .rate_models.constants import HISTORICAL_RANGE_METHODS
 from .stresstests import StressTestsMixin

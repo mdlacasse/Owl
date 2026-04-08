@@ -43,6 +43,7 @@ else:
     kz.initCaseKey("stochOutcomePlot", None)
     kz.initCaseKey("stochSummary", None)
     kz.initCaseKey("stochResult", None)
+    kz.initCaseKey("stochScenarioData", None)
 
     st.markdown("""
 Optimize committed first-year spending across a set of historical or Monte Carlo scenarios.
@@ -50,7 +51,7 @@ The **efficient frontier** shows the trade-off between spending level and shortf
 Select a target success rate to find the committed spending that meets it.
 """)
 
-    col1, col2 = st.columns(2, gap="large")
+    col1, col2, col3 = st.columns([1, 1, 0.5], gap="large")
     with col1:
         st.markdown("#### :orange[Scenario method]")
         scenario_method = st.radio(
@@ -71,10 +72,11 @@ Select a target success rate to find the committed spending that meets it.
             min_value=50,
             max_value=100,
             value=int(round(kz.getCaseKey("stoch_target_success_rate") * 100)),
-            step=5,
+            step=1,
             format="%d%%",
             key=kz.genCaseKey("stoch_target_sr_slider"),
             label_visibility="collapsed",
+            on_change=owb.updateStochasticTarget,
         )
         kz.storeCaseKey("stoch_target_success_rate", target_sr / 100.0)
 
