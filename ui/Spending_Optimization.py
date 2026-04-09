@@ -60,34 +60,17 @@ Select a target success rate to find the committed spending that meets it.
         )
         st.stop()
 
-    col1, col2, col3 = st.columns([1, 1, 0.5], gap="large")
-    with col1:
-        st.markdown("#### :orange[Scenario method]")
-        scenario_method = st.radio(
-            "Generate scenarios using",
-            options=["historical", "mc"],
-            format_func=lambda x: "Historical range" if x == "historical" else "Monte Carlo",
-            index=0 if kz.getCaseKey("stoch_scenario_method") == "historical" else 1,
-            key=kz.genCaseKey("stoch_scenario_method_radio"),
-            label_visibility="collapsed",
-            horizontal=True,
-        )
-        kz.storeCaseKey("stoch_scenario_method", scenario_method)
-
-    with col2:
-        st.markdown("#### :orange[Target success rate]")
-        target_sr = st.slider(
-            "Minimum success rate",
-            min_value=50,
-            max_value=100,
-            value=int(round(kz.getCaseKey("stoch_target_success_rate") * 100)),
-            step=1,
-            format="%d%%",
-            key=kz.genCaseKey("stoch_target_sr_slider"),
-            label_visibility="collapsed",
-            on_change=owb.updateStochasticTarget,
-        )
-        kz.storeCaseKey("stoch_target_success_rate", target_sr / 100.0)
+    st.markdown("#### :orange[Scenario method]")
+    scenario_method = st.radio(
+        "Generate scenarios using",
+        options=["historical", "mc"],
+        format_func=lambda x: "Historical range" if x == "historical" else "Monte Carlo",
+        index=0 if kz.getCaseKey("stoch_scenario_method") == "historical" else 1,
+        key=kz.genCaseKey("stoch_scenario_method_radio"),
+        label_visibility="collapsed",
+        horizontal=True,
+    )
+    kz.storeCaseKey("stoch_scenario_method", scenario_method)
 
     st.markdown("####")
     if scenario_method == "historical":
@@ -155,16 +138,23 @@ Select a target success rate to find the committed spending that meets it.
     if fig_frontier or fig_outcomes:
         result = kz.getCaseKey("stochResult")
         if result:
-            g_opt = result.get("g_opt", 0.0)
-            sr = result.get("target_success_rate", 0.85)
-            actual_sr = result.get("actual_success_rate", sr)
-            st.success(
-                f"**Committed spending: ${g_opt:,.0f}/yr** (today's dollars) — "
-                f"target {sr:.0%} success rate (actual: {actual_sr:.0%})"
-            )
-            summary = kz.getCaseKey("stochSummary")
-            if summary:
-                st.code(summary, language=None)
+            col_msg, col_slider = st.columns([2, 1.5], gap="large")
+            with col_msg:
+                summary = kz.getCaseKey("stochSummary")
+                if summary:
+                    st.code(summary, language=None)
+            with col_slider:
+                target_sr = st.slider(
+                    ":orange[Target success rate]",
+                    min_value=50,
+                    max_value=100,
+                    value=int(round(kz.getCaseKey("stoch_target_success_rate") * 100)),
+                    step=1,
+                    format="%d%%",
+                    key=kz.genCaseKey("stoch_target_sr_slider"),
+                    on_change=owb.updateStochasticTarget,
+                )
+                kz.storeCaseKey("stoch_target_success_rate", target_sr / 100.0)
 
         col1, col2 = st.columns(2, gap="medium")
         if fig_frontier:

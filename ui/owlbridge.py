@@ -267,7 +267,7 @@ def _apply_stochastic_target(result, target_sr, plotter):
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
-        f"Target success rate: {target_sr:.0%}\n"
+        f"Target success rate: {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
         f"Scenarios solved: {len(result['bases'])}"
     ))
 
