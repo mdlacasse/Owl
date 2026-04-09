@@ -265,10 +265,17 @@ def _apply_stochastic_target(result, target_sr, plotter):
         target_sr, result["year_n"])
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
+    bases = result["bases"]
+    median_spending = float(np.median(bases))
+    worst_spending = float(np.min(bases))
+    exp_shortfall = float(np.mean(np.maximum(0.0, g_opt - bases)))
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
-        f"Target success rate: {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
-        f"Scenarios solved: {len(result['bases'])}"
+        f"Target success rate:            {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
+        f"Median scenario spending:       ${median_spending:,.0f}/yr\n"
+        f"Worst-case scenario spending:   ${worst_spending:,.0f}/yr\n"
+        f"Expected shortfall:             ${exp_shortfall:,.0f}/yr\n"
+        f"Scenarios solved:               {len(bases)}"
     ))
 
 
