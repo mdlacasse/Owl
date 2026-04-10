@@ -73,11 +73,9 @@ See [documentation](Documentation#settings-settings) for details.
 
 st.divider()
 st.markdown("""
-#### :orange[App Theme]
-The color theme for the whole app can be adjusted using the *Settings* options in the dropdown
-menu under the three dots in the upper right corner of the page. Choose *Light* or *Dark*.
-Default theme is *Dark*.
-
-More information on theming can be found from the Streamlit documentation
-[here](https://docs.streamlit.io/develop/concepts/configuration/theming).
+#### :orange[App theme]
+Streamlit’s appearance (for example light vs. dark base and colors) comes from the server’s
+`.streamlit/config.toml`, not from the controls on this page. Edit that file when you run Owl
+locally or on your own host, and see Streamlit’s guide to
+[theming](https://docs.streamlit.io/develop/concepts/configuration/theming).
 """)

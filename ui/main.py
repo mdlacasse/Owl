@@ -24,7 +24,7 @@ import streamlit as st
 
 import sskeys as kz
 
-# Pick one for narrow or wide graphs. That can also be changed in upper-right settings menu.
+# Default page width is set here; switch to layout="centered" in this file if you prefer.
 st.set_page_config(layout="wide", page_title="Owl Retirement Planner")
 # st.set_page_config(layout="centered", page_title="Owl Retirement Planner")
 

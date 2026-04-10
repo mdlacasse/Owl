@@ -269,12 +269,13 @@ def _apply_stochastic_target(result, target_sr, plotter):
     median_spending = float(np.median(bases))
     worst_spending = float(np.min(bases))
     exp_shortfall = float(np.mean(np.maximum(0.0, g_opt - bases)))
+    exp_shortfall_pct = exp_shortfall / g_opt if g_opt > 0 else 0.0
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
         f"Target success rate:            {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
         f"Median scenario spending:       ${median_spending:,.0f}/yr\n"
         f"Worst-case scenario spending:   ${worst_spending:,.0f}/yr\n"
-        f"Expected shortfall:             ${exp_shortfall:,.0f}/yr\n"
+        f"Expected shortfall:             ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
         f"Scenarios solved:               {len(bases)}"
     ))
 

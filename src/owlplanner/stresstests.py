@@ -160,7 +160,7 @@ def run_historical_range(plan, objective, options, ystart, yend, *, verbose=Fals
     produced alongside the histogram.
     """
     if yend + plan.N_n > plan.year_n[0]:
-        yend = plan.year_n[0] - plan.N_n - 1
+        yend = plan.year_n[0] - plan.N_n
         plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
 
     if yend < ystart:
@@ -341,7 +341,7 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         if ystart is None or yend is None:
             raise ValueError("ystart and yend are required for historical scenario method.")
         if yend + plan.N_n > plan.year_n[0]:
-            yend = plan.year_n[0] - plan.N_n - 1
+            yend = plan.year_n[0] - plan.N_n
             plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
         if yend < ystart:
             raise ValueError(f"Starting year too large for lifespan of {plan.N_n} years.")

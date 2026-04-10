@@ -1411,9 +1411,10 @@ can also greatly improve the visualization of graphs and worksheets
 (achieved by pressing F11 on Windows, or Ctl+Cmd+F on MacOS).
 
 ###### App Theme
-**Owl**'s default theme is the *Dark* mode but a *Light* theme is also available by
-clicking on the three vertical dots located on the upper right of the app
-and selecting the **Settings** option.
+**Owl**’s default Streamlit look is set in the repository’s `.streamlit/config.toml` (for example
+`base = "dark"`). To change light/dark or colors, adjust that configuration when you run the app
+yourself, and follow Streamlit’s
+[theming documentation](https://docs.streamlit.io/develop/concepts/configuration/theming).
 """)
 
     with st.expander("Logs"):
