@@ -70,6 +70,24 @@ def test_load_toml_start_roth_past_year_reset():
     assert "Warning" in log.getvalue()
 
 
+def test_ui_to_config_linear_omits_interpolation_center_width():
+    """linear UI output omits interpolation_center/width (not used by the plan)."""
+    diconf = _minimal_config_for_rates()
+    diconf["asset_allocation"]["interpolation_method"] = "linear"
+    diconf["asset_allocation"].pop("interpolation_center", None)
+    diconf["asset_allocation"].pop("interpolation_width", None)
+
+    uidic = config_to_ui(diconf)
+    assert uidic["interpMethod"] == "linear"
+
+    out = ui_to_config(uidic)
+    assert "interpolation_center" not in out["asset_allocation"]
+    assert "interpolation_width" not in out["asset_allocation"]
+
+    plan = config_to_plan(out, verbose=False, loadHFP=False)
+    assert plan.interpMethod == "linear"
+
+
 def test_config_to_ui_roundtrip():
     """config -> ui -> config preserves structure."""
     diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml").read()))

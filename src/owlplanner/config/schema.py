@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 # Known top-level section names (used for extracting unknown keys)
@@ -139,15 +139,41 @@ class AssetAllocation(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    interpolation_method: str = Field(default="s-curve", description="linear or s-curve")
-    interpolation_center: float = Field(default=15.0, description="Interpolation center (years)")
-    interpolation_width: float = Field(default=5.0, description="Interpolation width (years)")
+    interpolation_method: Literal["linear", "s-curve"] = Field(
+        default="s-curve", description="linear or s-curve"
+    )
+    interpolation_center: Optional[float] = Field(
+        default=None, description="Interpolation center (years); required for s-curve"
+    )
+    interpolation_width: Optional[float] = Field(
+        default=None, description="Interpolation width (years); required for s-curve"
+    )
     type: str = Field(default="individual", description="account, individual, or spouses")
     # Conditional: generic for individual/spouses, taxable/tax-deferred/tax-free for account
     generic: Optional[List[List[List[int]]]] = None
     taxable: Optional[List[List[List[int]]]] = None
     tax_deferred: Optional[List[List[List[int]]]] = Field(default=None, alias="tax-deferred")
     tax_free: Optional[List[List[List[int]]]] = Field(default=None, alias="tax-free")
+
+    @field_validator("interpolation_method", mode="before")
+    @classmethod
+    def _normalize_interpolation_method(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            s = v.strip().lower()
+            if s not in ("linear", "s-curve"):
+                raise ValueError("interpolation_method must be 'linear' or 's-curve'")
+            return s
+        return v
+
+    @model_validator(mode="after")
+    def _s_curve_requires_center_width(self) -> "AssetAllocation":
+        if self.interpolation_method == "s-curve":
+            if self.interpolation_center is None or self.interpolation_width is None:
+                raise ValueError(
+                    "interpolation_center and interpolation_width are required when "
+                    "interpolation_method is 's-curve'"
+                )
+        return self
 
 
 class OptimizationParameters(BaseModel):

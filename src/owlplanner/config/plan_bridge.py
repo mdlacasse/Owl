@@ -134,11 +134,20 @@ def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
 
 def _apply_asset_allocation_to_plan(plan: "Plan", known: dict) -> None:
     """Apply asset allocation from config to plan."""
-    plan.setInterpolationMethod(
-        known["asset_allocation"]["interpolation_method"],
-        float(known["asset_allocation"]["interpolation_center"]),
-        float(known["asset_allocation"]["interpolation_width"]),
-    )
+    aa = known["asset_allocation"]
+    method_raw = aa.get("interpolation_method", "s-curve")
+    method = method_raw.strip().lower() if isinstance(method_raw, str) else "s-curve"
+    center = aa.get("interpolation_center")
+    width = aa.get("interpolation_width")
+    if method == "s-curve":
+        if center is None or width is None:
+            raise ValueError(
+                "interpolation_center and interpolation_width are required when "
+                "interpolation_method is 's-curve'"
+            )
+        plan.setInterpolationMethod(method, float(center), float(width))
+    else:
+        plan.setInterpolationMethod(method, float(center or 15.0), float(width or 5.0))
     alloc_type = known["asset_allocation"]["type"]
     if alloc_type == "account":
         bounds_ar = {}
@@ -401,13 +410,15 @@ def plan_to_config(myplan: "Plan") -> dict:
     diconf["rates_selection"]["reverse_sequence"] = bool(myplan.rateReverse)
     diconf["rates_selection"]["roll_sequence"] = int(myplan.rateRoll)
 
-    # Asset Allocation
-    diconf["asset_allocation"] = {
+    # Asset Allocation (omit center/width for linear; not used by the engine)
+    aa_out: dict[str, Any] = {
         "interpolation_method": myplan.interpMethod,
-        "interpolation_center": float(myplan.interpCenter),
-        "interpolation_width": float(myplan.interpWidth),
         "type": myplan.ARCoord,
     }
+    if str(myplan.interpMethod).strip().lower() != "linear":
+        aa_out["interpolation_center"] = float(myplan.interpCenter)
+        aa_out["interpolation_width"] = float(myplan.interpWidth)
+    diconf["asset_allocation"] = aa_out
     if myplan.ARCoord == "account":
         for acc_type in ACCOUNT_TYPES[:3]:   # taxable, tax-deferred, tax-free
             val = myplan.boundsAR[acc_type]

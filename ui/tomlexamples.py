@@ -25,11 +25,11 @@ import os
 from io import StringIO, BytesIO
 
 
-cases = ["alex+jamie", "jack+jill", "joe", "john+sally", "jon+jane", "jordan+taylor",
+cases = ["alex+jamie", "chris+pat", "jack+jill", "joe", "john+sally", "jon+jane", "jordan+taylor",
          "kim+sam-bequest", "kim+sam-spending", "morgan", "robin"]
 
 
-wages = ["alex+jamie", "jack+jill", "joe", "john+sally", "jon+jane", "jordan+taylor",
+wages = ["alex+jamie", "chris+pat", "jack+jill", "joe", "john+sally", "jon+jane", "jordan+taylor",
          "kim+sam", "morgan", "robin"]
 
 

@@ -62,6 +62,20 @@ def _get_ui(d: dict, key: str, default, coerce=None):
     return coerce(val) if coerce else val
 
 
+def _ui_asset_allocation_base(uidic: dict) -> dict[str, Any]:
+    """Interpolation center/width are omitted for linear (not used by the plan)."""
+    raw = uidic.get("interpMethod", "s-curve")
+    method = raw.strip().lower() if isinstance(raw, str) else "s-curve"
+    out: dict[str, Any] = {
+        "interpolation_method": method,
+        "type": uidic.get("allocType", "individual"),
+    }
+    if method != "linear":
+        out["interpolation_center"] = _get_ui(uidic, "interpCenter", 15, float)
+        out["interpolation_width"] = _get_ui(uidic, "interpWidth", 5, float)
+    return out
+
+
 def _start_date_to_ui(start_date: str) -> date:
     """Convert config start_date string to UI date object."""
     tdate = start_date.replace("/", "-").split("-")
@@ -113,8 +127,10 @@ def config_to_ui(diconf: dict) -> dict:
     dic["startDate"] = _start_date_to_ui(start_date_str)
 
     dic["interpMethod"] = aa.get("interpolation_method", "s-curve")
-    dic["interpCenter"] = float(aa.get("interpolation_center", 15.0))
-    dic["interpWidth"] = float(aa.get("interpolation_width", 5.0))
+    _ic = aa.get("interpolation_center")
+    _iw = aa.get("interpolation_width")
+    dic["interpCenter"] = float(_ic if _ic is not None else 15.0)
+    dic["interpWidth"] = float(_iw if _iw is not None else 5.0)
     dic["spendingProfile"] = op.get("spending_profile", "smile")
     if dic["spendingProfile"] == "smile":
         dic["smileDip"] = int(op.get("smile_dip", 15))
@@ -357,12 +373,7 @@ def ui_to_config(uidic: dict) -> dict:
             "reverse_sequence": bool(uidic.get("reverse_sequence", False)),
             "roll_sequence": _get_ui(uidic, "roll_sequence", 0, int),
         },
-        "asset_allocation": {
-            "interpolation_method": uidic.get("interpMethod", "s-curve"),
-            "interpolation_center": _get_ui(uidic, "interpCenter", 15, float),
-            "interpolation_width": _get_ui(uidic, "interpWidth", 5, float),
-            "type": uidic.get("allocType", "individual"),
-        },
+        "asset_allocation": _ui_asset_allocation_base(uidic),
         "optimization_parameters": {
             "spending_profile": uidic.get("spendingProfile", "smile"),
             "surviving_spouse_spending_percent": _get_ui(uidic, "survivor", 60, int),
