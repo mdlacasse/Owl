@@ -46,7 +46,7 @@ from . import fixedassets as fxasst
 from . import mylogging as log
 from .plotting.factory import PlotFactory
 from .rate_models.constants import HISTORICAL_RANGE_METHODS
-from .stresstests import StressTestsMixin
+from .stresstests import run_historical_range, run_mc, run_stochastic_spending
 from .varmap import VarMap
 
 
@@ -153,13 +153,7 @@ def _timer(func):
     return wrapper
 
 
-# Batch-level timing for stress tests (runHistoricalRange / runMC had @timer on Plan before StressTestsMixin).
-StressTestsMixin.runHistoricalRange = _timer(StressTestsMixin.runHistoricalRange)
-StressTestsMixin.runMC = _timer(StressTestsMixin.runMC)
-StressTestsMixin.runStochasticSpending = _timer(StressTestsMixin.runStochasticSpending)
-
-
-class Plan(StressTestsMixin):
+class Plan:
     """
     This is the main class of the Owl Project.
     """
@@ -2877,7 +2871,25 @@ class Plan(StressTestsMixin):
             c.setElem(idx, c_arr[idx])
         self.c = c
 
-    # runHistoricalRange, runMC, and runStochasticSpending are provided by StressTestsMixin.
+    @_timer
+    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False,
+                           progcall=None, reverse=False, roll=0, augmented=False, log_x=False):
+        return run_historical_range(
+            self, objective, options, ystart, yend, verbose=verbose, figure=figure, progcall=progcall,
+            reverse=reverse, roll=roll, augmented=augmented, log_x=log_x)
+
+    @_timer
+    def runMC(self, objective, options, N, verbose=False, figure=False, progcall=None, log_x=False):
+        return run_mc(
+            self, objective, options, N, verbose=verbose, figure=figure, progcall=progcall, log_x=log_x)
+
+    @_timer
+    def runStochasticSpending(self, objective, options, scenario_method, *,
+                              ystart=None, yend=None, N=None, progcall=None,
+                              reverse=False, roll=0):
+        return run_stochastic_spending(
+            self, objective, options, scenario_method, ystart=ystart, yend=yend, N=N,
+            progcall=progcall, reverse=reverse, roll=roll)
 
     def resolve(self):
         """

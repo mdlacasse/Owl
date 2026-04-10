@@ -1,9 +1,9 @@
 """
 Stress testing methods for retirement plans and stochastic spending optimization.
 
-This module provides the StressTestsMixin class (mixed into Plan) containing
-runHistoricalRange, runMC, and runStochasticSpending, plus standalone LP functions
-for the efficient frontier computation.
+Provides ``run_historical_range``, ``run_mc``, and ``run_stochastic_spending``, which take a
+:class:`~owlplanner.plan.Plan` instance as the first argument (``Plan`` exposes them as methods
+that delegate here). Also includes standalone LP helpers for the efficient frontier.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 
@@ -138,266 +138,262 @@ def g_for_success_rate(target_success_rate, lambdas, frontier_g, frontier_prob):
 
 
 ###############################################################################
-# Mixin class
+# Batch stress tests (Plan delegates from runHistoricalRange / runMC / runStochasticSpending)
 ###############################################################################
 
-class StressTestsMixin:
+
+def run_historical_range(plan, objective, options, ystart, yend, *, verbose=False, figure=False,
+                         progcall=None, reverse=False, roll=0, augmented=False, log_x=False):
     """
-    Mixin providing runHistoricalRange, runMC, and runStochasticSpending for Plan.
+    Run historical scenarios on plan over a range of years.
 
-    All methods use `self` to access Plan state (rates, solver, plotter, etc.).
+    For each year in [ystart, yend], rates are set to the historical sequence
+    starting at that year.
+
+    If augmented is False, only (reverse=False, roll=0) is used (one run per year).
+    If augmented is True, every (reverse, roll) in {False, True} x {0, ..., N_n-1}
+    is run for each year, expanding the sample for the histogram.
+
+    If log_x is True, the result histogram uses log-spaced bins and a log-scale x-axis.
+
+    When not augmented, a bar chart of spending/bequest by historical start year is also
+    produced alongside the histogram.
     """
+    if yend + plan.N_n > plan.year_n[0]:
+        yend = plan.year_n[0] - plan.N_n - 1
+        plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
 
-    def runHistoricalRange(self, objective, options, ystart, yend, *, verbose=False, figure=False,
-                           progcall=None, reverse=False, roll=0, augmented=False, log_x=False):
-        """
-        Run historical scenarios on plan over a range of years.
+    if yend < ystart:
+        raise ValueError(f"Starting year is too large to support a lifespan of {plan.N_n} years.")
 
-        For each year in [ystart, yend], rates are set to the historical sequence
-        starting at that year.
+    n_years = yend - ystart + 1
+    if augmented:
+        reverse_roll_pairs = list(product([False, True], range(plan.N_n)))
+        N = n_years * len(reverse_roll_pairs)
+        plan.mylog.vprint(f"Running historical range from {ystart} to {yend} (augmented: {len(reverse_roll_pairs)}"
+                          f" variants per year, {N} runs).")
+    else:
+        reverse_roll_pairs = [(reverse, roll)]
+        N = n_years
+        plan.mylog.vprint(f"Running historical range from {ystart} to {yend}.")
 
-        If augmented is False, only (reverse=False, roll=0) is used (one run per year).
-        If augmented is True, every (reverse, roll) in {False, True} x {0, ..., N_n-1}
-        is run for each year, expanding the sample for the histogram.
+    plan.mylog.setVerbose(verbose)
 
-        If log_x is True, the result histogram uses log-spaced bins and a log-scale x-axis.
+    if objective == "maxSpending":
+        columns = ["partial", objective]
+    elif objective == "maxBequest":
+        columns = ["partial", "final"]
+    else:
+        plan.mylog.print(f"Invalid objective '{objective}'.")
+        raise ValueError(f"Invalid objective '{objective}'.")
 
-        When not augmented, a bar chart of spending/bequest by historical start year is also
-        produced alongside the histogram.
-        """
-        if yend + self.N_n > self.year_n[0]:
-            yend = self.year_n[0] - self.N_n - 1
-            self.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
+    df = pd.DataFrame(columns=columns)
 
-        if yend < ystart:
-            raise ValueError(f"Starting year is too large to support a lifespan of {self.N_n} years.")
+    if progcall is None:
+        progcall = progress.Progress(plan.mylog)
 
-        n_years = yend - ystart + 1
-        if augmented:
-            reverse_roll_pairs = list(product([False, True], range(self.N_n)))
-            N = n_years * len(reverse_roll_pairs)
-            self.mylog.vprint(f"Running historical range from {ystart} to {yend} (augmented: {len(reverse_roll_pairs)}"
-                              f" variants per year, {N} runs).")
-        else:
-            reverse_roll_pairs = [(reverse, roll)]
-            N = n_years
-            self.mylog.vprint(f"Running historical range from {ystart} to {yend}.")
+    if not verbose:
+        progcall.start()
 
-        self.mylog.setVerbose(verbose)
-
-        if objective == "maxSpending":
-            columns = ["partial", objective]
-        elif objective == "maxBequest":
-            columns = ["partial", "final"]
-        else:
-            self.mylog.print(f"Invalid objective '{objective}'.")
-            raise ValueError(f"Invalid objective '{objective}'.")
-
-        df = pd.DataFrame(columns=columns)
-
-        if progcall is None:
-            progcall = progress.Progress(self.mylog)
-
-        if not verbose:
-            progcall.start()
-
-        step = 0
-        start_years_list = []
-        values_list = []
-        for year in range(ystart, yend + 1):
-            for rev, rll in reverse_roll_pairs:
-                self.setRates("historical", year, reverse=rev, roll=rll)
-                self.solve(objective, options)
-                if not verbose:
-                    step += 1
-                    progcall.show(step, N)
-                if self.caseStatus == "solved":
-                    if objective == "maxSpending":
-                        df.loc[len(df)] = [self.partialBequest, self.basis]
-                        if not augmented:
-                            start_years_list.append(year)
-                            values_list.append(self.basis)
-                    elif objective == "maxBequest":
-                        df.loc[len(df)] = [self.partialBequest, self.bequest]
-                        if not augmented:
-                            start_years_list.append(year)
-                            values_list.append(self.bequest)
-
-        progcall.finish()
-        self.mylog.resetVerbose()
-
-        fig, description = self._plotter.plot_histogram_results(
-            objective, df, N, self.year_n, self.n_d, self.N_i, self.phi_j, log_x=log_x)
-        self.mylog.print(description.getvalue())
-
-        fig2 = None
-        if not augmented and len(start_years_list) > 0:
-            fig2, _ = self._plotter.plot_spending_by_year(
-                objective, np.array(start_years_list), np.array(values_list), self.n_d, self.year_n)
-
-        if figure:
-            return fig, description.getvalue(), fig2
-
-        return N, df
-
-    def runMC(self, objective, options, N, verbose=False, figure=False, progcall=None, log_x=False):
-        """
-        Run Monte Carlo simulations on plan.
-        """
-        if not hasattr(self, "rateModel") or self.rateModel is None \
-                or getattr(self.rateModel, "deterministic", True):
-            self.mylog.print("Monte Carlo simulations require a stochastic rate method.")
-            return
-
-        self.mylog.vprint(f"Running {N} Monte Carlo simulations.")
-        self.mylog.setVerbose(verbose)
-
-        myoptions = options
-
-        if objective == "maxSpending":
-            columns = ["partial", objective]
-        elif objective == "maxBequest":
-            columns = ["partial", "final"]
-        else:
-            self.mylog.print(f"Invalid objective '{objective}'.")
-            return None
-
-        df = pd.DataFrame(columns=columns)
-
-        if progcall is None:
-            progcall = progress.Progress(self.mylog)
-
-        if not verbose:
-            progcall.start()
-
-        for n in range(N):
-            self.regenRates(override_reproducible=True)
-            self.solve(objective, myoptions)
+    step = 0
+    start_years_list = []
+    values_list = []
+    for year in range(ystart, yend + 1):
+        for rev, rll in reverse_roll_pairs:
+            plan.setRates("historical", year, reverse=rev, roll=rll)
+            plan.solve(objective, options)
             if not verbose:
-                progcall.show(n + 1, N)
-            if self.caseStatus == "solved":
+                step += 1
+                progcall.show(step, N)
+            if plan.caseStatus == "solved":
                 if objective == "maxSpending":
-                    df.loc[len(df)] = [self.partialBequest, self.basis]
+                    df.loc[len(df)] = [plan.partialBequest, plan.basis]
+                    if not augmented:
+                        start_years_list.append(year)
+                        values_list.append(plan.basis)
                 elif objective == "maxBequest":
-                    df.loc[len(df)] = [self.partialBequest, self.bequest]
+                    df.loc[len(df)] = [plan.partialBequest, plan.bequest]
+                    if not augmented:
+                        start_years_list.append(year)
+                        values_list.append(plan.bequest)
 
-        progcall.finish()
-        self.mylog.resetVerbose()
+    progcall.finish()
+    plan.mylog.resetVerbose()
 
-        fig, description = self._plotter.plot_histogram_results(
-            objective, df, N, self.year_n, self.n_d, self.N_i, self.phi_j, log_x=log_x)
-        self.mylog.print(description.getvalue())
+    fig, description = plan._plotter.plot_histogram_results(
+        objective, df, N, plan.year_n, plan.n_d, plan.N_i, plan.phi_j, log_x=log_x)
+    plan.mylog.print(description.getvalue())
 
-        if figure:
-            return fig, description.getvalue()
+    fig2 = None
+    if not augmented and len(start_years_list) > 0:
+        fig2, _ = plan._plotter.plot_spending_by_year(
+            objective, np.array(start_years_list), np.array(values_list), plan.n_d, plan.year_n)
 
-        return N, df
+    if figure:
+        return fig, description.getvalue(), fig2
 
-    def runStochasticSpending(self, objective, options, scenario_method, *,
-                              ystart=None, yend=None, N=None, progcall=None,
-                              reverse=False, roll=0):
-        """
-        Run stochastic spending optimization over a set of scenarios.
+    return N, df
 
-        Collects p.basis across S scenarios, computes the efficient frontier via the
-        stochastic LP, and returns the raw data needed for plotting.
 
-        Parameters
-        ----------
-        objective : str
-            "maxSpending" or "maxBequest".
-        options : dict
-            Solver options passed to solve().
-        scenario_method : str
-            "historical" — use runHistoricalRange with (ystart, yend).
-            "mc"         — use runMC with N simulations.
-        ystart, yend : int, optional
-            Start/end years for historical mode.
-        N : int, optional
-            Number of simulations for MC mode.
-        progcall : Progress, optional
-            Progress callback.
+def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall=None, log_x=False):
+    """
+    Run Monte Carlo simulations on plan.
+    """
+    if not hasattr(plan, "rateModel") or plan.rateModel is None \
+            or getattr(plan.rateModel, "deterministic", True):
+        plan.mylog.print("Monte Carlo simulations require a stochastic rate method.")
+        return
 
-        Returns
-        -------
-        dict with keys:
-            "bases"              : ndarray (S,) — per-scenario optimal spending basis
-            "start_years"        : ndarray (S,) or None — historical start years (None for MC)
-            "lambdas"            : ndarray
-            "frontier_g"         : ndarray
-            "frontier_prob"      : ndarray
-            "frontier_shortfall" : ndarray
-            "year_n"             : ndarray — plan calendar years
-            "n_d"                : int — death year index (for unit labeling)
-        """
-        if objective not in ("maxSpending", "maxBequest"):
-            raise ValueError(f"Invalid objective '{objective}'.")
+    plan.mylog.vprint(f"Running {N} Monte Carlo simulations.")
+    plan.mylog.setVerbose(verbose)
 
-        self.mylog.setVerbose(False)
+    myoptions = options
 
-        if progcall is None:
-            progcall = progress.Progress(self.mylog)
+    if objective == "maxSpending":
+        columns = ["partial", objective]
+    elif objective == "maxBequest":
+        columns = ["partial", "final"]
+    else:
+        plan.mylog.print(f"Invalid objective '{objective}'.")
+        return None
 
-        bases_list = []
-        start_years_list = []
+    df = pd.DataFrame(columns=columns)
 
-        if scenario_method == "historical":
-            if ystart is None or yend is None:
-                raise ValueError("ystart and yend are required for historical scenario method.")
-            if yend + self.N_n > self.year_n[0]:
-                yend = self.year_n[0] - self.N_n - 1
-                self.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
-            if yend < ystart:
-                raise ValueError(f"Starting year too large for lifespan of {self.N_n} years.")
-            total = yend - ystart + 1
-            self.mylog.vprint(f"Stochastic spending: running {total} historical scenarios.")
-            progcall.start()
-            for step, year in enumerate(range(ystart, yend + 1)):
-                self.setRates("historical", year, reverse=reverse, roll=roll)
-                self.solve(objective, options)
-                progcall.show(step + 1, total)
-                if self.caseStatus == "solved":
-                    val = self.basis if objective == "maxSpending" else self.bequest
-                    bases_list.append(val)
-                    start_years_list.append(year)
+    if progcall is None:
+        progcall = progress.Progress(plan.mylog)
 
-        elif scenario_method == "mc":
-            if N is None:
-                raise ValueError("N is required for Monte Carlo scenario method.")
-            if not hasattr(self, "rateModel") or self.rateModel is None \
-                    or getattr(self.rateModel, "deterministic", True):
-                raise ValueError("Monte Carlo requires a stochastic rate method.")
-            self.mylog.vprint(f"Stochastic spending: running {N} Monte Carlo scenarios.")
-            progcall.start()
-            for n in range(N):
-                self.regenRates(override_reproducible=True)
-                self.solve(objective, options)
-                progcall.show(n + 1, N)
-                if self.caseStatus == "solved":
-                    val = self.basis if objective == "maxSpending" else self.bequest
-                    bases_list.append(val)
+    if not verbose:
+        progcall.start()
 
-        else:
-            raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
+    for n in range(N):
+        plan.regenRates(override_reproducible=True)
+        plan.solve(objective, myoptions)
+        if not verbose:
+            progcall.show(n + 1, N)
+        if plan.caseStatus == "solved":
+            if objective == "maxSpending":
+                df.loc[len(df)] = [plan.partialBequest, plan.basis]
+            elif objective == "maxBequest":
+                df.loc[len(df)] = [plan.partialBequest, plan.bequest]
 
-        progcall.finish()
-        self.mylog.resetVerbose()
+    progcall.finish()
+    plan.mylog.resetVerbose()
 
-        if len(bases_list) < 2:
-            raise RuntimeError("Fewer than 2 scenarios solved successfully; cannot compute frontier.")
+    fig, description = plan._plotter.plot_histogram_results(
+        objective, df, N, plan.year_n, plan.n_d, plan.N_i, plan.phi_j, log_x=log_x)
+    plan.mylog.print(description.getvalue())
 
-        bases = np.array(bases_list)
-        start_years = np.array(start_years_list) if start_years_list else None
+    if figure:
+        return fig, description.getvalue()
 
-        lambdas, frontier_g, frontier_prob, frontier_shortfall = _compute_efficient_frontier(bases)
+    return N, df
 
-        return {
-            "bases": bases,
-            "start_years": start_years,
-            "lambdas": lambdas,
-            "frontier_g": frontier_g,
-            "frontier_prob": frontier_prob,
-            "frontier_shortfall": frontier_shortfall,
-            "year_n": self.year_n,
-            "n_d": self.n_d,
-        }
+
+def run_stochastic_spending(plan, objective, options, scenario_method, *,
+                            ystart=None, yend=None, N=None, progcall=None,
+                            reverse=False, roll=0):
+    """
+    Run stochastic spending optimization over a set of scenarios.
+
+    Collects optimal basis or bequest across S scenarios, computes the efficient frontier via the
+    stochastic LP, and returns the raw data needed for plotting.
+
+    Parameters
+    ----------
+    objective : str
+        "maxSpending" or "maxBequest".
+    options : dict
+        Solver options passed to solve().
+    scenario_method : str
+        "historical" — sweep ``ystart``..``yend`` like :func:`run_historical_range`.
+        "mc"         — ``N`` Monte Carlo draws like :func:`run_mc`.
+    ystart, yend : int, optional
+        Start/end years for historical mode.
+    N : int, optional
+        Number of simulations for MC mode.
+    progcall : Progress, optional
+        Progress callback.
+
+    Returns
+    -------
+    dict with keys:
+        "bases"              : ndarray (S,) — per-scenario optimal spending basis
+        "start_years"        : ndarray (S,) or None — historical start years (None for MC)
+        "lambdas"            : ndarray
+        "frontier_g"         : ndarray
+        "frontier_prob"      : ndarray
+        "frontier_shortfall" : ndarray
+        "year_n"             : ndarray — plan calendar years
+        "n_d"                : int — death year index (for unit labeling)
+    """
+    if objective not in ("maxSpending", "maxBequest"):
+        raise ValueError(f"Invalid objective '{objective}'.")
+
+    plan.mylog.setVerbose(False)
+
+    if progcall is None:
+        progcall = progress.Progress(plan.mylog)
+
+    bases_list = []
+    start_years_list = []
+
+    if scenario_method == "historical":
+        if ystart is None or yend is None:
+            raise ValueError("ystart and yend are required for historical scenario method.")
+        if yend + plan.N_n > plan.year_n[0]:
+            yend = plan.year_n[0] - plan.N_n - 1
+            plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
+        if yend < ystart:
+            raise ValueError(f"Starting year too large for lifespan of {plan.N_n} years.")
+        total = yend - ystart + 1
+        plan.mylog.vprint(f"Stochastic spending: running {total} historical scenarios.")
+        progcall.start()
+        for step, year in enumerate(range(ystart, yend + 1)):
+            plan.setRates("historical", year, reverse=reverse, roll=roll)
+            plan.solve(objective, options)
+            progcall.show(step + 1, total)
+            if plan.caseStatus == "solved":
+                val = plan.basis if objective == "maxSpending" else plan.bequest
+                bases_list.append(val)
+                start_years_list.append(year)
+
+    elif scenario_method == "mc":
+        if N is None:
+            raise ValueError("N is required for Monte Carlo scenario method.")
+        if not hasattr(plan, "rateModel") or plan.rateModel is None \
+                or getattr(plan.rateModel, "deterministic", True):
+            raise ValueError("Monte Carlo requires a stochastic rate method.")
+        plan.mylog.vprint(f"Stochastic spending: running {N} Monte Carlo scenarios.")
+        progcall.start()
+        for n in range(N):
+            plan.regenRates(override_reproducible=True)
+            plan.solve(objective, options)
+            progcall.show(n + 1, N)
+            if plan.caseStatus == "solved":
+                val = plan.basis if objective == "maxSpending" else plan.bequest
+                bases_list.append(val)
+
+    else:
+        raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
+
+    progcall.finish()
+    plan.mylog.resetVerbose()
+
+    if len(bases_list) < 2:
+        raise RuntimeError("Fewer than 2 scenarios solved successfully; cannot compute frontier.")
+
+    bases = np.array(bases_list)
+    start_years = np.array(start_years_list) if start_years_list else None
+
+    lambdas, frontier_g, frontier_prob, frontier_shortfall = _compute_efficient_frontier(bases)
+
+    return {
+        "bases": bases,
+        "start_years": start_years,
+        "lambdas": lambdas,
+        "frontier_g": frontier_g,
+        "frontier_prob": frontier_prob,
+        "frontier_shortfall": frontier_shortfall,
+        "year_n": plan.year_n,
+        "n_d": plan.n_d,
+    }

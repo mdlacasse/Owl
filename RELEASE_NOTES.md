@@ -18,7 +18,8 @@
   efficient frontier side by side. `plot_stochastic_outcomes` — scenario bar chart colored by
   success/failure.
 - **Stress-test refactoring**: `runHistoricalRange` and `runMC` extracted from `plan.py` into
-  `src/owlplanner/stresstests.py` as `StressTestsMixin`. Public API unchanged.
+  `src/owlplanner/stresstests.py` as module functions (`run_historical_range`, etc.) with `Plan` delegating methods.
+  Public API unchanged.
 - **Historical Range page**: When augmented sampling is off, a per-start-year bar chart is shown
   below the histogram.
 - **New UI page**: *Spending Optimization* (`:material/query_stats:`) under Stress Tests. Scenario
