@@ -402,18 +402,26 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             st.markdown("#####")
             st.markdown("#### :orange[Rate Generation]")
             kz.initCaseKey("reproducibleRates", False)
-            kz.initCaseKey("rateSeed", None)
+            kz.initCaseKey("rateSeed", 1)
             helpmsgRepro = """When enabled, the same random seed will be used to generate rates,
 ensuring reproducible results across case runs. This is useful for comparing
 other parameters while keeping rates constant."""
-            st.checkbox(
-                "Enable reproducible rates",
-                value=kz.getCaseKey("reproducibleRates"),
-                on_change=updateRates,
-                args=["reproducibleRates"],
-                key=kz.genCaseKey("reproducibleRates"),
-                help=helpmsgRepro,
-            )
+            helpmsgSeed = ("Integer seed for the random number generator. "
+                           "Change this value to explore different rate sequences while keeping results reproducible.")
+            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
+            with col1:
+                st.checkbox(
+                    "Enable reproducible rates",
+                    value=kz.getCaseKey("reproducibleRates"),
+                    on_change=updateRates,
+                    args=["reproducibleRates"],
+                    key=kz.genCaseKey("reproducibleRates"),
+                    help=helpmsgRepro,
+                )
+            if kz.getCaseKey("reproducibleRates"):
+                with col2:
+                    kz.getIntNum("Random seed", "rateSeed", min_value=1, max_value=2**31 - 1,
+                                 callback=updateRates, help=helpmsgSeed)
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()

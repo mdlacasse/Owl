@@ -265,6 +265,9 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
     if not verbose:
         progcall.start()
 
+    if plan.reproducibleRates and hasattr(plan.rateModel, '_rng'):
+        plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
+
     for n in range(N):
         plan.regenRates(override_reproducible=True)
         plan.solve(objective, myoptions)
@@ -364,6 +367,8 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
                 or getattr(plan.rateModel, "deterministic", True):
             raise ValueError("Monte Carlo requires a stochastic rate method.")
         plan.mylog.vprint(f"Stochastic spending: running {N} Monte Carlo scenarios.")
+        if plan.reproducibleRates and hasattr(plan.rateModel, '_rng'):
+            plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
         progcall.start()
         for n in range(N):
             plan.regenRates(override_reproducible=True)
