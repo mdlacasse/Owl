@@ -153,6 +153,12 @@ def _timer(func):
     return wrapper
 
 
+# Batch-level timing for stress tests (runHistoricalRange / runMC had @timer on Plan before StressTestsMixin).
+StressTestsMixin.runHistoricalRange = _timer(StressTestsMixin.runHistoricalRange)
+StressTestsMixin.runMC = _timer(StressTestsMixin.runMC)
+StressTestsMixin.runStochasticSpending = _timer(StressTestsMixin.runStochasticSpending)
+
+
 class Plan(StressTestsMixin):
     """
     This is the main class of the Owl Project.
