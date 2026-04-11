@@ -25,12 +25,36 @@ from pathlib import Path
 
 import streamlit as st
 
+import owlbridge as owb
 import sskeys as kz
 
-# Main app sets layout and page_title in main.py.
+# Set next line to False to skip disclainer
+_SHOW_DISCLAIMER = True
+_GPLV3_URL = "https://www.gnu.org/licenses/gpl-3.0.html#license-text"
+_WELCOME_DISCLAIMER_DISMISSED = "welcome_disclaimer_dismissed"
 
 logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
 owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/papers/owl.pdf"
+
+
+@st.dialog("Reminder")
+def _welcome_session_reminder():
+    st.markdown(
+        f"""
+**Owl** is for **educational and research purposes** only. Nothing in this session is **financial, tax, or
+investment advice**—consult a qualified professional for decisions about your situation.
+
+This software is released under the [GNU General Public License v3]({_GPLV3_URL}).
+"""
+    )
+    st.caption(f"Owl version {owb.version()}")
+    if st.button("OK"):
+        kz.storeGlobalKey(_WELCOME_DISCLAIMER_DISMISSED, True)
+        st.rerun()
+
+
+if not kz.getGlobalKey(_WELCOME_DISCLAIMER_DISMISSED) and _SHOW_DISCLAIMER:
+    _welcome_session_reminder()
 
 # Value proposition
 col1, col2 = st.columns([2.8, 1], gap="large")
