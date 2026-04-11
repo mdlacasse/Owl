@@ -32,20 +32,6 @@ def test_sanitize_config_start_roth_past_year():
     assert "reset to" in log.getvalue()
 
 
-def test_sanitize_config_stochastic_translated_to_gaussian():
-    """sanitize_config translates deprecated method=stochastic to gaussian (backward compat)."""
-    diconf = {"rates_selection": {"method": "stochastic", "values": [7, 4, 3, 2]}}
-    sanitize_config(diconf)
-    assert diconf["rates_selection"]["method"] == "gaussian"
-
-
-def test_sanitize_config_histochastic_translated_to_histogaussian():
-    """sanitize_config translates deprecated method=histochastic to histogaussian (backward compat)."""
-    diconf = {"rates_selection": {"method": "histochastic", "from": 1970, "to": 1990}}
-    sanitize_config(diconf)
-    assert diconf["rates_selection"]["method"] == "histogaussian"
-
-
 def test_sanitize_config_default_translated_to_trailing_30():
     """sanitize_config translates deprecated method=default to trailing-30 (backward compat)."""
     diconf = {"rates_selection": {"method": "default"}}
@@ -195,7 +181,7 @@ def test_plan_to_config_saves_trim_when_nonzero():
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
-    p.setRates("stochastic", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
+    p.setRates("gaussian", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
     p.setSocialSecurity([2000], [67], trim_pct=23, trim_year=2035)
 
     out = plan_to_config(p)
@@ -211,7 +197,7 @@ def test_plan_to_config_omits_trim_when_zero():
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
-    p.setRates("stochastic", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
+    p.setRates("gaussian", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
     p.setSocialSecurity([2000], [67])  # default trim_pct=0
 
     out = plan_to_config(p)
@@ -289,14 +275,14 @@ def test_config_to_ui_rates_in_valid_range():
     assert uidic["fxRate1"] == 4.0
 
 
-def test_config_to_ui_stochastic_rates_in_valid_range():
+def test_config_to_ui_gaussian_rates_in_valid_range():
     """
-    Regression: stochastic rates (means, stdev, corr) in valid ranges after config_to_ui.
+    Regression: gaussian rates (means, stdev, corr) in valid ranges after config_to_ui.
 
     Means and stdev: percent. Correlations: Pearson coefficient (-1 to 1).
     """
     diconf = _minimal_config_for_rates()
-    diconf["rates_selection"]["method"] = "stochastic"
+    diconf["rates_selection"]["method"] = "gaussian"
     diconf["rates_selection"]["values"] = [8.0, 5.0, 3.5, 2.5]
     diconf["rates_selection"]["standard_deviations"] = [17.0, 8.0, 10.0, 3.0]
     diconf["rates_selection"]["correlations"] = [0.4, 0.26, -0.22, 0.84, -0.39, -0.39]
@@ -329,7 +315,7 @@ def test_plan_to_config_to_ui_rates_roundtrip():
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
-    p.setRates("stochastic", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
+    p.setRates("gaussian", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
 
     diconf = plan_to_config(p)
     uidic = config_to_ui(diconf)

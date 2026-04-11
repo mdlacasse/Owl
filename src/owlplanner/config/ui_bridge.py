@@ -267,10 +267,6 @@ def config_to_ui(diconf: dict) -> dict:
         dic["objective"] = "Hybrid"
 
     rate_method = rs.get("method", "historical average")
-    if rate_method == "stochastic":
-        rate_method = "gaussian"  # backward compatibility
-    if rate_method == "histochastic":
-        rate_method = "histogaussian"  # backward compatibility
     if rate_method == "dataframe":
         logger.warning("Dataframe rate method is not supported in UI; mapping to 'user'.")
         rate_method = "user"
@@ -519,11 +515,6 @@ def _ui_rate_method_to_config(uidic: dict) -> str:
         method = uidic.get("fixedType", "historical average")
     else:
         method = uidic.get("varyingType", "histogaussian")
-    # Backward compatibility: deprecated aliases
-    if method == "stochastic":
-        method = "gaussian"
-    elif method == "histochastic":
-        method = "histogaussian"
     return method
 
 

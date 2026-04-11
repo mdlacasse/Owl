@@ -52,25 +52,6 @@ def test_rate_user_metadata():
     assert meta["required_parameters"]["values"]["length"] == 4
 
 
-def test_stochastic_alias_returns_gaussian_metadata():
-    """stochastic is a deprecated alias; get_rate_model_metadata resolves to gaussian."""
-    meta = get_rate_model_metadata("stochastic")
-
-    assert meta["model_name"] == "gaussian"
-    assert "values" in meta["required_parameters"]
-    assert "stdev" in meta["required_parameters"]
-    assert "corr" in meta["optional_parameters"]
-
-
-def test_histochastic_alias_returns_histogaussian_metadata():
-    """histochastic is a deprecated alias; get_rate_model_metadata resolves to histogaussian."""
-    meta = get_rate_model_metadata("histochastic")
-
-    assert meta["model_name"] == "histogaussian"
-    assert "frm" in meta["required_parameters"]
-    assert "to" in meta["required_parameters"]
-
-
 # ------------------------------------------------------------
 # 3. DataFrame model metadata
 # ------------------------------------------------------------

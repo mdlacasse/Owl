@@ -10,7 +10,7 @@ Covers:
 - Correlation handling (lognormal)
 - Historical window sensitivity (histolognormal)
 - Parameter validation (frm/to bounds, invalid range)
-- Backward-compatibility alias ("stochastic" still works)
+- GaussianRateModel / StochasticRateModel class identity
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 
@@ -359,10 +359,10 @@ def test_gaussian_alias():
     assert StochasticRateModel is GaussianRateModel
 
 
-def test_stochastic_method_still_works():
-    """method='stochastic' must still produce valid output via setRates."""
+def test_gaussian_method_produces_valid_output():
+    """method='gaussian' produces valid output via setRates."""
     p = _make_plan()
     p.setReproducible(False)
-    p.setRates("stochastic", values=_MEANS, stdev=_STDEV)
+    p.setRates("gaussian", values=_MEANS, stdev=_STDEV)
     assert p.tau_kn.shape == (4, p.N_n)
     assert np.all(np.isfinite(p.tau_kn))

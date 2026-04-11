@@ -287,7 +287,7 @@ class MatplotlibBackend(PlotBackend):
         N_samples = tau_kn.shape[1]
         title = name + "\n"
         title += f"Rates Correlations (N={N_samples}) {rate_method}"
-        if rate_method in ("historical", "histochastic", "histogaussian", "histolognormal", "bootstrap_sor"):
+        if rate_method in ("historical", "histogaussian", "histolognormal", "bootstrap_sor"):
             title += f" ({rate_frm}-{rate_to})"
 
         if tag != "":

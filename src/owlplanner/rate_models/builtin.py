@@ -444,10 +444,8 @@ StochasticRateModel = GaussianRateModel
 # Registry and backward-compatibility shim
 # ---------------------------------------------------------------------------
 
-# Deprecated method aliases; resolved in BuiltinRateModel.__new__ before lookup
+# Method aliases; resolved in BuiltinRateModel.__new__ before lookup
 _BUILTIN_METHOD_ALIASES = {
-    "stochastic": "gaussian",
-    "histochastic": "histogaussian",
     "default": "trailing-30",
 }
 

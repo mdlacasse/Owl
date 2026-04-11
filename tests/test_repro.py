@@ -216,7 +216,7 @@ def test_stochastic_reproducibility():
     my_means = [8, 5, 4, 3]  # Stocks, Bonds, Fixed assets, Inflation
     my_stdev = [17, 8, 8, 2]
     offdiag_corr = [.46, .06, -.12, .68, -.27, -.21]
-    p1.setRates('stochastic', values=my_means, stdev=my_stdev, corr=offdiag_corr)
+    p1.setRates('gaussian', values=my_means, stdev=my_stdev, corr=offdiag_corr)
 
     # Verify reproducibility flag and seed are set
     assert p1.reproducibleRates is True
@@ -241,7 +241,7 @@ def test_stochastic_reproducibility():
     p2.setReproducible(True, seed=test_seed)
 
     # Set the same stochastic rates
-    p2.setRates('stochastic', values=my_means, stdev=my_stdev, corr=offdiag_corr)
+    p2.setRates('gaussian', values=my_means, stdev=my_stdev, corr=offdiag_corr)
 
     # Verify reproducibility flag and seed are set
     assert p2.reproducibleRates is True
@@ -263,7 +263,7 @@ def test_stochastic_reproducibility():
     name3 = 'test_stoch_repro_3'
     p3 = createJackAndJillPlan(name3)
     p3.setReproducible(True, seed=test_seed)
-    p3.setRates('stochastic', values=my_means, stdev=my_stdev, corr=offdiag_corr)
+    p3.setRates('gaussian', values=my_means, stdev=my_stdev, corr=offdiag_corr)
 
     # Save the rate series before MC
     tau_kn_before_mc = p3.tau_kn.copy()
@@ -289,5 +289,5 @@ def test_stochastic_reproducibility():
 
     # Test that after MC, if we regenerate rates without override, we get the original reproducible rates
     # Reset rates to the original reproducible ones
-    p3.setRates('stochastic', values=my_means, stdev=my_stdev, corr=offdiag_corr)
+    p3.setRates('gaussian', values=my_means, stdev=my_stdev, corr=offdiag_corr)
     np.testing.assert_allclose(p3.tau_kn, tau_kn_before_mc, rtol=REL_TOL, atol=REL_TOL)

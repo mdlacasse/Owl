@@ -257,7 +257,7 @@ def test_save_config_with_stochastic_rates():
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("stochastic", values=[0.05, 0.03, 0.02, 0.01], stdev=[0.15, 0.10, 0.05, 0.02])
+    p.setRates("gaussian", values=[0.05, 0.03, 0.02, 0.01], stdev=[0.15, 0.10, 0.05, 0.02])
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     if not hasattr(p, 'solverOptions'):
         p.solverOptions = {}

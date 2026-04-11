@@ -48,10 +48,8 @@ from owlplanner.rate_models.garch_dcc import GARCHDCCRateModel
 # Unified registry of all built-in rate models
 # ------------------------------------------------------------
 
-# Deprecated method aliases; resolved at load_rate_model() lookup, not in registry
+# Method aliases; resolved at load_rate_model() lookup, not in registry
 _METHOD_ALIASES = {
-    "stochastic": "gaussian",
-    "histochastic": "histogaussian",
     "default": "trailing-30",
 }
 

@@ -413,7 +413,7 @@ def _setRates(plan):
                 st.warning("Ending year adjusted to be after starting year.")
 
             # Set reproducibility for histogaussian methods
-            if varyingType in ("histochastic", "histogaussian"):
+            if varyingType in ("histogaussian",):
                 reproducible = kz.getCaseKey("reproducibleRates")
                 seed = kz.getCaseKey("rateSeed") if reproducible else None
                 plan.setReproducible(reproducible, seed=seed)
@@ -425,7 +425,7 @@ def _setRates(plan):
             plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq)
 
             # Store seed, reproducibility, and sequence options back to case keys
-            if varyingType in ("histochastic", "histogaussian"):
+            if varyingType in ("histogaussian",):
                 kz.setCaseKey("rateSeed", plan.rateSeed)
                 kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
             kz.setCaseKey("reverse_sequence", plan.rateReverse)
@@ -486,7 +486,7 @@ def _setRates(plan):
                     kz.pushCaseKey(f"corr{q}", dist.corr[k1, k2])
                     q += 1
 
-        elif varyingType in ("stochastic", "gaussian", "lognormal"):
+        elif varyingType in ("gaussian", "lognormal"):
             means = []
             stdev = []
             corr = []
@@ -1297,10 +1297,10 @@ def genDic(plan):
     elif plan.rateMethod == "dataframe":
         dic["rateType"] = "constant"
         dic["fixedType"] = "user"
-    elif plan.rateMethod in ["histogaussian", "histochastic", "historical", "stochastic", "gaussian",
+    elif plan.rateMethod in ["histogaussian", "historical", "gaussian",
                              "lognormal", "histolognormal", "bootstrap_sor", "var", "garch_dcc"]:
         dic["rateType"] = "varying"
-        dic["varyingType"] = "histogaussian" if plan.rateMethod == "histochastic" else plan.rateMethod
+        dic["varyingType"] = plan.rateMethod
         if plan.rateMethod == "bootstrap_sor":
             params = plan.rateModel.params
             dic["bootstrapType"] = params.get("bootstrap_type", "iid")
@@ -1313,7 +1313,7 @@ def genDic(plan):
         else:
             dic[f"fxRate{k1}"] = 100 * plan.tau_kn[k1, -1]
 
-    if plan.rateMethod in ["historical average", "histogaussian", "histochastic", "historical",
+    if plan.rateMethod in ["historical average", "histogaussian", "historical",
                            "histolognormal", "bootstrap_sor", "var", "garch_dcc"]:
         dic["yfrm"] = plan.rateFrm
         dic["yto"] = plan.rateTo
@@ -1325,7 +1325,7 @@ def genDic(plan):
         # Rates availability are trailing by 1 year.
         dic["yto"] = date.today().year - 1
 
-    if plan.rateMethod in ["stochastic", "gaussian", "lognormal", "histogaussian", "histochastic",
+    if plan.rateMethod in ["gaussian", "lognormal", "histogaussian",
                            "bootstrap_sor", "var", "garch_dcc"]:
         qq = 1
         for k1 in range(plan.N_k):

@@ -117,11 +117,11 @@ class TestRegenRatesPreservesReverseRoll:
     """regenRates should pass reverse and roll to setRates."""
 
     def test_regen_rates_preserves_reverse_roll(self):
-        """regenRates (for stochastic) preserves rateReverse and rateRoll."""
+        """regenRates (for histogaussian) preserves rateReverse and rateRoll."""
         p = _make_plan_with_historical_rates()
-        # Use histochastic so regenRates actually does something
+        # Use histogaussian so regenRates actually does something
         p.setReproducible(False)  # so each regen gives new rates
-        p.setRates("histochastic", 1970, 1990, reverse=True, roll=2)
+        p.setRates("histogaussian", 1970, 1990, reverse=True, roll=2)
         assert p.rateReverse is True
         assert p.rateRoll == 2
         tau_before = p.tau_kn.copy()

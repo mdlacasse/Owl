@@ -35,7 +35,7 @@ def test_stochastic_regen_changes_series():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
     p.setReproducible(False)
     p.setRates(
-        method="stochastic",
+        method="gaussian",
         values=[7.0, 4.0, 3.0, 2.0],
         stdev=[15.0, 8.0, 6.0, 2.0],
     )
@@ -75,7 +75,7 @@ def test_stochastic_reproducible_same_series():
     p1 = Plan(["Joe"], ["1961-01-15"], [80], "test1", verbose=False)
     p1.setReproducible(True, seed=1234)
     p1.setRates(
-        method="stochastic",
+        method="gaussian",
         values=[7.0, 4.0, 3.0, 2.0],
         stdev=[15.0, 8.0, 6.0, 2.0],
     )
@@ -83,7 +83,7 @@ def test_stochastic_reproducible_same_series():
     p2 = Plan(["Joe"], ["1961-01-15"], [80], "test2", verbose=False)
     p2.setReproducible(True, seed=1234)
     p2.setRates(
-        method="stochastic",
+        method="gaussian",
         values=[7.0, 4.0, 3.0, 2.0],
         stdev=[15.0, 8.0, 6.0, 2.0],
     )

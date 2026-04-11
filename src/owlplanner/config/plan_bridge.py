@@ -387,10 +387,6 @@ def plan_to_config(myplan: "Plan") -> dict:
 
     # Rates Selection
     rate_method = myplan.rateMethod
-    if rate_method == "stochastic":
-        rate_method = "gaussian"
-    elif rate_method == "histochastic":
-        rate_method = "histogaussian"
     diconf["rates_selection"] = {
         "heirs_rate_on_tax_deferred_estate": float(100 * myplan.nu),
         "dividend_rate": float(100 * myplan.mu),

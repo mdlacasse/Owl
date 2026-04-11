@@ -155,38 +155,38 @@ class TestBuiltinRateModelMethods:
         for i in range(1, 5):
             np.testing.assert_array_almost_equal(series[0], series[i], decimal=6)
 
-    def test_set_method_histochastic(self):
-        """Test histochastic method."""
+    def test_set_method_histogaussian(self):
+        """Test histogaussian method."""
         frm, to = 2000, 2010
-        m = BuiltinRateModel(_model_config("histochastic", frm=frm, to=to), seed=42)
+        m = BuiltinRateModel(_model_config("histogaussian", frm=frm, to=to), seed=42)
         series = m.generate(10)
         assert series.shape == (10, 4)
         assert np.all(series < 1.0)
 
-    def test_set_method_stochastic(self):
-        """Test stochastic method."""
+    def test_set_method_gaussian(self):
+        """Test gaussian method."""
         values = [8.0, 5.0, 3.5, 2.5]
         stdev_vals = [15.0, 8.0, 5.0, 2.0]
         m = BuiltinRateModel(
-            _model_config("stochastic", values=values, stdev=stdev_vals),
+            _model_config("gaussian", values=values, stdev=stdev_vals),
             seed=42,
         )
         series = m.generate(5)
         assert series.shape == (5, 4)
         assert m.params["corr"].shape == (4, 4)
 
-    def test_set_method_stochastic_missing_values(self):
-        """Test that stochastic method requires values."""
+    def test_set_method_gaussian_missing_values(self):
+        """Test that gaussian method requires values."""
         with pytest.raises(ValueError, match="requires parameter 'values'"):
-            BuiltinRateModel(_model_config("stochastic", stdev=[15.0, 8.0, 5.0, 2.0]))
+            BuiltinRateModel(_model_config("gaussian", stdev=[15.0, 8.0, 5.0, 2.0]))
 
-    def test_set_method_stochastic_missing_stdev(self):
-        """Test that stochastic method requires stdev."""
+    def test_set_method_gaussian_missing_stdev(self):
+        """Test that gaussian method requires stdev."""
         with pytest.raises(ValueError, match="requires parameter 'stdev'"):
-            BuiltinRateModel(_model_config("stochastic", values=[8.0, 5.0, 3.5, 2.5]))
+            BuiltinRateModel(_model_config("gaussian", values=[8.0, 5.0, 3.5, 2.5]))
 
-    def test_set_method_stochastic_with_full_correlation_matrix(self):
-        """Test stochastic with full correlation matrix."""
+    def test_set_method_gaussian_with_full_correlation_matrix(self):
+        """Test gaussian with full correlation matrix."""
         values = [8.0, 5.0, 3.5, 2.5]
         stdev_vals = [15.0, 8.0, 5.0, 2.0]
         corr_matrix = [
@@ -196,20 +196,20 @@ class TestBuiltinRateModelMethods:
             [0.1, 0.2, 0.3, 1.0],
         ]
         m = BuiltinRateModel(
-            _model_config("stochastic", values=values, stdev=stdev_vals, corr=corr_matrix),
+            _model_config("gaussian", values=values, stdev=stdev_vals, corr=corr_matrix),
             seed=42,
         )
         series = m.generate(5)
         assert series.shape == (5, 4)
         np.testing.assert_array_almost_equal(m.params["corr"], np.array(corr_matrix), decimal=4)
 
-    def test_set_method_stochastic_with_off_diagonal_correlation(self):
-        """Test stochastic with off-diagonal correlation values only."""
+    def test_set_method_gaussian_with_off_diagonal_correlation(self):
+        """Test gaussian with off-diagonal correlation values only."""
         values = [8.0, 5.0, 3.5, 2.5]
         stdev_vals = [15.0, 8.0, 5.0, 2.0]
         off_diag = [0.3, 0.2, 0.1, 0.4, 0.2, 0.3]
         m = BuiltinRateModel(
-            _model_config("stochastic", values=values, stdev=stdev_vals, corr=off_diag),
+            _model_config("gaussian", values=values, stdev=stdev_vals, corr=off_diag),
             seed=42,
         )
         series = m.generate(5)
@@ -218,19 +218,19 @@ class TestBuiltinRateModelMethods:
         assert np.allclose(corr, corr.T)
         assert np.allclose(np.diag(corr), 1.0)
 
-    def test_set_method_stochastic_invalid_correlation_shape(self):
-        """Test that stochastic method validates correlation matrix shape."""
+    def test_set_method_gaussian_invalid_correlation_shape(self):
+        """Test that gaussian method validates correlation matrix shape."""
         with pytest.raises(RuntimeError, match="Unable to process correlation"):
             BuiltinRateModel(
                 _model_config(
-                    "stochastic",
+                    "gaussian",
                     values=[8.0, 5.0, 3.5, 2.5],
                     stdev=[15.0, 8.0, 5.0, 2.0],
                     corr=[0.3, 0.2],
                 ),
             )
 
-    def test_set_method_stochastic_asymmetric_correlation(self):
+    def test_set_method_gaussian_asymmetric_correlation(self):
         """Test that correlation matrix must be symmetric."""
         corr_matrix = [
             [1.0, 0.3, 0.2, 0.1],
@@ -241,7 +241,7 @@ class TestBuiltinRateModelMethods:
         with pytest.raises(ValueError, match="symmetric"):
             BuiltinRateModel(
                 _model_config(
-                    "stochastic",
+                    "gaussian",
                     values=[8.0, 5.0, 3.5, 2.5],
                     stdev=[15.0, 8.0, 5.0, 2.0],
                     corr=corr_matrix,
@@ -303,18 +303,18 @@ class TestBuiltinRateModelGenSeries:
         for i in range(1, N):
             np.testing.assert_array_almost_equal(series[0], series[i], decimal=6)
 
-    def test_gen_series_histochastic(self):
-        """Test generating series with histochastic method."""
-        m = BuiltinRateModel(_model_config("histochastic", frm=2000, to=2010), seed=42)
+    def test_gen_series_histogaussian(self):
+        """Test generating series with histogaussian method."""
+        m = BuiltinRateModel(_model_config("histogaussian", frm=2000, to=2010), seed=42)
         N = 10
         series = m.generate(N)
         assert series.shape == (N, 4)
         assert np.all(series < 1.0)
 
-    def test_gen_series_stochastic(self):
-        """Test generating series with stochastic method."""
+    def test_gen_series_gaussian(self):
+        """Test generating series with gaussian method."""
         m = BuiltinRateModel(
-            _model_config("stochastic", values=[8.0, 5.0, 3.5, 2.5], stdev=[15.0, 8.0, 5.0, 2.0]),
+            _model_config("gaussian", values=[8.0, 5.0, 3.5, 2.5], stdev=[15.0, 8.0, 5.0, 2.0]),
             seed=42,
         )
         N = 10
@@ -585,10 +585,10 @@ class TestRatesEdgeCases:
         series2 = m2.generate(5)
         assert series2.shape == (5, 4)
 
-    def test_stochastic_with_identity_correlation(self):
-        """Test stochastic method with identity correlation (no correlation)."""
+    def test_gaussian_with_identity_correlation(self):
+        """Test gaussian method with identity correlation (no correlation)."""
         m = BuiltinRateModel(
-            _model_config("stochastic", values=[8.0, 5.0, 3.5, 2.5], stdev=[15.0, 8.0, 5.0, 2.0]),
+            _model_config("gaussian", values=[8.0, 5.0, 3.5, 2.5], stdev=[15.0, 8.0, 5.0, 2.0]),
             seed=42,
         )
         series = m.generate(5)

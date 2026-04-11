@@ -378,7 +378,7 @@ class TestStochasticConfigToPlan:
         a rates_selection dict.  This exercises StochasticRateModel.from_config's
         alias-normalization — the path that was silently broken before the fix.
         """
-        rates = _base_rates_section("stochastic")
+        rates = _base_rates_section("gaussian")
         rates.update({
             "values": [7.0, 4.0, 3.3, 2.8],
             "standard_deviations": [17.0, 8.0, 10.0, 3.0],
@@ -388,7 +388,7 @@ class TestStochasticConfigToPlan:
         })
         plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
 
-        assert plan.rateMethod == "stochastic"
+        assert plan.rateMethod == "gaussian"
         assert plan.tau_kn.shape == (4, plan.N_n)
         assert plan.rateValues == pytest.approx([7.0, 4.0, 3.3, 2.8])
         assert plan.rateStdev == pytest.approx([17.0, 8.0, 10.0, 3.0])
@@ -397,7 +397,7 @@ class TestStochasticConfigToPlan:
 
     def test_loads_without_correlations(self):
         """Stochastic config without correlations key loads and uses identity matrix."""
-        rates = _base_rates_section("stochastic")
+        rates = _base_rates_section("gaussian")
         rates.update({
             "values": [7.0, 4.0, 3.3, 2.8],
             "standard_deviations": [17.0, 8.0, 10.0, 3.0],
@@ -406,7 +406,7 @@ class TestStochasticConfigToPlan:
         })
         plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
 
-        assert plan.rateMethod == "stochastic"
+        assert plan.rateMethod == "gaussian"
         assert plan.tau_kn.shape == (4, plan.N_n)
         assert np.allclose(plan.rateCorr, np.eye(4))
 
@@ -420,12 +420,11 @@ class TestStochasticRoundTrip:
     def test_values_and_stdev_preserved(self):
         """plan → config → plan preserves rateValues and rateStdev."""
         p = _make_plan()
-        p.setRates("stochastic", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
+        p.setRates("gaussian", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
 
         diconf = plan_to_config(p)
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
 
-        # method is canonicalized to "gaussian" when saved (stochastic is deprecated alias)
         assert p2.rateMethod == "gaussian"
         assert p2.rateValues == pytest.approx([7.0, 4.0, 3.3, 2.8])
         assert p2.rateStdev == pytest.approx([17.0, 8.0, 10.0, 3.0])
@@ -433,7 +432,7 @@ class TestStochasticRoundTrip:
     def test_config_contains_toml_names(self):
         """plan_to_config writes 'standard_deviations' and 'correlations' (not stdev/corr)."""
         p = _make_plan()
-        p.setRates("stochastic", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
+        p.setRates("gaussian", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
 
         diconf = plan_to_config(p)
         rates = diconf["rates_selection"]
@@ -448,7 +447,7 @@ class TestStochasticRoundTrip:
         p = _make_plan()
         corr_upper = [0.4, 0.26, -0.22, 0.84, -0.39, -0.39]
         p.setRates(
-            "stochastic",
+            "gaussian",
             values=[7.0, 4.0, 3.3, 2.8],
             stdev=[17.0, 8.0, 10.0, 3.0],
             corr=corr_upper,
@@ -462,7 +461,7 @@ class TestStochasticRoundTrip:
     def test_identity_corr_round_trip(self):
         """plan with no explicit corr (identity) round-trips cleanly."""
         p = _make_plan()
-        p.setRates("stochastic", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
+        p.setRates("gaussian", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
 
         diconf = plan_to_config(p)
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)

@@ -761,14 +761,12 @@ from the selected historical window, then draws samples from the **fitted multiv
 normal distribution**. Each year of the plan is an independent draw from that distribution.
 Unlike `bootstrap_sor`, no actual historical years are resampled — only their statistical
 summary (arithmetic mean and covariance) is used. The result is parametric and Gaussian, but with
-parameters grounded in history rather than supplied by the user. *(Old configs with
-`method = "histochastic"` are automatically translated to `histogaussian` when loaded.)*
+parameters grounded in history rather than supplied by the user.
 
 **`gaussian`** — Draws independently from a multivariate normal distribution each year.
 The **arithmetic** mean returns, volatilities, and cross-asset correlations are **user-supplied** in the
 *Stochastic Parameters* panel. Use this when you have a specific return/risk view that
-differs from any historical period. *(Old configs with `method = "stochastic"` are
-automatically translated to `gaussian` when loaded.)*
+differs from any historical period.
 
 **`lognormal`** — Like `gaussian`, the **arithmetic** mean returns, volatilities, and cross-asset
 correlations are **user-supplied**. However, samples are drawn from a **log-normal**

@@ -394,7 +394,7 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
-        # Reproducibility checkbox - only for stochastic and histochastic methods.
+        # Reproducibility checkbox - only for gaussian/lognormal and histogaussian/histolognormal methods.
         if kz.getCaseKey("varyingType") in [
             "gaussian", "lognormal", "histogaussian", "histolognormal",
             "bootstrap_sor", "var", "garch_dcc",
