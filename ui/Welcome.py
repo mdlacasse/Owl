@@ -41,7 +41,7 @@ owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/p
 def _welcome_session_reminder():
     st.markdown(
         f"""
-**Owl** is for **educational and research purposes** only. Nothing in this session is **financial, tax, or
+**Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
 investment advice**—consult a qualified professional for decisions about your situation.
 
 This software is released under the [GNU General Public License v3]({_GPLV3_URL}).
