@@ -847,14 +847,19 @@ class PlotlyBackend(PlotBackend):
         fig.add_vline(x=sf_at_target, line_dash="dash", line_color="firebrick",
                       opacity=0.5, row=1, col=2)
 
-        fig.update_xaxes(title_text="Shortfall probability (%)", ticksuffix="%", row=1, col=1)
-        fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$", row=1, col=1)
-        fig.update_xaxes(title_text=f"Expected shortfall ({thisyear} $k)", tickprefix="$", row=1, col=2)
-        fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$", row=1, col=2)
+        fig.update_xaxes(title_text="Shortfall probability (%)", ticksuffix="%",
+                         title_font_size=14, tickfont_size=11, row=1, col=1)
+        fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$",
+                         title_font_size=14, tickfont_size=11, row=1, col=1)
+        fig.update_xaxes(title_text=f"Expected shortfall ({thisyear} $k)", tickprefix="$",
+                         title_font_size=14, tickfont_size=11, row=1, col=2)
+        fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$",
+                         title_font_size=14, tickfont_size=11, row=1, col=2)
+        fig.update_annotations(font_size=14)
         fig.update_layout(
-            title=f"{frontier_type} spending efficient frontier ({thisyear}$)",
+            title=dict(text=f"{frontier_type} spending efficient frontier ({thisyear}$)", font_size=18),
             template=self.template,
-            legend=_LEGEND_BOTTOM,
+            legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
         )
         return fig
 
@@ -882,13 +887,18 @@ class PlotlyBackend(PlotBackend):
         fig.add_hline(y=g_opt / 1000, line_dash="dash", line_color="black",
                       annotation_text=f"Commitment {u.d(g_opt)}", annotation_position="top right")
         fig.update_layout(
-            title=f"Scenario outcomes — {target_success_rate*100:.0f}% target success rate",
+            title=dict(text=f"Scenario outcomes — {target_success_rate*100:.0f}% target success rate",
+                       font_size=18),
             xaxis_title=xlabel,
             yaxis_title=f"Achieved {label.lower()} ({thisyear} $k)",
             yaxis_tickprefix="$",
+            xaxis_title_font_size=14,
+            yaxis_title_font_size=14,
+            xaxis_tickfont_size=11,
+            yaxis_tickfont_size=11,
             template=self.template,
             barmode="overlay",
-            legend=_LEGEND_BOTTOM,
+            legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
         )
         return fig
 
