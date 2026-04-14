@@ -802,9 +802,10 @@ class PlotlyBackend(PlotBackend):
         return fig, description
 
     def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate, g_opt, year_n):
+                                 target_success_rate, g_opt, year_n, start_years=None):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
         thisyear = int(year_n[0])
+        frontier_type = "Historical" if start_years is not None else "Stochastic"
         shortfall_pct = (1.0 - target_success_rate) * 100
 
         fig = make_subplots(rows=1, cols=2,
@@ -851,7 +852,7 @@ class PlotlyBackend(PlotBackend):
         fig.update_xaxes(title_text=f"Expected shortfall ({thisyear} $k)", tickprefix="$", row=1, col=2)
         fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$", row=1, col=2)
         fig.update_layout(
-            title=f"Stochastic spending efficient frontier ({thisyear}$)",
+            title=f"{frontier_type} spending efficient frontier ({thisyear}$)",
             template=self.template,
             legend=_LEGEND_BOTTOM,
         )

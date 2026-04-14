@@ -122,7 +122,7 @@ class PlotBackend(ABC):
 
     @abstractmethod
     def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate, g_opt, year_n):
+                                 target_success_rate, g_opt, year_n, start_years=None):
         """Efficient frontier plot: committed spending vs. shortfall probability.
 
         Marks the target success rate point on the curve.

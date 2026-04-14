@@ -559,9 +559,10 @@ class MatplotlibBackend(PlotBackend):
         return fig, description
 
     def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate, g_opt, year_n):
+                                 target_success_rate, g_opt, year_n, start_years=None):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
         thisyear = int(year_n[0])
+        frontier_type = "Historical" if start_years is not None else "Stochastic"
         fig, axes = plt.subplots(1, 2, figsize=(11, 4))
 
         ax = axes[0]
@@ -592,7 +593,7 @@ class MatplotlibBackend(PlotBackend):
         ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
         ax.grid(True, alpha=0.3)
 
-        plt.suptitle(f"Stochastic spending efficient frontier ({thisyear}$)")
+        plt.suptitle(f"{frontier_type} spending efficient frontier ({thisyear}$)")
         plt.tight_layout()
         return fig
 

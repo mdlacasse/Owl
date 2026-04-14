@@ -258,7 +258,7 @@ def _apply_stochastic_target(result, target_sr, plotter):
     fig_frontier = plotter.plot_stochastic_frontier(
         objective,
         result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
-        target_sr, g_opt, result["year_n"])
+        target_sr, g_opt, result["year_n"], result["start_years"])
     fig_outcomes = plotter.plot_stochastic_outcomes(
         objective,
         result["start_years"], result["bases"], g_opt,
