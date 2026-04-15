@@ -526,6 +526,9 @@ def clone(plan: "Plan", newname=None, *, expectancy=None, verbose=True, logstrea
         diconf = plan_to_config(plan)
         diconf["basic_info"]["life_expectancy"] = [int(e) for e in expectancy]
         newplan = config_to_plan(diconf, verbose=verbose, logstreams=eff_logstreams, loadHFP=False)
+        # Re-apply HFP from in-memory raw data (no file I/O; timelists re-conditioned for new horizon)
+        if getattr(plan, "rawHFP", None):
+            newplan.readHFP(plan.rawHFP, filename_for_logging=plan.timeListsFileName)
 
     if newname is None:
         # Strip any existing " (copy)" or " (copy N)" suffix so repeated cloning

@@ -311,6 +311,7 @@ class Plan:
         self.timeListsFileName = "None"
         self.timeLists = {}
         self.houseLists = {}
+        self.rawHFP = {}  # raw dict of DataFrames from the HFP xlsx (horizon-independent)
         self.zeroWagesAndContributions()
         self.caseStatus = "unsolved"
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
@@ -1213,7 +1214,7 @@ class Plan:
             in log messages instead of trying to extract it from filename.
         """
         try:
-            returned_filename, self.timeLists, self.houseLists = timelists.read(
+            returned_filename, self.timeLists, self.houseLists, self.rawHFP = timelists.read(
                 filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging
             )
         except Exception as e:

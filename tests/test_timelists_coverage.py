@@ -41,7 +41,7 @@ def test_read_time_horizons_dict_input():
         })
     }
 
-    finput, time_lists, house_lists = timelists.read(
+    finput, time_lists, house_lists, _ = timelists.read(
         df_dict, inames, horizons, mylog
     )
     # When dict is passed, finput is set to "dictionary of DataFrames" string
@@ -78,7 +78,7 @@ def test_read_time_horizons_file_with_name():
         df.to_excel(writer, sheet_name='Joe', index=False)
     buffer.seek(0)
 
-    finput, time_lists, house_lists = timelists.read(
+    finput, time_lists, house_lists, _ = timelists.read(
         buffer, inames, horizons, mylog, filename="test_file.xlsx"
     )
     assert 'Joe' in time_lists
@@ -271,7 +271,7 @@ def test_read_with_house_tables_active_column_string():
         })
     }
 
-    finput, time_lists, house_lists = timelists.read(df_dict, inames, horizons, mylog)
+    finput, time_lists, house_lists, _ = timelists.read(df_dict, inames, horizons, mylog)
     assert 'Joe' in time_lists
     assert 'Debts' in house_lists
 
@@ -311,7 +311,7 @@ def test_read_with_house_tables_active_column_numeric():
         })
     }
 
-    finput, time_lists, house_lists = timelists.read(df_dict, inames, horizons, mylog)
+    finput, time_lists, house_lists, _ = timelists.read(df_dict, inames, horizons, mylog)
     assert 'Joe' in time_lists
     assert 'Debts' in house_lists
 
@@ -351,7 +351,7 @@ def test_read_with_house_tables_active_column_nan():
         })
     }
 
-    finput, time_lists, house_lists = timelists.read(df_dict, inames, horizons, mylog)
+    finput, time_lists, house_lists, _ = timelists.read(df_dict, inames, horizons, mylog)
     assert 'Joe' in time_lists
     assert 'Debts' in house_lists
 

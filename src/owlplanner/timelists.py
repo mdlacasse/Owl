@@ -152,7 +152,7 @@ def read(finput, inames, horizons, mylog, filename=None):
     houseLists = _conditionHouseTables(dfDict, mylog)
     mylog.vprint(f"Successfully read household tables from {streamName}.")
 
-    return finput, timeLists, houseLists
+    return finput, timeLists, houseLists, dfDict
 
 
 def _checkColumns(df, iname, colList, required_cols=None):

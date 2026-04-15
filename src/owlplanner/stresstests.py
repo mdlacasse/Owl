@@ -21,14 +21,56 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import os
 import numpy as np
 import pandas as pd
 from itertools import product
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from scipy.optimize import linprog
 
 from . import progress
+from . import rates
 from .config.plan_bridge import clone
 from .data.mortality_tables import sample_lifespans
+
+
+###############################################################################
+# Parallel scenario worker
+###############################################################################
+
+def _scenario_worker(args):
+    """
+    Solve one scenario in a worker thread.
+
+    args tuple:
+      plan          — cloned Plan (thread-local copy, already has all data)
+      tau_kn_or_year — ndarray (N_k, N_n) pre-generated rates (MC), or int year (historical)
+      gamma_n       — unused placeholder for compatibility (None in current calls)
+      objective     — "maxSpending" or "maxBequest"
+      options       — solver options dict
+
+    Returns float (basis/bequest) or None on solver failure.
+    """
+    p, tau_kn_or_year, gamma_n, objective, options = args
+
+    if isinstance(tau_kn_or_year, int):
+        p.setRates("historical", tau_kn_or_year)
+    else:
+        Nn = p.N_n
+        tau_slice = tau_kn_or_year[:, :Nn]
+        if tau_slice.shape[1] != Nn:
+            raise RuntimeError(
+                f"Precomputed rate path is too short for scenario horizon: have {tau_slice.shape[1]}, need {Nn}."
+            )
+        p.tau_kn = tau_slice
+        p.gamma_n = rates.gen_gamma_n(p.tau_kn)
+        p._adjustedParameters = False
+        p.caseStatus = "modified"
+
+    p.solve(objective, options)
+    if p.caseStatus == "solved":
+        return p.basis if objective == "maxSpending" else p.bequest
+    return None
 
 
 ###############################################################################
@@ -371,37 +413,13 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
     start_years_list = []
     drawn_lifespans_list = []
 
-    def _solve_scenario(p):
-        """Solve one scenario on plan p; return basis/bequest or None on failure."""
-        p.solve(objective, options)
-        if p.caseStatus == "solved":
-            return p.basis if objective == "maxSpending" else p.bequest
-        return None
-
-    def _active_plan(year=None):
-        """
-        Return the plan to solve for this scenario.
-        If with_longevity: clone with drawn expectancy and set rates on the clone.
-        Otherwise: set rates on the original plan and return it.
-        """
-        if not with_longevity:
-            return plan, None
-
-        # Draw one lifespan per individual; couple uses last-survivor horizon.
-        drawn = np.array([
-            int(sample_lifespans(sexes[i], current_ages[i], 1, rng, table=mortality_table)[0])
-            for i in range(plan.N_i)
-        ])
-        # Convert age-at-death to years-of-life (expectancy from birth)
-        new_expectancy = drawn.tolist()
-
-        p = clone(plan, expectancy=new_expectancy, verbose=False)
-        if year is not None:
-            p.setRates("historical", year, reverse=reverse, roll=roll)
-        else:
-            p.regenRates(override_reproducible=True)
-        return p, drawn
-
+    # ------------------------------------------------------------------
+    # Build the args list for parallel workers.
+    # All random draws and rate generation happen here in the parent so
+    # that reproducibility (seed control) is preserved exactly.
+    # Each scenario gets its own clone — a full copy that already has
+    # all plan data (timelists, allocations, etc.) without any file I/O.
+    # ------------------------------------------------------------------
     if scenario_method == "historical":
         if ystart is None or yend is None:
             raise ValueError("ystart and yend are required for historical scenario method.")
@@ -411,23 +429,22 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
                 plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
             if yend < ystart:
                 raise ValueError(f"Starting year too large for lifespan of {plan.N_n} years.")
-        total = yend - ystart + 1
+        years = list(range(ystart, yend + 1))
+        total = len(years)
         plan.mylog.vprint(f"Stochastic spending: running {total} historical scenarios"
                           + (" (with longevity sampling)." if with_longevity else "."))
-        progcall.start()
-        for step, year in enumerate(range(ystart, yend + 1)):
-            if not with_longevity:
-                plan.setRates("historical", year, reverse=reverse, roll=roll)
-                val = _solve_scenario(plan)
-                drawn = None
-            else:
-                p, drawn = _active_plan(year=year)
-                val = _solve_scenario(p)
-            progcall.show(step + 1, total)
-            if val is not None:
-                bases_list.append(val)
-                start_years_list.append(year)
-                drawn_lifespans_list.append(drawn)
+        drawn_list = []
+        if with_longevity:
+            for _ in years:
+                drawn = [int(sample_lifespans(sexes[i], current_ages[i], 1, rng, table=mortality_table)[0])
+                         for i in range(plan.N_i)]
+                drawn_list.append(drawn)
+        else:
+            drawn_list = [None] * total
+        args_list = [
+            (clone(plan, expectancy=drawn_list[i], verbose=False), year, None, objective, options)
+            for i, year in enumerate(years)
+        ]
 
     elif scenario_method == "mc":
         if N is None:
@@ -437,24 +454,81 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
             raise ValueError("Monte Carlo requires a stochastic rate method.")
         plan.mylog.vprint(f"Stochastic spending: running {N} Monte Carlo scenarios"
                           + (" (with longevity sampling)." if with_longevity else "."))
+        # Reset the rate RNG so repeated calls are reproducible when seeded
         if plan.reproducibleRates and hasattr(plan.rateModel, '_rng'):
             plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
-        progcall.start()
-        for n in range(N):
-            if not with_longevity:
-                plan.regenRates(override_reproducible=True)
-                val = _solve_scenario(plan)
-                drawn = None
-            else:
-                p, drawn = _active_plan(year=None)
-                val = _solve_scenario(p)
-            progcall.show(n + 1, N)
-            if val is not None:
-                bases_list.append(val)
-                drawn_lifespans_list.append(drawn)
+        # Pre-draw longevity
+        drawn_list = []
+        if with_longevity:
+            for _ in range(N):
+                drawn = [int(sample_lifespans(sexes[i], current_ages[i], 1, rng, table=mortality_table)[0])
+                         for i in range(plan.N_i)]
+                drawn_list.append(drawn)
+            # Compute each scenario horizon directly from drawn ages-at-death.
+            # This avoids creating extra clones just to discover horizons.
+            horizons = [
+                max(int(drawn[i] - current_ages[i] + 1) for i in range(plan.N_i))
+                for drawn in drawn_list
+            ]
+            N_n_max = max(horizons)
+        else:
+            drawn_list = [None] * N
+            N_n_max = plan.N_n
+
+        # Pre-generate all rate sequences at the maximum required horizon in the parent.
+        # Workers only slice deterministic inputs, so results are independent of thread scheduling.
+        rate_data = []
+        for _ in range(N):
+            series = plan.rateModel.generate(N_n_max)
+            if series.shape != (N_n_max, 4):
+                raise RuntimeError(
+                    f"Rate model returned shape {series.shape}, expected ({N_n_max}, 4)"
+                )
+            tau_kn = series.transpose()
+            if not getattr(plan.rateModel, "constant", False):
+                tau_kn = rates.apply_rate_sequence_transform(
+                    tau_kn,
+                    plan.rateReverse,
+                    plan.rateRoll,
+                )
+            rate_data.append(tau_kn)
+        total = N
+        args_list = [
+            (clone(plan, expectancy=drawn_list[n], verbose=False), tau_kn, None, objective, options)
+            for n, tau_kn in enumerate(rate_data)
+        ]
 
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
+
+    # ------------------------------------------------------------------
+    # Solve all scenarios in parallel using threads.
+    # HiGHS releases the GIL during solve, so threads give real parallelism.
+    # No pickling needed — clones are plain Python objects.
+    # ------------------------------------------------------------------
+    n_workers = min(os.cpu_count() or 1, total)
+    plan.mylog.print(f"Solving {total} scenarios using {n_workers} parallel worker thread(s).")
+    progcall.start()
+    completed = 0
+    results_map = {}
+
+    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+        futures = {executor.submit(_scenario_worker, args): i for i, args in enumerate(args_list)}
+        for fut in as_completed(futures):
+            idx = futures[fut]
+            results_map[idx] = fut.result()
+            completed += 1
+            progcall.show(completed, total)
+
+    # Collect results in scenario order (preserves start_years ordering)
+    for i in sorted(results_map):
+        val = results_map[i]
+        if val is not None:
+            bases_list.append(val)
+            if scenario_method == "historical":
+                start_years_list.append(years[i])
+            if with_longevity:
+                drawn_lifespans_list.append(np.array(drawn_list[i]))
 
     progcall.finish()
     plan.mylog.resetVerbose()
