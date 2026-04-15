@@ -7,7 +7,7 @@ Copyright (C) 2025-2026 The Owlplanner Authors
 import numpy as np
 import pytest
 
-from owlplanner.data.ssa_mortality import survival_pmf, sample_lifespans, life_expectancy
+from owlplanner.data.mortality_tables import survival_pmf, sample_lifespans, life_expectancy
 
 
 class TestSurvivalPmf:

@@ -209,6 +209,7 @@ class Plan:
         self.dobs = dobs
         self.expectancy = np.array(expectancy, dtype=np.int32)
         self.sexes = (["M", "F"] if self.N_i == 2 else ["F"])  # default; overridden by setSexes()
+        self.mortality_table = "SSA2025"  # default; overridden by setMortalityTable()
 
         # Reference time is starting date in the current year and all passings are assumed at the end.
         thisyear = date.today().year
@@ -430,6 +431,20 @@ class Plan:
             if s not in ("M", "F"):
                 raise ValueError(f"Each sex must be 'M' or 'F', got {s!r}.")
         self.sexes = list(sexes)
+
+    def setMortalityTable(self, table):
+        """
+        Select the actuarial mortality table used for longevity risk sampling.
+
+        Parameters
+        ----------
+        table : str
+            One of "SSA2025", "RP2014", "IAM2012", "VBT2015-NS", "VBT2015-SM".
+        """
+        from .data.mortality_tables import MORTALITY_TABLE_KEYS
+        if table not in MORTALITY_TABLE_KEYS:
+            raise ValueError(f"Unknown mortality table {table!r}. Valid: {MORTALITY_TABLE_KEYS}.")
+        self.mortality_table = table
 
     def setSpousalDepositFraction(self, eta):
         """

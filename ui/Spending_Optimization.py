@@ -42,6 +42,7 @@ else:
     kz.initCaseKey("stoch_with_longevity", False)
     kz.initCaseKey("stoch_longevity_reproducible", False)
     kz.initCaseKey("stoch_longevity_seed", 1)
+    kz.initCaseKey("stoch_mortality_table", "SSA2025")
     kz.initCaseKey("stochFrontierPlot", None)
     kz.initCaseKey("stochOutcomePlot", None)
     kz.initCaseKey("stochSummary", None)
@@ -160,6 +161,18 @@ Select a target success rate to find the committed spending that meets it.
                         kz.getIntNum("Longevity seed", "stoch_longevity_seed",
                                      min_value=1, max_value=2**31 - 1,
                                      step=1, callback=kz.setpull, help=help_seed)
+                from owlplanner.data.mortality_tables import MORTALITY_TABLE_KEYS, MORTALITY_DESCRIPTIONS
+                st.markdown("#### :orange[Mortality table]")
+                help_table = ("Actuarial life table used to sample random lifespans. "
+                              "Choose the table that best reflects the health profile of the individuals in the plan.")
+                col1, col2 = st.columns([1, 3.2], gap="large", vertical_alignment="bottom")
+                with col1:
+                    selected_table = kz.getSelectbox(
+                        "Mortality table", MORTALITY_TABLE_KEYS, "stoch_mortality_table",
+                        callback=kz.setpull, help=help_table,
+                    )
+                with col2:
+                    st.caption(MORTALITY_DESCRIPTIONS.get(selected_table, ""))
 
     st.divider()
     fig_frontier = kz.getCaseKey("stochFrontierPlot")

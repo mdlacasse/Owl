@@ -28,7 +28,7 @@ from scipy.optimize import linprog
 
 from . import progress
 from .config.plan_bridge import clone
-from .data.ssa_mortality import sample_lifespans
+from .data.mortality_tables import sample_lifespans
 
 
 ###############################################################################
@@ -359,6 +359,7 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         if len(sexes) != plan.N_i:
             raise ValueError(f"len(sexes)={len(sexes)} must match plan.N_i={plan.N_i}.")
         current_ages = [int(plan.year_n[0] - plan.yobs[i]) for i in range(plan.N_i)]
+        mortality_table = getattr(plan, "mortality_table", "SSA2025")
         rng = np.random.default_rng(seed)
 
     plan.mylog.setVerbose(False)
@@ -388,7 +389,7 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
 
         # Draw one lifespan per individual; couple uses last-survivor horizon.
         drawn = np.array([
-            int(sample_lifespans(sexes[i], current_ages[i], 1, rng)[0])
+            int(sample_lifespans(sexes[i], current_ages[i], 1, rng, table=mortality_table)[0])
             for i in range(plan.N_i)
         ])
         # Convert age-at-death to years-of-life (expectancy from birth)
