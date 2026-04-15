@@ -77,7 +77,7 @@ def _stochastic_lp(bases, lam):
     g_opt = result.x[0]
     sigmas = result.x[1:]
     expected_shortfall = float(sigmas.mean())
-    shortfall_prob = float((sigmas > 1.0).mean())
+    shortfall_prob = float((sigmas > 0).mean())
     return g_opt, expected_shortfall, shortfall_prob
 
 
@@ -339,6 +339,7 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
 
     bases_list = []
     start_years_list = []
+    n_infeasible = 0
 
     if scenario_method == "historical":
         if ystart is None or yend is None:
@@ -357,8 +358,11 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
             progcall.show(step + 1, total)
             if plan.caseStatus == "solved":
                 val = plan.basis if objective == "maxSpending" else plan.bequest
-                bases_list.append(val)
-                start_years_list.append(year)
+            else:
+                val = 0.0
+                n_infeasible += 1
+            bases_list.append(val)
+            start_years_list.append(year)
 
     elif scenario_method == "mc":
         if N is None:
@@ -376,7 +380,10 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
             progcall.show(n + 1, N)
             if plan.caseStatus == "solved":
                 val = plan.basis if objective == "maxSpending" else plan.bequest
-                bases_list.append(val)
+            else:
+                val = 0.0
+                n_infeasible += 1
+            bases_list.append(val)
 
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
@@ -384,7 +391,11 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
     progcall.finish()
     plan.mylog.resetVerbose()
 
-    if len(bases_list) < 2:
+    n_solved = len(bases_list) - n_infeasible
+    if n_infeasible:
+        plan.mylog.print(f"Warning: {n_infeasible} of {len(bases_list)} scenarios were infeasible"
+                         " and are counted as full shortfall.")
+    if n_solved < 2:
         raise RuntimeError("Fewer than 2 scenarios solved successfully; cannot compute frontier.")
 
     bases = np.array(bases_list)
@@ -401,4 +412,5 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         "frontier_shortfall": frontier_shortfall,
         "year_n": plan.year_n,
         "n_d": plan.n_d,
+        "n_infeasible": n_infeasible,
     }

@@ -278,14 +278,20 @@ def _apply_stochastic_target(result, target_sr, plotter):
         tail_spending = float(np.percentile(bases, 5))
         tail_shortfall_pct = max(0.0, g_opt - tail_spending) / g_opt if g_opt > 0 else 0.0
         tail_label = "5th percentile spending:      "
+    n_infeasible = result.get("n_infeasible", 0)
+    n_total = len(bases)
+    if n_infeasible:
+        scenarios_line = f"Scenarios:                      {n_total}  ({n_infeasible} infeasible)\n"
+    else:
+        scenarios_line = f"Scenarios:                      {n_total}\n"
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
         f"Target success rate:            {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
         f"Median scenario spending:       ${median_spending:,.0f}/yr\n"
         f"{tail_label} ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
         f"Mean shortfall:                 ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
-        f"Scenarios solved:               {len(bases)}"
-    ))
+        f"{scenarios_line}"
+    ).rstrip())
 
 
 @_checkPlan
