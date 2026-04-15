@@ -311,6 +311,9 @@ def runStochasticSpending(plan):
 
     objective, options = kz.getSolveParameters()
     with_longevity = bool(kz.getCaseKey("stoch_with_longevity") or False)
+    if with_longevity and scenario_method == "historical":
+        with_longevity = False
+        ui_log("Longevity risk is not supported with historical scenarios — ignoring.")
     longevity_reproducible = bool(kz.getCaseKey("stoch_longevity_reproducible") or False)
     longevity_seed = kz.getCaseKey("stoch_longevity_seed") if (with_longevity and longevity_reproducible) else None
     sexes = plan1.sexes if with_longevity else None
