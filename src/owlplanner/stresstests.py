@@ -523,20 +523,31 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
             completed += 1
             progcall.show(completed, total)
 
-    # Collect results in scenario order (preserves start_years ordering)
+    # Collect results in scenario order (preserves start_years ordering).
+    # Infeasible scenarios (None) are kept as basis=0.0 so that S in the LP
+    # equals the number of scenarios requested, not just the ones that solved.
+    # A basis of 0 means the full committed spending is a shortfall, which is
+    # the correct treatment for an infeasible scenario.
+    n_infeasible = 0
     for i in sorted(results_map):
         val = results_map[i]
-        if val is not None:
-            bases_list.append(val)
-            if scenario_method == "historical":
-                start_years_list.append(years[i])
-            if with_longevity:
-                drawn_lifespans_list.append(np.array(drawn_list[i]))
+        if val is None:
+            n_infeasible += 1
+            val = 0.0
+        bases_list.append(val)
+        if scenario_method == "historical":
+            start_years_list.append(years[i])
+        if with_longevity:
+            drawn_lifespans_list.append(np.array(drawn_list[i]))
 
     progcall.finish()
     plan.mylog.resetVerbose()
 
-    if len(bases_list) < 2:
+    n_solved = total - n_infeasible
+    if n_infeasible:
+        plan.mylog.print(f"Warning: {n_infeasible} of {total} scenarios were infeasible"
+                         " and are counted as full shortfall.")
+    if n_solved < 2:
         raise RuntimeError("Fewer than 2 scenarios solved successfully; cannot compute frontier.")
 
     bases = np.array(bases_list)
@@ -555,4 +566,5 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         "year_n": plan.year_n,
         "n_d": plan.n_d,
         "drawn_lifespans": drawn_lifespans,
+        "n_infeasible": n_infeasible,
     }

@@ -182,7 +182,7 @@ See SSA documentation for details.
         longmsg = "See the documentation for suggested resources on estimating longevity."
         sexmsg = "Sex is a required input for longevity risk."
         if iname0:
-            incol1, incol2, incol3 = st.columns(3, gap="large", vertical_alignment="top")
+            incol1, incol2, incol3 = st.columns((1, 1, .7), gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("dob0", "1965-01-15")
                 ret = kz.getDate(f"{iname0}'s date of birth", "dob0",
@@ -208,7 +208,7 @@ See SSA documentation for details.
                                 disabled=diz2, placeholder="Enter a name...")
 
             if iname1:
-                incol1, incol2, incol3 = st.columns(3, gap="large", vertical_alignment="top")
+                incol1, incol2, incol3 = st.columns((1, 1, .7), gap="large", vertical_alignment="top")
                 with incol1:
                     kz.initCaseKey("dob1", "1965-01-15")
                     ret = kz.getDate(f"{iname1}'s date of birth", "dob1",
