@@ -124,7 +124,7 @@ def _stochastic_lp(bases, lam):
     g_opt = result.x[0]
     sigmas = result.x[1:]
     expected_shortfall = float(sigmas.mean())
-    shortfall_prob = float((sigmas > 1.0).mean())
+    shortfall_prob = float((sigmas > 0).mean())
     return g_opt, expected_shortfall, shortfall_prob
 
 
