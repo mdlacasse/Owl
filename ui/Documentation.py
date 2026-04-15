@@ -260,7 +260,7 @@ provides the same options for creating or loading additional cases.
 This page also allows you to copy and/or rename scenarios, as well as delete them.
 
 For creating a scenario from scratch, (first) name(s), marital status,
-birth date(s), and life expectancies are required.
+biological sex (`M`/`F`) for each individual, birth date(s), and life expectancies are required.
 The reason for asking the birth date is that Social Security rules
 have special considerations when born on the first days of the month.
 If you're not born on a 1st or 2nd day of the month, any other day of the
@@ -285,7 +285,7 @@ anything else can change between *cases*.
 
 ##### Creating a case from scratch
 Enter a name in the **Create a New Case** text box and press Enter.
-One must then provide the birth date of each spouse(s) and their expected lifespan(s).
+One must then provide the sex, birth date, and expected lifespan of each individual.
 For selecting your own longevity numbers, there are plenty of predictors on the Internet.
 Pick your favorite:
 - [longevityillustrator](https://longevityillustrator.org),
@@ -700,7 +700,7 @@ individual follow the same allocation ratios. You should experiment with both.
 A smarter approach would be to optimize allocation ratios in the different accounts
 subject to the constraint of a global allocation ratio that includes all assets.
 This, however, creates a quadratic problem that cannot be simply solved by a linear
-programming solver. A future version of **Owl** might tackle this issue using a different strategy.
+programming solver.
 
 Allocation ratios can vary over the duration of the *case*, starting
 from an `initial` allocation ratio at the beginning of the *case*
@@ -1339,6 +1339,26 @@ The LP is swept over a range of $\\lambda$ values to trace the **efficient front
 - **Scenario method** — *Historical range*: uses historical rate sequences over the
   selected year range (one run per year). *Monte Carlo*: uses the active stochastic rate
   method; requires a stochastic method to be set on the **Rates** page.
+- **Include longevity risk** — available with Monte Carlo scenarios. When enabled, each
+  scenario also draws lifespan(s) from the selected mortality table using each individual's
+  sex (`M`/`F`) and current age; the scenario horizon becomes the last-survivor horizon.
+  This captures joint market + longevity uncertainty. Historical scenarios with longevity
+  risk are intentionally disabled.
+
+  **Mortality tables** — five actuarial tables are provided, covering different population
+  sub-groups. Choose the one that best matches your situation:
+
+  | Table | Population | When to use |
+  |-------|-----------|-------------|
+  | `SSA2025` *(default)* | Average US population (2025 SSA Period Life Table) | Good starting point for most people; reflects typical life expectancy across all income levels and health conditions |
+  | `RP2014` | Pension recipients (SOA RP-2014 Healthy Annuitant) | Pension recipients live longer on average; use if you have a defined-benefit pension or stable career with good healthcare access |
+  | `IAM2012` | Individual annuity purchasers (SOA IAM 2012) | People who buy annuities tend to be in excellent health and live the longest of any group; represents an optimistic longevity scenario |
+  | `VBT2015-NS` | Non-smoking life insurance policyholders (SOA VBT 2015) | Slightly longer-lived than the general population; a reasonable choice if you are in good health and have never smoked |
+  | `VBT2015-SM` | Smoking life insurance policyholders (SOA VBT 2015) | Smokers have meaningfully shorter life expectancy; use if you are a current or long-term smoker |
+
+- **Longevity reproducibility** — optional seed control for longevity sampling. When set,
+  identical longevity draws are reproduced across runs; rate reproducibility remains controlled
+  separately on the **Rates** page.
 - **Target success rate** — the minimum fraction of scenarios that must meet the
   commitment with no shortfall. The page finds the least conservative $\\lambda$ that
   achieves this rate.
@@ -1348,14 +1368,22 @@ The LP is swept over a range of $\\lambda$ values to trace the **efficient front
 
 ##### Output
 
-Two charts are shown side by side:
+A summary line above the charts reports the committed spending $g^*$ (in today's dollars),
+the target and actual achieved success rate, median scenario spending, worst-case (or 5th-percentile)
+scenario spending, mean shortfall, and total scenario count. When longevity risk is enabled,
+the mortality table used is shown.
+
+Three charts are displayed:
 
 - **Success rate curve** — committed spending vs. shortfall probability. The target point
   is marked; moving left increases spending but also increases shortfall risk.
 - **Efficient frontier** — committed spending vs. expected shortfall magnitude (in today's
   dollars). This is the classical Pareto frontier between spending and downside risk.
-
-The committed spending $\\ g^*$ and the actual achieved success rate are shown above the charts.
+- **Outcome chart** — shows the achieved spending for each individual scenario.
+  For *Historical range*: a bar chart by start year, colored green when the scenario meets
+  the commitment and red when it falls short. For *Monte Carlo*: scenarios sorted by
+  percentile (0–100%), using the same color scheme. The committed level $g^*$ is marked
+  with a dashed horizontal line.
 """)
 
 # --- Tools tab ---

@@ -866,7 +866,7 @@ class PlotlyBackend(PlotBackend):
         return fig
 
     def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n,
-                                with_longevity=False):
+                                 with_longevity=False):
         """Bar chart of achieved spending by scenario.
 
         Historical mode: bars by start year (x = historical start year).

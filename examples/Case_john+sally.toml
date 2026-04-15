@@ -8,6 +8,7 @@ This case, inspired by Eric Sajdak's work, compares the heuristic of \"surfing a
 [basic_info]
 status = "married"
 names = [ "John", "Sally",]
+sexes = [ "M", "F",]
 date_of_birth = [ "1963-01-15", "1963-01-15",]
 life_expectancy = [ 92, 92,]
 start_date = "2026-01-01"

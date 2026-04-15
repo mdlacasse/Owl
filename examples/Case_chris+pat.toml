@@ -10,6 +10,7 @@ This case is used to illustrate the spending/shortfall efficient frontier concep
 [basic_info]
 status = "married"
 names = [ "Chris", "Pat",]
+sexes = [ "M", "F",]
 date_of_birth = [ "1963-01-15", "1966-01-15",]
 life_expectancy = [ 89, 92,]
 start_date = "2026-01-01"

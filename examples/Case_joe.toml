@@ -8,6 +8,7 @@ This case demonstrates Owl's handling of a single retiree: HSA accounts (with co
 [basic_info]
 status = "single"
 names = [ "Joe",]
+sexes = [ "M",]
 date_of_birth = [ "1967-01-15",]
 life_expectancy = [ 89,]
 start_date = "2026-01-01"

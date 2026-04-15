@@ -22,6 +22,7 @@ description = "Test case for user key preservation"
 [basic_info]
 status = "single"
 names = ["Joe"]
+sexes = ["M"]
 date_of_birth = ["1967-01-15"]
 life_expectancy = [89]
 start_date = "2026-01-01"

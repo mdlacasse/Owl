@@ -2,6 +2,34 @@
 
 ---
 
+## Version 2026.04.15
+
+### Longevity risk in stochastic spending + parallel plan solving
+
+- **Longevity risk** (MC-only, `with_longevity=True`): Each Monte Carlo scenario in
+  `runStochasticSpending` can now independently draw ages-at-death from an actuarial mortality
+  table, capturing joint market and longevity uncertainty. For couples the last-survivor horizon
+  is used per scenario. Draws are seeded independently of the rate RNG for full reproducibility.
+- **Five actuarial mortality tables** (`setMortalityTable`): `SSA2025` (default, general US
+  population), `RP2014` (pension recipients), `IAM2012` (individual annuity purchasers, longest-
+  lived), `VBT2015-NS` (non-smoking life insurance), `VBT2015-SM` (smoking life insurance).
+  Sampled via `sample_lifespans(sex, current_age, n, rng, table)` in
+  `owlplanner.data.mortality_tables`.
+- **`plan.sexes` / `setSexes`**: Biological sex (`"M"`/`"F"`) per individual, required for
+  mortality sampling. Defaults to `["F"]` (single) or `["M","F"]` (married).
+- **Parallel plan solving** (`runMC`, `runHistoricalRange`, `runStochasticSpending`): Scenarios are
+  now solved in parallel using `ThreadPoolExecutor`. HiGHS releases the GIL during solve, enabling
+  real multi-core throughput. Worker count auto-sized to available CPUs. All randomness
+  pre-generated in the parent thread for determinism independent of thread scheduling.
+- **UI — Spending Optimization**: Longevity risk toggle, mortality table selector, and longevity
+  seed control added. Summary line now includes the selected mortality table when longevity is on.
+  Outcome chart and efficient frontier title reflect active scenario method.
+- **Removed aliases**: `stochastic` and `histochastic` rate-method aliases removed; use `gaussian`
+  and `histogaussian` (canonical names since v2026.03.05). `default` alias for `trailing-30` retained.
+- **UI — Rates**: Random seed control and reproducibility toggle exposed directly in the UI.
+
+---
+
 ## Version 2026.04.08
 
 ### Stochastic spending optimization + stress-test refactoring

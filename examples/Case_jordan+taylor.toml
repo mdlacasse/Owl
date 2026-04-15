@@ -4,6 +4,7 @@ description = "This is an edge case for a high-net-worth couple in retirement. I
 [basic_info]
 status = "married"
 names = [ "Jordan", "Taylor",]
+sexes = [ "M", "F",]
 date_of_birth = [ "1959-01-15", "1960-01-15",]
 life_expectancy = [ 92, 93,]
 start_date = "2026-01-01"

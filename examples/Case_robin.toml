@@ -10,6 +10,7 @@ This case demonstrates Owl's account-type asset allocation (keeping equities in 
 [basic_info]
 status = "single"
 names = [ "Robin",]
+sexes = [ "F",]
 date_of_birth = [ "1961-01-15",]
 life_expectancy = [ 91,]
 start_date = "2026-01-01"

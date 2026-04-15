@@ -53,7 +53,10 @@ def _scenario_worker(args):
     """
     p, tau_kn_or_year, gamma_n, objective, options = args
 
-    if isinstance(tau_kn_or_year, int):
+    if isinstance(tau_kn_or_year, tuple):
+        year, reverse, roll = tau_kn_or_year
+        p.setRates("historical", year, reverse=reverse, roll=roll)
+    elif isinstance(tau_kn_or_year, int):
         p.setRates("historical", tau_kn_or_year)
     else:
         Nn = p.N_n
@@ -442,7 +445,7 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         else:
             drawn_list = [None] * total
         args_list = [
-            (clone(plan, expectancy=drawn_list[i], verbose=False), year, None, objective, options)
+            (clone(plan, expectancy=drawn_list[i], verbose=False), (year, reverse, roll), None, objective, options)
             for i, year in enumerate(years)
         ]
 

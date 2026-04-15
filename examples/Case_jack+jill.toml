@@ -8,6 +8,7 @@ This case showcases Owl's full feature set: pension survivor benefits, HSA accou
 [basic_info]
 status = "married"
 names = [ "Jack", "Jill",]
+sexes = [ "M", "F",]
 date_of_birth = [ "1963-01-15", "1966-01-15",]
 life_expectancy = [ 89, 92,]
 start_date = "2026-01-01"

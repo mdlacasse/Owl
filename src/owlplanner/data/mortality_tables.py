@@ -353,11 +353,26 @@ _QX = _TABLES["SSA2025"]
 MORTALITY_TABLE_KEYS = list(_TABLES.keys())
 
 MORTALITY_DESCRIPTIONS = {
-    "SSA2025":    "Average US population (2025). A good starting point for most people — reflects typical life expectancy across all income levels and health conditions.",
-    "RP2014":     "Pension recipients live longer on average, likely due to stable careers and better access to healthcare. Use this if you have a pension or defined-benefit plan.",
-    "IAM2012":    "People who buy individual annuities tend to be in excellent health and live the longest of any group. Represents an optimistic longevity scenario.",
-    "VBT2015-NS": "Non-smoking life insurance policyholders. Slightly longer-lived than the general population — a reasonable choice if you are in good health and have never smoked.",
-    "VBT2015-SM": "Smokers have meaningfully shorter life expectancy. Use this if you are a current or long-term smoker.",
+    "SSA2025": (
+        "Average US population (2025). A good starting point for most people — reflects typical"
+        " life expectancy across all income levels and health conditions."
+    ),
+    "RP2014": (
+        "Pension recipients live longer on average, likely due to stable careers and better"
+        " access to healthcare. Use this if you have a pension or defined-benefit plan."
+    ),
+    "IAM2012": (
+        "People who buy individual annuities tend to be in excellent health and live the longest"
+        " of any group. Represents an optimistic longevity scenario."
+    ),
+    "VBT2015-NS": (
+        "Non-smoking life insurance policyholders. Slightly longer-lived than the general"
+        " population — a reasonable choice if you are in good health and have never smoked."
+    ),
+    "VBT2015-SM": (
+        "Smokers have meaningfully shorter life expectancy. Use this if you are a current"
+        " or long-term smoker."
+    ),
 }
 
 _MAX_AGE = 119

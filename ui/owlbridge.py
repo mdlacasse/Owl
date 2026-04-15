@@ -286,7 +286,7 @@ def _apply_stochastic_target(result, target_sr, plotter):
         tail_label = "5th percentile spending:       "
     if with_longevity:
         mt = result.get("mortality_table", "SSA2025")
-        longevity_line = f"Longevity risk:                 included  ({mt})\n"
+        longevity_line = f"Longevity risk:                 {mt}\n"
     else:
         longevity_line = ""
     kz.storeCaseKey("stochSummary", (

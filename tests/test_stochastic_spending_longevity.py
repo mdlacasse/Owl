@@ -150,3 +150,26 @@ def test_stochastic_spending_mc_longevity_seed_sensitivity(monkeypatch):
         seed=1111,
     )
     assert not np.allclose(out_base["bases"], out_rate_changed["bases"], atol=1e-9)
+
+
+def test_scenario_worker_historical_applies_reverse_roll():
+    """Historical worker path should pass reverse/roll through to setRates."""
+
+    class _DummyPlan:
+        def __init__(self):
+            self.calls = []
+            self.caseStatus = "unknown"
+            self.basis = 123.0
+            self.bequest = 456.0
+
+        def setRates(self, method, year, reverse=False, roll=0):
+            self.calls.append((method, year, reverse, roll))
+
+        def solve(self, objective, options):
+            _ = (objective, options)
+            self.caseStatus = "solved"
+
+    p = _DummyPlan()
+    out = stresstests._scenario_worker((p, (1975, True, 2), None, "maxSpending", {}))
+    assert out == 123.0
+    assert p.calls == [("historical", 1975, True, 2)]

@@ -17,6 +17,9 @@ With about 10 lines of Python code, one can generate a full case study.
 Here is a typical plan with some comments.
 A plan starts with the names of the individuals, their birth years and life expectancies, and a name for the plan.
 Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
+For longevity-risk sampling (stochastic spending with longevity), you should also set each individual's biological sex
+so Owl can query the correct mortality table curve (`M` or `F`). In Python, use `plan.setSexes([...])`; in TOML, set
+`[basic_info].sexes = [...]`.
 ```python
 import owlplanner as owl
 import datetime
@@ -24,6 +27,7 @@ year = datetime.date.today().year
 # Jack is 63 years old and expects to live to age 89. Jill is 60 and hopes to live to age 92.
 # Plan starts on Jan 1st of this year.
 plan = owl.Plan(['Jack', 'Jill'], [f"{year-63}-01-15", f"{year-60}-01-15"], [89, 92], 'jack & jill - tutorial')
+plan.setSexes(["M", "F"])
 # On January 1st, Jack has $90.5k in a taxable investment account,
 # $600.5k in a tax-deferred account and $70k from 2 tax-free accounts.
 # Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
