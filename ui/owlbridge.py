@@ -255,14 +255,17 @@ def _apply_stochastic_target(result, target_sr, plotter):
         "target_success_rate": target_sr,
         "actual_success_rate": actual_sr,
     })
+    with_longevity = result.get("with_longevity", False)
     fig_frontier = plotter.plot_stochastic_frontier(
         objective,
         result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
-        target_sr, g_opt, result["year_n"], result["start_years"])
+        target_sr, g_opt, result["year_n"], result["start_years"],
+        with_longevity=with_longevity)
     fig_outcomes = plotter.plot_stochastic_outcomes(
         objective,
         result["start_years"], result["bases"], g_opt,
-        target_sr, result["year_n"])
+        target_sr, result["year_n"],
+        with_longevity=with_longevity)
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
     bases = result["bases"]

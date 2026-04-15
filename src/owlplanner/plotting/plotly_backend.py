@@ -802,7 +802,8 @@ class PlotlyBackend(PlotBackend):
         return fig, description
 
     def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate, g_opt, year_n, start_years=None):
+                                 target_success_rate, g_opt, year_n, start_years=None,
+                                 with_longevity=False):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
         thisyear = int(year_n[0])
         frontier_type = "Historical" if start_years is not None else "Stochastic"
@@ -856,46 +857,77 @@ class PlotlyBackend(PlotBackend):
         fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$",
                          title_font_size=14, tickfont_size=11, row=1, col=2)
         fig.update_annotations(font_size=14)
+        longevity_tag = " · longevity" if with_longevity else ""
         fig.update_layout(
-            title=dict(text=f"{frontier_type} spending efficient frontier ({thisyear}$)", font_size=18),
+            title=dict(text=f"{frontier_type} spending efficient frontier ({thisyear}$){longevity_tag}", font_size=18),
             template=self.template,
             legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
         )
         return fig
 
-    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n):
-        """Bar chart of achieved spending by scenario, colored by success/failure."""
+    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n,
+                                 with_longevity=False):
+        """Bar chart of achieved spending by scenario.
+
+        Historical mode: bars by start year (x = historical start year).
+        MC mode: bars sorted by achieved spending (x = scenario percentile), works at any N.
+        """
         thisyear = int(year_n[0])
         achieved = np.minimum(g_opt, bases)
         success = achieved >= g_opt - 1.0
         label = "Spending" if objective == "maxSpending" else "Bequest"
-
-        x = start_years.tolist() if start_years is not None else list(range(len(bases)))
-        xlabel = "Historical start year" if start_years is not None else "Simulation"
+        longevity_tag = " · longevity" if with_longevity else ""
+        is_historical = start_years is not None
 
         fig = go.Figure()
-        if success.any():
-            x_ok = [x[i] for i in range(len(x)) if success[i]]
-            y_ok = (achieved[success] / 1000).tolist()
-            fig.add_trace(go.Bar(x=x_ok, y=y_ok, name="No shortfall",
-                                 marker_color="mediumseagreen", opacity=0.8))
-        if (~success).any():
-            x_fail = [x[i] for i in range(len(x)) if not success[i]]
-            y_fail = (achieved[~success] / 1000).tolist()
-            fig.add_trace(go.Bar(x=x_fail, y=y_fail, name="Shortfall",
-                                 marker_color="tomato", opacity=0.8))
-        fig.add_hline(y=g_opt / 1000, line_dash="dash", line_color="black",
-                      annotation_text=f"Commitment {u.d(g_opt)}", annotation_position="top right")
+        if is_historical:
+            x = start_years.tolist()
+            if success.any():
+                x_ok = [x[i] for i in range(len(x)) if success[i]]
+                fig.add_trace(go.Bar(x=x_ok, y=(achieved[success] / 1000).tolist(),
+                                     name="No shortfall", marker_color="mediumseagreen", opacity=0.8))
+            if (~success).any():
+                x_fail = [x[i] for i in range(len(x)) if not success[i]]
+                fig.add_trace(go.Bar(x=x_fail, y=(achieved[~success] / 1000).tolist(),
+                                     name="Shortfall", marker_color="tomato", opacity=0.8))
+            fig.add_hline(y=g_opt / 1000, line_dash="dash", line_color="black",
+                          annotation_text=f"Commitment {u.d(g_opt)}", annotation_position="top right")
+            fig.update_xaxes(title_text="Historical start year", title_font_size=14, tickfont_size=11)
+            fig.update_yaxes(title_text=f"Achieved {label.lower()} ({thisyear} $k)",
+                             tickprefix="$", title_font_size=14, tickfont_size=11)
+        else:
+            # Sort scenarios from worst to best; x-axis = scenario percentile (0–100%)
+            order = np.argsort(achieved)
+            sorted_ach = achieved[order]
+            sorted_ok = success[order]
+            N = len(sorted_ach)
+            pct = (np.arange(N) / N * 100).tolist()
+            fail_mask = ~sorted_ok
+            ok_mask = sorted_ok
+            if fail_mask.any():
+                fig.add_trace(go.Bar(
+                    x=[pct[i] for i in range(N) if fail_mask[i]],
+                    y=(sorted_ach[fail_mask] / 1000).tolist(),
+                    name="Shortfall", marker_color="tomato", opacity=0.8,
+                ))
+            if ok_mask.any():
+                fig.add_trace(go.Bar(
+                    x=[pct[i] for i in range(N) if ok_mask[i]],
+                    y=(sorted_ach[ok_mask] / 1000).tolist(),
+                    name="No shortfall", marker_color="mediumseagreen", opacity=0.8,
+                ))
+            n_ok = int(success.sum())
+            fig.add_hline(y=g_opt / 1000, line_dash="dash", line_color="black",
+                          annotation_text=f"Commitment {u.d(g_opt)}  ({n_ok / N * 100:.0f}% success)",
+                          annotation_position="top left")
+            fig.update_xaxes(title_text="Scenario percentile", ticksuffix="%",
+                             title_font_size=14, tickfont_size=11)
+            fig.update_yaxes(title_text=f"Achieved {label.lower()} ({thisyear} $k)",
+                             tickprefix="$", title_font_size=14, tickfont_size=11)
+
         fig.update_layout(
-            title=dict(text=f"Scenario outcomes — {target_success_rate*100:.0f}% target success rate",
+            title=dict(text=f"Scenario outcomes — {target_success_rate*100:.0f}% target{longevity_tag}",
                        font_size=18),
-            xaxis_title=xlabel,
-            yaxis_title=f"Achieved {label.lower()} ({thisyear} $k)",
-            yaxis_tickprefix="$",
-            xaxis_title_font_size=14,
-            yaxis_title_font_size=14,
-            xaxis_tickfont_size=11,
-            yaxis_tickfont_size=11,
             template=self.template,
             barmode="overlay",
             legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
