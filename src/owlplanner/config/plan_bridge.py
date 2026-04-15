@@ -4,7 +4,9 @@ Bridge between configuration dict and Plan object.
 Copyright (C) 2025-2026 The Owlplanner Authors
 """
 
+import copy
 import os
+import sys
 from datetime import date
 from typing import TYPE_CHECKING, Any
 
@@ -274,6 +276,8 @@ def config_to_plan(
     p = plan.Plan(inames, dobs, expectancy, name, verbose=True, logstreams=logstreams)
     p._description = known.get("description", "")
     p._config_extra = extra
+    sexes = known["basic_info"].get("sexes") or (["M", "F"] if icount == 2 else ["F"])
+    p.setSexes(sexes)
 
     _apply_assets_to_plan(p, known, icount)
 
@@ -353,6 +357,7 @@ def plan_to_config(myplan: "Plan") -> dict:
         "names": myplan.inames,
         "date_of_birth": myplan.dobs,
         "life_expectancy": myplan.expectancy.tolist(),
+        "sexes": myplan.sexes,
         "start_date": myplan.startDate,
     }
 
@@ -466,3 +471,69 @@ def plan_to_config(myplan: "Plan") -> dict:
             diconf[key] = value
 
     return diconf
+
+
+def clone(plan: "Plan", newname=None, *, expectancy=None, verbose=True, logstreams=None) -> "Plan":
+    """
+    Return a copy of plan, optionally with a new life expectancy.
+
+    When *expectancy* is None (default), returns a deep copy of the plan with
+    only the name changed — identical to the original behavior.
+
+    When *expectancy* is provided, a fresh Plan is constructed from the
+    configuration of *plan* with the new expectancy substituted.  All arrays
+    are built from scratch for the new horizon, guaranteeing consistency.
+    This is the correct approach for longevity scenario sampling, where a
+    clone must not inherit result arrays sized for the original horizon.
+
+    Parameters
+    ----------
+    plan : Plan
+        Source plan (any state).
+    newname : str or None
+        Name for the new plan.  Defaults to ``plan.name + " (copy)"``.
+    expectancy : list of int or None
+        New life expectancy values (one per individual).  If None, the
+        original expectancy is preserved via deep copy.
+    verbose : bool
+        Verbosity for the cloned plan's logger (ignored when expectancy is None).
+    logstreams : optional
+        Log streams for the cloned plan (ignored when expectancy is None).
+
+    Returns
+    -------
+    Plan
+        A fresh copy of the plan.
+    """
+    if expectancy is None:
+        # logger __deepcopy__ sets the logstreams of new logger to None
+        newplan = copy.deepcopy(plan)
+
+        if logstreams is None:
+            original_logger = plan.logger()
+            newplan.setLogger(original_logger)
+        else:
+            newplan.setLogstreams(verbose, logstreams)
+    else:
+        # Inherit the source plan's log streams when none are explicitly provided,
+        # so output goes to the same destination (e.g. UI StringIO) not stdout.
+        if logstreams is None:
+            src_log = plan.logger()
+            eff_logstreams = (None if src_log._logstreams == [sys.stdout, sys.stderr]
+                              else src_log._logstreams)
+        else:
+            eff_logstreams = logstreams
+        diconf = plan_to_config(plan)
+        diconf["basic_info"]["life_expectancy"] = [int(e) for e in expectancy]
+        newplan = config_to_plan(diconf, verbose=verbose, logstreams=eff_logstreams, loadHFP=False)
+
+    if newname is None:
+        # Strip any existing " (copy)" or " (copy N)" suffix so repeated cloning
+        # doesn't produce "foo (copy) (copy) (copy)".
+        import re
+        base = re.sub(r'\s*\(copy(?:\s+\d+)?\)$', '', plan._name).rstrip()
+        newplan.rename(base + " (copy)")
+    else:
+        newplan.rename(newname)
+
+    return newplan

@@ -122,7 +122,8 @@ class PlotBackend(ABC):
 
     @abstractmethod
     def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate, g_opt, year_n, start_years=None):
+                                 target_success_rate, g_opt, year_n, start_years=None,
+                                 with_longevity=False):
         """Efficient frontier plot: committed spending vs. shortfall probability.
 
         Marks the target success rate point on the curve.
@@ -140,13 +141,18 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n):
+    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n,
+                                 with_longevity=False):
         """Bar chart of achieved spending by scenario, colored by success/failure.
+
+        Historical mode (start_years is not None): x = historical start year.
+        MC mode (start_years is None): scenarios sorted by achieved spending,
+            x = scenario percentile (0–100%).  Works at any N.
 
         Parameters
         ----------
         objective : str
-        start_years : ndarray or None — historical start years (None for MC, uses indices)
+        start_years : ndarray or None — historical start years (None for MC)
         bases : ndarray (S,) — optimal spending basis per scenario (today's dollars)
         g_opt : float — committed spending (today's dollars)
         target_success_rate : float

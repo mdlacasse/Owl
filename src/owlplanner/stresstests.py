@@ -27,6 +27,8 @@ from itertools import product
 from scipy.optimize import linprog
 
 from . import progress
+from .config.plan_bridge import clone
+from .data.ssa_mortality import sample_lifespans
 
 
 ###############################################################################
@@ -294,7 +296,7 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
 
 def run_stochastic_spending(plan, objective, options, scenario_method, *,
                             ystart=None, yend=None, N=None, progcall=None,
-                            reverse=False, roll=0):
+                            reverse=False, roll=0, with_longevity=False, sexes=None, seed=None):
     """
     Run stochastic spending optimization over a set of scenarios.
 
@@ -316,6 +318,17 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         Number of simulations for MC mode.
     progcall : Progress, optional
         Progress callback.
+    with_longevity : bool, optional
+        If True, draw a random lifespan for each scenario from SSA 2021 period
+        life tables before solving.  Each scenario is solved on a fresh clone of
+        *plan* with the drawn expectancy.  For couples, lifespans are drawn
+        independently and the last-survivor horizon (max of the two draws) is used.
+    sexes : list of str, optional
+        Sex of each individual for SSA table lookup: 'M' (male) or 'F' (female).
+        Required when ``with_longevity=True``.  E.g. ``['M', 'F']`` for a couple.
+    seed : int or None, optional
+        Random seed for reproducible longevity draws.  Only used when
+        ``with_longevity=True``.
 
     Returns
     -------
@@ -328,9 +341,25 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         "frontier_shortfall" : ndarray
         "year_n"             : ndarray — plan calendar years
         "n_d"                : int — death year index (for unit labeling)
+        "drawn_lifespans"    : ndarray (S, N_i) or None — drawn ages at death per scenario
     """
     if objective not in ("maxSpending", "maxBequest"):
         raise ValueError(f"Invalid objective '{objective}'.")
+
+    if with_longevity and scenario_method == "historical":
+        raise ValueError(
+            "Longevity risk is not supported with historical scenarios "
+            "(drawn lifespans can exceed the available historical data range). "
+            "Use Monte Carlo ('mc') instead."
+        )
+
+    if with_longevity:
+        if sexes is None:
+            raise ValueError("sexes must be provided when with_longevity=True (e.g. ['M'] or ['M','F']).")
+        if len(sexes) != plan.N_i:
+            raise ValueError(f"len(sexes)={len(sexes)} must match plan.N_i={plan.N_i}.")
+        current_ages = [int(plan.year_n[0] - plan.yobs[i]) for i in range(plan.N_i)]
+        rng = np.random.default_rng(seed)
 
     plan.mylog.setVerbose(False)
 
@@ -339,26 +368,65 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
 
     bases_list = []
     start_years_list = []
+    drawn_lifespans_list = []
+
+    def _solve_scenario(p):
+        """Solve one scenario on plan p; return basis/bequest or None on failure."""
+        p.solve(objective, options)
+        if p.caseStatus == "solved":
+            return p.basis if objective == "maxSpending" else p.bequest
+        return None
+
+    def _active_plan(year=None):
+        """
+        Return the plan to solve for this scenario.
+        If with_longevity: clone with drawn expectancy and set rates on the clone.
+        Otherwise: set rates on the original plan and return it.
+        """
+        if not with_longevity:
+            return plan, None
+
+        # Draw one lifespan per individual; couple uses last-survivor horizon.
+        drawn = np.array([
+            int(sample_lifespans(sexes[i], current_ages[i], 1, rng)[0])
+            for i in range(plan.N_i)
+        ])
+        # Convert age-at-death to years-of-life (expectancy from birth)
+        new_expectancy = drawn.tolist()
+
+        p = clone(plan, expectancy=new_expectancy, verbose=False)
+        if year is not None:
+            p.setRates("historical", year, reverse=reverse, roll=roll)
+        else:
+            p.regenRates(override_reproducible=True)
+        return p, drawn
 
     if scenario_method == "historical":
         if ystart is None or yend is None:
             raise ValueError("ystart and yend are required for historical scenario method.")
-        if yend + plan.N_n > plan.year_n[0]:
-            yend = plan.year_n[0] - plan.N_n
-            plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
-        if yend < ystart:
-            raise ValueError(f"Starting year too large for lifespan of {plan.N_n} years.")
+        if not with_longevity:
+            if yend + plan.N_n > plan.year_n[0]:
+                yend = plan.year_n[0] - plan.N_n
+                plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
+            if yend < ystart:
+                raise ValueError(f"Starting year too large for lifespan of {plan.N_n} years.")
         total = yend - ystart + 1
-        plan.mylog.vprint(f"Stochastic spending: running {total} historical scenarios.")
+        plan.mylog.vprint(f"Stochastic spending: running {total} historical scenarios"
+                          + (" (with longevity sampling)." if with_longevity else "."))
         progcall.start()
         for step, year in enumerate(range(ystart, yend + 1)):
-            plan.setRates("historical", year, reverse=reverse, roll=roll)
-            plan.solve(objective, options)
+            if not with_longevity:
+                plan.setRates("historical", year, reverse=reverse, roll=roll)
+                val = _solve_scenario(plan)
+                drawn = None
+            else:
+                p, drawn = _active_plan(year=year)
+                val = _solve_scenario(p)
             progcall.show(step + 1, total)
-            if plan.caseStatus == "solved":
-                val = plan.basis if objective == "maxSpending" else plan.bequest
+            if val is not None:
                 bases_list.append(val)
                 start_years_list.append(year)
+                drawn_lifespans_list.append(drawn)
 
     elif scenario_method == "mc":
         if N is None:
@@ -366,17 +434,23 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         if not hasattr(plan, "rateModel") or plan.rateModel is None \
                 or getattr(plan.rateModel, "deterministic", True):
             raise ValueError("Monte Carlo requires a stochastic rate method.")
-        plan.mylog.vprint(f"Stochastic spending: running {N} Monte Carlo scenarios.")
+        plan.mylog.vprint(f"Stochastic spending: running {N} Monte Carlo scenarios"
+                          + (" (with longevity sampling)." if with_longevity else "."))
         if plan.reproducibleRates and hasattr(plan.rateModel, '_rng'):
             plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
         progcall.start()
         for n in range(N):
-            plan.regenRates(override_reproducible=True)
-            plan.solve(objective, options)
+            if not with_longevity:
+                plan.regenRates(override_reproducible=True)
+                val = _solve_scenario(plan)
+                drawn = None
+            else:
+                p, drawn = _active_plan(year=None)
+                val = _solve_scenario(p)
             progcall.show(n + 1, N)
-            if plan.caseStatus == "solved":
-                val = plan.basis if objective == "maxSpending" else plan.bequest
+            if val is not None:
                 bases_list.append(val)
+                drawn_lifespans_list.append(drawn)
 
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
@@ -389,6 +463,7 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
 
     bases = np.array(bases_list)
     start_years = np.array(start_years_list) if start_years_list else None
+    drawn_lifespans = np.array(drawn_lifespans_list) if with_longevity else None
 
     lambdas, frontier_g, frontier_prob, frontier_shortfall = _compute_efficient_frontier(bases)
 
@@ -401,4 +476,5 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         "frontier_shortfall": frontier_shortfall,
         "year_n": plan.year_n,
         "n_d": plan.n_d,
+        "drawn_lifespans": drawn_lifespans,
     }

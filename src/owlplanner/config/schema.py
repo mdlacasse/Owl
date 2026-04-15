@@ -54,6 +54,7 @@ class BasicInfo(BaseModel):
     )
     date_of_birth: Optional[List[str]] = None  # Default applied in bridge
     life_expectancy: List[int] = Field(default=[89], description="Life expectancy in years")
+    sexes: Optional[List[str]] = Field(default=None, description="Biological sex per individual: 'M' or 'F'")
     start_date: Optional[str] = Field(default="today", description="Plan start date")
 
 

@@ -72,10 +72,12 @@ def createPlan():
     description = kz.getCaseKey("description")
     dobs = [kz.getCaseKey("dob0")]
     life = [kz.getCaseKey("life0")]
+    sexes = [kz.getCaseKey("sex0") or "M"]
     if kz.getCaseKey("status") == "married":
         inames.append(kz.getCaseKey("iname1"))
         dobs.append(kz.getCaseKey("dob1"))
         life.append(kz.getCaseKey("life1"))
+        sexes.append(kz.getCaseKey("sex1") or "M")
 
     # Get existing logs StringIO or create a new one
     strio = kz.getCaseKey("logs")
@@ -85,6 +87,7 @@ def createPlan():
     try:
         plan = owl.Plan(inames, dobs, life, name,
                         verbose=True, logstreams=[strio, strio])
+        plan.setSexes(sexes)
         kz.setCaseKey("plan", plan)
         kz.setCaseKey("id", plan._id)
     except Exception as e:
@@ -255,14 +258,17 @@ def _apply_stochastic_target(result, target_sr, plotter):
         "target_success_rate": target_sr,
         "actual_success_rate": actual_sr,
     })
+    with_longevity = result.get("with_longevity", False)
     fig_frontier = plotter.plot_stochastic_frontier(
         objective,
         result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
-        target_sr, g_opt, result["year_n"], result["start_years"])
+        target_sr, g_opt, result["year_n"], result["start_years"],
+        with_longevity=with_longevity)
     fig_outcomes = plotter.plot_stochastic_outcomes(
         objective,
         result["start_years"], result["bases"], g_opt,
-        target_sr, result["year_n"])
+        target_sr, result["year_n"],
+        with_longevity=with_longevity)
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
     bases = result["bases"]
@@ -273,19 +279,21 @@ def _apply_stochastic_target(result, target_sr, plotter):
     if is_historical:
         tail_spending = float(np.min(bases))
         tail_shortfall_pct = max(0.0, g_opt - tail_spending) / g_opt if g_opt > 0 else 0.0
-        tail_label = "Worst-case scenario spending: "
+        tail_label = "Worst-case scenario spending:  "
     else:
         tail_spending = float(np.percentile(bases, 5))
         tail_shortfall_pct = max(0.0, g_opt - tail_spending) / g_opt if g_opt > 0 else 0.0
-        tail_label = "5th percentile spending:      "
+        tail_label = "5th percentile spending:       "
+    longevity_line = "Longevity risk:                 included\n" if with_longevity else ""
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
         f"Target success rate:            {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
         f"Median scenario spending:       ${median_spending:,.0f}/yr\n"
         f"{tail_label} ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
         f"Mean shortfall:                 ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
-        f"Scenarios solved:               {len(bases)}"
-    ))
+        f"Scenarios solved:               {len(bases)}\n"
+        f"{longevity_line}"
+    ).rstrip())
 
 
 @_checkPlan
@@ -298,6 +306,10 @@ def runStochasticSpending(plan):
     target_sr = 0.85 if target_sr is None else float(target_sr)
 
     objective, options = kz.getSolveParameters()
+    with_longevity = bool(kz.getCaseKey("stoch_with_longevity") or False)
+    longevity_reproducible = bool(kz.getCaseKey("stoch_longevity_reproducible") or False)
+    longevity_seed = kz.getCaseKey("stoch_longevity_seed") if (with_longevity and longevity_reproducible) else None
+    sexes = plan1.sexes if with_longevity else None
     try:
         mybar = progress.Progress()
         if scenario_method == "historical":
@@ -308,14 +320,17 @@ def runStochasticSpending(plan):
             result = plan1.runStochasticSpending(
                 objective, options, "historical",
                 ystart=ystart, yend=yend, progcall=mybar,
-                reverse=reverse, roll=roll)
+                reverse=reverse, roll=roll,
+                with_longevity=with_longevity, sexes=sexes, seed=longevity_seed)
         else:
             N = kz.getCaseKey("stoch_N_mc") or 200
             result = plan1.runStochasticSpending(
                 objective, options, "mc",
-                N=N, progcall=mybar)
+                N=N, progcall=mybar,
+                with_longevity=with_longevity, sexes=sexes, seed=longevity_seed)
 
         result["objective"] = objective
+        result["with_longevity"] = with_longevity
         kz.storeCaseKey("stochScenarioData", result)
         _apply_stochastic_target(result, target_sr, plan1._plotter)
     except Exception as e:

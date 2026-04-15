@@ -39,6 +39,9 @@ else:
     kz.initCaseKey("stoch_N_mc", 200)
     kz.initCaseKey("stoch_reverse_sequence", False)
     kz.initCaseKey("stoch_roll_sequence", 0)
+    kz.initCaseKey("stoch_with_longevity", False)
+    kz.initCaseKey("stoch_longevity_reproducible", False)
+    kz.initCaseKey("stoch_longevity_seed", 1)
     kz.initCaseKey("stochFrontierPlot", None)
     kz.initCaseKey("stochOutcomePlot", None)
     kz.initCaseKey("stochSummary", None)
@@ -131,6 +134,32 @@ Select a target success rate to find the committed spending that meets it.
                 on_click=owb.runStochasticSpending,
                 disabled=kz.caseIsNotStochReady(),
             )
+        st.markdown("####")
+        with st.expander("*Advanced options*"):
+            st.caption("Changing these options will only affect the next run.")
+            st.markdown("#### :orange[Longevity risk]")
+            help_longevity = (
+                "Draw a random plan horizon from SSA period life tables for each scenario. "
+                "For couples, uses the last-survivor horizon max(τ₁, τ₂). "
+                "Sex is set on the **Create Case** page."
+            )
+            help_repro = ("When enabled, the same random seed will be used for all longevity draws, "
+                          "ensuring reproducible results across runs.")
+            help_seed = ("Integer seed ≥ 1 for the random number generator. "
+                         "Change this value to explore different lifespan draws while keeping results reproducible.")
+            col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
+            with col1:
+                kz.getToggle("Include longevity risk", "stoch_with_longevity",
+                             callback=kz.setpull, help=help_longevity)
+            if kz.getCaseKey("stoch_with_longevity"):
+                with col2:
+                    kz.getToggle("Reproducible draws", "stoch_longevity_reproducible",
+                                 callback=kz.setpull, help=help_repro)
+                if kz.getCaseKey("stoch_longevity_reproducible"):
+                    with col3:
+                        kz.getIntNum("Longevity seed", "stoch_longevity_seed",
+                                     min_value=1, max_value=2**31 - 1,
+                                     step=1, callback=kz.setpull, help=help_seed)
 
     st.divider()
     fig_frontier = kz.getCaseKey("stochFrontierPlot")

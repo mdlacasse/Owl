@@ -44,6 +44,7 @@ from . import spending
 from . import debts as debts
 from . import fixedassets as fxasst
 from . import mylogging as log
+from .config.plan_bridge import clone                                         # noqa: F401
 from .plotting.factory import PlotFactory
 from .rate_models.constants import HISTORICAL_RANGE_METHODS
 from .stresstests import run_historical_range, run_mc, run_stochastic_spending
@@ -67,31 +68,6 @@ ABS_TOL = 100
 REL_TOL = 5e-5
 TIME_LIMIT = 900
 EPSILON = 1e-8
-
-
-def clone(plan, newname=None, *, verbose=True, logstreams=None):
-    """
-    Return an almost identical copy of plan: only the name of the case
-    has been modified and appended the string '(copy)',
-    unless a new name is provided as an argument.
-    """
-    import copy
-
-    # logger __deepcopy__ sets the logstreams of new logger to None
-    newplan = copy.deepcopy(plan)
-
-    if logstreams is None:
-        original_logger = plan.logger()
-        newplan.setLogger(original_logger)
-    else:
-        newplan.setLogstreams(verbose, logstreams)
-
-    if newname is None:
-        newplan.rename(plan._name + " (copy)")
-    else:
-        newplan.rename(newname)
-
-    return newplan
 
 
 ############################################################################
@@ -232,6 +208,7 @@ class Plan:
         self.yobs, self.mobs, self.tobs = u.parseDobs(dobs)
         self.dobs = dobs
         self.expectancy = np.array(expectancy, dtype=np.int32)
+        self.sexes = (["M", "F"] if self.N_i == 2 else ["F"])  # default; overridden by setSexes()
 
         # Reference time is starting date in the current year and all passings are assumed at the end.
         thisyear = date.today().year
@@ -434,6 +411,25 @@ class Plan:
         Set a text description of the case.
         """
         self._description = description
+
+    def setSexes(self, sexes):
+        """
+        Set the biological sex for each individual, used for SSA mortality table lookups.
+
+        Parameters
+        ----------
+        sexes : list of str or None
+            'M' (male) or 'F' (female) for each individual.  If None, defaults
+            are preserved ('M' for all).  Must have N_i entries.
+        """
+        if sexes is None:
+            return
+        if len(sexes) != self.N_i:
+            raise ValueError(f"sexes must have {self.N_i} entries, got {len(sexes)}.")
+        for s in sexes:
+            if s not in ("M", "F"):
+                raise ValueError(f"Each sex must be 'M' or 'F', got {s!r}.")
+        self.sexes = list(sexes)
 
     def setSpousalDepositFraction(self, eta):
         """
@@ -2886,10 +2882,12 @@ class Plan:
     @_timer
     def runStochasticSpending(self, objective, options, scenario_method, *,
                               ystart=None, yend=None, N=None, progcall=None,
-                              reverse=False, roll=0):
+                              reverse=False, roll=0,
+                              with_longevity=False, sexes=None, seed=None):
         return run_stochastic_spending(
             self, objective, options, scenario_method, ystart=ystart, yend=yend, N=N,
-            progcall=progcall, reverse=reverse, roll=roll)
+            progcall=progcall, reverse=reverse, roll=roll,
+            with_longevity=with_longevity, sexes=sexes, seed=seed)
 
     def resolve(self):
         """

@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from owlplanner.plan import Plan                                              # noqa: F401
-from owlplanner.plan import clone                                             # noqa: F401
+from owlplanner.config.plan_bridge import clone                               # noqa: F401
 from owlplanner.config import readConfig, saveConfig                          # noqa: F401
 from owlplanner.rates import getRatesDistributions, RatesDistribution         # noqa: F401
 from owlplanner.stresstests import g_for_success_rate                         # noqa: F401

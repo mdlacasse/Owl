@@ -406,7 +406,7 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             helpmsgRepro = """When enabled, the same random seed will be used to generate rates,
 ensuring reproducible results across case runs. This is useful for comparing
 other parameters while keeping rates constant."""
-            helpmsgSeed = ("Integer seed for the random number generator. "
+            helpmsgSeed = ("Integer seed ≥ 1 for the random number generator. "
                            "Change this value to explore different rate sequences while keeping results reproducible.")
             col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
             with col1:

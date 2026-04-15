@@ -163,6 +163,7 @@ def config_to_ui(diconf: dict) -> dict:
 
     dobs = bi.get("date_of_birth", [DEFAULT_DOB] * ni)
     life = bi.get("life_expectancy", [DEFAULT_LIFE_EXPECTANCY] * ni)
+    sexes = bi.get("sexes", ["M", "F"] if ni == 2 else ["F"])
     ss_amt = fi.get("social_security_pia_amounts", [0] * ni)
     ss_ages = fi.get("social_security_ages", [DEFAULT_SS_AGE] * ni)
     ss_trim_pct = fi.get("social_security_trim_pct", 0)
@@ -176,6 +177,7 @@ def config_to_ui(diconf: dict) -> dict:
         dic[f"iname{i}"] = names[i] if i < len(names) else ""
         dic[f"dob{i}"] = dobs[i] if i < len(dobs) else DEFAULT_DOB
         dic[f"life{i}"] = life[i] if i < len(life) else DEFAULT_LIFE_EXPECTANCY
+        dic[f"sex{i}"] = sexes[i] if i < len(sexes) else ("F" if i == 0 else "M")
         sy, sm = _age_float_to_ym(ss_ages[i] if i < len(ss_ages) else DEFAULT_SS_AGE)
         dic[f"ssAge_y{i}"] = sy
         dic[f"ssAge_m{i}"] = sm
@@ -325,6 +327,7 @@ def ui_to_config(uidic: dict) -> dict:
     names = []
     dobs = []
     life = []
+    sexes = []
     for i in range(ni):
         n = uidic.get(f"iname{i}", "")
         if n is None:
@@ -332,6 +335,7 @@ def ui_to_config(uidic: dict) -> dict:
         names.append(n)
         dobs.append(_get_ui(uidic, f"dob{i}", DEFAULT_DOB))
         life.append(_get_ui(uidic, f"life{i}", DEFAULT_LIFE_EXPECTANCY, int))
+        sexes.append(_get_ui(uidic, f"sex{i}", "M"))
 
     start_date = uidic.get("startDate")
     if hasattr(start_date, "strftime"):
@@ -347,6 +351,7 @@ def ui_to_config(uidic: dict) -> dict:
             "names": names,
             "date_of_birth": dobs,
             "life_expectancy": life,
+            "sexes": sexes,
             "start_date": start_date,
         },
         "savings_assets": {},

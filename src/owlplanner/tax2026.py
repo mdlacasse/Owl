@@ -295,7 +295,12 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
             if include_part_d and part_d_base_annual_per_person != 0:
                 Cbar[nn] += imed * gamma_n[n] * part_d_base_annual_per_person
         else:
-            raise RuntimeError("mediVals: This should never happen.")
+            # Nobody is on Medicare this year (e.g. a drawn longevity horizon lands
+            # before age 65, or there is a gap between one spouse dying before 65
+            # and the other reaching Medicare).  Use single-filer brackets with
+            # zero cost so the LP constraints remain valid but impose no charge.
+            Lbar[nn] = gamma_n[n] * irmaaBrackets[0][1:]
+            # Cbar[nn] stays at zero (already initialized)
 
     return nmstart, Lbar, Cbar
 
