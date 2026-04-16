@@ -295,6 +295,8 @@ def _apply_stochastic_target(result, target_sr, plotter):
         scenarios_line = f"Scenarios:                      {n_total}  ({n_infeasible} infeasible)\n"
     else:
         scenarios_line = f"Scenarios:                      {n_total}\n"
+    rate_method = result.get("rate_method", "")
+    rate_line = f"Rate method:                    {rate_method}\n" if (rate_method and rate_method != "historical") else ""
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
         f"Target success rate:            {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
@@ -302,6 +304,7 @@ def _apply_stochastic_target(result, target_sr, plotter):
         f"{tail_label} ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
         f"Mean shortfall:                 ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
         f"{scenarios_line}"
+        f"{rate_line}"
         f"{longevity_line}"
     ).rstrip())
 
@@ -348,6 +351,7 @@ def runStochasticSpending(plan):
         result["objective"] = objective
         result["with_longevity"] = with_longevity
         result["mortality_table"] = mortality_table
+        result["rate_method"] = "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "stochastic")
         kz.storeCaseKey("stochScenarioData", result)
         _apply_stochastic_target(result, target_sr, plan1._plotter)
     except Exception as e:
