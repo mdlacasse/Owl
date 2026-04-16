@@ -121,7 +121,7 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
+    def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
                                  target_success_rate, g_opt, year_n, start_years=None,
                                  with_longevity=False):
         """Efficient frontier plot: committed spending vs. shortfall probability.
@@ -130,7 +130,6 @@ class PlotBackend(ABC):
 
         Parameters
         ----------
-        objective : str
         frontier_prob : ndarray — shortfall probability at each lambda
         frontier_g : ndarray — committed spending at each lambda (today's dollars)
         frontier_shortfall : ndarray — expected shortfall at each lambda (today's dollars)
@@ -141,7 +140,7 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n,
+    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate, year_n,
                                  with_longevity=False):
         """Bar chart of achieved spending by scenario, colored by success/failure.
 
@@ -151,7 +150,6 @@ class PlotBackend(ABC):
 
         Parameters
         ----------
-        objective : str
         start_years : ndarray or None — historical start years (None for MC)
         bases : ndarray (S,) — optimal spending basis per scenario (today's dollars)
         g_opt : float — committed spending (today's dollars)

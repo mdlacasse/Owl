@@ -46,12 +46,11 @@ def _scenario_worker(args):
       plan          — cloned Plan (thread-local copy, already has all data)
       tau_kn_or_year — ndarray (N_k, N_n) pre-generated rates (MC), or int year (historical)
       gamma_n       — unused placeholder for compatibility (None in current calls)
-      objective     — "maxSpending" or "maxBequest"
       options       — solver options dict
 
-    Returns float (basis/bequest) or None on solver failure.
+    Returns float (basis) or None on solver failure.
     """
-    p, tau_kn_or_year, gamma_n, objective, options = args
+    p, tau_kn_or_year, gamma_n, options = args
 
     if isinstance(tau_kn_or_year, tuple):
         year, reverse, roll = tau_kn_or_year
@@ -70,9 +69,9 @@ def _scenario_worker(args):
         p._adjustedParameters = False
         p.caseStatus = "modified"
 
-    p.solve(objective, options)
+    p.solve("maxSpending", options)
     if p.caseStatus == "solved":
-        return p.basis if objective == "maxSpending" else p.bequest
+        return p.basis
     return None
 
 
@@ -339,19 +338,17 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
     return N, df
 
 
-def run_stochastic_spending(plan, objective, options, scenario_method, *,
+def run_stochastic_spending(plan, options, scenario_method, *,
                             ystart=None, yend=None, N=None, progcall=None,
                             reverse=False, roll=0, with_longevity=False, sexes=None, seed=None):
     """
     Run stochastic spending optimization over a set of scenarios.
 
-    Collects optimal basis or bequest across S scenarios, computes the efficient frontier via the
+    Collects optimal spending basis across S scenarios, computes the efficient frontier via the
     stochastic LP, and returns the raw data needed for plotting.
 
     Parameters
     ----------
-    objective : str
-        "maxSpending" or "maxBequest".
     options : dict
         Solver options passed to solve().
     scenario_method : str
@@ -388,9 +385,6 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         "n_d"                : int — death year index (for unit labeling)
         "drawn_lifespans"    : ndarray (S, N_i) or None — drawn ages at death per scenario
     """
-    if objective not in ("maxSpending", "maxBequest"):
-        raise ValueError(f"Invalid objective '{objective}'.")
-
     if with_longevity and scenario_method == "historical":
         raise ValueError(
             "Longevity risk is not supported with historical scenarios "
@@ -445,7 +439,7 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         else:
             drawn_list = [None] * total
         args_list = [
-            (clone(plan, expectancy=drawn_list[i], verbose=False), (year, reverse, roll), None, objective, options)
+            (clone(plan, expectancy=drawn_list[i], verbose=False), (year, reverse, roll), None, options)
             for i, year in enumerate(years)
         ]
 
@@ -497,7 +491,7 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
             rate_data.append(tau_kn)
         total = N
         args_list = [
-            (clone(plan, expectancy=drawn_list[n], verbose=False), tau_kn, None, objective, options)
+            (clone(plan, expectancy=drawn_list[n], verbose=False), tau_kn, None, options)
             for n, tau_kn in enumerate(rate_data)
         ]
 

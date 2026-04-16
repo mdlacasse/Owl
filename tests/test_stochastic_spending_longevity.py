@@ -58,7 +58,6 @@ def test_stochastic_spending_mc_longevity_handles_longer_horizons(monkeypatch):
     }
 
     out1 = p.runStochasticSpending(
-        "maxSpending",
         options,
         "mc",
         N=4,
@@ -77,7 +76,6 @@ def test_stochastic_spending_mc_longevity_handles_longer_horizons(monkeypatch):
 
     p2 = _create_plan_for_stochastic_longevity()
     out2 = p2.runStochasticSpending(
-        "maxSpending",
         options,
         "mc",
         N=4,
@@ -109,7 +107,6 @@ def test_stochastic_spending_mc_longevity_seed_sensitivity(monkeypatch):
     # Baseline run
     p_base = _create_plan_for_stochastic_longevity()
     out_base = p_base.runStochasticSpending(
-        "maxSpending",
         options,
         "mc",
         N=4,
@@ -121,7 +118,6 @@ def test_stochastic_spending_mc_longevity_seed_sensitivity(monkeypatch):
     # Same rate seed, different longevity seed -> different outcomes
     p_longevity_changed = _create_plan_for_stochastic_longevity()
     out_longevity_changed = p_longevity_changed.runStochasticSpending(
-        "maxSpending",
         options,
         "mc",
         N=4,
@@ -141,7 +137,6 @@ def test_stochastic_spending_mc_longevity_seed_sensitivity(monkeypatch):
         corr=[0.46, 0.06, -0.12, 0.68, -0.27, -0.21],
     )
     out_rate_changed = p_rate_changed.runStochasticSpending(
-        "maxSpending",
         options,
         "mc",
         N=4,
@@ -170,6 +165,6 @@ def test_scenario_worker_historical_applies_reverse_roll():
             self.caseStatus = "solved"
 
     p = _DummyPlan()
-    out = stresstests._scenario_worker((p, (1975, True, 2), None, "maxSpending", {}))
+    out = stresstests._scenario_worker((p, (1975, True, 2), None, {}))
     assert out == 123.0
     assert p.calls == [("historical", 1975, True, 2)]

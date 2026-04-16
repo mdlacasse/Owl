@@ -801,7 +801,7 @@ class PlotlyBackend(PlotBackend):
               f"max {u.d(float(values.max()))}, mean {u.d(mean_val)}.", file=description)
         return fig, description
 
-    def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
+    def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
                                  target_success_rate, g_opt, year_n, start_years=None,
                                  with_longevity=False):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
@@ -865,7 +865,7 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
-    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n,
+    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate, year_n,
                                  with_longevity=False):
         """Bar chart of achieved spending by scenario.
 
@@ -875,7 +875,7 @@ class PlotlyBackend(PlotBackend):
         thisyear = int(year_n[0])
         achieved = np.minimum(g_opt, bases)
         success = achieved >= g_opt - 1.0
-        label = "Spending" if objective == "maxSpending" else "Bequest"
+        label = "Spending"
         longevity_tag = " · longevity" if with_longevity else ""
         is_historical = start_years is not None
 

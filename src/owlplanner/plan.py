@@ -2896,12 +2896,61 @@ class Plan:
             self, objective, options, N, verbose=verbose, figure=figure, progcall=progcall, log_x=log_x)
 
     @_timer
-    def runStochasticSpending(self, objective, options, scenario_method, *,
+    def runStochasticSpending(self, options, scenario_method, *,
                               ystart=None, yend=None, N=None, progcall=None,
                               reverse=False, roll=0,
                               with_longevity=False, sexes=None, seed=None):
         return run_stochastic_spending(
-            self, objective, options, scenario_method, ystart=ystart, yend=yend, N=N,
+            self, options, scenario_method, ystart=ystart, yend=yend, N=N,
+            progcall=progcall, reverse=reverse, roll=roll,
+            with_longevity=with_longevity, sexes=sexes, seed=seed)
+
+    @_timer
+    def runSpendingFrontier(self, scenario_method, *,
+                            ystart=None, yend=None, N=None, progcall=None,
+                            reverse=False, roll=0,
+                            with_longevity=False, sexes=None, seed=None, **kwargs):
+        """
+        Run the spending efficient frontier over historical or Monte Carlo scenarios.
+
+        Accepts the same solver options as solve() via keyword arguments.  The
+        objective is always maxSpending; passing ``netSpending`` raises an error.
+
+        Parameters
+        ----------
+        scenario_method : str
+            "historical" — sweep ``ystart``..``yend``.
+            "mc"         — ``N`` Monte Carlo draws.
+        ystart, yend : int, optional
+            Start/end years for historical mode.
+        N : int, optional
+            Number of simulations for Monte Carlo mode.
+        progcall : Progress, optional
+            Progress callback.
+        with_longevity : bool, optional
+            Draw random lifespans from SSA tables for each scenario.
+        sexes : list of str, optional
+            Sex of each individual ('M' or 'F').  Required when with_longevity=True.
+        seed : int or None, optional
+            Random seed for reproducible longevity draws.
+        **kwargs
+            Solver options forwarded to solve() (e.g. bequest, maxRothConversion,
+            withMedicare, solver, withSSTaxability, previousMAGIs).
+
+        Returns
+        -------
+        dict — see runStochasticSpending for keys.
+        """
+        if kwargs.get("objective", "maxSpending") != "maxSpending":
+            raise ValueError(
+                "runSpendingFrontier only supports 'maxSpending'; "
+                f"got objective='{kwargs['objective']}'."
+            )
+        if "netSpending" in kwargs:
+            self.mylog.print("Warning: 'netSpending' is ignored by runSpendingFrontier (maxSpending objective).")
+            kwargs.pop("netSpending")
+        return run_stochastic_spending(
+            self, kwargs, scenario_method, ystart=ystart, yend=yend, N=N,
             progcall=progcall, reverse=reverse, roll=roll,
             with_longevity=with_longevity, sexes=sexes, seed=seed)
 

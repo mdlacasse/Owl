@@ -246,7 +246,6 @@ def runMC(plan):
 def _apply_stochastic_target(result, target_sr, plotter):
     """Recompute g_opt and regenerate plots from cached scenario data and a new target rate."""
     import numpy as np
-    objective = result["objective"]
     g_opt, lam = owl.g_for_success_rate(
         target_sr, result["lambdas"], result["frontier_g"], result["frontier_prob"])
     lam_idx = int(np.argmin(np.abs(result["lambdas"] - lam)))
@@ -260,12 +259,10 @@ def _apply_stochastic_target(result, target_sr, plotter):
     })
     with_longevity = result.get("with_longevity", False)
     fig_frontier = plotter.plot_stochastic_frontier(
-        objective,
         result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
         target_sr, g_opt, result["year_n"], result["start_years"],
         with_longevity=with_longevity)
     fig_outcomes = plotter.plot_stochastic_outcomes(
-        objective,
         result["start_years"], result["bases"], g_opt,
         target_sr, result["year_n"],
         with_longevity=with_longevity)
@@ -339,18 +336,17 @@ def runStochasticSpending(plan):
             reverse = bool(kz.getCaseKey("stoch_reverse_sequence") or False)
             roll = int(kz.getCaseKey("stoch_roll_sequence") or 0)
             result = plan1.runStochasticSpending(
-                objective, options, "historical",
+                options, "historical",
                 ystart=ystart, yend=yend, progcall=mybar,
                 reverse=reverse, roll=roll,
                 with_longevity=with_longevity, sexes=sexes, seed=longevity_seed)
         else:
             N = kz.getCaseKey("stoch_N_mc") or 200
             result = plan1.runStochasticSpending(
-                objective, options, "mc",
+                options, "mc",
                 N=N, progcall=mybar,
                 with_longevity=with_longevity, sexes=sexes, seed=longevity_seed)
 
-        result["objective"] = objective
         result["with_longevity"] = with_longevity
         result["mortality_table"] = mortality_table
         result["rate_method"] = "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "stochastic")
