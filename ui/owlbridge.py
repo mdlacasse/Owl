@@ -291,10 +291,12 @@ def _apply_stochastic_target(result, target_sr, plotter):
         longevity_line = ""
     n_infeasible = result.get("n_infeasible", 0)
     n_total = len(bases)
+
     if n_infeasible:
         scenarios_line = f"Scenarios:                      {n_total}  ({n_infeasible} infeasible)\n"
     else:
         scenarios_line = f"Scenarios:                      {n_total}\n"
+
     rate_method = result.get("rate_method", "")
     rate_line = f"Rate method:                    {rate_method}\n" if (rate_method and rate_method != "historical") else ""
     kz.storeCaseKey("stochSummary", (
@@ -303,9 +305,9 @@ def _apply_stochastic_target(result, target_sr, plotter):
         f"Median scenario spending:       ${median_spending:,.0f}/yr\n"
         f"{tail_label} ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
         f"Mean shortfall:                 ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
-        f"{scenarios_line}"
         f"{rate_line}"
         f"{longevity_line}"
+        f"{scenarios_line}"
     ).rstrip())
 
 

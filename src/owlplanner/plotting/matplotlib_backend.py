@@ -615,7 +615,7 @@ class MatplotlibBackend(PlotBackend):
         longevity_tag = " · longevity" if with_longevity else ""
         is_historical = start_years is not None
 
-        fig, ax = plt.subplots(figsize=(10, 4))
+        fig, ax = plt.subplots(figsize=(11, 4.1))
         if is_historical:
             if success.any():
                 ax.bar(start_years[success], achieved[success] / 1000, color="mediumseagreen",
@@ -654,7 +654,7 @@ class MatplotlibBackend(PlotBackend):
 
         ax.set_title(f"Scenario outcomes — {target_success_rate*100:.0f}% target{longevity_tag}", fontsize=12)
         ax.tick_params(axis="both", labelsize=10)
-        ax.legend(fontsize=10)
+        ax.legend(loc="lower center", fontsize=10, framealpha=0.3)
         ax.grid(True, alpha=0.3, axis="y")
         plt.tight_layout()
         return fig
