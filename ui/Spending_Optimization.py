@@ -180,7 +180,7 @@ Select a target success rate to find the committed spending that meets it.
     if fig_frontier or fig_outcomes:
         result = kz.getCaseKey("stochResult")
         if result:
-            col_msg, col_slider = st.columns([2, 1.5], gap="large")
+            col_msg, col_slider = st.columns([2, 1.5], gap="large", vertical_alignment="bottom")
             with col_msg:
                 summary = kz.getCaseKey("stochSummary")
                 if summary:

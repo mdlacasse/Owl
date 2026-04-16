@@ -859,7 +859,7 @@ class PlotlyBackend(PlotBackend):
         fig.update_annotations(font_size=14)
         longevity_tag = " · longevity" if with_longevity else ""
         fig.update_layout(
-            title=dict(text=f"{frontier_type} spending efficient frontier ({thisyear}$){longevity_tag}", font_size=18),
+            title=dict(text=f"{frontier_type} spending efficient frontier ({thisyear}$){longevity_tag}", font_size=20),
             template=self.template,
             legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
         )
@@ -927,7 +927,7 @@ class PlotlyBackend(PlotBackend):
 
         fig.update_layout(
             title=dict(text=f"Scenario outcomes — {target_success_rate*100:.0f}% target{longevity_tag}",
-                       font_size=18),
+                       font_size=20),
             template=self.template,
             barmode="overlay",
             legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
