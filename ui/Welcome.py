@@ -202,8 +202,9 @@ kz.divider("orange")
 
 # ---- Social proof / trust ----
 st.markdown("### :orange[Get involved]")
-st.markdown("""**Owl** is being developed by retired scientists and engineers who are happy
-to share their knowledge and remain intellectually engaged and active.\n
+st.markdown("""
+Created by a lead developer and enriched by contributions from retired experts,
+Owl leverages extensive engineering expertise to advance knowledge sharing.\n
 - Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues) (requires a GitHub account).
 - Want to share your story? Open a [discussion](https://github.com/mdlacasse/Owl/discussions).
 - You use **Owl** and like it? Give the [repo](https://github.com/mdlacasse/Owl) a star.""")
