@@ -55,7 +55,7 @@ def getHFPName(case):
     # Remove common suffixes that distinguish case variants
     hfp_name = hfp_name.replace("-spending", "")
     hfp_name = hfp_name.replace("-bequest", "")
-    return hfp_name
+    return f"HFP_{hfp_name}.xlsx"
 
 
 def loadCaseExample(case):
@@ -80,13 +80,13 @@ def loadWagesExample(case):
     """
     # Normalize case name to get the correct HFP file name
     hfp_name = getHFPName(case)
-    file = os.path.join(whereami, f"../examples/HFP_{hfp_name}.xlsx")
+    file = os.path.join(whereami, f"../examples/{hfp_name}")
     if os.path.exists(file):
         with open(file, "rb") as f:
             data = f.read()
             return BytesIO(data)
     else:
-        st.error(f"Failed to load Household Financial Profile {hfp_name}.xlsx.")
+        st.error(f"Failed to load Household Financial Profile {hfp_name}.")
         return None
 
 
@@ -101,5 +101,5 @@ def hasHFPExample(case):
         True if HFP file exists, False otherwise
     """
     hfp_name = getHFPName(case)
-    file = os.path.join(whereami, f"../examples/HFP_{hfp_name}.xlsx")
+    file = os.path.join(whereami, f"../examples/{hfp_name}")
     return os.path.exists(file)
