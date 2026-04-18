@@ -77,7 +77,7 @@ def createPlan():
         inames.append(kz.getCaseKey("iname1"))
         dobs.append(kz.getCaseKey("dob1"))
         life.append(kz.getCaseKey("life1"))
-        sexes.append(kz.getCaseKey("sex1") or "M")
+        sexes.append(kz.getCaseKey("sex1") or "F")
 
     # Get existing logs StringIO or create a new one
     strio = kz.getCaseKey("logs")

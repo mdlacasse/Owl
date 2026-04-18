@@ -335,7 +335,7 @@ def ui_to_config(uidic: dict) -> dict:
         names.append(n)
         dobs.append(_get_ui(uidic, f"dob{i}", DEFAULT_DOB))
         life.append(_get_ui(uidic, f"life{i}", DEFAULT_LIFE_EXPECTANCY, int))
-        sexes.append(_get_ui(uidic, f"sex{i}", "M"))
+        sexes.append(_get_ui(uidic, f"sex{i}", "F" if i == 0 else "M"))
 
     start_date = uidic.get("startDate")
     if hasattr(start_date, "strftime"):
