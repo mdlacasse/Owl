@@ -37,6 +37,7 @@
 % (unnumbered chapters: no \thechapter)
 \makeatother
 
+\hyphenation{histo-gaussian histo-lognormal}
 \begin{document}
 
 \begin{titlepage}
@@ -220,9 +221,9 @@ ordinary income, effectively making the HSA a second traditional IRA without
 Required Minimum Distributions.
 A surviving spouse inherits the account intact, preserving its full
 tax-advantaged status.
-Crucially, Medicare Parts~B and~D premiums, IRMAA surcharges, Medigap premiums,
-and out-of-pocket medical costs all qualify as HSA withdrawals, so the optimizer
-can fund these expenses entirely tax-free.
+Medicare Parts~B and~D premiums, IRMAA surcharges, Medigap premiums,
+and out-of-pocket medical costs all qualify as HSA withdrawals, so these
+expenses can be funded entirely tax-free from the account.
 Annual contribution limits are set by the IRS (approximately \$4,400 for
 self-only and \$8,750 for family coverage in 2026) and must cease at Medicare
 enrollment.
@@ -231,9 +232,13 @@ See Section~\ref{sec:hsa} for the detailed rules and implementation.
 \section{Household Financial Profile and Cash Flow}
 \label{sec:cfhfp}
 
-The primary input to Owl is the \textbf{Household Financial Profile (HFP)},
-which captures the year-by-year financial data for each individual and the
-household as a whole.
+Owl takes two primary inputs.
+The first is the \textbf{case configuration file} (a \texttt{.toml} file),
+which specifies all plan parameters: account balances, Social Security
+claiming ages, spending objectives, rate assumptions, solver options, and so on.
+The second is the \textbf{Household Financial Profile (HFP)}, an Excel
+workbook that captures the year-by-year financial data for each individual
+and the household as a whole.
 The HFP consists of three tables: the \emph{Wages and Contributions} table
 (one tab per individual), the \emph{Fixed Assets} table, and the
 \emph{Debts} table.
@@ -246,17 +251,17 @@ Each individual has their own sheet with the following year-indexed columns:
   \item \textit{anticipated wages} --- gross earned income expected for that
     year;
   \item \textit{other inc} --- other ordinary income not captured elsewhere
-    (optional; defaults to zero);
+    (enter 0 if not applicable);
   \item \textit{net inv} --- rent and trust distributions that count as net
-    investment income for NIIT (optional; defaults to zero);
+    investment income for NIIT (enter 0 if not applicable);
   \item \textit{taxable ctrb} --- contributions to the taxable brokerage
     account;
   \item \textit{401k ctrb} --- traditional 401(k) contributions;
   \item \textit{Roth 401k ctrb} --- Roth 401(k) contributions;
   \item \textit{IRA ctrb} --- traditional IRA contributions;
   \item \textit{Roth IRA ctrb} --- Roth IRA contributions;
-  \item \textit{HSA ctrb} --- Health Savings Account contributions (optional;
-    defaults to zero; automatically zeroed at Medicare enrollment age; entries past age~65 are ignored);
+  \item \textit{HSA ctrb} --- Health Savings Account contributions (enter 0 if
+    not applicable; automatically zeroed at Medicare enrollment age; entries past age~65 are ignored);
   \item \textit{Roth conv} --- planned or historical Roth conversion amounts;
     the five years preceding the plan start date are used to implement the
     five-year lookback rule (Section~\ref{sec:roth});
@@ -270,16 +275,17 @@ Each individual has their own sheet with the following year-indexed columns:
 The Fixed Assets table describes assets held outside investment accounts:
 real estate (including a primary residence), fixed annuities, collectibles,
 precious metals, or individual stocks.
-Each row specifies the asset name, type, acquisition year, cost basis,
-current value, expected return rate, year of disposal, and sales commission.
+Each row specifies whether the asset is active, its name, type, acquisition year,
+cost basis, current value, expected return rate, year of disposal, and sales
+commission.
 The optimizer accounts for sale proceeds and any resulting capital gains as
 fixed assets are disposed of during the plan horizon.
 
 \subsection*{Debts table}
 
 The Debts table lists outstanding loan and mortgage obligations.
-Each row specifies the debt name, type (loan or mortgage), start year,
-term, original principal, and interest rate.
+Each row specifies whether the debt is active, its name, type (loan or
+mortgage), start year, term, original principal, and interest rate.
 Annual debt-service payments enter the cash-flow constraint as fixed
 outflows.
 
@@ -519,9 +525,11 @@ The key modeling choices are as follows.
     identical to Roth account withdrawals, and are excluded from taxable income.
     Because Medicare Parts~B and~D premiums, IRMAA surcharges, Medigap
     premiums, and other out-of-pocket medical costs are all qualified
-    expenses under IRS Publication~969, the optimizer automatically routes
-    HSA funds to cover these costs tax-free whenever doing so improves the
-    household's after-tax outcome.
+    expenses under IRS Publication~969, the user may apply HSA withdrawals
+    to cover these costs tax-free.
+    The optimizer does not track medical expenses explicitly; it treats HSA
+    withdrawals as generic tax-free cash flow, and the user is responsible
+    for ensuring actual withdrawals correspond to qualified expenses.
   \item \textit{No Required Minimum Distributions.}
     Unlike tax-deferred accounts, HSAs are never subject to mandatory annual
     distributions.
@@ -631,8 +639,7 @@ Medicaid rather than Marketplace subsidies.
 \subsection*{Implementation in Owl}
 
 Owl models ACA net premium costs for pre-65 years when the user supplies the
-annual benchmark Silver plan (SLCSP) premium via \texttt{setACA()} or the
-\code{aca\_settings} configuration.
+annual benchmark Silver plan (SLCSP) premium via \texttt{setACA()}.
 Two computation modes are available.
 
 In the default \code{withACA="loop"} mode, ACA costs are computed after each
@@ -743,6 +750,12 @@ pass until they converge.
 The total LTCG tax is derived from the bracket allocation after solving.
 Reference: \cite{irs409}.
 
+An optional exact MIP formulation is available via \code{withLTCG="optimize"}.
+In this mode, the ordinary taxable income $G_n$ is embedded as a continuous
+LP variable together with binary variables that select the applicable LTCG
+bracket in each year, replacing the self-consistent loop refinement of
+bracket thresholds with an exact mixed-integer constraint.
+
 \subsection*{Limitations and assumptions}
 
 Short-term capital gains (assets held one year or less) are taxed as ordinary
@@ -768,8 +781,8 @@ Roth withdrawals.
 \subsection*{Implementation in Owl}
 
 The NIIT is computed annually from MAGI and net investment income (dividends,
-interest, LTCG, and any rent or trust income entered via the optional
-\code{net inv} column; when absent, that column defaults to zero.
+interest, LTCG, and any rent or trust income entered in the \code{net inv}
+column).
 Rent and trust income from \code{net inv} is included in NII and also flows
 into cash-flow and taxable-income as ordinary income.
 The tax uses the IRS formula described above.
@@ -778,6 +791,12 @@ pass and updated from the new income values until it converges.
 The threshold is fixed in nominal dollars; its real impact over time is
 correctly reflected in the model.
 Reference: \cite{irc1411}.
+
+An optional exact MIP formulation is available via \code{withNIIT="optimize"}.
+In this mode, MAGI is embedded as a continuous LP variable together with a
+binary variable that selects whether the threshold is exceeded in each year,
+replacing the self-consistent loop computation of NIIT with an exact
+mixed-integer constraint.
 
 \subsection*{Limitations and assumptions}
 
@@ -796,7 +815,7 @@ marginal brackets apply at rates of 10\%, 12\%, 22\%, 24\%, 32\%, 35\%,
 and 37\%.
 Standard deductions for 2026 under the OBBBA are \$16,100 (single) and
 \$32,200 (MFJ).
-An additional deduction of \$2,000 (single) or \$1,600 (MFJ) per eligible
+An additional deduction of \$2,050 (single) or \$1,650 (MFJ) per eligible
 individual applies at age~65 or older.
 
 OBBBA~§~1002 provides an extra \$6,000 per-person senior bonus deduction
@@ -811,7 +830,9 @@ age~72 for those born 1949--1950, age~73 for those born 1951--1959, and
 age~75 for those born in 1960 or later (effective 2033), per SECURE~2.0 Act~§~107
 \cite{secure2}.
 RMD fractions are taken from the IRS Uniform Lifetime Table~III (effective
-2022), as published in IRS Publication~590-B \cite{irs590b}.
+2022), as published in IRS Publication~590-B \cite{irs590b}, except when the
+sole designated beneficiary is a spouse more than ten years younger, in which
+case IRS Table~II (Joint and Last Survivor) applies.
 Roth accounts are exempt from RMDs.
 Filing status transitions from MFJ to single in the calendar year of the
 first spouse's death.
@@ -882,8 +903,11 @@ from a joint plan to a survivor plan.
 Both death years are inputs to Owl; they are treated as certain within a
 given scenario.
 Monte Carlo and historical stress-test simulations run the optimizer
-repeatedly across many return scenarios; stochastic mortality is not
-modeled.
+repeatedly across many return scenarios.
+When the longevity-risk option is enabled in stochastic spending
+optimization (Chapter~10), ages at death are drawn from SSA period life
+tables for each scenario, so that the planning horizon itself becomes a
+random variable.
 
 \section{Account Dynamics}
 
@@ -940,8 +964,9 @@ path or an S-curve (hyperbolic tangent) glide path.
 The S-curve produces a gradual, natural transition that accelerates through
 the midpoint and tapers at both ends, which is often a more realistic model
 of how investors de-risk their portfolios over time.
-Allocation values can also be set to step down at the death of the first
-spouse, reflecting the survivor's changed risk profile or time horizon.
+For couples, each individual's allocation glides independently over their
+own planning horizon; the survivor's allocation therefore continues from
+whatever value it had reached at the moment of the first spouse's death.
 
 \section{Spending Profile and Objectives}
 
@@ -962,7 +987,7 @@ expenses for a single person.
 
 \subsection*{Primary objectives}
 
-Two primary optimization objectives are supported:
+Three optimization objectives are supported:
 
 \begin{description}[nosep, leftmargin=2em, style=nextline]
 \item[Maximize net spending.]
@@ -977,6 +1002,14 @@ Two primary optimization objectives are supported:
   after-tax estate value delivered to heirs at the end of the horizon.
   The heir's marginal income tax rate on inherited tax-deferred balances
   can be specified by the user.
+
+\item[Maximize hybrid.]
+  A weighted combination of present-value lifetime spending and
+  present-value bequest.
+  A user-specified weight $h \in [0, 1]$ controls the trade-off:
+  $h = 1$ recovers the pure spending objective and $h = 0$ the pure
+  bequest objective; $h = 0.5$ balances the two equally in present-value
+  terms.
 \end{description}
 
 \subsection*{Lexicographic weight}
@@ -1028,7 +1061,7 @@ The loop typically converges in fewer than fifteen iterations for
 well-posed plans.
 
 Two optional MIP formulations replace portions of the SC loop with exact
-binary constraints, eliminating the corresponding nonlinearity entirely:
+binary constraints, eliminating the corresponding nonlinearity entirely.
 \code{withSSTaxability="optimize"} models SS taxability as an exact
 piecewise-linear MIP; \code{withMedicare="optimize"} models IRMAA
 bracket selection within the optimization itself.
@@ -1129,10 +1162,10 @@ $b_{ikn}$ is a multidimensional array depending on subscripts $i, k,$ and $n$.
 	$q$ goes from 0 to $N_q - 1$, from low to high.
 	At the time of writing, there are 5 Medicare premium step adjustments
         in the federal tax code separating $N_q = 6$ income brackets.
-\item [$N_{\mathrm{aca}}$, $q$ (ACA context)]
+\item [$r$, $N_{\mathrm{aca}}$, (ACA context)]
 	$N_{\mathrm{aca}}$: number of ACA-eligible plan years ($n < N_{\mathrm{aca}}$ when at least one
 	individual is under 65 and within their horizon).
-	When discussing ACA, $q$ denotes the ACA MAGI bracket with $N_q^{\mathrm{aca}} = 7$ brackets
+	When discussing ACA, $r$ denotes the ACA MAGI bracket with $N_r = 7$ brackets
 	(6 FPL-based intervals up to 400\% FPL, plus one above).
 \item [$t$]
 	Federal income tax bracket. $t$ goes from 0 to $N_t - 1$, from low to high.
@@ -1197,12 +1230,12 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$m_n$]
 	Medicare costs in year $n$, including Part~B premiums and IRMAA income-related adjustments.
 	This does not include Part~D premiums and adjustments.
-\item [$h^{\mathrm{aca}}_{qn}$]
-	Segment of ACA bracket $q$ in which the current-year modified adjusted gross income (MAGI)
+\item [$h^{\mathrm{aca}}_{rn}$]
+	Segment of ACA bracket $r$ in which the current-year modified adjusted gross income (MAGI)
 	$\mathbb{G}_n$ is contained for ACA-eligible year $n$.
 	Used only when \code{withACA="optimize"}; index $n$ runs over the first $N_{\mathrm{aca}}$
 	plan years when at least one individual is under age~65 and within their horizon.
-	One bracket $q'$ contains MAGI, so $\sum_q h^{\mathrm{aca}}_{qn} = \mathbb{G}_n$.
+	One bracket $r'$ contains MAGI, so $\sum_r h^{\mathrm{aca}}_{rn} = \mathbb{G}_n$.
 	ACA uses \emph{current-year} MAGI (no two-year lag like Medicare IRMAA).
 \item [$m^{\mathrm{aca}}_n$]
 	ACA net premium cost in year $n$ (after Premium Tax Credit).
@@ -1271,7 +1304,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$z_{*}^*$]
 	Binary variables are all designated by the letter $z$, but a superscript is
 	used to distinguish the different families. For example, $z_{qn}^m$ represents
-	binary variables associated with Medicare calculations, $z_{qn}^{\mathrm{aca}}$ with ACA
+	binary variables associated with Medicare calculations, $z_{rn}^{\mathrm{aca}}$ with ACA
 	bracket selection (when \code{withACA="optimize"}), $z_{nz}^x$ are used for
 	the exclusion constraints, and $z^{\sigma}_{0n}$, $z^{\sigma}_{1n}$ encode the
 	two $\min(\cdot,\cdot)$ operations in the SS taxability MIP formulation
@@ -1329,9 +1362,9 @@ Parameter values are either set by the user, historical data, or by the tax code
 	and the normalizing factor is adjusted accordingly.
 	The inflation-adjusted profile is $\bar{\xi}_n = \gamma_n \xi_n$.
 	\begin{figure}[t]
-	    \includegraphics{profile.png}
-	    \caption{\small Example of a spending profile with 15\% cosine factor and a 12\% linear
-	    profile. \label{Fig:profile}}
+	    \includegraphics[width=\linewidth]{profile.png}
+	    \caption{\small Example of a spending profile with a 15\% cosine factor
+	    and a 12\% linear component. \label{Fig:profile}}
 	\end{figure}
 \item [$\chi$]
 	Factor to reduce spending profile after the passing of one spouse. It is typically
@@ -1560,11 +1593,11 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
         number bounding the last bracket. See Fig.~\ref{Fig:piecewise} for a visual representation.
         Note that $\bar{\mathcal{L}}_{qn}$ needs to be adjusted for inflation and marital status,
         including adjustments due to the passing of one spouse.
-\item [$\bar{\mathcal{L}}^{\mathrm{aca}}_{qn}$, $\bar{\mathcal{C}}^{\mathrm{aca}}_q$, $\bar{S}^{\mathrm{aca}}_n$]
+\item [$\bar{\mathcal{L}}^{\mathrm{aca}}_{rn}$, $\bar{\mathcal{C}}^{\mathrm{aca}}_r$, $\bar{S}^{\mathrm{aca}}_n$]
 	ACA parameters (only when \code{withACA="optimize"} and $n < N_{\mathrm{aca}}$).
-	$\bar{\mathcal{L}}^{\mathrm{aca}}_{qn}$: inflation-adjusted FPL bracket thresholds for year $n$;
-	$N_q^{\mathrm{aca}} = 7$ brackets (6 FPL-based intervals up to 400\% FPL, plus one above).
-	$\bar{\mathcal{C}}^{\mathrm{aca}}_q$: applicable contribution percentage for bracket $q$ ($q = 0,\ldots,5$);
+	$\bar{\mathcal{L}}^{\mathrm{aca}}_{rn}$: inflation-adjusted FPL bracket thresholds for year $n$;
+	$N_r = 7$ brackets (6 FPL-based intervals up to 400\% FPL, plus one above).
+	$\bar{\mathcal{C}}^{\mathrm{aca}}_r$: applicable contribution percentage for bracket $r$ ($r = 0,\ldots,5$);
 	contribution is proportional to MAGI within each bracket.
 	$\bar{S}^{\mathrm{aca}}_n$: inflation-adjusted annual benchmark Silver plan (SLCSP) premium;
 	for bracket 6 (above 400\% FPL), net cost equals $\bar{S}^{\mathrm{aca}}_n$ (no subsidy).
@@ -1701,7 +1734,8 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 		\mathbb{I}_n = \max\left(0,\ \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
 		     + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]\right) + \sum_i \nu_{in}.
 	\end{equation}
-	Only positive returns are taxable; the interest/dividend component is clamped to zero before adding $\nu_{in}$.
+	Only positive returns are taxable; the interest and dividend component
+	is clamped to zero before adding $\nu_{in}$.
 
 \item [$P_n$]
 	Amount of 10\% early withdrawal penalty in year $n$.
@@ -2086,8 +2120,9 @@ binary variables excluding simultaneous overwithdrawals and deposits, and
 		+ \sum_{i,j} w_{ijn} + \sum_i \Lambda^\pm_{in} + \sum_{*=x,c,f} \mathcal{A}_n^*  \nonumber \\
 		&& - s_{n} - P_n - T_n - U_n - J_n - m_n - m^{\mathrm{aca}}_n - \mathcal{D}_n.
 	\end{eqnarray}
-	Here $m^{\mathrm{aca}}_n$ is the ACA net premium cost: a decision variable when
-	\code{withACA="optimize"}, or a parameter (from the SC loop) when \code{withACA="loop"}.
+	Here $m^{\mathrm{aca}}_n$ is the ACA net premium cost.
+	It is a decision variable when \code{withACA="optimize"},
+	or a fixed SC-loop parameter when \code{withACA="loop"}.
 	Notice how big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
@@ -2445,17 +2480,17 @@ In this case, the objective function will need to consider the sum over all year
 	When \code{withACA="optimize"} and ACA is enabled (SLCSP $> 0$, $N_{\mathrm{aca}} > 0$),
 	ACA bracket selection and net premium cost are modeled within the optimization.
 	ACA uses \emph{current-year} MAGI $\mathbb{G}_n$ (no two-year lag like Medicare).
-	Let $N_q^{\mathrm{aca}} = 7$ (brackets 0--5: FPL-based; bracket 6: above 400\% FPL).
+	Let $N_r = 7$ (brackets 0--5: FPL-based; bracket 6: above 400\% FPL).
 
 	\textbf{SOS1 selection:}
 	\begin{equation}
-		\sum_{q=0}^{N_q^{\mathrm{aca}}-1} z_{qn}^{\mathrm{aca}} = 1,
+		\sum_{r=0}^{N_r-1} z_{rn}^{\mathrm{aca}} = 1,
 		\qquad n \in \{0, \ldots, N_{\mathrm{aca}}-1\}.
 	\end{equation}
 
 	\textbf{MAGI decomposition:}
 	\begin{equation}
-		\sum_{q=0}^{N_q^{\mathrm{aca}}-1} h^{\mathrm{aca}}_{qn} = \mathbb{G}_n,
+		\sum_{r=0}^{N_r-1} h^{\mathrm{aca}}_{rn} = \mathbb{G}_n,
 	\end{equation}
 	where $\mathbb{G}_n$ is the current-year MAGI (same structure as in Eq.~(\ref{Eq:MedDecomp2})
 	but with $n$ instead of $n-2$).
@@ -2464,20 +2499,20 @@ In this case, the objective function will need to consider the sum over all year
 	for the last bracket):
 	\begin{eqnarray}
 		0 \le h^{\mathrm{aca}}_{0n} &\le& \bar{\mathcal{L}}^{\mathrm{aca}}_{0n} z_{0n}^{\mathrm{aca}}, \nonumber \\
-		\bar{\mathcal{L}}^{\mathrm{aca}}_{(q-1)n} z_{qn}^{\mathrm{aca}}
-		\le h^{\mathrm{aca}}_{qn} &\le& \bar{\mathcal{L}}^{\mathrm{aca}}_{qn} z_{qn}^{\mathrm{aca}},
-		\quad q \in \{1,\ldots,N_q^{\mathrm{aca}}-2\}, \nonumber \\
-		\bar{\mathcal{L}}^{\mathrm{aca}}_{(N_q^{\mathrm{aca}}-2)n}
-		z_{(N_q^{\mathrm{aca}}-1)n}^{\mathrm{aca}}
-		\le h^{\mathrm{aca}}_{(N_q^{\mathrm{aca}}-1)n}
-		&\le& \mathcal{M}\,\gamma_n\, z_{(N_q^{\mathrm{aca}}-1)n}^{\mathrm{aca}}.
+		\bar{\mathcal{L}}^{\mathrm{aca}}_{(r-1)n} z_{rn}^{\mathrm{aca}}
+		\le h^{\mathrm{aca}}_{rn} &\le& \bar{\mathcal{L}}^{\mathrm{aca}}_{rn} z_{rn}^{\mathrm{aca}},
+		\quad r \in \{1,\ldots,N_r-2\}, \nonumber \\
+		\bar{\mathcal{L}}^{\mathrm{aca}}_{(N_r-2)n}
+		z_{(N_r-1)n}^{\mathrm{aca}}
+		\le h^{\mathrm{aca}}_{(N_r-1)n}
+		&\le& \mathcal{M}\,\gamma_n\, z_{(N_r-1)n}^{\mathrm{aca}}.
 	\end{eqnarray}
 
 	\textbf{Cost constraint:}
 	For brackets 0--5, net cost equals the applicable percentage times MAGI in that bracket.
 	For bracket 6 (above 400\% FPL), no subsidy applies and net cost equals the full SLCSP:
 	\begin{equation}
-		m^{\mathrm{aca}}_n = \sum_{q=0}^{5} \bar{\mathcal{C}}^{\mathrm{aca}}_q\, h^{\mathrm{aca}}_{qn}
+		m^{\mathrm{aca}}_n = \sum_{r=0}^{5} \bar{\mathcal{C}}^{\mathrm{aca}}_r\, h^{\mathrm{aca}}_{rn}
 		+ \bar{S}^{\mathrm{aca}}_n\, z_{6n}^{\mathrm{aca}},
 		\qquad n \in \{0, \ldots, N_{\mathrm{aca}}-1\}.
 	\end{equation}
@@ -2912,8 +2947,8 @@ The SOS1 selection of Eq.~(\ref{Eq:SOS1}) is encoded as
 \end{eqnarray}
 
 \paragraph*{MAGI disaggregation}
-The equality $\sum_q h_{qn} = \mathbb{G}_{(n-2)}$ is expanded using
-Eqs.~(\ref{Eq:Tx2}) and (\ref{Eq:Qx2}) and implemented as
+Using Eqs.~(\ref{Eq:Tx2}) and~(\ref{Eq:Qx2}), the equality
+$\sum_q h_{qn} = \mathbb{G}_{(n-2)}$ is expanded and implemented as
 \begin{eqnarray}
 	A_e[J_3(n), q_{h}(q, n)] &=& 1, \nonumber \\
 	A_e[J_3(n), q_{e}(n-2)] &=& -1, \nonumber \\
@@ -3721,7 +3756,7 @@ portfolio theory~\cite{markowitz1952}.
 The conservative extreme of the frontier recovers the classical safe withdrawal rate
 of Bengen~\cite{bengen1994}: the spending level that succeeds in every scenario.
 
-\section{Scenario bases and the spending commitment}
+\section[Scenario bases]{Scenario bases and the spending commitment}
 
 Let $s = 0, 1, \ldots, S-1$ denote the scenario index (0-based, following the
 C-array convention used throughout this document), where $S$ is the total number
@@ -3732,8 +3767,8 @@ of that scenario.
 The result is the \textit{scenario basis}
 \begin{equation}
     \label{Eq:ScenarioBasis}
-    g_s \;=\; \max\bigl\{g : \text{the plan is feasible and self-consistent at spending level } g
-                         \text{ under scenario } s\bigr\}.
+    g_s \;=\; \max\bigl\{g : \text{the plan is feasible under scenario } s
+                         \text{ at spending level } g\bigr\}.
 \end{equation}
 Because $g_s$ is computed by the MILP, it incorporates all tax rules, RMDs,
 Social Security, Medicare, and Roth conversion constraints exactly.
@@ -3997,7 +4032,7 @@ early reduction and delayed credits:
     \end{cases}
 \end{equation}
 Delayed credits of 8\% per year apply above FRA, capping at
-$f = 1.32$ at age~70 when FRA is~67.
+$f = 1.24$ at age~70 when FRA is~67.
 For early claiming the reduction is $\tfrac{1}{15}$ per year (i.e., $5/9$ of~1\% per month)
 for the first 3~years before FRA, and $\tfrac{1}{20}$ per year (i.e., $5/12$ of~1\% per month)
 for any additional years, yielding a minimum of approximately 70\% of PIA at age~62.
@@ -4139,6 +4174,7 @@ streams as in the base mode.
 The Owl Python package is located under \code{src/owlplanner/}.
 The table below summarizes the primary source files and their roles.
 
+\begin{sloppypar}
 \begin{description}[style=nextline, leftmargin=2.5cm, font=\ttfamily]
 
 \item[plan.py]
@@ -4180,15 +4216,15 @@ schedules from the Debts table.
 
 \item[rates.py]
 Loads and pre-processes the historical market-return data from
-\code{data/rates.csv} (equity, bond, and inflation series from 1928 to
-present) and provides utilities for constructing rate scenarios.
+\code{data/rates.csv} (equity, bond, and inflation series from~1928
+to present) and provides utilities for constructing rate scenarios.
 
 \item[rate\_models/]
-A pluggable system of rate model classes inheriting from
-\code{BaseRateModel}.
-Built-in models (historical, fixed, gaussian, histogaussian, lognormal, histolognormal, bootstrap SOR, VAR, GARCH)
-are in \code{builtin.py} and \code{_builtin_impl.py}.
-Custom rate models are discoverable at runtime if they subclass
+A pluggable system of rate model classes inheriting from \code{BaseRateModel}.
+Built-in models (historical, fixed, gaussian, histogaussian, lognormal,
+histolognormal, bootstrap~SOR, VAR, GARCH) are in \code{builtin.py}
+and \code{_builtin_impl.py}.
+Custom models are discoverable at runtime if they subclass
 \code{BaseRateModel} and are importable.
 
 \item[config/schema.py]
@@ -4212,6 +4248,7 @@ Supports \code{list} (enumerate available case files) and \code{run}
 (solve a case from a TOML file) commands.
 
 \end{description}
+\end{sloppypar}
 
 \renewcommand{\bibname}{References}
 \begin{thebibliography}{99}

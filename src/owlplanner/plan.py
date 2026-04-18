@@ -1500,7 +1500,7 @@ class Plan:
             )
 
             if self.slcsp_annual > 0:
-                self.N_aca, self.Lbar_aca_nq, self.cap_pct_aca_q, self.slcsp_aca_n = \
+                self.N_aca, self.Lbar_aca_nr, self.cap_pct_aca_r, self.slcsp_aca_n = \
                     tx.acaVals(self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n)
             else:
                 self.N_aca = 0
@@ -1580,7 +1580,7 @@ class Plan:
         vm.add("f", self.N_t, self.N_n)
         vm.add("g", self.N_n)
         vm.add_if(medi, "h", Nmed, self.N_irmaa)    # IRMAA bracket portions (Medicare optimize)
-        vm.add_if(self._aca_lp, "haca", self.N_aca, tx.N_ACA_Q)  # ACA MAGI bracket portions (optimize)
+        vm.add_if(self._aca_lp, "haca", self.N_aca, tx.N_ACA_R)  # ACA MAGI bracket portions (optimize)
         vm.add_if(self._aca_lp, "maca", self.N_n)  # ACA LP cost variable (optimize mode only)
         vm.add("m", self.N_n)
         vm.add("q", self.N_p, self.N_n)             # q_{pn}: LTCG bracket allocations (p=0,1,2)
@@ -1600,7 +1600,7 @@ class Plan:
         vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)   # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)         # z^σ family (2 per year) for SS min() ops
-        vm.add_if(self._aca_lp, "za", self.N_aca, tx.N_ACA_Q)   # ACA bracket selection binaries
+        vm.add_if(self._aca_lp, "za", self.N_aca, tx.N_ACA_R)   # ACA bracket selection binaries
         vm.add_if(ltcg_lp, "zl", 2, self.N_n)       # 2×N_n regime binaries (LTCG MILP)
         vm.add_if(niit_lp, "zj", self.N_n)          # N_n NIIT threshold binaries
         vm.add_if(ssa_lp, "zssa", self.N_i, self._ssa_N_K)  # claiming-month selectors (SS age)
@@ -2740,11 +2740,11 @@ class Plan:
         # a) SOS1: exactly one bracket selected per year.
         for nn in range(self.N_aca):
             row = self.A.newRow()
-            for q in range(tx.N_ACA_Q):
-                row.addElem(self.vm["za"].idx(nn, q), 1)
+            for r in range(tx.N_ACA_R):
+                row.addElem(self.vm["za"].idx(nn, r), 1)
             self.A.addRow(row, 1, 1)
 
-        # b) MAGI decomposition: sum_q haca[nn, q] = current-year MAGI.
+        # b) MAGI decomposition: sum_r haca[nn, r] = current-year MAGI.
         for nn in range(self.N_aca):
             n = nn  # ACA uses current year (no lag)
             tau_prev = tau_0[max(0, n - 1)]
@@ -2780,24 +2780,24 @@ class Plan:
                              + 0.5 * self.kappa_ijn[i, 0, n] * afac)
                 rhs_magi -= self.kappa_ijn[i, 3, n]     # HSA contributions reduce MAGI
 
-            for q in range(tx.N_ACA_Q):
-                haca_idx = self.vm["haca"].idx(nn, q)
+            for r in range(tx.N_ACA_R):
+                haca_idx = self.vm["haca"].idx(nn, r)
                 row_magi[haca_idx] = row_magi.get(haca_idx, 0) + 1
 
             self.A.addNewRow(row_magi, rhs_magi, rhs_magi)
 
-        # c) Bracket bounds: Lbar[nn, q-1]*za[q] <= haca[q] <= Lbar[nn, q]*za[q].
+        # c) Bracket bounds: Lbar[nn, r-1]*za[r] <= haca[r] <= Lbar[nn, r]*za[r].
         for nn in range(self.N_aca):
-            for q in range(tx.N_ACA_Q):
-                haca_idx = self.vm["haca"].idx(nn, q)
-                za_idx = self.vm["za"].idx(nn, q)
+            for r in range(tx.N_ACA_R):
+                haca_idx = self.vm["haca"].idx(nn, r)
+                za_idx = self.vm["za"].idx(nn, r)
 
-                lower = 0 if q == 0 else self.Lbar_aca_nq[nn, q - 1]
+                lower = 0 if r == 0 else self.Lbar_aca_nr[nn, r - 1]
                 if lower > 0:
                     self.A.addNewRow({haca_idx: 1, za_idx: -lower}, 0, np.inf)
 
-                if q < tx.N_ACA_Q - 1:
-                    upper = self.Lbar_aca_nq[nn, q]
+                if r < tx.N_ACA_R - 1:
+                    upper = self.Lbar_aca_nr[nn, r]
                     self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0)
                 else:
                     # Last bracket (above 400% FPL): use BigM as upper bound so haca = 0 when za = 0.
@@ -2808,7 +2808,7 @@ class Plan:
         """
         Add ACA cost constraints for the LP/MIP formulation (optimize mode only).
 
-        In optimize mode: maca_n = sum_{q=0}^{5} cap_pct_q * haca[nn,q] + slcsp_aca_n[nn]*za[nn,6].
+        In optimize mode: maca_n = sum_{r=0}^{5} cap_pct_r * haca[nn,r] + slcsp_aca_n[nn]*za[nn,6].
         For brackets 0-5: proportional cost. For bracket 6 (above 400% FPL): fixed cost = SLCSP.
         In loop mode: maca variable does not exist; ACA_n (SC loop) goes in the cash-flow RHS.
         """
@@ -2819,13 +2819,13 @@ class Plan:
         for n in range(self.N_aca, self.N_n):
             self.B.setRange(self.vm["maca"].idx(n), 0, 0)
 
-        # Cost constraint: maca_n = sum_{q=0}^{5} cap_pct_q * haca[nn,q] + slcsp*za[nn,6].
+        # Cost constraint: maca_n = sum_{r=0}^{5} cap_pct_r * haca[nn,r] + slcsp*za[nn,6].
         # Bracket 6 (>400% FPL): 2026 rules impose full SLCSP (no PTC), not proportional to MAGI.
         for nn in range(self.N_aca):
             row = self.A.newRow({self.vm["maca"].idx(nn): 1})
-            for q in range(tx.N_ACA_Q - 1):  # q=0..5 only; bracket 6 uses fixed SLCSP
-                row.addElem(self.vm["haca"].idx(nn, q), -self.cap_pct_aca_q[q])
-            row.addElem(self.vm["za"].idx(nn, tx.N_ACA_Q - 1), -self.slcsp_aca_n[nn])
+            for r in range(tx.N_ACA_R - 1):  # r=0..5 only; bracket 6 uses fixed SLCSP
+                row.addElem(self.vm["haca"].idx(nn, r), -self.cap_pct_aca_r[r])
+            row.addElem(self.vm["za"].idx(nn, tx.N_ACA_R - 1), -self.slcsp_aca_n[nn])
             self.A.addRow(row, 0, 0)
             self.B.setRange(self.vm["maca"].idx(nn), 0, self.slcsp_aca_n[nn])
 
