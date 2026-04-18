@@ -1162,13 +1162,13 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	Amount of taxable ordinary income falling into tax bracket $t$. The ordinary taxable income is
 	\begin{equation}
 		\label{Eq:G_n}
-		G_n = \sum_t f_{tn},
+		G_n = \sum_{t=0}^{N_t-1} f_{tn},
 	\end{equation}
 	with $f_{tn}$ bound between 0 and the bracket width $\bar{\Delta}_{tn} = \bar{\Gamma}_{tn} - \bar{\Gamma}_{(t-1)n}$.
 	For interpretation, one can introduce the fractional fill $f'_{tn}$ with
 	$f_{tn} := f'_{tn}\bar{\Delta}_{tn}$ and
 	\begin{eqnarray}
-		G_n = \sum_t f'_{t n}\bar{\Delta}_{t n},\\
+		G_n = \sum_{t=0}^{N_t-1} f'_{t n}\bar{\Delta}_{t n},\\
 		0 \leq f'_{t n} \leq 1.
 	\end{eqnarray}
 	When considering taxes, the product $\bar{\Delta}_{tn}\theta^x_{tn}$ need not be ordered
@@ -1245,7 +1245,9 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$q_{pn}$]
 	Portion of LTCG and qualified dividends allocated to bracket $p$ in year $n$,
 	where $p=0$, $1$, $2$ correspond to the 0\%, 15\%, and 20\% LTCG rate brackets,
-	respectively. These $N_p = 3$ continuous non-negative LP variables are always present
+	respectively (the leading letter $q$ here is \emph{not} the Medicare IRMAA bracket index $q$
+	from the Indices list; the LTCG bracket index is $p$).
+	These $N_p = 3$ continuous non-negative LP variables are always present
 	and together partition the total LTCG:
 	\begin{eqnarray}
 		q_{0n} + q_{1n} + q_{2n} &\ge& Q_n, \label{Eq:qpart} \\
@@ -1254,7 +1256,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	\end{eqnarray}
 	where $\bar{\mathcal{B}}^{15}_n$ and $\bar{\mathcal{B}}^{20}_n$ are the inflation-adjusted total taxable income
 	thresholds above which the 15\% and 20\% rates apply (see Parameters), and
-	$G_n = \sum_t f_{tn}$ is the ordinary taxable income (formally defined in the
+	$G_n = \sum_{t=0}^{N_t-1} f_{tn}$ is the ordinary taxable income (formally defined in the
 	Intermediate Variables section).
 	Since the cost function is strictly convex ($0 < 0.15 < 0.20$),
 	no binary variables are required: the LP naturally fills the lowest-cost bracket first.
@@ -1636,7 +1638,7 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 
         $G_n$ was also already defined in Eq.~(\ref{Eq:G_n}) as
 	\begin{equation*}
-		G_n = \sum_t f_{tn},
+		G_n = \sum_{t=0}^{N_t-1} f_{tn},
 	\end{equation*}
         and equating both equations links these variables together.
 
@@ -1738,7 +1740,7 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	paid in each tax bracket as
 	\begin{equation}
 		\label{Eq:IncTax1}
-		T_n = \sum_t f_{tn}\theta^x_{tn}.
+		T_n = \sum_{t=0}^{N_t-1} f_{tn}\theta^x_{tn}.
 	\end{equation}
 	Notice how $f_{tn}$ also defines $G_n$ in Eq.~(\ref{Eq:G_n}), and that optimal
 	values of $f_{tn}$ have to minimize $T_n$ regardless of whether the bequest or the desired
@@ -2091,7 +2093,7 @@ binary variables excluding simultaneous overwithdrawals and deposits, and
 	\begin{eqnarray}
 		\label{Eq:C4}
 		g_n - \sum_{i,j} w_{ijn} + 0.1 \sum_i (1-\mathcal{H}(n - n_{i,59\frac{1}{2}})) w_{i1n}\nonumber\\
-                + m_n + m^{\mathrm{aca}}_n + s_n + \sum_t f_{tn} \theta^x_{tn} + U_n
+                + m_n + m^{\mathrm{aca}}_n + s_n + \sum_{t=0}^{N_t-1} f_{tn} \theta^x_{tn} + U_n
 		&=& \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in} \nonumber\\
                 && + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] \nonumber \\
                 && - \mathcal{D}_n - J_n.
@@ -2138,7 +2140,7 @@ In this case, the objective function will need to consider the sum over all year
 	\end{equation}
 	ensures the allocations cover the total LTCG $Q_n$.
 	The bracket upper-bound constraints prevent overflow into higher-rate brackets.
-	Because LTCG is stacked on top of ordinary taxable income $G_n = \sum_t f_{tn}$,
+	Because LTCG is stacked on top of ordinary taxable income $G_n = \sum_{t=0}^{N_t-1} f_{tn}$,
 	the room available in each bracket depends on how much of the threshold is already
 	occupied by ordinary income. The constraints can be expressed as
 	\begin{eqnarray}
@@ -2157,7 +2159,7 @@ In this case, the objective function will need to consider the sum over all year
 \subsection{Taxable ordinary income}
 	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:G_n}) and (\ref{Eq:Tx2}),
 	\begin{eqnarray}
-		\sum_t f_{tn} &=& \mathcal{A}^x_n +
+		\sum_{t=0}^{N_t-1} f_{tn} &=& \mathcal{A}^x_n +
 		\sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]  \nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in} ]
 		\nonumber\\
@@ -2167,7 +2169,7 @@ In this case, the objective function will need to consider the sum over all year
 	and rearrange to move variables to the LHS as follows
 	\begin{eqnarray}
 		\label{Eq:C6}
-		e_n + \sum_t f_{tn}
+		e_n + \sum_{t=0}^{N_t-1} f_{tn}
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
@@ -2298,7 +2300,7 @@ In this case, the objective function will need to consider the sum over all year
 	Moving $t^{\sigma}_n$ to the left-hand side, Eq.~(\ref{Eq:C6}) becomes
 	\begin{eqnarray}
 		\label{Eq:C6prime}
-		e_n + \sum_t f_{tn}
+		e_n + \sum_{t=0}^{N_t-1} f_{tn}
 		- t^{\sigma}_n
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
@@ -2619,9 +2621,9 @@ where
 \begin{equation}
 	q_m(n) = q_*(C_m, n, 0, 0; N_n, 1, 1) = C_m + n,
 \end{equation}
-with $q_m$ running from $C_m$ to $C_s - 1$, where
+with $q_m$ running from $C_m$ to $C_{s_0} - 1$, where
 \[
-	C_s = q_C(C_m, N_n, 1, 1)
+	C_{s_0} = q_C(C_m, N_n, 1, 1)
 	= N_i(N_j(N_n+1) + N_n) + (N_t + 3) N_n + N_q(N_n - n_m).
 \]
 
@@ -2634,11 +2636,8 @@ where
 \begin{equation}
 	q_q(p, n) = q_*(C_q, p, n, 0; N_p, N_n, 1),
 \end{equation}
-with $q_q$ running from $C_q$ to $C_s - 1$, where
-\[
-	C_q = q_C(C_m, N_n, 1, 1)
-	= N_i(N_j(N_n+1) + N_n) + (N_t + 3) N_n + N_q(N_n - n_m),
-\]
+with $q_q$ running from $C_q$ to $C_s - 1$, where $C_q = C_{s_0}$ (the cumulative index after Medicare)
+and
 \[
 	C_s = q_C(C_q, N_p, N_n, 1)
 	= N_i(N_j(N_n+1) + N_n) + (N_t + 3 + N_p) N_n + N_q(N_n - n_m).
@@ -2688,16 +2687,17 @@ where
 with $q_x$ running from $C_x$ to $C_* - 1$, where
 \begin{equation}
 	\label{Eq:Cstar}
-C_* = q_C(C_x, N_i, N_n, 1) = N_i(N_j(2N_n + 1) + (N_t + N_i + 3 + N_p) N_n).
+C_* = q_C(C_x, N_i, N_n, 1) = N_i\bigl(N_j(2N_n + 1) + (N_t + 5 + N_p) N_n\bigr) + N_q(N_n - n_m).
 \end{equation}
 
-With $N_i = 2, N_j = 3, N_k = 4, N_t = 7, N_p = 3$ we have $(27 + N_p) N_n + 6 = 30 N_n + 6$ variables.
-The $N_p N_n = 3N_n$ additional variables are the LTCG bracket allocations $q_{pn}$.
-When IRMAA is optimized, $h_{qn}$ adds $N_q(N_n - n_m)$ more variables.
+With $N_i = 2$, $N_j = 4$, $N_k = 4$, $N_t = 7$, $N_p = 3$, Eq.~(\ref{Eq:Cstar}) yields
+$C_* = 46 N_n + 8 + N_q(N_n - n_m)$ entries in $y$ (for couples, $(N_t + 5 + N_p) = (N_t + N_i + 3 + N_p)$).
+If $n_m = N_n$, then $N_n - n_m = 0$ and the IRMAA SOS block for $h_{qn}$ is empty, so $C_* = 46 N_n + 8$.
+The $N_p N_n$ LTCG bracket allocations $q_{pn}$ are already included in this count.
 If the time resolution is increased to months, the number of variables scales accordingly.
 Adding binary variables $z_{nz}^x$ with $z \in \{0, 1, 2, 3\}$ can add $4N_n$ more decision variables,
 while adding $z^m_{qn}$ adds $N_q(N_n - n_m)$ more, resulting in
-$(30 N_n + 6) + N_q(N_n - n_m) + 4N_n + N_q(N_n - n_m)$ variables.
+$C_* + 4N_n + N_q(N_n - n_m)$ variables when both optional binary families are enabled.
 
 \section{Reverse mapping of indices}
 The inverse functions for the index-mapping functions will be derived for the
@@ -3699,6 +3699,439 @@ result histogram while still using only observed historical returns.
 Reverse and roll (see \S\,\ref{sec:historical-data}) alter the ordering of
 the same returns; augmented mode systematically explores all such orderings.
 
+\chapter{Stochastic Spending Optimization and Longevity Risk}
+\label{chap:stochastic-spending}
+
+A natural measure of plan robustness is the \textit{Probability of Success} (PoS), defined as
+the fraction of scenarios in which the chosen spending level is fully sustained throughout the
+plan horizon.
+While intuitive, PoS is a binary criterion: a plan that falls short by one percent and a plan
+that collapses completely are counted identically.
+Two plans with the same PoS may therefore carry very different risk profiles.
+
+To address this limitation, Owl adopts a framework that treats the retirement spending decision
+as a commitment made \emph{before} the sequence of returns is known.
+The retiree commits to a single real spending level $g^*$, and for each scenario
+$s$ the shortfall---the amount by which $g^*$ exceeds what the scenario can
+sustain---is measured explicitly.
+Tracing the trade-off between committed spending and expected shortfall as a two-dimensional
+Pareto frontier, controlled by a risk-aversion parameter, yields a richer picture of plan
+risk that is analogous to the mean-variance efficient frontier of Markowitz
+portfolio theory~\cite{markowitz1952}.
+The conservative extreme of the frontier recovers the classical safe withdrawal rate
+of Bengen~\cite{bengen1994}: the spending level that succeeds in every scenario.
+
+\section{Scenario bases and the spending commitment}
+
+Let $s = 0, 1, \ldots, S-1$ denote the scenario index (0-based, following the
+C-array convention used throughout this document), where $S$ is the total number
+of scenarios considered.
+For each scenario $s$, Owl solves one full optimization problem
+(the MILP described in the preceding chapters) with the return sequence $\{\tau_{kn}^{(s)}\}$
+of that scenario.
+The result is the \textit{scenario basis}
+\begin{equation}
+    \label{Eq:ScenarioBasis}
+    g_s \;=\; \max\bigl\{g : \text{the plan is feasible and self-consistent at spending level } g
+                         \text{ under scenario } s\bigr\}.
+\end{equation}
+Because $g_s$ is computed by the MILP, it incorporates all tax rules, RMDs,
+Social Security, Medicare, and Roth conversion constraints exactly.
+
+The retiree must commit to a single first-year real spending level $g^*$
+\textit{before} observing which scenario will unfold.
+In scenario $s$ the \textit{shortfall} is
+\begin{equation}
+    \label{Eq:Shortfall}
+    \varsigma_s \;=\; \max(0,\; g^* - g_s).
+\end{equation}
+Scenario $s$ is a \textit{success} when $\varsigma_s = 0$.
+The \textit{Probability of Success} is the fraction of scenarios without shortfall:
+\begin{equation}
+    \label{Eq:PoS}
+    \varrho \;=\; \frac{1}{S}\,\#\bigl\{s : \varsigma_s = 0\bigr\},
+\end{equation}
+and the \textit{mean shortfall} is
+\begin{equation}
+    \label{Eq:MeanShortfall}
+    \bar\varsigma \;=\; \frac{1}{S}\sum_{s=0}^{S-1} \varsigma_s.
+\end{equation}
+
+\section{The commitment LP and efficient frontier}
+
+Given the scenario bases $\{g_s\}$ and a non-negative risk-aversion parameter
+$\Lambda \geq 0$, the optimal committed spending is determined by the
+\textit{commitment LP}:
+\begin{equation}
+    \label{Eq:CommitmentLP}
+    \begin{aligned}
+        \text{maximize}   &\quad g^* - \frac{\Lambda}{S}\sum_{s=0}^{S-1} \varsigma_s \\
+        \text{subject to} &\quad \varsigma_s \geq g^* - g_s, \qquad s=0,\ldots,S-1, \\
+                          &\quad \varsigma_s \geq 0, \qquad\qquad\quad s=0,\ldots,S-1, \\
+                          &\quad 0 \leq g^* \leq \max_{s}\, g_s.
+    \end{aligned}
+\end{equation}
+The decision variables are $g^*$ and the $S$ shortfall variables $\{\varsigma_s\}$.
+The parameter $\Lambda$ controls the spending--shortfall trade-off:
+\begin{itemize}[nosep]
+    \item $\Lambda = 0$: maximize $g^*$ without any shortfall penalty.
+          This is the most aggressive point on the frontier; it corresponds to
+          committing to the best-case scenario basis, $g^* = \max_s g_s$.
+    \item $\Lambda \to \infty$: the shortfall penalty dominates, forcing
+          $\varsigma_s = 0$ for all $s$.
+          This is the most conservative point; it recovers the safe withdrawal
+          rate $g^* = \min_s g_s$.
+\end{itemize}
+The \textit{efficient frontier} is the curve traced in the $(g^*, \bar\varsigma)$
+plane as $\Lambda$ is swept over a logarithmic grid of 61 values from 0 to
+$10^3$.
+Every frontier point is Pareto-optimal: no other committed spending level achieves
+simultaneously higher $g^*$ and lower $\bar\varsigma$.
+Table~\ref{Tab:Markowitz} draws the analogy between this framework and
+mean-variance portfolio theory.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lll}
+\hline
+\textbf{Concept} & \textbf{Portfolio theory} & \textbf{Spending framework} \\
+\hline
+Decision variable   & Portfolio weights           & Committed spending $g^*$     \\
+Objective           & Expected return             & Committed spending $g^*$     \\
+Risk measure        & Variance $\sigma^2$         & Mean shortfall $\bar\varsigma$  \\
+Risk-aversion param & $\Lambda$                   & $\Lambda$                    \\
+Conservative extreme & Min-variance portfolio     & Safe withdrawal rate         \\
+Aggressive extreme  & Max-return portfolio        & Best-case scenario           \\
+\hline
+\end{tabular}
+\caption{Analogy between Markowitz mean-variance portfolio theory and the
+         spending/shortfall efficient frontier.}
+\label{Tab:Markowitz}
+\end{table}
+
+\paragraph*{Connection to Conditional Value-at-Risk.}
+The mean shortfall $\bar\varsigma$ is related to the
+Conditional Value-at-Risk (CVaR)~\cite{artzner1999,rockafellar2000} at
+confidence level $\varrho$ by
+\begin{equation}
+    \label{Eq:CVaR}
+    \mathrm{CVaR}_\varrho \;=\; \frac{\bar\varsigma}{1 - \varrho}.
+\end{equation}
+CVaR is a coherent risk measure that quantifies the expected shortfall
+conditional on being in the failure region.
+Because the commitment LP~(\ref{Eq:CommitmentLP}) directly minimizes mean shortfall,
+it is equivalent to minimizing CVaR at the corresponding success rate.
+
+\section{Longevity risk}
+
+All scenario analyses described so far use a fixed planning horizon $N_n$
+equal to the assumed life expectancy.
+In practice, however, the time of death is uncertain, and the risk of
+outliving one's assets---\textit{longevity risk}---is a central concern in
+retirement planning.
+Owl models longevity risk by randomizing the planning horizon within each
+Monte Carlo scenario.
+
+For each Monte Carlo scenario $s$ and each individual $i \in \{0,\ldots,N_i-1\}$,
+an age-at-death $T_i^{(s)}$ is drawn independently from the SSA period life
+table conditioned on having survived to the individual's current age:
+\begin{equation}
+    \label{Eq:LongevityDraw}
+    T_i^{(s)} \;\sim\; F_i\!\bigl(\,\cdot \mid \text{current age}_i,\, \text{sex}_i\bigr),
+    \qquad i = 0, \ldots, N_i - 1,
+\end{equation}
+where $F_i$ is the discrete conditional survival distribution.
+For a couple, the plan must remain funded until the last survivor, so the
+effective plan horizon for scenario $s$ is
+\begin{equation}
+    \label{Eq:LastSurvivor}
+    T^{(s)} \;=\; \max_i\, T_i^{(s)}.
+\end{equation}
+Each scenario is solved with a fresh plan clone whose life expectancy is set
+to the drawn last-survivor horizon $T^{(s)}$, so the MILP
+horizon matches the sampled mortality outcome exactly.
+Scenarios with $T^{(s)} \leq 1$ year are pre-assigned $g_s = 0$ to
+handle the degenerate case of an imminent end of horizon.
+
+\section{Scenario generation}
+
+The scenario bases $\{g_s\}$ are generated by one of two methods.
+The rate models underlying each method are described in Chapter~9.
+
+\begin{description}[leftmargin=4em,style=multiline]
+\item[Historical]
+    Each calendar starting year
+    $\mathcal{Y}_{\mathrm{frm}}, \ldots, \mathcal{Y}_{\mathrm{to}} - N_n + 1$
+    yields one fixed real-return sequence and therefore one scenario.
+    $S$ equals the number of valid starting years.
+    Augmented mode expands this set by applying all $(reverse, roll)$
+    combinations, yielding up to $2 N_n$ sequences per starting year.
+\item[Monte Carlo]
+    $S$ independent return paths are drawn from the calibrated multivariate
+    lognormal model (see Chapter~9).
+    The resulting bases span the full tail of the return distribution,
+    including sequences more extreme than any observed historically.
+    Longevity risk sampling is available in this mode only (see below).
+\end{description}
+
+\section{Implementation in Owl}
+
+The stress-test computation is implemented in \code{stresstests.py} and
+exposed through the \code{run_stochastic_spending} method of the \code{Plan}
+class.
+Each of the $S$ scenarios is solved independently and in parallel using a
+\code{ThreadPoolExecutor} with up to \code{cpu\_count} workers; each worker
+receives an independent clone of the base plan and calls \code{plan.solve}
+with the \code{"maxSpending"} objective.
+Scenarios for which Owl finds no feasible solution are assigned $g_s = 0$,
+contributing a full shortfall $\varsigma_s = g^*$ to the commitment LP---the
+most conservative treatment consistent with the framework.
+Once all $S$ bases are collected, the commitment LP~(\ref{Eq:CommitmentLP})
+is solved for each of the 61 values of $\Lambda$; because the LP has only
+$S + 1$ variables, this final sweep is fast relative to the MILP scenario
+solves.
+
+The Streamlit interface (\code{ui/Spending\_Optimization.py}) caches the
+scenario data; adjusting the target success rate $\varrho$ via the slider
+merely looks up the corresponding frontier point without re-solving any
+MILP\@.
+An integer seed may be supplied for reproducible Monte Carlo paths and
+longevity draws.
+The \code{run_stochastic_spending} call returns a dictionary with keys
+\code{bases}, \code{frontier\_g}, \code{frontier\_prob},
+\code{frontier\_shortfall}, \code{lambdas}, and \code{drawn\_lifespans}.
+
+\subsection*{Limitations and assumptions}
+
+\begin{itemize}[nosep]
+    \item Longevity risk sampling is supported only with Monte Carlo scenarios.
+          Historical scenarios have a bounded return series; a drawn lifespan
+          could exceed the length of available data, making the combination
+          infeasible.
+    \item Scenario bases are computed independently: the return sequences of
+          different scenarios are assumed to be statistically independent.
+          This is exact for Monte Carlo but approximate for historical
+          scenarios, which share overlapping return sub-sequences when the
+          plan horizon exceeds one year.
+    \item The historical scenario set is limited by the length of the
+          available dataset.
+          For a 30-year plan, only starting years up to
+          $\mathcal{Y}_{\max} - N_n + 1$ are valid, reducing $S$
+          as the horizon grows.
+    \item The commitment LP assumes that the scenario bases $\{g_s\}$ are
+          fixed parameters independent of $g^*$.
+          This is valid because Owl's MILP maximizes spending given the
+          return sequence, so $g_s$ does not depend on the committed level.
+    \item Longevity draws use SSA period life tables conditioned on current
+          age.  Cohort tables, which account for expected future mortality
+          improvements, are not currently used.
+\end{itemize}
+
+\chapter{Optimization of Social Security Claiming Ages}
+\label{chap:ss-ages}
+
+The age at which an individual claims Social Security retirement benefits is one of
+the most consequential financial decisions in retirement planning.
+Claiming early---as young as age~62---provides income sooner but at a permanently
+reduced rate; deferring to age~70 maximizes the monthly benefit through delayed
+retirement credits but foregoes years of payments.
+The optimal age depends on individual longevity expectations, household income,
+tax situation, and the presence of a spouse whose spousal and survivor benefits
+are linked to both partners' claiming decisions.
+
+In Owl's base operating mode, the user supplies a fixed claiming age for each
+individual and the Social Security benefit stream $\bar{\zeta}_{in}$ is computed
+as a deterministic parameter.
+When the option \code{withSSAges="optimize"} is set, the claiming age itself
+becomes a decision of the MILP: binary variables select one month from the
+62-to-70 grid for each individual, a precomputed benefit table translates that
+selection into an annual income stream, and spousal and survivor adjustments
+are handled through the self-consistent (SC) iteration described in
+Chapter~3.
+
+\section{The claiming-age grid and benefit table}
+
+Social Security claiming ages are discretized to a monthly grid.
+Let $K = 97$ be the number of grid points, indexed $m = 0, 1, \ldots, K-1$,
+with conventional claiming age
+\begin{equation}
+    \label{Eq:SSAages}
+    \alpha_m \;=\; 62 + \frac{m}{12}, \qquad m = 0, 1, \ldots, 96,
+\end{equation}
+spanning 62.0 to 70.0 years in monthly increments.
+Not every grid point is necessarily eligible: individuals born after the
+first two days of a month may not begin benefits until $\alpha_1 = 62\tfrac{1}{12}$
+due to an SSA birth-date rule.
+
+For each individual $i$, each claiming-age index $m$, and each plan year $n$, Owl
+precomputes the own-benefit amount
+\begin{equation}
+    \label{Eq:BenefitTable}
+    \mathcal{B}_{imn} \;=\; 12 \cdot \mathrm{PIA}_i \cdot \Phi(\alpha_m, \mathrm{FRA}_i)
+                             \cdot \gamma_n \cdot \varphi_{imn},
+\end{equation}
+where $\mathrm{PIA}_i$ is the monthly Primary Insurance Amount, $\Phi$ is the
+claiming-age adjustment factor (Section~\ref{sec:ss-factors}),
+$\gamma_n$ is the cumulative inflation factor in year $n$, and
+$\varphi_{imn} \in [0, 1]$ is a partial-year fraction applied in the first payment year
+to account for the fractional month between the claim date and the first check.
+The table $\mathcal{B}_{imn}$ is zero for all years $n$ before benefits commence
+and for years after individual $i$'s plan horizon.
+It does not include spousal or survivor components, which are handled separately
+(Section~\ref{sec:ss-spousal}).
+
+\section{Claiming-age adjustment factors}
+\label{sec:ss-factors}
+
+The benefit multiplier $\Phi(\alpha, \mathrm{FRA})$ encodes the SSA rules for
+early reduction and delayed credits:
+\begin{equation}
+    \label{Eq:SelfFactor}
+    \Phi(\alpha, \mathrm{FRA}) =
+    \begin{cases}
+        1 + 0.08\,(\alpha - \mathrm{FRA}), & \alpha \geq \mathrm{FRA}, \\[4pt]
+        1 - \tfrac{1}{15}\,(\mathrm{FRA} - \alpha),
+            & \mathrm{FRA} - 3 < \alpha < \mathrm{FRA}, \\[6pt]
+        0.80 - \tfrac{1}{20}\,(\mathrm{FRA} - 3 - \alpha),
+            & \alpha \leq \mathrm{FRA} - 3.
+    \end{cases}
+\end{equation}
+Delayed credits of 8\% per year apply above FRA, capping at
+$f = 1.32$ at age~70 when FRA is~67.
+For early claiming the reduction is $\tfrac{1}{15}$ per year (i.e., $5/9$ of~1\% per month)
+for the first 3~years before FRA, and $\tfrac{1}{20}$ per year (i.e., $5/12$ of~1\% per month)
+for any additional years, yielding a minimum of approximately 70\% of PIA at age~62.
+The Full Retirement Age $\mathrm{FRA}_i$ is determined from the individual's
+birth year as described in Chapter~2.
+
+A separate factor applies to the spousal benefit, which receives no delayed
+credit beyond the spousal FRA~(Section~\ref{sec:ss-spousal}).
+
+\section{Binary claiming variables and LP constraints}
+
+The claiming-age decision for individual $i$ is represented by $K$ binary
+variables
+\begin{equation}
+    \label{Eq:zssa}
+    z^\mathrm{ss}_{im} \;\in\; \{0, 1\},
+    \qquad i = 0,\ldots,N_i-1,\quad m = 0,\ldots,K-1,
+\end{equation}
+where $z^\mathrm{ss}_{im} = 1$ means individual $i$ claims at age $\alpha_m$.
+The \textit{at-most-one} (AMO) constraint enforces that exactly one claiming
+age is selected per individual:
+\begin{equation}
+    \label{Eq:SSA-AMO}
+    \sum_{m=0}^{K-1} z^\mathrm{ss}_{im} \;=\; 1,
+    \qquad i = 0,\ldots,N_i-1.
+\end{equation}
+
+The own Social Security benefit in year $n$ for individual $i$ is modeled as
+a continuous LP variable $b^\mathrm{ss}_{in}$, linked to the binary selection
+through the precomputed table:
+\begin{equation}
+    \label{Eq:SSA-Benefit}
+    b^\mathrm{ss}_{in} \;=\; \sum_{m=0}^{K-1} \mathcal{B}_{imn}\, z^\mathrm{ss}_{im},
+    \qquad i = 0,\ldots,N_i-1,\quad n = 0,\ldots,N_n-1.
+\end{equation}
+Constraint~(\ref{Eq:SSA-Benefit}) is an equality row added to the constraint
+matrix for each $(i, n)$ pair, making $b^\mathrm{ss}_{in}$ a linear function
+of the binary claiming indicators.
+
+Ineligible claiming ages (below the birth-date-adjusted minimum) are excluded
+by fixing the corresponding binary to zero in the variable bounds.
+For individuals who have already claimed before the optimization begins,
+the binary for the known claiming age is fixed to one and all others to zero,
+reducing the problem for that individual to a set of parameters with no
+additional free variables.
+
+The total Social Security income entering the cash-flow constraint in year $n$
+is
+\begin{equation}
+    \label{Eq:SSA-CashFlow}
+    \bar{\zeta}_{in} \;=\; b^\mathrm{ss}_{in} \;+\; \delta^\mathrm{sp}_{in},
+\end{equation}
+where $b^\mathrm{ss}_{in}$ is the LP variable for own benefits and
+$\delta^\mathrm{sp}_{in}$ is a \textit{spousal/survivor offset} parameter
+updated at each SC iteration (Section~\ref{sec:ss-scloop}).
+
+\section{Spousal and survivor benefits in the SC loop}
+\label{sec:ss-spousal}
+
+Spousal and survivor benefits depend on both partners' claiming ages in a
+non-linear fashion that is difficult to embed directly in an LP.
+Owl handles this through the self-consistent loop: the LP optimizes own
+benefits via $z^\mathrm{ss}_{im}$, while spousal and survivor adjustments
+are carried as the fixed parameter $\delta^\mathrm{sp}_{in}$ computed from
+the previous iteration's solution.
+
+At the end of each SC iteration, the optimal claiming ages are extracted as
+\begin{equation}
+    \label{Eq:SSA-ArgMax}
+    m^*_i \;=\; \arg\max_{m}\, z^\mathrm{ss}_{im},
+    \qquad i = 0,\ldots,N_i-1,
+\end{equation}
+and the full benefit stream including spousal and survivor components is
+recomputed from those ages:
+\begin{equation}
+    \label{Eq:SSA-FullBenefit}
+    \bar{\zeta}_{in}^{\mathrm{new}} \;=\;
+    \texttt{compute\_social\_security\_benefits}\!\bigl(\{m^*_i\}\bigr).
+\end{equation}
+The spousal/survivor offset is then updated as
+\begin{equation}
+    \label{Eq:SSA-Offset}
+    \delta^\mathrm{sp}_{in} \;\leftarrow\;
+    \bar{\zeta}_{in}^{\mathrm{new}} \;-\; \mathcal{B}_{i,\,m^*_i,\,n},
+\end{equation}
+so that the difference between the total benefit and the own benefit
+at the chosen age is passed to the next LP iteration as a fixed income term.
+The variable $\bar{\zeta}_{in}$ in the plan is simultaneously updated to
+$\bar{\zeta}_{in}^{\mathrm{new}}$ for use in taxability and MAGI computations.
+
+\paragraph*{Convergence and oscillation.}
+\label{sec:ss-scloop}
+The SC loop converges when the relative change in the objective falls below a
+tolerance.
+For single individuals the loop is typically monotonic; for couples the
+interdependence of spousal and survivor benefits can cause the solution to
+oscillate between two claiming-age combinations.
+An oscillation detector monitors the objective history: when a repeating cycle
+of length $c \geq 2$ is identified, the iteration with the best objective value
+within the cycle is selected as the final solution.
+
+\section{Implementation in Owl}
+
+The benefit table $\mathcal{B}_{imn}$ is assembled once per solve by
+\code{build\_own\_benefit\_table} in \code{socialsecurity.py} and stored as a
+pre-computed array of shape $(N_i, K, N_n)$.
+The binary variables $z^\mathrm{ss}_{im}$ are declared before the binary-block
+boundary in the variable map so that the AMO and benefit-definition constraints
+are included alongside the other bracket-selection binaries.
+Each SC iteration calls \code{compute\_social\_security\_benefits} to refresh
+the spousal/survivor offset.
+Partial optimization is supported: passing \code{withSSAges} a list containing
+a subset of individual names causes only those individuals' claiming ages to be
+optimized; others retain their user-specified values and contribute fixed benefit
+streams as in the base mode.
+
+\subsection*{Limitations and assumptions}
+
+\begin{itemize}[nosep]
+    \item Spousal and survivor benefits are not embedded directly in the LP.
+          They are approximated through the SC loop, which may require several
+          iterations for couple cases and can oscillate when the two partners'
+          optimal ages are mutually dependent.
+    \item The survivor benefit is assumed to be claimed in the year of the
+          spouse's death; the strategy of deferring the survivor benefit to a
+          later age is not optimized.
+    \item The SSA family maximum benefit cap is not modeled; benefits may be
+          overstated when multiple beneficiaries claim on one worker's record.
+    \item The SSA earnings test is not modeled; all individuals are assumed to
+          be fully retired before their FRA.
+    \item The claiming age grid is monthly (97 points).  Finer sub-monthly
+          grids are not supported.
+\end{itemize}
+
 \appendix
 
 \chapter{Source File Reference}
@@ -3932,6 +4365,26 @@ vol.~20, no.~3, pp.~339--350, 2002.
 T.~Bollerslev,
 ``Generalized autoregressive conditional heteroskedasticity,''
 \textit{Journal of Econometrics}, vol.~31, no.~3, pp.~307--327, 1986.
+
+\bibitem{markowitz1952}
+H.~M. Markowitz,
+``Portfolio selection,''
+\textit{The Journal of Finance}, vol.~7, no.~1, pp.~77--91, 1952.
+
+\bibitem{bengen1994}
+W.~P. Bengen,
+``Determining withdrawal rates using historical data,''
+\textit{Journal of Financial Planning}, vol.~7, no.~4, pp.~171--180, 1994.
+
+\bibitem{artzner1999}
+P.~Artzner, F.~Delbaen, J.-M. Eber, and D.~Heath,
+``Coherent measures of risk,''
+\textit{Mathematical Finance}, vol.~9, no.~3, pp.~203--228, 1999.
+
+\bibitem{rockafellar2000}
+R.~T. Rockafellar and S.~Uryasev,
+``Optimization of conditional value-at-risk,''
+\textit{Journal of Risk}, vol.~2, no.~3, pp.~21--41, 2000.
 
 \end{thebibliography}
 

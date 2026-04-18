@@ -27,6 +27,8 @@
 - **Removed aliases**: `stochastic` and `histochastic` rate-method aliases removed; use `gaussian`
   and `histogaussian` (canonical names since v2026.03.05). `default` alias for `trailing-30` retained.
 - **UI — Rates**: Random seed control and reproducibility toggle exposed directly in the UI.
+- Fix short horizons and added edge tests
+- Update documentation
 
 ---
 

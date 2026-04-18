@@ -215,7 +215,7 @@ class Plan:
         thisyear = date.today().year
         self.horizons = self.yobs + self.expectancy - thisyear + 1
         self.N_n = np.max(self.horizons)
-        if self.N_n <= 2:
+        if self.N_n <= 1:
             raise ValueError(f"Plan needs more than {self.N_n} years.")
 
         self.year_n = np.linspace(thisyear, thisyear + self.N_n - 1, self.N_n, dtype=np.int32)
@@ -1813,12 +1813,12 @@ class Plan:
                     for n in range(transx, self.horizons[i_x]):
                         self.B.setRange(self.vm["x"].idx(i_x, n), 0, 0)
 
-            # Disallow Roth conversions in last two years alive. Plan has at least 2 years.
+            # Disallow Roth conversions in last two years alive.
             for i in range(self.N_i):
                 if i == i_xcluded:
                     continue
-                self.B.setRange(self.vm["x"].idx(i, self.horizons[i] - 2), 0, 0)
-                self.B.setRange(self.vm["x"].idx(i, self.horizons[i] - 1), 0, 0)
+                for n in range(max(0, self.horizons[i] - 2), self.horizons[i]):
+                    self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
 
     def _add_safety_net(self, options):
         """

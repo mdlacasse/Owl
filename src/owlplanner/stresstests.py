@@ -446,7 +446,7 @@ def run_stochastic_spending(plan, options, scenario_method, *,
                 horizon = max(drawn_list[i][j] - current_ages[j] + 1 for j in range(plan.N_i))
             else:
                 horizon = plan.N_n
-            if horizon <= 2:
+            if horizon <= 1:
                 results_map[i] = 0.0
                 n_short_horizon += 1
             else:
@@ -505,7 +505,7 @@ def run_stochastic_spending(plan, options, scenario_method, *,
         args_list = []
         for n, tau_kn in enumerate(rate_data):
             horizon = horizons[n] if with_longevity else plan.N_n
-            if horizon <= 2:
+            if horizon <= 1:
                 results_map[n] = 0.0
                 n_short_horizon += 1
             else:
@@ -557,8 +557,8 @@ def run_stochastic_spending(plan, options, scenario_method, *,
     plan.mylog.resetVerbose()
 
     if n_short_horizon:
-        plan.mylog.print(f"Note: {n_short_horizon} of {total} scenarios had a horizon <=2 years"
-                         " (both individuals die imminently) and are counted as zero spending.")
+        plan.mylog.print(f"Note: {n_short_horizon} of {total} scenarios had a horizon <=1 year"
+                         " (individual(s) die imminently) and are counted as zero spending.")
     n_solved = total - n_infeasible - n_short_horizon
     if n_infeasible:
         plan.mylog.print(f"Warning: {n_infeasible} of {total} scenarios were infeasible"
