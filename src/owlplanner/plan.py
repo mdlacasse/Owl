@@ -246,7 +246,7 @@ class Plan:
         self.ACA_n = np.zeros(self.N_n)    # Net ACA cost (after subsidy) per year (plan $)
         self._aca_lp = False               # True when withACA="optimize" is active
         self.maca_n = np.zeros(self.N_n)   # ACA LP cost variable extraction result
-        self.N_aca = 0                     # Number of ACA-eligible plan years (LP mode)
+        self.n_aca = 0                     # Number of ACA-eligible plan years (LP mode)
         self.smileDip = 15  # Percent to reduce smile profile
         self.smileIncrease = 12  # Percent to increse profile over time span
 
@@ -1500,10 +1500,10 @@ class Plan:
             )
 
             if self.slcsp_annual > 0:
-                self.N_aca, self.Lbar_aca_nr, self.cap_pct_aca_r, self.slcsp_aca_n = \
+                self.n_aca, self.Lbar_aca_nr, self.cap_pct_aca_r, self.slcsp_aca_n = \
                     tx.acaVals(self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n)
             else:
-                self.N_aca = 0
+                self.n_aca = 0
 
             self._adjustedParameters = True
 
@@ -1542,7 +1542,7 @@ class Plan:
         else:
             self._ssa_optimize_set = set()
         ssa_lp = bool(self._ssa_optimize_set)
-        self._aca_lp = aca_lp and self.slcsp_annual > 0 and self.N_aca > 0
+        self._aca_lp = aca_lp and self.slcsp_annual > 0 and self.n_aca > 0
         self._ltcg_lp = ltcg_lp
         self._niit_lp = niit_lp
         self._bigMltcg = options.get("bigMltcg", None)   # None → use T20_n per year
@@ -1580,7 +1580,7 @@ class Plan:
         vm.add("f", self.N_t, self.N_n)
         vm.add("g", self.N_n)
         vm.add_if(medi, "h", Nmed, self.N_irmaa)    # IRMAA bracket portions (Medicare optimize)
-        vm.add_if(self._aca_lp, "haca", self.N_aca, tx.N_ACA_R)  # ACA MAGI bracket portions (optimize)
+        vm.add_if(self._aca_lp, "haca", self.n_aca, tx.N_ACA_R)  # ACA MAGI bracket portions (optimize)
         vm.add_if(self._aca_lp, "maca", self.N_n)  # ACA LP cost variable (optimize mode only)
         vm.add("m", self.N_n)
         vm.add("q", self.N_p, self.N_n)             # q_{pn}: LTCG bracket allocations (p=0,1,2)
@@ -1600,7 +1600,7 @@ class Plan:
         vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)   # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)         # z^σ family (2 per year) for SS min() ops
-        vm.add_if(self._aca_lp, "za", self.N_aca, tx.N_ACA_R)   # ACA bracket selection binaries
+        vm.add_if(self._aca_lp, "za", self.n_aca, tx.N_ACA_R)   # ACA bracket selection binaries
         vm.add_if(ltcg_lp, "zl", 2, self.N_n)       # 2×N_n regime binaries (LTCG MILP)
         vm.add_if(niit_lp, "zj", self.N_n)          # N_n NIIT threshold binaries
         vm.add_if(ssa_lp, "zssa", self.N_i, self._ssa_N_K)  # claiming-month selectors (SS age)
@@ -2738,14 +2738,14 @@ class Plan:
         tau_0 = self.tau_kn[0, :]
 
         # a) SOS1: exactly one bracket selected per year.
-        for nn in range(self.N_aca):
+        for nn in range(self.n_aca):
             row = self.A.newRow()
             for r in range(tx.N_ACA_R):
                 row.addElem(self.vm["za"].idx(nn, r), 1)
             self.A.addRow(row, 1, 1)
 
         # b) MAGI decomposition: sum_r haca[nn, r] = current-year MAGI.
-        for nn in range(self.N_aca):
+        for nn in range(self.n_aca):
             n = nn  # ACA uses current year (no lag)
             tau_prev = tau_0[max(0, n - 1)]
 
@@ -2787,7 +2787,7 @@ class Plan:
             self.A.addNewRow(row_magi, rhs_magi, rhs_magi)
 
         # c) Bracket bounds: Lbar[nn, r-1]*za[r] <= haca[r] <= Lbar[nn, r]*za[r].
-        for nn in range(self.N_aca):
+        for nn in range(self.n_aca):
             for r in range(tx.N_ACA_R):
                 haca_idx = self.vm["haca"].idx(nn, r)
                 za_idx = self.vm["za"].idx(nn, r)
@@ -2816,12 +2816,12 @@ class Plan:
             return  # Loop mode: no maca variable; ACA_n from SC loop is in the cash-flow RHS.
 
         # Pin post-ACA years to zero (individual is on Medicare; no ACA cost).
-        for n in range(self.N_aca, self.N_n):
+        for n in range(self.n_aca, self.N_n):
             self.B.setRange(self.vm["maca"].idx(n), 0, 0)
 
         # Cost constraint: maca_n = sum_{r=0}^{5} cap_pct_r * haca[nn,r] + slcsp*za[nn,6].
         # Bracket 6 (>400% FPL): 2026 rules impose full SLCSP (no PTC), not proportional to MAGI.
-        for nn in range(self.N_aca):
+        for nn in range(self.n_aca):
             row = self.A.newRow({self.vm["maca"].idx(nn): 1})
             for r in range(tx.N_ACA_R - 1):  # r=0..5 only; bracket 6 uses fixed SLCSP
                 row.addElem(self.vm["haca"].idx(nn, r), -self.cap_pct_aca_r[r])

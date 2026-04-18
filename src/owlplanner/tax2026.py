@@ -523,7 +523,7 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
 
 def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
     """
-    Return (N_aca, Lbar_aca_nr, cap_pct_aca_r, slcsp_aca_n) for the ACA LP/MIP formulation.
+    Return (n_aca, Lbar_aca_nr, cap_pct_aca_r, slcsp_aca_n) for the ACA LP/MIP formulation.
 
     Uses 2026+ ACA rules (N_ACA_R = 7 brackets). Bracket thresholds are FPL-based and
     inflation-adjusted via gamma_n. Household size (1 or 2) determines which FPL base to use.
@@ -549,13 +549,13 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
 
     Returns
     -------
-    N_aca : int
+    n_aca : int
         Number of ACA-eligible plan years (0 = no ACA in LP).
-    Lbar_aca_nr : ndarray, shape (N_aca, N_ACA_R-1)
+    Lbar_aca_nr : ndarray, shape (n_aca, N_ACA_R-1)
         Inflation-adjusted FPL bracket thresholds per year ($).
     cap_pct_aca_r : ndarray, shape (N_ACA_R,)
         Contribution rates per bracket (constant across years).
-    slcsp_aca_n : ndarray, shape (N_aca,)
+    slcsp_aca_n : ndarray, shape (n_aca,)
         Inflation-adjusted SLCSP premium cap per year ($).
     """
     empty = (0, np.zeros((0, N_ACA_R - 1)), _ACA_LP_CONTRIB.copy(), np.zeros(0))
@@ -566,17 +566,17 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
     Ni = len(yobs)
     fpl_max_year = max(_ACA_FPL.keys())
 
-    # N_aca = first year when no individual is ACA-eligible (age < 65 and within horizon).
+    # n_aca = first year when no individual is ACA-eligible (age < 65 and within horizon).
     n_aca_i = [min(max(0, yobs[i] + 65 - thisyear), horizons[i]) for i in range(Ni)]
-    N_aca = min(max(n_aca_i), Nn)
+    n_aca = min(max(n_aca_i), Nn)
 
-    if N_aca == 0:
+    if n_aca == 0:
         return empty
 
-    Lbar = np.zeros((N_aca, N_ACA_R - 1))
-    slcsp_aca_n = np.zeros(N_aca)
+    Lbar = np.zeros((n_aca, N_ACA_R - 1))
+    slcsp_aca_n = np.zeros(n_aca)
 
-    for nn in range(N_aca):
+    for nn in range(n_aca):
         n = nn  # ACA uses current year (no 2-year lag like Medicare)
         eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
         hh_size = min(len(eligible), 2)
@@ -590,7 +590,7 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
         Lbar[nn] = _ACA_LP_BREAKPOINTS * fpl
         slcsp_aca_n[nn] = slcsp_annual * gamma_n[n]
 
-    return N_aca, Lbar, _ACA_LP_CONTRIB.copy(), slcsp_aca_n
+    return n_aca, Lbar, _ACA_LP_CONTRIB.copy(), slcsp_aca_n
 
 
 def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
