@@ -438,10 +438,20 @@ def run_stochastic_spending(plan, options, scenario_method, *,
                 drawn_list.append(drawn)
         else:
             drawn_list = [None] * total
-        args_list = [
-            (clone(plan, expectancy=drawn_list[i], verbose=False), (year, reverse, roll), None, options)
-            for i, year in enumerate(years)
-        ]
+        results_map = {}
+        n_short_horizon = 0
+        args_list = []
+        for i, year in enumerate(years):
+            if with_longevity:
+                horizon = max(drawn_list[i][j] - current_ages[j] + 1 for j in range(plan.N_i))
+            else:
+                horizon = plan.N_n
+            if horizon <= 2:
+                results_map[i] = 0.0
+                n_short_horizon += 1
+            else:
+                args_list.append((i, (clone(plan, expectancy=drawn_list[i], verbose=False),
+                                      (year, reverse, roll), None, options)))
 
     elif scenario_method == "mc":
         if N is None:
@@ -490,10 +500,17 @@ def run_stochastic_spending(plan, options, scenario_method, *,
                 )
             rate_data.append(tau_kn)
         total = N
-        args_list = [
-            (clone(plan, expectancy=drawn_list[n], verbose=False), tau_kn, None, options)
-            for n, tau_kn in enumerate(rate_data)
-        ]
+        results_map = {}
+        n_short_horizon = 0
+        args_list = []
+        for n, tau_kn in enumerate(rate_data):
+            horizon = horizons[n] if with_longevity else plan.N_n
+            if horizon <= 2:
+                results_map[n] = 0.0
+                n_short_horizon += 1
+            else:
+                args_list.append((n, (clone(plan, expectancy=drawn_list[n], verbose=False),
+                                      tau_kn, None, options)))
 
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
@@ -502,18 +519,20 @@ def run_stochastic_spending(plan, options, scenario_method, *,
     # Solve all scenarios in parallel using threads.
     # HiGHS releases the GIL during solve, so threads give real parallelism.
     # No pickling needed — clones are plain Python objects.
+    # Short-horizon scenarios (both individuals die within <=2 years) are
+    # pre-populated in results_map with basis=0 and not submitted to workers.
     # ------------------------------------------------------------------
-    n_workers = min(os.cpu_count() or 1, total)
+    n_to_solve = len(args_list)
+    n_workers = min(os.cpu_count() or 1, n_to_solve) if n_to_solve > 0 else 1
     plan.mylog.print(f"Solving {total} scenarios using {n_workers} parallel worker thread(s).")
     progcall.start()
-    completed = 0
-    results_map = {}
+    completed = n_short_horizon  # pre-count already-resolved short-horizon scenarios
 
     with ThreadPoolExecutor(max_workers=n_workers) as executor:
-        futures = {executor.submit(_scenario_worker, args): i for i, args in enumerate(args_list)}
+        futures = {executor.submit(_scenario_worker, args): orig_idx for orig_idx, args in args_list}
         for fut in as_completed(futures):
-            idx = futures[fut]
-            results_map[idx] = fut.result()
+            orig_idx = futures[fut]
+            results_map[orig_idx] = fut.result()
             completed += 1
             progcall.show(completed, total)
 
@@ -537,7 +556,10 @@ def run_stochastic_spending(plan, options, scenario_method, *,
     progcall.finish()
     plan.mylog.resetVerbose()
 
-    n_solved = total - n_infeasible
+    if n_short_horizon:
+        plan.mylog.print(f"Note: {n_short_horizon} of {total} scenarios had a horizon <=2 years"
+                         " (both individuals die imminently) and are counted as zero spending.")
+    n_solved = total - n_infeasible - n_short_horizon
     if n_infeasible:
         plan.mylog.print(f"Warning: {n_infeasible} of {total} scenarios were infeasible"
                          " and are counted as full shortfall.")
