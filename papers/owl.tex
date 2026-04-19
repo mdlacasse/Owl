@@ -1234,8 +1234,11 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	\end{equation}
 	The role of $h$ will become clearer as the formulation of the MAGI calculation is exposed below.
 \item [$m_n$]
-	Medicare costs in year $n$, including Part~B premiums and IRMAA income-related adjustments.
-	This does not include Part~D premiums and adjustments.
+	Medicare costs in year $n$, including Part~B and Part~D premiums and IRMAA income-related
+	adjustments for both parts.
+	Part~D can be disabled via the \code{includeMedicarePartD=false} option.
+	In \code{withMedicare="optimize"} mode, $m_n$ is an LP variable determined within the MIP.
+	In \code{withMedicare="loop"} mode (the default), $m_n$ is computed via the SC loop and treated as a parameter.
 \item [$h^{\mathrm{aca}}_{rn}$]
 	Segment of ACA bracket $r$ in which the current-year modified adjusted gross income (MAGI)
 	$\mathbb{G}_n$ is contained for ACA-eligible year $n$.
@@ -1580,11 +1583,10 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 	These are used to capture the sale of a residence or real estate,
 	cashing restricted stocks, or receiving a lump-sum annuity.
 \item [$\mathcal{C}_{q}$]
-	Cost of Medicare for bracket $q$ of modified adjusted gross income (MAGI) $\mathbb{G}$.
-	This includes
-	Medicare Part B premiums and any additional
-	income-related monthly adjusted amount (IRMAA). When adjusted
-	for inflation, this becomes $\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$.
+	Combined Medicare Part~B and Part~D cost for IRMAA bracket $q$ of modified adjusted
+	gross income (MAGI) $\mathbb{G}$, including base premiums and income-related monthly
+	adjusted amounts (IRMAA) for both parts.
+	When adjusted for inflation, this becomes $\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$.
         There are $N_q = 6$ brackets for IRMAA and therefore 5 step adjustments forming
         a piecewise constant function.
 \item [$\mathcal{D}_n$]
