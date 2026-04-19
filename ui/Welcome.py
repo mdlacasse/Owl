@@ -1,9 +1,5 @@
 """
-Benefit-driven landing page for Owl Retirement Planner.
-
-This module provides a marketing-oriented welcome page focused on user benefits,
-clear value proposition, and simplified user journey for improved engagement
-and search visibility.
+This is the Welcome page.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 
@@ -42,7 +38,7 @@ def _welcome_session_reminder():
     st.markdown(
         f"""
 **Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
-investment advice**—consult a qualified professional for decisions about your situation.
+investment advice**—consult a qualified professional for decisions specific to your situation.
 
 This software is released under the [GNU General Public License v3]({_GPLV3_URL}).
 """
@@ -211,9 +207,11 @@ Owl leverages extensive engineering expertise to advance knowledge sharing.\n
 
 st.markdown("### :orange[Disclaimer]")
 st.markdown("""
-US retirees and planners use **Owl** to explore spending, Roth conversions, and tax-efficient drawdown strategies.
-We use up-to-date US federal tax rules (including 2026) so you can plan with confidence.
-Nevertheless, this program is for educational purposes only and does not constitute financial advice.""")
+"Owl is an educational tool for exploring retirement planning concepts such as spending strategies,
+Roth conversions, and tax-efficient drawdown. It incorporates current US federal tax rules (including 2026)
+to support realistic scenario modeling. **Owl** is intended for research and educational purposes only.
+Nothing produced in this session constitutes financial, tax, or investment advice. For decisions specific to
+your situation, please consult a qualified professional."
 
 kz.divider("orange")
 
