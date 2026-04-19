@@ -43,7 +43,7 @@ investment advice**—consult a qualified professional for decisions specific to
 This software is released under the [GNU General Public License v3]({_GPLV3_URL}).
 """
     )
-    st.caption(f"Owl version {owb.version()}")
+    st.caption(f"**Owl** version {owb.version()}")
     if st.button("OK"):
         kz.storeGlobalKey(_WELCOME_DISCLAIMER_DISMISSED, True)
         st.rerun()
@@ -200,14 +200,14 @@ kz.divider("orange")
 st.markdown("### :orange[Get involved]")
 st.markdown("""
 Created by a lead developer and enriched by contributions from retired experts,
-Owl leverages extensive engineering expertise to advance knowledge sharing.\n
+**Owl** leverages extensive engineering expertise to advance knowledge sharing.\n
 - Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues) (requires a GitHub account).
 - Want to share your story? Open a [discussion](https://github.com/mdlacasse/Owl/discussions).
 - You use **Owl** and like it? Give the [repo](https://github.com/mdlacasse/Owl) a star.""")
 
 st.markdown("### :orange[Disclaimer]")
 st.markdown("""
-"Owl is an educational tool for exploring retirement planning concepts such as spending strategies,
+**Owl** is an educational tool for exploring retirement planning concepts such as spending strategies,
 Roth conversions, and tax-efficient drawdown. It incorporates current US federal tax rules (including 2026)
 to support realistic scenario modeling. **Owl** is intended for research and educational purposes only.
 Nothing produced in this session constitutes financial, tax, or investment advice. For decisions specific to
