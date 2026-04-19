@@ -211,7 +211,7 @@ st.markdown("""
 Roth conversions, and tax-efficient drawdown. It incorporates current US federal tax rules (including 2026)
 to support realistic scenario modeling. **Owl** is intended for research and educational purposes only.
 Nothing produced in this session constitutes financial, tax, or investment advice. For decisions specific to
-your situation, please consult a qualified professional."
+your situation, please consult a qualified professional.""")
 
 kz.divider("orange")
 
