@@ -243,7 +243,7 @@ def runMC(plan):
         st.error(f"Monte Carlo solution failed: {e}")
 
 
-def _apply_stochastic_target(result, target_sr, plotter):
+def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     """Recompute g_opt and regenerate plots from cached scenario data and a new target rate."""
     import numpy as np
     g_opt, lam = owl.g_for_success_rate(
@@ -296,8 +296,16 @@ def _apply_stochastic_target(result, target_sr, plotter):
 
     rate_method = result.get("rate_method", "")
     rate_line = f"Rate method:                    {rate_method}\n" if (rate_method and rate_method != "historical") else ""
+    bengen_line = ""
+    if plan is not None:
+        after_tax = plan._after_tax_savings()
+        if after_tax > 0 and g_opt > 0:
+            etr_pct = int(round(plan.effectiveTaxRate * 100))
+            bengen_rate = g_opt / after_tax
+            bengen_line = f"Bengen-style rate (ETR {etr_pct}%):   {bengen_rate:.1%}\n"
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
+        f"{bengen_line}"
         f"Target success rate:            {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
         f"Median scenario spending:       ${median_spending:,.0f}/yr\n"
         f"{tail_label} ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
@@ -351,7 +359,7 @@ def runStochasticSpending(plan):
         result["mortality_table"] = mortality_table
         result["rate_method"] = "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "stochastic")
         kz.storeCaseKey("stochScenarioData", result)
-        _apply_stochastic_target(result, target_sr, plan1._plotter)
+        _apply_stochastic_target(result, target_sr, plan1._plotter, plan)
     except Exception as e:
         kz.storeCaseKey("stochFrontierPlot", None)
         kz.storeCaseKey("stochOutcomePlot", None)
@@ -373,7 +381,7 @@ def updateStochasticTarget(plan):
     target_sr = (int(raw) / 100.0) if raw is not None else (kz.getCaseKey("stoch_target_success_rate") or 0.85)
     kz.storeCaseKey("stoch_target_success_rate", target_sr)
     try:
-        _apply_stochastic_target(result, target_sr, plan._plotter)
+        _apply_stochastic_target(result, target_sr, plan._plotter, plan)
     except Exception as e:
         st.error(f"Failed to update target: {e}")
 
@@ -1221,6 +1229,7 @@ def genDic(plan):
     dic["survivor"] = 100 * plan.chi
     dic["divRate"] = 100 * plan.mu
     dic["heirsTx"] = 100 * plan.nu
+    dic["effectiveTx"] = 100 * plan.effectiveTaxRate
     dic["yOBBBA"] = plan.yOBBBA
     dic["surplusFraction"] = plan.eta
     dic["plots"] = plan.defaultPlots

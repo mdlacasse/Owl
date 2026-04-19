@@ -144,6 +144,7 @@ def config_to_ui(diconf: dict) -> dict:
     dic["survivor"] = int(op.get("surviving_spouse_spending_percent", 60))
     dic["divRate"] = float(rs.get("dividend_rate", DEFAULT_DIVIDEND_RATE))
     dic["heirsTx"] = float(rs.get("heirs_rate_on_tax_deferred_estate", DEFAULT_HEIRS_RATE))
+    dic["effectiveTx"] = float(rs.get("effective_tax_rate", 20.0))
     dic["yOBBBA"] = int(rs.get("obbba_expiration_year", DEFAULT_OBBBA_YEAR))
     dic["surplusFraction"] = float(sa.get("spousal_surplus_deposit_fraction", 0.5))
     dic["plots"] = res.get("default_plots", "nominal")
@@ -368,6 +369,7 @@ def ui_to_config(uidic: dict) -> dict:
         },
         "rates_selection": {
             "heirs_rate_on_tax_deferred_estate": _get_ui(uidic, "heirsTx", DEFAULT_HEIRS_RATE, float),
+            "effective_tax_rate": _get_ui(uidic, "effectiveTx", 20.0, float),
             "dividend_rate": _get_ui(uidic, "divRate", DEFAULT_DIVIDEND_RATE, float),
             "obbba_expiration_year": _get_ui(uidic, "yOBBBA", DEFAULT_OBBBA_YEAR, int),
             "method": _ui_rate_method_to_config(uidic),

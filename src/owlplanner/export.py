@@ -226,6 +226,11 @@ def build_summary_dic(plan, N=None):
     dic = {}
     dic["Case name"] = plan._name
     dic["Net yearly spending basis" + 26 * " ."] = u.d(plan.g_n[0] / plan.xi_n[0])
+    after_tax = plan._after_tax_savings()
+    if after_tax > 0:
+        bengen = (plan.g_n[0] / plan.xi_n[0]) / after_tax
+        etr_pct = int(round(plan.effectiveTaxRate * 100))
+        dic[f"Bengen-style rate (ETR {etr_pct}%)"] = u.pc(bengen, f=1)
     dic[f"Net spending for year {now}"] = u.d(plan.g_n[0])
     dic[f"Net spending remaining in year {now}"] = u.d(plan.g_n[0] * plan.yearFracLeft)
 

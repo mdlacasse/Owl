@@ -394,6 +394,12 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
+        with col3:
+            kz.initCaseKey("effectiveTx", 20)
+            helpmsg = """Effective tax rate used to discount tax-deferred
+assets when computing the Bengen-style withdrawal rate."""
+            ret = kz.getNum("Effective tax rate on deferred (%)", "effectiveTx", max_value=60.0, help=helpmsg, step=1.0)
+
         # Reproducibility checkbox - only for gaussian/lognormal and histogaussian/histolognormal methods.
         if kz.getCaseKey("varyingType") in [
             "gaussian", "lognormal", "histogaussian", "histolognormal",
