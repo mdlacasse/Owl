@@ -76,7 +76,7 @@ This software is released under the
 [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
 #### :orange[Disclaimer]
-This program is for educational purposes only and does not constitute financial advice.
-
+**Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
+investment advice**—consult a qualified professional for decisions about your situation.
 """
 )

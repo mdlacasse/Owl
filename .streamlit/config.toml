@@ -1,3 +1,6 @@
+[server]
+fileWatcherType = "none"
+
 [theme]
 base = "dark"
 # dataframeHeaderBackgroundColor = "#692f24"

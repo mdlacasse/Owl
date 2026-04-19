@@ -78,7 +78,9 @@ your computer and can be used to reproduce a case at a later time.
 
 Copyright &copy; 2024-2026 - Martin-D. Lacasse
 
-Disclaimers: This code is for educational purposes only and does not constitute financial advice.
+Disclaimers:
+**Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
+investment advice**—consult a qualified professional for decisions specific to your situation.
 
 Code output has been verified with analytical solutions when applicable, and comparative approaches otherwise.
 Nevertheless, accuracy of results is not guaranteed.
