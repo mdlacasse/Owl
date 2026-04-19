@@ -296,16 +296,16 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
 
     rate_method = result.get("rate_method", "")
     rate_line = f"Rate method:                    {rate_method}\n" if (rate_method and rate_method != "historical") else ""
-    bengen_line = ""
+    ratio_line = ""
     if plan is not None:
         after_tax = plan._after_tax_savings()
         if after_tax > 0 and g_opt > 0:
             etr_pct = int(round(plan.effectiveTaxRate * 100))
-            bengen_rate = g_opt / after_tax
-            bengen_line = f"Bengen-style rate (ETR {etr_pct}%):   {bengen_rate:.1%}\n"
+            spending_ratio = g_opt / after_tax
+            ratio_line = f"Spending-to-savings ratio (ETR {etr_pct}%): {spending_ratio:.2%}\n"
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
-        f"{bengen_line}"
+        f"{ratio_line}"
         f"Target success rate:            {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
         f"Median scenario spending:       ${median_spending:,.0f}/yr\n"
         f"{tail_label} ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"

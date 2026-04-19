@@ -397,7 +397,7 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
         with col3:
             kz.initCaseKey("effectiveTx", 20)
             helpmsg = """Effective tax rate used to discount tax-deferred
-assets when computing the Bengen-style withdrawal rate."""
+assets when computing the spending-to-savings ratio."""
             ret = kz.getNum("Effective tax rate on deferred (%)", "effectiveTx", max_value=60.0, help=helpmsg, step=1.0)
 
         # Reproducibility checkbox - only for gaussian/lognormal and histogaussian/histolognormal methods.

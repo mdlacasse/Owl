@@ -239,7 +239,7 @@ class Plan:
         self.chi = 0.60   # Survivor fraction
         self.mu = 0.0172  # Dividend rate (decimal)
         self.nu = 0.300   # Heirs tax rate (decimal)
-        self.effectiveTaxRate = 0.20  # Effective tax rate for discounting tax-deferred assets in Bengen rate
+        self.effectiveTaxRate = 0.20  # Effective tax rate for for spending-to-savings ratio
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
         self.n_hsa_i = np.full(self.N_i, self.N_n, dtype=int)  # Year HSA contributions stop (default: never)
@@ -561,12 +561,14 @@ class Plan:
     def setEffectiveTaxRate(self, rate):
         """
         Set the effective tax rate used to discount tax-deferred assets when computing
-        the Bengen-style withdrawal rate. Rate is in percent. Default is 20%.
+        the spending-to-savings ratio. Rate is in percent. Default is 20%.
         """
         if not (0 <= rate <= 100):
             raise ValueError("Rate must be between 0 and 100.")
         self.effectiveTaxRate = rate / 100
-        self.mylog.vprint(f"Effective tax rate for Bengen-style rate set to {u.pc(self.effectiveTaxRate, f=0)}.")
+        self.mylog.vprint(
+            f"Effective tax rate for spending-to-savings ratio set to {u.pc(self.effectiveTaxRate, f=0)}."
+        )
 
     def _after_tax_savings(self, etr=None):
         """Return total after-tax initial savings, discounting tax-deferred by effective tax rate."""
