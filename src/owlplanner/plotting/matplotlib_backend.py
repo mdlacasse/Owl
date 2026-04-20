@@ -392,6 +392,19 @@ class MatplotlibBackend(PlotBackend):
 
         return self._line_income_plot(year_n, series, style, title, yformat)[0]
 
+    def plot_withdrawal_rate(self, year_n, rate_n, title):
+        """Bar chart of annual after-tax portfolio withdrawal rate (%)."""
+        fig, ax = plt.subplots(figsize=(10, 4))
+        colors = ["tomato" if r > 0 else "steelblue" for r in rate_n]
+        ax.bar(year_n, rate_n, color=colors, alpha=0.8, width=0.85)
+        ax.axhline(0, color="black", linewidth=0.8)
+        ax.set_xlabel("Year")
+        ax.set_ylabel("Withdrawal rate (%)")
+        ax.set_title(title)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.1f}%"))
+        plt.tight_layout()
+        return fig
+
     def plot_asset_composition(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
         """Plot asset composition over time."""
         if value == "nominal":

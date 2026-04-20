@@ -934,6 +934,20 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
+    def plot_withdrawal_rate(self, year_n, rate_n, title):
+        """Bar chart of annual after-tax portfolio withdrawal rate (%)."""
+        colors = ["tomato" if r > 0 else "steelblue" for r in rate_n]
+        fig = go.Figure(go.Bar(x=year_n, y=rate_n, marker_color=colors, opacity=0.85))
+        fig.add_hline(y=0, line_width=1, line_color="black")
+        fig.update_layout(
+            title=title,
+            xaxis_title="Year",
+            yaxis_title="Withdrawal rate (%)",
+            yaxis=dict(tickformat=".1f", ticksuffix="%"),
+            template=self.template,
+        )
+        return fig
+
     def plot_asset_composition(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
         """Plot asset distribution over time."""
         # Set up value formatting

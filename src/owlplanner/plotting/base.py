@@ -74,6 +74,11 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
+    def plot_withdrawal_rate(self, year_n, rate_n, title):
+        """Bar chart of annual after-tax portfolio withdrawal rate (%)."""
+        pass
+
+    @abstractmethod
     def plot_asset_composition(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
         """Plot asset composition over time."""
         pass

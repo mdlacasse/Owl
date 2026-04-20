@@ -854,6 +854,12 @@ def plotSingleResults(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
+    fig = plan.showWithdrawalRate(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Portfolio Withdrawal Rate]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+
     figs = plan.showAssetComposition(figure=True)
     if figs:
         st.markdown("#### :orange[Asset Composition]")
