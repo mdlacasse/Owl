@@ -934,16 +934,25 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
-    def plot_withdrawal_rate(self, year_n, rate_n, title):
-        """Bar chart of annual after-tax portfolio withdrawal rate (%)."""
-        colors = ["tomato" if r > 0 else "steelblue" for r in rate_n]
-        fig = go.Figure(go.Bar(x=year_n, y=rate_n, marker_color=colors, opacity=0.85))
-        fig.add_hline(y=0, line_width=1, line_color="black")
+    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None):
+        """Bar chart of annual savings retention rate (%). Reference line at 100%."""
+        title = title.replace("\n", "<br>")
+        colors = ["steelblue" if r > 100 else "tomato" for r in rate_n]
+        fig = go.Figure(go.Bar(x=year_n, y=rate_n, marker_color=colors, opacity=0.85,
+                               name="Retention rate"))
+        fig.add_hline(y=100, line_width=1, line_color="black")
+        if sustainability_n is not None:
+            fig.add_trace(go.Scatter(
+                x=year_n, y=sustainability_n, mode="lines",
+                line=dict(dash="dash", color="seagreen", width=1.5),
+                name="Real break-even",
+            ))
         fig.update_layout(
             title=title,
             xaxis_title="Year",
-            yaxis_title="Withdrawal rate (%)",
+            yaxis_title="Savings retention rate (%)",
             yaxis=dict(tickformat=".1f", ticksuffix="%"),
+            legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5),
             template=self.template,
         )
         return fig

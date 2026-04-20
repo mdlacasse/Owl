@@ -1,0 +1,73 @@
+case_name = "bill"
+description = "An unrealistic case to demonstrate SWR."
+
+[basic_info]
+status = "single"
+names = [ "Bill",]
+date_of_birth = [ "1961-01-15",]
+life_expectancy = [ 94,]
+sexes = [ "M",]
+start_date = "2026-01-01"
+
+[savings_assets]
+taxable_savings_balances = [ 0.0,]
+tax_deferred_savings_balances = [ 0.0,]
+tax_free_savings_balances = [ 1000.0,]
+hsa_savings_balances = [ 0.0,]
+
+[household_financial_profile]
+HFP_file_name = "dictionary of DataFrames"
+
+[fixed_income]
+pension_monthly_amounts = [ 0,]
+pension_ages = [ 65.0,]
+pension_indexed = [ true,]
+pension_survivor_fraction = [ 0.0,]
+social_security_pia_amounts = [ 0,]
+social_security_ages = [ 67.0,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 30.0
+effective_tax_rate = 20.0
+dividend_rate = 1.8
+obbba_expiration_year = 2032
+method = "historical"
+to = 1996
+from = 1966
+reverse_sequence = false
+roll_sequence = 0
+
+[asset_allocation]
+interpolation_method = "linear"
+type = "individual"
+generic = [ [ [ 50.0, 0.0, 50.0, 0.0,], [ 50.0, 0.0, 50.0, 0.0,],],]
+
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 60
+objective = "maxSpending"
+
+[solver_options]
+maxRothConversion = 0
+startRothConversions = 2026
+bequest = 0
+solver = "default"
+spendingSlack = 0
+timePreference = 0.0
+amoRoth = true
+amoSurplus = true
+withSCLoop = true
+noLateSurplus = false
+withMedicare = "none"
+withACA = "loop"
+withLTCG = "loop"
+withNIIT = "loop"
+withDecomposition = "none"
+withSSTaxability = "loop"
+withSSAges = "fixed"
+
+[results]
+default_plots = "today"
+worksheet_show_ages = false
+worksheet_hide_zero_columns = false
+worksheet_real_dollars = false

@@ -74,8 +74,9 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_withdrawal_rate(self, year_n, rate_n, title):
-        """Bar chart of annual after-tax portfolio withdrawal rate (%)."""
+    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None):
+        """Bar chart of annual savings retention rate (%). Reference line at 100%.
+        Optional dashed orange line at real break-even (1+i_n)/(1+r_n)*100."""
         pass
 
     @abstractmethod

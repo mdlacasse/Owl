@@ -29,7 +29,8 @@
 - **UI — Rates**: Random seed control and reproducibility toggle exposed directly in the UI.
 - Fix short horizons and added edge tests
 - Add spending-to-savings ratio in summaries
-- Add depletion curve over horizon to graphs
+- Add savings retention curve over horizon to graphs
+- Add Case_bill and test for simple depletion test
 - Update documentation
 
 ---

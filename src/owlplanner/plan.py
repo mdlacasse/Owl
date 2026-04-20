@@ -239,6 +239,7 @@ class Plan:
         self.chi = 0.60   # Survivor fraction
         self.mu = 0.0172  # Dividend rate (decimal)
         self.nu = 0.300   # Heirs tax rate (decimal)
+        self.bequest = 0.0            # After-tax bequest in today's dollars (set after full solve)
         self.effectiveTaxRate = 0.20  # Effective tax rate for for spending-to-savings ratio
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
@@ -4450,15 +4451,15 @@ class Plan:
         return None
 
     @_checkCaseStatus
-    def showWithdrawalRate(self, tag="", figure=False):
+    def showSavingsRetentionRate(self, tag="", figure=False):
         """
-        Plot after-tax portfolio withdrawal rate (%) over time.
+        Plot savings retention rate (%) over time: fraction of balance NOT drawn each year.
 
-        Net nominal draw from savings as a fraction of total nominal account balances.
-        Net draw = w_ijn (spending withdrawals) minus d_in (taxable deposits) and
-        kappa_ijn[:,1:,:] (contributions to tax-deferred/Roth/HSA). Roth conversions
-        (x_in) are excluded — internal transfers. No ETR weighting: w_ijn already
-        encodes the correct gross amounts. Negative values indicate accumulation years.
+        Retention = 1 − net_draw/b, where net_draw = w_ijn (spending withdrawals)
+        minus d_in (taxable deposits) and kappa_ijn[:,1:,:] (contributions to
+        tax-deferred/Roth/HSA). Roth conversions excluded — internal transfers.
+        Values >100% indicate accumulation years; ~0% in the final year when
+        bequest=0 (avoids the scale-distorting 100% withdrawal bar of the inverse).
         """
         net_w = self.w_ijn.copy()
         net_w[:, 0, :] -= self.d_in                            # subtract deposits to taxable
@@ -4466,11 +4467,23 @@ class Plan:
         net_draw_n = np.sum(net_w, axis=(0, 1))
         b_n = np.sum(self.b_ijn[:, :, :-1], axis=(0, 1))
         with np.errstate(invalid="ignore", divide="ignore"):
-            rate = np.where(b_n > 0, net_draw_n / b_n * 100, 0.0)
-        title = self._name + "\nPortfolio Withdrawal Rate"
+            rate = np.where(b_n > 0, (1 - net_draw_n / b_n) * 100, 0.0)
+        # Real break-even: retention rate that preserves real portfolio value
+        num_n = np.einsum('ijn,ijkn,kn->n',
+                          self.b_ijn[:, :, :self.N_n],
+                          self.alpha_ijkn[:, :, :, :self.N_n],
+                          self.tau_kn[:, :self.N_n])
+        with np.errstate(invalid="ignore", divide="ignore"):
+            r_n = np.where(b_n > 0, num_n / b_n, 0.0)
+        inflation_n = self.gamma_n[1:self.N_n + 1] / self.gamma_n[:self.N_n]
+        sustainability_n = inflation_n / (1.0 + r_n) * 100.0
+        title = self._name + "\nSavings Retention Rate"
+        if self.bequest > 0:
+            title += f"\n(Note: bequest of {u.d(self.bequest, f=0)} included in balance)"
         if tag:
             title += " - " + tag
-        fig = self._plotter.plot_withdrawal_rate(self.year_n, rate, title)
+        fig = self._plotter.plot_savings_retention_rate(self.year_n, rate, title,
+                                                        sustainability_n=sustainability_n)
         if figure:
             return fig
         self._plotter.jupyter_renderer(fig)

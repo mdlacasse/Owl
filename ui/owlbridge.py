@@ -305,6 +305,8 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
             etr_pct = int(round(plan.effectiveTaxRate * 100))
             spending_ratio = g_opt / after_tax
             ratio_line = f"Spending-to-savings ratio:       {spending_ratio:.2%}  (ETR {etr_pct}%)\n"
+            if plan.bequest > 0:
+                ratio_line += f"  (Note: bequest of ${plan.bequest:,.0f} included in savings — ratio understated)\n"
 
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
@@ -857,9 +859,9 @@ def plotSingleResults(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
-    fig = plan.showWithdrawalRate(figure=True)
+    fig = plan.showSavingsRetentionRate(figure=True)
     if fig:
-        cols[c].markdown("#### :orange[Portfolio Withdrawal Rate]")
+        cols[c].markdown("#### :orange[Savings Retention Rate]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
