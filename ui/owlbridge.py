@@ -281,35 +281,38 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
         tail_spending = float(np.percentile(bases, 5))
         tail_shortfall_pct = max(0.0, g_opt - tail_spending) / g_opt if g_opt > 0 else 0.0
         tail_label = "5th percentile spending:       "
+
     if with_longevity:
         mt = result.get("mortality_table", "SSA2025")
-        longevity_line = f"Longevity risk:                 {mt}\n"
+        longevity_line = f"Longevity risk:                  {mt}\n"
     else:
         longevity_line = ""
+
     n_infeasible = result.get("n_infeasible", 0)
     n_total = len(bases)
 
     if n_infeasible:
-        scenarios_line = f"Scenarios:                      {n_total}  ({n_infeasible} infeasible)\n"
+        scenarios_line = f"Scenarios:                       {n_total}  ({n_infeasible} infeasible)\n"
     else:
-        scenarios_line = f"Scenarios:                      {n_total}\n"
+        scenarios_line = f"Scenarios:                       {n_total}\n"
 
     rate_method = result.get("rate_method", "")
-    rate_line = f"Rate method:                    {rate_method}\n" if (rate_method and rate_method != "historical") else ""
+    rate_line = f"Rate method:                     {rate_method}\n" if (rate_method and rate_method != "historical") else ""
     ratio_line = ""
     if plan is not None:
         after_tax = plan._after_tax_savings()
         if after_tax > 0 and g_opt > 0:
             etr_pct = int(round(plan.effectiveTaxRate * 100))
             spending_ratio = g_opt / after_tax
-            ratio_line = f"Spending-to-savings ratio (ETR {etr_pct}%): {spending_ratio:.2%}\n"
+            ratio_line = f"Spending-to-savings ratio:       {spending_ratio:.2%}  (ETR {etr_pct}%)\n"
+
     kz.storeCaseKey("stochSummary", (
-        f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
+        f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
         f"{ratio_line}"
-        f"Target success rate:            {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
-        f"Median scenario spending:       ${median_spending:,.0f}/yr\n"
-        f"{tail_label} ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
-        f"Mean shortfall:                 ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
+        f"Target success rate:             {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
+        f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
+        f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
+        f"Mean shortfall:                  ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
         f"{rate_line}"
         f"{longevity_line}"
         f"{scenarios_line}"
