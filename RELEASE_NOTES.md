@@ -28,6 +28,8 @@
   and `histogaussian` (canonical names since v2026.03.05). `default` alias for `trailing-30` retained.
 - **UI — Rates**: Random seed control and reproducibility toggle exposed directly in the UI.
 - Fix short horizons and added edge tests
+- Add spending-to-savings ratio in summaries
+- Add depletion curve over horizon to graphs
 - Update documentation
 
 ---
