@@ -32,7 +32,7 @@ sys.path.insert(0, "./src")
 sys.path.insert(0, "../src")
 
 import owlplanner as owl
-from owlplanner.utils import drop_all_zero_numeric_columns, worksheet_age_on_dec_31_or_blank
+from owlplanner.utils import drop_all_zero_numeric_columns, worksheet_age_on_dec_31_or_blank, get_monetary_option
 from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes
 from owlplanner.mylogging import Logger
@@ -304,9 +304,14 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
         if after_tax > 0 and g_opt > 0:
             etr_pct = int(round(plan.effectiveTaxRate * 100))
             spending_ratio = g_opt / after_tax
-            ratio_line = f"Spending-to-savings ratio:       {spending_ratio:.2%}  (ETR {etr_pct}%)\n"
-            if plan.bequest > 0:
-                ratio_line += f"  (Note: bequest of ${plan.bequest:,.0f} included in savings — ratio understated)\n"
+            ratio_line = f"Spending-to-savings ratio:       {spending_ratio:.2%}  (ETR ratio {etr_pct}%)\n"
+
+            _, solve_options = kz.getSolveParameters()
+            if "bequest" in solve_options:
+                configured_bequest = get_monetary_option(solve_options, "bequest", 0)
+                if configured_bequest > 0:
+                    bequest_k = configured_bequest / 1000
+                    ratio_line += f"Spending-to-savings note:        understated due to bequest of ${bequest_k:,.0f}k\n"
 
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"

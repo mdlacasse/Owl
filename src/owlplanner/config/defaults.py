@@ -61,6 +61,7 @@ def default_config(ni: int = 1) -> dict:
             "taxable_savings_balances": [0.0] * ni,
             "tax_deferred_savings_balances": [0.0] * ni,
             "tax_free_savings_balances": [0.0] * ni,
+            "hsa_savings_balances": [0.0] * ni,
         },
         "household_financial_profile": {
             "HFP_file_name": "None",
