@@ -30,7 +30,8 @@
 - Fix short horizons and added edge tests
 - Add spending-to-savings ratio in summaries
 - Add savings retention curve over horizon to graphs
-- Add Case_bill and test for simple depletion test
+- Add Case_bill and test for simple depletion test - document discrepancies
+- Fix textbox height in Create_Case to fit description
 - Update documentation
 
 ---

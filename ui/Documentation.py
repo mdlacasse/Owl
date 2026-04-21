@@ -1164,6 +1164,8 @@ This page shows the various worksheets containing annual transactions
 and savings account balances in nominal \\$.
 Savings balances are values at the beginning of the year, while other quantities
 are for the full year.
+Withdrawals are also assumed to occur at the beginning of the year,
+so that the retiree has funds available to cover expenses throughout the year.
 Each table can be downloaded separately in csv format, or all tables can be downloaded
 jointly as a single Excel workbook by clicking on the `Download Worksheets` on the
 **Reports** page.

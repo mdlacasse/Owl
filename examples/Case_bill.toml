@@ -4,8 +4,11 @@ Bill has $1M in a Roth account invested 50% S&P 500 / 50% 10-year T-Notes and is
 retiring at age 65 with no Social Security, no pension, and no other income. \
 Using historical rates starting in 1966 (the worst sequence in the dataset) over a \
 30-year horizon, the optimal inflation-adjusted spending is $36,666/year — a safe \
-withdrawal rate of 3.67%. This is lower than Bengen's often-cited 4.15% for two \
-independent reasons: (1) Owl withdraws at the start of each year before returns are \
+withdrawal rate of 3.67%.
+
+This rate is lower than Bengen's often-cited 4.15% for two \
+independent reasons: (1) As Bill needs to pay his rent and food, \
+Owl withdraws funds at the start of each year before returns are \
 applied, whereas Bengen assumed end-of-year withdrawals (+0.32%); and (2) Bengen used \
 5-year intermediate Treasury bonds, which suffered smaller price losses than \
 10-year T-Notes during the rising-rate environment of 1966-1981 (+0.16%). \
