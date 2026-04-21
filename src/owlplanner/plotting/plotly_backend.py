@@ -950,7 +950,7 @@ class PlotlyBackend(PlotBackend):
         if sustainability_n is not None:
             fig.add_trace(go.Scatter(
                 x=year_n, y=sustainability_n, mode="lines",
-                line=dict(dash="dash", color="seagreen", width=1.5),
+                line=dict(dash="dash", color="yellow", width=1.8),
                 name="Real break-even",
             ))
         if log_scale:

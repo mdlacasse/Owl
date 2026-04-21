@@ -464,6 +464,7 @@ def run_stochastic_spending(plan, options, scenario_method, *,
         # Reset the rate RNG so repeated calls are reproducible when seeded
         if plan.reproducibleRates and hasattr(plan.rateModel, '_rng'):
             plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
+
         # Pre-draw longevity
         drawn_list = []
         if with_longevity:
@@ -511,7 +512,6 @@ def run_stochastic_spending(plan, options, scenario_method, *,
             else:
                 args_list.append((n, (clone(plan, expectancy=drawn_list[n], verbose=False),
                                       tau_kn, None, options)))
-
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
 
