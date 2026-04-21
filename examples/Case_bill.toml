@@ -56,14 +56,14 @@ spendingSlack = 0
 timePreference = 0.0
 amoRoth = true
 amoSurplus = true
-withSCLoop = true
+withSCLoop = false
 noLateSurplus = false
 withMedicare = "none"
-withACA = "loop"
-withLTCG = "loop"
-withNIIT = "loop"
+withACA = "none"
+withLTCG = "none"
+withNIIT = "none"
 withDecomposition = "none"
-withSSTaxability = "loop"
+withSSTaxability = "none"
 withSSAges = "fixed"
 
 [results]
