@@ -392,6 +392,32 @@ class MatplotlibBackend(PlotBackend):
 
         return self._line_income_plot(year_n, series, style, title, yformat)[0]
 
+    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None, log_scale=False):
+        """Bar chart of annual savings retention rate. Reference at 100% (linear) or 0 (log)."""
+        fig, ax = plt.subplots(figsize=(10, 4))
+        threshold = 0.0 if log_scale else 100.0
+        if sustainability_n is not None:
+            colors = ["steelblue" if (not np.isnan(r) and not np.isnan(s) and r > s) else "tomato"
+                      for r, s in zip(rate_n, sustainability_n)]
+        else:
+            colors = ["steelblue" if (not np.isnan(r) and r > threshold) else "tomato" for r in rate_n]
+        ax.bar(year_n, rate_n, color=colors, alpha=0.8, width=0.85)
+        ax.axhline(threshold, color="black", linewidth=0.8)
+        if sustainability_n is not None:
+            ax.plot(year_n, sustainability_n, color="seagreen", linewidth=1.2,
+                    linestyle="--", label="Real break-even")
+            ax.legend(loc="lower left", fontsize=8)
+        ax.set_xlabel("Year")
+        if log_scale:
+            ax.set_ylabel("Log retention  log(\u03b2\u2099\u208a\u2081/\u03b2\u2099)")
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:+.2f}"))
+        else:
+            ax.set_ylabel("Savings retention rate (%)")
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.1f}%"))
+        ax.set_title(title)
+        plt.tight_layout()
+        return fig
+
     def plot_asset_composition(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
         """Plot asset composition over time."""
         if value == "nominal":
@@ -558,8 +584,9 @@ class MatplotlibBackend(PlotBackend):
               f"max {u.d(float(values.max()))}, mean {u.d(float(values.mean()))}.", file=description)
         return fig, description
 
-    def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate, g_opt, year_n, start_years=None):
+    def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
+                                 target_success_rate, g_opt, year_n, start_years=None,
+                                 with_longevity=False):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
         thisyear = int(year_n[0])
         frontier_type = "Historical" if start_years is not None else "Stochastic"
@@ -595,35 +622,65 @@ class MatplotlibBackend(PlotBackend):
         ax.tick_params(axis="both", labelsize=10)
         ax.grid(True, alpha=0.3)
 
-        plt.suptitle(f"{frontier_type} spending efficient frontier ({thisyear}$)", fontsize=14)
+        longevity_tag = " · longevity" if with_longevity else ""
+        plt.suptitle(f"{frontier_type} spending efficient frontier ({thisyear}$){longevity_tag}", fontsize=14)
         plt.tight_layout()
         return fig
 
-    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n):
-        """Bar chart of achieved spending by scenario, colored by success/failure."""
+    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate, year_n,
+                                 with_longevity=False):
+        """Bar chart of achieved spending by scenario.
+
+        Historical mode: bars by start year (x = historical start year).
+        MC mode: bars sorted by achieved spending (x = scenario percentile), works at any N.
+        """
         thisyear = int(year_n[0])
         achieved = np.minimum(g_opt, bases)
         success = achieved >= g_opt - 1.0
-        label = "Spending" if objective == "maxSpending" else "Bequest"
+        label = "Spending"
+        longevity_tag = " · longevity" if with_longevity else ""
+        is_historical = start_years is not None
 
-        x = start_years if start_years is not None else np.arange(len(bases))
-        xlabel = "Historical start year" if start_years is not None else "Simulation"
+        fig, ax = plt.subplots(figsize=(11, 4.1))
+        if is_historical:
+            if success.any():
+                ax.bar(start_years[success], achieved[success] / 1000, color="mediumseagreen",
+                       alpha=0.8, width=0.85, label="No shortfall")
+            if (~success).any():
+                ax.bar(start_years[~success], achieved[~success] / 1000, color="tomato",
+                       alpha=0.8, width=0.85, label="Shortfall")
+            ax.axhline(g_opt / 1000, color="black", linestyle="--", linewidth=1.5,
+                       label=f"Commitment {u.d(g_opt)}")
+            ax.set_xlabel("Historical start year", fontsize=11)
+            ax.set_ylabel(f"Achieved {label.lower()} ({thisyear} $k)", fontsize=11)
+            ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
+        else:
+            # Sort scenarios from worst to best; x-axis = scenario percentile (0–100%)
+            order = np.argsort(achieved)
+            sorted_ach = achieved[order]
+            sorted_ok = success[order]
+            N = len(sorted_ach)
+            pct = np.arange(N) / N * 100
+            bar_width = 100 / N
+            fail_mask = ~sorted_ok
+            ok_mask = sorted_ok
+            if fail_mask.any():
+                ax.bar(pct[fail_mask], sorted_ach[fail_mask] / 1000, color="tomato",
+                       alpha=0.8, width=bar_width, label="Shortfall")
+            if ok_mask.any():
+                ax.bar(pct[ok_mask], sorted_ach[ok_mask] / 1000, color="mediumseagreen",
+                       alpha=0.8, width=bar_width, label="No shortfall")
+            n_ok = int(success.sum())
+            ax.axhline(g_opt / 1000, color="black", linestyle="--", linewidth=1.5,
+                       label=f"Commitment {u.d(g_opt)}  ({n_ok / N * 100:.0f}% success)")
+            ax.set_xlabel("Scenario percentile (%)", fontsize=11)
+            ax.set_ylabel(f"Achieved {label.lower()} ({thisyear} $k)", fontsize=11)
+            ax.xaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"{x:.0f}%"))
+            ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
 
-        fig, ax = plt.subplots(figsize=(10, 4))
-        if success.any():
-            ax.bar(x[success], achieved[success] / 1000, color="mediumseagreen",
-                   alpha=0.8, width=0.85, label="No shortfall")
-        if (~success).any():
-            ax.bar(x[~success], achieved[~success] / 1000, color="tomato",
-                   alpha=0.8, width=0.85, label="Shortfall")
-        ax.axhline(g_opt / 1000, color="black", linestyle="--", linewidth=1.5,
-                   label=f"Commitment {u.d(g_opt)}")
-        ax.set_xlabel(xlabel, fontsize=11)
-        ax.set_ylabel(f"Achieved {label.lower()} ({thisyear} $k)", fontsize=11)
-        ax.set_title(f"Scenario outcomes — {target_success_rate*100:.0f}% target success rate", fontsize=12)
-        ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
+        ax.set_title(f"Scenario outcomes — {target_success_rate*100:.0f}% target{longevity_tag}", fontsize=12)
         ax.tick_params(axis="both", labelsize=10)
-        ax.legend(fontsize=10)
+        ax.legend(loc="lower center", fontsize=10, framealpha=0.3)
         ax.grid(True, alpha=0.3, axis="y")
         plt.tight_layout()
         return fig

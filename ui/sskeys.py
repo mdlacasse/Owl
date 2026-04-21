@@ -754,14 +754,14 @@ def getText(text, nkey, disabled=False, callback=setpull, placeholder=None, help
     )
 
 
-def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None):
+def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None, height=68):
     widget_key = genCaseKey(nkey)
     initGlobalKey(widget_key, getCaseKey(nkey))
 
     return st.text_area(
         text,
         disabled=disabled,
-        height="content",
+        height=height,
         on_change=callback,
         args=[nkey],
         placeholder=placeholder,

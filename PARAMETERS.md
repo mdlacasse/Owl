@@ -23,6 +23,7 @@ Basic information about the individuals in the plan.
 |-----------|------|-------------|
 | `status` | string | Filing status. Valid values: `"single"`, `"married"` |
 | `names` | list of strings | Names of the individuals in the plan. Must contain 1 or 2 names. Length determines `N_i` |
+| `sexes` | list of `N_i` strings | *(Optional)* Biological sex for each individual. Valid values: `"M"` or `"F"`. Defaults to `["F"]` for single and `["M","F"]` for married when omitted. Recommended to set explicitly, especially when using longevity-risk sampling in stochastic spending |
 | `date_of_birth` | list of `N_i` ISO dates | Date of birth for each individual in ISO format (e.g., `"1967-01-15"`). Defaults to `"1965-01-15"` if not specified |
 | `life_expectancy` | list of `N_i` integers | Life expectancy in years for each individual |
 | `start_date` | string | Start date of the plan (e.g., `"01-01"`, `"01/01"`, `"2026-01-01"`). Only the month and day are used; the plan always starts in the current year. Defaults to `"today"` if not specified |
@@ -340,6 +341,7 @@ description = "Example case description"
 [basic_info]
 status = "married"
 names = ["Person1", "Person2"]
+sexes = ["M", "F"]
 date_of_birth = ["1965-01-15", "1967-03-20"]
 life_expectancy = [89, 92]
 start_date = "2026-01-01"

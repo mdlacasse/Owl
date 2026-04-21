@@ -8,6 +8,7 @@ Inspired by discussions on retirement forums, this scenario shows how couples wi
 [basic_info]
 status = "married"
 names = [ "Jon", "Jane",]
+sexes = [ "M", "F",]
 date_of_birth = [ "1966-01-15", "1969-01-15",]
 life_expectancy = [ 92, 92,]
 start_date = "2026-01-01"

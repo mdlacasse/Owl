@@ -8,6 +8,7 @@ This case showcases Owl's handling of asymmetric life expectancies, the AMO (at-
 [basic_info]
 status = "married"
 names = [ "Alex", "Jamie",]
+sexes = [ "M", "F",]
 date_of_birth = [ "1960-01-15", "1961-01-17",]
 life_expectancy = [ 72, 90,]
 start_date = "2026-01-01"

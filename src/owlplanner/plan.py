@@ -44,6 +44,7 @@ from . import spending
 from . import debts as debts
 from . import fixedassets as fxasst
 from . import mylogging as log
+from .config.plan_bridge import clone                                         # noqa: F401
 from .plotting.factory import PlotFactory
 from .rate_models.constants import HISTORICAL_RANGE_METHODS
 from .stresstests import run_historical_range, run_mc, run_stochastic_spending
@@ -67,31 +68,6 @@ ABS_TOL = 100
 REL_TOL = 5e-5
 TIME_LIMIT = 900
 EPSILON = 1e-8
-
-
-def clone(plan, newname=None, *, verbose=True, logstreams=None):
-    """
-    Return an almost identical copy of plan: only the name of the case
-    has been modified and appended the string '(copy)',
-    unless a new name is provided as an argument.
-    """
-    import copy
-
-    # logger __deepcopy__ sets the logstreams of new logger to None
-    newplan = copy.deepcopy(plan)
-
-    if logstreams is None:
-        original_logger = plan.logger()
-        newplan.setLogger(original_logger)
-    else:
-        newplan.setLogstreams(verbose, logstreams)
-
-    if newname is None:
-        newplan.rename(plan._name + " (copy)")
-    else:
-        newplan.rename(newname)
-
-    return newplan
 
 
 ############################################################################
@@ -232,12 +208,14 @@ class Plan:
         self.yobs, self.mobs, self.tobs = u.parseDobs(dobs)
         self.dobs = dobs
         self.expectancy = np.array(expectancy, dtype=np.int32)
+        self.sexes = (["M", "F"] if self.N_i == 2 else ["F"])  # default; overridden by setSexes()
+        self.mortality_table = "SSA2025"  # default; overridden by setMortalityTable()
 
         # Reference time is starting date in the current year and all passings are assumed at the end.
         thisyear = date.today().year
         self.horizons = self.yobs + self.expectancy - thisyear + 1
         self.N_n = np.max(self.horizons)
-        if self.N_n <= 2:
+        if self.N_n <= 1:
             raise ValueError(f"Plan needs more than {self.N_n} years.")
 
         self.year_n = np.linspace(thisyear, thisyear + self.N_n - 1, self.N_n, dtype=np.int32)
@@ -261,6 +239,8 @@ class Plan:
         self.chi = 0.60   # Survivor fraction
         self.mu = 0.0172  # Dividend rate (decimal)
         self.nu = 0.300   # Heirs tax rate (decimal)
+        self.bequest = 0.0            # After-tax bequest in today's dollars (set after full solve)
+        self.effectiveTaxRate = 0.20  # Effective tax rate for for spending-to-savings ratio
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
         self.n_hsa_i = np.full(self.N_i, self.N_n, dtype=int)  # Year HSA contributions stop (default: never)
@@ -268,7 +248,7 @@ class Plan:
         self.ACA_n = np.zeros(self.N_n)    # Net ACA cost (after subsidy) per year (plan $)
         self._aca_lp = False               # True when withACA="optimize" is active
         self.maca_n = np.zeros(self.N_n)   # ACA LP cost variable extraction result
-        self.N_aca = 0                     # Number of ACA-eligible plan years (LP mode)
+        self.n_aca = 0                     # Number of ACA-eligible plan years (LP mode)
         self.smileDip = 15  # Percent to reduce smile profile
         self.smileIncrease = 12  # Percent to increse profile over time span
 
@@ -333,6 +313,7 @@ class Plan:
         self.timeListsFileName = "None"
         self.timeLists = {}
         self.houseLists = {}
+        self.rawHFP = {}  # raw dict of DataFrames from the HFP xlsx (horizon-independent)
         self.zeroWagesAndContributions()
         self.caseStatus = "unsolved"
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
@@ -434,6 +415,39 @@ class Plan:
         Set a text description of the case.
         """
         self._description = description
+
+    def setSexes(self, sexes):
+        """
+        Set the biological sex for each individual, used for SSA mortality table lookups.
+
+        Parameters
+        ----------
+        sexes : list of str or None
+            'M' (male) or 'F' (female) for each individual.  If None, defaults
+            are preserved ('M' for all).  Must have N_i entries.
+        """
+        if sexes is None:
+            return
+        if len(sexes) != self.N_i:
+            raise ValueError(f"sexes must have {self.N_i} entries, got {len(sexes)}.")
+        for s in sexes:
+            if s not in ("M", "F"):
+                raise ValueError(f"Each sex must be 'M' or 'F', got {s!r}.")
+        self.sexes = list(sexes)
+
+    def setMortalityTable(self, table):
+        """
+        Select the actuarial mortality table used for longevity risk sampling.
+
+        Parameters
+        ----------
+        table : str
+            One of "SSA2025", "RP2014", "IAM2012", "VBT2015-NS", "VBT2015-SM".
+        """
+        from .data.mortality_tables import MORTALITY_TABLE_KEYS
+        if table not in MORTALITY_TABLE_KEYS:
+            raise ValueError(f"Unknown mortality table {table!r}. Valid: {MORTALITY_TABLE_KEYS}.")
+        self.mortality_table = table
 
     def setSpousalDepositFraction(self, eta):
         """
@@ -544,6 +558,28 @@ class Plan:
         self.mylog.vprint(f"Heirs tax rate on tax-deferred portion of estate set to {u.pc(nu, f=0)}.")
         self.nu = nu
         self.caseStatus = "modified"
+
+    def setEffectiveTaxRate(self, rate):
+        """
+        Set the effective tax rate used to discount tax-deferred assets when computing
+        the spending-to-savings ratio. Rate is in percent. Default is 20%.
+        """
+        if not (0 <= rate <= 100):
+            raise ValueError("Rate must be between 0 and 100.")
+        self.effectiveTaxRate = rate / 100
+        self.mylog.vprint(
+            f"Effective tax rate for spending-to-savings ratio set to {u.pc(self.effectiveTaxRate, f=0)}."
+        )
+
+    def _after_tax_savings(self, etr=None):
+        """Return total after-tax initial savings, discounting tax-deferred by effective tax rate."""
+        if etr is None:
+            etr = self.effectiveTaxRate
+        taxable = np.sum(self.beta_ij[:, 0])
+        tax_deferred = np.sum(self.beta_ij[:, 1])
+        roth = np.sum(self.beta_ij[:, 2])
+        hsa = np.sum(self.beta_ij[:, 3])
+        return taxable + tax_deferred * (1 - etr) + roth + hsa
 
     def setPension(self, amounts, ages, indexed=None, survivor_fraction=None):
         """
@@ -1202,7 +1238,7 @@ class Plan:
             in log messages instead of trying to extract it from filename.
         """
         try:
-            returned_filename, self.timeLists, self.houseLists = timelists.read(
+            returned_filename, self.timeLists, self.houseLists, self.rawHFP = timelists.read(
                 filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging
             )
         except Exception as e:
@@ -1488,10 +1524,10 @@ class Plan:
             )
 
             if self.slcsp_annual > 0:
-                self.N_aca, self.Lbar_aca_nq, self.cap_pct_aca_q, self.slcsp_aca_n = \
+                self.n_aca, self.Lbar_aca_nr, self.cap_pct_aca_r, self.slcsp_aca_n = \
                     tx.acaVals(self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n)
             else:
-                self.N_aca = 0
+                self.n_aca = 0
 
             self._adjustedParameters = True
 
@@ -1530,7 +1566,7 @@ class Plan:
         else:
             self._ssa_optimize_set = set()
         ssa_lp = bool(self._ssa_optimize_set)
-        self._aca_lp = aca_lp and self.slcsp_annual > 0 and self.N_aca > 0
+        self._aca_lp = aca_lp and self.slcsp_annual > 0 and self.n_aca > 0
         self._ltcg_lp = ltcg_lp
         self._niit_lp = niit_lp
         self._bigMltcg = options.get("bigMltcg", None)   # None → use T20_n per year
@@ -1568,7 +1604,7 @@ class Plan:
         vm.add("f", self.N_t, self.N_n)
         vm.add("g", self.N_n)
         vm.add_if(medi, "h", Nmed, self.N_irmaa)    # IRMAA bracket portions (Medicare optimize)
-        vm.add_if(self._aca_lp, "haca", self.N_aca, tx.N_ACA_Q)  # ACA MAGI bracket portions (optimize)
+        vm.add_if(self._aca_lp, "haca", self.n_aca, tx.N_ACA_R)  # ACA MAGI bracket portions (optimize)
         vm.add_if(self._aca_lp, "maca", self.N_n)  # ACA LP cost variable (optimize mode only)
         vm.add("m", self.N_n)
         vm.add("q", self.N_p, self.N_n)             # q_{pn}: LTCG bracket allocations (p=0,1,2)
@@ -1588,7 +1624,7 @@ class Plan:
         vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)   # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)         # z^σ family (2 per year) for SS min() ops
-        vm.add_if(self._aca_lp, "za", self.N_aca, tx.N_ACA_Q)   # ACA bracket selection binaries
+        vm.add_if(self._aca_lp, "za", self.n_aca, tx.N_ACA_R)   # ACA bracket selection binaries
         vm.add_if(ltcg_lp, "zl", 2, self.N_n)       # 2×N_n regime binaries (LTCG MILP)
         vm.add_if(niit_lp, "zj", self.N_n)          # N_n NIIT threshold binaries
         vm.add_if(ssa_lp, "zssa", self.N_i, self._ssa_N_K)  # claiming-month selectors (SS age)
@@ -1801,12 +1837,12 @@ class Plan:
                     for n in range(transx, self.horizons[i_x]):
                         self.B.setRange(self.vm["x"].idx(i_x, n), 0, 0)
 
-            # Disallow Roth conversions in last two years alive. Plan has at least 2 years.
+            # Disallow Roth conversions in last two years alive.
             for i in range(self.N_i):
                 if i == i_xcluded:
                     continue
-                self.B.setRange(self.vm["x"].idx(i, self.horizons[i] - 2), 0, 0)
-                self.B.setRange(self.vm["x"].idx(i, self.horizons[i] - 1), 0, 0)
+                for n in range(max(0, self.horizons[i] - 2), self.horizons[i]):
+                    self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
 
     def _add_safety_net(self, options):
         """
@@ -2726,14 +2762,14 @@ class Plan:
         tau_0 = self.tau_kn[0, :]
 
         # a) SOS1: exactly one bracket selected per year.
-        for nn in range(self.N_aca):
+        for nn in range(self.n_aca):
             row = self.A.newRow()
-            for q in range(tx.N_ACA_Q):
-                row.addElem(self.vm["za"].idx(nn, q), 1)
+            for r in range(tx.N_ACA_R):
+                row.addElem(self.vm["za"].idx(nn, r), 1)
             self.A.addRow(row, 1, 1)
 
-        # b) MAGI decomposition: sum_q haca[nn, q] = current-year MAGI.
-        for nn in range(self.N_aca):
+        # b) MAGI decomposition: sum_r haca[nn, r] = current-year MAGI.
+        for nn in range(self.n_aca):
             n = nn  # ACA uses current year (no lag)
             tau_prev = tau_0[max(0, n - 1)]
 
@@ -2768,24 +2804,24 @@ class Plan:
                              + 0.5 * self.kappa_ijn[i, 0, n] * afac)
                 rhs_magi -= self.kappa_ijn[i, 3, n]     # HSA contributions reduce MAGI
 
-            for q in range(tx.N_ACA_Q):
-                haca_idx = self.vm["haca"].idx(nn, q)
+            for r in range(tx.N_ACA_R):
+                haca_idx = self.vm["haca"].idx(nn, r)
                 row_magi[haca_idx] = row_magi.get(haca_idx, 0) + 1
 
             self.A.addNewRow(row_magi, rhs_magi, rhs_magi)
 
-        # c) Bracket bounds: Lbar[nn, q-1]*za[q] <= haca[q] <= Lbar[nn, q]*za[q].
-        for nn in range(self.N_aca):
-            for q in range(tx.N_ACA_Q):
-                haca_idx = self.vm["haca"].idx(nn, q)
-                za_idx = self.vm["za"].idx(nn, q)
+        # c) Bracket bounds: Lbar[nn, r-1]*za[r] <= haca[r] <= Lbar[nn, r]*za[r].
+        for nn in range(self.n_aca):
+            for r in range(tx.N_ACA_R):
+                haca_idx = self.vm["haca"].idx(nn, r)
+                za_idx = self.vm["za"].idx(nn, r)
 
-                lower = 0 if q == 0 else self.Lbar_aca_nq[nn, q - 1]
+                lower = 0 if r == 0 else self.Lbar_aca_nr[nn, r - 1]
                 if lower > 0:
                     self.A.addNewRow({haca_idx: 1, za_idx: -lower}, 0, np.inf)
 
-                if q < tx.N_ACA_Q - 1:
-                    upper = self.Lbar_aca_nq[nn, q]
+                if r < tx.N_ACA_R - 1:
+                    upper = self.Lbar_aca_nr[nn, r]
                     self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0)
                 else:
                     # Last bracket (above 400% FPL): use BigM as upper bound so haca = 0 when za = 0.
@@ -2796,7 +2832,7 @@ class Plan:
         """
         Add ACA cost constraints for the LP/MIP formulation (optimize mode only).
 
-        In optimize mode: maca_n = sum_{q=0}^{5} cap_pct_q * haca[nn,q] + slcsp_aca_n[nn]*za[nn,6].
+        In optimize mode: maca_n = sum_{r=0}^{5} cap_pct_r * haca[nn,r] + slcsp_aca_n[nn]*za[nn,6].
         For brackets 0-5: proportional cost. For bracket 6 (above 400% FPL): fixed cost = SLCSP.
         In loop mode: maca variable does not exist; ACA_n (SC loop) goes in the cash-flow RHS.
         """
@@ -2804,16 +2840,16 @@ class Plan:
             return  # Loop mode: no maca variable; ACA_n from SC loop is in the cash-flow RHS.
 
         # Pin post-ACA years to zero (individual is on Medicare; no ACA cost).
-        for n in range(self.N_aca, self.N_n):
+        for n in range(self.n_aca, self.N_n):
             self.B.setRange(self.vm["maca"].idx(n), 0, 0)
 
-        # Cost constraint: maca_n = sum_{q=0}^{5} cap_pct_q * haca[nn,q] + slcsp*za[nn,6].
+        # Cost constraint: maca_n = sum_{r=0}^{5} cap_pct_r * haca[nn,r] + slcsp*za[nn,6].
         # Bracket 6 (>400% FPL): 2026 rules impose full SLCSP (no PTC), not proportional to MAGI.
-        for nn in range(self.N_aca):
+        for nn in range(self.n_aca):
             row = self.A.newRow({self.vm["maca"].idx(nn): 1})
-            for q in range(tx.N_ACA_Q - 1):  # q=0..5 only; bracket 6 uses fixed SLCSP
-                row.addElem(self.vm["haca"].idx(nn, q), -self.cap_pct_aca_q[q])
-            row.addElem(self.vm["za"].idx(nn, tx.N_ACA_Q - 1), -self.slcsp_aca_n[nn])
+            for r in range(tx.N_ACA_R - 1):  # r=0..5 only; bracket 6 uses fixed SLCSP
+                row.addElem(self.vm["haca"].idx(nn, r), -self.cap_pct_aca_r[r])
+            row.addElem(self.vm["za"].idx(nn, tx.N_ACA_R - 1), -self.slcsp_aca_n[nn])
             self.A.addRow(row, 0, 0)
             self.B.setRange(self.vm["maca"].idx(nn), 0, self.slcsp_aca_n[nn])
 
@@ -2884,12 +2920,63 @@ class Plan:
             self, objective, options, N, verbose=verbose, figure=figure, progcall=progcall, log_x=log_x)
 
     @_timer
-    def runStochasticSpending(self, objective, options, scenario_method, *,
+    def runStochasticSpending(self, options, scenario_method, *,
                               ystart=None, yend=None, N=None, progcall=None,
-                              reverse=False, roll=0):
+                              reverse=False, roll=0,
+                              with_longevity=False, sexes=None, seed=None):
         return run_stochastic_spending(
-            self, objective, options, scenario_method, ystart=ystart, yend=yend, N=N,
-            progcall=progcall, reverse=reverse, roll=roll)
+            self, options, scenario_method, ystart=ystart, yend=yend, N=N,
+            progcall=progcall, reverse=reverse, roll=roll,
+            with_longevity=with_longevity, sexes=sexes, seed=seed)
+
+    @_timer
+    def runSpendingFrontier(self, scenario_method, *,
+                            ystart=None, yend=None, N=None, progcall=None,
+                            reverse=False, roll=0,
+                            with_longevity=False, sexes=None, seed=None, **kwargs):
+        """
+        Run the spending efficient frontier over historical or Monte Carlo scenarios.
+
+        Accepts the same solver options as solve() via keyword arguments.  The
+        objective is always maxSpending; passing ``netSpending`` raises an error.
+
+        Parameters
+        ----------
+        scenario_method : str
+            "historical" — sweep ``ystart``..``yend``.
+            "mc"         — ``N`` Monte Carlo draws.
+        ystart, yend : int, optional
+            Start/end years for historical mode.
+        N : int, optional
+            Number of simulations for Monte Carlo mode.
+        progcall : Progress, optional
+            Progress callback.
+        with_longevity : bool, optional
+            Draw random lifespans from SSA tables for each scenario.
+        sexes : list of str, optional
+            Sex of each individual ('M' or 'F').  Required when with_longevity=True.
+        seed : int or None, optional
+            Random seed for reproducible longevity draws.
+        **kwargs
+            Solver options forwarded to solve() (e.g. bequest, maxRothConversion,
+            withMedicare, solver, withSSTaxability, previousMAGIs).
+
+        Returns
+        -------
+        dict — see runStochasticSpending for keys.
+        """
+        if kwargs.get("objective", "maxSpending") != "maxSpending":
+            raise ValueError(
+                "runSpendingFrontier only supports 'maxSpending'; "
+                f"got objective='{kwargs['objective']}'."
+            )
+        if "netSpending" in kwargs:
+            self.mylog.print("Warning: 'netSpending' is ignored by runSpendingFrontier (maxSpending objective).")
+            kwargs.pop("netSpending")
+        return run_stochastic_spending(
+            self, kwargs, scenario_method, ystart=ystart, yend=yend, N=N,
+            progcall=progcall, reverse=reverse, roll=roll,
+            with_longevity=with_longevity, sexes=sexes, seed=seed)
 
     def resolve(self):
         """
@@ -4360,6 +4447,54 @@ class Plan:
         if figure:
             return fig
 
+        self._plotter.jupyter_renderer(fig)
+        return None
+
+    @_checkCaseStatus
+    def showSavingsRetentionRate(self, tag="", figure=False, log_scale=False):
+        """
+        Plot savings retention rate (%) over time: fraction of balance NOT drawn each year.
+
+        Retention = 1 − net_draw/b, where net_draw = w_ijn (spending withdrawals)
+        minus d_in (taxable deposits) and kappa_ijn[:,1:,:] (contributions to
+        tax-deferred/Roth/HSA). Roth conversions excluded — internal transfers.
+        Values >100% indicate accumulation years; ~0% in the final year when
+        bequest=0 (avoids the scale-distorting 100% withdrawal bar of the inverse).
+        When log_scale=True, y = log(retention/100); reference line at 0; bars sum to
+        log(b_final/b_initial); sustainability line simplifies to ≈ i_n − r_n.
+        """
+        net_w = self.w_ijn.copy()
+        net_w[:, 0, :] -= self.d_in                            # subtract deposits to taxable
+        net_w[:, 1:, :] -= self.kappa_ijn[:, 1:, :self.N_n]   # subtract contributions to deferred/Roth/HSA
+        net_draw_n = np.sum(net_w, axis=(0, 1))
+        b_n = np.sum(self.b_ijn[:, :, :-1], axis=(0, 1))
+        with np.errstate(invalid="ignore", divide="ignore"):
+            rate = np.where(b_n > 0, (1 - net_draw_n / b_n) * 100, 0.0)
+        # Real break-even: retention rate that preserves real portfolio value
+        num_n = np.einsum('ijn,ijkn,kn->n',
+                          self.b_ijn[:, :, :self.N_n],
+                          self.alpha_ijkn[:, :, :, :self.N_n],
+                          self.tau_kn[:, :self.N_n])
+        with np.errstate(invalid="ignore", divide="ignore"):
+            r_n = np.where(b_n > 0, num_n / b_n, 0.0)
+        inflation_n = self.gamma_n[1:self.N_n + 1] / self.gamma_n[:self.N_n]
+        sustainability_n = inflation_n / (1.0 + r_n) * 100.0
+        if log_scale:
+            with np.errstate(invalid="ignore", divide="ignore"):
+                rate = np.where(rate > 0, np.log(rate / 100.0), np.nan)
+                sustainability_n = np.log(sustainability_n / 100.0)
+        title = self._name + "\nSavings Retention Rate"
+        if log_scale:
+            title += " (log scale)"
+        if self.bequest > 0:
+            title += f"\n(Note: bequest of {u.d(self.bequest, f=0)} included in balance)"
+        if tag:
+            title += " - " + tag
+        fig = self._plotter.plot_savings_retention_rate(self.year_n, rate, title,
+                                                        sustainability_n=sustainability_n,
+                                                        log_scale=log_scale)
+        if figure:
+            return fig
         self._plotter.jupyter_renderer(fig)
         return None
 

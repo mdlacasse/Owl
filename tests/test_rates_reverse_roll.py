@@ -160,6 +160,7 @@ description = ""
 [basic_info]
 status = "single"
 names = ["Joe"]
+sexes = ["M"]
 date_of_birth = ["1961-01-15"]
 life_expectancy = [80]
 start_date = "today"

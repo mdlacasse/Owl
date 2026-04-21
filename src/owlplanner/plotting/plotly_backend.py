@@ -801,7 +801,7 @@ class PlotlyBackend(PlotBackend):
               f"max {u.d(float(values.max()))}, mean {u.d(mean_val)}.", file=description)
         return fig, description
 
-    def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
+    def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
                                  target_success_rate, g_opt, year_n, start_years=None,
                                  with_longevity=False):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
@@ -865,7 +865,7 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
-    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n,
+    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate, year_n,
                                  with_longevity=False):
         """Bar chart of achieved spending by scenario.
 
@@ -875,7 +875,7 @@ class PlotlyBackend(PlotBackend):
         thisyear = int(year_n[0])
         achieved = np.minimum(g_opt, bases)
         success = achieved >= g_opt - 1.0
-        label = "Spending" if objective == "maxSpending" else "Bequest"
+        label = "Spending"
         longevity_tag = " · longevity" if with_longevity else ""
         is_historical = start_years is not None
 
@@ -931,6 +931,47 @@ class PlotlyBackend(PlotBackend):
             template=self.template,
             barmode="overlay",
             legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
+        )
+        return fig
+
+    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None, log_scale=False):
+        """Bar chart of annual savings retention rate. Reference at 100% (linear) or 0 (log)."""
+        title = title.replace("\n", "<br>")
+        threshold = 0.0 if log_scale else 100.0
+        if sustainability_n is not None:
+            colors = ["steelblue" if (not np.isnan(r) and not np.isnan(s) and r > s) else "tomato"
+                      for r, s in zip(rate_n, sustainability_n)]
+        else:
+            colors = ["steelblue" if (not np.isnan(r) and r > threshold) else "tomato" for r in rate_n]
+        hover = "%{x}: %{y:+.2f}<extra></extra>" if log_scale else "%{x}: %{y:.1f}%<extra></extra>"
+        fig = go.Figure(go.Bar(x=year_n, y=rate_n, marker_color=colors, opacity=0.85,
+                               name="Retention rate", hovertemplate=hover))
+        fig.add_hline(y=threshold, line_width=1, line_color="black")
+        if sustainability_n is not None:
+            fig.add_trace(go.Scatter(
+                x=year_n, y=sustainability_n, mode="lines",
+                line=dict(dash="dash", color="yellow", width=1.8),
+                name="Real break-even",
+            ))
+        if log_scale:
+            all_vals = np.concatenate([rate_n, sustainability_n]) if sustainability_n is not None else rate_n
+            valid = all_vals[~np.isnan(all_vals)]
+            lo = np.floor(valid.min() / 0.05) * 0.05 - 0.05 if len(valid) else -0.5
+            hi = np.ceil(valid.max() / 0.05) * 0.05 + 0.05 if len(valid) else 0.5
+            tvals = np.round(np.arange(lo, hi + 0.001, 0.05), 3)
+            yaxis = dict(tickmode="array", tickvals=tvals.tolist(),
+                         ticktext=[f"{v:+.2f}" for v in tvals])
+            ylabel = "Log retention  log(\u03b2\u2099\u208a\u2081/\u03b2\u2099)"
+        else:
+            yaxis = dict(tickformat=".1f", ticksuffix="%")
+            ylabel = "Savings retention rate (%)"
+        fig.update_layout(
+            title=title,
+            xaxis_title="Year",
+            yaxis_title=ylabel,
+            yaxis=yaxis,
+            legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5),
+            template=self.template,
         )
         return fig
 

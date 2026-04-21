@@ -8,6 +8,7 @@ Reference benchmarks: max bequest ≈ $90,882; at $80k net spending, bequest ≈
 [basic_info]
 status = "single"
 names = [ "Charles",]
+sexes = [ "M",]
 date_of_birth = [ "1967-01-15",]
 life_expectancy = [ 89,]
 start_date = "2026-01-01"

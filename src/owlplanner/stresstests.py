@@ -21,12 +21,58 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import os
 import numpy as np
 import pandas as pd
 from itertools import product
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from scipy.optimize import linprog
 
 from . import progress
+from . import rates
+from .config.plan_bridge import clone
+from .data.mortality_tables import sample_lifespans
+
+
+###############################################################################
+# Parallel scenario worker
+###############################################################################
+
+def _scenario_worker(args):
+    """
+    Solve one scenario in a worker thread.
+
+    args tuple:
+      plan          — cloned Plan (thread-local copy, already has all data)
+      tau_kn_or_year — ndarray (N_k, N_n) pre-generated rates (MC), or int year (historical)
+      gamma_n       — unused placeholder for compatibility (None in current calls)
+      options       — solver options dict
+
+    Returns float (basis) or None on solver failure.
+    """
+    p, tau_kn_or_year, gamma_n, options = args
+
+    if isinstance(tau_kn_or_year, tuple):
+        year, reverse, roll = tau_kn_or_year
+        p.setRates("historical", year, reverse=reverse, roll=roll)
+    elif isinstance(tau_kn_or_year, int):
+        p.setRates("historical", tau_kn_or_year)
+    else:
+        Nn = p.N_n
+        tau_slice = tau_kn_or_year[:, :Nn]
+        if tau_slice.shape[1] != Nn:
+            raise RuntimeError(
+                f"Precomputed rate path is too short for scenario horizon: have {tau_slice.shape[1]}, need {Nn}."
+            )
+        p.tau_kn = tau_slice
+        p.gamma_n = rates.gen_gamma_n(p.tau_kn)
+        p._adjustedParameters = False
+        p.caseStatus = "modified"
+
+    p.solve("maxSpending", options)
+    if p.caseStatus == "solved":
+        return p.basis
+    return None
 
 
 ###############################################################################
@@ -292,19 +338,17 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
     return N, df
 
 
-def run_stochastic_spending(plan, objective, options, scenario_method, *,
+def run_stochastic_spending(plan, options, scenario_method, *,
                             ystart=None, yend=None, N=None, progcall=None,
-                            reverse=False, roll=0):
+                            reverse=False, roll=0, with_longevity=False, sexes=None, seed=None):
     """
     Run stochastic spending optimization over a set of scenarios.
 
-    Collects optimal basis or bequest across S scenarios, computes the efficient frontier via the
+    Collects optimal spending basis across S scenarios, computes the efficient frontier via the
     stochastic LP, and returns the raw data needed for plotting.
 
     Parameters
     ----------
-    objective : str
-        "maxSpending" or "maxBequest".
     options : dict
         Solver options passed to solve().
     scenario_method : str
@@ -316,6 +360,17 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         Number of simulations for MC mode.
     progcall : Progress, optional
         Progress callback.
+    with_longevity : bool, optional
+        If True, draw a random lifespan for each scenario from SSA 2021 period
+        life tables before solving.  Each scenario is solved on a fresh clone of
+        *plan* with the drawn expectancy.  For couples, lifespans are drawn
+        independently and the last-survivor horizon (max of the two draws) is used.
+    sexes : list of str, optional
+        Sex of each individual for SSA table lookup: 'M' (male) or 'F' (female).
+        Required when ``with_longevity=True``.  E.g. ``['M', 'F']`` for a couple.
+    seed : int or None, optional
+        Random seed for reproducible longevity draws.  Only used when
+        ``with_longevity=True``.
 
     Returns
     -------
@@ -328,9 +383,23 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         "frontier_shortfall" : ndarray
         "year_n"             : ndarray — plan calendar years
         "n_d"                : int — death year index (for unit labeling)
+        "drawn_lifespans"    : ndarray (S, N_i) or None — drawn ages at death per scenario
     """
-    if objective not in ("maxSpending", "maxBequest"):
-        raise ValueError(f"Invalid objective '{objective}'.")
+    if with_longevity and scenario_method == "historical":
+        raise ValueError(
+            "Longevity risk is not supported with historical scenarios "
+            "(drawn lifespans can exceed the available historical data range). "
+            "Use Monte Carlo ('mc') instead."
+        )
+
+    if with_longevity:
+        if sexes is None:
+            raise ValueError("sexes must be provided when with_longevity=True (e.g. ['M'] or ['M','F']).")
+        if len(sexes) != plan.N_i:
+            raise ValueError(f"len(sexes)={len(sexes)} must match plan.N_i={plan.N_i}.")
+        current_ages = [int(plan.year_n[0] - plan.yobs[i]) for i in range(plan.N_i)]
+        mortality_table = getattr(plan, "mortality_table", "SSA2025")
+        rng = np.random.default_rng(seed)
 
     plan.mylog.setVerbose(False)
 
@@ -339,30 +408,50 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
 
     bases_list = []
     start_years_list = []
-    n_infeasible = 0
+    drawn_lifespans_list = []
 
+    # ------------------------------------------------------------------
+    # Build the args list for parallel workers.
+    # All random draws and rate generation happen here in the parent so
+    # that reproducibility (seed control) is preserved exactly.
+    # Each scenario gets its own clone — a full copy that already has
+    # all plan data (timelists, allocations, etc.) without any file I/O.
+    # ------------------------------------------------------------------
     if scenario_method == "historical":
         if ystart is None or yend is None:
             raise ValueError("ystart and yend are required for historical scenario method.")
-        if yend + plan.N_n > plan.year_n[0]:
-            yend = plan.year_n[0] - plan.N_n
-            plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
-        if yend < ystart:
-            raise ValueError(f"Starting year too large for lifespan of {plan.N_n} years.")
-        total = yend - ystart + 1
-        plan.mylog.vprint(f"Stochastic spending: running {total} historical scenarios.")
-        progcall.start()
-        for step, year in enumerate(range(ystart, yend + 1)):
-            plan.setRates("historical", year, reverse=reverse, roll=roll)
-            plan.solve(objective, options)
-            progcall.show(step + 1, total)
-            if plan.caseStatus == "solved":
-                val = plan.basis if objective == "maxSpending" else plan.bequest
+        if not with_longevity:
+            if yend + plan.N_n > plan.year_n[0]:
+                yend = plan.year_n[0] - plan.N_n
+                plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
+            if yend < ystart:
+                raise ValueError(f"Starting year too large for lifespan of {plan.N_n} years.")
+        years = list(range(ystart, yend + 1))
+        total = len(years)
+        plan.mylog.vprint(f"Stochastic spending: running {total} historical scenarios"
+                          + (" (with longevity sampling)." if with_longevity else "."))
+        drawn_list = []
+        if with_longevity:
+            for _ in years:
+                drawn = [int(sample_lifespans(sexes[i], current_ages[i], 1, rng, table=mortality_table)[0])
+                         for i in range(plan.N_i)]
+                drawn_list.append(drawn)
+        else:
+            drawn_list = [None] * total
+        results_map = {}
+        n_short_horizon = 0
+        args_list = []
+        for i, year in enumerate(years):
+            if with_longevity:
+                horizon = max(drawn_list[i][j] - current_ages[j] + 1 for j in range(plan.N_i))
             else:
-                val = 0.0
-                n_infeasible += 1
-            bases_list.append(val)
-            start_years_list.append(year)
+                horizon = plan.N_n
+            if horizon <= 1:
+                results_map[i] = 0.0
+                n_short_horizon += 1
+            else:
+                args_list.append((i, (clone(plan, expectancy=drawn_list[i], verbose=False),
+                                      (year, reverse, roll), None, options)))
 
     elif scenario_method == "mc":
         if N is None:
@@ -370,36 +459,116 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         if not hasattr(plan, "rateModel") or plan.rateModel is None \
                 or getattr(plan.rateModel, "deterministic", True):
             raise ValueError("Monte Carlo requires a stochastic rate method.")
-        plan.mylog.vprint(f"Stochastic spending: running {N} Monte Carlo scenarios.")
+        plan.mylog.vprint(f"Stochastic spending: running {N} Monte Carlo scenarios"
+                          + (" (with longevity sampling)." if with_longevity else "."))
+        # Reset the rate RNG so repeated calls are reproducible when seeded
         if plan.reproducibleRates and hasattr(plan.rateModel, '_rng'):
             plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
-        progcall.start()
-        for n in range(N):
-            plan.regenRates(override_reproducible=True)
-            plan.solve(objective, options)
-            progcall.show(n + 1, N)
-            if plan.caseStatus == "solved":
-                val = plan.basis if objective == "maxSpending" else plan.bequest
-            else:
-                val = 0.0
-                n_infeasible += 1
-            bases_list.append(val)
 
+        # Pre-draw longevity
+        drawn_list = []
+        if with_longevity:
+            for _ in range(N):
+                drawn = [int(sample_lifespans(sexes[i], current_ages[i], 1, rng, table=mortality_table)[0])
+                         for i in range(plan.N_i)]
+                drawn_list.append(drawn)
+            # Compute each scenario horizon directly from drawn ages-at-death.
+            # This avoids creating extra clones just to discover horizons.
+            horizons = [
+                max(int(drawn[i] - current_ages[i] + 1) for i in range(plan.N_i))
+                for drawn in drawn_list
+            ]
+            N_n_max = max(horizons)
+        else:
+            drawn_list = [None] * N
+            N_n_max = plan.N_n
+
+        # Pre-generate all rate sequences at the maximum required horizon in the parent.
+        # Workers only slice deterministic inputs, so results are independent of thread scheduling.
+        rate_data = []
+        for _ in range(N):
+            series = plan.rateModel.generate(N_n_max)
+            if series.shape != (N_n_max, 4):
+                raise RuntimeError(
+                    f"Rate model returned shape {series.shape}, expected ({N_n_max}, 4)"
+                )
+            tau_kn = series.transpose()
+            if not getattr(plan.rateModel, "constant", False):
+                tau_kn = rates.apply_rate_sequence_transform(
+                    tau_kn,
+                    plan.rateReverse,
+                    plan.rateRoll,
+                )
+            rate_data.append(tau_kn)
+        total = N
+        results_map = {}
+        n_short_horizon = 0
+        args_list = []
+        for n, tau_kn in enumerate(rate_data):
+            horizon = horizons[n] if with_longevity else plan.N_n
+            if horizon <= 1:
+                results_map[n] = 0.0
+                n_short_horizon += 1
+            else:
+                args_list.append((n, (clone(plan, expectancy=drawn_list[n], verbose=False),
+                                      tau_kn, None, options)))
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
+
+    # ------------------------------------------------------------------
+    # Solve all scenarios in parallel using threads.
+    # HiGHS releases the GIL during solve, so threads give real parallelism.
+    # No pickling needed — clones are plain Python objects.
+    # Short-horizon scenarios (both individuals die within <=2 years) are
+    # pre-populated in results_map with basis=0 and not submitted to workers.
+    # ------------------------------------------------------------------
+    n_to_solve = len(args_list)
+    n_workers = min(os.cpu_count() or 1, n_to_solve) if n_to_solve > 0 else 1
+    plan.mylog.print(f"Solving {total} scenarios using {n_workers} parallel worker thread(s).")
+    progcall.start()
+    completed = n_short_horizon  # pre-count already-resolved short-horizon scenarios
+
+    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+        futures = {executor.submit(_scenario_worker, args): orig_idx for orig_idx, args in args_list}
+        for fut in as_completed(futures):
+            orig_idx = futures[fut]
+            results_map[orig_idx] = fut.result()
+            completed += 1
+            progcall.show(completed, total)
+
+    # Collect results in scenario order (preserves start_years ordering).
+    # Infeasible scenarios (None) are kept as basis=0.0 so that S in the LP
+    # equals the number of scenarios requested, not just the ones that solved.
+    # A basis of 0 means the full committed spending is a shortfall, which is
+    # the correct treatment for an infeasible scenario.
+    n_infeasible = 0
+    for i in sorted(results_map):
+        val = results_map[i]
+        if val is None:
+            n_infeasible += 1
+            val = 0.0
+        bases_list.append(val)
+        if scenario_method == "historical":
+            start_years_list.append(years[i])
+        if with_longevity:
+            drawn_lifespans_list.append(np.array(drawn_list[i]))
 
     progcall.finish()
     plan.mylog.resetVerbose()
 
-    n_solved = len(bases_list) - n_infeasible
+    if n_short_horizon:
+        plan.mylog.print(f"Note: {n_short_horizon} of {total} scenarios had a horizon <=1 year"
+                         " (individual(s) die imminently) and are counted as zero spending.")
+    n_solved = total - n_infeasible - n_short_horizon
     if n_infeasible:
-        plan.mylog.print(f"Warning: {n_infeasible} of {len(bases_list)} scenarios were infeasible"
+        plan.mylog.print(f"Warning: {n_infeasible} of {total} scenarios were infeasible"
                          " and are counted as full shortfall.")
     if n_solved < 2:
         raise RuntimeError("Fewer than 2 scenarios solved successfully; cannot compute frontier.")
 
     bases = np.array(bases_list)
     start_years = np.array(start_years_list) if start_years_list else None
+    drawn_lifespans = np.array(drawn_lifespans_list) if with_longevity else None
 
     lambdas, frontier_g, frontier_prob, frontier_shortfall = _compute_efficient_frontier(bases)
 
@@ -412,5 +581,6 @@ def run_stochastic_spending(plan, objective, options, scenario_method, *,
         "frontier_shortfall": frontier_shortfall,
         "year_n": plan.year_n,
         "n_d": plan.n_d,
+        "drawn_lifespans": drawn_lifespans,
         "n_infeasible": n_infeasible,
     }

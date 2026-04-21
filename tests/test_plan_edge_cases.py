@@ -469,6 +469,91 @@ def test_clone_without_newname():
     assert cloned.inames == p.inames
 
 
+def _make_single_plan(expectancy=85):
+    """Helper: minimal configured single-person plan."""
+    p = owl.Plan(['Joe'], ["1961-01-15"], [expectancy], "original")
+    p.setAccountBalances(taxable=[100], taxDeferred=[500], taxFree=[50])
+    p.setSpendingProfile("flat")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setRates("conservative")
+    return p
+
+
+def _make_couple_plan(expectancy=(88, 85)):
+    """Helper: minimal configured couple plan."""
+    p = owl.Plan(['Alice', 'Bob'], ["1960-03-10", "1958-07-22"], list(expectancy), "couple")
+    p.setAccountBalances(taxable=[100, 80], taxDeferred=[500, 400], taxFree=[50, 40])
+    p.setSpendingProfile("flat")
+    p.setAllocationRatios("individual",
+                          generic=[[[60, 40, 0, 0], [60, 40, 0, 0]], [[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setRates("conservative")
+    return p
+
+
+def test_clone_with_new_expectancy_single():
+    """clone(..., expectancy=...) rebuilds plan with new horizon for a single individual."""
+    p = _make_single_plan(expectancy=85)
+    cloned = plan.clone(p, expectancy=[90])
+    assert cloned.expectancy[0] == 90
+    assert cloned.N_n > p.N_n
+    assert cloned.inames == p.inames
+    assert len(cloned.xi_n) == cloned.N_n
+    assert len(cloned.gamma_n) == cloned.N_n + 1  # gamma_n has N_n+1 entries (extra inflation point)
+
+
+def test_clone_with_new_expectancy_couple():
+    """clone(..., expectancy=...) rebuilds plan with new horizon for a couple."""
+    p = _make_couple_plan(expectancy=(88, 85))
+    cloned = plan.clone(p, expectancy=[80, 80])
+    assert list(cloned.expectancy) == [80, 80]
+    assert cloned.inames == p.inames
+    assert len(cloned.xi_n) == cloned.N_n
+    assert len(cloned.gamma_n) == cloned.N_n + 1  # gamma_n has N_n+1 entries (extra inflation point)
+
+
+def test_clone_with_new_expectancy_preserves_name():
+    """clone(..., expectancy=...) respects the newname argument."""
+    p = _make_single_plan(expectancy=85)
+    cloned = plan.clone(p, newname="scenario", expectancy=[75])
+    assert cloned._name == "scenario"
+    assert cloned.expectancy[0] == 75
+
+
+def test_clone_with_new_expectancy_does_not_modify_source():
+    """clone(..., expectancy=...) must not change the original plan."""
+    p = _make_single_plan(expectancy=85)
+    original_N_n = p.N_n
+    _ = plan.clone(p, expectancy=[70])
+    assert p.N_n == original_N_n
+    assert p.expectancy[0] == 85
+
+
+def test_clone_with_new_expectancy_inherits_logger():
+    """clone(..., expectancy=...) must write to the same logstreams as the source plan."""
+    strio = StringIO()
+    p = owl.Plan(["Joe"], ["1961-01-15"], [85], "test",
+                 verbose=True, logstreams=[strio, strio])
+    p.setAccountBalances(taxable=[100], taxDeferred=[500], taxFree=[50])
+    p.setSpendingProfile("flat")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setRates("conservative")
+
+    cloned = plan.clone(p, expectancy=[90])
+
+    # The cloned plan's logger must share the same streams as the source
+    assert cloned.logger()._logstreams is strio or cloned.logger()._logstreams == [strio, strio]
+    # Renaming the clone should have written to the stream, not stdout
+    assert strio.getvalue() != ""
+
+
+def test_clone_no_copy_suffix_accumulation():
+    """Cloning a clone must not accumulate ' (copy) (copy)' in the name."""
+    p = _make_single_plan(expectancy=85)
+    copy1 = plan.clone(p)
+    copy2 = plan.clone(copy1)
+    assert copy2._name == p._name + " (copy)"
+
+
 def test_q_functions():
     """Test VarBlock row-major indexing (replaces the deleted _q1/_q2/_q3/_q4 functions)."""
     from owlplanner.varmap import VarBlock

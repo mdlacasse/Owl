@@ -145,12 +145,12 @@ _ACA_CONTRIB_PCT_2026 = np.array([0.021, 0.0419, 0.066, 0.0844, 0.0996, 0.0996])
 # No cap above 400%: full SLCSP (no PTC)
 
 # ACA LP bracket configuration (2026+ rules; used only in withACA="optimize" mode).
-N_ACA_Q = 7  # number of ACA brackets: 6 intervals up to 400% FPL + 1 bracket above 400%
+N_ACA_R = 7  # number of ACA brackets: 6 intervals up to 400% FPL + 1 bracket above 400%
 # LP bracket thresholds as multiples of FPL (6 thresholds → 7 brackets, constant structure).
 _ACA_LP_BREAKPOINTS = _ACA_BREAKPOINTS_2026  # [1.33, 1.50, 2.00, 2.50, 3.00, 4.00]
 # Contribution rates per LP bracket (constant-within-bracket approximation of piecewise function).
 # Brackets 0-5: 2026 rates. Bracket 6 (>400% FPL): cost = full SLCSP (handled via za*slcsp in plan.py).
-_ACA_LP_CONTRIB = np.append(_ACA_CONTRIB_PCT_2026, 0.0)  # q=6 not used in proportional sum
+_ACA_LP_CONTRIB = np.append(_ACA_CONTRIB_PCT_2026, 0.0)  # r=6 not used in proportional sum
 
 ###############################################################################
 # Data that is unlikely to change.
@@ -295,7 +295,12 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
             if include_part_d and part_d_base_annual_per_person != 0:
                 Cbar[nn] += imed * gamma_n[n] * part_d_base_annual_per_person
         else:
-            raise RuntimeError("mediVals: This should never happen.")
+            # Nobody is on Medicare this year (e.g. a drawn longevity horizon lands
+            # before age 65, or there is a gap between one spouse dying before 65
+            # and the other reaching Medicare).  Use single-filer brackets with
+            # zero cost so the LP constraints remain valid but impose no charge.
+            Lbar[nn] = gamma_n[n] * irmaaBrackets[0][1:]
+            # Cbar[nn] stays at zero (already initialized)
 
     return nmstart, Lbar, Cbar
 
@@ -518,9 +523,9 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
 
 def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
     """
-    Return (N_aca, Lbar_aca_nq, cap_pct_aca_q, slcsp_aca_n) for the ACA LP/MIP formulation.
+    Return (n_aca, Lbar_aca_nr, cap_pct_aca_r, slcsp_aca_n) for the ACA LP/MIP formulation.
 
-    Uses 2026+ ACA rules (N_ACA_Q = 7 brackets). Bracket thresholds are FPL-based and
+    Uses 2026+ ACA rules (N_ACA_R = 7 brackets). Bracket thresholds are FPL-based and
     inflation-adjusted via gamma_n. Household size (1 or 2) determines which FPL base to use.
     FPL base is year-aware (2025 vs 2026 from _ACA_FPL); contribution rates use 2026 table only.
 
@@ -544,16 +549,16 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
 
     Returns
     -------
-    N_aca : int
+    n_aca : int
         Number of ACA-eligible plan years (0 = no ACA in LP).
-    Lbar_aca_nq : ndarray, shape (N_aca, N_ACA_Q-1)
+    Lbar_aca_nr : ndarray, shape (n_aca, N_ACA_R-1)
         Inflation-adjusted FPL bracket thresholds per year ($).
-    cap_pct_aca_q : ndarray, shape (N_ACA_Q,)
+    cap_pct_aca_r : ndarray, shape (N_ACA_R,)
         Contribution rates per bracket (constant across years).
-    slcsp_aca_n : ndarray, shape (N_aca,)
+    slcsp_aca_n : ndarray, shape (n_aca,)
         Inflation-adjusted SLCSP premium cap per year ($).
     """
-    empty = (0, np.zeros((0, N_ACA_Q - 1)), _ACA_LP_CONTRIB.copy(), np.zeros(0))
+    empty = (0, np.zeros((0, N_ACA_R - 1)), _ACA_LP_CONTRIB.copy(), np.zeros(0))
     if slcsp_annual <= 0:
         return empty
 
@@ -561,17 +566,17 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
     Ni = len(yobs)
     fpl_max_year = max(_ACA_FPL.keys())
 
-    # N_aca = first year when no individual is ACA-eligible (age < 65 and within horizon).
+    # n_aca = first year when no individual is ACA-eligible (age < 65 and within horizon).
     n_aca_i = [min(max(0, yobs[i] + 65 - thisyear), horizons[i]) for i in range(Ni)]
-    N_aca = min(max(n_aca_i), Nn)
+    n_aca = min(max(n_aca_i), Nn)
 
-    if N_aca == 0:
+    if n_aca == 0:
         return empty
 
-    Lbar = np.zeros((N_aca, N_ACA_Q - 1))
-    slcsp_aca_n = np.zeros(N_aca)
+    Lbar = np.zeros((n_aca, N_ACA_R - 1))
+    slcsp_aca_n = np.zeros(n_aca)
 
-    for nn in range(N_aca):
+    for nn in range(n_aca):
         n = nn  # ACA uses current year (no 2-year lag like Medicare)
         eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
         hh_size = min(len(eligible), 2)
@@ -585,7 +590,7 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
         Lbar[nn] = _ACA_LP_BREAKPOINTS * fpl
         slcsp_aca_n[nn] = slcsp_annual * gamma_n[n]
 
-    return N_aca, Lbar, _ACA_LP_CONTRIB.copy(), slcsp_aca_n
+    return n_aca, Lbar, _ACA_LP_CONTRIB.copy(), slcsp_aca_n
 
 
 def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):

@@ -54,6 +54,7 @@ def default_config(ni: int = 1) -> dict:
             "names": [""] * ni,
             "date_of_birth": [DEFAULT_DOB] * ni,
             "life_expectancy": [DEFAULT_LIFE_EXPECTANCY] * ni,
+            "sexes": ["M", "F"] if ni == 2 else ["F"],
             "start_date": "today",
         },
         "savings_assets": {

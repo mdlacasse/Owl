@@ -161,8 +161,11 @@ else:
 
     kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."
+    _desc = kz.getCaseKey("description") or ""
+    _lines = sum(max(1, (len(p) + 89) // 90) for p in _desc.split('\n')) if _desc else 1
+    _desc_height = max(68, _lines * 14 + 40)
     description = kz.getLongText("Brief description", "description", help=helpmsg,
-                                 placeholder="Enter a brief description...")
+                                 placeholder="Enter a brief description...", height=_desc_height)
 
     namehelp = "Use first name or just a nickname."
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
@@ -179,9 +182,10 @@ Calculations are the same if you were born on any day after the 2nd of the month
 Social Security has special rules for those born on the 1st or 2nd.
 See SSA documentation for details.
 """
-        longmsg = """See the documentation for suggested resources on estimating longevity."""
+        longmsg = "See the documentation for suggested resources on estimating longevity."
+        sexmsg = "Sex is a required input for longevity risk."
         if iname0:
-            incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
+            incol1, incol2, incol3 = st.columns((1, 1, .7), gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("dob0", "1965-01-15")
                 ret = kz.getDate(f"{iname0}'s date of birth", "dob0",
@@ -191,6 +195,11 @@ See SSA documentation for details.
                 kz.initCaseKey("life0", 89)
                 ret = kz.getIntNum(f"{iname0}'s expected longevity", "life0",
                                    max_value=120, help=longmsg, disabled=diz1)
+
+            with incol3:
+                kz.initCaseKey("sex0", "F")
+                kz.getSelectbox(f"{iname0}'s sex", ["M", "F"], "sex0",
+                                help=sexmsg, disabled=diz2)
 
     with col2:
         if kz.getCaseKey("status") == "married":
@@ -202,7 +211,7 @@ See SSA documentation for details.
                                 disabled=diz2, placeholder="Enter a name...")
 
             if iname1:
-                incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
+                incol1, incol2, incol3 = st.columns((1, 1, .7), gap="large", vertical_alignment="top")
                 with incol1:
                     kz.initCaseKey("dob1", "1965-01-15")
                     ret = kz.getDate(f"{iname1}'s date of birth", "dob1",
@@ -212,6 +221,11 @@ See SSA documentation for details.
                     kz.initCaseKey("life1", 89)
                     ret = kz.getIntNum(f"{iname1}'s expected longevity", "life1",
                                        max_value=120, help=longmsg, disabled=diz1)
+
+                with incol3:
+                    kz.initCaseKey("sex1", "M")
+                    kz.getSelectbox(f"{iname1}'s sex", ["M", "F"], "sex1",
+                                    help=sexmsg, disabled=diz2)
 
     st.divider()
     cantcreate = kz.isIncomplete() or diz1

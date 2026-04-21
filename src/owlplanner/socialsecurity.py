@@ -436,7 +436,7 @@ def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i
         ns = max(0, payment_start_n)
         nd = horizons[i]
         zeta_in[i, ns:nd] = pias[i]
-        if payment_start_n >= 0:
+        if payment_start_n >= 0 and ns < nd:
             zeta_in[i, ns] *= 1 - (paymentJanage % 1.)
 
         zeta_in[i, :] *= getSelfFactor(fras[i], ages[i], bornOnFirst)

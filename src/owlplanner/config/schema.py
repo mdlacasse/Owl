@@ -54,6 +54,7 @@ class BasicInfo(BaseModel):
     )
     date_of_birth: Optional[List[str]] = None  # Default applied in bridge
     life_expectancy: List[int] = Field(default=[89], description="Life expectancy in years")
+    sexes: Optional[List[str]] = Field(default=None, description="Biological sex per individual: 'M' or 'F'")
     start_date: Optional[str] = Field(default="today", description="Plan start date")
 
 
@@ -114,6 +115,9 @@ class RatesSelection(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     heirs_rate_on_tax_deferred_estate: float = Field(default=30.0, description="Heirs tax rate (%)")
+    effective_tax_rate: float = Field(
+        default=20.0,
+        description="Effective tax rate on tax-deferred assets for spending-to-savings ratio (%)")
     dividend_rate: Optional[float] = Field(default=1.8, description="Dividend rate (%)")
     obbba_expiration_year: Optional[int] = Field(default=2032, description="OBBBA expiry year")
     method: str = Field(default="historical average", description="Rate method")

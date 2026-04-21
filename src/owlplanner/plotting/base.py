@@ -74,6 +74,12 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
+    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None, log_scale=False):
+        """Bar chart of annual savings retention rate. Reference at 100% (linear) or 0 (log).
+        When log_scale=True, data is pre-transformed as log(retention/100)."""
+        pass
+
+    @abstractmethod
     def plot_asset_composition(self, year_n, inames, b_ijkn, gamma_n, value, name, tag):
         """Plot asset composition over time."""
         pass
@@ -121,15 +127,15 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_stochastic_frontier(self, objective, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate, g_opt, year_n, start_years=None):
+    def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
+                                 target_success_rate, g_opt, year_n, start_years=None,
+                                 with_longevity=False):
         """Efficient frontier plot: committed spending vs. shortfall probability.
 
         Marks the target success rate point on the curve.
 
         Parameters
         ----------
-        objective : str
         frontier_prob : ndarray — shortfall probability at each lambda
         frontier_g : ndarray — committed spending at each lambda (today's dollars)
         frontier_shortfall : ndarray — expected shortfall at each lambda (today's dollars)
@@ -140,13 +146,17 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_stochastic_outcomes(self, objective, start_years, bases, g_opt, target_success_rate, year_n):
+    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate, year_n,
+                                 with_longevity=False):
         """Bar chart of achieved spending by scenario, colored by success/failure.
+
+        Historical mode (start_years is not None): x = historical start year.
+        MC mode (start_years is None): scenarios sorted by achieved spending,
+            x = scenario percentile (0–100%).  Works at any N.
 
         Parameters
         ----------
-        objective : str
-        start_years : ndarray or None — historical start years (None for MC, uses indices)
+        start_years : ndarray or None — historical start years (None for MC)
         bases : ndarray (S,) — optimal spending basis per scenario (today's dollars)
         g_opt : float — committed spending (today's dollars)
         target_success_rate : float

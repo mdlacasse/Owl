@@ -72,10 +72,12 @@ def createPlan():
     description = kz.getCaseKey("description")
     dobs = [kz.getCaseKey("dob0")]
     life = [kz.getCaseKey("life0")]
+    sexes = [kz.getCaseKey("sex0") or "M"]
     if kz.getCaseKey("status") == "married":
         inames.append(kz.getCaseKey("iname1"))
         dobs.append(kz.getCaseKey("dob1"))
         life.append(kz.getCaseKey("life1"))
+        sexes.append(kz.getCaseKey("sex1") or "F")
 
     # Get existing logs StringIO or create a new one
     strio = kz.getCaseKey("logs")
@@ -85,6 +87,7 @@ def createPlan():
     try:
         plan = owl.Plan(inames, dobs, life, name,
                         verbose=True, logstreams=[strio, strio])
+        plan.setSexes(sexes)
         kz.setCaseKey("plan", plan)
         kz.setCaseKey("id", plan._id)
     except Exception as e:
@@ -240,10 +243,9 @@ def runMC(plan):
         st.error(f"Monte Carlo solution failed: {e}")
 
 
-def _apply_stochastic_target(result, target_sr, plotter):
+def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     """Recompute g_opt and regenerate plots from cached scenario data and a new target rate."""
     import numpy as np
-    objective = result["objective"]
     g_opt, lam = owl.g_for_success_rate(
         target_sr, result["lambdas"], result["frontier_g"], result["frontier_prob"])
     lam_idx = int(np.argmin(np.abs(result["lambdas"] - lam)))
@@ -257,12 +259,10 @@ def _apply_stochastic_target(result, target_sr, plotter):
     })
     with_longevity = result.get("with_longevity", False)
     fig_frontier = plotter.plot_stochastic_frontier(
-        objective,
         result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
         target_sr, g_opt, result["year_n"], result["start_years"],
         with_longevity=with_longevity)
     fig_outcomes = plotter.plot_stochastic_outcomes(
-        objective,
         result["start_years"], result["bases"], g_opt,
         target_sr, result["year_n"],
         with_longevity=with_longevity)
@@ -276,23 +276,47 @@ def _apply_stochastic_target(result, target_sr, plotter):
     if is_historical:
         tail_spending = float(np.min(bases))
         tail_shortfall_pct = max(0.0, g_opt - tail_spending) / g_opt if g_opt > 0 else 0.0
-        tail_label = "Worst-case scenario spending: "
+        tail_label = "Worst-case scenario spending:  "
     else:
         tail_spending = float(np.percentile(bases, 5))
         tail_shortfall_pct = max(0.0, g_opt - tail_spending) / g_opt if g_opt > 0 else 0.0
-        tail_label = "5th percentile spending:      "
+        tail_label = "5th percentile spending:       "
+
+    if with_longevity:
+        mt = result.get("mortality_table", "SSA2025")
+        longevity_line = f"Longevity risk:                  {mt}\n"
+    else:
+        longevity_line = ""
+
     n_infeasible = result.get("n_infeasible", 0)
     n_total = len(bases)
+
     if n_infeasible:
-        scenarios_line = f"Scenarios:                      {n_total}  ({n_infeasible} infeasible)\n"
+        scenarios_line = f"Scenarios:                       {n_total}  ({n_infeasible} infeasible)\n"
     else:
-        scenarios_line = f"Scenarios:                      {n_total}\n"
+        scenarios_line = f"Scenarios:                       {n_total}\n"
+
+    rate_method = result.get("rate_method", "")
+    rate_line = f"Rate method:                     {rate_method}\n" if (rate_method and rate_method != "historical") else ""
+    ratio_line = ""
+    if plan is not None:
+        after_tax = plan._after_tax_savings()
+        if after_tax > 0 and g_opt > 0:
+            etr_pct = int(round(plan.effectiveTaxRate * 100))
+            spending_ratio = g_opt / after_tax
+            ratio_line = f"Spending-to-savings ratio:       {spending_ratio:.2%}  (ETR {etr_pct}%)\n"
+            if plan.bequest > 0:
+                ratio_line += f"  (Note: bequest of ${plan.bequest:,.0f} included in savings — ratio understated)\n"
+
     kz.storeCaseKey("stochSummary", (
-        f"Committed spending (today's $): ${g_opt:,.0f}/yr\n"
-        f"Target success rate:            {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
-        f"Median scenario spending:       ${median_spending:,.0f}/yr\n"
-        f"{tail_label} ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
-        f"Mean shortfall:                 ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
+        f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
+        f"{ratio_line}"
+        f"Target success rate:             {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
+        f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
+        f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
+        f"Mean shortfall:                  ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
+        f"{rate_line}"
+        f"{longevity_line}"
         f"{scenarios_line}"
     ).rstrip())
 
@@ -307,6 +331,16 @@ def runStochasticSpending(plan):
     target_sr = 0.85 if target_sr is None else float(target_sr)
 
     objective, options = kz.getSolveParameters()
+    with_longevity = bool(kz.getCaseKey("stoch_with_longevity") or False)
+    if with_longevity and scenario_method == "historical":
+        with_longevity = False
+        ui_log("Longevity risk is not supported with historical scenarios — ignoring.")
+    longevity_reproducible = bool(kz.getCaseKey("stoch_longevity_reproducible") or False)
+    longevity_seed = kz.getCaseKey("stoch_longevity_seed") if (with_longevity and longevity_reproducible) else None
+    sexes = plan1.sexes if with_longevity else None
+    mortality_table = kz.getCaseKey("stoch_mortality_table") or "SSA2025"
+    if with_longevity:
+        plan1.setMortalityTable(mortality_table)
     try:
         mybar = progress.Progress()
         if scenario_method == "historical":
@@ -315,18 +349,22 @@ def runStochasticSpending(plan):
             reverse = bool(kz.getCaseKey("stoch_reverse_sequence") or False)
             roll = int(kz.getCaseKey("stoch_roll_sequence") or 0)
             result = plan1.runStochasticSpending(
-                objective, options, "historical",
+                options, "historical",
                 ystart=ystart, yend=yend, progcall=mybar,
-                reverse=reverse, roll=roll)
+                reverse=reverse, roll=roll,
+                with_longevity=with_longevity, sexes=sexes, seed=longevity_seed)
         else:
             N = kz.getCaseKey("stoch_N_mc") or 200
             result = plan1.runStochasticSpending(
-                objective, options, "mc",
-                N=N, progcall=mybar)
+                options, "mc",
+                N=N, progcall=mybar,
+                with_longevity=with_longevity, sexes=sexes, seed=longevity_seed)
 
-        result["objective"] = objective
+        result["with_longevity"] = with_longevity
+        result["mortality_table"] = mortality_table
+        result["rate_method"] = "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "stochastic")
         kz.storeCaseKey("stochScenarioData", result)
-        _apply_stochastic_target(result, target_sr, plan1._plotter)
+        _apply_stochastic_target(result, target_sr, plan1._plotter, plan)
     except Exception as e:
         kz.storeCaseKey("stochFrontierPlot", None)
         kz.storeCaseKey("stochOutcomePlot", None)
@@ -348,7 +386,7 @@ def updateStochasticTarget(plan):
     target_sr = (int(raw) / 100.0) if raw is not None else (kz.getCaseKey("stoch_target_success_rate") or 0.85)
     kz.storeCaseKey("stoch_target_success_rate", target_sr)
     try:
-        _apply_stochastic_target(result, target_sr, plan._plotter)
+        _apply_stochastic_target(result, target_sr, plan._plotter, plan)
     except Exception as e:
         st.error(f"Failed to update target: {e}")
 
@@ -821,6 +859,14 @@ def plotSingleResults(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
+    log_scale = kz.getCaseKey("retention_log_scale")
+    log_scale = False if log_scale is None else bool(log_scale)
+    fig = plan.showSavingsRetentionRate(figure=True, log_scale=log_scale)
+    if fig:
+        cols[c].markdown("#### :orange[Savings Retention Rate]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+
     figs = plan.showAssetComposition(figure=True)
     if figs:
         st.markdown("#### :orange[Asset Composition]")
@@ -1196,6 +1242,7 @@ def genDic(plan):
     dic["survivor"] = 100 * plan.chi
     dic["divRate"] = 100 * plan.mu
     dic["heirsTx"] = 100 * plan.nu
+    dic["effectiveTx"] = 100 * plan.effectiveTaxRate
     dic["yOBBBA"] = plan.yOBBBA
     dic["surplusFraction"] = plan.eta
     dic["plots"] = plan.defaultPlots

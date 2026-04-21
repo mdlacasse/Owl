@@ -45,6 +45,13 @@ else:
         ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg,
                           callback=owb.setDefaultPlots)
 
+    with col2:
+        kz.initCaseKey("retention_log_scale", False)
+        help_log = ("Display savings retention rate on a log scale: y = log(retention/100). "
+                    "Bars sum to log(final/initial portfolio ratio). "
+                    "The sustainability line simplifies to the real return differential i\u2099 \u2212 r\u2099.")
+        kz.getToggle("Log scale (retention rate)", "retention_log_scale", help=help_log)
+
     with col3:
         helpmsg = "Re-run the case, or generate a new set of stochastic rates."
         st.button(

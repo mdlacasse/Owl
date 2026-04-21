@@ -358,7 +358,7 @@ class TestACAOptimize:
 
         fpl_400 = tx._ACA_FPL[2026][0] * 4.0
         hit_bracket_6 = False
-        for n in range(min(p.N_aca, p.N_n)):
+        for n in range(min(p.n_aca, p.N_n)):
             if p.MAGI_n[n] >= fpl_400 * p.gamma_n[n] and p.maca_n[n] > 0:
                 hit_bracket_6 = True
                 slcsp_n = 14_000 * p.gamma_n[n]

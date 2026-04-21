@@ -8,6 +8,7 @@ Key features: pre-65 ACA costs with SLCSP benchmark premium, subsidy-aware incom
 [basic_info]
 status = "single"
 names = [ "Morgan",]
+sexes = [ "F",]
 date_of_birth = [ "1972-01-15",]
 life_expectancy = [ 92,]
 start_date = "2026-01-01"

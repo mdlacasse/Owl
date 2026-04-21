@@ -8,6 +8,7 @@ This case showcases maxSpending optimization with HSA accounts, fixed assets (pr
 [basic_info]
 status = "married"
 names = [ "Kim", "Sam",]
+sexes = [ "F", "M",]
 date_of_birth = [ "1964-01-15", "1965-01-15",]
 life_expectancy = [ 89, 93,]
 start_date = "2026-01-01"
