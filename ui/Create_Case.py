@@ -161,8 +161,11 @@ else:
 
     kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."
+    _desc = kz.getCaseKey("description") or ""
+    _lines = sum(max(1, (len(p) + 89) // 90) for p in _desc.split('\n')) if _desc else 1
+    _desc_height = max(68, _lines * 14 + 40)
     description = kz.getLongText("Brief description", "description", help=helpmsg,
-                                 placeholder="Enter a brief description...")
+                                 placeholder="Enter a brief description...", height=_desc_height)
 
     namehelp = "Use first name or just a nickname."
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
