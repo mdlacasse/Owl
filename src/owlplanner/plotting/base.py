@@ -74,9 +74,9 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None):
-        """Bar chart of annual savings retention rate (%). Reference line at 100%.
-        Optional dashed orange line at real break-even (1+i_n)/(1+r_n)*100."""
+    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None, log_scale=False):
+        """Bar chart of annual savings retention rate. Reference at 100% (linear) or 0 (log).
+        When log_scale=True, data is pre-transformed as log(retention/100)."""
         pass
 
     @abstractmethod

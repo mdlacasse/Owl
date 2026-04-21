@@ -859,7 +859,9 @@ def plotSingleResults(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
-    fig = plan.showSavingsRetentionRate(figure=True)
+    log_scale = kz.getCaseKey("retention_log_scale")
+    log_scale = False if log_scale is None else bool(log_scale)
+    fig = plan.showSavingsRetentionRate(figure=True, log_scale=log_scale)
     if fig:
         cols[c].markdown("#### :orange[Savings Retention Rate]")
         renderPlot(fig, cols[c])

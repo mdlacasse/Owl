@@ -1141,25 +1141,20 @@ When the plan includes an HSA, an additional **HSA Activity** graph is displayed
 showing the annual balance, contributions, and withdrawals for each individual's HSA account.
 This graph appears right after the **Savings Balance** graph.
 
-The **Savings Retention Rate** graph shows, for each year, what fraction of the portfolio
-balance was *not* drawn down — i.e., `1 − net draw / balance`, expressed as a percentage.
-Net draw equals spending withdrawals minus taxable deposits and tax-advantaged contributions;
-Roth conversions are excluded as internal transfers.
-Blue bars (above 100%) indicate accumulation years where contributions or returns exceed
-withdrawals; red bars (below 100%) indicate net depletion years.
-The horizontal reference line sits at 100% (break-even).
-When there is no bequest, the final bar falls to approximately 0% as the remaining
-balance is fully spent — equivalently, the depletion rate for that year is 100%.
-When a bequest is present, the final bar is positive and reflects the fraction of
-the terminal balance preserved for heirs; a note in the title reminds the user that
-the bequest is included in the denominator throughout, which raises the retention
-rate relative to a no-bequest case with the same spending.
-A dashed seagreen **Real break-even** line is overlaid on the bars.
-It shows the retention rate at which real portfolio value is exactly preserved — i.e.,
-`(1 + inflation) / (1 + portfolio return)`, expressed as a percentage.
-When a bar is above this line, real wealth is growing; when below, real wealth is shrinking
-even if the nominal balance is increasing.
-In strong-return years the line sits well below 100%; in stagflation years it can rise above 100%.
+The **Savings Retention Rate** graph shows, for each year, `1 − net draw / balance` as a percentage,
+where net draw equals spending withdrawals minus taxable deposits and tax-advantaged contributions
+(Roth conversions excluded as internal transfers).
+A dashed seagreen **Real break-even** line is overlaid at `(1 + inflation) / (1 + portfolio return) × 100%` —
+the retention rate that exactly preserves real portfolio value.
+In positive-return years this line sits below 100% (you can draw the real return and stay even);
+in stagflation it rises above 100%.
+**Blue bars** indicate years where the retention rate exceeds the real break-even (real wealth growing);
+**red bars** indicate years where it falls below (real wealth shrinking).
+The black reference line at 100% marks nominal break-even (no net draw).
+Without a bequest the final bar is near 0% as the balance is fully spent;
+with a bequest it reflects the preserved fraction, and a note in the title flags this.
+A **log scale** toggle transforms the y-axis to `log(retention / 100)`, making annual values additive:
+the sum of bars equals `log(final / initial balance)`, and the real break-even simplifies to `≈ i − r`.
 
 """)
 

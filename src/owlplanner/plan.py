@@ -4451,7 +4451,7 @@ class Plan:
         return None
 
     @_checkCaseStatus
-    def showSavingsRetentionRate(self, tag="", figure=False):
+    def showSavingsRetentionRate(self, tag="", figure=False, log_scale=False):
         """
         Plot savings retention rate (%) over time: fraction of balance NOT drawn each year.
 
@@ -4460,6 +4460,8 @@ class Plan:
         tax-deferred/Roth/HSA). Roth conversions excluded — internal transfers.
         Values >100% indicate accumulation years; ~0% in the final year when
         bequest=0 (avoids the scale-distorting 100% withdrawal bar of the inverse).
+        When log_scale=True, y = log(retention/100); reference line at 0; bars sum to
+        log(b_final/b_initial); sustainability line simplifies to ≈ i_n − r_n.
         """
         net_w = self.w_ijn.copy()
         net_w[:, 0, :] -= self.d_in                            # subtract deposits to taxable
@@ -4477,13 +4479,20 @@ class Plan:
             r_n = np.where(b_n > 0, num_n / b_n, 0.0)
         inflation_n = self.gamma_n[1:self.N_n + 1] / self.gamma_n[:self.N_n]
         sustainability_n = inflation_n / (1.0 + r_n) * 100.0
+        if log_scale:
+            with np.errstate(invalid="ignore", divide="ignore"):
+                rate = np.where(rate > 0, np.log(rate / 100.0), np.nan)
+                sustainability_n = np.log(sustainability_n / 100.0)
         title = self._name + "\nSavings Retention Rate"
+        if log_scale:
+            title += " (log scale)"
         if self.bequest > 0:
             title += f"\n(Note: bequest of {u.d(self.bequest, f=0)} included in balance)"
         if tag:
             title += " - " + tag
         fig = self._plotter.plot_savings_retention_rate(self.year_n, rate, title,
-                                                        sustainability_n=sustainability_n)
+                                                        sustainability_n=sustainability_n,
+                                                        log_scale=log_scale)
         if figure:
             return fig
         self._plotter.jupyter_renderer(fig)
