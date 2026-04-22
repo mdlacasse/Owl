@@ -37,6 +37,13 @@ def _get_known(diconf: dict) -> dict:
     return {k: v for k, v in diconf.items() if k in KNOWN_SECTIONS}
 
 
+def _normalize_hfp_file_name(name: str) -> str:
+    """Map UI/legacy placeholders to the canonical no-HFP sentinel (string 'None')."""
+    if name == "" or name == "dictionary of DataFrames":
+        return "None"
+    return name
+
+
 def _apply_assets_to_plan(plan: "Plan", known: dict, icount: int) -> None:
     """Apply savings assets from config to plan."""
     start_date = known["basic_info"].get("start_date", "today")
@@ -285,7 +292,7 @@ def config_to_plan(
 
     # Household Financial Profile
     hfp_section = known.get("household_financial_profile", {})
-    time_lists_file = hfp_section.get("HFP_file_name", "None")
+    time_lists_file = _normalize_hfp_file_name(hfp_section.get("HFP_file_name", "None"))
     if time_lists_file != "None":
         if loadHFP:
             if os.path.exists(time_lists_file):
@@ -374,7 +381,7 @@ def plan_to_config(myplan: "Plan") -> dict:
 
     # Household Financial Profile
     diconf["household_financial_profile"] = {
-        "HFP_file_name": myplan.timeListsFileName,
+        "HFP_file_name": _normalize_hfp_file_name(myplan.timeListsFileName),
     }
 
     # Fixed Income

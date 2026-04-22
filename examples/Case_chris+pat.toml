@@ -10,8 +10,8 @@ start_date = "2026-01-01"
 
 [savings_assets]
 taxable_savings_balances = [ 100.0, 50.0,]
-tax_deferred_savings_balances = [ 700.0, 150.0,]
-tax_free_savings_balances = [ 70.0, 40.0,]
+tax_deferred_savings_balances = [ 700.0, 237.0,]
+tax_free_savings_balances = [ 70.0, 30.0,]
 hsa_savings_balances = [ 0.0, 0.0,]
 beneficiary_fractions = [ 1.0, 1.0, 1.0, 1.0,]
 spousal_surplus_deposit_fraction = 0.5

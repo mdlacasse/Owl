@@ -327,6 +327,36 @@ def test_plan_to_config_to_ui_rates_roundtrip():
     assert all(0 <= uidic[f"stdev{k}"] <= 100 for k in range(4))
 
 
+def test_config_to_plan_normalizes_empty_hfp_filename():
+    """Empty HFP_file_name must not be treated as a path (no FileNotFoundError)."""
+    diconf = _minimal_config_for_rates()
+    diconf["rates_selection"]["values"] = [7.0, 4.0, 3.3, 2.8]
+    diconf["household_financial_profile"] = {"HFP_file_name": ""}
+    p = config_to_plan(diconf, verbose=False, loadHFP=True)
+    assert p.timeListsFileName == "None"
+
+
+def test_config_to_plan_normalizes_dictionary_of_dataframes_hfp():
+    """Legacy/in-memory marker string is not a filesystem path."""
+    diconf = _minimal_config_for_rates()
+    diconf["rates_selection"]["values"] = [7.0, 4.0, 3.3, 2.8]
+    diconf["household_financial_profile"] = {"HFP_file_name": "dictionary of DataFrames"}
+    p = config_to_plan(diconf, verbose=False, loadHFP=True)
+    assert p.timeListsFileName == "None"
+
+
+def test_plan_to_config_normalizes_in_memory_hfp_marker():
+    """plan_to_config must not persist timelists.read's dict-input placeholder as a path."""
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+    p.setRates("user", values=[7.0, 4.0, 3.3, 2.8])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.timeListsFileName = "dictionary of DataFrames"
+    out = plan_to_config(p)
+    assert out["household_financial_profile"]["HFP_file_name"] == "None"
+
+
 def _minimal_config_for_rates():
     """Minimal config dict with rates_selection section."""
     return {
