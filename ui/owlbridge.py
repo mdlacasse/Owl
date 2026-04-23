@@ -278,11 +278,13 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     if is_historical:
         tail_spending = float(np.min(bases))
         tail_shortfall_pct = max(0.0, g_opt - tail_spending) / g_opt if g_opt > 0 else 0.0
-        tail_label = "Worst-case scenario spending:  "
+        # tail_label = "Worst-case scenario spending:  "
+        tail_label = "Historical spending floor   :  "
     else:
         tail_spending = float(np.percentile(bases, 5))
         tail_shortfall_pct = max(0.0, g_opt - tail_spending) / g_opt if g_opt > 0 else 0.0
-        tail_label = "5th percentile spending:       "
+        # tail_label = "5th percentile spending:       "
+        tail_label = "Synthetic spending floor:      "
 
     if with_longevity:
         mt = result.get("mortality_table", "SSA2025")
