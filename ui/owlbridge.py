@@ -273,6 +273,8 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     median_spending = float(np.median(bases))
     exp_shortfall = float(np.mean(np.maximum(0.0, g_opt - bases)))
     exp_shortfall_pct = exp_shortfall / g_opt if g_opt > 0 else 0.0
+    cvar = exp_shortfall / (1 - actual_sr) if actual_sr < 1.0 else 0.0
+    cvar_pct = cvar / g_opt if g_opt > 0 else 0.0
     if is_historical:
         tail_spending = float(np.min(bases))
         tail_shortfall_pct = max(0.0, g_opt - tail_spending) / g_opt if g_opt > 0 else 0.0
@@ -320,6 +322,7 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
         f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
         f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
         f"Mean shortfall:                  ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
+        f"CVaR (avg loss | failure):       ${cvar:,.0f}/yr  ({cvar_pct:.1%} of committed)\n"
         f"{rate_line}"
         f"{longevity_line}"
         f"{scenarios_line}"
