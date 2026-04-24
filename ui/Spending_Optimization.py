@@ -78,6 +78,10 @@ Select a target success rate to find the committed spending that meets it.
 
     st.markdown("####")
     if scenario_method == "historical":
+        yend_max = owb.histYendMax()
+        cur_yend = kz.getCaseKey("stoch_yend")
+        if cur_yend is not None and cur_yend > yend_max:
+            kz.storeCaseKey("stoch_yend", yend_max)
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
             st.number_input(
@@ -93,7 +97,7 @@ Select a target success rate to find the committed spending that meets it.
             st.number_input(
                 "Ending year",
                 min_value=kz.getCaseKey("stoch_ystart"),
-                max_value=owb.TO,
+                max_value=yend_max,
                 value=kz.getCaseKey("stoch_yend"),
                 on_change=kz.storepull,
                 args=["stoch_yend"],

@@ -32,7 +32,10 @@ if ret is None or kz.caseHasNoPlan():
     st.info("A case must first be created before running this page.")
 else:
     kz.initCaseKey("hyfrm", owb.FROM)
-    kz.initCaseKey("hyto", owb.TO)
+    yto_max = owb.histYendMax()
+    cur_hyto = kz.getCaseKey("hyto")
+    if cur_hyto is None or cur_hyto > yto_max:
+        kz.storeCaseKey("hyto", yto_max)
     kz.initCaseKey("histoPlot", None)
     kz.initCaseKey("histoSummary", None)
     kz.initCaseKey("histoBarPlot", None)
@@ -58,7 +61,7 @@ current scenario with historical data over selected year range.""")
     with col2:
         st.number_input(
             "Ending year",
-            max_value=owb.TO,
+            max_value=yto_max,
             min_value=kz.getCaseKey("hyfrm"),
             value=kz.getCaseKey("hyto"),
             on_change=kz.storepull,

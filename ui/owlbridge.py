@@ -331,6 +331,14 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     ).rstrip())
 
 
+def histYendMax():
+    """Return the maximum valid ending year for historical spending optimization."""
+    plan = kz.getCaseKey("plan")
+    if plan is None:
+        return TO
+    return int(plan.year_n[0]) - plan.N_n
+
+
 @_checkPlan
 def runStochasticSpending(plan):
     plan1 = owl.clone(plan)
