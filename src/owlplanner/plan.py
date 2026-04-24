@@ -1881,6 +1881,9 @@ class Plan:
 
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
+            if "fixedSpending" in options:
+                spending = u.get_monetary_option(options, "fixedSpending", 1)
+                self.B.setRange(self.vm["g"].idx(0), spending, spending)
             if "bequest" in options:
                 bequest = u.get_monetary_option(options, "bequest", 1) * self.gamma_n[-1]
             else:
@@ -2998,6 +3001,7 @@ class Plan:
         - options is a dictionary which can include:
             - maxRothConversion: Only allow conversion smaller than amount specified.
             - netSpending: Desired spending amount when optimizing with maxBequest.
+            - fixedSpending: Pin first-year spending for maxSpending; slack varies g[n] dynamically.
             - bequest: Value of bequest in today's $ when optimizing with maxSpending.
             - units: Units to use for amounts (1, k, or M).
 
@@ -3036,6 +3040,7 @@ class Plan:
             "previousMAGIs",
             "relTol",
             "solver",
+            "fixedSpending",   # Pin first-year spending for maxSpending; optimizer uses slack dynamically
             "spendingFloor",   # Minimum annual spending for maxHybrid (today's $k)
             "spendingSlack",
             "spendingWeight",  # Blend weight h ∈ [0,1] for maxHybrid (1=spending, 0=bequest)

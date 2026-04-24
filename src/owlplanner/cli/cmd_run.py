@@ -120,6 +120,12 @@ def _parse_solver_opts(value):
     help="Override solver option as KEY=VALUE. Repeat for multiple. E.g. --solver-opt maxRothConversion=50.",
 )
 @click.option(
+    "--seed",
+    type=int,
+    default=None,
+    help="Random seed for reproducible stochastic rates. Overrides rate_seed in TOML.",
+)
+@click.option(
     "--help-solver-options",
     is_flag=True,
     is_eager=True,
@@ -127,7 +133,7 @@ def _parse_solver_opts(value):
     callback=lambda ctx, param, value: (print_solver_options_help(), ctx.exit(0)) if value else None,
     help="Show all solver options (parsed from PARAMETERS.md) and exit.",
 )
-def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose, solver_opts):
+def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose, solver_opts, seed):
     """Run the retirement planning optimizer on an OWL case file.
 
     Loads the case from FILENAME (a .toml file), solves the optimization
@@ -141,6 +147,8 @@ def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose, so
     logger.debug(f"Executing the run command with file: {filename}")
 
     plan = owl.readConfig(str(filename), logstreams="loguru", loadHFP=True)
+    if seed is not None:
+        plan.setReproducible(True, seed=seed)
     opts = dict(plan.solverOptions)
 
     if solver is not None:
