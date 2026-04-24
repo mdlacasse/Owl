@@ -1,9 +1,12 @@
 #!/bin/bash
 
+# Script can pass arguments directly to streamlit.
+# For example: owlplanner.sh --theme.base=light
+
 echo Hit Ctrl-C to terminate the server.
 export PYTHONPATH="./src:${PYTHONPATH}"
 if type -P streamlit >& /dev/null; then
-    streamlit run ./ui/main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost
+    streamlit run ./ui/main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost $*
 else
-    python3 -m streamlit run ./ui/main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost
+    python3 -m streamlit run ./ui/main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost $*
 fi
