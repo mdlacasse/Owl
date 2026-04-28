@@ -99,6 +99,18 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         survivor_frac = [float(x) for x in survivor_frac]
     plan.setPension(pension_amounts, pension_ages, pension_indexed, survivor_fraction=survivor_frac)
 
+    spia_inds = fi.get("spia_individuals", [])
+    n_spia = len(spia_inds)
+    for k, ind in enumerate(spia_inds):
+        plan.addSPIA(
+            individual=int(ind),
+            buy_year=int(fi["spia_buy_years"][k]),
+            premium=float(fi["spia_premiums"][k]),
+            monthly_income=float(fi["spia_monthly_incomes"][k]),
+            indexed=bool(fi.get("spia_indexed", [False] * n_spia)[k]),
+            survivor_fraction=float(fi.get("spia_survivor_fractions", [0.0] * n_spia)[k]),
+        )
+
 
 def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
     """Apply rates selection from config to plan (metadata-driven)."""

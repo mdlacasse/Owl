@@ -276,6 +276,11 @@ class Plan:
         # Debt payments array (length N_n)
         self.debt_payments_n = np.zeros(self.N_n)
 
+        # SPIA arrays.
+        self.spiaBar_in = np.zeros((self.N_i, self.N_n))
+        self.spia_premiums_in = np.zeros((self.N_i, self.N_n))
+        self._spia_list = []
+
         # Fixed assets arrays (length N_n)
         self.fixed_assets_tax_free_n = np.zeros(self.N_n)
         self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
@@ -622,6 +627,45 @@ class Plan:
         self.pensionAges = np.array(ages)
         self.pensionIsIndexed = indexed
         self.pensionSurvivorFraction = np.array(survivor_fraction, dtype=np.float64)
+        self.caseStatus = "modified"
+        self._adjustedParameters = False
+
+    def addSPIA(self, individual, buy_year, premium, monthly_income,
+                indexed=False, survivor_fraction=0.0):
+        """
+        Add a qualified Single Premium Immediate Annuity (life-only).
+
+        Parameters
+        ----------
+        individual : int
+            Annuitant index (0 or 1).
+        buy_year : int
+            Calendar year of purchase; income begins same year. May be before the plan
+            start year (already-purchased SPIA) — premium is ignored, income starts at year 0.
+        premium : float
+            Lump-sum cost in nominal dollars. Deducted from the individual's tax-deferred
+            account (IRA rollover, non-taxable transfer). Ignored if buy_year < plan start.
+        monthly_income : float
+            Monthly benefit in nominal dollars at time of purchase.
+        indexed : bool, optional
+            False (default) = fixed nominal payments; True = CPI-linked.
+        survivor_fraction : float, optional
+            Fraction (0–1) of income continuing to the other individual after the annuitant
+            dies. 0 = single-life (default).
+        """
+        n_buy = buy_year - self.year_n[0]
+        if n_buy >= self.N_n:
+            raise ValueError(f"buy_year {buy_year} is after the plan horizon end.")
+        if not (0 <= individual < self.N_i):
+            raise ValueError(f"individual {individual} out of range (0–{self.N_i - 1}).")
+        self._spia_list.append(dict(
+            individual=individual, buy_year=buy_year, premium=premium,
+            monthly_income=monthly_income, indexed=indexed,
+            survivor_fraction=survivor_fraction,
+        ))
+        # Past purchases have already been settled; only future/current ones affect the balance.
+        if n_buy >= 0:
+            self.spia_premiums_in[individual, n_buy] += premium
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
@@ -1510,6 +1554,27 @@ class Plan:
                 self.horizons, self.N_i, self.N_n,
             )
 
+            self.spiaBar_in = np.zeros((self.N_i, self.N_n))
+            for spia in self._spia_list:
+                ind = spia["individual"]
+                buy_age = spia["buy_year"] - self.yobs[ind]
+                amounts = np.zeros(self.N_i)
+                amounts[ind] = spia["monthly_income"]
+                ages = np.full(self.N_i, 999.0)
+                ages[ind] = float(buy_age)
+                surv = np.zeros(self.N_i)
+                surv[ind] = spia["survivor_fraction"]
+                indexed_flags = [False] * self.N_i
+                indexed_flags[ind] = spia["indexed"]
+                pi_spia = pension.compute_pension_benefits(
+                    amounts, ages, self.yobs, self.mobs,
+                    self.horizons, self.N_i, self.N_n, self.year_n[0],
+                )
+                self.spiaBar_in += pension.compute_piBar_in(
+                    pi_spia, gamma_n[:-1], indexed_flags, surv,
+                    self.n_d, self.i_d, self.i_s, self.horizons, self.N_i, self.N_n,
+                )
+
             # Part D: include by default; base premium optional (monthly -> annual).
             self._include_medicare_part_d = self.solverOptions.get("includeMedicarePartD", True)
             part_d_base_monthly = self.solverOptions.get("medicarePartDBasePremium")
@@ -1958,6 +2023,9 @@ class Plan:
                         fac1 = 1
 
                     rhs = fac1 * self.kappa_ijn[i, j, n] * Tauh_ijn[i, j, n]
+                    # SPIA premium: non-taxable IRA rollover — reduces tax-deferred balance directly.
+                    if j == 1:
+                        rhs -= self.spia_premiums_in[i, n]
 
                     row = self.A.newRow()
                     row.addElem(self.vm["b"].idx(i, j, n + 1), 1)
@@ -2015,6 +2083,7 @@ class Plan:
                     + self.netinv_in[i, n]
                     + ss_income
                     + self.piBar_in[i, n]
+                    + self.spiaBar_in[i, n]
                     + self.Lambda_in[i, n]
                 )
                 row.addElem(self.vm["w"].idx(i, 0, n), -1)
@@ -2077,11 +2146,12 @@ class Plan:
                 if ss_lp:
                     # Taxable SS is an LP variable (tss_n); omit the Psi_n*zetaBar parameter.
                     rhs += (self.omega_in[i, n] + self.other_inc_in[i, n]
-                            + self.netinv_in[i, n] + self.piBar_in[i, n])
+                            + self.netinv_in[i, n] + self.piBar_in[i, n] + self.spiaBar_in[i, n])
                 else:
                     rhs += (self.omega_in[i, n] + self.other_inc_in[i, n]
                             + self.netinv_in[i, n]
-                            + self.Psi_n[n] * self.zetaBar_in[i, n] + self.piBar_in[i, n])
+                            + self.Psi_n[n] * self.zetaBar_in[i, n]
+                            + self.piBar_in[i, n] + self.spiaBar_in[i, n])
                 # HSA contributions are pre-tax deductions (reduce ordinary taxable income).
                 rhs -= self.kappa_ijn[i, 3, n]
                 row.addElem(self.vm["w"].idx(i, 1, n), -1)
@@ -2247,6 +2317,7 @@ class Plan:
                            + self.other_inc_in[i, n]
                            + self.netinv_in[i, n]
                            + self.piBar_in[i, n]
+                           + self.spiaBar_in[i, n]
                            + 0.5 * self.kappa_ijn[i, 0, n] * afac)   # half-period contribution yield
                 rhs_pi -= self.kappa_ijn[i, 3, n]   # HSA contributions reduce provisional income
 
@@ -2701,6 +2772,7 @@ class Plan:
                           + self.netinv_in[i, n2]
                           + self.zetaBar_in[i, n2]
                           + self.piBar_in[i, n2]
+                          + self.spiaBar_in[i, n2]
                           + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
                 rhs += sumoni
                 rhs -= self.kappa_ijn[i, 3, n2]   # HSA contributions reduce MAGI
@@ -2804,6 +2876,7 @@ class Plan:
                              + self.netinv_in[i, n]
                              + self.zetaBar_in[i, n]    # full SS (not 0.5×SS; ACA uses MAGI)
                              + self.piBar_in[i, n]
+                             + self.spiaBar_in[i, n]
                              + 0.5 * self.kappa_ijn[i, 0, n] * afac)
                 rhs_magi -= self.kappa_ijn[i, 3, n]     # HSA contributions reduce MAGI
 
@@ -4253,6 +4326,7 @@ class Plan:
         sources["net inv"] = self.netinv_in
         sources["ssec"] = self.zetaBar_in
         sources["pension"] = self.piBar_in
+        sources["spia"] = self.spiaBar_in
         sources["txbl acc wdrwl"] = self.w_ijn[:, 0, :]
         sources["RMD"] = self.rmd_in
         sources["+dist"] = self.dist_in

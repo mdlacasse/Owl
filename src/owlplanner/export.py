@@ -215,6 +215,33 @@ def _format_federal_income_tax_sheet(ws):
     }, default_fmt="$#,##0_);[Red]($#,##0)", lowercase=False)
 
 
+def fixedIncomeStreams(plan, N=None):
+    """
+    Return fixed income streams per plan year, in nominal dollars.
+
+    Returns a dict with keys "ss", "pension", "wages", "other", "fa_income", "total",
+    each a 1D array of shape (N,). Divide by plan.gamma_n[:N] for real (today's) dollars.
+    Sum for plan total; mean for annual average (used as the RES floor).
+    """
+    if N is None:
+        N = plan.N_n
+    ss = np.sum(plan.zetaBar_in[:, :N], axis=0)
+    pension = np.sum(plan.piBar_in[:, :N], axis=0)
+    spia = np.sum(plan.spiaBar_in[:, :N], axis=0)
+    wages = np.sum(plan.omega_in[:, :N], axis=0)
+    other = np.sum(plan.other_inc_in[:, :N], axis=0)
+    fa_income = plan.fixed_assets_ordinary_income_n[:N].copy()
+    return {
+        "ss": ss,
+        "pension": pension,
+        "spia": spia,
+        "wages": wages,
+        "other": other,
+        "fa_income": fa_income,
+        "total": ss + pension + spia + wages + other + fa_income,
+    }
+
+
 def build_summary_dic(plan, N=None):
     """Return dictionary containing summary of plan values."""
     if N is None:
@@ -241,6 +268,26 @@ def build_summary_dic(plan, N=None):
     totSpendingNow = np.sum(plan.g_n[:N] / plan.gamma_n[:N], axis=0)
     dic[" Total net spending"] = f"{u.d(totSpendingNow)}"
     dic["[Total net spending]"] = f"{u.d(totSpending)}"
+
+    streams = fixedIncomeStreams(plan, N)
+    inv_gamma = 1.0 / plan.gamma_n[:N]
+    totFixed = float(np.sum(streams["total"]))
+    if totFixed > 0:
+        dic[" Total fixed income"] = f"{u.d(float(np.sum(streams['total'] * inv_gamma)))}"
+        dic["[Total fixed income]"] = f"{u.d(totFixed)}"
+        labels = [
+            ("ss",        "Social Security"),
+            ("pension",   "Pension"),
+            ("spia",      "SPIA income"),
+            ("wages",     "Wages"),
+            ("other",     "Other income"),
+            ("fa_income", "Fixed assets income"),
+        ]
+        for key, label in labels:
+            tot = float(np.sum(streams[key]))
+            if tot > 0:
+                dic[f"»  {label}"] = f"{u.d(float(np.sum(streams[key] * inv_gamma)))}"
+                dic[f"» [{label}]"] = f"{u.d(tot)}"
 
     totRoth = np.sum(plan.x_in[:, :N], axis=(0, 1))
     totRothNow = np.sum(np.sum(plan.x_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)

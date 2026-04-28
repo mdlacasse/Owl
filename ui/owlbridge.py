@@ -268,6 +268,57 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
         with_longevity=with_longevity)
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
+
+    # RES computation
+    frontier_g = result["frontier_g"]
+    frontier_prob = result["frontier_prob"]
+    frontier_shortfall = result["frontier_shortfall"]
+    start_years_res = result.get("start_years")
+    with np.errstate(invalid="ignore", divide="ignore"):
+        frontier_cvar = np.where(frontier_prob > 0, frontier_shortfall / frontier_prob, 0.0)
+    is_historical = start_years_res is not None
+    default_method = "hsf" if is_historical else "guaranteed"
+    floor_method = kz.getCaseKey("stoch_res_floor_method") or default_method
+    if floor_method == "hsf" and not is_historical:
+        floor_method = "guaranteed"
+    if floor_method == "zero":
+        floor = 0.0
+        floor_label = "zero"
+    elif floor_method == "hsf":
+        floor = float(frontier_g[-1])
+        floor_label = "HSF"
+    elif floor_method == "guaranteed":
+        floor = getGuaranteedIncome(plan) if plan is not None else 0.0
+        floor_label = f"G = ${floor:,.0f}/yr"
+    else:   # "custom"
+        floor = float(kz.getCaseKey("stoch_res_floor_value") or 0.0)
+        floor_label = f"${floor:,.0f}/yr (custom)"
+    valid_res = (frontier_cvar > 0) & (frontier_g > floor)
+    safe_cvar = np.where(frontier_cvar > 0, frontier_cvar, 1.0)
+    res_values = np.where(valid_res, (frontier_g - floor) / safe_cvar, np.nan)
+    if np.any(valid_res):
+        rho_star_idx = int(np.nanargmax(res_values))
+        rho_star = 1.0 - float(frontier_prob[rho_star_idx])
+        res_star = float(res_values[rho_star_idx])
+        cvar_star = float(frontier_cvar[rho_star_idx])
+        target_idx = int(np.searchsorted(-frontier_prob, -(1.0 - target_sr)))
+        target_idx = min(target_idx, len(frontier_cvar) - 1)
+        cvar_at_target = float(frontier_cvar[target_idx])
+        fig_cvar = plotter.plot_stochastic_cvar_vs_pos(
+            frontier_prob, frontier_cvar, rho_star, cvar_star, target_sr, result["year_n"])
+        fig_res = plotter.plot_stochastic_res_vs_cvar(
+            frontier_cvar, res_values, rho_star, res_star, cvar_star, cvar_at_target,
+            result["year_n"], floor_label)
+        kz.storeCaseKey("stochCVaRPlot", fig_cvar)
+        kz.storeCaseKey("stochRESPlot", fig_res)
+        res_line = f"Retirement Efficiency Score:     RES* = {res_star:.2f}  (optimal PoS: {rho_star:.0%})\n"
+        floor_line = f"RES floor:                       {floor_label}\n"
+    else:
+        kz.storeCaseKey("stochCVaRPlot", None)
+        kz.storeCaseKey("stochRESPlot", None)
+        res_line = ""
+        floor_line = ""
+
     bases = result["bases"]
     is_historical = result["start_years"] is not None
     median_spending = float(np.median(bases))
@@ -325,6 +376,8 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
         f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
         f"Mean shortfall:                  ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
         f"CVaR (avg loss | failure):       ${cvar:,.0f}/yr  ({cvar_pct:.1%} of committed)\n"
+        f"{res_line}"
+        f"{floor_line}"
         f"{rate_line}"
         f"{longevity_line}"
         f"{scenarios_line}"
@@ -337,6 +390,14 @@ def histYendMax():
     if plan is None:
         return TO
     return int(plan.year_n[0]) - plan.N_n
+
+
+def getGuaranteedIncome(plan):
+    """Average annual guaranteed income in today's dollars (SS + pension + SPIA)."""
+    import numpy as np
+    streams = owl.fixedIncomeStreams(plan)
+    real_total = streams["total"] / plan.gamma_n[:plan.N_n]
+    return float(np.mean(real_total))
 
 
 @_checkPlan
@@ -386,6 +447,8 @@ def runStochasticSpending(plan):
     except Exception as e:
         kz.storeCaseKey("stochFrontierPlot", None)
         kz.storeCaseKey("stochOutcomePlot", None)
+        kz.storeCaseKey("stochCVaRPlot", None)
+        kz.storeCaseKey("stochRESPlot", None)
         kz.storeCaseKey("stochSummary", None)
         kz.storeCaseKey("stochResult", None)
         kz.storeCaseKey("stochScenarioData", None)
@@ -407,6 +470,27 @@ def updateStochasticTarget(plan):
         _apply_stochastic_target(result, target_sr, plan._plotter, plan)
     except Exception as e:
         st.error(f"Failed to update target: {e}")
+
+
+@_checkPlan
+def updateStochasticFloor(plan):
+    """Recompute RES plots when the floor method or custom value changes — no scenarios re-run."""
+    result = kz.getCaseKey("stochScenarioData")
+    if result is None:
+        return
+    method_key = kz.genCaseKey("stoch_res_floor_method_radio")
+    raw_method = kz.ss.get(method_key)
+    if raw_method is not None:
+        kz.storeCaseKey("stoch_res_floor_method", raw_method)
+    val_key = kz.genCaseKey("stoch_res_floor_value")
+    raw_val = kz.ss.get(val_key)
+    if raw_val is not None:
+        kz.storeCaseKey("stoch_res_floor_value", raw_val)
+    target_sr = kz.getCaseKey("stoch_target_success_rate") or 0.85
+    try:
+        _apply_stochastic_target(result, target_sr, plan._plotter, plan)
+    except Exception as e:
+        st.error(f"Failed to update RES floor: {e}")
 
 
 @_checkPlan

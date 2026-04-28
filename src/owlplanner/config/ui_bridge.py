@@ -192,6 +192,12 @@ def config_to_ui(diconf: dict) -> dict:
 
     dic["ssTrimPct"] = int(ss_trim_pct) if ss_trim_pct is not None else 0
     dic["ssTrimYear"] = int(ss_trim_year) if ss_trim_year is not None else 2033
+    dic["spia_individuals"] = fi.get("spia_individuals", [])
+    dic["spia_buy_years"] = fi.get("spia_buy_years", [])
+    dic["spia_premiums"] = fi.get("spia_premiums", [])
+    dic["spia_monthly_incomes"] = fi.get("spia_monthly_incomes", [])
+    dic["spia_indexed"] = fi.get("spia_indexed", [])
+    dic["spia_survivor_fractions"] = fi.get("spia_survivor_fractions", [])
 
     for i in range(ni):
         for j, acc in enumerate(ACC_CONF):
@@ -439,6 +445,11 @@ def ui_to_config(uidic: dict) -> dict:
     diconf["fixed_income"]["social_security_trim_year"] = int(
         trim_year_val if trim_year_val not in (None, "") else 2033
     )
+    for spia_key in ("spia_individuals", "spia_buy_years", "spia_premiums",
+                     "spia_monthly_incomes", "spia_indexed", "spia_survivor_fractions"):
+        val = uidic.get(spia_key, [])
+        if val:
+            diconf["fixed_income"][spia_key] = val
 
     # Rates
     _ui_rates_to_config(diconf, uidic, ni)

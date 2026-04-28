@@ -107,6 +107,12 @@ class FixedIncome(BaseModel):
     social_security_trim_year: Optional[int] = Field(
         default=None, description="Year when SS benefit reduction begins"
     )
+    spia_individuals: List[int] = Field(default_factory=list)
+    spia_buy_years: List[int] = Field(default_factory=list)
+    spia_premiums: List[float] = Field(default_factory=list)
+    spia_monthly_incomes: List[float] = Field(default_factory=list)
+    spia_indexed: List[bool] = Field(default_factory=list)
+    spia_survivor_fractions: List[float] = Field(default_factory=list)
 
 
 class RatesSelection(BaseModel):

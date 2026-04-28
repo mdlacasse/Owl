@@ -43,8 +43,12 @@ else:
     kz.initCaseKey("stoch_longevity_reproducible", False)
     kz.initCaseKey("stoch_longevity_seed", 1)
     kz.initCaseKey("stoch_mortality_table", "SSA2025")
+    kz.initCaseKey("stoch_res_floor_method", "hsf")
+    kz.initCaseKey("stoch_res_floor_value", 0)
     kz.initCaseKey("stochFrontierPlot", None)
     kz.initCaseKey("stochOutcomePlot", None)
+    kz.initCaseKey("stochCVaRPlot", None)
+    kz.initCaseKey("stochRESPlot", None)
     kz.initCaseKey("stochSummary", None)
     kz.initCaseKey("stochResult", None)
     kz.initCaseKey("stochScenarioData", None)
@@ -124,6 +128,32 @@ Select a target success rate to find the committed spending that meets it.
             with col2:
                 kz.getToggle("Reverse sequence", "stoch_reverse_sequence",
                              callback=kz.setpull, help=help_reverse)
+            st.markdown("#### :orange[RES floor]")
+            _floor_opts_hist = ["zero", "hsf", "guaranteed", "custom"]
+            _floor_labels = {
+                "zero": "Zero",
+                "hsf": "HSF (min historical spending)",
+                "guaranteed": "Guaranteed income (SS + pension + SPIA)",
+                "custom": "Custom ($/yr)",
+            }
+            _cur_floor = kz.getCaseKey("stoch_res_floor_method") or "hsf"
+            if _cur_floor not in _floor_opts_hist:
+                _cur_floor = "hsf"
+            col1, col2 = st.columns([2.5, 1], gap="large", vertical_alignment="bottom")
+            with col1:
+                st.radio(
+                    "RES floor",
+                    options=_floor_opts_hist,
+                    format_func=lambda x: _floor_labels[x],
+                    index=_floor_opts_hist.index(_cur_floor),
+                    key=kz.genCaseKey("stoch_res_floor_method_radio"),
+                    on_change=owb.updateStochasticFloor,
+                    label_visibility="collapsed",
+                )
+            if kz.getCaseKey("stoch_res_floor_method") == "custom":
+                with col2:
+                    kz.getIntNum("Floor ($/yr)", "stoch_res_floor_value",
+                                 min_value=0, step=1000, callback=owb.updateStochasticFloor)
     else:
         if kz.caseIsNotMCReady():
             st.warning(
@@ -177,6 +207,32 @@ Select a target success rate to find the committed spending that meets it.
                     )
                 with col2:
                     st.caption(MORTALITY_DESCRIPTIONS.get(selected_table, ""))
+            st.markdown("#### :orange[RES floor]")
+            _floor_opts_mc = ["zero", "guaranteed", "custom"]
+            _floor_labels_mc = {
+                "zero": "Zero",
+                "guaranteed": "Guaranteed income (SS + pension + SPIA)",
+                "custom": "Custom ($/yr)",
+            }
+            _cur_floor_mc = kz.getCaseKey("stoch_res_floor_method") or "guaranteed"
+            if _cur_floor_mc not in _floor_opts_mc:
+                _cur_floor_mc = "guaranteed"
+                kz.storeCaseKey("stoch_res_floor_method", "guaranteed")
+            col1, col2 = st.columns([2.5, 1], gap="large", vertical_alignment="bottom")
+            with col1:
+                st.radio(
+                    "RES floor",
+                    options=_floor_opts_mc,
+                    format_func=lambda x: _floor_labels_mc[x],
+                    index=_floor_opts_mc.index(_cur_floor_mc),
+                    key=kz.genCaseKey("stoch_res_floor_method_radio"),
+                    on_change=owb.updateStochasticFloor,
+                    label_visibility="collapsed",
+                )
+            if kz.getCaseKey("stoch_res_floor_method") == "custom":
+                with col2:
+                    kz.getIntNum("Floor ($/yr)", "stoch_res_floor_value",
+                                 min_value=0, step=1000, callback=owb.updateStochasticFloor)
 
     st.divider()
     fig_frontier = kz.getCaseKey("stochFrontierPlot")
@@ -207,3 +263,12 @@ Select a target success rate to find the committed spending that meets it.
             owb.renderPlot(fig_frontier, col1)
         if fig_outcomes:
             owb.renderPlot(fig_outcomes, col2)
+
+        fig_cvar = kz.getCaseKey("stochCVaRPlot")
+        fig_res = kz.getCaseKey("stochRESPlot")
+        if fig_cvar or fig_res:
+            col3, col4 = st.columns(2, gap="medium")
+            if fig_cvar:
+                owb.renderPlot(fig_cvar, col3)
+            if fig_res:
+                owb.renderPlot(fig_res, col4)

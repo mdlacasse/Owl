@@ -865,6 +865,72 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
+    def plot_stochastic_cvar_vs_pos(self, frontier_prob, frontier_cvar, rho_star, cvar_star,
+                                    target_success_rate, year_n):
+        """CVaR vs Probability of Success curve with current target and optimal ρ* marked."""
+        thisyear = int(year_n[0])
+        pos_pct = (1.0 - frontier_prob) * 100
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=pos_pct.tolist(), y=(frontier_cvar / 1000).tolist(),
+            mode="lines", line=dict(color="steelblue", width=2),
+            showlegend=False,
+        ))
+        fig.add_vline(x=target_success_rate * 100, line_dash="dot", line_color="firebrick",
+                      opacity=0.6)
+        fig.add_trace(go.Scatter(
+            x=[rho_star * 100], y=[cvar_star / 1000],
+            mode="markers+text",
+            marker=dict(symbol="diamond", color="darkorange", size=12),
+            text=[f"ρ*={rho_star:.0%}"],
+            textposition="top left",
+            showlegend=False,
+        ))
+        fig.update_xaxes(title_text="Probability of success (%)", ticksuffix="%",
+                         title_font_size=14, tickfont_size=11)
+        fig.update_yaxes(title_text=f"CVaR ({thisyear} $k)", tickprefix="$",
+                         title_font_size=14, tickfont_size=11)
+        fig.update_layout(
+            title=dict(text=f"Tail risk (CVaR) vs probability of success ({thisyear}$)", font_size=20),
+            template=self.template,
+        )
+        return fig
+
+    def plot_stochastic_res_vs_cvar(self, frontier_cvar, res_values, rho_star, res_star,
+                                    cvar_star, cvar_at_target, year_n, floor_label="HSF"):
+        """RES vs CVaR curve with current target and RES* marked."""
+        thisyear = int(year_n[0])
+        valid = ~np.isnan(res_values)
+        x = frontier_cvar[valid] / 1000
+        y = res_values[valid]
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=x.tolist(), y=y.tolist(),
+            mode="lines", line=dict(color="darkorange", width=2),
+            showlegend=False,
+        ))
+        fig.add_vline(x=cvar_at_target / 1000, line_dash="dot", line_color="firebrick",
+                      opacity=0.6)
+        fig.add_hline(y=res_star, line_dash="dash", line_color="darkorange", opacity=0.5)
+        fig.add_trace(go.Scatter(
+            x=[cvar_star / 1000], y=[res_star],
+            mode="markers+text",
+            marker=dict(symbol="diamond", color="darkorange", size=12),
+            text=[f"RES*={res_star:.2f}"],
+            textposition="top right",
+            showlegend=False,
+        ))
+        fig.update_xaxes(title_text=f"CVaR ({thisyear} $k)", tickprefix="$",
+                         title_font_size=14, tickfont_size=11)
+        fig.update_yaxes(title_text="RES", title_font_size=14, tickfont_size=11)
+        fig.update_layout(
+            title=dict(text=f"Retirement Efficiency Score vs tail risk ({floor_label} floor)", font_size=20),
+            template=self.template,
+        )
+        return fig
+
     def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate, year_n,
                                  with_longevity=False):
         """Bar chart of achieved spending by scenario.
