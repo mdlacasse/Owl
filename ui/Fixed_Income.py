@@ -20,11 +20,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import pandas as pd
 import streamlit as st
 from datetime import date
 
 import sskeys as kz
+import owlbridge as owb
 import case_progress as cp
 
 
@@ -279,16 +279,6 @@ to estimate {iname1}'s PIA.""")
         "The premium is a non-taxable IRA rollover; all payments are 100% ordinary income."
     )
 
-    for _key, _default in [
-        ("spia_individuals", []),
-        ("spia_buy_years", []),
-        ("spia_premiums", []),
-        ("spia_monthly_incomes", []),
-        ("spia_indexed", []),
-        ("spia_survivor_fractions", []),
-    ]:
-        kz.initCaseKey(_key, _default)
-
     is_married = kz.getCaseKey("status") == "married"
     iname0 = kz.getCaseKey("iname0") or "Person 1"
     iname1 = kz.getCaseKey("iname1") or "Person 2"
@@ -296,32 +286,7 @@ to estimate {iname1}'s PIA.""")
     thisyear = date.today().year
     plan_end = int(plan_obj.year_n[-1]) if plan_obj is not None else thisyear + 50
 
-    spia_inds = list(kz.getCaseKey("spia_individuals") or [])
-    spia_years = list(kz.getCaseKey("spia_buy_years") or [])
-    spia_prems = list(kz.getCaseKey("spia_premiums") or [])
-    spia_incomes = list(kz.getCaseKey("spia_monthly_incomes") or [])
-    spia_idx = list(kz.getCaseKey("spia_indexed") or [])
-    spia_surv = list(kz.getCaseKey("spia_survivor_fractions") or [])
-
-    rows = []
-    for k in range(len(spia_inds)):
-        ind = int(spia_inds[k])
-        row = {
-            "Annuitant": iname0 if ind == 0 else iname1,
-            "Buy year": int(spia_years[k]) if k < len(spia_years) else thisyear,
-            "Premium ($k)": float(spia_prems[k]) / 1000.0 if k < len(spia_prems) else 0.0,
-            "Monthly ($)": int(spia_incomes[k]) if k < len(spia_incomes) else 0,
-            "CPI-linked": bool(spia_idx[k]) if k < len(spia_idx) else False,
-            "Survivor (%)": int(round((spia_surv[k] if k < len(spia_surv) else 0.0) * 100)),
-        }
-        if not is_married:
-            row.pop("Survivor (%)")
-        rows.append(row)
-
-    columns = ["Annuitant", "Buy year", "Premium ($k)", "Monthly ($)", "CPI-linked"]
-    if is_married:
-        columns.append("Survivor (%)")
-    df = pd.DataFrame(rows, columns=columns)
+    spiadf = owb.conditionSpiaDF(kz.getCaseKey("spiaDF"), is_married)
 
     annuitant_options = [iname0, iname1] if is_married else [iname0]
     col_config = {
@@ -347,12 +312,12 @@ to estimate {iname1}'s PIA.""")
     }
     if is_married:
         col_config["Survivor (%)"] = st.column_config.NumberColumn(
-            "Survivor (%)", min_value=0, max_value=100, step=5, format="%d",
+            "Survivor (%)", min_value=0, max_value=100, step=1, format="%d",
             help="Percentage of benefit paid to surviving spouse. 0 = single-life annuity.",
         )
 
     edited = st.data_editor(
-        df,
+        spiadf,
         column_config=col_config,
         num_rows="dynamic",
         width="content",
@@ -360,31 +325,9 @@ to estimate {iname1}'s PIA.""")
         hide_index=True,
     )
 
-    new_inds, new_years, new_prems, new_incomes, new_idx, new_surv = [], [], [], [], [], []
-    for _, row in edited.iterrows():
-        buy_year = row.get("Buy year")
-        premium_k = row.get("Premium ($k)")
-        monthly = row.get("Monthly ($)")
-        annuitant = row.get("Annuitant")
-        if pd.isna(buy_year) or pd.isna(premium_k) or pd.isna(monthly) or not annuitant:
-            continue
-        ind = 0 if annuitant == iname0 else 1
-        new_inds.append(int(ind))
-        new_years.append(int(buy_year))
-        new_prems.append(float(premium_k) * 1000.0)
-        new_incomes.append(int(monthly))
-        new_idx.append(bool(row.get("CPI-linked", False)))
-        surv_pct = row.get("Survivor (%)", 0) if is_married else 0
-        if pd.isna(surv_pct):
-            surv_pct = 0
-        new_surv.append(int(surv_pct) / 100.0)
-
-    kz.storeCaseKey("spia_individuals", new_inds)
-    kz.storeCaseKey("spia_buy_years", new_years)
-    kz.storeCaseKey("spia_premiums", new_prems)
-    kz.storeCaseKey("spia_monthly_incomes", new_incomes)
-    kz.storeCaseKey("spia_indexed", new_idx)
-    kz.storeCaseKey("spia_survivor_fractions", new_surv)
+    if not spiadf.equals(edited):
+        kz.setCaseKey("spiaDF", owb.conditionSpiaDF(edited, is_married))
+        st.rerun()
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()

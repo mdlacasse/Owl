@@ -14,6 +14,7 @@ Copyright (C) 2025-2026 The Owlplanner Authors
 """
 
 import logging
+import pandas as pd
 from datetime import date, datetime
 from typing import Any
 
@@ -192,12 +193,29 @@ def config_to_ui(diconf: dict) -> dict:
 
     dic["ssTrimPct"] = int(ss_trim_pct) if ss_trim_pct is not None else 0
     dic["ssTrimYear"] = int(ss_trim_year) if ss_trim_year is not None else 2033
-    dic["spia_individuals"] = fi.get("spia_individuals", [])
-    dic["spia_buy_years"] = fi.get("spia_buy_years", [])
-    dic["spia_premiums"] = fi.get("spia_premiums", [])
-    dic["spia_monthly_incomes"] = fi.get("spia_monthly_incomes", [])
-    dic["spia_indexed"] = fi.get("spia_indexed", [])
-    dic["spia_survivor_fractions"] = fi.get("spia_survivor_fractions", [])
+    is_married = status == "married"
+    spia_inds = fi.get("spia_individuals", [])
+    spia_years = fi.get("spia_buy_years", [])
+    spia_prems = fi.get("spia_premiums", [])
+    spia_incomes = fi.get("spia_monthly_incomes", [])
+    spia_idx = fi.get("spia_indexed", [])
+    spia_surv = fi.get("spia_survivor_fractions", [])
+    _spia_cols = ["Annuitant", "Buy year", "Premium ($k)", "Monthly ($)", "CPI-linked"]
+    if is_married:
+        _spia_cols.append("Survivor (%)")
+    _spia_rows = []
+    for k, ind in enumerate(spia_inds):
+        row = {
+            "Annuitant": names[ind] if ind < len(names) else (names[0] if names else ""),
+            "Buy year": int(spia_years[k]) if k < len(spia_years) else date.today().year,
+            "Premium ($k)": float(spia_prems[k]) / 1000.0 if k < len(spia_prems) else 0.0,
+            "Monthly ($)": int(spia_incomes[k]) if k < len(spia_incomes) else 0,
+            "CPI-linked": bool(spia_idx[k]) if k < len(spia_idx) else False,
+        }
+        if is_married:
+            row["Survivor (%)"] = int(round(float(spia_surv[k]) * 100)) if k < len(spia_surv) else 0
+        _spia_rows.append(row)
+    dic["spiaDF"] = pd.DataFrame(_spia_rows, columns=_spia_cols)
 
     for i in range(ni):
         for j, acc in enumerate(ACC_CONF):
@@ -445,11 +463,32 @@ def ui_to_config(uidic: dict) -> dict:
     diconf["fixed_income"]["social_security_trim_year"] = int(
         trim_year_val if trim_year_val not in (None, "") else 2033
     )
-    for spia_key in ("spia_individuals", "spia_buy_years", "spia_premiums",
-                     "spia_monthly_incomes", "spia_indexed", "spia_survivor_fractions"):
-        val = uidic.get(spia_key, [])
-        if val:
-            diconf["fixed_income"][spia_key] = val
+    spiadf = uidic.get("spiaDF")
+    iname0 = names[0] if len(names) > 0 else ""
+    iname1 = names[1] if len(names) > 1 else ""
+    if spiadf is not None and isinstance(spiadf, pd.DataFrame) and len(spiadf) > 0:
+        new_inds, new_years, new_prems, new_incomes, new_idx, new_surv = [], [], [], [], [], []
+        for _, row in spiadf.iterrows():
+            annuitant = row.get("Annuitant")
+            buy_year = row.get("Buy year")
+            premium_k = row.get("Premium ($k)")
+            monthly = row.get("Monthly ($)")
+            if not annuitant or pd.isna(buy_year) or pd.isna(premium_k) or pd.isna(monthly):
+                continue
+            new_inds.append(0 if annuitant == iname0 else 1)
+            new_years.append(int(buy_year))
+            new_prems.append(float(premium_k) * 1000.0)
+            new_incomes.append(int(monthly))
+            new_idx.append(bool(row.get("CPI-linked", False)))
+            surv_pct = row.get("Survivor (%)", 0)
+            new_surv.append(int(surv_pct if not pd.isna(surv_pct) else 0) / 100.0)
+        if new_inds:
+            diconf["fixed_income"]["spia_individuals"] = new_inds
+            diconf["fixed_income"]["spia_buy_years"] = new_years
+            diconf["fixed_income"]["spia_premiums"] = new_prems
+            diconf["fixed_income"]["spia_monthly_incomes"] = new_incomes
+            diconf["fixed_income"]["spia_indexed"] = new_idx
+            diconf["fixed_income"]["spia_survivor_fractions"] = new_surv
 
     # Rates
     _ui_rates_to_config(diconf, uidic, ni)

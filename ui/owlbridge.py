@@ -399,6 +399,57 @@ def getGuaranteedIncome(plan):
     return float(np.mean(real_total))
 
 
+_SPIA_COLUMNS_SINGLE = ["Annuitant", "Buy year", "Premium ($k)", "Monthly ($)", "CPI-linked"]
+_SPIA_COLUMNS_MARRIED = _SPIA_COLUMNS_SINGLE + ["Survivor (%)"]
+
+
+def conditionSpiaDF(df, is_married):
+    """Return a properly-typed SPIA DataFrame.
+
+    Accepts None or a partial/dirty DataFrame (e.g. straight from st.data_editor)
+    and always returns a clean DataFrame with the correct columns and dtypes.
+    NaN numeric values are zeroed; NaN Annuitant becomes an empty string.
+    """
+    columns = _SPIA_COLUMNS_MARRIED if is_married else _SPIA_COLUMNS_SINGLE
+    dtype_base = {
+        "Annuitant": "object",
+        "Buy year": "int64",
+        "Premium ($k)": "float64",
+        "Monthly ($)": "int64",
+        "CPI-linked": bool,
+    }
+    if is_married:
+        dtype_base["Survivor (%)"] = "int64"
+
+    if df is None or not isinstance(df, pd.DataFrame) or len(df) == 0:
+        return pd.DataFrame(columns=columns).astype(dtype_base)
+
+    df = df.copy()
+    df.reset_index(drop=True, inplace=True)
+
+    if is_married and "Survivor (%)" not in df.columns:
+        df["Survivor (%)"] = 0
+    elif not is_married and "Survivor (%)" in df.columns:
+        df = df.drop(columns=["Survivor (%)"])
+
+    df = df[[c for c in columns if c in df.columns]].copy()
+
+    if "Annuitant" in df.columns:
+        df["Annuitant"] = df["Annuitant"].fillna("").astype(str).replace("nan", "").replace("None", "")
+    if "Buy year" in df.columns:
+        df["Buy year"] = pd.to_numeric(df["Buy year"], errors="coerce").fillna(0).astype("int64")
+    if "Premium ($k)" in df.columns:
+        df["Premium ($k)"] = pd.to_numeric(df["Premium ($k)"], errors="coerce").fillna(0.0)
+    if "Monthly ($)" in df.columns:
+        df["Monthly ($)"] = pd.to_numeric(df["Monthly ($)"], errors="coerce").fillna(0).astype("int64")
+    if "CPI-linked" in df.columns:
+        df["CPI-linked"] = df["CPI-linked"].fillna(False).astype(bool)
+    if "Survivor (%)" in df.columns:
+        df["Survivor (%)"] = pd.to_numeric(df["Survivor (%)"], errors="coerce").fillna(0).astype("int64")
+
+    return df
+
+
 @_checkPlan
 def runStochasticSpending(plan):
     plan1 = owl.clone(plan)
