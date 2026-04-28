@@ -3245,12 +3245,9 @@ class Plan:
 
         return None
 
-    def _scSolve(self, objective, options, solverMethod):
-        """
-        Self-consistent loop, regardless of solver.
-        """
-        includeMedicare = options.get("withMedicare", "loop") == "loop"
-        withSCLoop = options.get("withSCLoop", True)
+    def _build_sc_loop_policy(self, options):
+        include_medicare = options.get("withMedicare", "loop") == "loop"
+        with_sc_loop = options.get("withSCLoop", True)
         ss_val = options.get("withSSTaxability", "loop")
         fixed_psi = float(ss_val) if isinstance(ss_val, (int, float)) else None
 
@@ -3258,15 +3255,117 @@ class Plan:
         # with an absolute floor to avoid zero/near-zero objectives.
         gap = u.get_numeric_option(options, "gap", GAP, min_value=0)
         abs_tol = u.get_numeric_option(options, "absTol", ABS_TOL, min_value=0)
-        rel_tol = options.get("relTol")
-        if rel_tol is None:
-            # Keep rel_tol aligned with solver gap to avoid SC loop chasing noise.
-            rel_tol = max(REL_TOL, gap / 300)
-        # rel_tol = u.get_numeric_option({"relTol": rel_tol}, "relTol", REL_TOL, min_value=0)
+        rel_default = max(REL_TOL, gap / 300)
+        rel_tol = u.get_numeric_option(options, "relTol", rel_default, min_value=0)
+        max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
         self.mylog.print(f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, and gap={gap:.1e}.")
 
-        max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
-        # self.mylog.print(f"Using maxIter={max_iterations}.")
+        return {
+            "includeMedicare": include_medicare,
+            "withSCLoop": with_sc_loop,
+            "fixedPsi": fixed_psi,
+            "gap": gap,
+            "absTol": abs_tol,
+            "relTol": rel_tol,
+            "maxIter": max_iterations,
+        }
+
+    def _new_iteration_trace(self):
+        return {
+            "scaledObjectives": [],
+            "solutions": [],
+            "objectives": [],
+            "gaps": [],
+        }
+
+    def _valid_history_start(self, includeMedicare):
+        return 1 if includeMedicare else 0
+
+    def _pick_best_valid_index(self, scaled_obj_history, includeMedicare):
+        start = self._valid_history_start(includeMedicare)
+        valid = scaled_obj_history[start:]
+        if not valid:
+            return None
+        return start + int(np.argmax(valid))
+
+    def _check_obj_convergence(self, it, abs_obj_diff, tol, includeMedicare, scaled_obj_history):
+        if abs_obj_diff > tol or (includeMedicare and it < 1):
+            return None
+
+        is_monotonic = all(
+            scaled_obj_history[i] <= scaled_obj_history[i - 1] + tol
+            for i in range(1, len(scaled_obj_history))
+        )
+        convergence_type = "monotonic" if is_monotonic else "oscillatory"
+        return {
+            "reason": "converged",
+            "convergenceType": convergence_type,
+            "message": f"Converged on full solution with {convergence_type} behavior.",
+        }
+
+    def _check_cycle(self, it, scaled_obj_history, tol):
+        # Need at least 4 iterations to detect a 2-cycle.
+        if it < 3:
+            return None
+        cycle_len = u.detect_oscillation(scaled_obj_history, tol)
+        if cycle_len is None:
+            return None
+        cycle_values = scaled_obj_history[-cycle_len:]
+        best_idx = int(np.argmax(cycle_values))
+        return {
+            "reason": "cycle",
+            "cycleLength": cycle_len,
+            "cycleOffset": best_idx,
+            "bestScaledObjective": cycle_values[best_idx],
+            "convergenceType": f"oscillatory (cycle length {cycle_len})",
+        }
+
+    def _check_stagnation(self, it, scaled_obj_history, gap_history, includeMedicare):
+        if it < 3:
+            return None
+        start = self._valid_history_start(includeMedicare)
+        valid = scaled_obj_history[start:]
+        valid_gaps = gap_history[start:]
+        if len(valid) <= STAGNATION_WINDOW:
+            return None
+        recent_gaps = valid_gaps[-STAGNATION_WINDOW:]
+        n_timeouts = sum(1 for g in recent_gaps if not np.isfinite(g))
+        if n_timeouts < STAGNATION_TIMEOUTS:
+            return None
+        best_before_window = max(valid[:-STAGNATION_WINDOW])
+        recent_best = max(valid[-STAGNATION_WINDOW:])
+        if recent_best > best_before_window:
+            return None
+        return {
+            "reason": "stagnation",
+            "timeoutCount": n_timeouts,
+            "convergenceType": "oscillatory (stagnation)",
+            "message": (
+                f"Stagnation detected: {n_timeouts}/{STAGNATION_WINDOW} solver timeouts "
+                "with no improvement. Accepting best solution."
+            ),
+        }
+
+    def _check_max_iterations(self, it, max_iterations):
+        if it < max_iterations:
+            return None
+        return {
+            "reason": "max_iter",
+            "convergenceType": "max iteration",
+            "message": "Warning: Exiting loop on maximum iterations.",
+        }
+
+    def _scSolve(self, objective, options, solverMethod):
+        """
+        Self-consistent loop, regardless of solver.
+        """
+        policy = self._build_sc_loop_policy(options)
+        includeMedicare = policy["includeMedicare"]
+        withSCLoop = policy["withSCLoop"]
+        fixed_psi = policy["fixedPsi"]
+        abs_tol = policy["absTol"]
+        rel_tol = policy["relTol"]
+        max_iterations = policy["maxIter"]
 
         if objective == "maxSpending":
             objFac = -1 / self.xi_n[0]
@@ -3275,11 +3374,7 @@ class Plan:
 
         it = 0
         old_x = np.zeros(self.nvars)
-        old_objfns = [np.inf]
-        scaled_obj_history = []  # Track scaled objective values for oscillation detection
-        sol_history = []  # Track solutions aligned with scaled_obj_history
-        obj_history = []  # Track raw objective values aligned with scaled_obj_history
-        gap_history = []  # Track MILP gaps; inf means HiGHS timed out without a dual bound
+        trace = self._new_iteration_trace()
         # Decomposition dispatch: for sequential mode, replace the monolithic MIP
         # with a hierarchical relax-and-fix solver (HiGHS only).
         decomp_mode = options.get("withDecomposition", "none")
@@ -3322,99 +3417,54 @@ class Plan:
 
             delta = xx - old_x
             # Only consider account balances in dX.
-            absSolDiff = np.sum(np.abs(delta[:self.nbals]), axis=0)/self.nbals
-            absObjDiff = abs(objFac*(objfn + old_objfns[-1]))
+            absSolDiff = np.sum(np.abs(delta[:self.nbals]), axis=0) / self.nbals
             scaled_obj = objfn * objFac
-            scaled_obj_history.append(scaled_obj)
-            sol_history.append(xx)
-            obj_history.append(objfn)
-            gap_history.append(solgap)
+            trace["scaledObjectives"].append(scaled_obj)
+            trace["solutions"].append(xx)
+            trace["objectives"].append(objfn)
+            trace["gaps"].append(solgap)
+
+            has_prev_obj = len(trace["scaledObjectives"]) > 1
+            prev_scaled_obj = trace["scaledObjectives"][-2] if has_prev_obj else scaled_obj
+            absObjDiff = abs(scaled_obj - prev_scaled_obj) if has_prev_obj else np.inf
             self.mylog.vprint(f"Iter: {it:02}; f: {u.d(scaled_obj, f=0)}; gap: {solgap:.1e};"
                               f" |dX|: {absSolDiff:.0f}; |df|: {u.d(absObjDiff, f=0)}")
 
             # Solution difference is calculated and reported but not used for convergence
             # since it scales with problem size and can prevent convergence for large cases.
-            prev_scaled_obj = scaled_obj
-            if np.isfinite(old_objfns[-1]):
-                prev_scaled_obj = (-old_objfns[-1]) * objFac
             scale = max(1.0, abs(scaled_obj), abs(prev_scaled_obj))
             tol = max(abs_tol, rel_tol * scale)
-            # With Medicare in loop mode, the first solve uses M_n=0; require at least
-            # one re-solve so the accepted solution had Medicare in the budget.
-            if absObjDiff <= tol and (not includeMedicare or it >= 1):
-                # Check if convergence was monotonic or oscillatory
-                # old_objfns stores -objfn values, so we need to scale them to match displayed values
-                # For monotonic convergence, the scaled objective (objfn * objFac) should be non-increasing
-                # Include current iteration's scaled objfn value
-                scaled_objfns = [(-val) * objFac for val in old_objfns[1:]] + [scaled_obj]
-                # Check if scaled objective function is non-increasing (monotonic convergence)
-                is_monotonic = all(scaled_objfns[i] <= scaled_objfns[i-1] + tol
-                                   for i in range(1, len(scaled_objfns)))
-                if is_monotonic:
-                    self.convergenceType = "monotonic"
-                else:
-                    self.convergenceType = "oscillatory"
-                self.mylog.print(f"Converged on full solution with {self.convergenceType} behavior.")
-                break
+            decision = self._check_obj_convergence(it, absObjDiff, tol, includeMedicare, trace["scaledObjectives"])
+            if decision is None:
+                decision = self._check_cycle(it, trace["scaledObjectives"], tol)
+            if decision is None:
+                decision = self._check_stagnation(it, trace["scaledObjectives"], trace["gaps"], includeMedicare)
+            if decision is None:
+                decision = self._check_max_iterations(it, max_iterations)
 
-            # Check for oscillation (need at least 4 iterations to detect a 2-cycle)
-            if it >= 3:
-                cycle_len = u.detect_oscillation(scaled_obj_history, tol)
-                if cycle_len is not None:
-                    # Find the best (maximum) objective in the cycle
-                    cycle_values = scaled_obj_history[-cycle_len:]
-                    best_idx = np.argmax(cycle_values)
-                    best_obj = cycle_values[best_idx]
-                    self.convergenceType = f"oscillatory (cycle length {cycle_len})"
+            if decision is not None:
+                self.convergenceType = decision["convergenceType"]
+                if decision["reason"] == "cycle":
+                    cycle_len = decision["cycleLength"]
+                    best_obj = decision["bestScaledObjective"]
+                    cycle_offset = decision["cycleOffset"]
                     self.mylog.print(f"Oscillation detected: {cycle_len}-cycle pattern identified.")
                     self.mylog.print(f"Best objective in cycle: {u.d(best_obj, f=2)}")
-
-                    # Select the solution corresponding to the best objective in the detected cycle.
-                    cycle_solutions = sol_history[-cycle_len:]
-                    cycle_objfns = obj_history[-cycle_len:]
-                    xx = cycle_solutions[best_idx]
-                    objfn = cycle_objfns[best_idx]
+                    best_idx = len(trace["scaledObjectives"]) - cycle_len + cycle_offset
+                    xx = trace["solutions"][best_idx]
+                    objfn = trace["objectives"][best_idx]
                     self.mylog.print("Accepting best solution from cycle and terminating.")
-                    break
-
-                # Stagnation check: chaotic oscillation driven by repeated MILP timeouts.
-                # Only fires when several recent iterations had gap=inf (HiGHS timed out
-                # without finding a dual bound), and no improvement has been made over that
-                # window. This avoids false positives on normally-converging SC loops.
-                start = 1 if includeMedicare else 0
-                valid = scaled_obj_history[start:]
-                valid_gaps = gap_history[start:]
-                if len(valid) > STAGNATION_WINDOW:
-                    recent_gaps = valid_gaps[-STAGNATION_WINDOW:]
-                    n_timeouts = sum(1 for g in recent_gaps if not np.isfinite(g))
-                    if n_timeouts >= STAGNATION_TIMEOUTS:
-                        best_before_window = max(valid[:-STAGNATION_WINDOW])
-                        recent_best = max(valid[-STAGNATION_WINDOW:])
-                        if recent_best <= best_before_window:
-                            best_idx = start + int(np.argmax(valid))
-                            xx = sol_history[best_idx]
-                            objfn = obj_history[best_idx]
-                            self.convergenceType = "oscillatory (stagnation)"
-                            self.mylog.print(
-                                f"Stagnation detected: {n_timeouts}/{STAGNATION_WINDOW} solver timeouts "
-                                f"with no improvement. Accepting best solution."
-                            )
-                            break
-
-            if it >= max_iterations:
-                self.convergenceType = "max iteration"
-                self.mylog.print("Warning: Exiting loop on maximum iterations.")
-                # Use the best solution seen across all valid iterations rather than the last.
-                start = 1 if includeMedicare else 0
-                valid = scaled_obj_history[start:] if len(scaled_obj_history) > start else scaled_obj_history
-                if valid:
-                    best_idx = start + int(np.argmax(valid))
-                    xx = sol_history[best_idx]
-                    objfn = obj_history[best_idx]
+                elif decision["reason"] in ("stagnation", "max_iter"):
+                    self.mylog.print(decision["message"])
+                    best_idx = self._pick_best_valid_index(trace["scaledObjectives"], includeMedicare)
+                    if best_idx is not None:
+                        xx = trace["solutions"][best_idx]
+                        objfn = trace["objectives"][best_idx]
+                else:
+                    self.mylog.print(decision["message"])
                 break
 
             it += 1
-            old_objfns.append(-objfn)
             old_x = xx
 
         if solverSuccess:

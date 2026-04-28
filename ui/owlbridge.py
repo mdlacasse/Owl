@@ -442,7 +442,7 @@ def runStochasticSpending(plan):
         result["mortality_table"] = mortality_table
         result["rate_method"] = "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "stochastic")
         kz.storeCaseKey("stochScenarioData", result)
-        _apply_stochastic_target(result, target_sr, plan1._plotter, plan)
+        _apply_stochastic_target(result, target_sr, plan1._plotter, plan1)
     except Exception as e:
         kz.storeCaseKey("stochFrontierPlot", None)
         kz.storeCaseKey("stochOutcomePlot", None)

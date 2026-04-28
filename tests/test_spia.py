@@ -377,3 +377,34 @@ def test_fixed_income_streams_includes_spia():
     assert np.allclose(streams["total"], streams["ss"] + streams["pension"] +
                        streams["spia"] + streams["wages"] + streams["other"] +
                        streams["fa_income"]), "total should equal sum of components"
+
+
+# ---------------------------------------------------------------------------
+# 9. plan_to_config round-trip — SPIA survives clone(expectancy=...)
+# ---------------------------------------------------------------------------
+
+def test_spia_survives_expectancy_clone():
+    """clone(plan, expectancy=[...]) must carry SPIA through plan_to_config."""
+    from owlplanner import clone
+
+    p = _single_plan()
+    buy_year = p.year_n[0] + 1
+    p.addSPIA(individual=0, buy_year=buy_year, premium=50_000, monthly_income=400)
+    p.solve("maxSpending")
+
+    # Longevity clone rebuilds via plan_to_config → config_to_plan.
+    new_expectancy = [int(p.expectancy[0]) + 2]
+    p2 = clone(p, expectancy=new_expectancy, verbose=False)
+    p2.solve("maxSpending")
+
+    # Clone must have exactly one SPIA entry with the same parameters.
+    assert len(p2._spia_list) == 1, f"Expected 1 SPIA in clone, got {len(p2._spia_list)}"
+    assert p2._spia_list[0]["monthly_income"] == 400
+    assert p2._spia_list[0]["buy_year"] == buy_year
+    assert p2._spia_list[0]["premium"] == 50_000
+
+    # SPIA income must be present in the cloned plan.
+    n_full = 2
+    assert abs(p2.spiaBar_in[0, n_full] - 4800) < 200, (
+        f"Clone SPIA income should be ~$4,800/yr, got ${p2.spiaBar_in[0, n_full]:.0f}"
+    )

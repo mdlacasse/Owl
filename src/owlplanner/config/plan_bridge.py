@@ -99,6 +99,11 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         survivor_frac = [float(x) for x in survivor_frac]
     plan.setPension(pension_amounts, pension_ages, pension_indexed, survivor_fraction=survivor_frac)
 
+    # Reset before re-applying: addSPIA appends, so repeated calls (runPlan, clone+prepareRun)
+    # would double the data. setPension/setSocialSecurity overwrite; SPIA must do the same.
+    plan._spia_list = []
+    plan.spia_premiums_in[:] = 0
+
     spia_inds = fi.get("spia_individuals", [])
     n_spia = len(spia_inds)
     for k, ind in enumerate(spia_inds):
@@ -410,6 +415,13 @@ def plan_to_config(myplan: "Plan") -> dict:
     if trim_pct != 0 and trim_year is not None:
         diconf["fixed_income"]["social_security_trim_pct"] = int(trim_pct)
         diconf["fixed_income"]["social_security_trim_year"] = int(trim_year)
+    if myplan._spia_list:
+        diconf["fixed_income"]["spia_individuals"] = [s["individual"] for s in myplan._spia_list]
+        diconf["fixed_income"]["spia_buy_years"] = [s["buy_year"] for s in myplan._spia_list]
+        diconf["fixed_income"]["spia_premiums"] = [s["premium"] for s in myplan._spia_list]
+        diconf["fixed_income"]["spia_monthly_incomes"] = [s["monthly_income"] for s in myplan._spia_list]
+        diconf["fixed_income"]["spia_indexed"] = [s["indexed"] for s in myplan._spia_list]
+        diconf["fixed_income"]["spia_survivor_fractions"] = [s["survivor_fraction"] for s in myplan._spia_list]
 
     # Rates Selection
     rate_method = myplan.rateMethod
