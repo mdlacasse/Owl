@@ -473,7 +473,7 @@ def updateStochasticTarget(plan):
 
 
 @_checkPlan
-def updateStochasticFloor(plan):
+def updateStochasticFloor(plan, *_):
     """Recompute RES plots when the floor method or custom value changes — no scenarios re-run."""
     result = kz.getCaseKey("stochScenarioData")
     if result is None:

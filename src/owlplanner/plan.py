@@ -254,7 +254,9 @@ class Plan:
 
         # Default to zero pension and social security.
         self.pi_in = np.zeros((self.N_i, self.N_n))
+        self.piBar_in = np.zeros((self.N_i, self.N_n))
         self.zeta_in = np.zeros((self.N_i, self.N_n))
+        self.zetaBar_in = np.zeros((self.N_i, self.N_n))
         self.pensionAmounts = np.zeros(self.N_i, dtype=np.int32)
         self.pensionAges = 65 * np.ones(self.N_i, dtype=np.int32)
         self.pensionIsIndexed = [False] * self.N_i
