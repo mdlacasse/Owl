@@ -166,6 +166,21 @@ def test_config_schema_can_validate():
     assert extra["user"]["notes"] == "My custom notes"
 
 
+def test_married_case_without_hsa_key_pads_hsa_for_schema_roundtrip():
+    """Omitted hsa_savings_balances must become N_i zeros (not schema default [0.0])."""
+    from owlplanner.config import load_toml
+    from owlplanner.config.schema import config_dict_to_model, model_to_config_dict
+
+    diconf, _, _ = load_toml("examples/Case_jon+jane.toml")
+    diconf["savings_assets"].pop("hsa_savings_balances", None)
+
+    case_config, extra = config_dict_to_model(diconf)
+    assert case_config.savings_assets.hsa_savings_balances == [0.0, 0.0]
+
+    out = model_to_config_dict(case_config, extra)
+    assert out["savings_assets"]["hsa_savings_balances"] == [0.0, 0.0]
+
+
 def test_default_config_validates_and_builds_plan():
     """default_config() produces a valid config that config_to_plan can use."""
     from owlplanner.config import config_to_plan, config_to_ui, default_config
@@ -177,6 +192,7 @@ def test_default_config_validates_and_builds_plan():
         case_config, extra = config_dict_to_model(diconf)
         assert len(case_config.basic_info.names) == ni
         assert case_config.basic_info.status == ("single" if ni == 1 else "married")
+        assert case_config.savings_assets.hsa_savings_balances == [0.0] * ni
         # Plan build (use placeholder names and case name for Plan constructor)
         diconf["case_name"] = "test_default"
         diconf["basic_info"]["names"] = ["Joe"] if ni == 1 else ["Joe", "Jill"]

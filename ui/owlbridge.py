@@ -359,8 +359,7 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
         if after_tax > 0 and g_opt > 0:
             etr_pct = int(round(plan.effectiveTaxRate * 100))
             spending_ratio = g_opt / after_tax
-            ratio_line = f"Spending-to-savings ratio:       {spending_ratio:.2%}  (ETR ratio {etr_pct}%)\n"
-
+            ratio_line = f"Spending-to-savings ratio:       {spending_ratio:.2%}  (ETR {etr_pct}%)\n"
             _, solve_options = kz.getSolveParameters()
             if "bequest" in solve_options:
                 configured_bequest = get_monetary_option(solve_options, "bequest", 0)

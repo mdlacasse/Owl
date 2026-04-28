@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from .defaults import DEFAULT_DOB, DEFAULT_LIFE_EXPECTANCY, DEFAULT_PENSION_AGE, DEFAULT_SS_AGE
+
 
 # Known top-level section names (used for extracting unknown keys)
 KNOWN_SECTIONS = {
@@ -373,6 +375,129 @@ class CaseConfig(BaseModel):
     solver_options: Dict[str, Any] = Field(default_factory=dict)
     results: Results
     aca_settings: Optional[ACASettings] = None
+
+    @model_validator(mode="after")
+    def _align_lists_to_household_size(self) -> "CaseConfig":
+        """
+        Pad per-person lists to len(basic_info.names) so Pydantic defaults like
+        ``hsa_savings_balances = [0.0]`` do not break married cases when a key
+        is omitted from TOML (matches plan_bridge ``[0.0] * icount`` behavior).
+        """
+        ni = len(self.basic_info.names)
+        if ni < 1 or ni > 2:
+            raise ValueError(f"basic_info.names must have 1 or 2 entries, got {ni}")
+
+        bi = self.basic_info
+        new_bi = bi.model_copy(
+            update={
+                "life_expectancy": _pad_int_list(
+                    list(bi.life_expectancy), ni, field="life_expectancy",
+                    fill_from_tail=True,
+                ),
+                "date_of_birth": _pad_optional_str_list(bi.date_of_birth, ni, field="date_of_birth"),
+                "sexes": _pad_optional_sexes(bi.sexes, ni),
+            }
+        )
+
+        sa = self.savings_assets
+        new_sa = sa.model_copy(
+            update={
+                "taxable_savings_balances": _pad_float_list(
+                    sa.taxable_savings_balances, ni, field="taxable_savings_balances", fill=0.0,
+                ),
+                "tax_deferred_savings_balances": _pad_float_list(
+                    sa.tax_deferred_savings_balances, ni, field="tax_deferred_savings_balances", fill=0.0,
+                ),
+                "tax_free_savings_balances": _pad_float_list(
+                    sa.tax_free_savings_balances, ni, field="tax_free_savings_balances", fill=0.0,
+                ),
+                "hsa_savings_balances": _pad_float_list(
+                    sa.hsa_savings_balances, ni, field="hsa_savings_balances", fill=0.0,
+                ),
+            }
+        )
+        benf = sa.beneficiary_fractions
+        if benf is not None and ni == 2 and len(benf) == 3:
+            new_sa = new_sa.model_copy(update={"beneficiary_fractions": list(benf) + [1.0]})
+
+        fi = self.fixed_income
+        p_monthly = fi.pension_monthly_amounts
+        if p_monthly is not None:
+            p_monthly = _pad_float_list(list(p_monthly), ni, field="pension_monthly_amounts", fill=0.0)
+        p_surv = fi.pension_survivor_fraction
+        if p_surv is not None:
+            p_surv = _pad_float_list(list(p_surv), ni, field="pension_survivor_fraction", fill=0.0)
+        ss_pia = fi.social_security_pia_amounts
+        if ss_pia is not None:
+            ss_pia = _pad_int_list(list(ss_pia), ni, field="social_security_pia_amounts", fill=0)
+
+        new_fi = fi.model_copy(
+            update={
+                "pension_monthly_amounts": p_monthly,
+                "pension_ages": _pad_float_list(
+                    list(fi.pension_ages), ni, field="pension_ages", fill=DEFAULT_PENSION_AGE,
+                ),
+                "pension_indexed": _pad_bool_list(list(fi.pension_indexed), ni, field="pension_indexed"),
+                "pension_survivor_fraction": p_surv,
+                "social_security_pia_amounts": ss_pia,
+                "social_security_ages": _pad_float_list(
+                    list(fi.social_security_ages), ni, field="social_security_ages", fill=DEFAULT_SS_AGE,
+                ),
+            }
+        )
+
+        return self.model_copy(
+            update={"basic_info": new_bi, "savings_assets": new_sa, "fixed_income": new_fi}
+        )
+
+
+def _list_too_long(field: str, ni: int, n: int) -> None:
+    if n > ni:
+        raise ValueError(f"{field} must have at most {ni} entries (household size), got {n}")
+
+
+def _pad_float_list(vals: List[float], ni: int, *, field: str, fill: float) -> List[float]:
+    _list_too_long(field, ni, len(vals))
+    if len(vals) < ni:
+        return list(vals) + [fill] * (ni - len(vals))
+    return list(vals)
+
+
+def _pad_int_list(
+    vals: List[int], ni: int, *, field: str, fill: int | None = None, fill_from_tail: bool = False,
+) -> List[int]:
+    _list_too_long(field, ni, len(vals))
+    if len(vals) < ni:
+        tail = vals[-1] if fill_from_tail and vals else (fill if fill is not None else DEFAULT_LIFE_EXPECTANCY)
+        return list(vals) + [tail] * (ni - len(vals))
+    return list(vals)
+
+
+def _pad_bool_list(vals: List[bool], ni: int, *, field: str) -> List[bool]:
+    _list_too_long(field, ni, len(vals))
+    if len(vals) < ni:
+        fill = vals[-1] if vals else True
+        return list(vals) + [fill] * (ni - len(vals))
+    return list(vals)
+
+
+def _pad_optional_str_list(vals: Optional[List[str]], ni: int, *, field: str) -> Optional[List[str]]:
+    if vals is None:
+        return None
+    _list_too_long(field, ni, len(vals))
+    if len(vals) < ni:
+        return list(vals) + [DEFAULT_DOB] * (ni - len(vals))
+    return list(vals)
+
+
+def _pad_optional_sexes(vals: Optional[List[str]], ni: int) -> Optional[List[str]]:
+    if vals is None:
+        return None
+    _list_too_long("sexes", ni, len(vals))
+    if len(vals) < ni:
+        defaults = ["M", "F"] if ni == 2 else ["F"]
+        return list(vals) + [defaults[i] for i in range(len(vals), ni)]
+    return list(vals)
 
 
 def config_dict_to_model(diconf: dict) -> tuple[CaseConfig, dict]:
