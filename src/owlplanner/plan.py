@@ -64,7 +64,8 @@ GAP = 1e-4
 _PSI_DAMP = 0.3    # SC-loop damping weight for new Psi_n estimate (blend 30% new / 70% old)
 MILP_GAP = 30 * GAP
 MAX_ITERATIONS = 29
-STAGNATION_WINDOW = 8   # SC iterations without best-objective improvement before early exit
+STAGNATION_WINDOW = 8    # SC iterations without improvement before early-exit check
+STAGNATION_TIMEOUTS = 3  # min gap=inf MILP timeouts in window to trigger stagnation exit
 ABS_TOL = 100
 REL_TOL = 5e-5
 TIME_LIMIT = 900
@@ -3203,6 +3204,7 @@ class Plan:
         scaled_obj_history = []  # Track scaled objective values for oscillation detection
         sol_history = []  # Track solutions aligned with scaled_obj_history
         obj_history = []  # Track raw objective values aligned with scaled_obj_history
+        gap_history = []  # Track MILP gaps; inf means HiGHS timed out without a dual bound
         # Decomposition dispatch: for sequential mode, replace the monolithic MIP
         # with a hierarchical relax-and-fix solver (HiGHS only).
         decomp_mode = options.get("withDecomposition", "none")
@@ -3251,6 +3253,7 @@ class Plan:
             scaled_obj_history.append(scaled_obj)
             sol_history.append(xx)
             obj_history.append(objfn)
+            gap_history.append(solgap)
             self.mylog.vprint(f"Iter: {it:02}; f: {u.d(scaled_obj, f=0)}; gap: {solgap:.1e};"
                               f" |dX|: {absSolDiff:.0f}; |df|: {u.d(absObjDiff, f=0)}")
 
@@ -3299,24 +3302,29 @@ class Plan:
                     self.mylog.print("Accepting best solution from cycle and terminating.")
                     break
 
-                # Stagnation check: chaotic oscillation that never forms a clean cycle.
-                # When Medicare is in loop mode, skip iter 0 (M_n=0 gives inflated objective).
+                # Stagnation check: chaotic oscillation driven by repeated MILP timeouts.
+                # Only fires when several recent iterations had gap=inf (HiGHS timed out
+                # without finding a dual bound), and no improvement has been made over that
+                # window. This avoids false positives on normally-converging SC loops.
                 start = 1 if includeMedicare else 0
                 valid = scaled_obj_history[start:]
+                valid_gaps = gap_history[start:]
                 if len(valid) > STAGNATION_WINDOW:
-                    # Exit if the best objective has not improved in the last STAGNATION_WINDOW iters.
-                    best_before_window = max(valid[:-STAGNATION_WINDOW])
-                    recent_best = max(valid[-STAGNATION_WINDOW:])
-                    if recent_best <= best_before_window:
-                        best_idx = start + int(np.argmax(valid))
-                        xx = sol_history[best_idx]
-                        objfn = obj_history[best_idx]
-                        self.convergenceType = "oscillatory (stagnation)"
-                        self.mylog.print(
-                            f"Stagnation detected: no improvement in {STAGNATION_WINDOW} iterations. "
-                            "Accepting best solution."
-                        )
-                        break
+                    recent_gaps = valid_gaps[-STAGNATION_WINDOW:]
+                    n_timeouts = sum(1 for g in recent_gaps if not np.isfinite(g))
+                    if n_timeouts >= STAGNATION_TIMEOUTS:
+                        best_before_window = max(valid[:-STAGNATION_WINDOW])
+                        recent_best = max(valid[-STAGNATION_WINDOW:])
+                        if recent_best <= best_before_window:
+                            best_idx = start + int(np.argmax(valid))
+                            xx = sol_history[best_idx]
+                            objfn = obj_history[best_idx]
+                            self.convergenceType = "oscillatory (stagnation)"
+                            self.mylog.print(
+                                f"Stagnation detected: {n_timeouts}/{STAGNATION_WINDOW} solver timeouts "
+                                f"with no improvement. Accepting best solution."
+                            )
+                            break
 
             if it >= max_iterations:
                 self.convergenceType = "max iteration"
@@ -4017,7 +4025,7 @@ class Plan:
 
         # Problem MUST contain binary variables to make these calls.
         solsta = task.getsolsta(mosek.soltype.itg)
-        solverSuccess = (solsta == mosek.solsta.integer_optimal)
+        solverSuccess = solsta in (mosek.solsta.integer_optimal, mosek.solsta.prim_feas)
         rel_gap = task.getdouinf(mosek.dinfitem.mio_obj_rel_gap) if solverSuccess else -1
 
         if solsta == mosek.solsta.integer_optimal:
