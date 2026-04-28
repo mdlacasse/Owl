@@ -64,6 +64,7 @@ GAP = 1e-4
 _PSI_DAMP = 0.3    # SC-loop damping weight for new Psi_n estimate (blend 30% new / 70% old)
 MILP_GAP = 30 * GAP
 MAX_ITERATIONS = 29
+STAGNATION_WINDOW = 8   # SC iterations without best-objective improvement before early exit
 ABS_TOL = 100
 REL_TOL = 5e-5
 TIME_LIMIT = 900
@@ -3298,9 +3299,35 @@ class Plan:
                     self.mylog.print("Accepting best solution from cycle and terminating.")
                     break
 
+                # Stagnation check: chaotic oscillation that never forms a clean cycle.
+                # When Medicare is in loop mode, skip iter 0 (M_n=0 gives inflated objective).
+                start = 1 if includeMedicare else 0
+                valid = scaled_obj_history[start:]
+                if len(valid) > STAGNATION_WINDOW:
+                    # Exit if the best objective has not improved in the last STAGNATION_WINDOW iters.
+                    best_before_window = max(valid[:-STAGNATION_WINDOW])
+                    recent_best = max(valid[-STAGNATION_WINDOW:])
+                    if recent_best <= best_before_window:
+                        best_idx = start + int(np.argmax(valid))
+                        xx = sol_history[best_idx]
+                        objfn = obj_history[best_idx]
+                        self.convergenceType = "oscillatory (stagnation)"
+                        self.mylog.print(
+                            f"Stagnation detected: no improvement in {STAGNATION_WINDOW} iterations. "
+                            "Accepting best solution."
+                        )
+                        break
+
             if it >= max_iterations:
                 self.convergenceType = "max iteration"
                 self.mylog.print("Warning: Exiting loop on maximum iterations.")
+                # Use the best solution seen across all valid iterations rather than the last.
+                start = 1 if includeMedicare else 0
+                valid = scaled_obj_history[start:] if len(scaled_obj_history) > start else scaled_obj_history
+                if valid:
+                    best_idx = start + int(np.argmax(valid))
+                    xx = sol_history[best_idx]
+                    objfn = obj_history[best_idx]
                 break
 
             it += 1

@@ -2,6 +2,12 @@
 
 ---
 
+## Version 2026.04.27
+
+- Improve detection of convergence anomalies in MC (issue#119).
+- Upgrage requirement on gitpython to address vulnerability.
+
+
 ## Version 2026.04.21
 
 ### Longevity risk in stochastic spending + parallel plan solving

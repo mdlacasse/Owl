@@ -281,6 +281,9 @@ def run_historical_range(plan, objective, options, ystart, yend, *, verbose=Fals
     return N, df
 
 
+MC_TIME_LIMIT = 120   # per-scenario solver time limit for MC runs (overrides the single-run default)
+
+
 def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall=None, log_x=False):
     """
     Run Monte Carlo simulations on plan.
@@ -293,7 +296,11 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
     plan.mylog.vprint(f"Running {N} Monte Carlo simulations.")
     plan.mylog.setVerbose(verbose)
 
-    myoptions = options
+    # Use a shorter per-scenario time limit so a single hard MILP instance cannot stall
+    # the entire MC run for the full single-run TIME_LIMIT. Callers can override via options.
+    myoptions = dict(options)
+    if "maxTime" not in myoptions:
+        myoptions["maxTime"] = MC_TIME_LIMIT
 
     if objective == "maxSpending":
         columns = ["partial", objective]
