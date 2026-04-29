@@ -242,6 +242,7 @@ Parameters controlling the optimization objective and spending profile.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `slcsp_annual` | float | Annual benchmark Silver plan (SLCSP) premium in today's dollars (in `units`). Set to 0 to disable ACA. Inflated internally by the plan's inflation factor. |
+| `aca_start_year` | int | *(Optional)* Calendar year when ACA coverage begins (e.g. year of retirement). Years before this are treated as employer-covered — ACA cost is zero. Default `0` = ACA applies from the first year of the plan. |
 
 **Note:** ACA costs apply only in years when at least one individual is under 65 and within their planning horizon. The Premium Tax Credit (PTC) is computed from MAGI and Federal Poverty Level; net cost = SLCSP minus PTC. Use `withACA` in `[solver_options]` to choose loop (default) or optimize mode.
 
