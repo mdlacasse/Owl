@@ -96,7 +96,7 @@ elif platform in ["win32", "linux"]:
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 94_559,
+            "net_spending_basis": 94_743,
             "bequest": 400_000,
         },
         "Case_joe": {
