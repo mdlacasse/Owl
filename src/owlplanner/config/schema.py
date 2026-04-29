@@ -202,6 +202,10 @@ class ACASettings(BaseModel):
         default=0.0,
         description="Annual benchmark Silver plan (SLCSP) premium in today's dollars ($k)",
     )
+    aca_start_year: int = Field(
+        default=0,
+        description="Calendar year ACA coverage begins (0 = from plan start).",
+    )
 
 
 class Results(BaseModel):

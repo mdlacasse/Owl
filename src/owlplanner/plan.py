@@ -247,6 +247,7 @@ class Plan:
         self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
         self.n_hsa_i = np.full(self.N_i, self.N_n, dtype=int)  # Year HSA contributions stop (default: never)
         self.slcsp_annual = 0.0             # Today-dollar annual ACA benchmark Silver plan premium ($)
+        self.aca_start_year = 0            # Calendar year ACA coverage begins (0 = plan start)
         self.ACA_n = np.zeros(self.N_n)    # Net ACA cost (after subsidy) per year (plan $)
         self._aca_lp = False               # True when withACA="optimize" is active
         self.maca_n = np.zeros(self.N_n)   # ACA LP cost variable extraction result
@@ -1027,7 +1028,7 @@ class Plan:
             self.n_hsa_i[i] = min(max(0, n_hsa), self.N_n)
         self.mylog.vprint("HSA contribution stop years:", [int(self.n_hsa_i[i]) for i in range(self.N_i)])
 
-    def setACA(self, slcsp, units="k"):
+    def setACA(self, slcsp, units="k", start_year=None):
         """
         Configure ACA marketplace health insurance premium for pre-Medicare years.
 
@@ -1045,6 +1046,9 @@ class Plan:
             If a list of length N_n, used as-is (each entry inflated for that year).
         units : str
             Unit multiplier: 'k' ($k, default), 'M' ($M), '1' (dollars).
+        start_year : int, optional
+            Calendar year when ACA coverage begins. Years before this are treated as
+            employer-covered (zero ACA cost). Default None (or 0) = from plan start.
         """
         fac = u.getUnits(units)
         if np.isscalar(slcsp):
@@ -1053,6 +1057,9 @@ class Plan:
         else:
             raise ValueError("setACA: slcsp must be a scalar (today's $). For per-year amounts use a list "
                              "with a future per-year API.")
+        if start_year is not None and int(start_year) > 0:
+            self.aca_start_year = int(start_year)
+            self.mylog.vprint(f"ACA coverage starts in calendar year {self.aca_start_year}.")
         self.caseStatus = "modified"
 
     def setInterpolationMethod(self, method, center=15, width=5):
@@ -1526,8 +1533,11 @@ class Plan:
             )
 
             if self.slcsp_annual > 0:
+                n_aca_start = (max(0, self.aca_start_year - int(self.year_n[0]))
+                               if self.aca_start_year > 0 else 0)
                 self.n_aca, self.Lbar_aca_nr, self.cap_pct_aca_r, self.slcsp_aca_n = \
-                    tx.acaVals(self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n)
+                    tx.acaVals(self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n,
+                               n_aca_start=n_aca_start)
             else:
                 self.n_aca = 0
 
@@ -4128,8 +4138,10 @@ class Plan:
         # Compute ACA costs through self-consistent loop (uses current-year MAGI, no 2-year lag).
         # In optimize mode (withACA="optimize"), ACA_n stays zero; maca_n carries the cost.
         if self.slcsp_annual > 0 and not self._aca_lp:
+            n_aca_start = (max(0, self.aca_start_year - int(self.year_n[0]))
+                           if self.aca_start_year > 0 else 0)
             self.ACA_n = tx.acaCosts(self.yobs, self.horizons, self.MAGI_n, self.gamma_n[:-1],
-                                     self.slcsp_annual, self.N_n)
+                                     self.slcsp_annual, self.N_n, n_aca_start=n_aca_start)
 
         return None
 

@@ -240,6 +240,7 @@ def config_to_ui(diconf: dict) -> dict:
     dic["medicarePartDBasePremium"] = so.get("medicarePartDBasePremium")
     aca = known.get("aca_settings") or {}
     dic["slcspAnnual"] = float(aca.get("slcsp_annual", 0))
+    dic["acaStartYear"] = int(aca.get("aca_start_year", 0) or 0)
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
     dic["useDecomposition"] = so.get("withDecomposition", "none")
 
@@ -480,7 +481,10 @@ def ui_to_config(uidic: dict) -> dict:
     part_d_base = uidic.get("medicarePartDBasePremium")
     if part_d_base is not None and part_d_base != "":
         diconf["solver_options"]["medicarePartDBasePremium"] = float(part_d_base)
-    diconf["aca_settings"] = {"slcsp_annual": _get_ui(uidic, "slcspAnnual", 0, float)}
+    diconf["aca_settings"] = {
+        "slcsp_annual": _get_ui(uidic, "slcspAnnual", 0, float),
+        "aca_start_year": _get_ui(uidic, "acaStartYear", 0, int),
+    }
     diconf["solver_options"]["withACA"] = (
         "optimize" if uidic.get("optimizeACA") else "loop"
     )

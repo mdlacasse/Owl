@@ -242,7 +242,8 @@ def _apply_aca_to_plan(plan: "Plan", known: dict) -> None:
         return
     slcsp = aca.get("slcsp_annual", 0.0)
     if slcsp and float(slcsp) > 0:
-        plan.setACA(slcsp=float(slcsp), units="k")
+        start_year = int(aca.get("aca_start_year", 0) or 0)
+        plan.setACA(slcsp=float(slcsp), units="k", start_year=start_year)
 
 
 def config_to_plan(
@@ -473,6 +474,8 @@ def plan_to_config(myplan: "Plan") -> dict:
     # ACA settings (only emit when configured)
     if getattr(myplan, "slcsp_annual", 0.0) > 0:
         diconf["aca_settings"] = {"slcsp_annual": myplan.slcsp_annual / 1000}  # $ → $k
+        if getattr(myplan, "aca_start_year", 0) > 0:
+            diconf["aca_settings"]["aca_start_year"] = myplan.aca_start_year
 
     # Merge user-defined sections for round-trip
     extra = getattr(myplan, "_config_extra", None)

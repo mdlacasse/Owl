@@ -421,7 +421,7 @@ def _aca_contrib_pct(ratio, breakpoints, contrib_pct):
     return contrib_pct[idx] + t * (contrib_pct[idx + 1] - contrib_pct[idx])
 
 
-def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
+def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0):
     """
     Compute net ACA marketplace premium costs (after Premium Tax Credit) for each year.
 
@@ -460,6 +460,9 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
         Number of plan years.
     thisyear : int, optional
         Plan start year. Defaults to date.today().year. Used for testing.
+    n_aca_start : int, optional
+        Plan-year index at which ACA coverage begins. Years before this index are
+        skipped (zero cost). Default 0 = coverage from plan start.
 
     Returns
     -------
@@ -476,7 +479,7 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
     costs = np.zeros(N_n)
     fpl_max_year = max(_ACA_FPL.keys())  # Use for calendar years beyond latest
 
-    for n in range(N_n):
+    for n in range(max(0, n_aca_start), N_n):
         # Determine ACA-eligible individuals for this year.
         eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
         nelig = len(eligible)
@@ -521,7 +524,7 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
     return costs
 
 
-def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
+def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
     """
     Return (n_aca, Lbar_aca_nr, cap_pct_aca_r, slcsp_aca_n) for the ACA LP/MIP formulation.
 
@@ -546,6 +549,9 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
         Today-dollar annual benchmark Silver plan premium for the full household.
     Nn : int
         Number of plan years.
+    n_aca_start : int, optional
+        Plan-year index at which ACA coverage begins. Years before this index are zeroed
+        (e.g. still on employer coverage). Default 0 = coverage from plan start.
 
     Returns
     -------
@@ -556,7 +562,7 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
     cap_pct_aca_r : ndarray, shape (N_ACA_R,)
         Contribution rates per bracket (constant across years).
     slcsp_aca_n : ndarray, shape (n_aca,)
-        Inflation-adjusted SLCSP premium cap per year ($).
+        Inflation-adjusted SLCSP premium cap per year ($). Zero for nn < n_aca_start.
     """
     empty = (0, np.zeros((0, N_ACA_R - 1)), _ACA_LP_CONTRIB.copy(), np.zeros(0))
     if slcsp_annual <= 0:
@@ -577,6 +583,8 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn):
     slcsp_aca_n = np.zeros(n_aca)
 
     for nn in range(n_aca):
+        if nn < n_aca_start:
+            continue  # Before ACA coverage starts; arrays stay zero (LP pins maca=0 via zero slcsp cap)
         n = nn  # ACA uses current year (no 2-year lag like Medicare)
         eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
         hh_size = min(len(eligible), 2)

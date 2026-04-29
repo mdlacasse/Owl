@@ -31,6 +31,7 @@ import case_progress as cp
 kz.initCaseKey("computeMedicare", True)
 kz.initCaseKey("optimizeMedicare", False)
 kz.initCaseKey("slcspAnnual", 0)
+kz.initCaseKey("acaStartYear", 0)
 kz.initCaseKey("optimizeACA", False)
 kz.initCaseKey("optimizeLTCG", False)
 kz.initCaseKey("optimizeNIIT", False)
@@ -119,6 +120,15 @@ else:
     cols = st.columns(3, gap="large", vertical_alignment="top")
     with cols[0]:
         kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0., help=helpmsg)
+    with cols[1]:
+        acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
+        helpmsg_start = ("Calendar year ACA coverage begins (e.g. year of retirement). "
+                         "Years before this are assumed employer-covered (zero ACA cost). "
+                         "Set to 0 for coverage from the start of the plan.")
+        thisyear = date.today().year
+        kz.getIntNum("ACA start year (0 = plan start)", "acaStartYear",
+                     min_value=0, max_value=thisyear + 50, step=1,
+                     help=helpmsg_start, disabled=acaoff)
 
     st.divider()
     st.markdown("#### :orange[Social Security Claiming Ages]")

@@ -1033,7 +1033,11 @@ A warning appears if Medicare is on while the self-consistent loop is off,
 since Medicare in loop mode requires the loop to compute premiums iteratively.
 
 The **ACA Marketplace (Pre-65)** section allows entering the annual benchmark Silver plan (SLCSP) premium
-for years before Medicare. Set to 0 to omit ACA costs. *Optimize ACA (expert)* in *Advanced options*
+for years before Medicare. Set to 0 to omit ACA costs.
+The **ACA start year** field specifies the calendar year when ACA coverage begins (e.g. the year of
+retirement). Years before that are treated as employer-covered and incur no ACA cost. Leave at 0 for
+ACA to apply from the first year of the plan.
+*Optimize ACA (expert)* in *Advanced options*
 co-optimizes ACA bracket selection within the LP, enabling the optimizer to shift MAGI across ACA brackets
 for improved plan objectives (can be slower; applies 2026 rules only); it only applies when SLCSP > 0.
 
