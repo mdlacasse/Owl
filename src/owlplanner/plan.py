@@ -3277,14 +3277,17 @@ class Plan:
             # With Medicare in loop mode, the first solve uses M_n=0; require at least
             # one re-solve so the accepted solution had Medicare in the budget.
             if absObjDiff <= tol and (not includeMedicare or it >= 1):
-                # Check if convergence was monotonic or oscillatory
-                # old_objfns stores -objfn values, so we need to scale them to match displayed values
-                # For monotonic convergence, the scaled objective (objfn * objFac) should be non-increasing
-                # Include current iteration's scaled objfn value
-                scaled_objfns = [(-val) * objFac for val in old_objfns[1:]] + [scaled_obj]
-                # Check if scaled objective function is non-increasing (monotonic convergence)
-                is_monotonic = all(scaled_objfns[i] <= scaled_objfns[i-1] + tol
-                                   for i in range(1, len(scaled_objfns)))
+                # Check if convergence was monotonic or oscillatory.
+                # Skip iter 0: SC costs (Medicare, LTCG, etc.) are not yet active there,
+                # so the iter 0→1 drop is structural warm-up, not oscillation.
+                # Accept either direction: maximization objectives converge from below (rising),
+                # minimization objectives converge from above (falling).
+                scaled_objfns = [(-val) * objFac for val in old_objfns[2:]] + [scaled_obj]
+                is_nondecreasing = all(scaled_objfns[i] >= scaled_objfns[i-1] - tol
+                                       for i in range(1, len(scaled_objfns)))
+                is_nonincreasing = all(scaled_objfns[i] <= scaled_objfns[i-1] + tol
+                                       for i in range(1, len(scaled_objfns)))
+                is_monotonic = is_nondecreasing or is_nonincreasing
                 if is_monotonic:
                     self.convergenceType = "monotonic"
                 else:
