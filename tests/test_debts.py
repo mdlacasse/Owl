@@ -141,6 +141,17 @@ class TestCalculateRemainingBalance:
         balance = debts.calculate_remaining_balance(principal, rate, term, 35)
         assert balance == pytest.approx(0.0, abs=1.0)
 
+    def test_zero_term_positive_elapsed_returns_zero(self):
+        """Non-positive term must not divide by zero in the linear-payoff branch."""
+        principal = 100_000
+        rate = 0.0
+        assert debts.calculate_remaining_balance(principal, rate, 0, 5) == pytest.approx(0.0)
+
+    def test_zero_term_elapsed_zero_returns_principal(self):
+        principal = 50_000
+        rate = 3.0
+        assert debts.calculate_remaining_balance(principal, rate, 0, 0) == pytest.approx(principal)
+
 
 class TestGetDebtPaymentsForYear:
     """Tests for get_debt_payments_for_year function."""

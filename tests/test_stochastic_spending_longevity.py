@@ -3,7 +3,9 @@ Regression tests for stochastic spending with longevity risk.
 """
 
 from datetime import date
+
 import numpy as np
+import pytest
 
 import owlplanner as owl
 import owlplanner.stresstests as stresstests
@@ -168,3 +170,8 @@ def test_scenario_worker_historical_applies_reverse_roll():
     out = stresstests._scenario_worker((p, (1975, True, 2), None, {}))
     assert out == 123.0
     assert p.calls == [("historical", 1975, True, 2)]
+
+
+def test_stochastic_lp_rejects_empty_bases():
+    with pytest.raises(ValueError, match="at least one scenario"):
+        stresstests._stochastic_lp([], 0.5)

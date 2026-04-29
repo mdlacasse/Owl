@@ -119,13 +119,15 @@ def calculate_remaining_balance(principal, annual_rate, term_years, years_elapse
     if years_elapsed <= 0:
         return principal
 
-    if years_elapsed >= term_years:
+    if term_years <= 0 or years_elapsed >= term_years:
         return 0.0
 
     monthly_rate = annual_rate / 100.0 / 12.0
     fac = 1 + monthly_rate
     num_payments = term_years * 12
     payments_made = int(years_elapsed * 12)
+    if num_payments <= 0:
+        return 0.0
 
     if monthly_rate == 0:
         return principal * (1 - payments_made / num_payments)

@@ -106,6 +106,8 @@ def _stochastic_lp(bases, lam):
     """
     bases = np.asarray(bases, dtype=float)
     S = len(bases)
+    if S < 1:
+        raise ValueError("bases must contain at least one scenario.")
 
     c = np.concatenate([[-1.0], np.full(S, lam / S)])
 
@@ -539,7 +541,14 @@ def run_stochastic_spending(plan, options, scenario_method, *,
         futures = {executor.submit(_scenario_worker, args): orig_idx for orig_idx, args in args_list}
         for fut in as_completed(futures):
             orig_idx = futures[fut]
-            results_map[orig_idx] = fut.result()
+            try:
+                results_map[orig_idx] = fut.result()
+            except Exception as exc:
+                plan.mylog.print(
+                    f"Warning: scenario {orig_idx} raised {type(exc).__name__}: {exc}; "
+                    "treating as infeasible (basis 0)."
+                )
+                results_map[orig_idx] = None
             completed += 1
             progcall.show(completed, total)
 

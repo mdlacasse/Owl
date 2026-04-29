@@ -3367,10 +3367,24 @@ class Plan:
         rel_tol = policy["relTol"]
         max_iterations = policy["maxIter"]
 
+        # Objective reporting scale; zero deflators would divide by zero.
+        _tiny = 1e-30
         if objective == "maxSpending":
-            objFac = -1 / self.xi_n[0]
+            den = float(self.xi_n[0])
+            if abs(den) < _tiny:
+                raise ValueError(
+                    "maxSpending objective scaling failed: xi_n[0] (first-year nominal discount) is "
+                    "effectively zero. Check plan horizon and inflation series."
+                )
+            objFac = -1.0 / den
         else:
-            objFac = -1 / self.gamma_n[-1]
+            den = float(self.gamma_n[-1])
+            if abs(den) < _tiny:
+                raise ValueError(
+                    "Objective scaling failed: gamma_n[-1] (terminal nominal discount) is effectively "
+                    "zero. Check plan horizon and inflation series."
+                )
+            objFac = -1.0 / den
 
         it = 0
         old_x = np.zeros(self.nvars)
@@ -4459,7 +4473,7 @@ class Plan:
         """
         Reports final account balances.
         """
-        _estate = np.sum(self.b_ijn[:, :, :, self.N_n], axis=(0, 2))
+        _estate = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
         _estate[1] *= 1 - self.nu
         self.mylog.vprint(f"Estate value of {u.d(sum(_estate))} at the end of year {self.year_n[-1]}.")
 

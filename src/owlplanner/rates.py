@@ -270,11 +270,21 @@ def getRatesDistributions(frm=None, to=None, mylog=None, in_percent=True, *, df=
     mylog.vprint("standard deviation: (%)\n", stdev)
 
     # geo/arith means already decimal; stdev/covar in percent² — convert to decimal.
-    stdev = np.array(stdev) / 100.0
-    covar = np.array(covar) / 10000.0
-    # Build correlation matrix by dividing by the stdev for each column and row.
-    corr = covar / stdev[:, None]
-    corr = corr.T / stdev[:, None]
+    stdev = np.asarray(stdev, dtype=float) / 100.0
+    covar = np.asarray(covar, dtype=float) / 10000.0
+    # Correlation = cov / (σ_i σ_j); guard zero-variance columns (constant series) to avoid inf/nan.
+    n = stdev.size
+    outer = stdev[:, None] * stdev[None, :]
+    tol = 1e-18 * max(1.0, float(np.max(outer)) if outer.size else 1.0)
+    corr = np.zeros((n, n), dtype=float)
+    mask = outer > tol
+    with np.errstate(invalid="ignore", divide="ignore"):
+        corr[mask] = covar[mask] / outer[mask]
+    idzero = stdev <= np.sqrt(tol)
+    if np.any(idzero):
+        corr[idzero, :] = 0.0
+        corr[:, idzero] = 0.0
+        corr[np.arange(n), np.arange(n)] = 1.0
     # Fold round-off errors in proper bounds.
     corr[corr > 1] = 1
     corr[corr < -1] = -1

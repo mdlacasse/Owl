@@ -100,3 +100,4 @@ CLAUDE.md
 
 # Local dev Dockerfile (not for upstream PRs)
 docker/Dockerfile.dev
+pubs

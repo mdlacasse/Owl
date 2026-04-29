@@ -421,7 +421,7 @@ def _aca_contrib_pct(ratio, breakpoints, contrib_pct):
     return contrib_pct[idx] + t * (contrib_pct[idx + 1] - contrib_pct[idx])
 
 
-def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
+def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0):
     """
     Compute net ACA marketplace premium costs (after Premium Tax Credit) for each year.
 
@@ -460,6 +460,9 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
         Number of plan years.
     thisyear : int, optional
         Plan start year. Defaults to date.today().year. Used for testing.
+    n_aca_start : int, optional
+        Plan year index when ACA coverage begins (default 0 = plan start).
+        Years before this index are set to zero regardless of eligibility.
 
     Returns
     -------
@@ -476,7 +479,7 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None):
     costs = np.zeros(N_n)
     fpl_max_year = max(_ACA_FPL.keys())  # Use for calendar years beyond latest
 
-    for n in range(N_n):
+    for n in range(max(0, n_aca_start), N_n):
         # Determine ACA-eligible individuals for this year.
         eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
         nelig = len(eligible)

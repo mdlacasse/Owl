@@ -540,6 +540,20 @@ class TestGetRatesDistributionsDataFrame:
         assert np.allclose(dist.corr, dist.corr.T)               # symmetric
         assert np.allclose(np.diag(dist.corr), np.ones(4))       # unit diagonal
 
+    def test_df_mode_constant_column_corr_finite(self):
+        """Zero-variance column must not produce inf/nan in correlation matrix."""
+        rng = np.random.default_rng(1)
+        df = pd.DataFrame({
+            "S&P 500":   rng.normal(7.0, 15.0, 25),
+            "Bonds Baa": np.full(25, 4.0),
+            "T-Notes":   rng.normal(3.5, 5.0, 25),
+            "Inflation": rng.normal(2.5, 2.0, 25),
+        })
+        dist = getRatesDistributions(df=df)
+        assert np.all(np.isfinite(dist.corr))
+        assert np.all(np.isfinite(dist.covar))
+        assert np.allclose(np.diag(dist.corr), np.ones(4))
+
     def test_historical_mode_still_works(self):
         """Named-field access works for historical mode."""
         dist = getRatesDistributions(2000, 2020)
