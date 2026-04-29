@@ -403,3 +403,91 @@ class TestACAConfig:
         assert p2.slcsp_annual == pytest.approx(14_000.0, rel=1e-3), (
             f"Expected slcsp_annual=14000, got {p2.slcsp_annual}"
         )
+
+
+# ---------------------------------------------------------------------------
+# ACA start year tests
+# ---------------------------------------------------------------------------
+
+class TestACAStartYear:
+    """Tests for the aca_start_year / n_aca_start zero-fill feature."""
+
+    def test_acavals_zeros_before_start(self):
+        """acaVals with n_aca_start=3 should produce zero slcsp for nn < 3."""
+        from datetime import date
+        thisyear = date.today().year
+        yobs = [thisyear - 55]   # born 55 years ago → eligible until age 65
+        horizons = [20]
+        gamma_n = np.ones(25)
+        _, _, _, slcsp_n = tx.acaVals(yobs, horizons, gamma_n, 15_000, 20, n_aca_start=3)
+        assert len(slcsp_n) > 3, "Expected n_aca > 3 for a 55-year-old."
+        assert np.allclose(slcsp_n[:3], 0.0), "slcsp_aca_n should be zero for nn < n_aca_start."
+        assert slcsp_n[3] > 0, "slcsp_aca_n should be nonzero at n_aca_start."
+
+    def test_acavals_no_start_unchanged(self):
+        """acaVals with n_aca_start=0 (default) should match original behavior."""
+        from datetime import date
+        thisyear = date.today().year
+        yobs = [thisyear - 55]
+        horizons = [20]
+        gamma_n = np.ones(25)
+        n_aca, _, _, slcsp_n0 = tx.acaVals(yobs, horizons, gamma_n, 15_000, 20)
+        _, _, _, slcsp_n1 = tx.acaVals(yobs, horizons, gamma_n, 15_000, 20, n_aca_start=0)
+        assert np.allclose(slcsp_n0, slcsp_n1), "n_aca_start=0 should give same result as default."
+
+    def test_start_year_defers_aca_costs(self):
+        """Plan with ACA start year set to 2 years out should have zero ACA_n in years 0-1."""
+        from datetime import date
+        thisyear = date.today().year
+        start_year = thisyear + 2
+        p = _make_plan(dob1="1975-06-15", le1=88)
+        p.setSocialSecurity([2000], [67])
+        p.setACA(slcsp=18.0, start_year=start_year)
+        p.solve("maxSpending")
+
+        # Years 0 and 1 (before start_year) should have zero ACA cost
+        assert np.allclose(p.ACA_n[:2], 0.0), (
+            f"ACA_n[:2]={p.ACA_n[:2]} should be zero before start_year."
+        )
+        # At least some ACA cost after the start year
+        assert np.any(p.ACA_n[2:] > 0), "Expected nonzero ACA costs after start_year."
+
+    def test_start_year_raises_spending_vs_immediate(self):
+        """Deferring ACA start should give higher spending than immediate ACA."""
+        from datetime import date
+        thisyear = date.today().year
+        dob = "1975-06-15"
+
+        p_immediate = _make_plan(dob1=dob, le1=88)
+        p_immediate.setSocialSecurity([2000], [67])
+        p_immediate.setACA(slcsp=18.0)
+        p_immediate.solve("maxSpending")
+
+        p_deferred = _make_plan(dob1=dob, le1=88)
+        p_deferred.setSocialSecurity([2000], [67])
+        p_deferred.setACA(slcsp=18.0, start_year=thisyear + 3)
+        p_deferred.solve("maxSpending")
+
+        assert p_deferred.g_n[0] >= p_immediate.g_n[0] - 1, (
+            "Deferring ACA should not reduce spending vs immediate ACA."
+        )
+        assert p_deferred.g_n[0] > p_immediate.g_n[0] - 1000, (
+            "Deferred ACA spending should be measurably higher than immediate."
+        )
+
+    def test_start_year_config_round_trip(self):
+        """aca_start_year should round-trip through plan_to_config / config_to_plan."""
+        from datetime import date
+        from owlplanner.config.plan_bridge import config_to_plan, plan_to_config
+        thisyear = date.today().year
+        p = _make_plan(dob1="1975-06-15", le1=88)
+        p.setACA(slcsp=15.0, start_year=thisyear + 2)
+        diconf = plan_to_config(p)
+
+        assert diconf["aca_settings"].get("aca_start_year") == thisyear + 2, (
+            "plan_to_config should emit aca_start_year."
+        )
+        p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
+        assert p2.aca_start_year == thisyear + 2, (
+            f"Expected aca_start_year={thisyear + 2}, got {p2.aca_start_year}."
+        )
