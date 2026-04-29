@@ -445,9 +445,11 @@ class TestACAStartYear:
         p.setACA(slcsp=18.0, start_year=start_year)
         p.solve("maxSpending")
 
+        # Years 0 and 1 (before start_year) should have zero ACA cost
         assert np.allclose(p.ACA_n[:2], 0.0), (
             f"ACA_n[:2]={p.ACA_n[:2]} should be zero before start_year."
         )
+        # At least some ACA cost after the start year
         assert np.any(p.ACA_n[2:] > 0), "Expected nonzero ACA costs after start_year."
 
     def test_start_year_raises_spending_vs_immediate(self):

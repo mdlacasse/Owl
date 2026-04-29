@@ -461,8 +461,8 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     thisyear : int, optional
         Plan start year. Defaults to date.today().year. Used for testing.
     n_aca_start : int, optional
-        Plan-year index at which ACA coverage begins. Years before this index are
-        skipped (zero cost). Default 0 = coverage from plan start.
+        Plan year index when ACA coverage begins (default 0 = plan start).
+        Years before this index are set to zero regardless of eligibility.
 
     Returns
     -------
