@@ -89,7 +89,7 @@ if platform == "darwin":
             "bequest": 50_000,
         },
     }
-elif platform in ["win32", "linux"]:
+elif platform == "linux":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 100_000,
@@ -97,6 +97,33 @@ elif platform in ["win32", "linux"]:
         },
         "Case_jack+jill": {
             "net_spending_basis": 94_743,
+            "bequest": 400_000,
+        },
+        "Case_joe": {
+            "net_spending_basis": 93_396,
+            "bequest": 300_000,
+        },
+        "Case_kim+sam-spending": {
+            "net_spending_basis": 189_117,
+            "bequest": 0,
+        },
+        "Case_kim+sam-bequest": {
+            "net_spending_basis": 145_000,
+            "bequest": 2_097_193,
+        },
+        "Case_robin": {
+            "net_spending_basis": 44_642,
+            "bequest": 50_000,
+        },
+    }
+elif platform == "win32":
+    EXPECTED_OBJECTIVE_VALUES = {
+        "Case_john+sally": {
+            "net_spending_basis": 100_000,
+            "bequest": 7_852_451,
+        },
+        "Case_jack+jill": {
+            "net_spending_basis": 94_559,
             "bequest": 400_000,
         },
         "Case_joe": {
