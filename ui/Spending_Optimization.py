@@ -128,32 +128,6 @@ Select a target success rate to find the committed spending that meets it.
             with col2:
                 kz.getToggle("Reverse sequence", "stoch_reverse_sequence",
                              callback=kz.setpull, help=help_reverse)
-            st.markdown("#### :orange[RES floor]")
-            _floor_opts_hist = ["zero", "hsf", "guaranteed", "custom"]
-            _floor_labels = {
-                "zero": "Zero",
-                "hsf": "HSF (min historical spending)",
-                "guaranteed": "Guaranteed income (SS + pension + SPIA)",
-                "custom": "Custom ($/yr)",
-            }
-            _cur_floor = kz.getCaseKey("stoch_res_floor_method") or "hsf"
-            if _cur_floor not in _floor_opts_hist:
-                _cur_floor = "hsf"
-            col1, col2 = st.columns([2.5, 1], gap="large", vertical_alignment="bottom")
-            with col1:
-                st.radio(
-                    "RES floor",
-                    options=_floor_opts_hist,
-                    format_func=lambda x: _floor_labels[x],
-                    index=_floor_opts_hist.index(_cur_floor),
-                    key=kz.genCaseKey("stoch_res_floor_method_radio"),
-                    on_change=owb.updateStochasticFloor,
-                    label_visibility="collapsed",
-                )
-            if kz.getCaseKey("stoch_res_floor_method") == "custom":
-                with col2:
-                    kz.getIntNum("Floor ($/yr)", "stoch_res_floor_value",
-                                 min_value=0, step=1000, callback=owb.updateStochasticFloor)
     else:
         if kz.caseIsNotMCReady():
             st.warning(
@@ -207,32 +181,6 @@ Select a target success rate to find the committed spending that meets it.
                     )
                 with col2:
                     st.caption(MORTALITY_DESCRIPTIONS.get(selected_table, ""))
-            st.markdown("#### :orange[RES floor]")
-            _floor_opts_mc = ["zero", "guaranteed", "custom"]
-            _floor_labels_mc = {
-                "zero": "Zero",
-                "guaranteed": "Guaranteed income (SS + pension + SPIA)",
-                "custom": "Custom ($/yr)",
-            }
-            _cur_floor_mc = kz.getCaseKey("stoch_res_floor_method") or "guaranteed"
-            if _cur_floor_mc not in _floor_opts_mc:
-                _cur_floor_mc = "guaranteed"
-                kz.storeCaseKey("stoch_res_floor_method", "guaranteed")
-            col1, col2 = st.columns([2.5, 1], gap="large", vertical_alignment="bottom")
-            with col1:
-                st.radio(
-                    "RES floor",
-                    options=_floor_opts_mc,
-                    format_func=lambda x: _floor_labels_mc[x],
-                    index=_floor_opts_mc.index(_cur_floor_mc),
-                    key=kz.genCaseKey("stoch_res_floor_method_radio"),
-                    on_change=owb.updateStochasticFloor,
-                    label_visibility="collapsed",
-                )
-            if kz.getCaseKey("stoch_res_floor_method") == "custom":
-                with col2:
-                    kz.getIntNum("Floor ($/yr)", "stoch_res_floor_value",
-                                 min_value=0, step=1000, callback=owb.updateStochasticFloor)
 
     st.divider()
     fig_frontier = kz.getCaseKey("stochFrontierPlot")
@@ -264,9 +212,55 @@ Select a target success rate to find the committed spending that meets it.
         if fig_outcomes:
             owb.renderPlot(fig_outcomes, col2)
 
-        fig_cvar = kz.getCaseKey("stochCVaRPlot")
-        fig_res = kz.getCaseKey("stochRESPlot")
-        if fig_cvar or fig_res:
+    fig_cvar = kz.getCaseKey("stochCVaRPlot")
+    fig_res = kz.getCaseKey("stochRESPlot")
+    if fig_cvar or fig_res:
+        st.divider()
+        with st.expander("***Experimental** — Retirement Efficiency Score (RES)*"):
+            st.caption(
+                "The Retirement Efficiency Score (RES) is an experimental Sharpe-ratio analog: "
+                "committed spending above the floor divided by floor-capped tail risk (CVaR). "
+                "RES\\* is its maximum over all success rates; ρ\\* is the corresponding optimal target."
+            )
+            st.markdown("#### :orange[RES floor]")
+            is_hist = kz.getCaseKey("stoch_scenario_method") == "historical"
+            if is_hist:
+                _floor_opts = ["zero", "hsf", "guaranteed", "custom"]
+                _floor_labels = {
+                    "zero": "Zero",
+                    "hsf": "HSF (min historical spending)",
+                    "guaranteed": "Guaranteed income (SS + pension + SPIA)",
+                    "custom": "Custom ($/yr)",
+                }
+                _default_floor = "hsf"
+            else:
+                _floor_opts = ["zero", "ssf", "guaranteed", "custom"]
+                _floor_labels = {
+                    "zero": "Zero",
+                    "ssf": "SSF (synthetic spending floor, 95% success)",
+                    "guaranteed": "Guaranteed income (SS + pension + SPIA)",
+                    "custom": "Custom ($/yr)",
+                }
+                _default_floor = "ssf"
+            _cur_floor = kz.getCaseKey("stoch_res_floor_method") or _default_floor
+            if _cur_floor not in _floor_opts:
+                _cur_floor = _default_floor
+                kz.storeCaseKey("stoch_res_floor_method", _default_floor)
+            col1, col2 = st.columns([2.5, 1], gap="large", vertical_alignment="bottom")
+            with col1:
+                st.radio(
+                    "RES floor",
+                    options=_floor_opts,
+                    format_func=lambda x: _floor_labels[x],
+                    index=_floor_opts.index(_cur_floor),
+                    key=kz.genCaseKey("stoch_res_floor_method_radio"),
+                    on_change=owb.updateStochasticFloor,
+                    label_visibility="collapsed",
+                )
+            if kz.getCaseKey("stoch_res_floor_method") == "custom":
+                with col2:
+                    kz.getIntNum("Floor ($/yr)", "stoch_res_floor_value",
+                                 min_value=0, step=1000, callback=owb.updateStochasticFloor)
             col3, col4 = st.columns(2, gap="medium")
             if fig_cvar:
                 owb.renderPlot(fig_cvar, col3)

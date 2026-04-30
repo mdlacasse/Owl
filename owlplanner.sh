@@ -5,8 +5,9 @@
 
 echo Hit Ctrl-C to terminate the server.
 export PYTHONPATH="./src:${PYTHONPATH}"
+options="--browser.gatherUsageStats=false --browser.serverAddress=localhost --server.fileWatcherType=auto $*"
 if type -P streamlit >& /dev/null; then
-    streamlit run ./ui/main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost $*
+    streamlit run ./ui/main.py $options
 else
-    python3 -m streamlit run ./ui/main.py --browser.gatherUsageStats=false --browser.serverAddress=localhost $*
+    python3 -m streamlit run ./ui/main.py $options
 fi

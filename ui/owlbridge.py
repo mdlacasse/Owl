@@ -269,30 +269,41 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
 
-    # RES computation
+    # RES computation — floor-capped CVaR
+    # Cap each scenario's shortfall contribution at (g* - floor) to bound heavy MC tails.
+    # For historical with HSF floor: max(HSF, g_s) = g_s always, so result equals standard CVaR.
     frontier_g = result["frontier_g"]
     frontier_prob = result["frontier_prob"]
-    frontier_shortfall = result["frontier_shortfall"]
+    bases_arr = result["bases"]
     start_years_res = result.get("start_years")
-    with np.errstate(invalid="ignore", divide="ignore"):
-        frontier_cvar = np.where(frontier_prob > 0, frontier_shortfall / frontier_prob, 0.0)
     is_historical = start_years_res is not None
-    default_method = "hsf" if is_historical else "guaranteed"
+    default_method = "hsf" if is_historical else "ssf"
     floor_method = kz.getCaseKey("stoch_res_floor_method") or default_method
     if floor_method == "hsf" and not is_historical:
-        floor_method = "guaranteed"
+        floor_method = "ssf"
+    if floor_method == "ssf" and is_historical:
+        floor_method = "hsf"
     if floor_method == "zero":
         floor = 0.0
         floor_label = "zero"
     elif floor_method == "hsf":
         floor = float(frontier_g[-1])
         floor_label = "HSF"
+    elif floor_method == "ssf":
+        floor = float(np.percentile(bases_arr, 5))
+        floor_label = f"SSF = ${floor:,.0f}/yr"
     elif floor_method == "guaranteed":
         floor = getGuaranteedIncome(plan) if plan is not None else 0.0
         floor_label = f"G = ${floor:,.0f}/yr"
     else:   # "custom"
         floor = float(kz.getCaseKey("stoch_res_floor_value") or 0.0)
         floor_label = f"${floor:,.0f}/yr (custom)"
+    with np.errstate(invalid="ignore", divide="ignore"):
+        frontier_cvar = np.array([
+            float(np.maximum(0.0, g_star - np.maximum(floor, bases_arr)).mean()) / prob
+            if prob > 0 else 0.0
+            for g_star, prob in zip(frontier_g, frontier_prob)
+        ])
     valid_res = (frontier_cvar > 0) & (frontier_g > floor)
     safe_cvar = np.where(frontier_cvar > 0, frontier_cvar, 1.0)
     res_values = np.where(valid_res, (frontier_g - floor) / safe_cvar, np.nan)
@@ -311,13 +322,9 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
             result["year_n"], floor_label)
         kz.storeCaseKey("stochCVaRPlot", fig_cvar)
         kz.storeCaseKey("stochRESPlot", fig_res)
-        res_line = f"Retirement Efficiency Score:     RES* = {res_star:.2f}  (optimal PoS: {rho_star:.0%})\n"
-        floor_line = f"RES floor:                       {floor_label}\n"
     else:
         kz.storeCaseKey("stochCVaRPlot", None)
         kz.storeCaseKey("stochRESPlot", None)
-        res_line = ""
-        floor_line = ""
 
     bases = result["bases"]
     is_historical = result["start_years"] is not None
@@ -375,8 +382,6 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
         f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
         f"Mean shortfall:                  ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
         f"CVaR (avg loss | failure):       ${cvar:,.0f}/yr  ({cvar_pct:.1%} of committed)\n"
-        f"{res_line}"
-        f"{floor_line}"
         f"{rate_line}"
         f"{longevity_line}"
         f"{scenarios_line}"
@@ -443,7 +448,7 @@ def conditionSpiaDF(df, is_married):
     if "Monthly ($)" in df.columns:
         df["Monthly ($)"] = pd.to_numeric(df["Monthly ($)"], errors="coerce").fillna(0).astype("int64")
     if "CPI-linked" in df.columns:
-        df["CPI-linked"] = df["CPI-linked"].fillna(False).astype(bool)
+        df["CPI-linked"] = df["CPI-linked"].infer_objects(copy=False).fillna(False).astype(bool)
     if "Survivor (%)" in df.columns:
         df["Survivor (%)"] = pd.to_numeric(df["Survivor (%)"], errors="coerce").fillna(0).astype("int64")
 
