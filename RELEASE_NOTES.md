@@ -1,6 +1,3 @@
-# Owl Release Notes
-
----
 
 ## Version 2026.05.01
 
