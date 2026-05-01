@@ -2,6 +2,59 @@
 
 ---
 
+## Version 2026.05.01
+
+### SPIA (Single Premium Immediate Annuity)
+
+- **`addSPIA(individual, buy_year, premium, monthly_income, indexed, survivor_fraction)`**:
+  Adds a qualified SPIA funded by a tax-deferred IRA rollover. Premium is deducted from the
+  tax-deferred account in the buy year (non-taxable transfer); income begins in the same year
+  and is fully taxable as ordinary income. Optional CPI indexing and joint-and-survivor fraction
+  for couples. Multiple SPIAs per plan supported. Pre-purchased annuities (`buy_year` before plan
+  start) generate income from year 0 with no premium deduction.
+- **UI**: New *SPIA* section on the Fixed Income page with data editor for annuitant, buy year,
+  premium, monthly income, CPI-linked flag, and survivor fraction (couples only).
+- **Schema**: `spia_individuals`, `spia_buy_years`, `spia_premiums`, `spia_monthly_incomes`,
+  `spia_indexed`, `spia_survivor_fractions` fields added to `[fixed_income]`.
+- **Docs**: `PARAMETERS.md` SPIA section; `modeling-capabilities.md` SPIA row.
+- **Tests**: 11 tests in `tests/test_spia.py` including TOML round-trip and clone round-trip.
+
+### Retirement Efficiency Score (RES) — experimental
+
+- **`compute_res` / `compute_cvar`** (new, public API): Compute the floor-capped CVaR and the
+  Retirement Efficiency Score (RES = committed spending above floor / CVaR) across the efficient
+  frontier. `rho_star` is the success rate that maximizes RES. Exported from `owlplanner`.
+- RES is shown as an experimental expander in the Spending Optimization UI for **historical
+  scenarios only**. MC RES is suppressed — the lognormal tail structure produces unreliable ρ\*.
+- **Docs**: `modeling-capabilities.md` RES row.
+
+### SC loop convergence refactor
+
+- Convergence logic extracted into helper methods (`_check_obj_convergence`, `_check_cycle`,
+  `_check_stagnation`, `_check_max_iterations`) and `_build_sc_loop_policy()` for clarity.
+- Tolerance formula: `tol = max(abs_tol, rel_tol × scale)` where scale adapts to objective
+  magnitude. Medicare gate (skip iteration 0 for convergence) correctly preserved.
+- **Tests**: 5 tests in `tests/test_sc_convergence_helpers.py`.
+
+### ACA start year
+
+- `aca_start_year`: Calendar year when ACA coverage begins. Years before this are treated as
+  employer-covered (zero ACA cost). Default `0` = ACA applies from plan start.
+- Documented in `PARAMETERS.md` and `modeling-capabilities.md`.
+
+### Bug fixes
+
+- **Correlation matrix**: Division by zero for constant-return series now handled correctly
+  with masking; avoids inf/nan in rate model fitting.
+- **SPIA annuitant lookup**: Typo in annuitant name now logged as a warning and row skipped,
+  rather than silently misassigned to individual 1.
+
+### Scripts
+
+- `owlplanner.sh` / `owlplanner.cmd`: Launcher script improvements - update on changes as opposed to cloud.
+
+---
+
 ## Version 2026.04.27
 
 - Improve detection of convergence anomalies in MC (issue#119).
