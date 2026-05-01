@@ -476,7 +476,8 @@ def ui_to_config(uidic: dict) -> dict:
             if not annuitant or pd.isna(buy_year) or pd.isna(premium_k) or pd.isna(monthly):
                 continue
             if annuitant not in inames:
-                logger.warning("SPIA annuitant %r does not match any individual name %s; skipping row.", annuitant, inames)
+                logger.warning("SPIA annuitant %r does not match any individual name %s; skipping row.",
+                               annuitant, inames)
                 continue
             new_inds.append(inames.index(annuitant))
             new_years.append(int(buy_year))
