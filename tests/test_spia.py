@@ -341,6 +341,78 @@ def test_spia_toml_round_trip():
     assert p.spia_premiums_in.sum() == 0.0, "Past SPIA premium should be zero"
 
 
+def test_spia_toml_future_purchase_round_trip():
+    """TOML round-trip for a future SPIA: premium deducted and income starts in buy year."""
+    import datetime
+    start_year = datetime.date.today().year
+    buy_year = start_year + 2
+    toml = f"""
+case_name = "spia_future_toml_test"
+description = "Future SPIA TOML round-trip"
+
+[basic_info]
+status = "single"
+names = ["Robin"]
+sexes = ["F"]
+date_of_birth = ["1958-04-01"]
+life_expectancy = [90]
+start_date = "today"
+
+[savings_assets]
+taxable_savings_balances = [0.0]
+tax_deferred_savings_balances = [600.0]
+tax_free_savings_balances = [0.0]
+
+[fixed_income]
+pension_monthly_amounts = [0]
+pension_ages = [65]
+pension_indexed = [false]
+social_security_pia_amounts = [0]
+social_security_ages = [67]
+spia_individuals        = [0]
+spia_buy_years          = [{buy_year}]
+spia_premiums           = [100000.0]
+spia_monthly_incomes    = [500.0]
+spia_indexed            = [false]
+spia_survivor_fractions = [0.0]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 30.0
+dividend_rate = 1.8
+obbba_expiration_year = 2032
+method = "user"
+values = [6.0, 4.0, 3.0, 2.5]
+
+[asset_allocation]
+interpolation_method = "linear"
+interpolation_center = 15.0
+interpolation_width = 5.0
+type = "individual"
+generic = [[[60, 40, 0, 0], [50, 50, 0, 0]]]
+
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 60
+objective = "maxSpending"
+
+[solver_options]
+"""
+    f = StringIO(toml)
+    p = owl.readConfig(f, verbose=False)
+    p.solve("maxSpending")
+
+    n_buy = buy_year - start_year
+    assert p.spia_premiums_in[0, n_buy] == pytest.approx(100_000.0), (
+        "Premium should be deducted in buy year"
+    )
+    assert p.spiaBar_in[0, n_buy] > 0, "Income should begin in buy year (immediate annuity)"
+    # First year is prorated by birth month; full year = $6,000, so at least half expected.
+    assert p.spiaBar_in[0, n_buy] > 3_000, (
+        f"Expected prorated first-year income > $3,000, got ${p.spiaBar_in[0, n_buy]:.0f}"
+    )
+    assert p.spiaBar_in[0, 0] == 0.0, "No income before buy year"
+
+
 # ---------------------------------------------------------------------------
 # 7. Validation errors
 # ---------------------------------------------------------------------------

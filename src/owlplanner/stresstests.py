@@ -185,6 +185,73 @@ def g_for_success_rate(target_success_rate, lambdas, frontier_g, frontier_prob):
     return float(frontier_g[idx]), float(lambdas[idx])
 
 
+def compute_cvar(bases, frontier_g, frontier_prob, floor):
+    """
+    Floor-capped CVaR at each point on the efficient frontier.
+
+    Each scenario's shortfall contribution is capped at (g* - floor),
+    bounding heavy tails in MC ensembles and giving standard CVaR for
+    historical runs where floor = HSF = min(bases).
+
+    Parameters
+    ----------
+    bases : ndarray (S,)    — per-scenario optimal spending basis
+    frontier_g : ndarray    — committed spending g* at each frontier point
+    frontier_prob : ndarray — shortfall probability at each frontier point
+    floor : float           — spending floor (HSF, SSF, or custom)
+
+    Returns
+    -------
+    frontier_cvar : ndarray — floor-capped CVaR at each frontier point
+    """
+    bases = np.asarray(bases, dtype=float)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return np.array([
+            float(np.maximum(0.0, g_star - np.maximum(floor, bases)).mean()) / prob
+            if prob > 0 else 0.0
+            for g_star, prob in zip(frontier_g, frontier_prob)
+        ])
+
+
+def compute_res(frontier_g, frontier_prob, frontier_cvar, floor, target_success_rate):
+    """
+    Retirement Efficiency Score at each frontier point and summary statistics.
+
+    Parameters
+    ----------
+    frontier_g : ndarray    — committed spending at each frontier point
+    frontier_prob : ndarray — shortfall probability at each frontier point
+    frontier_cvar : ndarray — floor-capped CVaR (from compute_cvar)
+    floor : float           — spending floor used in CVaR computation
+    target_success_rate : float — user-chosen ρ (e.g. 0.85)
+
+    Returns
+    -------
+    dict with keys:
+        "res_values"     : ndarray — RES at each frontier point (nan where undefined)
+        "rho_star"       : float   — success rate at RES maximum
+        "res_star"       : float   — maximum RES value
+        "cvar_star"      : float   — CVaR at rho_star
+        "cvar_at_target" : float   — CVaR at target_success_rate
+    Returns None when no valid RES point exists.
+    """
+    valid = (frontier_cvar > 0) & (frontier_g > floor)
+    safe_cvar = np.where(frontier_cvar > 0, frontier_cvar, 1.0)
+    res_values = np.where(valid, (frontier_g - floor) / safe_cvar, np.nan)
+    if not np.any(valid):
+        return None
+    rho_star_idx = int(np.nanargmax(res_values))
+    target_idx = int(np.searchsorted(-frontier_prob, -(1.0 - target_success_rate)))
+    target_idx = min(target_idx, len(frontier_cvar) - 1)
+    return {
+        "res_values":     res_values,
+        "rho_star":       1.0 - float(frontier_prob[rho_star_idx]),
+        "res_star":       float(res_values[rho_star_idx]),
+        "cvar_star":      float(frontier_cvar[rho_star_idx]),
+        "cvar_at_target": float(frontier_cvar[target_idx]),
+    }
+
+
 ###############################################################################
 # Batch stress tests (Plan delegates from runHistoricalRange / runMC / runStochasticSpending)
 ###############################################################################

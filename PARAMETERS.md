@@ -104,6 +104,31 @@ Pension and Social Security information.
 | `social_security_trim_pct` | integer | *(Optional)* Percentage reduction applied to Social Security benefits from `social_security_trim_year` onward. Range 0–100. Use to model trust-fund shortfall scenarios (e.g. 23). Omit or set to 0 for no reduction |
 | `social_security_trim_year` | integer | *(Required when `social_security_trim_pct > 0`)* Calendar year when the SS benefit reduction begins. Default UI value is 2033 (SSA Trustees Report projection for OASI exhaustion). Must be supplied alongside `social_security_trim_pct` |
 
+### :orange[SPIA (Single Premium Immediate Annuity)]
+
+*(Optional)* One or more SPIAs funded by a tax-deferred IRA rollover. Multiple SPIAs are specified as parallel lists — the i-th element of each list describes the i-th annuity.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `spia_individuals` | list of integers | Individual index for each SPIA: `0` = first individual, `1` = second. |
+| `spia_buy_years` | list of integers | Calendar year of purchase for each SPIA. Use a year before the plan start for an already-purchased annuity (no premium is deducted from the plan). |
+| `spia_premiums` | list of floats | Lump-sum purchase price in dollars for each SPIA. Deducted from the tax-deferred account in the buy year as a non-taxable IRA rollover. Set to `0` for annuities purchased before plan start. |
+| `spia_monthly_incomes` | list of floats | Monthly income in today's dollars for each SPIA. Payments begin in the purchase year and are fully taxable as ordinary income. |
+| `spia_indexed` | list of booleans | `true` if the SPIA is CPI-indexed (payments grow with inflation); `false` for a fixed nominal payout. |
+| `spia_survivor_fractions` | list of floats | Fraction of income (0–1) continuing to the surviving spouse after the annuitant's death. `0` = single-life annuity; `0.5`, `0.75`, or `1.0` = joint-and-survivor. Ignored for single individuals. |
+
+**Example** — one indexed SPIA purchased in 2028 for \$200,000 with \$1,000/month and 50% survivor benefit:
+```toml
+spia_individuals = [0]
+spia_buy_years = [2028]
+spia_premiums = [200000]
+spia_monthly_incomes = [1000]
+spia_indexed = [true]
+spia_survivor_fractions = [0.5]
+```
+
+**Note:** The SPIA premium is drawn from the tax-deferred account (IRA/401k rollover) and does not generate taxable income in the purchase year. Annual payments increase MAGI, which may affect Medicare IRMAA surcharges and Social Security taxability.
+
 -------
 
 ## :orange[[rates_selection]]

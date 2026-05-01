@@ -465,8 +465,7 @@ def ui_to_config(uidic: dict) -> dict:
         trim_year_val if trim_year_val not in (None, "") else 2033
     )
     spiadf = uidic.get("spiaDF")
-    iname0 = names[0] if len(names) > 0 else ""
-    iname1 = names[1] if len(names) > 1 else ""
+    inames = [names[i] if i < len(names) else "" for i in range(2)]
     if spiadf is not None and isinstance(spiadf, pd.DataFrame) and len(spiadf) > 0:
         new_inds, new_years, new_prems, new_incomes, new_idx, new_surv = [], [], [], [], [], []
         for _, row in spiadf.iterrows():
@@ -476,7 +475,10 @@ def ui_to_config(uidic: dict) -> dict:
             monthly = row.get("Monthly ($)")
             if not annuitant or pd.isna(buy_year) or pd.isna(premium_k) or pd.isna(monthly):
                 continue
-            new_inds.append(0 if annuitant == iname0 else 1)
+            if annuitant not in inames:
+                logger.warning("SPIA annuitant %r does not match any individual name %s; skipping row.", annuitant, inames)
+                continue
+            new_inds.append(inames.index(annuitant))
             new_years.append(int(buy_year))
             new_prems.append(float(premium_k) * 1000.0)
             new_incomes.append(int(monthly))

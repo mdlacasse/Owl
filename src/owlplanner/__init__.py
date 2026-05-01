@@ -21,10 +21,10 @@ from owlplanner.plan import Plan                                              # 
 from owlplanner.config.plan_bridge import clone                               # noqa: F401
 from owlplanner.config import readConfig, saveConfig                          # noqa: F401
 from owlplanner.rates import getRatesDistributions, RatesDistribution         # noqa: F401
-from owlplanner.stresstests import g_for_success_rate                         # noqa: F401
+from owlplanner.stresstests import g_for_success_rate, compute_cvar, compute_res  # noqa: F401
 from owlplanner.export import fixedIncomeStreams                               # noqa: F401
 from owlplanner.version import __version__                                    # noqa: F401
 
 # Make the package importable as 'owlplanner'
 __all__ = ['Plan', 'clone', 'readConfig', 'getRatesDistributions', 'RatesDistribution',
-           'g_for_success_rate', 'fixedIncomeStreams', '__version__']
+           'g_for_success_rate', 'compute_cvar', 'compute_res', 'fixedIncomeStreams', '__version__']

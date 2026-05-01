@@ -269,24 +269,18 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
 
-    # RES computation — floor-capped CVaR
-    # Cap each scenario's shortfall contribution at (g* - floor) to bound heavy MC tails.
-    # For historical with HSF floor: max(HSF, g_s) = g_s always, so result equals standard CVaR.
+    # RES computation — floor-capped CVaR (math lives in owlplanner.stresstests)
     frontier_g = result["frontier_g"]
     frontier_prob = result["frontier_prob"]
     bases_arr = result["bases"]
-    start_years_res = result.get("start_years")
-    is_historical = start_years_res is not None
+    is_historical = result.get("start_years") is not None
     default_method = "hsf" if is_historical else "ssf"
     floor_method = kz.getCaseKey("stoch_res_floor_method") or default_method
     if floor_method == "hsf" and not is_historical:
         floor_method = "ssf"
     if floor_method == "ssf" and is_historical:
         floor_method = "hsf"
-    if floor_method == "zero":
-        floor = 0.0
-        floor_label = "zero"
-    elif floor_method == "hsf":
+    if floor_method == "hsf":
         floor = float(frontier_g[-1])
         floor_label = "HSF"
     elif floor_method == "ssf":
@@ -295,31 +289,21 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     elif floor_method == "guaranteed":
         floor = getGuaranteedIncome(plan) if plan is not None else 0.0
         floor_label = f"G = ${floor:,.0f}/yr"
+    elif floor_method == "zero":
+        floor = 0.0
+        floor_label = "zero"
     else:   # "custom"
         floor = float(kz.getCaseKey("stoch_res_floor_value") or 0.0)
         floor_label = f"${floor:,.0f}/yr (custom)"
-    with np.errstate(invalid="ignore", divide="ignore"):
-        frontier_cvar = np.array([
-            float(np.maximum(0.0, g_star - np.maximum(floor, bases_arr)).mean()) / prob
-            if prob > 0 else 0.0
-            for g_star, prob in zip(frontier_g, frontier_prob)
-        ])
-    valid_res = (frontier_cvar > 0) & (frontier_g > floor)
-    safe_cvar = np.where(frontier_cvar > 0, frontier_cvar, 1.0)
-    res_values = np.where(valid_res, (frontier_g - floor) / safe_cvar, np.nan)
-    if np.any(valid_res):
-        rho_star_idx = int(np.nanargmax(res_values))
-        rho_star = 1.0 - float(frontier_prob[rho_star_idx])
-        res_star = float(res_values[rho_star_idx])
-        cvar_star = float(frontier_cvar[rho_star_idx])
-        target_idx = int(np.searchsorted(-frontier_prob, -(1.0 - target_sr)))
-        target_idx = min(target_idx, len(frontier_cvar) - 1)
-        cvar_at_target = float(frontier_cvar[target_idx])
+    frontier_cvar = owl.compute_cvar(bases_arr, frontier_g, frontier_prob, floor)
+    res = owl.compute_res(frontier_g, frontier_prob, frontier_cvar, floor, target_sr)
+    if res is not None:
         fig_cvar = plotter.plot_stochastic_cvar_vs_pos(
-            frontier_prob, frontier_cvar, rho_star, cvar_star, target_sr, result["year_n"])
+            frontier_prob, frontier_cvar, res["rho_star"], res["cvar_star"],
+            target_sr, result["year_n"])
         fig_res = plotter.plot_stochastic_res_vs_cvar(
-            frontier_cvar, res_values, rho_star, res_star, cvar_star, cvar_at_target,
-            result["year_n"], floor_label)
+            frontier_cvar, res["res_values"], res["rho_star"], res["res_star"],
+            res["cvar_star"], res["cvar_at_target"], result["year_n"], floor_label)
         kz.storeCaseKey("stochCVaRPlot", fig_cvar)
         kz.storeCaseKey("stochRESPlot", fig_res)
     else:

@@ -109,12 +109,34 @@ class FixedIncome(BaseModel):
     social_security_trim_year: Optional[int] = Field(
         default=None, description="Year when SS benefit reduction begins"
     )
-    spia_individuals: List[int] = Field(default_factory=list)
-    spia_buy_years: List[int] = Field(default_factory=list)
-    spia_premiums: List[float] = Field(default_factory=list)
-    spia_monthly_incomes: List[float] = Field(default_factory=list)
-    spia_indexed: List[bool] = Field(default_factory=list)
-    spia_survivor_fractions: List[float] = Field(default_factory=list)
+    spia_individuals: List[int] = Field(
+        default_factory=list,
+        description="Individual index (0 = first, 1 = second) for each SPIA entry.",
+    )
+    spia_buy_years: List[int] = Field(
+        default_factory=list,
+        description=("Calendar year of SPIA purchase for each entry."
+                     " Use a year before plan start for already-purchased annuities (no premium deducted)."),
+    )
+    spia_premiums: List[float] = Field(
+        default_factory=list,
+        description=("Lump-sum purchase price in dollars for each SPIA."
+                     " Deducted from the tax-deferred account in the buy year as a non-taxable IRA rollover."
+                     " Set to 0 for annuities purchased before the plan start."),
+    )
+    spia_monthly_incomes: List[float] = Field(
+        default_factory=list,
+        description="Monthly income in today's dollars for each SPIA. Payments are fully taxable as ordinary income.",
+    )
+    spia_indexed: List[bool] = Field(
+        default_factory=list,
+        description="Whether each SPIA is CPI-indexed (True) or pays a fixed nominal amount (False).",
+    )
+    spia_survivor_fractions: List[float] = Field(
+        default_factory=list,
+        description=("Fraction of income (0–1) continuing to the surviving spouse after the annuitant's death."
+                     " 0 = single-life; 0.5, 0.75, or 1.0 = joint-and-survivor. Ignored for single individuals."),
+    )
 
 
 class RatesSelection(BaseModel):

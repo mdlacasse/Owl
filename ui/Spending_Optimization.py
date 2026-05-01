@@ -212,9 +212,10 @@ Select a target success rate to find the committed spending that meets it.
         if fig_outcomes:
             owb.renderPlot(fig_outcomes, col2)
 
+    is_hist = kz.getCaseKey("stoch_scenario_method") == "historical"
     fig_cvar = kz.getCaseKey("stochCVaRPlot")
     fig_res = kz.getCaseKey("stochRESPlot")
-    if fig_cvar or fig_res:
+    if is_hist and (fig_cvar or fig_res):
         st.divider()
         with st.expander("***Experimental** — Retirement Efficiency Score (RES)*"):
             st.caption(
@@ -223,25 +224,12 @@ Select a target success rate to find the committed spending that meets it.
                 "RES\\* is its maximum over all success rates; ρ\\* is the corresponding optimal target."
             )
             st.markdown("#### :orange[RES floor]")
-            is_hist = kz.getCaseKey("stoch_scenario_method") == "historical"
-            if is_hist:
-                _floor_opts = ["zero", "hsf", "guaranteed", "custom"]
-                _floor_labels = {
-                    "zero": "Zero",
-                    "hsf": "HSF (min historical spending)",
-                    "guaranteed": "Guaranteed income (SS + pension + SPIA)",
-                    "custom": "Custom ($/yr)",
-                }
-                _default_floor = "hsf"
-            else:
-                _floor_opts = ["zero", "ssf", "guaranteed", "custom"]
-                _floor_labels = {
-                    "zero": "Zero",
-                    "ssf": "SSF (synthetic spending floor, 95% success)",
-                    "guaranteed": "Guaranteed income (SS + pension + SPIA)",
-                    "custom": "Custom ($/yr)",
-                }
-                _default_floor = "ssf"
+            _floor_opts = ["hsf", "custom"]
+            _floor_labels = {
+                "hsf":    "HSF (min historical spending)",
+                "custom": "Custom ($/yr)",
+            }
+            _default_floor = "hsf"
             _cur_floor = kz.getCaseKey("stoch_res_floor_method") or _default_floor
             if _cur_floor not in _floor_opts:
                 _cur_floor = _default_floor
