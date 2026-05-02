@@ -38,6 +38,7 @@
 - `aca_start_year`: Calendar year when ACA coverage begins. Years before this are treated as
   employer-covered (zero ACA cost). Default `0` = ACA applies from plan start.
 - Documented in `PARAMETERS.md` and `modeling-capabilities.md`.
+- **Tests**: 5 tests added for ACA start year.
 
 ### Bug fixes
 
