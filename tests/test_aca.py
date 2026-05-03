@@ -17,6 +17,7 @@ import pytest
 
 import owlplanner.tax2026 as tx
 from owlplanner import Plan
+from owlplanner.data.aca_age_rating import couple_to_individual_fraction
 
 
 # ---------------------------------------------------------------------------
@@ -133,9 +134,9 @@ class TestAcaCostsFunction:
         assert np.allclose(costs[0], expected_net, rtol=1e-4)
 
     def test_couple_one_turns_65(self):
-        """Year when first individual turns 65: household size drops to 1."""
+        """Year when first individual turns 65: household size drops to 1, SLCSP scales down."""
         # Alex born 1960 → already 65 in 2025 (n=0) → not eligible
-        # Jordan born 1970 → pre-65 throughout
+        # Jordan born 1970 → pre-65 throughout (age 55 at n=0)
         yobs = np.array([1960, 1970])
         horizons = np.array([25, 30])
         magi = 80_000.0
@@ -143,9 +144,11 @@ class TestAcaCostsFunction:
         magi_n = np.full(30, magi)
         gamma_n = self._gamma(30)
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=30, thisyear=2025)
-        # n=0: Alex 65 → not eligible; Jordan pre-65 → hh_size=1, single FPL
+        # n=0: Alex 65 → not eligible; Jordan pre-65 (age 55) → hh_size=1, single FPL.
+        # SLCSP scaled by CMS age rating fraction for Jordan at 55.
         # MAGI 80k / 15,650 ≈ 511% FPL → 2025 rules: 8.5% cap above 400%
-        expected = min(slcsp, 0.085 * magi)
+        frac = couple_to_individual_fraction(55)
+        expected = min(slcsp * frac, 0.085 * magi)
         assert np.allclose(costs[0], expected, rtol=1e-4)
 
     def test_inflation_applied(self):
@@ -490,4 +493,73 @@ class TestACAStartYear:
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
         assert p2.aca_start_year == thisyear + 2, (
             f"Expected aca_start_year={thisyear + 2}, got {p2.aca_start_year}."
+        )
+
+
+# ---------------------------------------------------------------------------
+# ACA couple-to-individual SLCSP scaling tests
+# ---------------------------------------------------------------------------
+
+class TestACACoupleSLCSPScaling:
+    """Tests for automatic SLCSP scaling when one partner transitions to Medicare."""
+
+    def test_couple_to_individual_fraction_same_age(self):
+        """When the younger partner is also 64 (same-age couple), both factors equal 3.0 → 50/50."""
+        # couple_to_individual_fraction always uses f_older = factor[64] = 3.0.
+        # The 50/50 split is exact only when the younger partner is also 64.
+        frac = couple_to_individual_fraction(64)
+        assert frac == pytest.approx(0.5, rel=1e-6)
+
+    def test_couple_to_individual_fraction_age_gap(self):
+        """Younger partner (age 56) contributes less than 50% of combined SLCSP."""
+        frac = couple_to_individual_fraction(56)
+        assert 0.0 < frac < 0.5, f"Expected fraction < 0.5 for younger partner, got {frac:.4f}"
+
+    def test_slcsp_scaled_in_transition_year(self):
+        """acaCosts should scale SLCSP down when only the younger partner is ACA-eligible."""
+        from datetime import date
+        thisyear = date.today().year
+        # Older born thisyear-65: turns 65 this year (n=0)
+        # Younger born thisyear-55: age 55 at n=0, still pre-Medicare
+        yobs = np.array([thisyear - 65, thisyear - 55])
+        horizons = np.array([20, 30])
+        slcsp = 20_000.0
+        magi = 300_000.0        # well above 400% FPL → no subsidy; net cost = slcsp cap
+        gamma_n = np.ones(30)
+        magi_n = np.full(30, magi)
+        costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=30)
+        frac = couple_to_individual_fraction(55)
+        assert np.isclose(costs[0], slcsp * frac, rtol=1e-4), (
+            f"Expected scaled SLCSP {slcsp * frac:.2f}, got {costs[0]:.2f}"
+        )
+
+    def test_slcsp_unscaled_when_both_eligible(self):
+        """acaCosts should use full SLCSP when both partners are ACA-eligible."""
+        from datetime import date
+        thisyear = date.today().year
+        # Both under 65 throughout the plan
+        yobs = np.array([thisyear - 55, thisyear - 50])
+        horizons = np.array([20, 25])
+        slcsp = 20_000.0
+        magi = 300_000.0
+        gamma_n = np.ones(25)
+        magi_n = np.full(20, magi)
+        costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=20)
+        assert np.isclose(costs[0], slcsp, rtol=1e-4), (
+            f"Expected full SLCSP {slcsp:.2f} when both eligible, got {costs[0]:.2f}"
+        )
+
+    def test_acavals_slcsp_scaled_in_transition_year(self):
+        """acaVals should apply the same age-rating fraction to slcsp_aca_n in transition years."""
+        from datetime import date
+        thisyear = date.today().year
+        yobs = [thisyear - 65, thisyear - 55]  # older turns 65 at n=0, younger is 55
+        horizons = [20, 30]
+        gamma_n = np.ones(31)
+        slcsp = 20_000.0
+        n_aca, _, _, slcsp_aca_n = tx.acaVals(yobs, horizons, gamma_n, slcsp, 30)
+        assert n_aca > 0
+        frac = couple_to_individual_fraction(55)
+        assert np.isclose(slcsp_aca_n[0], slcsp * frac, rtol=1e-4), (
+            f"Expected scaled SLCSP {slcsp * frac:.2f} in acaVals at n=0, got {slcsp_aca_n[0]:.2f}"
         )
