@@ -134,9 +134,9 @@ class TestAcaCostsFunction:
         assert np.allclose(costs[0], expected_net, rtol=1e-4)
 
     def test_couple_one_turns_65(self):
-        """Year when first individual turns 65: household size drops to 1."""
+        """Year when first individual turns 65: household size drops to 1, SLCSP scales down."""
         # Alex born 1960 → already 65 in 2025 (n=0) → not eligible
-        # Jordan born 1970 → pre-65 throughout
+        # Jordan born 1970 → pre-65 throughout (age 55 at n=0)
         yobs = np.array([1960, 1970])
         horizons = np.array([25, 30])
         magi = 80_000.0
@@ -144,9 +144,11 @@ class TestAcaCostsFunction:
         magi_n = np.full(30, magi)
         gamma_n = self._gamma(30)
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=30, thisyear=2025)
-        # n=0: Alex 65 → not eligible; Jordan pre-65 → hh_size=1, single FPL
+        # n=0: Alex 65 → not eligible; Jordan pre-65 (age 55) → hh_size=1, single FPL.
+        # SLCSP scaled by CMS age rating fraction for Jordan at 55.
         # MAGI 80k / 15,650 ≈ 511% FPL → 2025 rules: 8.5% cap above 400%
-        expected = min(slcsp, 0.085 * magi)
+        frac = couple_to_individual_fraction(55)
+        expected = min(slcsp * frac, 0.085 * magi)
         assert np.allclose(costs[0], expected, rtol=1e-4)
 
     def test_inflation_applied(self):

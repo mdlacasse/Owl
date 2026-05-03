@@ -1088,6 +1088,9 @@ class Plan:
         ----------
         slcsp : float or list of float
             Annual benchmark Silver plan premium in today's dollars (default units: $k).
+            For couples, set this to the combined household plan premium; when one
+            partner transitions to Medicare the code automatically scales it down to
+            the remaining partner's individual plan using the CMS age rating curve.
             If a scalar, applied uniformly across all plan years (inflation-adjusted).
             If a list of length N_n, used as-is (each entry inflated for that year).
         units : str

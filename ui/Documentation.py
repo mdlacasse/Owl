@@ -1034,6 +1034,11 @@ since Medicare in loop mode requires the loop to compute premiums iteratively.
 
 The **ACA Marketplace (Pre-65)** section allows entering the annual benchmark Silver plan (SLCSP) premium
 for years before Medicare. Set to 0 to omit ACA costs.
+For couples, enter the **combined household premium** (both spouses on the same marketplace plan).
+When the older spouse transitions to Medicare, the tool automatically scales the SLCSP down to the
+remaining spouse's individual plan using the CMS age rating curve (45 CFR 147.102), so no manual
+adjustment is needed. The scaling factor is approximately 37–48% of the couple's combined premium,
+depending on the age gap between spouses.
 The **ACA start year** field specifies the calendar year when ACA coverage begins (e.g. the year of
 retirement). Years before that are treated as employer-covered and incur no ACA cost. Leave at 0 for
 ACA to apply from the first year of the plan.

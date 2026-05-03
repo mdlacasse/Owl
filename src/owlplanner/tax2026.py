@@ -28,6 +28,7 @@ import numpy as np
 from datetime import date
 
 from owlplanner.data.irs_590b import JOINT_LIFE_TABLE, UNIFORM_LIFETIME_DIVISOR_BY_AGE
+from owlplanner.data.aca_age_rating import ACA_AGE_RATING_FACTOR, couple_to_individual_fraction
 
 # Sentinel: used as default yOBBBA meaning "OBBBA never expires / far future".
 _YEAR_FAR_FUTURE = 2099
@@ -436,6 +437,9 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
 
     For a couple where both are pre-65, household size = 2 (joint marketplace plan).
     When only one is pre-65, household size = 1 (individual plan for the remaining person).
+    In that transition, slcsp_annual is scaled by the CMS age rating fraction
+    (f_younger / (f_older + f_younger)) so that the couple's combined SLCSP is
+    automatically prorated to the remaining partner's individual plan.
 
     Note: ACA uses current-year MAGI (no 2-year lag like Medicare IRMAA).
 
@@ -492,7 +496,14 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
 
         hh_size = min(nelig, 2)
         fpl = fpl_base[hh_size - 1] * gamma_n[n]
-        slcsp = slcsp_annual * gamma_n[n]
+        # For a couple plan transitioning to individual (one partner now on Medicare),
+        # scale SLCSP down using CMS age rating: fraction = f_younger / (f_older + f_younger).
+        if Ni == 2 and hh_size == 1:
+            age_remaining = thisyear + n - yobs[eligible[0]]
+            slcsp_scale = couple_to_individual_fraction(age_remaining)
+        else:
+            slcsp_scale = 1.0
+        slcsp = slcsp_annual * slcsp_scale * gamma_n[n]
         magi = magi_n[n]
 
         # Below 138% FPL: Medicaid territory; return full premium (no PTC).
@@ -596,7 +607,13 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
         fpl = _ACA_FPL[fpl_year][hh_size - 1] * gamma_n[n]
 
         Lbar[nn] = _ACA_LP_BREAKPOINTS * fpl
-        slcsp_aca_n[nn] = slcsp_annual * gamma_n[n]
+        # Scale SLCSP for couple-to-individual transition (same logic as acaCosts).
+        if Ni == 2 and hh_size == 1:
+            age_remaining = thisyear + n - yobs[eligible[0]]
+            slcsp_scale = couple_to_individual_fraction(age_remaining)
+        else:
+            slcsp_scale = 1.0
+        slcsp_aca_n[nn] = slcsp_annual * slcsp_scale * gamma_n[n]
 
     return n_aca, Lbar, _ACA_LP_CONTRIB.copy(), slcsp_aca_n
 
