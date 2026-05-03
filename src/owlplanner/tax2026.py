@@ -28,7 +28,7 @@ import numpy as np
 from datetime import date
 
 from owlplanner.data.irs_590b import JOINT_LIFE_TABLE, UNIFORM_LIFETIME_DIVISOR_BY_AGE
-from owlplanner.data.aca_age_rating import ACA_AGE_RATING_FACTOR, couple_to_individual_fraction
+from owlplanner.data.aca_age_rating import couple_to_individual_fraction
 
 # Sentinel: used as default yOBBBA meaning "OBBBA never expires / far future".
 _YEAR_FAR_FUTURE = 2099
