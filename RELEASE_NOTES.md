@@ -1,4 +1,26 @@
 
+## Version 2026.05.03
+
+### ACA improvements for couples
+
+- **Automatic SLCSP scaling**: When one spouse transitions from an ACA marketplace plan to
+  Medicare, the benchmark Silver plan premium (`slcsp_annual`) is automatically scaled down
+  to the remaining spouse's individual plan using the CMS age rating curve (45 CFR 147.102).
+  The scaling factor is `f_younger / (f_older + f_younger)`, evaluated at the transition year,
+  and ranges from roughly 37–48% of the combined household premium depending on the age gap.
+  Users should set `slcsp_annual` to the **combined household premium**; no manual adjustment
+  is needed for the transition years.
+- **Age rating table**: CMS age rating factors (ages 0–64) are now stored in
+  `src/owlplanner/data/aca_age_rating.py` alongside other regulatory tables.
+- **`start_year` validation**: `setACA(start_year=N)` now raises a `ValueError` with a clear
+  message if `N` is between 1 and 1999, catching the common mistake of entering an offset
+  (e.g. `3`) instead of a 4-digit calendar year (e.g. `2029`). The UI field label and help
+  text have been updated accordingly.
+- **Tests**: 7 new tests (`TestACACoupleSLCSPScaling` and offset guard tests); total 35 in
+  `tests/test_aca.py`.
+
+---
+
 ## Version 2026.05.01
 
 ### SPIA (Single Premium Immediate Annuity)
