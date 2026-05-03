@@ -33,7 +33,9 @@ solver = 'HiGHS'
 # solver = 'MOSEK'
 # Updated after HFP dollar conversion ($ not $k) in update_hfp_coverage.py
 if platform == "darwin":
-    SPENDING1 = 87_699
+    # Flip a coin!
+    # SPENDING1 = 87_699
+    SPENDING1 = 87_905
     BEQUEST1 = 867_769
     SPENDING2 = 97_710
     SPENDING1_FIXED = 93_854

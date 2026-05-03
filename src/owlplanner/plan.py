@@ -1104,7 +1104,13 @@ class Plan:
             raise ValueError("setACA: slcsp must be a scalar (today's $). For per-year amounts use a list "
                              "with a future per-year API.")
         if start_year is not None and int(start_year) > 0:
-            self.aca_start_year = int(start_year)
+            sy = int(start_year)
+            if sy < 2000:
+                raise ValueError(
+                    f"setACA: start_year={sy} looks like an offset rather than a calendar year. "
+                    f"Use a 4-digit calendar year (e.g. {date.today().year + sy})."
+                )
+            self.aca_start_year = sy
             self.mylog.vprint(f"ACA coverage starts in calendar year {self.aca_start_year}.")
         self.caseStatus = "modified"
 

@@ -122,11 +122,12 @@ else:
         kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0., help=helpmsg)
     with cols[1]:
         acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
-        helpmsg_start = ("Calendar year ACA coverage begins (e.g. year of retirement). "
+        helpmsg_start = ("4-digit calendar year when ACA coverage begins (e.g. 2029 for the year of retirement). "
                          "Years before this are assumed employer-covered (zero ACA cost). "
-                         "Set to 0 for coverage from the start of the plan.")
+                         "Set to 0 for coverage from the start of the plan. "
+                         "Do not enter an offset (e.g. 3); use the actual calendar year.")
         thisyear = date.today().year
-        kz.getIntNum("ACA start year (0 = plan start)", "acaStartYear",
+        kz.getIntNum("ACA start year (0 = plan start, else 4-digit year)", "acaStartYear",
                      min_value=0, max_value=thisyear + 50, step=1,
                      help=helpmsg_start, disabled=acaoff)
 
