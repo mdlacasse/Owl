@@ -96,7 +96,7 @@ elif platform == "linux":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 94_546,
+            "net_spending_basis": 94_317,
             "bequest": 400_000,
         },
         "Case_joe": {
