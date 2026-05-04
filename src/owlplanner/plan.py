@@ -3416,12 +3416,20 @@ class Plan:
         is_mosek = getattr(solverMethod, "__func__", None) is Plan._mosekSolve
         is_decomposable = is_milp or is_mosek
         self._decomp_use_mosek = is_mosek   # consumed by _relax_and_fix_solve / _benders_solve
-        if decomp_mode == "sequential" and is_decomposable:
+        # Decomposition only helps when bracket-selector binaries are present in the model.
+        # Without them the master problem has nothing to fix; skip decomposition and warn.
+        _DECOMP_FAMILIES = ("zl", "zs", "zj", "zm", "za")
+        has_master_binaries = any(name in self.vm for name in _DECOMP_FAMILIES)
+        if decomp_mode == "sequential" and is_decomposable and has_master_binaries:
             actualSolverMethod = self._relax_and_fix_solve
-        elif decomp_mode == "benders" and is_decomposable:
+        elif decomp_mode == "benders" and is_decomposable and has_master_binaries:
             actualSolverMethod = self._benders_solve
         else:
-            if decomp_mode not in ("none", "sequential", "benders"):
+            if decomp_mode in ("sequential", "benders") and not has_master_binaries:
+                self.mylog.print(
+                    f"withDecomposition='{decomp_mode}' ignored: no bracket-selector binaries active."
+                )
+            elif decomp_mode not in ("none", "sequential", "benders"):
                 self.mylog.print(f"Unknown withDecomposition mode '{decomp_mode}'; using 'none'.")
             actualSolverMethod = solverMethod
 
