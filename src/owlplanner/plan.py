@@ -4377,6 +4377,15 @@ class Plan:
         total_ltcg = np.maximum(self.Q_n, 0)
         excess = np.maximum(0, self.q_pn[0, :] - total_ltcg)
         self.q_pn[0, :] = np.maximum(0, self.q_pn[0, :] - excess)
+        # Sanity check: U_n > 20% × Q_n is mathematically impossible — warn when q bracket
+        # variables are inflated well beyond actual LTCG income (degenerate SC-loop solution).
+        _bad = np.where(self.U_n > 0.20 * total_ltcg + 1.0)[0]
+        for n in _bad:
+            self.mylog.print(
+                f"Warning: year {self.year_n[n]}: LTCG tax ${self.U_n[n]:,.0f} "
+                f"exceeds 20% of taxable gains ${self.Q_n[n]:,.0f} — "
+                "SC-loop solution may be degenerate."
+            )
 
         # Extract NIIT LP variable when in optimize mode.
         if "Jn" in vm:
