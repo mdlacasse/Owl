@@ -136,8 +136,10 @@ def test_bill_matches_annuity_formula():
     )
 
 
-def test_bill_end_of_year_scaled_balance_rate():
-    """End-of-year timing with B0=$1,036,666 should be ~4.1331% on a $1M reference basis."""
+def test_bill_end_of_year_timing_difference():
+    """End-of-year timing with the same $1M starting balance yields ~3.9869%, vs ~3.67% for
+    start-of-year.  The +0.32% gap is purely the timing convention: end-of-year earns a full
+    year of returns before the first withdrawal, whereas start-of-year withdraws first."""
     p = owl.readConfig("examples/Case_bill", verbose=False, loadHFP=False)
 
     options = {
@@ -155,12 +157,11 @@ def test_bill_end_of_year_scaled_balance_rate():
     r_n = np.einsum("kn,kn->n", p.alpha_ijkn[0, 2, :, :N], p.tau_kn[:, :N])
     gamma_n = p.gamma_n[:N]
 
-    g_end = _annuity_spending_end_of_year(1_036_666.0, r_n, gamma_n)
-    rate_pct_on_1m_basis = 100.0 * g_end / 1_000_000.0
+    g_end = _annuity_spending_end_of_year(1_000_000.0, r_n, gamma_n)
+    rate_pct = 100.0 * g_end / 1_000_000.0
 
-    # 4.1331% corresponds to ~ $41,331 on a $1,000,000 reference basis.
-    assert rate_pct_on_1m_basis == pytest.approx(4.1331, abs=5e-4), (
-        f"End-of-year scaled rate {rate_pct_on_1m_basis:.4f}% != expected 4.1331%"
+    assert rate_pct == pytest.approx(3.9869, abs=5e-4), (
+        f"End-of-year rate {rate_pct:.4f}% != expected 3.9869%"
     )
 
 
