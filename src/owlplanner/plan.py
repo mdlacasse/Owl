@@ -3485,6 +3485,7 @@ class Plan:
 
             if decision is not None:
                 self.convergenceType = decision["convergenceType"]
+                best_idx = None
                 if decision["reason"] == "cycle":
                     cycle_len = decision["cycleLength"]
                     best_obj = decision["bestScaledObjective"]
@@ -3503,6 +3504,19 @@ class Plan:
                         objfn = trace["objectives"][best_idx]
                 else:
                     self.mylog.print(decision["message"])
+                # Consistency solve: each iteration's LTCG bracket room (room15_n, room20_n)
+                # is built from the *previous* iteration's G_n (one-step lag). When the selected
+                # best solution comes from a non-final iteration, G_n in memory belongs to the
+                # last iteration rather than the selected one. If G_n oscillated significantly,
+                # the stale room bounds allow q[1]/q[2] to inflate far beyond Q_n. Fix: update
+                # G_n from the selected solution and do one extra solve with corrected room bounds.
+                last_idx = len(trace["scaledObjectives"]) - 1
+                if best_idx is not None and best_idx != last_idx:
+                    self._computeNLstuff(xx, includeMedicare=False, fixedPsi=fixed_psi)
+                    _, xx_fix, fix_ok, _, _ = actualSolverMethod(objective, options)
+                    if fix_ok and xx_fix is not None:
+                        xx = xx_fix
+                        self.mylog.vprint("Performed LTCG consistency solve after non-final iteration selection.")
                 break
 
             it += 1

@@ -86,6 +86,21 @@ def _annuity_spending(B0, r_n, gamma_n):
     return B0 / total_pv
 
 
+def _annuity_spending_end_of_year(B0, r_n, gamma_n):
+    """
+    Compute the maximum constant real spending (today's dollars) with
+    end-of-year withdrawals:
+        B_{n+1} = B_n * (1 + r_n) - g * gamma_n
+    """
+    N = len(r_n)
+    cum_r = 1.0
+    total_pv = 0.0
+    for m in range(N):
+        cum_r *= 1.0 + r_n[m]
+        total_pv += gamma_n[m] / cum_r
+    return B0 / total_pv
+
+
 def test_bill_matches_annuity_formula():
     """LP result for Case_bill must match the start-of-period annuity formula to within 0.01%.
 
@@ -118,6 +133,34 @@ def test_bill_matches_annuity_formula():
 
     assert p.basis == pytest.approx(g_formula, rel=1e-4), (
         f"LP basis {p.basis:,.0f} != start-of-period annuity formula {g_formula:,.0f}"
+    )
+
+
+def test_bill_end_of_year_scaled_balance_rate():
+    """End-of-year timing with B0=$1,036,666 should be ~4.1331% on a $1M reference basis."""
+    p = owl.readConfig("examples/Case_bill", verbose=False, loadHFP=False)
+
+    options = {
+        'withSCLoop': False,
+        'withACA': 'none',
+        'withMedicare': 'none',
+        'withLTCG': 'none',
+        'withSSTaxability': 'none',
+        'withNIIT': 'none',
+    }
+    p.solve("maxSpending", options=options)
+    assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
+
+    N = p.N_n
+    r_n = np.einsum("kn,kn->n", p.alpha_ijkn[0, 2, :, :N], p.tau_kn[:, :N])
+    gamma_n = p.gamma_n[:N]
+
+    g_end = _annuity_spending_end_of_year(1_036_666.0, r_n, gamma_n)
+    rate_pct_on_1m_basis = 100.0 * g_end / 1_000_000.0
+
+    # 4.1331% corresponds to ~ $41,331 on a $1,000,000 reference basis.
+    assert rate_pct_on_1m_basis == pytest.approx(4.1331, abs=5e-4), (
+        f"End-of-year scaled rate {rate_pct_on_1m_basis:.4f}% != expected 4.1331%"
     )
 
 
