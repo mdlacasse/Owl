@@ -1,4 +1,26 @@
 
+## Version 2026.05.04
+
+### Remove maxHybrid objective
+
+- **`maxHybrid` removed**: The hybrid objective (blending spending and bequest via a weight
+  parameter `h`) has been removed. Because the LP objective is linear, it always drives
+  spending to an extreme (floor or cap), providing no useful intermediate behavior that
+  `maxSpending` with a bequest constraint or `maxBequest` with a spending constraint cannot
+  achieve more directly.
+- **Spending profile now always bilateral**: The profile slack (±slack%) is enforced as a
+  symmetric bilateral bound for both `maxSpending` and `maxBequest`. The former one-way
+  (floor-only) treatment that existed for `maxHybrid` is gone with the objective.
+- **Options removed**: `spendingWeight` and `spendingFloor` solver options are no longer
+  accepted (passing them logs an "unknown option" warning as with any unrecognized key).
+- **`fixedSpending` and `spendingSlack` unchanged**: Both still work as before.
+- **UI**: Goals page now offers two objectives (*Net spending* and *Bequest*) with no weight
+  or floor controls; profile slack help text updated accordingly.
+- **Schema**: `spendingWeight` and `spendingFloor` fields removed from the config schema.
+- **Tests**: `tests/test_hybrid_objective.py` removed (214 lines, no replacement needed).
+
+---
+
 ## Version 2026.05.03
 
 ### ACA improvements for couples

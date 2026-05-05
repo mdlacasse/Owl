@@ -217,7 +217,7 @@ class OptimizationParameters(BaseModel):
 
     spending_profile: str = Field(default="smile", description="flat or smile")
     surviving_spouse_spending_percent: int = Field(default=60, description="Survivor %")
-    objective: str = Field(default="maxSpending", description="maxSpending, maxBequest, or maxHybrid")
+    objective: str = Field(default="maxSpending", description="maxSpending or maxBequest")
     smile_dip: Optional[int] = Field(default=15, description="Smile profile dip %")
     smile_increase: Optional[int] = Field(default=12, description="Smile profile increase %")
     smile_delay: Optional[int] = Field(default=0, description="Smile profile delay years")
@@ -309,14 +309,6 @@ class SolverOptions(BaseModel):
     # Objectives and constraints
     bequest: Optional[float] = None
     netSpending: Optional[float] = None
-    spendingWeight: Optional[float] = Field(
-        default=None, ge=0.0, le=1.0,
-        description="Blend weight for maxHybrid: 1=maximize spending, 0=maximize bequest."
-    )
-    spendingFloor: Optional[float] = Field(
-        default=None,
-        description="Minimum annual net spending (today's $k) for maxHybrid objective."
-    )
     timePreference: Optional[float] = Field(
         default=None, ge=0.0,
         description="Subjective time discount rate (%/year). Values >0 front-load spending "

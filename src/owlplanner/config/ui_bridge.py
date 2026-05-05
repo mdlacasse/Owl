@@ -289,10 +289,8 @@ def config_to_ui(diconf: dict) -> dict:
     obj = op.get("objective", "maxSpending")
     if obj == "maxSpending":
         dic["objective"] = "Net spending"
-    elif obj == "maxBequest":
-        dic["objective"] = "Bequest"
     else:
-        dic["objective"] = "Hybrid"
+        dic["objective"] = "Bequest"
 
     rate_method = rs.get("method", "historical average")
     if rate_method == "dataframe":
@@ -407,8 +405,7 @@ def ui_to_config(uidic: dict) -> dict:
             "surviving_spouse_spending_percent": _get_ui(uidic, "survivor", 60, int),
             "objective": (
                 "maxSpending" if "spending" in str(uidic.get("objective", "Net spending")).lower()
-                else "maxBequest" if "bequest" in str(uidic.get("objective", "")).lower()
-                else "maxHybrid"
+                else "maxBequest"
             ),
             "smile_dip": _get_ui(uidic, "smileDip", 15, int),
             "smile_increase": _get_ui(uidic, "smileIncrease", 12, int),

@@ -49,9 +49,9 @@ else:
     st.markdown("#### :orange[Objective]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
-        choices = ["Net spending", "Bequest", "Hybrid"]
+        choices = ["Net spending", "Bequest"]
         kz.initCaseKey("objective", choices[0])
-        helpmsg = "Choose a quantity to maximize. Hybrid blends spending and bequest with a weight parameter."
+        helpmsg = "Choose a quantity to maximize."
         ret = kz.getRadio("Maximize", choices, "objective", help=helpmsg)
 
     with col2:
@@ -70,25 +70,12 @@ else:
                 st.info(f"Fixed assets contribute an additional"
                         f" \\${fixed_assets_bequest_k:,.0f}k to bequest (in today's \\$).")
 
-        elif kz.getCaseKey("objective") == "Bequest":
+        else:  # Bequest
             kz.initCaseKey("netSpending", 0)
             helpmsg_spending = "Desired annual net spending in today's \\$k (the constraint when maximizing bequest)."
             ret = kz.getNum("Desired annual net spending (\\$k)", "netSpending", help=helpmsg_spending)
 
-        else:  # Hybrid
-            kz.initCaseKey("spendingFloor", 0)
-            helpmsg_floor = ("Minimum annual net spending in today's \\$k. "
-                             "Use 0 for no floor. The spending profile scales all years relative to this.")
-            kz.getNum("Spending floor (\\$k)", "spendingFloor", min_value=0.0, help=helpmsg_floor)
-
     with col3:
-        if kz.getCaseKey("objective") == "Hybrid":
-            kz.initCaseKey("spendingWeight", 0.5)
-            helpmsg_weight = ("Weight for spending vs. bequest (0 to 1). "
-                              "h=1 maximizes spending only; h=0 maximizes bequest only. "
-                              "Both terms are normalized to today's dollars before blending.")
-            kz.getSlider("Spending weight (h)", "spendingWeight",
-                         min_value=0.0, max_value=1.0, step=0.05, help=helpmsg_weight)
 
     st.divider()
     st.markdown("#### :orange[Safety Net]")
@@ -138,9 +125,8 @@ else:
     with col2:
         kz.initCaseKey("spendingSlack", 0)
         helpmsg = ("Percentage allowed to deviate from the spending profile. "
-                   "For Net spending and Bequest objectives, spending stays within ±slack% of the profile. "
-                   "For Hybrid, slack acts as a one-sided cap: spending can exceed the floor by up to slack%. "
-                   "Set to 0 for Hybrid to allow unrestricted spending above the profile floor.")
+                   "Spending stays within ±slack% of the profile shape. "
+                   "Set to 0 to pin spending exactly to the profile shape.")
         ret = kz.getIntNum("Profile slack (%)", "spendingSlack", max_value=100, help=helpmsg)
         kz.initCaseKey("timePreference", 0.0)
         helpmsg = ("Subjective time preference rate (%/year). Values above 0 increase the "

@@ -63,7 +63,7 @@ Select a target success rate to find the committed spending that meets it.
     if objective != "Net spending":
         st.warning(
             "Spending optimization requires **Net spending** as the objective. "
-            "For *Bequest* or *Hybrid* cases, spending is not the primary decision variable — "
+            "For *Bequest* cases, spending is not the primary decision variable — "
             "use the **Historical Range** or **Monte Carlo** pages to analyze outcome distributions."
         )
         st.stop()

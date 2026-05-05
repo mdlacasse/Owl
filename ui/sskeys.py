@@ -526,15 +526,13 @@ def getSolveParameters():
         return None
     if "spending" in maximize:
         objective = "maxSpending"
-    elif "bequest" in maximize.lower():
-        objective = "maxBequest"
     else:
-        objective = "maxHybrid"
+        objective = "maxBequest"
 
     options = {}
     optList = ["netSpending", "maxRothConversion", "noRothConversions",
                "startRothConversions", "bequest", "solver",
-               "spendingSlack", "spendingWeight", "spendingFloor", "timePreference", "oppCostX",
+               "spendingSlack", "timePreference", "oppCostX",
                "amoRoth", "amoSurplus", "withSCLoop", "noLateSurplus",]
 
     for opt in optList:
