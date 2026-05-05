@@ -412,6 +412,9 @@ def build_summary_dic(plan, N=None):
     taxPaid = np.sum(plan.m_n[:N] + plan.M_n[:N], axis=0)
     taxPaidNow = np.sum((plan.m_n[:N] + plan.M_n[:N]) / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total Medicare premiums paid", taxPaidNow, taxPaid)
+    hsa_med = np.sum(plan.hsa_medicare_n[:N])
+    hsa_med_now = np.sum(plan.hsa_medicare_n[:N] / plan.gamma_n[:N])
+    _summary_currency_pair(dic, "»  Covered by HSA", hsa_med_now, hsa_med)
 
     aca_total = np.sum(plan.aca_costs_n[:N], axis=0)
     if aca_total > 0:
@@ -698,6 +701,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "ord taxes": -plan.T_n - plan.J_n,
         "div taxes": -plan.U_n,
         "Medicare": -plan.m_n - plan.M_n,
+        "HSA→Medicare": plan.hsa_medicare_n,
         "ACA premiums": -plan.aca_costs_n,
     }
     ws = wb.create_sheet("Cash Flow")
@@ -864,6 +868,7 @@ def plan_to_csv(plan, basename, mylog):
     planData["ord taxes"] = -plan.T_n - plan.J_n
     planData["div taxes"] = -plan.U_n
     planData["Medicare"] = -plan.m_n - plan.M_n
+    planData["HSA→Medicare"] = plan.hsa_medicare_n
     planData["ACA premiums"] = -plan.aca_costs_n
 
     for i in range(plan.N_i):

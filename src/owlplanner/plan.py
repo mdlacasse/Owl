@@ -4305,6 +4305,8 @@ class Plan:
         self.s_n = vm["s"].extract(x)
         self.w_ijn = vm["w"].extract(x)
         self.x_in = vm["x"].extract(x)
+        hsa_total = np.sum(self.w_ijn[:, 3, :], axis=0)
+        self.hsa_medicare_n = np.minimum(hsa_total, self.m_n + self.M_n)
 
         # Extract SS taxability LP variables and update Psi_n from the LP solution.
         if "tss" in vm:

@@ -206,3 +206,54 @@ def test_setHSA_method():
     expected_n_hsa = max(0, 1960 + 65 - thisyear)
     assert p.n_hsa_i[0] == min(expected_n_hsa, p.N_n)
     assert abs(p.bet_ji[3, 0] - 40_000) < 1, "HSA balance should be set to 40k"
+
+
+def test_hsa_medicare_n_bounded():
+    """hsa_medicare_n is bounded by both Medicare costs and total HSA withdrawn each year."""
+    p = _make_plan()
+    _configure_plan(p, hsa=[80])
+    p.solve("maxSpending")
+
+    total_medicare = p.m_n + p.M_n
+    hsa_total = np.sum(p.w_ijn[:, 3, :], axis=0)
+    assert np.all(p.hsa_medicare_n <= total_medicare + 1e-6), (
+        "hsa_medicare_n must not exceed Medicare costs"
+    )
+    assert np.all(p.hsa_medicare_n <= hsa_total + 1e-6), (
+        "hsa_medicare_n must not exceed HSA withdrawn"
+    )
+    assert np.all(p.hsa_medicare_n >= 0), "hsa_medicare_n must be non-negative"
+
+
+def test_hsa_medicare_n_zero_without_hsa():
+    """Plan with no HSA balance has hsa_medicare_n all zeros."""
+    p = _make_plan()
+    _configure_plan(p, hsa=None)
+    p.solve("maxSpending")
+
+    assert np.all(p.hsa_medicare_n == 0), (
+        "hsa_medicare_n should be all zeros when no HSA balance"
+    )
+
+
+def test_hsa_medicare_n_in_summary():
+    """build_summary_dic always contains the 'Covered by HSA' key."""
+    from owlplanner import export
+
+    # With HSA
+    p_hsa = _make_plan()
+    _configure_plan(p_hsa, hsa=[80])
+    p_hsa.solve("maxSpending")
+    dic_hsa = export.build_summary_dic(p_hsa)
+    assert any("Covered by HSA" in k for k in dic_hsa), (
+        "'Covered by HSA' must appear in summary dict when HSA is active"
+    )
+
+    # Without HSA — key must still be present (for plan comparison alignment)
+    p_no_hsa = _make_plan()
+    _configure_plan(p_no_hsa, hsa=None)
+    p_no_hsa.solve("maxSpending")
+    dic_no_hsa = export.build_summary_dic(p_no_hsa)
+    assert any("Covered by HSA" in k for k in dic_no_hsa), (
+        "'Covered by HSA' must appear in summary dict even without HSA (fixed row count)"
+    )
