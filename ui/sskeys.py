@@ -501,16 +501,26 @@ def compareSummaries():
         df = pd.concat([df, odf])
 
     if df.shape[0] > 1:
-        # Unroll to subtract $tring representation of numbers.
-        for col in range(1, df.shape[1] - 5):
-            strval = df.iloc[0, col]
-            if isinstance(strval, str) and strval[0] == "$":
+        # Compare dollar columns by parsing formatted currency (column-order safe).
+        for col_idx in range(df.shape[1]):
+            strval = df.iloc[0, col_idx]
+            if not isinstance(strval, str) or not strval.startswith("$"):
+                continue
+            try:
                 f0val = float(strval[1:].replace(",", ""))
-                for row in range(1, df.shape[0]):
-                    fnval = float(df.iloc[row, col][1:].replace(",", ""))
-                    diff = fnval - f0val
-                    sign = "\u2191" if diff > 0 else "\u2193" if diff < 0 else "\u2192"
-                    df.iloc[row, col] = f"{sign} ${abs(diff):,.0f}"
+            except ValueError:
+                continue
+            for row in range(1, df.shape[0]):
+                raw = df.iloc[row, col_idx]
+                if not isinstance(raw, str) or not raw.startswith("$"):
+                    continue
+                try:
+                    fnval = float(raw[1:].replace(",", ""))
+                except ValueError:
+                    continue
+                diff = fnval - f0val
+                sign = "\u2191" if diff > 0 else "\u2193" if diff < 0 else "\u2192"
+                df.iloc[row, col_idx] = f"{sign} ${abs(diff):,.0f}"
 
     return df.transpose()
 

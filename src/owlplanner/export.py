@@ -20,6 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import numbers
 import numpy as np
 import pandas as pd
 from io import StringIO
@@ -27,6 +28,7 @@ from os.path import isfile
 from pathlib import Path
 
 from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 from openpyxl.utils.dataframe import dataframe_to_rows
 
@@ -98,6 +100,49 @@ _FORMAT_STRINGS = {
     "pct_value": "0.00",
 }
 
+# Synopsis keys for paired horizon totals: gamma-adjusted vs nominal sums.
+SUMMARY_LABEL_TODAY = " (today's $)"
+SUMMARY_LABEL_NOMINAL = " (nominal)"
+
+SUMMARY_SECTION_OVERVIEW = "--- Overview ---"
+SUMMARY_SECTION_SPENDING = "--- Spending & income (horizon totals) ---"
+SUMMARY_SECTION_TAXES = "--- Taxes & premiums (horizon totals) ---"
+SUMMARY_SECTION_PARTIAL_BEQUEST = "--- Partial bequest ---"
+SUMMARY_SECTION_FINAL_BEQUEST = "--- Final bequest ---"
+SUMMARY_SECTION_PLAN = "--- Plan & solver ---"
+
+
+def _summary_section(dic, title):
+    """Insert a visual section divider row (empty value)."""
+    dic[title] = ""
+
+
+def _parse_usd_string(s):
+    """Parse ``u.d()`` output or a float; return float or None if not currency."""
+    if s is None:
+        return None
+    if isinstance(s, (int, np.integer)):
+        return float(s)
+    if isinstance(s, float):
+        if np.isnan(s):
+            return None
+        return float(s)
+    if not isinstance(s, str):
+        return None
+    t = s.strip()
+    if not t.startswith("$"):
+        return None
+    try:
+        return float(t[1:].replace(",", ""))
+    except ValueError:
+        return None
+
+
+def _summary_currency_pair(dic, label, val_today, val_nominal, prefix=""):
+    """Append paired synopsis entries: today's dollars vs nominal dollar totals."""
+    dic[f"{prefix}{label}{SUMMARY_LABEL_TODAY}"] = u.d(val_today)
+    dic[f"{prefix}{label}{SUMMARY_LABEL_NOMINAL}"] = u.d(val_nominal)
+
 
 def _save_workbook(wb, basename, overwrite, mylog):
     """Save workbook to file with overwrite prompt."""
@@ -156,6 +201,48 @@ def _format_spreadsheet(ws, ftype):
                 cell.number_format = fstring
 
     return None
+
+
+def _summary_sheet_cell_is_currency_number(v):
+    """True if Summary sheet cell should receive Excel currency formatting."""
+    if v in (None, "") or isinstance(v, bool):
+        return False
+    if isinstance(v, numbers.Real):
+        try:
+            x = float(v)
+        except (TypeError, ValueError):
+            return False
+        return not np.isnan(x)
+    return False
+
+
+def _format_summary_sheet(ws):
+    """Wide metric column, fixed currency columns, section merges, number formats."""
+    currency_fmt = "$#,##0_);[Red]($#,##0)"
+    header_font = Font(bold=True)
+    section_font = Font(bold=True, color="FF1565C0")  # --- section divider rows only
+    for cell in ws[1]:
+        cell.style = "Pandas"
+        cell.font = header_font
+    ws.column_dimensions["A"].width = 58
+    ws.column_dimensions["B"].width = 26
+    ws.column_dimensions["C"].width = 26
+
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row or 2):
+        a = row[0]
+        av = a.value
+        if isinstance(av, str) and av.startswith("---"):
+            for cell in row[:3]:
+                cell.font = section_font
+            ws.merge_cells(start_row=a.row, start_column=1, end_row=a.row, end_column=3)
+            a.font = section_font
+            a.alignment = Alignment(horizontal="left", vertical="center")
+            continue
+        b, c = row[1], row[2]
+        if _summary_sheet_cell_is_currency_number(b.value):
+            b.number_format = currency_fmt
+        if _summary_sheet_cell_is_currency_number(c.value):
+            c.number_format = currency_fmt
 
 
 def _format_col_sheet(ws, col_formats, default_fmt=None, lowercase=True):
@@ -243,7 +330,12 @@ def fixedIncomeStreams(plan, N=None):
 
 
 def build_summary_dic(plan, N=None):
-    """Return dictionary containing summary of plan values."""
+    """Return dictionary containing summary of plan values.
+
+    Section dividers (keys starting with ``---`` and empty value) group the synopsis.
+    Paired horizon totals use two adjacent keys: ``"... (today's $)"`` (scaled by
+    ``1/gamma_n``) and ``"... (nominal)"`` (sums of nominal year-by-year flows).
+    """
     if N is None:
         N = plan.N_n
     if not (0 < N <= plan.N_n):
@@ -252,7 +344,8 @@ def build_summary_dic(plan, N=None):
     now = plan.year_n[0]
     dic = {}
     dic["Case name"] = plan._name
-    dic["Net yearly spending basis" + 26 * " ."] = u.d(plan.g_n[0] / plan.xi_n[0])
+    _summary_section(dic, SUMMARY_SECTION_OVERVIEW)
+    dic["Net yearly spending basis"] = u.d(plan.g_n[0] / plan.xi_n[0])
     after_tax = plan._after_tax_savings()
     if after_tax > 0:
         ratio = (plan.g_n[0] / plan.xi_n[0]) / after_tax
@@ -264,17 +357,17 @@ def build_summary_dic(plan, N=None):
     dic[f"Net spending for year {now}"] = u.d(plan.g_n[0])
     dic[f"Net spending remaining in year {now}"] = u.d(plan.g_n[0] * plan.yearFracLeft)
 
+    _summary_section(dic, SUMMARY_SECTION_SPENDING)
     totSpending = np.sum(plan.g_n[:N], axis=0)
     totSpendingNow = np.sum(plan.g_n[:N] / plan.gamma_n[:N], axis=0)
-    dic[" Total net spending"] = f"{u.d(totSpendingNow)}"
-    dic["[Total net spending]"] = f"{u.d(totSpending)}"
+    _summary_currency_pair(dic, "Total net spending", totSpendingNow, totSpending)
 
     streams = fixedIncomeStreams(plan, N)
     inv_gamma = 1.0 / plan.gamma_n[:N]
     totFixed = float(np.sum(streams["total"]))
     if totFixed > 0:
-        dic[" Total fixed income"] = f"{u.d(float(np.sum(streams['total'] * inv_gamma)))}"
-        dic["[Total fixed income]"] = f"{u.d(totFixed)}"
+        tot_fixed_now = float(np.sum(streams["total"] * inv_gamma))
+        _summary_currency_pair(dic, "Total fixed income", tot_fixed_now, totFixed)
         labels = [
             ("ss",        "Social Security"),
             ("pension",   "Pension"),
@@ -286,58 +379,52 @@ def build_summary_dic(plan, N=None):
         for key, label in labels:
             tot = float(np.sum(streams[key]))
             if tot > 0:
-                dic[f"»  {label}"] = f"{u.d(float(np.sum(streams[key] * inv_gamma)))}"
-                dic[f"» [{label}]"] = f"{u.d(tot)}"
+                _summary_currency_pair(
+                    dic, label, float(np.sum(streams[key] * inv_gamma)), tot, prefix="»  ",
+                )
 
     totRoth = np.sum(plan.x_in[:, :N], axis=(0, 1))
     totRothNow = np.sum(np.sum(plan.x_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
-    dic[" Total Roth conversions"] = f"{u.d(totRothNow)}"
-    dic["[Total Roth conversions]"] = f"{u.d(totRoth)}"
+    _summary_currency_pair(dic, "Total Roth conversions", totRothNow, totRoth)
 
+    _summary_section(dic, SUMMARY_SECTION_TAXES)
     taxPaid = np.sum(plan.T_n[:N], axis=0)
     taxPaidNow = np.sum(plan.T_n[:N] / plan.gamma_n[:N], axis=0)
-    dic[" Total tax paid on ordinary income"] = f"{u.d(taxPaidNow)}"
-    dic["[Total tax paid on ordinary income]"] = f"{u.d(taxPaid)}"
+    _summary_currency_pair(dic, "Total tax paid on ordinary income", taxPaidNow, taxPaid)
     for t in range(plan.N_t):
         taxPaid = np.sum(plan.T_tn[t, :N], axis=0)
         taxPaidNow = np.sum(plan.T_tn[t, :N] / plan.gamma_n[:N], axis=0)
         tname = tx.taxBracketNames[t] if t < len(tx.taxBracketNames) else f"Bracket {t}"
-        dic[f"»  Subtotal in tax bracket {tname}"] = f"{u.d(taxPaidNow)}"
-        dic[f"» [Subtotal in tax bracket {tname}]"] = f"{u.d(taxPaid)}"
+        _summary_currency_pair(dic, f"Subtotal in tax bracket {tname}", taxPaidNow, taxPaid, prefix="»  ")
 
     penaltyPaid = np.sum(plan.P_n[:N], axis=0)
     penaltyPaidNow = np.sum(plan.P_n[:N] / plan.gamma_n[:N], axis=0)
-    dic["»  Subtotal in early withdrawal penalty"] = f"{u.d(penaltyPaidNow)}"
-    dic["» [Subtotal in early withdrawal penalty]"] = f"{u.d(penaltyPaid)}"
+    _summary_currency_pair(dic, "Subtotal in early withdrawal penalty", penaltyPaidNow, penaltyPaid, prefix="»  ")
 
     taxPaid = np.sum(plan.U_n[:N], axis=0)
     taxPaidNow = np.sum(plan.U_n[:N] / plan.gamma_n[:N], axis=0)
-    dic[" Total tax paid on gains and dividends"] = f"{u.d(taxPaidNow)}"
-    dic["[Total tax paid on gains and dividends]"] = f"{u.d(taxPaid)}"
+    _summary_currency_pair(dic, "Total tax paid on gains and dividends", taxPaidNow, taxPaid)
 
     taxPaid = np.sum(plan.J_n[:N], axis=0)
     taxPaidNow = np.sum(plan.J_n[:N] / plan.gamma_n[:N], axis=0)
-    dic[" Total net investment income tax paid"] = f"{u.d(taxPaidNow)}"
-    dic["[Total net investment income tax paid]"] = f"{u.d(taxPaid)}"
+    _summary_currency_pair(dic, "Total net investment income tax paid", taxPaidNow, taxPaid)
 
     taxPaid = np.sum(plan.m_n[:N] + plan.M_n[:N], axis=0)
     taxPaidNow = np.sum((plan.m_n[:N] + plan.M_n[:N]) / plan.gamma_n[:N], axis=0)
-    dic[" Total Medicare premiums paid"] = f"{u.d(taxPaidNow)}"
-    dic["[Total Medicare premiums paid]"] = f"{u.d(taxPaid)}"
+    _summary_currency_pair(dic, "Total Medicare premiums paid", taxPaidNow, taxPaid)
 
     aca_total = np.sum(plan.aca_costs_n[:N], axis=0)
     if aca_total > 0:
         aca_totalNow = np.sum(plan.aca_costs_n[:N] / plan.gamma_n[:N], axis=0)
-        dic[" Total ACA premiums paid"] = f"{u.d(aca_totalNow)}"
-        dic["[Total ACA premiums paid]"] = f"{u.d(aca_total)}"
+        _summary_currency_pair(dic, "Total ACA premiums paid", aca_totalNow, aca_total)
 
     totDebtPayments = np.sum(plan.debt_payments_n[:N], axis=0)
     if totDebtPayments > 0:
         totDebtPaymentsNow = np.sum(plan.debt_payments_n[:N] / plan.gamma_n[:N], axis=0)
-        dic[" Total debt payments"] = f"{u.d(totDebtPaymentsNow)}"
-        dic["[Total debt payments]"] = f"{u.d(totDebtPayments)}"
+        _summary_currency_pair(dic, "Total debt payments", totDebtPaymentsNow, totDebtPayments)
 
     if plan.N_i == 2 and plan.n_d < plan.N_n and N == plan.N_n:
+        _summary_section(dic, SUMMARY_SECTION_PARTIAL_BEQUEST)
         p_j = plan.partialEstate_j * (1 - plan.phi_j)
         p_j[1] *= 1 - plan.nu   # tax-deferred: heirs pay ordinary income tax
         p_j[3] *= 1 - plan.nu   # HSA: non-spouse heirs include full balance in ordinary income
@@ -350,28 +437,53 @@ def build_summary_dic(plan, N=None):
         iname_s = plan.inames[plan.i_s]
         iname_d = plan.inames[plan.i_d]
         dic["Year of partial bequest"] = f"{ynx}"
-        dic[f" Sum of spousal transfer to {iname_s}"] = f"{u.d(ynxNow * totSpousal)}"
-        dic[f"[Sum of spousal transfer to {iname_s}]"] = f"{u.d(totSpousal)}"
-        dic[f"»  Spousal transfer to {iname_s} - taxable"] = f"{u.d(ynxNow * q_j[0])}"
-        dic[f"» [Spousal transfer to {iname_s} - taxable]"] = f"{u.d(q_j[0])}"
-        dic[f"»  Spousal transfer to {iname_s} - tax-def"] = f"{u.d(ynxNow * q_j[1])}"
-        dic[f"» [Spousal transfer to {iname_s} - tax-def]"] = f"{u.d(q_j[1])}"
-        dic[f"»  Spousal transfer to {iname_s} - tax-free"] = f"{u.d(ynxNow * q_j[2])}"
-        dic[f"» [Spousal transfer to {iname_s} - tax-free]"] = f"{u.d(q_j[2])}"
-        dic[f"»  Spousal transfer to {iname_s} - HSA"] = f"{u.d(ynxNow * q_j[3])}"
-        dic[f"» [Spousal transfer to {iname_s} - HSA]"] = f"{u.d(q_j[3])}"
-        dic[f" Sum of post-tax non-spousal bequest from {iname_d}"] = f"{u.d(ynxNow * totOthers)}"
-        dic[f"[Sum of post-tax non-spousal bequest from {iname_d}]"] = f"{u.d(totOthers)}"
-        dic[f"»  Post-tax non-spousal bequest from {iname_d} - taxable"] = f"{u.d(ynxNow * p_j[0])}"
-        dic[f"» [Post-tax non-spousal bequest from {iname_d} - taxable]"] = f"{u.d(p_j[0])}"
-        dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-def"] = f"{u.d(ynxNow * p_j[1])}"
-        dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-def]"] = f"{u.d(p_j[1])}"
-        dic[f"»  Post-tax non-spousal bequest from {iname_d} - tax-free"] = f"{u.d(ynxNow * p_j[2])}"
-        dic[f"» [Post-tax non-spousal bequest from {iname_d} - tax-free]"] = f"{u.d(p_j[2])}"
-        dic[f"»  Post-tax non-spousal bequest from {iname_d} - HSA"] = f"{u.d(ynxNow * p_j[3])}"
-        dic[f"» [Post-tax non-spousal bequest from {iname_d} - HSA]"] = f"{u.d(p_j[3])}"
+        _summary_currency_pair(dic, f"Sum of spousal transfer to {iname_s}", ynxNow * totSpousal, totSpousal)
+        _summary_currency_pair(
+            dic, f"Spousal transfer to {iname_s} - taxable", ynxNow * q_j[0], q_j[0], prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic, f"Spousal transfer to {iname_s} - tax-def", ynxNow * q_j[1], q_j[1], prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic, f"Spousal transfer to {iname_s} - tax-free", ynxNow * q_j[2], q_j[2], prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic, f"Spousal transfer to {iname_s} - HSA", ynxNow * q_j[3], q_j[3], prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic, f"Sum of post-tax non-spousal bequest from {iname_d}", ynxNow * totOthers, totOthers,
+        )
+        _summary_currency_pair(
+            dic,
+            f"Post-tax non-spousal bequest from {iname_d} - taxable",
+            ynxNow * p_j[0],
+            p_j[0],
+            prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic,
+            f"Post-tax non-spousal bequest from {iname_d} - tax-def",
+            ynxNow * p_j[1],
+            p_j[1],
+            prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic,
+            f"Post-tax non-spousal bequest from {iname_d} - tax-free",
+            ynxNow * p_j[2],
+            p_j[2],
+            prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic,
+            f"Post-tax non-spousal bequest from {iname_d} - HSA",
+            ynxNow * p_j[3],
+            p_j[3],
+            prefix="»  ",
+        )
 
     if N == plan.N_n:
+        _summary_section(dic, SUMMARY_SECTION_FINAL_BEQUEST)
         estate = np.sum(plan.b_ijn[:, :, plan.N_n], axis=0)
         heirsTaxLiability = (estate[1] + estate[3]) * plan.nu   # tax-deferred and HSA
         estate[1] *= 1 - plan.nu   # tax-deferred: heirs pay ordinary income tax
@@ -383,25 +495,33 @@ def build_summary_dic(plan, N=None):
         totEstate = savingsEstate - debts + plan.fixed_assets_bequest_value
 
         dic["Year of final bequest"] = f"{endyear}"
-        dic[" Total after-tax value of final bequest"] = f"{u.d(lyNow * totEstate)}"
-        dic["» After-tax value of savings assets"] = f"{u.d(lyNow * savingsEstate)}"
-        dic["» Fixed assets liquidated at end of plan"] = f"{u.d(lyNow * plan.fixed_assets_bequest_value)}"
-        dic["» With heirs assuming tax liability of"] = f"{u.d(lyNow * heirsTaxLiability)}"
-        dic["» After paying remaining debts of"] = f"{u.d(lyNow * debts)}"
-        dic["[Total after-tax value of final bequest]"] = f"{u.d(totEstate)}"
-        dic["[» After-tax value of savings assets]"] = f"{u.d(savingsEstate)}"
-        dic["[» Fixed assets liquidated at end of plan]"] = f"{u.d(plan.fixed_assets_bequest_value)}"
-        dic["[» With heirs assuming tax liability of]"] = f"{u.d(heirsTaxLiability)}"
-        dic["[» After paying remaining debts of]"] = f"{u.d(debts)}"
-        dic["»  Post-tax final bequest account value - taxable"] = f"{u.d(lyNow * estate[0])}"
-        dic["» [Post-tax final bequest account value - taxable]"] = f"{u.d(estate[0])}"
-        dic["»  Post-tax final bequest account value - tax-def"] = f"{u.d(lyNow * estate[1])}"
-        dic["» [Post-tax final bequest account value - tax-def]"] = f"{u.d(estate[1])}"
-        dic["»  Post-tax final bequest account value - tax-free"] = f"{u.d(lyNow * estate[2])}"
-        dic["» [Post-tax final bequest account value - tax-free]"] = f"{u.d(estate[2])}"
-        dic["»  Post-tax final bequest account value - HSA"] = f"{u.d(lyNow * estate[3])}"
-        dic["» [Post-tax final bequest account value - HSA]"] = f"{u.d(estate[3])}"
+        _summary_currency_pair(dic, "Total after-tax value of final bequest", lyNow * totEstate, totEstate)
+        _summary_currency_pair(dic, "After-tax value of savings assets", lyNow * savingsEstate, savingsEstate, prefix="» ")
+        _summary_currency_pair(
+            dic,
+            "Fixed assets liquidated at end of plan",
+            lyNow * plan.fixed_assets_bequest_value,
+            plan.fixed_assets_bequest_value,
+            prefix="» ",
+        )
+        _summary_currency_pair(
+            dic, "With heirs assuming tax liability of", lyNow * heirsTaxLiability, heirsTaxLiability, prefix="» ",
+        )
+        _summary_currency_pair(dic, "After paying remaining debts of", lyNow * debts, debts, prefix="» ")
+        _summary_currency_pair(
+            dic, "Post-tax final bequest account value - taxable", lyNow * estate[0], estate[0], prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic, "Post-tax final bequest account value - tax-def", lyNow * estate[1], estate[1], prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic, "Post-tax final bequest account value - tax-free", lyNow * estate[2], estate[2], prefix="»  ",
+        )
+        _summary_currency_pair(
+            dic, "Post-tax final bequest account value - HSA", lyNow * estate[3], estate[3], prefix="»  ",
+        )
 
+    _summary_section(dic, SUMMARY_SECTION_PLAN)
     dic["Case starting date"] = str(plan.startDate)
     dic["Cumulative inflation factor at end of final year"] = f"{plan.gamma_n[N]:.2f}"
     for i in range(plan.N_i):
@@ -420,6 +540,43 @@ def build_summary_dic(plan, N=None):
     return dic
 
 
+def build_summary_sheet_df(plan, N=None):
+    """Synopsis as three columns (metric, today's dollars, nominal) for Excel."""
+    dic = build_summary_dic(plan, N)
+    lt = SUMMARY_LABEL_TODAY
+    ln = SUMMARY_LABEL_NOMINAL
+    rows = []
+    items = list(dic.items())
+    i = 0
+    while i < len(items):
+        k, v = items[i]
+        if isinstance(k, str) and k.startswith("---") and v == "":
+            rows.append({"Metric": k, "Today's $": "", "Nominal $": ""})
+            i += 1
+            continue
+        if k.endswith(lt) and i + 1 < len(items):
+            k2, v2 = items[i + 1]
+            base = k[: -len(lt)]
+            if k2 == base + ln:
+                t_num = _parse_usd_string(v)
+                n_num = _parse_usd_string(v2)
+                rows.append({
+                    "Metric": base,
+                    "Today's $": t_num if t_num is not None else v,
+                    "Nominal $": n_num if n_num is not None else v2,
+                })
+                i += 2
+                continue
+        today_cell = _parse_usd_string(v)
+        rows.append({
+            "Metric": k,
+            "Today's $": today_cell if today_cell is not None else v,
+            "Nominal $": "",
+        })
+        i += 1
+    return pd.DataFrame(rows)
+
+
 def build_summary_list(plan, N=None):
     """Return summary as list of key: value strings."""
     dic = build_summary_dic(plan, N)
@@ -427,12 +584,40 @@ def build_summary_list(plan, N=None):
 
 
 def build_summary_string(plan, N=None):
-    """Return summary as formatted string."""
+    """Return multi-column synopsis text (aligned metric / today's $ / nominal)."""
     dic = build_summary_dic(plan, N)
-    string = "Synopsis\n"
-    for key, value in dic.items():
-        string += f"{key:>77}: {value}\n"
-    return string
+    lt = SUMMARY_LABEL_TODAY
+    ln = SUMMARY_LABEL_NOMINAL
+    w_m, w_v = 58, 22
+    sep = "  "
+
+    def fmt_pair_row(base, today_s, nom_s):
+        return f"{base:<{w_m}}{sep}{today_s:>{w_v}}{sep}{nom_s:>{w_v}}"
+
+    lines = ["Synopsis", ""]
+    lines.append(fmt_pair_row("Metric", "Today's $", "Nominal $"))
+    lines.append("-" * (w_m + len(sep) + w_v + len(sep) + w_v))
+    items = list(dic.items())
+    i = 0
+    while i < len(items):
+        k, v = items[i]
+        if isinstance(k, str) and k.startswith("---") and v == "":
+            lines.append("")
+            lines.append(k)
+            lines.append("")
+            i += 1
+            continue
+        if k.endswith(lt) and i + 1 < len(items):
+            k2, v2 = items[i + 1]
+            base = k[: -len(lt)]
+            if k2 == base + ln:
+                lines.append(fmt_pair_row(base, v, v2))
+                i += 2
+                continue
+        val = f"{v}" if v != "" else ""
+        lines.append(fmt_pair_row(k, val, ""))
+        i += 1
+    return "\n".join(lines) + "\n"
 
 
 def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with_config="no"):
@@ -637,12 +822,10 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     fillsheet(ws, ratesDic, "pct_value")
 
     ws = wb.create_sheet("Summary")
-    summary_key = "SUMMARY ==========================================================================="
-    rawData = {summary_key: build_summary_list(plan, plan.N_n)}
-    df = pd.DataFrame(rawData)
+    df = build_summary_sheet_df(plan, plan.N_n)
     for row in dataframe_to_rows(df, index=False, header=True):
         ws.append(row)
-    _format_spreadsheet(ws, "summary")
+    _format_summary_sheet(ws)
     add_config_sheet("last")
 
     if saveToFile:

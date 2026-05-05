@@ -25,6 +25,25 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 
+def _synopsis_metric_section_style(val):
+    """Bold blue for Metric cells that are --- section divider rows."""
+    if isinstance(val, str) and val.startswith("---"):
+        return "font-weight: bold; color: #1565C0;"
+    return ""
+
+
+def _synopsis_compare_column_config(display_df):
+    """Wide first column; explicit width replaces old padded metric keys for Streamlit layout."""
+    synopsis_px = 560
+    cfg = {
+        # Label None: no duplicate title next to the Synopsis section heading (uses column name minimally).
+        "Metric": st.column_config.TextColumn(None, width=synopsis_px),
+    }
+    for c in display_df.columns:
+        if c != "Metric":
+            cfg[c] = st.column_config.TextColumn(None, width="medium")
+    return cfg
+
 ret = kz.titleBar(":material/description: Reports")
 
 if ret is None or kz.caseHasNoPlan():
@@ -43,15 +62,27 @@ else:
         if df is not None:
             st.markdown("""#### :orange[Synopsis]\nThis table provides a summary of the current
 case and compares it with other similar cases that ran successfully.""")
-            styledDf = df[1:].style.map(kz.colorBySign)
-            st.dataframe(styledDf, width="stretch")
-            st.caption("Values with [legend] are nominal; others are in today's \\$. "
-                       "Lines starting with » indicate itemized subtotals.")
+            display_df = df.iloc[1:].reset_index(names=["Metric"])
+            case_cols = [c for c in display_df.columns if c != "Metric"]
+            styledDf = display_df.style.map(_synopsis_metric_section_style, subset=["Metric"])
+            if case_cols:
+                styledDf = styledDf.map(kz.colorBySign, subset=case_cols)
+            st.dataframe(
+                styledDf,
+                width="stretch",
+                hide_index=True,
+                column_config=_synopsis_compare_column_config(display_df),
+            )
+            st.caption("(nominal) vs (today's $); » subtotals; --- sections.")
             col1, col2 = st.columns(2, gap="large")
             helpmsg = "Download synopsis and comparisons as a text file."
-            col1.download_button("Download Synopsis", data=df[1:].to_string(),
-                                 file_name=f"Synopsis_{caseName}.txt", help=helpmsg,
-                                 mime="text/plain;charset=UTF-8")
+            col1.download_button(
+                "Download Synopsis",
+                data=display_df.to_string(index=False),
+                file_name=f"Synopsis_{caseName}.txt",
+                help=helpmsg,
+                mime="text/plain;charset=UTF-8",
+            )
 
             helpmsg = "Rerun all other cases defined in the case selector."
             col2.button("Rerun all cases", on_click=owb.runAllCases, help=helpmsg)

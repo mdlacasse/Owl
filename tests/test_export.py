@@ -336,6 +336,13 @@ def test_save_workbook_has_core_sheets(joe_plan):
         assert expected in titles, f"Missing sheet: {expected}"
 
 
+def test_save_workbook_summary_sheet_three_columns(joe_plan):
+    wb = joe_plan.saveWorkbook(saveToFile=False)
+    ws = next(w for w in wb.worksheets if w.title == "Summary")
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+    assert headers == ["Metric", "Today's $", "Nominal $"]
+
+
 def test_save_workbook_has_per_individual_sheets(joe_plan):
     wb = joe_plan.saveWorkbook(saveToFile=False)
     titles = {ws.title for ws in wb.worksheets}
@@ -420,8 +427,8 @@ def test_build_summary_dic_includes_final_bequest_keys(alex_jamie_plan):
     """Full-horizon summary includes final bequest section and fixed-assets line."""
     dic = build_summary_dic(alex_jamie_plan)
     assert "Year of final bequest" in dic
-    assert " Total after-tax value of final bequest" in dic
-    assert "» Fixed assets liquidated at end of plan" in dic
+    assert "Total after-tax value of final bequest (today's $)" in dic
+    assert "» Fixed assets liquidated at end of plan (today's $)" in dic
 
 
 def test_build_summary_dic_includes_debt_keys(alex_jamie_plan):
@@ -429,8 +436,8 @@ def test_build_summary_dic_includes_debt_keys(alex_jamie_plan):
     p = alex_jamie_plan
     assert p.debt_payments_n.sum() > 0
     dic = build_summary_dic(p)
-    assert " Total debt payments" in dic
-    assert "[Total debt payments]" in dic
+    assert "Total debt payments (today's $)" in dic
+    assert "Total debt payments (nominal)" in dic
 
 
 def test_build_summary_dic_partial_n_omits_bequest_sections(alex_jamie_plan):

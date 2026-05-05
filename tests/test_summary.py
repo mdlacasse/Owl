@@ -56,8 +56,8 @@ def test_summary_dic_default_n():
     # Verify dictionary structure
     assert isinstance(dic, dict)
     assert "Case name" in dic
-    assert " Total net spending" in dic
-    assert "[Total net spending]" in dic
+    assert "Total net spending (today's $)" in dic
+    assert "Total net spending (nominal)" in dic
 
 
 def test_summary_dic_fraction_of_years():
@@ -93,9 +93,10 @@ def test_summary_dic_fraction_of_years():
         return float(s)
 
     # Check that partial values are <= full values for common keys that represent totals
-    if " Total net spending" in common_keys:
-        partial_spending = extract_value(dic_partial[" Total net spending"])
-        full_spending = extract_value(dic_full[" Total net spending"])
+    key_today = "Total net spending (today's $)"
+    if key_today in common_keys:
+        partial_spending = extract_value(dic_partial[key_today])
+        full_spending = extract_value(dic_full[key_today])
         assert partial_spending <= full_spending, "Partial spending should be <= full spending"
 
 
@@ -109,7 +110,7 @@ def test_summary_dic_first_year_only():
     # Verify summary exists
     assert isinstance(dic, dict)
     assert "Case name" in dic
-    assert " Total net spending" in dic
+    assert "Total net spending (today's $)" in dic
 
 
 def test_summary_dic_all_years():
@@ -244,7 +245,7 @@ def test_summary_progressive_years():
     for N in [1, 5, 10, 15, 20]:
         if N <= p.N_n:
             dic = p.summaryDic(N=N)
-            spending = extract_value(dic[" Total net spending"])
+            spending = extract_value(dic["Total net spending (today's $)"])
             values.append(spending)
 
     # Verify values are non-decreasing (spending should accumulate)
