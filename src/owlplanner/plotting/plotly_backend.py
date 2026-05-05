@@ -1000,43 +1000,19 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
-    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None, log_scale=False):
-        """Bar chart of annual savings retention rate. Reference at 100% (linear) or 0 (log)."""
+    def plot_retention_margin(self, year_n, margin_n, title):
+        """Diverging bar chart of retention margin above real break-even. Reference at 0."""
         title = title.replace("\n", "<br>")
-        threshold = 0.0 if log_scale else 100.0
-        if sustainability_n is not None:
-            colors = ["steelblue" if (not np.isnan(r) and not np.isnan(s) and r > s) else "tomato"
-                      for r, s in zip(rate_n, sustainability_n)]
-        else:
-            colors = ["steelblue" if (not np.isnan(r) and r > threshold) else "tomato" for r in rate_n]
-        hover = "%{x}: %{y:+.2f}<extra></extra>" if log_scale else "%{x}: %{y:.1f}%<extra></extra>"
-        fig = go.Figure(go.Bar(x=year_n, y=rate_n, marker_color=colors, opacity=0.85,
-                               name="Retention rate", hovertemplate=hover))
-        fig.add_hline(y=threshold, line_width=1, line_color="black")
-        if sustainability_n is not None:
-            fig.add_trace(go.Scatter(
-                x=year_n, y=sustainability_n, mode="lines",
-                line=dict(dash="dash", color="yellow", width=1.8),
-                name="Real break-even",
-            ))
-        if log_scale:
-            all_vals = np.concatenate([rate_n, sustainability_n]) if sustainability_n is not None else rate_n
-            valid = all_vals[~np.isnan(all_vals)]
-            lo = np.floor(valid.min() / 0.05) * 0.05 - 0.05 if len(valid) else -0.5
-            hi = np.ceil(valid.max() / 0.05) * 0.05 + 0.05 if len(valid) else 0.5
-            tvals = np.round(np.arange(lo, hi + 0.001, 0.05), 3)
-            yaxis = dict(tickmode="array", tickvals=tvals.tolist(),
-                         ticktext=[f"{v:+.2f}" for v in tvals])
-            ylabel = "Log retention  log(\u03b2\u2099\u208a\u2081/\u03b2\u2099)"
-        else:
-            yaxis = dict(tickformat=".1f", ticksuffix="%")
-            ylabel = "Savings retention rate (%)"
+        colors = ["steelblue" if (not np.isnan(m) and m > 0) else "tomato" for m in margin_n]
+        fig = go.Figure(go.Bar(x=year_n, y=margin_n, marker_color=colors, opacity=0.85,
+                               name="Retention margin",
+                               hovertemplate="%{x}: %{y:+.1f} pp<extra></extra>"))
+        fig.add_hline(y=0, line_width=1, line_color="black")
         fig.update_layout(
             title=title,
             xaxis_title="Year",
-            yaxis_title=ylabel,
-            yaxis=yaxis,
-            legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5),
+            yaxis_title="Retention margin (pp vs. break-even)",
+            yaxis=dict(tickformat="+.1f", ticksuffix=" pp"),
             template=self.template,
         )
         return fig

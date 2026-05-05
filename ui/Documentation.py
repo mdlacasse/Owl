@@ -1141,20 +1141,16 @@ When the plan includes an HSA, an additional **HSA Activity** graph is displayed
 showing the annual balance, contributions, and withdrawals for each individual's HSA account.
 This graph appears right after the **Savings Balance** graph.
 
-The **Savings Retention Rate** graph shows, for each year, `1 − net draw / balance` as a percentage,
-where net draw equals spending withdrawals minus taxable deposits and tax-advantaged contributions
-(Roth conversions excluded as internal transfers).
-A dashed seagreen **Real break-even** line is overlaid at `(1 + inflation) / (1 + portfolio return) × 100%` —
+The **Retention Margin** graph shows, for each year, how far the savings retention rate sits above or
+below the real break-even threshold. The retention rate is `1 − net draw / balance`, where net draw
+equals spending withdrawals minus taxable deposits and tax-advantaged contributions (Roth conversions
+excluded as internal transfers). The real break-even is `(1 + inflation) / (1 + portfolio return) × 100%` —
 the retention rate that exactly preserves real portfolio value.
-In positive-return years this line sits below 100% (you can draw the real return and stay even);
-in stagflation it rises above 100%.
-**Blue bars** indicate years where the retention rate exceeds the real break-even (real wealth growing);
-**red bars** indicate years where it falls below (real wealth shrinking).
-The black reference line at 100% marks nominal break-even (no net draw).
-Without a bequest the final bar is near 0% as the balance is fully spent;
-with a bequest it reflects the preserved fraction, and a note in the title flags this.
-A **log scale** toggle transforms the y-axis to `log(retention / 100)`, making annual values additive:
-the sum of bars equals `log(final / initial balance)`, and the real break-even simplifies to `≈ i − r`.
+The margin plotted is `retention − break-even` (in percentage points), so the zero axis is the
+neutral boundary: **blue bars** (above zero) mean real wealth is growing that year; **red bars**
+(below zero) mean real wealth is shrinking.
+Without a bequest the final bar is typically negative as the balance is drawn down; with a bequest a
+note in the title flags the preserved fraction.
 
 """)
 

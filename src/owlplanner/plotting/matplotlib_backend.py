@@ -392,28 +392,15 @@ class MatplotlibBackend(PlotBackend):
 
         return self._line_income_plot(year_n, series, style, title, yformat)[0]
 
-    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None, log_scale=False):
-        """Bar chart of annual savings retention rate. Reference at 100% (linear) or 0 (log)."""
+    def plot_retention_margin(self, year_n, margin_n, title):
+        """Diverging bar chart of retention margin above real break-even. Reference at 0."""
         fig, ax = plt.subplots(figsize=(10, 4))
-        threshold = 0.0 if log_scale else 100.0
-        if sustainability_n is not None:
-            colors = ["steelblue" if (not np.isnan(r) and not np.isnan(s) and r > s) else "tomato"
-                      for r, s in zip(rate_n, sustainability_n)]
-        else:
-            colors = ["steelblue" if (not np.isnan(r) and r > threshold) else "tomato" for r in rate_n]
-        ax.bar(year_n, rate_n, color=colors, alpha=0.8, width=0.85)
-        ax.axhline(threshold, color="black", linewidth=0.8)
-        if sustainability_n is not None:
-            ax.plot(year_n, sustainability_n, color="seagreen", linewidth=1.2,
-                    linestyle="--", label="Real break-even")
-            ax.legend(loc="lower left", fontsize=8)
+        colors = ["steelblue" if (not np.isnan(m) and m > 0) else "tomato" for m in margin_n]
+        ax.bar(year_n, margin_n, color=colors, alpha=0.8, width=0.85)
+        ax.axhline(0, color="black", linewidth=0.8)
         ax.set_xlabel("Year")
-        if log_scale:
-            ax.set_ylabel("Log retention  log(\u03b2\u2099\u208a\u2081/\u03b2\u2099)")
-            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:+.2f}"))
-        else:
-            ax.set_ylabel("Savings retention rate (%)")
-            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.1f}%"))
+        ax.set_ylabel("Retention margin (pp vs. break-even)")
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:+.1f} pp"))
         ax.set_title(title)
         plt.tight_layout()
         return fig

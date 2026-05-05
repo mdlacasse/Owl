@@ -74,9 +74,8 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_savings_retention_rate(self, year_n, rate_n, title, *, sustainability_n=None, log_scale=False):
-        """Bar chart of annual savings retention rate. Reference at 100% (linear) or 0 (log).
-        When log_scale=True, data is pre-transformed as log(retention/100)."""
+    def plot_retention_margin(self, year_n, margin_n, title):
+        """Diverging bar chart of retention margin above real break-even. Reference at 0."""
         pass
 
     @abstractmethod

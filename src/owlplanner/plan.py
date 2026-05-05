@@ -4639,26 +4639,20 @@ class Plan:
         return None
 
     @_checkCaseStatus
-    def showSavingsRetentionRate(self, tag="", figure=False, log_scale=False):
+    def showRetentionMargin(self, tag="", figure=False):
         """
-        Plot savings retention rate (%) over time: fraction of balance NOT drawn each year.
+        Plot savings retention margin over time: annual excess above the real break-even rate.
 
-        Retention = 1 − net_draw/b, where net_draw = w_ijn (spending withdrawals)
-        minus d_in (taxable deposits) and kappa_ijn[:,1:,:] (contributions to
-        tax-deferred/Roth/HSA). Roth conversions excluded — internal transfers.
-        Values >100% indicate accumulation years; ~0% in the final year when
-        bequest=0 (avoids the scale-distorting 100% withdrawal bar of the inverse).
-        When log_scale=True, y = log(retention/100); reference line at 0; bars sum to
-        log(b_final/b_initial); sustainability line simplifies to ≈ i_n − r_n.
+        Margin = retention − sustainability (in percentage points). Zero = real-wealth-neutral;
+        blue bars = real wealth growing; red bars = real wealth shrinking.
         """
         net_w = self.w_ijn.copy()
-        net_w[:, 0, :] -= self.d_in                            # subtract deposits to taxable
-        net_w[:, 1:, :] -= self.kappa_ijn[:, 1:, :self.N_n]   # subtract contributions to deferred/Roth/HSA
+        net_w[:, 0, :] -= self.d_in
+        net_w[:, 1:, :] -= self.kappa_ijn[:, 1:, :self.N_n]
         net_draw_n = np.sum(net_w, axis=(0, 1))
         b_n = np.sum(self.b_ijn[:, :, :-1], axis=(0, 1))
         with np.errstate(invalid="ignore", divide="ignore"):
             rate = np.where(b_n > 0, (1 - net_draw_n / b_n) * 100, 0.0)
-        # Real break-even: retention rate that preserves real portfolio value
         num_n = np.einsum('ijn,ijkn,kn->n',
                           self.b_ijn[:, :, :self.N_n],
                           self.alpha_ijkn[:, :, :, :self.N_n],
@@ -4667,20 +4661,13 @@ class Plan:
             r_n = np.where(b_n > 0, num_n / b_n, 0.0)
         inflation_n = self.gamma_n[1:self.N_n + 1] / self.gamma_n[:self.N_n]
         sustainability_n = inflation_n / (1.0 + r_n) * 100.0
-        if log_scale:
-            with np.errstate(invalid="ignore", divide="ignore"):
-                rate = np.where(rate > 0, np.log(rate / 100.0), np.nan)
-                sustainability_n = np.log(sustainability_n / 100.0)
-        title = self._name + "\nSavings Retention Rate"
-        if log_scale:
-            title += " (log scale)"
+        margin_n = rate - sustainability_n
+        title = self._name + "\nSavings Retention Margin"
         if self.bequest > 0:
             title += f"\n(Note: bequest of {u.d(self.bequest, f=0)} included in balance)"
         if tag:
             title += " - " + tag
-        fig = self._plotter.plot_savings_retention_rate(self.year_n, rate, title,
-                                                        sustainability_n=sustainability_n,
-                                                        log_scale=log_scale)
+        fig = self._plotter.plot_retention_margin(self.year_n, margin_n, title)
         if figure:
             return fig
         self._plotter.jupyter_renderer(fig)
