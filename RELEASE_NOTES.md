@@ -1,6 +1,10 @@
 
 ### Version 2026.05.05
 
+#### HSA reporting
+
+- **HSA**: Add reporting of Medicare payments from HSA account in worksheets and Summary
+
 #### Summary sheet refactor
 
 - **Structured sections**: the Summary worksheet now groups entries under labelled section dividers
