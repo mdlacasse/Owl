@@ -1,7 +1,7 @@
 
-## Version 2026.05.05
+### Version 2026.05.05
 
-### Summary sheet refactor
+#### Summary sheet refactor
 
 - **Structured sections**: the Summary worksheet now groups entries under labelled section dividers
   (*Overview*, *Spending & income*, *Taxes & premiums*, *Partial bequest*, *Final bequest*,
@@ -14,7 +14,7 @@
 - **Tests**: `tests/test_export.py` and `tests/test_summary.py` each extended with 15 additional
   assertions covering section headers and numeric cell types.
 
-### Solver option round-trip fix
+#### Solver option round-trip fix
 
 - **`SOLVER_UI_PASSTHROUGH_KEYS`**: a single authoritative list in `config/ui_bridge.py` of all
   solver options that are copied verbatim between the TOML/Plan solver options and the flat UI
@@ -25,14 +25,14 @@
 - **Tests**: 111 new assertions in `tests/test_config_ui_bridge.py` covering round-trip
   correctness for every passthrough key.
 
-### Bug fixes
+#### Bug fixes
 
 - **Empty spending profile navigation**: fixed a UI crash when navigating to the Financial Profile
   page with an uninitialised profile.
 - **Goals page alignment**: minor layout fix after the `maxHybrid` removal left a misaligned
   control row.
 
-### Savings Retention Margin chart
+#### Savings Retention Margin chart
 
 - **`showRetentionMargin()`** replaces `showSavingsRetentionRate()`: the new chart plots the annual
   difference between the savings retention rate and the real break-even threshold (in percentage
@@ -46,9 +46,9 @@
 
 ---
 
-## Version 2026.05.04
+### Version 2026.05.04
 
-### Remove maxHybrid objective
+#### Remove maxHybrid objective
 
 - **`maxHybrid` removed**: The hybrid objective (blending spending and bequest via a weight
   parameter `h`) has been removed. Because the LP objective is linear, it always drives
@@ -68,9 +68,9 @@
 
 ---
 
-## Version 2026.05.03
+### Version 2026.05.03
 
-### ACA improvements for couples
+#### ACA improvements for couples
 
 - **Automatic SLCSP scaling**: When one spouse transitions from an ACA marketplace plan to
   Medicare, the benchmark Silver plan premium (`slcsp_annual`) is automatically scaled down
@@ -90,9 +90,9 @@
 
 ---
 
-## Version 2026.05.01
+### Version 2026.05.01
 
-### SPIA (Single Premium Immediate Annuity)
+#### SPIA (Single Premium Immediate Annuity)
 
 - **`addSPIA(individual, buy_year, premium, monthly_income, indexed, survivor_fraction)`**:
   Adds a qualified SPIA funded by a tax-deferred IRA rollover. Premium is deducted from the
@@ -107,7 +107,7 @@
 - **Docs**: `PARAMETERS.md` SPIA section; `modeling-capabilities.md` SPIA row.
 - **Tests**: 11 tests in `tests/test_spia.py` including TOML round-trip and clone round-trip.
 
-### Retirement Efficiency Score (RES) — experimental
+#### Retirement Efficiency Score (RES) — experimental
 
 - **`compute_res` / `compute_cvar`** (new, public API): Compute the floor-capped CVaR and the
   Retirement Efficiency Score (RES = committed spending above floor / CVaR) across the efficient
@@ -116,7 +116,7 @@
   scenarios only**. MC RES is suppressed — the lognormal tail structure produces unreliable ρ\*.
 - **Docs**: `modeling-capabilities.md` RES row.
 
-### SC loop convergence refactor
+#### SC loop convergence refactor
 
 - Convergence logic extracted into helper methods (`_check_obj_convergence`, `_check_cycle`,
   `_check_stagnation`, `_check_max_iterations`) and `_build_sc_loop_policy()` for clarity.
@@ -124,36 +124,36 @@
   magnitude. Medicare gate (skip iteration 0 for convergence) correctly preserved.
 - **Tests**: 5 tests in `tests/test_sc_convergence_helpers.py`.
 
-### ACA start year
+#### ACA start year
 
 - `aca_start_year`: Calendar year when ACA coverage begins. Years before this are treated as
   employer-covered (zero ACA cost). Default `0` = ACA applies from plan start.
 - Documented in `PARAMETERS.md` and `modeling-capabilities.md`.
 - **Tests**: 5 tests added for ACA start year.
 
-### Bug fixes
+#### Bug fixes
 
 - **Correlation matrix**: Division by zero for constant-return series now handled correctly
   with masking; avoids inf/nan in rate model fitting.
 - **SPIA annuitant lookup**: Typo in annuitant name now logged as a warning and row skipped,
   rather than silently misassigned to individual 1.
 
-### Scripts
+#### Scripts
 
 - `owlplanner.sh` / `owlplanner.cmd`: Launcher script improvements - update on changes as opposed to cloud.
 
 ---
 
-## Version 2026.04.27
+### Version 2026.04.27
 
 - Improve detection of convergence anomalies in MC (issue#119).
 - Upgrage requirement on gitpython to address vulnerability.
 
 ---
 
-## Version 2026.04.21
+### Version 2026.04.21
 
-### Longevity risk in stochastic spending + parallel plan solving
+#### Longevity risk in stochastic spending + parallel plan solving
 
 - **Longevity risk** (MC-only, `with_longevity=True`): Each Monte Carlo scenario in
   `runStochasticSpending` can now independently draw ages-at-death from an actuarial mortality
@@ -185,9 +185,9 @@
 
 ---
 
-## Version 2026.04.08
+### Version 2026.04.08
 
-### Stochastic spending optimization + stress-test refactoring
+#### Stochastic spending optimization + stress-test refactoring
 
 - **`runStochasticSpending`** (new): Collects per-scenario optimal spending bases across historical
   or Monte Carlo scenarios, then solves a stochastic recourse LP to find a committed first-year
@@ -213,9 +213,9 @@
 
 ---
 
-## Version 2026.04.07
+### Version 2026.04.07
 
-### SS claiming age optimization (`withSSAges`)
+#### SS claiming age optimization (`withSSAges`)
 
 - **`withSSAges` solver option**: The MIP optimizer now selects the optimal Social Security claiming
   month per individual (age 62–70, 97 choices). Pass `"optimize"` for all individuals, a name or
@@ -236,9 +236,9 @@
 
 ---
 
-## Version 2026.04.02
+### Version 2026.04.02
 
-### New objective: `maxHybrid` — blended spending and bequest
+#### New objective: `maxHybrid` — blended spending and bequest
 
 - **`maxHybrid` objective**: Blends spending and bequest into a single LP objective. Controlled by
   `spendingWeight` *h* ∈ [0, 1]: `h=1` maximizes spending only, `h=0` maximizes bequest only,
@@ -260,9 +260,9 @@
 
 ---
 
-## Version 2026.03.29
+### Version 2026.03.29
 
-### Worksheets: age columns, real-dollar display, and solver time limit
+#### Worksheets: age columns, real-dollar display, and solver time limit
 
 - **`worksheet_show_ages`**: Age columns now included in the saved Excel workbook (not just
   on-screen). Final balance row carries the correct age; blank beyond the individual's horizon.
@@ -279,9 +279,9 @@
 
 ---
 
-## Version 2026.03.26
+### Version 2026.03.26
 
-### Breaking change: HFP person sheets require all columns
+#### Breaking change: HFP person sheets require all columns
 
 - Each person worksheet must include every time-horizon column: `year`, `anticipated wages`,
   `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
@@ -293,9 +293,9 @@
 
 ---
 
-## Version 2026.03.24
+### Version 2026.03.24
 
-### Worksheets: optional ages and hide-zero columns
+#### Worksheets: optional ages and hide-zero columns
 
 - **`worksheet_show_ages`** and **`worksheet_hide_zero_columns`** (new `[results]` options,
   default `false`): round-tripped in TOML.
@@ -309,9 +309,9 @@
 
 ---
 
-## Version 2026.03.12
+### Version 2026.03.12
 
-### Medicare Part D
+#### Medicare Part D
 
 - Part D premiums (IRMAA surcharges, same MAGI brackets as Part B) now included by default.
 - `medicarePartDBasePremium`: optional monthly base premium per person (default `0`).
@@ -321,9 +321,9 @@
 
 ---
 
-## Version 2026.03.11
+### Version 2026.03.11
 
-### Decomposition fixes
+#### Decomposition fixes
 
 - Benders: skip zm pre-fixing when both individuals are already on Medicare at plan start;
   prevents SP LP infeasibility on later iterations.
@@ -331,9 +331,9 @@
 
 ---
 
-## Version 2026.03.10
+### Version 2026.03.10
 
-### LTCG and NIIT exact MIP formulations
+#### LTCG and NIIT exact MIP formulations
 
 - **`withLTCG="optimize"`**: Binary variables (`zl`) replace the SC-loop heuristic for LTCG
   bracket assignment, giving provably correct long-term capital gains tax rates.
@@ -342,7 +342,7 @@
 - Both modes exposed as expert toggles in the UI (Advanced Options).
 - **Tests**: `tests/test_ltcg_lp.py` (6 tests) and `tests/test_niit_milp.py` (6 tests).
 
-### MIP decomposition (`withDecomposition`)
+#### MIP decomposition (`withDecomposition`)
 
 When multiple `"optimize"` flags are active simultaneously, the monolithic MIP can be slow
 (~400 binaries for a typical two-person plan). Two strategies are available:
@@ -356,14 +356,14 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 - `bendersMaxIter` option (default 50) caps Benders iterations.
 - **Tests**: 11 tests in `tests/test_decomposition.py`.
 
-### HiGHS direct API
+#### HiGHS direct API
 
 - HiGHS is now called directly via `highspy`; the `scipy.optimize.linprog` proxy is removed.
 - **PuLP/CBC and PuLP/HiGHS removed**: only HiGHS (direct) and MOSEK are supported.
 - `abcapi.py`: `ConstraintMatrix.to_csr()` returns HiGHS rowwise CSR format. Warm-start via
   `_highs_warm_start`.
 
-### `owlcli`: schema-driven solver options
+#### `owlcli`: schema-driven solver options
 
 - `SolverOptions` Pydantic model in `schema.py` is the single source of truth; used by TOML
   load, `plan_bridge`, and the CLI.
@@ -371,7 +371,7 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 - **`--solver-opt KEY=VALUE`**: Override any solver option on the command line.
 - **Solver choices**: `--solver` now accepts only `default`, `HiGHS`, and `MOSEK`.
 
-### UI and configuration
+#### UI and configuration
 
 - Run Options: expert toggles for *Optimize LTCG brackets* and *Optimize NIIT*; *MIP decomposition*
   radio (`none` / `sequential` / `benders`).
@@ -381,9 +381,9 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 
 ---
 
-## Version 2026.03.09
+### Version 2026.03.09
 
-### ACA marketplace (pre-65) UI exposure
+#### ACA marketplace (pre-65) UI exposure
 
 - **Run Options**: New *ACA Marketplace (Pre-65)* section with SLCSP benchmark premium input.
   *Optimize ACA (expert)* toggle in Advanced Options (enabled only when SLCSP > 0).
@@ -392,7 +392,7 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 - **Example**: `Case_morgan` illustrates ACA modeling for a pre-65 retiree.
 - **Documentation**: ACA added to the self-consistent loop description.
 
-### HSA accounts (fourth savings account type)
+#### HSA accounts (fourth savings account type)
 
 - HSA balances tracked alongside taxable, tax-deferred, and tax-free accounts (`j=3`).
 - Pre-tax contributions reduce ordinary income, SS provisional income, and MAGI. Contributions
@@ -405,25 +405,25 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 
 ---
 
-## Version 2026.03.07
+### Version 2026.03.07
 
-### `"net inv"` column in HFP
+#### `"net inv"` column in HFP
 
 - New optional `net inv` column (net investment income from rent or trust distributions) in the
   Wages and Contributions spreadsheet. Enters cash-flow, taxable-income, SS-taxability, and MAGI
   constraints; counted in NII for NIIT. Backward compatible (defaults to zero when absent).
 - `"net inv"` appears in each individual's Sources sheet in the workbook.
 
-### Pension survivor benefits
+#### Pension survivor benefits
 
 - **Joint-and-survivor (J&S) option**: Surviving spouse receives a configurable fraction (0–100%)
   of the primary's pension after death. Config: `pension_survivor_fraction`; UI: Fixed Income page.
 
 ---
 
-## Version 2026.03.05
+### Version 2026.03.05
 
-### Rate models
+#### Rate models
 
 - **`lognormal`** (new): Correlated log-normal with user-specified arithmetic means, volatilities,
   and correlations. Returns bounded below −100%, consistent with Geometric Brownian Motion.
@@ -435,28 +435,28 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 - **MC guard fix**: `runMC()` uses `rateModel.deterministic` attribute instead of a hardcoded name
   check.
 
-### Rates Selection UI redesign
+#### Rates Selection UI redesign
 
 - Constant-preset and varying-method selectors are now `st.selectbox` widgets with a concise
   description caption surfaced from each model's metadata.
 
-### Bug fixes
+#### Bug fixes
 
 - `reverse_sequence` and `roll_sequence` were silently ignored in non-augmented historical range
   runs; both now read from session state and passed correctly.
 - Run Options page warns when the minimum balance constraint may cause infeasibility.
 - **Rename**: *Simulations* → *Stress Tests* throughout.
 
-### Tests
+#### Tests
 
 - `test_rate_model_var.py`: 24 tests (shape, reproducibility, fitting, Cholesky, shrinkage,
   parameter validation, reverse/roll, MC integration).
 
 ---
 
-## Version 2026.02.24
+### Version 2026.02.24
 
-### HFP (Household Financial Profile)
+#### HFP (Household Financial Profile)
 
 - **Optional `"other inc"` column**: Other ordinary income (consulting, royalties, etc.) in the
   wages and contributions table. Backward compatible; `scripts/add_other_inc_column.py` migrates
@@ -464,11 +464,11 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 - **Reports page**: Warning shown when HFP values were edited in the UI (case file alone cannot
   reproduce the run).
 
-### Configuration
+#### Configuration
 
 - Case-insensitive `case_` prefix check when saving TOML (issue #96).
 
-### Code organization
+#### Code organization
 
 - `pension.py` and `spending.py` extracted from `plan.py`. SS tax logic moved to `tax2026.py`;
   `setSocialSecurity` logic to `socialsecurity.py`; gamma/rate transforms to `rates.py`;
@@ -476,9 +476,9 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 
 ---
 
-## Version 2026.02.23
+### Version 2026.02.23
 
-### Social Security accuracy
+#### Social Security accuracy
 
 - **Dynamic SS taxability fraction**: `Psi_n` now computed each SC iteration from the IRS
   provisional income formula (MFJ: \$32k/\$44k; single: \$25k/\$34k) with 30% damping for
@@ -488,7 +488,7 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 - **FRA table fix**: `getFRAs()` now returns the correct Full Retirement Age for birth years
   1938–1942 (65+2/12 to 65+10/12 per SSA table).
 
-### SS trim
+#### SS trim
 
 - `social_security_trim_pct > 0` without `social_security_trim_year` now raises an error instead
   of silently defaulting to 10 years from now.
@@ -497,9 +497,9 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 
 ---
 
-## Version 2026.02.20
+### Version 2026.02.20
 
-### UI
+#### UI
 
 - **Create Case redesign**: Three columns (create, upload, load example) when no case is active;
   collapsible expander when a case is already loaded.
@@ -510,9 +510,9 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
 
 ---
 
-## Version 2026.02.19
+### Version 2026.02.19
 
-### Rate models
+#### Rate models
 
 - **`BuiltinRateModel` decomposition**: Single dispatcher replaced by 8 concrete `BaseRateModel`
   subclasses. `BuiltinRateModel` shim preserves backward compatibility.
@@ -524,7 +524,7 @@ When multiple `"optimize"` flags are active simultaneously, the monolithic MIP c
   parameter replaces heuristic; display names aligned with column names.
 - Rates UI: label `'fixed'` renamed to `'constant'`.
 
-### Social Security
+#### Social Security
 
 - SS trim (reduction from a given year onward): config, schema, UI bridge, and Fixed Income page.
 
