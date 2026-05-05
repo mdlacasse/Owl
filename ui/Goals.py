@@ -75,8 +75,6 @@ else:
             helpmsg_spending = "Desired annual net spending in today's \\$k (the constraint when maximizing bequest)."
             ret = kz.getNum("Desired annual net spending (\\$k)", "netSpending", help=helpmsg_spending)
 
-    with col3:
-
     st.divider()
     st.markdown("#### :orange[Safety Net]")
     helpmsg = ("Maintain a minimum inflation-adjusted taxable balance (today’s \\$k)"

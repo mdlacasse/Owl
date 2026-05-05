@@ -1994,6 +1994,7 @@ class Plan:
         elif objective == "maxBequest":
             spending = u.get_monetary_option(options, "netSpending", 1)
             self.B.setRange(self.vm["g"].idx(0), spending, spending)
+
     def _add_initial_balances(self):
         # Back project balances to the beginning of the year.
         yearSpent = 1 - self.yearFracLeft
