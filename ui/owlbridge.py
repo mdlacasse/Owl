@@ -42,6 +42,7 @@ from owlplanner.rate_models.constants import (
     STOCHASTIC_METHODS,
     VARYING_TYPE_UI,
 )
+from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
 from moseklicense import hasMOSEK
 
 import sskeys as kz
@@ -1426,13 +1427,7 @@ def genDic(plan):
             return None
 
     solverOptionKeys = list(plan.solverOptions)
-    # Should we ignore expert options that will reset to default?
-    optList = ["netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
-               "startRothConversions", "withMedicare", "bequest", "solver", "noLateSurplus",
-               "spendingSlack", "timePreference", "oppCostX",
-               "amoConstraints", "amoRoth", "amoSurplus", "withSCLoop",
-               "absTol", "bigMamo", "relTol",]
-    for key in optList:
+    for key in SOLVER_UI_PASSTHROUGH_KEYS:
         if key in solverOptionKeys:
             dic[key] = plan.solverOptions[key]
 
@@ -1450,6 +1445,8 @@ def genDic(plan):
 
     dic["slcspAnnual"] = getattr(plan, "slcsp_annual", 0.0) / 1000
     dic["optimizeACA"] = plan.solverOptions.get("withACA", "loop") == "optimize"
+    dic["optimizeLTCG"] = plan.solverOptions.get("withLTCG", "loop") == "optimize"
+    dic["optimizeNIIT"] = plan.solverOptions.get("withNIIT", "loop") == "optimize"
     dic["useDecomposition"] = plan.solverOptions.get("withDecomposition", "none")
 
     ss_val = plan.solverOptions.get("withSSTaxability", "loop")

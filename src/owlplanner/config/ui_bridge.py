@@ -46,13 +46,68 @@ ACC_UI = ["txbl", "txDef", "txFree", "hsa"]
 # Account type ordering for config (alias for shared constant)
 ACC_CONF = ACCOUNT_TYPES
 
-# Solver options keys passed between config and UI
-SOLVER_OPT_KEYS = [
-    "netSpending", "maxIter", "maxRothConversion", "maxTime", "noRothConversions",
-    "startRothConversions", "bequest", "solver", "noLateSurplus",
-    "spendingSlack", "oppCostX", "amoConstraints", "amoRoth", "amoSurplus",
-    "withSCLoop", "absTol", "bigMamo", "relTol",
+# SOLVER_UI_PASSTHROUGH_KEYS — names copied verbatim between solver_options and the flat UI
+# case dict in config_to_ui / ui_to_config. Keys like withMedicare remain valid in TOML and
+# Plan.solverOptions (SolverOptions schema) but are omitted here because the UI uses other
+# session keys and the translation logic below:
+#   withMedicare       -> computeMedicare / optimizeMedicare
+#   withACA / LTCG/NIIT -> optimizeACA / optimizeLTCG / optimizeNIIT (strings loop|optimize)
+#   withDecomposition  -> useDecomposition (+ guards)
+#   withSSTaxability   -> ssTaxabilityMode / ssTaxabilityValue
+#   withSSAges         -> ssAgesMode
+#   previousMAGIs      -> MAGI0 / MAGI1
+#   minTaxableBalance  -> minTaxableBalance0 / minTaxableBalance1
+SOLVER_UI_PASSTHROUGH_KEYS = [
+    "absTol",
+    "amoConstraints",
+    "amoRoth",
+    "amoSurplus",
+    "bequest",
+    "bigMaca",
+    "bigMamo",
+    "bigMltcg",
+    "bigMniit",
+    "bigMss",
+    "bendersMaxIter",
+    "epsilon",
+    "fixedSpending",
+    "gap",
+    "maxIter",
+    "maxRothConversion",
+    "maxTime",
+    "netSpending",
+    "noLateSurplus",
+    "noRothConversions",
+    "oppCostX",
+    "relTol",
+    "solver",
+    "spendingSlack",
+    "startRothConversions",
+    "swapRothConverters",
+    "timePreference",
+    "units",
+    "verbose",
+    "withSCLoop",
 ]
+
+
+def _with_ss_ages_to_ui_mode(with_ss_ages: Any, inames: list[str]) -> str:
+    """Map solver_options.withSSAges to UI ssAgesMode (aligned with ui/owlbridge.genDic)."""
+    if not inames:
+        return "none"
+    ni = len(inames)
+    if isinstance(with_ss_ages, (list, tuple)):
+        ssa_names = set(with_ss_ages)
+        if ssa_names >= set(inames):
+            return "both" if ni > 1 else inames[0]
+        if inames[0] in ssa_names:
+            return inames[0]
+        if ni > 1 and inames[1] in ssa_names:
+            return inames[1]
+        return "none"
+    if with_ss_ages == "optimize":
+        return "both" if ni > 1 else inames[0]
+    return "none"
 
 
 def _get_ui(d: dict, key: str, default, coerce=None):
@@ -253,7 +308,7 @@ def config_to_ui(diconf: dict) -> dict:
                 dic[f"jhsa_fin%{k}_{i}"] = int(hsa_a[1][k])
 
     # Solver options
-    for key in SOLVER_OPT_KEYS:
+    for key in SOLVER_UI_PASSTHROUGH_KEYS:
         if key in so:
             dic[key] = so[key]
 
@@ -266,6 +321,8 @@ def config_to_ui(diconf: dict) -> dict:
     dic["slcspAnnual"] = float(aca.get("slcsp_annual", 0))
     dic["acaStartYear"] = int(aca.get("aca_start_year", 0) or 0)
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
+    dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
+    dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
     dic["useDecomposition"] = so.get("withDecomposition", "none")
 
     ss_taxability = so.get("withSSTaxability", "loop")
@@ -285,6 +342,8 @@ def config_to_ui(diconf: dict) -> dict:
         if isinstance(mbl, (list, tuple)):
             dic["minTaxableBalance0"] = mbl[0] if len(mbl) > 0 else 0
             dic["minTaxableBalance1"] = mbl[1] if len(mbl) > 1 else 0
+
+    dic["ssAgesMode"] = _with_ss_ages_to_ui_mode(so.get("withSSAges", "fixed"), names)
 
     obj = op.get("objective", "maxSpending")
     if obj == "maxSpending":
@@ -517,7 +576,7 @@ def ui_to_config(uidic: dict) -> dict:
             diconf["asset_allocation"]["generic"].append([init, fin])
 
     # Solver options
-    for key in SOLVER_OPT_KEYS:
+    for key in SOLVER_UI_PASSTHROUGH_KEYS:
         val = uidic.get(key)
         if val is not None:
             diconf["solver_options"][key] = val
@@ -538,13 +597,17 @@ def ui_to_config(uidic: dict) -> dict:
     diconf["solver_options"]["withACA"] = (
         "optimize" if uidic.get("optimizeACA") else "loop"
     )
-    optimize_med = uidic.get("optimizeMedicare", False)
+    optimize_ltcg = bool(uidic.get("optimizeLTCG"))
+    optimize_niit = bool(uidic.get("optimizeNIIT"))
+    diconf["solver_options"]["withLTCG"] = "optimize" if optimize_ltcg else "loop"
+    diconf["solver_options"]["withNIIT"] = "optimize" if optimize_niit else "loop"
+
     optimize_aca = uidic.get("optimizeACA", False)
     use_decomp = uidic.get("useDecomposition", "none")
     # Coerce legacy boolean (old TOML/session): True → "sequential", False → "none".
     if isinstance(use_decomp, bool):
         use_decomp = "sequential" if use_decomp else "none"
-    if use_decomp != "none" and not (optimize_med or optimize_aca):
+    if use_decomp != "none" and not (optimize_med or optimize_aca or optimize_ltcg or optimize_niit):
         use_decomp = "none"
     diconf["solver_options"]["withDecomposition"] = use_decomp
 
@@ -565,6 +628,14 @@ def ui_to_config(uidic: dict) -> dict:
         mbl = [float(mb0 or 0), float(mb1 or 0)][:ni]
         if any(v > 0 for v in mbl):
             diconf["solver_options"]["minTaxableBalance"] = mbl
+
+    ss_ages_mode = uidic.get("ssAgesMode") or "none"
+    if ss_ages_mode == "none":
+        diconf["solver_options"]["withSSAges"] = "fixed"
+    elif ss_ages_mode == "both":
+        diconf["solver_options"]["withSSAges"] = "optimize"
+    else:
+        diconf["solver_options"]["withSSAges"] = ss_ages_mode
 
     return diconf
 

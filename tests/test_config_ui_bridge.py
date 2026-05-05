@@ -16,6 +16,7 @@ from owlplanner.config import (
     sanitize_config,
     ui_to_config,
 )
+from owlplanner.config.schema import parse_solver_options
 
 
 def test_sanitize_config_start_roth_past_year():
@@ -355,6 +356,116 @@ def test_plan_to_config_normalizes_in_memory_hfp_marker():
     p.timeListsFileName = "dictionary of DataFrames"
     out = plan_to_config(p)
     assert out["household_financial_profile"]["HFP_file_name"] == "None"
+
+
+def test_solver_options_passthrough_roundtrip():
+    """solver_options passthrough keys survive config_to_ui -> ui_to_config."""
+    diconf = _minimal_config_for_rates()
+    raw_so = {
+        "timePreference": 2.5,
+        "gap": 1e-3,
+        "verbose": True,
+        "epsilon": 0.01,
+        "bendersMaxIter": 40,
+        "swapRothConverters": 1,
+        "fixedSpending": 80.0,
+        "units": "k",
+        "bigMaca": 1e8,
+        "bigMss": 9e7,
+        "bigMltcg": 5e6,
+        "bigMniit": 4e6,
+        "withLTCG": "optimize",
+        "withNIIT": "loop",
+    }
+    diconf["solver_options"] = raw_so
+    uidic = config_to_ui(diconf)
+    assert uidic["timePreference"] == 2.5
+    assert uidic["optimizeLTCG"] is True
+    assert uidic["optimizeNIIT"] is False
+
+    back = ui_to_config(uidic)
+    so_in = parse_solver_options(raw_so)
+    so_out = parse_solver_options(back["solver_options"])
+    for k in raw_so:
+        assert so_out[k] == so_in[k], k
+
+
+def test_solver_options_with_ss_ages_married_optimize_roundtrip():
+    """withSSAges optimize round-trips for married (UI uses ssAgesMode both)."""
+    diconf = _minimal_married_config()
+    diconf["solver_options"] = {"withSSAges": "optimize"}
+    uidic = config_to_ui(diconf)
+    assert uidic["ssAgesMode"] == "both"
+
+    back = ui_to_config(uidic)
+    assert back["solver_options"]["withSSAges"] == "optimize"
+
+
+def test_solver_ui_passthrough_keys_match_plan_known_options():
+    """SOLVER_UI_PASSTHROUGH_KEYS must each appear in Plan.solve knownOptions (no typos / drift)."""
+    from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
+
+    # Subset of src/owlplanner/plan.py solve() knownOptions for passthrough scalars.
+    plan_known = {
+        "absTol", "amoConstraints", "amoRoth", "amoSurplus", "bequest", "bigMaca", "bigMamo",
+        "bigMltcg", "bigMniit", "bigMss", "bendersMaxIter", "epsilon", "fixedSpending", "gap",
+        "maxIter", "maxRothConversion", "maxTime", "netSpending", "noLateSurplus",
+        "noRothConversions", "oppCostX", "relTol", "solver", "spendingSlack",
+        "startRothConversions", "swapRothConverters", "timePreference", "units", "verbose",
+        "withSCLoop",
+    }
+    assert set(SOLVER_UI_PASSTHROUGH_KEYS) == plan_known
+
+
+def _minimal_married_config():
+    """Minimal married two-person config for solver/UI mapping tests."""
+    return {
+        "case_name": "test",
+        "basic_info": {
+            "status": "married",
+            "names": ["Joe", "Jane"],
+            "date_of_birth": ["1961-01-15", "1963-06-01"],
+            "life_expectancy": [89, 90],
+            "sexes": ["M", "F"],
+            "start_date": "today",
+        },
+        "savings_assets": {
+            "taxable_savings_balances": [100, 90],
+            "tax_deferred_savings_balances": [200, 180],
+            "tax_free_savings_balances": [50, 45],
+        },
+        "household_financial_profile": {"HFP_file_name": "None"},
+        "fixed_income": {
+            "pension_monthly_amounts": [0, 0],
+            "pension_ages": [65, 65],
+            "pension_indexed": [True, True],
+            "social_security_pia_amounts": [0, 0],
+            "social_security_ages": [67, 67],
+        },
+        "rates_selection": {
+            "heirs_rate_on_tax_deferred_estate": 30,
+            "dividend_rate": 1.8,
+            "obbba_expiration_year": 2032,
+            "method": "user",
+        },
+        "asset_allocation": {
+            "interpolation_method": "s-curve",
+            "interpolation_center": 15,
+            "interpolation_width": 5,
+            "type": "individual",
+            "generic": [
+                [[60, 40, 0, 0], [70, 30, 0, 0]],
+                [[60, 40, 0, 0], [70, 30, 0, 0]],
+            ],
+        },
+        "optimization_parameters": {
+            "spending_profile": "flat",
+            "surviving_spouse_spending_percent": 60,
+            "objective": "maxSpending",
+        },
+        "solver_options": {},
+        "results": {"default_plots": "nominal"},
+    }
 
 
 def _minimal_config_for_rates():

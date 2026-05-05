@@ -3111,6 +3111,7 @@ class Plan:
             "verbose",
             "withACA",        # ACA handling: "loop" (default) or "optimize"
             "bigMaca",        # Big-M for ACA bracket upper bounds (default: BIGM_AMO)
+            "bigMss",         # Big-M for SS taxability MIP (when withSSTaxability="optimize")
             "withLTCG",       # LTCG handling: "loop" (default) or "optimize"
             "bigMltcg",       # Big-M for LTCG bracket constraints (default: T20_n per year)
             "withNIIT",       # NIIT handling: "loop" (default) or "optimize"

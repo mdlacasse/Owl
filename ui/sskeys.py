@@ -33,6 +33,7 @@ sys.path.insert(0, "./src")
 sys.path.insert(0, "../src")
 
 from owlplanner.rate_models.constants import STOCHASTIC_METHODS
+from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
 
 
 ss = st.session_state
@@ -530,12 +531,7 @@ def getSolveParameters():
         objective = "maxBequest"
 
     options = {}
-    optList = ["netSpending", "maxRothConversion", "noRothConversions",
-               "startRothConversions", "bequest", "solver",
-               "spendingSlack", "timePreference", "oppCostX",
-               "amoRoth", "amoSurplus", "withSCLoop", "noLateSurplus",]
-
-    for opt in optList:
+    for opt in SOLVER_UI_PASSTHROUGH_KEYS:
         val = getCaseKey(opt)
         if val is not None:
             options[opt] = val
