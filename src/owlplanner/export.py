@@ -496,7 +496,9 @@ def build_summary_dic(plan, N=None):
 
         dic["Year of final bequest"] = f"{endyear}"
         _summary_currency_pair(dic, "Total after-tax value of final bequest", lyNow * totEstate, totEstate)
-        _summary_currency_pair(dic, "After-tax value of savings assets", lyNow * savingsEstate, savingsEstate, prefix="» ")
+        _summary_currency_pair(
+            dic, "After-tax value of savings assets", lyNow * savingsEstate, savingsEstate, prefix="» "
+        )
         _summary_currency_pair(
             dic,
             "Fixed assets liquidated at end of plan",

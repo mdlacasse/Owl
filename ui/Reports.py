@@ -25,6 +25,7 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 
+
 def _synopsis_metric_section_style(val):
     """Bold blue for Metric cells that are --- section divider rows."""
     if isinstance(val, str) and val.startswith("---"):
@@ -43,6 +44,7 @@ def _synopsis_compare_column_config(display_df):
         if c != "Metric":
             cfg[c] = st.column_config.TextColumn(None, width="medium")
     return cfg
+
 
 ret = kz.titleBar(":material/description: Reports")
 
