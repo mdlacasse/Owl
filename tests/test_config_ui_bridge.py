@@ -401,6 +401,18 @@ def test_solver_options_with_ss_ages_married_optimize_roundtrip():
     assert back["solver_options"]["withSSAges"] == "optimize"
 
 
+def test_solver_options_with_ss_ages_single_name_roundtrip():
+    """withSSAges single-name string round-trips: "Joe" → ssAgesMode "Joe" → "Joe"."""
+    diconf = _minimal_married_config()
+    iname0 = diconf["basic_info"]["names"][0]
+    diconf["solver_options"] = {"withSSAges": iname0}
+    uidic = config_to_ui(diconf)
+    assert uidic["ssAgesMode"] == iname0
+
+    back = ui_to_config(uidic)
+    assert back["solver_options"]["withSSAges"] == iname0
+
+
 def test_solver_ui_passthrough_keys_match_plan_known_options():
     """SOLVER_UI_PASSTHROUGH_KEYS must each appear in Plan.solve knownOptions (no typos / drift)."""
     from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS

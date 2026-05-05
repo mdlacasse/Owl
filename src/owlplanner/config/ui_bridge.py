@@ -107,6 +107,8 @@ def _with_ss_ages_to_ui_mode(with_ss_ages: Any, inames: list[str]) -> str:
         return "none"
     if with_ss_ages == "optimize":
         return "both" if ni > 1 else inames[0]
+    if isinstance(with_ss_ages, str) and with_ss_ages in inames:
+        return with_ss_ages
     return "none"
 
 

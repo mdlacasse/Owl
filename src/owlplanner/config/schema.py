@@ -337,6 +337,7 @@ class SolverOptions(BaseModel):
     withNIIT: Optional[str] = None
     withSSTaxability: Optional[Union[str, float]] = None
     withDecomposition: Optional[str] = None
+    withSSAges: Optional[Union[str, List[str]]] = None
     withSCLoop: Optional[bool] = None
 
     # Other

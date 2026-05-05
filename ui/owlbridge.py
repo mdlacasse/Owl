@@ -1471,6 +1471,8 @@ def genDic(plan):
             dic["ssAgesMode"] = "none"
     elif _ssa_opt == "optimize":
         dic["ssAgesMode"] = "both" if ni > 1 else plan.inames[0]
+    elif isinstance(_ssa_opt, str) and _ssa_opt in plan.inames:
+        dic["ssAgesMode"] = _ssa_opt
     else:
         dic["ssAgesMode"] = "none"
 
