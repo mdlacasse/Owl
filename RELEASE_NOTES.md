@@ -1,7 +1,48 @@
 
 ## Version 2026.05.05
 
-### Refactored Summary
+### Summary sheet refactor
+
+- **Structured sections**: the Summary worksheet now groups entries under labelled section dividers
+  (*Overview*, *Spending & income*, *Taxes & premiums*, *Partial bequest*, *Final bequest*,
+  *Plan & solver*) for easier reading and navigation.
+- **Currency formatting**: a `_parse_usd_string` helper centralises conversion of `u.d()` output
+  to float so that numeric cells are stored as numbers rather than strings, enabling Excel
+  formulas and sorting.
+- **Reports UI**: the Reports page and its session-state keys updated in lock-step with the new
+  export structure.
+- **Tests**: `tests/test_export.py` and `tests/test_summary.py` each extended with 15 additional
+  assertions covering section headers and numeric cell types.
+
+### Solver option round-trip fix
+
+- **`SOLVER_UI_PASSTHROUGH_KEYS`**: a single authoritative list in `config/ui_bridge.py` of all
+  solver options that are copied verbatim between the TOML/Plan solver options and the flat UI
+  case dict. Options with dedicated UI translations (`withMedicare`, `withACA`, `withDecomposition`,
+  `previousMAGIs`, etc.) are handled separately and excluded from the list.
+- **Lifecycle fix**: solver options were not reliably preserved across UI navigation; the new
+  passthrough mechanism ensures a lossless round-trip for all 30+ passthrough keys.
+- **Tests**: 111 new assertions in `tests/test_config_ui_bridge.py` covering round-trip
+  correctness for every passthrough key.
+
+### Bug fixes
+
+- **Empty spending profile navigation**: fixed a UI crash when navigating to the Financial Profile
+  page with an uninitialised profile.
+- **Goals page alignment**: minor layout fix after the `maxHybrid` removal left a misaligned
+  control row.
+
+### Savings Retention Margin chart
+
+- **`showRetentionMargin()`** replaces `showSavingsRetentionRate()`: the new chart plots the annual
+  difference between the savings retention rate and the real break-even threshold (in percentage
+  points), so the zero axis is the neutral boundary. Blue bars indicate years where real wealth
+  is growing; red bars indicate years where it is shrinking. The break-even line is no longer
+  overlaid — it *is* the axis.
+- **Log scale removed**: the log-scale toggle added no actionable information to the diverging
+  chart and has been removed from the UI.
+- **`plot_retention_margin`** added to both the Plotly and Matplotlib backends; the old
+  `plot_savings_retention_rate` function has been removed from all backends and the base class.
 
 ---
 
@@ -108,6 +149,7 @@
 - Improve detection of convergence anomalies in MC (issue#119).
 - Upgrage requirement on gitpython to address vulnerability.
 
+---
 
 ## Version 2026.04.21
 
