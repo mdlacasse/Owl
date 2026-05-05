@@ -107,6 +107,8 @@ For these initial five years, only Roth-related entries are read; all other colu
         for i in range(n):
             st.markdown("#### :orange[" + kz.getCaseKey("iname" + str(i)) + "'s Timetable]")
             df = kz.getCaseKey("timeList" + str(i))
+            if df is None:
+                continue
             formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
             cols = list(df.columns)
             for col in cols[1:-1]:
