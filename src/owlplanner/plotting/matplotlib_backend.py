@@ -506,10 +506,10 @@ class MatplotlibBackend(PlotBackend):
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         n_ind = len(inames)
         for i, iname in enumerate(inames):
-            c  = colors[i % len(colors)]
+            c = colors[i % len(colors)]
             mc = colors[(i + n_ind) % len(colors)]
-            bal   = hsa_data["balance"][i] / (scale_full * 1000)
-            ctrb  = hsa_data["contributions"][i] / (scale * 1000)
+            bal = hsa_data["balance"][i] / (scale_full * 1000)
+            ctrb = hsa_data["contributions"][i] / (scale * 1000)
             wdrwl = hsa_data["withdrawals"][i] / (scale * 1000)
             if np.any(bal > 0):
                 ax.fill_between(year_n_full, bal, alpha=0.3, color=c, label=f"balance {iname}")
@@ -517,7 +517,7 @@ class MatplotlibBackend(PlotBackend):
             if np.any(ctrb > 0):
                 ax.plot(year_n, ctrb, "--", color=c, label=f"contributions {iname}")
             if has_medicare:
-                med    = hsa_data["medicare_withdrawals"][i] / (scale * 1000)
+                med = hsa_data["medicare_withdrawals"][i] / (scale * 1000)
                 nonmed = wdrwl - med
                 if np.any(med > 0):
                     ax.fill_between(year_n, 0, med,

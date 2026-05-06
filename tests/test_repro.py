@@ -42,13 +42,13 @@ if platform == "darwin":
     SPENDING1_FIXED = 93_854
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
-    SPENDING1 = 87_839
+    SPENDING1 = 87_838
     BEQUEST1 = 867_769
     SPENDING2 = 97_710
     SPENDING1_FIXED = 93_854
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
-    SPENDING1 = 87_699
+    SPENDING1 = 87_838
     BEQUEST1 = 867_769
     SPENDING2 = 97_710
     SPENDING1_FIXED = 93_854

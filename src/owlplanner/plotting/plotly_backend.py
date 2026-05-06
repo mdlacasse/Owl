@@ -1236,10 +1236,10 @@ class PlotlyBackend(PlotBackend):
         ]
         n_ind = len(inames)
         for i, iname in enumerate(inames):
-            c  = colors[i % len(colors)]
+            c = colors[i % len(colors)]
             mc = colors[(i + n_ind) % len(colors)]
-            bal   = hsa_data["balance"][i] / (scale_full * 1000)
-            ctrb  = hsa_data["contributions"][i] / (scale * 1000)
+            bal = hsa_data["balance"][i] / (scale_full * 1000)
+            ctrb = hsa_data["contributions"][i] / (scale * 1000)
             wdrwl = hsa_data["withdrawals"][i] / (scale * 1000)
             if np.any(bal > 0):
                 fig.add_trace(go.Scatter(
@@ -1255,7 +1255,7 @@ class PlotlyBackend(PlotBackend):
                     line=dict(color=c, dash="dash"),
                 ))
             if has_medicare:
-                med    = hsa_data["medicare_withdrawals"][i] / (scale * 1000)
+                med = hsa_data["medicare_withdrawals"][i] / (scale * 1000)
                 nonmed = wdrwl - med
                 if np.any(med > 0):
                     fig.add_trace(go.Scatter(
