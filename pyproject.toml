@@ -65,6 +65,7 @@ owlcli  = "owlplanner.cli._main:cli"
 dev = [
     "flake8",
     "pytest>=9.0.2",
+    "pytest-xdist",
 ]
 
 
