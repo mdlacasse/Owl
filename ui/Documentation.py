@@ -1005,7 +1005,8 @@ The **Health Insurance** section groups three related subsections:
 (dental, vision, co-pays, deductibles, etc.) in today's dollars.
 IRS rules allow HSA withdrawals only up to total qualified medical expenses (QMEs).
 This field, combined with Medicare costs, caps tax-free HSA withdrawals each year.
-Leave at 0 if there is no HSA, or if you prefer the conservative default (HSA limited to Medicare costs only).
+If zero, HSA withdrawals are limited to Medicare costs only.
+Field is ignored if plan has no HSA.
 
 **ACA Marketplace (Pre-65)** allows entering the annual benchmark Silver plan (SLCSP) premium
 for years before Medicare. Set to 0 to omit ACA costs.
