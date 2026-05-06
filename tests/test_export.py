@@ -332,7 +332,7 @@ def test_save_workbook_returns_workbook_object(joe_plan):
 def test_save_workbook_has_core_sheets(joe_plan):
     wb = joe_plan.saveWorkbook(saveToFile=False)
     titles = {ws.title for ws in wb.worksheets}
-    for expected in ("Income", "Cash Flow", "Federal Income Tax", "Rates", "Summary"):
+    for expected in ("Income", "Cash Flow", "HSA", "Federal Income Tax", "Rates", "Summary"):
         assert expected in titles, f"Missing sheet: {expected}"
 
 
@@ -493,6 +493,23 @@ def test_cash_flow_sheet_has_all_net_inv_column(joe_plan):
     cf_ws = next(ws for ws in wb.worksheets if ws.title == "Cash Flow")
     headers = [cell.value for cell in cf_ws[1]]
     assert "all net inv" in headers
+
+
+def test_cash_flow_sheet_excludes_hsa_allocation_column(joe_plan):
+    """HSA allocation details are reported on the HSA sheet, not Cash Flow."""
+    wb = joe_plan.saveWorkbook(saveToFile=False)
+    cf_ws = next(ws for ws in wb.worksheets if ws.title == "Cash Flow")
+    headers = [cell.value for cell in cf_ws[1]]
+    assert "HSA→Medicare" not in headers
+
+
+def test_hsa_sheet_has_expected_columns(joe_plan):
+    """HSA worksheet exposes cap inputs and withdrawal allocations."""
+    wb = joe_plan.saveWorkbook(saveToFile=False)
+    hsa_ws = next(ws for ws in wb.worksheets if ws.title == "HSA")
+    headers = [cell.value for cell in hsa_ws[1]]
+    for expected in ("Medicare", "QME", "HSA total wdrwl", "HSA→Medicare", "HSA→QME"):
+        assert expected in headers
 
 
 def test_cash_flow_sheet_balances_to_zero(joe_plan):

@@ -322,7 +322,7 @@ def config_to_ui(diconf: dict) -> dict:
     aca = known.get("aca_settings") or {}
     dic["slcspAnnual"] = float(aca.get("slcsp_annual", 0))
     dic["acaStartYear"] = int(aca.get("aca_start_year", 0) or 0)
-    dic["otherMedical"] = float(known.get("savings_assets", {}).get("other_medical_expenses", 0.0))
+    dic["otherMedical"] = float(known.get("optimization_parameters", {}).get("other_medical_expenses", 0.0))
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
@@ -472,6 +472,7 @@ def ui_to_config(uidic: dict) -> dict:
             "smile_dip": _get_ui(uidic, "smileDip", 15, int),
             "smile_increase": _get_ui(uidic, "smileIncrease", 12, int),
             "smile_delay": _get_ui(uidic, "smileDelay", 0, int),
+            "other_medical_expenses": _get_ui(uidic, "otherMedical", 0.0, float),
         },
         "solver_options": {},
         "results": {
@@ -597,7 +598,6 @@ def ui_to_config(uidic: dict) -> dict:
         "slcsp_annual": _get_ui(uidic, "slcspAnnual", 0, float),
         "aca_start_year": _get_ui(uidic, "acaStartYear", 0, int),
     }
-    diconf["savings_assets"]["other_medical_expenses"] = _get_ui(uidic, "otherMedical", 0.0, float)
     diconf["solver_options"]["withACA"] = (
         "optimize" if uidic.get("optimizeACA") else "loop"
     )

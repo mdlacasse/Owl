@@ -416,13 +416,13 @@ def test_solver_options_with_ss_ages_single_name_roundtrip():
 def test_other_medical_expenses_config_to_ui_roundtrip():
     """other_medical_expenses round-trips through config_to_ui and ui_to_config."""
     diconf = _minimal_config_for_rates()
-    diconf["savings_assets"]["other_medical_expenses"] = 5.0
+    diconf["optimization_parameters"]["other_medical_expenses"] = 5.0
 
     uidic = config_to_ui(diconf)
     assert uidic["otherMedical"] == 5.0, f"Expected otherMedical=5.0, got {uidic['otherMedical']}"
 
     out = ui_to_config(uidic)
-    assert out["savings_assets"]["other_medical_expenses"] == 5.0
+    assert out["optimization_parameters"]["other_medical_expenses"] == 5.0
 
 
 def test_other_medical_expenses_plan_to_config_roundtrip():
@@ -435,7 +435,7 @@ def test_other_medical_expenses_plan_to_config_roundtrip():
     p.setMedicalExpenses(5.0)  # $5k/year
 
     out = plan_to_config(p)
-    assert out["savings_assets"]["other_medical_expenses"] == 5.0
+    assert out["optimization_parameters"]["other_medical_expenses"] == 5.0
 
     p2 = config_to_plan(out, verbose=False)
     assert p2.other_medical_k == 5000.0, f"Expected other_medical_k=5000.0, got {p2.other_medical_k}"
@@ -453,7 +453,7 @@ def test_other_medical_expenses_default_zero():
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
     p.setRates("user", values=[6.0, 4.0, 3.0, 2.5])
     out = plan_to_config(p)
-    assert out["savings_assets"].get("other_medical_expenses", 0.0) == 0.0
+    assert out["optimization_parameters"].get("other_medical_expenses", 0.0) == 0.0
 
 
 def test_solver_ui_passthrough_keys_match_plan_known_options():

@@ -1269,7 +1269,7 @@ class PlotlyBackend(PlotBackend):
                 if np.any(nonmed > 0):
                     fig.add_trace(go.Scatter(
                         x=year_n, y=nonmed,
-                        name=f"other {iname}",
+                        name=f"QME {iname}",
                         stackgroup=f"wdrwl_{i}",
                         opacity=0.3,
                         line=dict(color=c, width=0),

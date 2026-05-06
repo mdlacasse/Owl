@@ -701,7 +701,6 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "ord taxes": -plan.T_n - plan.J_n,
         "div taxes": -plan.U_n,
         "Medicare": -plan.m_n - plan.M_n,
-        "HSA→Medicare": plan.hsa_medicare_n,
         "ACA premiums": -plan.aca_costs_n,
     }
     ws = wb.create_sheet("Cash Flow")
@@ -778,6 +777,23 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         _format_spreadsheet(ws, "currency")
         if plan.worksheetShowAges:
             _format_age_cols_in_ws(ws)
+
+    hsa_total_n = np.sum(plan.w_ijn[:, 3, :], axis=0)
+    hsa_qme_n = np.maximum(hsa_total_n - plan.hsa_medicare_n, 0.0)
+    hsaDic = {
+        "Medicare": plan.m_n + plan.M_n,
+        "QME": plan.other_medical_n,
+        "HSA total wdrwl": hsa_total_n,
+        "HSA→Medicare": plan.hsa_medicare_n,
+        "HSA→QME": hsa_qme_n,
+    }
+    for i in range(plan.N_i):
+        pname = plan.inames[i]
+        hsaDic[f"HSA bal {pname}"] = plan.b_ijn[i, 3, :-1]
+        hsaDic[f"HSA ctrb {pname}"] = plan.kappa_ijn[i, 3, :plan.N_n]
+        hsaDic[f"HSA wdrwl {pname}"] = plan.w_ijn[i, 3, :]
+    ws = wb.create_sheet("HSA")
+    fillsheet(ws, hsaDic, "currency", scale=inv_gamma, sheet_name="HSA")
 
     TxDic = {}
     for t in range(plan.N_t):
@@ -868,8 +884,11 @@ def plan_to_csv(plan, basename, mylog):
     planData["ord taxes"] = -plan.T_n - plan.J_n
     planData["div taxes"] = -plan.U_n
     planData["Medicare"] = -plan.m_n - plan.M_n
-    planData["HSA→Medicare"] = plan.hsa_medicare_n
     planData["ACA premiums"] = -plan.aca_costs_n
+    planData["QME"] = plan.other_medical_n
+    planData["HSA total wdrwl"] = np.sum(plan.w_ijn[:, 3, :], axis=0)
+    planData["HSA→Medicare"] = plan.hsa_medicare_n
+    planData["HSA→QME"] = np.maximum(planData["HSA total wdrwl"] - plan.hsa_medicare_n, 0.0)
 
     for i in range(plan.N_i):
         planData[plan.inames[i] + " txbl bal"] = plan.b_ijn[i, 0, :-1]

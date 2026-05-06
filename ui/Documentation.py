@@ -216,7 +216,9 @@ The primary numerical output of a solved *case*. Contains one worksheet per topi
 all indexed by year:
 - **Income** — net spending, taxable ordinary income, taxable capital gains and dividends,
   total tax bills and Medicare premiums.
-- **Cash Flow** — full breakdown of all money inflows and outflows for the household.
+- **Cash Flow** — full breakdown of household inflows and outflows that balance to net spending.
+- **HSA** — HSA-specific detail: Medicare, QME, total HSA withdrawals, the
+  `HSA→Medicare` / `HSA→QME` split, and per-individual HSA balances/contributions/withdrawals.
 - **`<individual>`'s Sources** *(one sheet per individual)* — year-by-year sources of spending
   (wages, other income, net inv, Social Security, pension, taxable/tax-deferred/tax-free/HSA withdrawals, RMDs,
   Roth conversions, big-ticket items).
@@ -1180,6 +1182,11 @@ indicating that these lines contain actionable items for the current year.
 When the plan includes an HSA, the worksheets include additional HSA columns:
 HSA withdrawals in the **Sources** table, and HSA balances, contributions, and withdrawals
 in the **Accounts** table.
+The workbook also includes an **HSA** worksheet with HSA-specific diagnostics:
+`Medicare`, `QME` (inflation-adjusted from user input), `HSA total wdrwl`,
+`HSA→Medicare`, and `HSA→QME`.
+These columns are presented there (instead of **Cash Flow**) so the **Cash Flow**
+table remains a balancing identity.
 
 Use the **Table display and save options** expander at the top of the page to control
 how worksheets are shown and saved:

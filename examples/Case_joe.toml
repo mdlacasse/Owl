@@ -18,7 +18,6 @@ taxable_savings_balances = [ 338.5,]
 tax_deferred_savings_balances = [ 650.2,]
 tax_free_savings_balances = [ 60.6,]
 hsa_savings_balances = [ 32.0,]
-other_medical_expenses = 3.0
 
 [household_financial_profile]
 HFP_file_name = "HFP_joe.xlsx"
@@ -52,6 +51,7 @@ smile_dip = 15
 smile_increase = 12
 smile_delay = 0
 objective = "maxSpending"
+other_medical_expenses = 3.0
 
 [solver_options]
 maxRothConversion = 50

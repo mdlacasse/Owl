@@ -526,7 +526,7 @@ class MatplotlibBackend(PlotBackend):
                 if np.any(nonmed > 0):
                     ax.fill_between(year_n, med, med + nonmed,
                                     alpha=0.3, color=c,
-                                    label=f"other {iname}")
+                                    label=f"QME {iname}")
             elif np.any(wdrwl > 0):
                 ax.plot(year_n, wdrwl, ":", color=c, label=f"withdrawals {iname}")
 

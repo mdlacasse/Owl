@@ -62,8 +62,8 @@ def getHFP(exdir, case, check_exists=True):
 # Updated after HFP dollar conversion ($ not $k) in update_hfp_coverage.py
 # Updated after Medicare Part D inclusion (Part D IRMAA increases Medicare cost when MAGI > bracket 0,
 # reducing optimal bequest relative to Part B-only baseline).
-# Updated after HSA QME cap: Case_joe now includes other_medical_expenses=3.0 ($3k/year) to exercise
-# the pre-Medicare HSA withdrawal cap; kim+sam-bequest bequest reduced by HSA cap constraint.
+# Updated after HSA QME in kim+sam examples: both kim+sam cases now include
+# other_medical_expenses=2.0 ($2k/year), which slightly changes bequest baselines.
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
@@ -84,7 +84,7 @@ if platform == "darwin":
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 2_095_669,
+            "bequest": 2_097_259,
         },
         "Case_robin": {
             "net_spending_basis": 44_642,

@@ -77,10 +77,6 @@ class SavingsAssets(BaseModel):
     hsa_savings_balances: List[float] = Field(
         default=[0.0], description="HSA balances ($k)"
     )
-    other_medical_expenses: float = Field(
-        default=0.0,
-        description="Annual non-Medicare qualified medical expenses for HSA withdrawal cap ($k, today's $)",
-    )
     beneficiary_fractions: Optional[List[float]] = None  # Married only
     spousal_surplus_deposit_fraction: Optional[float] = None  # Married only
 
@@ -225,6 +221,10 @@ class OptimizationParameters(BaseModel):
     smile_dip: Optional[int] = Field(default=15, description="Smile profile dip %")
     smile_increase: Optional[int] = Field(default=12, description="Smile profile increase %")
     smile_delay: Optional[int] = Field(default=0, description="Smile profile delay years")
+    other_medical_expenses: float = Field(
+        default=0.0,
+        description="Annual non-Medicare qualified medical expenses for HSA withdrawal cap ($k, today's $)",
+    )
 
 
 class ACASettings(BaseModel):

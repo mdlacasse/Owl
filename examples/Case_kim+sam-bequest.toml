@@ -54,6 +54,7 @@ smile_dip = 15
 smile_increase = 12
 smile_delay = 0
 objective = "maxBequest"
+other_medical_expenses = 2.0
 
 [solver_options]
 netSpending = 145

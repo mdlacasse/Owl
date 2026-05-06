@@ -40,7 +40,6 @@ Initial account balances and beneficiary information.
 | `tax_deferred_savings_balances` | list of `N_i` floats | Initial balance in tax-deferred accounts (e.g., 401k, traditional IRA) for each individual (in thousands of dollars) |
 | `tax_free_savings_balances` | list of `N_i` floats | Initial balance in tax-free accounts (e.g., Roth IRA, Roth 401k) for each individual (in thousands of dollars) |
 | `hsa_savings_balances` | list of `N_i` floats | *(Optional)* Initial balance in Health Savings Accounts (HSA) for each individual (in thousands of dollars). Defaults to `[0.0]` (or `[0.0, 0.0]` for married). HSA contributions must stop at Medicare enrollment (~age 65); see `HSA ctrb` column in the HFP file |
-| `other_medical_expenses` | float | *(Optional)* Annual non-Medicare qualified medical expenses (dental, vision, co-pays, deductibles, etc.) in today's dollars ($k). HSA withdrawals are capped at this amount plus Medicare costs each year. Pre-Medicare years: only this amount is eligible (Medicare costs are zero). Default `0.0`. Corresponds to `plan.setMedicalExpenses()` |
 | `beneficiary_fractions` | list of 3 or 4 floats | *(Married only)* Fraction of each account type (taxable, tax-deferred, tax-free, and optionally HSA) bequeathed to the surviving spouse. Each value should be between 0.0 and 1.0. The HSA fraction defaults to `1.0` (spouse inherits intact, per IRS rules). A 3-element list is accepted for backward compatibility and is automatically extended with `1.0` for HSA |
 | `spousal_surplus_deposit_fraction` | float | *(Married only)* Fraction of surplus to deposit in the second spouse's taxable account. Value between 0.0 and 1.0 |
 
@@ -249,6 +248,7 @@ Parameters controlling the optimization objective and spending profile.
 | `spending_profile` | string | Type of spending profile. Valid values: `"flat"`, `"smile"` |
 | `surviving_spouse_spending_percent` | integer | Percentage of spending amount for the surviving spouse (0-100). Default is `60` |
 | `objective` | string | Optimization objective. Valid values: `"maxSpending"`, `"maxBequest"`, `"maxHybrid"` |
+| `other_medical_expenses` | float | *(Optional)* Annual non-Medicare qualified medical expenses (dental, vision, co-pays, deductibles, etc.) in today's dollars ($k). HSA withdrawals are capped by Medicare + this amount each year. Pre-Medicare years: only this amount is eligible (Medicare costs are zero). Default `0.0`. Corresponds to `plan.setMedicalExpenses()` |
 
 ### :orange[Conditional parameters for spending_profile = "smile"]
 | Parameter | Type | Description |
