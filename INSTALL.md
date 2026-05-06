@@ -121,10 +121,10 @@ in the current directory tree. Use `pip install -e ".[notebooks]"` instead of
 `pip install -e .` if you also need Jupyter for the `notebooks/` tutorials.
 
 ### Publishing a version (for reference only)
-Run checks before all commits:
+Install pytest-xdist and pytest-randomly. Run checks before all commits:
 ```
 flake8 ui src tests
-pytest
+pytest -n auto
 ```
 To update version, edit number in `src/owlplanner/version.py`.
 
