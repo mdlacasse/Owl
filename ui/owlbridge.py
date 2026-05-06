@@ -1177,7 +1177,7 @@ def showWorkbook(plan):
     if wb is None:
         return
 
-    currencySheets = ["Income", "Cash Flow", "Sources", "Accounts"]
+    currencySheets = ["Income", "Cash Flow", "Sources", "Accounts", "HSA"]
     for name in wb.sheetnames:
         if name == "Summary" or name.startswith("Config"):
             continue
