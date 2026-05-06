@@ -2,7 +2,7 @@ case_name = "joe"
 description = """
 Joe is a single professional in his late fifties, planning to retire in a few years.  He's built a solid nest egg across taxable, tax-deferred, and Roth accounts—and has been contributing to an HSA while on a high-deductible health plan. He also owns a rental property he plans to sell when he retires to simplify his life and fund his early retirement years.
 
-This case demonstrates Owl's handling of a single retiree: HSA accounts (with contributions stopping at Medicare), fixed assets (real estate disposition with capital gains), and the full optimization of Roth conversions and withdrawal sequencing. Run with different rate assumptions to see how sequence-of-returns risk affects the optimal strategy.
+This case demonstrates Owl's handling of a single retiree: HSA accounts (with contributions stopping at Medicare), fixed assets (real estate disposition with capital gains), and the full optimization of Roth conversions and withdrawal sequencing. Run with different rate assumptions to see how sequence-of-returns risk affects the optimal strategy. Joe anticipates $3k/y in qualified medical expenses on top of Medicare.
 """
 
 [basic_info]
@@ -18,6 +18,7 @@ taxable_savings_balances = [ 338.5,]
 tax_deferred_savings_balances = [ 650.2,]
 tax_free_savings_balances = [ 60.6,]
 hsa_savings_balances = [ 32.0,]
+other_medical_expenses = 3.0
 
 [household_financial_profile]
 HFP_file_name = "HFP_joe.xlsx"

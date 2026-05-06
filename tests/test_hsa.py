@@ -257,3 +257,78 @@ def test_hsa_medicare_n_in_summary():
     assert any("Covered by HSA" in k for k in dic_no_hsa), (
         "'Covered by HSA' must appear in summary dict even without HSA (fixed row count)"
     )
+
+
+# ---------------------------------------------------------------------------
+# setMedicalExpenses tests
+# ---------------------------------------------------------------------------
+
+def test_setMedicalExpenses_inflation():
+    """setMedicalExpenses stores raw dollars; other_medical_n is inflated after solve."""
+    p = _make_plan()
+    _configure_plan(p, hsa=[50])
+    p.setMedicalExpenses(5.0)  # $5k/year in today's dollars
+    assert p.other_medical_k == 5000.0, "other_medical_k should be stored in dollars"
+    p.solve("maxSpending")
+    expected = 5000.0 * p.gamma_n[:-1]
+    assert np.allclose(p.other_medical_n, expected), (
+        "other_medical_n should equal 5000 * gamma_n after solve"
+    )
+
+
+def test_hsa_cap_respected_after_solve():
+    """After solving, HSA withdrawals never exceed Medicare + other medical per year."""
+    p = _make_plan()
+    _configure_plan(p, hsa=[80])
+    p.setMedicalExpenses(3.0)  # $3k/year
+    p.solve("maxSpending")
+
+    for n in range(p.N_n):
+        hsa_n = float(np.sum(p.w_ijn[:, 3, n]))
+        cap_n = float(p.M_n[n] + p.m_n[n] + p.other_medical_n[n])
+        assert hsa_n <= cap_n + 1.0, (
+            f"Year {n}: HSA withdrawal ${hsa_n:.0f} exceeds cap ${cap_n:.0f}"
+        )
+
+
+def test_hsa_cap_pre_medicare_blocked():
+    """Without setMedicalExpenses, HSA withdrawals are zero in pre-Medicare years."""
+    from datetime import date
+    # Use a person still pre-Medicare so the plan has pre-Medicare years.
+    p = _make_plan(dobs=["1975-06-15"], expectancy=[90])
+    p.setAccountBalances(taxable=[200], taxDeferred=[500], taxFree=[100], hsa=[80])
+    p.setAllocationRatios("individual", generic=[[[60, 20, 20, 0], [40, 30, 30, 0]]])
+    p.setRates("user", values=[6.0, 4.0, 3.0, 2.5])
+    p.setSpendingProfile("flat")
+    p.zeroWagesAndContributions()
+    p.solve("maxSpending")
+
+    n_medicare = max(0, 1975 + 65 - date.today().year)
+    if n_medicare > 0:
+        pre_hsa = np.sum(p.w_ijn[:, 3, :n_medicare])
+        assert pre_hsa < 1.0, (
+            f"HSA withdrawals should be blocked pre-Medicare without setMedicalExpenses, got ${pre_hsa:.0f}"
+        )
+
+
+def test_hsa_cap_pre_medicare_with_expenses():
+    """With setMedicalExpenses, HSA withdrawals up to that cap are allowed pre-Medicare."""
+    from datetime import date
+    medical_k = 5.0  # $5k/year in today's dollars
+    p = _make_plan(dobs=["1975-06-15"], expectancy=[90])
+    p.setAccountBalances(taxable=[200], taxDeferred=[500], taxFree=[100], hsa=[80])
+    p.setAllocationRatios("individual", generic=[[[60, 20, 20, 0], [40, 30, 30, 0]]])
+    p.setRates("user", values=[6.0, 4.0, 3.0, 2.5])
+    p.setSpendingProfile("flat")
+    p.zeroWagesAndContributions()
+    p.setMedicalExpenses(medical_k)
+    p.solve("maxSpending")
+
+    n_medicare = max(0, 1975 + 65 - date.today().year)
+    if n_medicare > 0:
+        for n in range(n_medicare):
+            hsa_n = float(np.sum(p.w_ijn[:, 3, n]))
+            cap_n = float(p.other_medical_n[n])   # M_n = 0 pre-Medicare
+            assert hsa_n <= cap_n + 1.0, (
+                f"Year {n}: HSA ${hsa_n:.0f} exceeds pre-Medicare cap ${cap_n:.0f}"
+            )

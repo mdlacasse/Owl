@@ -33,6 +33,7 @@ kz.initCaseKey("optimizeMedicare", False)
 kz.initCaseKey("slcspAnnual", 0)
 kz.initCaseKey("acaStartYear", 0)
 kz.initCaseKey("optimizeACA", False)
+kz.initCaseKey("otherMedical", 0)
 kz.initCaseKey("optimizeLTCG", False)
 kz.initCaseKey("optimizeNIIT", False)
 kz.initCaseKey("useDecomposition", "none")
@@ -80,7 +81,36 @@ else:
                               disabled=fromFile, help=helpmsg)
 
     st.divider()
-    st.markdown("#### :orange[Medicare]")
+    st.markdown("#### :orange[Health Insurance]")
+    st.markdown("##### Qualified Medical Expenses")
+    cols = st.columns(3, gap="large", vertical_alignment="top")
+    with cols[0]:
+        helpmsg_med = (
+            "Annual non-Medicare non-ACA qualified medical expenses (dental, vision, co-pays, deductibles, etc.) "
+            "in today's dollars. HSA withdrawals are capped at this amount plus any Medicare costs."
+        )
+        kz.getNum("Other medical expenses ($k/year)", "otherMedical", min_value=0.0, help=helpmsg_med)
+
+    st.markdown("##### ACA Marketplace (Pre-65)")
+    helpmsg = ("Annual premium for the second-lowest-cost Silver plan in your area. "
+               "Used to compute Premium Tax Credit. Set to 0 to exclude ACA costs. "
+               "Applies only in years before Medicare (age 65). "
+               "See [Healthcare.gov](https://healthcare.gov) for your SLCSP.")
+    cols = st.columns(3, gap="large", vertical_alignment="top")
+    with cols[0]:
+        kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0., help=helpmsg)
+    with cols[1]:
+        acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
+        helpmsg_start = ("4-digit calendar year when ACA coverage begins (e.g. 2029 for the year of retirement). "
+                         "Years before this are assumed employer-covered (zero ACA cost). "
+                         "Set to 0 for coverage from the start of the plan. "
+                         "Do not enter an offset (e.g. 3); use the actual calendar year.")
+        thisyear = date.today().year
+        kz.getIntNum("ACA start year (0 = plan start, else 4-digit year)", "acaStartYear",
+                     min_value=0, max_value=thisyear + 50, step=1,
+                     help=helpmsg_start, disabled=acaoff)
+
+    st.markdown("##### Medicare")
     cols = st.columns(3, gap="large", vertical_alignment="top")
     with cols[0]:
         kz.initCaseKey("computeMedicare", True)
@@ -110,26 +140,6 @@ else:
                                   "Set to 0 to omit. National average ~\\$$39–47$ per month.")
             kz.getNum("Part D base premium ($/month per person)", "medicarePartDBasePremium",
                       min_value=0., help=helpmsg_partd_base)
-
-    st.divider()
-    st.markdown("#### :orange[ACA Marketplace (Pre-65)]")
-    helpmsg = ("Annual premium for the second-lowest-cost Silver plan in your area. "
-               "Used to compute Premium Tax Credit. Set to 0 to exclude ACA costs. "
-               "Applies only in years before Medicare (age 65). "
-               "See [Healthcare.gov](https://healthcare.gov) for your SLCSP.")
-    cols = st.columns(3, gap="large", vertical_alignment="top")
-    with cols[0]:
-        kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0., help=helpmsg)
-    with cols[1]:
-        acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
-        helpmsg_start = ("4-digit calendar year when ACA coverage begins (e.g. 2029 for the year of retirement). "
-                         "Years before this are assumed employer-covered (zero ACA cost). "
-                         "Set to 0 for coverage from the start of the plan. "
-                         "Do not enter an offset (e.g. 3); use the actual calendar year.")
-        thisyear = date.today().year
-        kz.getIntNum("ACA start year (0 = plan start, else 4-digit year)", "acaStartYear",
-                     min_value=0, max_value=thisyear + 50, step=1,
-                     help=helpmsg_start, disabled=acaoff)
 
     st.divider()
     st.markdown("#### :orange[Social Security Claiming Ages]")

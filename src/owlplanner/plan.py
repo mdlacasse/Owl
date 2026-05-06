@@ -252,6 +252,8 @@ class Plan:
         self._aca_lp = False               # True when withACA="optimize" is active
         self.maca_n = np.zeros(self.N_n)   # ACA LP cost variable extraction result
         self.n_aca = 0                     # Number of ACA-eligible plan years (LP mode)
+        self.other_medical_k = 0.0                  # Annual non-Medicare QMEs in today's dollars ($)
+        self.other_medical_n = np.zeros(self.N_n)  # Inflation-adjusted per-year version (nominal $)
         self.smileDip = 15  # Percent to reduce smile profile
         self.smileIncrease = 12  # Percent to increse profile over time span
 
@@ -1074,6 +1076,28 @@ class Plan:
             self.n_hsa_i[i] = min(max(0, n_hsa), self.N_n)
         self.mylog.vprint("HSA contribution stop years:", [int(self.n_hsa_i[i]) for i in range(self.N_i)])
 
+    def setMedicalExpenses(self, amount, units="k"):
+        """
+        Set annual non-Medicare qualified medical expenses used to cap HSA withdrawals.
+
+        HSA withdrawals are tax-free only up to total qualified medical expenses (QMEs).
+        Pre-Medicare years: only this amount is eligible (Medicare costs are zero then).
+        Post-Medicare years: this amount plus Medicare costs are both eligible.
+        Without this call, HSA withdrawals in pre-Medicare years are capped at zero.
+
+        The amount is in today's dollars and is inflation-adjusted each plan year.
+
+        Parameters
+        ----------
+        amount : float
+            Annual non-Medicare medical expenses in today's dollars (default unit: $k).
+        units : str
+            Unit of amount: 'k' ($k), 'M' ($M), or '$' (dollars).
+        """
+        fac = u.getUnits(units)
+        self.other_medical_k = float(amount) * fac
+        self.mylog.vprint(f"Annual non-Medicare medical expenses set to ${float(amount):.1f}{units}/year (today's $).")
+
     def setACA(self, slcsp, units="k", start_year=None):
         """
         Configure ACA marketplace health insurance premium for pre-Medicare years.
@@ -1734,6 +1758,7 @@ class Plan:
         """
         # Ensure parameters are adjusted for inflation and MAGI.
         self._adjustParameters(self.gamma_n, self.MAGI_n)
+        self.other_medical_n = self.other_medical_k * self.gamma_n[:-1]
 
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
@@ -1966,6 +1991,19 @@ class Plan:
                     rowDic = {self.vm["w"].idx(i, j, n): -1,
                               self.vm["b"].idx(i, j, n): 1}
                     self.A.addNewRow(rowDic, 0, np.inf)
+
+        # HSA qualified medical expense cap: sum_i w[i,3,n] - m_n <= M_n[n] + other_medical_n[n]
+        # m_n is the Medicare LP variable; fixed to loop-computed value in SC-loop mode.
+        # Pre-Medicare years: M_n = m_n = 0, so cap = other_medical_n[n] only.
+        # Guard: skip entirely when no HSA exists — redundant constraints change LP duals
+        # even when trivially satisfied, interfering with Benders cuts and LTCG SC-loop.
+        has_hsa = np.any(self.beta_ij[:, 3] > 0) or np.any(self.kappa_ijn[:, 3, :] > 0)
+        if has_hsa:
+            for n in range(self.N_n):
+                cap = self.M_n[n] + self.other_medical_n[n]
+                rowDic = {self.vm["w"].idx(i, 3, n): 1 for i in range(self.N_i)}
+                rowDic[self.vm["m"].idx(n)] = -1
+                self.A.addNewRow(rowDic, -np.inf, cap)
 
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
@@ -4786,10 +4824,16 @@ class Plan:
         title = self._name + "\nHSA Activity"
         if tag:
             title += " - " + tag
+        # Split household-level Medicare withdrawals into per-individual proportional shares.
+        hsa_total_n = np.sum(hsa_wdrwl, axis=0)
+        safe_total_n = np.where(hsa_total_n > 0, hsa_total_n, 1.0)
+        frac_in = hsa_wdrwl / safe_total_n[np.newaxis, :]
+        medicare_in = frac_in * self.hsa_medicare_n[np.newaxis, :]
         hsa_data = {
             "balance": hsa_bal,
             "contributions": hsa_ctrb,
             "withdrawals": hsa_wdrwl,
+            "medicare_withdrawals": medicare_in,
         }
         fig = self._plotter.plot_hsa(self.year_n, hsa_data, self.gamma_n, value, title, self.inames)
         if figure:

@@ -1224,33 +1224,63 @@ class PlotlyBackend(PlotBackend):
             scale_full = gamma_n
             scale = gamma_n[:-1]
 
+        has_medicare = (
+            "medicare_withdrawals" in hsa_data
+            and np.any(hsa_data["medicare_withdrawals"] > 0)
+        )
         fig = go.Figure()
         title_html = title.replace("\n", "<br>")
         colors = [
             "#636EFA", "#EF553B", "#00CC96", "#AB63FA",
             "#FFA15A", "#19D3F3", "#FF6692", "#B6E880",
         ]
+        n_ind = len(inames)
         for i, iname in enumerate(inames):
-            c = colors[i % len(colors)]
-            bal = hsa_data["balance"][i] / (scale_full * 1000)
-            ctrb = hsa_data["contributions"][i] / (scale * 1000)
+            c  = colors[i % len(colors)]
+            mc = colors[(i + n_ind) % len(colors)]
+            bal   = hsa_data["balance"][i] / (scale_full * 1000)
+            ctrb  = hsa_data["contributions"][i] / (scale * 1000)
             wdrwl = hsa_data["withdrawals"][i] / (scale * 1000)
-            fig.add_trace(go.Scatter(
-                x=year_n_full, y=bal,
-                name=f"balance {iname}",
-                fill="tozeroy", opacity=0.4,
-                line=dict(color=c),
-            ))
-            fig.add_trace(go.Scatter(
-                x=year_n, y=ctrb,
-                name=f"contributions {iname}",
-                line=dict(color=c, dash="dash"),
-            ))
-            fig.add_trace(go.Scatter(
-                x=year_n, y=wdrwl,
-                name=f"withdrawals {iname}",
-                line=dict(color=c, dash="dot"),
-            ))
+            if np.any(bal > 0):
+                fig.add_trace(go.Scatter(
+                    x=year_n_full, y=bal,
+                    name=f"balance {iname}",
+                    fill="tozeroy", opacity=0.4,
+                    line=dict(color=c),
+                ))
+            if np.any(ctrb > 0):
+                fig.add_trace(go.Scatter(
+                    x=year_n, y=ctrb,
+                    name=f"contributions {iname}",
+                    line=dict(color=c, dash="dash"),
+                ))
+            if has_medicare:
+                med    = hsa_data["medicare_withdrawals"][i] / (scale * 1000)
+                nonmed = wdrwl - med
+                if np.any(med > 0):
+                    fig.add_trace(go.Scatter(
+                        x=year_n, y=med,
+                        name=f"Medicare {iname}",
+                        stackgroup=f"wdrwl_{i}",
+                        opacity=0.65,
+                        line=dict(color=mc, width=0),
+                        fillcolor=mc,
+                    ))
+                if np.any(nonmed > 0):
+                    fig.add_trace(go.Scatter(
+                        x=year_n, y=nonmed,
+                        name=f"other {iname}",
+                        stackgroup=f"wdrwl_{i}",
+                        opacity=0.3,
+                        line=dict(color=c, width=0),
+                        fillcolor=c,
+                    ))
+            elif np.any(wdrwl > 0):
+                fig.add_trace(go.Scatter(
+                    x=year_n, y=wdrwl,
+                    name=f"withdrawals {iname}",
+                    line=dict(color=c, dash="dot"),
+                ))
 
         fig.update_layout(
             title=title_html,

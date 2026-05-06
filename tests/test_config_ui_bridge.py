@@ -413,6 +413,49 @@ def test_solver_options_with_ss_ages_single_name_roundtrip():
     assert back["solver_options"]["withSSAges"] == iname0
 
 
+def test_other_medical_expenses_config_to_ui_roundtrip():
+    """other_medical_expenses round-trips through config_to_ui and ui_to_config."""
+    diconf = _minimal_config_for_rates()
+    diconf["savings_assets"]["other_medical_expenses"] = 5.0
+
+    uidic = config_to_ui(diconf)
+    assert uidic["otherMedical"] == 5.0, f"Expected otherMedical=5.0, got {uidic['otherMedical']}"
+
+    out = ui_to_config(uidic)
+    assert out["savings_assets"]["other_medical_expenses"] == 5.0
+
+
+def test_other_medical_expenses_plan_to_config_roundtrip():
+    """setMedicalExpenses round-trips through plan_to_config and back to the plan."""
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setRates("user", values=[6.0, 4.0, 3.0, 2.5])
+    p.setMedicalExpenses(5.0)  # $5k/year
+
+    out = plan_to_config(p)
+    assert out["savings_assets"]["other_medical_expenses"] == 5.0
+
+    p2 = config_to_plan(out, verbose=False)
+    assert p2.other_medical_k == 5000.0, f"Expected other_medical_k=5000.0, got {p2.other_medical_k}"
+
+
+def test_other_medical_expenses_default_zero():
+    """other_medical_expenses defaults to 0.0 and is omitted from plan_to_config when unset."""
+    diconf = _minimal_config_for_rates()
+    uidic = config_to_ui(diconf)
+    assert uidic["otherMedical"] == 0.0
+
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setRates("user", values=[6.0, 4.0, 3.0, 2.5])
+    out = plan_to_config(p)
+    assert out["savings_assets"].get("other_medical_expenses", 0.0) == 0.0
+
+
 def test_solver_ui_passthrough_keys_match_plan_known_options():
     """SOLVER_UI_PASSTHROUGH_KEYS must each appear in Plan.solve knownOptions (no typos / drift)."""
     from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS

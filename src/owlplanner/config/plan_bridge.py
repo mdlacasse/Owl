@@ -253,7 +253,10 @@ def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
 
 
 def _apply_aca_to_plan(plan: "Plan", known: dict) -> None:
-    """Apply ACA settings from config to plan."""
+    """Apply ACA settings and other qualified medical expenses from config to plan."""
+    other_med = float(known.get("savings_assets", {}).get("other_medical_expenses", 0.0))
+    if other_med > 0:
+        plan.setMedicalExpenses(other_med, units="k")
     aca = known.get("aca_settings")
     if aca is None:
         return
@@ -500,6 +503,8 @@ def plan_to_config(myplan: "Plan") -> dict:
         diconf["aca_settings"] = {"slcsp_annual": myplan.slcsp_annual / 1000}  # $ → $k
         if getattr(myplan, "aca_start_year", 0) > 0:
             diconf["aca_settings"]["aca_start_year"] = myplan.aca_start_year
+    if myplan.other_medical_k > 0:
+        diconf["savings_assets"]["other_medical_expenses"] = round(myplan.other_medical_k / 1000, 4)
 
     # Merge user-defined sections for round-trip
     extra = getattr(myplan, "_config_extra", None)

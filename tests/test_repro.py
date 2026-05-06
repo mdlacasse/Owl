@@ -35,14 +35,14 @@ solver = 'HiGHS'
 if platform == "darwin":
     # Flip a coin!
     # SPENDING1 = 87_802 +/- 104
-    # SPENDING1 = 87_699
-    SPENDING1 = 87_905
+    # SPENDING1 = 87_839
+    SPENDING1 = 87_839
     BEQUEST1 = 867_769
     SPENDING2 = 97_710
     SPENDING1_FIXED = 93_854
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
-    SPENDING1 = 87_905
+    SPENDING1 = 87_839
     BEQUEST1 = 867_769
     SPENDING2 = 97_710
     SPENDING1_FIXED = 93_854

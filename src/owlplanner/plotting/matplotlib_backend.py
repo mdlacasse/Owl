@@ -498,17 +498,37 @@ class MatplotlibBackend(PlotBackend):
             scale_full = gamma_n
             scale = gamma_n[:-1]
 
+        has_medicare = (
+            "medicare_withdrawals" in hsa_data
+            and np.any(hsa_data["medicare_withdrawals"] > 0)
+        )
         fig, ax = plt.subplots(1, 1)
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        n_ind = len(inames)
         for i, iname in enumerate(inames):
-            c = colors[i % len(colors)]
-            bal = hsa_data["balance"][i] / (scale_full * 1000)
-            ctrb = hsa_data["contributions"][i] / (scale * 1000)
+            c  = colors[i % len(colors)]
+            mc = colors[(i + n_ind) % len(colors)]
+            bal   = hsa_data["balance"][i] / (scale_full * 1000)
+            ctrb  = hsa_data["contributions"][i] / (scale * 1000)
             wdrwl = hsa_data["withdrawals"][i] / (scale * 1000)
-            ax.fill_between(year_n_full, bal, alpha=0.3, color=c, label=f"balance {iname}")
-            ax.plot(year_n_full, bal, color=c)
-            ax.plot(year_n, ctrb, "--", color=c, label=f"contributions {iname}")
-            ax.plot(year_n, wdrwl, ":", color=c, label=f"withdrawals {iname}")
+            if np.any(bal > 0):
+                ax.fill_between(year_n_full, bal, alpha=0.3, color=c, label=f"balance {iname}")
+                ax.plot(year_n_full, bal, color=c)
+            if np.any(ctrb > 0):
+                ax.plot(year_n, ctrb, "--", color=c, label=f"contributions {iname}")
+            if has_medicare:
+                med    = hsa_data["medicare_withdrawals"][i] / (scale * 1000)
+                nonmed = wdrwl - med
+                if np.any(med > 0):
+                    ax.fill_between(year_n, 0, med,
+                                    alpha=0.55, color=mc,
+                                    label=f"Medicare {iname}")
+                if np.any(nonmed > 0):
+                    ax.fill_between(year_n, med, med + nonmed,
+                                    alpha=0.3, color=c,
+                                    label=f"other {iname}")
+            elif np.any(wdrwl > 0):
+                ax.plot(year_n, wdrwl, ":", color=c, label=f"withdrawals {iname}")
 
         ax.set_title(title)
         ax.set_ylabel(yformat)

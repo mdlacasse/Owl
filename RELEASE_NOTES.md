@@ -1,6 +1,23 @@
 
 ### Version 2026.05.05
 
+#### HSA qualified medical expense cap
+
+- **`setMedicalExpenses(amount)`**: new method to declare annual non-Medicare qualified medical
+  expenses (dental, vision, co-pays, deductibles). HSA withdrawals are now capped at
+  Medicare costs + this amount per year, enforced as an LP constraint. Pre-Medicare years:
+  only `setMedicalExpenses` amount is eligible (Medicare costs are zero). Without this call,
+  HSA is limited to Medicare costs only; pre-Medicare HSA withdrawals default to zero — the
+  tax-law-correct conservative default. Available in TOML via `savings_assets.other_medical_expenses`
+  and in the UI under **Run Options → Health Insurance → Other Qualified Medical Expenses**,
+  alongside Medicare and ACA settings.
+
+#### HSA depletion graph
+
+- **Stacked withdrawals**: `showHSA()` now splits the withdrawal area into a Medicare portion
+  (attributed to Medicare costs, distinct color) and an "other" portion (remaining withdrawals),
+  using stacked filled areas. Zero-valued series are suppressed from the legend.
+
 #### HSA reporting
 
 - **HSA**: Add reporting of Medicare payments from HSA account in worksheets and Summary

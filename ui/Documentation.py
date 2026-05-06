@@ -986,7 +986,7 @@ with the options on the **Run Options** page (Roth conversions, Medicare, solver
 
     with st.expander("Run Options"):
         st.markdown("""
-This page configures Roth conversions, Medicare, ACA, the self-consistent loop, and solver options.
+This page configures Roth conversions, health insurance costs, the self-consistent loop, and solver options.
 The **objective**, **safety net**, and **spending profile** are set on the **Goals** page.
 
 The maximum amount for Roth conversions and which spouse can execute them is configurable.
@@ -999,7 +999,29 @@ the *Roth conv* column on the
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
 
-The **Medicare** section has a toggle *Medicare and IRMAA calculations* (Part B and Part D).
+The **Health Insurance** section groups three related subsections:
+
+**Other Qualified Medical Expenses** sets annual non-Medicare qualified medical expenses
+(dental, vision, co-pays, deductibles, etc.) in today's dollars.
+IRS rules allow HSA withdrawals only up to total qualified medical expenses (QMEs).
+This field, combined with Medicare costs, caps tax-free HSA withdrawals each year.
+Leave at 0 if there is no HSA, or if you prefer the conservative default (HSA limited to Medicare costs only).
+
+**ACA Marketplace (Pre-65)** allows entering the annual benchmark Silver plan (SLCSP) premium
+for years before Medicare. Set to 0 to omit ACA costs.
+For couples, enter the **combined household premium** (both spouses on the same marketplace plan).
+When the older spouse transitions to Medicare, the tool automatically scales the SLCSP down to the
+remaining spouse's individual plan using the CMS age rating curve (45 CFR 147.102), so no manual
+adjustment is needed. The scaling factor is approximately 37–48% of the couple's combined premium,
+depending on the age gap between spouses.
+The **ACA start year** field specifies the calendar year when ACA coverage begins (e.g. the year of
+retirement). Years before that are treated as employer-covered and incur no ACA cost. Leave at 0 for
+ACA to apply from the first year of the plan.
+*Optimize ACA (expert)* in *Advanced options*
+co-optimizes ACA bracket selection within the LP, enabling the optimizer to shift MAGI across ACA brackets
+for improved plan objectives (can be slower; applies 2026 rules only); it only applies when SLCSP > 0.
+
+**Medicare** has a toggle *Medicare and IRMAA calculations* (Part B and Part D).
 When turned off, Medicare premiums are ignored (set to zero); this is the fastest option but least accurate.
 When turned on (the default), Medicare premiums are computed via a self-consistent loop: the optimizer
 finds the best strategy, then Medicare premiums are calculated from that strategy's income (MAGI),
@@ -1022,20 +1044,6 @@ Turn it off if you have other drug coverage (e.g. employer, VA).
 use it to add a monthly base (e.g. national average ~\\$39–47).
 A warning appears if Medicare is on while the self-consistent loop is off,
 since Medicare in loop mode requires the loop to compute premiums iteratively.
-
-The **ACA Marketplace (Pre-65)** section allows entering the annual benchmark Silver plan (SLCSP) premium
-for years before Medicare. Set to 0 to omit ACA costs.
-For couples, enter the **combined household premium** (both spouses on the same marketplace plan).
-When the older spouse transitions to Medicare, the tool automatically scales the SLCSP down to the
-remaining spouse's individual plan using the CMS age rating curve (45 CFR 147.102), so no manual
-adjustment is needed. The scaling factor is approximately 37–48% of the couple's combined premium,
-depending on the age gap between spouses.
-The **ACA start year** field specifies the calendar year when ACA coverage begins (e.g. the year of
-retirement). Years before that are treated as employer-covered and incur no ACA cost. Leave at 0 for
-ACA to apply from the first year of the plan.
-*Optimize ACA (expert)* in *Advanced options*
-co-optimizes ACA bracket selection within the LP, enabling the optimizer to shift MAGI across ACA brackets
-for improved plan objectives (can be slower; applies 2026 rules only); it only applies when SLCSP > 0.
 
 A **self-consistent loop** is an iterative method used for values that depend on the
 solution itself and are therefore difficult to integrate directly into the linear program.

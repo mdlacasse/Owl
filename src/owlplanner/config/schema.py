@@ -77,6 +77,10 @@ class SavingsAssets(BaseModel):
     hsa_savings_balances: List[float] = Field(
         default=[0.0], description="HSA balances ($k)"
     )
+    other_medical_expenses: float = Field(
+        default=0.0,
+        description="Annual non-Medicare qualified medical expenses for HSA withdrawal cap ($k, today's $)",
+    )
     beneficiary_fractions: Optional[List[float]] = None  # Married only
     spousal_surplus_deposit_fraction: Optional[float] = None  # Married only
 
