@@ -36,7 +36,7 @@ else:
     elif kz.caseHasNotRun():
         st.info("Case definition is not yet complete. Please visit all pages in *Case Setup*.")
 
-    st.markdown("Optimize a single scenario based on the parameters selected in the **Case Setup** section.")
+    st.markdown("Run the active *case* against a single scenario using the parameters selected in the **Case Setup** section.")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
     with col1:
         choices = ["nominal", "today"]

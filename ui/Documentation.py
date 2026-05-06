@@ -92,12 +92,12 @@ starting from the top down. Once completed, the user would move to the second ta
 to visualize the results.
 
 A `Case selector` box located at the top of each page allows you
-to navigate between the different scenarios created.
+to navigate between the different cases created.
 This box is present on all pages in **Case Setup** and **Results** sections.
 The *case* being currently displayed is marked with a small red triangle.
 
-A typical workflow for exploring different scenarios involves starting with a base
-case and then copying+creating derived scenarios with slight changes in the parameters.
+A typical workflow for exploring different cases involves starting with a base
+case and then copying+creating derived cases with slight changes in the parameters.
 A comparison between the different resulting outcomes can be found on the **Reports** page.
 The **Typical Workflow** section (Tips tab) goes through a more specific example.
 
@@ -117,10 +117,16 @@ The documentation is structured along the same menus.
     with st.expander("Definitions", expanded=True):
         st.markdown("""
 **Case**
-> A *case* is a collection of parameters that fully defines a retirement scenario. A *case* contains
-the case name and a short description, the individual's life parameters, fixed income sources, savings account balances,
-asset allocation ratios, anticipated rates of return, and optimization parameters.
-It also holds a reference to its *Household Financial Profile*, if one is used.
+> A *case* is a complete planning configuration that fully specifies an optimization problem.
+It contains the individual's demographics, savings account balances, asset allocation ratios,
+fixed income sources (Social Security, pensions), spending goals, Roth conversion strategy,
+solver options, and structural tax-law assumptions (brackets, Medicare rules, etc.).
+It also includes the rate method and its parameters; for deterministic methods (constant presets or
+`historical` replay), the actual rate values are part of the *case*.
+Scalar parameters are stored in a `Case_<name>.toml` file.
+Year-by-year time-series data (wages, contributions, Roth conversions, big-ticket items,
+debts, and fixed assets) are held in an optional ancillary *Household Financial Profile*
+(`HFP_<name>.xlsx`) workbook. Together, these two files fully reproduce a *case*.
 
 **Household Financial Profile**
 > A *Household Financial Profile* (HFP) is an
@@ -130,9 +136,25 @@ tax-deferred and Roth contributions (*ctrb* columns), *HSA ctrb*, *Roth conv*, a
 When no HFP is provided, wages and contributions are assumed to be zero.
 See *Input and Output Files* and *Financial Profile* below for full detail.
 
+**Scenario**
+> A *scenario* is a specific realization of future economic conditions — primarily a year-by-year
+sequence of asset-class return rates. For stochastic rate methods (`histogaussian`, `lognormal`,
+`bootstrap_sor`, `var`, `garch_dcc`, etc.), each Monte Carlo trial draws a fresh *scenario*
+from the model specified in the *case*. For the `historical` method, each starting year defines
+one historical *scenario*. For constant rate methods, the *case* itself fully determines the
+single implicit deterministic *scenario*. When longevity risk is enabled in the Spending Optimization
+analysis, a *scenario* also includes a random draw of individual lifespans.
+
 **Run**
-> A *run* is the execution of a *case* using a single instance of parameters,
-including rates, either constant or varying.
+> A *run* is the execution of a *case* against one *scenario*, producing a complete set of
+optimized results: spending plan, account trajectories, tax breakdown, etc.
+For deterministic *cases*, a single *run* yields one result.
+For stochastic *cases*, a Monte Carlo or Historical Range analysis runs the same *case* across
+many *scenarios* and aggregates the results.
+The Graphs and Worksheets pages show the output of the most recent *run*.
+
+The three concepts form a natural hierarchy: a ***case*** is configured and stored;
+a ***scenario*** provides the economic realization; a ***run*** solves the optimization and produces results.
 
 **Owl** helps the planner to create and run *cases*. By carefully selecting and modifying parameters,
 the planner can explore the impacts of differing assumptions and strategies on their financial situation.
@@ -242,7 +264,7 @@ show the differences between cases for a quick side-by-side comparison.
 # --- Case Setup tab ---
 with tab_plan:
     st.markdown("""
-This section contains the steps for creating and configuring *case* scenarios.
+This section contains the steps for creating and configuring *cases*.
 For new *cases*, every page of this section should be visited and parameters
 entered according to your personal situation. To make this process easier,
 a progress bar tracking which page has been visited is shown at the bottom of the page.
@@ -252,15 +274,15 @@ The sections below describe the pages under the *Case Setup* tab and follow the 
 
     with st.expander("Create Case", expanded=True):
         st.markdown("""
-The **Create Case** page is where every new scenario begins.
+The **Create Case** page is where every new case begins.
 When no case is yet selected, the page displays three columns side by side:
 one to create a new *case* from scratch, one to upload a *case* parameter file,
 and one to load an example *case* from the repository.
 When a case is already selected, an expandable panel at the top of the page
 provides the same options for creating or loading additional cases.
-This page also allows you to copy and/or rename scenarios, as well as delete them.
+This page also allows you to copy and/or rename cases, as well as delete them.
 
-For creating a scenario from scratch, (first) name(s), marital status,
+For creating a case from scratch, (first) name(s), marital status,
 biological sex (`M`/`F`) for each individual, birth date(s), and life expectancies are required.
 The reason for asking the birth date is that Social Security rules
 have special considerations when born on the first days of the month.
@@ -276,7 +298,7 @@ in order to investigate their effects.
 Copy renames the *case* by appending a number counter in parentheses, just as creating
 a copy of a file on Windows.
 It is recommended to rename each *case* to reflect the change in parameters.
-When copying a scenario, make sure to visit all pages in the **Case Setup**
+When copying a case, make sure to visit all pages in the **Case Setup**
 section and verify that all parameters are as intended.
 When all *cases* have successfully run,
 results of related *cases* are compared side-by-side with differences
@@ -285,7 +307,7 @@ Related *cases* are determined by having the same individuals' names:
 anything else can change between *cases*.
 
 ##### Creating a case from scratch
-Enter a name in the **Create a New Case** text box and press Enter.
+Enter a name for the new *case* in the **Create a New Case** text box and press Enter.
 One must then provide the sex, birth date, and expected lifespan of each individual.
 For selecting your own longevity numbers, there are plenty of predictors on the Internet.
 Pick your favorite:
@@ -298,7 +320,7 @@ or just Google *life expectancy calculator*.
 To start from a *case* file, use the **Upload Your Own Case File** widget or pick one
 from the **Load a Case Example** dropdown. A *case* file must be uploaded.
 These files end with the *.toml* extension, are human readable (and therefore editable),
-and contain all the parameters required to characterize a scenario.
+and contain all the parameters required to characterize a case.
 An example is provided
 [here](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true) and more
 can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
@@ -1132,10 +1154,10 @@ with tab_results:
     st.markdown("Results from a case can be visualized in three different ways.")
     with st.expander("Graphs", expanded=True):
         st.markdown("""
-This page displays various plots from a single scenario based on the selections made
-in the **Case Setup** section.
-This simulation uses a single series of rates, either constant or varying,
-as selected in the **Case Setup** section.
+This page displays various plots from the most recent *run* of the active *case*,
+using the rate *scenario* selected in the **Case Setup** section.
+Each run applies one scenario — a single series of rates, either constant or varying —
+as configured in the **Case Setup** section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, or maximize the bequest under the constraint of a net spending amount.
 Various plots show the results, which can be displayed in today's \\$ or
@@ -1206,7 +1228,7 @@ and `worksheet_real_dollars`).
     with st.expander("Reports"):
         st.markdown("""
 This page allows you to compare *cases* and save files for future use.
-First, it shows a synopsis of the computed scenario by
+First, it shows a synopsis of the most recent *run* of the selected *case* by
 displaying sums of income, bequest, and spending values over the duration of the *case*.
 Note that all tables are scrollable and can be seen in full-screen mode.
 If multiple *cases* were configured and run (most likely through copying and
@@ -1228,7 +1250,7 @@ The `Download Financial Profile workbook` will save the data displayed on the
 on the **Worksheets** page as a single Excel workbook.
 
 Similarly, all parameters used to generate the *case* are collected in *toml* format and displayed.
-The `Download Case parameter file` button allows you to save the parameters of the selected scenario
+The `Download Case parameter file` button allows you to save the parameters of the selected *case*
 to a *case* file for future use.
 
 With the *case* parameter file and the **Household Financial Profile** workbook,
@@ -1245,12 +1267,11 @@ There are three pages for stress-testing your plan under different market scenar
 
     with st.expander("Historical Range", expanded=True):
         st.markdown("""
-This page is for backtesting your scenario over a selected range of past years,
-and generate a histogram of results.
+This page is for backtesting your *case* across a range of historical *scenarios*.
 Users can run multiple simulations,
 each starting at a different year within a range of historical years.
-Each simulation assumes that the rates follow the same sequence that happened in the past,
-starting from a selected year in the past, and then offset by one year, and so on.
+Each simulation applies one historical *scenario*: the year-by-year rate sequence that
+actually occurred starting from a selected year in the past, then offset by one year, and so on.
 The **Starting year** and **Ending year** on the page set the year range and thus the number of
 runs: one run per year in that range by default.
 
@@ -1569,7 +1590,7 @@ one can use a termination year for current tax rates to revert to higher rates.
         st.markdown("""
 A typical workflow would look like the following:
 
-1) Create a base *case* representing your basic scenario;
+1) Create a base *case* representing your baseline situation;
 2) Copy the base *case* and modify the parameter you want to investigate;
 3) Repeat 2) with other end-member values of the parameter you would like to consider;
 4) Run all *cases* and compare them on the **Reports** page.

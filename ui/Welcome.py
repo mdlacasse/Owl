@@ -64,8 +64,8 @@ Retire with confidence and clarity.
 **Owl** builds a sophisticated mathematical model of your entire financial landscape—mapping
 everything from taxable accounts to Roth conversions and Medicare premiums.
 
-Unlike basic calculators, **Owl** doesn’t just show you a scenario;
-it solves for the optimal one. You’ll receive an actionable roadmap that tells you exactly how much
+Unlike basic calculators, **Owl** doesn’t just project a single outcome;
+it solves for the optimal strategy. You’ll receive an actionable roadmap that tells you exactly how much
 to spend, when to convert to Roth, and which accounts to draw from first.
 Plus, you can stress-test your plan against market volatility and changing regulations
 to see exactly how robust your future really is.

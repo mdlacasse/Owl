@@ -1,7 +1,7 @@
 """
 Historical Range page for Owl retirement planner Streamlit UI.
 
-This module provides the interface for running historical backtesting
+This module provides the interface for backtesting a case across historical
 scenarios over selected year ranges to analyze retirement planning outcomes.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
@@ -45,7 +45,7 @@ else:
     kz.initCaseKey("histogram_log_x_historical", False)
 
     st.markdown("""Generate a histogram of results obtained from backtesting
-current scenario with historical data over selected year range.""")
+the current *case* across historical scenarios over the selected year range.""")
     col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
     with col1:
         st.number_input(
