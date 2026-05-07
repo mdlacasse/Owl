@@ -102,6 +102,28 @@ networks: {}
 ```
 As before, just point your browser to http://localhost:8501 to access the Owl user interface.
 
+#### Running with two themes simultaneously
+To serve both a dark and a light themed instance at the same time, define two services
+on different ports. Users can then bookmark their preferred URL.
+```yml
+services:
+  owl-dark:
+    image: owlplanner/owldocker.static   # or owlplanner/owldocker.bare
+    restart: always
+    ports:
+      - 8501:8501
+
+  owl-light:
+    image: owlplanner/owldocker.static   # or owlplanner/owldocker.bare
+    restart: always
+    ports:
+      - 8502:8501
+    environment:
+      - STREAMLIT_THEME_BASE=light
+```
+Point your browser to http://localhost:8501 or http://localhost:8502 depending on your preference.
+Adjust port numbers as needed.
+
 ------------------------------------------------------------------------------------
 
 #### Credits

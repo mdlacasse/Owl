@@ -2,5 +2,5 @@
 fileWatcherType = "none"
 
 [theme]
-base = "dark"
+# base = "dark"
 # dataframeHeaderBackgroundColor = "#692f24"
