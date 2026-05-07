@@ -81,11 +81,11 @@ Streamlit's appearance is set at launch time and cannot be changed from within t
 owlplanner.sh --theme.base=light
 owlplanner.cmd --theme.base=light
 ```
-**Docker** — set the `STREAMLIT_THEME_BASE` environment variable:
+**Docker** — set the `STREAMLIT_THEME_BASE` environment variable via the Docker Desktop GUI,
+via `docker-compose.yml`, or on the command line:
 ```
 docker run -p 8501:8501 -e STREAMLIT_THEME_BASE=light --rm owlplanner/owldocker.static
 ```
-Or add `STREAMLIT_THEME_BASE=light` under `environment:` in `docker-compose.yml`.
 
 See Streamlit's guide to [theming](https://docs.streamlit.io/develop/concepts/configuration/theming) for all available options.
 """)
