@@ -73,9 +73,19 @@ See [documentation](Documentation#settings-settings) for details.
 
 st.divider()
 st.markdown("""
-#### :orange[App theme]
-Streamlit’s appearance (for example light vs. dark base and colors) comes from the server’s
-`.streamlit/config.toml`, not from the controls on this page. Edit that file when you run Owl
-locally or on your own host, and see Streamlit’s guide to
-[theming](https://docs.streamlit.io/develop/concepts/configuration/theming).
+#### :orange[App Theme]
+Streamlit's appearance is set at launch time and cannot be changed from within the app.
+
+**Local install** — pass `--theme.base` to the launcher script:
+```
+owlplanner.sh --theme.base=light
+owlplanner.cmd --theme.base=light
+```
+**Docker** — set the `STREAMLIT_THEME_BASE` environment variable:
+```
+docker run -p 8501:8501 -e STREAMLIT_THEME_BASE=light --rm owlplanner/owldocker.static
+```
+Or add `STREAMLIT_THEME_BASE=light` under `environment:` in `docker-compose.yml`.
+
+See Streamlit's guide to [theming](https://docs.streamlit.io/develop/concepts/configuration/theming) for all available options.
 """)

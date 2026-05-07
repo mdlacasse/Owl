@@ -35,6 +35,10 @@ Then start the container:
 ```
 docker run -p 8501:8501 --rm owlplanner/owldocker.{static or bare}
 ```
+To use the light theme, add `-e STREAMLIT_THEME_BASE=light` to the command:
+```
+docker run -p 8501:8501 -e STREAMLIT_THEME_BASE=light --rm owlplanner/owldocker.{static or bare}
+```
 
 #### Option 2: Docker Hub website
 
@@ -49,7 +53,8 @@ docker run -p 8501:8501 --rm owlplanner/owldocker.{static or bare}
 3. Click **Pull** to download the image.
 4. Navigate to the **Images** tab, find the downloaded image, and click the **Run** button.
 5. Expand **Optional settings** and set the **Host port** to `8501`.
-6. Click **Run**.
+6. (Optional) To use the light theme, add an environment variable: name `STREAMLIT_THEME_BASE`, value `light`.
+7. Click **Run**.
 
 In all cases, once the container is running, point your browser to http://localhost:8501 to access the Owl user interface.
 Owl will run locally and safely through a container on your computer.
@@ -91,6 +96,8 @@ services:
     restart: always
     ports:
       - 8501:8501
+    environment:
+      - STREAMLIT_THEME_BASE=light       # optional: remove for dark theme (default)
 networks: {}
 ```
 As before, just point your browser to http://localhost:8501 to access the Owl user interface.
