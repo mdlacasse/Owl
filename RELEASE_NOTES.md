@@ -177,7 +177,7 @@
 ### Version 2026.04.27
 
 - Improve detection of convergence anomalies in MC (issue#119).
-- Upgrage requirement on gitpython to address vulnerability.
+- Upgrade requirement on gitpython to address vulnerability.
 
 ---
 
