@@ -1177,7 +1177,7 @@ def showWorkbook(plan):
     if wb is None:
         return
 
-    currencySheets = ["Income", "Cash Flow", "Sources", "Accounts", "HSA"]
+    currencySheets = ["Cash Flow", "Sources", "Accounts", "HSA"]
     for name in wb.sheetnames:
         if name == "Summary" or name.startswith("Config"):
             continue
@@ -1240,7 +1240,7 @@ def showWorkbook(plan):
         elif pct_sheets:
             st.caption("Values are in percent, with 2 decimal places." + age_note)
         else:
-            st.caption("Values are fractional." + age_note)
+            raise ValueError(f"Worksheet '{name}' not classified — add it to currencySheets or handle explicitly.")
 
 
 @_checkPlan
