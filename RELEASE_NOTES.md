@@ -1,4 +1,12 @@
 
+### Version 2026.05.07
+
+#### Theme
+
+- **Streamlit theme**: Remove default dark theme and leave it to system's settings.
+
+---
+
 ### Version 2026.05.06
 
 #### HSA qualified medical expense cap
