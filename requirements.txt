@@ -46,7 +46,7 @@ fonttools==4.62.1
     # via matplotlib
 gitdb==4.0.12
     # via gitpython
-gitpython==3.1.49
+gitpython==3.1.50
     # via streamlit
 h11==0.16.0
     # via uvicorn
