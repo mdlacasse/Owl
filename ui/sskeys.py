@@ -758,7 +758,7 @@ def getText(text, nkey, disabled=False, callback=setpull, placeholder=None, help
     )
 
 
-def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None, height=68):
+def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, help=None, height="content"):
     widget_key = genCaseKey(nkey)
     initGlobalKey(widget_key, getCaseKey(nkey))
 
