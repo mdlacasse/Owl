@@ -210,7 +210,7 @@ def config_to_ui(diconf: dict) -> dict:
     dic["worksheetHideZeroColumns"] = bool(res.get("worksheet_hide_zero_columns", False))
     dic["worksheetRealDollars"] = bool(res.get("worksheet_real_dollars", False))
     dic["allocType"] = aa.get("type", "individual")
-    dic["timeListsFileName"] = hfp.get("HFP_file_name", "None")
+    dic["hfpFileName"] = hfp.get("HFP_file_name", "None")
 
     benf_defaults = [1.0, 1.0, 1.0, 1.0]
     benf_vals = sa.get("beneficiary_fractions", benf_defaults)
@@ -442,7 +442,7 @@ def ui_to_config(uidic: dict) -> dict:
         },
         "savings_assets": {},
         "household_financial_profile": {
-            "HFP_file_name": _get_ui(uidic, "timeListsFileName", "None"),
+            "HFP_file_name": _get_ui(uidic, "hfpFileName", "None"),
         },
         "fixed_income": {
             "pension_monthly_amounts": [],

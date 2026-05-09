@@ -24,7 +24,7 @@ pension_monthly_amounts = [ 0, 0,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ false, false,]
 pension_survivor_fraction = [ 0.0, 0.0,]
-social_security_pia_amounts = [ 2000, 1400,]
+social_security_pia_amounts = [ 2_000, 1_400,]
 social_security_ages = [ 70.0, 62.083333,]
 
 [rates_selection]

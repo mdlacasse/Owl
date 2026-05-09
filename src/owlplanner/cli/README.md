@@ -1,10 +1,10 @@
-# OWLCLI - a Command Line Interface for OWL
+# OWLCLI - a Command Line Interface for Owl
 
-OWLCLI is a command line interface tool to streamline the listing, running and experimenting with OWL plan files outside the streamlit interface.
+`owlcli` is a command line interface tool to streamline the listing, running and experimenting with Owl case files outside the streamlit interface.
 
 ## Installation
 
-OWLCLI is installed with the owlplanner module. Once OWLPLANNER is installed, owlcli can be run from the command line. 
+`owlcli` is installed with the owlplanner module. Once OWLPLANNER is installed, `owlcli` can be run from the command line. 
 
 ## Usage
 
@@ -14,13 +14,13 @@ At present, OWLCLI provides two commands: `list` and `run`.
 ❯ owlcli list
 ```
 
-This command will list all the available OWL .toml plan files in the current directory.
+This command will list all the available TOML case files in the current directory.
 
-To list all the available OWL plan files in the `examples` directory, relative to the current directory, use:
+To list all the available OWL case files in the `examples` directory, relative to the current directory, use:
 
 ```bash
 ❯ owlcli list examples
-FILE                           PLAN NAME             TIME LISTS FILE
+FILE                           CASE NAME             HOUSEHOLD FINANCIAL PROFILE
 --------------------------------------------------------------------------------
 Case_jack+jill                 jack+jill             ✓HFP_jack+jill.xlsx
 Case_joe                       joe                   ✓HFP_joe.xlsx
@@ -31,14 +31,14 @@ Case_kim+sam-spending          kim+sam-spending      ✓HFP_kim+sam.xlsx
 case_drawdowncalc-comparison-1 drawdowncalc-com...   ✗None
 ```
 
-The listing shows the file name, plan name and Household Financial Plan file (timeListsFile) associated with each plan.
+The listing shows the file name, case name, and the Household Financial Profile associated with each case.
 
-✓ indicates that the Household Financial Plan file listed in the OWL Plan file exists.
-✗ indicates that the Household Financial Plan file was not found.
-Plans with `None` have no HFP (e.g., test cases). *edited values* can appear when a case was edited in the UI; download the HFP workbook for reproducibility.
+✓ indicates that the Household Financial Profile listed in the Owl case file exists.
+✗ indicates that a Household Financial Profile file was not found.
+Case files with HFP set to `None` have no HFP (e.g., test cases). *edited values* can appear when a case was edited in the UI; download the HFP workbook for reproducibility.
 
 
-To run an OWL plan file, use the `run` command followed by the plan file name:
+To run an Owl case file, use the `run` command followed by the case file name:
 
 ```bash
 ❯ owlcli run examples/Case_kim+sam-spending
@@ -46,7 +46,7 @@ Case status: solved
 Results saved to: examples/Case_kim+sam-spending_results.xlsx
 ```
 
-This example runs the `Case_kim+sam-spending` plan file located in the `examples` directory. The results of the run are saved to a new Excel file with `_results.xlsx` appended to the original plan file name.  A copy of the input OWL plan file is saved as the new first tab in the Excel file.
+This example runs the `Case_kim+sam-spending` case file located in the `examples` directory. The results of the run are saved to a new Excel file with `_results.xlsx` appended to the original case file name.  A copy of the input Owl case file is saved as the new first tab in the Excel file.
 
 ### Solver options from the command line
 

@@ -234,15 +234,15 @@ Once changes are complete, click the `Create case` button."""
     cantcopy = kz.caseHasNoPlan()
 
     # HFP uploader section: shown when plan exists but no HFP has been loaded yet.
-    if kz.caseHasPlan() and kz.getCaseKey("stTimeLists") is None:
+    if kz.caseHasPlan() and kz.getCaseKey("stHFP") is None:
         st.markdown("#### :orange[Upload Financial Profile (Optional)]")
         hfp_col1, hfp_col2 = st.columns(2, gap="large")
         with hfp_col1:
             st.markdown("##### :orange[Upload *Household Financial Profile* Workbook]")
             kz.initCaseKey("_xlsx", 0)
-            stTimeLists = st.file_uploader(
+            stHFP = st.file_uploader(
                 "Upload values from a Household Financial Profile (HFP) workbook...",
-                key="_stTimeLists" + str(kz.getCaseKey("_xlsx")),
+                key="_stHFP" + str(kz.getCaseKey("_xlsx")),
                 type=["xlsx", "ods"],
                 help=(
                     "An Excel (.xlsx) or OpenDocument (.ods) workbook with one sheet per individual "
@@ -250,9 +250,9 @@ Once changes are complete, click the `Create case` button."""
                     "plus optional household sheets for debts and fixed assets."
                 ),
             )
-            if stTimeLists is not None:
-                if owb.readHFP(stTimeLists):
-                    kz.setCaseKey("stTimeLists", stTimeLists)
+            if stHFP is not None:
+                if owb.readHFP(stHFP):
+                    kz.setCaseKey("stHFP", stHFP)
                     kz.storeCaseKey("_xlsx", kz.getCaseKey("_xlsx") + 1)
                     st.rerun()
         with hfp_col2:

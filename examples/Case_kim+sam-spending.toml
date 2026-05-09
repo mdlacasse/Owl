@@ -15,7 +15,7 @@ start_date = "2026-01-01"
 
 [savings_assets]
 taxable_savings_balances = [ 650.0, 250.0,]
-tax_deferred_savings_balances = [ 1500.0, 500.0,]
+tax_deferred_savings_balances = [ 1_500.0, 500.0,]
 tax_free_savings_balances = [ 60.0, 40.0,]
 hsa_savings_balances = [ 35.0, 28.0,]
 beneficiary_fractions = [ 1.0, 1.0, 1.0,]
@@ -28,7 +28,7 @@ HFP_file_name = "HFP_kim+sam.xlsx"
 pension_monthly_amounts = [ 0, 0,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ false, false,]
-social_security_pia_amounts = [ 3500, 2000,]
+social_security_pia_amounts = [ 3_500, 2_000,]
 social_security_ages = [ 70.0, 68.0,]
 
 [rates_selection]

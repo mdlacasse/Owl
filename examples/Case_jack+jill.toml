@@ -29,8 +29,8 @@ pension_monthly_amounts = [ 0.0, 10.5,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ false, false,]
 pension_survivor_fraction = [ 0.0, 0.5,]
-social_security_pia_amounts = [ 2360, 1642,]
-social_security_ages = [ 70.0, 62.083333333333336,]
+social_security_pia_amounts = [ 2_360, 1_642,]
+social_security_ages = [ 70.0, 62.08333,]
 
 [rates_selection]
 heirs_rate_on_tax_deferred_estate = 30.0
@@ -60,7 +60,9 @@ maxRothConversion = 100
 noRothConversions = "Jill"
 startRothConversions = 2026
 withSCLoop = true
-withMedicare = "loop"
+withMedicare = "optimize"
+withSSTaxability = "loop"
+withDecomposition = "benders"
 bequest = 400
 solver = "default"
 spendingSlack = 0

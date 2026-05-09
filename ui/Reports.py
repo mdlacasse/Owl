@@ -107,7 +107,7 @@ workbook, to reproduce it in the future.""")
             )
 
         st.divider()
-        if kz.getCaseKey("timeListsFileName") == "edited values":
+        if kz.getCaseKey("hfpFileName") == "edited values":
             st.warning(
                 "Household Financial Profile values were edited for this case. "
                 "The Case parameter file alone cannot reproduce the run. "

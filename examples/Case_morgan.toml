@@ -26,7 +26,7 @@ HFP_file_name = "HFP_morgan.xlsx"
 pension_monthly_amounts = [ 0,]
 pension_ages = [ 65.0,]
 pension_indexed = [ false,]
-social_security_pia_amounts = [ 2100,]
+social_security_pia_amounts = [ 2_100,]
 social_security_ages = [ 67.0,]
 
 [rates_selection]

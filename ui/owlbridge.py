@@ -34,7 +34,7 @@ sys.path.insert(0, "../src")
 import owlplanner as owl
 from owlplanner.utils import drop_all_zero_numeric_columns, worksheet_age_on_dec_31_or_blank, get_monetary_option
 from owlplanner.rates import FROM, TO, get_fixed_rate_values
-from owlplanner.timelists import conditionDebtsAndFixedAssetsDF, getTableTypes
+from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF, getTableTypes
 from owlplanner.mylogging import Logger
 from owlplanner.rate_models.constants import (
     FIXED_TYPE_UI,
@@ -790,7 +790,7 @@ def _setContributions(plan, action):
             # Initialize with empty DataFrame if key doesn't exist
             original_houseLists[key] = conditionDebtsAndFixedAssetsDF(None, key)
 
-    original_filename = kz.getCaseKey("timeListsFileName")
+    original_filename = kz.getCaseKey("hfpFileName")
 
     dicDf = {kz.getCaseKey("iname0"): kz.getCaseKey("timeList0")}
     if kz.getCaseKey("status") == "married":
@@ -830,18 +830,18 @@ def _setContributions(plan, action):
         if kz.getCaseKey("status") == "married":
             kz.setCaseKey("timeList1", plan.timeLists[kz.getCaseKey("iname1")])
     elif action == "reset":
-        kz.setCaseKey("timeListsFileName", "edited values")
-        plan.timeListsFileName = "edited values"
+        kz.setCaseKey("hfpFileName", "edited values")
+        plan.hfpFileName = "edited values"
     elif action == "set":
         # Only set to "edited values" if data actually changed.
         if data_changed:
-            kz.storeCaseKey("timeListsFileName", "edited values")
-            plan.timeListsFileName = "edited values"
+            kz.storeCaseKey("hfpFileName", "edited values")
+            plan.hfpFileName = "edited values"
         else:
             # Preserve original filename if nothing changed.
             if original_filename and original_filename != "edited values" and original_filename != "None":
-                kz.storeCaseKey("timeListsFileName", original_filename)
-                plan.timeListsFileName = original_filename
+                kz.storeCaseKey("hfpFileName", original_filename)
+                plan.hfpFileName = original_filename
 
 
 @_checkPlan
@@ -867,9 +867,9 @@ def readHFP(plan, stFile, file=None):
 
     # Set the filename in both case dictionary and plan object
     # This ensures the value is reset even if it was previously "edited values"
-    kz.setCaseKey("stTimeLists", name)
-    kz.setCaseKey("timeListsFileName", name)
-    plan.timeListsFileName = name
+    kz.setCaseKey("stHFP", name)
+    kz.setCaseKey("hfpFileName", name)
+    plan.hfpFileName = name
 
     kz.setCaseKey("timeList0", plan.timeLists[kz.getCaseKey("iname0")])
     kz.setCaseKey("_timeList0", plan.timeLists[kz.getCaseKey("iname0")])
@@ -1274,16 +1274,16 @@ def saveContributions(plan):
 @_checkPlan
 def markHFPAsSaved(plan):
     """
-    Update timeListsFileName from "edited values" to HFP_{caseName}.xlsx.
+    Update hfpFileName from "edited values" to HFP_{caseName}.xlsx.
     Call this only when the user has actually downloaded the HFP workbook.
     """
-    current_filename = kz.getCaseKey("timeListsFileName")
+    current_filename = kz.getCaseKey("hfpFileName")
     if current_filename == "edited values":
         case_name = kz.getCaseKey("name")
         if case_name:
             suggested_filename = f"HFP_{case_name}.xlsx"
-            kz.storeCaseKey("timeListsFileName", suggested_filename)
-            plan.timeListsFileName = suggested_filename
+            kz.storeCaseKey("hfpFileName", suggested_filename)
+            plan.hfpFileName = suggested_filename
 
 
 @_checkPlan
@@ -1390,7 +1390,7 @@ def genDic(plan):
     dic["worksheetHideZeroColumns"] = plan.worksheetHideZeroColumns
     dic["worksheetRealDollars"] = plan.worksheetRealDollars
     dic["allocType"] = plan.ARCoord
-    dic["timeListsFileName"] = plan.timeListsFileName
+    dic["hfpFileName"] = plan.hfpFileName
     for j1 in range(plan.N_j):
         dic[f"benf{j1}"] = plan.phi_j[j1]
 

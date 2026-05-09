@@ -45,14 +45,14 @@ if ret is None or kz.caseHasNoPlan():
 else:
     if kz.getCaseKey("timeList0") is None:
         kz.runOncePerCase(owb.resetTimeLists)
-    kz.initCaseKey("stTimeLists", None)
+    kz.initCaseKey("stHFP", None)
     # Initialize houseLists if they don't exist
     kz.initCaseKey("houseListDebts", None)
     kz.initCaseKey("houseListFixedAssets", None)
     n = 2 if kz.getCaseKey("status") == "married" else 1
 
-    if kz.getCaseKey("stTimeLists") is None:
-        original = kz.getCaseKey("timeListsFileName")
+    if kz.getCaseKey("stHFP") is None:
+        original = kz.getCaseKey("hfpFileName")
         if original is None or original == "None":
             st.info(
                 f"Case *'{kz.currentCaseName()}'* makes no reference to a Financial Profile.\n\n"
@@ -70,9 +70,9 @@ that has not yet been uploaded.""")
     with col1:
         st.markdown("#### :orange[Upload *Household Financial Profile* Workbook]")
         kz.initCaseKey("_xlsx", 0)
-        stTimeLists = st.file_uploader(
+        stHFP = st.file_uploader(
             "Upload values from a Household Financial Profile (HFP) workbook...",
-            key="_stTimeLists" + str(kz.getCaseKey("_xlsx")),
+            key="_stHFP" + str(kz.getCaseKey("_xlsx")),
             type=["xlsx", "ods"],
             help=(
                 "An Excel (.xlsx) or OpenDocument (.ods) workbook with one sheet per individual "
@@ -80,15 +80,15 @@ that has not yet been uploaded.""")
                 "plus optional household sheets for debts and fixed assets."
             ),
         )
-        if stTimeLists is not None:
-            if owb.readHFP(stTimeLists):
-                kz.setCaseKey("stTimeLists", stTimeLists)
+        if stHFP is not None:
+            if owb.readHFP(stHFP):
+                kz.setCaseKey("stHFP", stHFP)
                 # Change key to reset uploader.
                 kz.storeCaseKey("_xlsx", kz.getCaseKey("_xlsx") + 1)
                 st.rerun()
     with col2:
         tomlexcase = kz.getCaseKey("tomlexcase")
-        mytype = "primary" if kz.getCaseKey("stTimeLists") is None else "secondary"
+        mytype = "primary" if kz.getCaseKey("stHFP") is None else "secondary"
         if tomlexcase is not None and tomlex.hasHFPExample(tomlexcase):
             st.markdown("#### :orange[Load Example HFP Workbook]")
             st.markdown("Read associated HFP workbook.")

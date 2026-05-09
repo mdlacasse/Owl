@@ -25,7 +25,7 @@ HFP_file_name = "None"
 pension_monthly_amounts = [ 0,]
 pension_ages = [ 65.0,]
 pension_indexed = [ true,]
-social_security_pia_amounts = [ 3000,]
+social_security_pia_amounts = [ 3_000,]
 social_security_ages = [ 70.0,]
 
 [rates_selection]
