@@ -1224,9 +1224,10 @@ class PlotlyBackend(PlotBackend):
             scale_full = gamma_n
             scale = gamma_n[:-1]
 
+        _hsa_thr = 1.0e-3
         has_medicare = (
             "medicare_withdrawals" in hsa_data
-            and np.any(hsa_data["medicare_withdrawals"] > 0)
+            and np.max(np.abs(hsa_data["medicare_withdrawals"])) > 0
         )
         fig = go.Figure()
         title_html = title.replace("\n", "<br>")
@@ -1241,14 +1242,14 @@ class PlotlyBackend(PlotBackend):
             bal = hsa_data["balance"][i] / (scale_full * 1000)
             ctrb = hsa_data["contributions"][i] / (scale * 1000)
             wdrwl = hsa_data["withdrawals"][i] / (scale * 1000)
-            if np.any(bal > 0):
+            if np.max(np.abs(bal)) > _hsa_thr:
                 fig.add_trace(go.Scatter(
                     x=year_n_full, y=bal,
                     name=f"balance {iname}",
                     fill="tozeroy", opacity=0.4,
                     line=dict(color=c),
                 ))
-            if np.any(ctrb > 0):
+            if np.max(np.abs(ctrb)) > _hsa_thr:
                 fig.add_trace(go.Scatter(
                     x=year_n, y=ctrb,
                     name=f"contributions {iname}",
@@ -1257,7 +1258,7 @@ class PlotlyBackend(PlotBackend):
             if has_medicare:
                 med = hsa_data["medicare_withdrawals"][i] / (scale * 1000)
                 nonmed = wdrwl - med
-                if np.any(med > 0):
+                if np.max(np.abs(med)) > _hsa_thr:
                     fig.add_trace(go.Scatter(
                         x=year_n, y=med,
                         name=f"Medicare {iname}",
@@ -1266,7 +1267,7 @@ class PlotlyBackend(PlotBackend):
                         line=dict(color=mc, width=0),
                         fillcolor=mc,
                     ))
-                if np.any(nonmed > 0):
+                if np.max(np.abs(nonmed)) > _hsa_thr:
                     fig.add_trace(go.Scatter(
                         x=year_n, y=nonmed,
                         name=f"QME {iname}",
@@ -1275,7 +1276,7 @@ class PlotlyBackend(PlotBackend):
                         line=dict(color=c, width=0),
                         fillcolor=c,
                     ))
-            elif np.any(wdrwl > 0):
+            elif np.max(np.abs(wdrwl)) > _hsa_thr:
                 fig.add_trace(go.Scatter(
                     x=year_n, y=wdrwl,
                     name=f"withdrawals {iname}",

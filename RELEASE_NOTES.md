@@ -5,6 +5,9 @@
 
 - **Streamlit theme**: Remove default dark theme and leave it to system's settings.
 
+#### Plots
+- Improve threshhold for displaying QME values.
+
 ---
 
 ### Version 2026.05.06
