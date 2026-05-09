@@ -324,7 +324,7 @@ def config_to_plan(
                 raise FileNotFoundError(f"File '{time_lists_file}' not found.")
             p.readHFP(myfile)
         else:
-            p.timeListsFileName = time_lists_file
+            p.hfpFileName = time_lists_file
             mylog.vprint(f"Ignoring HFP file {time_lists_file}.")
 
     _apply_fixed_income_to_plan(p, known, icount)
@@ -402,7 +402,7 @@ def plan_to_config(myplan: "Plan") -> dict:
 
     # Household Financial Profile
     diconf["household_financial_profile"] = {
-        "HFP_file_name": _normalize_hfp_file_name(myplan.timeListsFileName),
+        "HFP_file_name": _normalize_hfp_file_name(myplan.hfpFileName),
     }
 
     # Fixed Income
@@ -568,9 +568,9 @@ def clone(plan: "Plan", newname=None, *, expectancy=None, verbose=True, logstrea
         diconf = plan_to_config(plan)
         diconf["basic_info"]["life_expectancy"] = [int(e) for e in expectancy]
         newplan = config_to_plan(diconf, verbose=verbose, logstreams=eff_logstreams, loadHFP=False)
-        # Re-apply HFP from in-memory raw data (no file I/O; timelists re-conditioned for new horizon)
+        # Re-apply HFP from in-memory raw data (no file I/O; HFP timeLists re-conditioned for new horizon)
         if getattr(plan, "rawHFP", None):
-            newplan.readHFP(plan.rawHFP, filename_for_logging=plan.timeListsFileName)
+            newplan.readHFP(plan.rawHFP, filename_for_logging=plan.hfpFileName)
 
     if newname is None:
         # Strip any existing " (copy)" or " (copy N)" suffix so repeated cloning

@@ -10,9 +10,9 @@ life_expectancy = [ 92, 93,]
 start_date = "2026-01-01"
 
 [savings_assets]
-taxable_savings_balances = [ 1000.0, 100.0,]
-tax_deferred_savings_balances = [ 4000.0, 750.0,]
-tax_free_savings_balances = [ 2000.0, 50.0,]
+taxable_savings_balances = [ 1_000.0, 100.0,]
+tax_deferred_savings_balances = [ 4_000.0, 750.0,]
+tax_free_savings_balances = [ 2_000.0, 50.0,]
 hsa_savings_balances = [ 50.0, 0.0,]
 beneficiary_fractions = [ 0.28, 0.28, 0.28, 1.0,]
 spousal_surplus_deposit_fraction = 0.0
@@ -21,11 +21,11 @@ spousal_surplus_deposit_fraction = 0.0
 HFP_file_name = "HFP_jordan+taylor.xlsx"
 
 [fixed_income]
-pension_monthly_amounts = [ 1000, 0,]
+pension_monthly_amounts = [ 1_000, 0,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ true, false,]
 pension_survivor_fraction = [ 0.5, 0.0,]
-social_security_pia_amounts = [ 3500, 2000,]
+social_security_pia_amounts = [ 3_500, 2_000,]
 social_security_ages = [ 70.0, 62.75,]
 
 [rates_selection]

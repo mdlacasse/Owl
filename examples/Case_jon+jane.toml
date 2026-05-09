@@ -27,7 +27,7 @@ HFP_file_name = "HFP_jon+jane.xlsx"
 pension_monthly_amounts = [ 0, 0,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ false, false,]
-social_security_pia_amounts = [ 1750, 1750,]
+social_security_pia_amounts = [ 1_750, 1_750,]
 social_security_ages = [ 65.0, 65.0,]
 
 [rates_selection]

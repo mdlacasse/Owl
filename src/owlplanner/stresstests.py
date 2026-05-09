@@ -491,7 +491,7 @@ def run_stochastic_spending(plan, options, scenario_method, *,
     # All random draws and rate generation happen here in the parent so
     # that reproducibility (seed control) is preserved exactly.
     # Each scenario gets its own clone — a full copy that already has
-    # all plan data (timelists, allocations, etc.) without any file I/O.
+    # all plan data (HFP timeLists, allocations, etc.) without any file I/O.
     # ------------------------------------------------------------------
     if scenario_method == "historical":
         if ystart is None or yend is None:

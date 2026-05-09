@@ -25,11 +25,11 @@ spousal_surplus_deposit_fraction = 0.5
 HFP_file_name = "HFP_john+sally.xlsx"
 
 [fixed_income]
-pension_monthly_amounts = [ 2500.0, 0.0,]
+pension_monthly_amounts = [ 2_500.0, 0.0,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ true, false,]
 pension_survivor_fraction = [ 0.75, 0.0,]
-social_security_pia_amounts = [ 3000, 1800,]
+social_security_pia_amounts = [ 3_000, 1_800,]
 social_security_ages = [ 67.0, 67.0,]
 
 [rates_selection]

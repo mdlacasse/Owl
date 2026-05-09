@@ -40,7 +40,7 @@ from .cmd_run import cmd_run
 def cli(ctx, log_level: str):
     """Owl (Optimal Wealth Lab) retirement planning CLI.
 
-    List and run OWL case files (.toml) from the command line.
+    List and run Owl case files (.toml) from the command line.
     Use 'owlcli run --help' for solver options.
     """
     ctx.ensure_object(dict)

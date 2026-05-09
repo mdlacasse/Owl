@@ -75,8 +75,8 @@ def cmd_list(directory):
         if len(plan_name) > 20:
             plan_name = plan_name[:16] + "..."
 
-        # Check if timeListsFileName exists in current directory
-        tl_name = plan.timeListsFileName
+        # Check if hfpFileName exists in current directory
+        tl_name = plan.hfpFileName
         exists = (plan_dir / tl_name).exists() if tl_name else False
         mark = CHECK if exists else CROSS
 

@@ -112,7 +112,7 @@ def refreshCase(adic):
 
 
 def resetTimeLists():
-    setCaseKey("stTimeLists", None)
+    setCaseKey("stHFP", None)
     setCaseKey("timeList0", None)
     if getCaseKey("status") == "married":
         setCaseKey("timeList1", None)

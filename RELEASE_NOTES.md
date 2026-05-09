@@ -8,6 +8,9 @@
 #### Plots
 - Improve threshhold for displaying QME values.
 
+#### Cleanup
+- Remove legacy names in HFP I/O.
+
 ---
 
 ### Version 2026.05.06

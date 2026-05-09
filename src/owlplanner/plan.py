@@ -36,7 +36,7 @@ from . import tax2026 as tx
 from . import abcapi as abc
 from . import rates
 from . import config
-from . import timelists
+from . import hfp_io
 from . import export
 from . import pension
 from . import socialsecurity as socsec
@@ -322,7 +322,7 @@ class Plan:
 
         # Initialize guardrails to ensure proper configuration.
         self._adjustedParameters = False
-        self.timeListsFileName = "None"
+        self.hfpFileName = "None"
         self.timeLists = {}
         self.houseLists = {}
         self.rawHFP = {}  # raw dict of DataFrames from the HFP xlsx (horizon-independent)
@@ -1313,7 +1313,7 @@ class Plan:
                 'big-ticket items'
 
         in any order. Legacy header 'other inc.' is read as 'other inc'.
-        Optional workbook sheets 'Debts' and 'Fixed Assets' follow timelists formats.
+        Optional workbook sheets 'Debts' and 'Fixed Assets' follow HFP formats.
         A template is provided as an example.
         Missing rows (years) are populated with zero values.
 
@@ -1326,14 +1326,14 @@ class Plan:
             in log messages instead of trying to extract it from filename.
         """
         try:
-            returned_filename, self.timeLists, self.houseLists, self.rawHFP = timelists.read(
+            returned_filename, self.timeLists, self.houseLists, self.rawHFP = hfp_io.read(
                 filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging
             )
         except Exception as e:
             raise Exception(f"Unsuccessful read of Household Financial Profile: {e}") from e
 
         # Use filename_for_logging if provided, otherwise use returned filename
-        self.timeListsFileName = filename_for_logging if filename_for_logging is not None else returned_filename
+        self.hfpFileName = filename_for_logging if filename_for_logging is not None else returned_filename
         self.setContributions()
 
         return True
@@ -1484,7 +1484,7 @@ class Plan:
         else:
             # Create empty Debts sheet with proper columns
             ws = wb.create_sheet("Debts")
-            df = pd.DataFrame(columns=timelists._debtItems)
+            df = pd.DataFrame(columns=hfp_io._debtItems)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
             export._format_debts_sheet(ws)
@@ -1499,7 +1499,7 @@ class Plan:
         else:
             # Create empty Fixed Assets sheet with proper columns
             ws = wb.create_sheet("Fixed Assets")
-            df = pd.DataFrame(columns=timelists._fixedAssetItems)
+            df = pd.DataFrame(columns=hfp_io._fixedAssetItems)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
             export._format_fixed_assets_sheet(ws)

@@ -15,7 +15,7 @@ start_date = "2026-01-01"
 
 [savings_assets]
 taxable_savings_balances = [ 500.0, 200.0,]
-tax_deferred_savings_balances = [ 1500.0, 400.0,]
+tax_deferred_savings_balances = [ 1_500.0, 400.0,]
 tax_free_savings_balances = [ 50.0, 40.0,]
 beneficiary_fractions = [ 1.0, 1.0, 1.0,]
 spousal_surplus_deposit_fraction = 0.5
@@ -27,7 +27,7 @@ HFP_file_name = "HFP_alex+jamie.xlsx"
 pension_monthly_amounts = [ 0, 0,]
 pension_ages = [ 65.0, 65.0,]
 pension_indexed = [ false, false,]
-social_security_pia_amounts = [ 3000, 1200,]
+social_security_pia_amounts = [ 3_000, 1_200,]
 social_security_ages = [ 69.0, 62.08333333333333,]
 
 [rates_selection]
