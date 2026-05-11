@@ -1,4 +1,13 @@
 
+### Version 2026.05.11
+
+#### Hardening
+- **Tests**: Add cash flow balance test
+- **Advisory**: Upgrade requirements per GitHub advisory
+- **Clean up**: Make HFP I/O consistent with new names for files
+
+--
+
 ### Version 2026.05.07
 
 #### Theme
