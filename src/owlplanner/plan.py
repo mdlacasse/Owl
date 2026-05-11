@@ -192,13 +192,12 @@ class Plan:
         # self.setPlotBackend("matplotlib")
         self.setPlotBackend("plotly")
 
+        u.require_list(dobs, "dobs")
         self.N_i = len(dobs)
         if not (0 <= self.N_i <= 2):
             raise ValueError(f"Cannot support {self.N_i} individuals.")
-        if self.N_i != len(expectancy):
-            raise ValueError(f"Expectancy must have {self.N_i} entries.")
-        if self.N_i != len(inames):
-            raise ValueError(f"Names for individuals must have {self.N_i} entries.")
+        u.require_list(expectancy, "expectancy", self.N_i)
+        u.require_list(inames, "inames", self.N_i)
         if inames[0] == "" or (self.N_i == 2 and inames[1] == ""):
             raise ValueError("Name for each individual must be provided.")
 
@@ -440,8 +439,7 @@ class Plan:
         """
         if sexes is None:
             return
-        if len(sexes) != self.N_i:
-            raise ValueError(f"sexes must have {self.N_i} entries, got {len(sexes)}.")
+        u.require_list(sexes, "sexes", self.N_i)
         for s in sexes:
             if s not in ("M", "F"):
                 raise ValueError(f"Each sex must be 'M' or 'F', got {s!r}.")
@@ -543,6 +541,7 @@ class Plan:
         Default is [1, 1, 1, 1] for taxable, tax-deferred, tax-free, and HSA accounts.
         A 3-element list (legacy) is auto-extended with 1.0 for the HSA account.
         """
+        u.require_list(phi, "phi")
         if len(phi) == self.N_j - 1:
             phi = list(phi) + [1.0]
         if len(phi) != self.N_j:
@@ -610,16 +609,13 @@ class Plan:
             Fraction of pension continuing to surviving spouse (0-1).
             Default: [0] * N_i (single-life, no survivor).
         """
-        if len(amounts) != self.N_i:
-            raise ValueError(f"Amounts must have {self.N_i} entries.")
-        if len(ages) != self.N_i:
-            raise ValueError(f"Ages must have {self.N_i} entries.")
+        u.require_list(amounts, "amounts", self.N_i)
+        u.require_list(ages, "ages", self.N_i)
         if indexed is None:
             indexed = [False] * self.N_i
         if survivor_fraction is None:
             survivor_fraction = [0.0] * self.N_i
-        if len(survivor_fraction) != self.N_i:
-            raise ValueError(f"survivor_fraction must have {self.N_i} entries.")
+        u.require_list(survivor_fraction, "survivor_fraction", self.N_i)
 
         self.mylog.vprint("Setting monthly pension of", [u.d(amounts[i]) for i in range(self.N_i)],
                           "at age(s)", [int(ages[i]) for i in range(self.N_i)])
@@ -694,10 +690,8 @@ class Plan:
                   - 0.85 if PI > $44k (MFJ) / $34k (single) — up to 85% taxable (default)
                 When None (default), Psi_n is computed dynamically each SC-loop iteration.
         """
-        if len(pias) != self.N_i:
-            raise ValueError(f"Principal Insurance Amount must have {self.N_i} entries.")
-        if len(ages) != self.N_i:
-            raise ValueError(f"Ages must have {self.N_i} entries.")
+        u.require_list(pias, "pias", self.N_i)
+        u.require_list(ages, "ages", self.N_i)
 
         if trim_pct != 0:
             if not (0 <= trim_pct <= 100):
@@ -1008,13 +1002,9 @@ class Plan:
         for each spouse.  For single individuals, these lists will contain only one entry.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
         """
-        plurals = ["", "y", "ies"][self.N_i]
-        if len(taxable) != self.N_i:
-            raise ValueError(f"taxable must have {self.N_i} entr{plurals}.")
-        if len(taxDeferred) != self.N_i:
-            raise ValueError(f"taxDeferred must have {self.N_i} entr{plurals}.")
-        if len(taxFree) != self.N_i:
-            raise ValueError(f"taxFree must have {self.N_i} entr{plurals}.")
+        u.require_list(taxable, "taxable", self.N_i)
+        u.require_list(taxDeferred, "taxDeferred", self.N_i)
+        u.require_list(taxFree, "taxFree", self.N_i)
 
         fac = u.getUnits(units)
         taxable = u.rescale(taxable, fac)
@@ -1026,8 +1016,7 @@ class Plan:
         self.bet_ji[1][:] = taxDeferred
         self.bet_ji[2][:] = taxFree
         if hsa is not None:
-            if len(hsa) != self.N_i:
-                raise ValueError(f"hsa must have {self.N_i} entr{plurals}.")
+            u.require_list(hsa, "hsa", self.N_i)
             self.bet_ji[3][:] = [v * fac for v in hsa]
         self.beta_ij = self.bet_ji.transpose()
 
@@ -3289,6 +3278,9 @@ class Plan:
             "solutions": [],
             "objectives": [],
             "gaps": [],
+            "M_n_lp": [],    # M_n parameter used by each iteration's LP
+            "ACA_n_lp": [],  # ACA_n parameter used by each iteration's LP
+            "J_n_lp": [],    # J_n parameter used by each iteration's LP
         }
 
     def _valid_history_start(self, includeMedicare):
@@ -3428,7 +3420,13 @@ class Plan:
             actualSolverMethod = solverMethod
 
         self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
+        M_n_lp = self.M_n.copy()
+        ACA_n_lp = self.ACA_n.copy()
         while True:
+            # Snapshot the NL parameters actually embedded in this iteration's LP constraints.
+            M_n_lp = self.M_n.copy()
+            ACA_n_lp = self.ACA_n.copy()
+            J_n_lp = self.J_n.copy()
             objfn, xx, solverSuccess, solverMsg, solgap = actualSolverMethod(objective, options)
 
             if not solverSuccess or objfn is None:
@@ -3458,6 +3456,9 @@ class Plan:
             trace["solutions"].append(xx)
             trace["objectives"].append(objfn)
             trace["gaps"].append(solgap)
+            trace["M_n_lp"].append(M_n_lp)
+            trace["ACA_n_lp"].append(ACA_n_lp)
+            trace["J_n_lp"].append(J_n_lp)
 
             has_prev_obj = len(trace["scaledObjectives"]) > 1
             prev_scaled_obj = trace["scaledObjectives"][-2] if has_prev_obj else scaled_obj
@@ -3489,6 +3490,9 @@ class Plan:
                     best_idx = len(trace["scaledObjectives"]) - cycle_len + cycle_offset
                     xx = trace["solutions"][best_idx]
                     objfn = trace["objectives"][best_idx]
+                    M_n_lp = trace["M_n_lp"][best_idx]
+                    ACA_n_lp = trace["ACA_n_lp"][best_idx]
+                    J_n_lp = trace["J_n_lp"][best_idx]
                     self.mylog.print("Accepting best solution from cycle and terminating.")
                 elif decision["reason"] in ("stagnation", "max_iter"):
                     self.mylog.print(decision["message"])
@@ -3496,6 +3500,9 @@ class Plan:
                     if best_idx is not None:
                         xx = trace["solutions"][best_idx]
                         objfn = trace["objectives"][best_idx]
+                        M_n_lp = trace["M_n_lp"][best_idx]
+                        ACA_n_lp = trace["ACA_n_lp"][best_idx]
+                        J_n_lp = trace["J_n_lp"][best_idx]
                 else:
                     self.mylog.print(decision["message"])
                 # Consistency solve: each iteration's LTCG bracket room (room15_n, room20_n)
@@ -3507,6 +3514,10 @@ class Plan:
                 last_idx = len(trace["scaledObjectives"]) - 1
                 if best_idx is not None and best_idx != last_idx:
                     self._computeNLstuff(xx, includeMedicare=False, fixedPsi=fixed_psi)
+                    # Extra solve uses the current M_n/ACA_n/J_n (unchanged by _computeNLstuff above).
+                    M_n_lp = self.M_n.copy()
+                    ACA_n_lp = self.ACA_n.copy()
+                    J_n_lp = self.J_n.copy()
                     _, xx_fix, fix_ok, _, _ = actualSolverMethod(objective, options)
                     if fix_ok and xx_fix is not None:
                         xx = xx_fix
@@ -3523,6 +3534,22 @@ class Plan:
             self.mylog.print(f"Objective: {u.d(objfn * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(xx)
+            # Restore the NL parameters to what was actually embedded in the final LP
+            # constraints. _computeNLstuff runs after every LP solve (for convergence
+            # checking), so self.M_n / J_n / ACA_n hold values derived from the final
+            # solution's MAGI — one step ahead of what the LP was built with. Restoring
+            # them makes the plan's attributes LP-consistent: the cash flow balance holds
+            # exactly on p.M_n / p.J_n / p.ACA_n without any post-hoc correction.
+            # Only applies to loop-mode quantities (LP-mode variants are already extracted
+            # from solver variables and are always consistent).
+            if withSCLoop and includeMedicare:
+                self.M_n = M_n_lp
+                hsa_total = np.sum(self.w_ijn[:, 3, :], axis=0)
+                self.hsa_medicare_n = np.minimum(hsa_total, self.m_n + self.M_n)
+            if withSCLoop and not getattr(self, "_niit_lp", False):
+                self.J_n = J_n_lp
+            if withSCLoop and self.slcsp_annual > 0 and not self._aca_lp:
+                self.ACA_n = ACA_n_lp
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
             self.caseStatus = "solved"
         else:
