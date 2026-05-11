@@ -33,13 +33,13 @@ def test_plan_constructor_invalid_individual_count():
 
 def test_plan_constructor_mismatched_expectancy():
     """Test that Plan constructor raises error for mismatched expectancy."""
-    with pytest.raises(ValueError, match="Expectancy must have"):
+    with pytest.raises(ValueError, match="'expectancy' must have"):
         owl.Plan(['Joe', 'Jane'], ["1961-01-15", "1962-01-15"], [80], "test")
 
 
 def test_plan_constructor_mismatched_names():
     """Test that Plan constructor raises error for mismatched names."""
-    with pytest.raises(ValueError, match="Names for individuals must have"):
+    with pytest.raises(ValueError, match="'inames' must have"):
         owl.Plan(['Joe'], ["1961-01-15", "1962-01-15"], [80, 82], "test")
 
 
@@ -199,7 +199,7 @@ def test_set_heirs_tax_rate_invalid_range():
 def test_set_pension_invalid_lengths():
     """Test setPension with mismatched lengths."""
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
-    with pytest.raises(ValueError, match="Amounts must have"):
+    with pytest.raises(ValueError, match="'amounts' must have"):
         p.setPension([1000, 2000], [65])  # Wrong length for amounts
 
 
@@ -219,7 +219,7 @@ def test_set_pension_survivor_fraction():
 def test_set_social_security_invalid_lengths():
     """Test setSocialSecurity with mismatched lengths."""
     p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
-    with pytest.raises(ValueError, match="Principal Insurance Amount must have"):
+    with pytest.raises(ValueError, match="'pias' must have"):
         p.setSocialSecurity([2000, 3000], [67])  # Wrong length for PIAs
 
 

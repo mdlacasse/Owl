@@ -94,6 +94,15 @@ def rescale(vals, fac):
         return [v * fac for v in vals]
 
 
+def require_list(value, param_name, expected_len=None):
+    """Raise a clear ValueError when a scalar is passed where a list is required,
+    or when the list length does not match expected_len."""
+    if isinstance(value, (int, float, str)):
+        raise ValueError(f"'{param_name}' must be a list, not a {type(value).__name__}.")
+    if expected_len is not None and len(value) != expected_len:
+        raise ValueError(f"'{param_name}' must have {expected_len} entries, got {len(value)}.")
+
+
 def getUnits(units) -> int:
     """
     Translate multiplication factor for units as expressed by an abbreviation
