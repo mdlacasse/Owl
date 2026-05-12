@@ -3360,6 +3360,38 @@ class Plan:
             "message": "Warning: Exiting loop on maximum iterations.",
         }
 
+    def _check_cashflow_balance(self, atol=1.0):
+        """Verify the LP cash flow identity holds on the aggregated post-solve arrays.
+
+        Any residual larger than atol (dollars) indicates a term is missing or
+        double-counted in _aggregateResults — logged as a warning, never raised.
+        """
+        lhs = (self.g_n
+               + self.s_n
+               + self.T_n
+               + self.U_n
+               + self.J_n
+               + self.m_n + self.M_n
+               + self.aca_costs_n
+               + self.debt_payments_n)
+        rhs = (np.sum(self.omega_in, axis=0)
+               + np.sum(self.other_inc_in, axis=0)
+               + np.sum(self.netinv_in, axis=0)
+               + np.sum(self.zetaBar_in, axis=0)
+               + np.sum(self.piBar_in, axis=0)
+               + np.sum(self.spiaBar_in, axis=0)
+               + np.sum(self.Lambda_in, axis=0)
+               + self.fixed_assets_ordinary_income_n
+               + self.fixed_assets_capital_gains_n
+               + self.fixed_assets_tax_free_n
+               + np.sum(self.w_ijn, axis=(0, 1)))
+        residual = np.max(np.abs(lhs - rhs))
+        if residual > atol:
+            self.mylog.print(
+                f"Warning: Cash flow balance off by ${residual:,.0f} (max over all years). "
+                "A term may be missing or double-counted in the post-solve output."
+            )
+
     def _scSolve(self, objective, options, solverMethod):
         """
         Self-consistent loop, regardless of solver.
@@ -3550,6 +3582,7 @@ class Plan:
                 self.J_n = J_n_lp
             if withSCLoop and self.slcsp_annual > 0 and not self._aca_lp:
                 self.ACA_n = ACA_n_lp
+            self._check_cashflow_balance()
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
             self.caseStatus = "solved"
         else:
