@@ -29,7 +29,7 @@ def test_sanitize_config_start_roth_past_year():
     thisyear = date.today().year
 
     assert diconf["solver_options"]["startRothConversions"] == thisyear
-    assert "Warning" in log.getvalue()
+    assert "past" in log.getvalue()
     assert "reset to" in log.getvalue()
 
 
@@ -54,7 +54,7 @@ def test_load_toml_start_roth_past_year_reset():
     thisyear = date.today().year
 
     assert diconf["solver_options"]["startRothConversions"] == thisyear
-    assert "Warning" in log.getvalue()
+    assert "past" in log.getvalue()
 
 
 def test_ui_to_config_linear_omits_interpolation_center_width():

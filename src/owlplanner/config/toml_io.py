@@ -44,7 +44,7 @@ def sanitize_config(diconf: dict, *, log_stream=None) -> None:
         if year_val < thisyear:
             so["startRothConversions"] = thisyear
             msg = (
-                f"Warning: startRothConversions ({year_val}) was in the past; "
+                f"startRothConversions ({year_val}) was in the past; "
                 f"reset to {thisyear}."
             )
             if log_stream is not None:

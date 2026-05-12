@@ -936,7 +936,8 @@ class Plan:
         if getattr(model, "constant", False):
             if reverse or roll != 0:
                 self.mylog.print(
-                    "Warning: reverse and roll are ignored for constant (fixed) rate methods."
+                    "reverse and roll are ignored for constant (fixed) rate methods.",
+                    tag="WARNING"
                 )
         else:
             series_kn = rates.apply_rate_sequence_transform(
@@ -3062,7 +3063,7 @@ class Plan:
                 f"got objective='{kwargs['objective']}'."
             )
         if "netSpending" in kwargs:
-            self.mylog.print("Warning: 'netSpending' is ignored by runSpendingFrontier (maxSpending objective).")
+            self.mylog.print("'netSpending' is ignored by runSpendingFrontier (maxSpending objective).", tag="WARNING")
             kwargs.pop("netSpending")
         return run_stochastic_spending(
             self, kwargs, scenario_method, ystart=ystart, yend=yend, N=N,
@@ -3349,6 +3350,7 @@ class Plan:
                 f"Stagnation detected: {n_timeouts}/{STAGNATION_WINDOW} solver timeouts "
                 "with no improvement. Accepting best solution."
             ),
+            "tag": "WARNING",
         }
 
     def _check_max_iterations(self, it, max_iterations):
@@ -3357,7 +3359,8 @@ class Plan:
         return {
             "reason": "max_iter",
             "convergenceType": "max iteration",
-            "message": "Warning: Exiting loop on maximum iterations.",
+            "message": "Exiting loop on maximum iterations.",
+            "tag": "WARNING",
         }
 
     def _check_cashflow_balance(self, atol=1.0):
@@ -3472,8 +3475,9 @@ class Plan:
                 if includeMedicare:
                     self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)
                     self.mylog.print(
-                        "Warning: Self-consistent loop is off; Medicare premiums are "
-                        "computed for display but were not in the budget constraint."
+                        "Self-consistent loop is off; Medicare premiums are "
+                        "computed for display but were not in the budget constraint.",
+                        tag="WARNING"
                     )
                 break
 
@@ -3528,7 +3532,7 @@ class Plan:
                     J_n_lp = trace["J_n_lp"][best_idx]
                     self.mylog.print("Accepting best solution from cycle and terminating.")
                 elif decision["reason"] in ("stagnation", "max_iter"):
-                    self.mylog.print(decision["message"])
+                    self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
                     best_idx = self._pick_best_valid_index(trace["scaledObjectives"], includeMedicare)
                     if best_idx is not None:
                         xx = trace["solutions"][best_idx]
@@ -3537,7 +3541,7 @@ class Plan:
                         ACA_n_lp = trace["ACA_n_lp"][best_idx]
                         J_n_lp = trace["J_n_lp"][best_idx]
                 else:
-                    self.mylog.print(decision["message"])
+                    self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
                 # Consistency solve: each iteration's LTCG bracket room (room15_n, room20_n)
                 # is built from the *previous* iteration's G_n (one-step lag). When the selected
                 # best solution comes from a non-final iteration, G_n in memory belongs to the
@@ -3587,7 +3591,7 @@ class Plan:
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
             self.caseStatus = "solved"
         else:
-            self.mylog.print("Warning: Optimization failed:", solverMsg, solverSuccess)
+            self.mylog.print("Optimization failed:", solverMsg, solverSuccess, tag="WARNING")
             self.caseStatus = "unsuccessful"
 
         return None
@@ -4453,9 +4457,10 @@ class Plan:
         _bad = np.where(self.U_n > 0.20 * total_ltcg + 1.0)[0]
         for n in _bad:
             self.mylog.print(
-                f"Warning: year {self.year_n[n]}: LTCG tax ${self.U_n[n]:,.0f} "
+                f"year {self.year_n[n]}: LTCG tax ${self.U_n[n]:,.0f} "
                 f"exceeds 20% of taxable gains ${self.Q_n[n]:,.0f} — "
-                "SC-loop solution may be degenerate."
+                "SC-loop solution may be degenerate.",
+                tag="WARNING"
             )
 
         # Extract NIIT LP variable when in optimize mode.
@@ -4624,7 +4629,7 @@ class Plan:
         A tag string can be set to add information to the title of the plot.
         """
         if self.rateMethod in [None, "user", "historical average", "conservative", "trailing-30", "optimistic"]:
-            self.mylog.print(f"Warning: Cannot plot correlations for {self.rateMethod} rate method.")
+            self.mylog.print(f"Cannot plot correlations for {self.rateMethod} rate method.", tag="WARNING")
             return None
 
         # Check if rates are constant (all values are the same for each rate type)
@@ -4641,7 +4646,8 @@ class Plan:
                     break
 
             if rates_are_constant:
-                self.mylog.print("Warning: Cannot plot correlations for constant rates (no variation in rate values).")
+                self.mylog.print("Cannot plot correlations for constant rates (no variation in rate values).",
+                                 tag="WARNING")
                 return None
 
         # For stochastic models, build a large representative sample so that
@@ -4685,7 +4691,7 @@ class Plan:
         A tag string can be set to add information to the title of the plot.
         """
         if self.rateMethod is None:
-            self.mylog.print("Warning: Rate method must be selected before plotting.")
+            self.mylog.print("Rate method must be selected before plotting.", tag="WARNING")
             return None
 
         fig = self._plotter.plot_rates(self._name, self.tau_kn, self.year_n,
@@ -4704,7 +4710,7 @@ class Plan:
         A tag string can be set to add information to the title of the plot.
         """
         if self.xi_n is None:
-            self.mylog.print("Warning: Profile must be selected before plotting.")
+            self.mylog.print("Profile must be selected before plotting.", tag="WARNING")
             return None
         title = self._name + "\nSpending Profile"
         if tag:

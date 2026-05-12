@@ -276,7 +276,7 @@ def run_historical_range(plan, objective, options, ystart, yend, *, verbose=Fals
     """
     if yend + plan.N_n > plan.year_n[0]:
         yend = plan.year_n[0] - plan.N_n
-        plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
+        plan.mylog.print(f"Upper bound for year range re-adjusted to {yend}.", tag="WARNING")
 
     if yend < ystart:
         raise ValueError(f"Starting year is too large to support a lifespan of {plan.N_n} years.")
@@ -499,7 +499,7 @@ def run_stochastic_spending(plan, options, scenario_method, *,
         if not with_longevity:
             if yend + plan.N_n > plan.year_n[0]:
                 yend = plan.year_n[0] - plan.N_n
-                plan.mylog.print(f"Warning: Upper bound for year range re-adjusted to {yend}.")
+                plan.mylog.print(f"Upper bound for year range re-adjusted to {yend}.", tag="WARNING")
             if yend < ystart:
                 raise ValueError(f"Starting year too large for lifespan of {plan.N_n} years.")
         years = list(range(ystart, yend + 1))
@@ -612,8 +612,9 @@ def run_stochastic_spending(plan, options, scenario_method, *,
                 results_map[orig_idx] = fut.result()
             except Exception as exc:
                 plan.mylog.print(
-                    f"Warning: scenario {orig_idx} raised {type(exc).__name__}: {exc}; "
-                    "treating as infeasible (basis 0)."
+                    f"scenario {orig_idx} raised {type(exc).__name__}: {exc}; "
+                    "treating as infeasible (basis 0).",
+                    tag="WARNING"
                 )
                 results_map[orig_idx] = None
             completed += 1
@@ -644,8 +645,8 @@ def run_stochastic_spending(plan, options, scenario_method, *,
                          " (individual(s) die imminently) and are counted as zero spending.")
     n_solved = total - n_infeasible - n_short_horizon
     if n_infeasible:
-        plan.mylog.print(f"Warning: {n_infeasible} of {total} scenarios were infeasible"
-                         " and are counted as full shortfall.")
+        plan.mylog.print(f"{n_infeasible} of {total} scenarios were infeasible"
+                         " and are counted as full shortfall.", tag="WARNING")
     if n_solved < 2:
         raise RuntimeError("Fewer than 2 scenarios solved successfully; cannot compute frontier.")
 
