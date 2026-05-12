@@ -3388,8 +3388,9 @@ class Plan:
         residual = np.max(np.abs(lhs - rhs))
         if residual > atol:
             self.mylog.print(
-                f"Warning: Cash flow balance off by ${residual:,.0f} (max over all years). "
-                "A term may be missing or double-counted in the post-solve output."
+                f"Cash flow balance off by ${residual:,.0f} (max over all years). "
+                "A term may be missing or double-counted in the post-solve output.",
+                tag="WARNING"
             )
 
     def _scSolve(self, objective, options, solverMethod):
