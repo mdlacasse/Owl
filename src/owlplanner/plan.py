@@ -353,7 +353,8 @@ class Plan:
 
     def setLogstreams(self, verbose, logstreams):
         self.mylog = log.Logger(verbose, logstreams)
-        self.mylog.vprint(f"Setting logger with logstreams {logstreams}.")
+        n = len(self.mylog._logstreams) if self.mylog._logstreams is not None else 0
+        self.mylog.vprint(f"Setting logger with {n} logstream(s), verbose={verbose}.")
 
     def logger(self):
         return self.mylog
