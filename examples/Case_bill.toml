@@ -77,7 +77,7 @@ withACA = "none"
 withLTCG = "none"
 withNIIT = "none"
 withDecomposition = "none"
-withSSTaxability = "none"
+withSSTaxability = "loop"
 withSSAges = "fixed"
 
 [results]
