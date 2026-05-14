@@ -37,8 +37,8 @@ owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/p
 def _welcome_session_reminder():
     st.markdown(
         f"""
-**Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
-investment advice**—consult a qualified professional for decisions specific to your situation.
+**Owl** - *Optimal wealth lab* is for **educational and research purposes** only. Nothing in this session constitutes
+**financial, tax, or investment advice**—consult a qualified professional for decisions specific to your situation.
 
 This software is released under the [GNU General Public License v3]({_GPLV3_URL}).
 """
@@ -56,7 +56,7 @@ if not kz.getGlobalKey(_WELCOME_DISCLAIMER_DISMISSED) and _SHOW_DISCLAIMER:
 col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
     st.markdown("# Plan your retirement with confidence")
-    st.markdown("**Owl** – *Optimal Wealth Lab*")
+    st.subheader("**Owl** – *Optimal wealth lab*", anchor=False)
     st.markdown("")
     st.markdown("""
 ### :orange[Stop guessing. Start optimizing.]
@@ -105,8 +105,6 @@ or resell your financial data, whether cloud-hosted, or self-hosted on your devi
 - **Total Privacy:** Your data always remains private.
 """)
 
-kz.divider("orange")
-
 # Benefits
 st.markdown("### :orange[How is **Owl** different? Optimization, not just projection.]")
 st.markdown(
@@ -149,7 +147,6 @@ with st.expander("*Explore some case examples*"):
     st.markdown("")
     st.caption("You’ve run your first case. Explore other Case Setup pages to change assumptions. Explore other cases.")
 
-kz.divider("orange")
 st.markdown("### :orange[Curious what Owl can do? The scope is substantial.]")
 modeling_md = Path(__file__).resolve().parent.parent / "docs" / "modeling-capabilities.md"
 with st.expander("*See what Owl models—and its limitations*"):
@@ -161,7 +158,6 @@ with st.expander("*See what Owl models—and its limitations*"):
 — full reference on GitHub.
 """)
 
-kz.divider("orange")
 st.markdown("### :orange[Ready to go deeper? Design and run your own cases.]")
 with st.expander("*Run your own cases*"):
     st.markdown("""Design your own case and save your progress locally.

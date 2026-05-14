@@ -30,7 +30,7 @@ with col1:
     st.markdown("## :orange[The **Owl** Retirement Planner]")
     # st.markdown("## :orange[The **Owl** Retirement Planner]\n-------")
     st.markdown("""
-### **Owl** - *Optimal Wealth Lab*
+### **Owl** - *Optimal wealth lab*
 #### A retirement financial exploration tool based on linear programming
 
 The goal of **Owl** is to provide a free and open-source ecosystem that has cutting-edge

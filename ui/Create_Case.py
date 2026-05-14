@@ -37,84 +37,11 @@ def _loadHFPExample(file):
             owb.readHFP(mybytesio, file=hfp_name)
 
 
-ret = kz.titleBar(":material/person_add: Create Case")
-
-if ret is None:
-    st.info(
-        "#### Start here\n\n"
-        "Create a new case by providing a name below, or load one from a TOML case file,"
-        " or simply load one of the example files available.\n\n"
-        "*Consult the :material/help: [Documentation](Documentation) for more details.*"
-    )
-    col1, col2, col3 = st.columns(3, gap="large")
-    with col1:
-        st.markdown("#### :orange[Create a New Case]")
-        st.text_input(
-            "Case name",
-            key="_newcase",
-            on_change=kz.createNewCase,
-            args=["newcase"],
-            placeholder="Enter a short case name...",
-        )
-    with col2:
-        st.markdown("#### :orange[Upload Your Own Case File]")
-        kz.initGlobalKey("_confile_idx", 0)
-        file = st.file_uploader(
-            "Upload *case* parameter file...",
-            key="_confile" + str(kz.getGlobalKey("_confile_idx")),
-            type=["toml"],
-        )
-        if file is not None:
-            owb.ui_log(f"Loading case file: '{file.name}'")
-            mystringio = StringIO(file.read().decode("utf-8"))
-            if kz.createCaseFromFile(mystringio):
-                # Bump uploader key to avoid re-import on rerun.
-                kz.storeGlobalKey("_confile_idx", kz.getGlobalKey("_confile_idx") + 1)
-                st.rerun()
-    with col3:
-        st.markdown("#### :orange[Load a Case Example]")
-        kz.initGlobalKey("_example_case_idx", 0)
-        case = st.selectbox(
-            "Examples available from GitHub",
-            tomlex.cases,
-            index=None,
-            key="_example_case" + str(kz.getGlobalKey("_example_case_idx")),
-            placeholder="Select an example case")
-        if case:
-            owb.ui_log(f"Loading example: '{case}'")
-            mystringio = tomlex.loadCaseExample(case)
-            if kz.createCaseFromFile(mystringio):
-                kz.storeGlobalKey("_example_case_idx", kz.getGlobalKey("_example_case_idx") + 1)
-                kz.initCaseKey("tomlexcase", case)
-                st.rerun()
-else:
-    with st.expander("*Create or load another case*"):
-        col1, col2, col3 = st.columns(3, gap="large")
-        with col1:
-            st.markdown("#### :orange[Create a New Case]")
-            st.text_input(
-                "Case name",
-                key="_newcase",
-                on_change=kz.createNewCase,
-                args=["newcase"],
-                placeholder="Enter a short case name...",
-            )
-        with col2:
-            st.markdown("#### :orange[Upload Your Own Case File]")
-            kz.initGlobalKey("_confile_idx", 0)
-            file = st.file_uploader(
-                "Upload *case* parameter file...",
-                key="_confile" + str(kz.getGlobalKey("_confile_idx")),
-                type=["toml"],
-            )
-            if file is not None:
-                owb.ui_log(f"Loading case file: '{file.name}'")
-                mystringio = StringIO(file.read().decode("utf-8"))
-                if kz.createCaseFromFile(mystringio):
-                    kz.storeGlobalKey("_confile_idx", kz.getGlobalKey("_confile_idx") + 1)
-                    st.rerun()
-        with col3:
-            st.markdown("#### :orange[Load a Case Example]")
+def _render_case_loader():
+    tab1, tab2, tab3 = st.tabs(["_Load a Case Example_", "_Create a New Case_", "_Upload Your Own Case File_"])
+    with tab1:
+        col, hint = st.columns([2, 3], gap="large", vertical_alignment="bottom")
+        with col:
             kz.initGlobalKey("_example_case_idx", 0)
             case = st.selectbox(
                 "Examples available from GitHub",
@@ -122,13 +49,60 @@ else:
                 index=None,
                 key="_example_case" + str(kz.getGlobalKey("_example_case_idx")),
                 placeholder="Select an example case")
-            if case:
-                owb.ui_log(f"Loading example: '{case}'")
-                mystringio = tomlex.loadCaseExample(case)
-                if kz.createCaseFromFile(mystringio):
-                    kz.storeGlobalKey("_example_case_idx", kz.getGlobalKey("_example_case_idx") + 1)
-                    kz.initCaseKey("tomlexcase", case)
-                    st.rerun()
+        with hint:
+            st.caption("Load a pre-built case from GitHub. All parameters can be adjusted after loading.")
+        if case:
+            owb.ui_log(f"Loading example: '{case}'")
+            mystringio = tomlex.loadCaseExample(case)
+            if kz.createCaseFromFile(mystringio):
+                kz.storeGlobalKey("_example_case_idx", kz.getGlobalKey("_example_case_idx") + 1)
+                kz.initCaseKey("tomlexcase", case)
+                st.rerun()
+    with tab2:
+        col, hint = st.columns([2, 3], gap="large", vertical_alignment="bottom")
+        with col:
+            st.text_input(
+                "Case name",
+                key="_newcase",
+                on_change=kz.createNewCase,
+                args=["newcase"],
+                placeholder="Enter a short case name...",
+            )
+        with hint:
+            st.caption("Enter a short name to start a blank case. Life parameters and financials are filled in next.")
+    with tab3:
+        col, hint = st.columns([2, 3], gap="large", vertical_alignment="bottom")
+        with col:
+            kz.initGlobalKey("_confile_idx", 0)
+            file = st.file_uploader(
+                "Upload *case* parameter file...",
+                key="_confile" + str(kz.getGlobalKey("_confile_idx")),
+                type=["toml"],
+            )
+        with hint:
+            st.caption("Upload a TOML case file previously saved from Owl.")
+        if file is not None:
+            owb.ui_log(f"Loading case file: '{file.name}'")
+            mystringio = StringIO(file.read().decode("utf-8"))
+            if kz.createCaseFromFile(mystringio):
+                # Bump uploader key to avoid re-import on rerun.
+                kz.storeGlobalKey("_confile_idx", kz.getGlobalKey("_confile_idx") + 1)
+                st.rerun()
+
+
+ret = kz.titleBar(":material/person_add: Create Case")
+
+if ret is None:
+    st.info(
+        "#### Create or load a case\n\n"
+        "Select a tab below to create a new case, upload an existing TOML case file,"
+        " or load one of the available examples.\n\n"
+        "Consult the :material/help: [Documentation](Documentation) for more details."
+    )
+    _render_case_loader()
+else:
+    with st.expander("_Create or load another case_"):
+        _render_case_loader()
 
     st.markdown("#### :orange[Description and Life Parameters]")
     casemsg = "Case name can be changed by editing it directly."
@@ -278,27 +252,10 @@ Click the `Create case` button once all parameters on this page are set."""
                   type='primary', help=helpmsg)
 
     with col3:
-        kz.initGlobalKey("delete_confirmation_active", False)
-
-        # Show confirmation buttons if delete was activated
-        if kz.getGlobalKey("delete_confirmation_active"):
-            conf_col1, conf_col2 = st.columns(2, gap="small")
-            with conf_col1:
-                helpmsg = ":warning: Caution: The `Delete case` operation cannot be undone."
-                if st.button("Delete :material/delete:", type="primary", help=helpmsg):
-                    kz.storeGlobalKey("delete_confirmation_active", False)
-                    kz.deleteCurrentCase()
-                    st.rerun()
-            with conf_col2:
-                helpmsg = "Click to cancel `Delete` operation."
-                if st.button("Cancel", help=helpmsg):
-                    kz.storeGlobalKey("delete_confirmation_active", False)
-                    st.rerun()
-        else:
-            # Show initial delete button
-            helpmsg = "Click to delete current case."
-            if st.button("Delete case :material/delete:", help=helpmsg):
-                kz.storeGlobalKey("delete_confirmation_active", True)
+        with st.popover("Delete case :material/delete:"):
+            st.warning("This cannot be undone.", icon=":material/warning:")
+            if st.button("Confirm delete", type="primary"):
+                kz.deleteCurrentCase()
                 st.rerun()
 
 # Show progress bar at bottom (only when a case is selected)
