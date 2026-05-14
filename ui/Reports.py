@@ -49,7 +49,7 @@ def _synopsis_compare_column_config(display_df):
 ret = kz.titleBar(":material/description: Reports")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("A case must first be created before running this page.")
+    kz.no_case_info()
 else:
     if kz.caseIsRunReady():
         owb.runPlan()

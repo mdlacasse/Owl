@@ -30,7 +30,7 @@ import owlbridge as owb
 ret = kz.titleBar(":material/query_stats: Spending Optimization")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("A case must first be created before running this page.")
+    kz.no_case_info()
 else:
     kz.initCaseKey("stoch_scenario_method", "historical")
     kz.initCaseKey("stoch_target_success_rate", 0.85)

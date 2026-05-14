@@ -341,6 +341,14 @@ def deleteCurrentCase():
     ss.currentCase = remaining[0] if remaining else None
 
 
+def no_case_info():
+    col1, col2 = st.columns([3, 1], vertical_alignment="center")
+    with col1:
+        st.info("A case must first be created before running this page. Use the link on the right to get started.")
+    with col2:
+        st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
+
+
 def dumpSession():
     print("State Dump:", ss)
 

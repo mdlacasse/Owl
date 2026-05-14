@@ -29,7 +29,7 @@ import owlbridge as owb
 ret = kz.titleBar(":material/stacked_line_chart: Graphs")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("A case must first be created before running this page.")
+    kz.no_case_info()
 else:
     if kz.caseIsRunReady():
         owb.runPlan()

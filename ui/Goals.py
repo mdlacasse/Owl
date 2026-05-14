@@ -42,7 +42,7 @@ def initProfile():
 ret = kz.titleBar(":material/target: Goals")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("A case must first be created before running this page.")
+    kz.no_case_info()
 else:
     kz.runOncePerCase(initProfile)
 

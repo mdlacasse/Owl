@@ -94,7 +94,7 @@ kz.initCaseKey("varyingType", varyingChoices[0])
 ret = kz.titleBar(":material/monitoring: Rates")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("A case must first be created before running this page.")
+    kz.no_case_info()
 else:
     kz.runOncePerCase(initRates)
     kz.initCaseKey("yfrm", owb.FROM)

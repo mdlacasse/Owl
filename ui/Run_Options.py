@@ -45,7 +45,7 @@ kz.initCaseKey("ssTaxabilityValue", 0.85)
 ret = kz.titleBar(":material/tune: Run Options")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("A case must first be created before running this page.")
+    kz.no_case_info()
 else:
 
     st.markdown("#### :orange[Roth Conversions]")

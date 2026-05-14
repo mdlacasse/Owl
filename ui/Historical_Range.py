@@ -29,7 +29,7 @@ import owlbridge as owb
 ret = kz.titleBar(":material/history: Historical Range")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("A case must first be created before running this page.")
+    kz.no_case_info()
 else:
     kz.initCaseKey("hyfrm", owb.FROM)
     yto_max = owb.histYendMax()

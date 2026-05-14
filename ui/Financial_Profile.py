@@ -41,7 +41,7 @@ def loadWCExample(file):
 ret = kz.titleBar(":material/home: Financial Profile")
 
 if ret is None or kz.caseHasNoPlan():
-    st.info("A case must first be created before running this page.")
+    kz.no_case_info()
 else:
     if kz.getCaseKey("timeList0") is None:
         kz.runOncePerCase(owb.resetTimeLists)
