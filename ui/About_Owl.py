@@ -28,7 +28,7 @@ import sskeys as kz
 import owlbridge as owb
 
 
-st.markdown("# :material/info: About Owl - Optimal Wealth Lab🦉")
+st.markdown("# :material/info: About Owl - Optimal wealth lab🦉")
 kz.divider("orange")
 
 st.markdown(f"This is Owl version {owb.version()} running on Streamlit {st.__version__}.")

@@ -3,7 +3,7 @@ project:
   output-dir: ../docs
 
 website:
-  title: "OWL"
+  title: "Owl"
   navbar:
     left:
       - href: index.qmd
@@ -14,7 +14,7 @@ website:
         text: Installation
       - href: install-uv.qmd
         text: UV Install    
-      - href: https://github.com/mdlacasse/OWL
+      - href: https://github.com/mdlacasse/Owl
         text: Repository
       - href: https://owlplanner.streamlit.app/
         text: Streamlit App

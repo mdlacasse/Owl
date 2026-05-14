@@ -1,5 +1,5 @@
 ---
-title: OWL - Optimal Wealth Lab
+title: Owl - Optimal wealth lab
 ---
 
 ## Overview
@@ -40,7 +40,7 @@ or [installed](installation.qmd) on their own computer.
 The underlying Python package can also be used directly through Python scripts or Jupyter Notebooks
 as described [here](users_guide.qmd).
 
-A separate [installation guide is available for OWL on WSL using UV](./install-uv.qmd).
+A separate [installation guide is available for Owl on WSL using UV](./install-uv.qmd).
 
 Not every retirement decision strategy can be framed as an easy-to-solve optimization problem.
 In particular, if one is interested in comparing different withdrawal strategies,

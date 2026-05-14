@@ -1,5 +1,5 @@
 ---
-title: Implementing SOR models in OWL
+title: Implementing SOR models in Owl
 format: gfm
 ---
 
