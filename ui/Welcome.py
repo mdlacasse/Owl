@@ -128,24 +128,23 @@ st.markdown("### :orange[Ready for a demo? Run your first case in 3 steps.]")
 with st.expander("*Explore some case examples*"):
     # ---- Quick start demo: lead with 3-step journey ----
     st.markdown("#### :orange[Run your first case in 3 steps]")
-    st.markdown("Use the **Jack & Jill** example to see results in under a minute.")
+    st.markdown("Use an example case to see results in a few seconds.")
 
     step1, step2, step3 = st.columns(3)
     with step1:
         st.markdown("**1. Load the case**")
-        st.markdown("Go to **Create Case**, then choose **Jack + Jill** from the example dropdown.")
-        st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
+        st.markdown("Go to **Create Case**, then choose any example from the dropdown.")
     with step2:
         st.markdown("**2. Load the financial profile**")
-        st.markdown("On **Financial Profile**, load the Jack & Jill workbook (or use the example button).")
-        st.page_link("Financial_Profile.py", label="Open Financial Profile", icon=":material/home:")
+        st.markdown("On the same page, load the associated financial profile using the highlighted *Load example workbook* button."
+                    " View the content on the *Financial Profile* page.")
     with step3:
-        st.markdown("**3. View your plan**")
-        st.markdown("Check **Graphs**, **Worksheets**, or **Reports** under Results.")
-        st.page_link("Graphs.py", label="View Graphs", icon=":material/stacked_line_chart:")
+        st.markdown("**3. View the results**")
+        st.markdown("Navigate to **Graphs**, **Worksheets**, or **Reports** under Results to see results.")
 
-    st.markdown("")
-    st.caption("You’ve run your first case. Explore other Case Setup pages to change assumptions. Explore other cases.")
+    st.markdown("**Start here:**")
+    st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
+    st.caption("Once you’ve run your first case, explore other Case Setup pages to change assumptions. Explore other cases.")
 
 st.markdown("### :orange[Curious what Owl can do? The scope is substantial.]")
 modeling_md = Path(__file__).resolve().parent.parent / "docs" / "modeling-capabilities.md"
