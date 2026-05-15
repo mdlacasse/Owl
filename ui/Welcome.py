@@ -200,12 +200,20 @@ kz.divider("orange")
 
 # ---- Social proof / trust ----
 st.markdown("### :orange[Get involved]")
-st.markdown("""
-Created by a lead developer and enriched by contributions from retired experts,
-**Owl** leverages extensive engineering expertise to advance knowledge sharing.\n
-- Found a bug or have an idea? Open an [issue](https://github.com/mdlacasse/Owl/issues) (requires a GitHub account).
-- Want to share your story? Open a [discussion](https://github.com/mdlacasse/Owl/discussions).
-- You use **Owl** and like it? Give the [repo](https://github.com/mdlacasse/Owl) a star.""")
+st.markdown(
+    "Created by a lead developer and enriched by contributions from retired experts, "
+    "**Owl** leverages extensive engineering expertise to advance knowledge sharing."
+)
+gi1, gi2, gi3 = st.columns(3, gap="medium")
+with gi1:
+    st.markdown("""**:material/bug_report: Report a bug or idea**
+\nFound something wrong or have a feature request? Open an [issue](https://github.com/mdlacasse/Owl/issues) (requires a GitHub account).""")
+with gi2:
+    st.markdown("""**:material/forum: Share your story**
+\nHave a question or want to share how you use **Owl**? Start a [discussion](https://github.com/mdlacasse/Owl/discussions).""")
+with gi3:
+    st.markdown("""**:material/star: Give us a star**
+\nIf you find **Owl** useful, starring the [repo](https://github.com/mdlacasse/Owl) helps others discover it.""")
 
 st.markdown("### :orange[Disclaimer]")
 st.markdown("""
