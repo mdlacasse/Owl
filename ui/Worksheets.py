@@ -41,32 +41,29 @@ else:
         kz.initCaseKey("worksheetShowAges", False)
         kz.initCaseKey("worksheetHideZeroColumns", False)
         kz.initCaseKey("worksheetRealDollars", False)
-        with st.expander("*Table display and save options*", expanded=False):
-            help_age = (
-                "Add per-person age columns (age on December 31 of each row's calendar year)."
+        help_age = "Add per-person age columns (age on December 31 of each row's calendar year)."
+        help_hide = "Hide numeric columns where every value is zero."
+        help_real = (
+            "Display and save all currency values in inflation-adjusted (today's) dollars. "
+            "The saved Excel filename will have '_real' appended."
+        )
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            kz.getToggle("Show ages", "worksheetShowAges", callback=owb.setWorksheetShowAges, help=help_age)
+        with col_b:
+            kz.getToggle(
+                "Hide columns that are all zeros",
+                "worksheetHideZeroColumns",
+                callback=owb.setWorksheetHideZeroColumns,
+                help=help_hide,
             )
-            help_hide = (
-                "Hide numeric columns where every value is zero."
+        with col_c:
+            kz.getToggle(
+                "Show/save in real (today's) dollars",
+                "worksheetRealDollars",
+                callback=owb.setWorksheetRealDollars,
+                help=help_real,
             )
-            help_real = (
-                "Display and save all currency values in inflation-adjusted (today's) dollars. "
-                "The saved Excel filename will have '_real' appended."
-            )
-            col_a, col_b, col_c = st.columns(3)
-            with col_a:
-                kz.getToggle("Show ages", "worksheetShowAges", callback=owb.setWorksheetShowAges, help=help_age)
-            with col_b:
-                kz.getToggle(
-                    "Hide columns that are all zeros",
-                    "worksheetHideZeroColumns",
-                    callback=owb.setWorksheetHideZeroColumns,
-                    help=help_hide,
-                )
-            with col_c:
-                kz.getToggle(
-                    "Show/save in real (today's) dollars",
-                    "worksheetRealDollars",
-                    callback=owb.setWorksheetRealDollars,
-                    help=help_real,
-                )
+        kz.divider("orange")
+        st.markdown("##### Expand a section below to view its data.")
         owb.showWorkbook()

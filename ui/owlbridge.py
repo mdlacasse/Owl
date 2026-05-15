@@ -1236,40 +1236,40 @@ def showWorkbook(plan):
 
         colfor = _worksheet_column_config(df.columns, dollars, pct_sheets, federal_tax_sheet)
 
-        st.markdown(f"#### :orange[{name}]")
-        if "Accounts" in name:
-            acct_note = " Opening balance as of Jan 1st of that year."
-            display_df = df.style.apply(highlight_year_row, axis=1)
-            st.dataframe(display_df, width="stretch", column_config=colfor,
-                         hide_index=True, placeholder="-")
-        else:
-            acct_note = ""
-            st.dataframe(
-                _worksheet_df_for_streamlit_display(df),
-                width="stretch",
-                column_config=colfor,
-                hide_index=True,
-                placeholder="-",
-            )
+        with st.expander(f"***{name}***", expanded=False):
+            if "Accounts" in name:
+                acct_note = " Opening balance as of Jan 1st of that year."
+                display_df = df.style.apply(highlight_year_row, axis=1)
+                st.dataframe(display_df, width="stretch", column_config=colfor,
+                             hide_index=True, placeholder="-")
+            else:
+                acct_note = ""
+                st.dataframe(
+                    _worksheet_df_for_streamlit_display(df),
+                    width="stretch",
+                    column_config=colfor,
+                    hide_index=True,
+                    placeholder="-",
+                )
 
-        dollar_label = "real (today's) $" if getattr(plan, "worksheetRealDollars", False) else "nominal $"
-        age_note = (
-            " Ages are as of December 31 of each row's calendar year; "
-            "blank after an individual's plan horizon."
-        ) if plan.worksheetShowAges else ""
+            dollar_label = "real (today's) $" if getattr(plan, "worksheetRealDollars", False) else "nominal $"
+            age_note = (
+                " Ages are as of December 31 of each row's calendar year; "
+                "blank after an individual's plan horizon."
+            ) if plan.worksheetShowAges else ""
 
-        if federal_tax_sheet:
-            cap = (
-                f"Values are in {dollar_label}, rounded to the nearest dollar. "
-                "SS % taxed is the fraction of Social Security benefits subject to federal tax."
-            )
-            st.caption(cap + age_note)
-        elif dollars:
-            st.caption(f"Values are in {dollar_label}, rounded to the nearest dollar." + acct_note + age_note)
-        elif pct_sheets:
-            st.caption("Values are in percent, with 2 decimal places." + age_note)
-        else:
-            raise ValueError(f"Worksheet '{name}' not classified — add it to currencySheets or handle explicitly.")
+            if federal_tax_sheet:
+                cap = (
+                    f"Values are in {dollar_label}, rounded to the nearest dollar. "
+                    "SS % taxed is the fraction of Social Security benefits subject to federal tax."
+                )
+                st.caption(cap + age_note)
+            elif dollars:
+                st.caption(f"Values are in {dollar_label}, rounded to the nearest dollar." + acct_note + age_note)
+            elif pct_sheets:
+                st.caption("Values are in percent, with 2 decimal places." + age_note)
+            else:
+                raise ValueError(f"Worksheet '{name}' not classified — add it to currencySheets or handle explicitly.")
 
 
 @_checkPlan

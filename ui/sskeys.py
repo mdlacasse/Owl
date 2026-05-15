@@ -873,7 +873,7 @@ def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
 
 
 def divider(color, width="auto"):
-    st.html("<style> hr {border-color: %s;width: %s}</style><hr>" % (color, width))
+    st.html('<hr style="border-color: %s; width: %s;">' % (color, width))
 
 
 def getColors():

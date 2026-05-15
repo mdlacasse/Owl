@@ -36,9 +36,8 @@ else:
     elif kz.caseHasNotRun():
         st.info("Case definition is not yet complete. Please visit all pages in *Case Setup*.")
 
-    st.markdown(
-        "Run the active *case* against a single scenario using the parameters selected in the **Case Setup** section."
-    )
+    st.markdown("Results for the active *case* run against a single scenario using the "
+                "parameters selected in the **Case Setup** section.")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
     with col1:
         choices = ["nominal", "today"]
@@ -60,14 +59,17 @@ else:
         st.divider()
         st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
     else:
-        if kz.getGlobalKey("plotGlobalBackend") == "plotly":
-            st.markdown("")
-            st.caption("Tip: Click on legend items in the graphs below to show or hide individual curves.")
         kz.divider("orange")
         owb.plotSummaryMetrics()
         kz.divider("orange")
         st.write("")
-        st.markdown("##### Select a tab below to browse the results.")
+        col1, col2 = st.columns(2, gap="large", vertical_alignment="bottom")
+        with col1:
+            st.markdown("##### Select a tab below to browse the results.")
+        with col2:
+            if kz.getGlobalKey("plotGlobalBackend") == "plotly":
+                st.caption("Tip: Click on legend items in the graphs to show or hide individual curves.")
+
         tab1, tab2, tab3 = st.tabs(["Spending", "Taxes", "Portfolio"])
         with tab1:
             owb.plotSpendingGraphs()
