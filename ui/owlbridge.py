@@ -949,32 +949,56 @@ def _setAllocationRatios(plan):
 
 
 @_checkPlan
-def plotSingleResults(plan):
+def plotSummaryMetrics(plan):
+    basis = getattr(plan, "basis", 0)
+    bequest = getattr(plan, "bequest", 0)
+    horizon = f"{int(plan.year_n[0])} – {int(plan.year_n[-1])}"
+    fa_bequest = plan.fixed_assets_bequest_value / plan.gamma_n[-1]
+    if plan.objective == "maxBequest":
+        spending_label = "Spending target (today's $)"
+        estate_label = "Liquid bequest (today's $)"
+    else:
+        spending_label = "Yearly spending (today's $)"
+        estate_label = "Liquid estate (today's $)"
+    n_cols = 4 if fa_bequest > 0 else 3
+    cols = st.columns(n_cols, gap="large")
+    cols[0].metric(spending_label, f"${basis:,.0f}")
+    cols[1].metric(estate_label, f"${bequest:,.0f}")
+    if fa_bequest > 0:
+        cols[2].metric("Fixed assets bequest (today's $)", f"${fa_bequest:,.0f}")
+    cols[-1].metric("Planning horizon", horizon)
+
+
+@_checkPlan
+def plotSpendingGraphs(plan):
     c, n = 0, 2
     cols = st.columns(n, gap="medium")
-    fig = plan.showRates(figure=True)
-    if fig:
-        cols[c].markdown("#### :orange[Annual Rates]")
-        renderPlot(fig, cols[c])
-        c = (c + 1) % n
-
     fig = plan.showNetSpending(figure=True)
     if fig:
         cols[c].markdown("#### :orange[Net Available Spending]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
-    fig = plan.showGrossIncome(figure=True)
-    if fig:
-        cols[c].markdown("#### :orange[Taxable Ordinary Income]")
-        renderPlot(fig, cols[c])
-        c = (c + 1) % n
-
-    # st.divider()
-    # cols = st.columns(n, gap="medium")
     fig = plan.showSources(figure=True)
     if fig:
         cols[c].markdown("#### :orange[Raw Income Sources]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+
+    fig = plan.showRates(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Annual Rates]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+
+
+@_checkPlan
+def plotTaxGraphs(plan):
+    c, n = 0, 2
+    cols = st.columns(n, gap="medium")
+    fig = plan.showGrossIncome(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Taxable Ordinary Income]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
@@ -995,6 +1019,11 @@ def plotSingleResults(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
+
+@_checkPlan
+def plotPortfolioGraphs(plan):
+    c, n = 0, 2
+    cols = st.columns(n, gap="medium")
     fig = plan.showAccounts(figure=True)
     if fig:
         cols[c].markdown("#### :orange[Savings Balance]")

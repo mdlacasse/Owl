@@ -1,4 +1,11 @@
 
+### Version 2026.05.14
+
+#### UX
+- Rework _Graphs_ and _Create Case_ pages
+
+---
+
 ### Version 2026.05.11
 
 #### Hardening
