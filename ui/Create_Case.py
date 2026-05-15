@@ -50,7 +50,7 @@ def _render_case_loader():
                 key="_example_case" + str(kz.getGlobalKey("_example_case_idx")),
                 placeholder="Select an example case")
         with hint:
-            st.caption("Load a pre-built case from GitHub. All parameters can be adjusted after loading.")
+            st.caption("Load a pre-built case from GitHub. Most parameters can be adjusted after loading.")
         if case:
             owb.ui_log(f"Loading example: '{case}'")
             mystringio = tomlex.loadCaseExample(case)
@@ -95,8 +95,8 @@ ret = kz.titleBar(":material/person_add: Create Case")
 if ret is None:
     st.info(
         "#### Create or load a case\n\n"
-        "Select a tab below to create a new case, upload an existing TOML case file,"
-        " or load one of the available examples.\n\n"
+        "Select a tab below to load one of the available case examples,"
+        " create a new case, or upload an existing TOML case file.\n\n"
         "Consult the :material/help: [Documentation](Documentation) for more details."
     )
     _render_case_loader()
