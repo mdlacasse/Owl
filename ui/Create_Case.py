@@ -234,7 +234,7 @@ Once changes are complete, click the `Create case` button."""
             if tomlexcase is not None and tomlex.hasHFPExample(tomlexcase):
                 st.markdown("##### :orange[Load Example HFP Workbook]")
                 st.markdown("Read associated HFP workbook.")
-                helpmsg = "Load associated HFP workbook from GitHub"
+                helpmsg = "Load associated *Household Financial Profile* workbook from GitHub."
                 st.button("Load example workbook", help=helpmsg, type="primary",
                           key="create_hfp_example_btn",
                           on_click=_loadHFPExample, args=[tomlexcase])
@@ -243,7 +243,7 @@ Once changes are complete, click the `Create case` button."""
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
         helpmsg = """`Copy parameters` carries over all parameters to a new case.
-Click the `Create case` button once all parameters on this page are set."""
+Then, click on the `Create case` button once all parameters on this page are set."""
         st.button("Copy parameters :material/content_copy:", on_click=kz.copyCase,
                   disabled=cantcopy, help=helpmsg)
     with col2:
@@ -252,7 +252,8 @@ Click the `Create case` button once all parameters on this page are set."""
                   type='primary', help=helpmsg)
 
     with col3:
-        with st.popover("Delete case :material/delete:"):
+        helpmsg = "`Delete case` removes all parameters associated with the case."
+        with st.popover("Delete case :material/delete:", help=helpmsg):
             st.warning("This cannot be undone.", icon=":material/warning:")
             if st.button("Confirm delete", type="primary"):
                 kz.deleteCurrentCase()

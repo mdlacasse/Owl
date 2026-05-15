@@ -959,7 +959,7 @@ def plotSummaryMetrics(plan):
         estate_label = "Liquid bequest (today's $)"
     else:
         spending_label = "Yearly spending (today's $)"
-        estate_label = "Liquid estate (today's $)"
+        estate_label = "Target liquid estate (today's $)"
     n_cols = 4 if fa_bequest > 0 else 3
     cols = st.columns(n_cols, gap="large")
     cols[0].metric(spending_label, f"${basis:,.0f}")
