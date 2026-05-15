@@ -111,7 +111,7 @@ st.markdown(
     "Most **retirement calculators** give you one rigid path. **Owl** **optimizes** "
     "your plan given your assumptions so you can:"
 )
-col1, col2, col3 = st.columns(3)
+col1, col2, col3 = st.columns(3, gap="medium")
 with col1:
     st.markdown("""**:material/trending_up: Spend with confidence**
 \nKnow exactly how much you can enjoy each year without the fear of outliving your savings.""")
@@ -130,7 +130,7 @@ with st.expander("*Explore some case examples*"):
     st.markdown("#### :orange[Run your first case in 3 steps]")
     st.markdown("Use an example case to see results in a few seconds.")
 
-    step1, step2, step3 = st.columns(3)
+    step1, step2, step3 = st.columns(3, gap="medium")
     with step1:
         st.markdown("**1. Load the case**")
         st.markdown("Go to **Create Case**, then choose any example from the dropdown.")
@@ -182,12 +182,19 @@ You can also create a case from scratch in the app and save the *case* and *Hous
 
     # ---- How to run Owl ----
     st.markdown("### :orange[How to run **Owl**]")
-    st.markdown("""
-- Use **Owl** directly as hosted on the Streamlit Community Cloud server
-([owlplanner.streamlit.app](https://owlplanner.streamlit.app)),
-- Self-host in a Docker container running on your computer
-(instructions [here](https://github.com/mdlacasse/Owl/blob/main/docker/README.md)), or
-- Run natively on your computer (instructions [here](https://github.com/mdlacasse/Owl/blob/main/INSTALL.md)).""")
+    run1, run2, run3 = st.columns(3, gap="medium")
+    with run1:
+        st.markdown("""**:material/cloud: Cloud-hosted**
+\nUse **Owl** directly on the Streamlit Community Cloud server — no installation required.
+[owlplanner.streamlit.app](https://owlplanner.streamlit.app)""")
+    with run2:
+        st.markdown("""**:material/deployed_code: Self-host with Docker**
+\nRun in a Docker container on your own computer for full control and privacy.
+Instructions [here](https://github.com/mdlacasse/Owl/blob/main/docker/README.md).""")
+    with run3:
+        st.markdown("""**:material/computer: Run natively**
+\nInstall and run **Owl** directly on your computer.
+Instructions [here](https://github.com/mdlacasse/Owl/blob/main/INSTALL.md).""")
 
 kz.divider("orange")
 
