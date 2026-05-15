@@ -3,7 +3,7 @@
 ## A simple script to build both Docker images
 ##
 set -e
-docker build --platform linux/amd64 --no-cache -f Dockerfile.bare -t owlplanner/owldocker.bare:latest .
+docker build --platform linux/amd64 --provenance=true --sbom=true --no-cache -f Dockerfile.bare -t owlplanner/owldocker.bare:latest .
 docker push owlplanner/owldocker.bare
-docker build --platform linux/amd64 --no-cache -f Dockerfile.static -t owlplanner/owldocker.static:latest .
+docker build --platform linux/amd64 --provenance=true --sbom=true --no-cache -f Dockerfile.static -t owlplanner/owldocker.static:latest .
 docker push owlplanner/owldocker.static
