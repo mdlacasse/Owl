@@ -65,5 +65,5 @@ else:
                 help=help_real,
             )
         kz.divider("orange")
-        st.markdown("##### Expand a section below to view its data.")
+        st.markdown("##### Select a tab below, then expand a section to view its data.")
         owb.showWorkbook()

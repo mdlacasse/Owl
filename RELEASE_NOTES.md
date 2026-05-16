@@ -1,8 +1,9 @@
 
-### Version 2026.05.14
+### Version 2026.05.15
 
 #### UX
 - Rework _Graphs_, _Worksheets_,  and _Create Case_ pages.
+- Updated documentation.
 
 ---
 

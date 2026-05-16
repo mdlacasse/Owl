@@ -1207,16 +1207,9 @@ def showWorkbook(plan):
         return
 
     currencySheets = ["Income", "Cash Flow", "Sources", "Accounts", "HSA"]
-    for name in wb.sheetnames:
-        if name == "Summary" or name.startswith("Config"):
-            continue
 
-        dollars = False
-        for word in currencySheets:
-            if word in name:
-                dollars = True
-                break
-
+    def _render_sheet(name):
+        dollars = any(word in name for word in currencySheets)
         pct_sheets = "Allocations" in name or name == "Rates"
         federal_tax_sheet = name == "Federal Income Tax"
 
@@ -1270,6 +1263,25 @@ def showWorkbook(plan):
                 st.caption("Values are in percent, with 2 decimal places." + age_note)
             else:
                 raise ValueError(f"Worksheet '{name}' not classified — add it to currencySheets or handle explicitly.")
+
+    theme_tabs = {"Accounts": [], "Income & Cash Flow": [], "Taxes": [], "Allocations & Rates": []}
+    for name in wb.sheetnames:
+        if name == "Summary" or name.startswith("Config"):
+            continue
+        if "Accounts" in name or name == "HSA":
+            theme_tabs["Accounts"].append(name)
+        elif name in ("Income", "Cash Flow") or "Sources" in name:
+            theme_tabs["Income & Cash Flow"].append(name)
+        elif name == "Federal Income Tax":
+            theme_tabs["Taxes"].append(name)
+        elif "Allocations" in name or name == "Rates":
+            theme_tabs["Allocations & Rates"].append(name)
+
+    tab_widgets = st.tabs(list(theme_tabs.keys()))
+    for tab_widget, sheet_names in zip(tab_widgets, theme_tabs.values()):
+        with tab_widget:
+            for name in sheet_names:
+                _render_sheet(name)
 
 
 @_checkPlan

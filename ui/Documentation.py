@@ -275,12 +275,23 @@ The sections below describe the pages under the *Case Setup* tab and follow the 
     with st.expander("Create Case", expanded=True):
         st.markdown("""
 The **Create Case** page is where every new case begins.
-When no case is yet selected, the page displays three columns side by side:
-one to create a new *case* from scratch, one to upload a *case* parameter file,
-and one to load an example *case* from the repository.
-When a case is already selected, an expandable panel at the top of the page
-provides the same options for creating or loading additional cases.
+When no case is yet selected, the page shows three tabs side by side for starting a case:
+- **Load a Case Example** — pick a pre-built example from GitHub.
+- **Create a New Case** — type a short name to start a blank case.
+- **Upload Your Own Case File** — upload a TOML case file previously saved from Owl.
+
+When a case is already selected, the same three-tab panel is tucked inside an
+*"Create or load another case"* expander at the top of the page,
+keeping the screen uncluttered while still allowing you to add or load cases.
 This page also allows you to copy and/or rename cases, as well as delete them.
+
+Once a case exists but no *Household Financial Profile* (HFP) has been loaded,
+an **Upload Financial Profile** section appears directly on this page, so both
+the case file and the HFP workbook can be loaded without leaving **Create Case**.
+If the loaded example has an associated HFP, a **Load example workbook** button
+appears alongside the uploader.
+The HFP workbook can alternatively be uploaded (or re-uploaded) at any time from the
+**Financial Profile** page in the **Case Setup** section.
 
 For creating a case from scratch, (first) name(s), marital status,
 biological sex (`M`/`F`) for each individual, birth date(s), and life expectancies are required.
@@ -307,7 +318,7 @@ Related *cases* are determined by having the same individuals' names:
 anything else can change between *cases*.
 
 ##### Creating a case from scratch
-Enter a name for the new *case* in the **Create a New Case** text box and press Enter.
+Enter a name for the new *case* in the **Create a New Case** tab and press Enter.
 One must then provide the sex, birth date, and expected lifespan of each individual.
 For selecting your own longevity numbers, there are plenty of predictors on the Internet.
 Pick your favorite:
@@ -317,8 +328,8 @@ Pick your favorite:
 or just Google *life expectancy calculator*.
 
 ##### Using a *case* file
-To start from a *case* file, use the **Upload Your Own Case File** widget or pick one
-from the **Load a Case Example** dropdown. A *case* file must be uploaded.
+To start from a *case* file, use the **Upload Your Own Case File** tab or pick one
+from the **Load a Case Example** tab. A *case* file must be provided.
 These files end with the *.toml* extension, are human readable (and therefore editable),
 and contain all the parameters required to characterize a case.
 An example is provided
@@ -1160,30 +1171,36 @@ Each run applies one scenario — a single series of rates, either constant or v
 as configured in the **Case Setup** section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, or maximize the bequest under the constraint of a net spending amount.
-Various plots show the results, which can be displayed in today's \\$ or
-in nominal value.
+All plots can be displayed in today's \\$ or in nominal value using the radio buttons at the top.
 
-A button allows you to re-run the *case* which would generate a different result
+A **Re-run** button re-executes the *case*, which generates a different result
 if the chosen rate method is stochastic (`histogaussian`, `histolognormal`, `gaussian`,
 `lognormal`, `bootstrap_sor`, `var`, or `garch_dcc`). Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools tab).
 
-When the plan includes an HSA, an additional **HSA Activity** graph is displayed
-showing the annual balance, contributions, and withdrawals for each individual's HSA account.
-This graph appears right after the **Savings Balance** graph.
+A summary bar at the top of the page shows the key metrics: yearly spending (or spending target),
+liquid bequest (or target), fixed-assets bequest (when applicable), and planning horizon.
 
-The **Retention Margin** graph shows, for each year, how far the savings retention rate sits above or
-below the real break-even threshold. The retention rate is `1 − net draw / balance`, where net draw
-equals spending withdrawals minus taxable deposits and tax-advantaged contributions (Roth conversions
-excluded as internal transfers). The real break-even is `(1 + inflation) / (1 + portfolio return) × 100%` —
-the retention rate that exactly preserves real portfolio value.
-The margin plotted is `retention − break-even` (in percentage points), so the zero axis is the
-neutral boundary: **blue bars** (above zero) mean real wealth is growing that year; **red bars**
-(below zero) mean real wealth is shrinking.
-Without a bequest the final bar is typically negative as the balance is drawn down; with a bequest a
-note in the title flags the preserved fraction.
+Graphs are organized into three tabs:
+
+**Spending** — income and cash-flow perspective:
+- *Net Available Spending* — year-by-year spending trajectory.
+- *Raw Income Sources* — stacked breakdown of all income sources (wages, Social Security, pension, withdrawals, etc.).
+- *Annual Rates* — the rate sequence used for this run.
+
+**Taxes** — tax and health insurance costs:
+- *Taxable Ordinary Income* — ordinary income, LTCG, and bracket allocation.
+- *Federal Taxes and Medicare (+IRMAA)* — federal tax bill, Medicare Part B/D premiums, IRMAA surcharges, and ACA premiums (when applicable).
+- *HSA Activity* *(when HSA is present)* — annual HSA balance, contributions, and withdrawals by individual.
+
+**Portfolio** — savings and asset-mix evolution:
+- *Savings Balance* — per-account balances over time.
+- *Savings Retention Margin* — how far the savings retention rate sits above or below the real break-even threshold each year.
+  The retention rate is `1 − net draw / balance`; the real break-even is `(1 + inflation) / (1 + portfolio return) × 100%`.
+  **Blue bars** (above zero) mean real wealth is growing; **red bars** (below zero) mean it is shrinking.
+- *Asset Composition* — allocation-weighted asset mix across all accounts over time.
 
 """)
 
@@ -1199,19 +1216,35 @@ Each table can be downloaded separately in csv format, or all tables can be down
 jointly as a single Excel workbook by clicking on the `Download Worksheets` on the
 **Reports** page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
-The first line of the individual's **Sources** worksheets is highlighted in blue
-indicating that these lines contain actionable items for the current year.
-When the plan includes an HSA, the worksheets include additional HSA columns:
-HSA withdrawals in the **Sources** table, and HSA balances, contributions, and withdrawals
-in the **Accounts** table.
-The workbook also includes an **HSA** worksheet with HSA-specific diagnostics:
-`Medicare`, `QME` (inflation-adjusted from user input), `HSA total wdrwl`,
-`HSA→Medicare`, and `HSA→QME`.
-These columns are presented there (instead of **Cash Flow**) so the **Cash Flow**
-table remains a balancing identity.
 
-Use the **Table display and save options** expander at the top of the page to control
-how worksheets are shown and saved:
+Worksheets are organized into four tabs:
+
+**Accounts** *(shown first as most actionable)* — per-individual savings account detail:
+- *`<individual>`'s Accounts* — balances, contributions, deposits, withdrawals, and Roth conversions
+  for each of the four account types (taxable, tax-deferred, tax-free, HSA). Opening balance as of
+  Jan 1st of that year. The current-year row is highlighted in blue.
+- *HSA* *(when HSA is present)* — HSA diagnostics: `Medicare`, `QME`, `HSA total wdrwl`,
+  `HSA→Medicare`, `HSA→QME`, and per-individual HSA balances, contributions, and withdrawals.
+  Presented separately so the **Cash Flow** table remains a balancing identity.
+
+**Income & Cash Flow** — household cash flow:
+- *Income* — net spending, taxable ordinary income, taxable capital gains and dividends, total tax bills and Medicare.
+- *Cash Flow* — full breakdown of inflows and outflows that balance to net spending.
+- *`<individual>`'s Sources* — per-person year-by-year income sources (wages, Social Security, pension,
+  account withdrawals, RMDs, Roth conversions, big-ticket items). The first row is highlighted in blue
+  to mark actionable items for the current year.
+- *Household Sources* — fixed-asset proceeds (ordinary income, capital gains, tax-free) and debt payments.
+
+**Taxes** — federal tax detail:
+- *Federal Income Tax* — income allocated to each bracket, NIIT, LTCG tax, early-withdrawal penalty,
+  and the fraction of Social Security that is taxable.
+
+**Allocations & Rates** — asset mix and return rates:
+- *`<individual>`'s Allocations* — asset allocation percentages (stocks, corporate bonds, T-notes, common assets)
+  for each account type over time.
+- *Rates* — the year-by-year return rates used in this run.
+
+Use the toggles at the top of the page to control how worksheets are shown and saved:
 - **Show ages**: adds a per-person age column (integer age on December 31 of each row's calendar year,
   blank after that person's plan horizon). Applies to both the on-screen tables and the saved Excel workbook.
 - **Hide columns that are all zeros**: omits all-zero numeric columns from the on-screen tables only;
@@ -1609,7 +1642,8 @@ set maximum Roth conversions to a very large number, say, \\$800k.
 4) Compare all *cases* on the **Reports** page.
 
 As mentioned above, the most actionable information is located on the first few lines
-of the **Sources** tables on the Worksheets page.
+of the **Sources** tables on the Worksheets page (under the **Accounts** tab, then each individual's
+**Sources** sheet in the **Income & Cash Flow** tab).
 This is where withdrawals and conversions are displayed for this year and the next few years.
 """)
 

@@ -136,15 +136,16 @@ with st.expander("*Explore some case examples*"):
         st.markdown("Go to **Create Case**, then choose any example from the dropdown.")
     with step2:
         st.markdown("**2. Load the financial profile**")
-        st.markdown("On the same page, load the associated financial profile using the highlighted *Load example workbook* button."
-                    " View the content on the *Financial Profile* page.")
+        st.markdown("On the same page, load the associated financial profile using the highlighted"
+                    " *Load example workbook* button. View the content on the *Financial Profile* page.")
     with step3:
         st.markdown("**3. View the results**")
         st.markdown("Navigate to **Graphs**, **Worksheets**, or **Reports** under Results to see results.")
 
     st.markdown("**Start here:**")
     st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
-    st.caption("Once you’ve run your first case, explore other Case Setup pages to change assumptions. Explore other cases.")
+    st.caption("Once you’ve run your first case,"
+               " explore other Case Setup pages to change assumptions. Explore other cases.")
 
 st.markdown("### :orange[Curious what Owl can do? The scope is substantial.]")
 modeling_md = Path(__file__).resolve().parent.parent / "docs" / "modeling-capabilities.md"
@@ -163,7 +164,8 @@ with st.expander("*Run your own cases*"):
 Return anytime by uploading your own configuration files—no cloud account required.""")
     st.markdown("#### :orange[Get the sample case files]")
     st.markdown("""
-Want to edit assumptions in a text editor or spreadsheet? Download the Jack & Jill files and reload them anytime.
+Want to edit assumptions in a text editor or spreadsheet?
+Download the Jack & Jill files and reload them anytime.
 You can also copy the case from within the app, modify, and save your changes.""")
 
     lm1, lm2 = st.columns(2)
@@ -207,10 +209,12 @@ st.markdown(
 gi1, gi2, gi3 = st.columns(3, gap="medium")
 with gi1:
     st.markdown("""**:material/bug_report: Report a bug or idea**
-\nFound something wrong or have a feature request? Open an [issue](https://github.com/mdlacasse/Owl/issues) (requires a GitHub account).""")
+\nFound something wrong or have a feature request?
+Open an [issue](https://github.com/mdlacasse/Owl/issues) (requires a GitHub account).""")
 with gi2:
     st.markdown("""**:material/forum: Share your story**
-\nHave a question or want to share how you use **Owl**? Start a [discussion](https://github.com/mdlacasse/Owl/discussions).""")
+\nHave a question or want to share how you use **Owl**?
+Start a [discussion](https://github.com/mdlacasse/Owl/discussions).""")
 with gi3:
     st.markdown("""**:material/star: Give us a star**
 \nIf you find **Owl** useful, starring the [repo](https://github.com/mdlacasse/Owl) helps others discover it.""")
