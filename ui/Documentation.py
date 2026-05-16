@@ -293,39 +293,28 @@ appears alongside the uploader.
 The HFP workbook can alternatively be uploaded (or re-uploaded) at any time from the
 **Financial Profile** page in the **Case Setup** section.
 
-For creating a case from scratch, (first) name(s), marital status,
-biological sex (`M`/`F`) for each individual, birth date(s), and life expectancies are required.
-The reason for asking the birth date is that Social Security rules
-have special considerations when born on the first days of the month.
-If you're not born on a 1st or 2nd day of the month, any other day of the
-month will generate the same results.
-
-*Cases* start on Jan 1st of this year and end on December 31st of the year when all individuals
-have passed according to the specified life expectancies.
-
-A typical workflow will involve creating
-a base *case*, and copying it a few times with slight changes in its parameters
-in order to investigate their effects.
-Copy renames the *case* by appending a number counter in parentheses, just as creating
-a copy of a file on Windows.
-It is recommended to rename each *case* to reflect the change in parameters.
-When copying a case, make sure to visit all pages in the **Case Setup**
-section and verify that all parameters are as intended.
-When all *cases* have successfully run,
-results of related *cases* are compared side-by-side with differences
-in the **Reports** section.
-Related *cases* are determined by having the same individuals' names:
-anything else can change between *cases*.
-
 ##### Creating a case from scratch
 Enter a name for the new *case* in the **Create a New Case** tab and press Enter.
-One must then provide the sex, birth date, and expected lifespan of each individual.
-For selecting your own longevity numbers, there are plenty of predictors on the Internet.
-Pick your favorite:
+Then provide the marital status, biological sex (`M`/`F`), birth date, and expected lifespan
+for each individual. *Cases* start on Jan 1st of this year and end on December 31st of the
+year when all individuals have passed according to the specified life expectancies.
+
+The reason for asking the birth date is that Social Security rules have special considerations
+for those born on the 1st or 2nd of the month; any other day produces the same results.
+
+For selecting longevity numbers, there are plenty of predictors on the Internet:
 - [longevityillustrator](https://longevityillustrator.org),
 - [livingto100](https://www.livingto100.com/calculator),
 
 or just Google *life expectancy calculator*.
+
+A typical workflow involves creating a base *case* and copying it a few times with slight
+changes in parameters to investigate their effects.
+Copy renames the *case* by appending a number counter in parentheses (as on Windows).
+It is recommended to rename each copy to reflect the change in parameters, and to revisit
+all pages in **Case Setup** to verify that parameters are as intended.
+When all *cases* have run, results are compared side-by-side on the **Reports** page.
+Related *cases* are those sharing the same individuals' names; anything else can differ.
 
 ##### Using a *case* file
 To start from a *case* file, use the **Upload Your Own Case File** tab or pick one
