@@ -18,6 +18,7 @@ taxable_savings_balances = [ 338.5,]
 tax_deferred_savings_balances = [ 650.2,]
 tax_free_savings_balances = [ 60.6,]
 hsa_savings_balances = [ 32.0,]
+taxable_cost_basis = [ 135.0,]
 
 [household_financial_profile]
 HFP_file_name = "HFP_joe.xlsx"

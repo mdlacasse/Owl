@@ -309,6 +309,11 @@ def config_to_ui(diconf: dict) -> dict:
                 dic[f"jhsa_init%{k}_{i}"] = int(hsa_a[0][k])
                 dic[f"jhsa_fin%{k}_{i}"] = int(hsa_a[1][k])
 
+    # Taxable cost basis (optional; empty list in config → 0.0 in UI)
+    cost_basis = sa.get("taxable_cost_basis", [])
+    for i in range(ni):
+        dic["txblBasis" + str(i)] = cost_basis[i] if i < len(cost_basis) else 0.0
+
     # Solver options
     for key in SOLVER_UI_PASSTHROUGH_KEYS:
         if key in so:
@@ -489,6 +494,11 @@ def ui_to_config(uidic: dict) -> dict:
         diconf["savings_assets"][key] = [
             _get_ui(uidic, ACC_UI[j] + str(i), 0, float) for i in range(ni)
         ]
+    # Taxable cost basis: only include when at least one person has a non-zero value.
+    basis_vals = [_get_ui(uidic, f"txblBasis{i}", 0.0, float) for i in range(ni)]
+    if any(v > 0 for v in basis_vals):
+        diconf["savings_assets"]["taxable_cost_basis"] = basis_vals
+
     if ni == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = [
             _get_ui(uidic, f"benf{j}", 1, float) for j in range(4)

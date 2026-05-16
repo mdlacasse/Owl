@@ -239,6 +239,8 @@ class Plan:
         self.Psi_n = np.ones(self.N_n) * 0.85
         self.chi = 0.60   # Survivor fraction
         self.mu = 0.0172  # Dividend rate (decimal)
+        self.taxable_basis_i = None     # Per-person initial cost basis (N_i,); None = legacy cap-gain approx
+        self.gain_fraction_in = None    # (N_i, N_n) unrealized gain fraction; updated each SC iteration
         self.nu = 0.300   # Heirs tax rate (decimal)
         self.bequest = 0.0            # After-tax bequest in today's dollars (set after full solve)
         self.effectiveTaxRate = 0.20  # Effective tax rate for for spending-to-savings ratio
@@ -526,6 +528,28 @@ class Plan:
         self.mylog.vprint(f"Dividend tax rate set to {u.pc(mu, f=0)}.")
         self.mu = mu
         self.caseStatus = "modified"
+
+    def setCostBasis(self, amounts, units="k"):
+        """
+        Set the current cost basis of the taxable account for each individual.
+        When provided, capital gains on withdrawals are computed from the actual
+        unrealized-gain fraction instead of only this year's price appreciation.
+        Units are in $k by default; pass units='M' or units='1' to override.
+        """
+        u.require_list(amounts, "amounts", self.N_i)
+        fac = u.getUnits(units)
+        scaled = [v * fac for v in amounts]
+        if any(v < 0 for v in scaled):
+            raise ValueError("Cost basis amounts must be non-negative.")
+        self.taxable_basis_i = np.array(scaled, dtype=float)
+        self.gain_fraction_in = None
+        self.mylog.vprint("Taxable cost basis:", *[u.d(self.taxable_basis_i[i]) for i in range(self.N_i)])
+        self.caseStatus = "modified"
+
+    @staticmethod
+    def _gain_fraction_from_basis(basis, balance):
+        """Unrealized gain fraction in [0, 1] from average-cost basis and account balance."""
+        return min(1.0, max(0.0, 1.0 - float(basis) / max(1.0, float(balance))))
 
     def setExpirationYearOBBBA(self, yOBBBA):
         """
@@ -2290,7 +2314,6 @@ class Plan:
             return
 
         bigM = u.get_numeric_option(options, "bigMss", BIGM_AMO, min_value=0)
-        tau_0 = self.tau_kn[0, :]
 
         for n in range(self.N_n):
             zetaBar_n = np.sum(self.zetaBar_in[:, n])
@@ -2315,7 +2338,6 @@ class Plan:
             # mirror the Medicare MAGI constraint (same year n, not n-2) but with 0.5·ζ̄_n.
             # The t^σ_n correction cancels the taxable-SS portion embedded in e_n (with ss_lp,
             # e_n = B_n + t^σ_n), leaving Π_n = B_n + Q_n + 0.5·ζ̄_n independent of t^σ_n.
-            tau_prev = tau_0[max(0, n - 1)]
 
             rhs_pi = (self.fixed_assets_ordinary_income_n[n]
                       + self.fixed_assets_capital_gains_n[n]
@@ -2329,8 +2351,8 @@ class Plan:
                 # Combined dividend + interest yield for taxable account (equity + bonds/notes/cash).
                 afac = (self.mu * self.alpha_ijkn[i, 0, 0, n]
                         + np.sum(self.alpha_ijkn[i, 0, 1:, n] * np.maximum(0, self.tau_kn[1:, n])))
-                # Capital gains: price appreciation only (total equity return − dividend rate).
-                bfac = self.alpha_ijkn[i, 0, 0, n] * max(0, tau_prev - self.mu)
+                # Capital gains on taxable account withdrawal (uses tracked basis if available).
+                bfac = self.alpha_ijkn[i, 0, 0, n] * self._effective_cap_gain_coef(i, n)
 
                 w1_idx = self.vm["w"].idx(i, 1, n)
                 x_idx = self.vm["x"].idx(i, n)
@@ -2487,11 +2509,6 @@ class Plan:
 
         U_n = 0.15*q[1,n] + 0.20*q[2,n] is computed as a derived quantity after solving.
         """
-        tau_0 = self.tau_kn[0, :]
-        # Use the same roll as _aggregateResults so the partition constraint is consistent
-        # with the Q_n computation used for reporting.
-        tau_0prev = np.roll(tau_0, 1)
-
         for n in range(self.N_n):
             # Per-year filing status: couple switches to Single at n_d.
             status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
@@ -2499,10 +2516,6 @@ class Plan:
             # Inflation-adjusted bracket thresholds.
             T15_n = self.gamma_n[n] * tx.capGainRates[status_n][0]
             T20_n = self.gamma_n[n] * tx.capGainRates[status_n][1]
-
-            # Previous year's equity return for capital-gains rate on sold shares.
-            # max(0,...) matches capital_gains_rate computation in _aggregateResults.
-            cap_rate = max(0.0, tau_0prev[n] - self.mu)
 
             q0_idx = self.vm["q"].idx(0, n)   # p=0: 0% bracket
             q1_idx = self.vm["q"].idx(1, n)   # p=1: 15% bracket
@@ -2592,8 +2605,9 @@ class Plan:
                 b_idx = self.vm["b"].idx(i, 0, n)
                 w_idx = self.vm["w"].idx(i, 0, n)
                 d_idx = self.vm["d"].idx(i, n)
+                gf = self._effective_cap_gain_coef(i, n)
                 row_q[b_idx] = row_q.get(b_idx, 0) - alpha * self.mu
-                row_q[w_idx] = row_q.get(w_idx, 0) - alpha * (cap_rate - self.mu)
+                row_q[w_idx] = row_q.get(w_idx, 0) - alpha * (gf - self.mu)
                 row_q[d_idx] = row_q.get(d_idx, 0) - alpha * self.mu
                 rhs_q += alpha * 0.5 * self.mu * self.kappa_ijn[i, 0, n]
 
@@ -2619,15 +2633,11 @@ class Plan:
         if not self._niit_lp:
             return
 
-        tau_0 = self.tau_kn[0, :]
-        tau_0prev = np.roll(tau_0, 1)
-
         zetaBar_n = np.sum(self.zetaBar_in, axis=0)
 
         for n in range(self.N_n):
             magi_idx = self.vm["magi"].idx(n)
             e_idx = self.vm["e"].idx(n)
-            cap_rate = max(0.0, tau_0prev[n] - self.mu)
 
             # Build MAGI equality row:
             # magi_n = G_n + e_n + Q_n + (1-Psi_n)*zetaBar_n
@@ -2658,8 +2668,9 @@ class Plan:
                 b_idx = self.vm["b"].idx(i, 0, n)
                 w_idx = self.vm["w"].idx(i, 0, n)
                 d_idx = self.vm["d"].idx(i, n)
+                gf = self._effective_cap_gain_coef(i, n)
                 row[b_idx] = row.get(b_idx, 0) + alpha * self.mu
-                row[w_idx] = row.get(w_idx, 0) + alpha * (cap_rate - self.mu)
+                row[w_idx] = row.get(w_idx, 0) + alpha * (gf - self.mu)
                 row[d_idx] = row.get(d_idx, 0) + alpha * self.mu
                 rhs_magi -= alpha * 0.5 * self.mu * self.kappa_ijn[i, 0, n]
 
@@ -2790,11 +2801,8 @@ class Plan:
                 row.addElem(self.vm["b"].idx(i, 0, n2), -afac)
                 row.addElem(self.vm["d"].idx(i, n2), -afac)
 
-                # Capital gains on stocks sold from taxable account accrued in year n2 - 1.
-                # Capital gains = price appreciation only (total return - dividend rate)
-                #  to avoid double taxation of dividends.
-                tau_prev = self.tau_kn[0, max(0, n2 - 1)]
-                bfac = self.alpha_ijkn[i, 0, 0, n2] * max(0, tau_prev - self.mu)
+                # Capital gains on taxable account withdrawal (uses tracked basis if available).
+                bfac = self.alpha_ijkn[i, 0, 0, n2] * self._effective_cap_gain_coef(i, n2)
                 row.addElem(self.vm["w"].idx(i, 0, n2), afac - bfac)
 
                 # MAGI includes total Social Security (taxable + non-taxable) for IRMAA.
@@ -2865,7 +2873,6 @@ class Plan:
             return
 
         bigM = u.get_numeric_option(options, "bigMaca", BIGM_AMO, min_value=0)
-        tau_0 = self.tau_kn[0, :]
 
         # a) SOS1: exactly one bracket selected per year.
         for nn in range(self.n_aca):
@@ -2877,8 +2884,6 @@ class Plan:
         # b) MAGI decomposition: sum_r haca[nn, r] = current-year MAGI.
         for nn in range(self.n_aca):
             n = nn  # ACA uses current year (no lag)
-            tau_prev = tau_0[max(0, n - 1)]
-
             rhs_magi = (self.fixed_assets_ordinary_income_n[n]
                         + self.fixed_assets_capital_gains_n[n])
 
@@ -2888,7 +2893,7 @@ class Plan:
             for i in range(self.N_i):
                 afac = (self.mu * self.alpha_ijkn[i, 0, 0, n]
                         + np.sum(self.alpha_ijkn[i, 0, 1:, n] * np.maximum(0, self.tau_kn[1:, n])))
-                bfac = self.alpha_ijkn[i, 0, 0, n] * max(0, tau_prev - self.mu)
+                bfac = self.alpha_ijkn[i, 0, 0, n] * self._effective_cap_gain_coef(i, n)
 
                 w1_idx = self.vm["w"].idx(i, 1, n)
                 x_idx = self.vm["x"].idx(i, n)
@@ -3397,6 +3402,45 @@ class Plan:
                 tag="WARNING"
             )
 
+    def _effective_cap_gain_coef(self, i, n):
+        """Gain fraction for w[i,0,n]: uses tracked basis if available, else current-year appreciation.
+        For n=0, n-1 wraps to -1 (Python semantics), matching the np.roll(tau_0,1) convention used
+        in _configure_ltcg_constraints and _aggregateResults."""
+        if self.gain_fraction_in is not None:
+            return self.gain_fraction_in[i, n]
+        tau_prev = self.tau_kn[0, n - 1]   # n=0 → tau_kn[0,-1] (last rate), matches roll convention
+        return max(0.0, tau_prev - self.mu)
+
+    def _init_gain_fraction(self):
+        """Initialize gain_fraction_in from user-supplied cost basis before first LP solve."""
+        if self.taxable_basis_i is None:
+            self.gain_fraction_in = None
+            return
+        self.gain_fraction_in = np.zeros((self.N_i, self.N_n))
+        for i in range(self.N_i):
+            b0 = self.beta_ij[i, 0]
+            gf0 = self._gain_fraction_from_basis(self.taxable_basis_i[i], b0)
+            self.gain_fraction_in[i, :] = gf0
+
+    def _update_gain_fraction(self):
+        """Update gain_fraction_in using last SC-iteration balances and withdrawals.
+        Both fixed contributions (kappa) and LP surplus deposits (d_in) add to basis at full value
+        because they are new purchases at the current market price."""
+        if self.gain_fraction_in is None:
+            return
+        for i in range(self.N_i):
+            basis = float(self.taxable_basis_i[i])
+            for n in range(self.N_n):
+                b_n = self.b_ijn[i, 0, n]
+                w_n = self.w_ijn[i, 0, n]
+                # New purchases: fixed HFP contributions + LP-decided surplus deposits (both at full basis).
+                c_n = self.kappa_ijn[i, 0, n] + self.d_in[i, n]
+                self.gain_fraction_in[i, n] = self._gain_fraction_from_basis(basis, b_n)
+                if b_n > 0:
+                    basis = basis * (1.0 - w_n / b_n) + c_n
+                else:
+                    basis = c_n
+
     def _scSolve(self, objective, options, solverMethod):
         """
         Self-consistent loop, regardless of solver.
@@ -3457,6 +3501,7 @@ class Plan:
             actualSolverMethod = solverMethod
 
         self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
+        self._init_gain_fraction()
         M_n_lp = self.M_n.copy()
         ACA_n_lp = self.ACA_n.copy()
         while True:
@@ -3485,6 +3530,7 @@ class Plan:
             # When withSCLoop=False, only update G_n (needed for LTCG bracket accuracy)
             # by passing includeMedicare=False; this preserves the no-Medicare-loop behavior.
             self._computeNLstuff(xx, includeMedicare if withSCLoop else False, fixedPsi=fixed_psi)
+            self._update_gain_fraction()
 
             delta = xx - old_x
             # Only consider account balances in dX.
@@ -4432,14 +4478,17 @@ class Plan:
         tau_0 = np.array(self.tau_kn[0, :])
         # Last year's rates.
         tau_0prev = np.roll(tau_0, 1)
-        # Capital gains = price appreciation only (total return - dividend rate)
-        # to avoid double taxation of dividends. No tax harvesting here.
-        capital_gains_rate = np.maximum(0, tau_0prev - self.mu)
+        # Capital gain coefficient per withdrawal: tracked gain fraction when basis is known,
+        # otherwise current-year price appreciation only (tau_0 - mu).
+        if self.gain_fraction_in is not None:
+            cgr = self.gain_fraction_in[:, :Nn]                        # shape (N_i, N_n)
+        else:
+            cgr = np.maximum(0, tau_0prev - self.mu)[np.newaxis, :]   # broadcast to (1, N_n)
         self.Q_n = np.sum(
             (
                 self.mu
                 * (self.b_ijn[:, 0, :Nn] - self.w_ijn[:, 0, :] + self.d_in[:, :] + 0.5 * self.kappa_ijn[:, 0, :Nn])
-                + capital_gains_rate * self.w_ijn[:, 0, :]
+                + cgr * self.w_ijn[:, 0, :]
             )
             * self.alpha_ijkn[:, 0, 0, :Nn],
             axis=0,

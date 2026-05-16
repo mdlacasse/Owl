@@ -425,6 +425,43 @@ def test_other_medical_expenses_config_to_ui_roundtrip():
     assert out["optimization_parameters"]["other_medical_expenses"] == 5.0
 
 
+def test_taxable_cost_basis_config_to_ui_roundtrip():
+    """taxable_cost_basis round-trips through config_to_ui and ui_to_config."""
+    diconf = _minimal_config_for_rates()
+    diconf["savings_assets"]["taxable_cost_basis"] = [45.0]
+
+    uidic = config_to_ui(diconf)
+    assert uidic["txblBasis0"] == 45.0
+
+    out = ui_to_config(uidic)
+    assert out["savings_assets"]["taxable_cost_basis"] == [45.0]
+
+
+def test_taxable_cost_basis_ui_zeros_omitted():
+    """All-zero UI basis fields omit taxable_cost_basis (legacy approximation)."""
+    diconf = _minimal_config_for_rates()
+    uidic = config_to_ui(diconf)
+    uidic["txblBasis0"] = 0.0
+    out = ui_to_config(uidic)
+    assert "taxable_cost_basis" not in out["savings_assets"]
+
+
+def test_apply_config_clears_basis_when_ui_zeros():
+    """apply_config_to_plan clears in-memory basis when config omits taxable_cost_basis."""
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setRates("user", values=[6.0, 4.0, 3.0, 2.5])
+    p.setCostBasis([45.0])
+
+    diconf = plan_to_config(p)
+    del diconf["savings_assets"]["taxable_cost_basis"]
+    apply_config_to_plan(p, diconf)
+    assert p.taxable_basis_i is None
+    assert p.gain_fraction_in is None
+
+
 def test_other_medical_expenses_plan_to_config_roundtrip():
     """setMedicalExpenses round-trips through plan_to_config and back to the plan."""
     p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)

@@ -1,4 +1,31 @@
 
+### Version 2026.05.16
+
+#### Taxable account cost-basis tracking
+
+- **`setCostBasis(amounts, units='k')`** (new): Declares the aggregate cost basis of each
+  individual's taxable account. When provided, capital-gains tax on taxable-account withdrawals
+  is computed using the **average-cost method**: the gain fraction `(balance − basis) / balance`
+  is applied per dollar withdrawn, capturing all embedded unrealized gains rather than only
+  this year's price appreciation. The basis evolves each SC-loop iteration as withdrawals reduce
+  it proportionally and new contributions (HFP deposits and LP surplus deposits) increase it at
+  full cost.
+- **Fallback**: If `setCostBasis` is not called, the prior approximation (`cap_rate ≈ τ₀ − μ`,
+  this year's appreciation only) is used — no behavioral change for existing cases.
+- **TOML**: `taxable_cost_basis` field in `[savings_assets]`; round-tripped through
+  `saveConfig()` / `readConfig()`.
+- **UI**: Per-person cost-basis inputs on the *Account Balances* page (optional; leave at 0 to
+  use the legacy approximation).
+- **Example files**: `Case_jack+jill`, `Case_joe`, and `Case_robin` updated with realistic
+  cost-basis values (roughly half of taxable balance, consistent with ~10 years of compounding).
+- **Docs**: `docs/modeling-capabilities.md` corrected — taxable-account gain treatment now
+  accurately described as average-cost rather than LIFO.
+- **Tests**: 8 new tests in `tests/test_cost_basis.py` covering backward compatibility,
+  high-gain scenarios, edge cases (zero basis, full basis, basis > balance), and SC-loop
+  convergence.
+
+---
+
 ### Version 2026.05.15
 
 #### UX

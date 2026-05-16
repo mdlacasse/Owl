@@ -65,6 +65,12 @@ def _apply_assets_to_plan(plan: "Plan", known: dict, icount: int) -> None:
     for i in range(icount):
         n_hsa = plan.yobs[i] + ages[i] - thisyear
         plan.n_hsa_i[i] = min(max(0, n_hsa), plan.N_n)
+    cost_basis = known["savings_assets"].get("taxable_cost_basis", [])
+    if cost_basis and any(v > 0 for v in cost_basis):
+        plan.setCostBasis(cost_basis)
+    else:
+        plan.taxable_basis_i = None
+        plan.gain_fraction_in = None
     if icount == 2:
         phi_j = known["savings_assets"]["beneficiary_fractions"]
         plan.setBeneficiaryFractions(phi_j)
@@ -396,6 +402,8 @@ def plan_to_config(myplan: "Plan") -> dict:
     for j in range(myplan.N_j):
         amounts = myplan.beta_ij[:, j] / 1000  # plan dollars -> config $k
         diconf["savings_assets"][ACCOUNT_KEY_MAP[ACCOUNT_TYPES[j]]] = amounts.tolist()
+    if myplan.taxable_basis_i is not None:
+        diconf["savings_assets"]["taxable_cost_basis"] = (myplan.taxable_basis_i / 1000).tolist()
     if myplan.N_i == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = myplan.phi_j.tolist()
         diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = myplan.eta

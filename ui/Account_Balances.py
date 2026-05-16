@@ -63,6 +63,27 @@ else:
                 ret = kz.getNum(f"{iname1}'s {accounts[key]} accounts ($k)", nkey,
                                 help=hdetails[key]+kz.help1000)
 
+    st.divider()
+    st.markdown("#### :orange[Taxable Account Cost Basis] *(optional)*")
+    basis_help = (
+        "Current cost basis of the taxable account for this person ($k). "
+        "When provided, capital gains on withdrawals are computed from the actual "
+        "unrealized-gain fraction (average-cost method) rather than only this year's "
+        "price appreciation. Leave at 0 if unknown — the legacy approximation will be used."
+    )
+    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+    with col1:
+        iname = kz.getCaseKey("iname0")
+        nkey = "txblBasis0"
+        kz.initCaseKey(nkey, 0.0)
+        kz.getNum(f"{iname}'s taxable cost basis ($k)", nkey, help=basis_help)
+    with col2:
+        if kz.getCaseKey("status") == "married":
+            iname1 = kz.getCaseKey("iname1")
+            nkey = "txblBasis1"
+            kz.initCaseKey(nkey, 0.0)
+            kz.getNum(f"{iname1}'s taxable cost basis ($k)", nkey, help=basis_help)
+
     if kz.getCaseKey("status") == "married":
         st.divider()
         with st.expander("*Advanced options*"):

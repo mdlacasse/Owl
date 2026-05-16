@@ -64,6 +64,8 @@ def getHFP(exdir, case, check_exists=True):
 # reducing optimal bequest relative to Part B-only baseline).
 # Updated after HSA QME in kim+sam examples: both kim+sam cases now include
 # other_medical_expenses=2.0 ($2k/year), which slightly changes bequest baselines.
+# Updated after taxable_cost_basis added to jack+jill, joe, robin: proper unrealized-gain
+# tracking increases LTCG tax, reducing max spending for those three cases.
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
@@ -71,11 +73,11 @@ if platform == "darwin":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 94_589,
+            "net_spending_basis": 94_353,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 93_391,
+            "net_spending_basis": 92_250,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
@@ -87,7 +89,7 @@ if platform == "darwin":
             "bequest": 2_097_259,
         },
         "Case_robin": {
-            "net_spending_basis": 44_642,
+            "net_spending_basis": 44_585,
             "bequest": 50_000,
         },
     }
@@ -98,11 +100,11 @@ elif platform == "linux":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 94_443,
+            "net_spending_basis": 94_207,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 93_391,
+            "net_spending_basis": 92_250,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
@@ -114,7 +116,7 @@ elif platform == "linux":
             "bequest": 2_097_259,
         },
         "Case_robin": {
-            "net_spending_basis": 44_642,
+            "net_spending_basis": 44_585,
             "bequest": 50_000,
         },
     }
@@ -125,11 +127,11 @@ elif platform == "win32":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 94_443,
+            "net_spending_basis": 94_207,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 93_391,
+            "net_spending_basis": 92_250,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
@@ -141,7 +143,7 @@ elif platform == "win32":
             "bequest": 2_097_259,
         },
         "Case_robin": {
-            "net_spending_basis": 44_642,
+            "net_spending_basis": 44_585,
             "bequest": 50_000,
         },
     }

@@ -77,6 +77,9 @@ class SavingsAssets(BaseModel):
     hsa_savings_balances: List[float] = Field(
         default=[0.0], description="HSA balances ($k)"
     )
+    taxable_cost_basis: List[float] = Field(
+        default=[], description="Cost basis of taxable account per person ($k); empty = use legacy approximation"
+    )
     beneficiary_fractions: Optional[List[float]] = None  # Married only
     spousal_surplus_deposit_fraction: Optional[float] = None  # Married only
 

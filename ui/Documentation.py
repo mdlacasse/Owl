@@ -684,6 +684,30 @@ can also sometimes lead to slow convergence. This is especially noticeable when 
 varying rates and not so common when using constant rates.
 When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
+
+#### Taxable Account Cost Basis (optional)
+
+The optional **cost basis** fields improve capital gains accuracy for the taxable account.
+By default (when left at 0), Owl approximates capital gains on withdrawals using only the
+current year's price appreciation — which significantly underestimates gains for accounts
+with substantial embedded appreciation. When you supply a basis, Owl instead uses the
+**average-cost method**: each dollar withdrawn from the taxable account is treated as
+realizing a gain equal to the *unrealized-gain fraction* of the account,
+where gain fraction = (current balance − cost basis) / current balance.
+The gain fraction evolves each year as the SC loop tracks how basis changes
+(withdrawals reduce it proportionally; new contributions restore it at full value).
+
+The cost basis to enter is the total **adjusted cost basis** of the taxable account as
+reported by your brokerage — the sum of what you paid for all lots currently held,
+adjusted for reinvested dividends and return-of-capital distributions.
+All amounts are in \\$k.
+Leave the field at **0** if your basis is unknown — Owl treats zero (or blank) as *no basis
+supplied* and uses the legacy approximation. Enter a **positive** value to enable average-cost
+tracking. (In TOML or the Python API, an all-zero list or `setCostBasis([0])` follows the same
+rules: all zeros in a case file means legacy mode; `setCostBasis([0])` in code explicitly models
+100% embedded gain.)
+A higher gain fraction means more capital gains tax per dollar withdrawn from the taxable account,
+increasing total tax drag and reducing the maximum achievable spending or bequest.
 """)
 
     with st.expander("Asset Allocation"):

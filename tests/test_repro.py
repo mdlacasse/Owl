@@ -33,25 +33,22 @@ solver = 'HiGHS'
 # solver = 'MOSEK'
 # Updated after HFP dollar conversion ($ not $k) in update_hfp_coverage.py
 if platform == "darwin":
-    # Flip a coin!
-    # SPENDING1 = 87_802 +/- 104
-    # SPENDING1 = 87_839
-    SPENDING1 = 87_839
-    BEQUEST1 = 867_769
-    SPENDING2 = 97_710
-    SPENDING1_FIXED = 93_854
+    SPENDING1 = 87_488
+    BEQUEST1 = 861_211
+    SPENDING2 = 97_620
+    SPENDING1_FIXED = 93_696
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
-    SPENDING1 = 87_838
-    BEQUEST1 = 867_769
-    SPENDING2 = 97_710
-    SPENDING1_FIXED = 93_854
+    SPENDING1 = 87_488
+    BEQUEST1 = 861_211
+    SPENDING2 = 97_620
+    SPENDING1_FIXED = 93_696
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
-    SPENDING1 = 87_838
-    BEQUEST1 = 867_769
-    SPENDING2 = 97_710
-    SPENDING1_FIXED = 93_854
+    SPENDING1 = 87_488
+    BEQUEST1 = 861_211
+    SPENDING2 = 97_620
+    SPENDING1_FIXED = 93_696
     BEQUEST1_FIXED = 500_000
 else:
     print(f"Unknown platform {platform}")
@@ -72,6 +69,7 @@ def createJackAndJillPlan(name):
 
     p.setAccountBalances(taxable=[90, 60], taxDeferred=[600, 150],
                          taxFree=[50 + 20, 40], startDate="1-1")
+    p.setCostBasis([45, 30])
     p.readHFP('./examples/HFP_jack+jill.xlsx')
     p.setInterpolationMethod('s-curve')
     p.setAllocationRatios('individual',
