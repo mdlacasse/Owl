@@ -275,64 +275,59 @@ The sections below describe the pages under the *Case Setup* tab and follow the 
     with st.expander("Create Case", expanded=True):
         st.markdown("""
 The **Create Case** page is where every new case begins.
-When no case is yet selected, the page shows three tabs side by side for starting a case:
+When no case is yet selected, the page shows three tabs for starting a case:
 - **Load a Case Example** — pick a pre-built example from GitHub.
 - **Create a New Case** — type a short name to start a blank case.
 - **Upload Your Own Case File** — upload a TOML case file previously saved from Owl.
 
-When a case is already selected, the same three-tab panel is tucked inside an
+When a case is already selected, the same three-tab panel is tucked inside a
 *"Create or load another case"* expander at the top of the page,
-keeping the screen uncluttered while still allowing you to add or load cases.
-This page also allows you to copy and/or rename cases, as well as delete them.
+keeping the screen uncluttered while still allowing you to add or switch cases.
+The page also allows you to copy, rename, and delete cases.
 
 Once a case exists but no *Household Financial Profile* (HFP) has been loaded,
-an **Upload Financial Profile** section appears directly on this page, so both
-the case file and the HFP workbook can be loaded without leaving **Create Case**.
-If the loaded example has an associated HFP, a **Load example workbook** button
-appears alongside the uploader.
-The HFP workbook can alternatively be uploaded (or re-uploaded) at any time from the
-**Financial Profile** page in the **Case Setup** section.
+an **Upload Financial Profile** section appears directly on this page, so the case file
+and the HFP workbook can both be loaded without leaving **Create Case**.
+The HFP can alternatively be uploaded (or re-uploaded) at any time from the
+**Financial Profile** page.
 
-##### Creating a case from scratch
-Enter a name for the new *case* in the **Create a New Case** tab and press Enter.
-Then provide the marital status, biological sex (`M`/`F`), birth date, and expected lifespan
-for each individual. *Cases* start on Jan 1st of this year and end on December 31st of the
-year when all individuals have passed according to the specified life expectancies.
+##### Load a Case Example
+Select a pre-built example from the dropdown to load it directly from GitHub.
+A representative example is available
+[here](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true),
+and more can be found in the examples
+[directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
+Loading an example populates all fields in the **Case Setup** section; most parameters
+can be adjusted afterwards. If the example has an associated HFP, a
+**Load example workbook** button appears so it can be loaded on the same page.
 
-The reason for asking the birth date is that Social Security rules have special considerations
-for those born on the 1st or 2nd of the month; any other day produces the same results.
+##### Create a New Case
+Enter a name in the text box and press Enter, then fill in the marital status,
+biological sex (`M`/`F`), birth date, and expected lifespan for each individual.
+Cases start on Jan 1st of this year and end on December 31st of the year in which
+the last individual passes according to the specified life expectancies.
 
-For selecting longevity numbers, there are plenty of predictors on the Internet:
-- [longevityillustrator](https://longevityillustrator.org),
-- [livingto100](https://www.livingto100.com/calculator),
+Birth date is required because Social Security has special rules for people born on
+the 1st or 2nd of the month; any other day of the month produces the same results.
 
-or just Google *life expectancy calculator*.
+For estimating longevity, several online calculators are available:
+- [longevityillustrator](https://longevityillustrator.org)
+- [livingto100](https://www.livingto100.com/calculator)
 
-A typical workflow involves creating a base *case* and copying it a few times with slight
-changes in parameters to investigate their effects.
-Copy renames the *case* by appending a number counter in parentheses (as on Windows).
-It is recommended to rename each copy to reflect the change in parameters, and to revisit
-all pages in **Case Setup** to verify that parameters are as intended.
-When all *cases* have run, results are compared side-by-side on the **Reports** page.
-Related *cases* are those sharing the same individuals' names; anything else can differ.
+##### Upload Your Own Case File
+Upload a *case* parameter file (`.toml` extension) previously saved from **Owl**.
+These files are human-readable and contain all the scalar parameters of a *case*.
+Loading one populates all fields in the **Case Setup** section, except for the
+*Household Financial Profile* data, which is loaded separately (see next section).
 
-##### Using a *case* file
-To start from a *case* file, use the **Upload Your Own Case File** tab or pick one
-from the **Load a Case Example** tab. A *case* file must be provided.
-These files end with the *.toml* extension, are human readable (and therefore editable),
-and contain all the parameters required to characterize a case.
-An example is provided
-[here](https://github.com/mdlacasse/Owl/blob/main/examples/Case_jack+jill.toml?raw=true) and more
-can be found in this [directory](https://github.com/mdlacasse/Owl/blob/main/examples/).
-Using a *case* file
-will populate all the fields in the **Case Setup** section,
-except those in the *Household Financial Profile* (HFP) which get populated
-separately by an Excel workbook (see next section).
-
-Once a *case* was successfully run, the *case* file for the *case* being developed
-can be saved under the Reports page and can be reloaded at a later time.
-Case parameter files can have any name but when saving from the interface,
-their name will start with *Case_* followed by the *case* name.
+##### Typical Workflow
+A typical workflow involves creating a base *case* and copying it a few times,
+each time changing one parameter to explore its effect.
+Copying appends a number in parentheses to the case name (as on Windows);
+it is good practice to then rename each copy to reflect what changed, and to
+visit all **Case Setup** pages to confirm the parameters are as intended.
+Once all *cases* have run, their results can be compared side-by-side on the **Reports** page.
+Cases are considered related when they share the same individuals' names.
 """)
 
     with st.expander("Financial Profile"):
@@ -1610,30 +1605,31 @@ one can use a termination year for current tax rates to revert to higher rates.
 
     with st.expander("Typical Workflow"):
         st.markdown("""
-A typical workflow would look like the following:
+A typical workflow involves creating a base *case* and copying it a few times,
+each time changing one parameter to explore its effect:
 
-1) Create a base *case* representing your baseline situation;
-2) Copy the base *case* and modify the parameter you want to investigate;
-3) Repeat 2) with other end-member values of the parameter you would like to consider;
-4) Run all *cases* and compare them on the **Reports** page.
+1. Create a base *case* representing your baseline situation.
+2. Copy the base *case* and modify the parameter you want to investigate.
+3. Repeat step 2 for other values of that parameter, or for other parameters.
+4. Run all *cases* and compare them on the **Reports** page.
 
-To make it more concrete, here is an example
-where one would like to investigate the effects of Roth conversions
-on total net spending.
-1) Create a *case* called, say, *2026 - Base case*.
-Fill in all parameters representing your goals and situation.
-Upload file or fill-in values for Wages and Contributions.
-Let's say this *case* allows for Roth conversions up to \\$100k.
-2) Copy the base case, call it *2026 - No Roth conversions* and
-set maximum Roth conversions to 0.
-3) Copy the base *case* again, call it *2026 - No Roth limit* and
-set maximum Roth conversions to a very large number, say, \\$800k.
-4) Compare all *cases* on the **Reports** page.
+Copying appends a number in parentheses to the case name; rename each copy to reflect
+what changed, and revisit all **Case Setup** pages to confirm parameters are as intended.
+Cases are considered related — and will be compared side-by-side on **Reports** —
+when they share the same individuals' names.
 
-As mentioned above, the most actionable information is located on the first few lines
-of the **Sources** tables on the Worksheets page (under the **Accounts** tab, then each individual's
-**Sources** sheet in the **Income & Cash Flow** tab).
-This is where withdrawals and conversions are displayed for this year and the next few years.
+Here is a concrete example investigating the effect of Roth conversions on net spending:
+
+1. Create a *case* called *2026 - Base case*. Fill in all parameters for your situation,
+   including wages and contributions. Set the maximum Roth conversion to \\$100k.
+2. Copy the base *case*, rename it *2026 - No Roth conversions*, and set the maximum to \\$0.
+3. Copy the base *case* again, rename it *2026 - No Roth limit*, and set the maximum to a
+   large number such as \\$800k.
+4. Run all three *cases* and compare results on the **Reports** page.
+
+The most actionable information is on the first few lines of each individual's **Sources**
+worksheet (Worksheets page → **Income & Cash Flow** tab), where withdrawals and Roth
+conversions for the current and upcoming years are listed.
 """)
 
     with st.expander("Scope of Use"):
