@@ -232,7 +232,13 @@ reproduce the run — the HFP workbook must also be saved.
 The HFP workbook as currently loaded or edited in the session. Saving it alongside
 `Case_<case>.toml` guarantees a fully reproducible *case*.
 
-**`Workbook_<case>.xlsx`** — *Output worksheets*
+**`Synopsis_<case>.txt`** — *Case summary*
+
+A plain-text table of key metrics (spending, bequest, taxes, etc.) for the solved *case*.
+When multiple *cases* sharing the same individuals' names have been solved, additional columns
+show the differences between cases for a quick side-by-side comparison.
+
+**`Workbook_<case>.xlsx`** — *Plan workbook*
 
 The primary numerical output of a solved *case*. Contains one worksheet per topic,
 all indexed by year:
@@ -253,12 +259,6 @@ all indexed by year:
   early-withdrawal penalty, and the fraction of Social Security that is taxable.
 - **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
   (stocks, corporate bonds, T-notes, common assets) for each account type over time.
-
-**`Synopsis_<case>.txt`** — *Case summary*
-
-A plain-text table of key metrics (spending, bequest, taxes, etc.) for the solved *case*.
-When multiple *cases* sharing the same individuals' names have been solved, additional columns
-show the differences between cases for a quick side-by-side comparison.
 """)
 
 # --- Case Setup tab ---
@@ -1188,9 +1188,6 @@ in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools tab).
 
-A summary bar at the top of the page shows the key metrics: yearly spending (or spending target),
-liquid bequest (or target), fixed-assets bequest (when applicable), and planning horizon.
-
 Graphs are organized into three tabs:
 
 **Spending** — income and cash-flow perspective:
@@ -1268,36 +1265,31 @@ and `worksheet_real_dollars`).
 
     with st.expander("Reports"):
         st.markdown("""
-This page allows you to compare *cases* and save files for future use.
-First, it shows a synopsis of the most recent *run* of the selected *case* by
-displaying sums of income, bequest, and spending values over the duration of the *case*.
-Note that all tables are scrollable and can be seen in full-screen mode.
-If multiple *cases* were configured and run (most likely through copying and
-modifying the parameters), they will be compared in that panel provided they were made
-for the same individuals and year spans. Column on the left shows the values for the selected case
-while those on the right shows the differences.
-The contents of the synopsis can be downloaded as a plain text file by
-clicking the button below it.
-An additional button allows you to rerun all *cases*,
-ensuring that the table provides an accurate comparison
-of the parameters selected for each case.
+This page provides a summary of the most recent *run* and offers file downloads.
 
-Another section called **Excel Workbooks** allows
-to save the contents of the tables on corresponding pages as a single Excel workbook.
-The `Download Financial Profile workbook` will save the data displayed on the
-**Wages and Contributions** page
-(and the rest of the Financial Profile) while the
-`Download Worksheets` will save all tables displayed
-on the **Worksheets** page as a single Excel workbook.
+Key metrics are shown at the top: yearly spending (or spending target), liquid bequest
+(or target), fixed-assets bequest (when applicable), and planning horizon — all in today's \\$.
 
-Similarly, all parameters used to generate the *case* are collected in *toml* format and displayed.
-The `Download Case parameter file` button allows you to save the parameters of the selected *case*
-to a *case* file for future use.
+The page is organized into two tabs:
 
-With the *case* parameter file and the **Household Financial Profile** workbook,
-the same *case* can be reproduced at a later time by uploading the *case* parameter file
-through the widget on the Create Case page, and the *Household Financial Profile* workbook
-through the uploader on either the Create Case or the Financial Profile page.
+**Synopsis** — comparison table summarizing income, spending, taxes, and bequest over the plan
+duration, with all values shown in both nominal and today's \\$.
+If multiple *cases* share the same individuals and year span, they are compared side-by-side:
+the left column shows the selected *case* and the remaining columns show differences.
+A **Rerun all cases** button re-executes all *cases* to ensure the comparison is up to date.
+Tables are scrollable and can be viewed in full-screen mode.
+
+**Case file** — displays the full TOML parameter file for the current *case*.
+
+The **Downloads** section at the bottom of the page provides four buttons:
+- **Case file** — TOML file with all parameters characterizing this *case*.
+- **HFP workbook** — Excel workbook with the household financial input data.
+- **Synopsis** — plain-text file with key metrics and the comparison table.
+- **Plan workbook** — Excel workbook with all year-by-year result tables from the **Worksheets** page.
+
+The *Case file* and *HFP workbook* together are sufficient to reproduce the *case* at a later
+time: upload the case file on the **Create Case** page and the HFP workbook on either
+the **Create Case** or **Financial Profile** page.
 """)
 
 # --- Stress Tests tab ---

@@ -395,11 +395,11 @@ def build_summary_dic(plan, N=None):
         taxPaid = np.sum(plan.T_tn[t, :N], axis=0)
         taxPaidNow = np.sum(plan.T_tn[t, :N] / plan.gamma_n[:N], axis=0)
         tname = tx.taxBracketNames[t] if t < len(tx.taxBracketNames) else f"Bracket {t}"
-        _summary_currency_pair(dic, f"Subtotal in tax bracket {tname}", taxPaidNow, taxPaid, prefix="»  ")
+        _summary_currency_pair(dic, f"Tax bracket {tname}", taxPaidNow, taxPaid, prefix="»  ")
 
     penaltyPaid = np.sum(plan.P_n[:N], axis=0)
     penaltyPaidNow = np.sum(plan.P_n[:N] / plan.gamma_n[:N], axis=0)
-    _summary_currency_pair(dic, "Subtotal in early withdrawal penalty", penaltyPaidNow, penaltyPaid, prefix="»  ")
+    _summary_currency_pair(dic, "Early withdrawal penalty", penaltyPaidNow, penaltyPaid, prefix="»  ")
 
     taxPaid = np.sum(plan.U_n[:N], axis=0)
     taxPaidNow = np.sum(plan.U_n[:N] / plan.gamma_n[:N], axis=0)

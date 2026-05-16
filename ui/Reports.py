@@ -37,7 +37,6 @@ def _synopsis_compare_column_config(display_df):
     """Wide first column; explicit width replaces old padded metric keys for Streamlit layout."""
     synopsis_px = 560
     cfg = {
-        # Label None: no duplicate title next to the Synopsis section heading (uses column name minimally).
         "Metric": st.column_config.TextColumn(None, width=synopsis_px),
     }
     for c in display_df.columns:
@@ -61,69 +60,72 @@ else:
     else:
         caseName = kz.getCaseKey("name")
         df = kz.compareSummaries()
-        if df is not None:
-            st.markdown("""#### :orange[Synopsis]\nThis table provides a summary of the current
-case and compares it with other similar cases that ran successfully.""")
-            display_df = df.iloc[1:].reset_index(names=["Metric"])
-            case_cols = [c for c in display_df.columns if c != "Metric"]
-            styledDf = display_df.style.map(_synopsis_metric_section_style, subset=["Metric"])
-            if case_cols:
-                styledDf = styledDf.map(kz.colorBySign, subset=case_cols)
-            st.dataframe(
-                styledDf,
-                width="stretch",
-                hide_index=True,
-                column_config=_synopsis_compare_column_config(display_df),
-            )
-            st.caption("(nominal) vs (today's $); » subtotals; --- sections.")
-            col1, col2 = st.columns(2, gap="large")
-            helpmsg = "Download synopsis and comparisons as a text file."
-            col1.download_button(
-                "Download Synopsis",
-                data=display_df.to_string(index=False),
-                file_name=f"Synopsis_{caseName}.txt",
-                help=helpmsg,
-                mime="text/plain;charset=UTF-8",
-            )
-
-            helpmsg = "Rerun all other cases defined in the case selector."
-            col2.button("Rerun all cases", on_click=owb.runAllCases, help=helpmsg)
-
+        display_df = df.iloc[1:].reset_index(names=["Metric"]) if df is not None else None
         hfp_buffer = owb.saveContributions()
         gcs = owb.getCaseString()
         lines = gcs.getvalue() if gcs else kz.getCaseKey("casetoml")
         if gcs is not None:
             kz.storeCaseKey("casetoml", lines)
-        if lines != "":
-            st.divider()
-            st.markdown("""#### :orange[Case Parameter File]\nThis file contains the parameters
-characterizing the current case and can be used, along with the *Household Financial Profile*
-workbook, to reproduce it in the future.""")
-            st.code(lines, height=400, language="toml")
+        real_suffix = "_real" if kz.getCaseKey("worksheetRealDollars") else ""
 
-            st.download_button(
-                "Download case file", data=lines,
-                file_name=f"Case_{caseName}.toml", mime="application/toml"
-            )
+        owb.plotSummaryMetrics()
+        kz.divider("orange")
 
-        st.divider()
-        if kz.getCaseKey("hfpFileName") == "edited values":
-            st.warning(
-                "Household Financial Profile values were edited for this case. "
-                "The Case parameter file alone cannot reproduce the run. "
-                "To make the case reproducible, download the **Financial Profile workbook** "
-                f"below and save it as HFP_{caseName}.xlsx alongside the Case file."
-            )
-        st.markdown("""#### :orange[Excel Workbooks]\nThese workbooks contain time tables
-describing the flow of money, the first one as input to the case, and the second as its output.""")
-        col1, col2 = st.columns(2, gap="large")
+        tab1, tab2 = st.tabs(["Synopsis", "Case file"])
+        with tab1:
+            if display_df is not None:
+                case_cols = [c for c in display_df.columns if c != "Metric"]
+                styledDf = display_df.style.map(_synopsis_metric_section_style, subset=["Metric"])
+                if case_cols:
+                    styledDf = styledDf.map(kz.colorBySign, subset=case_cols)
+                st.dataframe(
+                    styledDf,
+                    width="stretch",
+                    hide_index=True,
+                    column_config=_synopsis_compare_column_config(display_df),
+                )
+                cap_col, btn_col = st.columns([4, 1], vertical_alignment="top")
+                cap_col.caption("» subtotals.")
+                btn_col.button("Rerun all cases", on_click=owb.runAllCases,
+                               help="Rerun all other cases defined in the case selector.")
+            else:
+                st.info("No comparison data available yet.")
+        with tab2:
+            if lines:
+                st.markdown("""This file contains the parameters characterizing the current case
+and can be used, along with the *Household Financial Profile* workbook, to reproduce it.""")
+                st.markdown(
+                    "<style>pre, .stCode pre, .highlight pre, pre code "
+                    "{ white-space: pre-wrap !important; word-break: break-word !important; }</style>",
+                    unsafe_allow_html=True,
+                )
+                st.code(lines, height=400, language="toml")
+            else:
+                st.info("No case parameters available yet.")
+
+        kz.divider("orange")
+        st.markdown("#### :orange[Downloads]")
+        st.caption(
+            "Click a button to download. "
+            "*Case file* and *Household Financial Profile* (HFP) together can reproduce this run; "
+            "*Synopsis* and *Plan workbook* are result outputs."
+        )
+        col1, col2, col3, col4 = st.columns(4, gap="medium")
         with col1:
+            st.download_button(
+                "Case file",
+                data=lines,
+                file_name=f"Case_{caseName}.toml",
+                help="TOML file with all parameters to reproduce this run.",
+                mime="application/toml",
+                disabled=lines == "",
+            )
+        with col2:
             hfp_clicked = st.download_button(
-                label="Download financial profile",
-                help="Download Household Financial Profile (HFP) as an Excel workbook.",
+                "HFP workbook",
                 data=hfp_buffer,
                 file_name=f"HFP_{caseName}.xlsx",
-                disabled=kz.isCaseUnsolved(),
+                help="Excel workbook with household financial input data (HFP).",
                 mime="application/vnd.ms-excel",
             )
             if hfp_clicked:
@@ -132,14 +134,25 @@ describing the flow of money, the first one as input to the case, and the second
                 if gcs is not None:
                     kz.storeCaseKey("casetoml", gcs.getvalue())
                 st.rerun()
-
-        with col2:
-            real_suffix = "_real" if kz.getCaseKey("worksheetRealDollars") else ""
-            download2 = st.download_button(
-                label="Download Worksheets",
-                help="Download Worksheets as an Excel workbook.",
+            if kz.getCaseKey("hfpFileName") == "edited values":
+                st.caption(
+                    ":warning: HFP values were edited. Download both this file and the "
+                    "case file to reproduce this run."
+                )
+        with col3:
+            st.download_button(
+                "Synopsis",
+                data=display_df.to_string(index=False) if display_df is not None else "",
+                file_name=f"Synopsis_{caseName}.txt",
+                help="Text file with key metrics and case comparison.",
+                mime="text/plain;charset=UTF-8",
+                disabled=display_df is None,
+            )
+        with col4:
+            st.download_button(
+                "Plan workbook",
                 data=owb.saveWorkbook(),
                 file_name=f"Workbook_{caseName}{real_suffix}.xlsx",
+                help="Excel workbook with detailed year-by-year results.",
                 mime="application/vnd.ms-excel",
-                disabled=kz.isCaseUnsolved(),
             )

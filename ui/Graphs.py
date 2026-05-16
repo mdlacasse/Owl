@@ -60,9 +60,6 @@ else:
         st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
     else:
         kz.divider("orange")
-        owb.plotSummaryMetrics(plots=kz.getCaseKey("plots"))
-        kz.divider("orange")
-        st.write("")
         col1, col2 = st.columns(2, gap="large", vertical_alignment="bottom")
         with col1:
             st.markdown("##### Select a tab below to browse the results.")
