@@ -949,23 +949,30 @@ def _setAllocationRatios(plan):
 
 
 @_checkPlan
-def plotSummaryMetrics(plan):
+def plotSummaryMetrics(plan, plots="nominal"):
     basis = getattr(plan, "basis", 0)
     bequest = getattr(plan, "bequest", 0)
     horizon = f"{int(plan.year_n[0])} – {int(plan.year_n[-1])}"
     fa_bequest = plan.fixed_assets_bequest_value / plan.gamma_n[-1]
+
+    in_nominal = plots == "nominal"
+    dollar_label = "nominal $" if in_nominal else "today's $"
+    if in_nominal:
+        bequest = bequest * plan.gamma_n[-1]
+        fa_bequest = plan.fixed_assets_bequest_value
+
     if plan.objective == "maxBequest":
         spending_label = "Spending target (today's $)"
-        estate_label = "Liquid bequest (today's $)"
+        estate_label = f"Liquid bequest ({dollar_label})"
     else:
         spending_label = "Yearly spending (today's $)"
-        estate_label = "Target liquid estate (today's $)"
+        estate_label = f"Target liquid estate ({dollar_label})"
     n_cols = 4 if fa_bequest > 0 else 3
     cols = st.columns(n_cols, gap="large")
     cols[0].metric(spending_label, f"${basis:,.0f}")
     cols[1].metric(estate_label, f"${bequest:,.0f}")
     if fa_bequest > 0:
-        cols[2].metric("Fixed assets bequest (today's $)", f"${fa_bequest:,.0f}")
+        cols[2].metric(f"Fixed assets bequest ({dollar_label})", f"${fa_bequest:,.0f}")
     cols[-1].metric("Planning horizon", horizon)
 
 
