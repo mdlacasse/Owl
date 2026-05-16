@@ -495,9 +495,9 @@ def ui_to_config(uidic: dict) -> dict:
             _get_ui(uidic, ACC_UI[j] + str(i), 0, float) for i in range(ni)
         ]
     # Taxable cost basis: only include when at least one person has a non-zero value.
+    # Always write cost basis (zeros mean "legacy for this person" — explicit, not silent default).
     basis_vals = [_get_ui(uidic, f"txblBasis{i}", 0.0, float) for i in range(ni)]
-    if any(v > 0 for v in basis_vals):
-        diconf["savings_assets"]["taxable_cost_basis"] = basis_vals
+    diconf["savings_assets"]["taxable_cost_basis"] = basis_vals
 
     if ni == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = [

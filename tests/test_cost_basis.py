@@ -89,16 +89,20 @@ class TestCostBasisHighGain:
 
 
 class TestCostBasisEdgeCases:
-    """Edge: zero basis (all gain), basis equals balance (no gain), basis > balance (clamped)."""
+    """Edge: zero basis (legacy fallback), basis equals balance (no gain), basis > balance (clamped)."""
 
-    def test_zero_basis(self):
-        """Zero basis → gain_fraction = 1 for the whole balance."""
-        p = _make_plan('zero_basis', taxable_k=500, tax_deferred_k=200, tax_free_k=0)
-        p.setCostBasis([0])
-        p.solve('maxSpending', {'solver': solver})
-        assert p.caseStatus == 'solved'
-        # Gain fraction = 1: every dollar withdrawn is fully taxable gain.
-        assert np.any(p.Q_n > 0)
+    def test_zero_basis_means_legacy(self):
+        """Zero basis → legacy approximation for that person (not 100% gain fraction)."""
+        p_zero = _make_plan('zero_basis', taxable_k=500, tax_deferred_k=200, tax_free_k=0)
+        p_zero.setCostBasis([0])
+        p_zero.solve('maxSpending', {'solver': solver})
+        assert p_zero.caseStatus == 'solved'
+
+        p_legacy = _make_plan('zero_basis_ref', taxable_k=500, tax_deferred_k=200, tax_free_k=0)
+        p_legacy.solve('maxSpending', {'solver': solver})
+
+        # Zero basis should behave identically to no basis (both use legacy approximation).
+        np.testing.assert_allclose(p_zero.Q_n, p_legacy.Q_n, rtol=1e-6)
 
     def test_full_basis_no_extra_gain(self):
         """Basis equals current balance → gain_fraction = 0, same as holding cash (no embedded gain)."""
@@ -121,6 +125,41 @@ class TestCostBasisEdgeCases:
         p.setCostBasis([900])   # basis > balance: underwater position
         p.solve('maxSpending', {'solver': solver})
         assert p.caseStatus == 'solved'
+
+
+class TestCostBasisMixedCouple:
+    """One spouse has known basis; the other's is unknown (zero → legacy)."""
+
+    def test_mixed_basis_couple(self):
+        thisyear = date.today().year
+        p = owl.Plan(['Jack', 'Jill'],
+                     [f"{thisyear - 62}-01-15", f"{thisyear - 59}-01-16"],
+                     [82, 79], 'mixed_couple')
+        p.setSpendingProfile('flat', 60)
+        p.setAccountBalances(taxable=[500, 300], taxDeferred=[400, 200],
+                             taxFree=[50, 30], startDate="1-1")
+        p.setInterpolationMethod('s-curve')
+        p.setAllocationRatios('individual',
+                              generic=[[[60, 40, 0, 0], [60, 40, 0, 0]],
+                                       [[60, 40, 0, 0], [60, 40, 0, 0]]])
+        p.setPension([0, 0], [65, 65])
+        p.setSocialSecurity([2000, 1500], [67, 67])
+        p.setRates('historical', 2000)
+
+        # Jack: $100k basis on $500k account (80% gain fraction).
+        # Jill: basis unknown → zero → legacy approximation.
+        p.setCostBasis([100, 0])
+        p.solve('maxSpending', {'solver': solver})
+        assert p.caseStatus == 'solved'
+
+        # gain_fraction_in must exist (Jack has tracking) and be NaN for Jill.
+        assert p.gain_fraction_in is not None
+        assert not np.isnan(p.gain_fraction_in[0, 0]), "Jack should have tracked gain fraction"
+        assert np.all(np.isnan(p.gain_fraction_in[1, :])), "Jill should use legacy (NaN)"
+
+        # Q_n must be finite and positive (no NaN leaked into aggregation).
+        assert np.all(np.isfinite(p.Q_n)), "Q_n must be finite (no NaN leakage)"
+        assert np.any(p.Q_n > 0)
 
 
 class TestCostBasisConvergence:

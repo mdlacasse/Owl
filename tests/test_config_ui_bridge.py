@@ -437,13 +437,14 @@ def test_taxable_cost_basis_config_to_ui_roundtrip():
     assert out["savings_assets"]["taxable_cost_basis"] == [45.0]
 
 
-def test_taxable_cost_basis_ui_zeros_omitted():
-    """All-zero UI basis fields omit taxable_cost_basis (legacy approximation)."""
+def test_taxable_cost_basis_ui_zeros_written():
+    """All-zero UI basis fields are still written to config (explicit legacy choice, not silent default)."""
     diconf = _minimal_config_for_rates()
     uidic = config_to_ui(diconf)
     uidic["txblBasis0"] = 0.0
     out = ui_to_config(uidic)
-    assert "taxable_cost_basis" not in out["savings_assets"]
+    assert "taxable_cost_basis" in out["savings_assets"]
+    assert out["savings_assets"]["taxable_cost_basis"] == [0.0]
 
 
 def test_apply_config_clears_basis_when_ui_zeros():

@@ -402,7 +402,7 @@ def plan_to_config(myplan: "Plan") -> dict:
     for j in range(myplan.N_j):
         amounts = myplan.beta_ij[:, j] / 1000  # plan dollars -> config $k
         diconf["savings_assets"][ACCOUNT_KEY_MAP[ACCOUNT_TYPES[j]]] = amounts.tolist()
-    if myplan.taxable_basis_i is not None:
+    if myplan.taxable_basis_i is not None and np.any(myplan.taxable_basis_i > 0):
         diconf["savings_assets"]["taxable_cost_basis"] = (myplan.taxable_basis_i / 1000).tolist()
     if myplan.N_i == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = myplan.phi_j.tolist()

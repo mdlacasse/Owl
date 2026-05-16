@@ -3406,29 +3406,35 @@ class Plan:
         """Gain fraction for w[i,0,n]: uses tracked basis if available, else current-year appreciation.
         For n=0, n-1 wraps to -1 (Python semantics), matching the np.roll(tau_0,1) convention used
         in _configure_ltcg_constraints and _aggregateResults."""
-        if self.gain_fraction_in is not None:
+        if self.gain_fraction_in is not None and not np.isnan(self.gain_fraction_in[i, n]):
             return self.gain_fraction_in[i, n]
         tau_prev = self.tau_kn[0, n - 1]   # n=0 → tau_kn[0,-1] (last rate), matches roll convention
         return max(0.0, tau_prev - self.mu)
 
     def _init_gain_fraction(self):
-        """Initialize gain_fraction_in from user-supplied cost basis before first LP solve."""
+        """Initialize gain_fraction_in from user-supplied cost basis before first LP solve.
+        Zero basis for an individual means 'use legacy approximation for that person' (NaN sentinel).
+        """
         if self.taxable_basis_i is None:
             self.gain_fraction_in = None
             return
-        self.gain_fraction_in = np.zeros((self.N_i, self.N_n))
+        self.gain_fraction_in = np.full((self.N_i, self.N_n), np.nan)
         for i in range(self.N_i):
+            if self.taxable_basis_i[i] == 0:
+                continue   # NaN → legacy fallback for this person
             b0 = self.beta_ij[i, 0]
-            gf0 = self._gain_fraction_from_basis(self.taxable_basis_i[i], b0)
-            self.gain_fraction_in[i, :] = gf0
+            self.gain_fraction_in[i, :] = self._gain_fraction_from_basis(self.taxable_basis_i[i], b0)
 
     def _update_gain_fraction(self):
         """Update gain_fraction_in using last SC-iteration balances and withdrawals.
         Both fixed contributions (kappa) and LP surplus deposits (d_in) add to basis at full value
-        because they are new purchases at the current market price."""
+        because they are new purchases at the current market price.
+        Persons with zero basis are skipped (their NaN entries mean legacy fallback)."""
         if self.gain_fraction_in is None:
             return
         for i in range(self.N_i):
+            if self.taxable_basis_i[i] == 0:
+                continue   # stays NaN → legacy
             basis = float(self.taxable_basis_i[i])
             for n in range(self.N_n):
                 b_n = self.b_ijn[i, 0, n]
@@ -4481,7 +4487,11 @@ class Plan:
         # Capital gain coefficient per withdrawal: tracked gain fraction when basis is known,
         # otherwise current-year price appreciation only (tau_0 - mu).
         if self.gain_fraction_in is not None:
-            cgr = self.gain_fraction_in[:, :Nn]                        # shape (N_i, N_n)
+            cgr = self.gain_fraction_in[:, :Nn].copy()                 # shape (N_i, N_n)
+            nan_mask = np.isnan(cgr)
+            if nan_mask.any():                                          # mixed: some persons use legacy
+                legacy = np.maximum(0, tau_0prev - self.mu)
+                cgr[nan_mask] = np.broadcast_to(legacy, cgr.shape)[nan_mask]
         else:
             cgr = np.maximum(0, tau_0prev - self.mu)[np.newaxis, :]   # broadcast to (1, N_n)
         self.Q_n = np.sum(
