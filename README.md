@@ -1,5 +1,5 @@
 
-# Owl - Optimal Wealth Lab
+# Owl - Optimal wealth lab
 
 [![CI](https://github.com/mdlacasse/owl/actions/workflows/github-actions-runtests.yml/badge.svg?branch=main)](https://github.com/mdlacasse/owl/actions/workflows/github-actions-runtests.yml?query=branch%3Amain)
 [![Version](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmdlacasse%2Fowl%2Fmain%2Fsrc%2Fowlplanner%2Fversion.py&search=__version__%20%3D%20%22(%5B%5E%22%5D%2B)%22&replace=%241&label=latest)](https://github.com/mdlacasse/owl/blob/main/src/owlplanner/version.py)
@@ -52,6 +52,7 @@ Follow these <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">inst
 | <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">INSTALL.md</a> | Installation guide, Python environment setup, and developer build steps |
 | <a href="USER_GUIDE.md" target="_blank" rel="noopener noreferrer">USER_GUIDE.md</a> | Python API usage with examples for Jupyter notebooks and scripts |
 | <a href="PARAMETERS.md" target="_blank" rel="noopener noreferrer">PARAMETERS.md</a> | Complete reference for TOML case file parameters |
+| <a href="RELEASE_NOTES.md" target="_blank" rel="noopener noreferrer">RELEASE_NOTES.md</a> | Version history and release notes |
 | <a href="RATE_MODELS.md" target="_blank" rel="noopener noreferrer">RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
 | <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.pdf</a> | Mathematical foundations |
 

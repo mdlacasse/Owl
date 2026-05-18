@@ -47,7 +47,7 @@ covariance matrix**.
 Let:
 
 - ( N ) = number of years in the planning horizon
-- ( K ) = number of asset classes (4 in OWL)
+- ( K ) = number of asset classes (4 in Owl)
 - ( r_t ^K ) = return vector at year ( t )
 
 We generate a stacked vector:
@@ -217,7 +217,7 @@ These produce:
 - Fat-tail drawdowns
 - Stable long-run behavior
 
-# 11. Interaction with OWL
+# 11. Interaction with Owl
 
 Toeplitz SOR integrates cleanly with:
 

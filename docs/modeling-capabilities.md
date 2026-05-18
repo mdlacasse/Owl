@@ -1,6 +1,6 @@
 ### Modeling Capabilities
 
-This document summarizes all modeling components in Owl (Optimal Wealth Lab), how each is implemented, and the assumptions and limitations that apply. It serves as a quick reference for understanding the scope and boundaries of the optimizer.
+This document summarizes all modeling components in Owl (Optimal wealth lab), how each is implemented, and the assumptions and limitations that apply. It serves as a quick reference for understanding the scope and boundaries of the optimizer.
 
 | Component | Modeling approach | Assumptions & limitations |
 |------------|--------------------|---------------------------|

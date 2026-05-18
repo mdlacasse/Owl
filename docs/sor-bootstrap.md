@@ -195,7 +195,7 @@ Because entire historical rows are sampled:
 
 No covariance matrix required.
 
-# 10. Interaction with OWL Parameters
+# 10. Interaction with Owl Parameters
 
 Bootstrap integrates cleanly with:
 

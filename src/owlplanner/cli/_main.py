@@ -38,7 +38,7 @@ from .cmd_run import cmd_run
 )
 @click.pass_context
 def cli(ctx, log_level: str):
-    """Owl (Optimal Wealth Lab) retirement planning CLI.
+    """Owl (Optimal wealth lab) retirement planning CLI.
 
     List and run Owl case files (.toml) from the command line.
     Use 'owlcli run --help' for solver options.
