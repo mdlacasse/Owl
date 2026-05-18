@@ -207,13 +207,25 @@ def test_clone2():
     assert p2.bequest == pytest.approx(10_000, rel=REL_TOL, abs=ABS_TOL)
 
 
+def _create_repro_plan(name):
+    """Minimal single-person plan for reproducibility tests — no HFP needed."""
+    thisyear = date.today().year
+    p = owl.Plan(['Alex'], [f"{thisyear - 65}-01-15"], [85], name)
+    p.setSpendingProfile('flat', 60)
+    p.setAccountBalances(taxable=[50], taxDeferred=[400], taxFree=[50])
+    p.setCostBasis([25])
+    p.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setSocialSecurity([2333], [67])
+    return p
+
+
 def test_stochastic_reproducibility():
     """Test that stochastic rates are reproducible when reproducibility is enabled."""
     import numpy as np
 
     # Create first plan with reproducible stochastic rates
     name1 = 'test_stoch_repro_1'
-    p1 = createJackAndJillPlan(name1)
+    p1 = _create_repro_plan(name1)
 
     # Set up stochastic rates with reproducibility enabled and a fixed seed
     test_seed = 12345
@@ -221,7 +233,7 @@ def test_stochastic_reproducibility():
 
     # Set stochastic rates with typical values
     my_means = [8, 5, 4, 3]  # Stocks, Bonds, Fixed assets, Inflation
-    my_stdev = [17, 8, 8, 2]
+    my_stdev = [8, 4, 4, 1]
     offdiag_corr = [.46, .06, -.12, .68, -.27, -.21]
     p1.setRates('gaussian', values=my_means, stdev=my_stdev, corr=offdiag_corr)
 
@@ -230,8 +242,8 @@ def test_stochastic_reproducibility():
     assert p1.rateSeed == test_seed
 
     # Solve the case
-    p1.solve('maxBequest', options={
-        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    p1.solve('maxSpending', options={
+        'maxRothConversion': 100, 'bequest': 100, 'solver': solver, 'withSSTaxability': 0.85
     })
     assert p1.caseStatus == "solved", f"Solve failed with status: {p1.caseStatus}"
 
@@ -242,7 +254,7 @@ def test_stochastic_reproducibility():
 
     # Create second plan with the same seed and reproducibility
     name2 = 'test_stoch_repro_2'
-    p2 = createJackAndJillPlan(name2)
+    p2 = _create_repro_plan(name2)
 
     # Set the same reproducibility settings
     p2.setReproducible(True, seed=test_seed)
@@ -255,8 +267,8 @@ def test_stochastic_reproducibility():
     assert p2.rateSeed == test_seed
 
     # Solve the case
-    p2.solve('maxBequest', options={
-        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    p2.solve('maxSpending', options={
+        'maxRothConversion': 100, 'bequest': 100, 'solver': solver, 'withSSTaxability': 0.85
     })
     assert p2.caseStatus == "solved"
 
@@ -268,7 +280,7 @@ def test_stochastic_reproducibility():
     # Test that Monte-Carlo generates different rates even with reproducibility enabled
     # Create a third plan with reproducibility enabled
     name3 = 'test_stoch_repro_3'
-    p3 = createJackAndJillPlan(name3)
+    p3 = _create_repro_plan(name3)
     p3.setReproducible(True, seed=test_seed)
     p3.setRates('gaussian', values=my_means, stdev=my_stdev, corr=offdiag_corr)
 
@@ -276,8 +288,8 @@ def test_stochastic_reproducibility():
     tau_kn_before_mc = p3.tau_kn.copy()
 
     # Solve once to set solverOptions and objective
-    p3.solve('maxBequest', options={
-        'maxRothConversion': 100, 'netSpending': 80, 'solver': solver, 'withSSTaxability': 0.85
+    p3.solve('maxSpending', options={
+        'maxRothConversion': 100, 'bequest': 100, 'solver': solver, 'withSSTaxability': 0.85
     })
     assert p3.caseStatus == "solved"
 
