@@ -567,6 +567,40 @@ The monthly amounts to be entered for Social Security are the Primary Insurance 
 which are a critical part used by the Social Security Administration (SSA) for calculating benefits.
 The PIA monthly amounts are always in today's \\$: this means that PIA numbers need to
 be updated every year as they are modified by cost of living adjustments (COLA).
+
+##### Inflation assumptions
+
+All fixed income amounts are entered in today's dollars.
+**Owl** scales them forward using the simulation's inflation rate as a single unified proxy
+for all CPI-based cost-of-living adjustments. The table below summarizes how each item
+is treated and where Owl's model diverges from the actual law:
+
+| Item | Owl treatment | Real-world rule | Gap |
+|---|---|---|---|
+| Social Security benefits | Always inflation-adjusted | CPI-W COLA | Small: CPI-W ≈ CPI-U − 0.1–0.3%/yr |
+| CSRS / military pensions (indexed) | Inflation-adjusted | Full CPI-W COLA | Small |
+| FERS pension (indexed) | Inflation-adjusted | "Diet COLA": CPI-W−1pp (2–3%), cap 2% (>3%) | Meaningful in high-inflation years |
+| Private/state pensions (not indexed) | Fixed | Fixed | None — use *Not indexed* toggle |
+| Income tax brackets & standard deduction | Inflation-adjusted | Chained CPI-U (≈ CPI-U − 0.2–0.3%/yr) | Small |
+| LTCG & capital gains thresholds | Inflation-adjusted | Chained CPI-U | Small |
+| Medicare IRMAA thresholds | Inflation-adjusted | CPI-U | Negligible |
+| ACA Federal Poverty Level thresholds | Inflation-adjusted | HHS annual update ≈ CPI-U | Negligible |
+| SS taxability thresholds ($25k/$32k, $34k/$44k) | **Fixed** (not inflation-adjusted) | Fixed by law since 1984 | None — correctly modeled |
+
+The most significant real-world deviation is the **FERS diet COLA**: when inflation is high
+(e.g., 2022, CPI-W ~8.7%), FERS retirees received only 7.7% while **Owl** would apply the full
+rate. FERS retirees planning under high-inflation scenarios may wish to model their pension
+as *Not indexed* and enter a conservatively reduced monthly amount.
+
+The frozen **Social Security taxability thresholds** deserve special mention: because they
+have not been adjusted since 1984, nominal income growth due to inflation causes progressively
+more of your Social Security benefits to become taxable over time — a "stealth tax" that
+is correctly captured in **Owl**'s model.
+
+Using a single inflation rate is a standard simplification in retirement planning.
+The CPI-variant differences (0.1–0.3%/yr) are small relative to long-term inflation uncertainty
+and tend to partially offset each other across different items.
+
 The PIA is equivalent to the monthly benefit
 that one would receive at full retirement age (FRA), which varies between 65 and 67 depending
 on the birth year.
@@ -1017,9 +1051,12 @@ lifestyle: a dip in the “slow-go” years, then an increase or decrease over t
 you can set the **smile delay** (years before the dip starts), **smile dip** (%), and **smile increase** (%).
 **Profile slack** controls how far spending can deviate from the profile shape. Spending stays
 within ±slack% of the profile (bilateral bound); set to 0 to pin spending exactly to the profile.
-**Time preference** (0–10 %/year) discounts future spending exponentially, shifting the optimal
-spending profile earlier in the plan and reducing end-of-life back-loading. Applies to *Net spending*;
-has no effect on *Bequest*.
+**Time preference** (0–10 %/year) applies an exponentially decaying weight to future spending
+in the objective function — it does *not* force spending itself to decrease over time.
+Instead, the optimizer assigns progressively less importance to spending in later years,
+which shifts the optimal solution toward higher spending earlier in the plan and reduces
+end-of-life back-loading. The actual spending trajectory remains free to take any shape
+allowed by the profile and slack settings. Applies to *Net spending*; has no effect on *Bequest*.
 For married couples, **Survivor's spending (%)** sets the spending level for the surviving spouse
 (typically 60%). A preview of the selected profile is shown on the page.
 

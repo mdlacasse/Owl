@@ -90,6 +90,11 @@ ret = kz.titleBar(":material/currency_exchange: Fixed Income")
 if ret is None or kz.caseHasNoPlan():
     kz.no_case_info()
 else:
+    st.caption(
+        "All amounts are entered in today's dollars. "
+        "Owl adjusts them for inflation during the simulation — see the Documentation page, "
+        "Fixed Income section, for notes on COLA approximations and the FERS diet-COLA caveat."
+    )
     st.markdown("#### :orange[Social Security]")
     _ss_mode = kz.getCaseKey("ssAgesMode") or "none"
     _iname0 = kz.getCaseKey("iname0")
