@@ -38,7 +38,7 @@ def _loadHFPExample(file):
 
 
 def _render_case_loader():
-    st.markdown("Select a tab below to load one of the available case examples,"
+    st.markdown("##### Select a tab below to load one of the available case examples,"
                 " create a new case, or upload an existing TOML case file.")
     st.caption("Consult the :material/help: [Documentation](Documentation) for more details.")
     tab1, tab2, tab3 = st.tabs(["_Load a Case Example_", "_Create a New Case_", "_Upload Your Own Case File_"])
