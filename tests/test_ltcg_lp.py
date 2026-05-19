@@ -32,7 +32,6 @@ from datetime import date
 import owlplanner as owl
 
 
-
 def _make_couple_plan(name, taxable, tax_deferred, tax_free, ss_pias, ss_ages,
                       pension=None, pension_ages=None, rate_year=2000, expectancy=None):
     """

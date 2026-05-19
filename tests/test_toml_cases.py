@@ -29,13 +29,14 @@ import owlplanner as owl
 
 pytestmark = pytest.mark.toml
 
+
 def _active_solver():
     """Resolve OWL_TEST_SOLVER (or 'default') to the actual solver that will be used."""
     env = os.getenv('OWL_TEST_SOLVER', 'default')
     if env in ('HiGHS', 'MOSEK'):
         return env
     try:
-        import mosek
+        import mosek  # noqa: F401
         if 'MOSEKLM_LICENSE_FILE' in os.environ:
             return 'MOSEK'
     except ImportError:

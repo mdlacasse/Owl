@@ -24,7 +24,6 @@ import owlplanner as owl
 from owlplanner import tax2026 as tx
 
 
-
 def _make_plan(name, taxable, tax_deferred, tax_free, rate_year=2000,
                n_individuals=2, expectancy=None):
     """Minimal plan for NIIT MILP testing. Balances in thousands.

@@ -20,7 +20,6 @@ import owlplanner.rates as rates
 import owlplanner.spending as spending
 
 
-
 def test_plan_constructor_empty_name():
     """Test that Plan constructor raises error for empty name."""
     with pytest.raises(ValueError, match="Plan must have a name"):
