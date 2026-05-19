@@ -15,6 +15,7 @@ the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 """
 
+
 import numpy as np
 import pytest
 from datetime import date
@@ -22,7 +23,6 @@ from datetime import date
 import owlplanner as owl
 from owlplanner import tax2026 as tx
 
-solver = 'HiGHS'
 
 
 def _make_plan(name, taxable, tax_deferred, tax_free, rate_year=2000,
@@ -63,7 +63,6 @@ def _make_plan(name, taxable, tax_deferred, tax_free, rate_year=2000,
 def _solve_base(extra_options=None, n_individuals=2):
     """Solve once with base NIIT options; used by class-scoped fixture and LTCG test."""
     base_opts = {
-        'solver': solver,
         'withNIIT': 'optimize',
         'withSSTaxability': 'optimize',
         'maxIter': 2,
@@ -85,7 +84,6 @@ class TestNIITMilp:
 
     # Use few iterations and short horizon to keep tests fast.
     _BASE_OPTS = {
-        'solver': solver,
         'withNIIT': 'optimize',
         'withSSTaxability': 'optimize',
         'maxIter': 2,

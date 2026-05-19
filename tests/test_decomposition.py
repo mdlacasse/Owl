@@ -138,7 +138,6 @@ class TestSequentialDecomposition:
         """
         p_loop = _make_jack_jill("med_ltcg_loop")
         p_loop.solve("maxSpending", options={
-            "solver": "HiGHS",
             "withMedicare": "loop",
             "withLTCG": "loop",
         })
@@ -147,7 +146,6 @@ class TestSequentialDecomposition:
 
         p_seq = _make_jack_jill("med_ltcg_seq")
         p_seq.solve("maxSpending", options={
-            "solver": "HiGHS",
             "withMedicare": "optimize",
             "withLTCG": "optimize",
             "withDecomposition": "sequential",
@@ -235,7 +233,6 @@ class TestBendersDecomposition:
         """
         p_loop = _make_jack_jill("med_ltcg_loop_bend")
         p_loop.solve("maxSpending", options={
-            "solver": "HiGHS",
             "withMedicare": "loop",
             "withLTCG": "loop",
         })
@@ -244,7 +241,6 @@ class TestBendersDecomposition:
 
         p_bend = _make_jack_jill("med_ltcg_bend")
         p_bend.solve("maxSpending", options={
-            "solver": "HiGHS",
             "withMedicare": "optimize",
             "withLTCG": "optimize",
             "withDecomposition": "benders",

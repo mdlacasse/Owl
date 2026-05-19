@@ -24,6 +24,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import os
 import sys
 import datetime
 import pytest
@@ -39,6 +40,24 @@ class _FixedDate(_REAL_DATE):
     @classmethod
     def today(cls):
         return _FROZEN_DATE
+
+
+@pytest.fixture(autouse=True, scope="session")
+def configure_test_solver():
+    """
+    Honour OWL_TEST_SOLVER env var for every test, including tests that don't
+    explicitly pass a solver to plan.solve().  Without this patch the 'default'
+    path in plan.py falls back to _mosek_available(), which ignores the env var.
+    """
+    solver_env = os.environ.get("OWL_TEST_SOLVER", "default")
+    if solver_env == "HiGHS":
+        with patch("owlplanner.plan._mosek_available", return_value=False):
+            yield
+    elif solver_env == "MOSEK":
+        with patch("owlplanner.plan._mosek_available", return_value=True):
+            yield
+    else:
+        yield
 
 
 @pytest.fixture(autouse=True, scope="session")

@@ -7,6 +7,7 @@ in the Plan class that are not covered by existing regression tests.
 Copyright (C) 2025-2026 The Owlplanner Authors
 """
 
+
 import pytest
 from datetime import date
 from io import StringIO
@@ -17,6 +18,7 @@ import owlplanner.mylogging as log
 import owlplanner.plan as plan
 import owlplanner.rates as rates
 import owlplanner.spending as spending
+
 
 
 def test_plan_constructor_empty_name():
@@ -646,11 +648,11 @@ def test_netinv_populated_after_set_contributions():
 def test_netinv_increases_spending():
     """Adding 'net inv' income raises the optimal spending level."""
     p_base = _make_single_netinv_plan(0)
-    p_base.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    p_base.solve('maxSpending', {'withMedicare': 'None'})
     assert p_base.caseStatus == 'solved'
 
     p_rich = _make_single_netinv_plan(20_000)
-    p_rich.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    p_rich.solve('maxSpending', {'withMedicare': 'None'})
     assert p_rich.caseStatus == 'solved'
 
     assert p_rich.g_n[0] > p_base.g_n[0], (
@@ -662,12 +664,12 @@ def test_netinv_increases_niit():
     """Large 'net inv' income pushes NII above NIIT threshold, raising J_n."""
     # Base plan with no net inv
     p_base = _make_single_netinv_plan(0)
-    p_base.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    p_base.solve('maxSpending', {'withMedicare': 'None'})
     assert p_base.caseStatus == 'solved'
 
     # Plan with very large net inv (well above $200k NIIT threshold for single filer)
     p_niit = _make_single_netinv_plan(300_000)
-    p_niit.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    p_niit.solve('maxSpending', {'withMedicare': 'None'})
     assert p_niit.caseStatus == 'solved'
 
     # NIIT should be higher for the plan with large net inv
@@ -679,7 +681,7 @@ def test_netinv_increases_niit():
 def test_netinv_in_sources_dict():
     """'net inv' appears in sources_in after solving."""
     p = _make_single_netinv_plan(5_000)
-    p.solve('maxSpending', {'solver': 'HiGHS', 'withMedicare': 'None'})
+    p.solve('maxSpending', {'withMedicare': 'None'})
     assert p.caseStatus == 'solved'
     assert 'net inv' in p.sources_in
     # Values should match netinv_in

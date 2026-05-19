@@ -35,18 +35,17 @@ the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 """
 
+
 import pytest
 from datetime import date
 import numpy as np
 
 import owlplanner as owl
 
-solver = 'HiGHS'
 
 # Shared solver options that eliminate all SC-loop features.
 _BASE = {
     'maxRothConversion': 0,
-    'solver': solver,
     'withSCLoop': False,
     'withMedicare': False,
 }

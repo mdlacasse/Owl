@@ -55,7 +55,6 @@ def test_stochastic_spending_mc_longevity_handles_longer_horizons(monkeypatch):
     options = {
         "maxRothConversion": 100,
         "bequest": 100,
-        "solver": "HiGHS",
         "withSSTaxability": 0.85,
     }
 
@@ -102,7 +101,6 @@ def test_stochastic_spending_mc_longevity_seed_sensitivity(monkeypatch):
     options = {
         "maxRothConversion": 100,
         "bequest": 100,
-        "solver": "HiGHS",
         "withSSTaxability": 0.85,
     }
 

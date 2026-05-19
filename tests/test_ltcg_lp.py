@@ -24,13 +24,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+
 import numpy as np
 import pytest
 from datetime import date
 
 import owlplanner as owl
 
-solver = 'HiGHS'
 
 
 def _make_couple_plan(name, taxable, tax_deferred, tax_free, ss_pias, ss_ages,
@@ -91,14 +91,14 @@ def test_ltcg_lp_feasible():
         taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
     )
-    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    p.solve('maxSpending', {'withMedicare': 'None'})
     assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
 
 
 def test_ltcg_lp_partition_exact():
     """q[0]+q[1]+q[2] == Q_n for all years (partition constraint is tight)."""
     p = _make_single_plan('ltcg_partition', taxable=2000, tax_deferred=0, tax_free=0)
-    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    p.solve('maxSpending', {'withMedicare': 'None'})
     assert p.caseStatus == 'solved'
     ltcg_sum = p.q_pn[0] + p.q_pn[1] + p.q_pn[2]
     total_ltcg = np.maximum(p.Q_n, 0)
@@ -109,7 +109,7 @@ def test_ltcg_lp_partition_exact():
 def test_ltcg_lp_tax_identity():
     """U_n == 0.15*q[1,n] + 0.20*q[2,n] exactly for all years."""
     p = _make_single_plan('ltcg_tax_identity', taxable=2000, tax_deferred=0, tax_free=0)
-    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    p.solve('maxSpending', {'withMedicare': 'None'})
     assert p.caseStatus == 'solved'
     expected_U = 0.15 * p.q_pn[1] + 0.20 * p.q_pn[2]
     np.testing.assert_allclose(p.U_n, expected_U, atol=0.01,
@@ -119,7 +119,7 @@ def test_ltcg_lp_tax_identity():
 def test_ltcg_lp_psi_consistency():
     """Effective LTCG rate U_n/Q_n is in [0%, 20%] in years with positive LTCG."""
     p = _make_single_plan('ltcg_psi', taxable=2000, tax_deferred=0, tax_free=0)
-    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    p.solve('maxSpending', {'withMedicare': 'None'})
     assert p.caseStatus == 'solved'
     has_ltcg = p.Q_n > 0
     if has_ltcg.any():
@@ -134,7 +134,7 @@ def test_ltcg_lp_15pct_bracket_used():
     should push some LTCG above the 0% bracket → q[1,n] > 0 in growth years.
     """
     p = _make_single_plan('ltcg_15pct', taxable=2000, tax_deferred=0, tax_free=0)
-    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    p.solve('maxSpending', {'withMedicare': 'None'})
     assert p.caseStatus == 'solved'
     # Expect at least one year with 15% bracket LTCG (historical 1997 bull run creates large Q_n).
     assert np.any(p.q_pn[1] > 0), "Expected some LTCG in the 15% bracket for large-taxable plan."
@@ -150,7 +150,7 @@ def test_ltcg_lp_rate_within_bounds():
     stacks into the LTCG brackets, producing positive LTCG tax U_n > 0 in some years.
     """
     p = _make_single_plan('ltcg_rate_bounds', taxable=2000, tax_deferred=1000, tax_free=0)
-    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    p.solve('maxSpending', {'withMedicare': 'None'})
     assert p.caseStatus == 'solved'
     has_ltcg = p.Q_n > 0
     assert has_ltcg.any(), "Expected positive LTCG in at least one year."
@@ -167,7 +167,7 @@ def test_ltcg_lp_nonnegative():
         taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
         ss_pias=[2_333, 2_083], ss_ages=[67, 70],
     )
-    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    p.solve('maxSpending', {'withMedicare': 'None'})
     assert p.caseStatus == 'solved'
     assert np.all(p.q_pn[0] >= -1.0), "q[0,n] has negative values"
     assert np.all(p.q_pn[1] >= -1.0), "q[1,n] has negative values"
@@ -185,7 +185,7 @@ def test_ltcg_lp_matches_capital_gain_tax():
     from owlplanner import tax2026 as tx
 
     p = _make_single_plan('ltcg_crossval', taxable=2000, tax_deferred=500, tax_free=0)
-    p.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+    p.solve('maxSpending', {'withMedicare': 'None'})
     assert p.caseStatus == 'solved'
     _assert_ltcg_matches_ref(p, tx)
 
@@ -203,7 +203,6 @@ def test_ltcg_lp_matches_capital_gain_tax_couple():
         ss_ages=[67, 70],
     )
     p.solve('maxSpending', {
-        'solver': solver,
         'withMedicare': 'None',
         'relTol': 1e-5,
         'gap': 5e-5,
@@ -247,7 +246,7 @@ class TestLTCGMilp:
         """Single-individual plan solved with withLTCG='optimize'."""
         p = _make_single_plan('ltcg_milp', taxable=1000, tax_deferred=500, tax_free=200,
                               rate_year=1997)
-        opts = {'solver': solver, 'withMedicare': 'None', 'withLTCG': 'optimize'}
+        opts = {'withMedicare': 'None', 'withLTCG': 'optimize'}
         if extra_options:
             opts.update(extra_options)
         p.solve('maxSpending', opts)
@@ -295,7 +294,7 @@ class TestLTCGMilp:
         p_milp = self._solve_milp()
         p_loop = _make_single_plan('ltcg_loop', taxable=1000, tax_deferred=500, tax_free=200,
                                    rate_year=1997)
-        p_loop.solve('maxSpending', {'solver': solver, 'withMedicare': 'None'})
+        p_loop.solve('maxSpending', {'withMedicare': 'None'})
         assert p_milp.caseStatus == 'solved'
         assert p_loop.caseStatus == 'solved'
         rel_diff = abs(p_milp.g_n[0] - p_loop.g_n[0]) / max(abs(p_loop.g_n[0]), 1)
@@ -382,7 +381,6 @@ class TestLTCGScLoopConsistency:
         p.solve(
             "maxBequest",
             {
-                "solver": solver,
                 "withMedicare": "optimize",
                 "withDecomposition": "benders",
                 "netSpending": 80,
@@ -398,7 +396,6 @@ class TestLTCGScLoopConsistency:
         p.solve(
             "maxBequest",
             {
-                "solver": solver,
                 "withMedicare": "optimize",
                 "withDecomposition": "sequential",
                 "netSpending": 80,

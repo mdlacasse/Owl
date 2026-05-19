@@ -29,6 +29,19 @@ import owlplanner as owl
 
 pytestmark = pytest.mark.toml
 
+def _active_solver():
+    """Resolve OWL_TEST_SOLVER (or 'default') to the actual solver that will be used."""
+    env = os.getenv('OWL_TEST_SOLVER', 'default')
+    if env in ('HiGHS', 'MOSEK'):
+        return env
+    try:
+        import mosek
+        if 'MOSEKLM_LICENSE_FILE' in os.environ:
+            return 'MOSEK'
+    except ImportError:
+        pass
+    return 'HiGHS'
+
 
 def getHFP(exdir, case, check_exists=True):
     """
@@ -151,6 +164,12 @@ else:
     print(f"Unknown platform {platform}")
     assert False
 
+# MOSEK converges to a different SC-loop fixed point for Case_jack+jill
+# (~94111 vs HiGHS ~94353) due to numerical differences in the LP solutions.
+# Values are platform-specific; add linux/win32 entries once confirmed on those platforms.
+if _active_solver() == 'MOSEK' and platform == 'darwin':
+    EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 94_111
+
 
 def test_reproducibility():
     """
@@ -207,8 +226,6 @@ def test_reproducibility():
             f"for case {case}"
         )
 
-        # Force HiGHS for reproducible results across environments (matches GitHub CI).
-        p.solverOptions['solver'] = 'HiGHS'
         p.solverOptions['absTol'] = 50
         p.solverOptions['relTol'] = 2e-5
 

@@ -4,6 +4,7 @@ Tests for setCostBasis() — proper unrealized-gain tracking for taxable account
 When a cost basis is provided, each withdrawal from the taxable account triggers
 gain_fraction × withdrawal as capital gains instead of only this year's price appreciation.
 """
+
 import numpy as np
 import pytest
 from datetime import date
@@ -11,7 +12,6 @@ from datetime import date
 import owlplanner as owl
 from owlplanner.config import apply_config_to_plan, config_to_plan, plan_to_config
 
-solver = 'HiGHS'
 
 
 def _make_plan(name, taxable_k, tax_deferred_k, tax_free_k, rate_year=2000):
@@ -35,13 +35,13 @@ class TestCostBasisNoRegression:
 
     def test_solves_without_basis(self):
         p = _make_plan('no_basis', taxable_k=500, tax_deferred_k=500, tax_free_k=100)
-        p.solve('maxSpending', {'solver': solver})
+        p.solve('maxSpending')
         assert p.caseStatus == 'solved'
 
     def test_q_n_positive_without_basis(self):
         """Taxable account with equity holdings should generate positive LTCG."""
         p = _make_plan('no_basis_qn', taxable_k=1000, tax_deferred_k=0, tax_free_k=0)
-        p.solve('maxSpending', {'solver': solver})
+        p.solve('maxSpending')
         assert p.caseStatus == 'solved'
         assert np.any(p.Q_n > 0), "Expected positive LTCG from taxable-only portfolio"
 
@@ -54,11 +54,11 @@ class TestCostBasisHighGain:
         basis_k = 200   # $200k basis on $1M account → 80% gain fraction
 
         p_no_basis = _make_plan('hg_no_basis', taxable_k=taxable_k, tax_deferred_k=0, tax_free_k=0)
-        p_no_basis.solve('maxSpending', {'solver': solver})
+        p_no_basis.solve('maxSpending')
 
         p_with_basis = _make_plan('hg_with_basis', taxable_k=taxable_k, tax_deferred_k=0, tax_free_k=0)
         p_with_basis.setCostBasis([basis_k])
-        p_with_basis.solve('maxSpending', {'solver': solver})
+        p_with_basis.solve('maxSpending')
 
         assert p_with_basis.caseStatus == 'solved'
         total_no_basis = float(np.sum(p_no_basis.Q_n))
@@ -74,11 +74,11 @@ class TestCostBasisHighGain:
         taxable_k = 1000
 
         p_no_basis = _make_plan('spend_no_basis', taxable_k=taxable_k, tax_deferred_k=0, tax_free_k=0)
-        p_no_basis.solve('maxSpending', {'solver': solver})
+        p_no_basis.solve('maxSpending')
 
         p_with_basis = _make_plan('spend_with_basis', taxable_k=taxable_k, tax_deferred_k=0, tax_free_k=0)
         p_with_basis.setCostBasis([200])   # 80% unrealized gain
-        p_with_basis.solve('maxSpending', {'solver': solver})
+        p_with_basis.solve('maxSpending')
 
         assert p_with_basis.caseStatus == 'solved'
         # Higher LTCG tax → lower or equal max spending.
@@ -95,11 +95,11 @@ class TestCostBasisEdgeCases:
         """Zero basis → legacy approximation for that person (not 100% gain fraction)."""
         p_zero = _make_plan('zero_basis', taxable_k=500, tax_deferred_k=200, tax_free_k=0)
         p_zero.setCostBasis([0])
-        p_zero.solve('maxSpending', {'solver': solver})
+        p_zero.solve('maxSpending')
         assert p_zero.caseStatus == 'solved'
 
         p_legacy = _make_plan('zero_basis_ref', taxable_k=500, tax_deferred_k=200, tax_free_k=0)
-        p_legacy.solve('maxSpending', {'solver': solver})
+        p_legacy.solve('maxSpending')
 
         # Zero basis should behave identically to no basis (both use legacy approximation).
         np.testing.assert_allclose(p_zero.Q_n, p_legacy.Q_n, rtol=1e-6)
@@ -109,10 +109,10 @@ class TestCostBasisEdgeCases:
         taxable_k = 500
         p_full = _make_plan('full_basis', taxable_k=taxable_k, tax_deferred_k=200, tax_free_k=0)
         p_full.setCostBasis([taxable_k])   # basis == balance → gain_fraction = 0
-        p_full.solve('maxSpending', {'solver': solver})
+        p_full.solve('maxSpending')
 
         p_no_basis = _make_plan('full_basis_ref', taxable_k=taxable_k, tax_deferred_k=200, tax_free_k=0)
-        p_no_basis.solve('maxSpending', {'solver': solver})
+        p_no_basis.solve('maxSpending')
 
         assert p_full.caseStatus == 'solved'
         # With gain_fraction=0, capital gains from withdrawals collapse to nearly zero;
@@ -123,7 +123,7 @@ class TestCostBasisEdgeCases:
         """Basis > balance (e.g. from a loss) → gain_fraction clamped to 0, no tax on withdrawal."""
         p = _make_plan('excess_basis', taxable_k=500, tax_deferred_k=200, tax_free_k=0)
         p.setCostBasis([900])   # basis > balance: underwater position
-        p.solve('maxSpending', {'solver': solver})
+        p.solve('maxSpending')
         assert p.caseStatus == 'solved'
 
 
@@ -149,7 +149,7 @@ class TestCostBasisMixedCouple:
         # Jack: $100k basis on $500k account (80% gain fraction).
         # Jill: basis unknown → zero → legacy approximation.
         p.setCostBasis([100, 0])
-        p.solve('maxSpending', {'solver': solver})
+        p.solve('maxSpending')
         assert p.caseStatus == 'solved'
 
         # gain_fraction_in must exist (Jack has tracking) and be NaN for Jill.
@@ -168,7 +168,7 @@ class TestCostBasisConvergence:
     def test_sc_loop_converges(self):
         p = _make_plan('convergence', taxable_k=1500, tax_deferred_k=500, tax_free_k=200)
         p.setCostBasis([300])   # 80% gain fraction
-        p.solve('maxSpending', {'solver': solver, 'withMedicare': 'IRMAA'})
+        p.solve('maxSpending', {'withMedicare': 'IRMAA'})
         assert p.caseStatus == 'solved'
         assert p.convergenceType in ('monotonic', 'oscillatory', 'stagnation'), (
             f"Unexpected convergence type: {p.convergenceType}"

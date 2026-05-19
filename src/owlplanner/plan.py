@@ -3492,8 +3492,8 @@ class Plan:
         it = 0
         old_x = np.zeros(self.nvars)
         trace = self._new_iteration_trace()
-        # Decomposition dispatch: for sequential mode, replace the monolithic MIP
-        # with a hierarchical relax-and-fix solver (HiGHS only).
+        # Decomposition dispatch: replace the monolithic MIP with a hierarchical
+        # relax-and-fix or Benders solver (supported for both HiGHS and MOSEK).
         decomp_mode = options.get("withDecomposition", "none")
         # Use __func__ comparison to identify solver regardless of bound method identity.
         is_milp = getattr(solverMethod, "__func__", None) is Plan._milpSolve

@@ -126,6 +126,13 @@ Install pytest-xdist and pytest-randomly. Run checks before all commits:
 flake8 ui src tests
 pytest -n auto
 ```
+or
+```
+OWL_TEST_SOLVER="HiGHS" pytest -n auto
+OWL_TEST_SOLVER="MOSEK" pytest -n auto
+```
+to run the tests using different solvers.
+
 To update version, edit number in `src/owlplanner/version.py`.
 
 To update package on pypi or testpypi,
