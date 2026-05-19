@@ -143,7 +143,7 @@ with st.expander("*Explore some case examples*"):
         st.markdown("Navigate to **Graphs**, **Worksheets**, or **Reports** under Results to see results.")
 
     st.markdown("**Start here:**")
-    st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
+    st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
     st.caption("Once you’ve run your first case,"
                " explore other Case Setup pages to change assumptions. Explore other cases.")
 
@@ -233,10 +233,10 @@ kz.divider("orange")
 st.markdown("### :orange[Next steps]")
 c0, c1, c2, c3 = st.columns(4)
 with c0:
-    st.page_link("Create_Case.py", label="Open Create Case", icon=":material/person_add:")
+    st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
 with c1:
     st.page_link("Documentation.py", label="Documentation", icon=":material/help:")
 with c2:
-    st.page_link("Parameters_Reference.py", label="Parameters reference", icon=":material/tune:")
+    st.page_link("Parameters_Reference.py", label="Parameters Reference", icon=":material/menu_book:")
 with c3:
     st.page_link("About_Owl.py", label="About Owl", icon=":material/info:")

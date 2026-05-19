@@ -1653,7 +1653,7 @@ Displays reference tables for parameter settings. Useful for understanding keys 
 """)
     with st.expander("About Owl"):
         st.markdown("""
-Credits and disclaimers.
+Credits, changelog, and legal information.
 """)
 
 # --- Tips tab ---
@@ -1741,3 +1741,13 @@ the best estimates.
 Understanding the limitations of any retirement financial planning tool is absolutely critical
 to interpreting the results they provide.
 """)
+
+kz.divider("orange")
+st.markdown("### :orange[Next steps]")
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
+with c2:
+    st.page_link("Parameters_Reference.py", label="Parameters Reference", icon=":material/menu_book:")
+with c3:
+    st.page_link("About_Owl.py", label="About Owl", icon=":material/info:")
