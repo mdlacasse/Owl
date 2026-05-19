@@ -33,6 +33,7 @@ col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
     st.markdown("# :material/info: About Owl — *Optimal wealth lab*")
     st.markdown(f"**Version {owb.version()}** &nbsp;·&nbsp; Streamlit **{st.__version__}**")
+    st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown(
         """
 - Owl is an open-source retirement financial planner capable of optimization through
