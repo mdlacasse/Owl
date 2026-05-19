@@ -1,4 +1,14 @@
 
+### Version 2026.05.19
+
+#### UX
+- **Financial Profile page**: A status caption now appears below the HFP upload widget confirming
+  which file was loaded. If any table value is edited after the upload, the filename is marked with
+  a trailing `*` (e.g. `HFP_jack+jill.xlsx *`) so the original filename is never lost and the
+  modified state is immediately visible without having to run the plan first.
+
+---
+
 ### Version 2026.05.16
 
 #### Taxable account cost-basis tracking
