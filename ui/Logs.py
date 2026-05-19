@@ -100,7 +100,7 @@ if logmsg:
     if actfilter:
         # Filter lines that contain the search text
         lines = logmsg.splitlines()
-        filtered_lines = [line for line in lines if actfilter in line]
+        filtered_lines = [line for line in lines if actfilter.lower() in line.lower()]
         filtered_logs = "\n".join(filtered_lines)
     else:
         filtered_logs = logmsg
