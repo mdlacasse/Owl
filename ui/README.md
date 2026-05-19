@@ -1,4 +1,4 @@
-# Owl — *Optimal wealth lab*: Web Interface
+# Owl — *Optimal wealth lab*
 
 ### Running Web Interface
 To run just type from the command line

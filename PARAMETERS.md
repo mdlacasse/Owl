@@ -1,4 +1,6 @@
-This document describes all parameters used in **Owl** (*Optimal wealth lab*) TOML configuration files. The TOML file structure is organized into sections for clarity, and can be consumed by both the UI and CLI applications.
+# Owl — Optimal wealth lab: Parameters Reference
+
+This document describes all parameters used in Owl TOML configuration files. The TOML file structure is organized into sections for clarity, and can be consumed by both the UI and CLI applications.
 
 **Note:** Throughout this document, `N_i` refers to the number of individuals in the plan (1 for single, 2 for married).
 

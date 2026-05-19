@@ -1,4 +1,4 @@
-# OWLCLI - a Command Line Interface for Owl — *Optimal wealth lab*
+# OWLCLI — Owl (*Optimal wealth lab*) Command Line Interface
 
 `owlcli` is a command line interface tool to streamline the listing, running and experimenting with Owl case files outside the streamlit interface.
 
