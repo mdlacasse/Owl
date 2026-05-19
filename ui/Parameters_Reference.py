@@ -44,7 +44,7 @@ with col1:
     st.markdown("# :material/menu_book: Parameters Reference")
     st.markdown("Complete reference for all parameters in Owl TOML configuration files.")
     if preamble:
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown(preamble)
 with col2:
     st.image(logofile, width="stretch")
