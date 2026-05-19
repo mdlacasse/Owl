@@ -1741,3 +1741,13 @@ the best estimates.
 Understanding the limitations of any retirement financial planning tool is absolutely critical
 to interpreting the results they provide.
 """)
+
+kz.divider("orange")
+st.markdown("### :orange[Next steps]")
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.page_link("Welcome.py", label="Welcome", icon=":material/home:")
+with c2:
+    st.page_link("Parameters_Reference.py", label="Parameters Reference", icon=":material/menu_book:")
+with c3:
+    st.page_link("About_Owl.py", label="About Owl", icon=":material/info:")
