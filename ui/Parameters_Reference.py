@@ -36,7 +36,7 @@ except FileNotFoundError:
 
 # Split preamble from ## sections
 parts = re.split(r'\n(?=## )', content)
-preamble = parts[0].strip()
+preamble = parts[0].strip().rstrip('-').strip()
 sections = parts[1:]
 
 col1, col2 = st.columns([2.8, 1], gap="large")
