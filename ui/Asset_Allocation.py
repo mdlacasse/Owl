@@ -47,9 +47,9 @@ ACC = ["taxable", "tax-deferred", "tax-free", "HSA"]
 ASSET = ["S&P 500", "Bonds Baa", "T-Notes", "Cash Assets"]
 DEFALLOC = [60, 20, 10, 10]
 ASSET_HELP = [
-    "U.S. large-cap stocks (or a broader equity mix). The highest-growth component of a retirement "
-    "portfolio, but also the most volatile. Return includes dividends. Can represent any diversified "
-    "equity allocation — domestic, international, or a blend.",
+    "The equity component of your portfolio. When using historical rates, this tracks the actual "
+    "S&P 500 (U.S. large-cap stocks, dividends included). For all other rate methods, it can "
+    "represent any diversified equity mix — domestic, international, emerging markets, or a blend.",
     "Investment-grade corporate bonds rated Baa or better. Provide regular interest income with "
     "moderate credit risk — sitting between stocks and government bonds in the risk/return spectrum. "
     "A common choice for the fixed-income portion of a pre-retirement portfolio.",
