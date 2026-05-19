@@ -835,7 +835,12 @@ def _setContributions(plan, action):
         plan.hfpFileName = marked
     elif action == "set":
         if data_changed:
-            marked = original_filename + " *" if original_filename and original_filename != "None" and not original_filename.endswith(" *") else original_filename
+            if original_filename and original_filename != "None" and not original_filename.endswith(" *"):
+                marked = original_filename + " *"
+            elif not original_filename or original_filename == "None":
+                marked = "edited values"  # no file reference; values entered manually
+            else:
+                marked = original_filename  # already carries " *"
             plan.hfpFileName = marked
         else:
             # Strip marker when data matches the loaded file.
