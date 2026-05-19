@@ -74,7 +74,7 @@ See [documentation](Documentation#settings-settings) for details.
 st.divider()
 st.markdown("""
 #### :orange[App Theme]
-Streamlit's appearance is set at launch time and cannot be changed from within the app.
+Streamlit's theme is set at launch time and cannot be changed from within the app. By default, **Owl** inherits the light or dark theme configured on the system where it runs.
 
 **Local install** — pass `--theme.base` to the launcher script:
 ```
