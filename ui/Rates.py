@@ -106,7 +106,7 @@ Unless historical, S&P 500 can be used to represent any mix of equities
 (domestic, international, emerging, ...).
 """
     helpmsgBaa = "Investment-grade corporate debt from issuers with a moderate risk of default."
-    helpmsgTnote = "T-Notes are medium-term, low-risk U.S. government debt, offering state/local tax-exempt interest."
+    helpmsgTnote = "T-Notes are medium-term, low-risk U.S. government debt."
     helpmsgCash = """Here, "Cash Assets" are TIPS-like securities assumed to track inflation."""
     helpFixed = """A 2025 roundup of expert opinions on stock and bond return
 forecasts for the next decade can be found
