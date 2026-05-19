@@ -31,7 +31,6 @@ import owlplanner as owl
 from owlplanner import tax2026 as tx
 
 
-
 def _make_couple_plan(name, taxable, tax_deferred, tax_free, ss_pias, ss_ages,
                       pension=None, pension_ages=None, rate_year=2000, expectancy=None):
     """

@@ -174,7 +174,7 @@ for an individual's first name (e.g., *Jack* or *Jill*).
 This human-readable text file encodes all the scalar parameters of a *case*:
 individual demographics (names, birth dates, life expectancies),
 savings account balances, asset allocation ratios,
-fixed income sources (Social Security, pensions),
+fixed income sources (Social Security, pensions, SPIAs),
 run options (objective, Roth conversion strategy, solver options),
 the rates selection, and the filename of the associated *HFP* workbook (if any).
 It does **not** contain the time-series data from the *Household Financial Profile* itself.
@@ -560,7 +560,7 @@ where:
     with st.expander("Fixed Income"):
         st.markdown("""
 This page is for entering data related to the individual's anticipated fixed income
-from pensions and Social Security.
+from Social Security, pensions, and Single Premium Immediate Annuities (SPIAs).
 Unlike other parts of the user interface, amounts on this page are
 monthly amounts in today's \\$ and not in thousands.
 The monthly amounts to be entered for Social Security are the Primary Insurance Amounts (PIA)
@@ -676,6 +676,34 @@ Use 0 for a single-life annuity; common values for joint-and-survivor J+S are 50
 As for Social Security, the exact age in years and months, combined with your birth month,
 determines the exact time benefits start in the first year and the total
 annual amount for the first year is adjusted accordingly.
+
+##### Single Premium Immediate Annuity (SPIA)
+
+A SPIA converts a lump-sum payment into a guaranteed stream of lifetime income starting
+immediately after purchase. **Owl** supports SPIAs funded through an IRA rollover, which is a
+non-taxable transfer: the premium is deducted directly from the annuitant's tax-deferred account
+in the year of purchase without triggering income tax. All subsequent payments are fully taxable
+as ordinary income, and they count toward MAGI — affecting Medicare IRMAA surcharges and
+Social Security taxability.
+
+The table on this page accepts one row per SPIA. The columns are:
+
+- **Annuitant** — the individual whose tax-deferred account funds the premium and whose life
+  determines the payment duration.
+- **Buy year** — the calendar year of purchase. For an already-purchased SPIA, enter the original
+  purchase year: the premium is ignored (the account deduction already happened), and income
+  begins at year 0 of the plan. For a future purchase, the premium is deducted from the
+  tax-deferred balance in that year.
+- **Premium (\\$k)** — lump-sum cost in thousands of nominal dollars. Ignored for past purchases.
+- **Monthly (\\$)** — monthly benefit in nominal dollars at the time of purchase.
+- **CPI-linked** — check if payments are inflation-adjusted (rare); leave unchecked for the
+  more common fixed nominal payment.
+- **Survivor (%)** — for couples, the fraction of the benefit that continues to the surviving
+  spouse after the annuitant's death. Use 0 for a single-life annuity; common values are 50%,
+  75%, or 100%.
+
+**Owl** assumes the full annual payment is received in the buy year (12 monthly payments).
+Multiple SPIAs are supported; add one row per contract.
 """)
 
     with st.expander("Account Balances"):

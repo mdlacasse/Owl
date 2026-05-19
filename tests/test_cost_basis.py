@@ -13,7 +13,6 @@ import owlplanner as owl
 from owlplanner.config import apply_config_to_plan, config_to_plan, plan_to_config
 
 
-
 def _make_plan(name, taxable_k, tax_deferred_k, tax_free_k, rate_year=2000):
     thisyear = date.today().year
     p = owl.Plan(['Jack'], [f"{thisyear - 66}-01-15"], [80], name)

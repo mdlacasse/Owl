@@ -1631,7 +1631,10 @@ class Plan:
                 amounts = np.zeros(self.N_i)
                 amounts[ind] = spia["monthly_income"]
                 ages = np.full(self.N_i, 999.0)
-                ages[ind] = float(buy_age)
+                # Subtract birth-month offset so compute_pension_benefits yields age_with_month
+                # = buy_age exactly (integer), giving first_year_fraction = 1.0.
+                # SPIA income starts immediately on purchase, not on the annuitant's birthday.
+                ages[ind] = float(buy_age) - (self.mobs[ind] - 1) / 12
                 surv = np.zeros(self.N_i)
                 surv[ind] = spia["survivor_fraction"]
                 indexed_flags = [False] * self.N_i
