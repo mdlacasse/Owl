@@ -49,7 +49,7 @@ with col2:
 kz.divider("orange")
 
 credits_text = (Path(__file__).parent.parent / "CREDITS.md").read_text(encoding="utf-8")
-credits_text = credits_text.replace("## Credits and Acknowledgements\n", "", 1)
+credits_text = credits_text.replace("## Owl — Optimal wealth lab: Credits and Acknowledgements\n", "", 1)
 split_marker = "- [MOSEK]"
 if split_marker in credits_text:
     people_part, deps_part = credits_text.split(split_marker, 1)

@@ -1,4 +1,4 @@
-## Credits and Acknowledgements
+## Owl — Optimal wealth lab: Credits and Acknowledgements
 - Original author:
 Martin-D. Lacasse (mdlacasse)
 

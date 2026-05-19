@@ -25,8 +25,8 @@ import streamlit as st
 import sskeys as kz
 
 # Default page width is set here; switch to layout="centered" in this file if you prefer.
-st.set_page_config(layout="wide", page_title="Owl Retirement Planner")
-# st.set_page_config(layout="centered", page_title="Owl Retirement Planner")
+st.set_page_config(layout="wide", page_title="Owl — Optimal wealth lab")
+# st.set_page_config(layout="centered", page_title="Owl — Optimal wealth lab")
 
 kz.init()
 
