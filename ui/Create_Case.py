@@ -38,6 +38,9 @@ def _loadHFPExample(file):
 
 
 def _render_case_loader():
+    st.markdown("Select a tab below to load one of the available case examples,"
+                " create a new case, or upload an existing TOML case file.")
+    st.caption("Consult the :material/help: [Documentation](Documentation) for more details.")
     tab1, tab2, tab3 = st.tabs(["_Load a Case Example_", "_Create a New Case_", "_Upload Your Own Case File_"])
     with tab1:
         col, hint = st.columns([2, 3], gap="large", vertical_alignment="bottom")
@@ -93,15 +96,8 @@ def _render_case_loader():
 ret = kz.titleBar(":material/person_add: Create Case")
 
 if ret is None:
-    st.info(
-        "#### Create or load a case\n\n"
-        "Select a tab below to load one of the available case examples,"
-        " create a new case, or upload an existing TOML case file.\n\n"
-        "Consult the :material/help: [Documentation](Documentation) for more details."
-    )
     _render_case_loader()
 else:
-    st.caption("Load a case example, create a new case, or upload an existing TOML file.")
     with st.expander("_Create or load another case_"):
         _render_case_loader()
 
