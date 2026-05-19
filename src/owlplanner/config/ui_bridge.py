@@ -19,6 +19,7 @@ from datetime import date, datetime
 from typing import Any
 
 from owlplanner.config.constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
+from owlplanner.config.plan_bridge import _normalize_hfp_file_name
 from owlplanner.config.defaults import (
     DEFAULT_DOB,
     DEFAULT_DIVIDEND_RATE,
@@ -210,7 +211,7 @@ def config_to_ui(diconf: dict) -> dict:
     dic["worksheetHideZeroColumns"] = bool(res.get("worksheet_hide_zero_columns", False))
     dic["worksheetRealDollars"] = bool(res.get("worksheet_real_dollars", False))
     dic["allocType"] = aa.get("type", "individual")
-    dic["hfpFileName"] = hfp.get("HFP_file_name", "None")
+    dic["hfpFileName"] = _normalize_hfp_file_name(hfp.get("HFP_file_name", "None"))
 
     benf_defaults = [1.0, 1.0, 1.0, 1.0]
     benf_vals = sa.get("beneficiary_fractions", benf_defaults)

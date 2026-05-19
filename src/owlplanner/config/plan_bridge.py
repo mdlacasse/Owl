@@ -39,7 +39,7 @@ def _get_known(diconf: dict) -> dict:
 
 def _normalize_hfp_file_name(name: str) -> str:
     """Map UI/legacy placeholders to the canonical no-HFP sentinel (string 'None')."""
-    if name == "" or name == "dictionary of DataFrames":
+    if name == "" or name.lower() == "none" or name == "dictionary of DataFrames":
         return "None"
     return name
 
