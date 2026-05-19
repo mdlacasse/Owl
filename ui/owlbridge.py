@@ -830,18 +830,19 @@ def _setContributions(plan, action):
         if kz.getCaseKey("status") == "married":
             kz.setCaseKey("timeList1", plan.timeLists[kz.getCaseKey("iname1")])
     elif action == "reset":
-        kz.setCaseKey("hfpFileName", "edited values")
-        plan.hfpFileName = "edited values"
+        marked = original_filename + " *" if original_filename and original_filename != "None" and not original_filename.endswith(" *") else original_filename
+        kz.setCaseKey("hfpFileName", marked)
+        plan.hfpFileName = marked
     elif action == "set":
-        # Only set to "edited values" if data actually changed.
         if data_changed:
-            kz.storeCaseKey("hfpFileName", "edited values")
-            plan.hfpFileName = "edited values"
+            marked = original_filename + " *" if original_filename and original_filename != "None" and not original_filename.endswith(" *") else original_filename
+            plan.hfpFileName = marked
         else:
-            # Preserve original filename if nothing changed.
-            if original_filename and original_filename != "edited values" and original_filename != "None":
-                kz.storeCaseKey("hfpFileName", original_filename)
-                plan.hfpFileName = original_filename
+            # Strip marker when data matches the loaded file.
+            base = original_filename[:-2] if original_filename and original_filename.endswith(" *") else original_filename
+            if base and base != "None":
+                kz.storeCaseKey("hfpFileName", base)
+                plan.hfpFileName = base
 
 
 @_checkPlan
@@ -865,8 +866,7 @@ def readHFP(plan, stFile, file=None):
         st.error(f"Failed to parse Household Financial Profile Workbook '{name}': {e}")
         return False
 
-    # Set the filename in both case dictionary and plan object
-    # This ensures the value is reset even if it was previously "edited values"
+    # Set the filename in both case dictionary and plan object (clears any " *" marker).
     kz.setCaseKey("stHFP", name)
     kz.setCaseKey("hfpFileName", name)
     plan.hfpFileName = name
@@ -893,6 +893,10 @@ def resetTimeLists():
     tlists = resetWagesAndContributions()
     for i, iname in enumerate(tlists):
         kz.setCaseKey(f"timeList{i}", tlists[iname])
+    if kz.getCaseKey("stHFP") is not None:
+        fname = kz.getCaseKey("hfpFileName") or ""
+        if fname and not fname.endswith(" *"):
+            kz.storeCaseKey("hfpFileName", fname + " *")
 
     # Reset houseLists to empty DataFrames
     # kz.setCaseKey("houseListDebts",
@@ -1316,11 +1320,10 @@ def saveContributions(plan):
 @_checkPlan
 def markHFPAsSaved(plan):
     """
-    Update hfpFileName from "edited values" to HFP_{caseName}.xlsx.
-    Call this only when the user has actually downloaded the HFP workbook.
+    Update hfpFileName to HFP_{caseName}.xlsx once the user downloads the HFP workbook.
     """
     current_filename = kz.getCaseKey("hfpFileName")
-    if current_filename == "edited values":
+    if current_filename and current_filename.endswith(" *"):
         case_name = kz.getCaseKey("name")
         if case_name:
             suggested_filename = f"HFP_{case_name}.xlsx"

@@ -62,8 +62,9 @@ else:
                 "[template](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) "
                 "and upload the file using the widget below."
             )
-        elif original != "edited values":
-            st.info(f"""Case *'{kz.currentCaseName()}'* refers to file *'{original}'*
+        else:
+            base = original[:-2] if original.endswith(" *") else original
+            st.info(f"""Case *'{kz.currentCaseName()}'* refers to file *'{base}'*
 that has not yet been uploaded.""")
 
     col1, col2 = st.columns(2, gap="large")
@@ -86,6 +87,13 @@ that has not yet been uploaded.""")
                 # Change key to reset uploader.
                 kz.storeCaseKey("_xlsx", kz.getCaseKey("_xlsx") + 1)
                 st.rerun()
+        stHFP_val = kz.getCaseKey("stHFP")
+        if stHFP_val is not None:
+            hfp_name = kz.getCaseKey("hfpFileName") or ""
+            if hfp_name.endswith(" *"):
+                st.caption(f":white_check_mark: *{hfp_name[:-2]}*\\* loaded — values modified.")
+            else:
+                st.caption(f":white_check_mark: *{hfp_name}* loaded.")
     with col2:
         tomlexcase = kz.getCaseKey("tomlexcase")
         mytype = "primary" if kz.getCaseKey("stHFP") is None else "secondary"
@@ -128,6 +136,10 @@ For these initial five years, only Roth-related entries are read; all other colu
 
             if not df.equals(newdf):
                 kz.setCaseKey("timeList" + str(i), newdf)
+                if kz.getCaseKey("stHFP") is not None:
+                    fname = kz.getCaseKey("hfpFileName") or ""
+                    if fname and not fname.endswith(" *"):
+                        kz.storeCaseKey("hfpFileName", fname + " *")
                 st.rerun()
 
         st.button("Reset to zero", help="Reset all values to zero.", on_click=owb.resetTimeLists)
@@ -212,6 +224,10 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
         if not debtdf.equals(edited_debtdf):
             edited_debtdf = owb.conditionDebtsAndFixedAssetsDF(edited_debtdf, "Debts")
             kz.setCaseKey("houseListDebts", edited_debtdf)
+            if kz.getCaseKey("stHFP") is not None:
+                fname = kz.getCaseKey("hfpFileName") or ""
+                if fname and not fname.endswith(" *"):
+                    kz.storeCaseKey("hfpFileName", fname + " *")
             st.rerun()
 
         st.divider()
@@ -307,6 +323,10 @@ pressing the *Delete* key."""
         if not fixeddf.equals(edited_fixeddf):
             edited_fixeddf = owb.conditionDebtsAndFixedAssetsDF(edited_fixeddf, "Fixed Assets")
             kz.setCaseKey("houseListFixedAssets", edited_fixeddf)
+            if kz.getCaseKey("stHFP") is not None:
+                fname = kz.getCaseKey("hfpFileName") or ""
+                if fname and not fname.endswith(" *"):
+                    kz.storeCaseKey("hfpFileName", fname + " *")
             st.rerun()
 
     # Show progress bar at bottom (only when case is defined)

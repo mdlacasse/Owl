@@ -134,7 +134,7 @@ and can be used, along with the *Household Financial Profile* workbook, to repro
                 if gcs is not None:
                     kz.storeCaseKey("casetoml", gcs.getvalue())
                 st.rerun()
-            if kz.getCaseKey("hfpFileName") == "edited values":
+            if kz.getCaseKey("hfpFileName") and kz.getCaseKey("hfpFileName").endswith(" *"):
                 st.caption(
                     ":warning: HFP values were edited. Download both this file and the "
                     "case file to reproduce this run."
