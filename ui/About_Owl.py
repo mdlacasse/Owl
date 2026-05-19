@@ -31,9 +31,10 @@ logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
 
 col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
-    st.markdown("# :material/info: About Owl — *Optimal wealth lab*")
+    st.markdown("# :material/info: About Owl")
+    st.markdown("### Owl - *Optimal wealth lab*")
     st.markdown(f"**Version {owb.version()}** &nbsp;·&nbsp; Streamlit **{st.__version__}**")
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(
         """
 - Owl is an open-source retirement financial planner capable of optimization through
@@ -93,7 +94,7 @@ your computer and can be used to reproduce a case at a later time.
 This software is released under the
 [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
-Copyright &copy; 2025-2026 - The Owlplanner [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
+Copyright &copy; 2025-2026 - The Owl [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 """
 )
 

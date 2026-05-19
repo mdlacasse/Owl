@@ -57,7 +57,7 @@ col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
     st.markdown("# Plan your retirement with confidence")
     st.subheader("**Owl** – *Optimal wealth lab*", anchor=False)
-    st.markdown("")
+    kz.divider("orange")
     st.markdown("""
 ### :orange[Stop guessing. Start optimizing.]
 Retire with confidence and clarity.
