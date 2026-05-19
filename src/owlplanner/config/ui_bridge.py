@@ -10,7 +10,7 @@ Rates representation:
 - Correlations: Pearson coefficient (-1 to 1). Not percent—standard convention
   in finance and statistics (Investopedia, Wikipedia).
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 import logging

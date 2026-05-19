@@ -4,7 +4,7 @@ Command-line interface main entry point for Owl retirement planner.
 This module provides the main CLI group and command registration for the
 Owl command-line interface.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

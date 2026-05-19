@@ -14,7 +14,7 @@ from historical data.  Σ is the residual covariance matrix.
 Reference: Campbell & Viceira (2002), "Strategic Asset Allocation",
 Oxford University Press.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

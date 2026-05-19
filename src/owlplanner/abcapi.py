@@ -6,7 +6,7 @@ objective functions line by line, abstracting the building process to enable
 use of various solvers (MOSEK, HiGHS, etc.) for comparison. The name ABCAPI
 refers to A (matrix), B (bounds), C (constraints).
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

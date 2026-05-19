@@ -1,7 +1,7 @@
 """
 Tests for worksheet display helpers (ages, zero-column drop).
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 import pandas as pd

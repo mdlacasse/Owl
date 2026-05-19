@@ -4,7 +4,7 @@ Tests for fixedassets module - fixed asset calculations and tax handling.
 Tests verify functions for calculating future values, capital gains,
 and tax implications of fixed assets including primary residence exclusions.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

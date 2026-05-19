@@ -1,7 +1,7 @@
 """
 Parse PARAMETERS.md to extract solver options for --help-solver-options.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 from pathlib import Path

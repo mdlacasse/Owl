@@ -8,7 +8,7 @@ The LP bracket formulation is always used (no SC-loop fallback). Validates that:
 - Effective LTCG rate U_n/Q_n is in [0%, 20%] when Q_n > 0.
 - 15% bracket is used when Q_n > T15_n − e_n (large-taxable-account plan).
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

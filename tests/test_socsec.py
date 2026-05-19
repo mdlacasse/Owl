@@ -4,7 +4,7 @@ Tests for socialsecurity module - Social Security benefit calculations.
 Tests verify Social Security rules including full retirement age calculations
 and benefit computations.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

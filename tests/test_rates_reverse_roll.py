@@ -4,7 +4,7 @@ Tests for setRates reverse and roll sequence options.
 Verifies that reverse_sequence and roll_sequence parameters are applied
 once in setRates, stored on the plan, and correctly read/written by config.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 import numpy as np

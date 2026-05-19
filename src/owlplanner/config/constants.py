@@ -1,7 +1,7 @@
 """
 Shared constants for configuration and UI bridges.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 # Account types (config/schema naming)

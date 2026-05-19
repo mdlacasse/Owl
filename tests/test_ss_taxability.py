@@ -6,7 +6,7 @@ Validates that the self-consistent loop:
 - Correctly assigns Psi_n ≈ 0.85 when provisional income >> P_hi (cap is binding)
 - Produces varying Psi_n when income changes across years
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -21,7 +21,7 @@ Usage (inside plan.py)::
     # Extract results:
     b_ijn = vm["b"].extract(x)       # shape (N_i, N_j, N_n+1)
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

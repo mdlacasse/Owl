@@ -4,7 +4,7 @@ Tests for plan.py summary methods with N parameter (fraction of years).
 Tests verify that summary methods correctly handle the N parameter to
 generate summaries covering only a fraction of the plan years.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
