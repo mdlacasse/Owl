@@ -66,7 +66,7 @@ else:
                 help=help_real,
             )
         kz.divider("orange")
-        col_instr, col_expand = st.columns([5, 1], vertical_alignment="bottom")
+        col_instr, col_expand, _ = st.columns([5, 1, 0.5], vertical_alignment="bottom")
         with col_instr:
             st.markdown("##### Select a tab below, then expand a section to view its data.")
         with col_expand:
