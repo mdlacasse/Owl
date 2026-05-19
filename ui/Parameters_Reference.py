@@ -27,15 +27,6 @@ import sskeys as kz
 
 logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
 
-col1, col2 = st.columns([2.8, 1], gap="large")
-with col1:
-    st.markdown("# :material/menu_book: Parameters Reference")
-    st.markdown("Complete reference for all parameters in Owl TOML configuration files.")
-with col2:
-    st.image(logofile, width="stretch")
-    st.caption("*Retirement planner with great wisdom*")
-kz.divider("orange")
-
 parameters_path = Path(__file__).resolve().parents[1] / "PARAMETERS.md"
 try:
     content = parameters_path.read_text(encoding="utf-8")
@@ -48,8 +39,17 @@ parts = re.split(r'\n(?=## )', content)
 preamble = parts[0].strip()
 sections = parts[1:]
 
-if preamble:
-    st.markdown(preamble)
+col1, col2 = st.columns([2.8, 1], gap="large")
+with col1:
+    st.markdown("# :material/menu_book: Parameters Reference")
+    st.markdown("Complete reference for all parameters in Owl TOML configuration files.")
+    if preamble:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(preamble)
+with col2:
+    st.image(logofile, width="stretch")
+    st.caption("*Retirement planner with great wisdom*")
+kz.divider("orange")
 
 for i, section in enumerate(sections):
     heading, _, body = section.partition('\n')
