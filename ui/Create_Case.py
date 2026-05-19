@@ -101,6 +101,7 @@ if ret is None:
     )
     _render_case_loader()
 else:
+    st.caption("Load a case example, create a new case, or upload an existing TOML file.")
     with st.expander("_Create or load another case_"):
         _render_case_loader()
 
