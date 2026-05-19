@@ -1653,7 +1653,7 @@ Displays reference tables for parameter settings. Useful for understanding keys 
 """)
     with st.expander("About Owl"):
         st.markdown("""
-Credits and disclaimers.
+Credits, changelog, and legal information.
 """)
 
 # --- Tips tab ---

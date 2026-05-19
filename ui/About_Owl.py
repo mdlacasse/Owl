@@ -2,7 +2,7 @@
 About page for Owl retirement planner Streamlit UI.
 
 This module displays information about the Owl application including version,
-credits, and links to documentation and source code.
+release notes, credits, and links to documentation and source code.
 
 Copyright (C) 2025-2026 The Owlplanner Authors
 
@@ -27,35 +27,52 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 
+logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
 
-st.markdown("# :material/info: About Owl - Optimal wealth lab🦉")
-kz.divider("orange")
-
-st.markdown(f"This is Owl version {owb.version()} running on Streamlit {st.__version__}.")
-# st.balloons()
-
-credits_md = (Path(__file__).parent.parent / "CREDITS.md").read_text(encoding="utf-8")
-credits_md = credits_md.replace(
-    "## Credits and Acknowledgements",
-    "#### :orange[Credits and Acknowledgements]",
-    1,
-)
-
-st.markdown(
-    """
+col1, col2 = st.columns([2.8, 1], gap="large")
+with col1:
+    st.markdown("# :material/info: About Owl — *Optimal wealth lab*")
+    st.markdown(f"**Version {owb.version()}** &nbsp;·&nbsp; Streamlit **{st.__version__}**")
+    st.markdown(
+        """
 - Owl is an open-source retirement financial planner capable of optimization through
 mixed-integer linear programming.
 - Source code is available from a repository on [GitHub](https://github.com/mdlacasse/Owl).
 - Mathematical formulation of the linear optimization problem can be
 found in this [document](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf?raw=true).
-- [Release notes](https://github.com/mdlacasse/Owl/blob/main/RELEASE_NOTES.md) document changes in each version.
-
-Copyright &copy; 2025-2026 - The Owlplanner [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
-
 """
-)
+    )
+with col2:
+    st.image(logofile, width="stretch")
+    st.caption("*Retirement planner with great wisdom*")
+kz.divider("orange")
 
-st.markdown(credits_md)
+credits_text = (Path(__file__).parent.parent / "CREDITS.md").read_text(encoding="utf-8")
+credits_text = credits_text.replace("## Credits and Acknowledgements\n", "", 1)
+split_marker = "- [MOSEK]"
+if split_marker in credits_text:
+    people_part, deps_part = credits_text.split(split_marker, 1)
+    deps_part = split_marker + deps_part
+else:
+    people_part, deps_part = credits_text, ""
+
+st.markdown("#### :orange[Credits and Acknowledgements]")
+col1, col2 = st.columns(2, gap="large")
+with col1:
+    st.markdown(people_part)
+with col2:
+    st.markdown(deps_part)
+
+rn_path = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
+try:
+    rn_text = rn_path.read_text(encoding="utf-8")
+except OSError:
+    rn_text = None
+
+st.markdown("#### :orange[Changelog]")
+if rn_text:
+    with st.expander("*View changelog*", expanded=False):
+        st.markdown(rn_text)
 
 st.markdown(
     """
@@ -75,8 +92,16 @@ your computer and can be used to reproduce a case at a later time.
 This software is released under the
 [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
-#### :orange[Disclaimer]
-**Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
-investment advice**—consult a qualified professional for decisions about your situation.
+Copyright &copy; 2025-2026 - The Owlplanner [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 """
 )
+
+kz.divider("orange")
+st.markdown("### :orange[Next steps]")
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.page_link("Welcome.py", label="Welcome", icon=":material/home:")
+with c2:
+    st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
+with c3:
+    st.page_link("Documentation.py", label="Documentation", icon=":material/help:")
