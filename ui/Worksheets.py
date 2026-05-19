@@ -41,6 +41,7 @@ else:
         kz.initCaseKey("worksheetShowAges", False)
         kz.initCaseKey("worksheetHideZeroColumns", False)
         kz.initCaseKey("worksheetRealDollars", False)
+        kz.initCaseKey("worksheetExpandAll", False)
         help_age = "Add per-person age columns (age on December 31 of each row's calendar year)."
         help_hide = "Hide numeric columns where every value is zero."
         help_real = (
@@ -65,5 +66,10 @@ else:
                 help=help_real,
             )
         kz.divider("orange")
-        st.markdown("##### Select a tab below, then expand a section to view its data.")
+        col_instr, col_expand, _ = st.columns([5.2, 1, 0.4], vertical_alignment="bottom")
+        with col_instr:
+            st.markdown("##### Select a tab below, then expand a section to view its data.")
+        with col_expand:
+            kz.getToggle("Expand all", "worksheetExpandAll",
+                         help="Expand all sections across all tabs.")
         owb.showWorkbook()

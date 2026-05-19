@@ -1239,7 +1239,7 @@ def showWorkbook(plan):
 
         colfor = _worksheet_column_config(df.columns, dollars, pct_sheets, federal_tax_sheet)
 
-        with st.expander(f"***{name}***", expanded=False):
+        with st.expander(f"***{name}***", expanded=expand_all):
             if "Accounts" in name:
                 acct_note = " Opening balance as of Jan 1st of that year."
                 display_df = df.style.apply(highlight_year_row, axis=1)
@@ -1287,6 +1287,7 @@ def showWorkbook(plan):
         elif "Allocations" in name or name == "Rates":
             theme_tabs["Allocations & Rates"].append(name)
 
+    expand_all = bool(kz.getCaseKey("worksheetExpandAll"))
     tab_widgets = st.tabs(list(theme_tabs.keys()))
     for tab_widget, sheet_names in zip(tab_widgets, theme_tabs.values()):
         with tab_widget:
