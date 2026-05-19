@@ -4,7 +4,7 @@ Regression tests for Owl retirement planner core functionality.
 Tests verify that the planner produces consistent results across
 different scenarios and configurations.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -3,7 +3,7 @@ Parameters reference page for Owl retirement planner Streamlit UI.
 
 This module renders the PARAMETERS.md documentation as markdown.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -42,15 +42,17 @@ sections = parts[1:]
 col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
     st.markdown("# :material/menu_book: Parameters Reference")
+    st.markdown("### Owl - *Optimal wealth lab*")
+    kz.divider("orange")
     st.markdown("Complete reference for all parameters in Owl TOML configuration files.")
     if preamble:
-        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(preamble)
 with col2:
     st.image(logofile, width="stretch")
     st.caption("*Retirement planner with great wisdom*")
-kz.divider("orange")
 
+# st.divider()
 for i, section in enumerate(sections):
     heading, _, body = section.partition('\n')
     # Strip trailing horizontal rules added as separators in the source

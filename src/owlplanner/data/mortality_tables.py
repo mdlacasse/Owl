@@ -23,7 +23,7 @@ Age 119 is set to 1.0 (certain death by age 120) by convention.
 Values at intermediate ages are linearly interpolated from the 5-year anchor points published
 in each SOA study.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or

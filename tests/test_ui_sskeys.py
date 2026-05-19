@@ -4,7 +4,7 @@ Tests for ui.sskeys module - Streamlit session state key management.
 Tests verify functions for managing keys and data in Streamlit's
 session state for the UI components.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

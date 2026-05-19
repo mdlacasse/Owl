@@ -4,7 +4,7 @@ Tests for SPIA (Single Premium Immediate Annuity) support in Owl.
 Qualified SPIAs are funded from the tax-deferred (IRA) account via a non-taxable
 rollover. The premium reduces the tax-deferred balance; payments are 100% ordinary income.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 from io import StringIO

@@ -8,7 +8,7 @@ Advanced bootstrap model supporting:
 - Stationary bootstrap (Politis & Romano)
 - Optional crisis overweighting
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

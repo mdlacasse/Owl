@@ -1,7 +1,7 @@
 """
 Shared constants for rate models.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 # Required column names for DataFrame rate input (order: Stocks, Bonds, Fixed, Inflation).

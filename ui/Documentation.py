@@ -4,7 +4,7 @@ Documentation page for Owl retirement planner Streamlit UI.
 This module provides the interface for viewing application documentation,
 user guides, and help information.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,11 +26,11 @@ import sskeys as kz
 col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
 with col1:
     st.markdown("# :material/help: Documentation")
+    st.markdown("### **Owl** - *Optimal wealth lab*")
     kz.divider("orange")
     st.markdown("## :orange[The **Owl** Retirement Planner]")
     # st.markdown("## :orange[The **Owl** Retirement Planner]\n-------")
     st.markdown("""
-### **Owl** - *Optimal wealth lab*
 #### A retirement financial exploration tool based on linear programming
 
 The goal of **Owl** is to provide a free and open-source ecosystem that has cutting-edge

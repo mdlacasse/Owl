@@ -2,7 +2,7 @@
 Built-in rate models — one class per method.
 All new rate models should subclass BaseRateModel.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 ###########################################################################
 import numpy as np

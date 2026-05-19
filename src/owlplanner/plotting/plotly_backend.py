@@ -4,7 +4,7 @@ Plotly backend implementation for plotting retirement planning results.
 This module provides the Plotly-based implementation of the plot backend
 interface for creating interactive visualizations of retirement planning data.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

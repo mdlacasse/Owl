@@ -4,7 +4,7 @@ Bridge module connecting Streamlit UI to Owl planner core functionality.
 This module provides functions to create Plan instances, run optimizations,
 and manage the interface between the Streamlit web UI and the core planning engine.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

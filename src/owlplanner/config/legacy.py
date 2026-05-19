@@ -1,7 +1,7 @@
 """
 Legacy key translation for backward compatibility with old TOML format.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 _KEY_TRANSLATION = {

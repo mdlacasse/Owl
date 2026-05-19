@@ -4,7 +4,7 @@ Main Streamlit application entry point for Owl retirement planner UI.
 This module sets up the Streamlit page configuration and defines the
 navigation structure for the Owl retirement planning web application.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

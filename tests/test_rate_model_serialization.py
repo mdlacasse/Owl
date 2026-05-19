@@ -8,7 +8,7 @@ Covers:
 - Full plan → config → plan round-trip for stochastic, lognormal, histolognormal, and bootstrap_sor
 - config_to_plan with stochastic and lognormal TOML keys (alias-normalization)
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 import numpy as np

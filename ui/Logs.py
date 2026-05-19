@@ -4,7 +4,7 @@ Logs page for Owl retirement planner Streamlit UI.
 This module provides the interface for viewing application logs
 and debugging information for each case.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

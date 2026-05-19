@@ -1,7 +1,7 @@
 """
 TOML load/save with unknown key preservation.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 import logging

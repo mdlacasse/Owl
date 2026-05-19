@@ -4,7 +4,7 @@ CLI logging configuration utilities.
 This module provides logging configuration functions for the command-line
 interface, including log level management and formatting.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

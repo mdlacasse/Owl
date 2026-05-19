@@ -4,7 +4,7 @@ Case setup progress tracking component for Streamlit UI.
 This module provides a progress bar component that tracks which pages have
 been visited per case to show completion progress in the Case Setup section.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

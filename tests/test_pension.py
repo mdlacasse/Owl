@@ -1,7 +1,7 @@
 """
 Tests for pension module - pension benefit timing calculations.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 import numpy as np

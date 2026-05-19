@@ -3,7 +3,7 @@ Tests for TOML case file Monte Carlo analysis.
 
 Tests verify that Monte Carlo analysis runs successfully for example cases.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

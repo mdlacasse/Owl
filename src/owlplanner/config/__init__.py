@@ -4,7 +4,7 @@ Configuration management for Owl case parameters.
 Provides loading/saving in TOML format with support for user-defined keys.
 Uses Pydantic schema for structure and validation.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 from __future__ import annotations

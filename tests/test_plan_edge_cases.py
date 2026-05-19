@@ -4,7 +4,7 @@ Tests for plan.py edge cases and error handling to improve coverage.
 This module tests error conditions, edge cases, and less common code paths
 in the Plan class that are not covered by existing regression tests.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 

@@ -1,7 +1,7 @@
 """
 This is the Welcome page.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
     st.markdown("# Plan your retirement with confidence")
     st.subheader("**Owl** – *Optimal wealth lab*", anchor=False)
-    st.markdown("")
+    kz.divider("orange")
     st.markdown("""
 ### :orange[Stop guessing. Start optimizing.]
 Retire with confidence and clarity.

@@ -12,7 +12,7 @@ Reference: Engle, R. F. (2002). Dynamic Conditional Correlation: A Simple
 Class of Multivariate Generalized Autoregressive Conditional
 Heteroskedasticity Models. Journal of Business & Economic Statistics 20(3).
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -1,7 +1,7 @@
 """
 Bridge between configuration dict and Plan object.
 
-Copyright (C) 2025-2026 The Owlplanner Authors
+Copyright (C) 2025-2026 The Owl Authors
 """
 
 import copy
