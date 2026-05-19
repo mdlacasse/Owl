@@ -65,8 +65,8 @@ kz.divider("orange")
 st.markdown("### :orange[Next steps]")
 c1, c2, c3 = st.columns(3)
 with c1:
-    st.page_link("Documentation.py", label="Documentation", icon=":material/help:")
-with c2:
     st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
+with c2:
+    st.page_link("Documentation.py", label="Documentation", icon=":material/help:")
 with c3:
     st.page_link("About_Owl.py", label="About Owl", icon=":material/info:")
