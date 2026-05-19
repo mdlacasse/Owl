@@ -27,7 +27,7 @@ import owlbridge as owb
 import case_progress as cp
 
 
-def getPercentInput(i, j, keybase, text, defval=0):
+def getPercentInput(i, j, keybase, text, defval=0, help=None):
     nkey = f"{keybase}{j}_{i}"
     kz.initCaseKey(nkey, defval)
     st.number_input(
@@ -39,12 +39,26 @@ def getPercentInput(i, j, keybase, text, defval=0):
         on_change=kz.setpull,
         args=[nkey],
         key=kz.genCaseKey(nkey),
+        help=help,
     )
 
 
 ACC = ["taxable", "tax-deferred", "tax-free", "HSA"]
 ASSET = ["S&P 500", "Bonds Baa", "T-Notes", "Cash Assets"]
 DEFALLOC = [60, 20, 10, 10]
+ASSET_HELP = [
+    "U.S. large-cap stocks (or a broader equity mix). The highest-growth component of a retirement "
+    "portfolio, but also the most volatile. Return includes dividends. Can represent any diversified "
+    "equity allocation — domestic, international, or a blend.",
+    "Investment-grade corporate bonds rated Baa or better. Provide regular interest income with "
+    "moderate credit risk — sitting between stocks and government bonds in the risk/return spectrum. "
+    "A common choice for the fixed-income portion of a pre-retirement portfolio.",
+    "10-year U.S. Treasury Notes. Medium-term government debt with very low default risk. "
+    "A conservative fixed-income component that dampens portfolio volatility.",
+    "Low-risk, inflation-tracking assets — similar to TIPS or money-market funds. "
+    "Designed to preserve purchasing power with minimal real return above inflation. "
+    "Useful as a safe reserve, especially in the years around retirement.",
+]
 
 
 def getIndividualAllocs(i, iname, title, deco):
@@ -53,7 +67,7 @@ def getIndividualAllocs(i, iname, title, deco):
     cols = st.columns(4, gap="large", vertical_alignment="top")
     for k1 in range(4):
         with cols[k1]:
-            getPercentInput(i, k1, mydeco, ASSET[k1], DEFALLOC[k1])
+            getPercentInput(i, k1, mydeco, ASSET[k1], DEFALLOC[k1], help=ASSET_HELP[k1])
     checkIndividualAllocs(i, mydeco)
 
 
@@ -63,7 +77,7 @@ def getAccountAllocs(i, iname, j, title, deco):
     cols = st.columns(4, gap="large", vertical_alignment="top")
     for k1 in range(4):
         with cols[k1]:
-            getPercentInput(i, k1, mydeco, ASSET[k1], DEFALLOC[k1])
+            getPercentInput(i, k1, mydeco, ASSET[k1], DEFALLOC[k1], help=ASSET_HELP[k1])
     checkAccountAllocs(i, mydeco)
 
 
@@ -74,7 +88,7 @@ def getHSAAllocs(i, iname, title, deco):
     cols = st.columns(4, gap="large", vertical_alignment="top")
     for k1 in range(4):
         with cols[k1]:
-            getPercentInput(i, k1, mydeco, ASSET[k1], DEFALLOC[k1])
+            getPercentInput(i, k1, mydeco, ASSET[k1], DEFALLOC[k1], help=ASSET_HELP[k1])
     checkAccountAllocs(i, mydeco)
 
 
