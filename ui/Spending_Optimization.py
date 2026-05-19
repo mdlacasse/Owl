@@ -64,7 +64,8 @@ Select a target success rate to find the committed spending that meets it.
         st.warning(
             "Spending optimization requires **Net spending** as the objective. "
             "For *Bequest* cases, spending is not the primary decision variable — "
-            "use the **Historical Range** or **Monte Carlo** pages to analyze outcome distributions."
+            "use the **Historical Range** or **Monte Carlo** pages to analyze outcome distributions.",
+            icon=":material/warning:",
         )
         st.stop()
 
@@ -132,7 +133,8 @@ Select a target success rate to find the committed spending that meets it.
         if kz.caseIsNotMCReady():
             st.warning(
                 "Monte Carlo scenarios require rates set to a stochastic method. "
-                "Change the rate type on the **Rates** page."
+                "Change the rate type on the **Rates** page.",
+                icon=":material/warning:",
             )
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:

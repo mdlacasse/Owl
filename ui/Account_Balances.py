@@ -84,6 +84,27 @@ else:
             kz.initCaseKey(nkey, 0.0)
             kz.getNum(f"{iname1}'s taxable cost basis ($k)", nkey, help=basis_help)
 
+    inames = [kz.getCaseKey("iname0")]
+    if kz.getCaseKey("status") == "married":
+        inames.append(kz.getCaseKey("iname1"))
+    warn_col, _ = st.columns([2, 1])
+    for i, iname in enumerate(inames):
+        basis = kz.getCaseKey(f"txblBasis{i}") or 0.0
+        balance = kz.getCaseKey(f"txbl{i}") or 0.0
+        if basis > 0 and balance == 0:
+            with warn_col:
+                st.warning(f"Set {iname}'s taxable account balance before entering a cost basis.",
+                           icon=":material/warning:")
+        elif basis > balance > 0:
+            with warn_col:
+                st.warning(
+                    f"{iname}'s cost basis (\\${basis:,.0f}k) exceeds taxable balance (\\${balance:,.0f}k). "
+                    "This implies the account has lost value since purchase (unrealized losses). "
+                    "If this is unintentional, please check your entries. "
+                    "If correct, Owl will assume no capital gains on withdrawals.",
+                    icon=":material/warning:",
+                )
+
     if kz.getCaseKey("status") == "married":
         st.divider()
         with st.expander("*Advanced options*"):

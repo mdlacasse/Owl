@@ -562,7 +562,7 @@ def _setRates(plan):
         fixedType = kz.getCaseKey("fixedType")
         if fixedType == "historical average":
             if adjusted_range:
-                st.warning("Ending year adjusted to be after starting year.")
+                st.warning("Ending year adjusted to be after starting year.", icon=":material/warning:")
             plan.setRates("historical average", yfrm, yto)
             # Set fxRates back to computed values.
             for j in range(4):
@@ -595,11 +595,11 @@ def _setRates(plan):
                 kz.pushCaseKey("yfrm", yfrm2)
                 if yfrm != yfrm2:
                     yfrm = yfrm2
-                    st.warning(f"Using {yfrm} as starting year.")
+                    st.warning(f"Using {yfrm} as starting year.", icon=":material/warning:")
                 yto = min(TO, yfrm + plan.N_n - 1)
                 kz.pushCaseKey("yto", yto)
             elif adjusted_range:
-                st.warning("Ending year adjusted to be after starting year.")
+                st.warning("Ending year adjusted to be after starting year.", icon=":material/warning:")
 
             # Set reproducibility for histogaussian methods
             if varyingType in ("histogaussian",):

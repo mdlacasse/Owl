@@ -541,6 +541,17 @@ class Plan:
         scaled = [v * fac for v in amounts]
         if any(v < 0 for v in scaled):
             raise ValueError("Cost basis amounts must be non-negative.")
+        txbl = self.bet_ji[0] if hasattr(self, "bet_ji") else None
+        if txbl is None or all(b == 0 for b in txbl):
+            self.mylog.vprint("Call setAccountBalances() before setCostBasis() to enable basis validation.",
+                              tag="WARNING")
+        else:
+            for i in range(self.N_i):
+                if scaled[i] > txbl[i]:
+                    self.mylog.vprint(
+                        f"Cost basis ({u.d(scaled[i])}) exceeds taxable balance ({u.d(txbl[i])}) for {self.inames[i]}."
+                        f" Is this intentional?", tag="WARNING",
+                    )
         self.taxable_basis_i = np.array(scaled, dtype=float)
         self.gain_fraction_in = None
         self.mylog.vprint("Taxable cost basis:", *[u.d(self.taxable_basis_i[i]) for i in range(self.N_i)])

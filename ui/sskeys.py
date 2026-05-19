@@ -613,9 +613,9 @@ def getSolveParameters():
             if isinstance(xtra_options, dict):
                 options.update(xtra_options)
             else:
-                st.warning("Extra solver options must be a JSON object (dictionary).")
+                st.warning("Extra solver options must be a JSON object (dictionary).", icon=":material/warning:")
         except json.JSONDecodeError as e:
-            st.warning(f"Invalid JSON in extra solver options: {e}")
+            st.warning(f"Invalid JSON in extra solver options: {e}", icon=":material/warning:")
 
     return objective, options
 
