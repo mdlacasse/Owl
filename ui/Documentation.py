@@ -1493,7 +1493,7 @@ The LP is swept over a range of $\\lambda$ values to trace the **efficient front
   This captures joint market + longevity uncertainty. Historical scenarios with longevity
   risk are intentionally disabled.
 
-  **Mortality tables** — five actuarial tables are provided, covering different population
+  **Mortality tables** — eight actuarial tables are provided, covering different population
   sub-groups. Choose the one that best matches your situation:
 
   | Table | Population | When to use |
