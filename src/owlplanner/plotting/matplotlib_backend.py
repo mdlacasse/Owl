@@ -692,3 +692,86 @@ class MatplotlibBackend(PlotBackend):
         ax.grid(True, alpha=0.3, axis="y")
         plt.tight_layout()
         return fig
+
+    def plot_stochastic_cvar_vs_pos(self, frontier_prob, frontier_cvar, rho_star, cvar_star,
+                                    target_success_rate, year_n):
+        return None
+
+    def plot_stochastic_res_vs_cvar(self, frontier_cvar, res_values, rho_star, res_star,
+                                    cvar_star, cvar_at_target, year_n, floor_label="HSF"):
+        return None
+
+    def plot_survival_curves(self, sexes, current_ages, inames, table="SSA2025"):
+        """Survival probability P(alive at age X) for each individual, plus joint for couples."""
+        from ..data.mortality_tables import survival_pmf
+
+        colors = ["steelblue", "darkorange"]
+        fig, ax = plt.subplots(figsize=(7, 4))
+
+        age_start = min(current_ages)
+        survival_full = []
+
+        for i, (sex, ca) in enumerate(zip(sexes, current_ages)):
+            ages_i, pmf_i = survival_pmf(sex, ca, table=table)
+            surv_i = np.concatenate([[1.0], 1.0 - np.cumsum(pmf_i[:-1])])
+            n_prepend = ca - age_start
+            full_surv = np.concatenate([np.ones(n_prepend), surv_i])
+            survival_full.append(full_surv)
+            ax.plot(ages_i, surv_i * 100, color=colors[i % len(colors)],
+                    linewidth=2, label=inames[i])
+
+        if len(current_ages) == 2:
+            ages_common = np.arange(age_start, age_start + len(survival_full[0]), dtype=int)
+            joint_surv = 1.0 - np.prod([1.0 - s for s in survival_full], axis=0)
+            ax.plot(ages_common, joint_surv * 100, color="mediumpurple",
+                    linewidth=2, linestyle="dotted", label="Joint (last survivor)")
+
+        ax.set_xlabel("Age", fontsize=11)
+        ax.set_ylabel("Probability of being alive (%)", fontsize=11)
+        ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"{x:.0f}%"))
+        ax.set_ylim(0, 101)
+        ax.set_title(f"Survival curves — {table}", fontsize=12)
+        ax.tick_params(axis="both", labelsize=10)
+        ax.legend(fontsize=10)
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
+    def plot_drawn_lifespans(self, drawn_lifespans, inames):
+        """Histogram of drawn ages at death from longevity sampling, shape (S, N_i)."""
+        colors = ["steelblue", "darkorange"]
+        n_i = drawn_lifespans.shape[1]
+        fig, ax = plt.subplots(figsize=(7, 4))
+
+        age_min = int(drawn_lifespans.min()) - 1
+        age_max = int(drawn_lifespans.max()) + 1
+        bins = np.arange(age_min, age_max + 1)
+
+        median_lines = []
+        for i in range(n_i):
+            ages_i = drawn_lifespans[:, i]
+            median_i = int(np.median(ages_i))
+            median_lines.append(f"{inames[i]}  med {median_i}")
+            ax.hist(ages_i, bins=bins, color=colors[i % len(colors)],
+                    alpha=0.75, label=inames[i])
+
+        if n_i == 2:
+            joint_ages = np.maximum(drawn_lifespans[:, 0], drawn_lifespans[:, 1])
+            joint_median = int(np.median(joint_ages))
+            median_lines.append(f"Joint  med {joint_median}")
+            ax.hist(joint_ages, bins=bins, color="mediumpurple",
+                    alpha=0.5, label="Joint (last survivor)")
+
+        annotation_colors = colors[:n_i] + (["mediumpurple"] if n_i == 2 else [])
+        for k, (line, color) in enumerate(zip(median_lines, annotation_colors)):
+            ax.text(0.03, 0.97 - k * 0.10, line, transform=ax.transAxes,
+                    va="top", ha="left", fontsize=12, color=color, fontweight="bold")
+
+        ax.set_xlabel("Age at death", fontsize=11)
+        ax.set_ylabel("Number of scenarios", fontsize=11)
+        ax.set_title("Drawn lifespans", fontsize=12)
+        ax.tick_params(axis="both", labelsize=10)
+        ax.legend(fontsize=10)
+        ax.grid(True, alpha=0.3, axis="y")
+        plt.tight_layout()
+        return fig

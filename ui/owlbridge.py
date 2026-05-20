@@ -270,6 +270,22 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
 
+    # Longevity plots — survival curves and drawn lifespan histogram
+    if with_longevity and plan is not None:
+        thisyear = int(result["year_n"][0])
+        current_ages = [int(thisyear - int(plan.yobs[i])) for i in range(plan.N_i)]
+        table = result.get("mortality_table", "SSA2025")
+        fig_survival = plotter.plot_survival_curves(plan.sexes, current_ages, plan.inames, table)
+        kz.storeCaseKey("stochSurvivalPlot", fig_survival)
+        drawn = result.get("drawn_lifespans")
+        if drawn is not None:
+            kz.storeCaseKey("stochLifespanPlot", plotter.plot_drawn_lifespans(drawn, plan.inames))
+        else:
+            kz.storeCaseKey("stochLifespanPlot", None)
+    else:
+        kz.storeCaseKey("stochSurvivalPlot", None)
+        kz.storeCaseKey("stochLifespanPlot", None)
+
     # RES computation — floor-capped CVaR (math lives in owlplanner.stresstests)
     frontier_g = result["frontier_g"]
     frontier_prob = result["frontier_prob"]
@@ -489,6 +505,8 @@ def runStochasticSpending(plan):
         kz.storeCaseKey("stochOutcomePlot", None)
         kz.storeCaseKey("stochCVaRPlot", None)
         kz.storeCaseKey("stochRESPlot", None)
+        kz.storeCaseKey("stochSurvivalPlot", None)
+        kz.storeCaseKey("stochLifespanPlot", None)
         kz.storeCaseKey("stochSummary", None)
         kz.storeCaseKey("stochResult", None)
         kz.storeCaseKey("stochScenarioData", None)

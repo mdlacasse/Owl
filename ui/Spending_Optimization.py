@@ -49,6 +49,8 @@ else:
     kz.initCaseKey("stochOutcomePlot", None)
     kz.initCaseKey("stochCVaRPlot", None)
     kz.initCaseKey("stochRESPlot", None)
+    kz.initCaseKey("stochSurvivalPlot", None)
+    kz.initCaseKey("stochLifespanPlot", None)
     kz.initCaseKey("stochSummary", None)
     kz.initCaseKey("stochResult", None)
     kz.initCaseKey("stochScenarioData", None)
@@ -213,6 +215,15 @@ Select a target success rate to find the committed spending that meets it.
             owb.renderPlot(fig_frontier, col1)
         if fig_outcomes:
             owb.renderPlot(fig_outcomes, col2)
+
+        fig_survival = kz.getCaseKey("stochSurvivalPlot")
+        fig_lifespan = kz.getCaseKey("stochLifespanPlot")
+        if fig_survival or fig_lifespan:
+            col3, col4 = st.columns(2, gap="medium")
+            if fig_survival:
+                owb.renderPlot(fig_survival, col3)
+            if fig_lifespan:
+                owb.renderPlot(fig_lifespan, col4)
 
     is_hist = kz.getCaseKey("stoch_scenario_method") == "historical"
     fig_cvar = kz.getCaseKey("stochCVaRPlot")

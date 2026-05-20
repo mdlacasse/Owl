@@ -1,6 +1,22 @@
 
 # Owl — Optimal wealth lab: Changelog
 
+### Version 2026.05.20
+
+#### Spending Optimization — longevity plots
+
+- **Survival curves** — when longevity risk is enabled, a new chart shows P(alive at age X)
+  for each individual derived from the selected mortality table. For couples, a dashed joint
+  (last-survivor) curve is also plotted.
+- **Drawn lifespans histogram** — overlapping histograms of the ages at death sampled across
+  all Monte Carlo scenarios, one series per individual and one for the joint last-survivor
+  horizon. Median age at death for each series is shown in a color-coded text box.
+- **matplotlib stubs** — `plot_stochastic_cvar_vs_pos` and `plot_stochastic_res_vs_cvar`
+  added as stubs returning `None` in the matplotlib backend (RES section is plotly-only for now).
+- **Documentation** updated in the *Spending Optimization* section to describe the new charts.
+
+---
+
 ### Version 2026.05.19
 
 #### UX
