@@ -751,14 +751,14 @@ class MatplotlibBackend(PlotBackend):
         for i in range(n_i):
             ages_i = drawn_lifespans[:, i]
             median_i = int(np.median(ages_i))
-            median_lines.append(f"{inames[i]}  med {median_i}")
+            median_lines.append(f"{inames[i]}  median {median_i}")
             ax.hist(ages_i, bins=bins, color=colors[i % len(colors)],
                     alpha=0.75, label=inames[i])
 
         if n_i == 2:
             joint_ages = np.maximum(drawn_lifespans[:, 0], drawn_lifespans[:, 1])
             joint_median = int(np.median(joint_ages))
-            median_lines.append(f"Joint  med {joint_median}")
+            median_lines.append(f"Joint  median {joint_median}")
             ax.hist(joint_ages, bins=bins, color="mediumpurple",
                     alpha=0.5, label="Joint (last survivor)")
 
