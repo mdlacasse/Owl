@@ -1051,7 +1051,7 @@ class PlotlyBackend(PlotBackend):
         for i in range(n_i):
             ages_i = drawn_lifespans[:, i]
             median_i = int(np.median(ages_i))
-            median_lines.append(f"{inames[i]}  median {median_i}")
+            median_lines.append(f"{inames[i]}  {median_i}")
             fig.add_trace(go.Histogram(
                 x=ages_i.tolist(),
                 name=inames[i],
@@ -1064,7 +1064,7 @@ class PlotlyBackend(PlotBackend):
         if n_i == 2:
             joint_ages = np.maximum(drawn_lifespans[:, 0], drawn_lifespans[:, 1])
             joint_median = int(np.median(joint_ages))
-            median_lines.append(f"Joint  median {joint_median}")
+            median_lines.append(f"Joint  {joint_median}")
             fig.add_trace(go.Histogram(
                 x=joint_ages.tolist(),
                 name="Joint (last survivor)",
@@ -1075,10 +1075,16 @@ class PlotlyBackend(PlotBackend):
             ))
 
         annotation_colors = colors[:n_i] + (["mediumpurple"] if n_i == 2 else [])
+        fig.add_annotation(
+            text="<b>Medians</b>",
+            xref="paper", yref="paper", x=0.02, y=0.99,
+            xanchor="left", showarrow=False,
+            font=dict(size=15, color="black"),
+        )
         for k, (line, color) in enumerate(zip(median_lines, annotation_colors)):
             fig.add_annotation(
                 text=line,
-                xref="paper", yref="paper", x=0.02, y=0.99 - k * 0.10,
+                xref="paper", yref="paper", x=0.02, y=0.89 - k * 0.10,
                 xanchor="left", showarrow=False,
                 font=dict(size=15, color=color),
             )
