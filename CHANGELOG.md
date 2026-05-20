@@ -1,5 +1,4 @@
 
-# Owl — Optimal wealth lab: Changelog
 
 ### Version 2026.05.20
 
