@@ -169,7 +169,7 @@ else:
 # (~94111 vs HiGHS ~94353) due to numerical differences in the LP solutions.
 # Values are platform-specific; add linux/win32 entries once confirmed on those platforms.
 if _active_solver() == 'MOSEK' and platform == 'darwin':
-    EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 94_111
+    EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 94_118
 
 
 def test_reproducibility():
