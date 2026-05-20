@@ -20,7 +20,7 @@ deployment on the Community Cloud server.
 - [Aswath Damodaran](https://pages.stern.nyu.edu/~adamodar/) for sharing his analyses of historical rates.
 - [HiGHS](https://highs.dev) for the open-source HiGHS linear and mixed-integer optimization
 solver, used from Python via [highspy](https://pypi.org/project/highspy/).
-- Owl planner relies on the following [Python](https://python.org) packages:
+- **Owl** relies on the following [Python](https://python.org) packages:
     [click](https://click.palletsprojects.com),
     [highspy](https://pypi.org/project/highspy),
     [loguru](https://github.com/Delgan/loguru),
