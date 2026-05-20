@@ -176,7 +176,8 @@ Select a target success rate to find the committed spending that meets it.
                 from owlplanner.data.mortality_tables import MORTALITY_TABLE_KEYS, MORTALITY_DESCRIPTIONS
                 st.markdown("#### :orange[Mortality table]")
                 help_table = ("Actuarial life table used to sample random lifespans. "
-                              "Choose the table that best reflects the health profile of the individuals in the plan.")
+                              "Choose the table that best reflects the health profile of the individuals in the plan. "
+                              "Tables are ordered by life expectancy at age 65, shortest to longest.")
                 col1, col2 = st.columns([1, 3.2], gap="large", vertical_alignment="bottom")
                 with col1:
                     selected_table = kz.getSelectbox(
