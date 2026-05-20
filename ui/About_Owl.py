@@ -71,7 +71,7 @@ found in this [document](https://github.com/mdlacasse/Owl/blob/main/papers/owl.p
 with col2:
     st.image(logofile, width="stretch")
     st.caption("*Retirement planner with great wisdom*")
-# st.divider()
+st.divider()
 
 credits_text = (Path(__file__).parent.parent / "CREDITS.md").read_text(encoding="utf-8")
 credits_text = credits_text.replace("## Owl — Optimal wealth lab: Credits and Acknowledgements\n", "", 1)
