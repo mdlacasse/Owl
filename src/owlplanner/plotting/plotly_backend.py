@@ -1051,7 +1051,7 @@ class PlotlyBackend(PlotBackend):
         for i in range(n_i):
             ages_i = drawn_lifespans[:, i]
             median_i = int(np.median(ages_i))
-            median_lines.append(f"{inames[i]}  {median_i}")
+            median_lines.append(f"{median_i}  {inames[i]}")
             fig.add_trace(go.Histogram(
                 x=ages_i.tolist(),
                 name=inames[i],
@@ -1064,7 +1064,7 @@ class PlotlyBackend(PlotBackend):
         if n_i == 2:
             joint_ages = np.maximum(drawn_lifespans[:, 0], drawn_lifespans[:, 1])
             joint_median = int(np.median(joint_ages))
-            median_lines.append(f"Joint  {joint_median}")
+            median_lines.append(f"{joint_median}  Joint")
             fig.add_trace(go.Histogram(
                 x=joint_ages.tolist(),
                 name="Joint (last survivor)",
