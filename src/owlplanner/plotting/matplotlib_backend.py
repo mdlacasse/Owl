@@ -764,7 +764,7 @@ class MatplotlibBackend(PlotBackend):
 
         annotation_colors = colors[:n_i] + (["mediumpurple"] if n_i == 2 else [])
         ax.text(0.03, 0.97, "Medians", transform=ax.transAxes,
-                va="top", ha="left", fontsize=12, color="black", fontweight="bold")
+                va="top", ha="left", fontsize=12, color="darkorange", fontweight="bold")
         for k, (line, color) in enumerate(zip(median_lines, annotation_colors)):
             ax.text(0.03, 0.87 - k * 0.10, line, transform=ax.transAxes,
                     va="top", ha="left", fontsize=12, color=color, fontweight="bold")
