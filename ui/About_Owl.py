@@ -33,8 +33,32 @@ col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
     st.markdown("# :material/info: About Owl")
     st.markdown("### Owl - *Optimal wealth lab*")
+    kz.divider("orange")
     st.markdown(f"**Version {owb.version()}** &nbsp;·&nbsp; Streamlit **{st.__version__}**")
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### :orange[The **Owl** Retirement Planner]")
+    st.markdown("""
+##### A retirement financial exploration tool based on linear programming
+
+The goal of **Owl** is to provide a free and open-source ecosystem that has cutting-edge
+optimization capabilities, allowing for the new generation of computer-literate retirees
+to experiment with their own financial future while providing a codebase where they can learn and contribute.
+At the same time, Streamlit provides an intuitive and easy-to-use
+interface which allows a broad set of users to benefit from the application
+as it only requires basic financial knowledge.
+
+Strictly speaking, **Owl** is not a planning tool, but more an environment for exploring *what if* scenarios.
+It provides different realizations of a financial strategy through the rigorous
+mathematical optimization of relevant decision variables.
+**Owl** is designed for US retirees as it considers US federal tax laws,
+Medicare premiums, rules for 401k including required minimum distributions,
+maturation rules for Roth accounts and conversions, Social Security rules, etc.
+Using a mixed-integer linear programming approach,
+two different objectives can currently be optimized: maximize net spending subject to a desired bequest;
+or maximize an after-tax bequest subject to a desired net spending amount.
+In each case, Roth conversions are optimized to reduce the tax burden,
+while federal income tax and Medicare premiums (including IRMAA — Income-Related Monthly Adjustment
+Amounts, which impose income-based surcharges on Medicare Parts B and D) are calculated.
+""")
     st.markdown(
         """
 - Owl is an open-source retirement financial planner capable of optimization through
@@ -47,7 +71,7 @@ found in this [document](https://github.com/mdlacasse/Owl/blob/main/papers/owl.p
 with col2:
     st.image(logofile, width="stretch")
     st.caption("*Retirement planner with great wisdom*")
-kz.divider("orange")
+# st.divider()
 
 credits_text = (Path(__file__).parent.parent / "CREDITS.md").read_text(encoding="utf-8")
 credits_text = credits_text.replace("## Owl — Optimal wealth lab: Credits and Acknowledgements\n", "", 1)

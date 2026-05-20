@@ -28,48 +28,15 @@ with col1:
     st.markdown("# :material/help: Documentation")
     st.markdown("### **Owl** - *Optimal wealth lab*")
     kz.divider("orange")
-    st.markdown("## :orange[The **Owl** Retirement Planner]")
-    # st.markdown("## :orange[The **Owl** Retirement Planner]\n-------")
-    st.markdown("""
-#### A retirement financial exploration tool based on linear programming
-
-The goal of **Owl** is to provide a free and open-source ecosystem that has cutting-edge
-optimization capabilities, allowing for the new generation of computer-literate retirees
-to experiment with their own financial future while providing a codebase where they can learn and contribute.
-At the same time, Streamlit provides an intuitive and easy-to-use
-interface which allows a broad set of users to benefit from the application
-as it only requires basic financial knowledge.
-
-Strictly speaking, **Owl** is not a planning tool, but more an environment for exploring *what if* scenarios.
-It provides different realizations of a financial strategy through the rigorous
-mathematical optimization of relevant decision variables.
-**Owl** is designed for US retirees as it considers US federal tax laws,
-Medicare premiums, rules for 401k including required minimum distributions,
-maturation rules for Roth accounts and conversions, Social Security rules, etc.
-Using a mixed-integer linear programming approach,
-two different objectives can currently be optimized: maximize net spending subject to a desired bequest;
-or maximize an after-tax bequest subject to a desired net spending amount.
-In each case, Roth conversions are optimized to reduce the tax burden,
-while federal income tax and Medicare premiums (including IRMAA — Income-Related Monthly Adjustment
-Amounts, which impose income-based surcharges on Medicare Parts B and D) are calculated.
-A full description of the package can be found on the GitHub
-[repository](https://github.com/mdlacasse/Owl), and the mathematical
-formulation of the optimization problem can be found
-[here](https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf).
-""")
+    st.markdown("")
+    st.markdown("")
+    st.markdown("")
+    st.markdown("## :orange[Table of Contents]")
+    st.caption("*Use the tabs below to navigate documentation by section.*")
 with col3:
-    # Use URL-based logo to avoid race conditions with local file access
     logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
     st.image(logofile)
     st.caption("Retirement planner with great wisdom")
-
-st.markdown("""
--------
-### :orange[Table of Contents]
-""")
-st.caption("*Use the tabs below to navigate documentation by section.*")
-
-# st.markdown("---")
 
 # Tabs for bite-sized navigation
 tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_help, tab_tips = st.tabs([
