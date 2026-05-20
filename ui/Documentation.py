@@ -142,8 +142,8 @@ sequence of asset-class return rates. For stochastic rate methods (`histogaussia
 `bootstrap_sor`, `var`, `garch_dcc`, etc.), each Monte Carlo trial draws a fresh *scenario*
 from the model specified in the *case*. For the `historical` method, each starting year defines
 one historical *scenario*. For constant rate methods, the *case* itself fully determines the
-single implicit deterministic *scenario*. When longevity risk is enabled in the Spending Optimization
-analysis, a *scenario* also includes a random draw of individual lifespans.
+single implicit deterministic *scenario*. When stochastic lifespan is enabled in the Spending
+Optimization analysis, a *scenario* also includes a random draw of individual lifespans.
 
 **Run**
 > A *run* is the execution of a *case* against one *scenario*, producing a complete set of
@@ -1487,11 +1487,12 @@ The LP is swept over a range of $\\lambda$ values to trace the **efficient front
 - **Scenario method** — *Historical range*: uses historical rate sequences over the
   selected year range (one run per year). *Monte Carlo*: uses the active stochastic rate
   method; requires a stochastic method to be set on the **Rates** page.
-- **Include longevity risk** — available with Monte Carlo scenarios. When enabled, each
+- **Stochastic lifespan** — available with Monte Carlo scenarios. When enabled, each
   scenario also draws lifespan(s) from the selected mortality table using each individual's
   sex (`M`/`F`) and current age; the scenario horizon becomes the last-survivor horizon.
-  This captures joint market + longevity uncertainty. Historical scenarios with longevity
-  risk are intentionally disabled.
+  This captures joint market and lifespan uncertainty — roughly half of scenarios end
+  before the median age (freeing assets earlier), and half after. Historical scenarios
+  with stochastic lifespan are intentionally disabled.
 
   **Mortality tables** — eight actuarial tables are provided, covering different population
   sub-groups. Choose the one that best matches your situation:
@@ -1511,8 +1512,8 @@ The LP is swept over a range of $\\lambda$ values to trace the **efficient front
   | `IAM2012` | 87 | Individual annuity purchasers (SOA IAM 2012) | People who buy annuities tend to be in excellent health; represents an optimistic longevity scenario |
   | `Pub2010-Teacher` | 87 | Public school teachers and college professors (SOA Pub-2010) | Teachers have the longest life expectancy of all public-sector groups |
 
-- **Longevity reproducibility** — optional seed control for longevity sampling. When set,
-  identical longevity draws are reproduced across runs; rate reproducibility remains controlled
+- **Lifespan reproducibility** — optional seed control for lifespan sampling. When set,
+  identical lifespan draws are reproduced across runs; rate reproducibility remains controlled
   separately on the **Rates** page.
 - **Target success rate** — the minimum fraction of scenarios that must meet the
   commitment with no shortfall. The page finds the least conservative $\\lambda$ that
@@ -1579,7 +1580,7 @@ Two charts are always displayed after a run:
   percentile (0–100%), using the same color scheme. The committed level $g^*$ is marked
   with a dashed horizontal line.
 
-When **longevity risk** is enabled (Monte Carlo only), two additional charts appear below:
+When **stochastic lifespan** is enabled (Monte Carlo only), two additional charts appear below:
 
 - **Survival curves** — shows P(alive at age X) for each individual, conditional on their
   current age and the selected mortality table. For couples, a dashed joint curve shows

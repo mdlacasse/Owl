@@ -151,7 +151,7 @@ Social Security has special rules for those born on the 1st or 2nd.
 See SSA documentation for details.
 """
         longmsg = "See the documentation for suggested resources on estimating longevity."
-        sexmsg = "Sex is a required input for longevity risk."
+        sexmsg = "Sex is a required input for stochastic lifespan modeling."
         if iname0:
             incol1, incol2, incol3 = st.columns((1, 1, .7), gap="large", vertical_alignment="top")
             with incol1:

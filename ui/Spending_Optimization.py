@@ -150,11 +150,13 @@ Select a target success rate to find the committed spending that meets it.
         st.markdown("####")
         with st.expander("*Advanced options*"):
             st.caption("Changing these options will only affect the next run.")
-            st.markdown("#### :orange[Longevity risk]")
+            st.markdown("#### :orange[Stochastic lifespan]")
             help_longevity = (
-                "Draw a random plan horizon from SSA period life tables for each scenario. "
-                "For couples, uses the last-survivor horizon max(τ₁, τ₂). "
-                "Sex is set on the **Create Case** page."
+                "Draw a random lifespan from the selected mortality table for each scenario. "
+                "Mortality tables are sex-specific (male/female q_x columns differ significantly), "
+                "so each individual's sex is used to sample from the correct distribution. "
+                "For couples, the scenario horizon is the last-survivor horizon max(τ₁, τ₂). "
+                "Sex for each individual is configured on the **Create Case** page."
             )
             help_repro = ("When enabled, the same random seed will be used for all longevity draws, "
                           "ensuring reproducible results across runs.")
@@ -162,7 +164,7 @@ Select a target success rate to find the committed spending that meets it.
                          "Change this value to explore different lifespan draws while keeping results reproducible.")
             col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
             with col1:
-                kz.getToggle("Include longevity risk", "stoch_with_longevity",
+                kz.getToggle("Stochastic lifespan", "stoch_with_longevity",
                              callback=kz.setpull, help=help_longevity)
             if kz.getCaseKey("stoch_with_longevity"):
                 with col2:
