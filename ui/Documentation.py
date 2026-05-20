@@ -1558,7 +1558,7 @@ A text summary above the charts reports the following metrics:
 
 ##### Charts
 
-Three charts are displayed:
+Two charts are always displayed after a run:
 
 - **Success rate curve** — committed spending vs. shortfall probability. The target point
   is marked; moving left increases spending but also increases shortfall risk.
@@ -1571,6 +1571,17 @@ Three charts are displayed:
   the commitment and red when it falls short. For *Monte Carlo*: scenarios sorted by
   percentile (0–100%), using the same color scheme. The committed level $g^*$ is marked
   with a dashed horizontal line.
+
+When **longevity risk** is enabled (Monte Carlo only), two additional charts appear below:
+
+- **Survival curves** — shows P(alive at age X) for each individual, conditional on their
+  current age and the selected mortality table. For couples, a dashed joint curve shows
+  P(at least one person alive), i.e. the last-survivor probability. These curves are
+  derived analytically from the mortality table and do not depend on the scenario run —
+  they provide context for interpreting the lifespan draws.
+- **Drawn lifespans** — histogram of the ages at death sampled across all scenarios, one
+  series per individual and one for the joint last-survivor horizon. The median age at death
+  for each series is shown in a text box in the upper-left corner.
 """)
 
 # --- Tools tab ---

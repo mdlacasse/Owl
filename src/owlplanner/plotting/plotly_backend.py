@@ -1000,6 +1000,99 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
+    def plot_survival_curves(self, sexes, current_ages, inames, table="SSA2025"):
+        """Survival probability P(alive at age X) for each individual, plus joint for couples."""
+        from ..data.mortality_tables import survival_pmf
+
+        colors = ["steelblue", "darkorange"]
+        fig = go.Figure()
+
+        age_start = min(current_ages)
+        survival_full = []
+
+        for i, (sex, ca) in enumerate(zip(sexes, current_ages)):
+            ages_i, pmf_i = survival_pmf(sex, ca, table=table)
+            surv_i = np.concatenate([[1.0], 1.0 - np.cumsum(pmf_i[:-1])])
+            n_prepend = ca - age_start
+            full_surv = np.concatenate([np.ones(n_prepend), surv_i])
+            survival_full.append(full_surv)
+            fig.add_trace(go.Scatter(
+                x=ages_i.tolist(), y=(surv_i * 100).tolist(),
+                mode="lines", name=inames[i],
+                line=dict(color=colors[i % len(colors)], width=2),
+            ))
+
+        if len(current_ages) == 2:
+            ages_common = np.arange(age_start, age_start + len(survival_full[0]), dtype=int)
+            joint_surv = 1.0 - np.prod([1.0 - s for s in survival_full], axis=0)
+            fig.add_trace(go.Scatter(
+                x=ages_common.tolist(), y=(joint_surv * 100).tolist(),
+                mode="lines", name="Joint (last survivor)",
+                line=dict(color="mediumpurple", width=2, dash="dot"),
+            ))
+
+        fig.update_xaxes(title_text="Age", title_font_size=14, tickfont_size=11)
+        fig.update_yaxes(title_text="Probability of being alive (%)", ticksuffix="%",
+                         title_font_size=14, tickfont_size=11, range=[0, 101])
+        fig.update_layout(
+            title=dict(text=f"Survival curves — {table}", font_size=20),
+            template=self.template,
+            legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
+        )
+        return fig
+
+    def plot_drawn_lifespans(self, drawn_lifespans, inames):
+        """Histogram of drawn ages at death from longevity sampling, shape (S, N_i)."""
+        colors = ["steelblue", "darkorange"]
+        n_i = drawn_lifespans.shape[1]
+        fig = go.Figure()
+
+        median_lines = []
+        for i in range(n_i):
+            ages_i = drawn_lifespans[:, i]
+            median_i = int(np.median(ages_i))
+            median_lines.append(f"{inames[i]}  med {median_i}")
+            fig.add_trace(go.Histogram(
+                x=ages_i.tolist(),
+                name=inames[i],
+                marker_color=colors[i % len(colors)],
+                opacity=0.75,
+                xbins=dict(size=1),
+                bingroup=1,
+            ))
+
+        if n_i == 2:
+            joint_ages = np.maximum(drawn_lifespans[:, 0], drawn_lifespans[:, 1])
+            joint_median = int(np.median(joint_ages))
+            median_lines.append(f"Joint  med {joint_median}")
+            fig.add_trace(go.Histogram(
+                x=joint_ages.tolist(),
+                name="Joint (last survivor)",
+                marker_color="mediumpurple",
+                opacity=0.5,
+                xbins=dict(size=1),
+                bingroup=1,
+            ))
+
+        annotation_colors = colors[:n_i] + (["mediumpurple"] if n_i == 2 else [])
+        for k, (line, color) in enumerate(zip(median_lines, annotation_colors)):
+            fig.add_annotation(
+                text=line,
+                xref="paper", yref="paper", x=0.02, y=0.99 - k * 0.10,
+                xanchor="left", showarrow=False,
+                font=dict(size=15, color=color),
+            )
+
+        fig.update_xaxes(title_text="Age at death", title_font_size=14, tickfont_size=11)
+        fig.update_yaxes(title_text="Number of scenarios", title_font_size=14, tickfont_size=11)
+        fig.update_layout(
+            title=dict(text="Drawn lifespans", font_size=20),
+            template=self.template,
+            barmode="overlay",
+            legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
+        )
+        return fig
+
     def plot_retention_margin(self, year_n, margin_n, title):
         """Diverging bar chart of retention margin above real break-even. Reference at 0."""
         title = title.replace("\n", "<br>")
