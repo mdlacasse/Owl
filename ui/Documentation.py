@@ -22,21 +22,28 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import streamlit as st
 import sskeys as kz
+import owlbridge as owb
 
-col1, col2 = st.columns([2.8, 1], gap="large")
+kz.initGlobalKey("docExpandAll", False)
+
+col1, col2 = st.columns([2.8, 1], gap="large", vertical_alignment="top")
 with col1:
     st.markdown("# :material/help: Documentation")
     st.markdown("### **Owl** - *Optimal wealth lab*")
     kz.divider("orange")
-    st.markdown("")
-    st.markdown("")
-    st.markdown("")
-    st.markdown("## :orange[Table of Contents]")
-    st.caption("*Use the tabs below to navigate documentation by section.*")
+    st.markdown(f"**Version {owb.version()}**")
+    st.markdown("<div style='height: 3.5em;'></div>", unsafe_allow_html=True)
+    sub_toc, sub_toggle = st.columns([5, 1], vertical_alignment="bottom")
+    with sub_toc:
+        st.markdown("## :orange[Table of Contents]")
+    with sub_toggle:
+        expand_all = st.toggle("Expand all", key="docExpandAll", help="Expand all sections across all tabs. Tip: expand before using your browser's Ctrl+F (or ⌘F) to search within the active tab.")
 with col2:
     logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
     st.image(logofile)
     st.caption("Retirement planner with great wisdom")
+
+st.markdown("<style>div[data-testid='stTabs'] { margin-top: -50px; }</style>", unsafe_allow_html=True)
 
 # Tabs for bite-sized navigation
 tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_help, tab_tips = st.tabs([
@@ -127,7 +134,7 @@ a ***scenario*** provides the economic realization; a ***run*** solves the optim
 the planner can explore the impacts of differing assumptions and strategies on their financial situation.
 """)
 
-    with st.expander("Input and Output Files"):
+    with st.expander("Input and Output Files", expanded=expand_all):
         st.markdown("""
 Every *case* in **Owl** is fully described by two input files and produces three output files.
 Together they capture the complete data flow from configuration to results.
@@ -297,7 +304,7 @@ Once all *cases* have run, their results can be compared side-by-side on the **R
 Cases are considered related when they share the same individuals' names.
 """)
 
-    with st.expander("Financial Profile"):
+    with st.expander("Financial Profile", expanded=expand_all):
         st.markdown("""
 The *Household Financial Profile* (HFP) contains two major sections,
 one representing *Wages and Contributions* for each individual, and
@@ -524,7 +531,7 @@ where:
 - Assets disposed during the plan (yod within plan duration) generate taxable proceeds in the year of disposition.
 """)
 
-    with st.expander("Fixed Income"):
+    with st.expander("Fixed Income", expanded=expand_all):
         st.markdown("""
 This page is for entering data related to the individual's anticipated fixed income
 from Social Security, pensions, and Single Premium Immediate Annuities (SPIAs).
@@ -673,7 +680,7 @@ The table on this page accepts one row per SPIA. The columns are:
 Multiple SPIAs are supported; add one row per contract.
 """)
 
-    with st.expander("Account Balances"):
+    with st.expander("Account Balances", expanded=expand_all):
         st.markdown("""
 This page allows you to enter account balances in all savings accounts.
 Notice that all amounts are entered in units of \\$1,000, referred to as (\\$k).
@@ -739,7 +746,7 @@ A higher gain fraction means more capital gains tax per dollar withdrawn from th
 increasing total tax drag and reducing the maximum achievable spending or bequest.
 """)
 
-    with st.expander("Asset Allocation"):
+    with st.expander("Asset Allocation", expanded=expand_all):
         st.markdown("""
 This page allows you to select how to partition your assets between 4 investment options,
 one equity and three fixed-income securities:
@@ -785,7 +792,7 @@ will appear, one for the timing of the inflection point measured in years from n
 and the other for the width of the transition, measured in +/- years from the inflection point.
 """)
 
-    with st.expander("Rates"):
+    with st.expander("Rates", expanded=expand_all):
         st.markdown("""
 This page controls the annual rates of return used throughout the plan.
 All rates are **nominal** (not inflation-adjusted) and expressed as yearly percentages.
@@ -1020,7 +1027,7 @@ targets, allocations, Roth strategy) while holding the random scenario constant.
   *(Basis for the `lognormal` and `histolognormal` log-normal / GBM framework.)*
 """)
 
-    with st.expander("Goals"):
+    with st.expander("Goals", expanded=expand_all):
         st.markdown("""
 The **Goals** page is where you define the optimization objective and spending preferences.
 
@@ -1059,7 +1066,7 @@ These settings determine the *basis* for net spending or the constraint level; t
 with the options on the **Run Options** page (Roth conversions, Medicare, solver, etc.).
 """)
 
-    with st.expander("Run Options"):
+    with st.expander("Run Options", expanded=expand_all):
         st.markdown("""
 This page configures Roth conversions, health insurance costs, the self-consistent loop, and solver options.
 The **objective**, **safety net**, and **spending profile** are set on the **Goals** page.
@@ -1241,7 +1248,7 @@ Graphs are organized into three tabs:
 
 """)
 
-    with st.expander("Worksheets"):
+    with st.expander("Worksheets", expanded=expand_all):
         st.markdown("""
 This page shows the various worksheets containing annual transactions
 and savings account balances in nominal \\$.
@@ -1295,7 +1302,7 @@ These settings are saved in the case parameter file under `[results]` (see
 and `worksheet_real_dollars`).
 """)
 
-    with st.expander("Reports"):
+    with st.expander("Reports", expanded=expand_all):
         st.markdown("""
 This page provides a summary of the most recent *run* and offers file downloads.
 
@@ -1375,7 +1382,7 @@ either maximum net spending or maximum bequest left at the passing
 of the surviving spouse, depending on the objective function being optimized.
 """)
 
-    with st.expander("Monte Carlo"):
+    with st.expander("Monte Carlo", expanded=expand_all):
         st.markdown("""
 This page runs a Monte Carlo simulation by generating many independent sequences of annual
 rates of return and solving the full optimization for each one. At the end of the run a
@@ -1425,7 +1432,7 @@ event-driven forward simulators. To improve throughput:
   server, which also has a CPU-time quota that may terminate long sessions.
 """)
 
-    with st.expander("Spending Optimization"):
+    with st.expander("Spending Optimization", expanded=expand_all):
         st.markdown("""
 This page finds a **committed first-year spending level** (in today's dollars) that is
 robust across a set of historical or Monte Carlo scenarios. Unlike the histogram pages,
@@ -1616,7 +1623,7 @@ yourself, and follow Streamlit’s
 [theming documentation](https://docs.streamlit.io/develop/concepts/configuration/theming).
 """)
 
-    with st.expander("Logs"):
+    with st.expander("Logs", expanded=True):
         st.markdown("""
 Messages coming from the underlying **Owl** calculation engine are displayed on this page.
 This page is mainly used for debugging purposes.
@@ -1625,19 +1632,19 @@ This page is mainly used for debugging purposes.
 # --- Help tab ---
 with tab_help:
     st.markdown("Help resources in the application menu.")
-    with st.expander("Welcome"):
+    with st.expander("Welcome", expanded=True):
         st.markdown("""
 The landing page of the application. It shows new users how to quickly get started by using an example *case* file.
 """)
-    with st.expander("Documentation"):
+    with st.expander("Documentation", expanded=True):
         st.markdown("""
 These very pages. Full user guide and reference for all sections of the application.
 """)
-    with st.expander("Parameters Reference"):
+    with st.expander("Parameters Reference", expanded=True):
         st.markdown("""
 Displays reference tables for parameter settings. Useful for understanding keys in case configuration files (TOML).
 """)
-    with st.expander("About Owl"):
+    with st.expander("About Owl", expanded=True):
         st.markdown("""
 Credits, changelog, and legal information.
 """)
@@ -1670,7 +1677,7 @@ To account for the effects of potential changes in future income tax rates,
 one can use a termination year for current tax rates to revert to higher rates.
 """)
 
-    with st.expander("Typical Workflow"):
+    with st.expander("Typical Workflow", expanded=expand_all):
         st.markdown("""
 A typical workflow involves creating a base *case* and copying it a few times,
 each time changing one parameter to explore its effect:
@@ -1699,7 +1706,7 @@ worksheet (Worksheets page → **Income & Cash Flow** tab), where withdrawals an
 conversions for the current and upcoming years are listed.
 """)
 
-    with st.expander("Scope of Use"):
+    with st.expander("Scope of Use", expanded=expand_all):
         st.markdown("""
 In general, computer modeling is not about predicting the future,
 but rather about exploring possibilities.
