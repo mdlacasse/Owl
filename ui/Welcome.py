@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import os
 from pathlib import Path
 
 import streamlit as st
@@ -24,8 +25,7 @@ import streamlit as st
 import owlbridge as owb
 import sskeys as kz
 
-# Set next line to False to skip disclainer
-_SHOW_DISCLAIMER = True
+_SHOW_DISCLAIMER = os.environ.get("OWL_SKIP_DISCLAIMER", "0") not in ("1", "true", "True", "yes")
 _GPLV3_URL = "https://www.gnu.org/licenses/gpl-3.0.html#license-text"
 _WELCOME_DISCLAIMER_DISMISSED = "welcome_disclaimer_dismissed"
 
