@@ -1079,7 +1079,7 @@ class PlotlyBackend(PlotBackend):
             text="<b>Medians</b>",
             xref="paper", yref="paper", x=0.02, y=0.99,
             xanchor="left", showarrow=False,
-            font=dict(size=15, color="darkorange"),
+            font=dict(size=15, color="gray"),
         )
         for k, (line, color) in enumerate(zip(median_lines, annotation_colors)):
             fig.add_annotation(
