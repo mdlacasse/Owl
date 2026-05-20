@@ -39,6 +39,10 @@ To use the light theme, add `-e STREAMLIT_THEME_BASE=light` to the command:
 ```
 docker run -p 8501:8501 -e STREAMLIT_THEME_BASE=light --rm owlplanner/owldocker.{static or bare}
 ```
+To suppress the startup disclaimer dialog, add `-e OWL_SKIP_DISCLAIMER=1`:
+```
+docker run -p 8501:8501 -e OWL_SKIP_DISCLAIMER=1 --rm owlplanner/owldocker.{static or bare}
+```
 
 #### Option 2: Docker Hub website
 
