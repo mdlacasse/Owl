@@ -3,6 +3,11 @@
 
 ### Version 2026.05.20
 
+#### Mortality tables — SOA Pub-2010 public-sector tables
+
+- Added **Pub2010-Safety**, **Pub2010-General**, and **Pub2010-Teacher** tables from mort.soa.org.
+- Dropdown and documentation now ordered by life expectancy at 65 (shortest to longest).
+
 #### Spending Optimization — longevity plots
 
 - **Survival curves** — when longevity risk is enabled, a new chart shows P(alive at age X)
