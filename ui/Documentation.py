@@ -37,7 +37,9 @@ with col1:
     with sub_toc:
         st.markdown("## :orange[Table of Contents]")
     with sub_toggle:
-        expand_all = st.toggle("Expand all", key="docExpandAll", help="Expand all sections across all tabs. Tip: expand before using your browser's Ctrl+F (or ⌘F) to search within the active tab.")
+        expand_all = st.toggle("Expand all", key="docExpandAll",
+                               help="""Expand all sections across all tabs.
+Tip: expand before using your browser's Ctrl+F (or ⌘F) to search within the active tab.""")
 with col2:
     logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
     st.image(logofile)
