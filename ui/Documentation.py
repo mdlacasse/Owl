@@ -1498,11 +1498,18 @@ The LP is swept over a range of $\\lambda$ values to trace the **efficient front
 
   | Table | Population | When to use |
   |-------|-----------|-------------|
-  | `SSA2025` *(default)* | Average US population (2025 SSA Period Life Table) | Good starting point for most people; reflects typical life expectancy across all income levels and health conditions |
-  | `RP2014` | Pension recipients (SOA RP-2014 Healthy Annuitant) | Pension recipients live longer on average; use if you have a defined-benefit pension or stable career with good healthcare access |
-  | `IAM2012` | Individual annuity purchasers (SOA IAM 2012) | People who buy annuities tend to be in excellent health and live the longest of any group; represents an optimistic longevity scenario |
-  | `VBT2015-NS` | Non-smoking life insurance policyholders (SOA VBT 2015) | Slightly longer-lived than the general population; a reasonable choice if you are in good health and have never smoked |
-  | `VBT2015-SM` | Smoking life insurance policyholders (SOA VBT 2015) | Smokers have meaningfully shorter life expectancy; use if you are a current or long-term smoker |
+  Tables are ordered shortest to longest life expectancy at age 65 (average M+F).
+
+  | Table | LE@65 | Population | When to use |
+  |-------|-------|-----------|-------------|
+  | `VBT2015-SM` | 82 | Smoking life insurance policyholders (SOA VBT 2015) | Smokers have meaningfully shorter life expectancy; use if you are a current or long-term smoker |
+  | `SSA2025` *(default)* | 83 | Average US population (2025 SSA Period Life Table) | Good starting point for most people; reflects typical life expectancy across all income levels and health conditions |
+  | `Pub2010-Safety` | 85 | Public safety retirees — police, firefighters, correctional officers (SOA Pub-2010) | Safety personnel tend to retire earlier with somewhat shorter post-retirement life expectancy than other public-sector groups |
+  | `Pub2010-General` | 86 | General government employees — state/local public sector (SOA Pub-2010) | Use if you worked in a government role outside teaching or public safety |
+  | `RP2014` | 86 | Private pension recipients (SOA RP-2014 Healthy Annuitant) | Pension recipients live longer on average; use if you have a private defined-benefit pension |
+  | `VBT2015-NS` | 87 | Non-smoking life insurance policyholders (SOA VBT 2015) | Slightly longer-lived than the general population; a reasonable choice if you are in good health and have never smoked |
+  | `IAM2012` | 87 | Individual annuity purchasers (SOA IAM 2012) | People who buy annuities tend to be in excellent health; represents an optimistic longevity scenario |
+  | `Pub2010-Teacher` | 87 | Public school teachers and college professors (SOA Pub-2010) | Teachers have the longest life expectancy of all public-sector groups |
 
 - **Longevity reproducibility** — optional seed control for longevity sampling. When set,
   identical longevity draws are reproduced across runs; rate reproducibility remains controlled
