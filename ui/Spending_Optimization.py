@@ -153,8 +153,10 @@ Select a target success rate to find the committed spending that meets it.
             st.markdown("#### :orange[Stochastic lifespan]")
             help_longevity = (
                 "Draw a random lifespan from the selected mortality table for each scenario. "
-                "For couples, uses the last-survivor horizon max(τ₁, τ₂). "
-                "Sex is set on the **Create Case** page."
+                "Mortality tables are sex-specific (male/female q_x columns differ significantly), "
+                "so each individual's sex is used to sample from the correct distribution. "
+                "For couples, the scenario horizon is the last-survivor horizon max(τ₁, τ₂). "
+                "Sex for each individual is configured on the **Create Case** page."
             )
             help_repro = ("When enabled, the same random seed will be used for all longevity draws, "
                           "ensuring reproducible results across runs.")
