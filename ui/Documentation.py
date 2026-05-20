@@ -23,7 +23,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import streamlit as st
 import sskeys as kz
 
-col1, col2, col3 = st.columns([0.69, 0.02, 0.29], gap="large")
+col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:
     st.markdown("# :material/help: Documentation")
     st.markdown("### **Owl** - *Optimal wealth lab*")
@@ -33,7 +33,7 @@ with col1:
     st.markdown("")
     st.markdown("## :orange[Table of Contents]")
     st.caption("*Use the tabs below to navigate documentation by section.*")
-with col3:
+with col2:
     logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
     st.image(logofile)
     st.caption("Retirement planner with great wisdom")
