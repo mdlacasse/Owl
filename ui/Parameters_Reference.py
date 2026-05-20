@@ -24,6 +24,7 @@ from pathlib import Path
 
 import streamlit as st
 import sskeys as kz
+import owlbridge as owb
 
 logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
 
@@ -39,12 +40,20 @@ parts = re.split(r'\n(?=## )', content)
 preamble = parts[0].strip().rstrip('-').strip()
 sections = parts[1:]
 
-col1, col2 = st.columns([2.8, 1], gap="large")
+kz.initGlobalKey("paramsExpandAll", False)
+
+col1, col2 = st.columns([2.8, 1], gap="large", vertical_alignment="top")
 with col1:
     st.markdown("# :material/menu_book: Parameters Reference")
     st.markdown("### Owl - *Optimal wealth lab*")
     kz.divider("orange")
-    st.markdown("Complete reference for all parameters in Owl TOML configuration files.")
+    st.markdown(f"**Version {owb.version()}**")
+    sub_text, sub_toggle = st.columns([5, 1], vertical_alignment="bottom")
+    with sub_text:
+        st.markdown("Complete reference for all parameters in Owl TOML configuration files.")
+    with sub_toggle:
+        _help = "Expand all sections. Tip: expand before using Ctrl+F (or ⌘F) to search within this page."
+        expand_all = st.toggle("Expand all", key="paramsExpandAll", help=_help)
     if preamble:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(preamble)
@@ -60,7 +69,7 @@ for i, section in enumerate(sections):
     # Extract plain label: remove "## " and ":orange[...]" wrapper
     label = re.sub(r'^##\s+', '', heading)
     label = re.sub(r':orange\[(.+?)\]', r'\1', label)
-    with st.expander(label, expanded=(i == 0)):
+    with st.expander(label, expanded=expand_all or (i == 0)):
         st.markdown(body)
 
 kz.divider("orange")
