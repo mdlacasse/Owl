@@ -74,7 +74,7 @@ The *case* being currently displayed is marked with a small red triangle.
 A typical workflow for exploring different cases involves starting with a base
 case and then copying+creating derived cases with slight changes in the parameters.
 A comparison between the different resulting outcomes can be found on the **Reports** page.
-The **Typical Workflow** section (Tips tab) goes through a more specific example.
+The **Typical Workflow** section (Tips tab) goes through a specific example.
 
 **Owl** uses a full year as the standard unit of time. Most values are therefore entered and
 reported as yearly values. These include wages, income, rates, etc. To better align
@@ -84,9 +84,11 @@ Dollar values are typically entered in thousands, unless in tables, where they
 are entered and reported in unit dollars.
 Graphs report values in thousands, either in nominal value or in today's \\$, as selected.
 
-There are five sections in the menu bar:
+Looking at the top of the window, there are five sections in the menu bar:
 **Case Setup**, **Results**, **Stress Tests**, **Tools**, and **Help**.
 The documentation is structured along the same menus.
+
+For better describing the flow of information, we provide here a few definitions of the terms used.
 """)
 
     with st.expander("Definitions", expanded=True):
@@ -139,12 +141,12 @@ the planner can explore the impacts of differing assumptions and strategies on t
         st.markdown("""
 Every *case* in **Owl** is fully described by two input files and produces three output files.
 Together they capture the complete data flow from configuration to results.
-In the file names below, `<case>` stands for the *case* name and `<individual>` stands
+In the file names below, `<case_name>` stands for the *case* name and `<individual>` stands
 for an individual's first name (e.g., *Jack* or *Jill*).
 
 ##### Input Files
 
-**`Case_<case>.toml`** — *Case parameter file*
+**`Case_<case_name>.toml`** — *Case parameter file*
 
 This human-readable text file encodes all the scalar parameters of a *case*:
 individual demographics (names, birth dates, life expectancies),
@@ -154,7 +156,7 @@ run options (objective, Roth conversion strategy, solver options),
 the rates selection, and the filename of the associated *HFP* workbook (if any).
 It does **not** contain the time-series data from the *Household Financial Profile* itself.
 
-In practice, **users never need to write or edit this file by hand** — the interface
+In practice, **users do not need to write or edit this file by hand** — the interface
 generates it automatically as parameters are entered across the **Case Setup** pages.
 Many ready-to-use example cases can be loaded directly from the **Create Case** page,
 making it easy to get started without any manual file preparation.
@@ -162,9 +164,9 @@ Once a *case* has run successfully, its case file can be downloaded from the **R
 and reloaded at any future session to restore the exact same configuration.
 When uploaded on the **Create Case** page,
 all fields in **Case Setup** are populated automatically.
-The naming convention when saving from the interface is `Case_<case>.toml`.
+The naming convention when saving from the interface is `Case_<case_name>.toml`.
 
-**`HFP_<case>.xlsx`** — *Household Financial Profile workbook*
+**`HFP_<case_name>.xlsx`** — *Household Financial Profile workbook*
 
 This Excel workbook holds year-by-year data that are not stored in the case TOML file.
 It must contain **one sheet per individual**, with a tab name that **exactly** matches that person in the *case*
@@ -186,8 +188,8 @@ Two optional **worksheets** (separate tabs) extend the workbook:
 
 A blank template is available
 [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true).
-The naming convention when saving from the interface is `HFP_<case>.xlsx`.
-The case file stores the HFP filename internally; matching `<case>` names simply makes the pair easy to identify.
+The naming convention when saving from the interface is `HFP_<case_name>.xlsx`.
+The case file stores the HFP filename internally; matching `<case_name>` names simply makes the pair easy to identify.
 
 ---
 
@@ -195,25 +197,25 @@ The case file stores the HFP filename internally; matching `<case>` names simply
 
 After a *case* has been solved, the **Reports** page offers the following downloads:
 
-**`Case_<case>.toml`** — *Saved case parameter file*
+**`Case_<case_name>.toml`** — *Saved case parameter file*
 
 Identical in format to the input case file and fully round-trips: re-uploading it
 recreates the exact same *case* configuration. If the HFP data were edited directly
 in the UI (rather than loaded from a file), this file alone is not sufficient to
 reproduce the run — the HFP workbook must also be saved.
 
-**`HFP_<case>.xlsx`** — *Saved Household Financial Profile workbook*
+**`HFP_<case_name>.xlsx`** — *Saved Household Financial Profile workbook*
 
 The HFP workbook as currently loaded or edited in the session. Saving it alongside
-`Case_<case>.toml` guarantees a fully reproducible *case*.
+`Case_<case_name>.toml` guarantees a fully reproducible *case*.
 
-**`Synopsis_<case>.txt`** — *Case summary*
+**`Synopsis_<case_name>.txt`** — *Case summary*
 
 A plain-text table of key metrics (spending, bequest, taxes, etc.) for the solved *case*.
 When multiple *cases* sharing the same individuals' names have been solved, additional columns
 show the differences between cases for a quick side-by-side comparison.
 
-**`Workbook_<case>.xlsx`** — *Plan workbook*
+**`Workbook_<case_name>.xlsx`** — *Plan workbook*
 
 The primary numerical output of a solved *case*. Contains one worksheet per topic,
 all indexed by year:
@@ -1697,13 +1699,13 @@ Here is a concrete example investigating the effect of Roth conversions on net s
 
 1. Create a *case* called *2026 - Base case*. Fill in all parameters for your situation,
    including wages and contributions. Set the maximum Roth conversion to \\$100k.
-2. Copy the base *case*, rename it *2026 - No Roth conversions*, and set the maximum to \\$0.
-3. Copy the base *case* again, rename it *2026 - No Roth limit*, and set the maximum to a
+2. Copy the base *case*, rename it *2026 - No Roth conversions*, and set the maximum Roth conversion to \\$0.
+3. Copy the base *case* again, rename it *2026 - No Roth limit*, and set the maximum Roth conversion to a
    large number such as \\$800k.
 4. Run all three *cases* and compare results on the **Reports** page.
 
 The most actionable information is on the first few lines of each individual's **Sources**
-worksheet (Worksheets page → **Income & Cash Flow** tab), where withdrawals and Roth
+worksheet (Worksheets page → **Accounts** tab), where withdrawals and Roth
 conversions for the current and upcoming years are listed.
 """)
 
