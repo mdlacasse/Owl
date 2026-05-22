@@ -126,10 +126,15 @@ Install pytest-xdist and pytest-randomly. Run checks before all commits:
 flake8 ui src tests
 pytest -n auto
 ```
-or
+or on linux/macOS
 ```
 OWL_TEST_SOLVER="HiGHS" pytest -n auto
 OWL_TEST_SOLVER="MOSEK" pytest -n auto
+```
+or on Win32
+```
+$env:OWL_TEST_SOLVER="HiGHS" ; pytest -n auto
+$env:OWL_TEST_SOLVER="MOSEK" ; pytest -n auto
 ```
 to run the tests using different solvers.
 
