@@ -509,8 +509,10 @@ where:
   automatically reset to the current year when reading from the HFP file. Assets acquired in
   the future have a future reference year. The asset is considered assessed (current) or acquired (future)
   at the beginning of the year.
-- *basis* is the **cost basis** of the asset (in reference-year dollars). This is typically the original purchase price
-  or adjusted basis for tax purposes. The basis is used to calculate capital gains or losses upon disposition.
+- *basis* is the **cost basis** of the asset — the actual purchase price or adjusted tax basis in nominal dollars
+  (what you paid, not inflation-adjusted to the reference year). For future acquisitions, enter the expected
+  purchase price in the nominal dollars of the acquisition year. The basis is used to calculate capital gains
+  or losses upon disposition.
 - *value* is the **value in reference-year dollars**. This value represents the asset's worth
   at the beginning of the reference year, and it grows from the reference year to the disposition
   year using the specified growth rate (no inflation conversion is applied).
