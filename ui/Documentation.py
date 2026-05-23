@@ -564,9 +564,10 @@ is treated and where Owl's model diverges from the actual law:
 | LTCG & capital gains thresholds | Inflation-adjusted | Chained CPI-U | Small |
 | Medicare IRMAA thresholds | Inflation-adjusted | CPI-U | Negligible |
 | ACA Federal Poverty Level thresholds | Inflation-adjusted | HHS annual update ≈ CPI-U | Negligible |
-| SS taxability thresholds ($25k/$32k, $34k/$44k) | **Fixed** (not inflation-adjusted) | Fixed by law since 1984 | None — correctly modeled |
+| SS taxability thresholds (\\$25k/\\$32k, \\$34k/\\$44k) | **Fixed** (not inflation-adjusted) | Fixed by law since 1984 | None — correctly modeled |
 
-The most significant real-world deviation is the **FERS diet COLA**: when inflation is high
+The most significant real-world deviation is for the Federal Employee Retirement System (FERS)
+with the so-called **diet COLA**: when inflation is high
 (e.g., 2022, CPI-W ~8.7%), FERS retirees received only 7.7% while **Owl** would apply the full
 rate. FERS retirees planning under high-inflation scenarios may wish to model their pension
 as *Not indexed* and enter a conservatively reduced monthly amount.
