@@ -1258,7 +1258,7 @@ Graphs are organized into four tabs:
 - *Asset Composition* — allocation-weighted asset mix across all accounts over time.
 
 **Rates** — return and rate assumptions used for this run:
-- *Annual Rates* — the rate sequence used for this run.
+- *Selected Rates Over Time Horizon* — the rate sequence used for this run.
 - *Correlations Between Return Rates* *(stochastic/varying methods only)* — correlation matrix of asset returns.
 
 """)
