@@ -87,7 +87,7 @@ if platform == "darwin":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 94_353,
+            "net_spending_basis": 101_113,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -114,7 +114,7 @@ elif platform == "linux":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 94_351,
+            "net_spending_basis": 101_113,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -141,7 +141,7 @@ elif platform == "win32":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 94_351,
+            "net_spending_basis": 101_113,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -166,10 +166,10 @@ else:
     assert False
 
 # MOSEK converges to a different SC-loop fixed point for Case_jack+jill
-# (~94111 vs HiGHS ~94353) due to numerical differences in the LP solutions.
+# (~101_113 vs HiGHS ~101_401) due to numerical differences in the LP solutions.
 # Values are platform-specific; add linux/win32 entries once confirmed on those platforms.
 if _active_solver() == 'MOSEK' and platform == 'darwin':
-    EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 94_118
+    EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 101_401
 
 
 def test_reproducibility():

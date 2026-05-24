@@ -125,10 +125,14 @@ def load_toml(
         if not filename.endswith(".toml"):
             filename = filename + ".toml"
         try:
-            with open(filename, "r") as f:
-                diconf = toml.load(f)
-        except Exception as e:
+            f = open(filename, "r")
+        except OSError as e:
             raise FileNotFoundError(f"File {filename} not found: {e}") from e
+        try:
+            with f:
+                diconf = toml.load(f)
+        except toml.TomlDecodeError as e:
+            raise ValueError(f"TOML parse error in {filename}: {e}") from e
     elif isinstance(file, BytesIO):
         try:
             string = file.getvalue().decode("utf-8")
