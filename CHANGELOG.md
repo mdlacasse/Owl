@@ -1,5 +1,24 @@
 
 
+### Version 2026.05.23
+
+#### Graphs
+
+- **Annual cash flow mix** — new `showCashFlowMix()` chart: normalized stacked-area panels showing
+  income sources (left) and outflow composition (right) as a percentage per year in today's dollars.
+  Colors match the lifetime allocation pie charts. Wired into the Spending graphs section.
+- **Lifetime allocation layout** — pie chart order swapped: income sources left, outflows right
+  (both backends).
+
+#### Bug fix
+
+- **TOML parse errors now raise `ValueError`** instead of the misleading `FileNotFoundError`
+  when a case file contains invalid TOML (e.g. a mixed int/float array like `[10.0, 2_000]`).
+- **`Case_jack+jill` example** — corrected Jill's pension from `10.5` to `2_000.0` $/month
+  (issue #125); expected spending basis updated in regression tests.
+
+---
+
 ### Version 2026.05.20
 
 #### Mortality tables — SOA Pub-2010 public-sector tables
