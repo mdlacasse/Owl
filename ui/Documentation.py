@@ -1233,7 +1233,7 @@ in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools tab).
 
-Graphs are organized into three tabs:
+Graphs are organized into four tabs:
 
 **Spending** — income and cash-flow perspective:
 - *Lifetime Cash Flow* — pair of pie charts (in today's \\$): left shows where money comes from
@@ -1244,7 +1244,6 @@ Graphs are organized into three tabs:
   Bequest is excluded as it is a lump-sum event rather than an annual flow.
 - *Net Available Spending* — year-by-year spending trajectory.
 - *Gross Income Sources* — stacked breakdown of all income sources (wages, Social Security, pension, withdrawals, etc.).
-- *Annual Rates* — the rate sequence used for this run.
 
 **Taxes** — tax and health insurance costs:
 - *Taxable Ordinary Income* — ordinary income, LTCG, and bracket allocation.
@@ -1257,6 +1256,10 @@ Graphs are organized into three tabs:
   The retention rate is `1 − net draw / balance`; the real break-even is `(1 + inflation) / (1 + portfolio return) × 100%`.
   **Blue bars** (above zero) mean real wealth is growing; **red bars** (below zero) mean it is shrinking.
 - *Asset Composition* — allocation-weighted asset mix across all accounts over time.
+
+**Rates** — return and rate assumptions used for this run:
+- *Annual Rates* — the rate sequence used for this run.
+- *Correlations Between Return Rates* *(stochastic/varying methods only)* — correlation matrix of asset returns.
 
 """)
 
