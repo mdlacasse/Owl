@@ -1009,11 +1009,13 @@ def plotSpendingGraphs(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
-    fig = plan.showRates(figure=True)
-    if fig:
-        cols[c].markdown("#### :orange[Annual Rates]")
-        renderPlot(fig, cols[c])
-        c = (c + 1) % n
+
+@_checkPlan
+def plotRatesGraphs(plan):
+    col1, col2 = st.columns(2, gap="large")
+    if kz.getCaseKey("rateType") == "varying":
+        showRatesCorrelations(col2)
+    showRates(col1)
 
 
 @_checkPlan
