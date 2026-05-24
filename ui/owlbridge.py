@@ -974,13 +974,22 @@ def plotSummaryMetrics(plan):
     else:
         spending_label = "Yearly spending (today's $)"
         estate_label = "Target liquid estate (today's $)"
-    n_cols = 4 if fa_bequest > 0 else 3
+    partial_bequest = getattr(plan, "partialBequest", 0)
+    n_cols = 3 + (1 if fa_bequest > 0 else 0) + (1 if partial_bequest > 0 else 0)
     cols = st.columns(n_cols, gap="large")
-    cols[0].metric(spending_label, f"${spending:,.0f}")
-    cols[1].metric(estate_label, f"${bequest:,.0f}")
+    col = 0
+    cols[col].metric(spending_label, f"${spending:,.0f}")
+    col += 1
+    if partial_bequest > 0:
+        partial_year = int(plan.year_n[plan.n_d])
+        cols[col].metric(f"Partial bequest {partial_year} (today's $)", f"${partial_bequest:,.0f}")
+        col += 1
+    cols[col].metric(estate_label, f"${bequest:,.0f}")
+    col += 1
     if fa_bequest > 0:
-        cols[2].metric("Fixed assets bequest (today's $)", f"${fa_bequest:,.0f}")
-    cols[-1].metric("Planning horizon", horizon)
+        cols[col].metric("Fixed assets bequest (today's $)", f"${fa_bequest:,.0f}")
+        col += 1
+    cols[col].metric("Planning horizon", horizon)
 
 
 @_checkPlan
