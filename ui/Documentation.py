@@ -1236,6 +1236,12 @@ selected in the Settings section (Tools tab).
 Graphs are organized into three tabs:
 
 **Spending** — income and cash-flow perspective:
+- *Lifetime Cash Flow* — pair of pie charts (in today's \\$): left shows where money comes from
+  (portfolio, Social Security, pension, wages, SPIA, other); right shows where it goes
+  (living expenses, taxes, healthcare, debt, bequest).
+- *Annual Cash Flow Mix* — year-by-year normalized stacked-area charts showing how the composition
+  of income sources and outflows evolves over the plan horizon. Colors match the pie charts.
+  Bequest is excluded as it is a lump-sum event rather than an annual flow.
 - *Net Available Spending* — year-by-year spending trajectory.
 - *Raw Income Sources* — stacked breakdown of all income sources (wages, Social Security, pension, withdrawals, etc.).
 - *Annual Rates* — the rate sequence used for this run.
