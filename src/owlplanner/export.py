@@ -346,14 +346,7 @@ def build_summary_dic(plan, N=None):
     dic["Case name"] = plan._name
     _summary_section(dic, SUMMARY_SECTION_OVERVIEW)
     dic["Net yearly spending basis"] = u.d(plan.g_n[0] / plan.xi_n[0])
-    after_tax = plan._after_tax_savings()
-    if after_tax > 0:
-        ratio = (plan.g_n[0] / plan.xi_n[0]) / after_tax
-        etr_pct = int(round(plan.effectiveTaxRate * 100))
-        value = u.pc(ratio, f=2)
-        if plan.bequest > 0:
-            value += f"  (understated — bequest of {u.d(plan.bequest, f=0)} in savings)"
-        dic[f"Spending-to-savings ratio (ETR {etr_pct}%)"] = value
+    dic["Effective tax rate (plan average)"] = u.pc(plan._actual_effective_tax_rate(), f=1)
     dic[f"Net spending for year {now}"] = u.d(plan.g_n[0])
     dic[f"Net spending remaining in year {now}"] = u.d(plan.g_n[0] * plan.yearFracLeft)
 

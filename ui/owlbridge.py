@@ -361,23 +361,9 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
 
     rate_method = result.get("rate_method", "")
     rate_line = f"Rate method:                     {rate_method}\n" if (rate_method and rate_method != "historical") else ""
-    ratio_line = ""
-    if plan is not None:
-        after_tax = plan._after_tax_savings()
-        if after_tax > 0 and g_opt > 0:
-            etr_pct = int(round(plan.effectiveTaxRate * 100))
-            spending_ratio = g_opt / after_tax
-            ratio_line = f"Spending-to-savings ratio:       {spending_ratio:.2%}  (ETR {etr_pct}%)\n"
-            _, solve_options = kz.getSolveParameters()
-            if "bequest" in solve_options:
-                configured_bequest = get_monetary_option(solve_options, "bequest", 0)
-                if configured_bequest > 0:
-                    bequest_k = configured_bequest / 1000
-                    ratio_line += f"Spending-to-savings note:        understated due to bequest of ${bequest_k:,.0f}k\n"
 
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
-        f"{ratio_line}"
         f"Target success rate:             {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
         f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
         f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
@@ -1001,6 +987,16 @@ def plotSummaryMetrics(plan):
 def plotSpendingGraphs(plan):
     c, n = 0, 2
     cols = st.columns(n, gap="medium")
+    fig = plan.showLifetimeAllocation(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Lifetime Cash Flow]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+    fig = plan.showCashFlowMix(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Annual Cash Flow Mix]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
     fig = plan.showNetSpending(figure=True)
     if fig:
         cols[c].markdown("#### :orange[Net Available Spending]")
@@ -1451,7 +1447,6 @@ def genDic(plan):
     dic["survivor"] = 100 * plan.chi
     dic["divRate"] = 100 * plan.mu
     dic["heirsTx"] = 100 * plan.nu
-    dic["effectiveTx"] = 100 * plan.effectiveTaxRate
     dic["yOBBBA"] = plan.yOBBBA
     dic["surplusFraction"] = plan.eta
     dic["plots"] = plan.defaultPlots
@@ -1639,11 +1634,10 @@ def renderPlot(fig, col=None):
 
     # Check if it's a plotly figure.
     if hasattr(fig, 'to_dict'):  # plotly figures have to_dict method.
-        config = {"width": "stretch"}
         if col:
-            col.plotly_chart(fig, config=config)
+            col.plotly_chart(fig, width="stretch")
         else:
-            st.plotly_chart(fig, config=config)
+            st.plotly_chart(fig, width="stretch")
     else:  # matplotlib figure.
         if col:
             col.pyplot(fig)

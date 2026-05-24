@@ -777,3 +777,105 @@ class MatplotlibBackend(PlotBackend):
         ax.grid(True, alpha=0.3, axis="y")
         plt.tight_layout()
         return fig
+
+    def plot_lifetime_allocation(self, alloc, name):
+        """Plot two pie charts: lifetime outflows breakdown and income sources."""
+        outflow_labels_map = {
+            "living":     "Living expenses",
+            "taxes":      "Taxes",
+            "healthcare": "Healthcare",
+            "debt":       "Debt payments",
+            "bequest":    "Bequest",
+        }
+        income_labels_map = {
+            "portfolio": "Portfolio",
+            "ss":        "Social Security",
+            "pension":   "Pension",
+            "wages":     "Wages",
+            "spia":      "SPIA",
+            "other":     "Other income",
+        }
+        outflow_colors = ["#2196F3", "#F44336", "#FF9800", "#9E9E9E", "#4CAF50"]
+        income_colors  = ["#673AB7", "#2196F3", "#009688", "#FF9800", "#E91E63", "#795548"]
+
+        def _filter(values_dict, labels_map, colors_list):
+            labels, values, colors = [], [], []
+            for i, (key, val) in enumerate(values_dict.items()):
+                if val > 0:
+                    labels.append(labels_map[key])
+                    values.append(val / 1000)
+                    colors.append(colors_list[i % len(colors_list)])
+            return labels, values, colors
+
+        out_labels, out_values, out_colors = _filter(alloc["outflows"], outflow_labels_map, outflow_colors)
+        inc_labels, inc_values, inc_colors = _filter(alloc["income"], income_labels_map, income_colors)
+
+        if not out_values or not inc_values:
+            return None
+
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        for ax, values, labels, colors, subtitle in [
+            (axes[0], inc_values, inc_labels, inc_colors, "Where money comes from"),
+            (axes[1], out_values, out_labels, out_colors, "Where money goes"),
+        ]:
+            ax.pie(values, labels=labels, colors=colors, autopct="%1.1f%%", startangle=90)
+            ax.set_title(subtitle)
+        fig.suptitle(name + "\nLifetime Cash Flow (today's $)")
+        plt.tight_layout()
+        return fig
+
+    def plot_cashflow_mix(self, mix, name):
+        """Plot annual cash flow breakdown as normalized stacked-area charts (%)."""
+        outflow_labels = {
+            "living":     "Living expenses",
+            "taxes":      "Taxes",
+            "healthcare": "Healthcare",
+            "debt":       "Debt payments",
+        }
+        income_labels = {
+            "ss":        "Social Security",
+            "pension":   "Pension",
+            "wages":     "Wages",
+            "spia":      "SPIA",
+            "other":     "Other income",
+            "portfolio": "Portfolio",
+        }
+        outflow_colors = ["#2196F3", "#F44336", "#FF9800", "#9E9E9E"]
+        income_colors  = ["#673AB7", "#2196F3", "#009688", "#FF9800", "#E91E63", "#795548"]
+
+        year_n = mix["year_n"]
+
+        def _pct_stack(data_dict, labels, colors):
+            arrays = [data_dict[k] for k in labels if k in data_dict]
+            total = sum(arrays)
+            mask = total > 0
+            pcts, lbls, clrs = [], [], []
+            for arr, (key, label), color in zip(arrays, labels.items(), colors):
+                pct = np.where(mask, arr / total * 100, 0.0)
+                if pct.max() > 0:
+                    pcts.append(pct)
+                    lbls.append(label)
+                    clrs.append(color)
+            return pcts, lbls, clrs
+
+        out_pcts, out_lbls, out_clrs = _pct_stack(mix["outflows"], outflow_labels, outflow_colors)
+        inc_pcts, inc_lbls, inc_clrs = _pct_stack(mix["income"], income_labels, income_colors)
+
+        if not out_pcts or not inc_pcts:
+            return None
+
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4.64))
+        for ax, pcts, lbls, clrs, subtitle in [
+            (axes[0], inc_pcts, inc_lbls, inc_clrs, "Income sources"),
+            (axes[1], out_pcts, out_lbls, out_clrs, "Outflows composition"),
+        ]:
+            ax.stackplot(year_n, pcts, labels=lbls, colors=clrs, alpha=0.7)
+            ax.set_title(subtitle)
+            ax.set_xlabel("year")
+            ax.set_ylabel("%")
+            ax.set_ylim(0, 100)
+            ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
+            ax.legend(loc="lower left", fontsize=8, ncol=1, framealpha=0.5, reverse=True)
+        fig.suptitle(name + "\nAnnual Cash Flow Mix (today's $, bequest excl.)")
+        plt.tight_layout()
+        return fig

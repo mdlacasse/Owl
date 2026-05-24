@@ -243,7 +243,6 @@ class Plan:
         self.gain_fraction_in = None    # (N_i, N_n) unrealized gain fraction; updated each SC iteration
         self.nu = 0.300   # Heirs tax rate (decimal)
         self.bequest = 0.0            # After-tax bequest in today's dollars (set after full solve)
-        self.effectiveTaxRate = 0.20  # Effective tax rate for for spending-to-savings ratio
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
         self.n_hsa_i = np.full(self.N_i, self.N_n, dtype=int)  # Year HSA contributions stop (default: never)
@@ -606,27 +605,84 @@ class Plan:
         self.nu = nu
         self.caseStatus = "modified"
 
-    def setEffectiveTaxRate(self, rate):
-        """
-        Set the effective tax rate used to discount tax-deferred assets when computing
-        the spending-to-savings ratio. Rate is in percent. Default is 20%.
-        """
-        if not (0 <= rate <= 100):
-            raise ValueError("Rate must be between 0 and 100.")
-        self.effectiveTaxRate = rate / 100
-        self.mylog.vprint(
-            f"Effective tax rate for spending-to-savings ratio set to {u.pc(self.effectiveTaxRate, f=0)}."
-        )
+    def _actual_effective_tax_rate(self):
+        """Return actual ETR from LP solution: (T + U + J) / (G + Q). Returns 0 if no taxable income."""
+        total_income = np.sum(self.G_n + self.Q_n)
+        if total_income <= 0:
+            return 0.0
+        return float(np.sum(self.T_n + self.U_n + self.J_n) / total_income)
 
-    def _after_tax_savings(self, etr=None):
-        """Return total after-tax initial savings, discounting tax-deferred by effective tax rate."""
-        if etr is None:
-            etr = self.effectiveTaxRate
-        taxable = np.sum(self.beta_ij[:, 0])
-        tax_deferred = np.sum(self.beta_ij[:, 1])
-        roth = np.sum(self.beta_ij[:, 2])
-        hsa = np.sum(self.beta_ij[:, 3])
-        return taxable + tax_deferred * (1 - etr) + roth + hsa
+    def lifetime_allocation(self):
+        """
+        Return lifetime cash flow breakdown in today's dollars as two dicts.
+
+        Returns a dict with keys:
+          'outflows'  — {living, taxes, healthcare, debt, bequest}
+          'income'    — {portfolio, ss, pension, wages, spia, other}
+          'total'     — total lifetime outflows (today's $)
+
+        The portfolio slice = total_outflows - sum(guaranteed income).
+        Both dicts sum to 'total'.
+        """
+        inv_g = 1.0 / self.gamma_n[:self.N_n]
+        outflows = {
+            "living":     float(np.sum(self.g_n * inv_g)),
+            "taxes":      float(np.sum((self.T_n + self.U_n + self.J_n) * inv_g)),
+            "healthcare": float(np.sum((self.m_n + self.M_n + self.aca_costs_n) * inv_g)),
+            "debt":       float(np.sum(self.debt_payments_n * inv_g)),
+            "bequest":    self.bequest + self.partialBequest,
+        }
+        guaranteed = {
+            "ss":      float(np.sum(np.sum(self.zetaBar_in, axis=0) * inv_g)),
+            "pension": float(np.sum(np.sum(self.piBar_in, axis=0) * inv_g)),
+            "wages":   float(np.sum(np.sum(self.omega_in, axis=0) * inv_g)),
+            "spia":    float(np.sum(np.sum(self.spiaBar_in, axis=0) * inv_g)),
+            "other":   float(np.sum((
+                np.sum(self.other_inc_in + self.netinv_in, axis=0)
+                + self.fixed_assets_ordinary_income_n
+                + self.fixed_assets_capital_gains_n
+                + self.fixed_assets_tax_free_n
+            ) * inv_g)),
+        }
+        total_outflows = sum(outflows.values())
+        total_guaranteed = sum(guaranteed.values())
+        income = dict(guaranteed)
+        income["portfolio"] = max(0.0, total_outflows - total_guaranteed)
+        return {"outflows": outflows, "income": income, "total": total_outflows}
+
+    def annual_cashflow_mix(self):
+        """
+        Return year-by-year cash flow breakdown in today's dollars.
+
+        Returns a dict with keys:
+          'outflows' — {living, taxes, healthcare, debt}  (arrays of length N_n)
+          'income'   — {ss, pension, wages, spia, other, portfolio}  (arrays of length N_n)
+          'year_n'   — calendar year array
+
+        Bequest is excluded (it is a lump sum, not an annual flow).
+        Normalization to percentages is done in the backends.
+        """
+        inv_g = 1.0 / self.gamma_n[:self.N_n]
+        outflows = {
+            "living":     self.g_n * inv_g,
+            "taxes":      (self.T_n + self.U_n + self.J_n) * inv_g,
+            "healthcare": (self.m_n + self.M_n + self.aca_costs_n) * inv_g,
+            "debt":       self.debt_payments_n * inv_g,
+        }
+        guaranteed = {
+            "ss":      np.sum(self.zetaBar_in, axis=0) * inv_g,
+            "pension": np.sum(self.piBar_in, axis=0) * inv_g,
+            "wages":   np.sum(self.omega_in, axis=0) * inv_g,
+            "spia":    np.sum(self.spiaBar_in, axis=0) * inv_g,
+            "other":   (np.sum(self.other_inc_in + self.netinv_in, axis=0)
+                        + self.fixed_assets_ordinary_income_n
+                        + self.fixed_assets_capital_gains_n
+                        + self.fixed_assets_tax_free_n) * inv_g,
+        }
+        total_out_n = sum(outflows.values())
+        income = dict(guaranteed)
+        income["portfolio"] = np.maximum(0.0, total_out_n - sum(guaranteed.values()))
+        return {"outflows": outflows, "income": income, "year_n": self.year_n}
 
     def setPension(self, amounts, ages, indexed=None, survivor_fraction=None):
         """
@@ -4878,6 +4934,41 @@ class Plan:
         for fig in figures:
             if fig is not None:
                 self._plotter.jupyter_renderer(fig)
+        return None
+
+    @_checkCaseStatus
+    def showLifetimeAllocation(self, figure=False):
+        """
+        Plot two pie charts showing the lifetime cash flow allocation in today's dollars:
+        - Left pie: how money is spent (living, taxes, healthcare, debt, bequest)
+        - Right pie: where money comes from (portfolio, SS, pension, wages, SPIA, other)
+        Returns a list of two figures (one per pie).
+        """
+        alloc = self.lifetime_allocation()
+        fig = self._plotter.plot_lifetime_allocation(alloc, self._name)
+        if fig is None:
+            return None
+        if figure:
+            return fig
+        self._plotter.jupyter_renderer(fig)
+        return None
+
+    @_checkCaseStatus
+    def showCashFlowMix(self, figure=False):
+        """
+        Plot annual cash flow breakdown as normalized stacked-area charts (%).
+
+        Left panel: how outflows are composed year by year (living, taxes, healthcare, debt).
+        Right panel: how income is sourced year by year (portfolio, SS, pension, wages, SPIA, other).
+        Bequest is excluded (lump sum — see showLifetimeAllocation for the lifetime total).
+        """
+        mix = self.annual_cashflow_mix()
+        fig = self._plotter.plot_cashflow_mix(mix, self._name)
+        if fig is None:
+            return None
+        if figure:
+            return fig
+        self._plotter.jupyter_renderer(fig)
         return None
 
     @_checkCaseStatus
