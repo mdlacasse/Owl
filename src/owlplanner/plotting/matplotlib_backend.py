@@ -813,15 +813,22 @@ class MatplotlibBackend(PlotBackend):
         if not out_values or not inc_values:
             return None
 
-        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
         for ax, values, labels, colors, subtitle in [
             (axes[0], inc_values, inc_labels, inc_colors, "Where money comes from"),
             (axes[1], out_values, out_labels, out_colors, "Where money goes"),
         ]:
-            ax.pie(values, labels=labels, colors=colors, autopct="%1.1f%%", startangle=90)
+            wedges, _, autotexts = ax.pie(
+                values, colors=colors, autopct="%1.1f%%", startangle=90,
+            )
+            for t in autotexts:
+                t.set_fontsize(7)
+            ax.legend(wedges, labels, loc="upper center", bbox_to_anchor=(0.5, 0.0),
+                      fontsize=8, ncol=2, framealpha=0.5)
             ax.set_title(subtitle)
         fig.suptitle(name + "\nLifetime Cash Flow (today's $)")
         plt.tight_layout()
+        fig.subplots_adjust(bottom=0.25)
         return fig
 
     def plot_cashflow_mix(self, mix, name):
@@ -864,7 +871,7 @@ class MatplotlibBackend(PlotBackend):
         if not out_pcts or not inc_pcts:
             return None
 
-        fig, axes = plt.subplots(1, 2, figsize=(10, 4.64))
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5.2))
         for ax, pcts, lbls, clrs, subtitle in [
             (axes[0], inc_pcts, inc_lbls, inc_clrs, "Income sources"),
             (axes[1], out_pcts, out_lbls, out_clrs, "Outflows composition"),
@@ -875,7 +882,7 @@ class MatplotlibBackend(PlotBackend):
             ax.set_ylabel("%")
             ax.set_ylim(0, 100)
             ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
-            ax.legend(loc="lower left", fontsize=8, ncol=1, framealpha=0.5, reverse=True)
+            ax.legend(loc="lower right", fontsize=8, ncol=1, framealpha=0.5, reverse=True)
         fig.suptitle(name + "\nAnnual Cash Flow Mix (today's $, bequest excl.)")
         plt.tight_layout()
         return fig

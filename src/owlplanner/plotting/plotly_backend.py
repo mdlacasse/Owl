@@ -1584,13 +1584,19 @@ class PlotlyBackend(PlotBackend):
             template=self.template,
             showlegend=True,
             legend=dict(
-                x=0.2, y=-0.2, xanchor="center", yanchor="top",
-                orientation="h", bgcolor="rgba(0,0,0,0)",
+                x=0.44, y=0.02, xanchor="right", yanchor="bottom",
+                orientation="v",
+                bgcolor="rgba(255,255,255,0.15)",
+                bordercolor="rgba(128,128,128,0.3)",
+                borderwidth=1,
             ),
             legend2=dict(
-                x=0.8, y=-0.2, xanchor="center", yanchor="top",
-                orientation="h", bgcolor="rgba(0,0,0,0)",
+                x=0.98, y=0.02, xanchor="right", yanchor="bottom",
+                orientation="v",
+                bgcolor="rgba(255,255,255,0.15)",
+                bordercolor="rgba(128,128,128,0.3)",
+                borderwidth=1,
             ),
-            margin=dict(b=150),
+            margin=dict(b=60),
         )
         return fig
