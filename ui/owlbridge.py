@@ -973,12 +973,13 @@ def plotSummaryMetrics(plan):
         spending_label = "Yearly spending (today's $)"
         estate_label = "Target liquid estate (today's $)"
     partial_bequest = getattr(plan, "partialBequest", 0)
-    n_cols = 3 + (1 if fa_bequest > 0 else 0) + (1 if partial_bequest > 0 else 0)
+    show_partial = plan.N_i == 2 and plan.n_d < plan.N_n and any(plan.phi_j < 1)
+    n_cols = 3 + (1 if fa_bequest > 0 else 0) + (1 if show_partial else 0)
     cols = st.columns(n_cols, gap="large")
     col = 0
     cols[col].metric(spending_label, f"${spending:,.0f}")
     col += 1
-    if partial_bequest > 0:
+    if show_partial:
         partial_year = int(plan.year_n[plan.n_d])
         cols[col].metric(f"Partial bequest {partial_year} (today's $)", f"${partial_bequest:,.0f}")
         col += 1
