@@ -815,8 +815,8 @@ class MatplotlibBackend(PlotBackend):
 
         fig, axes = plt.subplots(1, 2, figsize=(10, 5))
         for ax, values, labels, colors, subtitle in [
-            (axes[0], inc_values, inc_labels, inc_colors, "Where money comes from"),
-            (axes[1], out_values, out_labels, out_colors, "Where money goes"),
+            (axes[0], inc_values, inc_labels, inc_colors, "Sources of income"),
+            (axes[1], out_values, out_labels, out_colors, "Outflows breakdown"),
         ]:
             wedges, _, autotexts = ax.pie(
                 values, colors=colors, autopct="%1.1f%%", startangle=90,
@@ -873,8 +873,8 @@ class MatplotlibBackend(PlotBackend):
 
         fig, axes = plt.subplots(1, 2, figsize=(10, 5.2))
         for ax, pcts, lbls, clrs, subtitle in [
-            (axes[0], inc_pcts, inc_lbls, inc_clrs, "Income sources"),
-            (axes[1], out_pcts, out_lbls, out_clrs, "Outflows composition"),
+            (axes[0], inc_pcts, inc_lbls, inc_clrs, "Sources of income"),
+            (axes[1], out_pcts, out_lbls, out_clrs, "Outflows breakdown"),
         ]:
             ax.stackplot(year_n, pcts, labels=lbls, colors=clrs, alpha=0.7)
             ax.set_title(subtitle)

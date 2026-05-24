@@ -1489,7 +1489,7 @@ class PlotlyBackend(PlotBackend):
         fig = make_subplots(
             rows=1, cols=2,
             specs=[[{"type": "pie"}, {"type": "pie"}]],
-            subplot_titles=["Where money comes from", "Where money goes"],
+            subplot_titles=["Sources of income", "Outflows breakdown"],
         )
         fig.add_trace(go.Pie(
             labels=inc_labels, values=inc_values,
@@ -1533,7 +1533,7 @@ class PlotlyBackend(PlotBackend):
 
         fig = make_subplots(
             rows=1, cols=2,
-            subplot_titles=["Income sources", "Outflows composition"],
+            subplot_titles=["Sources of income", "Outflows breakdown"],
         )
 
         has_out, has_inc = False, False
