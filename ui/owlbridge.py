@@ -155,10 +155,8 @@ def prepareRun(plan):
 def runAllCases():
     currentCase = kz.currentCaseName()
     for case in kz.onlyCaseNames():
-        # Being here, current case must be fine.
-        if case != currentCase:
-            kz.switchToCaseName(case)
-            runPlan()
+        kz.switchToCaseName(case)
+        runPlan()
     kz.switchToCaseName(currentCase)
 
 
