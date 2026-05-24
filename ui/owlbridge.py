@@ -1005,7 +1005,7 @@ def plotSpendingGraphs(plan):
 
     fig = plan.showSources(figure=True)
     if fig:
-        cols[c].markdown("#### :orange[Raw Income Sources]")
+        cols[c].markdown("#### :orange[Gross Income Sources]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 

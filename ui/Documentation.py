@@ -1243,7 +1243,7 @@ Graphs are organized into three tabs:
   of income sources and outflows evolves over the plan horizon. Colors match the pie charts.
   Bequest is excluded as it is a lump-sum event rather than an annual flow.
 - *Net Available Spending* — year-by-year spending trajectory.
-- *Raw Income Sources* — stacked breakdown of all income sources (wages, Social Security, pension, withdrawals, etc.).
+- *Gross Income Sources* — stacked breakdown of all income sources (wages, Social Security, pension, withdrawals, etc.).
 - *Annual Rates* — the rate sequence used for this run.
 
 **Taxes** — tax and health insurance costs:

@@ -5084,7 +5084,7 @@ class Plan:
         the default behavior of setDefaultPlots().
         """
         value = self._checkValueType(value)
-        title = self._name + "\nRaw Income Sources"
+        title = self._name + "\nGross Income Sources"
         if tag:
             title += " - " + tag
         fig = self._plotter.plot_sources(self.year_n, self.sources_in, self.gamma_n,
