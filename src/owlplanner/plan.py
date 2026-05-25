@@ -625,24 +625,28 @@ class Plan:
         Both dicts sum to 'total'.
         """
         inv_g = 1.0 / self.gamma_n[:self.N_n]
+        Lambda_n = np.sum(self.Lambda_in, axis=0)
+        bti_out = float(np.sum(np.maximum(0.0, -Lambda_n) * inv_g))
+        bti_in  = float(np.sum(np.maximum(0.0,  Lambda_n) * inv_g))
+        fa = float(np.sum((self.fixed_assets_ordinary_income_n
+                           + self.fixed_assets_capital_gains_n
+                           + self.fixed_assets_tax_free_n) * inv_g))
         outflows = {
             "living":     float(np.sum(self.g_n * inv_g)),
             "taxes":      float(np.sum((self.T_n + self.U_n + self.J_n) * inv_g)),
             "healthcare": float(np.sum((self.m_n + self.M_n + self.aca_costs_n) * inv_g)),
             "debt":       float(np.sum(self.debt_payments_n * inv_g)),
+            "bti":        bti_out,
             "bequest":    self.bequest + self.partialBequest,
         }
         guaranteed = {
-            "ss":      float(np.sum(np.sum(self.zetaBar_in, axis=0) * inv_g)),
-            "pension": float(np.sum(np.sum(self.piBar_in, axis=0) * inv_g)),
-            "wages":   float(np.sum(np.sum(self.omega_in, axis=0) * inv_g)),
-            "spia":    float(np.sum(np.sum(self.spiaBar_in, axis=0) * inv_g)),
-            "other":   float(np.sum((
-                np.sum(self.other_inc_in + self.netinv_in, axis=0)
-                + self.fixed_assets_ordinary_income_n
-                + self.fixed_assets_capital_gains_n
-                + self.fixed_assets_tax_free_n
-            ) * inv_g)),
+            "ss":          float(np.sum(np.sum(self.zetaBar_in, axis=0) * inv_g)),
+            "pension":     float(np.sum(np.sum(self.piBar_in, axis=0) * inv_g)),
+            "wages":       float(np.sum(np.sum(self.omega_in, axis=0) * inv_g)),
+            "spia":        float(np.sum(np.sum(self.spiaBar_in, axis=0) * inv_g)),
+            "fixedassets": fa,
+            "other":       float(np.sum(np.sum(self.other_inc_in + self.netinv_in, axis=0) * inv_g)),
+            "bti":         bti_in,
         }
         total_outflows = sum(outflows.values())
         total_guaranteed = sum(guaranteed.values())
@@ -663,21 +667,25 @@ class Plan:
         Normalization to percentages is done in the backends.
         """
         inv_g = 1.0 / self.gamma_n[:self.N_n]
+        Lambda_n = np.sum(self.Lambda_in, axis=0) * inv_g
+        fa_n = (self.fixed_assets_ordinary_income_n
+                + self.fixed_assets_capital_gains_n
+                + self.fixed_assets_tax_free_n) * inv_g
         outflows = {
             "living":     self.g_n * inv_g,
             "taxes":      (self.T_n + self.U_n + self.J_n) * inv_g,
             "healthcare": (self.m_n + self.M_n + self.aca_costs_n) * inv_g,
             "debt":       self.debt_payments_n * inv_g,
+            "bti":        np.maximum(0.0, -Lambda_n),
         }
         guaranteed = {
-            "ss":      np.sum(self.zetaBar_in, axis=0) * inv_g,
-            "pension": np.sum(self.piBar_in, axis=0) * inv_g,
-            "wages":   np.sum(self.omega_in, axis=0) * inv_g,
-            "spia":    np.sum(self.spiaBar_in, axis=0) * inv_g,
-            "other":   (np.sum(self.other_inc_in + self.netinv_in, axis=0)
-                        + self.fixed_assets_ordinary_income_n
-                        + self.fixed_assets_capital_gains_n
-                        + self.fixed_assets_tax_free_n) * inv_g,
+            "ss":          np.sum(self.zetaBar_in, axis=0) * inv_g,
+            "pension":     np.sum(self.piBar_in, axis=0) * inv_g,
+            "wages":       np.sum(self.omega_in, axis=0) * inv_g,
+            "spia":        np.sum(self.spiaBar_in, axis=0) * inv_g,
+            "fixedassets": fa_n,
+            "other":       np.sum(self.other_inc_in + self.netinv_in, axis=0) * inv_g,
+            "bti":         np.maximum(0.0, Lambda_n),
         }
         total_out_n = sum(outflows.values())
         income = dict(guaranteed)

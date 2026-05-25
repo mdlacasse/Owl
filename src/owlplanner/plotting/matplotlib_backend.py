@@ -39,6 +39,27 @@ from ..rate_models.constants import (  # noqa: E402
     RATE_DISPLAY_NAMES_SHORT,
 )
 
+# Canonical color maps — shared by cashflow_mix and lifetime_allocation so that
+# the same category always gets the same color in both chart types.
+_INCOME_COLORS = {
+    "portfolio":   "#795548",
+    "ss":          "#2196F3",
+    "pension":     "#009688",
+    "wages":       "#FF9800",
+    "spia":        "#E91E63",
+    "fixedassets": "#8BC34A",
+    "other":       "#673AB7",
+    "bti":         "#CDDC39",
+}
+_OUTFLOW_COLORS = {
+    "living":     "#2196F3",
+    "taxes":      "#F44336",
+    "healthcare": "#FF9800",
+    "debt":       "#9E9E9E",
+    "bti":        "#FF6F00",
+    "bequest":    "#4CAF50",
+}
+
 
 class MatplotlibBackend(PlotBackend):
     """Matplotlib implementation of plot backend."""
@@ -785,30 +806,31 @@ class MatplotlibBackend(PlotBackend):
             "taxes":      "Taxes",
             "healthcare": "Healthcare",
             "debt":       "Debt payments",
+            "bti":        "Big-ticket items",
             "bequest":    "Bequest",
         }
         income_labels_map = {
-            "portfolio": "Portfolio",
-            "ss":        "Social Security",
-            "pension":   "Pension",
-            "wages":     "Wages",
-            "spia":      "SPIA",
-            "other":     "Other income",
+            "portfolio":   "Portfolio",
+            "ss":          "Social Security",
+            "pension":     "Pension",
+            "wages":       "Wages",
+            "spia":        "SPIA",
+            "fixedassets": "Fixed assets",
+            "other":       "Other income",
+            "bti":         "Big-ticket items",
         }
-        outflow_colors = ["#2196F3", "#F44336", "#FF9800", "#9E9E9E", "#4CAF50"]
-        income_colors  = ["#673AB7", "#2196F3", "#009688", "#FF9800", "#E91E63", "#795548"]
 
-        def _filter(values_dict, labels_map, colors_list):
+        def _filter(values_dict, labels_map, color_map):
             labels, values, colors = [], [], []
-            for i, (key, val) in enumerate(values_dict.items()):
+            for key, val in values_dict.items():
                 if val > 0:
                     labels.append(labels_map[key])
                     values.append(val / 1000)
-                    colors.append(colors_list[i % len(colors_list)])
+                    colors.append(color_map[key])
             return labels, values, colors
 
-        out_labels, out_values, out_colors = _filter(alloc["outflows"], outflow_labels_map, outflow_colors)
-        inc_labels, inc_values, inc_colors = _filter(alloc["income"], income_labels_map, income_colors)
+        out_labels, out_values, out_colors = _filter(alloc["outflows"], outflow_labels_map, _OUTFLOW_COLORS)
+        inc_labels, inc_values, inc_colors = _filter(alloc["income"], income_labels_map, _INCOME_COLORS)
 
         if not out_values or not inc_values:
             return None
@@ -838,35 +860,37 @@ class MatplotlibBackend(PlotBackend):
             "taxes":      "Taxes",
             "healthcare": "Healthcare",
             "debt":       "Debt payments",
+            "bti":        "Big-ticket items",
         }
+        # portfolio is first so it anchors the bottom of the income stack.
         income_labels = {
-            "ss":        "Social Security",
-            "pension":   "Pension",
-            "wages":     "Wages",
-            "spia":      "SPIA",
-            "other":     "Other income",
-            "portfolio": "Portfolio",
+            "portfolio":   "Portfolio",
+            "ss":          "Social Security",
+            "pension":     "Pension",
+            "wages":       "Wages",
+            "spia":        "SPIA",
+            "fixedassets": "Fixed assets",
+            "other":       "Other income",
+            "bti":         "Big-ticket items",
         }
-        outflow_colors = ["#2196F3", "#F44336", "#FF9800", "#9E9E9E"]
-        income_colors  = ["#673AB7", "#2196F3", "#009688", "#FF9800", "#E91E63", "#795548"]
 
         year_n = mix["year_n"]
 
-        def _pct_stack(data_dict, labels, colors):
+        def _pct_stack(data_dict, labels, color_map):
             arrays = [data_dict[k] for k in labels if k in data_dict]
             total = sum(arrays)
             mask = total > 0
             pcts, lbls, clrs = [], [], []
-            for arr, (key, label), color in zip(arrays, labels.items(), colors):
+            for arr, (key, label) in zip(arrays, ((k, v) for k, v in labels.items() if k in data_dict)):
                 pct = np.where(mask, arr / total * 100, 0.0)
                 if pct.max() > 0:
                     pcts.append(pct)
                     lbls.append(label)
-                    clrs.append(color)
+                    clrs.append(color_map[key])
             return pcts, lbls, clrs
 
-        out_pcts, out_lbls, out_clrs = _pct_stack(mix["outflows"], outflow_labels, outflow_colors)
-        inc_pcts, inc_lbls, inc_clrs = _pct_stack(mix["income"], income_labels, income_colors)
+        out_pcts, out_lbls, out_clrs = _pct_stack(mix["outflows"], outflow_labels, _OUTFLOW_COLORS)
+        inc_pcts, inc_lbls, inc_clrs = _pct_stack(mix["income"], income_labels, _INCOME_COLORS)
 
         if not out_pcts or not inc_pcts:
             return None
