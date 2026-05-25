@@ -530,6 +530,8 @@ where:
   For physical assets, Shiller's long-run US data suggests real house price appreciation of roughly
   0–0.5\\%/year, so `rate = 0` is a reasonable starting point. A rate of `1` means the asset beats
   inflation by 1\\%/year. For stocks or annuities the rate is nominal and independent of inflation.
+  (Shiller, *Irrational Exuberance*, 3rd ed., Princeton University Press, 2015;
+  data at [shillerdata.com](http://www.shillerdata.com).)
 - *yod* is the **year of disposition**. Assets are disposed at the beginning of the year specified.
   Negative values count backward from the end of the plan: -1 is the final plan year, -2 is the
   year before that, and so on. A value of 0 means the asset is liquidated at the end of the plan
