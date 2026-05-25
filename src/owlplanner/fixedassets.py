@@ -33,6 +33,12 @@ from . import utils as u
 RESIDENCE_EXCLUSION_SINGLE = 250_000
 RESIDENCE_EXCLUSION_MARRIED = 500_000
 
+# Asset types where `rate` is interpreted as real (inflation-adjusted) growth.
+# For these types, the asset value tracks inflation plus the specified real rate.
+# Setting rate=0 means the asset maintains its purchasing power (tracks inflation).
+# For all other types (stocks, fixed annuity), `rate` is a nominal growth rate.
+REAL_RATE_TYPES = {"residence", "real estate", "collectibles", "precious metals"}
+
 
 def _get_reference_year(asset, thisyear):
     """Return asset reference year, defaulting to thisyear for backward compatibility."""
@@ -66,7 +72,7 @@ def calculate_future_value(current_value, annual_rate, years):
     return current_value * growth_factor
 
 
-def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="single"):
+def get_fixed_assets_arrays(fixed_assets_df, N_n, gamma_n, thisyear=None, filing_status="single"):
     """
     Process fixed_assets_df to provide three arrays of length N_n containing:
     1) tax-free money, 2) ordinary income money, and 3) capital gains.
@@ -79,6 +85,11 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
         value are in reference-year dollars.
     N_n : int
         Number of years in the plan (length of output arrays)
+    gamma_n : ndarray or None
+        Cumulative inflation multiplier array (length N_n+1) from gen_gamma_n().
+        Applied to real-rate asset types (residence, real estate, collectibles,
+        precious metals) where `rate` is real (above-inflation) growth.
+        Pass None only when the dataset contains no real-rate asset types.
     thisyear : int, optional
         Starting year of the plan (defaults to date.today().year).
         Array index 0 corresponds to thisyear, index 1 to thisyear+1, etc.
@@ -155,6 +166,9 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
 
         # Calculate future value at disposition
         future_value = calculate_future_value(value_at_reference, annual_rate, years_from_reference_to_disposition)
+        if asset_type in REAL_RATE_TYPES and gamma_n is not None:
+            ref_n = max(0, reference_year - thisyear)
+            future_value *= gamma_n[n] / gamma_n[ref_n]
 
         # Calculate proceeds after commission
         commission_amount = future_value * commission_pct
@@ -193,7 +207,7 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, thisyear=None, filing_status="
     return tax_free_n, ordinary_income_n, capital_gains_n
 
 
-def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
+def get_fixed_assets_bequest_value(fixed_assets_df, N_n, gamma_n, thisyear=None):
     """
     Calculate the total bequest value from fixed assets that have a yod
     (year of disposition) past the end of the plan. These assets are assumed
@@ -207,6 +221,11 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
         value are in reference-year dollars.
     N_n : int
         Number of years in the plan
+    gamma_n : ndarray or None
+        Cumulative inflation multiplier array (length N_n+1) from gen_gamma_n().
+        Applied to real-rate asset types (residence, real estate, collectibles,
+        precious metals) where `rate` is real (above-inflation) growth.
+        Pass None only when the dataset contains no real-rate asset types.
     thisyear : int, optional
         Starting year of the plan (defaults to date.today().year)
 
@@ -251,6 +270,7 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
         # They are handled separately in get_fixed_assets_arrays() where they are disposed during the plan.
         # These assets (yod > end_year) are assumed to be liquidated at the end of the plan and added to the bequest
         if yod > end_year:
+            asset_type = str(asset["type"]).lower()
             value_at_reference = float(asset["value"])  # Value at reference year
             annual_rate = float(asset["rate"])
             commission_pct = float(asset["commission"]) / 100.0
@@ -260,6 +280,9 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, thisyear=None):
             # Growth period: from start of reference_year to end of end_year = (end_year - reference_year + 1) years
             years_from_reference_to_end = end_year - reference_year + 1
             future_value = calculate_future_value(value_at_reference, annual_rate, years_from_reference_to_end)
+            if asset_type in REAL_RATE_TYPES and gamma_n is not None:
+                ref_n = max(0, reference_year - thisyear)
+                future_value *= gamma_n[N_n] / gamma_n[ref_n]
 
             # Calculate proceeds after commission
             commission_amount = future_value * commission_pct

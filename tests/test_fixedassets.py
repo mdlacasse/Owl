@@ -89,7 +89,7 @@ class TestGetFixedAssetsArrays:
     def test_empty_dataframe(self):
         """Test with empty DataFrame."""
         df = pd.DataFrame(columns=["name", "type", "year", "basis", "value", "rate", "yod", "commission"])
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, 10)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, 10, None)
         assert len(tax_free) == 10
         assert len(ordinary) == 10
         assert len(capital) == 10
@@ -99,7 +99,7 @@ class TestGetFixedAssetsArrays:
 
     def test_none_dataframe(self):
         """Test with None DataFrame."""
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(None, 10)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(None, 10, None)
         assert len(tax_free) == 10
         assert np.all(tax_free == 0)
 
@@ -116,7 +116,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Gain should be in ordinary income, basis in tax-free
         assert ordinary[0] > 0  # Gain is ordinary income
         assert tax_free[0] == pytest.approx(100_000, abs=1.0)  # Basis is tax-free
@@ -136,7 +136,7 @@ class TestGetFixedAssetsArrays:
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(
-            df, N_n, thisyear, filing_status="single"
+            df, N_n, None, thisyear, filing_status="single"
         )
         # With 5% commission: proceeds = 400000 * 0.95 = 380000
         # Gain = 380000 - 200000 = 180000 (within $250k exclusion)
@@ -157,7 +157,7 @@ class TestGetFixedAssetsArrays:
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(
-            df, N_n, thisyear, filing_status="single"
+            df, N_n, None, thisyear, filing_status="single"
         )
         # With 5% commission: proceeds = 600000 * 0.95 = 570000
         # Gain = 570000 - 200000 = 370000
@@ -179,7 +179,7 @@ class TestGetFixedAssetsArrays:
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(
-            df, N_n, thisyear, filing_status="married"
+            df, N_n, None, thisyear, filing_status="married"
         )
         # With 5% commission: proceeds = 800000 * 0.95 = 760000
         # Gain = 760000 - 200000 = 560000
@@ -200,7 +200,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # With 1% commission: proceeds = 150000 * 0.99 = 148500
         # Gain = 148500 - 100000 = 48500
         assert capital[0] > 0  # Should have capital gains
@@ -220,7 +220,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         assert capital[0] > 0
         assert tax_free[0] == pytest.approx(300_000, abs=1.0)
         assert ordinary[0] == 0
@@ -238,7 +238,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         assert capital[0] > 0
         assert tax_free[0] == pytest.approx(50_000, abs=1.0)
         assert ordinary[0] == 0
@@ -256,7 +256,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         assert capital[0] > 0
         assert tax_free[0] == pytest.approx(100_000, abs=1.0)
         assert ordinary[0] == 0
@@ -274,7 +274,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # With 1% commission: proceeds = 80000 * 0.99 = 79200
         # Loss = 79200 - 100000 = -20800
         assert capital[0] == 0  # No capital gains (it's a loss)
@@ -294,7 +294,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Asset disposed in 2020, plan starts in 2025, so should be ignored
         assert np.all(tax_free == 0)
         assert np.all(ordinary == 0)
@@ -313,7 +313,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Asset disposed in 2040, plan ends in 2034, so should NOT be in arrays
         # (it will be handled in bequest calculation instead)
         assert np.all(tax_free == 0)
@@ -333,7 +333,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 3  # Plan years: 2025, 2026, 2027
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # yod = -1 maps to end_year (2027), which is index 2
         assert capital[2] > 0
         assert tax_free[2] == pytest.approx(100_000, abs=1.0)
@@ -351,7 +351,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Future value = 100000 * (1.05)^2 = 110250
         # With 1% commission: proceeds = 110250 * 0.99 = 109147.5
         # Gain = 109147.5 - 100000 = 9147.5
@@ -383,7 +383,7 @@ class TestGetFixedAssetsArrays:
         ])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         n = 2026 - 2025  # Index 1
         # Both assets disposed in year 1
         assert capital[n] > 0  # Stocks capital gains
@@ -414,7 +414,7 @@ class TestGetFixedAssetsArrays:
         ])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Stocks in year 1 (index 1)
         assert capital[1] > 0
         # House in year 3 (index 3)
@@ -434,7 +434,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Should treat as capital gains
         assert capital[0] > 0
         assert tax_free[0] == pytest.approx(100_000, abs=1.0)
@@ -453,7 +453,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Should work the same as lowercase
         assert capital[0] > 0
         assert tax_free[0] == pytest.approx(100_000, abs=1.0)
@@ -472,7 +472,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Asset acquired at beginning of 2027, disposed at beginning of 2029
         # Growth period: 2029 - 2027 = 2 years
         # Future value = 100000 * (1.05)^2 = 110250
@@ -497,7 +497,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Asset disposed beyond plan, so should NOT be in arrays (handled in bequest)
         assert np.all(tax_free == 0)
         assert np.all(ordinary == 0)
@@ -517,7 +517,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Should default to acquisition_year = thisyear = 2025
         # Growth period: 2027 - 2025 = 2 years
         # Future value = 100000 * (1.05)^2 = 110250
@@ -539,7 +539,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Asset acquired after plan ends, so should be ignored
         assert np.all(tax_free == 0)
         assert np.all(ordinary == 0)
@@ -559,7 +559,7 @@ class TestGetFixedAssetsArrays:
         }])
         thisyear = 2025
         N_n = 10
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Invalid: disposed before acquisition, so should be ignored
         assert np.all(tax_free == 0)
         assert np.all(ordinary == 0)
@@ -572,12 +572,12 @@ class TestGetFixedAssetsBequestValue:
     def test_empty_dataframe(self):
         """Test with empty DataFrame."""
         df = pd.DataFrame(columns=["name", "type", "year", "basis", "value", "rate", "yod", "commission"])
-        bequest = fixedassets.get_fixed_assets_bequest_value(df, 10)
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, 10, None)
         assert bequest == 0.0
 
     def test_none_dataframe(self):
         """Test with None DataFrame."""
-        bequest = fixedassets.get_fixed_assets_bequest_value(None, 10)
+        bequest = fixedassets.get_fixed_assets_bequest_value(None, 10, None)
         assert bequest == 0.0
 
     def test_asset_disposed_beyond_plan(self):
@@ -593,7 +593,7 @@ class TestGetFixedAssetsBequestValue:
         }])
         thisyear = 2025
         N_n = 10
-        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
         # Asset disposed beyond plan, so should be in bequest
         # Plan ends at end of 2034 (end_year = 2034)
         # Growth from start of 2025 (default acquisition) to end of 2034 = 10 years
@@ -615,7 +615,7 @@ class TestGetFixedAssetsBequestValue:
         }])
         thisyear = 2025
         N_n = 3  # Plan ends in 2027
-        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
         # yod=0 maps to year after plan end, so it is liquidated at plan end
         assert bequest == pytest.approx(110_000, abs=1.0)
 
@@ -633,7 +633,7 @@ class TestGetFixedAssetsBequestValue:
         }])
         thisyear = 2025
         N_n = 10
-        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
         # Asset acquired at beginning of 2027, plan ends at end of 2034
         # Growth period: from start of 2027 to end of 2034 = 2034 - 2027 + 1 = 8 years
         # Future value = 200000 * (1.03)^8 ≈ 253354
@@ -654,7 +654,7 @@ class TestGetFixedAssetsBequestValue:
         }])
         thisyear = 2025
         N_n = 10
-        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
         # Asset disposed during plan, so should NOT be in bequest
         assert bequest == 0.0
 
@@ -672,7 +672,7 @@ class TestGetFixedAssetsBequestValue:
         }])
         thisyear = 2025
         N_n = 10
-        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
         # Asset acquired after plan ends, so should not be in bequest
         assert bequest == 0.0
 
@@ -701,7 +701,7 @@ class TestGetFixedAssetsBequestValue:
         ])
         thisyear = 2025
         N_n = 10
-        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
         # Both assets should be in bequest
         assert bequest > 0
         # Should be sum of both assets' proceeds
@@ -732,13 +732,13 @@ class TestGetFixedAssetsBequestValue:
         thisyear = 2025
         N_n = 10
         # Check arrays
-        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, thisyear)
+        tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
         # Stocks should be in arrays (disposed in 2030)
         n = 2030 - 2025  # Index 5
         assert capital[n] > 0  # Stocks capital gains
 
         # Check bequest
-        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, thisyear)
+        bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
         # House should be in bequest (disposed beyond plan)
         assert bequest > 0
 

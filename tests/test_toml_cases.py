@@ -87,20 +87,20 @@ if platform == "darwin":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 101_113,
+            "net_spending_basis": 102_761,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 92_250,
+            "net_spending_basis": 93_237,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 189_117,
+            "net_spending_basis": 188_736,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 2_097_259,
+            "bequest": 2_079_470,
         },
         "Case_robin": {
             "net_spending_basis": 44_585,
@@ -114,11 +114,11 @@ elif platform == "linux":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 101_169,
+            "net_spending_basis": 102_761,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 92_250,
+            "net_spending_basis": 93_237,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
@@ -141,11 +141,11 @@ elif platform == "win32":
             "bequest": 7_852_451,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 101_169,
+            "net_spending_basis": 102_761,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 92_250,
+            "net_spending_basis": 93_237,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
@@ -165,11 +165,10 @@ else:
     print(f"Unknown platform {platform}")
     assert False
 
-# MOSEK converges to a different SC-loop fixed point for Case_jack+jill
-# (~101_113 vs HiGHS ~101_401) due to numerical differences in the LP solutions.
-# Values are platform-specific; add linux/win32 entries once confirmed on those platforms.
+# MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
+# (~103_018 vs HiGHS ~102_761) after the real-rate change for physical assets.
 if _active_solver() == 'MOSEK' and platform == 'darwin':
-    EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 101_481
+    EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 103_018
 
 
 def test_reproducibility():
@@ -278,6 +277,6 @@ def test_robin_fixed_assets_bequest():
     p.readHFP(os.path.join(exdir, "HFP_robin.xlsx"))
     p.resolve()
     home_bequest = p.getFixedAssetsBequestValueInTodaysDollars()
-    assert home_bequest == pytest.approx(311_771, rel=1e-3), (
+    assert home_bequest == pytest.approx(285_000, rel=1e-3), (
         f"Home bequest mismatch: {home_bequest:.2f} (deterministic, solver-independent)"
     )

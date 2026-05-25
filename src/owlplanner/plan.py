@@ -1490,14 +1490,15 @@ class Plan:
         # Process fixed assets
         if "Fixed Assets" in self.houseLists and not u.is_dataframe_empty(self.houseLists["Fixed Assets"]):
             filing_status = "married" if self.N_i == 2 else "single"
+            gamma_n = getattr(self, 'gamma_n', None)
             (self.fixed_assets_tax_free_n,
              self.fixed_assets_ordinary_income_n,
              self.fixed_assets_capital_gains_n) = fxasst.get_fixed_assets_arrays(
-                self.houseLists["Fixed Assets"], self.N_n, thisyear, filing_status
+                self.houseLists["Fixed Assets"], self.N_n, gamma_n, thisyear, filing_status
             )
             # Calculate bequest value for assets with yod past plan end
             self.fixed_assets_bequest_value = fxasst.get_fixed_assets_bequest_value(
-                self.houseLists["Fixed Assets"], self.N_n, thisyear
+                self.houseLists["Fixed Assets"], self.N_n, gamma_n, thisyear
             )
         else:
             self.fixed_assets_tax_free_n = np.zeros(self.N_n)

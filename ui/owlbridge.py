@@ -1691,18 +1691,15 @@ def getFixedAssetsBequestValue(plan, in_todays_dollars=False):
     syncHouseLists(plan)
 
     if "Fixed Assets" in plan.houseLists and not plan.houseLists["Fixed Assets"].empty:
-        # First ensure the bequest value is calculated
+        # Ensure rates are set: gamma_n is needed for real-rate asset types
+        if plan.rateMethod is None or not hasattr(plan, 'tau_kn'):
+            _setRates(plan)
+
         plan.processDebtsAndFixedAssets()
 
         if in_todays_dollars:
-            # Ensure rates are set (needed for conversion to today's dollars)
-            if plan.rateMethod is None or not hasattr(plan, 'tau_kn'):
-                _setRates(plan)
-
-            # Convert to today's dollars using plan method
             return plan.getFixedAssetsBequestValueInTodaysDollars()
         else:
-            # Return nominal value
             return plan.fixed_assets_bequest_value
     else:
         return 0.0

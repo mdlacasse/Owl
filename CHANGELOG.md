@@ -1,5 +1,25 @@
 
 
+### Version 2026.05.24
+
+#### Fixed assets — real vs. nominal growth rate
+
+The `rate` column in the *Fixed Assets* HFP sheet now has **type-dependent semantics**:
+
+- **Physical assets** (*residence*, *real estate*, *collectibles*, *precious metals*): `rate` is a
+  **real (inflation-adjusted)** annual growth rate. Setting `rate = 0` means the asset maintains its
+  purchasing power by tracking inflation. A value of `1` means 1 % above inflation per year.
+  Shiller's long-run US data shows roughly 0–0.5 % real appreciation for real estate, so `0` is a
+  reasonable default.
+- **Financial assets** (*stocks*, *fixed annuity*): `rate` remains a **nominal** annual growth rate,
+  unchanged from prior behavior.
+
+**Migration:** existing HFP files that had a nominal rate (e.g. `3`) for a residence or real estate
+asset should be updated. A rate of `0` now correctly means "tracks inflation" rather than "flat
+nominal." All bundled example HFP files have been updated (residence and real estate rates set to `0`).
+
+---
+
 ### Version 2026.05.23
 
 #### Graphs
