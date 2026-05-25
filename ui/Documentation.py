@@ -515,9 +515,21 @@ where:
   or losses upon disposition.
 - *value* is the **value in reference-year dollars**. This value represents the asset's worth
   at the beginning of the reference year, and it grows from the reference year to the disposition
-  year using the specified growth rate (no inflation conversion is applied).
-- *rate* is the **annual growth rate** (percentage) applied from the acquisition year to the disposition year.
-  This rate is used to calculate the future value of the asset at the time of disposition.
+  year using the specified growth rate.
+- *rate* is the **annual growth rate** (percentage). The interpretation depends on the asset type:
+
+  | Asset type | Rate interpretation | `rate = 0` means |
+  |---|---|---|
+  | *residence* | Real (above inflation) | Tracks inflation — maintains purchasing power |
+  | *real estate* | Real (above inflation) | Tracks inflation — maintains purchasing power |
+  | *collectibles* | Real (above inflation) | Tracks inflation — maintains purchasing power |
+  | *precious metals* | Real (above inflation) | Tracks inflation — maintains purchasing power |
+  | *stocks* | Nominal | Zero nominal growth (loses real value over time) |
+  | *fixed annuity* | Nominal | Flat lump-sum payout — no growth |
+
+  For physical assets, Shiller's long-run US data suggests real house price appreciation of roughly
+  0–0.5\\%/year, so `rate = 0` is a reasonable starting point. A rate of `1` means the asset beats
+  inflation by 1\\%/year. For stocks or annuities the rate is nominal and independent of inflation.
 - *yod* is the **year of disposition**. Assets are disposed at the beginning of the year specified.
   Negative values count backward from the end of the plan: -1 is the final plan year, -2 is the
   year before that, and so on. A value of 0 means the asset is liquidated at the end of the plan
@@ -1322,7 +1334,9 @@ and `worksheet_real_dollars`).
 This page provides a summary of the most recent *run* and offers file downloads.
 
 Key metrics are shown at the top: yearly spending (or spending target), liquid bequest
-(or target), fixed-assets bequest (when applicable), and planning horizon — all in today's \\$.
+(or target), fixed-assets bequest (when applicable), partial bequest at the passing of the
+first spouse (when `Beneficiary fractions` are not all 1 and the plan has two individuals),
+and planning horizon — all in today's \\$.
 
 The page is organized into two tabs:
 

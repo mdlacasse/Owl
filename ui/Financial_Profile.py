@@ -282,7 +282,13 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             ),
             "rate": st.column_config.NumberColumn(
                 "rate",
-                help="Return rate (%)",
+                help=(
+                    "Annual growth rate (%). "
+                    "For physical assets (residence, real estate, collectibles, precious metals): real rate above inflation — "
+                    "rate=0 means the asset tracks inflation. "
+                    "For stocks: nominal rate. "
+                    "For fixed annuity: nominal rate (0 = flat lump-sum payout)."
+                ),
                 # default=3.0,
                 required=True,
                 min_value=0.0,
