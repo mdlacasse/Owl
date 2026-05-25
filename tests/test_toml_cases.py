@@ -122,7 +122,7 @@ elif platform == "linux":
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 189_117,
+            "net_spending_basis": 188_736,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
@@ -149,7 +149,7 @@ elif platform == "win32":
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 189_117,
+            "net_spending_basis": 188_736,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
