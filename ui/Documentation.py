@@ -1257,7 +1257,7 @@ Graphs are organized into four tabs:
   of income sources and outflows evolves over the plan horizon. Colors match the pie charts.
   Bequest is excluded as it is a lump-sum event rather than an annual flow.
 - *Net Available Spending* — year-by-year spending trajectory.
-- *Gross Income Sources* — stacked breakdown of all income sources (wages, Social Security, pension, withdrawals, etc.).
+- *Income, Big-Ticket Items, and Debts* — stacked breakdown of income sources (wages, Social Security, pension, withdrawals, etc.), big-ticket item cash flows, and debt payments.
 
 **Taxes** — tax and health insurance costs:
 - *Taxable Ordinary Income* — ordinary income, LTCG, and bracket allocation.

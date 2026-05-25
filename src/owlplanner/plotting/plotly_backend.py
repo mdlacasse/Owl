@@ -1426,11 +1426,12 @@ class PlotlyBackend(PlotBackend):
 
         # Add stacked area traces for each source type
         for source_name, data in nonzero_series.items():
+            group = "negative" if np.sum(data) < 0 else "positive"
             fig.add_trace(go.Scatter(
                 x=year_n,
                 y=data,
                 name=source_name,
-                stackgroup="one",
+                stackgroup=group,
                 fill="tonexty",
                 opacity=0.6
             ))

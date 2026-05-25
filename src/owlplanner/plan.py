@@ -5077,7 +5077,7 @@ class Plan:
     @_checkCaseStatus
     def showSources(self, tag="", value=None, figure=False):
         """
-        Plot income over time.
+        Plot income, big-ticket items, and debt payments over time.
 
         A tag string can be set to add information to the title of the plot.
 
@@ -5085,7 +5085,7 @@ class Plan:
         the default behavior of setDefaultPlots().
         """
         value = self._checkValueType(value)
-        title = self._name + "\nGross Income Sources"
+        title = self._name + "\nIncome, Big-Ticket Items, and Debts"
         if tag:
             title += " - " + tag
         fig = self._plotter.plot_sources(self.year_n, self.sources_in, self.gamma_n,
