@@ -1298,16 +1298,16 @@ def showWorkbook(plan):
             else:
                 raise ValueError(f"Worksheet '{name}' not classified — add it to currencySheets or handle explicitly.")
 
-    theme_tabs = {"Accounts": [], "Income & Cash Flow": [], "Taxes": [], "Allocations & Rates": []}
+    theme_tabs = {"Accounts": [], "Cash Flow": [], "Income & Taxes": [], "Allocations & Rates": []}
     for name in wb.sheetnames:
         if name == "Summary" or name.startswith("Config"):
             continue
         if "Accounts" in name or name == "HSA":
             theme_tabs["Accounts"].append(name)
-        elif name in ("Income", "Cash Flow") or "Sources" in name:
-            theme_tabs["Income & Cash Flow"].append(name)
-        elif name == "Federal Income Tax":
-            theme_tabs["Taxes"].append(name)
+        elif name == "Cash Flow" or "Sources" in name:
+            theme_tabs["Cash Flow"].append(name)
+        elif name in ("Income", "Federal Income Tax"):
+            theme_tabs["Income & Taxes"].append(name)
         elif "Allocations" in name or name == "Rates":
             theme_tabs["Allocations & Rates"].append(name)
 
