@@ -33,7 +33,7 @@ logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
 owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/papers/owl.pdf"
 
 
-@st.dialog(":orange[Reminder]")
+@st.dialog(":material/policy: :orange[Reminder]")
 def _welcome_session_reminder():
     st.markdown(
         f"""
