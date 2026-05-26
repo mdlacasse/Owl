@@ -32,22 +32,22 @@ import owlplanner as owl
 # Updated after HFP dollar conversion ($ not $k) in update_hfp_coverage.py
 # Note: reference values below were established with HiGHS; verify on MOSEK if values diverge.
 if platform == "darwin":
-    SPENDING1 = 87_488
-    BEQUEST1 = 861_211
-    SPENDING2 = 97_620
-    SPENDING1_FIXED = 93_696
+    SPENDING1 = 89_356
+    BEQUEST1 = 951_382
+    SPENDING2 = 99_493
+    SPENDING1_FIXED = 93_548
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
-    SPENDING1 = 87_488
-    BEQUEST1 = 861_211
-    SPENDING2 = 97_620
-    SPENDING1_FIXED = 93_696
+    SPENDING1 = 89_356
+    BEQUEST1 = 951_382
+    SPENDING2 = 99_493
+    SPENDING1_FIXED = 93_548
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
-    SPENDING1 = 87_488
-    BEQUEST1 = 861_211
-    SPENDING2 = 97_620
-    SPENDING1_FIXED = 93_696
+    SPENDING1 = 89_356
+    BEQUEST1 = 951_382
+    SPENDING2 = 99_493
+    SPENDING1_FIXED = 93_548
     BEQUEST1_FIXED = 500_000
 else:
     print(f"Unknown platform {platform}")

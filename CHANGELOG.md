@@ -1,5 +1,44 @@
 
 
+### Version 2026.05.24
+
+#### Fixed assets — real vs. nominal growth rate
+
+The `rate` column in the *Fixed Assets* HFP sheet now has **type-dependent semantics**:
+
+- **Physical assets** (*residence*, *real estate*, *collectibles*, *precious metals*): `rate` is a
+  **real (inflation-adjusted)** annual growth rate. Setting `rate = 0` means the asset maintains its
+  purchasing power by tracking inflation. A value of `1` means 1 % above inflation per year.
+  Shiller's long-run US data shows roughly 0–0.5 % real appreciation for real estate, so `0` is a
+  reasonable default.
+- **Financial assets** (*stocks*, *fixed annuity*): `rate` remains a **nominal** annual growth rate,
+  unchanged from prior behavior.
+
+**Migration:** existing HFP files that had a nominal rate (e.g. `3`) for a residence or real estate
+asset should be updated. A rate of `0` now correctly means "tracks inflation" rather than "flat
+nominal." All bundled example HFP files have been updated (residence and real estate rates set to `0`).
+
+---
+
+### Version 2026.05.23
+
+#### Graphs
+
+- **Annual cash flow mix** — new `showCashFlowMix()` chart: normalized stacked-area panels showing
+  income sources (left) and outflow composition (right) as a percentage per year in today's dollars.
+  Colors match the lifetime allocation pie charts. Wired into the Spending graphs section.
+- **Lifetime allocation layout** — pie chart order swapped: income sources left, outflows right
+  (both backends).
+
+#### Bug fix
+
+- **TOML parse errors now raise `ValueError`** instead of the misleading `FileNotFoundError`
+  when a case file contains invalid TOML (e.g. a mixed int/float array like `[10.0, 2_000]`).
+- **`Case_jack+jill` example** — corrected Jill's pension from `10.5` to `2_000.0` $/month
+  (issue #125); expected spending basis updated in regression tests.
+
+---
+
 ### Version 2026.05.20
 
 #### Mortality tables — SOA Pub-2010 public-sector tables

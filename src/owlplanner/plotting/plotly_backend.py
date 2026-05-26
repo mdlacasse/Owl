@@ -37,6 +37,28 @@ from ..rate_models.constants import (
     RATE_DISPLAY_NAMES_SHORT,
 )
 
+# Canonical color maps — shared by cashflow_mix and lifetime_allocation so that
+# the same category always gets the same color in both chart types.
+_INCOME_COLORS = {
+    "portfolio":   "#795548",
+    "ss":          "#2196F3",
+    "pension":     "#009688",
+    "wages":       "#FF9800",
+    "spia":        "#E91E63",
+    "fixedassets": "#8BC34A",
+    "other":       "#673AB7",
+    "bti":         "#CDDC39",
+}
+_OUTFLOW_COLORS = {
+    "living":     "#2196F3",
+    "taxes":      "#F44336",
+    "healthcare": "#FF9800",
+    "debt":       "#9E9E9E",
+    "bti":        "#FF6F00",
+    "bequest":    "#4CAF50",
+    "heirtax":    "#E91E63",
+}
+
 # Reusable legend layouts for plotly
 _LEGEND_TOP = dict(
     traceorder="reversed",
@@ -1109,7 +1131,6 @@ class PlotlyBackend(PlotBackend):
         fig.add_hline(y=0, line_width=1, line_color="black")
         fig.update_layout(
             title=title,
-            xaxis_title="Year",
             yaxis_title="Retention margin (pp vs. break-even)",
             yaxis=dict(tickformat="+.1f", ticksuffix=" pp"),
             template=self.template,
@@ -1426,11 +1447,12 @@ class PlotlyBackend(PlotBackend):
 
         # Add stacked area traces for each source type
         for source_name, data in nonzero_series.items():
+            group = "negative" if np.sum(data) < 0 else "positive"
             fig.add_trace(go.Scatter(
                 x=year_n,
                 y=data,
                 name=source_name,
-                stackgroup="one",
+                stackgroup=group,
                 fill="tonexty",
                 opacity=0.6
             ))
@@ -1449,4 +1471,163 @@ class PlotlyBackend(PlotBackend):
         # Format y-axis as k
         fig.update_yaxes(tickformat=",.0f")
 
+        return fig
+
+    def plot_lifetime_allocation(self, alloc, name):
+        """Plot two pie charts: lifetime outflows breakdown and income sources."""
+        outflow_labels_map = {
+            "living":     "Living expenses",
+            "taxes":      "Taxes",
+            "healthcare": "Healthcare",
+            "debt":       "Debt payments",
+            "bti":        "Big-ticket items",
+            "bequest":    "Bequest",
+            "heirtax":    "Est. heir taxes",
+        }
+        income_labels_map = {
+            "portfolio":   "Portfolio",
+            "ss":          "Social Security",
+            "pension":     "Pension",
+            "wages":       "Wages",
+            "spia":        "SPIA",
+            "fixedassets": "Fixed assets",
+            "other":       "Other income",
+            "bti":         "Big-ticket items",
+        }
+
+        def _pie_data(values_dict, labels_map, color_map):
+            labels, values, colors = [], [], []
+            for key, val in values_dict.items():
+                if val > 0:
+                    labels.append(labels_map[key])
+                    values.append(val / 1000)
+                    colors.append(color_map[key])
+            return labels, values, colors
+
+        out_labels, out_values, out_colors = _pie_data(alloc["outflows"], outflow_labels_map, _OUTFLOW_COLORS)
+        inc_labels, inc_values, inc_colors = _pie_data(alloc["income"], income_labels_map, _INCOME_COLORS)
+
+        if not out_values or not inc_values:
+            return None
+
+        fig = make_subplots(
+            rows=1, cols=2,
+            specs=[[{"type": "pie"}, {"type": "pie"}]],
+            subplot_titles=["Sources of income", "Outflows breakdown"],
+        )
+        fig.add_trace(go.Pie(
+            labels=inc_labels, values=inc_values,
+            marker_colors=inc_colors,
+            textinfo="label+percent",
+            hovertemplate="%{label}<br>$%{value:,.0f}k<br>%{percent}<extra></extra>",
+        ), row=1, col=1)
+        fig.add_trace(go.Pie(
+            labels=out_labels, values=out_values,
+            marker_colors=out_colors,
+            textinfo="label+percent",
+            hovertemplate="%{label}<br>$%{value:,.0f}k<br>%{percent}<extra></extra>",
+        ), row=1, col=2)
+        fa_bequest = alloc.get("fa_bequest", 0.0)
+        fa_note = f" (excl. ${fa_bequest/1000:,.0f}k fixed-asset bequest)" if fa_bequest > 0 else ""
+        fig.update_layout(
+            title=dict(
+                text=name + "<br>Lifetime Cash Flow (today's $)" + fa_note,
+                x=0.5, xanchor="center",
+            ),
+            template=self.template,
+            showlegend=False,
+        )
+        return fig
+
+    def plot_cashflow_mix(self, mix, name):
+        """Plot annual cash flow breakdown as normalized stacked-area charts (%)."""
+        outflow_labels = {
+            "living":     "Living expenses",
+            "taxes":      "Taxes",
+            "healthcare": "Healthcare",
+            "debt":       "Debt payments",
+            "bti":        "Big-ticket items",
+        }
+        # portfolio is first so it anchors the bottom of the income stack.
+        income_labels = {
+            "portfolio":   "Portfolio",
+            "ss":          "Social Security",
+            "pension":     "Pension",
+            "wages":       "Wages",
+            "spia":        "SPIA",
+            "fixedassets": "Fixed assets",
+            "other":       "Other income",
+            "bti":         "Big-ticket items",
+        }
+
+        year_n = mix["year_n"]
+
+        fig = make_subplots(
+            rows=1, cols=2,
+            subplot_titles=["Sources of income", "Outflows breakdown"],
+        )
+
+        has_out, has_inc = False, False
+        for key, label in income_labels.items():
+            data = mix["income"].get(key)
+            if data is not None and data.max() > 0:
+                fig.add_trace(go.Scatter(
+                    x=year_n, y=data,
+                    name=label,
+                    stackgroup="income",
+                    groupnorm="percent",
+                    fill="tonexty",
+                    opacity=0.7,
+                    marker_color=_INCOME_COLORS[key],
+                    hovertemplate=f"{label}: %{{y:.1f}}%<extra></extra>",
+                    legend="legend",
+                    showlegend=True,
+                ), row=1, col=1)
+                has_inc = True
+
+        for key, label in outflow_labels.items():
+            data = mix["outflows"].get(key)
+            if data is not None and data.max() > 0:
+                fig.add_trace(go.Scatter(
+                    x=year_n, y=data,
+                    name=label,
+                    stackgroup="outflows",
+                    groupnorm="percent",
+                    fill="tonexty",
+                    opacity=0.7,
+                    marker_color=_OUTFLOW_COLORS[key],
+                    hovertemplate=f"{label}: %{{y:.1f}}%<extra></extra>",
+                    legend="legend2",
+                    showlegend=True,
+                ), row=1, col=2)
+                has_out = True
+
+        if not has_out or not has_inc:
+            return None
+
+        fig.update_yaxes(range=[0, 100], ticksuffix="%")
+        fig.update_xaxes(tickformat="d")
+        fig.update_layout(
+            title=dict(
+                text=name + "<br>Annual Cash Flow Mix (today's $, bequest excl.)",
+                x=0.5, xanchor="center",
+            ),
+            template=self.template,
+            showlegend=True,
+            legend=dict(
+                x=0.44, y=0.02, xanchor="right", yanchor="bottom",
+                orientation="v",
+                bgcolor="rgba(255,255,255,0.15)",
+                bordercolor="rgba(128,128,128,0.3)",
+                borderwidth=1,
+            ),
+            legend2=dict(
+                x=0.98, y=0.02, xanchor="right", yanchor="bottom",
+                orientation="v",
+                bgcolor="rgba(255,255,255,0.15)",
+                bordercolor="rgba(128,128,128,0.3)",
+                borderwidth=1,
+            ),
+            margin=dict(b=60),
+        )
         return fig

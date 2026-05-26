@@ -509,13 +509,29 @@ where:
   automatically reset to the current year when reading from the HFP file. Assets acquired in
   the future have a future reference year. The asset is considered assessed (current) or acquired (future)
   at the beginning of the year.
-- *basis* is the **cost basis** of the asset (in reference-year dollars). This is typically the original purchase price
-  or adjusted basis for tax purposes. The basis is used to calculate capital gains or losses upon disposition.
+- *basis* is the **cost basis** of the asset — the actual purchase price or adjusted tax basis in nominal dollars
+  (what you paid, not inflation-adjusted to the reference year). For future acquisitions, enter the expected
+  purchase price in the nominal dollars of the acquisition year. The basis is used to calculate capital gains
+  or losses upon disposition.
 - *value* is the **value in reference-year dollars**. This value represents the asset's worth
   at the beginning of the reference year, and it grows from the reference year to the disposition
-  year using the specified growth rate (no inflation conversion is applied).
-- *rate* is the **annual growth rate** (percentage) applied from the acquisition year to the disposition year.
-  This rate is used to calculate the future value of the asset at the time of disposition.
+  year using the specified growth rate.
+- *rate* is the **annual growth rate** (percentage). The interpretation depends on the asset type:
+
+  | Asset type | Rate interpretation | `rate = 0` means |
+  |---|---|---|
+  | *residence* | Real (above inflation) | Tracks inflation — maintains purchasing power |
+  | *real estate* | Real (above inflation) | Tracks inflation — maintains purchasing power |
+  | *collectibles* | Real (above inflation) | Tracks inflation — maintains purchasing power |
+  | *precious metals* | Real (above inflation) | Tracks inflation — maintains purchasing power |
+  | *stocks* | Nominal | Zero nominal growth (loses real value over time) |
+  | *fixed annuity* | Nominal | Flat lump-sum payout — no growth |
+
+  For physical assets, Shiller's long-run US data suggests real house price appreciation of roughly
+  0–0.5\\%/year, so `rate = 0` is a reasonable starting point. A rate of `1` means the asset beats
+  inflation by 1\\%/year. For stocks or annuities the rate is nominal and independent of inflation.
+  (Shiller, *Irrational Exuberance*, 3rd ed., Princeton University Press, 2015;
+  data at [shillerdata.com](http://www.shillerdata.com).)
 - *yod* is the **year of disposition**. Assets are disposed at the beginning of the year specified.
   Negative values count backward from the end of the plan: -1 is the final plan year, -2 is the
   year before that, and so on. A value of 0 means the asset is liquidated at the end of the plan
@@ -562,9 +578,10 @@ is treated and where Owl's model diverges from the actual law:
 | LTCG & capital gains thresholds | Inflation-adjusted | Chained CPI-U | Small |
 | Medicare IRMAA thresholds | Inflation-adjusted | CPI-U | Negligible |
 | ACA Federal Poverty Level thresholds | Inflation-adjusted | HHS annual update ≈ CPI-U | Negligible |
-| SS taxability thresholds ($25k/$32k, $34k/$44k) | **Fixed** (not inflation-adjusted) | Fixed by law since 1984 | None — correctly modeled |
+| SS taxability thresholds (\\$25k/\\$32k, \\$34k/\\$44k) | **Fixed** (not inflation-adjusted) | Fixed by law since 1984 | None — correctly modeled |
 
-The most significant real-world deviation is the **FERS diet COLA**: when inflation is high
+The most significant real-world deviation is for the Federal Employee Retirement System (FERS)
+with the so-called **diet COLA**: when inflation is high
 (e.g., 2022, CPI-W ~8.7%), FERS retirees received only 7.7% while **Owl** would apply the full
 rate. FERS retirees planning under high-inflation scenarios may wish to model their pension
 as *Not indexed* and enter a conservatively reduced monthly amount.
@@ -1230,12 +1247,17 @@ in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools tab).
 
-Graphs are organized into three tabs:
+Graphs are organized into four tabs:
 
 **Spending** — income and cash-flow perspective:
+- *Lifetime Cash Flow* — pair of pie charts (in today's \\$): left shows where money comes from
+  (portfolio, Social Security, pension, wages, SPIA, other); right shows where it goes
+  (living expenses, taxes, healthcare, debt, bequest).
+- *Annual Cash Flow Mix* — year-by-year normalized stacked-area charts showing how the composition
+  of income sources and outflows evolves over the plan horizon. Colors match the pie charts.
+  Bequest is excluded as it is a lump-sum event rather than an annual flow.
 - *Net Available Spending* — year-by-year spending trajectory.
-- *Raw Income Sources* — stacked breakdown of all income sources (wages, Social Security, pension, withdrawals, etc.).
-- *Annual Rates* — the rate sequence used for this run.
+- *Income, Big-Ticket Items, and Debts* — stacked breakdown of income sources (wages, Social Security, pension, withdrawals, etc.), big-ticket item cash flows, and debt payments.
 
 **Taxes** — tax and health insurance costs:
 - *Taxable Ordinary Income* — ordinary income, LTCG, and bracket allocation.
@@ -1248,6 +1270,10 @@ Graphs are organized into three tabs:
   The retention rate is `1 − net draw / balance`; the real break-even is `(1 + inflation) / (1 + portfolio return) × 100%`.
   **Blue bars** (above zero) mean real wealth is growing; **red bars** (below zero) mean it is shrinking.
 - *Asset Composition* — allocation-weighted asset mix across all accounts over time.
+
+**Rates** — return and rate assumptions used for this run:
+- *Selected Rates Over Time Horizon* — the rate sequence used for this run.
+- *Correlations Between Return Rates* *(stochastic/varying methods only)* — correlation matrix of asset returns.
 
 """)
 
@@ -1310,7 +1336,9 @@ and `worksheet_real_dollars`).
 This page provides a summary of the most recent *run* and offers file downloads.
 
 Key metrics are shown at the top: yearly spending (or spending target), liquid bequest
-(or target), fixed-assets bequest (when applicable), and planning horizon — all in today's \\$.
+(or target), fixed-assets bequest (when applicable), partial bequest at the passing of the
+first spouse (when `Beneficiary fractions` are not all 1 and the plan has two individuals),
+and planning horizon — all in today's \\$.
 
 The page is organized into two tabs:
 

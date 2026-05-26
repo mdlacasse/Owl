@@ -266,7 +266,7 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             ),
             "basis": st.column_config.NumberColumn(
                 "basis",
-                help="Enter cost basis in reference-year dollars ($)",
+                help="Actual cost basis — what you paid (nominal dollars, not inflation-adjusted)",
                 min_value=0,
                 required=True,
                 format="dollar",
@@ -282,7 +282,13 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             ),
             "rate": st.column_config.NumberColumn(
                 "rate",
-                help="Return rate (%)",
+                help=(
+                    "Annual growth rate (%). "
+                    "For physical assets (residence, real estate, collectibles, precious metals): real rate above inflation — "
+                    "rate=0 means the asset tracks inflation. "
+                    "For stocks: nominal rate. "
+                    "For fixed annuity: nominal rate (0 = flat lump-sum payout)."
+                ),
                 # default=3.0,
                 required=True,
                 min_value=0.0,
@@ -313,7 +319,7 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             num_rows="dynamic",
             key=kz.genCaseKey("fixed_assets")
         )
-        fixedCaption = """Basis and value are in reference-year $ (at the start of the reference year).
+        fixedCaption = """Value is in reference-year $ (at the start of the reference year). Basis is the actual cost basis in nominal dollars (what you paid, not inflation-adjusted).
 Additional items can be directly entered in the table by clicking :material/add:
 on the last row. Items can be deleted by selecting rows in the left margin and
 pressing the *Delete* key."""

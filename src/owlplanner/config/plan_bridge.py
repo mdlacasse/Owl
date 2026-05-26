@@ -72,9 +72,9 @@ def _apply_assets_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         plan.taxable_basis_i = None
         plan.gain_fraction_in = None
     if icount == 2:
-        phi_j = known["savings_assets"]["beneficiary_fractions"]
+        phi_j = known["savings_assets"].get("beneficiary_fractions", [1.0, 1.0, 1.0, 1.0])
         plan.setBeneficiaryFractions(phi_j)
-        eta = known["savings_assets"]["spousal_surplus_deposit_fraction"]
+        eta = known["savings_assets"].get("spousal_surplus_deposit_fraction", 0.5)
         plan.setSpousalDepositFraction(eta)
 
 
@@ -98,8 +98,8 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         known["fixed_income"].get("pension_monthly_amounts", [0] * icount),
         dtype=np.float32,
     )
-    pension_ages = np.array(known["fixed_income"]["pension_ages"])
-    pension_indexed = known["fixed_income"]["pension_indexed"]
+    pension_ages = np.array(known["fixed_income"].get("pension_ages", [65.0]))
+    pension_indexed = known["fixed_income"].get("pension_indexed", [True])
     survivor_frac = known["fixed_income"].get("pension_survivor_fraction")
     if survivor_frac is not None:
         survivor_frac = [float(x) for x in survivor_frac]
@@ -129,12 +129,11 @@ def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
 
     plan.setDividendRate(float(rates_section.get("dividend_rate", 1.8)))
     plan.setHeirsTaxRate(float(rates_section.get("heirs_rate_on_tax_deferred_estate", 30.0)))
-    plan.setEffectiveTaxRate(float(rates_section.get("effective_tax_rate", 20.0)))
     plan.yOBBBA = int(rates_section.get("obbba_expiration_year", 2032))
 
     rates_section.pop("dividend_rate", None)
     rates_section.pop("heirs_rate_on_tax_deferred_estate", None)
-    rates_section.pop("effective_tax_rate", None)
+    rates_section.pop("effective_tax_rate", None)  # legacy key — silently ignore
     rates_section.pop("obbba_expiration_year", None)
 
     rate_method = rates_section.pop("method")
@@ -182,7 +181,7 @@ def _apply_asset_allocation_to_plan(plan: "Plan", known: dict) -> None:
         plan.setInterpolationMethod(method, float(center), float(width))
     else:
         plan.setInterpolationMethod(method, float(center or 15.0), float(width or 5.0))
-    alloc_type = known["asset_allocation"]["type"]
+    alloc_type = known["asset_allocation"].get("type", "individual")
     if alloc_type == "account":
         bounds_ar = {}
         for a_type in ACCOUNT_TYPES[:3]:   # taxable, tax-deferred, tax-free
@@ -439,7 +438,6 @@ def plan_to_config(myplan: "Plan") -> dict:
     rate_method = myplan.rateMethod
     diconf["rates_selection"] = {
         "heirs_rate_on_tax_deferred_estate": float(100 * myplan.nu),
-        "effective_tax_rate": float(100 * myplan.effectiveTaxRate),
         "dividend_rate": float(100 * myplan.mu),
         "obbba_expiration_year": myplan.yOBBBA,
         "method": rate_method,

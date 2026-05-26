@@ -67,10 +67,12 @@ else:
             if kz.getGlobalKey("plotGlobalBackend") == "plotly":
                 st.caption("Tip: Click on legend items in the graphs to show or hide individual curves.")
 
-        tab1, tab2, tab3 = st.tabs(["Spending", "Taxes", "Portfolio"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Spending", "Taxes", "Portfolio", "Rates"])
         with tab1:
             owb.plotSpendingGraphs()
         with tab2:
             owb.plotTaxGraphs()
         with tab3:
             owb.plotPortfolioGraphs()
+        with tab4:
+            owb.plotRatesGraphs()

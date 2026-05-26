@@ -54,15 +54,33 @@ plan.solve('maxSpending', options={'maxRothConversion': 100, 'bequest': 400, 'no
 ```
 The output can be seen using the following commands that display various plots of the decision variables in time.
 ```python
+plan.showLifetimeAllocation()
+plan.showCashFlowMix()
 plan.showNetSpending()
 plan.showGrossIncome()
 plan.showTaxes()
 plan.showSources()
 plan.showAccounts()
-plan.showAssetDistribution()
+plan.showAssetComposition()
 ...
 ```
-By default, all these plots are in nominal dollars. To get values in today's $, a call to
+Two summary charts give a high-level view of the lifetime cash flow in today's dollars.
+`showLifetimeAllocation()` displays a pair of pie charts: the left shows where money comes from
+(portfolio withdrawals, Social Security, pension, wages, SPIA, and other income), and the right
+shows where it goes (living expenses, taxes, healthcare, debt payments, and bequest).
+```python
+plan.showLifetimeAllocation()
+```
+
+`showCashFlowMix()` complements the pie charts with year-by-year normalized stacked-area charts
+showing how the composition of income sources and outflows evolves over the plan horizon.
+Colors are consistent with the lifetime allocation pie charts for easy cross-reference.
+Bequest is excluded since it is a lump-sum event rather than an annual flow.
+```python
+plan.showCashFlowMix()
+```
+
+By default, all other plots are in nominal dollars. To get values in today's $, a call to
 ```python
 plan.setDefaultPlots('today')
 ```
@@ -114,7 +132,7 @@ plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]
 gliding from a 60%/40% stocks/bonds portfolio to 70%/30% for Jack, and 50%/50% -> 70%/30% for Jill.
 Assets distribution in all accounts in today's $ over time can be displayed from
 ```python
-plan.showAssetDistribution(value='today')
+plan.showAssetComposition(value='today')
 ```
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/AD-taxable.png?raw=true" width="75%">
 <img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/AD-taxDef.png?raw=true" width="75%">

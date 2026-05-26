@@ -155,10 +155,8 @@ def prepareRun(plan):
 def runAllCases():
     currentCase = kz.currentCaseName()
     for case in kz.onlyCaseNames():
-        # Being here, current case must be fine.
-        if case != currentCase:
-            kz.switchToCaseName(case)
-            runPlan()
+        kz.switchToCaseName(case)
+        runPlan()
     kz.switchToCaseName(currentCase)
 
 
@@ -361,23 +359,9 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
 
     rate_method = result.get("rate_method", "")
     rate_line = f"Rate method:                     {rate_method}\n" if (rate_method and rate_method != "historical") else ""
-    ratio_line = ""
-    if plan is not None:
-        after_tax = plan._after_tax_savings()
-        if after_tax > 0 and g_opt > 0:
-            etr_pct = int(round(plan.effectiveTaxRate * 100))
-            spending_ratio = g_opt / after_tax
-            ratio_line = f"Spending-to-savings ratio:       {spending_ratio:.2%}  (ETR {etr_pct}%)\n"
-            _, solve_options = kz.getSolveParameters()
-            if "bequest" in solve_options:
-                configured_bequest = get_monetary_option(solve_options, "bequest", 0)
-                if configured_bequest > 0:
-                    bequest_k = configured_bequest / 1000
-                    ratio_line += f"Spending-to-savings note:        understated due to bequest of ${bequest_k:,.0f}k\n"
 
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
-        f"{ratio_line}"
         f"Target success rate:             {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
         f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
         f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
@@ -988,19 +972,39 @@ def plotSummaryMetrics(plan):
     else:
         spending_label = "Yearly spending (today's $)"
         estate_label = "Target liquid estate (today's $)"
-    n_cols = 4 if fa_bequest > 0 else 3
+    partial_bequest = getattr(plan, "partialBequest", 0)
+    show_partial = plan.N_i == 2 and plan.n_d < plan.N_n and any(plan.phi_j < 1)
+    n_cols = 3 + (1 if fa_bequest > 0 else 0) + (1 if show_partial else 0)
     cols = st.columns(n_cols, gap="large")
-    cols[0].metric(spending_label, f"${spending:,.0f}")
-    cols[1].metric(estate_label, f"${bequest:,.0f}")
+    col = 0
+    cols[col].metric(spending_label, f"${spending:,.0f}")
+    col += 1
+    if show_partial:
+        partial_year = int(plan.year_n[plan.n_d])
+        cols[col].metric(f"Partial bequest {partial_year} (today's $)", f"${partial_bequest:,.0f}")
+        col += 1
+    cols[col].metric(estate_label, f"${bequest:,.0f}")
+    col += 1
     if fa_bequest > 0:
-        cols[2].metric("Fixed assets bequest (today's $)", f"${fa_bequest:,.0f}")
-    cols[-1].metric("Planning horizon", horizon)
+        cols[col].metric("Fixed assets bequest (today's $)", f"${fa_bequest:,.0f}")
+        col += 1
+    cols[col].metric("Planning horizon", horizon)
 
 
 @_checkPlan
 def plotSpendingGraphs(plan):
     c, n = 0, 2
     cols = st.columns(n, gap="medium")
+    fig = plan.showLifetimeAllocation(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Lifetime Cash Flow]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+    fig = plan.showCashFlowMix(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Annual Cash Flow Mix]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
     fig = plan.showNetSpending(figure=True)
     if fig:
         cols[c].markdown("#### :orange[Net Available Spending]")
@@ -1009,15 +1013,17 @@ def plotSpendingGraphs(plan):
 
     fig = plan.showSources(figure=True)
     if fig:
-        cols[c].markdown("#### :orange[Raw Income Sources]")
+        cols[c].markdown("#### :orange[Income, Big-Ticket Items, and Debts]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
-    fig = plan.showRates(figure=True)
-    if fig:
-        cols[c].markdown("#### :orange[Annual Rates]")
-        renderPlot(fig, cols[c])
-        c = (c + 1) % n
+
+@_checkPlan
+def plotRatesGraphs(plan):
+    col1, col2 = st.columns(2, gap="large")
+    if kz.getCaseKey("rateType") == "varying":
+        showRatesCorrelations(col2)
+    showRates(col1)
 
 
 @_checkPlan
@@ -1292,16 +1298,16 @@ def showWorkbook(plan):
             else:
                 raise ValueError(f"Worksheet '{name}' not classified — add it to currencySheets or handle explicitly.")
 
-    theme_tabs = {"Accounts": [], "Income & Cash Flow": [], "Taxes": [], "Allocations & Rates": []}
+    theme_tabs = {"Accounts": [], "Cash Flow": [], "Income & Taxes": [], "Allocations & Rates": []}
     for name in wb.sheetnames:
         if name == "Summary" or name.startswith("Config"):
             continue
         if "Accounts" in name or name == "HSA":
             theme_tabs["Accounts"].append(name)
-        elif name in ("Income", "Cash Flow") or "Sources" in name:
-            theme_tabs["Income & Cash Flow"].append(name)
-        elif name == "Federal Income Tax":
-            theme_tabs["Taxes"].append(name)
+        elif name == "Cash Flow" or "Sources" in name:
+            theme_tabs["Cash Flow"].append(name)
+        elif name in ("Income", "Federal Income Tax"):
+            theme_tabs["Income & Taxes"].append(name)
         elif "Allocations" in name or name == "Rates":
             theme_tabs["Allocations & Rates"].append(name)
 
@@ -1451,7 +1457,6 @@ def genDic(plan):
     dic["survivor"] = 100 * plan.chi
     dic["divRate"] = 100 * plan.mu
     dic["heirsTx"] = 100 * plan.nu
-    dic["effectiveTx"] = 100 * plan.effectiveTaxRate
     dic["yOBBBA"] = plan.yOBBBA
     dic["surplusFraction"] = plan.eta
     dic["plots"] = plan.defaultPlots
@@ -1639,11 +1644,10 @@ def renderPlot(fig, col=None):
 
     # Check if it's a plotly figure.
     if hasattr(fig, 'to_dict'):  # plotly figures have to_dict method.
-        config = {"width": "stretch"}
         if col:
-            col.plotly_chart(fig, config=config)
+            col.plotly_chart(fig, width="stretch")
         else:
-            st.plotly_chart(fig, config=config)
+            st.plotly_chart(fig, width="stretch")
     else:  # matplotlib figure.
         if col:
             col.pyplot(fig)
@@ -1687,18 +1691,15 @@ def getFixedAssetsBequestValue(plan, in_todays_dollars=False):
     syncHouseLists(plan)
 
     if "Fixed Assets" in plan.houseLists and not plan.houseLists["Fixed Assets"].empty:
-        # First ensure the bequest value is calculated
+        # Ensure rates are set: gamma_n is needed for real-rate asset types
+        if plan.rateMethod is None or not hasattr(plan, 'tau_kn'):
+            _setRates(plan)
+
         plan.processDebtsAndFixedAssets()
 
         if in_todays_dollars:
-            # Ensure rates are set (needed for conversion to today's dollars)
-            if plan.rateMethod is None or not hasattr(plan, 'tau_kn'):
-                _setRates(plan)
-
-            # Convert to today's dollars using plan method
             return plan.getFixedAssetsBequestValueInTodaysDollars()
         else:
-            # Return nominal value
             return plan.fixed_assets_bequest_value
     else:
         return 0.0
