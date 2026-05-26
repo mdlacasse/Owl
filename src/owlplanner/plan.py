@@ -242,7 +242,9 @@ class Plan:
         self.taxable_basis_i = None     # Per-person initial cost basis (N_i,); None = legacy cap-gain approx
         self.gain_fraction_in = None    # (N_i, N_n) unrealized gain fraction; updated each SC iteration
         self.nu = 0.300   # Heirs tax rate (decimal)
-        self.bequest = 0.0            # After-tax bequest in today's dollars (set after full solve)
+        self.bequest = 0.0                    # After-tax bequest in today's dollars (set after full solve)
+        self.heir_tax_liability = 0.0         # Heir taxes on final bequest (IRA+HSA), today's $
+        self.partial_heir_tax_liability = 0.0  # Heir taxes on partial bequest, today's $
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
         self.n_hsa_i = np.full(self.N_i, self.N_n, dtype=int)  # Year HSA contributions stop (default: never)
@@ -638,6 +640,7 @@ class Plan:
             "debt":       float(np.sum(self.debt_payments_n * inv_g)),
             "bti":        bti_out,
             "bequest":    self.bequest + self.partialBequest,
+            "heirtax":    self.heir_tax_liability + self.partial_heir_tax_liability,
         }
         guaranteed = {
             "ss":          float(np.sum(np.sum(self.zetaBar_in, axis=0) * inv_g)),
@@ -652,7 +655,12 @@ class Plan:
         total_guaranteed = sum(guaranteed.values())
         income = dict(guaranteed)
         income["portfolio"] = max(0.0, total_outflows - total_guaranteed)
-        return {"outflows": outflows, "income": income, "total": total_outflows}
+        return {
+            "outflows":   outflows,
+            "income":     income,
+            "total":      total_outflows,
+            "fa_bequest": self.fixed_assets_bequest_value / self.gamma_n[-1],
+        }
 
     def annual_cashflow_mix(self):
         """
@@ -4650,11 +4658,16 @@ class Plan:
 
             self.partialEstate_j = part_j
             partialBequest_j = part_j * (1 - self.phi_j)
+            # Capture heir tax liability BEFORE applying (1-nu)
+            self.partial_heir_tax_liability = (
+                (partialBequest_j[1] + partialBequest_j[3]) * self.nu / self.gamma_n[n_d]
+            )
             partialBequest_j[1] *= 1 - self.nu   # tax-deferred: heirs pay ordinary income tax
             partialBequest_j[3] *= 1 - self.nu   # HSA: non-spouse heirs include full balance in ordinary income
             self.partialBequest = np.sum(partialBequest_j) / self.gamma_n[n_d]
         else:
             self.partialBequest = 0
+            self.partial_heir_tax_liability = 0.0
 
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
@@ -4706,6 +4719,8 @@ class Plan:
         self.savings_in = savings
 
         estate_j = np.sum(self.b_ijn[:, :, self.N_n], axis=0)
+        # Capture heir tax liability BEFORE applying (1-nu)
+        self.heir_tax_liability = (estate_j[1] + estate_j[3]) * self.nu / self.gamma_n[-1]
         estate_j[1] *= 1 - self.nu   # tax-deferred: heirs pay ordinary income tax
         estate_j[3] *= 1 - self.nu   # HSA: non-spouse heirs include full balance in ordinary income
         # Subtract remaining debt balance from estate

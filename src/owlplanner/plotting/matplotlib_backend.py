@@ -58,6 +58,7 @@ _OUTFLOW_COLORS = {
     "debt":       "#9E9E9E",
     "bti":        "#FF6F00",
     "bequest":    "#4CAF50",
+    "heirtax":    "#E91E63",
 }
 
 
@@ -88,7 +89,6 @@ class MatplotlibBackend(PlotBackend):
 
         ax.legend(loc="upper left", reverse=True, fontsize=8, framealpha=0.3)
         ax.set_title(title)
-        ax.set_xlabel("year")
         ax.set_ylabel(yformat)
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
         if "k" in yformat:
@@ -127,7 +127,6 @@ class MatplotlibBackend(PlotBackend):
         ax.stackplot(x, nonzeroSeries.values(), labels=nonzeroSeries.keys(), alpha=0.6)
         ax.legend(loc=location, reverse=True, fontsize=8, ncol=2, framealpha=0.5)
         ax.set_title(title)
-        ax.set_xlabel("year")
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
         if "k" in yformat:
             ax.set_ylabel(yformat)
@@ -343,7 +342,6 @@ class MatplotlibBackend(PlotBackend):
         ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
         ax.legend(loc="best", reverse=False, fontsize=8, framealpha=0.7)
         ax.set_title(title)
-        ax.set_xlabel("year")
         ax.set_ylabel("%")
 
         return fig
@@ -415,11 +413,10 @@ class MatplotlibBackend(PlotBackend):
 
     def plot_retention_margin(self, year_n, margin_n, title):
         """Diverging bar chart of retention margin above real break-even. Reference at 0."""
-        fig, ax = plt.subplots(figsize=(10, 4))
+        fig, ax = plt.subplots()
         colors = ["steelblue" if (not np.isnan(m) and m > 0) else "tomato" for m in margin_n]
         ax.bar(year_n, margin_n, color=colors, alpha=0.8, width=0.85)
         ax.axhline(0, color="black", linewidth=0.8)
-        ax.set_xlabel("Year")
         ax.set_ylabel("Retention margin (pp vs. break-even)")
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:+.1f} pp"))
         ax.set_title(title)
@@ -808,6 +805,7 @@ class MatplotlibBackend(PlotBackend):
             "debt":       "Debt payments",
             "bti":        "Big-ticket items",
             "bequest":    "Bequest",
+            "heirtax":    "Est. heir taxes",
         }
         income_labels_map = {
             "portfolio":   "Portfolio",
@@ -835,7 +833,7 @@ class MatplotlibBackend(PlotBackend):
         if not out_values or not inc_values:
             return None
 
-        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+        fig, axes = plt.subplots(1, 2, figsize=(6, 4.25))
         for ax, values, labels, colors, subtitle in [
             (axes[0], inc_values, inc_labels, inc_colors, "Sources of income"),
             (axes[1], out_values, out_labels, out_colors, "Outflows breakdown"),
@@ -848,9 +846,11 @@ class MatplotlibBackend(PlotBackend):
             ax.legend(wedges, labels, loc="upper center", bbox_to_anchor=(0.5, 0.0),
                       fontsize=8, ncol=2, framealpha=0.5)
             ax.set_title(subtitle)
-        fig.suptitle(name + "\nLifetime Cash Flow (today's $)")
+        fa_bequest = alloc.get("fa_bequest", 0.0)
+        fa_note = f" (excl. \\${fa_bequest/1000:,.0f}k fixed-asset bequest)" if fa_bequest > 0 else ""
+        fig.suptitle(name + "\nLifetime Cash Flow (today's \\$)" + fa_note)
         plt.tight_layout()
-        fig.subplots_adjust(bottom=0.25)
+        fig.subplots_adjust(bottom=0.25, top=0.80)
         return fig
 
     def plot_cashflow_mix(self, mix, name):
@@ -895,18 +895,17 @@ class MatplotlibBackend(PlotBackend):
         if not out_pcts or not inc_pcts:
             return None
 
-        fig, axes = plt.subplots(1, 2, figsize=(10, 5.2))
+        fig, axes = plt.subplots(1, 2)
         for ax, pcts, lbls, clrs, subtitle in [
             (axes[0], inc_pcts, inc_lbls, inc_clrs, "Sources of income"),
             (axes[1], out_pcts, out_lbls, out_clrs, "Outflows breakdown"),
         ]:
             ax.stackplot(year_n, pcts, labels=lbls, colors=clrs, alpha=0.7)
             ax.set_title(subtitle)
-            ax.set_xlabel("year")
             ax.set_ylabel("%")
             ax.set_ylim(0, 100)
-            ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True))
+            ax.xaxis.set_major_locator(tk.MaxNLocator(integer=True, nbins=6))
             ax.legend(loc="lower right", fontsize=8, ncol=1, framealpha=0.5, reverse=True)
-        fig.suptitle(name + "\nAnnual Cash Flow Mix (today's $, bequest excl.)")
+        fig.suptitle(name + "\nAnnual Cash Flow Mix (today's \\$, bequest excl.)")
         plt.tight_layout()
         return fig

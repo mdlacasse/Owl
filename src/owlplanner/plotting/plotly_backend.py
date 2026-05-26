@@ -56,6 +56,7 @@ _OUTFLOW_COLORS = {
     "debt":       "#9E9E9E",
     "bti":        "#FF6F00",
     "bequest":    "#4CAF50",
+    "heirtax":    "#E91E63",
 }
 
 # Reusable legend layouts for plotly
@@ -1482,6 +1483,7 @@ class PlotlyBackend(PlotBackend):
             "debt":       "Debt payments",
             "bti":        "Big-ticket items",
             "bequest":    "Bequest",
+            "heirtax":    "Est. heir taxes",
         }
         income_labels_map = {
             "portfolio":   "Portfolio",
@@ -1526,8 +1528,13 @@ class PlotlyBackend(PlotBackend):
             textinfo="label+percent",
             hovertemplate="%{label}<br>$%{value:,.0f}k<br>%{percent}<extra></extra>",
         ), row=1, col=2)
+        fa_bequest = alloc.get("fa_bequest", 0.0)
+        fa_note = f" (excl. ${fa_bequest/1000:,.0f}k fixed-asset bequest)" if fa_bequest > 0 else ""
         fig.update_layout(
-            title=dict(text=name + "<br>Lifetime Cash Flow (today's $)", x=0.5, xanchor="center"),
+            title=dict(
+                text=name + "<br>Lifetime Cash Flow (today's $)" + fa_note,
+                x=0.5, xanchor="center",
+            ),
             template=self.template,
             showlegend=False,
         )
