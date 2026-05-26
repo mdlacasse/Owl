@@ -672,7 +672,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     incomeDic = {
         "net spending": plan.g_n,
         "taxable ord. income": plan.G_n,
-        "taxable gains/divs": plan.Q_n,
+        "taxable gains + divs": plan.Q_n,
         "Tax bills + Med.": plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n,
     }
     fillsheet(ws, incomeDic, "currency", scale=inv_gamma, sheet_name="Income")
@@ -860,7 +860,7 @@ def plan_to_csv(plan, basename, mylog):
     planData["year"] = plan.year_n
     planData["net spending"] = plan.g_n
     planData["taxable ord. income"] = plan.G_n
-    planData["taxable gains/divs"] = plan.Q_n
+    planData["taxable gains + divs"] = plan.Q_n
     planData["Tax bills + Med."] = plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n
     planData["all wages"] = np.sum(plan.omega_in, axis=0)
     planData["all other inc"] = np.sum(plan.other_inc_in, axis=0)
