@@ -1131,7 +1131,6 @@ class PlotlyBackend(PlotBackend):
         fig.add_hline(y=0, line_width=1, line_color="black")
         fig.update_layout(
             title=title,
-            xaxis_title="Year",
             yaxis_title="Retention margin (pp vs. break-even)",
             yaxis=dict(tickformat="+.1f", ticksuffix=" pp"),
             template=self.template,
