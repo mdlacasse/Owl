@@ -255,7 +255,7 @@ preserving stationarity."""
             bt = kz.getCaseKey("bootstrapType")
             kz.getIntNum("Block size", "blockSize", min_value=1, max_value=50, step=1,
                          disabled=(bt == "iid"), callback=updateRates,
-                         help="Block length for block/circular/stationary bootstraps.")
+                         help="Fixed block length for block/circular; expected block length for stationary.")
 
     if kz.getCaseKey("rateType") == "varying":
         st.divider()

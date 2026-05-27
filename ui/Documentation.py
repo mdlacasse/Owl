@@ -899,6 +899,10 @@ control how much year-to-year serial structure is retained:
   a stationary output process with the correct unconditional mean and covariance.
 
 The block size is adjustable (1 = iid; larger values preserve more serial structure).
+For `block` and `circular` it is a fixed length; for `stationary` it is the *expected* length
+of the geometrically distributed blocks. For annual return data, values of **3–5** are
+well-supported: market cycles run 3–7 years, but annual autocorrelation decays quickly, so
+larger values reduce sample diversity without meaningfully reducing bias.
 `bootstrap_sor` is well-suited for Monte Carlo stress-testing when you want history-derived
 randomness that respects multi-year market cycles.
 

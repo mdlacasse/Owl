@@ -295,6 +295,14 @@ block_size = 5
 
 This captures regime persistence without overfitting block length.
 
+For **annual** return data, values of 3–5 are well-supported: Politis & White (2004)
+*"Automatic Block-Length Selection for the Dependent Bootstrap"* typically yields this range
+when applied to annual equity returns. Dominant market cycles run 3–7 years, but
+autocorrelation decays quickly at annual frequency, so larger values (> 7) reduce sample
+diversity without meaningfully reducing bias. For `block` and `circular`, `block_size` is the
+exact block length; for `stationary`, it is the *expected* length of the geometrically
+distributed blocks.
+
 
 
 # Performance Notes
