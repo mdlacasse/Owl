@@ -7,14 +7,14 @@ Below is a draft specification you can drop into your documentation for
 the new TOML methods:
 
 - `method = "toeplitz_sor"`
-- `method = "bootstrap_sor"`
+- `method = "historical_bootstrap"`
 
 # Additions to `[rates_selection]`
 
 ## New Methods
 
     method = "toeplitz_sor"
-    method = "bootstrap_sor"
+    method = "historical_bootstrap"
 
 These methods model **sequence-of-returns risk using time dependence
 across years** rather than independent annual draws.
@@ -137,7 +137,7 @@ Type: boolean Description: Whether to reuse the seed or regenerate.
 
 # Bootstrap Sequence-of-Returns Method
 
-    method = "bootstrap_sor"
+    method = "historical_bootstrap"
 
 ## Description
 
@@ -214,7 +214,7 @@ Type: boolean Description: Whether to reuse seed.
 
 # Comparison Summary (for Documentation)
 
-| Feature                   | toeplitz_sor | bootstrap_sor |
+| Feature                   | toeplitz_sor | historical_bootstrap |
 |---------------------------|--------------|---------------|
 | Stationary                | Yes          | No            |
 | Gaussian assumption       | Optional     | No            |

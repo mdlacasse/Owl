@@ -39,8 +39,8 @@ from owlplanner.rate_models.builtin import (
     HistogaussianRateModel,
 )
 from owlplanner.rate_models.dataframe import DataFrameRateModel
-from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
-from owlplanner.rate_models.var_model import VARRateModel
+from owlplanner.rate_models.historical_bootstrap import BootstrapSORRateModel
+from owlplanner.rate_models.vector_ar import VARRateModel
 from owlplanner.rate_models.garch_dcc import GARCHDCCRateModel
 
 
@@ -50,30 +50,39 @@ from owlplanner.rate_models.garch_dcc import GARCHDCCRateModel
 
 # Method aliases; resolved at load_rate_model() lookup, not in registry
 _METHOD_ALIASES = {
-    "default": "trailing-30",
+    # Backward-compatible aliases for renamed methods
+    "default": "trailing_30",
+    "trailing-30": "trailing_30",
+    "historical average": "historical_average",
+    "histogaussian": "historical_gaussian",
+    "histochastic": "historical_gaussian",
+    "stochastic": "historical_gaussian",
+    "histolognormal": "historical_lognormal",
+    "bootstrap_sor": "historical_bootstrap",
+    "var": "vector_ar",
 }
 
 _RATE_MODEL_REGISTRY = {
-    "trailing-30": Trailing30RateModel,
+    "trailing_30": Trailing30RateModel,
     "optimistic": OptimisticRateModel,
     "conservative": ConservativeRateModel,
     "user": UserRateModel,
     "historical": HistoricalRateModel,
-    "historical average": HistoricalAverageRateModel,
+    "historical_average": HistoricalAverageRateModel,
     "gaussian": GaussianRateModel,
     "lognormal": LognormalRateModel,
-    "histolognormal": HistolognormalRateModel,
-    "histogaussian": HistogaussianRateModel,
+    "historical_lognormal": HistolognormalRateModel,
+    "historical_gaussian": HistogaussianRateModel,
     "dataframe": DataFrameRateModel,
-    "bootstrap_sor": BootstrapSORRateModel,
-    "var": VARRateModel,
+    "historical_bootstrap": BootstrapSORRateModel,
+    "vector_ar": VARRateModel,
     "garch_dcc": GARCHDCCRateModel,
 }
 
 BUILTIN_CORE_METHODS = frozenset({
-    "trailing-30", "optimistic", "conservative", "user",
-    "historical", "historical average", "gaussian", "histogaussian",
-    "lognormal", "histolognormal",
+    "trailing_30", "optimistic", "conservative", "user",
+    "historical", "historical_average", "gaussian", "historical_gaussian",
+    "lognormal", "historical_lognormal",
 })
 
 ALLOWED_METHODS = frozenset(_RATE_MODEL_REGISTRY.keys())

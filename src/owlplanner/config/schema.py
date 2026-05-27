@@ -150,7 +150,7 @@ class RatesSelection(BaseModel):
     heirs_rate_on_tax_deferred_estate: float = Field(default=30.0, description="Heirs tax rate (%)")
     dividend_rate: Optional[float] = Field(default=1.8, description="Dividend rate (%)")
     obbba_expiration_year: Optional[int] = Field(default=2032, description="OBBBA expiry year")
-    method: str = Field(default="historical average", description="Rate method")
+    method: str = Field(default="historical_average", description="Rate method")
     # Conditional fields (present based on method)
     from_: Optional[int] = Field(default=None, alias="from", description="Historical start year")
     to: Optional[int] = Field(default=None, description="Historical end year")

@@ -53,7 +53,7 @@ def _set_bootstrap(
         p.setReproducible(False)
 
     p.setRates(
-        method="bootstrap_sor",
+        method="historical_bootstrap",
         frm=1928,
         to=2024,
         bootstrap_type=bootstrap_type,
@@ -188,7 +188,7 @@ def test_reverse_roll_applies():
     plan.rateSeed = 1234  # force reproducibility
 
     plan.setRates(
-        method="bootstrap_sor",
+        method="historical_bootstrap",
         frm=1950,
         to=2020,
         bootstrap_type="iid",
@@ -196,7 +196,7 @@ def test_reverse_roll_applies():
     original = plan.tau_kn.copy()
 
     plan.setRates(
-        method="bootstrap_sor",
+        method="historical_bootstrap",
         frm=1950,
         to=2020,
         bootstrap_type="iid",
@@ -216,7 +216,7 @@ def test_invalid_bootstrap_type():
 
     with pytest.raises(ValueError):
         p.setRates(
-            method="bootstrap_sor",
+            method="historical_bootstrap",
             frm=1928,
             to=2024,
             bootstrap_type="not_a_real_type",

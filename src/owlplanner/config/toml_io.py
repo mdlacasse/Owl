@@ -25,12 +25,30 @@ def sanitize_config(diconf: dict, *, log_stream=None) -> None:
     Translates deprecated rate method aliases for backward compatibility.
     Add new rules here as they emerge.
     """
-    # Translate rate method aliases
+    # Translate legacy rate method names to current canonical names.
+    # Old names will be removed in a future release — users should update their TOML files.
+    _LEGACY_METHOD_NAMES = {
+        "default":           "trailing_30",
+        "trailing-30":       "trailing_30",
+        "historical average": "historical_average",
+        "histogaussian":     "historical_gaussian",
+        "histochastic":      "historical_gaussian",
+        "stochastic":        "historical_gaussian",
+        "histolognormal":    "historical_lognormal",
+        "bootstrap_sor":     "historical_bootstrap",
+        "var":               "vector_ar",
+    }
     rs = diconf.get("rates_selection")
     if isinstance(rs, dict):
         method = rs.get("method")
-        if method == "default":
-            rs["method"] = "trailing-30"
+        if method in _LEGACY_METHOD_NAMES:
+            new_name = _LEGACY_METHOD_NAMES[method]
+            _LOG.warning(
+                "Rate method '%s' is a legacy name; please update your TOML file to use '%s'. "
+                "Legacy names will be removed in a future release.",
+                method, new_name,
+            )
+            rs["method"] = new_name
 
     so = diconf.get("solver_options")
     if so is None:

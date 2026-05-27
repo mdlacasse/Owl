@@ -5,7 +5,7 @@ Covers:
 - Direct unit tests for StochasticRateModel.from_config / to_config
 - Direct unit tests for default BaseRateModel.from_config / to_config
 - DataFrameRateModel.to_config returning {}
-- Full plan → config → plan round-trip for stochastic, lognormal, histolognormal, and bootstrap_sor
+- Full plan → config → plan round-trip for stochastic, lognormal, historical_lognormal, and historical_bootstrap
 - config_to_plan with stochastic and lognormal TOML keys (alias-normalization)
 
 Copyright (C) 2025-2026 The Owl Authors
@@ -18,7 +18,7 @@ import pytest
 from owlplanner import Plan
 from owlplanner.config import config_to_plan, plan_to_config
 from owlplanner.rate_models._builtin_impl import _build_corr_matrix
-from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
+from owlplanner.rate_models.historical_bootstrap import BootstrapSORRateModel
 from owlplanner.rate_models.builtin import (
     Trailing30RateModel,
     HistoricalAverageRateModel,
@@ -539,12 +539,12 @@ class TestLognormalRoundTrip:
 class TestHistolognormalConfigToPlan:
 
     def test_config_to_plan_with_from_alias(self):
-        """config_to_plan correctly processes TOML 'from' key for histolognormal."""
-        rates = _base_rates_section("histolognormal")
+        """config_to_plan correctly processes TOML 'from' key for historical_lognormal."""
+        rates = _base_rates_section("historical_lognormal")
         rates.update({"from": 1950, "to": 2020})
         plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
 
-        assert plan.rateMethod == "histolognormal"
+        assert plan.rateMethod == "historical_lognormal"
         assert plan.tau_kn.shape == (4, plan.N_n)
         assert plan.rateFrm == 1950
         assert plan.rateTo == 2020
@@ -553,26 +553,26 @@ class TestHistolognormalConfigToPlan:
 class TestHistolognormalRoundTrip:
 
     def test_frm_to_preserved(self):
-        """plan → config → plan preserves rateFrm and rateTo for histolognormal."""
+        """plan → config → plan preserves rateFrm and rateTo for historical_lognormal."""
         p = _make_plan()
-        p.setRates("histolognormal", frm=1950, to=2020)
+        p.setRates("historical_lognormal", frm=1950, to=2020)
 
         diconf = plan_to_config(p)
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
 
-        assert p2.rateMethod == "histolognormal"
+        assert p2.rateMethod == "historical_lognormal"
         assert p2.rateFrm == 1950
         assert p2.rateTo == 2020
 
     def test_config_contains_from_key(self):
-        """plan_to_config writes 'from' (not 'frm') for histolognormal."""
+        """plan_to_config writes 'from' (not 'frm') for historical_lognormal."""
         p = _make_plan()
-        p.setRates("histolognormal", frm=1950, to=2020)
+        p.setRates("historical_lognormal", frm=1950, to=2020)
 
         diconf = plan_to_config(p)
         rates = diconf["rates_selection"]
 
-        assert rates["method"] == "histolognormal"
+        assert rates["method"] == "historical_lognormal"
         assert "from" in rates
         assert rates["from"] == 1950
         assert rates["to"] == 2020
@@ -585,7 +585,7 @@ class TestHistolognormalRoundTrip:
 class TestBootstrapSORSerialization:
 
     def test_from_config_translates_from_to_frm(self):
-        """from_config translates 'from' → 'frm' for bootstrap_sor."""
+        """from_config translates 'from' → 'frm' for historical_bootstrap."""
         section = {
             "from": 1969,
             "to": 2024,
@@ -636,10 +636,10 @@ class TestBootstrapSORSerialization:
         assert result["from"] == 1969
 
     def test_full_round_trip(self):
-        """plan.setRates(bootstrap_sor) → plan_to_config → config_to_plan preserves params."""
+        """plan.setRates(historical_bootstrap) → plan_to_config → config_to_plan preserves params."""
         p = _make_plan()
         p.setRates(
-            method="bootstrap_sor",
+            method="historical_bootstrap",
             frm=1950,
             to=2020,
             bootstrap_type="block",
@@ -649,14 +649,14 @@ class TestBootstrapSORSerialization:
         diconf = plan_to_config(p)
         rates = diconf["rates_selection"]
 
-        assert rates["method"] == "bootstrap_sor"
+        assert rates["method"] == "historical_bootstrap"
         assert rates["from"] == 1950
         assert rates["to"] == 2020
         assert rates["bootstrap_type"] == "block"
         assert rates["block_size"] == 5
 
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
-        assert p2.rateMethod == "bootstrap_sor"
+        assert p2.rateMethod == "historical_bootstrap"
         assert p2.rateFrm == 1950
         assert p2.rateTo == 2020
         assert p2.tau_kn.shape == (4, p2.N_n)
@@ -664,7 +664,7 @@ class TestBootstrapSORSerialization:
     def test_round_trip_preserves_optional_defaults(self):
         """Optional params with defaults survive a round-trip even when not explicitly set."""
         p = _make_plan()
-        p.setRates(method="bootstrap_sor", frm=1950, to=2020)  # no optional params
+        p.setRates(method="historical_bootstrap", frm=1950, to=2020)  # no optional params
 
         diconf = plan_to_config(p)
         rates = diconf["rates_selection"]
@@ -674,5 +674,5 @@ class TestBootstrapSORSerialization:
         assert "block_size" in rates
 
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
-        assert p2.rateMethod == "bootstrap_sor"
+        assert p2.rateMethod == "historical_bootstrap"
         assert p2.tau_kn.shape == (4, p2.N_n)

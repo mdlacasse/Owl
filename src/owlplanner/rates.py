@@ -106,11 +106,11 @@ def get_fixed_rate_values(method):
     """
     Return the canonical fixed rate values (percent) for built-in methods.
 
-    Single source of truth for conservative, optimistic, and trailing-30 rates.
+    Single source of truth for conservative, optimistic, and trailing_30 rates.
     Used by the UI and config-to-plan bridge to avoid duplication and sync drift.
 
     Args:
-        method: One of "conservative", "optimistic", "trailing-30"
+        method: One of "conservative", "optimistic", "trailing_30"
 
     Returns:
         List of 4 floats in percent: [S&P 500, Bonds Baa, T-Notes, Inflation]
@@ -118,7 +118,7 @@ def get_fixed_rate_values(method):
     Raises:
         ValueError: If method is not a supported fixed method.
     """
-    if method == "trailing-30":
+    if method in ("trailing_30", "trailing-30"):
         arr = _TRAILING_30_RATES
     elif method == "optimistic":
         arr = _OPTIMISTIC_RATES
@@ -133,11 +133,11 @@ def get_fixed_rates_decimal(method):
     """
     Return canonical fixed rate values (decimal) for built-in methods.
 
-    Single source of truth for conservative, optimistic, and trailing-30 rates.
+    Single source of truth for conservative, optimistic, and trailing_30 rates.
     Used by BuiltinRateModel and _builtin_impl.
 
     Args:
-        method: One of "conservative", "optimistic", "trailing-30"
+        method: One of "conservative", "optimistic", "trailing_30"
 
     Returns:
         Array of 4 floats in decimal (0.07 = 7%)
@@ -145,7 +145,7 @@ def get_fixed_rates_decimal(method):
     Raises:
         ValueError: If method is not a supported fixed method.
     """
-    if method == "trailing-30":
+    if method in ("trailing_30", "trailing-30"):
         return _TRAILING_30_RATES.copy()
     if method == "optimistic":
         return _OPTIMISTIC_RATES.copy()
@@ -183,7 +183,7 @@ TBills = df["T-Bills"]
 Inflation = df["Inflation"]
 
 # 30-year trailing average (decimal). Geometric mean of annual returns over the last 30 years.
-# Single source of truth for "trailing-30" method.
+# Single source of truth for "trailing_30" method.
 _TRAILING_30_YEARS = 30
 _trailing_data = df[["S&P 500", "Bonds Baa", "T-Notes", "Inflation"]].tail(_TRAILING_30_YEARS)
 _TRAILING_30_RATES = np.asarray(geometric_mean_pct(_trailing_data.values, axis=0) / 100.0, dtype=float)

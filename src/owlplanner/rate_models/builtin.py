@@ -39,7 +39,7 @@ def _validate_historical_range(frm: int, to: int) -> None:
 # ---------------------------------------------------------------------------
 
 class Trailing30RateModel(BaseRateModel):
-    model_name = "trailing-30"
+    model_name = "trailing_30"
     description = ("Constant rates equal to the 30-year trailing geometric mean of annual returns. "
                    "A long-run backward-looking assumption.")
     deterministic = True
@@ -49,7 +49,7 @@ class Trailing30RateModel(BaseRateModel):
 
     def generate(self, N):
         from owlplanner.rates import get_fixed_rates_decimal
-        return impl.generate_fixed_series(N, get_fixed_rates_decimal("trailing-30"))
+        return impl.generate_fixed_series(N, get_fixed_rates_decimal("trailing_30"))
 
 
 class OptimisticRateModel(BaseRateModel):
@@ -154,7 +154,7 @@ class HistoricalRateModel(BaseRateModel):
 
 
 class HistoricalAverageRateModel(BaseRateModel):
-    model_name = "historical average"
+    model_name = "historical_average"
     description = "Constant rates equal to the geometric mean over the selected historical window."
     deterministic = True
     constant = True
@@ -349,7 +349,7 @@ class LognormalRateModel(BaseRateModel):
 
 
 class HistolognormalRateModel(BaseRateModel):
-    model_name = "histolognormal"
+    model_name = "historical_lognormal"
     description = (
         "Fits a correlated log-normal model to the selected historical window "
         "and samples from it. Log-space parameters are estimated from historical log-returns; "
@@ -392,7 +392,7 @@ class HistolognormalRateModel(BaseRateModel):
 
 
 class HistogaussianRateModel(BaseRateModel):
-    model_name = "histogaussian"
+    model_name = "historical_gaussian"
     description = (
         "Samples from a multivariate normal distribution fitted to the selected historical window "
         "using arithmetic means and sample covariances. Parametric and Gaussian, parameters grounded in history."
@@ -446,20 +446,27 @@ StochasticRateModel = GaussianRateModel
 
 # Method aliases; resolved in BuiltinRateModel.__new__ before lookup
 _BUILTIN_METHOD_ALIASES = {
-    "default": "trailing-30",
+    # Backward-compatible aliases for renamed methods
+    "default": "trailing_30",
+    "trailing-30": "trailing_30",
+    "historical average": "historical_average",
+    "histogaussian": "historical_gaussian",
+    "histochastic": "historical_gaussian",
+    "stochastic": "historical_gaussian",
+    "histolognormal": "historical_lognormal",
 }
 
 _BUILTIN_REGISTRY = {
-    "trailing-30": Trailing30RateModel,
+    "trailing_30": Trailing30RateModel,
     "optimistic": OptimisticRateModel,
     "conservative": ConservativeRateModel,
     "user": UserRateModel,
     "historical": HistoricalRateModel,
-    "historical average": HistoricalAverageRateModel,
+    "historical_average": HistoricalAverageRateModel,
     "gaussian": GaussianRateModel,
     "lognormal": LognormalRateModel,
-    "histolognormal": HistolognormalRateModel,
-    "histogaussian": HistogaussianRateModel,
+    "historical_lognormal": HistolognormalRateModel,
+    "historical_gaussian": HistogaussianRateModel,
 }
 
 

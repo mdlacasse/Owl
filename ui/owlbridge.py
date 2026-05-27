@@ -51,7 +51,7 @@ import progress
 
 def getFixedRates(method):
     """
-    Return canonical fixed rate values (percent) for conservative, optimistic, trailing-30.
+    Return canonical fixed rate values (percent) for conservative, optimistic, trailing_30.
 
     Single source of truth: values come from owlplanner.rates to stay in sync
     with the backend. Use this instead of duplicating FXRATES in the UI.
@@ -562,10 +562,10 @@ def _setRates(plan):
 
     if rateType == "constant":
         fixedType = kz.getCaseKey("fixedType")
-        if fixedType == "historical average":
+        if fixedType == "historical_average":
             if adjusted_range:
                 st.warning("Ending year adjusted to be after starting year.", icon=":material/warning:")
-            plan.setRates("historical average", yfrm, yto)
+            plan.setRates("historical_average", yfrm, yto)
             # Set fxRates back to computed values.
             for j in range(4):
                 kz.pushCaseKey(f"fxRate{j}", 100 * plan.tau_kn[j, -1])
@@ -591,7 +591,7 @@ def _setRates(plan):
             st.info("Varying rate type not selected yet.")
             return False
 
-        if varyingType.startswith("histo"):
+        if varyingType in ("historical", "historical_gaussian", "historical_lognormal"):
             if varyingType == "historical":
                 yfrm2 = min(yfrm, TO - plan.N_n + 1)
                 kz.pushCaseKey("yfrm", yfrm2)
@@ -603,8 +603,8 @@ def _setRates(plan):
             elif adjusted_range:
                 st.warning("Ending year adjusted to be after starting year.", icon=":material/warning:")
 
-            # Set reproducibility for histogaussian methods
-            if varyingType in ("histogaussian",):
+            # Set reproducibility for historical_gaussian methods
+            if varyingType in ("historical_gaussian",):
                 reproducible = kz.getCaseKey("reproducibleRates")
                 seed = kz.getCaseKey("rateSeed") if reproducible else None
                 plan.setReproducible(reproducible, seed=seed)
@@ -616,13 +616,13 @@ def _setRates(plan):
             plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq)
 
             # Store seed, reproducibility, and sequence options back to case keys
-            if varyingType in ("histogaussian",):
+            if varyingType in ("historical_gaussian",):
                 kz.setCaseKey("rateSeed", plan.rateSeed)
                 kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
             kz.setCaseKey("reverse_sequence", plan.rateReverse)
             kz.setCaseKey("roll_sequence", plan.rateRoll)
             dist = owl.getRatesDistributions(yfrm, yto, plan.mylog)
-            # histogaussian is centered on the arithmetic mean (standard Gaussian fit).
+            # historical_gaussian is centered on the arithmetic mean (standard Gaussian fit).
             for j in range(4):
                 kz.pushCaseKey(f"mean{j}", dist.arith_means[j])
                 kz.pushCaseKey(f"stdev{j}", dist.stdev[j])
@@ -633,7 +633,7 @@ def _setRates(plan):
                     kz.pushCaseKey(f"corr{q}", dist.corr[k1, k2])
                     q += 1
 
-        elif varyingType in ("bootstrap_sor", "var", "garch_dcc", "histolognormal"):
+        elif varyingType in ("historical_bootstrap", "vector_ar", "garch_dcc", "historical_lognormal"):
             reproducible = kz.getCaseKey("reproducibleRates")
             seed = kz.getCaseKey("rateSeed") if reproducible else None
             plan.setReproducible(reproducible, seed=seed)
@@ -644,7 +644,7 @@ def _setRates(plan):
             roll_seq = 0 if roll_seq is None else int(roll_seq)
 
             kwargs = {}
-            if varyingType == "bootstrap_sor":
+            if varyingType == "historical_bootstrap":
                 bt = kz.getCaseKey("bootstrapType")
                 bs = kz.getCaseKey("blockSize")
                 if bt is not None:
@@ -1558,17 +1558,17 @@ def genDic(plan):
     else:
         dic["objective"] = "Bequest"
 
-    if plan.rateMethod in ["trailing-30", "conservative", "optimistic", "historical average", "user"]:
+    if plan.rateMethod in ["trailing_30", "conservative", "optimistic", "historical_average", "user"]:
         dic["rateType"] = "constant"
         dic["fixedType"] = plan.rateMethod
     elif plan.rateMethod == "dataframe":
         dic["rateType"] = "constant"
         dic["fixedType"] = "user"
-    elif plan.rateMethod in ["histogaussian", "historical", "gaussian",
-                             "lognormal", "histolognormal", "bootstrap_sor", "var", "garch_dcc"]:
+    elif plan.rateMethod in ["historical_gaussian", "historical", "gaussian",
+                             "lognormal", "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc"]:
         dic["rateType"] = "varying"
         dic["varyingType"] = plan.rateMethod
-        if plan.rateMethod == "bootstrap_sor":
+        if plan.rateMethod == "historical_bootstrap":
             params = plan.rateModel.params
             dic["bootstrapType"] = params.get("bootstrap_type", "iid")
             dic["blockSize"] = params.get("block_size", 1)
@@ -1580,8 +1580,8 @@ def genDic(plan):
         else:
             dic[f"fxRate{k1}"] = 100 * plan.tau_kn[k1, -1]
 
-    if plan.rateMethod in ["historical average", "histogaussian", "historical",
-                           "histolognormal", "bootstrap_sor", "var", "garch_dcc"]:
+    if plan.rateMethod in ["historical_average", "historical_gaussian", "historical",
+                           "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc"]:
         dic["yfrm"] = plan.rateFrm
         dic["yto"] = plan.rateTo
     elif plan.rateMethod == "dataframe":
@@ -1592,8 +1592,8 @@ def genDic(plan):
         # Rates availability are trailing by 1 year.
         dic["yto"] = date.today().year - 1
 
-    if plan.rateMethod in ["gaussian", "lognormal", "histogaussian",
-                           "bootstrap_sor", "var", "garch_dcc"]:
+    if plan.rateMethod in ["gaussian", "lognormal", "historical_gaussian",
+                           "historical_bootstrap", "vector_ar", "garch_dcc"]:
         qq = 1
         for k1 in range(plan.N_k):
             if plan.rateValues is not None:

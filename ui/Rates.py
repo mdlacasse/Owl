@@ -36,11 +36,11 @@ def _get_fx_rates():
     methods = owb.FIXED_TYPE_UI
     result = {}
     for m in methods:
-        if m == "historical average":
+        if m == "historical_average":
             result[m] = [0, 0, 0, 0]  # placeholder; computed at runtime
         elif m == "user":
             result[m] = owb.getFixedRates("conservative")  # default initial values
-        elif m in ("trailing-30", "conservative", "optimistic"):
+        elif m in ("trailing_30", "conservative", "optimistic"):
             result[m] = owb.getFixedRates(m)
         else:
             result[m] = owb.getFixedRates("conservative")
@@ -60,7 +60,7 @@ def updateFixedRates(key, pull=True):
     else:
         fxType = key
 
-    if fxType in ("trailing-30", "conservative", "optimistic"):
+    if fxType in ("trailing_30", "conservative", "optimistic"):
         rates = FXRATES[fxType]
         for j in range(4):
             kz.pushCaseKey(f"fxRate{j}", rates[j])
@@ -146,7 +146,7 @@ preserving stationarity."""
 
         st.divider()
         ro = fxType != "user"
-        min_rate = -100.0 if fxType == "historical average" else 0.0
+        min_rate = -100.0 if fxType == "historical_average" else 0.0
 
         st.markdown("#### :orange[Constant Rate Values (%)]")
         rates = FXRATES[fxType]
@@ -243,7 +243,7 @@ preserving stationarity."""
                 help=help_yto,
             )
 
-    if kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "bootstrap_sor":
+    if kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "historical_bootstrap":
         kz.initCaseKey("bootstrapType", "iid")
         kz.initCaseKey("blockSize", 1)
         bootstrap_choices = ["iid", "block", "circular", "stationary"]
@@ -396,8 +396,8 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
 
         # Reproducibility checkbox - only for gaussian/lognormal and histogaussian/histolognormal methods.
         if kz.getCaseKey("varyingType") in [
-            "gaussian", "lognormal", "histogaussian", "histolognormal",
-            "bootstrap_sor", "var", "garch_dcc",
+            "gaussian", "lognormal", "historical_gaussian", "historical_lognormal",
+            "historical_bootstrap", "vector_ar", "garch_dcc",
         ]:
             st.markdown("#####")
             st.markdown("#### :orange[Rate Generation]")

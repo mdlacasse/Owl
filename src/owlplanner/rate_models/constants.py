@@ -17,52 +17,52 @@ RATE_DISPLAY_NAMES_SHORT = ("S&P 500", "Bonds Baa", "T-Notes", "Inflation")
 
 # Built-in method name sets. Must stay in sync with loader._RATE_MODEL_REGISTRY.
 
-# Methods using canonical fixed preset rates (trailing-30, optimistic, conservative).
+# Methods using canonical fixed preset rates (trailing_30, optimistic, conservative).
 FIXED_PRESET_METHODS = (
-    "trailing-30",
+    "trailing_30",
     "optimistic",
     "conservative",
 )
 
 # Methods that produce same rate every year; reverse/roll are no-ops.
 CONSTANT_RATE_METHODS = (
-    "trailing-30",
+    "trailing_30",
     "optimistic",
     "conservative",
     "user",
-    "historical average",
+    "historical_average",
 )
 
 # Methods that produce deterministic series; no regeneration needed.
 RATE_METHODS_NO_REGEN = (
     "conservative",
     "optimistic",
-    "trailing-30",
+    "trailing_30",
     "user",
-    "historical average",
+    "historical_average",
     "historical",
 )
 
 # Methods requiring frm/to year range.
 HISTORICAL_RANGE_METHODS = (
     "historical",
-    "historical average",
-    "histogaussian",
-    "histolognormal",
-    "bootstrap_sor",
-    "var",
+    "historical_average",
+    "historical_gaussian",
+    "historical_lognormal",
+    "historical_bootstrap",
+    "vector_ar",
     "garch_dcc",
 )
 
 # Methods using stochastic generation; need seed, support regenRates.
 STOCHASTIC_METHODS = (
     "gaussian",
-    "histogaussian",
+    "historical_gaussian",
     "lognormal",
-    "histolognormal",
-    "bootstrap_sor",
+    "historical_lognormal",
+    "historical_bootstrap",
     "garch_dcc",
-    "var",
+    "vector_ar",
 )
 
 # Methods that store user-provided values (for plan_to_config).
@@ -76,19 +76,19 @@ METHODS_WITH_VALUES = (
 FIXED_TYPE_UI = (
     "conservative",
     "optimistic",
-    "trailing-30",
+    "trailing_30",
     "user",
-    "historical average",
+    "historical_average",
 )
 
 # Methods the UI treats as "varying" type (alphabetically ordered for selector).
 VARYING_TYPE_UI = (
-    "bootstrap_sor",
     "garch_dcc",
     "gaussian",
-    "histogaussian",
-    "lognormal",
-    "histolognormal",
     "historical",
-    "var",
+    "historical_bootstrap",
+    "historical_gaussian",
+    "historical_lognormal",
+    "lognormal",
+    "vector_ar",
 )

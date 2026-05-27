@@ -27,7 +27,7 @@ from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
 
 def test_rate_model_trailing_30():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
-    p.setRates("trailing-30")
+    p.setRates("trailing_30")
     assert p.tau_kn.shape == (4, p.N_n)
 
 
@@ -48,7 +48,7 @@ def test_stochastic_regen_changes_series():
 def test_trailing_30_does_not_regen():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
-    p.setRates("trailing-30")
+    p.setRates("trailing_30")
     tau1 = p.tau_kn.copy()
 
     p.regenRates(override_reproducible=True)

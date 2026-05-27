@@ -7,7 +7,7 @@ investment return and inflation rate series used by `Plan.setRates()`.
 
 It supports:
 
-* Original built-in methods (trailing-30, gaussian, historical, etc.)
+* Original built-in methods (trailing_30, gaussian, historical, etc.)
 * Built-in new models (e.g. `dataframe`)
 * External plugin rate models loaded at runtime
 * UI discovery of available models and required parameters
@@ -162,7 +162,7 @@ from owlplanner.rate_models.loader import (
 models = list_available_rate_models()
 
 print(models)
-# ['bootstrap_sor', 'conservative', 'dataframe', 'gaussian', 'garch_dcc', ...]
+# ['historical_bootstrap', 'conservative', 'dataframe', 'gaussian', 'garch_dcc', ...]
 ```
 
 
@@ -212,14 +212,14 @@ and implemented as concrete `BaseRateModel` subclasses.
 Supported built-in methods:
 
 ```
-trailing-30
+trailing_30
 optimistic
 conservative
 user
 historical
-historical average
+historical_average
 gaussian
-histogaussian
+historical_gaussian
 ```
 
 These automatically map to the old `rates.py` implementation.

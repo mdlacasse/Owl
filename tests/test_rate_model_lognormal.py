@@ -54,7 +54,7 @@ def _make_lognormal(seed=None):
 
 
 def _make_histolognormal(frm=1928, to=2024, seed=None):
-    config = {"method": "histolognormal", "frm": frm, "to": to}
+    config = {"method": "historical_lognormal", "frm": frm, "to": to}
     return HistolognormalRateModel(config, seed=seed)
 
 
@@ -71,7 +71,7 @@ def _set_histolognormal(p, frm=1928, to=2024, seed=None):
         p.setReproducible(True, seed=seed)
     else:
         p.setReproducible(False)
-    p.setRates("histolognormal", frm=frm, to=to)
+    p.setRates("historical_lognormal", frm=frm, to=to)
 
 
 # ------------------------------------------------------------
@@ -95,7 +95,7 @@ def test_constant_flag_lognormal():
 # ------------------------------------------------------------
 
 def test_model_name_histolognormal():
-    assert HistolognormalRateModel.model_name == "histolognormal"
+    assert HistolognormalRateModel.model_name == "historical_lognormal"
 
 
 def test_deterministic_flag_histolognormal():
@@ -337,7 +337,7 @@ def test_histolognormal_different_windows_differ():
 
 def test_invalid_frm_to_raises_histolognormal():
     """frm >= to should raise ValueError."""
-    config = {"method": "histolognormal", "frm": 2000, "to": 2000}
+    config = {"method": "historical_lognormal", "frm": 2000, "to": 2000}
     with pytest.raises(ValueError):
         HistolognormalRateModel(config)
 
@@ -345,7 +345,7 @@ def test_invalid_frm_to_raises_histolognormal():
 def test_histolognormal_frm_out_of_bounds_raises():
     """frm before valid historical range should raise ValueError."""
     from owlplanner.rates import FROM
-    config = {"method": "histolognormal", "frm": FROM - 10, "to": FROM + 5}
+    config = {"method": "historical_lognormal", "frm": FROM - 10, "to": FROM + 5}
     with pytest.raises(ValueError):
         HistolognormalRateModel(config)
 

@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 import pandas as pd
 
-from owlplanner.rate_models.bootstrap_sor import BootstrapSORRateModel
+from owlplanner.rate_models.historical_bootstrap import BootstrapSORRateModel
 
 
 # ---------------------------------------------------------

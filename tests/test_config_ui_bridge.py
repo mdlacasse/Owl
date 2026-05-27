@@ -37,7 +37,7 @@ def test_sanitize_config_default_translated_to_trailing_30():
     """sanitize_config translates deprecated method=default to trailing-30 (backward compat)."""
     diconf = {"rates_selection": {"method": "default"}}
     sanitize_config(diconf)
-    assert diconf["rates_selection"]["method"] == "trailing-30"
+    assert diconf["rates_selection"]["method"] == "trailing_30"
 
 
 def test_load_toml_start_roth_past_year_reset():
@@ -219,7 +219,7 @@ def test_worksheet_real_dollars_ui_to_config_and_apply():
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
-    p.setRates("trailing-30")
+    p.setRates("trailing_30")
     if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
     p.setWorksheetRealDollars(False)
@@ -242,7 +242,7 @@ def test_apply_config_to_plan():
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
-    p.setRates("trailing-30")
+    p.setRates("trailing_30")
     if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 

@@ -80,7 +80,7 @@ def default_config(ni: int = 1) -> dict:
             "heirs_rate_on_tax_deferred_estate": DEFAULT_HEIRS_RATE,
             "dividend_rate": DEFAULT_DIVIDEND_RATE,
             "obbba_expiration_year": DEFAULT_OBBBA_YEAR,
-            "method": "historical average",
+            "method": "historical_average",
             "from": 1969,
             "to": this_year - 1,
             "values": get_fixed_rate_values("conservative"),

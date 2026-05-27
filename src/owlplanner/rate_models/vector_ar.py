@@ -42,7 +42,7 @@ from owlplanner.rates import FROM, TO
 
 class VARRateModel(BaseRateModel):
 
-    model_name = "var"
+    model_name = "vector_ar"
 
     description = (
         "VAR(1) model fitted by Ordinary Least Squares (OLS) on the historical window. "

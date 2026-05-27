@@ -36,14 +36,14 @@ from owlplanner.rates import FROM, TO
 
 class BootstrapSORRateModel(BaseRateModel):
 
-    model_name = "bootstrap_sor"
+    model_name = "historical_bootstrap"
 
     description = (
         "Resamples actual historical years to build synthetic sequences, preserving fat tails and extreme events. "
         "Choose IID, block, circular, or stationary resampling strategy."
     )
 
-    more_info = "https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/bootstrap_sor.md"
+    more_info = "https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/historical_bootstrap.md"
 
     deterministic = False
     constant = False

@@ -49,11 +49,11 @@ def configure_test_solver():
     explicitly pass a solver to plan.solve().  Without this patch the 'default'
     path in plan.py falls back to _mosek_available(), which ignores the env var.
     """
-    solver_env = os.environ.get("OWL_TEST_SOLVER", "default")
-    if solver_env == "HiGHS":
+    solver_env = os.environ.get("OWL_TEST_SOLVER", "default").lower()
+    if solver_env == "highs":
         with patch("owlplanner.plan._mosek_available", return_value=False):
             yield
-    elif solver_env == "MOSEK":
+    elif solver_env == "mosek":
         with patch("owlplanner.plan._mosek_available", return_value=True):
             yield
     else:

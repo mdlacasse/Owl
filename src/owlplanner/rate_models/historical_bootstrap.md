@@ -1,11 +1,11 @@
 
-# Bootstrap Sequence-of-Returns (bootstrap_sor)
+# Bootstrap Sequence-of-Returns (historical_bootstrap)
 
 ## Overview
 
-The `bootstrap_sor` model generates retirement return sequences using historical resampling techniques rather than parametric distributions (e.g., normal or lognormal models).
+The `historical_bootstrap` model generates retirement return sequences using historical resampling techniques rather than parametric distributions (e.g., normal or lognormal models).
 
-Unlike `gaussian` and `histogaussian`, which assume multivariate normal returns, bootstrap SOR:
+Unlike `gaussian` and `historical_gaussian`, which assume multivariate normal returns, bootstrap SOR:
 
 * Uses **actual historical return vectors**
 * Preserves empirical cross-asset correlation
@@ -196,7 +196,7 @@ If `crisis_weight = 1.0` (default), no overweighting occurs.
 
 # Determinism and Regeneration
 
-* `bootstrap_sor` is **stochastic**
+* `historical_bootstrap` is **stochastic**
 * Regenerates on `regenRates()` unless reproducibility is enabled
 * Honors Plan-level seed handling
 
@@ -208,7 +208,7 @@ If `crisis_weight = 1.0` (default), no overweighting occurs.
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1928
 to = 2024
 bootstrap_type = "iid"
@@ -220,7 +220,7 @@ bootstrap_type = "iid"
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1928
 to = 2024
 bootstrap_type = "block"
@@ -233,7 +233,7 @@ block_size = 5
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1928
 to = 2024
 bootstrap_type = "stationary"
@@ -246,7 +246,7 @@ block_size = 7
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1950
 to = 2024
 bootstrap_type = "circular"
@@ -259,7 +259,7 @@ block_size = 4
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1928
 to = 2024
 bootstrap_type = "block"
@@ -276,11 +276,11 @@ crisis_weight = 3.0
 | Method                     | Parametric                | Preserves Tails | Preserves Serial Corr | Preserves Cross Corr |
 | -------------------------- | ------------------------- | --------------- | --------------------- | -------------------- |
 | gaussian                   | Yes (Normal)              | ❌               | ❌                     | ✅                    |
-| histogaussian              | Yes (Normal, hist params) | ❌               | ❌                     | ✅                    |
+| historical_gaussian              | Yes (Normal, hist params) | ❌               | ❌                     | ✅                    |
 | historical                 | No                        | ✅               | ✅                     | ✅                    |
-| bootstrap_sor (iid)        | No                        | ✅               | ❌                     | ✅                    |
-| bootstrap_sor (block)      | No                        | ✅               | ✅                     | ✅                    |
-| bootstrap_sor (stationary) | No                        | ✅               | ✅                     | ✅                    |
+| historical_bootstrap (iid)        | No                        | ✅               | ❌                     | ✅                    |
+| historical_bootstrap (block)      | No                        | ✅               | ✅                     | ✅                    |
+| historical_bootstrap (stationary) | No                        | ✅               | ✅                     | ✅                    |
 
 
 
@@ -328,7 +328,7 @@ Suitable for large Monte Carlo sweeps.
 
 # Summary
 
-`bootstrap_sor` provides:
+`historical_bootstrap` provides:
 
 * Non-parametric Monte Carlo
 * Realistic historical tail risk

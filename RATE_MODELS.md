@@ -19,13 +19,13 @@ Pessimistic but plausible constant rates. Use for stress-testing worst-case scen
 method = "conservative"
 ```
 
-#### `historical average`
+#### `historical_average`
 
 Constant rates equal to the geometric mean over the selected historical window.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"historical average"`) |
+| `method` | Yes | str | model name (`"historical_average"`) |
 | `from` | Yes | int |  |
 | `to` | Yes | int |  |
 
@@ -33,7 +33,7 @@ Constant rates equal to the geometric mean over the selected historical window.
 
 ```toml
 [rates_selection]
-method = "historical average"
+method = "historical_average"
 from = 1969
 to = 2002
 ```
@@ -53,19 +53,19 @@ Bullish constant rates based on industry forecasts for the next decade.
 method = "optimistic"
 ```
 
-#### `trailing-30`
+#### `trailing_30`
 
 Constant rates equal to the 30-year trailing geometric mean of annual returns. A long-run backward-looking assumption.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"trailing-30"`) |
+| `method` | Yes | str | model name (`"trailing_30"`) |
 
 **Example:**
 
 ```toml
 [rates_selection]
-method = "trailing-30"
+method = "trailing_30"
 ```
 
 #### `user`
@@ -107,29 +107,6 @@ from = 1969
 
 ### :orange[Stochastic models]
 
-#### `bootstrap_sor`
-
-Resamples actual historical years to build synthetic sequences, preserving fat tails and extreme events. Choose IID, block, circular, or stationary resampling strategy. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/bootstrap_sor.md)
-
-| Parameter | Required | Type | Description |
-|-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"bootstrap_sor"`) |
-| `from` | Yes | int | First historical year (inclusive). |
-| `to` | Yes | int | Last historical year (inclusive). |
-| `bootstrap_type` | No | str | Type of bootstrap to perform. Defaults to iid |
-| `block_size` | No | int | Block length for block-based bootstraps. |
-| `crisis_years` | No | list[int] | Years to overweight in sampling. |
-| `crisis_weight` | No | float | Sampling multiplier for crisis years. |
-
-**Example:**
-
-```toml
-[rates_selection]
-method = "bootstrap_sor"
-from = 1969
-to = 2002
-```
-
 #### `garch_dcc`
 
 DCC-GARCH(1,1) model (Engle 2002) fitted by two-step MLE on historical data. Captures time-varying volatility (GARCH) and time-varying cross-asset correlations (DCC). Produces realistic volatility clustering and correlation spikes during market stress. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/README.md)
@@ -151,12 +128,12 @@ to = 2024
 
 #### `gaussian`
 
-Samples from a multivariate normal (Gaussian) distribution with means, volatilities, and correlations you specify below.
+Samples from a multivariate normal (Gaussian) distribution with arithmetic means, volatilities, and correlations you specify below.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"gaussian"`) |
-| `values` | Yes | list[float] | Mean returns in percent. |
+| `values` | Yes | list[float] | Arithmetic mean returns in percent. |
 | `stdev` | Yes | list[float] | Standard deviations in percent. |
 | `corr` | No | 4x4 matrix or list[6] | Pearson correlation coefficient (-1 to 1). Matrix or upper-triangle off-diagonals. Standard in finance/statistics. |
 
@@ -169,32 +146,36 @@ values = [7.0, 4.5, 3.5, 2.5]
 stdev = [17.0, 8.0, 6.0, 2.0]
 ```
 
-#### `histogaussian`
+#### `historical_bootstrap`
 
-Samples from a multivariate normal distribution fitted to the selected historical window. Parametric and Gaussian, parameters grounded in history.
+Resamples actual historical years to build synthetic sequences, preserving fat tails and extreme events. Choose IID, block, circular, or stationary resampling strategy. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/historical_bootstrap.md)
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"histogaussian"`) |
-| `from` | Yes | int |  |
-| `to` | Yes | int |  |
+| `method` | Yes | str | model name (`"historical_bootstrap"`) |
+| `from` | Yes | int | First historical year (inclusive). |
+| `to` | Yes | int | Last historical year (inclusive). |
+| `bootstrap_type` | No | str | Type of bootstrap to perform. Defaults to iid |
+| `block_size` | No | int | Block length for block-based bootstraps. |
+| `crisis_years` | No | list[int] | Years to overweight in sampling. |
+| `crisis_weight` | No | float | Sampling multiplier for crisis years. |
 
 **Example:**
 
 ```toml
 [rates_selection]
-method = "histogaussian"
+method = "historical_bootstrap"
 from = 1969
 to = 2002
 ```
 
-#### `histolognormal`
+#### `historical_gaussian`
 
-Fits a correlated log-normal model to the selected historical window and samples from it. Log-space parameters (mean and covariance of log-returns) are estimated directly from history. Returns are right-skewed and bounded below by -100%.
+Samples from a multivariate normal distribution fitted to the selected historical window using arithmetic means and sample covariances. Parametric and Gaussian, parameters grounded in history.
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"histolognormal"`) |
+| `method` | Yes | str | model name (`"historical_gaussian"`) |
 | `from` | Yes | int |  |
 | `to` | Yes | int |  |
 
@@ -202,7 +183,26 @@ Fits a correlated log-normal model to the selected historical window and samples
 
 ```toml
 [rates_selection]
-method = "histolognormal"
+method = "historical_gaussian"
+from = 1969
+to = 2002
+```
+
+#### `historical_lognormal`
+
+Fits a correlated log-normal model to the selected historical window and samples from it. Log-space parameters are estimated from historical log-returns; reported means and volatilities are the equivalent arithmetic statistics. Returns are right-skewed and bounded below by -100%.
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"historical_lognormal"`) |
+| `from` | Yes | int |  |
+| `to` | Yes | int |  |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "historical_lognormal"
 from = 1928
 to = 2024
 ```
@@ -227,13 +227,13 @@ values = [7.0, 4.5, 3.5, 2.5]
 stdev = [17.0, 8.0, 6.0, 2.0]
 ```
 
-#### `var`
+#### `vector_ar`
 
 VAR(1) model fitted by Ordinary Least Squares (OLS) on the historical window. Captures momentum and mean-reversion — each year's returns depend on the previous year across all four asset classes. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/README.md)
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `method` | Yes | str | model name (`"var"`) |
+| `method` | Yes | str | model name (`"vector_ar"`) |
 | `from` | Yes | int | First historical year used for fitting (inclusive). |
 | `to` | Yes | int | Last historical year used for fitting (inclusive). |
 | `shrink` | No | bool | If True, apply spectral shrinkage to A when its spectral radius >= 0.95, ensuring stationarity. |
@@ -242,7 +242,7 @@ VAR(1) model fitted by Ordinary Least Squares (OLS) on the historical window. Ca
 
 ```toml
 [rates_selection]
-method = "var"
+method = "vector_ar"
 from = 1928
 to = 2024
 ```

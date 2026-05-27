@@ -359,7 +359,7 @@ def config_to_ui(diconf: dict) -> dict:
     else:
         dic["objective"] = "Bequest"
 
-    rate_method = rs.get("method", "historical average")
+    rate_method = rs.get("method", "historical_average")
     if rate_method == "dataframe":
         logger.warning("Dataframe rate method is not supported in UI; mapping to 'user'.")
         rate_method = "user"
@@ -382,7 +382,7 @@ def config_to_ui(diconf: dict) -> dict:
         dic["yfrm"] = FROM
         dic["yto"] = date.today().year - 1
 
-    if rate_method == "bootstrap_sor":
+    if rate_method == "historical_bootstrap":
         dic["bootstrapType"] = rs.get("bootstrap_type", "iid")
         dic["blockSize"] = rs.get("block_size", 1)
 
@@ -657,9 +657,9 @@ def _ui_rate_method_to_config(uidic: dict) -> str:
     """Map UI rate type to config method name. Resolve deprecated aliases."""
     rate_type = uidic.get("rateType", "constant")
     if rate_type == "constant":
-        method = uidic.get("fixedType", "historical average")
+        method = uidic.get("fixedType", "historical_average")
     else:
-        method = uidic.get("varyingType", "histogaussian")
+        method = uidic.get("varyingType", "historical_gaussian")
     return method
 
 
@@ -678,7 +678,7 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
         rs["standard_deviations"] = [_get_ui(uidic, f"stdev{k}", 0, float) for k in range(4)]
         # Correlations: Pearson coefficient (-1 to 1). Standard in finance/statistics.
         rs["correlations"] = [_get_ui(uidic, f"corr{q}", 0, float) for q in range(1, 7)]
-    if method == "bootstrap_sor":
+    if method == "historical_bootstrap":
         rs["bootstrap_type"] = uidic.get("bootstrapType", "iid")
         rs["block_size"] = _get_ui(uidic, "blockSize", 1, int)
 

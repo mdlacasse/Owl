@@ -33,7 +33,7 @@ social_security_ages = [ 67.0,]
 heirs_rate_on_tax_deferred_estate = 30.0
 dividend_rate = 1.8
 obbba_expiration_year = 2032
-method = "historical average"
+method = "historical_average"
 from = 1990
 to = 2025
 

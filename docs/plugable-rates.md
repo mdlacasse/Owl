@@ -170,7 +170,7 @@ def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None
     # Seed logic (unchanged)
     # ----------------------------------------
 
-    if method in ["gaussian", "histogaussian"]:
+    if method in ["gaussian", "historical_gaussian"]:
         if self.reproducibleRates and not override_reproducible:
             if self.rateSeed is None:
                 raise RuntimeError("Config error: reproducibleRates is True but rateSeed is None.")

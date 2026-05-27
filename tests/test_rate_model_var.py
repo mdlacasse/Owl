@@ -32,7 +32,7 @@ import numpy as np
 import pytest
 
 from owlplanner import Plan
-from owlplanner.rate_models.var_model import VARRateModel
+from owlplanner.rate_models.vector_ar import VARRateModel
 
 
 # ------------------------------------------------------------
@@ -48,7 +48,7 @@ def _set_var(p, frm=1928, to=2024, shrink=True, seed=None, reverse=False, roll=0
         p.setReproducible(True, seed=seed)
     else:
         p.setReproducible(False)
-    p.setRates(method="var", frm=frm, to=to, shrink=shrink, reverse=reverse, roll=roll)
+    p.setRates(method="vector_ar", frm=frm, to=to, shrink=shrink, reverse=reverse, roll=roll)
 
 
 # ------------------------------------------------------------
@@ -64,7 +64,7 @@ def test_constant_flag_is_false():
 
 
 def test_model_name():
-    assert VARRateModel.model_name == "var"
+    assert VARRateModel.model_name == "vector_ar"
 
 
 # ------------------------------------------------------------
@@ -87,7 +87,7 @@ def test_var_output_is_finite():
 
 def test_var_generate_shape_direct():
     """VARRateModel.generate(N) should return (N, 4)."""
-    config = {"method": "var", "frm": 1950, "to": 2020}
+    config = {"method": "vector_ar", "frm": 1950, "to": 2020}
     model = VARRateModel(config, seed=42)
     out = model.generate(30)
     assert out.shape == (30, 4)
@@ -98,7 +98,7 @@ def test_var_rates_in_plausible_range():
     Annual returns should stay within a wide but plausible range.
     Values outside [-100%, +200%] per year would indicate a model failure.
     """
-    config = {"method": "var", "frm": 1928, "to": 2024}
+    config = {"method": "vector_ar", "frm": 1928, "to": 2024}
     model = VARRateModel(config, seed=0)
     # Generate a large sample to stress-test
     out = model.generate(500)
@@ -162,7 +162,7 @@ def test_reproducible_regen_does_not_change_output():
 
 def test_fitted_matrices_shapes():
     """After fitting, _c should be (4,) and _A should be (4, 4)."""
-    config = {"method": "var", "frm": 1928, "to": 2024}
+    config = {"method": "vector_ar", "frm": 1928, "to": 2024}
     model = VARRateModel(config)
     assert model._c.shape == (4,)
     assert model._A.shape == (4, 4)
@@ -171,7 +171,7 @@ def test_fitted_matrices_shapes():
 
 def test_cholesky_factor_lower_triangular():
     """_L must be lower-triangular (Cholesky of residual covariance)."""
-    config = {"method": "var", "frm": 1928, "to": 2024}
+    config = {"method": "vector_ar", "frm": 1928, "to": 2024}
     model = VARRateModel(config)
     L = model._L
     assert np.allclose(np.triu(L, k=1), 0), "_L should be lower-triangular"
@@ -182,7 +182,7 @@ def test_shrinkage_applied_on_short_window():
     A very short window can produce a high spectral radius; shrink=True
     should scale A down so the spectral radius is < 0.95.
     """
-    config = {"method": "var", "frm": 1995, "to": 2010, "shrink": True}
+    config = {"method": "vector_ar", "frm": 1995, "to": 2010, "shrink": True}
     model = VARRateModel(config)
     rho = float(np.max(np.abs(np.linalg.eigvals(model._A))))
     assert rho < 0.95 + 1e-6, f"Spectral radius {rho:.4f} should be < 0.95 after shrinkage"
@@ -190,7 +190,7 @@ def test_shrinkage_applied_on_short_window():
 
 def test_shrink_false_does_not_raise():
     """shrink=False should not raise even if spectral radius is >= 0.95."""
-    config = {"method": "var", "frm": 1995, "to": 2010, "shrink": False}
+    config = {"method": "vector_ar", "frm": 1995, "to": 2010, "shrink": False}
     model = VARRateModel(config)   # should not raise
     assert model._A is not None
 
@@ -202,30 +202,30 @@ def test_shrink_false_does_not_raise():
 def test_invalid_frm_too_low():
     p = _make_plan()
     with pytest.raises((ValueError, Exception)):
-        p.setRates(method="var", frm=1800, to=2024)
+        p.setRates(method="vector_ar", frm=1800, to=2024)
 
 
 def test_invalid_to_too_high():
     p = _make_plan()
     with pytest.raises((ValueError, Exception)):
-        p.setRates(method="var", frm=1928, to=2200)
+        p.setRates(method="vector_ar", frm=1928, to=2200)
 
 
 def test_frm_equals_to_raises():
     p = _make_plan()
     with pytest.raises((ValueError, Exception)):
-        p.setRates(method="var", frm=2000, to=2000)
+        p.setRates(method="vector_ar", frm=2000, to=2000)
 
 
 def test_frm_greater_than_to_raises():
     p = _make_plan()
     with pytest.raises((ValueError, Exception)):
-        p.setRates(method="var", frm=2010, to=2000)
+        p.setRates(method="vector_ar", frm=2010, to=2000)
 
 
 def test_too_few_observations_raises():
     """Window with fewer than 10 years should raise ValueError."""
-    config = {"method": "var", "frm": 2020, "to": 2024}  # only 5 rows
+    config = {"method": "vector_ar", "frm": 2020, "to": 2024}  # only 5 rows
     with pytest.raises(ValueError, match="at least 10 observations"):
         VARRateModel(config)
 

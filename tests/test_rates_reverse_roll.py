@@ -121,7 +121,7 @@ class TestRegenRatesPreservesReverseRoll:
         p = _make_plan_with_historical_rates()
         # Use histogaussian so regenRates actually does something
         p.setReproducible(False)  # so each regen gives new rates
-        p.setRates("histogaussian", 1970, 1990, reverse=True, roll=2)
+        p.setRates("historical_gaussian", 1970, 1990, reverse=True, roll=2)
         assert p.rateReverse is True
         assert p.rateRoll == 2
         tau_before = p.tau_kn.copy()
@@ -181,7 +181,7 @@ social_security_ages = [67]
 heirs_rate_on_tax_deferred_estate = 35.0
 dividend_rate = 2.0
 obbba_expiration_year = 2032
-method = "trailing-30"
+method = "trailing_30"
 from = 1928
 to = 2025
 
@@ -239,9 +239,9 @@ class TestConstantRateReverseRollNoOp:
     def test_default_with_reverse_logs_warning(self):
         """setRates('trailing-30', reverse=True) logs warning and leaves tau_kn unchanged."""
         p, strio = self._make_plan_with_log()
-        p.setRates("trailing-30")
+        p.setRates("trailing_30")
         tau_no_transform = p.tau_kn.copy()
-        p.setRates("trailing-30", reverse=True)
+        p.setRates("trailing_30", reverse=True)
         log_output = strio.getvalue()
         assert "reverse and roll are ignored" in log_output or "ignored for constant" in log_output
         # For constant rates all columns are identical; reverse leaves it unchanged
@@ -250,9 +250,9 @@ class TestConstantRateReverseRollNoOp:
     def test_default_with_roll_logs_warning(self):
         """setRates('trailing-30', roll=2) logs warning and leaves tau_kn unchanged."""
         p, strio = self._make_plan_with_log()
-        p.setRates("trailing-30")
+        p.setRates("trailing_30")
         tau_no_transform = p.tau_kn.copy()
-        p.setRates("trailing-30", roll=2)
+        p.setRates("trailing_30", roll=2)
         log_output = strio.getvalue()
         assert "reverse and roll are ignored" in log_output or "ignored for constant" in log_output
         np.testing.assert_array_almost_equal(p.tau_kn, tau_no_transform)
@@ -268,9 +268,9 @@ class TestConstantRateReverseRollNoOp:
     def test_historical_average_with_roll_logs_warning(self):
         """setRates('historical average', ..., roll=1) logs warning."""
         p, strio = self._make_plan_with_log()
-        p.setRates("historical average", 1990, 2000)
+        p.setRates("historical_average", 1990, 2000)
         tau_no_transform = p.tau_kn.copy()
-        p.setRates("historical average", 1990, 2000, roll=1)
+        p.setRates("historical_average", 1990, 2000, roll=1)
         log_output = strio.getvalue()
         assert "reverse and roll are ignored" in log_output or "ignored for constant" in log_output
         np.testing.assert_array_almost_equal(p.tau_kn, tau_no_transform)

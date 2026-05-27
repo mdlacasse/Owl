@@ -4782,7 +4782,7 @@ class Plan:
 
         A tag string can be set to add information to the title of the plot.
         """
-        if self.rateMethod in [None, "user", "historical average", "conservative", "trailing-30", "optimistic"]:
+        if self.rateMethod in [None, "user", "historical_average", "conservative", "trailing_30", "optimistic"]:
             self.mylog.print(f"Cannot plot correlations for {self.rateMethod} rate method.", tag="WARNING")
             return None
 

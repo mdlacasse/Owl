@@ -192,10 +192,10 @@ This demonstrates:
 
 Once this works:
 
-- Move `"trailing-30"`
+- Move `"trailing_30"`
 - Move `"optimistic"`
 - Move `"conservative"`
-- Move `"historical average"`
+- Move `"historical_average"`
 
 Eventually:
 

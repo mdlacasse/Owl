@@ -55,7 +55,7 @@ social_security_ages = [67.0]
 heirs_rate_on_tax_deferred_estate = 30.0
 dividend_rate = 1.8
 obbba_expiration_year = 2032
-method = "historical average"
+method = "historical_average"
 from = 1969
 to = 2002
 
@@ -140,7 +140,7 @@ def test_plan_created_programmatically_has_no_extra():
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
-    p.setRates("trailing-30")
+    p.setRates("trailing_30")
     if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 
@@ -268,7 +268,7 @@ def test_plan_to_config_linear_omits_interpolation_center_width():
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
-    p.setRates("trailing-30")
+    p.setRates("trailing_30")
     if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
     p.setInterpolationMethod("linear")

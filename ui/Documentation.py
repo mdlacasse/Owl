@@ -115,8 +115,8 @@ See *Input and Output Files* and *Financial Profile* below for full detail.
 
 **Scenario**
 > A *scenario* is a specific realization of future economic conditions — primarily a year-by-year
-sequence of asset-class return rates. For stochastic rate methods (`histogaussian`, `lognormal`,
-`bootstrap_sor`, `var`, `garch_dcc`, etc.), each Monte Carlo trial draws a fresh *scenario*
+sequence of asset-class return rates. For stochastic rate methods (`historical_gaussian`, `lognormal`,
+`historical_bootstrap`, `vector_ar`, `garch_dcc`, etc.), each Monte Carlo trial draws a fresh *scenario*
 from the model specified in the *case*. For the `historical` method, each starting year defines
 one historical *scenario*. For constant rate methods, the *case* itself fully determines the
 single implicit deterministic *scenario*. When stochastic lifespan is enabled in the Spending
@@ -827,10 +827,10 @@ Owl tracks four asset classes:
 ---
 ##### Constant rates
 Constant rates stay the same for every year of the plan. Choose from:
-- `trailing-30` — constant rates equal to the 30-year trailing geometric mean of annual returns. A long-run backward-looking assumption.
+- `trailing_30` — constant rates equal to the 30-year trailing geometric mean of annual returns. A long-run backward-looking assumption.
 - `conservative` — a pessimistic but plausible set of forecasts.
 - `optimistic` — a more bullish set of forecasts.
-- `historical average` — geometric means computed over a selectable historical window
+- `historical_average` — geometric means computed over a selectable historical window
   (1928–present by default). Because averages can be negative when the window is narrow,
   the rate fields allow negative values in this mode.
 - `user` — enter your own values for each asset class.
@@ -854,10 +854,10 @@ history; the plan horizon must fit within the selected window.
 This is deterministic (no randomness) and is the right choice for backtesting: *"how would
 this strategy have performed starting in 1970?"*
 
-**`histogaussian`** — Computes the **arithmetic** mean returns, volatilities, and cross-asset covariance
+**`historical_gaussian`** — Computes the **arithmetic** mean returns, volatilities, and cross-asset covariance
 from the selected historical window, then draws samples from the **fitted multivariate
 normal distribution**. Each year of the plan is an independent draw from that distribution.
-Unlike `bootstrap_sor`, no actual historical years are resampled — only their statistical
+Unlike `historical_bootstrap`, no actual historical years are resampled — only their statistical
 summary (arithmetic mean and covariance) is used. The result is parametric and Gaussian, but with
 parameters grounded in history rather than supplied by the user.
 
@@ -875,14 +875,14 @@ the distribution is naturally right-skewed (large gains more probable than large
 and it is consistent with **Geometric Brownian Motion** — the foundation of most option
 pricing theory.
 
-**`histolognormal`** — Like `histogaussian` but fits a **log-normal** model to the
+**`historical_lognormal`** — Like `historical_gaussian` but fits a **log-normal** model to the
 historical window. Log-returns $\\ln(1 + r)$ are computed from history; their **log-space** mean and
 covariance are estimated directly, and samples are drawn from that fitted
 distribution and exponentiated. The displayed statistics are the equivalent arithmetic means and
 volatilities, converted back from log-space. Inherits all the right-skew and lower-bound advantages
 of `lognormal` while deriving its parameters from history rather than user input.
 
-**`bootstrap_sor`** *(Sequence-of-Returns bootstrap)* — Resamples **actual historical years**
+**`historical_bootstrap`** *(Sequence-of-Returns bootstrap)* — Resamples **actual historical years**
 from the selected window to build synthetic rate sequences. Because real observations are
 used directly (not a fitted distribution), extreme events, fat tails, and cross-asset
 patterns that occurred in history are naturally preserved. Four resampling strategies
@@ -904,15 +904,15 @@ For `block` and `circular` it is a fixed length; for `stationary` it is the *exp
 of the geometrically distributed blocks. For annual return data, values of **3–5** are
 well-supported: market cycles run 3–7 years, but annual autocorrelation decays quickly, so
 larger values reduce sample diversity without meaningfully reducing bias.
-`bootstrap_sor` is well-suited for Monte Carlo stress-testing when you want history-derived
+`historical_bootstrap` is well-suited for Monte Carlo stress-testing when you want history-derived
 randomness that respects multi-year market cycles.
 
-**`var`** *(Vector Autoregression, order 1)* — Fits a VAR(1) model to the selected
+**`vector_ar`** *(Vector Autoregression, order 1)* — Fits a VAR(1) model to the selected
 historical window and then simulates new rate paths from that model. A VAR(1) captures
 explicit year-to-year relationships across all four asset classes simultaneously: each
 year's return depends linearly on last year's returns plus a multivariate normal shock.
 This means momentum (positive serial correlation) and mean-reversion (negative serial
-correlation) observed in the historical data are naturally reproduced. `var` is the most
+correlation) observed in the historical data are naturally reproduced. `vector_ar` is the most
 statistically sophisticated method and is particularly appropriate when the sequence and
 persistence of returns matter, as is often the case for sequence-of-returns risk analysis.
 
@@ -933,24 +933,24 @@ contagion are important, such as for retirement scenarios that include equity-he
 
 | Method | Rate type | Character | Pros | Cons |
 |---|---|---|---|---|
-| `trailing-30` | Constant | Deterministic | Backward-looking 30-year trailing geometric mean; no parameters | Single outcome; no uncertainty modeling |
+| `trailing_30` | Constant | Deterministic | Backward-looking 30-year trailing geometric mean; no parameters | Single outcome; no uncertainty modeling |
 | `conservative` | Constant | Deterministic | Simple; clearly stress-tests the downside | Single outcome; no uncertainty modeling |
 | `optimistic` | Constant | Deterministic | Simple; tests bullish scenario | Single outcome; no uncertainty modeling |
-| `historical average` | Constant | Deterministic | Grounded in a specific historical period | Sensitive to choice of historical window |
+| `historical_average` | Constant | Deterministic | Grounded in a specific historical period | Sensitive to choice of historical window |
 | `user` | Constant | Deterministic | Full control over all return assumptions | Accuracy depends entirely on user inputs |
-| `bootstrap_sor` | Varying | Stochastic | Preserves fat tails and extreme historical events | IID (independent and identically distributed) mode discards year-to-year serial structure |
+| `historical_bootstrap` | Varying | Stochastic | Preserves fat tails and extreme historical events | IID (independent and identically distributed) mode discards year-to-year serial structure |
 | `garch_dcc` | Varying | Stochastic | Realistic volatility clustering and time-varying correlations | Higher per-trial cost; requires ≥ 15 years of history |
 | `gaussian` | Varying | Stochastic | Full control over arithmetic means, volatilities, and correlations | Accuracy depends entirely on user inputs; unbounded downside |
-| `histogaussian` | Varying | Stochastic | History-grounded statistics; no user parameters needed | Assumes normally distributed returns; draws are independent |
-| `histolognormal` | Varying | Stochastic | History-grounded log-normal; bounded below −100%; right-skewed | Draws are independent; log-normal approximation |
+| `historical_gaussian` | Varying | Stochastic | History-grounded statistics; no user parameters needed | Assumes normally distributed returns; draws are independent |
+| `historical_lognormal` | Varying | Stochastic | History-grounded log-normal; bounded below −100%; right-skewed | Draws are independent; log-normal approximation |
 | `historical` | Varying | Deterministic | Exact historical replay; no modeling assumptions | No Monte Carlo; one path per start year |
 | `lognormal` | Varying | Stochastic | User-specified parameters; bounded below −100%; right-skewed; GBM-consistent | Accuracy depends entirely on user inputs |
-| `var` | Varying | Stochastic | Captures momentum and mean-reversion across all asset classes | More complex; sensitive to choice of historical window |
+| `vector_ar` | Varying | Stochastic | Captures momentum and mean-reversion across all asset classes | More complex; sensitive to choice of historical window |
 
 ---
 ##### Historical range
-For all methods that reference history (`historical`, `histogaussian`, `histolognormal`,
-`bootstrap_sor`, `historical average`, `var`, and `garch_dcc`), a **Starting year / Ending year** selector appears.
+For all methods that reference history (`historical`, `historical_gaussian`, `historical_lognormal`,
+`historical_bootstrap`, `historical_average`, `vector_ar`, and `garch_dcc`), a **Starting year / Ending year** selector appears.
 The range determines which calendar years are included in the dataset from which rates
 are drawn or statistics are computed. At least two years are required. For `historical`,
 the ending year is fixed by the starting year plus the plan horizon.
@@ -988,10 +988,10 @@ the underlying data source varies by method:
 | Method(s) | Data shown in the correlation graph |
 |---|---|
 | `historical`, constant presets | The actual plan-horizon sequence (deterministic — no need for a larger sample) |
-| `bootstrap_sor` | The **full historical pool** (frm–to window) that the bootstrap draws from — exact source distribution, no sampling noise |
-| `histogaussian`, `histolognormal` | 2 000 synthetic draws from the parametric distribution fitted to the selected historical window |
+| `historical_bootstrap` | The **full historical pool** (frm–to window) that the bootstrap draws from — exact source distribution, no sampling noise |
+| `historical_gaussian`, `historical_lognormal` | 2 000 synthetic draws from the parametric distribution fitted to the selected historical window |
 | `gaussian`, `lognormal` | 2 000 synthetic draws from the user-supplied arithmetic means, volatilities, and correlations |
-| `var`, `garch_dcc` | 2 000 synthetic draws from the fitted model |
+| `vector_ar`, `garch_dcc` | 2 000 synthetic draws from the fitted model |
 
 The sample count **N** shown in the graph title reflects the actual number of data points
 plotted, so it will differ from the plan horizon for stochastic methods.
@@ -1000,8 +1000,8 @@ plotted, so it will differ from the plan horizon for stochastic methods.
 ##### Which method enables Monte Carlo?
 Monte Carlo simulations (see the **Stress Tests** page) require a **stochastic** method —
 one that generates a fresh random sample for each simulation trial. The methods that
-support Monte Carlo are: `histogaussian`, `histolognormal`, `gaussian`,
-`lognormal`, `bootstrap_sor`, `var`, and `garch_dcc`.
+support Monte Carlo are: `historical_gaussian`, `historical_lognormal`, `gaussian`,
+`lognormal`, `historical_bootstrap`, `vector_ar`, and `garch_dcc`.
 The `historical` method is deterministic (it always produces the same sequence for a
 given starting year) and therefore cannot be used for Monte Carlo.
 
@@ -1031,7 +1031,7 @@ These controls do not apply to constant rates since the same value is used every
 
 ---
 ##### Reproducible rates (Advanced options)
-For the stochastic methods (`histogaussian`, `histolognormal`, `gaussian`, `lognormal`, `bootstrap_sor`, `var`, `garch_dcc`),
+For the stochastic methods (`historical_gaussian`, `historical_lognormal`, `gaussian`, `lognormal`, `historical_bootstrap`, `vector_ar`, `garch_dcc`),
 an option to **Enable reproducible rates** is available. When checked, the random number
 generator is seeded with a fixed value so the same rate sequence is produced every time
 the case is run. This is useful for isolating the effect of other parameters (spending
@@ -1045,11 +1045,11 @@ targets, allocations, Roth strategy) while holding the random scenario constant.
   *(Foundational paper for the `garch_dcc` method.)*
 - Campbell, J. Y., & Viceira, L. M. (2002). *Strategic Asset Allocation: Portfolio Choice for
   Long-Term Investors.* Oxford University Press.
-  *(Basis for the `var` method.)*
+  *(Basis for the `vector_ar` method.)*
 - Efron, B., & Tibshirani, R. J. (1993). *An Introduction to the Bootstrap.*
-  Chapman & Hall/CRC. *(Foundation for `bootstrap_sor` resampling methods.)*
+  Chapman & Hall/CRC. *(Foundation for `historical_bootstrap` resampling methods.)*
 - Hull, J. C. (2017). *Options, Futures, and Other Derivatives* (10th ed.). Pearson.
-  *(Basis for the `lognormal` and `histolognormal` log-normal / GBM framework.)*
+  *(Basis for the `lognormal` and `historical_lognormal` log-normal / GBM framework.)*
 """)
 
     with st.expander("Goals", expanded=expand_all):
@@ -1249,8 +1249,8 @@ net spending, or maximize the bequest under the constraint of a net spending amo
 All plots can be displayed in today's \\$ or in nominal value using the radio buttons at the top.
 
 A **Re-run** button re-executes the *case*, which generates a different result
-if the chosen rate method is stochastic (`histogaussian`, `histolognormal`, `gaussian`,
-`lognormal`, `bootstrap_sor`, `var`, or `garch_dcc`). Each graph can be seen
+if the chosen rate method is stochastic (`historical_gaussian`, `historical_lognormal`, `gaussian`,
+`lognormal`, `historical_bootstrap`, `vector_ar`, or `garch_dcc`). Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools tab).
@@ -1438,13 +1438,13 @@ for that particular rate sequence.
 ##### Prerequisite: a stochastic rate method
 Monte Carlo requires a rate method that generates a new random sequence for each trial.
 The eligible methods (set on the **Rates** page) are:
-- `histogaussian` — multivariate normal draws with arithmetic mean and covariance fitted on a historical window.
-- `histolognormal` — log-normal draws with log-space parameters fitted on a historical window; reported statistics are arithmetic equivalents; returns bounded below −100%.
+- `historical_gaussian` — multivariate normal draws with arithmetic mean and covariance fitted on a historical window.
+- `historical_lognormal` — log-normal draws with log-space parameters fitted on a historical window; reported statistics are arithmetic equivalents; returns bounded below −100%.
 - `gaussian` — multivariate normal draws using user-supplied arithmetic mean, volatility, and correlation parameters.
 - `lognormal` — log-normal draws using user-supplied arithmetic mean, volatility, and correlation parameters; returns bounded below −100%.
-- `bootstrap_sor` — block-bootstrap resampling of the historical window (iid, block,
+- `historical_bootstrap` — block-bootstrap resampling of the historical window (iid, block,
   circular, or stationary).
-- `var` — VAR(1) simulation capturing year-to-year serial correlations fitted on the
+- `vector_ar` — VAR(1) simulation capturing year-to-year serial correlations fitted on the
   historical window.
 - `garch_dcc` — DCC-GARCH(1,1) simulation with time-varying volatility and cross-asset
   correlations fitted on the historical window.
@@ -1552,9 +1552,9 @@ Two variants are reported depending on the scenario method:
 - **Synthetic spending floor (SSF)** — produced when using *Monte Carlo* scenarios.
   It is the highest real spending level that survives at least 95% of a set of synthetic
   return sequences generated by the selected rate model. Because the model can be calibrated
-  to current return conditions rather than the historical average, the SSF serves as a
+  to current return conditions rather than the historical_average, the SSF serves as a
   forward-looking stress test: if prospective returns are expected to be lower than the
-  historical average, the SSF will fall below the HSF, flagging the risk. When the two agree,
+  historical_average, the SSF will fall below the HSF, flagging the risk. When the two agree,
   it signals that the model anticipates conditions similar to the historical record.
 
 ##### Summary Line
