@@ -1109,6 +1109,9 @@ IRS rules allow HSA withdrawals only up to total qualified medical expenses (QME
 This field, combined with Medicare costs, caps tax-free HSA withdrawals each year.
 If zero, HSA withdrawals are limited to Medicare costs only.
 Field is ignored if plan has no HSA.
+Note: these expenses are treated as part of general living costs in the cash flow — they do not
+appear separately in the *Healthcare* slice of the spending pie chart, which covers insurance
+premiums only.
 
 **ACA Marketplace (Pre-65)** allows entering the annual benchmark Silver plan (SLCSP) premium
 for years before Medicare. Set to 0 to omit ACA costs.
@@ -1253,6 +1256,8 @@ Graphs are organized into four tabs:
 - *Lifetime Cash Flow* — pair of pie charts (in today's \\$): left shows where money comes from
   (portfolio, Social Security, pension, wages, SPIA, other); right shows where it goes
   (living expenses, taxes, healthcare, debt, bequest).
+  *Healthcare* covers insurance premiums only (Medicare Part B/D + IRMAA surcharges, ACA marketplace premiums);
+  non-Medicare qualified medical expenses (QMEs) are embedded in the *living expenses* slice.
 - *Annual Cash Flow Mix* — year-by-year normalized stacked-area charts showing how the composition
   of income sources and outflows evolves over the plan horizon. Colors match the pie charts.
   Bequest is excluded as it is a lump-sum event rather than an annual flow.

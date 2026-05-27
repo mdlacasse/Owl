@@ -88,6 +88,7 @@ else:
         helpmsg_med = (
             "Annual non-Medicare non-ACA qualified medical expenses (dental, vision, co-pays, deductibles, etc.) "
             "in today's dollars. HSA withdrawals are capped at this amount plus any Medicare costs. "
+            "These expenses are treated as part of general living costs, not as separate healthcare costs. "
             "Ignore if plan has no HSA."
         )
         kz.getNum("Other medical expenses ($k/year)", "otherMedical", min_value=0.0, help=helpmsg_med)
