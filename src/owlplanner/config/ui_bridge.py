@@ -13,11 +13,11 @@ Rates representation:
 Copyright (C) 2025-2026 The Owl Authors
 """
 
-import logging
 import pandas as pd
 from datetime import date, datetime
 from typing import Any
 
+from owlplanner import mylogging
 from owlplanner.config.constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
 from owlplanner.config.plan_bridge import _normalize_hfp_file_name
 from owlplanner.config.defaults import (
@@ -38,8 +38,6 @@ from owlplanner.rate_models.constants import (
     METHODS_WITH_VALUES,
     STOCHASTIC_METHODS,
 )
-
-logger = logging.getLogger(__name__)
 
 # Account type ordering for UI widget keys (txbl, txDef, txFree, hsa)
 ACC_UI = ["txbl", "txDef", "txFree", "hsa"]
@@ -152,7 +150,7 @@ def _age_float_to_ym(age: float) -> tuple[int, int]:
     return int(age), round((age % 1.0) * 12)
 
 
-def config_to_ui(diconf: dict) -> dict:
+def config_to_ui(diconf: dict, *, mylog=None) -> dict:
     """
     Convert canonical configuration dict to flat UI session-state style dict.
 
@@ -361,7 +359,8 @@ def config_to_ui(diconf: dict) -> dict:
 
     rate_method = rs.get("method", "historical_average")
     if rate_method == "dataframe":
-        logger.warning("Dataframe rate method is not supported in UI; mapping to 'user'.")
+        if mylog:
+            mylog.print("Dataframe rate method is not supported in UI; mapping to 'user'.", tag="WARNING")
         rate_method = "user"
     if rate_method in FIXED_TYPE_UI:
         dic["rateType"] = "constant"
@@ -405,7 +404,7 @@ def config_to_ui(diconf: dict) -> dict:
     return dic
 
 
-def ui_to_config(uidic: dict) -> dict:
+def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     """
     Convert flat UI session-state dict to canonical configuration dict.
 
@@ -545,8 +544,11 @@ def ui_to_config(uidic: dict) -> dict:
             if not annuitant or pd.isna(buy_year) or pd.isna(premium_k) or pd.isna(monthly):
                 continue
             if annuitant not in inames:
-                logger.warning("SPIA annuitant %r does not match any individual name %s; skipping row.",
-                               annuitant, inames)
+                if mylog:
+                    mylog.print(
+                        f"SPIA annuitant {annuitant!r} does not match any individual name {inames}; skipping row.",
+                        tag="WARNING",
+                    )
                 continue
             new_inds.append(inames.index(annuitant))
             new_years.append(int(buy_year))

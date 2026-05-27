@@ -7,6 +7,7 @@ Copyright (C) 2025-2026 The Owl Authors
 from io import StringIO
 
 import owlplanner as owl
+from owlplanner.mylogging import Logger
 from owlplanner.config import (
     apply_config_to_plan,
     config_to_plan,
@@ -25,7 +26,8 @@ def test_sanitize_config_start_roth_past_year():
 
     diconf = {"solver_options": {"startRothConversions": 2019}}
     log = StringIO()
-    sanitize_config(diconf, log_stream=log)
+    mylog = Logger(verbose=True, logstreams=[log, log])
+    sanitize_config(diconf, mylog=mylog)
     thisyear = date.today().year
 
     assert diconf["solver_options"]["startRothConversions"] == thisyear
@@ -50,7 +52,8 @@ def test_load_toml_start_roth_past_year_reset():
         "startRothConversions = 2019",  # Past year
     )
     log = StringIO()
-    diconf, _, _ = load_toml(StringIO(toml_content), log_stream=log)
+    mylog = Logger(verbose=True, logstreams=[log, log])
+    diconf, _, _ = load_toml(StringIO(toml_content), mylog=mylog)
     thisyear = date.today().year
 
     assert diconf["solver_options"]["startRothConversions"] == thisyear
@@ -103,10 +106,8 @@ def test_ui_to_config_to_plan():
     assert plan.inames[0] == "Joe"
 
 
-def test_config_to_ui_dataframe_maps_to_user(caplog):
+def test_config_to_ui_dataframe_maps_to_user():
     """When config has method=dataframe, config_to_ui maps to user and logs warning."""
-    import logging
-    caplog.set_level(logging.WARNING)
 
     diconf = {
         "case_name": "test",
@@ -152,11 +153,13 @@ def test_config_to_ui_dataframe_maps_to_user(caplog):
         "solver_options": {},
         "results": {"default_plots": "nominal"},
     }
-    uidic = config_to_ui(diconf)
+    log = StringIO()
+    mylog = Logger(verbose=True, logstreams=[log, log])
+    uidic = config_to_ui(diconf, mylog=mylog)
 
     assert uidic["rateType"] == "constant"
     assert uidic["fixedType"] == "user"
-    assert "Dataframe rate method is not supported in UI" in caplog.text
+    assert "Dataframe rate method is not supported in UI" in log.getvalue()
 
 
 def test_config_roundtrip_social_security_trim():

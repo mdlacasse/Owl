@@ -31,7 +31,7 @@ def readConfig(file, *, verbose=True, logstreams=None, loadHFP=True):
     """
     mylog = log.Logger(verbose, logstreams)
 
-    diconf, dirname, filename = load_toml(file)
+    diconf, dirname, filename = load_toml(file, mylog=mylog)
 
     if filename is not None:
         mylog.vprint(f"Reading plan from case file '{filename}'.")

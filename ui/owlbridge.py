@@ -143,7 +143,7 @@ def prepareRun(plan):
 
     try:
         uidic = kz.currentCaseDic()
-        diconf = ui_to_config(uidic)
+        diconf = ui_to_config(uidic, mylog=_get_case_logger())
         apply_config_to_plan(plan, diconf)
     except Exception as e:
         st.error(f"Failed to apply configuration: {e}")
@@ -1385,8 +1385,9 @@ def createCaseFromFile(strio):
     from owlplanner.config import config_to_ui
 
     logstrio = StringIO()
+    mylog = Logger(verbose=True, logstreams=[logstrio, logstrio])
     try:
-        diconf, dirname, _ = load_toml(strio, log_stream=logstrio)
+        diconf, dirname, _ = load_toml(strio, mylog=mylog)
         plan = config_to_plan(
             diconf,
             dirname,
@@ -1398,7 +1399,7 @@ def createCaseFromFile(strio):
         st.error(f"Failed to parse case file: {e}")
         return "", {}
 
-    mydic = config_to_ui(diconf)
+    mydic = config_to_ui(diconf, mylog=mylog)
     mydic["plan"] = plan
     mydic["id"] = plan._id
     mydic["summaryDf"] = None

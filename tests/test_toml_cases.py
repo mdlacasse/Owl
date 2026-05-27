@@ -32,9 +32,11 @@ pytestmark = pytest.mark.toml
 
 def _active_solver():
     """Resolve OWL_TEST_SOLVER (or 'default') to the actual solver that will be used."""
-    env = os.getenv('OWL_TEST_SOLVER', 'default')
-    if env in ('HiGHS', 'MOSEK'):
-        return env
+    env = os.getenv('OWL_TEST_SOLVER', 'default').upper()
+    if env == 'HIGHS':
+        return 'HiGHS'
+    if env == 'MOSEK':
+        return 'MOSEK'
     try:
         import mosek  # noqa: F401
         if 'MOSEKLM_LICENSE_FILE' in os.environ:

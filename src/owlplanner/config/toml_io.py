@@ -4,7 +4,6 @@ TOML load/save with unknown key preservation.
 Copyright (C) 2025-2026 The Owl Authors
 """
 
-import logging
 import os
 from datetime import date
 from io import BytesIO, StringIO
@@ -12,12 +11,11 @@ from typing import Union
 
 import toml
 
+from .. import mylogging
 from .legacy import translate_old_keys
 
-_LOG = logging.getLogger(__name__)
 
-
-def sanitize_config(diconf: dict, *, log_stream=None) -> None:
+def sanitize_config(diconf: dict, *, mylog=None) -> None:
     """
     Apply domain-specific sanitization to a loaded config dict (in place).
 
@@ -43,11 +41,13 @@ def sanitize_config(diconf: dict, *, log_stream=None) -> None:
         method = rs.get("method")
         if method in _LEGACY_METHOD_NAMES:
             new_name = _LEGACY_METHOD_NAMES[method]
-            _LOG.warning(
-                "Rate method '%s' is a legacy name; please update your TOML file to use '%s'. "
-                "Legacy names will be removed in a future release.",
-                method, new_name,
-            )
+            if mylog:
+                mylog.print(
+                    f"Rate method '{method}' is a legacy name; "
+                    f"please update your TOML file to use '{new_name}'. "
+                    "Legacy names will be removed in a future release.",
+                    tag="WARNING",
+                )
             rs["method"] = new_name
 
     so = diconf.get("solver_options")
@@ -65,9 +65,8 @@ def sanitize_config(diconf: dict, *, log_stream=None) -> None:
                 f"startRothConversions ({year_val}) was in the past; "
                 f"reset to {thisyear}."
             )
-            if log_stream is not None:
-                log_stream.write(msg + "\n")
-            _LOG.warning(msg)
+            if mylog:
+                mylog.print(msg, tag="WARNING")
 
 
 def _clean_float(v) -> str:
@@ -119,14 +118,14 @@ def _convert_for_toml(obj):
 def load_toml(
     file: Union[str, BytesIO, StringIO],
     *,
-    log_stream=None,
+    mylog=None,
 ) -> tuple[dict, str, Union[str, None]]:
     """
     Load configuration from TOML file. Unknown keys are preserved.
 
     Args:
         file: File path (str), BytesIO, or StringIO
-        log_stream: Optional file-like object to write warnings to (e.g. case logs).
+        mylog: Optional :class:`mylogging.Logger` for warnings (e.g. the case's logger).
 
     Returns:
         (diconf, dirname, filename):
@@ -167,7 +166,7 @@ def load_toml(
         raise ValueError(f"Type {type(file)} not a valid type")
 
     diconf = translate_old_keys(diconf)
-    sanitize_config(diconf, log_stream=log_stream)
+    sanitize_config(diconf, mylog=mylog)
 
     return diconf, dirname, filename
 
