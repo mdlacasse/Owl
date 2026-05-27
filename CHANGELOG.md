@@ -1,5 +1,41 @@
 
 
+### Version 2026.05.27
+
+#### Rate method names — consistency and accessibility
+
+All rate method names now use underscore separators and plain-language labels.
+Old names are accepted as backward-compatible aliases (with a deprecation warning
+logged on load) and will be removed in a future release.
+
+| Old name | New name |
+|---|---|
+| `historical average` | `historical_average` |
+| `trailing-30` | `trailing_30` |
+| `histogaussian` | `historical_gaussian` |
+| `histolognormal` | `historical_lognormal` |
+| `bootstrap_sor` | `historical_bootstrap` |
+| `var` | `vector_ar` |
+
+Source files renamed accordingly:
+`bootstrap_sor.py/.md` → `historical_bootstrap.py/.md`,
+`var_model.py` → `vector_ar.py`.
+
+#### Bootstrap documentation
+
+- Tooltip and UI documentation clarify that `block_size` is a **fixed** block
+  length for `block`/`circular`, but the **expected** (geometric mean) block length
+  for `stationary`.
+- All three non-iid variants collapse to iid when `block_size = 1`.
+- Recommended range for annual return data: **3–5** (Politis & White 2004).
+
+#### Bug fix
+
+- `OWL_TEST_SOLVER` environment variable comparison is now case-insensitive
+  (`highs`, `HiGHS`, and `HIGHS` all select the HiGHS solver in tests).
+
+---
+
 ### Version 2026.05.24
 
 #### Fixed assets — real vs. nominal growth rate
