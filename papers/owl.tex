@@ -416,6 +416,59 @@ and enters the cash-flow as ordinary income.
 
 Early-commencement reductions and late-commencement credits are not modeled.
 
+\section{Single Premium Immediate Annuity (SPIA)}
+\label{sec:spia}
+
+\subsection*{Overview}
+
+A Single Premium Immediate Annuity (SPIA) converts a one-time lump-sum premium
+into a guaranteed income stream that begins immediately and continues for the
+annuitant's lifetime.
+Unlike a pension, the income rate (premium-to-income ratio) is market-determined
+and must be supplied by the user; Owl does not contain an actuarial pricing model.
+The premium is funded from the individual's tax-deferred account via an IRA
+rollover---a non-taxable transfer---so no ordinary income is recognized at the
+time of purchase.
+Annual payments begin in the year of purchase and are fully taxable as ordinary
+income for the remainder of the plan horizon.
+
+\subsection*{Implementation in Owl}
+
+Each individual may hold one or more SPIAs; each is added independently via
+\code{addSPIA()}.
+In the purchase year, the premium is deducted from the annuitant's tax-deferred
+balance as a non-taxable IRA rollover; no ordinary income is generated at that
+time.
+If the purchase year precedes the plan's start year (an already-purchased SPIA),
+the premium deduction is skipped and income begins at plan year zero.
+
+Annual SPIA income equals twelve times the specified monthly benefit.
+When the \emph{indexed} flag is set, the nominal benefit grows with the inflation
+series each year so that its real purchasing power remains constant; otherwise
+the nominal dollar amount is fixed for the life of the annuity.
+
+An optional \emph{survivor fraction} ($0 \le f_s \le 1$) directs a specified
+share of the annuitant's benefit to continue to the other individual after the
+annuitant's death.
+
+SPIA income enters the cash-flow constraint as ordinary income alongside wages,
+pension payments, and Social Security benefits.
+It therefore raises Modified Adjusted Gross Income (MAGI) and affects Medicare
+IRMAA surcharges and the Social Security taxability fraction.
+
+\subsection*{Limitations and assumptions}
+
+\begin{itemize}[nosep]
+  \item The premium is assumed drawn entirely from a tax-deferred account (IRA
+    rollover); funding from taxable or Roth accounts is not modeled.
+  \item Full annual income is credited from the purchase year; partial-year
+    proration in the purchase year is not modeled.
+  \item Annuity pricing (premium-to-income ratio) is user-supplied; Owl
+    contains no actuarial pricing model.
+  \item Payments cease at the annuitant's plan horizon; term-certain and
+    period-certain riders are not modeled.
+\end{itemize}
+
 \section{Roth Account Rules}
 \label{sec:roth}
 
@@ -987,7 +1040,7 @@ expenses for a single person.
 
 \subsection*{Primary objectives}
 
-Three optimization objectives are supported:
+Two optimization objectives are supported:
 
 \begin{description}[nosep, leftmargin=2em, style=nextline]
 \item[Maximize net spending.]
@@ -1002,14 +1055,6 @@ Three optimization objectives are supported:
   after-tax estate value delivered to heirs at the end of the horizon.
   The heir's marginal income tax rate on inherited tax-deferred balances
   can be specified by the user.
-
-\item[Maximize hybrid.]
-  A weighted combination of present-value lifetime spending and
-  present-value bequest.
-  A user-specified weight $h \in [0, 1]$ controls the trade-off:
-  $h = 1$ recovers the pure spending objective and $h = 0$ the pure
-  bequest objective; $h = 0.5$ balances the two equally in present-value
-  terms.
 \end{description}
 
 \subsection*{Lexicographic weight}
@@ -1060,14 +1105,28 @@ a damped update.
 The loop typically converges in fewer than fifteen iterations for
 well-posed plans.
 
-Two optional MIP formulations replace portions of the SC loop with exact
-binary constraints, eliminating the corresponding nonlinearity entirely.
-\code{withSSTaxability="optimize"} models SS taxability as an exact
-piecewise-linear MIP; \code{withMedicare="optimize"} models IRMAA
-bracket selection within the optimization itself.
-These exact formulations are more computationally demanding but guarantee
-the globally optimal bracket assignment without relying on iterative
-convergence.
+Five optional MIP formulations replace portions of the SC loop with exact
+binary constraints, eliminating the corresponding nonlinearity entirely:
+\begin{itemize}[nosep]
+  \item \code{withSSTaxability="optimize"} --- models SS taxability as an
+    exact piecewise-linear MIP using binary variables $z^\sigma$ to select
+    the correct taxability threshold (0\%, 50\%, or 85\%) each year.
+  \item \code{withLTCG="optimize"} --- uses binary variables $z^l$ to select
+    the correct 0\%, 15\%, or 20\% LTCG bracket each year, rather than
+    approximating bracket thresholds from the previous SC iteration.
+  \item \code{withNIIT="optimize"} --- uses a binary variable $z^j$ to
+    determine whether MAGI exceeds the NIIT threshold each year.
+  \item \code{withACA="optimize"} --- folds ACA premium bracket selection and
+    MAGI into the MIP, replacing the per-iteration SC approximation.
+  \item \code{withMedicare="optimize"} --- models IRMAA bracket selection
+    using binary variables $z^m$, guaranteeing the globally optimal bracket
+    assignment each year.
+\end{itemize}
+Each exact formulation eliminates the corresponding SC-loop approximation at
+the cost of additional binary variables.
+When multiple flags are active simultaneously, the resulting MILP can be large;
+the \code{withDecomposition} option (Section~\ref{sec:decomposition}) provides
+sequential (relax-and-fix) and Benders strategies to reduce solve time.
 
 \section{Filing Status and the Death of a Spouse}
 
@@ -1107,6 +1166,64 @@ and MIP solver accessed directly via the \code{highspy} Python package.
 An optional interface to \textbf{MOSEK}, a commercial solver requiring a
 separate license, is also supported and generally provides faster solution
 times for large MIP problems.
+
+\section{MIP Decomposition}
+\label{sec:decomposition}
+
+When multiple \code{"optimize"} flags are active simultaneously---for example,
+\code{withLTCG}, \code{withMedicare}, \code{withACA}, \code{withSSTaxability},
+and \code{withNIIT} all set to \code{"optimize"}---the monolithic MILP can
+accumulate on the order of 400 binary variables from the five bracket-selector
+families ($z^m$, $z^a$, $z^\sigma$, $z^l$, $z^j$) plus the Roth exclusion
+binaries $z^x$.
+Solve times grow substantially with this binary count.
+The \code{withDecomposition} option partitions the MILP into two interacting
+subproblems that are solved sequentially, separating bracket selection from
+continuous planning:
+\begin{itemize}[nosep]
+  \item \textbf{Master problem} --- selects the bracket binary families
+    $z^m$, $z^a$, $z^\sigma$, $z^l$, $z^j$.
+  \item \textbf{Subproblem} --- solves the continuous planning problem (all
+    LP variables) together with the Roth exclusion binaries $z^x$, with
+    bracket assignments fixed by the master.
+\end{itemize}
+Two decomposition strategies are available.
+
+\paragraph*{Sequential (relax-and-fix).}
+The LP relaxation (all binaries relaxed to $[0,1]$) is solved first.
+The bracket binary families are then rounded to 0 or 1 in a fixed order
+($z^l \to z^\sigma \to z^j \to z^m \to z^a$).
+Finally, one reduced MILP is solved with all bracket binaries fixed and only
+$z^x$ free.
+This is a fast heuristic and is not guaranteed to be globally optimal, but
+in practice it produces near-optimal or optimal solutions.
+
+\paragraph*{Benders decomposition.}
+Classical Benders decomposition~\cite{benders1962} provides a certified global
+optimum.
+Starting from an initial bracket assignment, the subproblem LP is solved and its
+dual variables $\pi$ are used to generate a Benders optimality cut
+\begin{equation}
+    \eta \ge \alpha + \bm{\beta}^\top z,
+    \qquad
+    \alpha = \theta_{\mathrm{LP}} - \bm{\beta}^\top z^*,
+    \quad
+    \beta_j = -\sum_i \pi_i A_{ij},
+\end{equation}
+where $\theta_{\mathrm{LP}}$ is the subproblem LP objective and $A_{ij}$ are
+the constraint coefficients of master column $j$.
+The cut is added to the master; the master MIP is re-solved for a new bracket
+assignment and a lower bound on $\eta$.
+An upper bound is obtained by solving the subproblem MIP.
+The loop terminates when the gap between the upper and lower bounds falls within
+the solver's MIP gap tolerance.
+In practice the algorithm converges in one to three iterations.
+If the LP relaxation gap cannot be closed---which occurs when fractional $z^x$
+values introduce an inherent gap---Benders falls back to the sequential strategy.
+
+Both strategies support HiGHS and MOSEK.
+The option is \code{withDecomposition = "none" | "sequential" | "benders"};
+the default is \code{"none"} (monolithic MILP).
 
 \chapter{Indices, variables, and parameters}
 In the next sections, the indices, variables, and parameters are
@@ -4435,6 +4552,11 @@ P.~Artzner, F.~Delbaen, J.-M. Eber, and D.~Heath,
 R.~T. Rockafellar and S.~Uryasev,
 ``Optimization of conditional value-at-risk,''
 \textit{Journal of Risk}, vol.~2, no.~3, pp.~21--41, 2000.
+
+\bibitem{benders1962}
+J.~F. Benders,
+``Partitioning procedures for solving mixed-variables programming problems,''
+\textit{Numerische Mathematik}, vol.~4, no.~1, pp.~238--252, 1962.
 
 \end{thebibliography}
 
