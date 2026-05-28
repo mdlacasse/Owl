@@ -440,6 +440,21 @@ def test_build_summary_dic_includes_debt_keys(alex_jamie_plan):
     assert "Total debt payments (nominal)" in dic
 
 
+def test_build_summary_dic_debt_keys_present_when_no_debts(joe_plan):
+    """Debt keys must always be present even when there are no debts (zero value)."""
+    assert joe_plan.debt_payments_n.sum() == 0
+    dic = build_summary_dic(joe_plan)
+    assert "Total debt payments (today's $)" in dic
+    assert "Total debt payments (nominal)" in dic
+
+
+def test_build_summary_dic_aca_keys_always_present(joe_plan):
+    """ACA premium keys must always be present regardless of ACA costs."""
+    dic = build_summary_dic(joe_plan)
+    assert "Total ACA premiums paid (today's $)" in dic
+    assert "Total ACA premiums paid (nominal)" in dic
+
+
 def test_build_summary_dic_partial_n_omits_bequest_sections(alex_jamie_plan):
     """Summary computed over fewer than N_n years omits both bequest sections."""
     p = alex_jamie_plan

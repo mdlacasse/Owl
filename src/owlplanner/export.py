@@ -410,14 +410,12 @@ def build_summary_dic(plan, N=None):
     _summary_currency_pair(dic, "»  Covered by HSA", hsa_med_now, hsa_med)
 
     aca_total = np.sum(plan.aca_costs_n[:N], axis=0)
-    if aca_total > 0:
-        aca_totalNow = np.sum(plan.aca_costs_n[:N] / plan.gamma_n[:N], axis=0)
-        _summary_currency_pair(dic, "Total ACA premiums paid", aca_totalNow, aca_total)
+    aca_totalNow = np.sum(plan.aca_costs_n[:N] / plan.gamma_n[:N], axis=0)
+    _summary_currency_pair(dic, "Total ACA premiums paid", aca_totalNow, aca_total)
 
     totDebtPayments = np.sum(plan.debt_payments_n[:N], axis=0)
-    if totDebtPayments > 0:
-        totDebtPaymentsNow = np.sum(plan.debt_payments_n[:N] / plan.gamma_n[:N], axis=0)
-        _summary_currency_pair(dic, "Total debt payments", totDebtPaymentsNow, totDebtPayments)
+    totDebtPaymentsNow = np.sum(plan.debt_payments_n[:N] / plan.gamma_n[:N], axis=0)
+    _summary_currency_pair(dic, "Total debt payments", totDebtPaymentsNow, totDebtPayments)
 
     if plan.N_i == 2 and plan.n_d < plan.N_n and N == plan.N_n:
         _summary_section(dic, SUMMARY_SECTION_PARTIAL_BEQUEST)
