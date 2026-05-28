@@ -4232,9 +4232,11 @@ to present) and provides utilities for constructing rate scenarios.
 
 \item[rate\_models/]
 A pluggable system of rate model classes inheriting from \code{BaseRateModel}.
-Built-in models (historical, fixed, gaussian, histogaussian, lognormal,
-histolognormal, bootstrap~SOR, VAR, GARCH) are in \code{builtin.py}
-and \code{_builtin_impl.py}.
+Built-in models (\code{historical}, \code{historical_average},
+\code{historical_gaussian}, \code{historical_lognormal},
+\code{gaussian}, \code{lognormal},
+\code{historical_bootstrap}, \code{vector_ar}, \code{garch_dcc},
+and \code{user}) are in \code{builtin.py} and \code{_builtin_impl.py}.
 Custom models are discoverable at runtime if they subclass
 \code{BaseRateModel} and are importable.
 
