@@ -481,7 +481,7 @@ def runStochasticSpending(plan):
 
         result["with_longevity"] = with_longevity
         result["mortality_table"] = mortality_table
-        result["rate_method"] = "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "stochastic")
+        result["rate_method"] = "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "")
         kz.storeCaseKey("stochScenarioData", result)
         _apply_stochastic_target(result, target_sr, plan1._plotter, plan1)
     except Exception as e:
@@ -666,8 +666,8 @@ def _setRates(plan):
             kz.setCaseKey("roll_sequence", plan.rateRoll)
 
             dist = owl.getRatesDistributions(yfrm, yto, plan.mylog)
-            # bootstrap_sor/var/garch_dcc: arithmetic mean of historical pool for reference.
-            # histolognormal: reports equivalent arithmetic statistics after log-space fit.
+            # historical_bootstrap/vector_ar/garch_dcc: arithmetic mean of historical pool for reference.
+            # historical_lognormal: reports equivalent arithmetic statistics after log-space fit.
             for j in range(4):
                 kz.pushCaseKey(f"mean{j}", dist.arith_means[j])
                 kz.pushCaseKey(f"stdev{j}", dist.stdev[j])

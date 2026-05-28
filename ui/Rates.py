@@ -80,7 +80,7 @@ def updateRates(key):
 
 
 def initRates():
-    if kz.getCaseKey("rateType") == "constant" and kz.getCaseKey("fixedType") != "historical":
+    if kz.getCaseKey("rateType") == "constant":
         updateFixedRates(kz.getCaseKey("fixedType"), False)
     else:
         owb.setRates()
@@ -394,7 +394,7 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
-        # Reproducibility checkbox - only for gaussian/lognormal and histogaussian/histolognormal methods.
+        # Reproducibility checkbox - only for gaussian/lognormal and historical_gaussian/historical_lognormal methods.
         if kz.getCaseKey("varyingType") in [
             "gaussian", "lognormal", "historical_gaussian", "historical_lognormal",
             "historical_bootstrap", "vector_ar", "garch_dcc",

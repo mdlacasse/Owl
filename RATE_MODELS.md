@@ -26,8 +26,8 @@ Constant rates equal to the geometric mean over the selected historical window.
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"historical_average"`) |
-| `from` | Yes | int |  |
-| `to` | Yes | int |  |
+| `from` | Yes | int | First year of historical window (inclusive). |
+| `to` | Yes | int | Last year of historical window (inclusive). |
 
 **Example:**
 
@@ -176,8 +176,8 @@ Samples from a multivariate normal distribution fitted to the selected historica
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"historical_gaussian"`) |
-| `from` | Yes | int |  |
-| `to` | Yes | int |  |
+| `from` | Yes | int | First year of historical window (inclusive). |
+| `to` | Yes | int | Last year of historical window (inclusive). |
 
 **Example:**
 
@@ -195,8 +195,8 @@ Fits a correlated log-normal model to the selected historical window and samples
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
 | `method` | Yes | str | model name (`"historical_lognormal"`) |
-| `from` | Yes | int |  |
-| `to` | Yes | int |  |
+| `from` | Yes | int | First year of historical window (inclusive). |
+| `to` | Yes | int | Last year of historical window (inclusive). |
 
 **Example:**
 

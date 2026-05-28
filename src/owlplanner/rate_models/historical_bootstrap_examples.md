@@ -1,9 +1,11 @@
 
+> **Note:** The legacy alias `bootstrap_sor` is still accepted and maps to `historical_bootstrap`.
+
 # 1️⃣ Basic IID Bootstrap
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1928
 to = 2024
 bootstrap_type = "iid"
@@ -49,7 +51,7 @@ This answers:
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1928
 to = 2024
 bootstrap_type = "block"
@@ -89,7 +91,7 @@ If failure jumps materially compared to IID, your plan is sequence-sensitive.
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1928
 to = 2024
 bootstrap_type = "stationary"
@@ -133,7 +135,7 @@ This is often the most realistic bootstrap variant.
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1950
 to = 2024
 bootstrap_type = "circular"
@@ -171,7 +173,7 @@ It answers:
 
 ```toml
 [rates_selection]
-method = "bootstrap_sor"
+method = "historical_bootstrap"
 frm = 1928
 to = 2024
 bootstrap_type = "block"

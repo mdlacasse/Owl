@@ -161,10 +161,12 @@ class HistoricalAverageRateModel(BaseRateModel):
     required_parameters = {
         "frm": {
             "type": "int",
+            "description": "First year of historical window (inclusive).",
             "example": "1969",
         },
         "to": {
             "type": "int",
+            "description": "Last year of historical window (inclusive).",
             "example": "2002",
         },
     }
@@ -361,10 +363,12 @@ class HistolognormalRateModel(BaseRateModel):
     required_parameters = {
         "frm": {
             "type": "int",
+            "description": "First year of historical window (inclusive).",
             "example": "1928",
         },
         "to": {
             "type": "int",
+            "description": "Last year of historical window (inclusive).",
             "example": "2024",
         },
     }
@@ -402,10 +406,12 @@ class HistogaussianRateModel(BaseRateModel):
     required_parameters = {
         "frm": {
             "type": "int",
+            "description": "First year of historical window (inclusive).",
             "example": "1969",
         },
         "to": {
             "type": "int",
+            "description": "Last year of historical window (inclusive).",
             "example": "2002",
         },
     }

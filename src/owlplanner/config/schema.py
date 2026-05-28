@@ -157,13 +157,13 @@ class RatesSelection(BaseModel):
     values: Optional[List[float]] = None  # user, gaussian, lognormal
     standard_deviations: Optional[List[float]] = None  # gaussian, lognormal
     correlations: Optional[List[float]] = None  # gaussian, lognormal
-    rate_seed: Optional[int] = None  # gaussian, histogaussian, lognormal, histolognormal
+    rate_seed: Optional[int] = None  # gaussian, historical_gaussian, lognormal, historical_lognormal
     reproducible_rates: Optional[bool] = Field(
-        default=False, description="Reproducible stochastic (gaussian, histogaussian, etc.)"
+        default=False, description="Reproducible stochastic (gaussian, historical_gaussian, etc.)"
     )
     reverse_sequence: Optional[bool] = Field(default=False, description="Reverse rate sequence")
     roll_sequence: Optional[int] = Field(default=0, description="Roll rate sequence")
-    bootstrap_type: Optional[str] = Field(default=None, description="Bootstrap type for bootstrap_sor")
+    bootstrap_type: Optional[str] = Field(default=None, description="Bootstrap type for historical_bootstrap")
     block_size: Optional[int] = Field(default=None, description="Block size for block-based bootstraps")
     shrink: Optional[bool] = Field(default=None, description="Spectral shrinkage for VAR(1)")
 
