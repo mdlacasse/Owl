@@ -3334,7 +3334,9 @@ Four asset-class return time series are included, corresponding to the index $k$
 All values are stored in percent (e.g.\ $7.0$ for a 7\% annual return).
 A user-selected sub-range $[\mathcal{Y}_{\mathrm{frm}},\mathcal{Y}_{\mathrm{to}}]
 \subseteq [\mathcal{Y}_{\min}, \mathcal{Y}_{\max}]$ is used
-by the historical, histogaussian, bootstrap, and VAR(1) models.
+by the \code{historical}, \code{historical_average}, \code{historical_gaussian},
+\code{historical_lognormal}, \code{historical_bootstrap}, \code{vector_ar},
+and \code{garch_dcc} models.
 We denote the window width by $N_w = \mathcal{Y}_{\mathrm{to}} -
 \mathcal{Y}_{\mathrm{frm}} + 1$, and the observed return of asset class $k$ in
 calendar year $y$ by $r_{ky}$.
@@ -3352,7 +3354,8 @@ Both transforms preserve the set of returns in the window while altering the
 order; they are useful for exploring sequence-of-returns sensitivity without
 changing the underlying data.
 Reverse and roll are supported by all methods that use a historical window
-(historical, histogaussian, histolognormal, bootstrap, VAR, GARCH).
+(\code{historical}, \code{historical_gaussian}, \code{historical_lognormal},
+\code{historical_bootstrap}, \code{vector_ar}, and \code{garch_dcc}).
 Constant-rate methods ignore them.
 
 \section{Constant rate methods}
@@ -3361,11 +3364,11 @@ The simplest approach assigns a constant return to every year of the plan,
 $\tau_{kn} = \tau_k$ for all $n$.
 Four variants are supported:
 \begin{description}[leftmargin=4em,style=nextline]
-\item [\texttt{trailing-30}]
+\item [\texttt{trailing\_30}]
     Trailing 30-year geometric mean of annual returns, updated annually.
 \item [\texttt{conservative} and \texttt{optimistic}]
     Preset rates based on long-term expert forecasts.
-\item [\texttt{historical average}]
+\item [\texttt{historical\_average}]
     The geometric mean over the selected historical window,
     \begin{equation}
         \tau_k = \exp\biggl(\frac{1}{N_w}\sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}}
@@ -3398,7 +3401,7 @@ reproducible results across runs.
 Each fresh draw of $N_n$ vectors constitutes one scenario; running many
 independent scenarios yields a Monte Carlo distribution of outcomes.
 
-\subsection{Multivariate normal: \texttt{histogaussian} and \texttt{gaussian}}
+\subsection{Multivariate normal: \texttt{historical\_gaussian} and \texttt{gaussian}}
 
 Both methods model annual returns as draws from a multivariate normal
 distribution,
@@ -3407,7 +3410,7 @@ distribution,
     \mathcal{N}(\bm{\mu},\,\bm{\Sigma}),
     \qquad n = 0, \ldots, N_n - 1.
 \end{equation}
-For \code{histogaussian}, the mean vector $\bm{\mu}$ and the
+For \code{historical_gaussian}, the mean vector $\bm{\mu}$ and the
 $N_k \times N_k$ covariance matrix $\bm{\Sigma}$ are estimated from the
 selected historical window:
 \begin{eqnarray}
@@ -3429,7 +3432,7 @@ By construction, the multivariate normal model treats each year's returns as
 independent of all other years; it captures cross-sectional correlation
 among asset classes but no serial (year-to-year) autocorrelation.
 
-\subsection{Log-normal models: \texttt{lognormal} and \texttt{histolognormal}}
+\subsection{Log-normal models: \texttt{lognormal} and \texttt{historical\_lognormal}}
 
 Geometric Brownian Motion (GBM)~\cite{hull2017} --- the foundation of most
 option-pricing theory --- implies that the price relative $1 + \tau_{k,n}$
@@ -3480,7 +3483,7 @@ The user provides arithmetic means $m_k$ and standard deviations $s_k$
 These are converted to log-space via
 Eqs.~(\ref{Eq:sigmaZ})--(\ref{Eq:muZ}) before sampling.
 
-\paragraph*{\texttt{histolognormal} --- history-calibrated parameters}
+\paragraph*{\texttt{historical\_lognormal} --- history-calibrated parameters}
 Parameters are estimated directly in log-space from the selected
 historical window without any intermediate conversion to arithmetic
 parameters.
@@ -3504,7 +3507,7 @@ Eqs.~(\ref{Eq:sigmaZ})--(\ref{Eq:muZ}):
     s_k &=& (1 + m_k)\sqrt{\exp\!\left((\bm{\Sigma}_Z)_{kk}\right) - 1}.
 \end{eqnarray}
 
-\subsection{Bootstrap sequence-of-returns: \texttt{bootstrap\_sor}}
+\subsection{Bootstrap sequence-of-returns: \texttt{historical\_bootstrap}}
 
 The bootstrap sequence-of-returns model resamples $N_n$ annual return vectors
 directly from the observed window
@@ -3562,7 +3565,7 @@ This choice produces a strictly stationary bootstrap distribution, resolving
 the boundary discontinuities of the fixed-block method while still
 approximately preserving serial correlation at lags up to order $b$.
 
-\subsection{Vector autoregression: \texttt{var}}
+\subsection{Vector autoregression: \texttt{vector\_ar}}
 
 The VAR(1) model~\cite{campbellviceira2002,lutkepohl2005} extends the
 multivariate normal approach by explicitly capturing year-to-year serial
@@ -3579,7 +3582,7 @@ $\mathbf{A} \in \mathbb{R}^{N_k \times N_k}$ is the transition matrix encoding
 one-period predictability, and $\bm{\Sigma}$ is the contemporaneous residual
 covariance matrix.
 For $\mathbf{A} = 0$, Eq.~(\ref{Eq:VAR1}) reduces to the multivariate normal
-model of the \code{histogaussian} method.
+model of the \code{historical_gaussian} method.
 
 \paragraph*{Parameter estimation}
 Given $N_w$ historical observations
@@ -3718,8 +3721,8 @@ TOML configuration file.
 \section{Monte Carlo and stress testing}
 
 In Monte Carlo mode, Owl calls one of the stochastic models
-(\code{histogaussian}, \code{histolognormal}, \code{gaussian},
-\code{lognormal}, \code{bootstrap_sor}, \code{var},
+(\code{historical_gaussian}, \code{historical_lognormal}, \code{gaussian},
+\code{lognormal}, \code{historical_bootstrap}, \code{vector_ar},
 or \code{garch_dcc}) independently
 $N_s$ times, each time solving the full optimization problem with a different
 rate scenario.
