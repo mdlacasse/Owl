@@ -175,6 +175,10 @@ each year proportional to the balance.
 Capital gains arise when the optimizer elects to sell holdings; all realized
 gains are treated as long-term (see the limitation noted in
 Section~\ref{sec:ltcg}).
+When an initial cost basis is provided via \code{setCostBasis()}, the
+unrealized gain fraction is computed from the actual basis rather than
+treating only the current year's price appreciation as a gain;
+this reduces the taxable gain recognized on withdrawals in the early plan years.
 
 \subsection*{Tax-deferred accounts (traditional IRA, 401(k), and 403(b))}
 
@@ -1057,6 +1061,24 @@ Two optimization objectives are supported:
   can be specified by the user.
 \end{description}
 
+\subsection*{Solver options for spending and bequest}
+
+Two options modify how the primary objectives are formulated:
+\begin{itemize}[nosep]
+  \item \code{timePreference} (\%/year, default~0) --- a subjective time-discount rate
+    $\rho$ that front-loads spending.
+    The objective weight for year $n$ is multiplied by
+    $(1+\rho)^{-n}$, so near-term spending is valued more than equivalent
+    spending in the distant future.
+    At $\rho=0$ (the default) all years carry equal real weight.
+  \item \code{fixedSpending} (monetary value) --- pins first-year net spending
+    to a user-specified level when using \code{maxSpending}.
+    Instead of freely maximizing the basis, the optimizer holds year-0 spending
+    fixed and uses a slack variable to allow the spending profile to flex dynamically
+    around that anchor in subsequent years.
+    Useful for testing a specific withdrawal rate or matching a concrete budget target.
+\end{itemize}
+
 \subsection*{Lexicographic weight}
 
 A small secondary weight can be added to the objective to break ties among
@@ -1419,7 +1441,11 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	Intermediate Variables section).
 	Since the cost function is strictly convex ($0 < 0.15 < 0.20$),
 	no binary variables are required: the LP naturally fills the lowest-cost bracket first.
-	See Eqs.~(\ref{Eq:LTCG2})--(\ref{Eq:LTCG3}) for the full constraint formulation.
+	See Eqs.~(\ref{Eq:LTCG2})--(\ref{Eq:LTCG3}) for the SC-loop formulation.
+	When \code{withLTCG="optimize"} is selected, $G_n$ becomes a continuous LP variable
+	and binary variables $z^l_{0n},\,z^l_{1n}$ replace the SC-loop approximation of
+	bracket thresholds with exact big-$\mathcal{M}$ constraints
+	(see Eqs.~(\ref{Eq:LTCGm1})--(\ref{Eq:LTCGmq2})).
 \item [$t^{\sigma}_n$]
 	Taxable Social Security amount in year $n$, bounded in
 	$[0,\;0.85\sum_i\bar{\zeta}_{in}]$.
@@ -1428,13 +1454,26 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	\code{withSSTaxability="optimize"} it becomes an LP decision variable computed
 	exactly from the IRS formula without iteration.
 \item [$z_{*}^*$]
-	Binary variables are all designated by the letter $z$, but a superscript is
-	used to distinguish the different families. For example, $z_{qn}^m$ represents
-	binary variables associated with Medicare calculations, $z_{rn}^{\mathrm{aca}}$ with ACA
-	bracket selection (when \code{withACA="optimize"}), $z_{nz}^x$ are used for
-	the exclusion constraints, and $z^{\sigma}_{0n}$, $z^{\sigma}_{1n}$ encode the
-	two $\min(\cdot,\cdot)$ operations in the SS taxability MIP formulation
-	(see the Social Security taxability paragraph in the Constraints section).
+	Binary variables are all designated by the letter $z$; a superscript
+	distinguishes the five families:
+	\begin{itemize}[nosep]
+	  \item $z_{nz}^x$ ($z \in \{0,1,2,3\}$) --- Roth exclusion binaries, always present.
+	    Enforce the at-most-one constraints (Eqs.~(\ref{Eq:Binary1})--(\ref{Eq:Binary2})).
+	  \item $z_{qn}^m$ --- Medicare IRMAA bracket selectors; present when
+	    \code{withMedicare="optimize"}.
+	  \item $z_{rn}^{\mathrm{aca}}$ --- ACA premium bracket selectors; present when
+	    \code{withACA="optimize"}.
+	  \item $z^{\sigma}_{0n}$, $z^{\sigma}_{1n}$ --- encode the two $\min(\cdot,\cdot)$
+	    operations in the SS taxability MIP; present when
+	    \code{withSSTaxability="optimize"}.
+	  \item $z^l_{0n}$, $z^l_{1n}$ --- LTCG bracket-room indicators ($z^l=1$ iff
+	    ordinary income $G_n$ is below the 15\% or 20\% threshold); present when
+	    \code{withLTCG="optimize"}.
+	  \item $z^j_n$ --- NIIT threshold indicator ($z^j=1$ iff MAGI exceeds
+	    $\mathbb{G}^{\mathrm{NIIT}}$); present when
+	    \code{withNIIT="optimize"}.
+	\end{itemize}
+	See the corresponding constraint subsections for the big-$\mathcal{M}$ formulations.
 \end{description}
 
 \section{Parameters}
@@ -1923,6 +1962,12 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	\end{equation}
 	where $\mathbb{G}^{\mathrm{NIIT}}$ is \$200k for single filers and \$250k for married filing jointly,
 	with filing status changing after the passing of one spouse ($n \ge n_d$).
+	In the default SC-loop mode $J_n$ is a derived quantity, recomputed after each
+	LP solve from the current $\mathbb{G}_n$ and held fixed during the solve.
+	When \code{withNIIT="optimize"} is selected, $J_n$ and $\mathbb{G}_n$ become
+	LP decision variables, and a binary variable $z^j_n$ exactly determines whether
+	the NIIT threshold is exceeded (see the Net Investment Income Tax subsection of
+	the Constraints chapter).
 
 \end{description}
 
@@ -2315,6 +2360,58 @@ In this case, the objective function will need to consider the sum over all year
 	These constraints converge together with the SC loop.
 	Since the cost is convex ($0\% < 15\% < 20\%$), no binary variables are needed:
 	the LP naturally allocates gains to the cheapest bracket first.
+
+	When the option \code{withLTCG="optimize"} is selected, the bracket thresholds
+	are no longer fixed from a previous iteration: $G_n$ itself becomes a continuous
+	LP variable, and two binary variables $z^l_{0n},\,z^l_{1n} \in \{0,1\}$
+	(per year $n$) indicate whether room exists below the 15\% and 20\% thresholds,
+	respectively ($z^l = 1$ means room exists, $G_n$ is below the threshold).
+	The big-$\mathcal{M}$ link constraints are
+	\begin{eqnarray}
+		\bar{\mathcal{B}}^{15}_n &\le& G_n + z^l_{0n}\,\mathcal{M}_n, \label{Eq:LTCGm1} \\
+		G_n + z^l_{0n}\,\mathcal{M}_n &\le& \bar{\mathcal{B}}^{15}_n + \mathcal{M}_n, \label{Eq:LTCGm2}
+	\end{eqnarray}
+	and analogously for $z^l_{1n}$ at threshold $\bar{\mathcal{B}}^{20}_n$,
+	with $\mathcal{M}_n = 3\,\bar{\mathcal{B}}^{20}_n$ a safe upper bound.
+	A monotonicity constraint
+	\begin{equation}
+		z^l_{0n} \le z^l_{1n}
+	\end{equation}
+	ensures consistency (if $G_n$ is below the 15\% threshold it is also below the 20\% threshold).
+	The bracket room upper bounds then become linear:
+	\begin{eqnarray}
+		q_{0n} &\le& z^l_{0n}\,\mathcal{M}_n, \label{Eq:LTCGmq1} \\
+		q_{0n} + q_{1n} &\le& z^l_{1n}\,\mathcal{M}_n. \label{Eq:LTCGmq2}
+	\end{eqnarray}
+	Because the cost is still convex, the optimizer fills the cheapest bracket first,
+	so no additional binary variables are needed for bracket ordering;
+	only the bracket room bounds require binaries.
+
+\subsection{Net investment income tax}
+	In the default SC-loop mode, the NIIT $J_n$ is derived from MAGI and the
+	investment income after each solver pass and held fixed for the next LP solve.
+	When the option \code{withNIIT="optimize"} is selected, MAGI $\mathbb{G}_n$ becomes a
+	continuous LP variable \code{magi}$_n$, and a binary variable $z^j_n \in \{0,1\}$
+	determines whether MAGI exceeds the statutory NIIT threshold
+	$\mathbb{G}^{\mathrm{NIIT}}$.
+	The big-$\mathcal{M}$ bracket constraints are
+	\begin{eqnarray}
+		\mathbb{G}^{\mathrm{NIIT}} &\le& \mathbb{G}_n + z^j_n\,\mathcal{M}^j_n, \label{Eq:NIIT1} \\
+		\mathbb{G}_n + z^j_n\,\mathcal{M}^j_n &\le& \mathbb{G}^{\mathrm{NIIT}} + \mathcal{M}^j_n, \label{Eq:NIIT2}
+	\end{eqnarray}
+	with $\mathcal{M}^j_n = 3\,\bar{\mathcal{B}}^{20}_n$.
+	These constraints enforce $z^j_n = 1$ when $\mathbb{G}_n \ge \mathbb{G}^{\mathrm{NIIT}}$
+	and $z^j_n = 0$ otherwise (subject to big-$\mathcal{M}$ rounding of the binary).
+	The NIIT amount $J_n$ is then embedded as a continuous LP variable bounded by
+	\begin{equation}
+		0 \le J_n \le 0.038\,(\mathbb{I}_n + Q_n),
+	\end{equation}
+	and the objective minimizes taxes, so $J_n$ is driven to its exact value.
+	An equality constraint links MAGI to ordinary income, dividends, LTCG, and
+	the non-taxable portion of Social Security:
+	\begin{equation}
+		\mathbb{G}_n = G_n + Q_n + e_n + \bigl(1 - \Psi_n\bigr)\textstyle\sum_i\bar{\zeta}_{in}.
+	\end{equation}
 
 \subsection{Taxable ordinary income}
 	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:G_n}) and (\ref{Eq:Tx2}),
@@ -2855,9 +2952,16 @@ $C_* = 46 N_n + 8 + N_q(N_n - n_m)$ entries in $y$ (for couples, $(N_t + 5 + N_p
 If $n_m = N_n$, then $N_n - n_m = 0$ and the IRMAA SOS block for $h_{qn}$ is empty, so $C_* = 46 N_n + 8$.
 The $N_p N_n$ LTCG bracket allocations $q_{pn}$ are already included in this count.
 If the time resolution is increased to months, the number of variables scales accordingly.
-Adding binary variables $z_{nz}^x$ with $z \in \{0, 1, 2, 3\}$ can add $4N_n$ more decision variables,
-while adding $z^m_{qn}$ adds $N_q(N_n - n_m)$ more, resulting in
-$C_* + 4N_n + N_q(N_n - n_m)$ variables when both optional binary families are enabled.
+Adding binary variables $z_{nz}^x$ ($z \in \{0,1,2,3\}$) always contributes $4N_n$ binary variables.
+Optional MIP families add further binaries depending on which \code{"optimize"} flags are active:
+$N_q(N_n - n_m)$ for $z^m_{qn}$ (Medicare IRMAA),
+$N_{\mathrm{aca}}(N_n - n_{\mathrm{aca}})$ for $z^a_{rn}$ (ACA brackets),
+$2N_n^{\mathrm{ss}}$ for $z^\sigma_{0n},z^\sigma_{1n}$ (SS taxability),
+$2N_n$ for $z^l_{0n},z^l_{1n}$ (LTCG regime), and
+$N_n$ for $z^j_n$ (NIIT threshold),
+where $N_n^{\mathrm{ss}}$ is the number of years with positive SS income.
+When all five optional families are active simultaneously, the total binary count can reach
+approximately 400 for a 30-year couple plan.
 
 \section{Reverse mapping of indices}
 The inverse functions for the index-mapping functions will be derived for the
@@ -4310,23 +4414,47 @@ The core optimization engine.
 Constructs and solves the LP/MIP using HiGHS (default, via \code{highspy}) or MOSEK directly.
 Implements the self-consistent iteration loop, all constraint-building methods,
 the objective functions, and post-solution analysis.
+Delegates stress-testing and stochastic spending methods to \code{stresstests.py} via mixin.
 This is the largest and most complex file.
+
+\item[varmap.py]
+Variable block indexing and extraction for the LP solver.
+\code{VarBlock} records the start offset and shape of one decision-variable family
+(e.g., $b$, $d$, $e$, $f$, $g$, $h$, $m$, $s$, $w$, $x$, $z^x$, \ldots);
+\code{VarMap} accumulates them in declaration order and exposes a cursor tracking the
+running offset.
+Used by \code{plan.py} to build and query all LP/MIP variable indices without
+hard-coded offset arithmetic.
 
 \item[abcapi.py]
 A solver-neutral constraint-building API used by \code{plan.py}.
 Provides an abstract interface for adding rows to the constraint matrix,
 keeping the model description independent of any specific LP solver.
 
+\item[stresstests.py]
+Stress-testing and stochastic spending optimization methods.
+Provides \code{run\_historical\_range}, \code{run\_mc}, and \code{run\_stochastic\_spending},
+which take a \code{Plan} instance and run the optimizer across many return scenarios
+using a thread pool.
+Also implements the efficient-frontier LP, CVaR computation, and the Retirement
+Efficiency Score (RES).
+\code{Plan} exposes these as methods by delegation (mixin pattern).
+
 \item[tax2026.py]
 Federal tax calculations: ordinary income brackets and standard deductions,
 LTCG tax thresholds, SS taxability formula, NIIT, ACA Premium Tax Credit
 (with \texttt{acaCosts} and \texttt{acaVals}), and Medicare IRMAA premiums and bracket thresholds.
 Also computes RMD fractions from the IRS Uniform Lifetime Table.
+Implements the OBBBA (2025) tax schedule, the 65+ bonus deduction phaseout,
+and the future-law reversion scenario (\code{yOBBBA} parameter).
 
 \item[socialsecurity.py]
 Social Security benefit modeling: FRA schedules, own-benefit and spousal
 adjustment factors, spousal and survivor benefit computation, and optional
 benefit trim for policy scenarios.
+When \code{withSSAges="optimize"} is selected, \code{build\_own\_benefit\_table}
+precomputes the $N_i \times 97 \times N_n$ benefit table covering all monthly
+claiming ages from 62 to 70 (97 choices), used by the MIP claiming-age optimizer.
 
 \item[timelists.py]
 Reads and validates the Wages and Contributions time-horizon spreadsheet
