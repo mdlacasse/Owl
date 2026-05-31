@@ -105,55 +105,57 @@ and can be used, along with the *Household Financial Profile* workbook, to repro
 
         kz.divider("orange")
         st.markdown("#### :orange[Downloads]")
-        st.caption(
-            "Click a button to download. "
-            "*Case file* and *Household Financial Profile* (HFP) together can reproduce this run; "
-            "*Synopsis* and *Plan workbook* are result outputs."
-        )
-        col1, col2, col3, col4 = st.columns(4, gap="medium")
-        with col1:
-            st.download_button(
-                "Case file",
-                data=lines,
-                file_name=f"Case_{caseName}.toml",
-                help="TOML file with all parameters to reproduce this run.",
-                mime="application/toml",
-                disabled=lines == "",
-            )
-        with col2:
-            hfp_clicked = st.download_button(
-                "HFP workbook",
-                data=hfp_buffer,
-                file_name=f"HFP_{caseName}.xlsx",
-                help="Excel workbook with household financial input data (HFP).",
-                mime="application/vnd.ms-excel",
-            )
-            if hfp_clicked:
-                owb.markHFPAsSaved()
-                gcs = owb.getCaseString()
-                if gcs is not None:
-                    kz.storeCaseKey("casetoml", gcs.getvalue())
-                st.rerun()
-            hfp_fname = kz.getCaseKey("hfpFileName")
-            if hfp_fname and (hfp_fname.endswith(" *") or hfp_fname == "edited values"):
-                st.caption(
-                    ":warning: HFP values were edited. Download both this file and the "
-                    "case file to reproduce this run."
+        st.caption("Click a button to download.")
+        left_group, right_group = st.columns(2, gap="large")
+        with left_group:
+            st.caption("📂 **Input files** — use these to reproduce this run")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    "Case file",
+                    data=lines,
+                    file_name=f"Case_{caseName}.toml",
+                    help="TOML file with all parameters to reproduce this run.",
+                    mime="application/toml",
+                    disabled=lines == "",
                 )
-        with col3:
-            st.download_button(
-                "Synopsis",
-                data=display_df.to_string(index=False) if display_df is not None else "",
-                file_name=f"Synopsis_{caseName}.txt",
-                help="Text file with key metrics and case comparison.",
-                mime="text/plain;charset=UTF-8",
-                disabled=display_df is None,
-            )
-        with col4:
-            st.download_button(
-                "Plan workbook",
-                data=owb.saveWorkbook(),
-                file_name=f"Workbook_{caseName}{real_suffix}.xlsx",
-                help="Excel workbook with detailed year-by-year results.",
-                mime="application/vnd.ms-excel",
-            )
+            with col2:
+                hfp_clicked = st.download_button(
+                    "HFP workbook",
+                    data=hfp_buffer,
+                    file_name=f"HFP_{caseName}.xlsx",
+                    help="Excel workbook with household financial input data (HFP).",
+                    mime="application/vnd.ms-excel",
+                )
+                if hfp_clicked:
+                    owb.markHFPAsSaved()
+                    gcs = owb.getCaseString()
+                    if gcs is not None:
+                        kz.storeCaseKey("casetoml", gcs.getvalue())
+                    st.rerun()
+                hfp_fname = kz.getCaseKey("hfpFileName")
+                if hfp_fname and (hfp_fname.endswith(" *") or hfp_fname == "edited values"):
+                    st.caption(
+                        ":warning: HFP values were edited. Download both this file and the "
+                        "case file to reproduce this run."
+                    )
+        with right_group:
+            st.caption("📊 **Output files** — results from this run")
+            col3, col4 = st.columns(2)
+            with col3:
+                st.download_button(
+                    "Synopsis",
+                    data=display_df.to_string(index=False) if display_df is not None else "",
+                    file_name=f"Synopsis_{caseName}.txt",
+                    help="Text file with key metrics and case comparison.",
+                    mime="text/plain;charset=UTF-8",
+                    disabled=display_df is None,
+                )
+            with col4:
+                st.download_button(
+                    "Plan workbook",
+                    data=owb.saveWorkbook(),
+                    file_name=f"Workbook_{caseName}{real_suffix}.xlsx",
+                    help="Excel workbook with detailed year-by-year results.",
+                    mime="application/vnd.ms-excel",
+                )
