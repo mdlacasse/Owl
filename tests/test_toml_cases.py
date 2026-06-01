@@ -32,11 +32,12 @@ pytestmark = pytest.mark.toml
 
 def _active_solver():
     """Resolve OWL_TEST_SOLVER (or 'default') to the actual solver that will be used."""
-    env = os.getenv('OWL_TEST_SOLVER', 'default').upper()
-    if env == 'HIGHS':
+    env = os.getenv('OWL_TEST_SOLVER', 'default').lower()
+    if env == 'highs':
         return 'HiGHS'
-    if env == 'MOSEK':
+    if env == 'mosek':
         return 'MOSEK'
+    # This is "default" path.
     try:
         import mosek  # noqa: F401
         if 'MOSEKLM_LICENSE_FILE' in os.environ:
@@ -167,11 +168,6 @@ else:
     print(f"Unknown platform {platform}")
     assert False
 
-# MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
-# (~103_018 vs HiGHS ~102_761) after the real-rate change for physical assets.
-if _active_solver() == 'MOSEK' and platform == 'darwin':
-    EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 103_018
-
 
 def test_reproducibility():
     """
@@ -184,6 +180,11 @@ def test_reproducibility():
     Also verifies that the associated HFP (Household Financial Profile) file
     is successfully loaded for each case.
     """
+    # MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
+    # (~103_018 vs HiGHS ~102_761) after the real-rate change for physical assets.
+    if _active_solver() == 'MOSEK':
+        EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 103_018
+
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version
     # differences across Python releases (~0.035% max observed variation)
