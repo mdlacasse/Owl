@@ -4,8 +4,8 @@ FROM python:3.14-alpine
 
 WORKDIR /app
 
-RUN apk add bash git uv
-RUN apk del curl busybox nghttp2
+RUN apk add --no-cache bash git uv
+RUN python -m pip uninstall pip setuptools -y
 
 COPY runentrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod 555 /usr/bin/entrypoint.sh

@@ -18,7 +18,7 @@ There are two versions of the Docker image: one that has been provisioned
 with all the necessary Python modules
 named 'owldocker.static' and one bare image that self-installs the Owl application from
 GitHub at runtime named 'owldocker.bare'.
-The 'static' version, while being larger than the 'bare' version (279 MB vs 126 MB),
+The 'static' version, while being larger than the 'bare' version (264 MB vs 37 MB),
 will start much faster as all the required code is contained in the image. However,
 the version of Owl is fixed at the time when the container was built. Conversely,
 the 'bare' version will dynamically clone Owl from GitHub and download/install all its requirements.
