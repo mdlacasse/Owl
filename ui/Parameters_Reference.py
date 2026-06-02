@@ -66,10 +66,12 @@ for i, section in enumerate(sections):
     heading, _, body = section.partition('\n')
     # Strip trailing horizontal rules added as separators in the source
     body = body.strip().rstrip('-').strip()
-    # Extract plain label: remove "## " and ":orange[...]" wrapper
+    # Extract label: remove "## " prefix, add bold inside any :orange[...] wrapper
     label = re.sub(r'^##\s+', '', heading)
-    label = re.sub(r':orange\[(.+?)\]', r'\1', label)
-    with st.expander(label, expanded=expand_all or (i == 0)):
+    label = re.sub(r':orange\[(.+?)\]', r':orange[**\1**]', label)
+    if not label.startswith(':orange['):
+        label = f":orange[**{label}**]"
+    with st.expander(label, expanded=expand_all or (i == 0), type="compact"):
         st.markdown(body)
 
 kz.divider("orange")
