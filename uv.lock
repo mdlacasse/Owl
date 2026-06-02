@@ -2023,6 +2023,7 @@ wheels = [
 [[package]]
 name = "owlplanner"
 source = { editable = "." }
+version = "2026.6.1"
 dependencies = [
     { name = "click" },
     { name = "highspy" },
