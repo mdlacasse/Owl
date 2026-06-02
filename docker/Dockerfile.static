@@ -4,29 +4,19 @@ FROM python:3.14-alpine
 
 WORKDIR /app
 
-# RUN apk update; apk upgrade --no-cache ; apk add --no-cache bash git
-RUN apk add bash git
+RUN apk add bash git uv
 RUN apk del curl busybox nghttp2
 
 COPY runentrypoint.sh /usr/bin/entrypoint.sh
-
 RUN chmod 555 /usr/bin/entrypoint.sh
 
-# Build in the container for faster starts.
-RUN python -m pip install --no-cache-dir --upgrade pip
+RUN adduser -D -u 1001 owl && chown -R owl /app
+USER owl
 
-# RUN pip install --no-cache-dir build
 RUN rm -rf /app/owl
-
 RUN git clone --depth 1 https://github.com/mdlacasse/Owl.git owl
 
-RUN cd /app/owl && grep -vi mosek requirements.txt | python -m pip install --no-cache-dir -r /dev/stdin
-# RUN cd /app/owl && python -m build
-# RUN cd /app/owl && pip install --no-cache-dir .
-
-RUN adduser -D -u 1001 owl && chown -R owl /app
-
-USER owl
+RUN cd /app/owl && uv venv && grep -vi mosek requirements.txt | uv pip install --no-cache-dir -r /dev/stdin
 
 EXPOSE 8501
 
