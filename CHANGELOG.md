@@ -1,5 +1,30 @@
 
 
+### Version 2026.06.01
+
+#### UI improvements
+
+- **Documentation and Parameters Reference** — all expanders now use `type="compact"`
+  with bold orange titles, giving each section a clear visual boundary consistent
+  with the rest of the app styling.
+- **Reports page** — download buttons are grouped into labeled *Input files* and
+  *Output files* sections for clearer navigation.
+
+#### Bug fix
+
+- **Reports comparison** — `build_summary_dic()` now always emits `Total debt payments`
+  and `Total ACA premiums paid` fields (with $0 when none apply), so `compareSummaries()`
+  no longer silently drops cases whose column sets differ when one case has debts or ACA
+  costs and another does not.
+
+#### Refactor
+
+- **Logging** — all config modules (`toml_io.py`, `ui_bridge.py`) now route warnings
+  through `mylogging` instead of the stdlib `logging` module, so messages appear
+  consistently in the Streamlit case log.
+
+---
+
 ### Version 2026.05.27
 
 #### Rate method names — consistency and accessibility
