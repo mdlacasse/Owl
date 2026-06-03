@@ -2,6 +2,14 @@
 
 ### Version 2026.06.01
 
+#### Net Investment Income Tax Calculations
+- Fix rare condition in NIIT where MAGI is above threshold, leading to overestimate.
+- Added test to detect this condition.
+
+---
+
+### Version 2026.06.01
+
 #### UI improvements
 
 - **Documentation and Parameters Reference** — all expanders now use `type="compact"`

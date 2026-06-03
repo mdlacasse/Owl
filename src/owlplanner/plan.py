@@ -1833,6 +1833,7 @@ class Plan:
         vm.add_if(ltcg_lp, "gn", self.N_n)          # G_n: ordinary taxable income (LTCG MILP)
         vm.add_if(niit_lp, "magi", self.N_n)        # MAGI_n LP variable (NIIT MILP)
         vm.add_if(niit_lp, "Jn", self.N_n)          # J_n: NIIT tax LP variable (NIIT MILP)
+        vm.add_if(niit_lp, "niis", self.N_n)        # NII surplus: max(0, MAGI-T-NII), no binary needed
         vm.add_if(ssa_lp, "ssb", self.N_i, self.N_n)   # SS own-benefit LP var (SS age optimize)
         vm.mark_binary_start()
         vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
@@ -2777,19 +2778,34 @@ class Plan:
         """
         Add NIIT big-M binary constraints when withNIIT='optimize'.
 
-        For each year n, links J_n (NIIT tax) to MAGI_n via a threshold binary zj:
-          J_n = max(0, 0.038 * (MAGI_n - T_niit))
+        IRS formula: J_n = max(0, 0.038 * min(MAGI_n - T, NII_n))
+        where NII_n = I_n + Q_n (net investment income: interest/divs + capital gains).
 
-        Modeled with binary zj_n:
-          zj=1 iff MAGI_n > T_niit (NIIT threshold exceeded)
+        Modeled with binary zj_n (zj=1 iff MAGI_n > T) and a continuous surplus niis_n
+        (= max(0, MAGI_n - T - NII_n), the amount by which the MAGI-based exposure
+        exceeds NII):
 
-        Big-M constraints:
-          (1) J_n >= 0.038*(MAGI_n - T_niit) - M*(1-zj)  [NIIT rate when above threshold]
-          (2) J_n <= M*zj                                  [J=0 when below threshold]
-          (3) MAGI_n <= T_niit + M*zj                     [MAGI bounded by threshold when zj=0]
+          (1') J_n + 0.038*niis_n >= 0.038*(MAGI_n - T) - M*(1-zj)  [combined MAGI/NII floor]
+          (2)  J_n <= M*zj                                             [J=0 when below threshold]
+          (3)  MAGI_n <= T + M*zj                                      [MAGI bounded when zj=0]
+          (4)  niis_n <= (MAGI_n - T) - NII_n + M*(1-zj)              [NII cap on surplus]
+               equivalently: niis_n - G_n - e_n + tss_n <= zetaBar_n - T - I_n + M*(1-zj)
+               (Q_n cancels between MAGI and NII; I_n is a SC-loop parameter)
+
+        Since J_n is a cost the optimizer minimizes, it naturally drives niis_n to its upper
+        bound (= max(0, MAGI-T-NII)), giving J_n = 0.038*min(MAGI-T, NII). No second binary
+        is needed.
         """
         if not self._niit_lp:
             return
+
+        # I_n from previous SC iteration (interest/div income); falls back to netinv_in only
+        # on the first iteration before _aggregateResults has run.
+        I_n_param = getattr(self, "I_n", None)
+        if I_n_param is None:
+            I_n_param = np.sum(self.netinv_in, axis=0)
+
+        zetaBar_n = np.sum(self.zetaBar_in, axis=0)
 
         for n in range(self.N_n):
             # Per-year filing status: couple switches to Single at n_d.
@@ -2808,28 +2824,45 @@ class Plan:
             Jn_idx = self.vm["Jn"].idx(n)
             magi_idx = self.vm["magi"].idx(n)
             zj_idx = self.vm["zj"].idx(n)
+            niis_idx = self.vm["niis"].idx(n)
+            e_idx = self.vm["e"].idx(n)
 
-            # Bounds on Jn and magi
+            # Bounds
             self.B.setRange(Jn_idx, 0, M_niit)
             self.B.setRange(magi_idx, 0, M_niit)
+            self.B.setRange(niis_idx, 0, M_niit)
 
-            # (1) J_n >= 0.038*(MAGI_n - T_niit) - M*(1-zj)
-            #   → J_n - 0.038*MAGI_n + M*zj >= 0.038*(-T_niit) + M*(-1)
-            #   Wait, rearranging: J_n - 0.038*MAGI_n - M*zj >= -0.038*T_niit - M
-            #   But addNewRow lb <= row <= ub, so:
-            #   lb = -0.038*T_niit - M_niit, row = {Jn:1, magi:-0.038, zj:-M_niit}
+            # (1') J_n + 0.038*niis_n >= 0.038*(MAGI_n - T) - M*(1-zj)
+            #   → J_n + 0.038*niis_n - 0.038*magi_n - M*zj >= -0.038*T - M
             self.A.addNewRow(
-                {Jn_idx: 1, magi_idx: -0.038, zj_idx: -M_niit},
+                {Jn_idx: 1, niis_idx: 0.038, magi_idx: -0.038, zj_idx: -M_niit},
                 -0.038 * T_niit - M_niit, np.inf
             )
 
-            # (2) J_n <= M*zj
-            #   → J_n - M*zj <= 0
+            # (2) J_n <= M*zj  →  J_n - M*zj <= 0
             self.A.addNewRow({Jn_idx: 1, zj_idx: -M_niit}, -np.inf, 0)
 
-            # (3) MAGI_n <= T_niit + M*zj
-            #   → MAGI_n - M*zj <= T_niit
+            # (3) MAGI_n <= T + M*zj  →  MAGI_n - M*zj <= T
             self.A.addNewRow({magi_idx: 1, zj_idx: -M_niit}, -np.inf, T_niit)
+
+            # (4) niis_n <= (MAGI_n - T) - (I_n + Q_n) + M*(1-zj)
+            # Since MAGI = G_n + e_n + Q_n + zetaBar - tss, Q_n cancels:
+            #   niis_n <= G_n + e_n + (zetaBar - tss) - T - I_n + M*(1-zj)
+            #   niis_n - G_n - e_n + tss + M*zj <= zetaBar_n - T - I_n + M
+            rhs4 = M_niit + zetaBar_n[n] - T_niit - float(I_n_param[n])
+            row4 = {niis_idx: 1, e_idx: -1, zj_idx: M_niit}
+            if "gn" in self.vm:
+                row4[self.vm["gn"].idx(n)] = row4.get(self.vm["gn"].idx(n), 0) - 1
+            else:
+                for t in range(self.N_t):
+                    f_idx = self.vm["f"].idx(t, n)
+                    row4[f_idx] = row4.get(f_idx, 0) - 1
+            if "tss" in self.vm:
+                tss_idx = self.vm["tss"].idx(n)
+                row4[tss_idx] = row4.get(tss_idx, 0) + 1
+            else:
+                rhs4 -= self.Psi_n[n] * zetaBar_n[n]  # subtract taxable SS from zetaBar
+            self.A.addNewRow(row4, -np.inf, rhs4)
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -4462,6 +4495,9 @@ class Plan:
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
             self.ACA_n = np.zeros(self.N_n)
+            # Seed I_n for first NIIT LP iteration: portfolio part is zero before first solve.
+            if getattr(self, "_niit_lp", False) and not hasattr(self, "I_n"):
+                self.I_n = np.sum(self.netinv_in, axis=0)
             return
 
         self._aggregateResults(x, short=True)

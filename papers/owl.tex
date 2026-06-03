@@ -852,9 +852,13 @@ Reference: \cite{irc1411}.
 
 An optional exact MIP formulation is available via \code{withNIIT="optimize"}.
 In this mode, MAGI is embedded as a continuous LP variable together with a
-binary variable that selects whether the threshold is exceeded in each year,
-replacing the self-consistent loop computation of NIIT with an exact
-mixed-integer constraint.
+binary variable $z^j_n$ that selects whether the NIIT threshold is exceeded
+each year.
+The full IRS $\min(\cdot,\cdot)$ cap---capping the NIIT base at net investment
+income when ordinary income drives MAGI well above the threshold---is modeled
+exactly without a second binary via a continuous surplus variable
+$\delta^j_n \ge 0$; because the optimizer minimizes taxes, it naturally drives
+$\delta^j_n$ to its upper bound, reproducing the correct IRS value.
 
 \subsection*{Limitations and assumptions}
 
@@ -1138,7 +1142,10 @@ binary constraints, eliminating the corresponding nonlinearity entirely:
     the correct 0\%, 15\%, or 20\% LTCG bracket each year, rather than
     approximating bracket thresholds from the previous SC iteration.
   \item \code{withNIIT="optimize"} --- uses a binary variable $z^j$ to
-    determine whether MAGI exceeds the NIIT threshold each year.
+    determine whether MAGI exceeds the NIIT threshold each year, and a
+    continuous surplus variable $\delta^j$ to enforce the IRS NII cap
+    ($\min(\mathbb{G}-\mathbb{G}^{\mathrm{NIIT}},\,\mathbb{I}+Q)$) without a
+    second binary.
   \item \code{withACA="optimize"} --- folds ACA premium bracket selection and
     MAGI into the MIP, replacing the per-iteration SC approximation.
   \item \code{withMedicare="optimize"} --- models IRMAA bracket selection
@@ -1471,8 +1478,12 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	    ordinary income $G_n$ is below the 15\% or 20\% threshold); present when
 	    \code{withLTCG="optimize"}.
 	  \item $z^j_n$ --- NIIT threshold indicator ($z^j=1$ iff MAGI exceeds
-	    $\mathbb{G}^{\mathrm{NIIT}}$); present when
-	    \code{withNIIT="optimize"}.
+	    $\mathbb{G}^{\mathrm{NIIT}}$); present when \code{withNIIT="optimize"}.
+	  \item $\delta^j_n$ --- continuous NII surplus,
+	    $\delta^j_n = \max(0,\,\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}} - \mathbb{I}_n - Q_n)$;
+	    present when \code{withNIIT="optimize"}.
+	    Driven to its upper bound by the minimizing optimizer to enforce the IRS
+	    NII cap without a second binary.
 	\end{itemize}
 	See the corresponding constraint subsections for the big-$\mathcal{M}$ formulations.
 \end{description}
@@ -2431,25 +2442,64 @@ In this case, the objective function will need to consider the sum over all year
 	only the bracket room bounds require binaries.
 
 \subsection{Net investment income tax}
-	In the default SC-loop mode, the NIIT $J_n$ is derived from MAGI and the
+	In the default SC-loop mode, the NIIT $J_n$ is derived from MAGI and
 	investment income after each solver pass and held fixed for the next LP solve.
-	When the option \code{withNIIT="optimize"} is selected, MAGI $\mathbb{G}_n$ becomes a
-	continuous LP variable \code{magi}$_n$, and a binary variable $z^j_n \in \{0,1\}$
-	determines whether MAGI exceeds the statutory NIIT threshold
-	$\mathbb{G}^{\mathrm{NIIT}}$.
-	The big-$\mathcal{M}$ bracket constraints are
+	When the option \code{withNIIT="optimize"} is selected, MAGI $\mathbb{G}_n$
+	becomes a continuous LP variable \code{magi}$_n$, a binary variable
+	$z^j_n \in \{0,1\}$ determines whether MAGI exceeds the statutory NIIT
+	threshold $\mathbb{G}^{\mathrm{NIIT}}$, and $J_n$ becomes a continuous LP
+	variable.
+
+	\subsubsection*{Threshold indicator}
+	The big-$\mathcal{M}$ constraints enforcing $z^j_n = 1$ iff
+	$\mathbb{G}_n \ge \mathbb{G}^{\mathrm{NIIT}}$ are
 	\begin{eqnarray}
-		\mathbb{G}^{\mathrm{NIIT}} &\le& \mathbb{G}_n + z^j_n\,\mathcal{M}^j_n, \label{Eq:NIIT1} \\
-		\mathbb{G}_n + z^j_n\,\mathcal{M}^j_n &\le& \mathbb{G}^{\mathrm{NIIT}} + \mathcal{M}^j_n, \label{Eq:NIIT2}
+		J_n &\le& z^j_n\,\mathcal{M}^j_n, \label{Eq:NIIT_Jub} \\
+		\mathbb{G}_n &\le& \mathbb{G}^{\mathrm{NIIT}} + z^j_n\,\mathcal{M}^j_n, \label{Eq:NIIT_Mub}
 	\end{eqnarray}
 	with $\mathcal{M}^j_n = 3\,\bar{\mathcal{B}}^{20}_n$.
-	These constraints enforce $z^j_n = 1$ when $\mathbb{G}_n \ge \mathbb{G}^{\mathrm{NIIT}}$
-	and $z^j_n = 0$ otherwise (subject to big-$\mathcal{M}$ rounding of the binary).
-	The NIIT amount $J_n$ is then embedded as a continuous LP variable bounded by
-	\begin{equation}
-		0 \le J_n \le 0.038\,(\mathbb{I}_n + Q_n),
-	\end{equation}
-	and the objective minimizes taxes, so $J_n$ is driven to its exact value.
+	Constraint~(\ref{Eq:NIIT_Jub}) forces $J_n = 0$ when $z^j_n = 0$;
+	Constraint~(\ref{Eq:NIIT_Mub}) forces $\mathbb{G}_n \le \mathbb{G}^{\mathrm{NIIT}}$
+	when $z^j_n = 0$, so the optimizer assigns $z^j_n = 0$ only when the
+	threshold is not exceeded.
+
+	\subsubsection*{NII cap via a surplus variable}
+	The IRS formula is
+	$J_n = 0.038\,\min(\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}},\;\mathbb{I}_n + Q_n)$,
+	where $\mathbb{I}_n + Q_n$ is net investment income (NII).
+	High ordinary income (e.g.\ large RMDs or Roth conversions) can push
+	$\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}}$ above NII, in which case the NIIT
+	base is capped at NII.
+	This $\min(\cdot,\cdot)$ is modeled \emph{without a second binary} by
+	introducing a continuous surplus variable $\delta^j_n \ge 0$.
+	Since the optimizer minimizes taxes and $J_n$ is a cost, it is naturally
+	driven to its lower bound; making that lower bound depend on $\delta^j_n$
+	means the optimizer simultaneously maximizes $\delta^j_n$, driving it to
+	$\max\!\bigl(0,\,\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}} - \mathbb{I}_n - Q_n\bigr)$.
+	The two constraints are
+	\begin{eqnarray}
+		J_n + 0.038\,\delta^j_n
+		  &\ge& 0.038\,(\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}})
+		        - \mathcal{M}^j_n(1-z^j_n), \label{Eq:NIIT_lb} \\
+		\delta^j_n - G_n - e_n + t^\sigma_n
+		  &\le& \textstyle\sum_i\bar{\zeta}_{in}
+		        - \mathbb{G}^{\mathrm{NIIT}} - \mathbb{I}_n
+		        + \mathcal{M}^j_n(1-z^j_n). \label{Eq:NIIT_cap}
+	\end{eqnarray}
+	Constraint~(\ref{Eq:NIIT_lb}) is the combined MAGI/NII floor: when
+	$z^j_n=1$ it forces $J_n \ge 0.038\,(\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}} - \delta^j_n)$.
+	Constraint~(\ref{Eq:NIIT_cap}) bounds the surplus:
+	$\delta^j_n \le \mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}} - \mathbb{I}_n - Q_n$
+	when $z^j_n=1$.
+	The $Q_n$ terms cancel because
+	$\mathbb{G}_n = G_n + e_n + Q_n + \sum_i\bar\zeta_{in} - t^\sigma_n$,
+	so Constraint~(\ref{Eq:NIIT_cap}) involves only ordinary income,
+	deduction headroom, and the SC-loop parameter $\mathbb{I}_n$.
+	Together, Constraints~(\ref{Eq:NIIT_lb})--(\ref{Eq:NIIT_cap}) reproduce
+	$J_n = 0.038\,\min(\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}},\,\mathbb{I}_n + Q_n)$
+	without any additional binary variables.
+
+	\subsubsection*{MAGI equality}
 	An equality constraint links MAGI to ordinary income, dividends, LTCG, and
 	the non-taxable portion of Social Security:
 	\begin{equation}

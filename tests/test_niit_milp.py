@@ -135,6 +135,45 @@ class TestNIITMilp:
         assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
         assert np.all(p.J_n >= -0.01), "Negative NIIT in combined NIIT+LTCG mode"
 
+    def test_niit_nii_cap_never_exceeded(self):
+        """J_n never exceeds 0.038 * NII_n (IRS NII cap) — exercises high-ordinary-income case.
+
+        Large tax-deferred / small taxable forces MAGI-T >> NII in some years.
+        The NII cap (niis surplus variable) must reduce J_n below 0.038*(MAGI-T).
+        """
+        # Dominating IRA balance → large RMDs → G_n drives MAGI above $250k threshold.
+        # Tiny taxable account → Q_n is small → NII cap binds.
+        p = _make_plan('niit_nii_cap', taxable=[20, 10], tax_deferred=[3000, 2000],
+                       tax_free=[50, 50])
+        p.solve('maxSpending', {
+            'withNIIT': 'optimize',
+            'withSSTaxability': 'loop',
+            'maxIter': 3,
+        })
+        assert p.caseStatus == 'solved'
+
+        nii_n = p.I_n + p.Q_n
+        for n in range(p.N_n):
+            assert p.J_n[n] <= 0.038 * max(0.0, nii_n[n]) + 1.0, (
+                f"Year {n}: J_n={p.J_n[n]:.2f} exceeds 0.038*NII={0.038*nii_n[n]:.2f} "
+                f"(MAGI={p.MAGI_n[n]:.0f})"
+            )
+
+        # Verify the fix is exercised: at least one year where MAGI > threshold and NII < MAGI-T.
+        any_capped = False
+        for n in range(p.N_n):
+            status_n = 0 if n >= p.n_d else p.N_i - 1
+            T_niit = 200000.0 if status_n == 0 else 250000.0
+            if p.MAGI_n[n] > T_niit and nii_n[n] < p.MAGI_n[n] - T_niit - 1.0:
+                any_capped = True
+                break
+        assert any_capped, "Test scenario did not produce a year where the NII cap binds"
+
+        # Cross-check against the reference formula.
+        J_ref = tx.computeNIIT(p.N_i, p.MAGI_n, p.I_n, p.Q_n, p.n_d, p.N_n)
+        np.testing.assert_allclose(p.J_n, J_ref, atol=200.0,
+                                   err_msg="MILP J_n does not match computeNIIT with NII cap")
+
     def test_niit_known_option(self):
         """'withNIIT' is recognized as a known option (not silently dropped)."""
         import io
