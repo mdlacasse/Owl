@@ -176,8 +176,9 @@ Capital gains arise when the optimizer elects to sell holdings; all realized
 gains are treated as long-term (see the limitation noted in
 Section~\ref{sec:ltcg}).
 When an initial cost basis is provided via \code{setCostBasis()}, the
-unrealized gain fraction is computed from the actual basis rather than
-treating only the current year's price appreciation as a gain;
+unrealized gain fraction is computed from the actual basis and tracked
+throughout the plan via a pro-rata update rule
+(see Eqs.~(\ref{Eq:Qx3})--(\ref{Eq:BasisUpdate}));
 this reduces the taxable gain recognized on withdrawals in the early plan years.
 
 \subsection*{Tax-deferred accounts (traditional IRA, 401(k), and 403(b))}
@@ -1449,7 +1450,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 \item [$t^{\sigma}_n$]
 	Taxable Social Security amount in year $n$, bounded in
 	$[0,\;0.85\sum_i\bar{\zeta}_{in}]$.
-	In the default SC-loop mode this quantity equals $\Psi_n\sum_i\bar{\zeta}_{in}$
+	In the default SC-loop mode this quantity equals $R_n\sum_i\bar{\zeta}_{in}$
 	and is treated as a fixed parameter; with the solver option
 	\code{withSSTaxability="optimize"} it becomes an LP decision variable computed
 	exactly from the IRS formula without iteration.
@@ -1500,6 +1501,14 @@ Parameter values are either set by the user, historical data, or by the tax code
         of the year following the last year, variable $\gamma_n$ will have $N_n + 1$ elements.
 	Parameters indexed for inflation will be indicated by a bar on top as in $\bar{\sigma}_n$.
 	See the next entry for a specific example.
+\item [$\psi_{in}$]
+	Effective capital-gain coefficient for withdrawals from person $i$'s taxable account
+	in year $n$.  It is computed by the self-consistent loop and enters the LP as a
+	fixed parameter each iteration.
+	When a cost basis is provided via \code{setCostBasis()},
+	$\psi_{in} = 1 - K_{in}/b_{i0n}$ (see Eq.~(\ref{Eq:GainFrac})).
+	Otherwise, $\psi_{in} = \max(0,\tau_{0(n-1)}-\mu)$, i.e., only the most
+	recent year's price appreciation is treated as a gain (Eq.~(\ref{Eq:Qx2})).
 \item [$\sigma_n$]
 	Standard deduction. It can be adjusted for inflation as follows
 	\begin{equation}
@@ -1773,12 +1782,6 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 \item [$\phi_j$]
 	Fraction of savings account $j$ that is left to surviving spouse $i_s$ as a beneficiary
 	at the death of individual $i_d$, the first spouse to pass.
-\item [$\Psi_n$]
-	Effective fraction of Social Security benefits subject to income tax in year $n$,
-	bounded in $[0, 0.85]$.
-	It is computed by the self-consistent loop from the IRS provisional income
-	formula (IRS Publication~915) and enters the LP as a fixed parameter each iteration.
-	See the Social Security taxability paragraph in the Constraints section.
 \item [$\eta$]
 	Spousal ratio for surplus deposits, which goes from 0 to 1, as the fraction
 	that goes to the $i = 1$ spouse's account. Therefore, a surplus $s_n$ in year $n$
@@ -1816,7 +1819,7 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	\begin{eqnarray}
 		\label{Eq:Tx2}
 		G_n &=&  \mathcal{A}_n^x +
-		\sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]
+		\sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + R_n\bar\zeta_{in} + \bar{\pi}_{in}]
 		- e_n
 		\nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in}]
@@ -1825,7 +1828,7 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 		[(b_{i0n} - w_{i0n} + d_{in} + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]
 	\end{eqnarray}
 	Social Security is indexed for inflation.
-	The taxable portion $\Psi_n\sum_i\bar{\zeta}_{in}$ is determined by the
+	The taxable portion $R_n\sum_i\bar{\zeta}_{in}$ is determined by the
 	self-consistent loop; see the Social Security taxability paragraph in the Constraints section.
 	Pensions can optionally be indexed for inflation.
 	We exclude $k=0$ to capture only non-equity gains in taxable accounts.
@@ -1867,14 +1870,40 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	the taxable savings account is being depleted slowly. An implementation keeping track
 	of stock purchases and sales is beyond the scope of providing a guide for retirement decisions.
 
+	When an initial cost basis $K_{i0}$ is provided for individual $i$ via
+	\code{setCostBasis()}, the capital-gain coefficient on withdrawals is
+	generalized to a tracked gain fraction $\psi_{in}$, giving
+	\begin{equation}
+		\label{Eq:Qx3}
+		Q_n = \sum_i \alpha_{i00n}\!\left[(b_{i0n} - w_{i0n} + d_{in} + \tfrac{1}{2}\kappa_{i0n})\mu
+		      + \psi_{in}\,w_{i0n}\right],
+	\end{equation}
+	where
+	\begin{equation}
+		\label{Eq:GainFrac}
+		\psi_{in} = \max\!\left(0,\;1 - \frac{K_{in}}{b_{i0n}}\right)
+	\end{equation}
+	is the fraction of the taxable account balance that represents unrealized gain.
+	Equation~(\ref{Eq:Qx2}) is recovered when $\psi_{in} = \max(0,\tau_{0(n-1)}-\mu)$,
+	the fallback used in the absence of a known basis.
+	The basis evolves between self-consistent iterations via the pro-rata (average-cost) rule
+	\begin{equation}
+		\label{Eq:BasisUpdate}
+		K_{i,n+1} = K_{in}\!\left(1 - \frac{w_{i0n}}{b_{i0n}}\right) + \kappa_{i0n} + d_{in},
+	\end{equation}
+	initialized at $K_{i0}$ from \code{setCostBasis()}.
+	Each withdrawal reduces the total basis in proportion to the account fraction
+	liquidated; fixed contributions $\kappa_{i0n}$ and surplus deposits $d_{in}$ are
+	new purchases added at full cost (zero embedded gain).
+
 \item [$\mathbb{G}_n$]
 	Modified adjusted gross income or MAGI for year $n$. When non-taxable
         municipal bonds are ignored, the MAGI can be expressed as
 	\begin{equation}
-		\mathbb{G}_n = G_n + Q_n + e_n + (1 - \Psi_n)\sum_i \bar{\zeta}_{in}.
+		\mathbb{G}_n = G_n + Q_n + e_n + (1 - R_n)\sum_i \bar{\zeta}_{in}.
 	\end{equation}
 	Because $G_n$ already contains the taxable Social Security term
-	$\Psi_n\sum_i\bar{\zeta}_{in}$, adding back $(1-\Psi_n)\sum_i\bar{\zeta}_{in}$
+	$R_n\sum_i\bar{\zeta}_{in}$, adding back $(1-R_n)\sum_i\bar{\zeta}_{in}$
 	restores the full benefit in MAGI,
 	consistent with the IRS definition.
 	This approach ignores additional IRS
@@ -1886,10 +1915,18 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	Used to determine the taxable portion of Social Security; see Eq.~(\ref{Eq:PI})
 	and the Social Security taxability paragraph in the Constraints section.
 
+\item [$R_n$]
+	Effective fraction of Social Security benefits subject to income tax in year $n$,
+	bounded in $[0, 0.85]$.
+	It is computed by the self-consistent loop from the IRS provisional income
+	formula (IRS Publication~915) and enters the LP as a fixed parameter each iteration.
+	$R_n = \mathcal{S}_n / \sum_i\bar{\zeta}_{in}$;
+	see the Social Security taxability paragraph in the Constraints section.
+
 \item [$\mathcal{S}_n$]
 	Amount of Social Security benefits subject to federal income tax in year $n$.
 	$\mathcal{S}_n$ is computed from the IRS formula in Eqs.~(\ref{Eq:TaxableSS})--(\ref{Eq:TaxableSSSimpl}),
-	and $\Psi_n = \mathcal{S}_n / \sum_i\bar{\zeta}_{in}$.
+	and $R_n = \mathcal{S}_n / \sum_i\bar{\zeta}_{in}$.
 
 \item [$\mathbb{I}_n$]
 	Interest and dividend income from the taxable account, plus rent and trust income from the \code{net inv} column.
@@ -1968,6 +2005,12 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	LP decision variables, and a binary variable $z^j_n$ exactly determines whether
 	the NIIT threshold is exceeded (see the Net Investment Income Tax subsection of
 	the Constraints chapter).
+
+\item [$K_{in}$]
+	Average-cost basis of the taxable account for individual $i$ at the start of year $n$.
+	Initialized from the user-supplied value $K_{i0}$ via \code{setCostBasis()} and
+	updated each self-consistent iteration by Eq.~(\ref{Eq:BasisUpdate}).
+	Not used when no cost basis is provided.
 
 \end{description}
 
@@ -2410,14 +2453,14 @@ In this case, the objective function will need to consider the sum over all year
 	An equality constraint links MAGI to ordinary income, dividends, LTCG, and
 	the non-taxable portion of Social Security:
 	\begin{equation}
-		\mathbb{G}_n = G_n + Q_n + e_n + \bigl(1 - \Psi_n\bigr)\textstyle\sum_i\bar{\zeta}_{in}.
+		\mathbb{G}_n = G_n + Q_n + e_n + \bigl(1 - R_n\bigr)\textstyle\sum_i\bar{\zeta}_{in}.
 	\end{equation}
 
 \subsection{Taxable ordinary income}
 	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:G_n}) and (\ref{Eq:Tx2}),
 	\begin{eqnarray}
 		\sum_{t=0}^{N_t-1} f_{tn} &=& \mathcal{A}^x_n +
-		\sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in}]  \nonumber \\
+		\sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + R_n\bar\zeta_{in} + \bar{\pi}_{in}]  \nonumber \\
 		&& + \sum_i [w_{i1n} + x_{in} ]
 		\nonumber\\
 		&& + \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
@@ -2430,7 +2473,7 @@ In this case, the objective function will need to consider the sum over all year
 		- \sum_i [ w_{i1n} + x_{in}] &&
 		\nonumber \\
 		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
-		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \Psi_n\bar\zeta_{in} + \bar{\pi}_{in} ]
+		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + R_n\bar\zeta_{in} + \bar{\pi}_{in} ]
 		\nonumber \\
 		&& 		+ 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n}.
 	\end{eqnarray}
@@ -2453,7 +2496,7 @@ In this case, the objective function will need to consider the sum over all year
 			      + 0.85\,(\Pi_n - \mathcal{P}^{\mathrm{hi}})\Bigr) & \Pi_n \ge \mathcal{P}^{\mathrm{hi}},
 		\end{cases}
 	\end{equation}
-	so that $\Psi_n = \mathcal{S}_n\,/\sum_i\bar{\zeta}_{in} \in [0,\,0.85]$.
+	so that $R_n = \mathcal{S}_n\,/\sum_i\bar{\zeta}_{in} \in [0,\,0.85]$.
 
 	Introducing the excess provisional income above each threshold,
 	\begin{equation}
@@ -2490,17 +2533,17 @@ In this case, the objective function will need to consider the sum over all year
 	This condition holds for virtually all retirees, since combined annual SS benefits
 	nearly always exceed \$12{,}000 (MFJ) or \$9{,}000 (single).
 
-	Because $\Psi_n$ enters the LP only as a constant multiplier of the fixed series
+	Because $R_n$ enters the LP only as a constant multiplier of the fixed series
 	$\bar{\zeta}_{in}$ on the right-hand side of Eq.~(\ref{Eq:C6}), it is treated as a
 	\emph{parameter} rather than a decision variable.
 	It is updated between LP solves in the self-consistent (SC) loop:
 	after each solve, $\mathbb{G}_n$ is computed from the current solution,
-	$\Pi_n$ is evaluated, and $\Psi_n$ is refreshed via Eq.~(\ref{Eq:TaxableSS}).
+	$\Pi_n$ is evaluated, and $R_n$ is refreshed via Eq.~(\ref{Eq:TaxableSS}).
 	A 30\% damping blend
-	$\Psi_n \leftarrow 0.3\,\Psi_n^{\mathrm{new}} + 0.7\,\Psi_n$
+	$R_n \leftarrow 0.3\,R_n^{\mathrm{new}} + 0.7\,R_n$
 	prevents oscillation near the bracket boundaries.
-	To avoid unnecessary LP rebuilds, $\Psi_n$ is only updated when
-	$\max_n|\Delta\Psi_n| > 10^{-3}$.
+	To avoid unnecessary LP rebuilds, $R_n$ is only updated when
+	$\max_n|\Delta R_n| > 10^{-3}$.
 	The SC loop terminates when the change in the objective function (net spending
 	or bequest) falls below a prescribed tolerance.
 
@@ -2553,7 +2596,7 @@ In this case, the objective function will need to consider the sum over all year
 		  + \mathcal{M}\,z^{\sigma}_{1n} \;\ge\; 0.
 	\end{equation}
 	In this formulation $t^{\sigma}_n$ is an LP variable rather than the fixed parameter
-	$\Psi_n\sum_i\bar{\zeta}_{in}$ used in SC-loop mode.
+	$R_n\sum_i\bar{\zeta}_{in}$ used in SC-loop mode.
 	Moving $t^{\sigma}_n$ to the left-hand side, Eq.~(\ref{Eq:C6}) becomes
 	\begin{eqnarray}
 		\label{Eq:C6prime}
@@ -2566,7 +2609,7 @@ In this case, the objective function will need to consider the sum over all year
 		\nonumber \\
 		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n},
 	\end{eqnarray}
-	and $\Psi_n = t^{\sigma}_n / \sum_i\bar{\zeta}_{in}$ is recovered from the LP
+	and $R_n = t^{\sigma}_n / \sum_i\bar{\zeta}_{in}$ is recovered from the LP
 	solution for reporting.
 	There is no circular dependency: provisional income 	$\Pi_n$ is constructed from
 	non-SS ordinary income, Roth conversions, $Q_n$ dividends, and the fixed
@@ -2682,7 +2725,7 @@ In this case, the objective function will need to consider the sum over all year
 	to yield a linear equality in the decision variables; it is implemented directly
 	in the constraint matrix. For indices at the beginning of the time sequence,
 	we use $\tau_{0, \max(0, n-x)}$, when $x>n$.
-	Note that $G_{(n-2)}$ already includes the taxable portion of Social Security (via $\Psi_n\bar{\zeta}_{in}$),
+	Note that $G_{(n-2)}$ already includes the taxable portion of Social Security (via $R_n\bar{\zeta}_{in}$),
 	and the additional $(1-\Psi_{(n-2)})\bar{\zeta}_{i(n-2)}$ term restores the non-taxable portion so that MAGI uses
 	total Social Security benefits.
 
@@ -3252,7 +3295,7 @@ equality in Eq.~(\ref{Eq:C5}) adds $N_n-1$ more rows to $A_ey = v$ as
 \paragraph*{Taxable ordinary income}
 For the equality constraint in Eq.~(\ref{Eq:C6}) establishing taxable
 ordinary income, we add $N_n$ rows to $A_ey = v$ as follows.
-The taxable Social Security term $\Psi_n\sum_i\bar{\zeta}_{in}$ appears on
+The taxable Social Security term $R_n\sum_i\bar{\zeta}_{in}$ appears on
 the right-hand side as a parameter updated each SC-loop iteration.
 \begin{eqnarray}
 	A_e[J_7(n), q_e(n)] &=& 1, \nonumber \\
@@ -3270,7 +3313,7 @@ the right-hand side as a parameter updated each SC-loop iteration.
 with
 \begin{eqnarray}
 	v[J_7(n)] &=&
-	\mathcal{A}^x_n + \Psi_n\sum_i\bar{\zeta}_{in} + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\pi}_{in}]
+	\mathcal{A}^x_n + R_n\sum_i\bar{\zeta}_{in} + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\pi}_{in}]
 	+ 0.5\sum_{i} \kappa_{i0n} \sum_{k\neq 0} \alpha_{i0kn}\tau_{kn}.
 \end{eqnarray}
 
