@@ -860,6 +860,10 @@ normal distribution**. Each year of the plan is an independent draw from that di
 Unlike `historical_bootstrap`, no actual historical years are resampled — only their statistical
 summary (arithmetic mean and covariance) is used. The result is parametric and Gaussian, but with
 parameters grounded in history rather than supplied by the user.
+*Inflation correction:* because historical inflation rates are right-skewed, a piecewise-linear
+(PWL) transform is automatically applied to the inflation dimension before fitting to reduce this
+skewness; its inverse is applied to generated samples so outputs remain in actual inflation units.
+The transform slopes are auto-calibrated from the selected date window.
 
 **`gaussian`** — Draws independently from a multivariate normal distribution each year.
 The **arithmetic** mean returns, volatilities, and cross-asset correlations are **user-supplied** in the
@@ -881,6 +885,9 @@ covariance are estimated directly, and samples are drawn from that fitted
 distribution and exponentiated. The displayed statistics are the equivalent arithmetic means and
 volatilities, converted back from log-space. Inherits all the right-skew and lower-bound advantages
 of `lognormal` while deriving its parameters from history rather than user input.
+*Inflation correction:* the PWL skewness normalization (see `historical_gaussian`) is applied
+to inflation log-returns before the Gaussian fit in log-space, and its inverse is applied to
+generated log-return samples before exponentiation.
 
 **`historical_bootstrap`** *(Sequence-of-Returns bootstrap)* — Resamples **actual historical years**
 from the selected window to build synthetic rate sequences. Because real observations are
@@ -915,6 +922,8 @@ This means momentum (positive serial correlation) and mean-reversion (negative s
 correlation) observed in the historical data are naturally reproduced. `vector_ar` is the most
 statistically sophisticated method and is particularly appropriate when the sequence and
 persistence of returns matter, as is often the case for sequence-of-returns risk analysis.
+*Inflation correction:* the PWL skewness normalization (see `historical_gaussian`) is applied
+to the inflation dimension before OLS fitting and inverted on generated samples.
 
 **`garch_dcc`** *(Dynamic Conditional Correlation GARCH, Engle 2002)* — Fits a
 DCC-GARCH(1,1) model to the selected historical window using a two-step maximum
@@ -927,6 +936,8 @@ simulated year inherits the conditional variance and correlation state from the 
 year, making `garch_dcc` the only Owl method to reproduce both heteroskedasticity and
 correlation dynamics. It is most useful when realistic tail behavior and stress-period
 contagion are important, such as for retirement scenarios that include equity-heavy portfolios.
+*Inflation correction:* the PWL skewness normalization (see `historical_gaussian`) is applied
+to the inflation dimension before GARCH/DCC fitting and inverted on generated samples.
 
 **`gmm`** *(Gaussian Mixture Model)* — Fits a **K-component multivariate Gaussian mixture** to the
 selected historical window using the Expectation-Maximization (EM) algorithm. Rather than

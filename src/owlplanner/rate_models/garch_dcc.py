@@ -38,6 +38,7 @@ from numpy.linalg import cholesky, eigvalsh, LinAlgError
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import GARCH_DCC_MIN_OBSERVATIONS, REQUIRED_RATE_COLUMNS
+from owlplanner.rate_models.inflation_transform import fit_inflation_transform, inv_pwl_transform, pwl_transform
 from owlplanner.rates import FROM, TO
 
 
@@ -130,6 +131,14 @@ class GARCHDCCRateModel(BaseRateModel):
                 f"DCC-GARCH(1,1) requires at least {GARCH_DCC_MIN_OBSERVATIONS} observations; "
                 f"frm={self.frm}, to={self.to} yields only {T}."
             )
+
+        # PWL transform on inflation (dim 3) to correct right-skew before GARCH/DCC fit
+        k, slope_lo, slope_hi = fit_inflation_transform(data[:, 3])
+        if self.logger:
+            self.logger.vprint(f"garch_dcc inflation PWL: k={k:.4f}, slope_lo={slope_lo:.4f}, slope_hi={slope_hi:.4f}")
+        self._infl_transform = (k, slope_lo, slope_hi)
+        data = data.copy()
+        data[:, 3] = pwl_transform(data[:, 3], k, slope_lo, slope_hi)
 
         self._mu = data.mean(axis=0)
         self._fit(data)
@@ -374,5 +383,9 @@ class GARCHDCCRateModel(BaseRateModel):
             Q = (1 - a - b) * Q_bar + a * np.outer(z, z) + b * Q
             Q = (Q + Q.T) / 2.0
             chol_R = _pd_cholesky(_normalize_Q(Q))
+
+        # Invert inflation transform to recover actual inflation values
+        k, slope_lo, slope_hi = self._infl_transform
+        out[:, 3] = inv_pwl_transform(out[:, 3], k, slope_lo, slope_hi)
 
         return out

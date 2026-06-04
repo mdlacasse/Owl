@@ -2,6 +2,32 @@
 
 ### Version 2026.06.05
 
+#### Inflation skewness correction for parametric rate models
+
+Historical US inflation rates are right-skewed (long right tail from high-inflation episodes such as the 1970s), which violates the Gaussian residual assumption implicit in four parametric stochastic models.
+A piecewise-linear (PWL) normalization transform $\varphi$ is now automatically applied to the inflation dimension before fitting those models, and its inverse $\varphi^{-1}$ is applied to generated samples so outputs remain in actual inflation units:
+
+$$\varphi(z) = \begin{cases} (z-\kappa)\,s^- + \kappa & z \le \kappa \\ (z-\kappa)\,s^+ + \kappa & z > \kappa \end{cases}$$
+
+where $\kappa$ is the empirical median of the selected historical window.
+The slopes $s^-$ and $s^+$ are auto-fitted by minimizing squared skewness of $\varphi(z)$ with a small regularization toward the identity, so they adapt automatically when the user changes the date range.
+For US inflation over 1928–2025 the optimizer typically finds $s^- \approx 2.3$, $s^+ \approx 0.8$.
+Fitted values are reported in the debug log at model initialization.
+
+**Affected models:**
+- `historical_gaussian`, `vector_ar`, `garch_dcc` — transform applied in return space.
+- `historical_lognormal` — transform applied in log-return space to avoid log-domain constraints.
+
+**Unaffected:** `gaussian`, `lognormal` (user-supplied parameters), `historical_bootstrap`, `historical_average`, `gmm`, `hmm` (no Gaussian residual assumption on inflation).
+
+**New module:** `src/owlplanner/rate_models/inflation_transform.py` — `fit_inflation_transform`, `pwl_transform`, `inv_pwl_transform`.
+
+**Documentation:** `papers/owl.tex` §"Inflation skewness correction", `docs/modeling-capabilities.md`, `ui/Documentation.py`.
+
+---
+
+### Version 2026.06.05
+
 #### New rate model — Hidden Markov Model (`hmm`)
 
 Adds a Hidden Markov Model rate model that extends the GMM by fitting a $K \times K$ Markov transition matrix between regimes via the Baum-Welch algorithm. Consecutive simulated years are no longer independent: regime persistence produces realistic multi-year bull and bear runs, capturing sequence-of-returns risk that the i.i.d. GMM cannot reproduce. Exposed in the UI with a configurable number of regimes (default $K=3$). The correlation plot uses 2 000 synthetic draws from the fitted model. Registered in `STOCHASTIC_METHODS`, `VARYING_TYPE_UI`, and `HISTORICAL_RANGE_METHODS`; seed and reproducibility controls work identically to `gmm`.

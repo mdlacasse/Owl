@@ -37,6 +37,7 @@ import sys
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
+from owlplanner.rate_models.inflation_transform import fit_inflation_transform, inv_pwl_transform, pwl_transform
 from owlplanner.rates import FROM, TO
 
 
@@ -107,6 +108,14 @@ class VARRateModel(BaseRateModel):
                 f"VAR(1) requires at least 10 observations; "
                 f"frm={self.frm}, to={self.to} yields only {len(data)}."
             )
+
+        # PWL transform on inflation (dim 3) to correct right-skew before OLS fit
+        k, slope_lo, slope_hi = fit_inflation_transform(data[:, 3])
+        if self.logger:
+            self.logger.vprint(f"vector_ar inflation PWL: k={k:.4f}, slope_lo={slope_lo:.4f}, slope_hi={slope_hi:.4f}")
+        self._infl_transform = (k, slope_lo, slope_hi)
+        data = data.copy()
+        data[:, 3] = pwl_transform(data[:, 3], k, slope_lo, slope_hi)
 
         self._mean = data.mean(axis=0)
         self._fit(data)
@@ -223,5 +232,9 @@ class VARRateModel(BaseRateModel):
             y_t = self._c + self._A @ y_prev + eps
             out[t] = y_t
             y_prev = y_t
+
+        # Invert inflation transform to recover actual inflation values
+        k, slope_lo, slope_hi = self._infl_transform
+        out[:, 3] = inv_pwl_transform(out[:, 3], k, slope_lo, slope_hi)
 
         return out

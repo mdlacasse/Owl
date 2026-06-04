@@ -3723,6 +3723,79 @@ reproducible results across runs.
 Each fresh draw of $N_n$ vectors constitutes one scenario; running many
 independent scenarios yields a Monte Carlo distribution of outcomes.
 
+\subsection{Inflation skewness correction}
+\label{sec:inflation-pwl}
+
+Historical US inflation rates are substantially right-skewed: the distribution
+has a long right tail from high-inflation episodes (e.g.\ the 1970s) while
+low-inflation and deflation years cluster near the median.
+This asymmetry violates the Gaussian residual assumption shared by four of
+Owl's parametric stochastic models: \code{historical\_gaussian},
+\code{historical\_lognormal}, \code{vector\_ar}, and \code{garch\_dcc}.
+
+To correct for this, Owl applies a piecewise-linear (PWL) normalization
+transform $\varphi$ to the inflation dimension ($k = 3$) before fitting
+each of these models, and its inverse $\varphi^{-1}$ to the generated
+inflation samples after drawing:
+\begin{equation}
+    \varphi(z;\,\kappa,s^-,s^+) = \begin{cases}
+        (z - \kappa)\,s^- + \kappa & z \le \kappa, \\[2pt]
+        (z - \kappa)\,s^+ + \kappa & z > \kappa,
+    \end{cases}
+    \label{Eq:pwl}
+\end{equation}
+where $\kappa$ is the empirical median of the inflation values in the selected
+historical window and $s^- > 0$, $s^+ > 0$ are the slopes below and above the
+median respectively.
+With $s^- > 1$ and $s^+ < 1$, the transform stretches the short left tail and
+compresses the long right tail, producing a distribution closer to Gaussian.
+The inverse is
+\begin{equation}
+    \varphi^{-1}(w;\,\kappa,s^-,s^+) = \begin{cases}
+        (w - \kappa)/s^- + \kappa & w \le \kappa, \\[2pt]
+        (w - \kappa)/s^+ + \kappa & w > \kappa.
+    \end{cases}
+    \label{Eq:pwlinv}
+\end{equation}
+
+\paragraph*{Automatic calibration}
+The slopes $s^-$ and $s^+$ are fitted automatically from the same historical
+window used to calibrate the rate model, so they adapt when the user selects a
+different date range.
+They minimize the squared skewness of $\varphi(z)$ subject to a small
+regularization toward the identity ($s^- = s^+ = 1$) that ensures a unique,
+low-distortion solution:
+\begin{equation}
+    (s^-,\,s^+) \;=\;
+    \arg\min_{\substack{s^->0,\;s^+>0}}
+    \Bigl[
+        \operatorname{skew}\!\bigl(\varphi(z)\bigr)^2
+        +\, 0.1\bigl((s^{-}-1)^2 + (s^{+}-1)^2\bigr)
+    \Bigr].
+    \label{Eq:pwlfit}
+\end{equation}
+For US inflation data over the full 1928--2025 window the optimizer typically
+finds $s^- \approx 2.3$ and $s^+ \approx 0.8$.
+The fitted values of $\kappa$, $s^-$, and $s^+$ are recorded in the debug
+log at model initialization.
+
+\paragraph*{Scope and domain}
+The transform is applied to the inflation dimension only; equities, bonds,
+and T-notes are unchanged.
+User-specified models (\code{gaussian}, \code{lognormal}) and
+data-reuse models (\code{historical}, \code{historical\_bootstrap},
+\code{historical\_average}) are unaffected.
+For \code{historical\_gaussian}, \code{vector\_ar}, and \code{garch\_dcc},
+$\varphi$ is applied in \emph{return space}: historical inflation returns
+$r_{3,y}$ are mapped to $\varphi(r_{3,y})$ before parameter estimation,
+and $\varphi^{-1}$ is applied to generated inflation draws before returning them.
+For \code{historical\_lognormal}, $\varphi$ is applied in
+\emph{log-return space}: the log-returns $\ell_{3,y} = \ln(1+r_{3,y})$ are
+mapped to $\varphi(\ell_{3,y})$ before Gaussian fitting, and $\varphi^{-1}$
+is applied to the generated log-return samples before exponentiation.
+Working in log-space eliminates the constraint $\varphi(r_{3,y})>-1$ that
+would otherwise be required for the logarithm to remain well-defined.
+
 \subsection{Multivariate normal: \texttt{historical\_gaussian} and \texttt{gaussian}}
 
 Both methods model annual returns as draws from a multivariate normal

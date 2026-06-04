@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from owlplanner.rate_models.inflation_transform import fit_inflation_transform, inv_pwl_transform, pwl_transform
 from owlplanner.rates import (
     FROM,
     TO,
@@ -144,12 +145,49 @@ def generate_histogaussian_series(
     sample covariance computed from the same window. This is the standard
     maximum-likelihood fit of a multivariate normal to the historical data.
 
+    Inflation (dimension 3) is pre-processed with a PWL normalization transform
+    φ before fitting to correct for right-skew, then φ⁻¹ is applied to generated
+    samples so outputs remain in actual inflation units.
+
     Returns:
         (rate_series, means, stdev, corr) - series in decimal, arithmetic params for metadata
     """
-    dist = getRatesDistributions(frm, to, mylog, in_percent=False)
-    rate_series = rng.multivariate_normal(dist.arith_means, dist.covar, size=N)
-    return rate_series, dist.arith_means, dist.stdev, dist.corr
+    if not (FROM <= frm <= TO):
+        raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
+    if not (FROM <= to <= TO):
+        raise ValueError(f"Upper range 'to={to}' out of bounds.")
+    if frm >= to:
+        raise ValueError("Unacceptable range.")
+
+    ifrm = frm - FROM
+    ito = to - FROM
+    data = np.column_stack([
+        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+    ])
+
+    # Metadata from original data for UI display
+    orig_means = data.mean(axis=0)
+    orig_stdev = np.std(data, axis=0, ddof=1)
+    orig_corr = np.corrcoef(data.T)
+
+    # PWL transform on inflation (dim 3) to correct right-skew before fitting
+    k, slope_lo, slope_hi = fit_inflation_transform(data[:, 3])
+    if mylog:
+        mylog.vprint(f"histogaussian inflation PWL: k={k:.4f}, slope_lo={slope_lo:.4f}, slope_hi={slope_hi:.4f}")
+    data_t = data.copy()
+    data_t[:, 3] = pwl_transform(data[:, 3], k, slope_lo, slope_hi)
+
+    arith_means = data_t.mean(axis=0)
+    covar = np.cov(data_t.T)
+    rate_series = rng.multivariate_normal(arith_means, covar, size=N)
+
+    # Invert inflation transform on generated samples
+    rate_series[:, 3] = inv_pwl_transform(rate_series[:, 3], k, slope_lo, slope_hi)
+
+    return rate_series, orig_means, orig_stdev, orig_corr
 
 
 def generate_lognormal_series(
@@ -247,18 +285,34 @@ def generate_histolognormal_series(
         Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
     ])
 
-    lr = np.log(1.0 + data)           # log-returns, shape (T, 4)
-    mu_z = lr.mean(axis=0)            # log-space mean
-    Sigma_z = np.cov(lr.T)            # log-space covariance
+    lr = np.log(1.0 + data)            # log-returns, shape (T, 4)
+
+    # PWL transform on inflation LOG-RETURNS (dim 3) to correct skew before Gaussian fit.
+    # Applied in log-space: no log(1 + .) domain constraint needed.
+    k, slope_lo, slope_hi = fit_inflation_transform(lr[:, 3])
+    if mylog:
+        mylog.vprint(f"histolognormal inflation PWL: k={k:.4f}, slope_lo={slope_lo:.4f}, slope_hi={slope_hi:.4f}")
+    lr_t = lr.copy()
+    lr_t[:, 3] = pwl_transform(lr[:, 3], k, slope_lo, slope_hi)
+
+    mu_z = lr_t.mean(axis=0)           # log-space mean (transformed inflation)
+    Sigma_z = np.cov(lr_t.T)           # log-space covariance (transformed inflation)
 
     Z = rng.multivariate_normal(mu_z, Sigma_z, size=N)
+
+    # Invert inflation transform in log-return space before exponentiating
+    Z[:, 3] = inv_pwl_transform(Z[:, 3], k, slope_lo, slope_hi)
+
     rate_series = np.exp(Z) - 1.0
 
-    # Convert back to arithmetic statistics for UI display
-    sigma_z = np.sqrt(np.diag(Sigma_z))
-    means = np.exp(mu_z + 0.5 * np.diag(Sigma_z)) - 1.0
-    stdev = (means + 1.0) * np.sqrt(np.exp(np.diag(Sigma_z)) - 1.0)
-    corr = Sigma_z / np.outer(sigma_z, sigma_z)
+    # Metadata derived from original (untransformed) log-returns for UI display
+    lr_orig_cov = np.cov(lr.T)
+    sigma_z_orig = np.sqrt(np.diag(lr_orig_cov))
+    mu_z_orig = lr.mean(axis=0)
+    sigma_z_orig_diag = np.diag(lr_orig_cov)
+    means = np.exp(mu_z_orig + 0.5 * sigma_z_orig_diag) - 1.0
+    stdev = (means + 1.0) * np.sqrt(np.exp(sigma_z_orig_diag) - 1.0)
+    corr = lr_orig_cov / np.outer(sigma_z_orig, sigma_z_orig)
 
     return rate_series, means, stdev, corr
 
