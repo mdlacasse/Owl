@@ -193,6 +193,7 @@ class AssetAllocation(BaseModel):
     taxable: Optional[List[List[List[int]]]] = None
     tax_deferred: Optional[List[List[List[int]]]] = Field(default=None, alias="tax-deferred")
     tax_free: Optional[List[List[List[int]]]] = Field(default=None, alias="tax-free")
+    hsa: Optional[List[List[List[int]]]] = None
 
     @field_validator("interpolation_method", mode="before")
     @classmethod
@@ -324,6 +325,10 @@ class SolverOptions(BaseModel):
                     "by valuing near-term consumption more than end-of-life spending."
     )
     minTaxableBalance: Optional[List[float]] = None
+    fixedSpending: Optional[float] = Field(
+        default=None,
+        description="Pin first-year spending to a fixed value (today's dollars, in units) for maxSpending objective."
+    )
     spendingSlack: Optional[int] = None
     noLateSurplus: Optional[bool] = None
 

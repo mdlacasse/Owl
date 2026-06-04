@@ -2,6 +2,12 @@
 
 ### Version 2026.06.05
 
+#### Documentation and schema alignment (issue #126)
+
+Added `fixedSpending` and `hsa` as explicit fields in the Pydantic schema (`SolverOptions` and `AssetAllocation`). Removed stale `spendingFloor`, `spendingWeight`, and `maxHybrid` references from `PARAMETERS.md`.
+
+---
+
 #### Inflation skewness correction for parametric rate models
 
 Historical US inflation rates are right-skewed (long right tail from high-inflation episodes such as the 1970s), which violates the Gaussian residual assumption implicit in four parametric stochastic models.

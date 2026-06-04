@@ -182,7 +182,7 @@ def test_fit_adapts_to_different_windows():
 
 def test_fit_uses_actual_historical_inflation():
     """Fit on actual Owl historical inflation data returns plausible slopes."""
-    from owlplanner.rates import Inflation, FROM
+    from owlplanner.rates import Inflation
     z = Inflation.iloc[:].to_numpy() / 100.0  # full 1928-2025 window
     k, slope_lo, slope_hi = fit_inflation_transform(z)
     assert k == pytest.approx(float(np.median(z)), rel=1e-6)
