@@ -284,8 +284,8 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
                 "rate",
                 help=(
                     "Annual growth rate (%). "
-                    "For physical assets (residence, real estate, collectibles, precious metals): real rate above inflation — "
-                    "rate=0 means the asset tracks inflation. "
+                    "For physical assets (residence, real estate, collectibles, precious metals): "
+                    "real rate above inflation — rate=0 means the asset tracks inflation. "
                     "For stocks: nominal rate. "
                     "For fixed annuity: nominal rate (0 = flat lump-sum payout)."
                 ),
@@ -319,7 +319,8 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             num_rows="dynamic",
             key=kz.genCaseKey("fixed_assets")
         )
-        fixedCaption = """Value is in reference-year $ (at the start of the reference year). Basis is the actual cost basis in nominal dollars (what you paid, not inflation-adjusted).
+        fixedCaption = """Value is in reference-year $ (at the start of the reference year). \
+Basis is the actual cost basis in nominal dollars (what you paid, not inflation-adjusted).
 Additional items can be directly entered in the table by clicking :material/add:
 on the last row. Items can be deleted by selecting rows in the left margin and
 pressing the *Delete* key."""

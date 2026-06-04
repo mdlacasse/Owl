@@ -32,7 +32,7 @@ parameters_path = Path(__file__).resolve().parents[1] / "PARAMETERS.md"
 try:
     content = parameters_path.read_text(encoding="utf-8")
 except FileNotFoundError:
-    st.error(f"Unable to locate `{parameters_path.name}` in the project root.")
+    st.error(f"Unable to locate `{parameters_path.name}` in the project root.", icon=":material/error:")
     st.stop()
 
 # Split preamble from ## sections

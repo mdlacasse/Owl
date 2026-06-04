@@ -54,7 +54,7 @@ highspy==1.14.0
     # via owlplanner
 httptools==0.8.0
     # via streamlit
-idna==3.17
+idna==3.18
     # via
     #   anyio
     #   requests
@@ -128,7 +128,7 @@ pillow==12.2.0
     # via
     #   matplotlib
     #   streamlit
-plotly==6.7.0
+plotly==6.8.0
     # via owlplanner
 protobuf==7.35.0
     # via streamlit
@@ -202,7 +202,7 @@ tzdata==2026.2 ; python_full_version < '3.11' or sys_platform == 'emscripten' or
     # via pandas
 urllib3==2.7.0
     # via requests
-uvicorn==0.48.0
+uvicorn==0.49.0
     # via streamlit
 watchdog==6.0.0 ; sys_platform != 'darwin'
     # via streamlit

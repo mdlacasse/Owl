@@ -140,7 +140,8 @@ Select a target success rate to find the committed spending that meets it.
             )
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
-            _help = "Use a reasonable number on the Community Server (e.g., 200). Consider self-hosting for larger ensembles."
+            _help = ("Use a reasonable number on the Community Server (e.g., 200). "
+                     "Consider self-hosting for larger ensembles.")
             kz.getIntNum("Number of MC scenarios", "stoch_N_mc", step=50, min_value=10, max_value=5000, help=_help)
         with col4:
             st.button(

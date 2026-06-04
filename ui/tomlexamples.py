@@ -64,7 +64,7 @@ def loadCaseExample(case):
         text = f.read()
         return StringIO(text)
 
-    st.error(f"Failed to load case parameter file: {case}.")
+    st.error(f"Failed to load case parameter file: {case}.", icon=":material/error:")
     return None
 
 
@@ -86,7 +86,7 @@ def loadWagesExample(case):
             data = f.read()
             return BytesIO(data)
     else:
-        st.error(f"Failed to load Household Financial Profile {hfp_name}.")
+        st.error(f"Failed to load Household Financial Profile {hfp_name}.", icon=":material/error:")
         return None
 
 

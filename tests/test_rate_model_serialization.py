@@ -5,7 +5,7 @@ Covers:
 - Direct unit tests for StochasticRateModel.from_config / to_config
 - Direct unit tests for default BaseRateModel.from_config / to_config
 - DataFrameRateModel.to_config returning {}
-- Full plan → config → plan round-trip for stochastic, lognormal, historical_lognormal, and historical_bootstrap
+- Full plan → config → plan round-trip for stochastic, lognormal, historical_lognormal, historical_bootstrap, and gmm
 - config_to_plan with stochastic and lognormal TOML keys (alias-normalization)
 
 Copyright (C) 2025-2026 The Owl Authors
@@ -19,6 +19,7 @@ from owlplanner import Plan
 from owlplanner.config import config_to_plan, plan_to_config
 from owlplanner.rate_models._builtin_impl import _build_corr_matrix
 from owlplanner.rate_models.historical_bootstrap import BootstrapSORRateModel
+from owlplanner.rate_models.gmm import GMMRateModel
 from owlplanner.rate_models.builtin import (
     Trailing30RateModel,
     HistoricalAverageRateModel,
@@ -676,3 +677,91 @@ class TestBootstrapSORSerialization:
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
         assert p2.rateMethod == "historical_bootstrap"
         assert p2.tau_kn.shape == (4, p2.N_n)
+
+
+# ===========================================================================
+# GMMRateModel — unit tests + round-trip
+# ===========================================================================
+
+class TestGMMSerialization:
+
+    def test_from_config_translates_from_to_frm(self):
+        """from_config translates 'from' → 'frm' and passes through n_components."""
+        section = {"from": 1960, "to": 2020, "n_components": 5}
+        result = GMMRateModel.from_config(section)
+        assert "frm" in result
+        assert "from" not in result
+        assert result["frm"] == 1960
+        assert result["to"] == 2020
+        assert result["n_components"] == 5
+
+    def test_from_config_drops_non_gmm_keys(self):
+        """from_config filters out keys not declared by GMMRateModel."""
+        section = {
+            "from": 1960, "to": 2020,
+            "bootstrap_type": "block",   # bootstrap-only param
+            "standard_deviations": [17, 8, 6, 2],
+        }
+        result = GMMRateModel.from_config(section)
+        assert "bootstrap_type" not in result
+        assert "standard_deviations" not in result
+        assert result["frm"] == 1960
+
+    def test_to_config_translates_frm_to_from(self):
+        """to_config translates 'frm' → 'from' and includes n_components."""
+        result = GMMRateModel.to_config(frm=1960, to=2020, n_components=5)
+        assert "from" in result
+        assert "frm" not in result
+        assert result["from"] == 1960
+        assert result["to"] == 2020
+        assert result["n_components"] == 5
+
+    def test_to_config_omits_undeclared_extras(self):
+        """to_config drops kwargs not declared in optional_parameters."""
+        result = GMMRateModel.to_config(frm=1960, to=2020, n_components=3, bogus=99)
+        assert "bogus" not in result
+        assert result["from"] == 1960
+
+    def test_full_round_trip_preserves_n_components(self):
+        """plan.setRates('gmm', n_components=5) → plan_to_config → config_to_plan preserves n_components."""
+        p = _make_plan()
+        p.setRates(method="gmm", frm=1960, to=2020, n_components=5)
+
+        diconf = plan_to_config(p)
+        rates = diconf["rates_selection"]
+
+        assert rates["method"] == "gmm"
+        assert rates.get("n_components") == 5
+        assert rates["from"] == 1960
+        assert rates["to"] == 2020
+
+        p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
+        assert p2.rateMethod == "gmm"
+        assert p2.rateFrm == 1960
+        assert p2.rateTo == 2020
+        assert p2.rateModel.n_components == 5
+        assert p2.tau_kn.shape == (4, p2.N_n)
+
+    def test_config_to_plan_no_from_key_uses_defaults(self):
+        """A TOML with method='gmm' but no 'from' key loads successfully using model defaults.
+
+        This tests the plan_bridge fix that relaxes the HISTORICAL_RANGE_METHODS guard
+        for models that declare frm as optional.
+        """
+        rates = {"method": "gmm"}   # no 'from', no 'to', no 'n_components'
+        plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
+
+        assert plan.rateMethod == "gmm"
+        assert plan.tau_kn.shape == (4, plan.N_n)
+        assert plan.rateModel.n_components == 3   # default
+
+    def test_round_trip_default_n_components(self):
+        """n_components=3 (the default) is preserved through a full round-trip."""
+        p = _make_plan()
+        p.setRates(method="gmm", frm=1928, to=2025)  # n_components not specified → default 3
+
+        diconf = plan_to_config(p)
+        p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
+
+        assert p2.rateMethod == "gmm"
+        assert p2.rateModel.n_components == 3

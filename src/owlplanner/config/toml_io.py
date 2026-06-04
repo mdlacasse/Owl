@@ -11,7 +11,6 @@ from typing import Union
 
 import toml
 
-from .. import mylogging
 from .legacy import translate_old_keys
 
 

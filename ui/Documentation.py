@@ -116,7 +116,7 @@ See *Input and Output Files* and *Financial Profile* below for full detail.
 **Scenario**
 > A *scenario* is a specific realization of future economic conditions — primarily a year-by-year
 sequence of asset-class return rates. For stochastic rate methods (`historical_gaussian`, `lognormal`,
-`historical_bootstrap`, `vector_ar`, `garch_dcc`, etc.), each Monte Carlo trial draws a fresh *scenario*
+`historical_bootstrap`, `vector_ar`, `garch_dcc`, `gmm`, etc.), each Monte Carlo trial draws a fresh *scenario*
 from the model specified in the *case*. For the `historical` method, each starting year defines
 one historical *scenario*. For constant rate methods, the *case* itself fully determines the
 single implicit deterministic *scenario*. When stochastic lifespan is enabled in the Spending
@@ -846,7 +846,7 @@ A roundup of expert stock and bond return forecasts can be found
 ---
 ##### Varying rates
 Varying rates change year by year, enabling realistic uncertainty modeling.
-There are eight methods:
+There are nine methods:
 
 **`historical`** — Replays the exact year-by-year returns from a selected historical window
 in chronological order. Each year of the plan receives the return from one calendar year of
@@ -928,6 +928,29 @@ year, making `garch_dcc` the only Owl method to reproduce both heteroskedasticit
 correlation dynamics. It is most useful when realistic tail behavior and stress-period
 contagion are important, such as for retirement scenarios that include equity-heavy portfolios.
 
+**`gmm`** *(Gaussian Mixture Model)* — Fits a **K-component multivariate Gaussian mixture** to the
+selected historical window using the Expectation-Maximization (EM) algorithm. Rather than
+describing the joint return distribution as a single Gaussian, a GMM represents it as a
+weighted sum of K full-covariance Gaussians, each corresponding to a distinct **market regime**
+(e.g. bull market, bear market, crisis). Cross-asset correlations are captured *within each
+regime*, so the model can represent, for instance, a crisis component where equities and bonds
+fall together (correlation breakdown) alongside a bull-market component with the normal
+negative stock–bond relationship. Each simulated year is drawn by first sampling a regime
+from the mixture weights, then drawing from that regime's multivariate normal. Independent
+draws — no serial autocorrelation. The number of components K is configurable (default 3).
+
+**`hmm`** *(Hidden Markov Model)* — Extends the GMM by adding **temporal autocorrelation**
+through a K×K Markov **transition matrix** between regimes, fitted via the Baum-Welch
+algorithm (EM for HMMs). Each simulated year begins in a hidden regime state that persists
+or switches according to the fitted transition probabilities, then draws returns from that
+regime's multivariate Gaussian. Because regimes are Markov-correlated across years, the model
+naturally reproduces **multi-year bull and bear runs** — a key driver of sequence-of-returns
+risk. Fitted on annual US data, the diagonal transition probabilities typically exceed 0.6,
+meaning a regime is more likely to continue than to switch in any given year. The number
+of components K is configurable (default 3); `reg_trans` (default 0.001) applies Laplace
+smoothing to prevent zero-probability transitions; `init_regime` pins the starting regime
+(default: draw from the stationary distribution).
+
 ---
 ##### Method comparison
 
@@ -946,11 +969,13 @@ contagion are important, such as for retirement scenarios that include equity-he
 | `historical` | Varying | Deterministic | Exact historical replay; no modeling assumptions | No Monte Carlo; one path per start year |
 | `lognormal` | Varying | Stochastic | User-specified parameters; bounded below −100%; right-skewed; GBM-consistent | Accuracy depends entirely on user inputs |
 | `vector_ar` | Varying | Stochastic | Captures momentum and mean-reversion across all asset classes | More complex; sensitive to choice of historical window |
+| `gmm` | Varying | Stochastic | Captures regime-dependent cross-asset correlations (bull/bear/crisis) | Independent draws; no serial autocorrelation |
+| `hmm` | Varying | Stochastic | Regime-dependent correlations **plus** year-to-year persistence; best for sequence-of-returns risk | More parameters to fit; sensitive to choice of historical window and K |
 
 ---
 ##### Historical range
 For all methods that reference history (`historical`, `historical_gaussian`, `historical_lognormal`,
-`historical_bootstrap`, `historical_average`, `vector_ar`, and `garch_dcc`), a **Starting year / Ending year** selector appears.
+`historical_bootstrap`, `historical_average`, `vector_ar`, `garch_dcc`, `gmm`, and `hmm`), a **Starting year / Ending year** selector appears.
 The range determines which calendar years are included in the dataset from which rates
 are drawn or statistics are computed. At least two years are required. For `historical`,
 the ending year is fixed by the starting year plus the plan horizon.
@@ -991,7 +1016,7 @@ the underlying data source varies by method:
 | `historical_bootstrap` | The **full historical pool** (frm–to window) that the bootstrap draws from — exact source distribution, no sampling noise |
 | `historical_gaussian`, `historical_lognormal` | 2 000 synthetic draws from the parametric distribution fitted to the selected historical window |
 | `gaussian`, `lognormal` | 2 000 synthetic draws from the user-supplied arithmetic means, volatilities, and correlations |
-| `vector_ar`, `garch_dcc` | 2 000 synthetic draws from the fitted model |
+| `vector_ar`, `garch_dcc`, `gmm`, `hmm` | 2 000 synthetic draws from the fitted model |
 
 The sample count **N** shown in the graph title reflects the actual number of data points
 plotted, so it will differ from the plan horizon for stochastic methods.
@@ -1001,7 +1026,7 @@ plotted, so it will differ from the plan horizon for stochastic methods.
 Monte Carlo simulations (see the **Stress Tests** page) require a **stochastic** method —
 one that generates a fresh random sample for each simulation trial. The methods that
 support Monte Carlo are: `historical_gaussian`, `historical_lognormal`, `gaussian`,
-`lognormal`, `historical_bootstrap`, `vector_ar`, and `garch_dcc`.
+`lognormal`, `historical_bootstrap`, `vector_ar`, `garch_dcc`, and `gmm`.
 The `historical` method is deterministic (it always produces the same sequence for a
 given starting year) and therefore cannot be used for Monte Carlo.
 
@@ -1031,7 +1056,7 @@ These controls do not apply to constant rates since the same value is used every
 
 ---
 ##### Reproducible rates (Advanced options)
-For the stochastic methods (`historical_gaussian`, `historical_lognormal`, `gaussian`, `lognormal`, `historical_bootstrap`, `vector_ar`, `garch_dcc`),
+For the stochastic methods (`historical_gaussian`, `historical_lognormal`, `gaussian`, `lognormal`, `historical_bootstrap`, `vector_ar`, `garch_dcc`, `gmm`, `hmm`),
 an option to **Enable reproducible rates** is available. When checked, the random number
 generator is seeded with a fixed value so the same rate sequence is produced every time
 the case is run. This is useful for isolating the effect of other parameters (spending
@@ -1050,6 +1075,9 @@ targets, allocations, Roth strategy) while holding the random scenario constant.
   Chapman & Hall/CRC. *(Foundation for `historical_bootstrap` resampling methods.)*
 - Hull, J. C. (2017). *Options, Futures, and Other Derivatives* (10th ed.). Pearson.
   *(Basis for the `lognormal` and `historical_lognormal` log-normal / GBM framework.)*
+- Rabiner, L. R. (1989). *A tutorial on hidden Markov models and selected applications in
+  speech recognition.* Proceedings of the IEEE, 77(2), 257–286.
+  *(Foundational reference for the `hmm` method and Baum-Welch algorithm.)*
 """)
 
     with st.expander(":orange[**Goals**]", expanded=expand_all, type="compact"):
@@ -1250,7 +1278,7 @@ All plots can be displayed in today's \\$ or in nominal value using the radio bu
 
 A **Re-run** button re-executes the *case*, which generates a different result
 if the chosen rate method is stochastic (`historical_gaussian`, `historical_lognormal`, `gaussian`,
-`lognormal`, `historical_bootstrap`, `vector_ar`, or `garch_dcc`). Each graph can be seen
+`lognormal`, `historical_bootstrap`, `vector_ar`, `garch_dcc`, `gmm`, or `hmm`). Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools tab).
@@ -1448,6 +1476,8 @@ The eligible methods (set on the **Rates** page) are:
   historical window.
 - `garch_dcc` — DCC-GARCH(1,1) simulation with time-varying volatility and cross-asset
   correlations fitted on the historical window.
+- `hmm` — Hidden Markov Model simulation with regime-dependent Gaussian emissions and a
+  fitted Markov transition matrix; produces temporally correlated multi-year regime runs.
 
 The `historical` method is deterministic (always the same sequence for a given starting
 year) and therefore cannot be used for Monte Carlo; the **Run** button is disabled when it

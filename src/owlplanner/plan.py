@@ -629,7 +629,7 @@ class Plan:
         inv_g = 1.0 / self.gamma_n[:self.N_n]
         Lambda_n = np.sum(self.Lambda_in, axis=0)
         bti_out = float(np.sum(np.maximum(0.0, -Lambda_n) * inv_g))
-        bti_in  = float(np.sum(np.maximum(0.0,  Lambda_n) * inv_g))
+        bti_in = float(np.sum(np.maximum(0.0, Lambda_n) * inv_g))
         fa = float(np.sum((self.fixed_assets_ordinary_income_n
                            + self.fixed_assets_capital_gains_n
                            + self.fixed_assets_tax_free_n) * inv_g))

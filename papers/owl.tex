@@ -2394,7 +2394,7 @@ In this case, the objective function will need to consider the sum over all year
 	allocation variables $q_{pn}$ ($p \in \{0,1,2\}$).
 	The partition constraint
 	\begin{equation}
-		\label{Eq:LTCG1}\label{Eq:LTCG_partition}
+		\label{Eq:LTCG_partition}
 		q_{0n} + q_{1n} + q_{2n} \ge Q_n
 	\end{equation}
 	ensures the allocations cover the total LTCG $Q_n$.
@@ -4024,6 +4024,166 @@ and \emph{time-varying cross-asset correlations} that spike during
 simulated market-stress episodes, consistent with empirical evidence
 in financial return data.
 
+\subsection{Gaussian mixture model: \texttt{gmm}}
+
+The Gaussian mixture model (GMM)~\cite{mclachlan2000} generalizes the
+single multivariate normal of \code{historical\_gaussian} by representing
+the joint return distribution as a weighted sum of $K$ multivariate
+Gaussian components:
+\begin{equation}
+    p(\bm{r}) = \sum_{k=1}^{K} \pi_k\,
+                \mathcal{N}\!\left(\bm{r};\,\bm{\mu}_k,\,\bm{\Sigma}_k\right),
+    \qquad \pi_k \ge 0,\quad \sum_{k=1}^{K}\pi_k = 1.
+\end{equation}
+Each component $k$ has its own mean vector $\bm{\mu}_k \in \mathbb{R}^{N_k}$,
+full covariance matrix $\bm{\Sigma}_k \in \mathbb{R}^{N_k \times N_k}$, and
+mixture weight $\pi_k$.
+
+\paragraph*{Motivation}
+Historical return data are not well-described by a single Gaussian.
+The empirical distribution exhibits fat tails, negative skewness for equities,
+and distinct clustering consistent with alternating market regimes --- a
+prolonged bull market, a bear market, and acute crisis periods.
+A GMM with $K = 3$ components can capture these regimes jointly across all
+asset classes, so that in a ``crisis'' component, both equities and investment-grade
+bonds may fall together (correlation breakdown), while in a ``bull'' component the
+usual negative stock--bond correlation is restored.
+Each component's $\bm{\Sigma}_k$ encodes the cross-asset covariance
+\emph{conditional on being in that regime}.
+
+\paragraph*{Fitting}
+The parameters $\{\pi_k, \bm{\mu}_k, \bm{\Sigma}_k\}_{k=1}^K$ are estimated
+from the $N_w$ annual return vectors in the selected historical window
+$[\mathcal{Y}_\mathrm{frm}, \mathcal{Y}_\mathrm{to}]$ by
+Expectation-Maximization (EM)~\cite{dempster1977}.
+The EM algorithm alternates between:
+\begin{itemize}
+    \item \textbf{E-step}: compute the posterior responsibility
+          $\gamma_{nk} = \pi_k\,\mathcal{N}(\bm{r}_n;\bm{\mu}_k,\bm{\Sigma}_k)\;
+          \big/\;\sum_{j}\pi_j\,\mathcal{N}(\bm{r}_n;\bm{\mu}_j,\bm{\Sigma}_j)$
+          for each observation $n$ and component $k$;
+    \item \textbf{M-step}: update
+          $\pi_k = \frac{1}{N_w}\sum_n \gamma_{nk}$,\;
+          $\bm{\mu}_k = \frac{\sum_n \gamma_{nk}\bm{r}_n}{\sum_n \gamma_{nk}}$,\;
+          $\bm{\Sigma}_k = \frac{\sum_n \gamma_{nk}(\bm{r}_n - \bm{\mu}_k)(\bm{r}_n - \bm{\mu}_k)^\top}{\sum_n \gamma_{nk}}$.
+\end{itemize}
+Convergence is declared when the change in log-likelihood falls below a
+tolerance threshold.
+
+\paragraph*{Sequence generation}
+To draw one simulated year of returns:
+\begin{enumerate}
+    \item Sample a regime index $k^* \sim \mathrm{Categorical}(\bm{\pi})$.
+    \item Draw $\bm{\tau}_n \sim \mathcal{N}(\bm{\mu}_{k^*},\bm{\Sigma}_{k^*})$.
+\end{enumerate}
+Each of the $N_n$ plan years is drawn independently, so the model captures
+cross-sectional correlation within each regime but no serial autocorrelation
+across years.
+The number of components $K$ is a user parameter (default $K=3$); the covariance
+structure can also be restricted to tied, diagonal, or spherical forms.
+
+\subsection{Hidden Markov model: \texttt{hmm}}
+
+The hidden Markov model (HMM)~\cite{rabiner1989} extends the GMM by adding
+temporal structure to the regime sequence.
+An unobserved discrete state $s_n \in \{1,\ldots,K\}$ evolves as a
+first-order Markov chain with transition matrix
+$\bm{A} \in \mathbb{R}^{K \times K}$,
+$A_{kj} = P(s_{n+1} = j \mid s_n = k)$, with $\sum_j A_{kj} = 1$,
+and each year's returns are drawn from the multivariate Gaussian of the
+current state:
+\begin{equation}
+    s_{n+1} \mid s_n = k \;\sim\; \mathrm{Categorical}(\bm{A}_{k\cdot}),
+    \qquad
+    \bm{\tau}_n \mid s_n = k \;\sim\; \mathcal{N}(\bm{\mu}_k, \bm{\Sigma}_k).
+    \label{Eq:HMM}
+\end{equation}
+The emission parameters $\{\bm{\mu}_k, \bm{\Sigma}_k\}$ have the same
+interpretation as in the GMM; the key new quantity is $\bm{A}$.
+
+\paragraph*{Motivation}
+The GMM treats each simulated year as an independent regime draw.
+Historical return data exhibit regime \emph{persistence}: bull and
+bear markets tend to continue for several years before switching.
+The HMM encodes this by coupling consecutive years through $\bm{A}$,
+so a diagonal entry $A_{kk}$ close to 1 produces multi-year runs of
+the same regime.
+This is directly relevant to sequence-of-returns risk: a retiree entering a
+bear-market regime faces an elevated probability of further down years before
+the regime changes, amplifying the compounding impact of early losses in ways
+the i.i.d. GMM cannot reproduce.
+
+\paragraph*{Fitting}
+Given $N_w$ historical return vectors $\bm{r}_0,\ldots,\bm{r}_{N_w-1}$, the
+parameters $\{\bm{\pi}, \bm{A}, \bm{\mu}_k, \bm{\Sigma}_k\}$ are estimated
+by the Baum-Welch algorithm~\cite{baum1970}, which applies
+EM~\cite{dempster1977} to the HMM likelihood.
+Each iteration runs a scaled forward-backward pass and a parameter update.
+
+\textit{Forward pass}:
+\begin{align}
+    \hat{\alpha}_0(k) &= \pi_k\,b_k(\bm{r}_0), &
+    c_0 &= {\textstyle\sum_k}\,\hat{\alpha}_0(k), &
+    \hat{\alpha}_0 &\leftarrow \hat{\alpha}_0/c_0, \\
+    \hat{\alpha}_n(j) &= b_j(\bm{r}_n)\,{\textstyle\sum_k}\hat{\alpha}_{n-1}(k)\,A_{kj}, &
+    c_n &= {\textstyle\sum_j}\,\hat{\alpha}_n(j), &
+    \hat{\alpha}_n &\leftarrow \hat{\alpha}_n/c_n,
+\end{align}
+where $b_k(\bm{r}) = \mathcal{N}(\bm{r};\bm{\mu}_k,\bm{\Sigma}_k)$.
+The log-likelihood is $\ell = \sum_{n}\log c_n$.
+
+\textit{Backward pass}:
+\begin{equation}
+    \hat{\beta}_{N_w-1}(k) = 1, \qquad
+    \hat{\beta}_n(k) = \frac{1}{c_{n+1}}\sum_j A_{kj}\,b_j(\bm{r}_{n+1})\,\hat{\beta}_{n+1}(j).
+\end{equation}
+
+\textit{Posterior quantities}:
+\begin{equation}
+    \gamma_n(k) = \hat{\alpha}_n(k)\,\hat{\beta}_n(k)\;
+                  \Big/\;{\textstyle\sum_j}\hat{\alpha}_n(j)\hat{\beta}_n(j),
+    \qquad
+    \xi_n(k,j) \;\propto\;
+        \hat{\alpha}_n(k)\,A_{kj}\,b_j(\bm{r}_{n+1})\,\hat{\beta}_{n+1}(j).
+\end{equation}
+
+\textit{M-step}:
+\begin{alignat}{2}
+    \pi_k &= \gamma_0(k), \\
+    A_{kj} &= \frac{\displaystyle\sum_{n=0}^{N_w-2}\xi_n(k,j) + \delta}
+                   {\displaystyle\sum_{n=0}^{N_w-2}\gamma_n(k) + K\delta},
+    \label{Eq:HMM_trans}\\
+    \bm{\mu}_k &= \frac{\sum_n \gamma_n(k)\,\bm{r}_n}{\sum_n \gamma_n(k)},
+    \quad
+    \bm{\Sigma}_k = \frac{\sum_n \gamma_n(k)\,(\bm{r}_n-\bm{\mu}_k)(\bm{r}_n-\bm{\mu}_k)^\top}
+                         {\sum_n \gamma_n(k)} + \varepsilon\,\bm{I},
+\end{alignat}
+where $\delta > 0$ (default $10^{-3}$) is a Laplace smoothing term that
+prevents zero-probability transitions for regimes not visited in the
+historical window, and $\varepsilon = 10^{-6}$ regularizes the covariances.
+Convergence is declared when the improvement in $\ell$ falls below a
+tolerance; the transition matrix is initialized to an 80\% self-transition
+prior, $A_{kk} = 0.8$, to encourage persistence from the first iteration.
+
+\paragraph*{Sequence generation}
+Let $\bm{\pi}_\infty$ denote the stationary distribution satisfying
+$\bm{\pi}_\infty = \bm{\pi}_\infty\bm{A}$, computed by power iteration.
+A plan of $N_n$ years is simulated as:
+\begin{enumerate}
+    \item Draw the initial state $s_0 \sim \bm{\pi}_\infty$
+          (or from a user-specified $\texttt{init\_regime}$).
+    \item For $n = 0,1,\ldots,N_n-1$:
+          draw $\bm{\tau}_n \sim \mathcal{N}(\bm{\mu}_{s_n},\bm{\Sigma}_{s_n})$,
+          then transition $s_{n+1}\sim\mathrm{Categorical}(\bm{A}_{s_n,\cdot})$.
+\end{enumerate}
+Fitted on 1928--2025 annual US data with $K=3$, the diagonal entries
+$A_{kk}$ typically exceed 0.6, yielding mean regime-run lengths of two
+to four years.
+The HMM is strictly more expressive than the GMM: if $\bm{A}$ is set to
+the outer product $\bm{1}\bm{\pi}^\top$ (all rows identical), the model
+reduces to the i.i.d. GMM, and the HMM log-likelihood is always at
+least as large.
+
 \section{User-supplied rates: \texttt{dataframe}}
 
 The \code{dataframe} method allows the user to bypass all built-in rate
@@ -4045,7 +4205,7 @@ TOML configuration file.
 In Monte Carlo mode, Owl calls one of the stochastic models
 (\code{historical_gaussian}, \code{historical_lognormal}, \code{gaussian},
 \code{lognormal}, \code{historical_bootstrap}, \code{vector_ar},
-or \code{garch_dcc}) independently
+\code{garch_dcc}, \code{gmm}, or \code{hmm}) independently
 $N_s$ times, each time solving the full optimization problem with a different
 rate scenario.
 The distribution of resulting optimal spending or bequest values across the
@@ -4761,6 +4921,28 @@ vol.~20, no.~3, pp.~339--350, 2002.
 T.~Bollerslev,
 ``Generalized autoregressive conditional heteroskedasticity,''
 \textit{Journal of Econometrics}, vol.~31, no.~3, pp.~307--327, 1986.
+
+\bibitem{mclachlan2000}
+G.~J. McLachlan and D.~Peel,
+\textit{Finite Mixture Models}.
+Wiley, New York, 2000.
+
+\bibitem{dempster1977}
+A.~P. Dempster, N.~M. Laird, and D.~B. Rubin,
+``Maximum likelihood from incomplete data via the EM algorithm,''
+\textit{Journal of the Royal Statistical Society, Series B},
+vol.~39, no.~1, pp.~1--38, 1977.
+
+\bibitem{rabiner1989}
+L.~R. Rabiner,
+``A tutorial on hidden Markov models and selected applications in speech recognition,''
+\textit{Proceedings of the IEEE}, vol.~77, no.~2, pp.~257--286, 1989.
+
+\bibitem{baum1970}
+L.~E. Baum, T.~Petrie, G.~Soules, and N.~Weiss,
+``A maximization technique occurring in the statistical analysis of probabilistic
+functions of Markov chains,''
+\textit{The Annals of Mathematical Statistics}, vol.~41, no.~1, pp.~164--171, 1970.
 
 \bibitem{markowitz1952}
 H.~M. Markowitz,

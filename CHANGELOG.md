@@ -1,5 +1,21 @@
 
 
+### Version 2026.06.05
+
+#### New rate model — Hidden Markov Model (`hmm`)
+
+Adds a Hidden Markov Model rate model that extends the GMM by fitting a $K \times K$ Markov transition matrix between regimes via the Baum-Welch algorithm. Consecutive simulated years are no longer independent: regime persistence produces realistic multi-year bull and bear runs, capturing sequence-of-returns risk that the i.i.d. GMM cannot reproduce. Exposed in the UI with a configurable number of regimes (default $K=3$). The correlation plot uses 2 000 synthetic draws from the fitted model. Registered in `STOCHASTIC_METHODS`, `VARYING_TYPE_UI`, and `HISTORICAL_RANGE_METHODS`; seed and reproducibility controls work identically to `gmm`.
+
+---
+
+### Version 2026.06.04
+
+#### New rate model — Gaussian Mixture Model (`gmm`)
+
+Adds a multivariate GMM rate model that fits $K$ Gaussian components on the selected historical window via EM, capturing regime-dependent cross-asset correlations (bull, bear, crisis). Exposed in the UI alongside the other varying-rate methods, with a configurable number of components (default $K=3$).
+
+---
+
 ### Version 2026.06.03
 
 #### Bug fix — NIIT MILP (`withNIIT="optimize"`)

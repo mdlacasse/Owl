@@ -165,7 +165,12 @@ class RatesSelection(BaseModel):
     roll_sequence: Optional[int] = Field(default=0, description="Roll rate sequence")
     bootstrap_type: Optional[str] = Field(default=None, description="Bootstrap type for historical_bootstrap")
     block_size: Optional[int] = Field(default=None, description="Block size for block-based bootstraps")
+    crisis_years: Optional[List[int]] = Field(default=None, description="Years to overweight in bootstrap sampling")
+    crisis_weight: Optional[float] = Field(default=None, description="Sampling multiplier for crisis years (bootstrap)")
     shrink: Optional[bool] = Field(default=None, description="Spectral shrinkage for VAR(1)")
+    n_components: Optional[int] = Field(default=None, description="Number of components / hidden states (gmm, hmm)")
+    reg_trans: Optional[float] = Field(default=None, description="Laplace smoothing on transition counts, > 0 (hmm)")
+    init_regime: Optional[int] = Field(default=None, description="Fixed starting regime index for generation (hmm)")
 
 
 class AssetAllocation(BaseModel):

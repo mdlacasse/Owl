@@ -17,7 +17,6 @@ import pandas as pd
 from datetime import date, datetime
 from typing import Any
 
-from owlplanner import mylogging
 from owlplanner.config.constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
 from owlplanner.config.plan_bridge import _normalize_hfp_file_name
 from owlplanner.config.defaults import (
@@ -384,6 +383,8 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:
     if rate_method == "historical_bootstrap":
         dic["bootstrapType"] = rs.get("bootstrap_type", "iid")
         dic["blockSize"] = rs.get("block_size", 1)
+    elif rate_method == "gmm":
+        dic["gmmComponents"] = rs.get("n_components", 3)
 
     if rate_method in STOCHASTIC_METHODS:
         means = rs.get("values", get_fixed_rate_values("conservative"))
@@ -683,6 +684,8 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
     if method == "historical_bootstrap":
         rs["bootstrap_type"] = uidic.get("bootstrapType", "iid")
         rs["block_size"] = _get_ui(uidic, "blockSize", 1, int)
+    elif method == "gmm":
+        rs["n_components"] = _get_ui(uidic, "gmmComponents", 3, int)
 
     if method in STOCHASTIC_METHODS:
         rs["reproducible_rates"] = bool(uidic.get("reproducibleRates", False))

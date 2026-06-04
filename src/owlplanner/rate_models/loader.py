@@ -42,6 +42,8 @@ from owlplanner.rate_models.dataframe import DataFrameRateModel
 from owlplanner.rate_models.historical_bootstrap import BootstrapSORRateModel
 from owlplanner.rate_models.vector_ar import VARRateModel
 from owlplanner.rate_models.garch_dcc import GARCHDCCRateModel
+from owlplanner.rate_models.gmm import GMMRateModel
+from owlplanner.rate_models.hmm import HMMRateModel
 
 
 # ------------------------------------------------------------
@@ -77,6 +79,8 @@ _RATE_MODEL_REGISTRY = {
     "historical_bootstrap": BootstrapSORRateModel,
     "vector_ar": VARRateModel,
     "garch_dcc": GARCHDCCRateModel,
+    "gmm": GMMRateModel,
+    "hmm": HMMRateModel,
 }
 
 BUILTIN_CORE_METHODS = frozenset({

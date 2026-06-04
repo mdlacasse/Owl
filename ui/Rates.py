@@ -178,15 +178,23 @@ preserving stationarity."""
             st.caption(owb.getMethodDescription(varyingType))
 
     else:
-        st.error("Logic error")
+        st.error("Logic error", icon=":material/error:")
 
     if (kz.getCaseKey("rateType") == "constant" and "hist" in kz.getCaseKey("fixedType")) or (
         kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") in owb.HISTORICAL_RANGE_METHODS
     ):
-        is_garch_ui = (
-            kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "garch_dcc"
-        )
-        min_year_gap = (GARCH_DCC_MIN_OBSERVATIONS - 1) if is_garch_ui else 2
+        vt = kz.getCaseKey("varyingType")
+        is_garch_ui = (kz.getCaseKey("rateType") == "varying" and vt == "garch_dcc")
+
+        if is_garch_ui:
+            min_year_gap = GARCH_DCC_MIN_OBSERVATIONS - 1
+        elif vt in ("gmm", "hmm"):
+            nc_key = "gmmComponents" if vt == "gmm" else "hmmComponents"
+            nc = int(kz.getCaseKey(nc_key) or 3)
+            min_year_gap = max(2, nc - 1)
+        else:
+            min_year_gap = 2
+
         # Enforce yto >= yfrm + min_year_gap before rendering so neither widget is
         # ever in an invalid state (avoids Streamlit deadlock).
         yfrm_val = kz.getCaseKey("yfrm")
@@ -210,11 +218,48 @@ preserving stationarity."""
                 "Last year of historical data in the range. "
                 f"DCC-GARCH needs at least {GARCH_DCC_MIN_OBSERVATIONS} calendar years inclusive."
             )
+        elif vt in ("gmm", "hmm"):
+            help_yfrm = helpYfrm + f" Needs at least {min_year_gap + 1} years (≥ number of components)."
+            help_yto = helpYto + f" Needs at least {min_year_gap + 1} years (≥ number of components)."
         else:
             help_yfrm = helpYfrm
             help_yto = helpYto
 
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
+
+        if vt == "gmm":
+            kz.initCaseKey("gmmComponents", 3)
+            with col2:
+                kz.getIntNum(
+                    "Number of components",
+                    "gmmComponents",
+                    min_value=2,
+                    max_value=10,
+                    step=1,
+                    callback=updateRates,
+                    help=(
+                        "Number of Gaussian mixture components (market regimes). "
+                        "3 captures bull, bear, and crisis regimes. "
+                        "More components fit finer structure but require more data."
+                    ),
+                )
+        elif vt == "hmm":
+            kz.initCaseKey("hmmComponents", 3)
+            with col2:
+                kz.getIntNum(
+                    "Number of regimes",
+                    "hmmComponents",
+                    min_value=2,
+                    max_value=10,
+                    step=1,
+                    callback=updateRates,
+                    help=(
+                        "Number of hidden Markov regimes (e.g. bull, bear, crisis). "
+                        "3 is recommended for annual US data. "
+                        "More regimes fit finer structure but require more data."
+                    ),
+                )
+
         with col3:
             if kz.getCaseKey("varyingType") == "historical":
                 maxValue = owb.TO
@@ -255,7 +300,8 @@ preserving stationarity."""
             bt = kz.getCaseKey("bootstrapType")
             kz.getIntNum("Block size", "blockSize", min_value=1, max_value=50, step=1,
                          disabled=(bt == "iid"), callback=updateRates,
-                         help="Fixed block length for block/circular; expected block length for stationary. All variants collapse to iid when block size is 1.")
+                         help="Fixed block length for block/circular; expected block length for stationary. "
+                              "All variants collapse to iid when block size is 1.")
 
     if kz.getCaseKey("rateType") == "varying":
         st.divider()
@@ -397,7 +443,7 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
         # Reproducibility checkbox - only for gaussian/lognormal and historical_gaussian/historical_lognormal methods.
         if kz.getCaseKey("varyingType") in [
             "gaussian", "lognormal", "historical_gaussian", "historical_lognormal",
-            "historical_bootstrap", "vector_ar", "garch_dcc",
+            "historical_bootstrap", "vector_ar", "garch_dcc", "gmm", "hmm",
         ]:
             st.markdown("#####")
             st.markdown("#### :orange[Rate Generation]")

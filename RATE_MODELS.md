@@ -146,6 +146,24 @@ values = [7.0, 4.5, 3.5, 2.5]
 stdev = [17.0, 8.0, 6.0, 2.0]
 ```
 
+#### `gmm`
+
+Fits a multivariate Gaussian Mixture Model on historical returns via EM, capturing regime-dependent cross-asset correlations (bull, bear, crisis). Each component is a full 4D Gaussian; joint samples preserve realistic inter-asset dependencies.
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"gmm"`) |
+| `from` | No | int | First historical year for fitting (inclusive). |
+| `to` | No | int | Last historical year for fitting (inclusive). |
+| `n_components` | No | int | Number of mixture components (market regimes). |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "gmm"
+```
+
 #### `historical_bootstrap`
 
 Resamples actual historical years to build synthetic sequences, preserving fat tails and extreme events. Choose IID, block, circular, or stationary resampling strategy. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/historical_bootstrap.md)
@@ -205,6 +223,26 @@ Fits a correlated log-normal model to the selected historical window and samples
 method = "historical_lognormal"
 from = 1928
 to = 2024
+```
+
+#### `hmm`
+
+Fits a Hidden Markov Model on historical returns via Baum-Welch EM, adding temporal autocorrelation through a Markov transition matrix between K regimes. Regime persistence produces realistic multi-year bull/bear runs, capturing sequence-of-returns risk beyond the i.i.d. GMM.
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"hmm"`) |
+| `from` | No | int | First historical year for fitting (inclusive). |
+| `to` | No | int | Last historical year for fitting (inclusive). |
+| `n_components` | No | int | Number of hidden states (market regimes). |
+| `reg_trans` | No | float | Additive smoothing on transition counts (prevents zero-probability transitions). |
+| `init_regime` | No | int | Starting regime index for generation (0 to n_components-1). None = stationary distribution. |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "hmm"
 ```
 
 #### `lognormal`

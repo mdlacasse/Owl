@@ -97,7 +97,7 @@ def checkAccountAllocs(i, deco):
     for k1 in range(4):
         tot += int(kz.getCaseKey(f"{deco}{k1}_{i}"))
     if abs(100 - tot) > 0:
-        st.error("Percentages must add to 100%.")
+        st.error("Percentages must add to 100%.", icon=":material/error:")
         return False
     return True
 
@@ -107,7 +107,7 @@ def checkIndividualAllocs(i, deco):
     for k1 in range(4):
         tot += int(kz.getCaseKey(f"{deco}{k1}_{i}"))
     if abs(100 - tot) > 0:
-        st.error("Percentages must add to 100%.")
+        st.error("Percentages must add to 100%.", icon=":material/error:")
         return False
     return True
 

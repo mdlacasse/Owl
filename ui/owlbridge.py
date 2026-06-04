@@ -66,7 +66,7 @@ def getMethodDescription(method):
 
 def createPlan():
     if not kz.has_current_case():
-        st.error("No case selected or current case no longer exists. Please select or create a case.")
+        st.error("No case selected or current case no longer exists. Please select or create a case.", icon=":material/error:")
         return
     name = kz.currentCaseName()
     inames = [kz.getCaseKey("iname0")]
@@ -92,7 +92,7 @@ def createPlan():
         kz.setCaseKey("plan", plan)
         kz.setCaseKey("id", plan._id)
     except Exception as e:
-        st.error(f"Failed creation of plan '{name}': {e}")
+        st.error(f"Failed creation of plan '{name}': {e}", icon=":material/error:")
         return
 
     plan.setDescription(description)
@@ -131,7 +131,7 @@ def _checkPlan(func):
     def wrapper(*args, **kwargs):
         plan = kz.getCaseKey("plan")
         if plan is None:
-            st.error(f"Plan not yet created. Cannot execute method {func.__name__}().")
+            st.error(f"Plan not yet created. Cannot execute method {func.__name__}().", icon=":material/error:")
             return None
         return func(plan, *args, **kwargs)
 
@@ -146,7 +146,7 @@ def prepareRun(plan):
         diconf = ui_to_config(uidic, mylog=_get_case_logger())
         apply_config_to_plan(plan, diconf)
     except Exception as e:
-        st.error(f"Failed to apply configuration: {e}")
+        st.error(f"Failed to apply configuration: {e}", icon=":material/error:")
         return
 
     _setContributions(plan, "set")
@@ -168,7 +168,7 @@ def runPlan(plan):
     try:
         plan.solve(objective, options=options)
     except Exception as e:
-        st.error(f"Solution failed: {e}")
+        st.error(f"Solution failed: {e}", icon=":material/error:")
         kz.storeCaseKey("caseStatus", "exception")
         kz.storeCaseKey("summaryDf", None)
         return
@@ -217,7 +217,7 @@ def runHistorical(plan):
         kz.storeCaseKey("histoPlot", None)
         kz.storeCaseKey("histoSummary", None)
         kz.storeCaseKey("histoBarPlot", None)
-        st.error(f"Historical solution failed: {e}")
+        st.error(f"Historical solution failed: {e}", icon=":material/error:")
         return
 
 
@@ -239,7 +239,7 @@ def runMC(plan):
     except Exception as e:
         kz.storeCaseKey("monteCarloPlot", None)
         kz.storeCaseKey("monteCarloSummary", None)
-        st.error(f"Monte Carlo solution failed: {e}")
+        st.error(f"Monte Carlo solution failed: {e}", icon=":material/error:")
 
 
 def _apply_stochastic_target(result, target_sr, plotter, plan=None):
@@ -494,7 +494,7 @@ def runStochasticSpending(plan):
         kz.storeCaseKey("stochSummary", None)
         kz.storeCaseKey("stochResult", None)
         kz.storeCaseKey("stochScenarioData", None)
-        st.error(f"Stochastic spending optimization failed: {e}")
+        st.error(f"Stochastic spending optimization failed: {e}", icon=":material/error:")
 
 
 @_checkPlan
@@ -511,7 +511,7 @@ def updateStochasticTarget(plan):
     try:
         _apply_stochastic_target(result, target_sr, plan._plotter, plan)
     except Exception as e:
-        st.error(f"Failed to update target: {e}")
+        st.error(f"Failed to update target: {e}", icon=":material/error:")
 
 
 @_checkPlan
@@ -532,7 +532,7 @@ def updateStochasticFloor(plan, *_):
     try:
         _apply_stochastic_target(result, target_sr, plan._plotter, plan)
     except Exception as e:
-        st.error(f"Failed to update RES floor: {e}")
+        st.error(f"Failed to update RES floor: {e}", icon=":material/error:")
 
 
 @_checkPlan
@@ -633,7 +633,7 @@ def _setRates(plan):
                     kz.pushCaseKey(f"corr{q}", dist.corr[k1, k2])
                     q += 1
 
-        elif varyingType in ("historical_bootstrap", "vector_ar", "garch_dcc", "historical_lognormal"):
+        elif varyingType in ("historical_bootstrap", "vector_ar", "garch_dcc", "historical_lognormal", "gmm", "hmm"):
             reproducible = kz.getCaseKey("reproducibleRates")
             seed = kz.getCaseKey("rateSeed") if reproducible else None
             plan.setReproducible(reproducible, seed=seed)
@@ -651,14 +651,20 @@ def _setRates(plan):
                     kwargs["bootstrap_type"] = bt
                 if bs is not None:
                     kwargs["block_size"] = int(bs)
+            elif varyingType == "gmm":
+                nc = kz.getCaseKey("gmmComponents")
+                if nc:
+                    kwargs["n_components"] = int(nc)
+            elif varyingType == "hmm":
+                nc = kz.getCaseKey("hmmComponents")
+                if nc:
+                    kwargs["n_components"] = int(nc)
 
             try:
                 plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq, **kwargs)
             except ValueError as e:
-                if varyingType == "garch_dcc":
-                    st.error(str(e))
-                    return False
-                raise
+                st.error(str(e), icon=":material/error:")
+                return False
 
             kz.setCaseKey("rateSeed", plan.rateSeed)
             kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
@@ -705,7 +711,10 @@ def _setRates(plan):
             kz.setCaseKey("reverse_sequence", plan.rateReverse)
             kz.setCaseKey("roll_sequence", plan.rateRoll)
         else:
-            raise RuntimeError("Logic error in setRates()")
+            raise RuntimeError(
+                f"Unhandled varyingType '{varyingType}' in _setRates(). "
+                f"Add it to the appropriate branch or to VARYING_TYPE_UI in constants.py."
+            )
 
     return True
 
@@ -801,7 +810,7 @@ def _setContributions(plan, action):
     try:
         plan.readHFP(dicDf)
     except Exception as e:
-        st.error(f"Failed to parse Household Financial Profile Workbook: {e}")
+        st.error(f"Failed to parse Household Financial Profile Workbook: {e}", icon=":material/error:")
         return False
 
     # Sync houseLists from UI to Plan
@@ -870,7 +879,7 @@ def readHFP(plan, stFile, file=None):
     try:
         plan.readHFP(stFile, filename_for_logging=name)
     except Exception as e:
-        st.error(f"Failed to parse Household Financial Profile Workbook '{name}': {e}")
+        st.error(f"Failed to parse Household Financial Profile Workbook '{name}': {e}", icon=":material/error:")
         return False
 
     # Set the filename in both case dictionary and plan object (clears any " *" marker).
@@ -946,17 +955,17 @@ def _setAllocationRatios(plan):
             generic = kz.getIndividualAllocationRatios()
             plan.setAllocationRatios("individual", generic=generic)
         except Exception as e:
-            st.error(f"Setting asset allocation failed: {e}")
+            st.error(f"Setting asset allocation failed: {e}", icon=":material/error:")
             return
     elif kz.getCaseKey("allocType") == "account":
         try:
             acc = kz.getAccountAllocationRatios()
             plan.setAllocationRatios("account", taxable=acc[0], taxDeferred=acc[1], taxFree=acc[2], hsa=acc[3])
         except Exception as e:
-            st.error(f"Setting asset allocation failed: {e}")
+            st.error(f"Setting asset allocation failed: {e}", icon=":material/error:")
             return
     else:
-        st.error(f"Internal error: Unknown account type {kz.getCaseKey('allocType')}.")
+        st.error(f"Internal error: Unknown account type {kz.getCaseKey('allocType')}.", icon=":material/error:")
 
 
 @_checkPlan
@@ -1396,7 +1405,7 @@ def createCaseFromFile(strio):
             loadHFP=False,
         )
     except Exception as e:
-        st.error(f"Failed to parse case file: {e}")
+        st.error(f"Failed to parse case file: {e}", icon=":material/error:")
         return "", {}
 
     mydic = config_to_ui(diconf, mylog=mylog)
@@ -1496,7 +1505,7 @@ def genDic(plan):
                     dic[f"j{j2}_init%{k2}_{i}"] = int(plan.boundsAR[longAccName[j2]][i][0][k2])
                     dic[f"j{j2}_fin%{k2}_{i}"] = int(plan.boundsAR[longAccName[j2]][i][1][k2])
         else:
-            st.error("Only 'individual' and 'account' asset allocations are currently supported")
+            st.error("Only 'individual' and 'account' asset allocations are currently supported", icon=":material/error:")
             return None
 
     solverOptionKeys = list(plan.solverOptions)
@@ -1566,13 +1575,20 @@ def genDic(plan):
         dic["rateType"] = "constant"
         dic["fixedType"] = "user"
     elif plan.rateMethod in ["historical_gaussian", "historical", "gaussian",
-                             "lognormal", "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc"]:
+                             "lognormal", "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc",
+                             "gmm", "hmm"]:
         dic["rateType"] = "varying"
         dic["varyingType"] = plan.rateMethod
         if plan.rateMethod == "historical_bootstrap":
             params = plan.rateModel.params
             dic["bootstrapType"] = params.get("bootstrap_type", "iid")
             dic["blockSize"] = params.get("block_size", 1)
+        elif plan.rateMethod == "gmm":
+            params = plan.rateModel.params
+            dic["gmmComponents"] = params.get("n_components", 3)
+        elif plan.rateMethod == "hmm":
+            params = plan.rateModel.params
+            dic["hmmComponents"] = params.get("n_components", 3)
 
     # Initialize in both cases. Plan stores rateValues in percent when set; else use tau_kn (decimal).
     for k1 in range(plan.N_k):
@@ -1582,7 +1598,7 @@ def genDic(plan):
             dic[f"fxRate{k1}"] = 100 * plan.tau_kn[k1, -1]
 
     if plan.rateMethod in ["historical_average", "historical_gaussian", "historical",
-                           "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc"]:
+                           "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc", "gmm", "hmm"]:
         dic["yfrm"] = plan.rateFrm
         dic["yto"] = plan.rateTo
     elif plan.rateMethod == "dataframe":

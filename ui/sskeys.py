@@ -269,7 +269,7 @@ def createCaseFromFile(strio):
     if name == "":
         return False
     elif name in ss.cases:
-        st.error(f"Case name '{name}' already exists.")
+        st.error(f"Case name '{name}' already exists.", icon=":material/error:")
         return False
 
     # Create logs StringIO when case is created from file
@@ -283,7 +283,7 @@ def createCaseFromFile(strio):
 
 def createNewCase(case):
     if case != "newcase":
-        st.error(f"Expected 'newcase' but got '{case}'.")
+        st.error(f"Expected 'newcase' but got '{case}'.", icon=":material/error:")
         return
 
     # Widget stored case name in _newcase.
@@ -293,7 +293,7 @@ def createNewCase(case):
         return
 
     if casename in ss.cases:
-        st.error(f"Case name '{casename}' already exists.")
+        st.error(f"Case name '{casename}' already exists.", icon=":material/error:")
         return
 
     # Create logs StringIO when case is created
@@ -321,7 +321,7 @@ def renameCase(key):
         return
     newname = ss[key]
     if newname in ss.cases:
-        st.error(f"Case name '{newname}' already exists.")
+        st.error(f"Case name '{newname}' already exists.", icon=":material/error:")
         return
 
     plan = getCaseKey("plan")
@@ -701,7 +701,7 @@ def getDate(text, nkey, disabled=False, callback=setpull, help=None, min_value=N
         key=widget_key
     )
     if mydate is None:
-        st.error("A date must be set.")
+        st.error("A date must be set.", icon=":material/error:")
         return None
     else:
         isodate = mydate.strftime("%Y-%m-%d")
@@ -824,7 +824,7 @@ def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
     try:
         index = choices.index(widget_value)
     except ValueError:
-        st.error(f"Value '{widget_value}' not available. Defaulting to '{choices[0]}'.")
+        st.error(f"Value '{widget_value}' not available. Defaulting to '{choices[0]}'.", icon=":material/error:")
         widget_value = choices[0]
         index = 0
 
@@ -853,7 +853,7 @@ def getSelectbox(text, choices, nkey, callback=setpull, disabled=False, help=Non
     try:
         index = choices.index(widget_value)
     except ValueError:
-        st.error(f"Value '{widget_value}' not available. Defaulting to '{choices[0]}'.")
+        st.error(f"Value '{widget_value}' not available. Defaulting to '{choices[0]}'.", icon=":material/error:")
         widget_value = choices[0]
         index = 0
     return st.selectbox(text, choices, index=index, on_change=callback, args=[nkey],
