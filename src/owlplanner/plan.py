@@ -2744,9 +2744,12 @@ class Plan:
             # expression for Q_n: those portfolio terms (b, w, d) cancel q_total at the
             # partition minimum, removing Q_n from MAGI entirely (the root-cause bug).
             rhs_magi = 0.0
-            row[self.vm["q"].idx(0, n)] = row.get(self.vm["q"].idx(0, n), 0) - 1
-            row[self.vm["q"].idx(1, n)] = row.get(self.vm["q"].idx(1, n), 0) - 1
-            row[self.vm["q"].idx(2, n)] = row.get(self.vm["q"].idx(2, n), 0) - 1
+            q0_idx = self.vm["q"].idx(0, n)
+            q1_idx = self.vm["q"].idx(1, n)
+            q2_idx = self.vm["q"].idx(2, n)
+            row[q0_idx] = row.get(q0_idx, 0) - 1
+            row[q1_idx] = row.get(q1_idx, 0) - 1
+            row[q2_idx] = row.get(q2_idx, 0) - 1
 
             # SS: zetaBar_n (parameter) minus taxable SS
             rhs_magi += zetaBar_n[n]

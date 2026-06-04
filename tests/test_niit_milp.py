@@ -191,8 +191,8 @@ class TestNIITMilp:
         assert 'withNIIT' not in output or 'Ignoring unknown' not in output
 
     def test_niit_optimize_vs_loop_spending(self):
-        """withNIIT='optimize' spending within 2% of SC-loop (post NII-cap fix)."""
-        common = {'withSSTaxability': 'loop', 'withMedicare': 'loop', 'maxIter': 3}
+        """withNIIT='optimize' spending within 2% of SC-loop and J_n matches reference."""
+        common = {'withSSTaxability': 'loop', 'withMedicare': 'loop', 'maxIter': 5}
         p_loop = _make_plan('niit_loop', taxable=[200, 100], tax_deferred=[500, 300],
                             tax_free=[100, 100])
         p_loop.solve('maxSpending', {**common, 'withNIIT': 'loop'})
@@ -206,11 +206,11 @@ class TestNIITMilp:
             f"NIIT optimize spending {p_opt.g_n[0]:.0f} differs from loop {p_loop.g_n[0]:.0f} "
             f"by {100 * rel_diff:.2f}%"
         )
-        # Optimize should not report inflated NIIT vs reference on the same solution economics.
-        J_ref_loop = tx.computeNIIT(
-            p_loop.N_i, p_loop.MAGI_n, p_loop.I_n, p_loop.Q_n, p_loop.n_d, p_loop.N_n,
+        # Optimizer's J_n must match the IRS reference formula (not just the loop plan's J_n).
+        J_ref_opt = tx.computeNIIT(
+            p_opt.N_i, p_opt.MAGI_n, p_opt.I_n, p_opt.Q_n, p_opt.n_d, p_opt.N_n,
         )
-        np.testing.assert_allclose(p_loop.J_n, J_ref_loop, atol=200.0)
+        np.testing.assert_allclose(p_opt.J_n, J_ref_opt, atol=200.0)
 
     def test_niit_optimize_large_taxable_J_n_vs_reference(self):
         """withNIIT='optimize' J_n matches reference when taxable account is large (large Q_n).
@@ -256,6 +256,34 @@ def test_niit_toml_joe_large_ira_reference():
     J_ref = tx.computeNIIT(p.N_i, p.MAGI_n, p.I_n, p.Q_n, p.n_d, p.N_n)
     np.testing.assert_allclose(p.J_n, J_ref, atol=200.0,
                                err_msg="TOML loop NIIT J_n vs computeNIIT")
+
+
+@pytest.mark.toml
+def test_niit_optimize_joe_fixed_asset_capital_gains():
+    """withNIIT='optimize' J_n matches reference for Joe's case which has fixed-asset capital gains.
+
+    Regression guard for the MAGI LP constraint: the partition constraint lower bound includes
+    fixed_assets_capital_gains_n, so q[0]+q[1]+q[2] at the minimum already captures fixed-asset
+    CG. This test confirms that path is exercised and J_n is correct.
+    """
+    exdir = os.path.join(os.path.dirname(__file__), "..", "examples")
+    case = os.path.join(exdir, "Case_joe.toml")
+    hfp = os.path.join(exdir, "HFP_joe.xlsx")
+    p = owl.readConfig(case)
+    p.readHFP(hfp)
+    p.solve("maxSpending", {
+        "withNIIT": "optimize",
+        "withSSTaxability": "loop",
+        "withMedicare": "loop",
+        "maxIter": 5,
+    })
+    assert p.caseStatus == "solved"
+    assert float(np.sum(p.fixed_assets_capital_gains_n)) > 0.0, (
+        "Test requires non-zero fixed-asset capital gains to exercise the MAGI partition path"
+    )
+    J_ref = tx.computeNIIT(p.N_i, p.MAGI_n, p.I_n, p.Q_n, p.n_d, p.N_n)
+    np.testing.assert_allclose(p.J_n, J_ref, atol=200.0,
+                               err_msg="NIIT optimize J_n vs reference with fixed-asset CG")
 
 
 def test_niit_benders_J_n_vs_monolithic():
