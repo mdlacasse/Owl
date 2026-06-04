@@ -1,10 +1,31 @@
 
 
-### Version 2026.06.01
+### Version 2026.06.03
 
-#### Net Investment Income Tax Calculations
-- Fix rare condition in NIIT where MAGI is above threshold, leading to overestimate.
-- Added test to detect this condition.
+#### Bug fix — NIIT MILP (`withNIIT="optimize"`)
+
+The MAGI equality constraint in `_add_magi_lp` incorrectly expressed $Q_n$
+(LTCG capital gains) as `q_total − portfolio_LP_expression`.
+At the LTCG partition minimum where `q_total = Q_n`, these two expressions
+cancel, silently removing $Q_n$ from MAGI.
+As a result, the optimizer computed NIIT as $0.038 \times \mathbb{I}_n$
+instead of the correct $0.038 \times \min(\text{MAGI} - T,\; \mathbb{I}_n + Q_n)$,
+understating NIIT by up to $0.038 \times Q_n$ per year when the NII cap was binding.
+
+**Fix:** The MAGI LP constraint now uses the LTCG bracket allocation variables
+$q^{(0)}_n + q^{(1)}_n + q^{(2)}_n$ directly for $Q_n$ (which equals the true
+capital gains at the partition minimum).
+The portfolio b/w/d LP expression is no longer subtracted.
+
+**Regression test added:** `test_niit_optimize_large_taxable_J_n_vs_reference`
+uses a large taxable balance to exercise the NII-cap path with significant $Q_n$.
+
+#### Cash Flow worksheet — NIIT column
+
+`ord taxes` in the Cash Flow worksheet now reports income tax ($T_n$) only.
+NIIT ($J_n$) is shown as a separate `NIIT` column, consistent with how
+`div taxes` ($U_n$) is already separated from income tax.
+The `NIIT` column also appears in the CSV export.
 
 ---
 

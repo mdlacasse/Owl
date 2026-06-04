@@ -2707,16 +2707,16 @@ class Plan:
         Add MAGI equality constraints when withNIIT='optimize'.
 
         Links vm["magi"].idx(n) to:
-          MAGI_n = G_n + e_n + Q_n + zetaBar_n - tss_n
+          MAGI_n = G_n + e_n + Q_n + (1-Psi_n)*zetaBar_n
         where:
           - G_n = sum_t f_tn  (ordinary taxable income, via gn LP var or direct f_tn sum)
           - e_n = standard deduction headroom
-          - Q_n = portfolio LTCG (sum of q vars minus portfolio LP terms)
+          - Q_n = q[0]+q[1]+q[2]  (LTCG bracket allocation variables; equals Q_n at partition minimum)
           - zetaBar_n = total SS benefits (parameter)
           - tss_n = taxable SS (LP var when withSSTaxability=optimize, else Psi_n*zetaBar_n param)
 
         Rewritten as equality constraint with all LP vars on LHS:
-          magi_n - gn_n - e_n - Q_LP_expr = zetaBar_n - tss_or_param
+          magi_n - gn_n - e_n - q[0] - q[1] - q[2] = (1-Psi_n)*zetaBar_n
         """
         if not self._niit_lp:
             return
@@ -2727,10 +2727,7 @@ class Plan:
             magi_idx = self.vm["magi"].idx(n)
             e_idx = self.vm["e"].idx(n)
 
-            # Build MAGI equality row:
-            # magi_n = G_n + e_n + Q_n + (1-Psi_n)*zetaBar_n
-            # where Q_n = sum_i alpha_i00n*[mu*b + (cr-mu)*w + mu*d] + rhs_q (fixed assets)
-            # Rewrite: magi_n - e_n - Q_lp_terms = zetaBar_n - tss_n + fixed_asset_cg
+            # Build MAGI equality row: magi_n = G_n + e_n + Q_n + (1-Psi_n)*zetaBar_n
             row = {magi_idx: 1, e_idx: -1}
 
             # G_n contribution: either via gn LP var or directly from f_tn vars
@@ -2741,26 +2738,15 @@ class Plan:
                     f_idx = self.vm["f"].idx(t, n)
                     row[f_idx] = row.get(f_idx, 0) - 1
 
-            # Q_n LP expression: same as partition constraint in _configure_ltcg_constraints
-            rhs_magi = self.fixed_assets_capital_gains_n[n]
-            q0_idx = self.vm["q"].idx(0, n)
-            q1_idx = self.vm["q"].idx(1, n)
-            q2_idx = self.vm["q"].idx(2, n)
-            row[q0_idx] = row.get(q0_idx, 0) - 1
-            row[q1_idx] = row.get(q1_idx, 0) - 1
-            row[q2_idx] = row.get(q2_idx, 0) - 1
-            for i in range(self.N_i):
-                alpha = self.alpha_ijkn[i, 0, 0, n]
-                if alpha == 0:
-                    continue
-                b_idx = self.vm["b"].idx(i, 0, n)
-                w_idx = self.vm["w"].idx(i, 0, n)
-                d_idx = self.vm["d"].idx(i, n)
-                gf = self._effective_cap_gain_coef(i, n)
-                row[b_idx] = row.get(b_idx, 0) + alpha * self.mu
-                row[w_idx] = row.get(w_idx, 0) + alpha * (gf - self.mu)
-                row[d_idx] = row.get(d_idx, 0) + alpha * self.mu
-                rhs_magi -= alpha * 0.5 * self.mu * self.kappa_ijn[i, 0, n]
+            # Q_n contribution: use q bracket variables directly.
+            # The LTCG partition constraint enforces q[0]+q[1]+q[2] >= Q_n, so at the
+            # partition minimum the sum equals Q_n. Do NOT substitute the portfolio LP
+            # expression for Q_n: those portfolio terms (b, w, d) cancel q_total at the
+            # partition minimum, removing Q_n from MAGI entirely (the root-cause bug).
+            rhs_magi = 0.0
+            row[self.vm["q"].idx(0, n)] = row.get(self.vm["q"].idx(0, n), 0) - 1
+            row[self.vm["q"].idx(1, n)] = row.get(self.vm["q"].idx(1, n), 0) - 1
+            row[self.vm["q"].idx(2, n)] = row.get(self.vm["q"].idx(2, n), 0) - 1
 
             # SS: zetaBar_n (parameter) minus taxable SS
             rhs_magi += zetaBar_n[n]

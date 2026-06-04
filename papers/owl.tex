@@ -2394,7 +2394,7 @@ In this case, the objective function will need to consider the sum over all year
 	allocation variables $q_{pn}$ ($p \in \{0,1,2\}$).
 	The partition constraint
 	\begin{equation}
-		\label{Eq:LTCG1}
+		\label{Eq:LTCG1}\label{Eq:LTCG_partition}
 		q_{0n} + q_{1n} + q_{2n} \ge Q_n
 	\end{equation}
 	ensures the allocations cover the total LTCG $Q_n$.
@@ -2504,7 +2504,15 @@ In this case, the objective function will need to consider the sum over all year
 	the non-taxable portion of Social Security:
 	\begin{equation}
 		\mathbb{G}_n = G_n + Q_n + e_n + \bigl(1 - R_n\bigr)\textstyle\sum_i\bar{\zeta}_{in}.
+		\label{Eq:MAGI}
 	\end{equation}
+	In the LP, $Q_n$ is represented directly by the LTCG bracket allocation
+	variables $q^{(0)}_n + q^{(1)}_n + q^{(2)}_n$, which equal $Q_n$ when the
+	partition lower-bound constraint (\ref{Eq:LTCG_partition}) is tight.
+	The raw portfolio capital-gain LP expression must \emph{not} be substituted
+	for $Q_n$ here: it evaluates to zero at the partition minimum and would
+	remove $Q_n$ from MAGI, causing the NIIT to be computed as
+	$0.038\,\mathbb{I}_n$ rather than $0.038\,(\mathbb{I}_n + Q_n)$.
 
 \subsection{Taxable ordinary income}
 	We connect the two definitions for $G_n$ stated above in Eqs.~(\ref{Eq:G_n}) and (\ref{Eq:Tx2}),

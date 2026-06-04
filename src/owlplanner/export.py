@@ -689,8 +689,9 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "debt pmts": -plan.debt_payments_n,
         "all wdrwls": np.sum(plan.w_ijn, axis=(0, 1)),
         "all deposits": -np.sum(plan.d_in, axis=0),
-        "ord taxes": -plan.T_n - plan.J_n,
+        "ord taxes": -plan.T_n,
         "div taxes": -plan.U_n,
+        "NIIT": -plan.J_n,
         "Medicare": -plan.m_n - plan.M_n,
         "ACA premiums": -plan.aca_costs_n,
     }
@@ -872,8 +873,9 @@ def plan_to_csv(plan, basename, mylog):
     planData["debt pmts"] = -plan.debt_payments_n
     planData["all wdrwls"] = np.sum(plan.w_ijn, axis=(0, 1))
     planData["all deposits"] = -np.sum(plan.d_in, axis=0)
-    planData["ord taxes"] = -plan.T_n - plan.J_n
+    planData["ord taxes"] = -plan.T_n
     planData["div taxes"] = -plan.U_n
+    planData["NIIT"] = -plan.J_n
     planData["Medicare"] = -plan.m_n - plan.M_n
     planData["ACA premiums"] = -plan.aca_costs_n
     planData["QME"] = plan.other_medical_n

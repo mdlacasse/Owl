@@ -16,6 +16,8 @@ the Free Software Foundation, either version 3 of the License, or
 """
 
 
+import os
+
 import numpy as np
 import pytest
 from datetime import date
@@ -187,3 +189,91 @@ class TestNIITMilp:
         logging.getLogger().removeHandler(handler)
         output = log_capture.getvalue()
         assert 'withNIIT' not in output or 'Ignoring unknown' not in output
+
+    def test_niit_optimize_vs_loop_spending(self):
+        """withNIIT='optimize' spending within 2% of SC-loop (post NII-cap fix)."""
+        common = {'withSSTaxability': 'loop', 'withMedicare': 'loop', 'maxIter': 3}
+        p_loop = _make_plan('niit_loop', taxable=[200, 100], tax_deferred=[500, 300],
+                            tax_free=[100, 100])
+        p_loop.solve('maxSpending', {**common, 'withNIIT': 'loop'})
+        p_opt = _make_plan('niit_opt', taxable=[200, 100], tax_deferred=[500, 300],
+                           tax_free=[100, 100])
+        p_opt.solve('maxSpending', {**common, 'withNIIT': 'optimize'})
+        assert p_loop.caseStatus == 'solved'
+        assert p_opt.caseStatus == 'solved'
+        rel_diff = abs(p_opt.g_n[0] - p_loop.g_n[0]) / max(abs(p_loop.g_n[0]), 1)
+        assert rel_diff < 0.02, (
+            f"NIIT optimize spending {p_opt.g_n[0]:.0f} differs from loop {p_loop.g_n[0]:.0f} "
+            f"by {100 * rel_diff:.2f}%"
+        )
+        # Optimize should not report inflated NIIT vs reference on the same solution economics.
+        J_ref_loop = tx.computeNIIT(
+            p_loop.N_i, p_loop.MAGI_n, p_loop.I_n, p_loop.Q_n, p_loop.n_d, p_loop.N_n,
+        )
+        np.testing.assert_allclose(p_loop.J_n, J_ref_loop, atol=200.0)
+
+    def test_niit_optimize_large_taxable_J_n_vs_reference(self):
+        """withNIIT='optimize' J_n matches reference when taxable account is large (large Q_n).
+
+        Regression test for a bug where the MAGI LP constraint omitted Q_n (LTCG capital gains)
+        because the portfolio LP expression and q bracket variables cancelled at the partition
+        minimum, making J_n = 0.038*I_n instead of 0.038*min(MAGI-T, I_n+Q_n).
+        """
+        # Large taxable account → large Q_n → NII-cap binding in several years.
+        p = _make_plan('niit_large_taxable', taxable=[1000, 100], tax_deferred=[500, 300],
+                       tax_free=[50, 50])
+        p.solve('maxSpending', {
+            'withNIIT': 'optimize',
+            'withLTCG': 'optimize',
+            'withSSTaxability': 'loop',
+            'withMedicare': 'loop',
+            'maxIter': 4,
+        })
+        assert p.caseStatus == 'solved'
+        J_ref = tx.computeNIIT(p.N_i, p.MAGI_n, p.I_n, p.Q_n, p.n_d, p.N_n)
+        np.testing.assert_allclose(
+            p.J_n, J_ref, atol=500.0,
+            err_msg="NIIT optimize J_n does not match reference with large taxable account",
+        )
+
+
+@pytest.mark.toml
+def test_niit_toml_joe_large_ira_reference():
+    """Example TOML (Joe, $650k tax-deferred): loop NIIT matches IRS reference and NII cap."""
+    exdir = os.path.join(os.path.dirname(__file__), "..", "examples")
+    case = os.path.join(exdir, "Case_joe.toml")
+    hfp = os.path.join(exdir, "HFP_joe.xlsx")
+    p = owl.readConfig(case)
+    p.readHFP(hfp)
+    p.resolve()
+    assert p.caseStatus == "solved"
+    assert float(np.sum(p.J_n)) > 0.0
+    nii_n = p.I_n + p.Q_n
+    for n in range(p.N_n):
+        assert p.J_n[n] <= 0.038 * max(0.0, nii_n[n]) + 1.0, (
+            f"Year {n}: J_n={p.J_n[n]:.2f} exceeds 0.038*NII={0.038 * nii_n[n]:.2f}"
+        )
+    J_ref = tx.computeNIIT(p.N_i, p.MAGI_n, p.I_n, p.Q_n, p.n_d, p.N_n)
+    np.testing.assert_allclose(p.J_n, J_ref, atol=200.0,
+                               err_msg="TOML loop NIIT J_n vs computeNIIT")
+
+
+def test_niit_benders_J_n_vs_monolithic():
+    """Benders and monolithic agree on J_n when withNIIT=optimize (high-IRA scenario)."""
+    gap = 2e-3
+    opts = {
+        "withNIIT": "optimize",
+        "withSSTaxability": "loop",
+        "withMedicare": "loop",
+        "maxIter": 5,
+        "gap": gap,
+    }
+    balances = dict(taxable=[20, 10], tax_deferred=[3000, 2000], tax_free=[50, 50])
+    p_mono = _make_plan("niit_bend_mono", **balances)
+    p_mono.solve("maxSpending", opts)
+    p_bend = _make_plan("niit_bend_bend", **balances)
+    p_bend.solve("maxSpending", {**opts, "withDecomposition": "benders"})
+    assert p_mono.caseStatus == "solved"
+    assert p_bend.caseStatus == "solved"
+    assert float(np.sum(p_mono.J_n)) > 0.0
+    np.testing.assert_allclose(p_bend.J_n, p_mono.J_n, atol=1.0, rtol=0.01)
