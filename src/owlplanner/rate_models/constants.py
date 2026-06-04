@@ -52,6 +52,7 @@ HISTORICAL_RANGE_METHODS = (
     "historical_bootstrap",
     "vector_ar",
     "garch_dcc",
+    "gmm",
 )
 
 # Methods using stochastic generation; need seed, support regenRates.
@@ -63,6 +64,7 @@ STOCHASTIC_METHODS = (
     "historical_bootstrap",
     "garch_dcc",
     "vector_ar",
+    "gmm",
 )
 
 # Methods that store user-provided values (for plan_to_config).
@@ -85,6 +87,7 @@ FIXED_TYPE_UI = (
 VARYING_TYPE_UI = (
     "garch_dcc",
     "gaussian",
+    "gmm",
     "historical",
     "historical_bootstrap",
     "historical_gaussian",

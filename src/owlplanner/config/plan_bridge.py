@@ -153,8 +153,9 @@ def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
 
     if rate_method in HISTORICAL_RANGE_METHODS:
         if "frm" not in clean_rate_section:
-            raise ValueError(f"Rate method '{rate_method}' requires 'from' year.")
-        if "to" not in clean_rate_section:
+            if "frm" not in ModelClass.optional_parameters:
+                raise ValueError(f"Rate method '{rate_method}' requires 'from' year.")
+        if "frm" in clean_rate_section and "to" not in clean_rate_section:
             clean_rate_section["to"] = int(clean_rate_section["frm"]) + plan.N_n - 1
 
     plan.setRates(

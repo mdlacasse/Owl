@@ -633,7 +633,7 @@ def _setRates(plan):
                     kz.pushCaseKey(f"corr{q}", dist.corr[k1, k2])
                     q += 1
 
-        elif varyingType in ("historical_bootstrap", "vector_ar", "garch_dcc", "historical_lognormal"):
+        elif varyingType in ("historical_bootstrap", "vector_ar", "garch_dcc", "historical_lognormal", "gmm"):
             reproducible = kz.getCaseKey("reproducibleRates")
             seed = kz.getCaseKey("rateSeed") if reproducible else None
             plan.setReproducible(reproducible, seed=seed)
@@ -651,6 +651,10 @@ def _setRates(plan):
                     kwargs["bootstrap_type"] = bt
                 if bs is not None:
                     kwargs["block_size"] = int(bs)
+            elif varyingType == "gmm":
+                nc = kz.getCaseKey("gmmComponents")
+                if nc:
+                    kwargs["n_components"] = int(nc)
 
             try:
                 plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq, **kwargs)
@@ -1566,13 +1570,17 @@ def genDic(plan):
         dic["rateType"] = "constant"
         dic["fixedType"] = "user"
     elif plan.rateMethod in ["historical_gaussian", "historical", "gaussian",
-                             "lognormal", "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc"]:
+                             "lognormal", "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc",
+                             "gmm"]:
         dic["rateType"] = "varying"
         dic["varyingType"] = plan.rateMethod
         if plan.rateMethod == "historical_bootstrap":
             params = plan.rateModel.params
             dic["bootstrapType"] = params.get("bootstrap_type", "iid")
             dic["blockSize"] = params.get("block_size", 1)
+        elif plan.rateMethod == "gmm":
+            params = plan.rateModel.params
+            dic["gmmComponents"] = params.get("n_components", 3)
 
     # Initialize in both cases. Plan stores rateValues in percent when set; else use tau_kn (decimal).
     for k1 in range(plan.N_k):
@@ -1582,7 +1590,7 @@ def genDic(plan):
             dic[f"fxRate{k1}"] = 100 * plan.tau_kn[k1, -1]
 
     if plan.rateMethod in ["historical_average", "historical_gaussian", "historical",
-                           "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc"]:
+                           "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc", "gmm"]:
         dic["yfrm"] = plan.rateFrm
         dic["yto"] = plan.rateTo
     elif plan.rateMethod == "dataframe":

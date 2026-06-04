@@ -146,6 +146,25 @@ values = [7.0, 4.5, 3.5, 2.5]
 stdev = [17.0, 8.0, 6.0, 2.0]
 ```
 
+#### `gmm`
+
+Fits a multivariate Gaussian Mixture Model on historical returns, capturing cross-asset correlations within each market regime (bull, bear, crisis). Each component is a full 4D Gaussian; joint samples preserve realistic inter-asset dependencies.
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"gmm"`) |
+| `from` | No | int | First historical year for fitting (inclusive). |
+| `to` | No | int | Last historical year for fitting (inclusive). |
+| `n_components` | No | int | Number of mixture components (market regimes). |
+| `covariance_type` | No | str | Covariance structure: full, tied, diag, or spherical. |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "gmm"
+```
+
 #### `historical_bootstrap`
 
 Resamples actual historical years to build synthetic sequences, preserving fat tails and extreme events. Choose IID, block, circular, or stationary resampling strategy. [click here for more info](https://github.com/mdlacasse/Owl/blob/main/src/owlplanner/rate_models/historical_bootstrap.md)

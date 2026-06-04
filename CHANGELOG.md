@@ -1,5 +1,13 @@
 
 
+### Version 2026.06.04
+
+#### New rate model — Gaussian Mixture Model (`gmm`)
+
+Adds a multivariate GMM rate model that fits $K$ Gaussian components on the selected historical window via EM, capturing regime-dependent cross-asset correlations (bull, bear, crisis). Exposed in the UI alongside the other varying-rate methods, with a configurable number of components (default $K=3$).
+
+---
+
 ### Version 2026.06.03
 
 #### Bug fix — NIIT MILP (`withNIIT="optimize"`)

@@ -257,6 +257,24 @@ preserving stationarity."""
                          disabled=(bt == "iid"), callback=updateRates,
                          help="Fixed block length for block/circular; expected block length for stationary. All variants collapse to iid when block size is 1.")
 
+    if kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") == "gmm":
+        kz.initCaseKey("gmmComponents", 3)
+        col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
+        with col2:
+            kz.getIntNum(
+                "Number of components",
+                "gmmComponents",
+                min_value=2,
+                max_value=10,
+                step=1,
+                callback=updateRates,
+                help=(
+                    "Number of Gaussian mixture components (market regimes). "
+                    "3 captures bull, bear, and crisis regimes. "
+                    "More components fit finer structure but require more data."
+                ),
+            )
+
     if kz.getCaseKey("rateType") == "varying":
         st.divider()
         st.markdown("#### :orange[Stochastic Parameters]")
@@ -397,7 +415,7 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
         # Reproducibility checkbox - only for gaussian/lognormal and historical_gaussian/historical_lognormal methods.
         if kz.getCaseKey("varyingType") in [
             "gaussian", "lognormal", "historical_gaussian", "historical_lognormal",
-            "historical_bootstrap", "vector_ar", "garch_dcc",
+            "historical_bootstrap", "vector_ar", "garch_dcc", "gmm",
         ]:
             st.markdown("#####")
             st.markdown("#### :orange[Rate Generation]")
