@@ -14,138 +14,155 @@ For end-users, we suggest accessing Owl from the
 or, if one prefers to have everything on their own computer,
 to install and run a Docker image as described in these [instructions](docker/README.md).
 
-### Requirements
-You will need a Python environment, and the `pip` module installed on your
-computer for completing the installation. The `build` module will be required
-for developers. You will also need `git` to manage the source code from GitHub
-which is found [here](https://git-scm.com/install/windows) for Windows,
-and by installing developer tools on MacOS and Linux.
+---
 
+### Recommended: install with uv
 
-A good option for a comprehensive Python environment is to use the *Anaconda* distribution
-that can be found [here](https://repo.anaconda.com/archive/) for various operating systems.
-Installation of *Anaconda* can be done by downloading and running the installation
-file corresponding to your operating system and hardware.
+[uv](https://docs.astral.sh/uv/) is a fast Python package and project manager that
+handles Python versions, virtual environments, and dependencies in one tool.
+It is the recommended way to install and run Owl.
 
-Instructions given here are command-line instructions to be entered from a terminal window.
+You will also need `git`, which is found [here](https://git-scm.com/install/windows)
+for Windows, and is included with developer tools on macOS and Linux.
 
-If using *Anaconda*, `pip` can be installed as follows
+#### 1. Install uv
+
+**macOS / Linux:**
+```shell
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
-conda install pip
-```
-otherwise, your distribution will most likely include `pip` already.
 
-The `build` module is included in *Anaconda*.
-Command `pip install build` will install it in other distributions.
-
-### Creating a virtual environment
-It is common practice to create a virtual environment for a specific project.
-This is to avoid making changes in the base ditribution that could break dependencies.
-Creating and activating a new environment called *owlenv* in *Anaconda*
-is achieved by the following commands: 
+**Windows (PowerShell):**
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
+
+Full installation options are documented [here](https://docs.astral.sh/uv/getting-started/installation/).
+
+#### 2. Clone the repository
+```shell
+git clone https://github.com/mdlacasse/Owl.git
+cd Owl
+```
+
+#### 3. Run Owl
+
+On the first launch, `uv` will automatically create a virtual environment and install
+all dependencies. Subsequent launches reuse the existing environment.
+
+```shell
+# macOS or Linux
+./owlplanner.sh
+
+# Windows
+./owlplanner.cmd
+```
+
+This will open a tab in your default browser.
+Hit **Ctrl-C** in the terminal to stop the server.
+
+#### Keeping Owl up to date
+```shell
+git pull
+uv sync
+```
+
+---
+
+### Alternative: install with pip or conda
+
+Use this path if you prefer to manage your own Python environment.
+
+#### Creating a virtual environment
+
+**Anaconda** ([download](https://repo.anaconda.com/archive/)):
+```shell
 conda create --name owlenv
 conda activate owlenv
 ```
-A cheat sheet for *Anaconda* can be found
-[here](https://docs.conda.io/projects/conda/en/latest/user-guide/cheatsheet.html).
 
-When not using `conda`, creating and activating an environment can be done by
-using the module `venv` as follows:
-```
+**venv** (standard library):
+```shell
 python -m venv owlenv
-```
-This will create subdirectory *owlenv* in the current directory.
-For activating this environment:
-```
-# in MS command
+
+# Activate — macOS / Linux
+source ./owlenv/bin/activate
+
+# Activate — Windows (Command Prompt)
 .\owlenv\Scripts\activate.bat
 
-# in MS PowerShell
+# Activate — Windows (PowerShell)
 ./owlenv/Scripts/activate.ps1
-
-# MacOS or Linux
-source ./owlenv/bin/activate
 ```
-More details on how to create a virtual environment using *venv* can be found
-[here](https://python.land/virtual-environments/virtualenv).
 
-### Obtaining Owl's source code
-We assume that you have created and activated a virtual environment
-at this point. From there, we install the latest version of Owl from GitHub.
+#### Install dependencies
 ```shell
 git clone https://github.com/mdlacasse/Owl.git
-
-```
-Then go (`cd`) to the directory where you installed Owl.
-```
 cd Owl
-```
-From the top directory of the source code run:
-The following command will install the current version of Owl and all its dependencies:
-```shell
 pip install --upgrade -r requirements.txt
 ```
-You can also install the Owl package directly from the [Python Package Index](http://pypi.org).
 
-The default install does not include Jupyter. If you want to run the notebooks in the `notebooks/` directory, install the optional extra (from the same repository root, after the steps above):
-
+To also run the Jupyter notebooks in `notebooks/`:
 ```shell
 pip install -e ".[notebooks]"
 ```
 
-### Running the Streamlit frontend locally
-Once Owl's source code and all its dependencies as been installed,
-one can run the Owl user interface locally:
+#### Run Owl
 ```shell
-# From Windows
-./owlplanner.cmd
-
-# From MacOS or Linux
+# macOS or Linux
 ./owlplanner.sh
+
+# Windows
+./owlplanner.cmd
 ```
-This will open a tab on your default browser.
 
-### Installation steps for developers
-First use the same steps as above to create and activate a virtual environment
-and install the source code from GitHub.
-Then make sure that the `build` module is installed (`pip install build`).
+---
 
-The next commands will build and install the Owl module in "edit mode"
+### Developer setup
+
+Clone the repository and install in editable mode so changes to the source are
+reflected immediately without reinstalling.
+
+**With uv:**
 ```shell
+uv sync
+uv pip install -e ".[notebooks]"   # optional: add Jupyter
+```
+
+**With pip:**
+```shell
+pip install build
 python -m build
 pip install -e .
+pip install -e ".[notebooks]"      # optional: add Jupyter
 ```
-The -e instructs `pip` to install in *editable* mode and use the live version
-in the current directory tree. Use `pip install -e ".[notebooks]"` instead of
-`pip install -e .` if you also need Jupyter for the `notebooks/` tutorials.
 
-### Publishing a version (for reference only)
-Install pytest-xdist and pytest-randomly. Run checks before all commits:
-```
+---
+
+### Publishing a release (maintainers only)
+
+Run checks before all commits:
+```shell
 flake8 ui src tests
 pytest -n auto
 ```
-or on linux/macOS
-```
+
+On macOS / Linux, to test against specific solvers:
+```shell
 OWL_TEST_SOLVER="HiGHS" pytest -n auto
 OWL_TEST_SOLVER="MOSEK" pytest -n auto
 ```
-or on Win32
-```
+
+On Windows (PowerShell):
+```powershell
 $env:OWL_TEST_SOLVER="HiGHS" ; pytest -n auto
 $env:OWL_TEST_SOLVER="MOSEK" ; pytest -n auto
 ```
-to run the tests using different solvers.
 
-To update version, edit number in `src/owlplanner/version.py`.
-
-To update package on pypi or testpypi,
-
+Update the version number in `src/owlplanner/version.py`, then build and upload:
 ```shell
 rm dist/*
 python -m build
 twine upload --repository [repo] dist/*
 ```
-where [repo] is *testpypi* or *pypi* depending on the type of release.
-
+where `[repo]` is `testpypi` or `pypi` depending on the type of release.

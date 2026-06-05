@@ -465,6 +465,17 @@ other parameters while keeping rates constant."""
                 with col2:
                     kz.getIntNum("Random seed", "rateSeed", min_value=1, max_value=2**31 - 1,
                                  callback=updateRates, help=helpmsgSeed)
+            with col3:
+                reproducible = kz.getCaseKey("reproducibleRates")
+                if st.button(
+                    "Regenerate rates",
+                    disabled=reproducible,
+                    help="Draw a new random rate sequence. Disabled when reproducible rates is enabled.",
+                ):
+                    plan = kz.getCaseKey("plan")
+                    if plan is not None:
+                        plan.regenRates()
+                    st.rerun()
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()
