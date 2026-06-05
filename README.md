@@ -53,6 +53,7 @@ Follow these <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">inst
 | <a href="USER_GUIDE.md" target="_blank" rel="noopener noreferrer">USER_GUIDE.md</a> | Python API usage with examples for Jupyter notebooks and scripts |
 | <a href="PARAMETERS.md" target="_blank" rel="noopener noreferrer">PARAMETERS.md</a> | Complete reference for TOML case file parameters |
 | <a href="CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md</a> | Version history and changelog |
+| <a href="CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> | Guidelines for contributing code, issues, and pull requests |
 | <a href="RATE_MODELS.md" target="_blank" rel="noopener noreferrer">RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
 | <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.pdf</a> | Mathematical foundations |
 
