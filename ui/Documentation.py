@@ -1051,12 +1051,36 @@ parameters are derived automatically from the historical data.
 
 ---
 ##### Rate plots
-Two graphs are displayed at the bottom of the Rates page.
+Three graphs are displayed at the bottom of the Rates page (varying methods) or one graph
+for constant methods.
 
 **Selected Rates Over Time Horizon** shows the actual year-by-year rate sequence that will
 be used in the current plan run. For stochastic methods this is one specific realization
 drawn when you last changed a setting; re-running the case (or changing any parameter)
 draws a fresh sequence. For constant and `historical` methods the sequence is always the same.
+
+**Rate CDFs vs. Historical Range** (varying methods only) shows the empirical cumulative
+distribution function (CDF) of each asset class's generated rates, one panel per asset class.
+For historical methods (`historical_gaussian`, `historical_lognormal`, `historical_bootstrap`,
+etc.), the CDF of the actual historical data from the selected frm–to window is overlaid as a
+dashed gray line, making it easy to see how closely the fitted model reproduces the historical
+sample. The same 2 000-sample representative draw used for the correlation graph is used here,
+so the CDF reflects the model's true distribution rather than the short plan-horizon realization.
+
+The CDF plot is useful in two complementary ways:
+
+*Goodness-of-fit check.* For historical methods, the colored model CDF and the dashed
+historical CDF should track closely. Divergence reveals where the fitted model departs from
+history — e.g. a `gaussian` fit often underestimates the left tail of equity returns because
+real-world return distributions are heavier-tailed than a normal distribution.
+
+*Tail-probability reading.* The y-axis at any x-value gives the cumulative probability
+directly, with no binning artifact. For example, if the S&P 500 CDF crosses 10% at −20%,
+the model assigns a 1-in-10 chance of a loss worse than −20% in any given year. Practical
+uses include: verifying that the inflation model is neither too tight nor too wide before
+running Monte Carlo; checking whether `constrain_mean` realigned the model median with the
+historical window; or comparing two historical windows to see how the distribution shifted
+between, say, 1950–1980 and 1990–2020.
 
 **Correlations Between Return Rates** (varying methods only) shows the statistical
 properties of the selected rate model across all four asset classes: histograms on the
@@ -1065,7 +1089,7 @@ triangle. To make this graph representative of the method's distributional prope
 — rather than the noisy statistics of a single plan-horizon realization of 30–50 points —
 the underlying data source varies by method:
 
-| Method(s) | Data shown in the correlation graph |
+| Method(s) | Data shown in the correlation and CDF graphs |
 |---|---|
 | `historical`, constant presets | The actual plan-horizon sequence (deterministic — no need for a larger sample) |
 | `historical_bootstrap` | The **full historical pool** (frm–to window) that the bootstrap draws from — exact source distribution, no sampling noise |
@@ -1369,7 +1393,8 @@ Graphs are organized into four tabs:
 
 **Rates** — return and rate assumptions used for this run:
 - *Selected Rates Over Time Horizon* — the rate sequence used for this run.
-- *Correlations Between Return Rates* *(stochastic/varying methods only)* — correlation matrix of asset returns.
+- *Rate CDFs vs. Historical Range* *(varying methods only)* — empirical CDF of each asset class's rate distribution; for historical methods, the historical window CDF is overlaid as a dashed line for comparison.
+- *Correlations Between Return Rates* *(varying methods only)* — correlation matrix of asset returns.
 
 """)
 

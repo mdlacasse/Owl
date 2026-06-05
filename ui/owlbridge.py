@@ -768,6 +768,14 @@ def showRatesCorrelations(plan, col):
 
 
 @_checkPlan
+def showRatesCDF(plan, col):
+    fig = plan.showRatesCDF(figure=True)
+    if fig:
+        col.markdown("#### :orange[Rate CDFs vs. Historical Range]")
+        renderPlot(fig, col)
+
+
+@_checkPlan
 def showSources(plan):
     fig = plan.showSources(figure=True)
     if fig:
@@ -1039,10 +1047,16 @@ def plotSpendingGraphs(plan):
 
 @_checkPlan
 def plotRatesGraphs(plan):
-    col1, col2 = st.columns(2, gap="large")
-    if kz.getCaseKey("rateType") == "varying":
+    varying = kz.getCaseKey("rateType") == "varying"
+    if varying:
+        col1, col2 = st.columns(2, gap="large")
         showRatesCorrelations(col2)
+    else:
+        col1, col2 = st.columns([0.6, 0.4], gap="large")
+
     showRates(col1)
+    if varying:
+        showRatesCDF(col1)
 
 
 @_checkPlan

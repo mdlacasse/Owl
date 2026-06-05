@@ -429,6 +429,68 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
+    def plot_rates_cdf(self, name, tau_kn, rate_method, SP500, BondsBaa, TNotes, Inflation, FROM,
+                       rate_frm=None, rate_to=None, tag=""):
+        """Plot empirical CDFs of rates, with historical range overlay for historical methods."""
+        show_hist = (rate_method in HISTORICAL_RANGE_METHODS and rate_frm is not None and rate_to is not None)
+        hist_sources = [SP500, BondsBaa, TNotes, Inflation]
+        N_samples = tau_kn.shape[1]
+
+        fig = make_subplots(rows=1, cols=4, subplot_titles=list(RATE_DISPLAY_NAMES_SHORT), shared_yaxes=True)
+
+        colors = ["#4C78A8", "#F58518", "#54A24B", "#E45756"]
+
+        for k, rate_name in enumerate(RATE_DISPLAY_NAMES_SHORT):
+            mc_data = np.sort(100.0 * tau_kn[k])
+            n_mc = len(mc_data)
+            p_mc = np.arange(1, n_mc + 1) / n_mc
+
+            fig.add_trace(go.Scatter(
+                x=mc_data, y=p_mc, mode="lines",
+                name=f"{rate_name}: {rate_method} (N={N_samples})",
+                line=dict(color=colors[k], width=2, shape="hv"),
+                showlegend=True,
+                legendgroup=f"mc_{k}",
+            ), row=1, col=k + 1)
+
+            if show_hist:
+                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM: rate_to - FROM], dtype=float))
+                n_h = len(h_arr)
+                p_h = np.arange(1, n_h + 1) / n_h
+                fig.add_trace(go.Scatter(
+                    x=h_arr, y=p_h, mode="lines",
+                    name=f"{rate_name}: Historical {rate_frm}-{rate_to} (N={n_h})",
+                    line=dict(color="gray", width=2, dash="dash", shape="hv"),
+                    showlegend=True,
+                    legendgroup=f"hist_{k}",
+                ), row=1, col=k + 1)
+
+            fig.add_shape(
+                type="line",
+                x0=0, x1=0, y0=0, y1=1,
+                xref=f"x{k + 1}", yref="paper",
+                line=dict(color="lightgray", width=1, dash="dot"),
+            )
+
+        title = name + "<br>Rates CDF - " + str(rate_method)
+        if rate_method in HISTORICAL_RANGE_METHODS:
+            title += f" ({rate_frm}-{rate_to})"
+        if tag:
+            title += " - " + tag
+
+        fig.update_layout(
+            title=title,
+            template=self.template,
+            showlegend=True,
+            legend={"y": -0.30, "orientation": "h"},
+            margin=dict(b=150),
+            height=450,
+        )
+        fig.update_yaxes(range=[0, 1], tickformat=".0%", title_text="Cumulative Probability", col=1)
+        fig.update_xaxes(title_text="%")
+
+        return fig
+
     def plot_rates_correlations(self, pname, tau_kn, rate_method, rate_frm=None, rate_to=None,
                                 tag="", share_range=False):
         """Plot correlations between various rates."""

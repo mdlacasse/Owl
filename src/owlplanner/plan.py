@@ -4851,6 +4851,38 @@ class Plan:
         self._plotter.jupyter_renderer(fig)
         return None
 
+    def showRatesCDF(self, tag="", figure=False):
+        """
+        Plot empirical CDFs of rate distributions used in this plan.
+
+        For historical methods, the empirical CDF of the selected historical
+        window is overlaid for comparison. Not available for constant-rate methods.
+        A tag string can be set to add information to the title of the plot.
+        """
+        if self.rateMethod in [None, "user", "historical_average", "conservative", "trailing_30", "optimistic"]:
+            self.mylog.print(f"Cannot plot CDF for {self.rateMethod} rate method.", tag="WARNING")
+            return None
+
+        _N_REPR = 2000
+        rateModel = getattr(self, "rateModel", None)
+        if rateModel is not None and not rateModel.deterministic:
+            repr_series = rateModel.representative_sample(_N_REPR)  # (M, 4) decimal
+            display_tau_kn = repr_series.transpose()                # (4, M)
+        else:
+            display_tau_kn = self.tau_kn
+
+        fig = self._plotter.plot_rates_cdf(
+            self._name, display_tau_kn, self.rateMethod,
+            rates.SP500, rates.BondsBaa, rates.TNotes, rates.Inflation, rates.FROM,
+            self.rateFrm, self.rateTo, tag,
+        )
+
+        if figure:
+            return fig
+
+        self._plotter.jupyter_renderer(fig)
+        return None
+
     def showRatesDistributions(self, frm=rates.FROM, to=rates.TO, figure=False):
         """
         Plot histograms of the rates distributions.

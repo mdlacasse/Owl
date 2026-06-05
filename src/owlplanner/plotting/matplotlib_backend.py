@@ -371,6 +371,44 @@ class MatplotlibBackend(PlotBackend):
 
         return fig
 
+    def plot_rates_cdf(self, name, tau_kn, rate_method, SP500, BondsBaa, TNotes, Inflation, FROM,
+                       rate_frm=None, rate_to=None, tag=""):
+        """Plot empirical CDFs of rates, with historical range overlay for historical methods."""
+        show_hist = (rate_method in HISTORICAL_RANGE_METHODS and rate_frm is not None and rate_to is not None)
+        hist_sources = [SP500, BondsBaa, TNotes, Inflation]
+        N_samples = tau_kn.shape[1]
+
+        fig, axes = plt.subplots(1, 4, sharey=True, tight_layout=True, figsize=(12, 4))
+
+        title = name + "\nRates CDF - " + str(rate_method)
+        if rate_method in HISTORICAL_RANGE_METHODS:
+            title += f" ({rate_frm}-{rate_to})"
+        if tag:
+            title += " - " + tag
+
+        for k, (ax, rate_name) in enumerate(zip(axes, RATE_DISPLAY_NAMES_SHORT)):
+            mc_data = np.sort(100.0 * tau_kn[k])
+            n_mc = len(mc_data)
+            p_mc = np.arange(1, n_mc + 1) / n_mc
+            ax.step(mc_data, p_mc, where="post", linewidth=1.5, label=f"{rate_method} (N={N_samples})")
+
+            if show_hist:
+                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM: rate_to - FROM], dtype=float))
+                n_h = len(h_arr)
+                p_h = np.arange(1, n_h + 1) / n_h
+                ax.step(h_arr, p_h, where="post", color="gray", linestyle="--", linewidth=1.5,
+                        label=f"Historical {rate_frm}-{rate_to} (N={n_h})")
+
+            ax.axvline(x=0, color="lightgray", linewidth=0.8, linestyle=":")
+            ax.set_title(rate_name)
+            ax.set_xlabel("%")
+            ax.legend(loc="lower right", fontsize=7, framealpha=0.7)
+
+        axes[0].set_ylabel("Cumulative Probability")
+        fig.suptitle(title)
+
+        return fig
+
     def plot_gross_income(self, year_n, G_n, gamma_n, value, title, tax_brackets):
         """Plot gross income over time."""
         style = {"taxable income": "-"}

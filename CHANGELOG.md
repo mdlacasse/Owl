@@ -2,6 +2,21 @@
 
 ### Version 2026.06.06
 
+#### Rate CDF plot (`showRatesCDF`)
+
+Adds a new plot showing the empirical CDF of each asset class's generated rates (S&P 500, Bonds Baa, T-Notes, Inflation), one panel per asset class.
+For historical methods, the empirical CDF of the selected frm–to window is overlaid as a dashed gray line for goodness-of-fit comparison.
+The y-axis gives cumulative probability directly — no binning artifact — making tail probabilities easy to read.
+Constant-rate methods do not produce a CDF plot.
+
+The same 2 000-sample representative draw used for the correlation graph is used here, so the CDF reflects the model's true distribution rather than the short plan-horizon realization.
+
+**New public method:** `Plan.showRatesCDF(tag="", figure=False)`.
+**New backend methods:** `plot_rates_cdf` in both `matplotlib_backend.py` and `plotly_backend.py`, declared abstract in `plotting/base.py`.
+**UI:** Appears on the **Rates** page (left column, below *Selected Rates Over Time Horizon*) and on the **Graphs** page under the **Rates** tab, for varying rate methods only.
+
+---
+
 #### Constrain mean option for history-fitted stochastic rate models
 
 Adds an optional `constrain_mean` parameter (default `False`) to six history-fitted stochastic rate models: `historical_gaussian`, `historical_lognormal`, `historical_copula`, `garch_dcc`, `gmm`, and `hmm`.

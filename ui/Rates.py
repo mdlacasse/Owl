@@ -407,13 +407,16 @@ preserving stationarity."""
                       callback=None)
 
     st.divider()
-    if kz.getCaseKey("rateType") == "varying":
+    varying = kz.getCaseKey("rateType") == "varying"
+    if varying:
         col1, col2 = st.columns(2, gap="medium")
         owb.showRatesCorrelations(col2)
     else:
         col1, col2 = st.columns([0.6, 0.4], gap="medium")
 
     owb.showRates(col1)
+    if varying:
+        owb.showRatesCDF(col1)
 
     # st.divider()
     with st.expander("*Advanced options*"):

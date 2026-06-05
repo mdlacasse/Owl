@@ -59,6 +59,12 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
+    def plot_rates_cdf(self, name, tau_kn, rate_method, SP500, BondsBaa, TNotes, Inflation, FROM,
+                       rate_frm=None, rate_to=None, tag=""):
+        """Plot empirical CDFs of rates, with historical range overlay for historical methods."""
+        pass
+
+    @abstractmethod
     def plot_gross_income(self, year_n, G_n, gamma_n, value, title, tax_brackets):
         """Plot gross income over time."""
         pass
