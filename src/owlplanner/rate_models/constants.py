@@ -97,6 +97,16 @@ FIXED_TYPE_UI = (
     "historical_average",
 )
 
+# Methods that support the constrain_mean option (post-hoc mean correction).
+CONSTRAIN_MEAN_METHODS = (
+    "historical_lognormal",
+    "historical_gaussian",
+    "historical_copula",
+    "garch_dcc",
+    "gmm",
+    "hmm",
+)
+
 # Methods the UI treats as "varying" type (alphabetically ordered for selector).
 VARYING_TYPE_UI = (
     "garch_dcc",

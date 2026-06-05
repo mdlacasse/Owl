@@ -1006,6 +1006,36 @@ are drawn or statistics are computed. At least two years are required. For `hist
 the ending year is fixed by the starting year plus the plan horizon.
 
 ---
+##### Constrain mean
+For history-fitted stochastic methods (`historical_gaussian`, `historical_lognormal`,
+`historical_copula`, `garch_dcc`, `gmm`, `hmm`), a **Constrain mean** checkbox appears
+next to the year-range selectors.
+
+When checked, each generated rate series is post-processed so its arithmetic mean
+exactly matches the historical arithmetic mean of the selected window. The correction
+is a simple additive shift applied per asset column: the shape of the distribution
+(variance, skew, volatility clustering, cross-asset correlations) is fully preserved
+— only the mean is adjusted.
+
+**When to use it:**
+- When you want to isolate *sequence-of-returns risk* — the variability in outcomes
+  caused by the *ordering* of good and bad years — while removing any noise in the
+  *average* return of each synthetic scenario.
+- When comparing methods: without this option, short plan horizons (30–40 years) can
+  produce scenarios whose sample means drift noticeably above or below the historical
+  window average, mixing sequence risk with mean estimation noise.
+
+**When to leave it off:**
+- When you specifically want the full distribution of possible mean outcomes, including
+  scenarios where average returns happen to be lower or higher than the historical
+  window suggests. This is the default behavior and is appropriate for most Monte
+  Carlo analyses.
+
+Note: bootstrap methods (`historical_bootstrap`) preserve the mean naturally because
+they resample from the actual historical pool — this option has no effect there and
+the checkbox does not appear.
+
+---
 ##### Stochastic parameters
 When `gaussian` or `lognormal` is selected, a panel with three sub-sections appears:
 - **Arithmetic Means (%)** — expected annual (single-year) return for each asset class.

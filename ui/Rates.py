@@ -23,7 +23,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import streamlit as st
 from datetime import date
 
-from owlplanner.rate_models.constants import GARCH_DCC_MIN_OBSERVATIONS, STOCHASTIC_METHODS
+from owlplanner.rate_models.constants import CONSTRAIN_MEAN_METHODS, GARCH_DCC_MIN_OBSERVATIONS, STOCHASTIC_METHODS
 
 import sskeys as kz
 import owlbridge as owb
@@ -226,6 +226,22 @@ preserving stationarity."""
             help_yto = helpYto
 
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
+
+        if vt in CONSTRAIN_MEAN_METHODS:
+            kz.initCaseKey("constrainMean", False)
+            with col1:
+                st.checkbox(
+                    "Constrain mean",
+                    value=bool(kz.getCaseKey("constrainMean")),
+                    on_change=updateRates,
+                    args=["constrainMean"],
+                    key=kz.genCaseKey("constrainMean"),
+                    help=(
+                        "Shift each generated series so its arithmetic mean exactly matches "
+                        "the historical window mean. Preserves distribution shape; only "
+                        "the mean is corrected. Use to isolate sequence-of-return risks."
+                    ),
+                )
 
         if vt == "gmm":
             kz.initCaseKey("gmmComponents", 3)

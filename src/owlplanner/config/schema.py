@@ -171,6 +171,7 @@ class RatesSelection(BaseModel):
     n_components: Optional[int] = Field(default=None, description="Number of components / hidden states (gmm, hmm)")
     reg_trans: Optional[float] = Field(default=None, description="Laplace smoothing on transition counts, > 0 (hmm)")
     init_regime: Optional[int] = Field(default=None, description="Fixed starting regime index for generation (hmm)")
+    constrain_mean: Optional[bool] = Field(default=None, description="Shift generated series mean to match historical window mean (historical_gaussian, historical_lognormal, historical_copula, garch_dcc, gmm, hmm)")
 
 
 class AssetAllocation(BaseModel):

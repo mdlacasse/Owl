@@ -1,5 +1,24 @@
 
 
+### Version 2026.06.06
+
+#### Constrain mean option for history-fitted stochastic rate models
+
+Adds an optional `constrain_mean` parameter (default `False`) to six history-fitted stochastic rate models: `historical_gaussian`, `historical_lognormal`, `historical_copula`, `garch_dcc`, `gmm`, and `hmm`.
+
+When enabled, each generated rate series is post-processed with an additive per-column shift so its arithmetic mean exactly matches the historical arithmetic mean of the selected window.
+The distribution shape — variance, skew, volatility clustering, and cross-asset correlations — is fully preserved; only the mean is corrected.
+This isolates sequence-of-returns risk from mean-estimation noise, which is useful when comparing scenarios across methods or plan horizons.
+
+A **Constrain mean** checkbox is exposed in the Rates UI next to the year-range selectors for the six supported methods.
+Return floors are applied after the mean correction: equity, bonds, and T-notes are floored at −100%; inflation is floored at −5%.
+
+**New helper functions** in `src/owlplanner/rate_models/_builtin_impl.py`: `constrain_series_mean` (pure additive shift, no flooring), `_historical_arith_means` (arithmetic mean of the selected window from in-memory globals), and `apply_return_floors` (universal floor applied as the final step of every `generate()` method).
+
+**`CONSTRAIN_MEAN_METHODS`** constant added to `constants.py`; sync between this constant and each model's `optional_parameters` is enforced by a new test (`tests/test_rate_models.py::test_constrain_mean_methods_in_sync`).
+
+---
+
 ### Version 2026.06.05
 
 #### New rate model — Gaussian Copula (`historical_copula`)

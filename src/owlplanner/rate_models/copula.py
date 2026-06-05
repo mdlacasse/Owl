@@ -34,7 +34,7 @@ from scipy.special import ndtri
 from scipy.stats import norm, rankdata
 
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
+from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR, _historical_arith_means, apply_return_floors, constrain_series_mean
 from owlplanner.rates import FROM, TO, SP500, BondsBaa, TNotes, Inflation
 
 
@@ -155,7 +155,17 @@ class HistoCopulaRateModel(BaseRateModel):
             "example": "2024",
         },
     }
-    optional_parameters = {}
+    optional_parameters = {
+        "constrain_mean": {
+            "type": "bool",
+            "description": (
+                "Shift each generated series so its arithmetic mean matches the historical window mean. "
+                "Preserves distribution shape; only the mean is corrected. Default False."
+            ),
+            "default": False,
+            "example": "true",
+        },
+    }
 
     def __init__(self, config, seed=None, logger=None):
         config = dict(config or {})
@@ -167,6 +177,9 @@ class HistoCopulaRateModel(BaseRateModel):
         _validate_historical_range(frm, to)
         self._frm = frm
         self._to = to
+        self._constrain_mean = bool(self.get_param("constrain_mean"))
+        if self._constrain_mean:
+            self._hist_target_means = _historical_arith_means(self._frm, self._to)
 
     def generate(self, N):
         series, means, stdev_arr, corr_arr = generate_histocopula_series(
@@ -175,7 +188,9 @@ class HistoCopulaRateModel(BaseRateModel):
         self.params["values"] = means.copy()
         self.params["stdev"] = stdev_arr.copy()
         self.params["corr"] = corr_arr.copy()
-        return series
+        if self._constrain_mean:
+            series = constrain_series_mean(series, self._hist_target_means)
+        return apply_return_floors(series)
 
 
 def _validate_historical_range(frm: int, to: int) -> None:

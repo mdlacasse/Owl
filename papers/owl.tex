@@ -3797,6 +3797,47 @@ is applied to the generated log-return samples before exponentiation.
 Working in log-space eliminates the constraint $\varphi(r_{3,y})>-1$ that
 would otherwise be required for the logarithm to remain well-defined.
 
+\subsection{Mean anchoring (\texttt{constrain\_mean})}
+\label{sec:constrain-mean}
+
+An optional post-generation correction is available for
+\code{historical\_gaussian}, \code{historical\_lognormal},
+\code{historical\_copula}, \code{garch\_dcc}, \code{gmm}, and \code{hmm}.
+When activated, the arithmetic mean of the generated scenario is shifted
+to match the historical window mean exactly.
+
+Let $\bm{\tau}^{(1)}, \ldots, \bm{\tau}^{(N_n)} \in \mathbb{R}^{N_k}$
+be the $N_n$ annual return vectors produced by any of the stochastic models
+above.
+Define the sample mean over the scenario,
+\begin{equation}
+    \hat{\bm{\mu}} = \frac{1}{N_n}\sum_{n=1}^{N_n} \bm{\tau}^{(n)},
+\end{equation}
+and the historical arithmetic mean over the selected window,
+\begin{equation}
+    \mu_k^{\mathrm{hist}} = \frac{1}{N_w}
+        \sum_{y=\mathcal{Y}_{\mathrm{frm}}}^{\mathcal{Y}_{\mathrm{to}}} r_{ky}.
+\end{equation}
+The correction shifts every year's return vector by the same additive offset:
+\begin{equation}
+    \bm{\tau}^{(n)} \;\leftarrow\; \bm{\tau}^{(n)}
+        + \bigl(\bm{\mu}^{\mathrm{hist}} - \hat{\bm{\mu}}\bigr),
+    \qquad n = 1, \ldots, N_n.
+\end{equation}
+This preserves variances, correlations, skewness, volatility clustering, and
+all other distributional properties, while ensuring that the scenario's mean
+return matches the historical reference by construction.
+
+The practical motivation is sampling bias in short scenarios: for small $N_n$,
+the sample mean $\hat{\bm{\mu}}$ can deviate substantially from
+$\bm{\mu}^{\mathrm{hist}}$, introducing a systematic optimistic or pessimistic
+tilt that is purely a finite-sample artefact.
+Mean anchoring removes this tilt without distorting the shape of the
+distribution.
+Return floors ($\tau_{kn} \ge -1$ for $k \in \{0,1,2\}$;
+$\tau_{3n} \ge \tau_{\min}^{\mathrm{infl}}$) are applied \emph{after} the
+correction.
+
 \subsection{Multivariate normal: \texttt{historical\_gaussian} and \texttt{gaussian}}
 
 Both methods model annual returns as draws from a multivariate normal

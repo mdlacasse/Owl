@@ -37,6 +37,7 @@ from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF, getTableTypes
 from owlplanner.mylogging import Logger
 from owlplanner.rate_models.constants import (
+    CONSTRAIN_MEAN_METHODS,
     FIXED_TYPE_UI,
     HISTORICAL_RANGE_METHODS,
     HISTORICAL_STOCHASTIC_METHODS,
@@ -592,6 +593,11 @@ def _setRates(plan):
             st.info("Varying rate type not selected yet.")
             return False
 
+        kwargs = {}
+        if varyingType in CONSTRAIN_MEAN_METHODS:
+            kz.initCaseKey("constrainMean", False)
+            kwargs["constrain_mean"] = bool(kz.getCaseKey("constrainMean"))
+
         if varyingType in ("historical", "historical_gaussian", "historical_lognormal"):
             if varyingType == "historical":
                 yfrm2 = min(yfrm, TO - plan.N_n + 1)
@@ -604,8 +610,8 @@ def _setRates(plan):
             elif adjusted_range:
                 st.warning("Ending year adjusted to be after starting year.", icon=":material/warning:")
 
-            # Set reproducibility for historical_gaussian methods
-            if varyingType in ("historical_gaussian",):
+            # Set reproducibility for stochastic historical methods
+            if varyingType in ("historical_gaussian", "historical_lognormal"):
                 reproducible = kz.getCaseKey("reproducibleRates")
                 seed = kz.getCaseKey("rateSeed") if reproducible else None
                 plan.setReproducible(reproducible, seed=seed)
@@ -614,10 +620,14 @@ def _setRates(plan):
             roll_seq = kz.getCaseKey("roll_sequence")
             reverse_seq = False if reverse_seq is None else bool(reverse_seq)
             roll_seq = 0 if roll_seq is None else int(roll_seq)
-            plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq)
+            try:
+                plan.setRates(varyingType, yfrm, yto, reverse=reverse_seq, roll=roll_seq, **kwargs)
+            except ValueError as e:
+                st.error(str(e), icon=":material/error:")
+                return False
 
             # Store seed, reproducibility, and sequence options back to case keys
-            if varyingType in ("historical_gaussian",):
+            if varyingType in ("historical_gaussian", "historical_lognormal"):
                 kz.setCaseKey("rateSeed", plan.rateSeed)
                 kz.setCaseKey("reproducibleRates", plan.reproducibleRates)
             kz.setCaseKey("reverse_sequence", plan.rateReverse)
@@ -644,7 +654,6 @@ def _setRates(plan):
             reverse_seq = False if reverse_seq is None else bool(reverse_seq)
             roll_seq = 0 if roll_seq is None else int(roll_seq)
 
-            kwargs = {}
             if varyingType == "historical_bootstrap":
                 bt = kz.getCaseKey("bootstrapType")
                 bs = kz.getCaseKey("blockSize")
@@ -1588,6 +1597,9 @@ def genDic(plan):
         elif plan.rateMethod == "hmm":
             params = plan.rateModel.params
             dic["hmmComponents"] = params.get("n_components", 3)
+
+        if plan.rateMethod in CONSTRAIN_MEAN_METHODS:
+            dic["constrainMean"] = bool(plan.rateModel.params.get("constrain_mean", False))
 
     # Initialize in both cases. Plan stores rateValues in percent when set; else use tau_kn (decimal).
     for k1 in range(plan.N_k):

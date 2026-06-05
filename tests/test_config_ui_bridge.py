@@ -6,6 +6,7 @@ Copyright (C) 2025-2026 The Owl Authors
 
 from io import StringIO
 
+import pytest
 import owlplanner as owl
 from owlplanner.mylogging import Logger
 from owlplanner.config import (
@@ -18,6 +19,7 @@ from owlplanner.config import (
     ui_to_config,
 )
 from owlplanner.config.schema import parse_solver_options
+from owlplanner.rate_models.constants import CONSTRAIN_MEAN_METHODS
 
 
 def test_sanitize_config_start_roth_past_year():
@@ -511,6 +513,40 @@ def test_solver_ui_passthrough_keys_match_plan_known_options():
         "withSCLoop",
     }
     assert set(SOLVER_UI_PASSTHROUGH_KEYS) == plan_known
+
+
+@pytest.mark.parametrize("method", CONSTRAIN_MEAN_METHODS)
+def test_rate_bool_optional_params_survive_ui_roundtrip(method):
+    """All bool optional_parameters survive config → ui → config for each constrain-mean method.
+
+    Introspects the model's optional_parameters so the test automatically covers any
+    new boolean flag added to a rate model — it will fail until ui_bridge.py is updated.
+    """
+    from owlplanner.rate_models.loader import load_rate_model
+
+    ModelClass = load_rate_model(method)
+    bool_params = {
+        k: v["default"]
+        for k, v in ModelClass.optional_parameters.items()
+        if v.get("type") == "bool"
+    }
+    if not bool_params:
+        pytest.skip(f"No bool optional_parameters for method={method!r}")
+
+    diconf = _minimal_config_for_rates()
+    diconf["rates_selection"]["method"] = method
+    for param, default in bool_params.items():
+        diconf["rates_selection"][param] = not default  # flip every boolean default
+
+    uidic = config_to_ui(diconf)
+    out = ui_to_config(uidic)
+
+    for param, default in bool_params.items():
+        expected = not default
+        assert out["rates_selection"].get(param) == expected, (
+            f"Bool optional_parameter '{param}' not preserved in ui_bridge "
+            f"round-trip for method='{method}'"
+        )
 
 
 def _minimal_married_config():

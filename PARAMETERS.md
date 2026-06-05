@@ -199,6 +199,11 @@ Rates use standard financial conventions:
 | `reg_trans` | float | *(Optional)* Additive Laplace smoothing applied to transition counts to prevent zero-probability transitions. Default is `0.001`. Must be > 0 |
 | `init_regime` | integer | *(Optional)* Index of the starting regime for sequence generation (0 to `n_components − 1`). Default omitted = start from the stationary distribution |
 
+#### :orange[For method = "histogaussian", "histolognormal", "historical_copula", "garch_dcc", "gmm", or "hmm"]
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `constrain_mean` | boolean | *(Optional)* When `true`, shifts each generated series additively so its arithmetic mean matches the historical window arithmetic mean. Preserves distribution shape (variance, skew, autocorrelation); only the mean is corrected. Useful to eliminate sampling bias in short scenarios. Default is `false` |
+
 #### :orange[For method = "bootstrap_sor"]
 | Parameter | Type | Description |
 |-----------|------|-------------|

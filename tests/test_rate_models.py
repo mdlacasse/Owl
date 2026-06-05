@@ -22,7 +22,8 @@ import pytest
 import numpy as np
 import pandas as pd
 from owlplanner import Plan
-from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
+from owlplanner.rate_models.constants import CONSTRAIN_MEAN_METHODS, REQUIRED_RATE_COLUMNS
+from owlplanner.rate_models.loader import load_rate_model
 
 
 def test_rate_model_trailing_30():
@@ -43,6 +44,16 @@ def test_stochastic_regen_changes_series():
     p.regenRates(override_reproducible=True)
     tau2 = p.tau_kn.copy()
     assert not np.allclose(tau1, tau2)
+
+
+def test_constrain_mean_methods_in_sync():
+    """Every method in CONSTRAIN_MEAN_METHODS must declare constrain_mean in its optional_parameters."""
+    for method in CONSTRAIN_MEAN_METHODS:
+        ModelClass = load_rate_model(method)
+        assert "constrain_mean" in ModelClass.optional_parameters, (
+            f"Rate model '{method}' is listed in CONSTRAIN_MEAN_METHODS but does not declare "
+            f"'constrain_mean' in its optional_parameters. Add the parameter or remove it from the constant."
+        )
 
 
 def test_trailing_30_does_not_regen():

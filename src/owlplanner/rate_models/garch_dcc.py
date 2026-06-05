@@ -39,7 +39,7 @@ from numpy.linalg import cholesky, eigvalsh, LinAlgError
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import GARCH_DCC_MIN_OBSERVATIONS, REQUIRED_RATE_COLUMNS
 from owlplanner.rate_models.inflation_transform import fit_inflation_transform, inv_pwl_transform, pwl_transform
-from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
+from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR, _historical_arith_means, apply_return_floors, constrain_series_mean
 from owlplanner.rates import FROM, TO
 
 
@@ -103,7 +103,18 @@ class GARCHDCCRateModel(BaseRateModel):
         },
     }
 
-    optional_parameters = {}
+    optional_parameters = {
+        "constrain_mean": {
+            "type": "bool",
+            "description": (
+                "Shift each generated series so its arithmetic mean matches the historical window mean. "
+                "Preserves volatility clustering and DCC correlation dynamics; only the mean is corrected. "
+                "Default False."
+            ),
+            "default": False,
+            "example": "true",
+        },
+    }
 
     #######################################################################
     # Initialization
@@ -143,6 +154,10 @@ class GARCHDCCRateModel(BaseRateModel):
 
         self._mu = data.mean(axis=0)
         self._fit(data)
+
+        self._constrain_mean = bool(self.get_param("constrain_mean"))
+        if self._constrain_mean:
+            self._hist_target_means = _historical_arith_means(self.frm, self.to)
 
         # RNG is initialised last, after all deterministic fitting
         self._rng = np.random.default_rng(seed)
@@ -388,6 +403,8 @@ class GARCHDCCRateModel(BaseRateModel):
         # Invert inflation transform to recover actual inflation values
         k, slope_lo, slope_hi = self._infl_transform
         out[:, 3] = inv_pwl_transform(out[:, 3], k, slope_lo, slope_hi)
-        out[:, 3] = np.maximum(out[:, 3], INFLATION_FLOOR)
 
-        return out
+        if self._constrain_mean:
+            out = constrain_series_mean(out, self._hist_target_means)
+
+        return apply_return_floors(out)

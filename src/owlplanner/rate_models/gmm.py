@@ -32,7 +32,7 @@ from scipy.stats import multivariate_normal
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
-from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
+from owlplanner.rate_models._builtin_impl import apply_return_floors, constrain_series_mean
 from owlplanner.rates import FROM, TO
 
 _MAX_ITER = 200
@@ -74,6 +74,15 @@ class GMMRateModel(BaseRateModel):
             "default": 3,
             "example": "3",
         },
+        "constrain_mean": {
+            "type": "bool",
+            "description": (
+                "Shift each generated series so its arithmetic mean matches the historical window mean. "
+                "Preserves distribution shape; only the mean is corrected. Default False."
+            ),
+            "default": False,
+            "example": "true",
+        },
     }
 
     #######################################################################
@@ -107,6 +116,9 @@ class GMMRateModel(BaseRateModel):
                 f"or reduce n_components."
             )
         self._weights, self._means, self._covs = self._fit_em(self._historical_data)
+        self._constrain_mean = bool(self.get_param("constrain_mean"))
+        if self._constrain_mean:
+            self._hist_target_means = self._historical_data.mean(axis=0)
 
     #######################################################################
     # Historical Data
@@ -200,8 +212,9 @@ class GMMRateModel(BaseRateModel):
             n_k = int(mask.sum())
             if n_k > 0:
                 out[mask] = self._rng.multivariate_normal(self._means[k], self._covs[k], size=n_k)
-        out[:, 3] = np.maximum(out[:, 3], INFLATION_FLOOR)
-        return out
+        if self._constrain_mean:
+            out = constrain_series_mean(out, self._hist_target_means)
+        return apply_return_floors(out)
 
     #######################################################################
     # Log-likelihood (used by the offline sklearn comparison test)

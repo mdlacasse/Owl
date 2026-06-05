@@ -57,6 +57,60 @@ def _build_covar(stdev: np.ndarray, corr: np.ndarray) -> np.ndarray:
     return covar
 
 
+def constrain_series_mean(series: np.ndarray, target_means: np.ndarray) -> np.ndarray:
+    """
+    Shift a generated rate series so its arithmetic mean matches target_means.
+
+    Additive correction per asset column: series += (target - sample_mean).
+    Preserves the shape (variance, skew, autocorrelation) of the distribution.
+    Callers must apply return floors after this function (see apply_return_floors).
+
+    Args:
+        series: (N, 4) array of annual returns in decimal.
+        target_means: (4,) array of target arithmetic means in decimal.
+
+    Returns:
+        Shifted (N, 4) array with no floor applied.
+    """
+    return series + (target_means - series.mean(axis=0))
+
+
+def apply_return_floors(series: np.ndarray) -> np.ndarray:
+    """
+    Apply minimum-return floors to a generated rate series.
+
+    Equity, bonds, and T-notes (cols 0-2) are floored at -1.0 (total loss = -100%).
+    Inflation (col 3) is floored at INFLATION_FLOOR.
+    Must be called as the final step of every generate() method.
+
+    Args:
+        series: (N, 4) array of annual returns in decimal.
+
+    Returns:
+        Series with floors applied (in-place modification, same array returned).
+    """
+    series[:, :3] = np.maximum(series[:, :3], -1.0)
+    series[:, 3] = np.maximum(series[:, 3], INFLATION_FLOOR)
+    return series
+
+
+def _historical_arith_means(frm: int, to: int) -> np.ndarray:
+    """Return the arithmetic mean of historical returns for the given window (decimal)."""
+    if not (FROM <= frm <= TO):
+        raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
+    if not (FROM <= to <= TO):
+        raise ValueError(f"Upper range 'to={to}' out of bounds.")
+    ifrm = frm - FROM
+    ito = to - FROM
+    data = np.column_stack([
+        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
+    ])
+    return data.mean(axis=0)
+
+
 def generate_fixed_series(
     N: int,
     rates_decimal: np.ndarray,

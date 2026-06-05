@@ -32,6 +32,7 @@ from owlplanner.config.defaults import (
 from owlplanner.config.schema import KNOWN_SECTIONS
 from owlplanner.rates import FROM, get_fixed_rate_values
 from owlplanner.rate_models.constants import (
+    CONSTRAIN_MEAN_METHODS,
     FIXED_TYPE_UI,
     HISTORICAL_RANGE_METHODS,
     METHODS_WITH_VALUES,
@@ -386,6 +387,9 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:
     elif rate_method == "gmm":
         dic["gmmComponents"] = rs.get("n_components", 3)
 
+    if rate_method in CONSTRAIN_MEAN_METHODS:
+        dic["constrainMean"] = rs.get("constrain_mean", False)
+
     if rate_method in STOCHASTIC_METHODS:
         means = rs.get("values", get_fixed_rate_values("conservative"))
         stdevs = rs.get("standard_deviations", [17.0, 8.0, 10.0, 3.0])
@@ -686,6 +690,9 @@ def _ui_rates_to_config(diconf: dict, uidic: dict, ni: int) -> None:
         rs["block_size"] = _get_ui(uidic, "blockSize", 1, int)
     elif method == "gmm":
         rs["n_components"] = _get_ui(uidic, "gmmComponents", 3, int)
+
+    if method in CONSTRAIN_MEAN_METHODS:
+        rs["constrain_mean"] = bool(uidic.get("constrainMean", False))
 
     if method in STOCHASTIC_METHODS:
         rs["reproducible_rates"] = bool(uidic.get("reproducibleRates", False))
