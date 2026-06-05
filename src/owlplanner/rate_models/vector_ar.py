@@ -38,6 +38,7 @@ import sys
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
 from owlplanner.rate_models.inflation_transform import fit_inflation_transform, inv_pwl_transform, pwl_transform
+from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
 from owlplanner.rates import FROM, TO
 
 
@@ -236,5 +237,6 @@ class VARRateModel(BaseRateModel):
         # Invert inflation transform to recover actual inflation values
         k, slope_lo, slope_hi = self._infl_transform
         out[:, 3] = inv_pwl_transform(out[:, 3], k, slope_lo, slope_hi)
+        out[:, 3] = np.maximum(out[:, 3], INFLATION_FLOOR)
 
         return out

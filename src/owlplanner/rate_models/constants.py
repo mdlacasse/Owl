@@ -49,6 +49,7 @@ HISTORICAL_RANGE_METHODS = (
     "historical_average",
     "historical_gaussian",
     "historical_lognormal",
+    "historical_copula",
     "historical_bootstrap",
     "vector_ar",
     "garch_dcc",
@@ -62,9 +63,20 @@ STOCHASTIC_METHODS = (
     "historical_gaussian",
     "lognormal",
     "historical_lognormal",
+    "historical_copula",
     "historical_bootstrap",
     "garch_dcc",
     "vector_ar",
+    "gmm",
+    "hmm",
+)
+
+# Methods that are both historical (require frm/to range) and stochastic (require seed/RNG).
+HISTORICAL_STOCHASTIC_METHODS = (
+    "historical_bootstrap",
+    "vector_ar",
+    "garch_dcc",
+    "historical_copula",
     "gmm",
     "hmm",
 )
@@ -92,6 +104,7 @@ VARYING_TYPE_UI = (
     "gmm",
     "historical",
     "historical_bootstrap",
+    "historical_copula",
     "historical_gaussian",
     "historical_lognormal",
     "hmm",

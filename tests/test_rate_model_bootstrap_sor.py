@@ -29,6 +29,7 @@ import numpy as np
 import pytest
 
 from owlplanner import Plan
+from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
 
 
 # ------------------------------------------------------------
@@ -205,6 +206,33 @@ def test_reverse_roll_applies():
     reversed_series = plan.tau_kn.copy()
 
     assert np.allclose(reversed_series, original[:, ::-1])
+
+
+# ------------------------------------------------------------
+# Inflation floor
+# ------------------------------------------------------------
+
+def test_iid_bootstrap_inflation_floor():
+    """IID bootstrap inflation must never fall below INFLATION_FLOOR."""
+    p = _make_plan()
+    p.setRates("historical_bootstrap", frm=1928, to=2024)
+    assert np.all(p.tau_kn[3] >= INFLATION_FLOOR), (
+        f"Bootstrap inflation below floor: min={p.tau_kn[3].min():.4f}"
+    )
+
+
+def test_block_bootstrap_inflation_floor():
+    """Block bootstrap inflation must never fall below INFLATION_FLOOR."""
+    p = _make_plan()
+    p.setRates("historical_bootstrap", frm=1928, to=2024, bootstrap_type="block", block_size=5)
+    assert np.all(p.tau_kn[3] >= INFLATION_FLOOR)
+
+
+def test_stationary_bootstrap_inflation_floor():
+    """Stationary bootstrap inflation must never fall below INFLATION_FLOOR."""
+    p = _make_plan()
+    p.setRates("historical_bootstrap", frm=1928, to=2024, bootstrap_type="stationary", block_size=5)
+    assert np.all(p.tau_kn[3] >= INFLATION_FLOOR)
 
 
 # ------------------------------------------------------------

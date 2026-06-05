@@ -187,6 +187,25 @@ from = 1969
 to = 2002
 ```
 
+#### `historical_copula`
+
+Samples from a Gaussian copula fitted to the selected historical window. Each asset's marginal distribution is preserved exactly via the empirical CDF (no Gaussian shape imposed on any marginal), while joint dependence is captured by a 4×4 copula correlation matrix. Generates new year-combinations that were not observed historically but honour all pairwise correlations. Inflation is floored at -5% to exclude Great Depression tail artefacts.
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `method` | Yes | str | model name (`"historical_copula"`) |
+| `from` | Yes | int | First year of historical window (inclusive). |
+| `to` | Yes | int | Last year of historical window (inclusive). |
+
+**Example:**
+
+```toml
+[rates_selection]
+method = "historical_copula"
+from = 1928
+to = 2024
+```
+
 #### `historical_gaussian`
 
 Samples from a multivariate normal distribution fitted to the selected historical window using arithmetic means and sample covariances. Parametric and Gaussian, parameters grounded in history.
@@ -236,7 +255,7 @@ Fits a Hidden Markov Model on historical returns via Baum-Welch EM, adding tempo
 | `to` | No | int | Last historical year for fitting (inclusive). |
 | `n_components` | No | int | Number of hidden states (market regimes). |
 | `reg_trans` | No | float | Additive smoothing on transition counts (prevents zero-probability transitions). |
-| `init_regime` | No | int | Starting regime index for generation (0 to n_components-1). None = stationary distribution. |
+| `init_regime` | No | int | Starting regime index for generation (0 to n_components-1). None = draw from stationary distribution. |
 
 **Example:**
 

@@ -186,6 +186,7 @@ def generate_histogaussian_series(
 
     # Invert inflation transform on generated samples
     rate_series[:, 3] = inv_pwl_transform(rate_series[:, 3], k, slope_lo, slope_hi)
+    rate_series[:, 3] = np.maximum(rate_series[:, 3], INFLATION_FLOOR)
 
     return rate_series, orig_means, orig_stdev, orig_corr
 
@@ -304,6 +305,7 @@ def generate_histolognormal_series(
     Z[:, 3] = inv_pwl_transform(Z[:, 3], k, slope_lo, slope_hi)
 
     rate_series = np.exp(Z) - 1.0
+    rate_series[:, 3] = np.maximum(rate_series[:, 3], INFLATION_FLOOR)
 
     # Metadata derived from original (untransformed) log-returns for UI display
     lr_orig_cov = np.cov(lr.T)
@@ -315,6 +317,13 @@ def generate_histolognormal_series(
     corr = lr_orig_cov / np.outer(sigma_z_orig, sigma_z_orig)
 
     return rate_series, means, stdev, corr
+
+
+# Inflation floor for stochastic models: prevents Great Depression-level deflation
+# from appearing in Gaussian tail samples. Post-1950 historical minimum is -0.7%;
+# this floor allows extreme-but-plausible scenarios while excluding outliers driven
+# by fitting to the 1928-1950 era.
+INFLATION_FLOOR = -0.05
 
 
 def generate_stochastic_series(

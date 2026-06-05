@@ -32,6 +32,7 @@ from scipy.stats import multivariate_normal
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
+from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
 from owlplanner.rates import FROM, TO
 
 _MAX_ITER = 200
@@ -305,6 +306,7 @@ class HMMRateModel(BaseRateModel):
             out[t] = self._rng.multivariate_normal(self._means[k], self._covs[k])
             k = int(self._rng.choice(K, p=self._trans[k]))
 
+        out[:, 3] = np.maximum(out[:, 3], INFLATION_FLOOR)
         return out
 
     #######################################################################

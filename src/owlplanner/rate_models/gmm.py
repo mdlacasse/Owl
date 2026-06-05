@@ -32,6 +32,7 @@ from scipy.stats import multivariate_normal
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
+from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
 from owlplanner.rates import FROM, TO
 
 _MAX_ITER = 200
@@ -199,6 +200,7 @@ class GMMRateModel(BaseRateModel):
             n_k = int(mask.sum())
             if n_k > 0:
                 out[mask] = self._rng.multivariate_normal(self._means[k], self._covs[k], size=n_k)
+        out[:, 3] = np.maximum(out[:, 3], INFLATION_FLOOR)
         return out
 
     #######################################################################

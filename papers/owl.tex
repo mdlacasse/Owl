@@ -3657,8 +3657,8 @@ All values are stored in percent (e.g.\ $7.0$ for a 7\% annual return).
 A user-selected sub-range $[\mathcal{Y}_{\mathrm{frm}},\mathcal{Y}_{\mathrm{to}}]
 \subseteq [\mathcal{Y}_{\min}, \mathcal{Y}_{\max}]$ is used
 by the \code{historical}, \code{historical_average}, \code{historical_gaussian},
-\code{historical_lognormal}, \code{historical_bootstrap}, \code{vector_ar},
-and \code{garch_dcc} models.
+\code{historical_lognormal}, \code{historical_bootstrap}, \code{historical_copula},
+\code{vector_ar}, \code{garch_dcc}, \code{gmm}, and \code{hmm} models.
 We denote the window width by $N_w = \mathcal{Y}_{\mathrm{to}} -
 \mathcal{Y}_{\mathrm{frm}} + 1$, and the observed return of asset class $k$ in
 calendar year $y$ by $r_{ky}$.
@@ -3677,7 +3677,8 @@ order; they are useful for exploring sequence-of-returns sensitivity without
 changing the underlying data.
 Reverse and roll are supported by all methods that use a historical window
 (\code{historical}, \code{historical_gaussian}, \code{historical_lognormal},
-\code{historical_bootstrap}, \code{vector_ar}, and \code{garch_dcc}).
+\code{historical_bootstrap}, \code{historical_copula}, \code{vector_ar},
+\code{garch_dcc}, \code{gmm}, and \code{hmm}).
 Constant-rate methods ignore them.
 
 \section{Constant rate methods}
@@ -4257,6 +4258,101 @@ the outer product $\bm{1}\bm{\pi}^\top$ (all rows identical), the model
 reduces to the i.i.d. GMM, and the HMM log-likelihood is always at
 least as large.
 
+\subsection{Gaussian copula: \texttt{historical\_copula}}
+
+The Gaussian copula model~\cite{sklar1959} generates synthetic return sequences
+whose marginal distributions match the historical data exactly, while their
+joint dependence structure is captured by a parametric Gaussian copula.
+Unlike \code{historical\_gaussian} and \code{historical\_lognormal}, which
+impose a Gaussian (or log-normal) shape on every marginal,
+this method is fully non-parametric in the marginals: it preserves
+the exact empirical distribution of each asset class --- including
+the left skew of equity returns, the right skew of T-Note returns,
+and the right skew of inflation.
+
+\paragraph*{Motivation}
+Sklar's theorem~\cite{sklar1959} states that any joint distribution can be
+decomposed into its marginal distributions and a copula that captures all
+dependence.
+In the Gaussian copula family, the dependence is parameterized by a
+$N_k \times N_k$ correlation matrix $\bm{R}$, separating the fitting of
+individual-asset behavior from the fitting of cross-asset correlations.
+For retirement planning, this matters because inflation in particular
+is neither Gaussian nor log-normal; preserving its empirical shape avoids
+systematic bias in real spending projections.
+
+\paragraph*{Fitting}
+Let $\bm{r}_y = (r_{1y}, \ldots, r_{N_k,y})^\top$ denote the observed
+return vector for calendar year $y$ in the selected window
+$[\mathcal{Y}_{\mathrm{frm}}, \mathcal{Y}_{\mathrm{to}}]$,
+with $N_w$ total observations.
+
+\textit{Step 1 --- rank-based empirical CDF.}
+For each asset class $k$, map the $N_w$ observations to the
+uniform grid via rank statistics:
+\begin{equation}
+    U_{ky} = \frac{\mathrm{rank}(r_{ky}) - \tfrac{1}{2}}{N_w},
+    \qquad y = \mathcal{Y}_{\mathrm{frm}},\ldots,\mathcal{Y}_{\mathrm{to}},
+    \label{Eq:CopulaUniform}
+\end{equation}
+where rank is computed within the window for each $k$ separately.
+The $-\tfrac{1}{2}$ centering keeps all values strictly inside $(0,1)$
+so that the next step is well-defined.
+
+\textit{Step 2 --- normal scores.}
+Apply the standard normal quantile function to obtain copula variates:
+\begin{equation}
+    Z_{ky} = \Phi^{-1}(U_{ky}),
+    \label{Eq:CopulaNormalScores}
+\end{equation}
+where $\Phi$ denotes the standard normal CDF.
+
+\textit{Step 3 --- copula correlation matrix.}
+Estimate the $N_k \times N_k$ Gaussian copula correlation matrix
+from the normal scores:
+\begin{equation}
+    \bm{R} = \mathrm{corrcoef}\!\left(\bm{Z}^\top\right),
+    \label{Eq:CopulaR}
+\end{equation}
+where $\bm{Z} \in \mathbb{R}^{N_w \times N_k}$ collects all normal-score
+rows.
+$\bm{R}$ captures Pearson (linear) correlation in the normal-score space,
+which corresponds to Spearman rank correlation in the original return space.
+
+\paragraph*{Sequence generation}
+To draw one plan year of synthetic returns:
+
+\textit{Step 4 --- sample from the copula.}
+Draw a standard multivariate normal vector:
+\begin{equation}
+    \bm{z}_n \sim \mathcal{N}(\bm{0},\, \bm{R}).
+    \label{Eq:CopulaSample}
+\end{equation}
+
+\textit{Step 5 --- map back to the original scale.}
+Convert to uniform scores and apply the empirical quantile function
+for each asset class:
+\begin{equation}
+    u_{kn} = \Phi(z_{kn}), \qquad
+    \tau_{kn} = \hat{Q}_k(u_{kn}),
+    \label{Eq:CopulaBackTransform}
+\end{equation}
+where $\hat{Q}_k$ is the empirical quantile function of asset $k$, obtained
+by linear interpolation over the $N_w$ sorted historical values
+$r_{k,(1)} \le \cdots \le r_{k,(N_w)}$ at the grid
+$\{(i - \tfrac{1}{2})/N_w\}_{i=1}^{N_w}$.
+Values of $u_{kn}$ outside $[\,u_{k,1},\, u_{k,N_w}]$ are clamped to the
+observed $[\min, \max]$, preventing extrapolation beyond the historical record.
+The resolution of $\hat{Q}_k$ equals $N_w$, so a wider window provides finer
+quantile resolution.
+
+\textit{Step 6 --- inflation floor.}
+To exclude the Great Depression artefact of deeply negative inflation,
+the generated inflation series is floored at $-5\%$.
+
+Each of the $N_n$ plan years is drawn independently; the model captures
+cross-asset rank correlation but no serial autocorrelation across years.
+
 \section{User-supplied rates: \texttt{dataframe}}
 
 The \code{dataframe} method allows the user to bypass all built-in rate
@@ -4277,8 +4373,8 @@ TOML configuration file.
 
 In Monte Carlo mode, Owl calls one of the stochastic models
 (\code{historical_gaussian}, \code{historical_lognormal}, \code{gaussian},
-\code{lognormal}, \code{historical_bootstrap}, \code{vector_ar},
-\code{garch_dcc}, \code{gmm}, or \code{hmm}) independently
+\code{lognormal}, \code{historical_bootstrap}, \code{historical_copula},
+\code{vector_ar}, \code{garch_dcc}, \code{gmm}, or \code{hmm}) independently
 $N_s$ times, each time solving the full optimization problem with a different
 rate scenario.
 The distribution of resulting optimal spending or bequest values across the
@@ -5010,6 +5106,12 @@ vol.~39, no.~1, pp.~1--38, 1977.
 L.~R. Rabiner,
 ``A tutorial on hidden Markov models and selected applications in speech recognition,''
 \textit{Proceedings of the IEEE}, vol.~77, no.~2, pp.~257--286, 1989.
+
+\bibitem{sklar1959}
+A.~Sklar,
+``Fonctions de r\'epartition \`a $n$ dimensions et leurs marges,''
+\textit{Publications de l'Institut de Statistique de l'Universit\'e de Paris},
+vol.~8, pp.~229--231, 1959.
 
 \bibitem{baum1970}
 L.~E. Baum, T.~Petrie, G.~Soules, and N.~Weiss,

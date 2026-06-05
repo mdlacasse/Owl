@@ -2,6 +2,24 @@
 
 ### Version 2026.06.05
 
+#### New rate model — Gaussian Copula (`historical_copula`)
+
+Adds a non-parametric Gaussian copula rate model fitted to the selected historical window.
+Each asset's marginal distribution is preserved exactly via a rank-based empirical CDF — no Gaussian or log-normal shape is imposed on any marginal — while joint dependence is captured by a 4×4 copula correlation matrix in normal space.
+New year-combinations are generated that were not observed historically but honour all pairwise rank correlations.
+Generated values are bounded to the historical `[min, max]` of each asset class; inflation is floored at −5% to exclude Great Depression tail artefacts.
+The empirical quantile resolution equals the number of years T in the selected window.
+
+Registered in `STOCHASTIC_METHODS`, `HISTORICAL_STOCHASTIC_METHODS`, `VARYING_TYPE_UI`, and `HISTORICAL_RANGE_METHODS` in `constants.py`.
+Exposed in the Rates UI alongside the other varying-rate methods; seed and reproducibility controls apply.
+`HISTORICAL_STOCHASTIC_METHODS` is a new constant replacing the repeated inline method tuples in `owlbridge.py`, `plotly_backend.py`, and `matplotlib_backend.py`.
+
+**New file:** `src/owlplanner/rate_models/copula.py` — `generate_histocopula_series`, `HistoCopulaRateModel`.
+
+**Documentation:** `PARAMETERS.md`, `docs/modeling-capabilities.md`, `ui/Documentation.py` (method description, comparison table, correlation graph table, Monte Carlo section, reproducible rates, references — Sklar 1959).
+
+---
+
 #### Documentation and schema alignment (issue #126)
 
 Added `fixedSpending` and `hsa` as explicit fields in the Pydantic schema (`SolverOptions` and `AssetAllocation`). Removed stale `spendingFloor`, `spendingWeight`, and `maxHybrid` references from `PARAMETERS.md`.

@@ -962,6 +962,19 @@ of components K is configurable (default 3); `reg_trans` (default 0.001) applies
 smoothing to prevent zero-probability transitions; `init_regime` pins the starting regime
 (default: draw from the stationary distribution).
 
+**`historical_copula`** *(Gaussian Copula)* — Fits a **4×4 Gaussian copula** to the selected
+historical window and generates synthetic rate sequences from it. The algorithm maps each
+asset's returns to a uniform distribution via a rank-based empirical CDF, fits the copula
+correlation matrix in that normal space, samples from it, and maps back through the empirical
+quantile function. Key property: each asset's **marginal distribution is preserved exactly** —
+S&P 500 retains its left skew, T-Notes their right skew, inflation its right skew — unlike
+`historical_gaussian` or `historical_lognormal` which impose a Gaussian (or log-normal) shape
+on every marginal. Joint dependence is captured by the full 4×4 Pearson rank correlation
+matrix. Generated values are bounded to the historical `[min, max]` of each asset class —
+no extrapolation beyond observed data. The empirical quantile resolution equals the number
+of years T in the selected window; a wider window gives finer resolution.
+Inflation is floored at −5% to exclude Great Depression tail artefacts.
+
 ---
 ##### Method comparison
 
@@ -980,13 +993,14 @@ smoothing to prevent zero-probability transitions; `init_regime` pins the starti
 | `historical` | Varying | Deterministic | Exact historical replay; no modeling assumptions | No Monte Carlo; one path per start year |
 | `lognormal` | Varying | Stochastic | User-specified parameters; bounded below −100%; right-skewed; GBM-consistent | Accuracy depends entirely on user inputs |
 | `vector_ar` | Varying | Stochastic | Captures momentum and mean-reversion across all asset classes | More complex; sensitive to choice of historical window |
+| `historical_copula` | Varying | Stochastic | Preserves exact marginal distributions (no Gaussian shape imposed); captures full rank-correlation structure | Bounded to historical `[min, max]`; resolution limited to T years; no serial autocorrelation |
 | `gmm` | Varying | Stochastic | Captures regime-dependent cross-asset correlations (bull/bear/crisis) | Independent draws; no serial autocorrelation |
 | `hmm` | Varying | Stochastic | Regime-dependent correlations **plus** year-to-year persistence; best for sequence-of-returns risk | More parameters to fit; sensitive to choice of historical window and K |
 
 ---
 ##### Historical range
 For all methods that reference history (`historical`, `historical_gaussian`, `historical_lognormal`,
-`historical_bootstrap`, `historical_average`, `vector_ar`, `garch_dcc`, `gmm`, and `hmm`), a **Starting year / Ending year** selector appears.
+`historical_bootstrap`, `historical_copula`, `historical_average`, `vector_ar`, `garch_dcc`, `gmm`, and `hmm`), a **Starting year / Ending year** selector appears.
 The range determines which calendar years are included in the dataset from which rates
 are drawn or statistics are computed. At least two years are required. For `historical`,
 the ending year is fixed by the starting year plus the plan horizon.
@@ -1027,7 +1041,7 @@ the underlying data source varies by method:
 | `historical_bootstrap` | The **full historical pool** (frm–to window) that the bootstrap draws from — exact source distribution, no sampling noise |
 | `historical_gaussian`, `historical_lognormal` | 2 000 synthetic draws from the parametric distribution fitted to the selected historical window |
 | `gaussian`, `lognormal` | 2 000 synthetic draws from the user-supplied arithmetic means, volatilities, and correlations |
-| `vector_ar`, `garch_dcc`, `gmm`, `hmm` | 2 000 synthetic draws from the fitted model |
+| `historical_copula`, `vector_ar`, `garch_dcc`, `gmm`, `hmm` | 2 000 synthetic draws from the fitted model |
 
 The sample count **N** shown in the graph title reflects the actual number of data points
 plotted, so it will differ from the plan horizon for stochastic methods.
@@ -1037,7 +1051,7 @@ plotted, so it will differ from the plan horizon for stochastic methods.
 Monte Carlo simulations (see the **Stress Tests** page) require a **stochastic** method —
 one that generates a fresh random sample for each simulation trial. The methods that
 support Monte Carlo are: `historical_gaussian`, `historical_lognormal`, `gaussian`,
-`lognormal`, `historical_bootstrap`, `vector_ar`, `garch_dcc`, and `gmm`.
+`lognormal`, `historical_bootstrap`, `historical_copula`, `vector_ar`, `garch_dcc`, and `gmm`.
 The `historical` method is deterministic (it always produces the same sequence for a
 given starting year) and therefore cannot be used for Monte Carlo.
 
@@ -1067,7 +1081,7 @@ These controls do not apply to constant rates since the same value is used every
 
 ---
 ##### Reproducible rates (Advanced options)
-For the stochastic methods (`historical_gaussian`, `historical_lognormal`, `gaussian`, `lognormal`, `historical_bootstrap`, `vector_ar`, `garch_dcc`, `gmm`, `hmm`),
+For the stochastic methods (`historical_gaussian`, `historical_lognormal`, `gaussian`, `lognormal`, `historical_bootstrap`, `historical_copula`, `vector_ar`, `garch_dcc`, `gmm`, `hmm`),
 an option to **Enable reproducible rates** is available. When checked, the random number
 generator is seeded with a fixed value so the same rate sequence is produced every time
 the case is run. This is useful for isolating the effect of other parameters (spending
@@ -1089,6 +1103,9 @@ targets, allocations, Roth strategy) while holding the random scenario constant.
 - Rabiner, L. R. (1989). *A tutorial on hidden Markov models and selected applications in
   speech recognition.* Proceedings of the IEEE, 77(2), 257–286.
   *(Foundational reference for the `hmm` method and Baum-Welch algorithm.)*
+- Sklar, A. (1959). *Fonctions de répartition à n dimensions et leurs marges.*
+  Publications de l'Institut de Statistique de l'Université de Paris, 8, 229–231.
+  *(Original paper introducing copulas; theoretical foundation for the `historical_copula` method.)*
 """)
 
     with st.expander(":orange[**Goals**]", expanded=expand_all, type="compact"):
@@ -1289,7 +1306,7 @@ All plots can be displayed in today's \\$ or in nominal value using the radio bu
 
 A **Re-run** button re-executes the *case*, which generates a different result
 if the chosen rate method is stochastic (`historical_gaussian`, `historical_lognormal`, `gaussian`,
-`lognormal`, `historical_bootstrap`, `vector_ar`, `garch_dcc`, `gmm`, or `hmm`). Each graph can be seen
+`lognormal`, `historical_bootstrap`, `historical_copula`, `vector_ar`, `garch_dcc`, `gmm`, or `hmm`). Each graph can be seen
 in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools tab).
@@ -1483,6 +1500,8 @@ The eligible methods (set on the **Rates** page) are:
 - `lognormal` — log-normal draws using user-supplied arithmetic mean, volatility, and correlation parameters; returns bounded below −100%.
 - `historical_bootstrap` — block-bootstrap resampling of the historical window (iid, block,
   circular, or stationary).
+- `historical_copula` — Gaussian copula fitted to the historical window; preserves each
+  asset's exact empirical marginal distribution while capturing joint rank correlations.
 - `vector_ar` — VAR(1) simulation capturing year-to-year serial correlations fitted on the
   historical window.
 - `garch_dcc` — DCC-GARCH(1,1) simulation with time-varying volatility and cross-asset

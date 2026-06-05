@@ -157,7 +157,7 @@ class RatesSelection(BaseModel):
     values: Optional[List[float]] = None  # user, gaussian, lognormal
     standard_deviations: Optional[List[float]] = None  # gaussian, lognormal
     correlations: Optional[List[float]] = None  # gaussian, lognormal
-    rate_seed: Optional[int] = None  # gaussian, historical_gaussian, lognormal, historical_lognormal
+    rate_seed: Optional[int] = None  # gaussian, lognormal, historical_gaussian, historical_lognormal, historical_copula, vector_ar, garch_dcc, gmm, hmm
     reproducible_rates: Optional[bool] = Field(
         default=False, description="Reproducible stochastic (gaussian, historical_gaussian, etc.)"
     )

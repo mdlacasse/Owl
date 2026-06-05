@@ -23,7 +23,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import streamlit as st
 from datetime import date
 
-from owlplanner.rate_models.constants import GARCH_DCC_MIN_OBSERVATIONS
+from owlplanner.rate_models.constants import GARCH_DCC_MIN_OBSERVATIONS, STOCHASTIC_METHODS
 
 import sskeys as kz
 import owlbridge as owb
@@ -440,11 +440,8 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
-        # Reproducibility checkbox - only for gaussian/lognormal and historical_gaussian/historical_lognormal methods.
-        if kz.getCaseKey("varyingType") in [
-            "gaussian", "lognormal", "historical_gaussian", "historical_lognormal",
-            "historical_bootstrap", "vector_ar", "garch_dcc", "gmm", "hmm",
-        ]:
+        # Reproducibility checkbox - only for stochastic methods that use a seed.
+        if kz.getCaseKey("varyingType") in STOCHASTIC_METHODS:
             st.markdown("#####")
             st.markdown("#### :orange[Rate Generation]")
             kz.initCaseKey("reproducibleRates", False)

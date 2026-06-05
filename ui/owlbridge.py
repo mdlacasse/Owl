@@ -39,6 +39,7 @@ from owlplanner.mylogging import Logger
 from owlplanner.rate_models.constants import (
     FIXED_TYPE_UI,
     HISTORICAL_RANGE_METHODS,
+    HISTORICAL_STOCHASTIC_METHODS,
     STOCHASTIC_METHODS,
     VARYING_TYPE_UI,
 )
@@ -633,7 +634,7 @@ def _setRates(plan):
                     kz.pushCaseKey(f"corr{q}", dist.corr[k1, k2])
                     q += 1
 
-        elif varyingType in ("historical_bootstrap", "vector_ar", "garch_dcc", "historical_lognormal", "gmm", "hmm"):
+        elif varyingType in HISTORICAL_STOCHASTIC_METHODS:
             reproducible = kz.getCaseKey("reproducibleRates")
             seed = kz.getCaseKey("rateSeed") if reproducible else None
             plan.setReproducible(reproducible, seed=seed)
@@ -1574,9 +1575,7 @@ def genDic(plan):
     elif plan.rateMethod == "dataframe":
         dic["rateType"] = "constant"
         dic["fixedType"] = "user"
-    elif plan.rateMethod in ["historical_gaussian", "historical", "gaussian",
-                             "lognormal", "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc",
-                             "gmm", "hmm"]:
+    elif plan.rateMethod in VARYING_TYPE_UI:
         dic["rateType"] = "varying"
         dic["varyingType"] = plan.rateMethod
         if plan.rateMethod == "historical_bootstrap":
@@ -1597,8 +1596,7 @@ def genDic(plan):
         else:
             dic[f"fxRate{k1}"] = 100 * plan.tau_kn[k1, -1]
 
-    if plan.rateMethod in ["historical_average", "historical_gaussian", "historical",
-                           "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc", "gmm", "hmm"]:
+    if plan.rateMethod in HISTORICAL_RANGE_METHODS:
         dic["yfrm"] = plan.rateFrm
         dic["yto"] = plan.rateTo
     elif plan.rateMethod == "dataframe":
@@ -1609,8 +1607,7 @@ def genDic(plan):
         # Rates availability are trailing by 1 year.
         dic["yto"] = date.today().year - 1
 
-    if plan.rateMethod in ["gaussian", "lognormal", "historical_gaussian",
-                           "historical_bootstrap", "vector_ar", "garch_dcc"]:
+    if plan.rateMethod in STOCHASTIC_METHODS:
         qq = 1
         for k1 in range(plan.N_k):
             if plan.rateValues is not None:

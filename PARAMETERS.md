@@ -153,7 +153,7 @@ Rates use standard financial conventions:
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred and HSA accounts. Non-spouse HSA beneficiaries must include the full inherited HSA balance as ordinary income (IRC §223(f)(8)(B)) |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
-| `method` | string | Method for determining rates. Valid values: `"trailing-30"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"gaussian"`, `"histogaussian"`, `"lognormal"`, `"histolognormal"`, `"bootstrap_sor"`, `"var"`, `"garch_dcc"`, `"gmm"`, `"hmm"`, `"dataframe"` |
+| `method` | string | Method for determining rates. Valid values: `"trailing-30"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"gaussian"`, `"histogaussian"`, `"lognormal"`, `"histolognormal"`, `"bootstrap_sor"`, `"var"`, `"garch_dcc"`, `"historical_copula"`, `"gmm"`, `"hmm"`, `"dataframe"` |
 
 **Deprecated aliases:** `stochastic` and `histochastic` are deprecated aliases for `gaussian` and `histogaussian` respectively; and `default` is an alias for `trailing-30`. All are accepted for backward compatibility but new cases should use the canonical names.
 
@@ -170,13 +170,13 @@ Rates use standard financial conventions:
 | `standard_deviations` | list of 4 floats | Volatility in percent for each rate type (e.g., `17` for 17% annualized standard deviation) |
 | `correlations` | list of 6 floats | Pearson correlation coefficient (range -1 to 1) for upper triangle: (1,2), (1,3), (1,4), (2,3), (2,4), (3,4). Standard representation in finance and statistics. |
 
-#### :orange[For method = "gaussian", "histogaussian", "lognormal", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "gmm", or "hmm"]
+#### :orange[For method = "gaussian", "histogaussian", "lognormal", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "historical_copula", "gmm", or "hmm"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `rate_seed` | integer | Random seed for reproducible stochastic rates. Default omitted = seed chosen randomly |
 | `reproducible_rates` | boolean | Whether stochastic rates should be reproducible. Default is `false` |
 
-#### :orange[For method = "historical", "historical average", "histogaussian", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "gmm", or "hmm"]
+#### :orange[For method = "historical", "historical average", "histogaussian", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "historical_copula", "gmm", or "hmm"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `from` | integer | Starting year for historical data range (must be between 1928 and 2025). Default is `1928` |
@@ -207,7 +207,7 @@ Rates use standard financial conventions:
 | `crisis_years` | list of integers | *(TOML only)* Calendar years to overweight in sampling (e.g. `[1929, 2008]`). Default omitted = no overweighting |
 | `crisis_weight` | float | *(TOML only)* Sampling multiplier applied to crisis years. Default is `1.0` (no overweighting) |
 
-#### :orange[For method = "historical", "histogaussian", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "gmm", "hmm", "gaussian", or "lognormal" (varying rates only)]
+#### :orange[For method = "historical", "histogaussian", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "historical_copula", "gmm", "hmm", "gaussian", or "lognormal" (varying rates only)]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `reverse_sequence` | boolean | If true, reverse the rate sequence along the time axis (e.g. last year first). Default is `false`. Ignored for fixed/constant rate methods. Used for both single-scenario and Historical Range runs. |

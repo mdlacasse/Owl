@@ -31,6 +31,7 @@ import sys
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
+from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
 from owlplanner.rates import FROM, TO
 
 
@@ -205,18 +206,18 @@ class BootstrapSORRateModel(BaseRateModel):
     def generate(self, N):
 
         if self.bootstrap_type == "iid":
-            return self._iid_bootstrap(N)
+            out = self._iid_bootstrap(N)
+        elif self.bootstrap_type == "block":
+            out = self._block_bootstrap(N)
+        elif self.bootstrap_type == "circular":
+            out = self._circular_bootstrap(N)
+        elif self.bootstrap_type == "stationary":
+            out = self._stationary_bootstrap(N)
+        else:
+            raise ValueError(f"Unknown bootstrap_type '{self.bootstrap_type}'.")
 
-        if self.bootstrap_type == "block":
-            return self._block_bootstrap(N)
-
-        if self.bootstrap_type == "circular":
-            return self._circular_bootstrap(N)
-
-        if self.bootstrap_type == "stationary":
-            return self._stationary_bootstrap(N)
-
-        raise ValueError(f"Unknown bootstrap_type '{self.bootstrap_type}'.")
+        out[:, 3] = np.maximum(out[:, 3], INFLATION_FLOOR)
+        return out
 
     #######################################################################
     # IID Bootstrap
