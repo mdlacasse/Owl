@@ -171,7 +171,7 @@ The naming convention when saving from the interface is `Case_<case_name>.toml`.
 This Excel workbook holds year-by-year data that are not stored in the case TOML file.
 It must contain **one sheet per individual**, with a tab name that **exactly** matches that person in the *case*
 (e.g., *Jack* and *Jill*). Each person sheet is a **Wages and Contributions** table: **all** of the following
-headers must be present (lowercase; column order may vary); enter `0` where a concept does not apply:
+headers must be present (lowercase; column order may vary); enter `0` where a column does not apply:
 `year`, `anticipated wages`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
 `Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `big-ticket items`. The legacy header `other inc.` is read as `other inc`.
 Numeric cells are **nominal dollars** (not thousands), independent of spending/bequest *units* in the case file.
@@ -343,7 +343,7 @@ The **Wages and Contributions** table contains 12 columns titled as follows:
 | ... | | | | | | | | | | |
 |20XX | | | | | | | | | | |
 
-All twelve columns must be present on each person sheet; use 0 where a category does not apply.
+All twelve columns **must be present** on each person's sheet; fill a column with 0 or leave it blank where it does not apply.
 Any other column on that sheet is dropped on read (see *Input and Output Files*).
 The *HSA ctrb* column holds HSA contributions in nominal dollars; they are pre-tax and reduce AGI. Values are automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
 Note that column names are case sensitive and headers use lower case (the legacy header *other inc.* is read as *other inc*).
