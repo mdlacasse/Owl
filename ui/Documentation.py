@@ -1241,13 +1241,13 @@ What each state entry models:
 - **Graduated brackets** — marginal rates inflation-adjusted each plan year.
 - **State standard deduction** — subtracted from state taxable income.
 - **Retirement income exemption** — optional age-gated dollar cap per person reducing state taxable
-  income (e.g. NY: \$20k from pension/IRA; CO: \$24k age 65+; GA: \$65k age 62+). Implemented as a
+  income (e.g., NY: \\$20k from pension/IRA; CO: \\$24k age 65+; GA: \\$65k age 62+). Implemented as a
   bounded LP variable; the optimizer uses the full exemption when available.
-- **Pension exemption** — separate cap for defined-benefit pension income only (e.g. KY: \$31,110;
+- **Pension exemption** — separate cap for defined-benefit pension income only (e.g. KY: \\$31,110;
   IL: fully exempt). Applied as a parameter deduction, not an LP variable.
 - **Social Security treatment** — whether the state taxes SS benefits (e.g. MN taxes SS; FL does
-  not). The same federal taxable fraction (Psi\_n) is applied at the state level when SS is taxed.
-  States with AGI-based SS thresholds (KS \$75k, MO \$100k) are treated conservatively
+  not). The same federal taxable fraction is applied at the state level when SS is taxed.
+  States with AGI-based SS thresholds (KS \\$75k, MO \\$100k) are treated conservatively
   (SS always included in state base for LP purposes).
 
 No-income-tax states (AK, FL, NV, NH, SD, TN, TX, WA, WY) are fully supported and produce zero
