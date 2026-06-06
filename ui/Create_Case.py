@@ -146,7 +146,6 @@ else:
         kz.getSelectbox("State of residence (for state taxes)", _state_choices(), "state",
                         help=_state_help)
 
-
     kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."
     description = kz.getLongText("Brief description", "description", help=helpmsg,

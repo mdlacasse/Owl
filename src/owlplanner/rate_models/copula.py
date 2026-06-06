@@ -34,7 +34,12 @@ from scipy.special import ndtri
 from scipy.stats import norm, rankdata
 
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR, _historical_arith_means, apply_return_floors, constrain_series_mean
+from owlplanner.rate_models._builtin_impl import (
+    INFLATION_FLOOR,
+    _historical_arith_means,
+    apply_return_floors,
+    constrain_series_mean,
+)
 from owlplanner.rates import FROM, TO, SP500, BondsBaa, TNotes, Inflation
 
 

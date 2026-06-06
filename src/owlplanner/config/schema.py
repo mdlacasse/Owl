@@ -158,7 +158,7 @@ class RatesSelection(BaseModel):
     values: Optional[List[float]] = None  # user, gaussian, lognormal
     standard_deviations: Optional[List[float]] = None  # gaussian, lognormal
     correlations: Optional[List[float]] = None  # gaussian, lognormal
-    rate_seed: Optional[int] = None  # gaussian, lognormal, historical_gaussian, historical_lognormal, historical_copula, vector_ar, garch_dcc, gmm, hmm
+    rate_seed: Optional[int] = None  # all stochastic methods
     reproducible_rates: Optional[bool] = Field(
         default=False, description="Reproducible stochastic (gaussian, historical_gaussian, etc.)"
     )
@@ -172,7 +172,13 @@ class RatesSelection(BaseModel):
     n_components: Optional[int] = Field(default=None, description="Number of components / hidden states (gmm, hmm)")
     reg_trans: Optional[float] = Field(default=None, description="Laplace smoothing on transition counts, > 0 (hmm)")
     init_regime: Optional[int] = Field(default=None, description="Fixed starting regime index for generation (hmm)")
-    constrain_mean: Optional[bool] = Field(default=None, description="Shift generated series mean to match historical window mean (historical_gaussian, historical_lognormal, historical_copula, garch_dcc, gmm, hmm)")
+    constrain_mean: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Shift generated series mean to match historical window mean "
+            "(historical_gaussian, historical_lognormal, historical_copula, garch_dcc, gmm, hmm)"
+        ),
+    )
 
 
 class AssetAllocation(BaseModel):

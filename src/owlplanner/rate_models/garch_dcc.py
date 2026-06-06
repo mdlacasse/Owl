@@ -39,7 +39,7 @@ from numpy.linalg import cholesky, eigvalsh, LinAlgError
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.constants import GARCH_DCC_MIN_OBSERVATIONS, REQUIRED_RATE_COLUMNS
 from owlplanner.rate_models.inflation_transform import fit_inflation_transform, inv_pwl_transform, pwl_transform
-from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR, _historical_arith_means, apply_return_floors, constrain_series_mean
+from owlplanner.rate_models._builtin_impl import _historical_arith_means, apply_return_floors, constrain_series_mean
 from owlplanner.rates import FROM, TO
 
 

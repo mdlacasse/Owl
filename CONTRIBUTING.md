@@ -108,6 +108,7 @@ Prefix each commit message with a category tag:
 | `[refactor]` | Code restructuring with no behaviour change |
 | `[build]` | Build system, packaging, or dependency changes |
 | `[bump]` | Version number update |
+| `[lint]` | Code linting |
 
 Append `[no ci]` at the end to skip the CI pipeline (e.g. for documentation-only changes):
 
