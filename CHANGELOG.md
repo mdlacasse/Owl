@@ -2,6 +2,65 @@
 
 ### Version 2026.06.07
 
+#### State income tax
+
+State income tax brackets are now embedded directly in the LP alongside federal taxes,
+giving the optimizer full visibility into state marginal rates when planning Roth conversions,
+withdrawals, and spending.
+
+A new `state` field in `[basic_info]` accepts any two-letter US state abbreviation (e.g.
+`state = "MN"`). Leaving it blank or omitting it preserves the previous federal-only behavior.
+No-income-tax states (AK, FL, NV, NH, SD, TN, TX, WA, WY) are accepted and simply contribute
+zero state tax.
+
+State tax is modeled using the same graduated-bracket mechanism as federal income tax:
+- **Brackets and marginal rates** — state-specific, inflation-adjusted each year.
+- **State standard deduction** — subtracted from state taxable income, inflation-adjusted.
+- **Retirement income exemption** — optional age-gated per-person dollar cap (e.g. GA, NY, PA).
+- **Pension-only exemption** — separate cap where states distinguish pension from other retirement income.
+- **Social Security treatment** — binary flag; states that tax SS (e.g. MN, VT) include
+  85% of SS benefits in state taxable income.
+
+Filing status transitions from MFJ to Single at the year the first spouse dies, matching
+the federal filing-status transition already in the optimizer.
+
+**New public method:** `Plan.setStateTax(state)`.
+**New module:** `src/owlplanner/tax_state.py` — `st_taxParams()`, `valid_states()`.
+**New data file:** `src/owlplanner/data/taxes_state.toml` — all 50 states + DC with 2026 rates.
+**UI:** State selectbox added to the **Create Case** page.
+**Output:** State tax appears as a separate series in `showTaxes()`, as a standalone line in
+the plan summary (*Total state income tax paid*), and as a *State tx* column in the
+federal income tax worksheet.
+
+#### 2026 state tax data audit
+
+All 51 jurisdictions in `taxes_state.toml` were verified against official 2026 sources, with
+bracket and rate corrections applied to 21 states.
+
+#### `tax2026.py` renamed to `tax_federal.py`
+
+The federal tax module `tax2026.py` was renamed to `tax_federal.py` for consistency with
+the new `tax_state.py` module. All internal imports updated; no public API change.
+
+#### Drop Python 3.10 support
+
+Python 3.10 is no longer supported. The minimum required version is now **Python 3.11**.
+CI tests against Python 3.11, 3.12, 3.13, and 3.14.
+
+#### MOSEK moved to required dependencies
+
+MOSEK was previously an optional extra (`pip install owlplanner[mosek]`). It is now listed
+as a standard dependency. Users without a MOSEK license can still install and run Owl — the
+HiGHS solver remains the default and no license is required for normal use.
+
+#### In-app documentation audit
+
+The in-app help (**Documentation** page) was audited page-by-page against the actual UI and
+brought back into alignment, including the state-tax help, **Worksheets** tab names, Monte-Carlo
+rate-method lists, and a new experimental note on the Retirement Efficiency Score (RES). A couple
+of stale UI labels were corrected along the way.
+
+---
 
 ### Version 2026.06.06
 

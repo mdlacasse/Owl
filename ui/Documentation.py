@@ -235,7 +235,7 @@ all indexed by year:
 - **Federal Income Tax** — income allocated to each tax bracket, NIIT, LTCG tax,
   early-withdrawal penalty, and the fraction of Social Security that is taxable.
 - **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
-  (stocks, corporate bonds, T-notes, common assets) for each account type over time.
+  (stocks, corporate bonds, T-notes, cash assets) for each account type over time.
 """)
 
 # --- Case Setup tab ---
@@ -1113,7 +1113,7 @@ plotted, so it will differ from the plan horizon for stochastic methods.
 Monte Carlo simulations (see the **Stress Tests** page) require a **stochastic** method —
 one that generates a fresh random sample for each simulation trial. The methods that
 support Monte Carlo are: `historical_gaussian`, `historical_lognormal`, `gaussian`,
-`lognormal`, `historical_bootstrap`, `historical_copula`, `vector_ar`, `garch_dcc`, and `gmm`.
+`lognormal`, `historical_bootstrap`, `historical_copula`, `vector_ar`, `garch_dcc`, `gmm`, and `hmm`.
 The `historical` method is deterministic (it always produces the same sequence for a
 given starting year) and therefore cannot be used for Monte Carlo.
 
@@ -1175,7 +1175,7 @@ targets, allocations, Roth strategy) while holding the random scenario constant.
 The **Goals** page is where you define the optimization objective and spending preferences.
 
 ##### Objective
-Choose which quantity to maximize. Three objectives are available:
+Choose which quantity to maximize. Two objectives are available:
 - **Net spending** — maximize net spending subject to a desired bequest constraint. Enter the
   **Desired bequest from savings accounts** in today's \\$k. Fixed assets liquidated at the end of
   the plan are added to bequest separately; the page shows their contribution when applicable.
@@ -1429,20 +1429,20 @@ Worksheets are organized into four tabs:
   `HSA→Medicare`, `HSA→QME`, and per-individual HSA balances, contributions, and withdrawals.
   Presented separately so the **Cash Flow** table remains a balancing identity.
 
-**Income & Cash Flow** — household cash flow:
-- *Income* — net spending, taxable ordinary income, taxable capital gains and dividends, total tax bills and Medicare.
+**Cash Flow** — household cash flow:
 - *Cash Flow* — full breakdown of inflows and outflows that balance to net spending.
 - *`<individual>`'s Sources* — per-person year-by-year income sources (wages, Social Security, pension,
   account withdrawals, RMDs, Roth conversions, big-ticket items). The first row is highlighted in blue
   to mark actionable items for the current year.
 - *Household Sources* — fixed-asset proceeds (ordinary income, capital gains, tax-free) and debt payments.
 
-**Taxes** — federal tax detail:
+**Income & Taxes** — income summary and federal tax detail:
+- *Income* — net spending, taxable ordinary income, taxable capital gains and dividends, total tax bills and Medicare.
 - *Federal Income Tax* — income allocated to each bracket, NIIT, LTCG tax, early-withdrawal penalty,
   and the fraction of Social Security that is taxable.
 
 **Allocations & Rates** — asset mix and return rates:
-- *`<individual>`'s Allocations* — asset allocation percentages (stocks, corporate bonds, T-notes, common assets)
+- *`<individual>`'s Allocations* — asset allocation percentages (stocks, corporate bonds, T-notes, cash assets)
   for each account type over time.
 - *Rates* — the year-by-year return rates used in this run.
 
@@ -1569,6 +1569,8 @@ The eligible methods (set on the **Rates** page) are:
   historical window.
 - `garch_dcc` — DCC-GARCH(1,1) simulation with time-varying volatility and cross-asset
   correlations fitted on the historical window.
+- `gmm` — Gaussian Mixture Model: a weighted mix of regime-specific multivariate Gaussians
+  fitted on the historical window; draws are independent across years (no serial structure).
 - `hmm` — Hidden Markov Model simulation with regime-dependent Gaussian emissions and a
   fitted Markov transition matrix; produces temporally correlated multi-year regime runs.
 
@@ -1704,7 +1706,7 @@ A text summary above the charts reports the following metrics:
 
 ##### Charts
 
-Two charts are always displayed after a run:
+Three charts are always displayed after a run:
 
 - **Success rate curve** — committed spending vs. shortfall probability. The target point
   is marked; moving left increases spending but also increases shortfall risk.
@@ -1728,6 +1730,17 @@ When **stochastic lifespan** is enabled (Monte Carlo only), two additional chart
 - **Drawn lifespans** — histogram of the ages at death sampled across all scenarios, one
   series per individual and one for the joint last-survivor horizon. The median age at death
   for each series is shown in a text box in the upper-left corner.
+
+##### Retirement Efficiency Score (RES) — *experimental*
+
+An optional **experimental** expander offers a Sharpe-ratio–style efficiency metric for
+choosing the target success rate. It computes a **Retirement Efficiency Score**,
+RES = (committed spending − floor) / CVaR, and finds the success rate that maximizes it —
+the point where each extra dollar of committed spending is best compensated for the downside
+risk it adds. A radio selects the **floor**: the historical spending floor (HSF) or a custom
+value. Two extra charts appear: **CVaR vs. probability** and **RES vs. CVaR**, with the
+optimal point marked. This feature is most meaningful in *Historical range* mode and is not
+validated for production use; see the *Modeling Capabilities* reference for details.
 """)
 
 # --- Tools tab ---
@@ -1866,7 +1879,7 @@ Here is a concrete example investigating the effect of Roth conversions on net s
 4. Run all three *cases* and compare results on the **Reports** page.
 
 The most actionable information is on the first few lines of each individual's **Sources**
-worksheet (Worksheets page → **Accounts** tab), where withdrawals and Roth
+worksheet (Worksheets page → **Cash Flow** tab), where withdrawals and Roth
 conversions for the current and upcoming years are listed.
 """)
 

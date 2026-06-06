@@ -206,7 +206,7 @@ to estimate {iname1}'s PIA.""")
             st.markdown("#### :orange[Social Security benefit reduction]")
             help_trim = (
                 "Reduce Social Security benefits by this percentage starting in the given year. "
-                "Use to model trust fund shortfall scenarios (e.g. 23% cut from 2035). "
+                "Use to model trust fund shortfall scenarios (e.g. 23% cut from 2033). "
                 "0 = no reduction."
             )
             help_trim_year = "Calendar year when the reduction begins."

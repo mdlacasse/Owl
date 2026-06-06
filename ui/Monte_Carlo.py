@@ -45,7 +45,7 @@ else:
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
             kz.initCaseKey("MC_cases", 100)
-            kz.getIntNum("Number of random instances", "MC_cases", step=10, max_value=10000)
+            kz.getIntNum("Number of trials", "MC_cases", step=10, max_value=10000)
         with col4:
             st.button("Run simulation", on_click=owb.runMC, disabled=kz.caseIsNotMCReady())
 
