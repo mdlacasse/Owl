@@ -12,10 +12,9 @@ rate-model-docs.title: Overwrite RATE_MODELS.md documentation
 rate-model-docs:
 	uv run python -c "from owlplanner.rate_models.loader import export_rate_models_markdown; export_rate_models_markdown('RATE_MODELS.md')"
 
-requirements.title: Regenerate requirements.txt from uv lockfile and append mosek
+requirements.title: Regenerate requirements.txt from uv lockfile
 requirements:
 	uv export --frozen --no-dev --no-hashes -o requirements.txt
-	uv run pip show mosek | grep ^Version | sed 's/Version: /mosek==/' >> requirements.txt
 	echo "requirements.txt updated."
 
 lock.title: Upgrade uv.lock and patch missing owlplanner version field

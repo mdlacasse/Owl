@@ -8,7 +8,7 @@ Data is loaded from src/owlplanner/data/taxes_state.toml.
 Bracket rates in the TOML are stored as percentages (e.g. 5.35 = 5.35%);
 st_taxParams converts them to decimals before returning.
 """
-import tomllib
+import toml
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
@@ -30,8 +30,8 @@ NO_TAX_STATES = frozenset(["AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY"]
 def _load_state_data(toml_path: str = None) -> dict:
     """Load and cache taxes_state.toml. Returns the raw parsed dict."""
     path = toml_path or str(_TOML_PATH)
-    with open(path, "rb") as f:
-        return tomllib.load(f)
+    with open(path, "r") as f:
+        return toml.load(f)
 
 
 def load_state_data(toml_path=None) -> dict:

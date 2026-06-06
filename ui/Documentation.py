@@ -291,6 +291,14 @@ For estimating longevity, several online calculators are available:
 - [longevityillustrator](https://longevityillustrator.org)
 - [livingto100](https://www.livingto100.com/calculator)
 
+**State of residence (for state taxes)** — Pick your state from the dropdown to include state
+income taxes in the plan. Leave it blank to model federal taxes only. No-income-tax states
+(AK, FL, NV, NH, SD, TN, TX, WA, WY) are listed too and produce zero state tax, so selecting one
+is equivalent to leaving the field blank. State brackets, deductions, and any retirement-income,
+pension, or Social Security exemptions are applied automatically based on the state you choose; see
+the *Modeling Capabilities* reference for the details and limitations of state-tax modeling.
+
+
 ##### Upload Your Own Case File
 Upload a *case* parameter file (`.toml` extension) previously saved from **Owl**.
 These files are human-readable and contain all the scalar parameters of a *case*.
@@ -1228,33 +1236,6 @@ Note: these expenses are treated as part of general living costs in the cash flo
 appear separately in the *Healthcare* slice of the spending pie chart, which covers insurance
 premiums only.
 
-**State of residence (for state taxes)** — Two-letter US state abbreviation (e.g. `MN`, `CA`, `NY`).
-When set, state income tax brackets are embedded directly in the LP alongside federal taxes.
-Leave blank to model federal taxes only.
-
-State taxes are modeled using the same graduated-bracket approach as federal taxes:
-state marginal rates are applied to state taxable income (federal ordinary income + capital gains,
-adjusted for any state-specific exclusions). Filing status transitions from MFJ to single at first
-spouse's death — state brackets and deductions switch automatically.
-
-What each state entry models:
-- **Graduated brackets** — marginal rates inflation-adjusted each plan year.
-- **State standard deduction** — subtracted from state taxable income.
-- **Retirement income exemption** — optional age-gated dollar cap per person reducing state taxable
-  income (e.g., NY: \\$20k from pension/IRA; CO: \\$24k age 65+; GA: \\$65k age 62+). Implemented as a
-  bounded LP variable; the optimizer uses the full exemption when available.
-- **Pension exemption** — separate cap for defined-benefit pension income only (e.g. KY: \\$31,110;
-  IL: fully exempt). Applied as a parameter deduction, not an LP variable.
-- **Social Security treatment** — whether the state taxes SS benefits (e.g. MN taxes SS; FL does
-  not). The same federal taxable fraction is applied at the state level when SS is taxed.
-  States with AGI-based SS thresholds (KS \\$75k, MO \\$100k) are treated conservatively
-  (SS always included in state base for LP purposes).
-
-No-income-tax states (AK, FL, NV, NH, SD, TN, TX, WA, WY) are fully supported and produce zero
-state tax — selecting one is equivalent to leaving the field blank.
-
-In TOML, set `state = "MN"` in `[basic_info]`.
-
 **ACA Marketplace (Pre-65)** allows entering the annual benchmark Silver plan (SLCSP) premium
 for years before Medicare. Set to 0 to omit ACA costs.
 For couples, enter the **combined household premium** (both spouses on the same marketplace plan).
@@ -1902,7 +1883,8 @@ an unjustified level of certainty in the results.
 The main goal of retirement financial planning is to characterize
 uncertainty and translate this uncertainty into actionable, near-term decisions.
 Therefore, as a deliberate choice in design, complex federal tax rules were
-not included into **Owl**. State income taxes are now modeled (see the `state` field below).
+not included into **Owl**. State income taxes can be enabled through the
+*State of residence* field in **Case Setup**.
 As can be seen from this
 [graph](https://marottaonmoney.com/wp-content/uploads/2023/04/Historical-Effective-Rates-Through-2023.jpg),
 income tax rates have varied a lot over the last century. Assuming that current rates will

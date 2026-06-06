@@ -84,7 +84,7 @@ Line length limit is **120 characters** (configured in `.flake8`).
 
 ## Code conventions
 
-- **Python 3.10+** required. CI runs against 3.10, 3.12, and 3.13.
+- **Python 3.11+** required. CI runs against 3.11, 3.12, and 3.13.
 - **Comments**: only add one when the *why* is non-obvious — a hidden constraint,
   a subtle invariant, or a workaround for a specific bug. Don't describe what the
   code does; well-named identifiers already do that.
@@ -120,8 +120,7 @@ git commit -m "[docs] Update docstring wording [no ci]"
 ## Continuous integration
 
 CI runs automatically on every push via GitHub Actions (`.github/workflows/`).
-It lints with flake8 and runs the full pytest suite across Python 3.10, 3.12,
-and 3.13.
+It lints with flake8 and runs the full pytest suite across Python 3.11, 3.12, 3.13, and 3.14.
 
 ---
 

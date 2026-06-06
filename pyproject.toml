@@ -19,7 +19,7 @@ maintainers = [
 ]
 description = "Owl - Optimal Wealth Lab: Retirement planner with great wisdom"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
@@ -44,11 +44,11 @@ dependencies = [
     "toml",
     "loguru>=0.7.3",
     "click>=8.3.1",
+    "mosek",
 ]
 license = {file = "LICENSE"}
 
 [project.optional-dependencies]
-mosek = ["mosek"]
 notebooks = ["jupyter>=1.1.1"]
 
 [project.urls]
@@ -66,6 +66,7 @@ dev = [
     "flake8",
     "pytest>=9.0.2",
     "pytest-xdist",
+    "scikit-learn",
 ]
 
 

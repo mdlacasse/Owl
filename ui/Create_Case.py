@@ -137,9 +137,10 @@ else:
         )
     kz.initCaseKey("state", "")
     _state_help = (
-        "Two-letter US state abbreviation for state income tax modeling. "
+        "Select your state to include state income taxes in the plan. "
         "Leave blank to model federal taxes only. "
-        "No-income-tax states (AK, FL, NV, NH, SD, TN, TX, WA, WY) are accepted and produce zero state tax."
+        "No-income-tax states (AK, FL, NV, NH, SD, TN, TX, WA, WY) are listed too and produce zero state tax. "
+        "See the documentation for the details and limitations of state-tax modeling."
     )
     with col3:
         kz.getSelectbox("State of residence (for state taxes)", _state_choices(), "state",
