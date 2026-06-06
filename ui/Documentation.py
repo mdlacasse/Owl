@@ -288,7 +288,8 @@ You can also choose a state of residence to include state income taxes in the pl
 blank to model federal taxes only. The no-income-tax states (AK, FL, NV, NH, SD, TN, TX, WA, WY)
 are listed as well and produce zero state tax. State brackets, deductions, and any
 retirement-income, pension, or Social Security exemptions are applied automatically based on the
-state you choose; see the *Modeling Capabilities* reference for the details and limitations of
+state you choose; see the [*Modeling Capabilities*](https://github.com/mdlacasse/Owl/blob/main/docs/modeling-capabilities.md)
+reference for the details and limitations of
 state-tax modeling.
 
 Birth date is required because Social Security has special rules for people born on
@@ -1740,7 +1741,8 @@ the point where each extra dollar of committed spending is best compensated for 
 risk it adds. A radio selects the **floor**: the historical spending floor (HSF) or a custom
 value. Two extra charts appear: **CVaR vs. probability** and **RES vs. CVaR**, with the
 optimal point marked. This feature is most meaningful in *Historical range* mode and is not
-validated for production use; see the *Modeling Capabilities* reference for details.
+validated for production use; see the [*Modeling Capabilities*](https://github.com/mdlacasse/Owl/blob/main/docs/modeling-capabilities.md)
+reference for details.
 """)
 
 # --- Tools tab ---
