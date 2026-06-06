@@ -5,12 +5,11 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 force-include = { "PARAMETERS.md" = "owlplanner/PARAMETERS.md" }
 
-[tool.hatch.version]
-path = "src/owlplanner/version.py"
-
 [project]
 name = "owlplanner"
-dynamic = ["version"]
+# Single source of truth for the version. Keep in sync with src/owlplanner/version.py
+# via `make sync-version` (enforced by tests/test_version.py).
+version = "2026.6.7"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
@@ -67,6 +66,7 @@ dev = [
     "pytest>=9.0.2",
     "pytest-xdist",
     "scikit-learn",
+    "watchdog",
 ]
 
 

@@ -16,6 +16,7 @@ from owlplanner.config import (
     load_toml,
     plan_to_config,
     sanitize_config,
+    save_toml,
     ui_to_config,
 )
 from owlplanner.config.schema import parse_solver_options
@@ -598,6 +599,36 @@ def _minimal_married_config():
         "solver_options": {},
         "results": {"default_plots": "nominal"},
     }
+
+
+def test_state_config_to_ui_roundtrip():
+    """basic_info.state round-trips through config_to_ui and ui_to_config."""
+    diconf = _minimal_config_for_rates()
+    diconf["basic_info"]["state"] = "MN"
+
+    uidic = config_to_ui(diconf)
+    assert uidic["state"] == "MN"
+
+    out = ui_to_config(uidic)
+    assert out["basic_info"]["state"] == "MN"
+
+
+def test_state_toml_save_load_roundtrip():
+    """basic_info.state survives a save_toml -> load_toml round-trip (empty stays empty)."""
+    diconf = _minimal_config_for_rates()
+    diconf["basic_info"]["state"] = "MN"
+
+    sio = StringIO()
+    save_toml(diconf, sio)
+    back, _, _ = load_toml(StringIO(sio.getvalue()))
+    assert back["basic_info"]["state"] == "MN"
+
+    # Default (no state set) stays federal-only after a round-trip.
+    diconf["basic_info"]["state"] = ""
+    sio2 = StringIO()
+    save_toml(diconf, sio2)
+    back2, _, _ = load_toml(StringIO(sio2.getvalue()))
+    assert back2["basic_info"].get("state", "") == ""
 
 
 def _minimal_config_for_rates():

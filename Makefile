@@ -17,15 +17,19 @@ requirements:
 	uv export --frozen --no-dev --no-hashes -o requirements.txt
 	echo "requirements.txt updated."
 
-lock.title: Upgrade uv.lock and patch missing owlplanner version field
+sync-version.title: Sync version from pyproject.toml into src/owlplanner/version.py
+sync-version:
+	uv run python -c "\
+import re, pathlib, tomllib; \
+ver = tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version']; \
+p = pathlib.Path('src/owlplanner/version.py'); \
+p.write_text(re.sub(r'__version__ = \".*?\"', '__version__ = \"' + ver + '\"', p.read_text())); \
+print('version.py synced to', ver)"
+
+lock.title: Upgrade uv.lock (owlplanner version is recorded natively)
 lock:
 	uv lock --upgrade
-	uv run python -c "\
-import re, pathlib; \
-ver = re.search(r'__version__ = \"(.+?)\"', pathlib.Path('src/owlplanner/version.py').read_text()).group(1); \
-p = pathlib.Path('uv.lock'); \
-p.write_text(p.read_text().replace('name = \"owlplanner\"\nsource = { editable', 'name = \"owlplanner\"\nversion = \"' + ver + '\"\nsource = { editable'))"
-	echo "uv.lock updated and patched."
+	echo "uv.lock updated."
 
-update.title: Upgrade uv.lock, patch version, and regenerate requirements.txt
-update: lock requirements
+update.title: Sync version, upgrade uv.lock, and regenerate requirements.txt
+update: sync-version lock requirements

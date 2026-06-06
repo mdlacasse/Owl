@@ -284,19 +284,19 @@ biological sex (`M`/`F`), birth date, and expected lifespan for each individual.
 Cases start on Jan 1st of this year and end on December 31st of the year in which
 the last individual passes according to the specified life expectancies.
 
+You can also choose a state of residence to include state income taxes in the plan; leave it
+blank to model federal taxes only. The no-income-tax states (AK, FL, NV, NH, SD, TN, TX, WA, WY)
+are listed as well and produce zero state tax. State brackets, deductions, and any
+retirement-income, pension, or Social Security exemptions are applied automatically based on the
+state you choose; see the *Modeling Capabilities* reference for the details and limitations of
+state-tax modeling.
+
 Birth date is required because Social Security has special rules for people born on
 the 1st or 2nd of the month; any other day of the month produces the same results.
 
 For estimating longevity, several online calculators are available:
 - [longevityillustrator](https://longevityillustrator.org)
 - [livingto100](https://www.livingto100.com/calculator)
-
-**State of residence (for state taxes)** — Pick your state from the dropdown to include state
-income taxes in the plan. Leave it blank to model federal taxes only. No-income-tax states
-(AK, FL, NV, NH, SD, TN, TX, WA, WY) are listed too and produce zero state tax, so selecting one
-is equivalent to leaving the field blank. State brackets, deductions, and any retirement-income,
-pension, or Social Security exemptions are applied automatically based on the state you choose; see
-the *Modeling Capabilities* reference for the details and limitations of state-tax modeling.
 
 
 ##### Upload Your Own Case File

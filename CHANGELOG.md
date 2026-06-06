@@ -1,6 +1,6 @@
 
 
-### Version 2026.06.07
+### Version 2026.6.7
 
 #### State income tax
 
@@ -59,6 +59,15 @@ The in-app help (**Documentation** page) was audited page-by-page against the ac
 brought back into alignment, including the state-tax help, **Worksheets** tab names, Monte-Carlo
 rate-method lists, and a new experimental note on the Retirement Efficiency Score (RES). A couple
 of stale UI labels were corrected along the way.
+
+#### Versioning and committed lockfile
+
+The package version is now a static field in `pyproject.toml` (single source of truth),
+mirrored into `src/owlplanner/version.py` via `make sync-version` and guarded by a test.
+uv now records this version natively in `uv.lock`, which is committed to the repository
+(previously excluded because Streamlit Cloud could not parse the versionless editable entry).
+Version numbers now use canonical PEP 440 form with no zero-padding (`YYYY.M.D`, e.g. `2026.6.7`),
+so the string is identical across `pyproject.toml`, the wheel metadata, and `uv.lock`.
 
 ---
 
