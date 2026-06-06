@@ -1071,11 +1071,14 @@ def plotTaxGraphs(plan):
 
     fig = plan.showTaxes(figure=True)
     if fig:
-        tax_title = (
-            "Federal Taxes, Medicare, and ACA (+IRMAA)"
-            if getattr(plan, "slcsp_annual", 0) > 0
-            else "Federal Taxes and Medicare (+IRMAA)"
-        )
+        has_aca = getattr(plan, "slcsp_annual", 0) > 0
+        st_T_n = getattr(plan, "st_T_n", None)
+        has_state = bool(getattr(plan, "state", "")) and st_T_n is not None and (st_T_n > 0).any()
+        taxes = "Federal and State Taxes" if has_state else "Federal Taxes"
+        if has_aca:
+            tax_title = f"{taxes}, Medicare (+IRMAA), and ACA"
+        else:
+            tax_title = f"{taxes}, and Medicare (+IRMAA)"
         cols[c].markdown(f"#### :orange[{tax_title}]")
         renderPlot(fig, cols[c])
         c = (c + 1) % n
@@ -1463,6 +1466,7 @@ def genDic(plan):
     dic["casetoml"] = ""
     dic["caseStatus"] = "new"
     dic["status"] = ["unknown", "single", "married"][plan.N_i]
+    dic["state"] = getattr(plan, "state", "")
     # Prepend year if not there.
     tdate = plan.startDate.replace("/", "-").split("-")
     if len(tdate) == 2:

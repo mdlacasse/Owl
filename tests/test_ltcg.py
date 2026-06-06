@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 import pytest
 
-from owlplanner import tax2026 as tx
+from owlplanner import tax_federal as tx
 
 
 def test_capital_gain_tax_stacks_over_ordinary_income():

@@ -2,7 +2,7 @@
 Tests for ACA Premium Tax Credit integration.
 
 Covers:
-- acaCosts() tax2026 function (unit tests)
+- acaCosts() tax_federal function (unit tests)
 - setACA() plan method
 - SC-loop integration: ACA costs reduce spending vs. baseline
 - Couple with mixed Medicare/pre-65 years
@@ -15,7 +15,7 @@ Covers:
 import numpy as np
 import pytest
 
-import owlplanner.tax2026 as tx
+import owlplanner.tax_federal as tx
 from owlplanner import Plan
 from owlplanner.data.aca_age_rating import couple_to_individual_fraction
 
@@ -56,7 +56,7 @@ def _make_plan(dob1="1970-01-15", le1=85, dob2=None, le2=None, name="ACA Test"):
 # ---------------------------------------------------------------------------
 
 class TestAcaCostsFunction:
-    """Unit tests for tax2026.acaCosts() in isolation."""
+    """Unit tests for tax_federal.acaCosts() in isolation."""
 
     def _gamma(self, n):
         """Return flat gamma_n (no inflation) for simple testing."""

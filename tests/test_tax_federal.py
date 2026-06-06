@@ -1,5 +1,5 @@
 """
-Tests for tax2026.py: taxBrackets() and rho_in() edge cases.
+Tests for tax_federal.py: taxBrackets() and rho_in() edge cases.
 
 Coverage targets:
   - taxBrackets() — single, MFJ, spouse-death transition, OBBBA→preTCJA transition,
@@ -27,7 +27,7 @@ import pytest
 import numpy as np
 from datetime import date
 
-from owlplanner import tax2026 as tx
+from owlplanner import tax_federal as tx
 
 
 # ---------------------------------------------------------------------------

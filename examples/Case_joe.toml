@@ -12,6 +12,7 @@ sexes = [ "M",]
 date_of_birth = [ "1967-01-15",]
 life_expectancy = [ 89,]
 start_date = "2026-01-01"
+state = "TX"
 
 [savings_assets]
 taxable_savings_balances = [ 338.5,]

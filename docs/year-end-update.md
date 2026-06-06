@@ -95,16 +95,16 @@ and `win32/linux` branches.
 
 ---
 
-### 4. Update the tax module — `src/owlplanner/tax2026.py`
+### 4. Update the tax module — `src/owlplanner/tax_federal.py`
 
 If tax brackets, Medicare IRMAA thresholds, or other IRS values change for the new year:
 
-1. Update the constants inside `tax2026.py` to reflect the new year's values.
+1. Update the constants inside `tax_federal.py` to reflect the new year's values.
 2. Rename the file to `taxYYYY.py` (e.g., `tax2027.py`).
 3. Update all imports:
 
 ```bash
-grep -r "tax2026" src/ tests/ ui/
+grep -r "tax_federal" src/ tests/ ui/
 ```
 
 Key values to verify against IRS/CMS announcements:
@@ -155,5 +155,5 @@ Verify the plan solves and the output looks reasonable.
 | Freeze year | `tests/conftest.py` | **Yes** |
 | Birth years | `examples/*.toml` | **Yes** |
 | Expected values | `tests/test_toml_cases.py` | **Yes** |
-| Tax module | `src/owlplanner/tax2026.py` | Yes, if IRS values changed |
+| Tax module | `src/owlplanner/tax_federal.py` | Yes, if IRS values changed |
 | Year arrays in tests | `tests/test_timelists*.py`, `test_debts.py` | Optional (cosmetic) |

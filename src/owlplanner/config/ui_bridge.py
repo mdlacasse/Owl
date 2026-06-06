@@ -182,6 +182,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:
     if start_date_str == "today":
         start_date_str = str(date.today())
     dic["startDate"] = _start_date_to_ui(start_date_str)
+    dic["state"] = bi.get("state", "")
 
     dic["interpMethod"] = aa.get("interpolation_method", "s-curve")
     _ic = aa.get("interpolation_center")
@@ -448,6 +449,7 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
             "life_expectancy": life,
             "sexes": sexes,
             "start_date": start_date,
+            "state": _get_ui(uidic, "state", ""),
         },
         "savings_assets": {},
         "household_financial_profile": {

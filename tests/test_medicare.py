@@ -1,5 +1,5 @@
 """
-Tests for Medicare Part B, Part D, and IRMAA calculations (tax2026.mediCosts, mediVals).
+Tests for Medicare Part B, Part D, and IRMAA calculations (tax_federal.mediCosts, mediVals).
 
 Verifies that single individuals are charged the standard Part B basic premium
 in eligible years, that values align with CMS published figures (e.g. 2026),
@@ -10,7 +10,7 @@ import pytest
 import numpy as np
 from datetime import date
 
-from owlplanner import tax2026 as tx
+from owlplanner import tax_federal as tx
 
 
 def test_mediCosts_single_individual_basic_premium():

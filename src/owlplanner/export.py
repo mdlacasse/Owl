@@ -34,7 +34,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 from . import config
 from . import utils as u
-from . import tax2026 as tx
+from . import tax_federal as tx
 from .rate_models.constants import RATE_DISPLAY_NAMES_SHORT
 from .utils import worksheet_age_on_dec_31_or_blank
 
@@ -402,6 +402,11 @@ def build_summary_dic(plan, N=None):
     taxPaidNow = np.sum(plan.J_n[:N] / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total net investment income tax paid", taxPaidNow, taxPaid)
 
+    if np.any(plan.st_T_n > 0):
+        stTaxPaid = np.sum(plan.st_T_n[:N], axis=0)
+        stTaxPaidNow = np.sum(plan.st_T_n[:N] / plan.gamma_n[:N], axis=0)
+        _summary_currency_pair(dic, "Total state income tax paid", stTaxPaidNow, stTaxPaid)
+
     taxPaid = np.sum(plan.m_n[:N] + plan.M_n[:N], axis=0)
     taxPaidNow = np.sum((plan.m_n[:N] + plan.M_n[:N]) / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total Medicare premiums paid", taxPaidNow, taxPaid)
@@ -671,7 +676,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "net spending": plan.g_n,
         "taxable ord. income": plan.G_n,
         "taxable gains + divs": plan.Q_n,
-        "Tax bills + Med.": plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n,
+        "Tax bills + Med.": plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n + plan.st_T_n,
     }
     fillsheet(ws, incomeDic, "currency", scale=inv_gamma, sheet_name="Income")
 
@@ -795,6 +800,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     TxDic["NIIT"] = plan.J_n
     TxDic["LTCG tax"] = plan.U_n
     TxDic["10% penalty"] = plan.P_n
+    if np.any(plan.st_T_n > 0):
+        TxDic["State tx"] = plan.st_T_n
     ss_n = np.sum(plan.zetaBar_in, axis=0)
     TxDic["SS % taxed"] = np.where(ss_n > 0, plan.Psi_n, 0)
     ws = wb.create_sheet("Federal Income Tax")
@@ -860,7 +867,7 @@ def plan_to_csv(plan, basename, mylog):
     planData["net spending"] = plan.g_n
     planData["taxable ord. income"] = plan.G_n
     planData["taxable gains + divs"] = plan.Q_n
-    planData["Tax bills + Med."] = plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n
+    planData["Tax bills + Med."] = plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n + plan.st_T_n
     planData["all wages"] = np.sum(plan.omega_in, axis=0)
     planData["all other inc"] = np.sum(plan.other_inc_in, axis=0)
     planData["all net inv"] = np.sum(plan.netinv_in, axis=0)

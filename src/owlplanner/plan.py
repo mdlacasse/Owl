@@ -32,7 +32,8 @@ import time
 import textwrap
 
 from . import utils as u
-from . import tax2026 as tx
+from . import tax_federal as tx
+from . import tax_state
 from . import abcapi as abc
 from . import rates
 from . import config
@@ -253,6 +254,11 @@ class Plan:
         self.ACA_n = np.zeros(self.N_n)    # Net ACA cost (after subsidy) per year (plan $)
         self._aca_lp = False               # True when withACA="optimize" is active
         self.maca_n = np.zeros(self.N_n)   # ACA LP cost variable extraction result
+        self.state = ""                    # Two-letter US state for state income tax ("" = none)
+        self.st_T_n = np.zeros(self.N_n)   # State income tax per year (N_n,)
+        self._st_lp = False                # True when state income tax LP is active
+        self.N_st = 0                      # Number of state tax brackets (0 when no state set)
+        self.st_re_cap_n = np.zeros(self.N_n)  # State retirement income exemption caps
         self.n_aca = 0                     # Number of ACA-eligible plan years (LP mode)
         self.other_medical_k = 0.0                  # Annual non-Medicare QMEs in today's dollars ($)
         self.other_medical_n = np.zeros(self.N_n)  # Inflation-adjusted per-year version (nominal $)
@@ -1239,6 +1245,30 @@ class Plan:
             self.mylog.vprint(f"ACA coverage starts in calendar year {self.aca_start_year}.")
         self.caseStatus = "modified"
 
+    def setStateTax(self, state):
+        """
+        Set two-letter US state abbreviation for state income tax modeling.
+
+        When set, state income tax brackets are embedded directly in the LP using
+        graduated state marginal rates, standard deduction, and optional retirement
+        income exemptions. Leave blank or call with "" to model federal taxes only.
+
+        Supported states: all 50 states + DC. No-income-tax states (AK, FL, NV, etc.)
+        are accepted and simply contribute zero state tax.
+
+        Parameters
+        ----------
+        state : str
+            Two-letter state abbreviation (e.g. 'MN', 'CA', 'TX'). Case-insensitive.
+        """
+        from . import tax_state as ts
+        state = state.upper().strip() if state else ""
+        if state and state not in ts.valid_states():
+            raise ValueError(f"Unknown state '{state}'. Use a valid two-letter abbreviation "
+                             f"from: {ts.valid_states()}")
+        self.state = state
+        self.caseStatus = "modified"
+
     def setInterpolationMethod(self, method, center=15, width=5):
         """
         Interpolate asset allocation ratios from initial value (today) to
@@ -1835,6 +1865,13 @@ class Plan:
         vm.add_if(niit_lp, "Jn", self.N_n)          # J_n: NIIT tax LP variable (NIIT MILP)
         vm.add_if(niit_lp, "niis", self.N_n)        # NII surplus: max(0, MAGI-T-NII), no binary needed
         vm.add_if(ssa_lp, "ssb", self.N_i, self.N_n)   # SS own-benefit LP var (SS age optimize)
+        # State income tax LP variables (continuous, before binary block).
+        st_lp = bool(self.state)
+        self._st_lp = st_lp
+        st_re_lp = st_lp and np.any(self.st_re_cap_n > 0)
+        vm.add_if(st_lp, "st_f", self.N_st, self.N_n)   # state bracket allocations
+        vm.add_if(st_lp, "st_e", self.N_n)               # state standard deduction headroom
+        vm.add_if(st_re_lp, "st_re", self.N_n)           # retirement income exemption
         vm.mark_binary_start()
         vm.add("zx", self.N_n, self.N_zx)           # Roth exclusion binaries
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)   # IRMAA bracket selection binaries
@@ -1869,6 +1906,8 @@ class Plan:
         self._add_rmd_inequalities()
         self._add_tax_bracket_bounds()
         self._add_standard_exemption_bounds()
+        if self._st_lp:
+            self._add_state_tax_bounds()
         self._add_defunct_constraints()
         self._add_roth_conversion_constraints(options)
         self._add_safety_net(options)
@@ -1881,6 +1920,8 @@ class Plan:
         self._add_net_cash_flow(options)
         self._add_income_profile(objective)
         self._add_taxable_income(options)
+        if self._st_lp:
+            self._add_state_taxable_income()
         self._configure_ss_taxability_lp(options)
         self._configure_ss_age_variables()
         self._configure_ltcg_constraints()
@@ -1925,6 +1966,60 @@ class Plan:
     def _add_standard_exemption_bounds(self):
         for n in range(self.N_n):
             self.B.setRange(self.vm["e"].idx(n), 0, self.sigmaBar_n[n])
+
+    def _add_state_tax_bounds(self):
+        """Set variable bounds for state income tax LP variables."""
+        vm = self.vm
+        for t in range(self.N_st):
+            for n in range(self.N_n):
+                self.B.setRange(vm["st_f"].idx(t, n), 0, self.st_DeltaBar_tn[t, n])
+        for n in range(self.N_n):
+            self.B.setRange(vm["st_e"].idx(n), 0, self.st_sigmaBar_n[n])
+        if "st_re" in vm:
+            for n in range(self.N_n):
+                cap = self.st_re_cap_n[n]
+                self.B.setRange(vm["st_re"].idx(n), 0, cap if np.isfinite(cap) else 1e9)
+
+    def _add_state_taxable_income(self):
+        """Equality constraint: state bracket allocations = state AGI - deductions.
+
+        State AGI = federal ordinary income (G_n via f[t,n])
+                  + capital gains (Q_n via q[p,n], taxed as ordinary by most states)
+                  - SS exclusion (when state does not tax SS: subtract Psi_n * zetaBar_n)
+                  - pension exemption cap (parameter)
+
+        The LP then subtracts the state standard deduction (st_e) and retirement income
+        exemption (st_re), with st_e and st_re bounded to prevent negative state tax.
+        """
+        vm = self.vm
+        for n in range(self.N_n):
+            # SS adjustment: federal G_n contains Psi_n * zetaBar; remove if state excludes SS.
+            ss_excl = 0.0 if self.st_tax_ss else self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
+            # Pension exemption (parameter): cap = per-person; N_i persons.
+            pe_total = float(np.sum(self.piBar_in[:, n]))
+            pe_cap = float(self.st_pe_cap_n[n]) if np.isfinite(self.st_pe_cap_n[n]) else pe_total
+            pe_adj = min(pe_total, pe_cap * self.N_i)
+            rhs = -ss_excl - pe_adj
+
+            row = self.A.newRow()
+            for t in range(self.N_st):
+                row.addElem(vm["st_f"].idx(t, n), 1)      # state brackets (sum = state taxable income)
+            row.addElem(vm["st_e"].idx(n), 1)              # state standard deduction
+            if "st_re" in vm:
+                row.addElem(vm["st_re"].idx(n), 1)         # retirement income exemption
+            for t in range(self.N_t):
+                row.addElem(vm["f"].idx(t, n), -1)         # subtract G_n (federal ordinary income)
+            for p in range(self.N_p):
+                row.addElem(vm["q"].idx(p, n), -1)         # subtract Q_n (capital gains)
+            self.A.addRow(row, rhs, rhs)
+
+        # IRA withdrawal cap: can't exempt more IRA income than actually withdrawn.
+        if "st_re" in vm:
+            for n in range(self.N_n):
+                row = self.A.newRow({vm["st_re"].idx(n): 1})
+                for i in range(self.N_i):
+                    row.addElem(vm["w"].idx(i, 1, n), -1)
+                self.A.addRow(row, -np.inf, 0)
 
     def _add_defunct_constraints(self):
         if self.N_i == 2:
@@ -2260,6 +2355,11 @@ class Plan:
             # LTCG tax from bracket variables q[1,n] and q[2,n] directly.
             row.addElem(self.vm["q"].idx(1, n), 0.15)
             row.addElem(self.vm["q"].idx(2, n), 0.20)
+
+            # State income tax from state bracket variables.
+            if "st_f" in self.vm:
+                for t in range(self.N_st):
+                    row.addElem(self.vm["st_f"].idx(t, n), self.st_theta_tn[t, n])
 
             # NIIT: when optimize mode, use LP variable Jn; otherwise already in rhs.
             if getattr(self, "_niit_lp", False):
@@ -3327,12 +3427,24 @@ class Plan:
         self.M_n = np.zeros(self.N_n)
         self.ACA_n = np.zeros(self.N_n)
         self.maca_n = np.zeros(self.N_n)
+        self.st_T_n = np.zeros(self.N_n)
         self._aca_lp = False            # Will be set to True in _buildOffsetMap when withACA="optimize"
         self._ltcg_lp = False           # Will be set to True in _buildOffsetMap when withLTCG="optimize"
         self._niit_lp = False           # Will be set to True in _buildOffsetMap when withNIIT="optimize"
         self._ssa_lp = False            # Will be set to True in _buildOffsetMap when withSSAges="optimize"
+        self._st_lp = False             # Will be set to True in _buildOffsetMap when state is set
         self._adjustedParameters = False   # Force fresh parameter setup for each solve()
         self._highs_warm_start = None   # MIP warm-start hint; reset each solve(), updated each SC iter
+
+        # Compute state tax parameters when a state is configured.
+        # Note: st_ss_thresh_n (AGI threshold for SS exemption, e.g. KS $75k, MO $100k) is
+        # returned but not yet used in the LP — those states are currently treated as binary
+        # (SS fully exempt or fully taxed). Full threshold modeling is a known limitation.
+        if self.state:
+            (self.N_st, self.st_theta_tn, self.st_DeltaBar_tn,
+             self.st_sigmaBar_n, self.st_re_cap_n, self.st_pe_cap_n,
+             self.st_tax_ss, _st_ss_thresh_n) = tax_state.st_taxParams(
+                self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs)
 
         self._adjustParameters(self.gamma_n, self.MAGI_n)
         self._buildOffsetMap(myoptions)
@@ -3489,6 +3601,7 @@ class Plan:
                + self.T_n
                + self.U_n
                + self.J_n
+               + self.st_T_n
                + self.m_n + self.M_n
                + self.aca_costs_n
                + self.debt_payments_n)
@@ -4450,7 +4563,7 @@ class Plan:
         """
         Recompute SS taxability fractions using the IRS provisional income (PI) formula.
 
-        Delegates to tax2026.compute_social_security_taxability() for the pure tax
+        Delegates to tax_federal.compute_social_security_taxability() for the pure tax
         computation. A 30% damping blend is applied here to damp potential oscillation
         near threshold boundaries and ensure SC-loop convergence.
 
@@ -4656,6 +4769,14 @@ class Plan:
         # Stop after building minimum required for self-consistent loop.
         if short:
             return
+
+        # Extract state income tax.
+        if "st_f" in vm:
+            self.st_f_tn = vm["st_f"].extract(x)
+            self.st_T_tn = self.st_f_tn * self.st_theta_tn
+            self.st_T_n = np.sum(self.st_T_tn, axis=0)
+        else:
+            self.st_T_n = np.zeros(Nn)
 
         self.T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(self.T_tn, axis=0)
@@ -5187,15 +5308,16 @@ class Plan:
         the default behavior of setDefaultPlots().
         """
         value = self._checkValueType(value)
-        title = self._name + "\nFederal Income Tax"
+        title = self._name + "\nIncome Tax"
         if tag:
             title += " - " + tag
-        # All taxes: ordinary income, dividends, and NIIT.
+        # All taxes: ordinary income, dividends, NIIT, and state income tax.
         allTaxes = self.T_n + self.U_n + self.J_n
         aca_n = self.aca_costs_n if self.slcsp_annual > 0 else None
+        st_n = self.st_T_n if self.state else None
         fig = self._plotter.plot_taxes(
             self.year_n, allTaxes, self.m_n + self.M_n, self.gamma_n,
-            value, title, self.inames, A_n=aca_n
+            value, title, self.inames, A_n=aca_n, ST_n=st_n
         )
         if figure:
             return fig

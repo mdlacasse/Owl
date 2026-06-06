@@ -8,6 +8,7 @@ sexes = [ "M", "F",]
 date_of_birth = [ "1959-01-15", "1960-01-15",]
 life_expectancy = [ 92, 93,]
 start_date = "2026-01-01"
+state = "MN"
 
 [savings_assets]
 taxable_savings_balances = [ 1_000.0, 100.0,]

@@ -58,6 +58,7 @@ class BasicInfo(BaseModel):
     life_expectancy: List[int] = Field(default=[89], description="Life expectancy in years")
     sexes: Optional[List[str]] = Field(default=None, description="Biological sex per individual: 'M' or 'F'")
     start_date: Optional[str] = Field(default="today", description="Plan start date")
+    state: str = Field(default="", description="Two-letter US state abbreviation (e.g. 'MN'). Empty = no state tax.")
 
 
 class SavingsAssets(BaseModel):

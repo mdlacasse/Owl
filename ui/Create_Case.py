@@ -29,6 +29,12 @@ import tomlexamples as tomlex
 import case_progress as cp
 
 
+@st.cache_data
+def _state_choices():
+    from owlplanner import tax_state as _ts
+    return [""] + _ts.valid_states()
+
+
 def _loadHFPExample(file):
     if file:
         hfp_name = tomlex.getHFPName(file)
@@ -103,7 +109,7 @@ else:
 
     st.markdown("#### :orange[Description and Life Parameters]")
     casemsg = "Case name can be changed by editing it directly."
-    col1, col2 = st.columns(2, gap="large")
+    col1, col2, col3 = st.columns((2, 1, 1), gap="large")
     with col1:
         kz.storeGlobalKey("caseNewName", kz.currentCaseName())
         name = st.text_input(
@@ -129,6 +135,16 @@ else:
             args=["status"],
             horizontal=True,
         )
+    kz.initCaseKey("state", "")
+    _state_help = (
+        "Two-letter US state abbreviation for state income tax modeling. "
+        "Leave blank to model federal taxes only. "
+        "No-income-tax states (AK, FL, NV, NH, SD, TN, TX, WA, WY) are accepted and produce zero state tax."
+    )
+    with col3:
+        kz.getSelectbox("State of residence (for state taxes)", _state_choices(), "state",
+                        help=_state_help)
+
 
     kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."

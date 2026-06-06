@@ -175,13 +175,13 @@ def test_ltcg_lp_nonnegative():
 
 def test_ltcg_lp_matches_capital_gain_tax():
     """
-    Cross-validate LP LTCG tax U_n against tax2026.capitalGainTax().
+    Cross-validate LP LTCG tax U_n against tax_federal.capitalGainTax().
 
     Given a solved plan with G_n (ordinary taxable income) and Q_n (LTCG + qualified
     dividends), the LP-derived U_n should match the reference capitalGainTax computation
     for years with positive Q_n.
     """
-    from owlplanner import tax2026 as tx
+    from owlplanner import tax_federal as tx
 
     p = _make_single_plan('ltcg_crossval', taxable=2000, tax_deferred=500, tax_free=0)
     p.solve('maxSpending', {'withMedicare': 'None'})
@@ -191,7 +191,7 @@ def test_ltcg_lp_matches_capital_gain_tax():
 
 def test_ltcg_lp_matches_capital_gain_tax_couple():
     """Cross-validate LP U_n vs capitalGainTax for a couple (MFJ→Single at n_d)."""
-    from owlplanner import tax2026 as tx
+    from owlplanner import tax_federal as tx
 
     p = _make_couple_plan(
         'ltcg_crossval_couple',
@@ -230,7 +230,7 @@ def _assert_ltcg_matches_ref(plan, tax_module):
             plan.U_n[has_ltcg],
             ref_cg_tax[has_ltcg],
             atol=1.0,
-            err_msg="LP U_n does not match tax2026.capitalGainTax()",
+            err_msg="LP U_n does not match tax_federal.capitalGainTax()",
         )
 
 
@@ -268,7 +268,7 @@ class TestLTCGMilp:
 
     def test_ltcg_milp_q0_room_constraint(self):
         """q[0,n] ≤ max(0, T15_n - G_n) for all years."""
-        from owlplanner import tax2026 as tx
+        from owlplanner import tax_federal as tx
         p = self._solve_milp()
         assert p.caseStatus == 'solved'
         n_d = p.n_d

@@ -28,7 +28,7 @@ import pytest
 from datetime import date
 
 import owlplanner as owl
-from owlplanner import tax2026 as tx
+from owlplanner import tax_federal as tx
 
 
 def _make_couple_plan(name, taxable, tax_deferred, tax_free, ss_pias, ss_ages,
