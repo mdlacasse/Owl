@@ -67,14 +67,14 @@ plan.showAssetComposition()
 Two summary charts give a high-level view of the lifetime cash flow in today's dollars.
 `showLifetimeAllocation()` displays a pair of pie charts: the left shows where money comes from
 (portfolio withdrawals, Social Security, pension, wages, SPIA, and other income), and the right
-shows where it goes (living expenses, taxes, healthcare, debt payments, and bequest).
+shows where it goes (living expenses, federal taxes, state taxes when configured, healthcare, debt payments, and bequest).
 ```python
 plan.showLifetimeAllocation()
 ```
 
 `showCashFlowMix()` complements the pie charts with year-by-year normalized stacked-area charts
 showing how the composition of income sources and outflows evolves over the plan horizon.
-Colors are consistent with the lifetime allocation pie charts for easy cross-reference.
+Colors are consistent with the lifetime allocation pie charts for easy cross-reference, including a separate State taxes band when configured.
 Bequest is excluded since it is a lump-sum event rather than an annual flow.
 ```python
 plan.showCashFlowMix()

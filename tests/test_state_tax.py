@@ -190,7 +190,31 @@ def test_couple_filing_status_transition():
 
 
 # ---------------------------------------------------------------------------
-# Task 8: Retirement income exemption
+# Task 8: Cash-flow chart state_taxes slice
+# ---------------------------------------------------------------------------
+
+def test_cashflow_charts_include_state_taxes():
+    """lifetime_allocation and annual_cashflow_mix expose state_taxes separately from federal taxes."""
+    p = _make_plan("MN")
+    p.solve("maxSpending", options={"verbose": False})
+    inv_g = 1.0 / p.gamma_n[:p.N_n]
+    expected_state = float(np.sum(p.st_T_n * inv_g))
+    expected_federal = float(np.sum((p.T_n + p.U_n + p.J_n) * inv_g))
+
+    alloc = p.lifetime_allocation()
+    assert alloc["outflows"]["state_taxes"] == pytest.approx(expected_state, rel=1e-6)
+    assert alloc["outflows"]["taxes"] == pytest.approx(expected_federal, rel=1e-6)
+    assert alloc["outflows"]["state_taxes"] > 0
+
+    mix = p.annual_cashflow_mix()
+    np.testing.assert_allclose(mix["outflows"]["state_taxes"], p.st_T_n * inv_g, rtol=1e-6)
+    np.testing.assert_allclose(
+        mix["outflows"]["taxes"], (p.T_n + p.U_n + p.J_n) * inv_g, rtol=1e-6,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Task 9: Retirement income exemption
 # ---------------------------------------------------------------------------
 
 def test_retirement_income_exemption():

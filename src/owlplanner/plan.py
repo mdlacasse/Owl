@@ -625,7 +625,7 @@ class Plan:
         Return lifetime cash flow breakdown in today's dollars as two dicts.
 
         Returns a dict with keys:
-          'outflows'  — {living, taxes, healthcare, debt, bequest}
+          'outflows'  — {living, taxes, state_taxes, healthcare, debt, bequest}
           'income'    — {portfolio, ss, pension, wages, spia, other}
           'total'     — total lifetime outflows (today's $)
 
@@ -642,6 +642,7 @@ class Plan:
         outflows = {
             "living":     float(np.sum(self.g_n * inv_g)),
             "taxes":      float(np.sum((self.T_n + self.U_n + self.J_n) * inv_g)),
+            "state_taxes": float(np.sum(self.st_T_n * inv_g)),
             "healthcare": float(np.sum((self.m_n + self.M_n + self.aca_costs_n) * inv_g)),
             "debt":       float(np.sum(self.debt_payments_n * inv_g)),
             "bti":        bti_out,
@@ -673,7 +674,7 @@ class Plan:
         Return year-by-year cash flow breakdown in today's dollars.
 
         Returns a dict with keys:
-          'outflows' — {living, taxes, healthcare, debt}  (arrays of length N_n)
+          'outflows' — {living, taxes, state_taxes, healthcare, debt}  (arrays of length N_n)
           'income'   — {ss, pension, wages, spia, other, portfolio}  (arrays of length N_n)
           'year_n'   — calendar year array
 
@@ -688,6 +689,7 @@ class Plan:
         outflows = {
             "living":     self.g_n * inv_g,
             "taxes":      (self.T_n + self.U_n + self.J_n) * inv_g,
+            "state_taxes": self.st_T_n * inv_g,
             "healthcare": (self.m_n + self.M_n + self.aca_costs_n) * inv_g,
             "debt":       self.debt_payments_n * inv_g,
             "bti":        np.maximum(0.0, -Lambda_n),

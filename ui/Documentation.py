@@ -1379,11 +1379,14 @@ Graphs are organized into four tabs:
 **Spending** — income and cash-flow perspective:
 - *Lifetime Cash Flow* — pair of pie charts (in today's \\$): left shows where money comes from
   (portfolio, Social Security, pension, wages, SPIA, other); right shows where it goes
-  (living expenses, taxes, healthcare, debt, bequest).
+  (living expenses, federal taxes, state taxes when configured, healthcare, debt, bequest).
+  *Taxes* is federal only (ordinary income, LTCG/dividends, NIIT); *State taxes* appears as a
+  separate slice when a state of residence is configured.
   *Healthcare* covers insurance premiums only (Medicare Part B/D + IRMAA surcharges, ACA marketplace premiums);
   non-Medicare qualified medical expenses (QMEs) are embedded in the *living expenses* slice.
 - *Annual Cash Flow Mix* — year-by-year normalized stacked-area charts showing how the composition
-  of income sources and outflows evolves over the plan horizon. Colors match the pie charts.
+  of income sources and outflows evolves over the plan horizon. Colors match the pie charts,
+  including a separate *State taxes* band when configured.
   Bequest is excluded as it is a lump-sum event rather than an annual flow.
 - *Net Available Spending* — year-by-year spending trajectory.
 - *Income, Big-Ticket Items, and Debts* — stacked breakdown of income sources (wages, Social Security, pension, withdrawals, etc.), big-ticket item cash flows, and debt payments.

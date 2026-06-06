@@ -54,6 +54,7 @@ _INCOME_COLORS = {
 _OUTFLOW_COLORS = {
     "living":     "#2196F3",
     "taxes":      "#F44336",
+    "state_taxes": "#C62828",
     "healthcare": "#FF9800",
     "debt":       "#9E9E9E",
     "bti":        "#FF6F00",
@@ -845,6 +846,7 @@ class MatplotlibBackend(PlotBackend):
         outflow_labels_map = {
             "living":     "Living expenses",
             "taxes":      "Taxes",
+            "state_taxes": "State taxes",
             "healthcare": "Healthcare",
             "debt":       "Debt payments",
             "bti":        "Big-ticket items",
@@ -902,6 +904,7 @@ class MatplotlibBackend(PlotBackend):
         outflow_labels = {
             "living":     "Living expenses",
             "taxes":      "Taxes",
+            "state_taxes": "State taxes",
             "healthcare": "Healthcare",
             "debt":       "Debt payments",
             "bti":        "Big-ticket items",
