@@ -36,7 +36,10 @@ the federal filing-status transition already in the optimizer.
 **UI:** State selectbox added to the **Create Case** page.
 **Output:** State tax appears as a separate series in `showTaxes()`, as a standalone line in
 the plan summary (*Total state income tax paid*), and as a *State tx* column in the
-federal income tax worksheet.
+income tax worksheet.
+
+**Worksheet renamed:** The *Federal Income Tax* worksheet in the plan workbook is now called
+*Income Tax*, reflecting that it includes both federal and state tax detail.
 
 #### 2026 state tax data audit
 

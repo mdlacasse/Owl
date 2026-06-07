@@ -106,6 +106,7 @@ Prefix each commit message with a category tag:
 | `[test]` | Tests only |
 | `[ui]` | Streamlit UI changes |
 | `[refactor]` | Code restructuring with no behaviour change |
+| `[maint]` | Maintenance: renames, baseline updates, housekeeping |
 | `[build]` | Build system, packaging, or dependency changes |
 | `[bump]` | Version number update |
 | `[lint]` | Code linting |

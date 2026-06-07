@@ -294,8 +294,8 @@ def _format_fixed_assets_sheet(ws):
     })
 
 
-def _format_federal_income_tax_sheet(ws):
-    """Format Federal Income Tax sheet: currency for $ columns, percent for SS % taxed."""
+def _format_income_tax_sheet(ws):
+    """Format Income Tax sheet: currency for $ columns, percent for SS % taxed."""
     _format_col_sheet(ws, col_formats={
         "year": "0",
         "SS % taxed": "#.0%",
@@ -804,7 +804,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         TxDic["State tx"] = plan.st_T_n
     ss_n = np.sum(plan.zetaBar_in, axis=0)
     TxDic["SS % taxed"] = np.where(ss_n > 0, plan.Psi_n, 0)
-    ws = wb.create_sheet("Federal Income Tax")
+    ws = wb.create_sheet("Income Tax")
     rawData = {"year": plan.year_n}
     for key in TxDic:
         if key == "SS % taxed":
@@ -816,10 +816,10 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
             rawData[key] = u.roundCents(val)
     df = pd.DataFrame(rawData)
     if plan.worksheetShowAges and "year" in df.columns:
-        df = _insert_age_cols_into_df(df, plan, "Federal Income Tax")
+        df = _insert_age_cols_into_df(df, plan, "Income Tax")
     for row in dataframe_to_rows(df, index=False, header=True):
         ws.append(row)
-    _format_federal_income_tax_sheet(ws)
+    _format_income_tax_sheet(ws)
     if plan.worksheetShowAges:
         _format_age_cols_in_ws(ws)
 

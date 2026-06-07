@@ -6,7 +6,7 @@ Coverage targets:
   - _format_spreadsheet() — all branches including "summary" and error path
   - _format_col_sheet() — default_fmt, lowercase flag, column widths, header style
   - _format_debts_sheet() / _format_fixed_assets_sheet() — column format mapping
-  - _format_federal_income_tax_sheet() — default_fmt fallback (SS % taxed / currency mix)
+  - _format_income_tax_sheet() — default_fmt fallback (SS % taxed / currency mix)
   - plan_to_excel() / saveWorkbook() — sheet names, with_config options
   - build_summary_dic() — partial-bequest, final-bequest, and debt branches
   - plan_to_csv() — file written with expected columns
@@ -39,7 +39,7 @@ from owlplanner.export import (
     _FORMAT_STRINGS,
     _format_col_sheet,
     _format_debts_sheet,
-    _format_federal_income_tax_sheet,
+    _format_income_tax_sheet,
     _format_fixed_assets_sheet,
     _format_spreadsheet,
     build_summary_dic,
@@ -288,33 +288,33 @@ def test_format_fixed_assets_sheet_unlisted_column_unchanged():
 
 
 # ---------------------------------------------------------------------------
-# _format_federal_income_tax_sheet
+# _format_income_tax_sheet
 # ---------------------------------------------------------------------------
 
-def test_format_federal_income_tax_year_is_integer():
+def test_format_income_tax_year_is_integer():
     ws = make_ws(["year", "SS % taxed", "total tax"], [[2026, 0.85, 12000]])
-    _format_federal_income_tax_sheet(ws)
+    _format_income_tax_sheet(ws)
     assert cell_fmt(ws, "A") == "0"
 
 
-def test_format_federal_income_tax_ss_percent_col_is_percent_format():
+def test_format_income_tax_ss_percent_col_is_percent_format():
     ws = make_ws(["year", "SS % taxed", "total tax"], [[2026, 0.85, 12000]])
-    _format_federal_income_tax_sheet(ws)
+    _format_income_tax_sheet(ws)
     assert cell_fmt(ws, "B") == "#.0%"
 
 
-def test_format_federal_income_tax_other_cols_get_currency_default():
+def test_format_income_tax_other_cols_get_currency_default():
     # Columns not in col_formats get the default_fmt (currency)
     ws = make_ws(["year", "SS % taxed", "total tax", "LTCG tax"], [[2026, 0.85, 12000, 3000]])
-    _format_federal_income_tax_sheet(ws)
+    _format_income_tax_sheet(ws)
     assert cell_fmt(ws, "C") == "$#,##0_);[Red]($#,##0)"
     assert cell_fmt(ws, "D") == "$#,##0_);[Red]($#,##0)"
 
 
-def test_format_federal_income_tax_case_sensitive_ss_col():
+def test_format_income_tax_case_sensitive_ss_col():
     # lowercase=False: "ss % taxed" (wrong case) should NOT match "SS % taxed"
     ws = make_ws(["year", "ss % taxed", "total tax"], [[2026, 0.85, 12000]])
-    _format_federal_income_tax_sheet(ws)
+    _format_income_tax_sheet(ws)
     # "ss % taxed" (lowercase) doesn't match "SS % taxed" key → gets default_fmt
     assert cell_fmt(ws, "B") == "$#,##0_);[Red]($#,##0)"
 
@@ -332,7 +332,7 @@ def test_save_workbook_returns_workbook_object(joe_plan):
 def test_save_workbook_has_core_sheets(joe_plan):
     wb = joe_plan.saveWorkbook(saveToFile=False)
     titles = {ws.title for ws in wb.worksheets}
-    for expected in ("Income", "Cash Flow", "HSA", "Federal Income Tax", "Rates", "Summary"):
+    for expected in ("Income", "Cash Flow", "HSA", "Income Tax", "Rates", "Summary"):
         assert expected in titles, f"Missing sheet: {expected}"
 
 
@@ -366,25 +366,25 @@ def test_save_workbook_with_config_invalid_raises(joe_plan):
         joe_plan.saveWorkbook(saveToFile=False, with_config="invalid")
 
 
-def test_save_workbook_federal_income_tax_has_ss_percent_col(alex_jamie_plan):
+def test_save_workbook_income_tax_has_ss_percent_col(alex_jamie_plan):
     wb = alex_jamie_plan.saveWorkbook(saveToFile=False)
-    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Federal Income Tax")
+    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Income Tax")
     headers = [cell.value for cell in tax_ws[1]]
     assert "SS % taxed" in headers
 
 
-def test_save_workbook_federal_income_tax_ss_col_format(alex_jamie_plan):
+def test_save_workbook_income_tax_ss_col_format(alex_jamie_plan):
     wb = alex_jamie_plan.saveWorkbook(saveToFile=False)
-    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Federal Income Tax")
+    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Income Tax")
     headers = [cell.value for cell in tax_ws[1]]
     ss_col_letter = get_column_letter(headers.index("SS % taxed") + 1)
     ss_fmt = cell_fmt(tax_ws, ss_col_letter)
     assert ss_fmt == "#.0%"
 
 
-def test_save_workbook_federal_income_tax_currency_col_format(alex_jamie_plan):
+def test_save_workbook_income_tax_currency_col_format(alex_jamie_plan):
     wb = alex_jamie_plan.saveWorkbook(saveToFile=False)
-    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Federal Income Tax")
+    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Income Tax")
     headers = [cell.value for cell in tax_ws[1]]
     # "total" column should get default currency format
     total_col_letter = get_column_letter(headers.index("total") + 1)

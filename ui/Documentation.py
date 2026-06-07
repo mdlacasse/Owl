@@ -69,10 +69,10 @@ to visualize the results.
 A `Case selector` box located at the top of each page allows you
 to navigate between the different cases created.
 This box is present on all pages in **Case Setup** and **Results** sections.
-The *case* being currently displayed is marked with a small red triangle.
+The *case* being currently displayed is marked with a small red triangle 🔻.
 
 A typical workflow for exploring different cases involves starting with a base
-case and then copying+creating derived cases with slight changes in the parameters.
+case and then copying + creating derived cases with slight changes in the parameters.
 A comparison between the different resulting outcomes can be found on the **Reports** page.
 The **Typical Workflow** section (Tips tab) goes through a specific example.
 
@@ -95,7 +95,7 @@ For better describing the flow of information, we provide here a few definitions
         st.markdown("""
 **Case**
 > A *case* is a complete planning configuration that fully specifies an optimization problem.
-It contains the individual's demographics, savings account balances, asset allocation ratios,
+It contains the individual's demographics, state of residence, savings account balances, asset allocation ratios,
 fixed income sources (Social Security, pensions), spending goals, Roth conversion strategy,
 solver options, and structural tax-law assumptions (brackets, Medicare rules, etc.).
 It also includes the rate method and its parameters; for deterministic methods (constant presets or
@@ -107,11 +107,11 @@ debts, and fixed assets) are held in an optional ancillary *Household Financial 
 
 **Household Financial Profile**
 > A *Household Financial Profile* (HFP) is an
-optional Excel workbook with one **Wages and Contributions** sheet per person (exact column headers required; see *Input and Output Files*)
+optional Excel workbook with one **Wages and Contributions** sheet per person
 and optional household sheets *Debts* and *Fixed Assets*. Time-series fields include wages, *other inc*, *net inv*,
 tax-deferred and Roth contributions (*ctrb* columns), *HSA ctrb*, *Roth conv*, and *big-ticket items*.
 When no HFP is provided, wages and contributions are assumed to be zero.
-See *Input and Output Files* and *Financial Profile* below for full detail.
+See *Input and Output Files* below and *Case Setup* -> *Financial Profile* below for more detail.
 
 **Scenario**
 > A *scenario* is a specific realization of future economic conditions — primarily a year-by-year
@@ -128,7 +128,8 @@ optimized results: spending plan, account trajectories, tax breakdown, etc.
 For deterministic *cases*, a single *run* yields one result.
 For stochastic *cases*, a Monte Carlo or Historical Range analysis runs the same *case* across
 many *scenarios* and aggregates the results.
-The Graphs and Worksheets pages show the output of the most recent *run*.
+The Graphs and Worksheets pages show the output of the most recent single *run*,
+while the *Stress Tests* tab groups methods running on an ensemble of scenarios.
 
 The three concepts form a natural hierarchy: a ***case*** is configured and stored;
 a ***scenario*** provides the economic realization; a ***run*** solves the optimization and produces results.
@@ -218,7 +219,7 @@ show the differences between cases for a quick side-by-side comparison.
 **`Workbook_<case_name>.xlsx`** — *Plan workbook*
 
 The primary numerical output of a solved *case*. Contains one worksheet per topic,
-all indexed by year:
+most indexed by year:
 - **Income** — net spending, taxable ordinary income, taxable capital gains and dividends,
   total tax bills and Medicare premiums.
 - **Cash Flow** — full breakdown of household inflows and outflows that balance to net spending.
@@ -232,10 +233,13 @@ all indexed by year:
 - **`<individual>`'s Accounts** *(one sheet per individual)* — balances, contributions,
   deposits, withdrawals, and Roth conversions for each of the four account types
   (taxable, tax-deferred, tax-free, HSA).
-- **Federal Income Tax** — income allocated to each tax bracket, NIIT, LTCG tax,
-  early-withdrawal penalty, and the fraction of Social Security that is taxable.
+- **Income Tax** — income allocated to each federal tax bracket, NIIT, LTCG tax,
+  early-withdrawal penalty, state income tax (when applicable), and the fraction of Social Security that is taxable.
 - **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
   (stocks, corporate bonds, T-notes, cash assets) for each account type over time.
+- **Rates** — year-by-year return rates used in this run (stocks, bonds, T-notes, cash assets).
+- **Summary** — aggregate totals over the planning horizon: spending, taxes, Medicare,
+  Roth conversions, and bequests (not indexed by year).
 """)
 
 # --- Case Setup tab ---
@@ -1440,10 +1444,10 @@ Worksheets are organized into four tabs:
   to mark actionable items for the current year.
 - *Household Sources* — fixed-asset proceeds (ordinary income, capital gains, tax-free) and debt payments.
 
-**Income & Taxes** — income summary and federal tax detail:
+**Income & Taxes** — income summary and tax detail:
 - *Income* — net spending, taxable ordinary income, taxable capital gains and dividends, total tax bills and Medicare.
-- *Federal Income Tax* — income allocated to each bracket, NIIT, LTCG tax, early-withdrawal penalty,
-  and the fraction of Social Security that is taxable.
+- *Income Tax* — income allocated to each federal tax bracket, NIIT, LTCG tax, early-withdrawal penalty,
+  state income tax (when applicable), and the fraction of Social Security that is taxable.
 
 **Allocations & Rates** — asset mix and return rates:
 - *`<individual>`'s Allocations* — asset allocation percentages (stocks, corporate bonds, T-notes, cash assets)

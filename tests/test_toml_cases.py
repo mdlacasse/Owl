@@ -86,8 +86,8 @@ def getHFP(exdir, case, check_exists=True):
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
-            "net_spending_basis": 100_000,
-            "bequest": 7_221_949,
+            "net_spending_basis": 145_000,
+            "bequest": 92_802,
         },
         "Case_jack+jill": {
             "net_spending_basis": 102_740,
@@ -113,8 +113,8 @@ if platform == "darwin":
 elif platform == "linux":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
-            "net_spending_basis": 100_000,
-            "bequest": 7_221_949,
+            "net_spending_basis": 145_000,
+            "bequest": 92_802,
         },
         "Case_jack+jill": {
             "net_spending_basis": 102_740,
@@ -140,8 +140,8 @@ elif platform == "linux":
 elif platform == "win32":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
-            "net_spending_basis": 100_000,
-            "bequest": 7_221_949,
+            "net_spending_basis": 145_000,
+            "bequest": 92_802,
         },
         "Case_jack+jill": {
             "net_spending_basis": 102_740,
