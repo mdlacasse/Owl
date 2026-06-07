@@ -9,25 +9,29 @@
 [![Docker](https://img.shields.io/docker/v/owlplanner/owldocker?label=docker)](https://hub.docker.com/r/owlplanner/owldocker)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://owlplanner.streamlit.app)
 
-## A retirement exploration tool based on mixed-integer linear programming
+## Open-source retirement planning optimizer for tax-efficient withdrawal strategies
+
+*Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator*
 
 <img align="right" src="papers/images/owl.png" width="250">
 
 -------------------------------------------------------------------------------------
 
 ### TL;DR
-Owl is a retirement financial planning tool that uses a
-mixed-integer linear programming optimization algorithm to provide
-guidance on retirement decisions
-such as contributions, withdrawals, Roth conversions, and more.
-Users can select varying return rates to perform historical back testing,
-stochastic rates for performing Monte Carlo analyses,
-or fixed rates either derived from historical averages, or set by the user.
+Owl is an open-source **retirement planning tool** that helps US retirees answer the hardest
+questions in retirement income planning: when to claim Social Security, how much to convert
+to Roth each year, which accounts to withdraw from first, and how to minimize lifetime taxes.
+It uses mixed-integer linear programming to *optimize* withdrawal strategies rather than
+merely simulate them, finding the mathematically best sequence of decisions across all
+accounts simultaneously.
 
-Owl is designed for US retirees as it considers US federal tax laws,
-state income taxes for all 50 states and DC, ACA marketplace premiums (pre-65),
-Medicare premiums, rules for 401k including required minimum distributions,
-maturation rules for Roth accounts and conversions, social security rules, etc.
+Users can stress-test their plan with historical back-testing, Monte Carlo simulation
+with sequence-of-returns risk, or fixed rates derived from historical averages.
+
+Owl covers the full US tax landscape: federal income tax, state income taxes for all
+50 states and DC, long-term capital gains, NIIT, Medicare IRMAA surcharges, ACA marketplace
+premiums, RMDs, and Roth conversion rules — all embedded directly in the optimizer so that
+tax-efficient retirement income planning is built into every result, not applied as an afterthought.
 
 **Key capabilities:**
 - **Tax optimization** — federal + state income tax (all 50 states + DC), LTCG brackets, NIIT, Medicare IRMAA, and ACA premiums all embedded in the optimizer
