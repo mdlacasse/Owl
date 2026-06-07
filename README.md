@@ -37,7 +37,7 @@ maturation rules for Roth accounts and conversions, social security rules, etc.
 - **Pension & SPIA** — pension income with survivor fractions; IRA-funded SPIA with optional CPI indexing and joint-and-survivor benefit
 - **Two objectives** — maximize net spending subject to a bequest floor, or maximize after-tax bequest subject to a spending floor
 - **Spending profile** — flat or smile-curve shape with survivorship factor; optional time-preference discounting to reduce end-of-life back-loading
-- **Asset allocation** — user-specified glide path (linear or s-curve) across four asset classes; per-account, per-individual, or household-wide
+- **Asset allocation** — user-specified glide path (linear or s-curve) across four asset classes (equities, corporate bonds, T-notes, cash); per-account, per-individual, or household-wide
 - **Stochastic analysis** — Monte Carlo with optional longevity risk (mortality tables by sex and category: SSA, VBT, RP-2014, IAM-2012, Pub-2010); spending efficiency frontier tracing the optimal spending vs. shortfall-risk trade-off
 - **Rate models** — 14 models including historical replay, bootstrap, VAR, GARCH-DCC, HMM, GMM, and Gaussian copula
 
