@@ -5,8 +5,7 @@ set -e
 cd ..
 rm -f dist/*.whl dist/*.tar.gz
 
-touch uv.lock
-trap 'rm -f uv.lock' EXIT
-python -m build .
+export UV_PUBLISH_TOKEN=$(python -c "import configparser,pathlib; c=configparser.ConfigParser(); c.read(pathlib.Path.home()/'.pypirc'); print(c['pypi']['password'])")
 
-twine upload --repository pypi dist/*
+uv build
+uv publish
