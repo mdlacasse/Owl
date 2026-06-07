@@ -41,6 +41,9 @@ income tax worksheet.
 **Worksheet renamed:** The *Federal Income Tax* worksheet in the plan workbook is now called
 *Income Tax*, reflecting that it includes both federal and state tax detail.
 
+**Cash flow fix:** State income tax was missing from the *Cash Flow* worksheet and CSV export,
+causing the sheet to not balance when a state is configured. Fixed; test coverage added.
+
 #### 2026 state tax data audit
 
 All 51 jurisdictions in `taxes_state.toml` were verified against official 2026 sources, with

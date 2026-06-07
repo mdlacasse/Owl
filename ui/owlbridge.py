@@ -1072,9 +1072,7 @@ def plotTaxGraphs(plan):
     fig = plan.showTaxes(figure=True)
     if fig:
         has_aca = getattr(plan, "slcsp_annual", 0) > 0
-        st_T_n = getattr(plan, "st_T_n", None)
-        has_state = bool(getattr(plan, "state", "")) and st_T_n is not None and (st_T_n > 0).any()
-        taxes = "Federal and State Taxes" if has_state else "Federal Taxes"
+        taxes = "Income Taxes"
         if has_aca:
             tax_title = f"{taxes}, Medicare (+IRMAA), and ACA"
         else:
@@ -1243,7 +1241,7 @@ def _prepare_worksheet_dataframe(df, plan, sheet_name):
     """
     Optionally drop all-zero numeric columns.
     Age columns are included upstream by plan_to_excel when worksheetShowAges=True.
-    Federal sheet: caller formats ``SS % taxed`` after this returns.
+    Income Tax sheet: caller formats ``SS % taxed`` after this returns.
     """
     dfc = df.copy()
     if plan.worksheetHideZeroColumns and "year" in dfc.columns:
@@ -1281,7 +1279,7 @@ def showWorkbook(plan):
     def _render_sheet(name):
         dollars = any(word in name for word in currencySheets)
         pct_sheets = "Allocations" in name or name == "Rates"
-        federal_tax_sheet = name == "Federal Income Tax"
+        federal_tax_sheet = name == "Income Tax"
 
         ws = wb[name]
         df = pd.DataFrame(ws.values)
@@ -1342,7 +1340,7 @@ def showWorkbook(plan):
             theme_tabs["Accounts"].append(name)
         elif name == "Cash Flow" or "Sources" in name:
             theme_tabs["Cash Flow"].append(name)
-        elif name in ("Income", "Federal Income Tax"):
+        elif name in ("Income", "Income Tax"):
             theme_tabs["Income & Taxes"].append(name)
         elif "Allocations" in name or name == "Rates":
             theme_tabs["Allocations & Rates"].append(name)

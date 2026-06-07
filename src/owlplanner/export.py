@@ -700,6 +700,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "Medicare": -plan.m_n - plan.M_n,
         "ACA premiums": -plan.aca_costs_n,
     }
+    if np.any(plan.st_T_n > 0):
+        cashFlowDic["state taxes"] = -plan.st_T_n
     ws = wb.create_sheet("Cash Flow")
     fillsheet(ws, cashFlowDic, "currency", scale=inv_gamma, sheet_name="Cash Flow")
 
@@ -885,6 +887,8 @@ def plan_to_csv(plan, basename, mylog):
     planData["NIIT"] = -plan.J_n
     planData["Medicare"] = -plan.m_n - plan.M_n
     planData["ACA premiums"] = -plan.aca_costs_n
+    if np.any(plan.st_T_n > 0):
+        planData["state taxes"] = -plan.st_T_n
     planData["QME"] = plan.other_medical_n
     planData["HSA total wdrwl"] = np.sum(plan.w_ijn[:, 3, :], axis=0)
     planData["HSA→Medicare"] = plan.hsa_medicare_n

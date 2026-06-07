@@ -45,6 +45,7 @@ def _assert_cashflow_balance(p, atol=1.0):
     lhs = (p.g_n
            + p.s_n
            + p.T_n
+           + p.st_T_n
            + p.U_n
            + p.J_n
            + p.m_n + p.M_n
@@ -170,4 +171,13 @@ class TestCashflowBalance:
         """Balance holds for the single-person Bill example case."""
         p = owl.readConfig('examples/Case_bill.toml')
         p.solve('maxSpending')
+        _assert_cashflow_balance(p)
+
+    def test_with_state_tax(self):
+        """Balance holds when state income tax is configured."""
+        p = _make_single('state_tax', taxable=[100], tax_deferred=[500],
+                         tax_free=[200], ss_pia=[1800], ss_age=[67])
+        p.setStateTax('MN')
+        p.solve('maxSpending')
+        assert np.any(p.st_T_n > 0), "Expected non-zero state taxes for MN"
         _assert_cashflow_balance(p)
