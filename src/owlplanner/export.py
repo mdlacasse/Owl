@@ -803,7 +803,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     TxDic["LTCG tax"] = plan.U_n
     TxDic["10% penalty"] = plan.P_n
     if np.any(plan.st_T_n > 0):
-        TxDic["State tx"] = plan.st_T_n
+        TxDic["State tax"] = plan.st_T_n
     ss_n = np.sum(plan.zetaBar_in, axis=0)
     TxDic["SS % taxed"] = np.where(ss_n > 0, plan.Psi_n, 0)
     ws = wb.create_sheet("Income Tax")
