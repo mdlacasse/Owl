@@ -25,11 +25,23 @@ stochastic rates for performing Monte Carlo analyses,
 or fixed rates either derived from historical averages, or set by the user.
 
 Owl is designed for US retirees as it considers US federal tax laws,
-ACA marketplace premiums (pre-65), Medicare premiums, rules for 401k including
-required minimum distributions, maturation rules for Roth accounts and conversions,
-social security rules, etc.
+state income taxes for all 50 states and DC, ACA marketplace premiums (pre-65),
+Medicare premiums, rules for 401k including required minimum distributions,
+maturation rules for Roth accounts and conversions, social security rules, etc.
 
-Among open-source retirement planning tools, Owl stands out for its unmatched capabilities and the rigor of its financial modeling. While the full API rewards those willing to invest time, the Streamlit web interface provides an accessible entry point for all users.
+**Key capabilities:**
+- **Tax optimization** — federal + state income tax (all 50 states + DC), LTCG brackets, NIIT, Medicare IRMAA, and ACA premiums all embedded in the optimizer
+- **Account types** — taxable, tax-deferred (401k/IRA), Roth, and HSA accounts with full contribution and withdrawal rules
+- **Roth conversions** — amounts and timing co-optimized with spending and bequest goals
+- **Social Security** — own, spousal, and survivor benefits; optional MILP co-optimization of claiming age (monthly resolution, 62–70)
+- **Pension & SPIA** — pension income with survivor fractions; IRA-funded SPIA with optional CPI indexing and joint-and-survivor benefit
+- **Two objectives** — maximize net spending subject to a bequest floor, or maximize after-tax bequest subject to a spending floor
+- **Spending profile** — flat or smile-curve shape with survivorship factor; optional time-preference discounting to reduce end-of-life back-loading
+- **Asset allocation** — user-specified glide path (linear or s-curve) across four asset classes; per-account, per-individual, or household-wide
+- **Stochastic analysis** — Monte Carlo with optional longevity risk (mortality tables by sex and category: SSA, VBT, RP-2014, IAM-2012, Pub-2010); spending efficiency frontier tracing the optimal spending vs. shortfall-risk trade-off
+- **Rate models** — 14 models including historical replay, bootstrap, VAR, GARCH-DCC, HMM, GMM, and Gaussian copula
+
+Among open-source retirement planning tools, Owl stands out for the breadth and rigor of its financial modeling. While the full API rewards those willing to invest time, the Streamlit web interface provides an accessible entry point for all users.
 
 There are three ways to run Owl (from easiest to more complex):
 
