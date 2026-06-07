@@ -39,10 +39,13 @@ the plan summary (*Total state income tax paid*), and as a *State tx* column in 
 income tax worksheet.
 
 **Worksheet renamed:** The *Federal Income Tax* worksheet in the plan workbook is now called
-*Income Tax*, reflecting that it includes both federal and state tax detail.
+*Taxes*, reflecting that it includes both federal and state tax detail.
 
 **Cash flow fix:** State income tax was missing from the *Cash Flow* worksheet and CSV export,
 causing the sheet to not balance when a state is configured. Fixed; test coverage added.
+
+**Taxes worksheet:** Now includes Medicare+IRMAA and ACA premiums (when applicable) for a
+complete year-by-year view of all optimizer-managed costs.
 
 #### 2026 state tax data audit
 

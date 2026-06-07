@@ -233,7 +233,7 @@ most indexed by year:
 - **`<individual>`'s Accounts** *(one sheet per individual)* — balances, contributions,
   deposits, withdrawals, and Roth conversions for each of the four account types
   (taxable, tax-deferred, tax-free, HSA).
-- **Income Tax** — income allocated to each federal tax bracket, NIIT, LTCG tax,
+- **Taxes** — income allocated to each federal tax bracket, NIIT, LTCG tax,
   early-withdrawal penalty, state income tax (when applicable), and the fraction of Social Security that is taxable.
 - **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
   (stocks, corporate bonds, T-notes, cash assets) for each account type over time.
@@ -1446,7 +1446,7 @@ Worksheets are organized into four tabs:
 
 **Income & Taxes** — income summary and tax detail:
 - *Income* — net spending, taxable ordinary income, taxable capital gains and dividends, total tax bills and Medicare.
-- *Income Tax* — income allocated to each federal tax bracket, NIIT, LTCG tax, early-withdrawal penalty,
+- *Taxes* — income allocated to each federal tax bracket, NIIT, LTCG tax, early-withdrawal penalty,
   state income tax (when applicable), and the fraction of Social Security that is taxable.
 
 **Allocations & Rates** — asset mix and return rates:

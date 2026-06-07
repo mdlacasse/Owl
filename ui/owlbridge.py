@@ -1241,7 +1241,7 @@ def _prepare_worksheet_dataframe(df, plan, sheet_name):
     """
     Optionally drop all-zero numeric columns.
     Age columns are included upstream by plan_to_excel when worksheetShowAges=True.
-    Income Tax sheet: caller formats ``SS % taxed`` after this returns.
+    Taxes sheet: caller formats ``SS % taxed``.
     """
     dfc = df.copy()
     if plan.worksheetHideZeroColumns and "year" in dfc.columns:
@@ -1251,7 +1251,7 @@ def _prepare_worksheet_dataframe(df, plan, sheet_name):
     return dfc
 
 
-def _worksheet_column_config(columns, dollars, pct_sheets, federal_tax_sheet):
+def _worksheet_column_config(columns, dollars, pct_sheets, tax_sheet):
     colfor = {}
     num_format = "%.2f" if pct_sheets else "%.3f"
     for col in columns:
@@ -1259,7 +1259,7 @@ def _worksheet_column_config(columns, dollars, pct_sheets, federal_tax_sheet):
             colfor[col] = st.column_config.NumberColumn(None, format="%d", width="small")
         elif isinstance(col, str) and col.startswith("age ("):
             colfor[col] = st.column_config.NumberColumn(None, format="%d", width="small")
-        elif federal_tax_sheet and col == "SS % taxed":
+        elif tax_sheet and col == "SS % taxed":
             colfor[col] = st.column_config.TextColumn(None)
         elif dollars:
             colfor[col] = st.column_config.NumberColumn(None, format="accounting", step=1)
@@ -1279,7 +1279,7 @@ def showWorkbook(plan):
     def _render_sheet(name):
         dollars = any(word in name for word in currencySheets)
         pct_sheets = "Allocations" in name or name == "Rates"
-        federal_tax_sheet = name == "Income Tax"
+        tax_sheet = name == "Taxes"
 
         ws = wb[name]
         df = pd.DataFrame(ws.values)
@@ -1287,7 +1287,7 @@ def showWorkbook(plan):
         df = df[1:]
         df.columns = new_header
 
-        if federal_tax_sheet:
+        if tax_sheet:
             df = _prepare_worksheet_dataframe(df, plan, name)
             if "SS % taxed" in df.columns:
                 df = df.copy()
@@ -1295,7 +1295,7 @@ def showWorkbook(plan):
         else:
             df = _prepare_worksheet_dataframe(df, plan, name)
 
-        colfor = _worksheet_column_config(df.columns, dollars, pct_sheets, federal_tax_sheet)
+        colfor = _worksheet_column_config(df.columns, dollars, pct_sheets, tax_sheet)
 
         with st.expander(f"***{name}***", expanded=expand_all):
             if "Accounts" in name:
@@ -1319,10 +1319,10 @@ def showWorkbook(plan):
                 "blank after an individual's plan horizon."
             ) if plan.worksheetShowAges else ""
 
-            if federal_tax_sheet:
+            if tax_sheet:
                 cap = (
                     f"Values are in {dollar_label}, rounded to the nearest dollar. "
-                    "SS % taxed is the fraction of Social Security benefits subject to federal tax."
+                    "SS % taxed is the fraction of Social Security benefits subject to federal income tax."
                 )
                 st.caption(cap + age_note)
             elif dollars:
@@ -1340,7 +1340,7 @@ def showWorkbook(plan):
             theme_tabs["Accounts"].append(name)
         elif name == "Cash Flow" or "Sources" in name:
             theme_tabs["Cash Flow"].append(name)
-        elif name in ("Income", "Income Tax"):
+        elif name in ("Income", "Taxes"):
             theme_tabs["Income & Taxes"].append(name)
         elif "Allocations" in name or name == "Rates":
             theme_tabs["Allocations & Rates"].append(name)

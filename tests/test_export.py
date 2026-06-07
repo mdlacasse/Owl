@@ -332,7 +332,7 @@ def test_save_workbook_returns_workbook_object(joe_plan):
 def test_save_workbook_has_core_sheets(joe_plan):
     wb = joe_plan.saveWorkbook(saveToFile=False)
     titles = {ws.title for ws in wb.worksheets}
-    for expected in ("Income", "Cash Flow", "HSA", "Income Tax", "Rates", "Summary"):
+    for expected in ("Income", "Cash Flow", "HSA", "Taxes", "Rates", "Summary"):
         assert expected in titles, f"Missing sheet: {expected}"
 
 
@@ -368,14 +368,14 @@ def test_save_workbook_with_config_invalid_raises(joe_plan):
 
 def test_save_workbook_income_tax_has_ss_percent_col(alex_jamie_plan):
     wb = alex_jamie_plan.saveWorkbook(saveToFile=False)
-    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Income Tax")
+    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Taxes")
     headers = [cell.value for cell in tax_ws[1]]
     assert "SS % taxed" in headers
 
 
 def test_save_workbook_income_tax_ss_col_format(alex_jamie_plan):
     wb = alex_jamie_plan.saveWorkbook(saveToFile=False)
-    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Income Tax")
+    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Taxes")
     headers = [cell.value for cell in tax_ws[1]]
     ss_col_letter = get_column_letter(headers.index("SS % taxed") + 1)
     ss_fmt = cell_fmt(tax_ws, ss_col_letter)
@@ -384,7 +384,7 @@ def test_save_workbook_income_tax_ss_col_format(alex_jamie_plan):
 
 def test_save_workbook_income_tax_currency_col_format(alex_jamie_plan):
     wb = alex_jamie_plan.saveWorkbook(saveToFile=False)
-    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Income Tax")
+    tax_ws = next(ws for ws in wb.worksheets if ws.title == "Taxes")
     headers = [cell.value for cell in tax_ws[1]]
     # "total" column should get default currency format
     total_col_letter = get_column_letter(headers.index("total") + 1)
