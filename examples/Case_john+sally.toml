@@ -37,7 +37,7 @@ social_security_ages = [ 67.0, 67.0,]
 heirs_rate_on_tax_deferred_estate = 30.0
 dividend_rate = 1.80
 obbba_expiration_year = 2032
-method = "historical_average"
+method = "conservative"
 from = 1990
 to = 2023
 
@@ -54,7 +54,7 @@ surviving_spouse_spending_percent = 60
 objective = "maxBequest"
 
 [solver_options]
-netSpending = 100
+netSpending = 145
 maxRothConversion = 200
 noRothConversions = "none"
 startRothConversions = 2026
