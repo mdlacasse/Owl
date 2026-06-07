@@ -20,6 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import platform
 from pathlib import Path
 
 import streamlit as st
@@ -34,7 +35,9 @@ with col1:
     st.markdown("# :material/info: About Owl")
     st.markdown("### Owl - *Optimal wealth lab*")
     kz.divider("orange")
-    st.markdown(f"**Version {owb.version()}** on Streamlit **{st.__version__}**")
+    st.markdown(
+        f"**Version {owb.version()}** on Streamlit **{st.__version__}** and Python **{platform.python_version()}**"
+    )
     st.markdown("### :orange[The **Owl** Retirement Planner]")
     st.markdown("""
 ##### A retirement financial exploration tool based on linear programming
