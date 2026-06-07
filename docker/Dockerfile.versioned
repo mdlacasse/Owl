@@ -16,7 +16,10 @@ USER owl
 RUN rm -rf /app/owl
 RUN git clone --depth 1 https://github.com/mdlacasse/Owl.git owl
 
-RUN cd /app/owl && uv venv && grep -vi mosek requirements.txt | uv pip install --no-cache-dir -r /dev/stdin
+# Install from uv.lock, skipping the dev group and MOSEK (no license shipped in the image).
+# --no-install-package overrides owlplanner's hard dependency on mosek; uv.lock is unchanged,
+# so the cloud (uv-sync) still gets MOSEK. App falls back to HiGHS gracefully when mosek is absent.
+RUN cd /app/owl && uv sync --frozen --no-dev --no-install-package mosek --no-cache
 
 EXPOSE 8501
 
