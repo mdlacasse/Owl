@@ -321,14 +321,16 @@ to estimate {iname1}'s PIA.""")
             help="Percentage of benefit paid to surviving spouse. 0 = single-life annuity.",
         )
 
-    edited = st.data_editor(
-        spiadf,
-        column_config=col_config,
-        num_rows="dynamic",
-        width="content",
-        key=kz.genCaseKey("spia_editor"),
-        hide_index=True,
-    )
+    col1, col2 = st.columns((2, 1), gap="small", vertical_alignment="top")
+    with col1:
+        edited = st.data_editor(
+            spiadf,
+            column_config=col_config,
+            num_rows="dynamic",
+            width="stretch",
+            key=kz.genCaseKey("spia_editor"),
+            hide_index=True,
+        )
 
     if not spiadf.equals(edited):
         kz.setCaseKey("spiaDF", owb.conditionSpiaDF(edited, is_married))

@@ -2,6 +2,12 @@
 
 ### Version 2026.6.7
 
+#### Python
+
+Pinned version to 3.14 for Streamlit Cloud Server and uv deployment.
+However, versions >= 3.11 are fine for owlplanner package.
+Docker containers are using an image with Python 3.14.
+
 #### State income tax
 
 State income tax brackets are now embedded directly in the LP alongside federal taxes,
