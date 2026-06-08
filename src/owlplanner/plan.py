@@ -47,7 +47,7 @@ from . import fixedassets as fxasst
 from . import mylogging as log
 from .config.plan_bridge import clone                                         # noqa: F401
 from .plotting.factory import PlotFactory
-from .rate_models.constants import HISTORICAL_RANGE_METHODS
+from .rate_models.constants import CONSTRAIN_MEAN_METHODS, HISTORICAL_RANGE_METHODS
 from .stresstests import run_historical_range, run_mc, run_stochastic_spending
 from .varmap import VarMap
 
@@ -984,6 +984,13 @@ class Plan:
 
         # Include any additional keyword arguments
         model_config.update(kwargs)
+
+        if model_config.get("constrain_mean") and method not in CONSTRAIN_MEAN_METHODS:
+            self.mylog.print(
+                f"constrain_mean=True has no effect for rate method '{method}'. "
+                f"Supported methods: {', '.join(CONSTRAIN_MEAN_METHODS)}.",
+                tag="WARNING",
+            )
 
         if method == "dataframe":
             model_config["n_years"] = self.N_n

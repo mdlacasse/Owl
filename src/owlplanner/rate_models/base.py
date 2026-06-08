@@ -108,7 +108,10 @@ class BaseRateModel(ABC):
         # --------------------------------------------------
         # 3. Detect unknown parameters
         # --------------------------------------------------
-        allowed = set(required.keys()) | set(optional.keys()) | {"method"}
+        # constrain_mean is a globally recognised hint: models that support it
+        # declare it in optional_parameters and pick it up above; models that
+        # don't support it silently ignore it rather than raising an error.
+        allowed = set(required.keys()) | set(optional.keys()) | {"method", "constrain_mean"}
 
         for key in config:
             if key not in allowed:

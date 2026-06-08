@@ -1,5 +1,94 @@
 
 
+### Version 2026.6.8
+
+#### MCP server — AI assistant access to Owl
+
+Owl is now accessible as a tool to AI assistants that support the
+[Model Context Protocol](https://modelcontextprotocol.io) (MCP): Claude Desktop, Claude Code,
+Cursor, Zed, VS Code (GitHub Copilot 1.99+ or Cline extension), Windsurf, and any other
+MCP-compatible client.
+
+**New MCP tools:**
+
+- **`run_from_params`**: Build and solve a retirement plan directly from structured parameters
+  (names, birth years, account balances, SS benefits, etc.) without preparing any files. AI
+  assistants can describe a financial situation in natural language and immediately get an
+  optimized plan back as JSON.
+- **`save_case`**: Persist a flat-parameter plan to disk as a TOML case file and an HFP
+  workbook (`.xlsx`). Useful for saving AI-generated plans for later UI use.
+- **`run_stochastic`**: Compute the stochastic spending efficient frontier from either a TOML
+  file or flat parameters. Accepts `"historical"` (back-test) or `"mc"` (Monte Carlo) scenarios,
+  sweeps risk-aversion parameter λ across the frontier, and returns committed spending at a
+  target success rate and the full efficient frontier — all as structured JSON.
+
+**MCP parameter coverage — all three tools (`run_from_params`, `save_case`, `run_stochastic`):**
+
+All monetary values use full dollars (`$`) throughout the MCP interface via `units="1"`.
+
+- **Unit convention**: All account balances, solver limits, and monetary options use full
+  dollars (`$`). Social Security is the monthly PIA in `$/month` (matching the Plan API's
+  `setSocialSecurity()`). Pensions are monthly `$/month`. Time-series amounts (wages,
+  contributions) are `$/year`.
+- **`ss_monthly_pias`**: Monthly Social Security PIA per person — the benefit at Full
+  Retirement Age from the SSA statement (e.g. `[2667, 1833]`). Renamed from the initial
+  annual-amount convention.
+- **`min_taxable_balance`**: Per-person inflation-indexed floor on the taxable account
+  balance (emergency fund / safety net). The optimizer will not draw the taxable account
+  below this amount in any year.
+- **`spending_profile`**: Retirement spending shape — `"smile"` (default, go-go/slow-go/
+  no-go curve) or `"flat"` (constant inflation-adjusted spending). Companions:
+  - `smile_dip` — depth of the slow-go spending dip in % (default 15).
+  - `smile_increase` — additional spending growth toward no-go years for medical costs in %
+    (default 12). Can be negative to model a declining-spending trajectory.
+  - `smile_delay` — number of initial go-go years held flat before the smile curve begins
+    (default 0).
+- **`spias`**: List of Single Premium Immediate Annuities. Each entry specifies
+  `person`, `buy_year`, `premium` (deducted automatically from the IRA as a non-taxable
+  rollover), `monthly_income`, `indexed` (CPI-linked), and `survivor_fraction`.
+  Supports multiple SPIAs per plan and pre-purchased annuities (`buy_year` before plan start).
+- **`start_roth_year`**: 4-digit year before which no Roth conversions are allowed. Useful
+  when the user expects to remain in a high tax bracket for several years.
+- **`no_roth_person`**: Name of the individual excluded from all Roth conversions (couples only).
+- **`max_roth_conversion`**: Annual per-person Roth conversion cap in `$/year`.
+- **`bequest`**: Target estate value in today's dollars when `objective="maxSpending"`.
+  The optimizer maximizes spending subject to leaving at least this amount to heirs.
+- **`optimize_ss_ages`**: Boolean — if `True`, the MIP optimizes the Social Security
+  claiming month for each person (ages 62–70, monthly resolution) instead of using the
+  fixed `ss_ages` values.
+
+**Documentation (`docs/mcp.md`):**
+
+- Full setup instructions for Claude Desktop, Claude Code (CLI), Cursor, Zed, VS Code
+  (GitHub Copilot + `.vscode/mcp.json` format; Cline extension format), and Windsurf.
+- `run_stochastic` added to the tools reference table and example interaction section.
+- All example interactions updated to use monthly PIA language (was annual benefit).
+- New example: Robert with `min_taxable_balance` (emergency fund / safety net).
+- New example: SPIA comparison — AI fetches current payout rates from the web and
+  compares the plan with and without converting a portion of the IRA to a SPIA.
+
+**README and Streamlit Welcome page:**
+
+- MCP listed as the fourth way to run Owl alongside cloud, Docker, and native install.
+- AI assistant bullet added to the key capabilities list, naming all supported clients.
+- SEO-friendly H3 heading (*AI-powered retirement planning — ask your AI assistant*) added
+  to the Welcome page.
+
+**Modeling capabilities (`docs/modeling-capabilities.md`):**
+
+- New *Access interfaces* table below the modeling table listing all four access modes
+  (Streamlit UI, Python API, CLI, AI assistant/MCP).
+
+**Tests:**
+
+- `tests/test_mcp_params.py` (53 tests): `_build_plan_from_params`, `_build_hfp_dataframes`,
+  `save_case` round-trip, `run_from_params` integration tests, and 5 new SPIA unit tests.
+- `tests/test_mcp_stochastic.py` (30 tests): `_stochastic_blocking`, `_build_stochastic_json`,
+  and `run_stochastic` async end-to-end tests covering historical and MC paths, error handling,
+  and frontier monotonicity.
+
+---
+
 ### Version 2026.6.7
 
 #### Python
