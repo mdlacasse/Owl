@@ -178,6 +178,7 @@ def runPlan(plan):
     kz.storeCaseKey("caseStatus", plan.caseStatus)
     if plan.caseStatus == "solved":
         kz.storeCaseKey("summaryDf", plan.summaryDf())
+        kz.storeCaseKey("metricsDict", plan.metricsDict())
         kz.storeCaseKey("casetoml", getCaseString().getvalue())
         # Write optimal SS claiming ages back to UI for individuals the optimizer chose.
         if hasattr(plan, "ssecAges") and hasattr(plan, "_ssa_optimize_set"):

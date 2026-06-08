@@ -24,8 +24,12 @@ import click
 
 
 from .cli_logging import configure_logging, LOG_LEVELS
+from .cmd_compare import cmd_compare
+from .cmd_explain import cmd_explain
 from .cmd_list import cmd_list
+from .cmd_list_rates import cmd_list_rates
 from .cmd_run import cmd_run
+from .cmd_serve import cmd_serve
 
 
 @click.group()
@@ -34,7 +38,7 @@ from .cmd_run import cmd_run
     type=click.Choice(LOG_LEVELS, case_sensitive=False),
     default="INFO",
     show_default=True,
-    help="Logging verbosity (TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL).",
+    help="Logging verbosity.",
 )
 @click.pass_context
 def cli(ctx, log_level: str):
@@ -49,8 +53,12 @@ def cli(ctx, log_level: str):
     configure_logging(log_level)
 
 
+cli.add_command(cmd_compare)
+cli.add_command(cmd_explain)
 cli.add_command(cmd_list)
+cli.add_command(cmd_list_rates)
 cli.add_command(cmd_run)
+cli.add_command(cmd_serve)
 
 if __name__ == "__main__":
     cli()

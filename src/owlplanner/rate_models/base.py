@@ -20,18 +20,33 @@ import numpy as np
 class BaseRateModel(ABC):
     """
     All rate models must subclass this.
+
+    Subclasses must define ``name`` and ``description`` as class attributes
+    (or properties).  All other metadata fields default to safe values and may
+    be overridden at the class level.
     """
 
     # ------------------------------------------------------------
-    # Core Metadata (Class-Level)
+    # Abstract identity — every subclass must provide these
     # ------------------------------------------------------------
 
-    model_name = "base"
-    description = "Abstract rate model."
-    more_info: Optional[str] = None
+    @property
+    @abstractmethod
+    def model_name(self) -> str:
+        """Canonical method identifier, e.g. ``"historical_bootstrap"``."""
+        ...
 
-    # Model characteristics (use class attributes, not @property, for correct
-    # metadata in get_metadata() and markdown generation)
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        """One-sentence human-readable description of the model."""
+        ...
+
+    # ------------------------------------------------------------
+    # Optional metadata — override at the class level as needed
+    # ------------------------------------------------------------
+
+    more_info: Optional[str] = None
     deterministic = False
     constant = False
 

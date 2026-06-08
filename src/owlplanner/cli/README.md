@@ -1,75 +1,153 @@
-# OWLCLI — Owl (*Optimal wealth lab*) Command Line Interface
+# OWLCLI — Owl (*Optimal Wealth Lab*) Command Line Interface
 
-`owlcli` is a command line interface tool to streamline the listing, running and experimenting with Owl case files outside the streamlit interface.
+`owlcli` is the command-line interface for Owl. It can list, run, and compare
+retirement planning scenarios directly from the terminal — and it doubles as an
+**MCP server** that exposes all functionality to AI assistants such as Claude Desktop
+or Claude Code.
 
 ## Installation
 
-`owlcli` is installed with the owlplanner module. Once OWLPLANNER is installed, `owlcli` can be run from the command line. 
-
-## Usage
-
-At present, OWLCLI provides two commands: `list` and `run`.
+`owlcli` is installed with the `owlplanner` package:
 
 ```bash
-❯ owlcli list
+pip install owlplanner      # or: uv add owlplanner
 ```
 
-This command will list all the available TOML case files in the current directory.
+---
 
-To list all the available OWL case files in the `examples` directory, relative to the current directory, use:
+## Commands
+
+### `list` — enumerate case files
 
 ```bash
-❯ owlcli list examples
-FILE                           CASE NAME             HOUSEHOLD FINANCIAL PROFILE
+owlcli list examples/
+```
+
+Lists all `.toml` case files in a directory with their plan names and whether
+the associated Household Financial Profile (HFP) Excel file exists.
+
+```
+FILE                           PLAN NAME             TIME LISTS FILE
 --------------------------------------------------------------------------------
 Case_jack+jill                 jack+jill             ✓HFP_jack+jill.xlsx
 Case_joe                       joe                   ✓HFP_joe.xlsx
-Case_john+sally                john+sally            ✓HFP_john+sally.xlsx
-Case_jon+jane                  Jon+Jane              ✗HFP_jon+jane.xslx
-Case_kim+sam-bequest           kim+sam-bequest       ✓HFP_kim+sam.xlsx
 Case_kim+sam-spending          kim+sam-spending      ✓HFP_kim+sam.xlsx
-case_drawdowncalc-comparison-1 drawdowncalc-com...   ✗None
 ```
 
-The listing shows the file name, case name, and the Household Financial Profile associated with each case.
+---
 
-✓ indicates that the Household Financial Profile listed in the Owl case file exists.
-✗ indicates that a Household Financial Profile file was not found.
-Case files with HFP set to `None` have no HFP (e.g., test cases). *edited values* can appear when a case was edited in the UI; download the HFP workbook for reproducibility.
-
-
-To run an Owl case file, use the `run` command followed by the case file name:
+### `explain` — describe a case without solving
 
 ```bash
-❯ owlcli run examples/Case_kim+sam-spending
-Case status: solved
-Results saved to: examples/Case_kim+sam-spending_results.xlsx
+owlcli explain examples/Case_jack+jill.toml
+owlcli explain examples/Case_jack+jill.toml --set basic_info.state=CA
 ```
 
-This example runs the `Case_kim+sam-spending` case file located in the `examples` directory. The results of the run are saved to a new Excel file with `_results.xlsx` appended to the original case file name.  A copy of the input Owl case file is saved as the new first tab in the Excel file.
+Loads and validates the TOML file, then prints a JSON document describing the
+scenario: individuals, time horizon, account balances, Social Security and
+pension income, rate method, objective, and solver options. No LP solve — returns
+in under a second.
 
-### Solver options from the command line
+---
 
-You can override solver options without editing the TOML file:
+### `list-rates` — enumerate rate models
 
 ```bash
-owlcli run examples/Case_joe.toml --solver HiGHS --max-time 600 --verbose
-owlcli run examples/Case_kim+sam-spending.toml --gap 1e-3
+owlcli list-rates
+owlcli list-rates --category stochastic
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--solver` | Solver to use: `default`, `HiGHS`, or `MOSEK` |
+Prints a JSON document listing every registered return model with its
+description, category (`single`, `deterministic`, `stochastic`, `dataframe`),
+required and optional parameters, and legacy aliases.
+
+---
+
+### `run` — solve a case
+
+```bash
+owlcli run examples/Case_jack+jill.toml
+owlcli run examples/Case_jack+jill.toml --output-format json
+owlcli run examples/Case_jack+jill.toml --set basic_info.state=TX --set solver_options.bequest=500
+```
+
+Loads, solves, and writes results.
+
+- Default: writes an Excel workbook (`<stem>_results.xlsx`).
+- `--output-format json`: prints a structured JSON document to stdout instead
+  (solver diagnostics go to stderr).
+
+#### Solver flags
+
+| Flag | Description |
+|------|-------------|
+| `--solver` | `default`, `HiGHS`, or `MOSEK` |
 | `--max-time` | Solver time limit in seconds |
-| `--gap` | MIP relative gap tolerance |
-| `--verbose` | Enable solver verbosity |
-| `--solver-opt KEY=VALUE` | Override any solver option (repeat for multiple) |
+| `--gap` | MIP relative gap tolerance (e.g. `1e-4`) |
+| `--verbose` / `--no-verbose` | Solver verbosity |
+| `--seed` | Random seed for stochastic rate methods |
+| `--solver-opt KEY=VALUE` | Override any solver option (repeatable) |
+| `--help-solver-options` | List all solver options and exit |
 
-Use `--solver-opt` for options not covered by the flags above:
+#### `--set` overrides
+
+Override any TOML parameter before solving without editing the file:
 
 ```bash
-owlcli run Case.toml --solver-opt maxRothConversion=50 --solver-opt withMedicare=loop
+owlcli run Case.toml --set basic_info.state=MN
+owlcli run Case.toml --set fixed_income.social_security_ages=[70,68]
+owlcli run Case.toml --set solver_options.withSSAges=optimize --set optimization_parameters.objective=maxBequest
 ```
 
-Command-line values override settings in the TOML `[solver_options]` section. Use `--help-solver-options` to list all options (parsed from PARAMETERS.md).
+Values are JSON-parsed (`true`, `42`, `[70,68]`) or kept as strings.
 
+---
+
+### `compare` — run base vs. variant
+
+```bash
+owlcli compare examples/Case_jack+jill.toml --set basic_info.state=MN
+owlcli compare examples/Case_jack+jill.toml \
+    --set fixed_income.social_security_ages=[70,70] \
+    --set optimization_parameters.objective=maxBequest
+```
+
+Solves the original case and a variant defined by `--set`, then prints a JSON
+document with base metrics, variant metrics, the numeric delta, and percent
+changes for key decision metrics. All solver flags (`--solver`, `--max-time`,
+etc.) apply to both runs.
+
+---
+
+### `serve` — start the MCP server
+
+```bash
+owlcli serve
+```
+
+Starts an MCP (Model Context Protocol) server over stdio, exposing all five
+tools to any compatible AI client. See [`docs/mcp.md`](../../../docs/mcp.md)
+for setup instructions.
+
+---
+
+## Common patterns
+
+```bash
+# Explore available cases
+owlcli list examples/
+
+# Quickly inspect a case before running
+owlcli explain examples/Case_jack+jill.toml
+
+# What rate models are available for Monte Carlo?
+owlcli list-rates --category stochastic
+
+# Run and capture results as JSON (e.g. for scripting)
+owlcli run examples/Case_jack+jill.toml --output-format json | jq .summary
+
+# How much does delaying SS to 70 change spending?
+owlcli compare examples/Case_jack+jill.toml \
+    --set fixed_income.social_security_ages=[70,70] \
+    | jq '{spending_delta: .delta.spending_basis, pct: .pct_change.spending_basis}'
+```

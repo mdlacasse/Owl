@@ -154,6 +154,17 @@ def get_rate_model_metadata(method, method_file=None):
     return load_rate_model(method, method_file).get_metadata()
 
 
+def get_all_models_metadata():
+    """Return a list of metadata dicts for all registered rate models, with 'category' added."""
+    entries = _collect_all_model_metadata()
+    for e in entries:
+        e["category"] = _categorize(e)
+    return entries
+
+
+RATE_MODEL_ALIASES = _METHOD_ALIASES
+
+
 # ------------------------------------------------------------
 # Utilities
 # ------------------------------------------------------------
@@ -185,6 +196,7 @@ def _collect_all_model_metadata():
         md = ModelClass.get_metadata()
         metadata.append({
             "method": method,
+            "model_name": md.get("model_name", method),
             "description": md.get("description", ""),
             "more_info": md.get("more_info"),
             "required_parameters": md.get("required_parameters", {}),

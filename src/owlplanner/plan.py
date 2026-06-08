@@ -4924,6 +4924,10 @@ class Plan:
         """Return dictionary containing summary of values."""
         return export.build_summary_dic(self, N)
 
+    def metricsDict(self, N=None):
+        """Return key metrics as a dict of plain floats (stable snake_case keys)."""
+        return export.plan_metrics(self, N)
+
     def showRatesCorrelations(self, tag="", shareRange=False, figure=False):
         """
         Plot correlations between various rates.

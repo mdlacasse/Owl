@@ -34,6 +34,7 @@ sys.path.insert(0, "../src")
 
 from owlplanner.rate_models.constants import STOCHASTIC_METHODS
 from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
+from owlplanner.export import METRICS_COLUMN_MAP
 
 
 ss = st.session_state
@@ -490,45 +491,90 @@ def colorBySign(val):
     return f"color:{color};" if color else ""
 
 
+def _format_usd_delta(diff: float) -> str:
+    """Format a dollar delta with \u2191/\u2193/\u2192 arrow and amount."""
+    sign = "\u2191" if diff > 0 else "\u2193" if diff < 0 else "\u2192"
+    return f"{sign} ${abs(diff):,.0f}"
+
+
+def _format_metric_delta(key: str, fmt: str, diff: float) -> str:
+    """Format a numeric delta for display in the synopsis comparison table."""
+    if fmt == "pct":
+        sign = "\u2191" if diff > 0 else "\u2193" if diff < 0 else "\u2192"
+        return f"{sign} {abs(diff * 100):.1f}%"
+    return _format_usd_delta(diff)
+
+
 def compareSummaries():
     df = getCaseKey("summaryDf")
     if df is None:
         return None
     current = currentCaseName()
+    base_metrics = ss.cases[current].get("metricsDict")
+
     # Copy and re-index with the case dict key to guarantee unique row labels.
     df = df.copy()
     df.index = [current]
+    other_cases = []
     for case in onlyCaseNames():
         if case == current:
             continue
-        odf = ss.cases[case]["summaryDf"]
-        if odf is None or set(odf.columns) != set(df.columns):
+        odf = ss.cases[case].get("summaryDf")
+        if odf is None:
             continue
         odf = odf.copy()
         odf.index = [case]
-        df = pd.concat([df, odf])
+        # Only include columns present in the base case (handles different person names gracefully).
+        common_cols = [c for c in df.columns if c in odf.columns]
+        odf = odf[common_cols]
+        df = pd.concat([df[common_cols], odf])
+        other_cases.append(case)
 
-    if df.shape[0] > 1:
-        # Compare dollar columns by parsing formatted currency (column-order safe).
-        for col_idx in range(df.shape[1]):
-            strval = df.iloc[0, col_idx]
-            if not isinstance(strval, str) or not strval.startswith("$"):
+    if not other_cases:
+        return df.transpose()
+
+    # Track which (row, col) cells have been updated by the numeric pass so that
+    # the string-parsing pass can skip them (avoiding double-processing).
+    numeric_updated: set[tuple[int, int]] = set()
+
+    # Pass 1 \u2014 numeric: use metricsDict for metrics covered by METRICS_COLUMN_MAP.
+    if base_metrics is not None:
+        for row_idx, case in enumerate(other_cases, start=1):
+            other_metrics = ss.cases[case].get("metricsDict")
+            if other_metrics is None:
+                continue
+            for key, (col_label, fmt) in METRICS_COLUMN_MAP.items():
+                if fmt == "usd_skip" or col_label not in df.columns:
+                    continue
+                base_val = base_metrics.get(key)
+                other_val = other_metrics.get(key)
+                if base_val is None or other_val is None:
+                    continue
+                col_idx = df.columns.get_loc(col_label)
+                df.iloc[row_idx, col_idx] = _format_metric_delta(key, fmt, other_val - base_val)
+                numeric_updated.add((row_idx, col_idx))
+
+    # Pass 2 \u2014 string fallback: handle remaining $-formatted columns (tax brackets,
+    # per-year spending, HSA coverage, bequest detail lines, etc.).
+    for col_idx in range(df.shape[1]):
+        strval = df.iloc[0, col_idx]
+        if not isinstance(strval, str) or not strval.startswith("$"):
+            continue
+        try:
+            f0val = float(strval[1:].replace(",", ""))
+        except ValueError:
+            continue
+        for row in range(1, df.shape[0]):
+            if (row, col_idx) in numeric_updated:
+                continue
+            raw = df.iloc[row, col_idx]
+            if not isinstance(raw, str) or not raw.startswith("$"):
                 continue
             try:
-                f0val = float(strval[1:].replace(",", ""))
+                fnval = float(raw[1:].replace(",", ""))
             except ValueError:
                 continue
-            for row in range(1, df.shape[0]):
-                raw = df.iloc[row, col_idx]
-                if not isinstance(raw, str) or not raw.startswith("$"):
-                    continue
-                try:
-                    fnval = float(raw[1:].replace(",", ""))
-                except ValueError:
-                    continue
-                diff = fnval - f0val
-                sign = "\u2191" if diff > 0 else "\u2193" if diff < 0 else "\u2192"
-                df.iloc[row, col_idx] = f"{sign} ${abs(diff):,.0f}"
+            df.iloc[row, col_idx] = _format_usd_delta(fnval - f0val)
 
     return df.transpose()
 

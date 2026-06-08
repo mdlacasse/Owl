@@ -584,6 +584,132 @@ def build_summary_list(plan, N=None):
     return [f"{key}: {value}" for key, value in dic.items()]
 
 
+def plan_metrics(plan, N=None) -> dict:
+    """
+    Return key plan metrics as a dict of plain Python floats.
+
+    Keys are stable snake_case identifiers that do not embed person names,
+    calendar years, or other case-specific values.  This makes them safe for
+    cross-case numeric comparison (e.g. CLI compare, UI synopsis diff).
+
+    All monetary values are in nominal dollars unless the key ends with ``_today``.
+    ``effective_tax_rate`` is a fraction (0–1), not a percentage.
+    """
+    if N is None:
+        N = plan.N_n
+    gamma = plan.gamma_n
+    inv_g = 1.0 / gamma[:N]
+
+    streams = fixedIncomeStreams(plan, N)
+    roth_n = np.sum(plan.x_in[:, :N], axis=0)   # per-year total Roth conversions (N_n,)
+
+    estate = np.sum(plan.b_ijn[:, :, N], axis=0).copy()
+    heirs_tax = float((estate[1] + estate[3]) * plan.nu)
+    estate[1] *= 1 - plan.nu
+    estate[3] *= 1 - plan.nu
+    savings_estate = float(np.sum(estate))
+    total_estate = savings_estate - float(plan.remaining_debt_balance) + float(plan.fixed_assets_bequest_value)
+
+    def _s(arr):
+        return float(np.sum(arr))
+
+    def _st(arr):
+        return float(np.sum(arr * inv_g))
+
+    m = {
+        # Overview
+        "spending_basis":                float(plan.g_n[0] / plan.xi_n[0]) if plan.xi_n[0] else 0.0,
+        "spending_year1":                float(plan.g_n[0]),
+        "effective_tax_rate":            float(plan._actual_effective_tax_rate()),
+        # Spending
+        "total_spending_today":          _st(plan.g_n[:N]),
+        "total_spending_nominal":        _s(plan.g_n[:N]),
+        # Fixed income streams
+        "total_fixed_income_today":      _st(streams["total"]),
+        "total_fixed_income_nominal":    _s(streams["total"]),
+        "ss_income_today":               _st(streams["ss"]),
+        "ss_income_nominal":             _s(streams["ss"]),
+        "pension_income_today":          _st(streams["pension"]),
+        "pension_income_nominal":        _s(streams["pension"]),
+        "spia_income_today":             _st(streams["spia"]),
+        "spia_income_nominal":           _s(streams["spia"]),
+        "wages_today":                   _st(streams["wages"]),
+        "wages_nominal":                 _s(streams["wages"]),
+        "roth_conversions_today":        _st(roth_n),
+        "roth_conversions_nominal":      _s(roth_n),
+        # Taxes & premiums
+        "federal_income_tax_today":      _st(plan.T_n[:N]),
+        "federal_income_tax_nominal":    _s(plan.T_n[:N]),
+        "ltcg_tax_today":                _st(plan.U_n[:N]),
+        "ltcg_tax_nominal":              _s(plan.U_n[:N]),
+        "niit_today":                    _st(plan.J_n[:N]),
+        "niit_nominal":                  _s(plan.J_n[:N]),
+        "state_tax_today":               _st(plan.st_T_n[:N]),
+        "state_tax_nominal":             _s(plan.st_T_n[:N]),
+        "medicare_today":                _st(plan.m_n[:N] + plan.M_n[:N]),
+        "medicare_nominal":              _s(plan.m_n[:N] + plan.M_n[:N]),
+        "aca_today":                     _st(plan.aca_costs_n[:N]),
+        "aca_nominal":                   _s(plan.aca_costs_n[:N]),
+        "debt_payments_today":           _st(plan.debt_payments_n[:N]),
+        "debt_payments_nominal":         _s(plan.debt_payments_n[:N]),
+        # Final bequest
+        "final_bequest_today":           total_estate / float(gamma[N]),
+        "final_bequest_nominal":         total_estate,
+        "final_bequest_savings_today":   savings_estate / float(gamma[N]),
+        "final_bequest_savings_nominal": savings_estate,
+        "heirs_tax_liability_nominal":   heirs_tax,
+        "remaining_debt_balance":        float(plan.remaining_debt_balance),
+        # Plan info
+        "time_horizon_years":            float(N),
+        "inflation_factor":              float(gamma[N]),
+    }
+    return m
+
+
+# Maps plan_metrics() snake_case keys → build_summary_dic() display column names.
+# Used by compareSummaries() to update the right cells without re-parsing strings.
+# Only stable (non-dynamic) display labels are included here.
+_T = SUMMARY_LABEL_TODAY
+_N = SUMMARY_LABEL_NOMINAL
+METRICS_COLUMN_MAP: dict[str, tuple[str, str]] = {
+    # key: (display_col_name, format_type)  format_type: "usd" | "pct"
+    "spending_basis":                ("Net yearly spending basis", "usd"),
+    "effective_tax_rate":            ("Effective tax rate (plan average)", "pct"),
+    "spending_year1":                (f"Net spending for year ", "usd_skip"),  # dynamic key, skip
+    "total_spending_today":          (f"Total net spending{_T}", "usd"),
+    "total_spending_nominal":        (f"Total net spending{_N}", "usd"),
+    "total_fixed_income_today":      (f"Total fixed income{_T}", "usd"),
+    "total_fixed_income_nominal":    (f"Total fixed income{_N}", "usd"),
+    "ss_income_today":               (f"»  Social Security{_T}", "usd"),
+    "ss_income_nominal":             (f"»  Social Security{_N}", "usd"),
+    "pension_income_today":          (f"»  Pension{_T}", "usd"),
+    "pension_income_nominal":        (f"»  Pension{_N}", "usd"),
+    "spia_income_today":             (f"»  SPIA income{_T}", "usd"),
+    "spia_income_nominal":           (f"»  SPIA income{_N}", "usd"),
+    "wages_today":                   (f"»  Wages{_T}", "usd"),
+    "wages_nominal":                 (f"»  Wages{_N}", "usd"),
+    "roth_conversions_today":        (f"Total Roth conversions{_T}", "usd"),
+    "roth_conversions_nominal":      (f"Total Roth conversions{_N}", "usd"),
+    "federal_income_tax_today":      (f"Total tax paid on ordinary income{_T}", "usd"),
+    "federal_income_tax_nominal":    (f"Total tax paid on ordinary income{_N}", "usd"),
+    "ltcg_tax_today":                (f"Total tax paid on gains and dividends{_T}", "usd"),
+    "ltcg_tax_nominal":              (f"Total tax paid on gains and dividends{_N}", "usd"),
+    "niit_today":                    (f"Total net investment income tax paid{_T}", "usd"),
+    "niit_nominal":                  (f"Total net investment income tax paid{_N}", "usd"),
+    "state_tax_today":               (f"Total state income tax paid{_T}", "usd"),
+    "state_tax_nominal":             (f"Total state income tax paid{_N}", "usd"),
+    "medicare_today":                (f"Total Medicare premiums paid{_T}", "usd"),
+    "medicare_nominal":              (f"Total Medicare premiums paid{_N}", "usd"),
+    "aca_today":                     (f"Total ACA premiums paid{_T}", "usd"),
+    "aca_nominal":                   (f"Total ACA premiums paid{_N}", "usd"),
+    "debt_payments_today":           (f"Total debt payments{_T}", "usd"),
+    "debt_payments_nominal":         (f"Total debt payments{_N}", "usd"),
+    "final_bequest_today":           (f"Total after-tax value of final bequest{_T}", "usd"),
+    "final_bequest_nominal":         (f"Total after-tax value of final bequest{_N}", "usd"),
+    "heirs_tax_liability_nominal":   (f"With heirs assuming tax liability of{_N}", "usd"),
+}
+
+
 def build_summary_string(plan, N=None):
     """Return multi-column synopsis text (aligned metric / today's $ / nominal)."""
     dic = build_summary_dic(plan, N)

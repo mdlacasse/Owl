@@ -193,6 +193,8 @@ from owlplanner.rate_models.base import BaseRateModel
 import numpy as np
 
 class RateModel(BaseRateModel):
+    model_name = "custom"
+    description = "Test plugin: constant 5% returns."
     def generate(self, N):
         return np.ones((N, 4)) * 0.05
 """
@@ -216,6 +218,8 @@ from owlplanner.rate_models.base import BaseRateModel
 import numpy as np
 
 class RateModel(BaseRateModel):
+    model_name = "custom"
+    description = "Bad shape plugin."
     def generate(self, N):
         return np.ones((N, 3))
 """
@@ -263,9 +267,9 @@ from owlplanner.rate_models.base import BaseRateModel
 import numpy as np
 
 class RateModel(BaseRateModel):
-    @property
-    def deterministic(self):
-        return True
+    model_name = "custom"
+    description = "Deterministic test plugin."
+    deterministic = True
 
     def generate(self, N):
         return np.ones((N, 4)) * 0.03
@@ -290,6 +294,8 @@ from owlplanner.rate_models.base import BaseRateModel
 import numpy as np
 
 class RateModel(BaseRateModel):
+    model_name = "custom"
+    description = "Sequential test plugin."
     def generate(self, N):
         arr = np.arange(N).reshape(N,1)
         return np.hstack([arr, arr, arr, arr]) / 100.0

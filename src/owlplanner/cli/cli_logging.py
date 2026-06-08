@@ -21,36 +21,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import sys
-from loguru import logger
+import logging
 
-LOG_LEVELS = {
-    "TRACE",
-    "DEBUG",
-    "INFO",
-    "SUCCESS",
-    "WARNING",
-    "ERROR",
-    "CRITICAL",
-}
+LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 def configure_logging(log_level: str = "INFO"):
     log_level = log_level.upper()
 
-    if log_level not in LOG_LEVELS:
-        raise ValueError(f"Invalid log level: {log_level}")
-
-    logger.remove()  # remove default handler
-
-    logger.add(
-        sys.stderr,
-        level=log_level,
-        format=(
-            #            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-            "<level>{level:8}</level> | "
-            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-            "<level>{message}</level>"
-        ),
-        backtrace=(log_level == "TRACE"),
-        diagnose=(log_level == "TRACE"),
+    level = getattr(logging, log_level, logging.INFO)
+    logging.basicConfig(
+        stream=sys.stderr,
+        level=level,
+        format="%(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s",
+        force=True,
     )

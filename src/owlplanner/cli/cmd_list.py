@@ -20,9 +20,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import sys
 import click
 from pathlib import Path
-from loguru import logger
 
 import owlplanner as owl
 
@@ -39,8 +39,6 @@ def cmd_list(directory):
     Shows file name, plan name, and whether the associated Household Financial
     Plan (HFP) file exists. DIRECTORY defaults to the current directory.
     """
-    logger.debug(f"Listing plans in directory: {directory}")
-
     toml_files = sorted(directory.glob("*.toml"))
 
     if not toml_files:
@@ -51,11 +49,10 @@ def cmd_list(directory):
 
     for filename in toml_files:
         try:
-            logger.debug(f"Loading plan from {filename}")
-            plan = owl.readConfig(str(filename), logstreams="loguru", loadHFP=False)
+            plan = owl.readConfig(str(filename), logstreams=[sys.stderr], loadHFP=False)
             plans.append((filename.stem, plan))
         except Exception as e:
-            logger.warning(f"Failed to load {filename}: {e}")
+            click.echo(f"Warning: Failed to load {filename}: {e}", err=True)
 
     if not plans:
         click.echo("No valid OWL plans found.")

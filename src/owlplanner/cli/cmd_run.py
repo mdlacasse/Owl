@@ -20,14 +20,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import sys
+
 import click
-from loguru import logger
-import owlplanner as owl
 from pathlib import Path
 
+from owlplanner.config import load_toml, config_to_plan
 from owlplanner.config.schema import CLI_SOLVER_OVERRIDE_MAP, parse_solver_options
 
+from .formatters import plan_to_json
 from .params_help import print_solver_options_help
+from .set_override import apply_overrides
 
 
 def validate_toml(ctx, param, value: Path):
@@ -126,6 +129,27 @@ def _parse_solver_opts(value):
     help="Random seed for reproducible stochastic rates. Overrides rate_seed in TOML.",
 )
 @click.option(
+    "--set",
+    "set_overrides",
+    multiple=True,
+    metavar="KEY.PATH=VALUE",
+    help=(
+        "Override any TOML parameter before solving. "
+        "Repeat for multiple overrides. "
+        "Values are JSON-parsed (e.g. true, 42, [70,67]) or kept as strings. "
+        "Examples: --set basic_info.state=TX  --set fixed_income.social_security_ages=[70,67]  "
+        "--set solver_options.withSSAges=optimize"
+    ),
+)
+@click.option(
+    "--output-format",
+    "output_format",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+    default="text",
+    show_default=True,
+    help="Output format. 'text' writes an Excel workbook (default). 'json' prints results to stdout.",
+)
+@click.option(
     "--help-solver-options",
     is_flag=True,
     is_eager=True,
@@ -133,7 +157,7 @@ def _parse_solver_opts(value):
     callback=lambda ctx, param, value: (print_solver_options_help(), ctx.exit(0)) if value else None,
     help="Show all solver options (parsed from PARAMETERS.md) and exit.",
 )
-def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose, solver_opts, seed):
+def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose, solver_opts, seed, set_overrides, output_format):
     """Run the retirement planning optimizer on an OWL case file.
 
     Loads the case from FILENAME (a .toml file), solves the optimization
@@ -144,9 +168,10 @@ def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose, so
     file. Command-line flags override those values. Use --solver-opt to
     set any option (see PARAMETERS.md for the full list).
     """
-    logger.debug(f"Executing the run command with file: {filename}")
-
-    plan = owl.readConfig(str(filename), logstreams="loguru", loadHFP=True)
+    diconf, dirname, _ = load_toml(str(filename))
+    if set_overrides:
+        diconf = apply_overrides(diconf, set_overrides)
+    plan = config_to_plan(diconf, dirname, verbose=True, logstreams=[sys.stderr], loadHFP=True)
     if seed is not None:
         plan.setReproducible(True, seed=seed)
     opts = dict(plan.solverOptions)
@@ -169,8 +194,19 @@ def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose, so
         raise click.BadParameter(str(e)) from e
 
     plan.solve(plan.objective, opts)
-    click.echo(f"Case status: {plan.caseStatus}")
-    if plan.caseStatus == "solved":
-        output_filename = filename.with_name(filename.stem + "_results.xlsx")
-        plan.saveWorkbook(basename=output_filename, overwrite=True, with_config=with_config)
-        click.echo(f"Results saved to: {output_filename}")
+
+    if output_format == "json":
+        if plan.caseStatus == "solved":
+            sys.stdout.write(plan_to_json(plan))
+            sys.stdout.write("\n")
+        else:
+            import json
+            sys.stdout.write(json.dumps({"status": plan.caseStatus, "case_name": plan._name}))
+            sys.stdout.write("\n")
+            sys.exit(1)
+    else:
+        click.echo(f"Case status: {plan.caseStatus}")
+        if plan.caseStatus == "solved":
+            output_filename = filename.with_name(filename.stem + "_results.xlsx")
+            plan.saveWorkbook(basename=output_filename, overwrite=True, with_config=with_config)
+            click.echo(f"Results saved to: {output_filename}")
