@@ -28,8 +28,9 @@ LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 def configure_logging(log_level: str = "INFO"):
     log_level = log_level.upper()
-
-    level = getattr(logging, log_level, logging.INFO)
+    if log_level not in LOG_LEVELS:
+        raise ValueError(f"Invalid log level: {log_level!r}. Must be one of {LOG_LEVELS}.")
+    level = getattr(logging, log_level)
     logging.basicConfig(
         stream=sys.stderr,
         level=level,

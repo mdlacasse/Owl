@@ -104,6 +104,42 @@ def _check_person_index(person: int, n_individuals: int, context: str) -> None:
         )
 
 
+def _build_mcp_opts(
+    solver=None, max_time=None, net_spending=None, min_taxable_balance=None,
+    start_roth_year=None, no_roth_person=None, max_roth_conversion=None,
+    bequest=None, optimize_ss_ages=None, previous_magis=None,
+    with_medicare=None, with_aca=None,
+):
+    """Build solver opts dict for MCP tools (always full-dollar units)."""
+    opts = {"units": "1"}
+    if solver:
+        opts["solver"] = solver
+    if max_time is not None:
+        opts["maxTime"] = max_time
+    if net_spending is not None:
+        opts["netSpending"] = net_spending
+    if min_taxable_balance is not None:
+        opts["minTaxableBalance"] = list(min_taxable_balance)
+    if start_roth_year is not None:
+        opts["startRothConversions"] = int(start_roth_year)
+    if no_roth_person is not None:
+        opts["noRothConversions"] = no_roth_person
+    if max_roth_conversion is not None:
+        opts["maxRothConversion"] = max_roth_conversion
+    if bequest is not None:
+        opts["bequest"] = bequest
+    _ssa = _ss_ages_opt(optimize_ss_ages)
+    if _ssa is not None:
+        opts["withSSAges"] = _ssa
+    if previous_magis is not None:
+        opts["previousMAGIs"] = list(previous_magis)
+    if with_medicare is not None:
+        opts["withMedicare"] = with_medicare
+    if with_aca is not None:
+        opts["withACA"] = with_aca
+    return opts
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: list_cases
 # ─────────────────────────────────────────────────────────────────────────────
@@ -568,6 +604,10 @@ def _build_plan_from_params(
     slcsp=None,
     aca_start_year=None,
     rate_params=None,
+    ss_trim_pct=None,
+    ss_trim_year=None,
+    obbba_expiration_year=None,
+    dividend_rate=None,
 ):
     """Build and configure a Plan from structured parameters.  Does not solve."""
     N_i = len(names)
@@ -593,7 +633,11 @@ def _build_plan_from_params(
     # Social Security: monthly PIA ($/month) passed directly to Plan API
     ss_pias = list(ss_monthly_pias or [0] * N_i)
     ss_claim_ages = list(ss_ages or [67] * N_i)
-    plan.setSocialSecurity(ss_pias, ss_claim_ages)
+    plan.setSocialSecurity(
+        ss_pias, ss_claim_ages,
+        trim_pct=int(ss_trim_pct) if ss_trim_pct is not None else 0,
+        trim_year=int(ss_trim_year) if ss_trim_year is not None else None,
+    )
 
     # Pensions (monthly $/month, matching Plan API)
     if pension_monthly_amounts:
@@ -722,6 +766,11 @@ def _build_plan_from_params(
     if slcsp is not None and float(slcsp) > 0:
         plan.setACA(float(slcsp), units="1", start_year=aca_start_year)
 
+    if obbba_expiration_year is not None:
+        plan.setExpirationYearOBBBA(int(obbba_expiration_year))
+    if dividend_rate is not None:
+        plan.setDividendRate(float(dividend_rate))
+
     # houseLists is now populated; processDebtsAndFixedAssets() will be called
     # automatically by solve() after _adjustParameters sets the inflation path.
     plan.objective = objective
@@ -782,6 +831,7 @@ def _run_from_params_blocking(
     balance_date=None, heirs_tax_rate=None, previous_magis=None, with_medicare=None,
     with_aca=None, aca_start_year=None,
     slcsp=None,
+    ss_trim_pct=None, ss_trim_year=None, obbba_expiration_year=None, dividend_rate=None,
 ):
     plan = _build_plan_from_params(
         names, birth_years, life_expectancy, state,
@@ -800,33 +850,18 @@ def _run_from_params_blocking(
         heirs_tax_rate=heirs_tax_rate,
         slcsp=slcsp,
         aca_start_year=aca_start_year,
+        ss_trim_pct=ss_trim_pct,
+        ss_trim_year=ss_trim_year,
+        obbba_expiration_year=obbba_expiration_year,
+        dividend_rate=dividend_rate,
     )
-    opts = {"units": "1"}  # MCP uses full dollars; plan API defaults to $k
-    if solver:
-        opts["solver"] = solver
-    if max_time is not None:
-        opts["maxTime"] = max_time
-    if net_spending is not None:
-        opts["netSpending"] = net_spending
-    if min_taxable_balance is not None:
-        opts["minTaxableBalance"] = list(min_taxable_balance)
-    if start_roth_year is not None:
-        opts["startRothConversions"] = int(start_roth_year)
-    if no_roth_person is not None:
-        opts["noRothConversions"] = no_roth_person
-    if max_roth_conversion is not None:
-        opts["maxRothConversion"] = max_roth_conversion
-    if bequest is not None:
-        opts["bequest"] = bequest
-    _ssa = _ss_ages_opt(optimize_ss_ages)
-    if _ssa is not None:
-        opts["withSSAges"] = _ssa
-    if previous_magis is not None:
-        opts["previousMAGIs"] = list(previous_magis)
-    if with_medicare is not None:
-        opts["withMedicare"] = with_medicare
-    if with_aca is not None:
-        opts["withACA"] = with_aca
+    opts = _build_mcp_opts(
+        solver=solver, max_time=max_time, net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
+        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
+        with_medicare=with_medicare, with_aca=with_aca,
+    )
     plan.solve(objective, opts)
     return plan
 
@@ -892,6 +927,10 @@ async def run_from_params(
         float | None,
         Field(description="Annual ACA Silver benchmark premium in $/year (today's $) for pre-65 individuals."),
     ] = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
 ) -> str:
     """Build and solve a retirement plan from structured parameters — no TOML file needed.
 
@@ -1078,6 +1117,16 @@ async def run_from_params(
                         meet historical norms.  Only effective for history-fitted stochastic
                         methods: historical_gaussian, historical_lognormal, historical_copula,
                         garch_dcc, gmm, hmm.  Silently ignored for all other methods.
+        ss_trim_pct:    SS trust fund haircut — percent reduction in SS benefits (0–100).
+                        Combined with ss_trim_year, models trust fund depletion.  Example:
+                        ss_trim_pct=23, ss_trim_year=2033 matches the SSA trustees report
+                        baseline scenario.  Default 0 (no reduction).
+        ss_trim_year:   Year when the SS benefit reduction begins (e.g. 2033).  Only
+                        effective when ss_trim_pct > 0.
+        obbba_expiration_year: Year OBBBA (2025 Tax Reform) rates are assumed to sunset
+                        and revert to pre-TCJA levels (default 2032).  Adjusting this
+                        models different Congressional scenarios.
+        dividend_rate:  Annual dividend yield for taxable accounts in % (default 1.8).
 
     slcsp:          Annual ACA Silver benchmark premium in $/year (today's $) for
                     individuals under 65 not yet on Medicare.  Omit if covered by
@@ -1110,6 +1159,7 @@ async def run_from_params(
             balance_date, heirs_tax_rate, previous_magis, with_medicare,
             with_aca, aca_start_year,
             slcsp,
+            ss_trim_pct, ss_trim_year, obbba_expiration_year, dividend_rate,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build/solve error: {e}"})
@@ -1178,6 +1228,10 @@ def save_case(
     optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
     slcsp: float | None = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
     output_dir: str = ".",
     case_name: str | None = None,
 ) -> str:
@@ -1213,6 +1267,10 @@ def save_case(
             heirs_tax_rate=heirs_tax_rate,
             slcsp=slcsp,
             aca_start_year=aca_start_year,
+            ss_trim_pct=ss_trim_pct,
+            ss_trim_year=ss_trim_year,
+            obbba_expiration_year=obbba_expiration_year,
+            dividend_rate=dividend_rate,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build error: {e}"})
@@ -1412,7 +1470,8 @@ def _build_distribution_json(plan, results, objective, scenario_method, n_attemp
             if objective == "maxSpending":
                 entry[label_nominal] = int(round(float(v) * xi0))
             else:
-                entry[label_nominal] = int(round(float(v) * float(plan.gamma_n[-1])))
+                gamma_end = r.get("gamma_n_end", float(plan.gamma_n[-1]))
+                entry[label_nominal] = int(round(float(v) * gamma_end))
             by_year.append(entry)
         out["by_start_year"] = by_year
 
@@ -1449,12 +1508,12 @@ def _historical_blocking(plan, objective, opts, ystart, yend, augmented, reverse
             plan.solve(objective, opts)
             if plan.caseStatus == "solved":
                 val = float(plan.basis) if objective == "maxSpending" else float(plan.bequest)
-                entry = {"value": val}
+                entry = {"value": val, "gamma_n_end": float(plan.gamma_n[-1])}
                 if not augmented:
                     entry["year"] = year
                 results.append(entry)
 
-    return plan, n_attempted, results
+    return plan, n_attempted, results, _ystart, _yend
 
 
 def _monte_carlo_blocking(plan, objective, opts, n_scenarios, seed):
@@ -1476,7 +1535,7 @@ def _monte_carlo_blocking(plan, objective, opts, n_scenarios, seed):
         myopts["maxTime"] = MC_TIME_LIMIT
 
     if plan.reproducibleRates and hasattr(plan.rateModel, "_rng"):
-        plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
+        plan.rateModel._rng = np.random.default_rng(plan.rateSeed)
 
     results = []
     for _ in range(int(n_scenarios)):
@@ -1484,7 +1543,7 @@ def _monte_carlo_blocking(plan, objective, opts, n_scenarios, seed):
         plan.solve(objective, myopts)
         if plan.caseStatus == "solved":
             val = float(plan.basis) if objective == "maxSpending" else float(plan.bequest)
-            results.append({"value": val})
+            results.append({"value": val, "gamma_n_end": float(plan.gamma_n[-1])})
 
     return plan, int(n_scenarios), results
 
@@ -1547,6 +1606,10 @@ async def run_stochastic(
     constrain_mean: bool = False,
     slcsp: float | None = None,
     rate_params: dict | None = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
     n_scenarios: int = 200,
     ystart: int | None = None,
     yend: int | None = None,
@@ -1640,6 +1703,12 @@ async def run_stochastic(
         rate_params:          Extra rate model parameters as a dict, e.g.
                               {"bootstrap_type": "block", "block_size": 5}.  Only used with
                               flat params (not filename=); ignored for historical scenarios.
+        ss_trim_pct:          SS trust fund haircut — percent reduction in SS benefits (0–100).
+                              Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
+        ss_trim_year:         Year when the SS benefit reduction begins (e.g. 2033).
+        obbba_expiration_year: Year OBBBA (2025 Tax Reform) rates sunset to pre-TCJA levels
+                              (default 2032).
+        dividend_rate:        Annual dividend yield for taxable accounts in % (default 1.8).
         solver:               "HiGHS", "MOSEK", or None (auto-select).
         max_time:             Per-scenario solver time limit in seconds.
         seed:                 Random seed for reproducibility.
@@ -1689,36 +1758,21 @@ async def run_stochastic(
                 slcsp=slcsp,
                 aca_start_year=aca_start_year,
                 rate_params=rate_params,
+                ss_trim_pct=ss_trim_pct,
+                ss_trim_year=ss_trim_year,
+                obbba_expiration_year=obbba_expiration_year,
+                dividend_rate=dividend_rate,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
 
-    opts = {"units": "1"}  # MCP uses full dollars; plan API defaults to $k
-    if solver:
-        opts["solver"] = solver
-    if max_time is not None:
-        opts["maxTime"] = max_time
-    if net_spending is not None:
-        opts["netSpending"] = net_spending
-    if min_taxable_balance is not None:
-        opts["minTaxableBalance"] = list(min_taxable_balance)
-    if start_roth_year is not None:
-        opts["startRothConversions"] = int(start_roth_year)
-    if no_roth_person is not None:
-        opts["noRothConversions"] = no_roth_person
-    if max_roth_conversion is not None:
-        opts["maxRothConversion"] = max_roth_conversion
-    if bequest is not None:
-        opts["bequest"] = bequest
-    _ssa = _ss_ages_opt(optimize_ss_ages)
-    if _ssa is not None:
-        opts["withSSAges"] = _ssa
-    if previous_magis is not None:
-        opts["previousMAGIs"] = list(previous_magis)
-    if with_medicare is not None:
-        opts["withMedicare"] = with_medicare
-    if with_aca is not None:
-        opts["withACA"] = with_aca
+    opts = _build_mcp_opts(
+        solver=solver, max_time=max_time, net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
+        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
+        with_medicare=with_medicare, with_aca=with_aca,
+    )
 
     try:
         plan, result = await asyncio.get_running_loop().run_in_executor(
@@ -1761,6 +1815,10 @@ def _longevity_stochastic_blocking(
     slcsp=None,
     aca_start_year=None,
     rate_params=None,
+    ss_trim_pct=None,
+    ss_trim_year=None,
+    obbba_expiration_year=None,
+    dividend_rate=None,
 ):
     """Build plan, configure longevity sampling, solve, run stochastic frontier."""
     from owlplanner.stresstests import run_stochastic_spending
@@ -1784,6 +1842,10 @@ def _longevity_stochastic_blocking(
         slcsp=slcsp,
         aca_start_year=aca_start_year,
         rate_params=rate_params,
+        ss_trim_pct=ss_trim_pct,
+        ss_trim_year=ss_trim_year,
+        obbba_expiration_year=obbba_expiration_year,
+        dividend_rate=dividend_rate,
     )
 
     plan.setSexes(list(sexes))
@@ -1877,6 +1939,10 @@ async def run_longevity_stochastic(
     constrain_mean: bool = False,
     slcsp: float | None = None,
     rate_params: dict | None = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
     mortality_table: str = "SSA2025",
     scenario_method: str = "mc",
     target_success_rate: float = 0.90,
@@ -1963,6 +2029,11 @@ async def run_longevity_stochastic(
         constrain_mean:   If True, pin rate series means to historical averages.
         rate_params:      Extra rate model parameters, e.g. {"bootstrap_type":"block","block_size":5}.
                           Only used with flat params (not filename=).
+        ss_trim_pct:      SS trust fund haircut — percent reduction in SS benefits (0–100).
+                          Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
+        ss_trim_year:     Year when the SS benefit reduction begins (e.g. 2033).
+        obbba_expiration_year: Year OBBBA rates sunset to pre-TCJA levels (default 2032).
+        dividend_rate:    Annual dividend yield for taxable accounts in % (default 1.8).
         n_scenarios:      Number of Monte Carlo scenarios (mc mode only, default 200).
         ystart:           First historical start year (historical mode).
         yend:             Last historical start year (historical mode).
@@ -1979,32 +2050,13 @@ async def run_longevity_stochastic(
             ),
         })
 
-    opts = {"units": "1"}
-    if solver:
-        opts["solver"] = solver
-    if max_time is not None:
-        opts["maxTime"] = max_time
-    if net_spending is not None:
-        opts["netSpending"] = net_spending
-    if min_taxable_balance is not None:
-        opts["minTaxableBalance"] = list(min_taxable_balance)
-    if start_roth_year is not None:
-        opts["startRothConversions"] = int(start_roth_year)
-    if no_roth_person is not None:
-        opts["noRothConversions"] = no_roth_person
-    if max_roth_conversion is not None:
-        opts["maxRothConversion"] = max_roth_conversion
-    if bequest is not None:
-        opts["bequest"] = bequest
-    _ssa = _ss_ages_opt(optimize_ss_ages)
-    if _ssa is not None:
-        opts["withSSAges"] = _ssa
-    if previous_magis is not None:
-        opts["previousMAGIs"] = list(previous_magis)
-    if with_medicare is not None:
-        opts["withMedicare"] = with_medicare
-    if with_aca is not None:
-        opts["withACA"] = with_aca
+    opts = _build_mcp_opts(
+        solver=solver, max_time=max_time, net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
+        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
+        with_medicare=with_medicare, with_aca=with_aca,
+    )
 
     try:
         plan, result = await asyncio.get_running_loop().run_in_executor(
@@ -2029,6 +2081,10 @@ async def run_longevity_stochastic(
             slcsp,
             aca_start_year,
             rate_params,
+            ss_trim_pct,
+            ss_trim_year,
+            obbba_expiration_year,
+            dividend_rate,
         )
     except Exception as e:
         return json.dumps({"error": f"Longevity stochastic run error: {e}"})
@@ -2096,6 +2152,11 @@ async def run_historical(
     with_aca: str | None = None,
     aca_start_year: int | None = None,
     slcsp: float | None = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
+    optimize_ss_ages: bool | str | list[str] | None = None,
     ystart: int | None = None,
     yend: int | None = None,
     augmented: bool = False,
@@ -2173,6 +2234,11 @@ async def run_historical(
         slcsp:            Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
         with_aca:         ACA premium modeling: "none", "loop", or "optimize". Requires slcsp > 0.
         aca_start_year:   Calendar year ACA coverage begins.
+        ss_trim_pct:      SS trust fund haircut — percent reduction in SS benefits (0–100).
+                          Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
+        ss_trim_year:     Year when the SS benefit reduction begins (e.g. 2033).
+        obbba_expiration_year: Year OBBBA rates sunset to pre-TCJA levels (default 2032).
+        dividend_rate:    Annual dividend yield for taxable accounts in % (default 1.8).
         ystart:           First historical start year to test (default: earliest available, 1928).
         yend:             Last historical start year to test (default: latest year that fits
                           the plan horizon in the data).
@@ -2228,36 +2294,24 @@ async def run_historical(
                 heirs_tax_rate=heirs_tax_rate,
                 slcsp=slcsp,
                 aca_start_year=aca_start_year,
+                ss_trim_pct=ss_trim_pct,
+                ss_trim_year=ss_trim_year,
+                obbba_expiration_year=obbba_expiration_year,
+                dividend_rate=dividend_rate,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
 
-    opts = {"units": "1"}
-    if solver:
-        opts["solver"] = solver
-    if max_time is not None:
-        opts["maxTime"] = max_time
-    if net_spending is not None:
-        opts["netSpending"] = net_spending
-    if min_taxable_balance is not None:
-        opts["minTaxableBalance"] = list(min_taxable_balance)
-    if start_roth_year is not None:
-        opts["startRothConversions"] = int(start_roth_year)
-    if no_roth_person is not None:
-        opts["noRothConversions"] = no_roth_person
-    if max_roth_conversion is not None:
-        opts["maxRothConversion"] = max_roth_conversion
-    if bequest is not None:
-        opts["bequest"] = bequest
-    if previous_magis is not None:
-        opts["previousMAGIs"] = list(previous_magis)
-    if with_medicare is not None:
-        opts["withMedicare"] = with_medicare
-    if with_aca is not None:
-        opts["withACA"] = with_aca
+    opts = _build_mcp_opts(
+        solver=solver, max_time=max_time, net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
+        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
+        with_medicare=with_medicare, with_aca=with_aca,
+    )
 
     try:
-        plan, n_attempted, results = await asyncio.get_running_loop().run_in_executor(
+        plan, n_attempted, results, ystart_actual, yend_actual = await asyncio.get_running_loop().run_in_executor(
             None,
             _historical_blocking,
             plan, objective, opts, ystart, yend, augmented, reverse, roll,
@@ -2269,8 +2323,8 @@ async def run_historical(
         return json.dumps({"error": "No scenarios solved successfully."})
 
     out = _build_distribution_json(plan, results, objective, "historical", n_attempted)
-    out["ystart_used"] = int(out.get("by_start_year", [{}])[0].get("year", ystart or 1928))
-    out["yend_used"] = int(out.get("by_start_year", [{}])[-1].get("year", yend or 9999))
+    out["ystart_used"] = ystart_actual
+    out["yend_used"] = yend_actual
     out["augmented"] = augmented
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
 
@@ -2329,7 +2383,12 @@ async def run_monte_carlo(
     aca_start_year: int | None = None,
     slcsp: float | None = None,
     constrain_mean: bool = False,
+    optimize_ss_ages: bool | str | list[str] | None = None,
     rate_params: dict | None = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
     n_scenarios: int = 200,
     solver: str | None = None,
     max_time: float | None = None,
@@ -2422,6 +2481,11 @@ async def run_monte_carlo(
                           {"bootstrap_type": "block", "block_size": 5,
                            "crisis_years": [1973, 2000, 2008], "crisis_weight": 2.0}.
                           Gaussian/lognormal: none needed.  Only used with flat params.
+        ss_trim_pct:      SS trust fund haircut — percent reduction in SS benefits (0–100).
+                          Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
+        ss_trim_year:     Year when the SS benefit reduction begins (e.g. 2033).
+        obbba_expiration_year: Year OBBBA rates sunset to pre-TCJA levels (default 2032).
+        dividend_rate:    Annual dividend yield for taxable accounts in % (default 1.8).
         n_scenarios:      Number of Monte Carlo trials (default 200).
         solver:           "HiGHS", "MOSEK", or None (auto-select).
         max_time:         Per-scenario solver time limit in seconds.
@@ -2480,33 +2544,21 @@ async def run_monte_carlo(
                 slcsp=slcsp,
                 aca_start_year=aca_start_year,
                 rate_params=rate_params,
+                ss_trim_pct=ss_trim_pct,
+                ss_trim_year=ss_trim_year,
+                obbba_expiration_year=obbba_expiration_year,
+                dividend_rate=dividend_rate,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
 
-    opts = {"units": "1"}
-    if solver:
-        opts["solver"] = solver
-    if max_time is not None:
-        opts["maxTime"] = max_time
-    if net_spending is not None:
-        opts["netSpending"] = net_spending
-    if min_taxable_balance is not None:
-        opts["minTaxableBalance"] = list(min_taxable_balance)
-    if start_roth_year is not None:
-        opts["startRothConversions"] = int(start_roth_year)
-    if no_roth_person is not None:
-        opts["noRothConversions"] = no_roth_person
-    if max_roth_conversion is not None:
-        opts["maxRothConversion"] = max_roth_conversion
-    if bequest is not None:
-        opts["bequest"] = bequest
-    if previous_magis is not None:
-        opts["previousMAGIs"] = list(previous_magis)
-    if with_medicare is not None:
-        opts["withMedicare"] = with_medicare
-    if with_aca is not None:
-        opts["withACA"] = with_aca
+    opts = _build_mcp_opts(
+        solver=solver, max_time=max_time, net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
+        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
+        with_medicare=with_medicare, with_aca=with_aca,
+    )
 
     try:
         plan, n_attempted, results = await asyncio.get_running_loop().run_in_executor(

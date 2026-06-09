@@ -71,19 +71,25 @@ def test_string_with_spaces_via_fallback():
 # Path creation
 # ---------------------------------------------------------------------------
 
-def test_creates_new_top_level_section():
-    result = apply_overrides(_base(), ["new_section.key=hello"])
-    assert result["new_section"]["key"] == "hello"
+def test_unknown_top_level_section_raises():
+    with pytest.raises(Exception):
+        apply_overrides(_base(), ["new_section.key=hello"])
 
 
-def test_creates_deeply_nested_path():
-    result = apply_overrides(_base(), ["a.b.c.d=99"])
-    assert result["a"]["b"]["c"]["d"] == 99
+def test_unknown_top_level_section_typo_raises():
+    with pytest.raises(Exception):
+        apply_overrides(_base(), ["a.b.c.d=99"])
 
 
 def test_adds_key_to_existing_section():
     result = apply_overrides(_base(), ["solver_options.gap=1e-4"])
     assert result["solver_options"]["gap"] == pytest.approx(1e-4)
+
+
+def test_creates_known_section_not_in_dict():
+    # aca_settings is in KNOWN_SECTIONS but not in _base(); adding it is valid.
+    result = apply_overrides(_base(), ["aca_settings.slcsp=12000"])
+    assert result["aca_settings"]["slcsp"] == 12000
 
 
 # ---------------------------------------------------------------------------

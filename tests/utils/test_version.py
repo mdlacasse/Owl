@@ -26,7 +26,7 @@ import tomllib
 
 from owlplanner import __version__
 
-_REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
+_REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def test_version_matches_pyproject():

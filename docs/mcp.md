@@ -40,6 +40,10 @@ pensions are in $/month. Asset allocation arrays are `[equities, corporate_bonds
 t_notes, cash]` in percent. Fixed user rates (`rate_method="user"`) use
 `[equities, corporate_bonds, t_notes, inflation]` in percent. Pre-65 ACA coverage
 can be modeled via the `slcsp` parameter (annual Silver benchmark premium in $/year).
+Policy scenarios are supported via `ss_trim_pct` + `ss_trim_year` (SS trust fund
+haircut, e.g. 23% from 2033 per SSA trustees), `obbba_expiration_year` (year OBBBA
+tax rates sunset to pre-TCJA levels, default 2032), and `dividend_rate` (taxable
+account yield in %, default 1.8).
 
 **Three distinct stress-test tools:**
 

@@ -1,6 +1,6 @@
 
 
-### Version 2026.6.8
+### Version 2026.6.9
 
 #### MCP server — AI assistant access to Owl
 

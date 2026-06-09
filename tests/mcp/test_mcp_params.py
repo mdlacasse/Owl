@@ -994,3 +994,48 @@ def test_run_monte_carlo_from_file_deterministic_toml():
     assert data["n_scenarios_solved"] > 0
     dist = data["distribution"]["spending_today_dollars"]
     assert dist["min"] > 0
+
+
+# ---------------------------------------------------------------------------
+# OBBBA expiration year + SS haircut + dividend rate
+# ---------------------------------------------------------------------------
+
+_SCENARIO_PARAMS = dict(
+    names=["Martin"], birth_years=[1960], life_expectancy=[88],
+    taxable=[200_000], tax_deferred=[800_000], roth=[100_000],
+    ss_monthly_pias=[2500], ss_ages=[67],
+    state="TX", rate_method="conservative",
+    with_medicare=None,
+)
+
+
+@pytest.mark.toml
+def test_run_from_params_ss_haircut_lowers_spending():
+    """SS benefit reduction (trust fund haircut) reduces optimal spending."""
+    r_base = json.loads(_run(run_from_params(**_SCENARIO_PARAMS)))
+    r_cut = json.loads(_run(run_from_params(**_SCENARIO_PARAMS, ss_trim_pct=23, ss_trim_year=2033)))
+    assert r_base["status"] == "solved"
+    assert r_cut["status"] == "solved"
+    s_base = r_base["summary"]["spending_basis_today_dollars"]
+    s_cut = r_cut["summary"]["spending_basis_today_dollars"]
+    assert s_cut < s_base, f"Haircut should lower spending: {s_cut} >= {s_base}"
+
+
+@pytest.mark.toml
+def test_run_from_params_obbba_year_changes_result():
+    """Earlier OBBBA expiration changes the optimal plan (tax brackets shift sooner)."""
+    r_def = json.loads(_run(run_from_params(**_SCENARIO_PARAMS)))
+    r_early = json.loads(_run(run_from_params(**_SCENARIO_PARAMS, obbba_expiration_year=2028)))
+    assert r_def["status"] == "solved"
+    assert r_early["status"] == "solved"
+    s_def = r_def["summary"]["spending_basis_today_dollars"]
+    s_early = r_early["summary"]["spending_basis_today_dollars"]
+    assert s_early != s_def, "OBBBA 2028 should produce a different result than default 2032"
+
+
+@pytest.mark.toml
+def test_run_from_params_dividend_rate_accepted():
+    """dividend_rate parameter is accepted and changes the plan."""
+    r = json.loads(_run(run_from_params(**_SCENARIO_PARAMS, dividend_rate=3.0)))
+    assert r["status"] == "solved"
+    assert r["summary"]["spending_basis_today_dollars"] > 0

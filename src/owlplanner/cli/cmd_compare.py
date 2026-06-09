@@ -18,18 +18,9 @@ from owlplanner.config.schema import CLI_SOLVER_OVERRIDE_MAP, parse_solver_optio
 from owlplanner.export import plan_metrics
 
 from .cmd_run import validate_toml, _parse_solver_opts
+from .formatters import _NumpyEncoder
 from .params_help import print_solver_options_help
 from .set_override import apply_overrides
-
-
-class _NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        import numpy as np
-        if isinstance(obj, np.integer):
-            return int(obj)
-        if isinstance(obj, np.floating):
-            return float(obj)
-        return super().default(obj)
 
 
 def _solve_case(diconf, dirname, solver, max_time, gap, verbose, solver_opts, seed, label):

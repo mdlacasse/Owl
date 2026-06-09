@@ -20,10 +20,14 @@ import os
 
 import numpy as np
 import pytest
+import pathlib
 from datetime import date
 
 import owlplanner as owl
 from owlplanner import tax_federal as tx
+
+
+_REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def _make_plan(name, taxable, tax_deferred, tax_free, rate_year=2000,
@@ -240,7 +244,7 @@ class TestNIITMilp:
 @pytest.mark.toml
 def test_niit_toml_joe_large_ira_reference():
     """Example TOML (Joe, $650k tax-deferred): loop NIIT matches IRS reference and NII cap."""
-    exdir = os.path.join(os.path.dirname(__file__), "..", "examples")
+    exdir = os.path.join(_REPO_ROOT, "examples")
     case = os.path.join(exdir, "Case_joe.toml")
     hfp = os.path.join(exdir, "HFP_joe.xlsx")
     p = owl.readConfig(case)
@@ -266,7 +270,7 @@ def test_niit_optimize_joe_fixed_asset_capital_gains():
     fixed_assets_capital_gains_n, so q[0]+q[1]+q[2] at the minimum already captures fixed-asset
     CG. This test confirms that path is exercised and J_n is correct.
     """
-    exdir = os.path.join(os.path.dirname(__file__), "..", "examples")
+    exdir = os.path.join(_REPO_ROOT, "examples")
     case = os.path.join(exdir, "Case_joe.toml")
     hfp = os.path.join(exdir, "HFP_joe.xlsx")
     p = owl.readConfig(case)

@@ -483,15 +483,9 @@ def build_summary_dic(plan, N=None):
 
     if N == plan.N_n:
         _summary_section(dic, SUMMARY_SECTION_FINAL_BEQUEST)
-        estate = np.sum(plan.b_ijn[:, :, plan.N_n], axis=0)
-        heirsTaxLiability = (estate[1] + estate[3]) * plan.nu   # tax-deferred and HSA
-        estate[1] *= 1 - plan.nu   # tax-deferred: heirs pay ordinary income tax
-        estate[3] *= 1 - plan.nu   # HSA: non-spouse heirs include full balance in ordinary income
+        estate, heirsTaxLiability, savingsEstate, totEstate, debts = _compute_estate(plan, plan.N_n)
         endyear = plan.year_n[-1]
         lyNow = 1.0 / plan.gamma_n[-1]
-        debts = plan.remaining_debt_balance
-        savingsEstate = np.sum(estate)
-        totEstate = savingsEstate - debts + plan.fixed_assets_bequest_value
 
         dic["Year of final bequest"] = f"{endyear}"
         _summary_currency_pair(dic, "Total after-tax value of final bequest", lyNow * totEstate, totEstate)
@@ -584,6 +578,18 @@ def build_summary_list(plan, N=None):
     return [f"{key}: {value}" for key, value in dic.items()]
 
 
+def _compute_estate(plan, N):
+    """Return (estate_by_account, heirs_tax, savings_estate, total_estate, debts) after nu discount."""
+    estate = np.sum(plan.b_ijn[:, :, N], axis=0).copy()
+    heirs_tax = float((estate[1] + estate[3]) * plan.nu)
+    estate[1] *= 1 - plan.nu
+    estate[3] *= 1 - plan.nu
+    savings_estate = float(np.sum(estate))
+    debts = float(plan.remaining_debt_balance)
+    total_estate = savings_estate - debts + float(plan.fixed_assets_bequest_value)
+    return estate, heirs_tax, savings_estate, total_estate, debts
+
+
 def plan_metrics(plan, N=None) -> dict:
     """
     Return key plan metrics as a dict of plain Python floats.
@@ -603,12 +609,7 @@ def plan_metrics(plan, N=None) -> dict:
     streams = fixedIncomeStreams(plan, N)
     roth_n = np.sum(plan.x_in[:, :N], axis=0)   # per-year total Roth conversions (N_n,)
 
-    estate = np.sum(plan.b_ijn[:, :, N], axis=0).copy()
-    heirs_tax = float((estate[1] + estate[3]) * plan.nu)
-    estate[1] *= 1 - plan.nu
-    estate[3] *= 1 - plan.nu
-    savings_estate = float(np.sum(estate))
-    total_estate = savings_estate - float(plan.remaining_debt_balance) + float(plan.fixed_assets_bequest_value)
+    estate, heirs_tax, savings_estate, total_estate, _ = _compute_estate(plan, N)
 
     def _s(arr):
         return float(np.sum(arr))

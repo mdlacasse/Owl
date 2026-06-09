@@ -22,6 +22,8 @@ import json
 
 import click
 
+from owlplanner.config.schema import KNOWN_SECTIONS
+
 
 def _parse_value(raw: str):
     """
@@ -66,7 +68,11 @@ def apply_overrides(diconf: dict, specs: tuple[str, ...] | list[str]) -> dict:
     Apply a sequence of ``KEY.PATH=VALUE`` override specs to a raw config dict.
 
     Returns a deep copy of *diconf* with all overrides applied.
-    Raises click.BadParameter for syntax errors or unknown top-level sections.
+    Raises click.BadParameter for syntax errors or unknown top-level section names.
+    Known section names are defined by KNOWN_SECTIONS in the Pydantic schema.  A
+    section need not already exist in the dict — e.g. adding ``solver_options.gap``
+    to a TOML that omits ``[solver_options]`` is valid.  Typos in the top-level
+    section name (e.g. ``basic_infoo``) are rejected.
     """
     if not specs:
         return diconf
@@ -82,10 +88,15 @@ def apply_overrides(diconf: dict, specs: tuple[str, ...] | list[str]) -> dict:
 
 def _set_path(d: dict, path: list[str], value, spec: str) -> None:
     """Navigate *path* into *d* and set the leaf to *value*."""
+    # Validate top-level section against the schema to catch typos.
+    if path[0] not in d and path[0] not in KNOWN_SECTIONS:
+        raise click.BadParameter(
+            f"--set path {spec!r}: unknown top-level section '{path[0]}'. "
+            f"Known sections: {sorted(KNOWN_SECTIONS)}"
+        )
     node = d
     for part in path[:-1]:
         if part not in node:
-            # Create intermediate section if it doesn't exist yet.
             node[part] = {}
         if not isinstance(node[part], dict):
             raise click.BadParameter(

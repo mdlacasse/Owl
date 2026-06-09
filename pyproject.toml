@@ -9,7 +9,7 @@ force-include = { "PARAMETERS.md" = "owlplanner/PARAMETERS.md" }
 name = "owlplanner"
 # Single source of truth for the version. Keep in sync with src/owlplanner/version.py
 # via `make sync-version` (enforced by tests/test_version.py).
-version = "2026.6.8"
+version = "2026.6.9"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
@@ -43,6 +43,7 @@ dependencies = [
     "toml",
     "click>=8.3.1",
     "mosek",
+    "loguru>=0.7.3",
     "mcp>=1.27.2",
 ]
 license = {file = "LICENSE"}
@@ -82,6 +83,7 @@ module = [
     "openpyxl.*",
     "toml.*",
     "seaborn.*",
+    "loguru.*",
 ]
 ignore_missing_imports = true
 
