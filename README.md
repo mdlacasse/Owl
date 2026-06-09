@@ -51,6 +51,8 @@ tax-efficient retirement income planning is built into every result, not applied
 
 Among open-source retirement planning tools, Owl stands out for the breadth and rigor of its financial modeling. While the full API rewards those willing to invest time, the Streamlit web interface provides an accessible entry point for all users.
 
+--------------------------------------------------------
+
 There are four ways to run Owl (from easiest to more complex):
 
 1) **Streamlit Hub:** Run Owl remotely as hosted on the Streamlit Community Cloud at
