@@ -11,7 +11,7 @@
 
 ## Open-source AI-powered retirement planning optimizer for tax-efficient withdrawal strategies
 
-*Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Cursor Zed VS Code retirement*
+*Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Claude Cursor Zed VS Code *
 
 <img align="right" src="papers/images/owl.png" width="250">
 
@@ -50,6 +50,8 @@ tax-efficient retirement income planning is built into every result, not applied
   > *"I'm 65, have $800k in my IRA and $200k taxable, $2,400/month Social Security at 67 — what can I safely spend each year with 90% historical probability of success?"*
 
 Among open-source retirement planning tools, Owl stands out for the breadth and rigor of its financial modeling. While the full API rewards those willing to invest time, the Streamlit web interface provides an accessible entry point for all users.
+
+--------------------------------------------------------
 
 There are four ways to run Owl (from easiest to more complex):
 
