@@ -35,10 +35,10 @@ paths** for `directory`, `filename`, and `output_dir` (e.g. `/path/to/Owl/exampl
 `run_historical`, and `run_monte_carlo` accept the full set of plan parameters
 directly, eliminating the need to write a TOML file first.
 
-**Unit conventions:** All monetary balances and solver limits are in full dollars ($);
-time-series amounts (wages, contributions, big-ticket items) are in $/year; Social
-Security is the monthly PIA from your SSA statement ($/month); pensions are in
-$/month. Asset allocation arrays are `[equities, corporate_bonds, t_notes, cash]`
+**Unit conventions:** All monetary balances and solver limits are in full dollars (\$);
+time-series amounts (wages, contributions, big-ticket items) are in \$ per year; Social
+Security is the monthly PIA from your SSA statement (\$ per month); pensions are in
+\$ per month. Asset allocation arrays are `[equities, corporate_bonds, t_notes, cash]`
 in percent. Fixed user rates (`rate_method="user"`) use
 `[equities, corporate_bonds, t_notes, inflation]` in percent.
 
@@ -49,18 +49,18 @@ in percent. Fixed user rates (`rate_method="user"`) use
 | **Required** | `names` * | Person names, e.g. `["Alice", "Bob"]` |
 | | `birth_years` * | Birth years, e.g. `[1963, 1961]` |
 | | `life_expectancy` * | Life expectancy in years per person, e.g. `[90, 87]` |
-| | `taxable` * | Taxable account balances in $ per person |
-| | `tax_deferred` * | Tax-deferred (401k/IRA/403b) balances in $ per person |
-| | `roth` * | Roth account balances in $ per person |
-| **Balances** | `hsa` | HSA balances in $ per person |
-| | `cost_basis` | Taxable cost basis in $ per person (default: 50% of taxable) |
-| **Social Security** | `ss_monthly_pias` | Monthly PIA per person from SSA statement ($/month) |
+| | `taxable` * | Taxable account balances in \$ per person |
+| | `tax_deferred` * | Tax-deferred (401k/IRA/403b) balances in \$ per person |
+| | `roth` * | Roth account balances in \$ per person |
+| **Balances** | `hsa` | HSA balances in \$ per person |
+| | `cost_basis` | Taxable cost basis in \$ per person (default: 50% of taxable) |
+| **Social Security** | `ss_monthly_pias` | Monthly PIA per person from SSA statement (\$ per month) |
 | | `ss_ages` | SS claiming ages per person (e.g. `[67, 67]`) |
-| **Pensions** | `pension_monthly_amounts` | Monthly pension in $/month per person |
+| **Pensions** | `pension_monthly_amounts` | Monthly pension in \$ per month per person |
 | | `pension_ages` | Pension commencement ages per person |
 | | `pension_indexed` | CPI-linked flags per person, e.g. `[True, False]` |
 | | `pension_survivor_fractions` | Survivor benefit fractions (0–1) per person, e.g. `[0.5, 0.0]` |
-| **Time series** | `wages` | Wage streams: `[{"person":0,"annual_amount":90000,"end_year":2032}]` |
+| **Time series** | `wages` | Wage streams: `[{"person":0,"annual_amount":90_000,"end_year":2032}]` |
 | | `contributions` | Retirement contributions; `account` is `taxable`, `tax_deferred`, `roth`, or `hsa` |
 | | `big_ticket_items` | One-time or recurring extra expenses reducing spending budget |
 | **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining"}` |
@@ -78,7 +78,7 @@ in percent. Fixed user rates (`rate_method="user"`) use
 | | `rate_params` | Extra rate model params dict, e.g. `{"bootstrap_type":"block","block_size":5}` |
 | | `constrain_mean` | Pin stochastic series means to historical averages (isolates SOR risk) |
 | **Allocation** | `initial_allocation` | Starting `[equities, corp_bonds, t_notes, cash]` in % (default `[60,40,0,0]`) |
-| | `final_allocation` | Ending allocation % (default `[40,60,0,0]`) |
+| | `final_allocation` | Ending allocation % (default `[40,60, 0,0]`) |
 | | `interpolation_method` | Glide-path shape: `"linear"` (default) or `"s-curve"` |
 | | `interpolation_center` | S-curve midpoint in years from plan start (default 15) |
 | | `interpolation_width` | S-curve transition half-width in years (default 5) |
@@ -87,8 +87,8 @@ in percent. Fixed user rates (`rate_method="user"`) use
 | | `smile_increase` | No-go medical cost growth over full horizon in % (default 12) |
 | | `smile_delay` | Go-go years to hold flat before smile dip begins (default 0) |
 | **Optimization** | `net_spending` | Annual spending floor in $/year when `objective="maxBequest"` |
-| | `min_taxable_balance` | Emergency-fund floor in $ per person, e.g. `[15000]` |
-| | `bequest` | Target estate in today's $ for `maxSpending` objective |
+| | `min_taxable_balance` | Emergency-fund floor in \$ per person, e.g. `[15_000]` |
+| | `bequest` | Target estate in today's \$ for `maxSpending` objective |
 | | `start_roth_year` | 4-digit year before which Roth conversions are disabled |
 | | `no_roth_person` | Name of individual excluded from all Roth conversions (couples only) |
 | | `max_roth_conversion` | Annual per-person Roth conversion cap in $/year |
