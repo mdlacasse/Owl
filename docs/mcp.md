@@ -33,17 +33,84 @@ paths** for `directory`, `filename`, and `output_dir` (e.g. `/path/to/Owl/exampl
 
 `run_from_params`, `save_case`, `run_stochastic`, `run_longevity_stochastic`,
 `run_historical`, and `run_monte_carlo` accept the full set of plan parameters
-directly, eliminating the need to write a TOML file first. All monetary balances
-and solver limits are in full dollars ($); time-series amounts (wages, contributions)
-are in $/year; Social Security is the monthly PIA from your SSA statement ($/month);
-pensions are in $/month. Asset allocation arrays are `[equities, corporate_bonds,
-t_notes, cash]` in percent. Fixed user rates (`rate_method="user"`) use
-`[equities, corporate_bonds, t_notes, inflation]` in percent. Pre-65 ACA coverage
-can be modeled via the `slcsp` parameter (annual Silver benchmark premium in $/year).
-Policy scenarios are supported via `ss_trim_pct` + `ss_trim_year` (SS trust fund
-haircut, e.g. 23% from 2033 per SSA trustees), `obbba_expiration_year` (year OBBBA
-tax rates sunset to pre-TCJA levels, default 2032), and `dividend_rate` (taxable
-account yield in %, default 1.8).
+directly, eliminating the need to write a TOML file first.
+
+**Unit conventions:** All monetary balances and solver limits are in full dollars ($);
+time-series amounts (wages, contributions, big-ticket items) are in $/year; Social
+Security is the monthly PIA from your SSA statement ($/month); pensions are in
+$/month. Asset allocation arrays are `[equities, corporate_bonds, t_notes, cash]`
+in percent. Fixed user rates (`rate_method="user"`) use
+`[equities, corporate_bonds, t_notes, inflation]` in percent.
+
+**Parameter reference** (all optional unless marked *required*):
+
+| Category | Parameter | Description |
+|----------|-----------|-------------|
+| **Required** | `names` * | Person names, e.g. `["Alice", "Bob"]` |
+| | `birth_years` * | Birth years, e.g. `[1963, 1961]` |
+| | `life_expectancy` * | Life expectancy in years per person, e.g. `[90, 87]` |
+| | `taxable` * | Taxable account balances in $ per person |
+| | `tax_deferred` * | Tax-deferred (401k/IRA/403b) balances in $ per person |
+| | `roth` * | Roth account balances in $ per person |
+| **Balances** | `hsa` | HSA balances in $ per person |
+| | `cost_basis` | Taxable cost basis in $ per person (default: 50% of taxable) |
+| **Social Security** | `ss_monthly_pias` | Monthly PIA per person from SSA statement ($/month) |
+| | `ss_ages` | SS claiming ages per person (e.g. `[67, 67]`) |
+| **Pensions** | `pension_monthly_amounts` | Monthly pension in $/month per person |
+| | `pension_ages` | Pension commencement ages per person |
+| | `pension_indexed` | CPI-linked flags per person, e.g. `[True, False]` |
+| | `pension_survivor_fractions` | Survivor benefit fractions (0–1) per person, e.g. `[0.5, 0.0]` |
+| **Time series** | `wages` | Wage streams: `[{"person":0,"annual_amount":90000,"end_year":2032}]` |
+| | `contributions` | Retirement contributions; `account` is `taxable`, `tax_deferred`, `roth`, or `hsa` |
+| | `big_ticket_items` | One-time or recurring extra expenses reducing spending budget |
+| **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining"}` |
+| | `fixed_assets` | Assets to sell: `{"label","type","value","basis","sell_year","commission"}` |
+| | `spias` | SPIAs: `{"person","buy_year","premium","monthly_income","indexed","survivor_fraction"}` |
+| **Plan settings** | `state` | Two-letter US state code for income tax (default `"TX"`) |
+| | `objective` | `"maxSpending"` (default) or `"maxBequest"` |
+| | `survivor_fraction` | Surviving-spouse spending as % of couple spending (default 60) |
+| | `balance_date` | Date balances were recorded as `"MM-DD"` or `"YYYY-MM-DD"` (default: today) |
+| | `heirs_tax_rate` | Heirs' marginal income tax rate in % applied to inherited tax-deferred assets (default 30) |
+| **Rate model** | `rate_method` | Return model name (use `list_rate_models`; default `"conservative"`) |
+| | `rate_values` | Fixed rates `[equities, corp_bonds, t_notes, inflation]` in % for `rate_method="user"` |
+| | `rate_frm` | First year of historical rate window (e.g. `1966`) |
+| | `rate_to` | Last year of historical rate window |
+| | `rate_params` | Extra rate model params dict, e.g. `{"bootstrap_type":"block","block_size":5}` |
+| | `constrain_mean` | Pin stochastic series means to historical averages (isolates SOR risk) |
+| **Allocation** | `initial_allocation` | Starting `[equities, corp_bonds, t_notes, cash]` in % (default `[60,40,0,0]`) |
+| | `final_allocation` | Ending allocation % (default `[40,60,0,0]`) |
+| | `interpolation_method` | Glide-path shape: `"linear"` (default) or `"s-curve"` |
+| | `interpolation_center` | S-curve midpoint in years from plan start (default 15) |
+| | `interpolation_width` | S-curve transition half-width in years (default 5) |
+| **Spending profile** | `spending_profile` | `"smile"` (default) or `"flat"` |
+| | `smile_dip` | Slow-go spending dip as % below go-go peak (default 15) |
+| | `smile_increase` | No-go medical cost growth over full horizon in % (default 12) |
+| | `smile_delay` | Go-go years to hold flat before smile dip begins (default 0) |
+| **Optimization** | `net_spending` | Annual spending floor in $/year when `objective="maxBequest"` |
+| | `min_taxable_balance` | Emergency-fund floor in $ per person, e.g. `[15000]` |
+| | `bequest` | Target estate in today's $ for `maxSpending` objective |
+| | `start_roth_year` | 4-digit year before which Roth conversions are disabled |
+| | `no_roth_person` | Name of individual excluded from all Roth conversions (couples only) |
+| | `max_roth_conversion` | Annual per-person Roth conversion cap in $/year |
+| | `optimize_ss_ages` | SS claiming-age MIP (62–70, monthly): `True`/`"all"`, a name, or a list of names |
+| | `with_medicare` | IRMAA mode: `"none"`, `"loop"` (default), or `"optimize"` (embed in MIP) |
+| | `with_aca` | ACA premium mode: `"none"`, `"loop"` (default when `slcsp` set), or `"optimize"` |
+| | `aca_start_year` | Calendar year ACA coverage begins (e.g. `2028`) |
+| | `previous_magis` | Prior-year MAGI per person in $ for Medicare IRMAA (first 2 plan years) |
+| | `solver` | `"HiGHS"` or `"MOSEK"` (default: best available) |
+| | `max_time` | Solver time limit in seconds |
+| **Policy scenarios** | `slcsp` | Annual ACA Silver benchmark premium in $/year for pre-65 individuals |
+| | `ss_trim_pct` | SS trust fund haircut in % (e.g. `23` for SSA trustees baseline) |
+| | `ss_trim_year` | Year SS benefit reduction begins (e.g. `2033`) |
+| | `obbba_expiration_year` | Year OBBBA tax rates sunset to pre-TCJA levels (default `2032`) |
+| | `dividend_rate` | Taxable account annual dividend yield in % (default `1.8`) |
+| **Stochastic only** | `scenario_method` | `"historical"` (default) or `"mc"` (Monte Carlo) |
+| | `target_success_rate` | Desired shortfall-free fraction, e.g. `0.90` (default) |
+| | `n_scenarios` | Number of Monte Carlo draws (mc mode, default `200`) |
+| | `ystart` / `yend` | Historical window start/end years (historical mode) |
+| | `seed` | Random seed for reproducibility |
+| **`save_case` only** | `output_dir` | Directory where `Case_*.toml` and `HFP_*.xlsx` are written (default: `.`) |
+| | `case_name` | Override the auto-generated filename stem (default: names joined with `+`, e.g. `alice+bob`) |
 
 **Three distinct stress-test tools:**
 
