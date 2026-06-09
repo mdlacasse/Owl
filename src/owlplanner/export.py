@@ -675,7 +675,7 @@ METRICS_COLUMN_MAP: dict[str, tuple[str, str]] = {
     # key: (display_col_name, format_type)  format_type: "usd" | "pct"
     "spending_basis":                ("Net yearly spending basis", "usd"),
     "effective_tax_rate":            ("Effective tax rate (plan average)", "pct"),
-    "spending_year1":                (f"Net spending for year ", "usd_skip"),  # dynamic key, skip
+    "spending_year1":                ("Net spending for year ", "usd_skip"),  # dynamic key, skip
     "total_spending_today":          (f"Total net spending{_T}", "usd"),
     "total_spending_nominal":        (f"Total net spending{_N}", "usd"),
     "total_fixed_income_today":      (f"Total fixed income{_T}", "usd"),

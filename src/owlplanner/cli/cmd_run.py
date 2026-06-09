@@ -157,7 +157,8 @@ def _parse_solver_opts(value):
     callback=lambda ctx, param, value: (print_solver_options_help(), ctx.exit(0)) if value else None,
     help="Show all solver options (parsed from PARAMETERS.md) and exit.",
 )
-def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose, solver_opts, seed, set_overrides, output_format):
+def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose,
+            solver_opts, seed, set_overrides, output_format):
     """Run the retirement planning optimizer on an OWL case file.
 
     Loads the case from FILENAME (a .toml file), solves the optimization

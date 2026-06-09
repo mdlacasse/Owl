@@ -210,6 +210,7 @@ def test_plan_to_dict_raises_if_not_solved():
 
 def test_missing_model_name_raises():
     from owlplanner.rate_models.base import BaseRateModel
+
     class BadPlugin(BaseRateModel):
         description = "Has description but no model_name."
         def generate(self, N): return np.zeros((N, 4))
@@ -219,6 +220,7 @@ def test_missing_model_name_raises():
 
 def test_missing_description_raises():
     from owlplanner.rate_models.base import BaseRateModel
+
     class BadPlugin(BaseRateModel):
         model_name = "bad"
         def generate(self, N): return np.zeros((N, 4))
@@ -228,6 +230,7 @@ def test_missing_description_raises():
 
 def test_complete_plugin_instantiates():
     from owlplanner.rate_models.base import BaseRateModel
+
     class GoodPlugin(BaseRateModel):
         model_name = "good"
         description = "Complete plugin."

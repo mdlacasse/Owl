@@ -101,6 +101,7 @@ def plan_to_dict(plan) -> dict:
     roth_conv = np.sum(plan.x_in[:, :N], axis=0)
     ss_income = plan.zetaBar_in[:, :N]
     portfolio_total = np.sum(plan.b_ijn[:, :, :N], axis=(0, 1))
+    gamma = plan.gamma_n[:N]
 
     by_year = []
     for n in range(N):
@@ -120,12 +121,33 @@ def plan_to_dict(plan) -> dict:
             "portfolio_total": _round(portfolio_total[n]),
         })
 
+    # ---- Roth conversion schedule (non-zero years only) -----------------
+    roth_schedule = []
+    for n in range(N):
+        total = float(roth_conv[n])
+        if total > 1.0:
+            entry = {
+                "year": int(plan.year_n[n]),
+                "ages": [int(plan.year_n[n]) - int(plan.yobs[i]) for i in range(plan.N_i)],
+                "amount_nominal": _round(total),
+                "amount_today_dollars": _round(total / float(gamma[n])),
+            }
+            if plan.N_i > 1:
+                entry["by_person"] = {
+                    plan.inames[i]: _round(float(plan.x_in[i, n]))
+                    for i in range(plan.N_i)
+                    if float(plan.x_in[i, n]) > 1.0
+                }
+            roth_schedule.append(entry)
+
     # ---- top-level document ---------------------------------------------
+    state = plan.state if plan.state else "none"
     return {
         "status": plan.caseStatus,
         "case_name": plan._name,
         "objective": plan.objective,
         "individuals": list(plan.inames),
+        "state": state,
         "start_year": int(plan.year_n[0]),
         "end_year": int(plan.year_n[-1]),
         "time_horizon_years": N,
@@ -133,6 +155,11 @@ def plan_to_dict(plan) -> dict:
         "total_bequest_nominal": summary["final_bequest_nominal"],
         "total_bequest_today_dollars": summary["final_bequest_today_dollars"],
         "summary": summary,
+        "roth_conversions": {
+            "total_nominal": summary["roth_conversions_nominal"],
+            "total_today_dollars": summary["roth_conversions_today_dollars"],
+            "schedule": roth_schedule,
+        },
         "by_year": by_year,
     }
 

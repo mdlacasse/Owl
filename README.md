@@ -9,9 +9,9 @@
 [![Docker](https://img.shields.io/docker/v/owlplanner/owldocker?label=docker)](https://hub.docker.com/r/owlplanner/owldocker)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://owlplanner.streamlit.app)
 
-## Open-source retirement planning optimizer for tax-efficient withdrawal strategies
+## Open-source AI-powered retirement planning optimizer for tax-efficient withdrawal strategies
 
-*Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator*
+*Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Cursor Zed VS Code retirement*
 
 <img align="right" src="papers/images/owl.png" width="250">
 
@@ -33,6 +33,8 @@ Owl covers the full US tax landscape: federal income tax, state income taxes for
 premiums, RMDs, and Roth conversion rules — all embedded directly in the optimizer so that
 tax-efficient retirement income planning is built into every result, not applied as an afterthought.
 
+-------------------------------------------------------------------------------------
+
 **Key capabilities:**
 - **Tax optimization** — federal + state income tax (all 50 states + DC), LTCG brackets, NIIT, Medicare IRMAA, and ACA premiums all embedded in the optimizer
 - **Account types** — taxable, tax-deferred (401k/IRA), Roth, and HSA accounts with full contribution and withdrawal rules
@@ -44,10 +46,12 @@ tax-efficient retirement income planning is built into every result, not applied
 - **Asset allocation** — user-specified glide path (linear or s-curve) across four asset classes (equities, corporate bonds, T-notes, cash); per-account, per-individual, or household-wide
 - **Stochastic analysis** — Monte Carlo with optional longevity risk (mortality tables by sex and category: SSA, VBT, RP-2014, IAM-2012, Pub-2010); spending efficiency frontier tracing the optimal spending vs. shortfall-risk trade-off
 - **Rate models** — 14 models including historical replay, bootstrap, VAR, GARCH-DCC, HMM, GMM, and Gaussian copula
+- **AI assistant** — MCP server lets Claude Desktop, Claude Code, Cursor, Zed, VS Code (Copilot/Cline), and other MCP-compatible AI clients run optimizations, compute probability-of-success frontiers, and compare scenarios through natural conversation — no TOML files required:
+  > *"I'm 65, have $800k in my IRA and $200k taxable, $2,400/month Social Security at 67 — what can I safely spend each year with 90% historical probability of success?"*
 
 Among open-source retirement planning tools, Owl stands out for the breadth and rigor of its financial modeling. While the full API rewards those willing to invest time, the Streamlit web interface provides an accessible entry point for all users.
 
-There are three ways to run Owl (from easiest to more complex):
+There are four ways to run Owl (from easiest to more complex):
 
 1) **Streamlit Hub:** Run Owl remotely as hosted on the Streamlit Community Cloud at
 [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
@@ -57,6 +61,13 @@ Follow these <a href="docker/README.md" target="_blank" rel="noopener noreferrer
 
 1) **Self-hosting:** Run Owl locally on your computer using Python code and libraries.
 Follow these <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">instructions</a> to install from the source code and self-host on your own computer.
+
+1) **AI assistant (MCP):** Connect Owl as a tool to an AI assistant — Claude Desktop,
+Claude Code, Cursor, Zed, VS Code (Copilot or Cline), or any
+[MCP-compatible client](https://modelcontextprotocol.io).
+The AI can discover cases, run optimizations, compute probability-of-success frontiers,
+and compare scenarios through natural conversation — no TOML files required.
+Requires a local installation; see <a href="docs/mcp.md" target="_blank" rel="noopener noreferrer">docs/mcp.md</a> for setup.
 
 
 ---------------------------------------------------------------
@@ -71,6 +82,7 @@ Follow these <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">inst
 | <a href="CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md</a> | Version history and changelog |
 | <a href="CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> | Guidelines for contributing code, issues, and pull requests |
 | <a href="RATE_MODELS.md" target="_blank" rel="noopener noreferrer">RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
+| <a href="docs/mcp.md" target="_blank" rel="noopener noreferrer">docs/mcp.md</a> | MCP server setup for AI-native access via Claude, Cursor, Zed, VS Code, and other clients |
 | <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.pdf</a> | Mathematical foundations |
 
 Documentation for the app user interface is also available from the [Streamlit UI](https://owlplanner.streamlit.app/Documentation).

@@ -37,6 +37,7 @@ class _Result:
         self.output = r.stdout   # JSON-only; stderr carries log lines
         self.exit_code = r.exit_code
 
+
 def _invoke(*args):
     runner = CliRunner()
     return _Result(runner.invoke(cli, list(args), catch_exceptions=False))

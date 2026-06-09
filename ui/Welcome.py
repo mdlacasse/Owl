@@ -72,7 +72,17 @@ to see exactly how robust your future really is.
 
 ### :orange[Built for US Retirees]
 **Owl** integrates US federal tax laws, Social Security rules, and 401(k)/Roth regulations
-to ensure your plan is grounded in reality.""")
+to ensure your plan is grounded in reality.
+
+### :orange[AI-powered retirement planning — ask your AI assistant]
+**Owl** connects to AI assistants via the [Model Context Protocol](https://modelcontextprotocol.io)
+(MCP) — an open standard supported by Claude, Cursor, Zed, VS Code, and more.
+Tell your AI your age, accounts, and income sources, and it runs the optimizer,
+computes a probability-of-success frontier, and explains the results in plain English.
+No files to prepare. No forms to fill in.
+
+> *"I'm 65, have $800k in my IRA and $200k taxable, $2,400/month Social Security
+> at 67 — what can I safely spend each year with 90% historical probability of success?"*""")
 
 with col2:
     st.image(logofile, width="stretch")
@@ -184,7 +194,7 @@ You can also create a case from scratch in the app and save the *case* and *Hous
 
     # ---- How to run Owl ----
     st.markdown("### :orange[How to run **Owl**]")
-    run1, run2, run3 = st.columns(3, gap="medium")
+    run1, run2, run3, run4 = st.columns(4, gap="medium")
     with run1:
         st.markdown("""**:material/cloud: Cloud-hosted**
 \nUse **Owl** directly on the Streamlit Community Cloud server — no installation required.
@@ -197,6 +207,11 @@ Instructions [here](https://github.com/mdlacasse/Owl/blob/main/docker/README.md)
         st.markdown("""**:material/computer: Run natively**
 \nInstall and run **Owl** directly on your computer.
 Instructions [here](https://github.com/mdlacasse/Owl/blob/main/INSTALL.md).""")
+    with run4:
+        st.markdown("""**:material/smart_toy: AI assistant (MCP)**
+\nConnect **Owl** to Claude, Cursor, Zed, VS Code, or any MCP-compatible AI client
+and run scenarios through natural conversation.
+Instructions [here](https://github.com/mdlacasse/Owl/blob/main/docs/mcp.md).""")
 
 kz.divider("orange")
 

@@ -17,7 +17,7 @@ from pathlib import Path
 
 from owlplanner.config import load_toml, config_to_plan
 
-from .cmd_run import validate_toml, _parse_solver_opts
+from .cmd_run import validate_toml
 from .formatters import _NumpyEncoder
 from .set_override import apply_overrides
 
