@@ -11,7 +11,7 @@
 
 ## Open-source AI-powered retirement planning optimizer for tax-efficient withdrawal strategies
 
-*Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Cursor Zed VS Code retirement*
+*Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Claude Cursor Zed VS Code *
 
 <img align="right" src="papers/images/owl.png" width="250">
 
