@@ -22,8 +22,12 @@ import pytest
 from owlplanner.cli.cmd_serve import (
     _build_plan_from_params,
     _build_hfp_dataframes,
+    _ss_ages_opt,
+    _build_distribution_json,
     run_from_params,
     save_case,
+    run_historical,
+    run_monte_carlo,
 )
 
 THISYEAR = datetime.date.today().year
@@ -179,6 +183,11 @@ def test_wages_start_year_respected():
     assert plan.omega_in[0, 1] == pytest.approx(0)
     assert plan.omega_in[0, 2] == pytest.approx(50_000)
     assert plan.omega_in[0, 5] == pytest.approx(0)
+
+
+def test_wages_invalid_person_raises():
+    with pytest.raises(ValueError, match="person index"):
+        _single(wages=[{"person": 5, "annual_amount": 50_000, "end_year": THISYEAR + 2}])
 
 
 def test_wages_multiple_streams_accumulate():
@@ -704,3 +713,284 @@ def test_run_from_params_min_taxable_balance_full_dollars():
     assert d_fl["status"] == "solved"
     # Imposing a floor constrains the optimizer, so spending can only stay equal or decrease
     assert d_fl["summary"]["spending_basis_today_dollars"] <= d_no["summary"]["spending_basis_today_dollars"] + 1
+
+
+# ---------------------------------------------------------------------------
+# with_aca / aca_start_year
+# ---------------------------------------------------------------------------
+
+def test_aca_start_year_sets_plan():
+    """_build_plan_from_params passes aca_start_year to plan.setACA."""
+    plan = _single(slcsp=18_000, aca_start_year=THISYEAR + 2)
+    assert plan.aca_start_year == THISYEAR + 2
+    assert plan.slcsp_annual == pytest.approx(18_000)
+
+
+@pytest.mark.toml
+def test_run_from_params_with_aca():
+    """with_aca='loop' + slcsp produces non-zero ACA premiums for a pre-65 individual."""
+    # Single person age 60 → pre-65 for first 5 years
+    result = _run(run_from_params(
+        names=["Sam"], birth_years=[1966], life_expectancy=[88],
+        taxable=[100_000], tax_deferred=[400_000], roth=[50_000],
+        ss_monthly_pias=[1_800], ss_ages=[67],
+        state="TX", rate_method="conservative",
+        slcsp=18_000,
+        with_aca="loop",
+    ))
+    data = json.loads(result)
+    assert data["status"] == "solved"
+    aca_total = data["summary"]["aca_nominal"]
+    assert aca_total > 0, f"Expected non-zero ACA premiums with slcsp=18_000, got {aca_total}"
+
+
+# ---------------------------------------------------------------------------
+# _ss_ages_opt helper
+# ---------------------------------------------------------------------------
+
+def test_ss_ages_opt_false_returns_none():
+    assert _ss_ages_opt(False) is None
+
+
+def test_ss_ages_opt_none_returns_none():
+    assert _ss_ages_opt(None) is None
+
+
+def test_ss_ages_opt_true_returns_optimize():
+    assert _ss_ages_opt(True) == "optimize"
+
+
+def test_ss_ages_opt_all_returns_optimize():
+    assert _ss_ages_opt("all") == "optimize"
+
+
+def test_ss_ages_opt_name_string_passthrough():
+    assert _ss_ages_opt("Alice") == "Alice"
+
+
+def test_ss_ages_opt_list_passthrough():
+    assert _ss_ages_opt(["Alice", "Bob"]) == ["Alice", "Bob"]
+
+
+def test_ss_ages_opt_single_element_list():
+    assert _ss_ages_opt(["Alice"]) == ["Alice"]
+
+
+# ---------------------------------------------------------------------------
+# optimize_ss_ages per-person via run_from_params (integration)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.toml
+def test_run_from_params_optimize_ss_ages_single_name():
+    """optimize_ss_ages='Alice' optimizes only Alice; Bob is fixed at ss_ages value."""
+    result = _run(run_from_params(
+        names=["Alice", "Bob"], birth_years=[1963, 1961],
+        life_expectancy=[90, 87],
+        taxable=[150_000, 150_000], tax_deferred=[600_000, 600_000], roth=[75_000, 75_000],
+        ss_monthly_pias=[2333, 2667], ss_ages=[67, 67],
+        state="TX", rate_method="conservative",
+        optimize_ss_ages="Alice",
+    ))
+    data = json.loads(result)
+    assert data["status"] == "solved"
+    assert data["spending_year1_nominal"] > 0
+
+
+@pytest.mark.toml
+def test_run_from_params_optimize_ss_ages_all():
+    """optimize_ss_ages=True optimizes claiming age for all persons."""
+    result = _run(run_from_params(
+        names=["Alice", "Bob"], birth_years=[1963, 1961],
+        life_expectancy=[90, 87],
+        taxable=[150_000, 150_000], tax_deferred=[600_000, 600_000], roth=[75_000, 75_000],
+        ss_monthly_pias=[2333, 2667], ss_ages=[67, 67],
+        state="TX", rate_method="conservative",
+        optimize_ss_ages=True,
+    ))
+    data = json.loads(result)
+    assert data["status"] == "solved"
+    assert data["spending_year1_nominal"] > 0
+
+
+@pytest.mark.toml
+def test_run_from_params_optimize_ss_ages_already_claimed():
+    """A person whose current age >= ss_age is treated as already claimed; plan still solves."""
+    # Bob born 1955 → age 71 in 2026, already past any claiming age
+    result = _run(run_from_params(
+        names=["Alice", "Bob"], birth_years=[1963, 1955],
+        life_expectancy=[90, 87],
+        taxable=[150_000, 150_000], tax_deferred=[600_000, 600_000], roth=[75_000, 75_000],
+        ss_monthly_pias=[2333, 2667], ss_ages=[67, 70],
+        state="TX", rate_method="conservative",
+        optimize_ss_ages=True,
+    ))
+    data = json.loads(result)
+    assert data["status"] == "solved"
+
+
+# ---------------------------------------------------------------------------
+# _build_distribution_json helper
+# ---------------------------------------------------------------------------
+
+def test_build_distribution_json_structure():
+    """_build_distribution_json produces expected top-level keys."""
+    plan = _single()
+    import numpy as np
+    results = [{"value": float(v)} for v in np.linspace(50_000, 100_000, 20)]
+    out = _build_distribution_json(plan, results, "maxSpending", "mc", 20)
+    assert out["status"] == "completed"
+    assert out["scenario_method"] == "mc"
+    assert out["n_scenarios_attempted"] == 20
+    assert out["n_scenarios_solved"] == 20
+    dist = out["distribution"]["spending_today_dollars"]
+    for key in ("min", "p10", "p25", "median", "mean", "p75", "p90", "max"):
+        assert key in dist
+    assert dist["min"] <= dist["median"] <= dist["max"]
+
+
+def test_build_distribution_json_historical_by_year():
+    """Historical results (with 'year' key) produce by_start_year list."""
+    plan = _single()
+    results = [{"value": 70_000.0 + i * 1_000, "year": 1928 + i} for i in range(5)]
+    out = _build_distribution_json(plan, results, "maxSpending", "historical", 5)
+    assert "by_start_year" in out
+    years = [r["year"] for r in out["by_start_year"]]
+    assert years == [1928, 1929, 1930, 1931, 1932]
+
+
+def test_build_distribution_json_mc_no_by_year():
+    """MC results (no 'year' key) do not include by_start_year."""
+    plan = _single()
+    results = [{"value": 70_000.0}] * 10
+    out = _build_distribution_json(plan, results, "maxSpending", "mc", 10)
+    assert "by_start_year" not in out
+
+
+# ---------------------------------------------------------------------------
+# run_historical (integration)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.toml
+def test_run_historical_from_params_solves():
+    """run_historical with flat params runs and returns a distribution."""
+    result = _run(run_historical(
+        names=["Martin"], birth_years=[1960], life_expectancy=[88],
+        taxable=[200_000], tax_deferred=[800_000], roth=[100_000],
+        ss_monthly_pias=[2500], ss_ages=[67],
+        state="TX",
+        ystart=1985, yend=2000,
+    ))
+    data = json.loads(result)
+    assert data["status"] == "completed"
+    assert data["scenario_method"] == "historical"
+    assert data["n_scenarios_attempted"] >= 1
+    assert data["n_scenarios_solved"] >= 1
+    dist = data["distribution"]["spending_today_dollars"]
+    assert dist["min"] > 0
+    assert dist["max"] >= dist["min"]
+
+
+@pytest.mark.toml
+def test_run_historical_from_file_solves():
+    """run_historical with filename= loads TOML and runs over a small year window."""
+    result = _run(run_historical(
+        filename="examples/Case_bill.toml",
+        overrides=["solver_options.withMedicare=None", "solver_options.withDecomposition=none"],
+        ystart=1990, yend=2000,
+    ))
+    data = json.loads(result)
+    assert data["status"] == "completed"
+    assert "by_start_year" in data
+    assert len(data["by_start_year"]) >= 1
+
+
+@pytest.mark.toml
+def test_run_historical_by_year_coverage():
+    """by_start_year contains one entry per solved year in the window."""
+    result = _run(run_historical(
+        names=["Martin"], birth_years=[1960], life_expectancy=[88],
+        taxable=[200_000], tax_deferred=[800_000], roth=[100_000],
+        ss_monthly_pias=[2500], ss_ages=[67],
+        state="TX",
+        ystart=1990, yend=1994,
+    ))
+    data = json.loads(result)
+    assert data["status"] == "completed"
+    years = [e["year"] for e in data["by_start_year"]]
+    for y in range(1990, 1995):
+        assert y in years, f"Year {y} missing from by_start_year"
+
+
+# ---------------------------------------------------------------------------
+# run_monte_carlo (integration)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.toml
+def test_run_monte_carlo_solves():
+    """run_monte_carlo with gmm (no frm/to needed) returns a distribution."""
+    result = _run(run_monte_carlo(
+        names=["Martin"], birth_years=[1960], life_expectancy=[88],
+        taxable=[200_000], tax_deferred=[800_000], roth=[100_000],
+        ss_monthly_pias=[2500], ss_ages=[67],
+        state="TX", rate_method="gmm",
+        n_scenarios=20, seed=42,
+    ))
+    data = json.loads(result)
+    assert data["status"] == "completed"
+    assert data["scenario_method"] == "mc"
+    assert data["n_scenarios_attempted"] == 20
+    dist = data["distribution"]["spending_today_dollars"]
+    assert dist["min"] > 0
+
+
+@pytest.mark.toml
+def test_run_monte_carlo_deterministic_method_fails():
+    """run_monte_carlo with a deterministic rate method returns an error."""
+    result = _run(run_monte_carlo(
+        names=["Martin"], birth_years=[1960], life_expectancy=[88],
+        taxable=[200_000], tax_deferred=[800_000], roth=[100_000],
+        ss_monthly_pias=[2500], ss_ages=[67],
+        state="TX", rate_method="conservative",
+        n_scenarios=5,
+    ))
+    data = json.loads(result)
+    assert "error" in data
+
+
+@pytest.mark.toml
+def test_run_monte_carlo_bootstrap():
+    """run_monte_carlo with historical_bootstrap and block_size=3 runs correctly."""
+    result = _run(run_monte_carlo(
+        names=["Martin"], birth_years=[1960], life_expectancy=[88],
+        taxable=[200_000], tax_deferred=[800_000], roth=[100_000],
+        ss_monthly_pias=[2500], ss_ages=[67],
+        state="TX", rate_method="historical_bootstrap",
+        rate_frm=1970, rate_to=2020,
+        rate_params={"bootstrap_type": "block", "block_size": 3},
+        n_scenarios=15, seed=7,
+    ))
+    data = json.loads(result)
+    assert data["status"] == "completed"
+    assert data["n_scenarios_solved"] > 0
+
+
+@pytest.mark.toml
+def test_run_monte_carlo_from_file_deterministic_toml():
+    """run_monte_carlo from a TOML with a deterministic rate method auto-applies gmm."""
+    # Case_bill.toml uses rate_method="historical" (deterministic); the tool
+    # must override it with a stochastic model so MC can run.
+    result = _run(run_monte_carlo(
+        filename="examples/Case_bill.toml",
+        overrides=[
+            "solver_options.withMedicare=None",
+            "solver_options.withDecomposition=none",
+        ],
+        rate_method="gmm",
+        n_scenarios=15, seed=42,
+    ))
+    data = json.loads(result)
+    assert data["status"] == "completed", data.get("error", "")
+    assert data["rate_method"] == "gmm"
+    assert data["n_scenarios_solved"] > 0
+    dist = data["distribution"]["spending_today_dollars"]
+    assert dist["min"] > 0

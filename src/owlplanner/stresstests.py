@@ -414,7 +414,7 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
     return N, df
 
 
-def run_stochastic_spending(plan, options, scenario_method, *,
+def run_stochastic_spending(plan, options, scenario_method, *,  # noqa: C901
                             ystart=None, yend=None, N=None, progcall=None,
                             reverse=False, roll=0, with_longevity=False, sexes=None, seed=None):
     """

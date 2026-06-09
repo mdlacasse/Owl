@@ -150,7 +150,7 @@ def _age_float_to_ym(age: float) -> tuple[int, int]:
     return int(age), round((age % 1.0) * 12)
 
 
-def config_to_ui(diconf: dict, *, mylog=None) -> dict:
+def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     """
     Convert canonical configuration dict to flat UI session-state style dict.
 

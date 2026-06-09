@@ -747,7 +747,7 @@ def build_summary_string(plan, N=None):
     return "\n".join(lines) + "\n"
 
 
-def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with_config="no"):
+def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with_config="no"):  # noqa: C901
     """
     Build Excel workbook from plan. Optionally save to file.
 

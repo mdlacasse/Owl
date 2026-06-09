@@ -4296,7 +4296,7 @@ class Plan:
         self.mylog.vprint("Decomp: fixed-bracket MIP failed; falling back to monolithic.")
         return self._run_mip(self.A, self.B, self.c, options)
 
-    def _benders_solve(self, objective, options):
+    def _benders_solve(self, objective, options):  # noqa: C901
         """
         Benders decomposition (withDecomposition='benders').
 

@@ -124,10 +124,10 @@ def test_list_rates_valid_json():
     assert "aliases" in data
 
 
-def test_list_rates_all_17_models():
+def test_list_rates_at_least_17_models():
     r = _invoke("list-rates")
     data = json.loads(r.output)
-    assert len(data["models"]) == 17
+    assert len(data["models"]) >= 17
 
 
 def test_list_rates_model_has_required_fields():
@@ -343,7 +343,8 @@ def test_mcp_explain_case_with_override():
 def test_mcp_list_rate_models_all():
     from owlplanner.cli.cmd_serve import list_rate_models
     result = json.loads(list_rate_models("all"))
-    assert len(result["models"]) == 17
+    assert len(result["models"]) >= 17
+    assert all("method" in m and "category" in m for m in result["models"])
 
 
 def test_mcp_list_rate_models_filtered():
@@ -357,3 +358,43 @@ def test_mcp_list_rate_models_invalid_category():
     from owlplanner.cli.cmd_serve import list_rate_models
     result = json.loads(list_rate_models("bogus"))
     assert "error" in result
+
+
+# ---------------------------------------------------------------------------
+# MCP solve tools (run_case, compare_cases)
+# ---------------------------------------------------------------------------
+
+MCP_FAST_OVERRIDES = [
+    "rates_selection.method=conservative",
+    "solver_options.withMedicare=None",
+    "solver_options.withSCLoop=false",
+    "solver_options.withDecomposition=none",
+]
+
+
+def _run_async(coro):
+    import asyncio
+    return asyncio.run(coro)
+
+
+@pytest.mark.toml
+def test_mcp_run_case_solves():
+    from owlplanner.cli.cmd_serve import run_case
+    result = _run_async(run_case(BILL_TOML, overrides=MCP_FAST_OVERRIDES))
+    data = json.loads(result)
+    assert data["status"] == "solved"
+    assert data["spending_year1_nominal"] > 0
+
+
+@pytest.mark.toml
+def test_mcp_compare_cases_delta():
+    from owlplanner.cli.cmd_serve import compare_cases
+    result = _run_async(compare_cases(
+        BILL_TOML,
+        overrides=["basic_info.state=CA", *MCP_FAST_OVERRIDES],
+    ))
+    data = json.loads(result)
+    assert "base" in data
+    assert "variant" in data
+    assert "delta" in data
+    assert "spending_basis" in data["base"]

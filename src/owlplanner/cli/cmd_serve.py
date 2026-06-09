@@ -1,19 +1,23 @@
 """
 CLI command that starts an MCP (Model Context Protocol) server for Owl.
 
-Exposes eight tools over stdio so any MCP-compatible AI client (Claude Desktop,
+Exposes twelve tools over stdio so any MCP-compatible AI client (Claude Desktop,
 Claude Code, etc.) can discover cases, inspect configurations, run optimizations,
 and compare scenarios without touching the filesystem directly.
 
 Tools exposed:
-  list_cases        — enumerate .toml case files in a directory
-  explain_case      — describe a case without solving
-  list_rate_models  — enumerate available rate models and their parameters
-  run_case          — solve a case and return structured JSON results
-  compare_cases     — run base + variant and return delta metrics
-  run_from_params   — build and solve a plan from structured parameters (no TOML needed)
-  save_case         — save structured parameters to TOML + HFP Excel for reproducibility
-  run_stochastic    — efficient frontier over historical or Monte Carlo scenarios
+  list_cases               — enumerate .toml case files in a directory
+  explain_case             — describe a case without solving
+  list_rate_models         — enumerate available rate models and their parameters
+  list_mortality_tables    — actuarial tables for longevity risk sampling
+  run_case                 — solve a case and return structured JSON results
+  compare_cases            — run base + variant and return delta metrics
+  run_from_params          — build and solve from structured parameters (no TOML needed)
+  save_case                — save structured parameters to TOML + HFP Excel for reproducibility
+  run_stochastic           — spending frontier over historical or Monte Carlo scenarios
+  run_longevity_stochastic — frontier with joint market + lifespan sampling
+  run_historical           — backtest across historical sequences, return outcome distribution
+  run_monte_carlo          — Monte Carlo simulations, return outcome distribution
 
 All tool output is JSON.  Plan solver output goes to stderr so it never
 pollutes the MCP stdio transport.
@@ -26,12 +30,14 @@ import datetime
 import json
 import sys
 from pathlib import Path
+from typing import Annotated
 
 import numpy as np
 import pandas as pd
 
 import click
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
 from owlplanner import Plan
 from owlplanner.config import load_toml, config_to_plan
@@ -64,9 +70,38 @@ mcp = FastMCP(
         "and random lifespans (use list_mortality_tables to select the right actuarial "
         "table based on the user's occupation and smoking status). "
         "All monetary values in JSON output are nominal dollars "
-        "unless the key ends with '_today' or '_today_dollars'."
+        "unless the key ends with '_today' or '_today_dollars'. "
+        "Asset allocation arrays are [equities, corporate_bonds, t_notes, cash] — "
+        "always ask the user to clarify 'bonds' before filling in an allocation, "
+        "since corporate bonds (index 1) and T-notes/Treasuries (index 2) have "
+        "meaningfully different historical return series. "
+        "File paths (directory, filename) must be absolute or resolvable from the "
+        "MCP server working directory — prefer absolute paths to the Owl repo or "
+        "user workspace."
     ),
 )
+
+
+def _norm_overrides(overrides: list[str] | None) -> list[str]:
+    """Return a fresh overrides list (avoids mutable default args)."""
+    return list(overrides) if overrides is not None else []
+
+
+def _ss_ages_opt(v) -> str | list | None:
+    """Map optimize_ss_ages value to a withSSAges option string/list, or None to skip."""
+    if not v:          # None, False, empty string/list
+        return None
+    if v is True or v == "all":
+        return "optimize"
+    return v           # single name string or list of names — pass through directly
+
+
+def _check_person_index(person: int, n_individuals: int, context: str) -> None:
+    if person < 0 or person >= n_individuals:
+        raise ValueError(
+            f"{context}: person index {person} is out of range "
+            f"(plan has {n_individuals} individual(s), valid indices 0..{n_individuals - 1})."
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -74,7 +109,11 @@ mcp = FastMCP(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_cases(directory: str = ".") -> str:
+def list_cases(
+    directory: Annotated[str, Field(
+        description="Directory to scan for .toml case files (prefer absolute path).",
+    )] = ".",
+) -> str:
     """List Owl case files (.toml) in a directory.
 
     Returns a JSON array of objects, each with:
@@ -94,18 +133,14 @@ def list_cases(directory: str = ".") -> str:
     cases = []
     for f in toml_files:
         try:
-            plan = config_to_plan(
-                load_toml(str(f))[0],
-                str(path),
-                verbose=False,
-                logstreams=[sys.stderr],
-                loadHFP=False,
-            )
-            hfp = plan.hfpFileName if plan.hfpFileName != "None" else None
+            diconf = load_toml(str(f))[0]
+            case_name = diconf.get("case_name", f.stem)
+            raw_hfp = diconf.get("household_financial_profile", {}).get("HFP_file_name", "None")
+            hfp = None if (not raw_hfp or raw_hfp.lower() in ("none", "dictionary of dataframes")) else raw_hfp
             cases.append({
                 "stem": f.stem,
                 "filename": str(f),
-                "case_name": plan._name,
+                "case_name": case_name,
                 "has_hfp": bool(hfp and (path / hfp).exists()),
                 "hfp_file": hfp,
             })
@@ -120,7 +155,13 @@ def list_cases(directory: str = ".") -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def explain_case(filename: str, overrides: list[str] = []) -> str:
+def explain_case(
+    filename: Annotated[str, Field(description="Path to the .toml case file (prefer absolute path).")],
+    overrides: Annotated[
+        list[str] | None,
+        Field(description='KEY.PATH=VALUE overrides, e.g. ["basic_info.state=CA"].'),
+    ] = None,
+) -> str:
     """Describe a retirement planning case without solving it.
 
     Loads and validates the TOML case file, applies any overrides, and returns
@@ -130,6 +171,7 @@ def explain_case(filename: str, overrides: list[str] = []) -> str:
     The 'overrides' list uses KEY.PATH=VALUE syntax, e.g.:
       ["basic_info.state=CA", "fixed_income.social_security_ages=[70,68]"]
     """
+    overrides = _norm_overrides(overrides)
     try:
         diconf, dirname, _ = load_toml(filename)
     except Exception as e:
@@ -155,7 +197,12 @@ def explain_case(filename: str, overrides: list[str] = []) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_rate_models(category: str = "all") -> str:
+def list_rate_models(
+    category: Annotated[
+        str,
+        Field(description='Filter: "single", "deterministic", "stochastic", "dataframe", or "all".'),
+    ] = "all",
+) -> str:
     """List available rate models for return-sequence generation.
 
     Returns a JSON document with:
@@ -194,14 +241,40 @@ def list_rate_models(category: str = "all") -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _MORTALITY_TABLE_INFO = {
-    "VBT2015-SM":       {"le_at_65": 82, "description": "Smokers — Valuation Basic Table 2015, smoker lives."},
-    "SSA2025":          {"le_at_65": 83, "description": "General US population — Social Security Administration 2025 period life table. Use when no specific category fits."},
-    "Pub2010-Safety":   {"le_at_65": 85, "description": "Public safety workers — police, fire, corrections (PubH 2010)."},
-    "Pub2010-General":  {"le_at_65": 86, "description": "General government employees — non-safety, non-teacher public sector (PubG 2010)."},
-    "RP2014":           {"le_at_65": 86, "description": "Private-sector pension recipients — Retirement Plans 2014."},
-    "VBT2015-NS":       {"le_at_65": 87, "description": "Non-smokers — Valuation Basic Table 2015, non-smoker lives."},
-    "IAM2012":          {"le_at_65": 87, "description": "Annuity purchasers — Individual Annuity Mortality 2012. Use when the individual owns or plans to buy a life annuity (SPIA)."},
-    "Pub2010-Teacher":  {"le_at_65": 87, "description": "Teachers and school employees — K-12 and university educators (PubT 2010)."},
+    "VBT2015-SM": {
+        "le_at_65": 82,
+        "description": "Smokers — Valuation Basic Table 2015, smoker lives.",
+    },
+    "SSA2025": {
+        "le_at_65": 83,
+        "description": "General US population — Social Security Administration 2025 period life table."
+                       " Use when no specific category fits.",
+    },
+    "Pub2010-Safety": {
+        "le_at_65": 85,
+        "description": "Public safety workers — police, fire, corrections (PubH 2010).",
+    },
+    "Pub2010-General": {
+        "le_at_65": 86,
+        "description": "General government employees — non-safety, non-teacher public sector (PubG 2010).",
+    },
+    "RP2014": {
+        "le_at_65": 86,
+        "description": "Private-sector pension recipients — Retirement Plans 2014.",
+    },
+    "VBT2015-NS": {
+        "le_at_65": 87,
+        "description": "Non-smokers — Valuation Basic Table 2015, non-smoker lives.",
+    },
+    "IAM2012": {
+        "le_at_65": 87,
+        "description": "Annuity purchasers — Individual Annuity Mortality 2012."
+                       " Use when the individual owns or plans to buy a life annuity (SPIA).",
+    },
+    "Pub2010-Teacher": {
+        "le_at_65": 87,
+        "description": "Teachers and school employees — K-12 and university educators (PubT 2010).",
+    },
 }
 
 
@@ -249,15 +322,13 @@ def list_mortality_tables() -> str:
 # Tool: run_case
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _build_opts(plan, solver, max_time, gap, verbose_flag, solver_opts_raw):
+def _build_opts(plan, solver, max_time, verbose_flag, solver_opts_raw):
     """Merge CLI flags into the plan's solver options dict and validate."""
     opts = dict(plan.solverOptions)
     if solver is not None:
         opts["solver"] = solver
     if max_time is not None:
         opts["maxTime"] = max_time
-    if gap is not None:
-        opts["gap"] = gap
     if verbose_flag is not None:
         opts["verbose"] = verbose_flag
     for key, val in _parse_solver_opts(solver_opts_raw or []):
@@ -265,24 +336,32 @@ def _build_opts(plan, solver, max_time, gap, verbose_flag, solver_opts_raw):
     return parse_solver_options(opts)
 
 
-def _solve_blocking(diconf, dirname, solver, max_time, gap, seed, solver_opts_raw):
+def _solve_blocking(diconf, dirname, solver, max_time, seed, solver_opts_raw):
     """Load, configure, solve, and return the Plan. Runs in a thread executor."""
     plan = config_to_plan(diconf, dirname, verbose=True, logstreams=[sys.stderr], loadHFP=True)
     if seed is not None:
         plan.setReproducible(True, seed=seed)
-    opts = _build_opts(plan, solver, max_time, gap, None, solver_opts_raw)
+    opts = _build_opts(plan, solver, max_time, None, solver_opts_raw)
     plan.solve(plan.objective, opts)
     return plan
 
 
 @mcp.tool()
 async def run_case(
-    filename: str,
-    overrides: list[str] = [],
-    solver: str | None = None,
-    max_time: float | None = None,
-    gap: float | None = None,
-    seed: int | None = None,
+    filename: Annotated[str, Field(description="Path to the .toml case file (prefer absolute path).")],
+    overrides: Annotated[
+        list[str] | None,
+        Field(description='KEY.PATH=VALUE overrides, e.g. ["basic_info.state=TX"].'),
+    ] = None,
+    solver: Annotated[
+        str | None,
+        Field(description='Solver: HiGHS, MOSEK, or omit for auto-select.'),
+    ] = None,
+    max_time: Annotated[float | None, Field(description="Solver time limit in seconds.")] = None,
+    seed: Annotated[
+        int | None,
+        Field(description="Random seed for stochastic rate methods."),
+    ] = None,
 ) -> str:
     """Solve a retirement planning case and return structured JSON results.
 
@@ -294,9 +373,9 @@ async def run_case(
         overrides: KEY.PATH=VALUE overrides, e.g. ["basic_info.state=TX"].
         solver:    "HiGHS", "MOSEK", or "default" (default picks best available).
         max_time:  Solver time limit in seconds.
-        gap:       MIP relative gap tolerance (e.g. 1e-4).
         seed:      Random seed for stochastic rate methods.
     """
+    overrides = _norm_overrides(overrides)
     try:
         diconf, dirname, _ = load_toml(filename)
     except Exception as e:
@@ -309,10 +388,10 @@ async def run_case(
             return json.dumps({"error": f"Invalid override: {e}"})
 
     try:
-        plan = await asyncio.get_event_loop().run_in_executor(
+        plan = await asyncio.get_running_loop().run_in_executor(
             None,
             _solve_blocking,
-            diconf, dirname, solver, max_time, gap, seed, [],
+            diconf, dirname, solver, max_time, seed, [],
         )
     except Exception as e:
         return json.dumps({"error": f"Solver error: {e}"})
@@ -348,20 +427,22 @@ def _pct(delta_val, base_val):
     return None
 
 
-def _compare_blocking(diconf_base, diconf_variant, dirname, solver, max_time, gap, seed):
-    plan_base = _solve_blocking(diconf_base, dirname, solver, max_time, gap, seed, [])
-    plan_variant = _solve_blocking(diconf_variant, dirname, solver, max_time, gap, seed, [])
+def _compare_blocking(diconf_base, diconf_variant, dirname, solver, max_time, seed):
+    plan_base = _solve_blocking(diconf_base, dirname, solver, max_time, seed, [])
+    plan_variant = _solve_blocking(diconf_variant, dirname, solver, max_time, seed, [])
     return plan_base, plan_variant
 
 
 @mcp.tool()
 async def compare_cases(
-    filename: str,
-    overrides: list[str],
-    solver: str | None = None,
-    max_time: float | None = None,
-    gap: float | None = None,
-    seed: int | None = None,
+    filename: Annotated[str, Field(description="Path to the .toml case file (prefer absolute path).")],
+    overrides: Annotated[
+        list[str],
+        Field(description='KEY.PATH=VALUE overrides defining the variant, e.g. ["basic_info.state=MN"].'),
+    ],
+    solver: Annotated[str | None, Field(description="Solver: HiGHS, MOSEK, or omit for auto-select.")] = None,
+    max_time: Annotated[float | None, Field(description="Per-run solver time limit in seconds.")] = None,
+    seed: Annotated[int | None, Field(description="Random seed for stochastic rate methods.")] = None,
 ) -> str:
     """Compare a base case against a variant defined by parameter overrides.
 
@@ -376,7 +457,6 @@ async def compare_cases(
                         ["fixed_income.social_security_ages=[70,68]"]
         solver:    Solver for both runs ("HiGHS", "MOSEK", or "default").
         max_time:  Per-run solver time limit in seconds.
-        gap:       MIP relative gap tolerance.
         seed:      Random seed for stochastic rate methods.
     """
     if not overrides:
@@ -393,10 +473,10 @@ async def compare_cases(
         return json.dumps({"error": f"Invalid override: {e}"})
 
     try:
-        plan_base, plan_variant = await asyncio.get_event_loop().run_in_executor(
+        plan_base, plan_variant = await asyncio.get_running_loop().run_in_executor(
             None,
             _compare_blocking,
-            diconf_base, diconf_variant, dirname, solver, max_time, gap, seed,
+            diconf_base, diconf_variant, dirname, solver, max_time, seed,
         )
     except Exception as e:
         return json.dumps({"error": f"Solver error: {e}"})
@@ -441,6 +521,32 @@ async def compare_cases(
 
 _ACCOUNT_J = {"taxable": 0, "tax_deferred": 1, "roth": 2, "hsa": 3}
 
+# Aliases accepted for dict fields in wages / contributions / big_ticket_items / debts / spias.
+# Each list is [canonical, *accepted_aliases] — canonical first so error messages are clear.
+_FIELD_ALIASES = {
+    "annual_amount":   ["annual_amount", "amount", "value"],
+    "start_year":      ["start_year", "year", "from_year", "start"],
+    "end_year":        ["end_year", "to_year", "end", "thru_year"],
+    "balance":         ["balance", "principal", "amount"],
+    "years_remaining": ["years_remaining", "term", "years"],
+    "buy_year":        ["buy_year", "year", "purchase_year"],
+    "monthly_income":  ["monthly_income", "income", "monthly_amount", "amount"],
+}
+
+
+def _get_field(d: dict, canonical: str, default=None):
+    """Return d[alias] for the first matching alias of *canonical*, or *default*."""
+    for alias in _FIELD_ALIASES.get(canonical, [canonical]):
+        if alias in d:
+            return d[alias]
+    if default is not None:
+        return default
+    known = _FIELD_ALIASES.get(canonical, [canonical])
+    raise KeyError(
+        f"Missing required field '{canonical}' (also accepted: {known[1:]}). "
+        f"Got keys: {list(d.keys())}"
+    )
+
 
 def _build_plan_from_params(
     names, birth_years, life_expectancy, state,
@@ -450,12 +556,18 @@ def _build_plan_from_params(
     pension_indexed=None, pension_survivor_fractions=None,
     wages=None, contributions=None, big_ticket_items=None,
     debts=None, fixed_assets=None, spias=None,
-    objective="maxSpending", rate_method="conservative", survivor_fraction=60.0,
+    objective="maxSpending", rate_method="conservative", rate_values=None,
+    rate_frm=None, rate_to=None,
+    survivor_fraction=60.0,
     initial_allocation=None, final_allocation=None,
     spending_profile="smile", smile_dip=15, smile_increase=12, smile_delay=0,
     constrain_mean=False,
     interpolation_method="linear", interpolation_center=None, interpolation_width=None,
     balance_date=None,
+    heirs_tax_rate=None,
+    slcsp=None,
+    aca_start_year=None,
+    rate_params=None,
 ):
     """Build and configure a Plan from structured parameters.  Does not solve."""
     N_i = len(names)
@@ -493,7 +605,8 @@ def _build_plan_from_params(
         )
 
     # Rates, state tax, spending profile
-    plan.setRates(rate_method, constrain_mean=constrain_mean)
+    plan.setRates(rate_method, frm=rate_frm, to=rate_to, values=rate_values,
+                  constrain_mean=constrain_mean, **(rate_params or {}))
     if state:
         plan.setStateTax(state)
     plan.setSpendingProfile(spending_profile, percent=int(survivor_fraction),
@@ -517,11 +630,10 @@ def _build_plan_from_params(
     if wages:
         for w in wages:
             i = int(w.get("person", 0))
-            if i >= N_i:
-                continue
-            amount = float(w["annual_amount"])
-            start_yr = int(w.get("start_year", thisyear))
-            end_yr = int(w.get("end_year", thisyear + int(plan.horizons[i])))
+            _check_person_index(i, N_i, "wages")
+            amount = float(_get_field(w, "annual_amount"))
+            start_yr = int(_get_field(w, "start_year", thisyear))
+            end_yr = int(_get_field(w, "end_year", thisyear + int(plan.horizons[i])))
             for n in range(plan.N_n):
                 if start_yr <= thisyear + n < end_yr:
                     plan.omega_in[i, n] += amount
@@ -530,12 +642,11 @@ def _build_plan_from_params(
     if contributions:
         for c in contributions:
             i = int(c.get("person", 0))
-            if i >= N_i:
-                continue
+            _check_person_index(i, N_i, "contributions")
             j = _ACCOUNT_J.get(str(c["account"]).lower(), 1)
-            amount = float(c["annual_amount"])
-            start_yr = int(c.get("start_year", thisyear))
-            end_yr = int(c.get("end_year", thisyear + int(plan.horizons[i])))
+            amount = float(_get_field(c, "annual_amount"))
+            start_yr = int(_get_field(c, "start_year", thisyear))
+            end_yr = int(_get_field(c, "end_year", thisyear + int(plan.horizons[i])))
             for n in range(plan.N_n):
                 if start_yr <= thisyear + n < end_yr:
                     plan.kappa_ijn[i, j, n] += amount
@@ -544,11 +655,10 @@ def _build_plan_from_params(
     if big_ticket_items:
         for bt in big_ticket_items:
             i = int(bt.get("person", 0))
-            if i >= N_i:
-                continue
-            amount = float(bt["annual_amount"])
-            start_yr = int(bt["start_year"])
-            end_yr = int(bt.get("end_year", start_yr + 1))
+            _check_person_index(i, N_i, "big_ticket_items")
+            amount = float(_get_field(bt, "annual_amount"))
+            start_yr = int(_get_field(bt, "start_year"))
+            end_yr = int(_get_field(bt, "end_year", start_yr + 1))
             for n in range(plan.N_n):
                 if start_yr <= thisyear + n < end_yr:
                     plan.Lambda_in[i, n] += amount
@@ -562,8 +672,8 @@ def _build_plan_from_params(
                 "name": d.get("label", "debt"),
                 "type": d.get("type", "loan"),
                 "year": thisyear,
-                "term": int(d["years_remaining"]),
-                "amount": float(d["balance"]),
+                "term": int(_get_field(d, "years_remaining")),
+                "amount": float(_get_field(d, "balance")),
                 "rate": float(d["rate"]),
             }
             for d in debts
@@ -599,12 +709,18 @@ def _build_plan_from_params(
         for s in spias:
             plan.addSPIA(
                 individual=int(s.get("person", 0)),
-                buy_year=int(s["buy_year"]),
+                buy_year=int(_get_field(s, "buy_year")),
                 premium=float(s.get("premium", 0.0)),
-                monthly_income=float(s["monthly_income"]),
+                monthly_income=float(_get_field(s, "monthly_income")),
                 indexed=bool(s.get("indexed", False)),
                 survivor_fraction=float(s.get("survivor_fraction", 0.0)),
             )
+
+    if heirs_tax_rate is not None:
+        plan.setHeirsTaxRate(float(heirs_tax_rate))
+
+    if slcsp is not None and float(slcsp) > 0:
+        plan.setACA(float(slcsp), units="1", start_year=aca_start_year)
 
     # houseLists is now populated; processDebtsAndFixedAssets() will be called
     # automatically by solve() after _adjustParameters sets the inflation path.
@@ -655,14 +771,17 @@ def _run_from_params_blocking(
     pension_indexed=None, pension_survivor_fractions=None,
     wages=None, contributions=None, big_ticket_items=None,
     debts=None, fixed_assets=None, spias=None,
-    objective="maxSpending", rate_method="conservative", survivor_fraction=60.0,
+    objective="maxSpending", rate_method="conservative", rate_values=None,
+    rate_frm=None, rate_to=None, survivor_fraction=60.0,
     initial_allocation=None, final_allocation=None,
-    solver=None, max_time=None, gap=None, net_spending=None, min_taxable_balance=None,
+    solver=None, max_time=None, net_spending=None, min_taxable_balance=None,
     spending_profile="smile", smile_dip=15, smile_increase=12, smile_delay=0,
     start_roth_year=None, no_roth_person=None, max_roth_conversion=None,
-    bequest=None, optimize_ss_ages=False, constrain_mean=False,
+    bequest=None, optimize_ss_ages=None, constrain_mean=False,
     interpolation_method="linear", interpolation_center=None, interpolation_width=None,
-    balance_date=None,
+    balance_date=None, heirs_tax_rate=None, previous_magis=None, with_medicare=None,
+    with_aca=None, aca_start_year=None,
+    slcsp=None,
 ):
     plan = _build_plan_from_params(
         names, birth_years, life_expectancy, state,
@@ -672,20 +791,21 @@ def _run_from_params_blocking(
         pension_indexed, pension_survivor_fractions,
         wages, contributions, big_ticket_items,
         debts, fixed_assets, spias,
-        objective, rate_method, survivor_fraction,
+        objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
         initial_allocation, final_allocation,
         spending_profile, smile_dip, smile_increase, smile_delay,
         constrain_mean,
         interpolation_method, interpolation_center, interpolation_width,
         balance_date,
+        heirs_tax_rate=heirs_tax_rate,
+        slcsp=slcsp,
+        aca_start_year=aca_start_year,
     )
     opts = {"units": "1"}  # MCP uses full dollars; plan API defaults to $k
     if solver:
         opts["solver"] = solver
     if max_time is not None:
         opts["maxTime"] = max_time
-    if gap is not None:
-        opts["gap"] = gap
     if net_spending is not None:
         opts["netSpending"] = net_spending
     if min_taxable_balance is not None:
@@ -698,20 +818,27 @@ def _run_from_params_blocking(
         opts["maxRothConversion"] = max_roth_conversion
     if bequest is not None:
         opts["bequest"] = bequest
-    if optimize_ss_ages:
-        opts["withSSAges"] = "optimize"
+    _ssa = _ss_ages_opt(optimize_ss_ages)
+    if _ssa is not None:
+        opts["withSSAges"] = _ssa
+    if previous_magis is not None:
+        opts["previousMAGIs"] = list(previous_magis)
+    if with_medicare is not None:
+        opts["withMedicare"] = with_medicare
+    if with_aca is not None:
+        opts["withACA"] = with_aca
     plan.solve(objective, opts)
     return plan
 
 
 @mcp.tool()
 async def run_from_params(
-    names: list[str],
-    birth_years: list[int],
-    life_expectancy: list[int],
-    taxable: list[float],
-    tax_deferred: list[float],
-    roth: list[float],
+    names: Annotated[list[str], Field(description='Person names, e.g. ["Alice", "Bob"].')],
+    birth_years: Annotated[list[int], Field(description="Birth years, e.g. [1963, 1961].")],
+    life_expectancy: Annotated[list[int], Field(description="Life expectancy in years per person, e.g. [90, 87].")],
+    taxable: Annotated[list[float], Field(description="Taxable account balances in $ per person.")],
+    tax_deferred: Annotated[list[float], Field(description="Tax-deferred (401k/IRA/403b) balances in $ per person.")],
+    roth: Annotated[list[float], Field(description="Roth account balances in $ per person.")],
     hsa: list[float] | None = None,
     cost_basis: list[float] | None = None,
     ss_monthly_pias: list[float] | None = None,
@@ -726,9 +853,15 @@ async def run_from_params(
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
-    state: str = "TX",
-    objective: str = "maxSpending",
-    rate_method: str = "conservative",
+    state: Annotated[str, Field(description='Two-letter US state for income tax (default "TX").')] = "TX",
+    objective: Annotated[str, Field(description="maxSpending (default) or maxBequest.")] = "maxSpending",
+    rate_method: Annotated[str, Field(description='Return model name (use list_rate_models).')] = "conservative",
+    rate_values: Annotated[
+        list[float] | None,
+        Field(description='Fixed rates in % [equities, corporate_bonds, t_notes, inflation] for rate_method="user".'),
+    ] = None,
+    rate_frm: Annotated[int | None, Field(description="First year of historical rate window (e.g. 1966).")] = None,
+    rate_to: Annotated[int | None, Field(description="Last year of historical rate window (e.g. 1996).")] = None,
     survivor_fraction: float = 60.0,
     initial_allocation: list[float] = [60, 40, 0, 0],
     final_allocation: list[float] = [40, 60, 0, 0],
@@ -742,15 +875,23 @@ async def run_from_params(
     smile_delay: int = 0,
     solver: str | None = None,
     max_time: float | None = None,
-    gap: float | None = None,
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
     bequest: float | None = None,
-    optimize_ss_ages: bool = False,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
+    slcsp: Annotated[
+        float | None,
+        Field(description="Annual ACA Silver benchmark premium in $/year (today's $) for pre-65 individuals."),
+    ] = None,
 ) -> str:
     """Build and solve a retirement plan from structured parameters — no TOML file needed.
 
@@ -820,10 +961,32 @@ async def run_from_params(
                           0.5, 0.75, or 1.0 = joint-and-survivor.
         state:          2-letter state abbreviation for state income tax (default "TX").
         objective:      Optimization objective: "maxSpending" (default) or "maxBequest".
-        rate_method:    Return model name (use list_rate_models to see options).
+        rate_method:    Return model name (use list_rate_models to see options).  Use "user"
+                        together with rate_values to specify custom fixed rates; use
+                        "historical" together with rate_frm/rate_to for a specific
+                        historical sequence.
+        rate_values:    Four rates in percent [equities, corporate_bonds, t_notes, inflation]
+                        for the "user" rate method, e.g. [7.0, 4.0, 3.3, 2.8].  Ignored unless
+                        rate_method is "user".
+        rate_frm:       First calendar year of the historical window, e.g. 1966.  Only
+                        relevant for history-based methods (historical, historical_gaussian,
+                        historical_lognormal, historical_bootstrap, historical_average, etc.).
+                        Defaults to the earliest available year (1928).
+        rate_to:        Last calendar year of the historical window, e.g. 1996.  Defaults
+                        to the most recent available year.
         survivor_fraction: Surviving-spouse spending as percent of joint spending (default 60).
-        initial_allocation: Starting stock/bond/other/cash split in percent, e.g. [60,40,0,0].
-        final_allocation:   Ending allocation at end of plan horizon, e.g. [40,60,0,0].
+        initial_allocation: Starting allocation as [i0, i1, i2, i3] in percent (must sum to 100).
+                        The four indices are FIXED and order-sensitive:
+                          i0 = equities (S&P 500 / broad stock market)
+                          i1 = corporate bonds (investment-grade)
+                          i2 = fixed income / T-notes (government bonds, e.g. 10-yr Treasury)
+                          i3 = cash / money market
+                        IMPORTANT: "bonds" is ambiguous — always clarify whether the user
+                        means corporate bonds (i1) or T-notes/Treasuries (i2) before
+                        populating this field.  Example: [60, 40, 0, 0] is 60% equities +
+                        40% corporate bonds; [60, 0, 40, 0] is 60% equities + 40% T-notes.
+        final_allocation:   Ending allocation at end of plan horizon, same [i0,i1,i2,i3]
+                        encoding as initial_allocation.
         interpolation_method: Shape of the glide path between initial and final allocation.
                         "linear" (default) — straight-line interpolation year by year.
                         "s-curve" — smooth S-shaped transition using a hyperbolic tangent;
@@ -857,7 +1020,6 @@ async def run_from_params(
                         active years before the slow-go phase starts.
         solver:         "HiGHS" or "MOSEK" (default: best available).
         max_time:       Solver time limit in seconds.
-        gap:            MIP relative optimality gap (e.g. 1e-4).
         net_spending:   Required when objective is "maxBequest": the annual spending floor
                         in $/year (e.g. 90000).  Ignored for maxSpending.
         min_taxable_balance: Minimum taxable account balance to keep as a safety net (emergency
@@ -878,7 +1040,32 @@ async def run_from_params(
                         "maxSpending" (e.g. 500000).  The optimizer maximizes spending
                         subject to leaving at least this amount to heirs.  Ignored when
                         objective is "maxBequest" (use net_spending there instead).
-        optimize_ss_ages: If True, the optimizer finds the best Social Security claiming
+        heirs_tax_rate: Marginal income tax rate (%) applied to the tax-deferred portion
+                        of the estate when heirs inherit (default 30%).  Affects Roth
+                        conversion aggressiveness: higher rates make Roth conversions more
+                        attractive.  E.g. 22 if heirs are in the 22% bracket.
+        with_aca:       ACA premium modeling mode: "none", "loop" (iterative, default when
+                        slcsp is set), or "optimize" (embed in MIP).  Requires slcsp > 0.
+        aca_start_year: Calendar year ACA coverage begins (e.g. 2028 if retiring that year).
+                        Omit or 0 to start from the plan's first year.
+        with_medicare:  Medicare IRMAA modeling mode: "none" (disable), "loop" (iterative
+                        SC-loop, default when Medicare is on), or "optimize" (embed IRMAA
+                        bracket selection in the MIP for a globally optimal result).  Use
+                        "none" for cases where Medicare premiums are irrelevant (e.g. Roth-
+                        only portfolios with no taxable income).  Omit to use Owl's default
+                        (currently "loop" when Medicare ages are reached).
+        previous_magis:  Prior-year MAGI for each person in $ (e.g. [200000, 200000]).
+                        Used to determine the Medicare IRMAA surcharge bracket in the first
+                        two plan years, where premiums are based on income two years prior.
+                        Omit if unknown; Owl will assume the lowest bracket.
+        optimize_ss_ages: Controls SS claiming-age optimization (MIP, monthly precision, 62–70).
+                        True or "all" → optimize all individuals.
+                        A single name string (e.g. "Alice") → optimize only that person.
+                        A list of names (e.g. ["Alice"]) → optimize those people.
+                        None or False → use fixed ss_ages for everyone (default).
+                        Already-claimed individuals are detected automatically (current age >=
+                        ss_ages value) and pinned to their recorded age regardless of this setting.
+                        Formerly: If True, the optimizer finds the best Social Security claiming
                         month for each person (ages 62–70, monthly resolution) instead of
                         using the fixed ss_ages values.  The fixed ss_ages are used as
                         starting hints but the MIP is free to choose any claiming month.
@@ -892,14 +1079,18 @@ async def run_from_params(
                         methods: historical_gaussian, historical_lognormal, historical_copula,
                         garch_dcc, gmm, hmm.  Silently ignored for all other methods.
 
+    slcsp:          Annual ACA Silver benchmark premium in $/year (today's $) for
+                    individuals under 65 not yet on Medicare.  Omit if covered by
+                    employer plan or ACA not applicable.
+
     NOTE — ACA marketplace coverage: If any individual is under 65 and not yet on Medicare,
-    ACA marketplace premiums may apply and are NOT modeled unless the user supplies an SLCSP
-    benchmark premium via the slcsp parameter (see run_case / TOML options).  When this
-    situation arises, flag it to the user and ask whether the person is covered by an
-    employer plan (their own or a working spouse's) or needs ACA marketplace coverage.
+    ACA marketplace premiums may apply and are NOT modeled unless slcsp is set AND with_aca
+    is provided (e.g. with_aca="loop").  When this situation arises, flag it to the user and
+    ask whether the person is covered by an employer plan (their own or a working
+    spouse's) or needs ACA marketplace coverage.
     """
     try:
-        plan = await asyncio.get_event_loop().run_in_executor(
+        plan = await asyncio.get_running_loop().run_in_executor(
             None,
             _run_from_params_blocking,
             names, birth_years, life_expectancy, state,
@@ -909,14 +1100,16 @@ async def run_from_params(
             pension_indexed, pension_survivor_fractions,
             wages, contributions, big_ticket_items,
             debts, fixed_assets, spias,
-            objective, rate_method, survivor_fraction,
+            objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
             initial_allocation, final_allocation,
-            solver, max_time, gap, net_spending, min_taxable_balance,
+            solver, max_time, net_spending, min_taxable_balance,
             spending_profile, smile_dip, smile_increase, smile_delay,
             start_roth_year, no_roth_person, max_roth_conversion,
             bequest, optimize_ss_ages, constrain_mean,
             interpolation_method, interpolation_center, interpolation_width,
-            balance_date,
+            balance_date, heirs_tax_rate, previous_magis, with_medicare,
+            with_aca, aca_start_year,
+            slcsp,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build/solve error: {e}"})
@@ -957,6 +1150,9 @@ def save_case(
     state: str = "TX",
     objective: str = "maxSpending",
     rate_method: str = "conservative",
+    rate_values: list[float] | None = None,
+    rate_frm: int | None = None,
+    rate_to: int | None = None,
     survivor_fraction: float = 60.0,
     initial_allocation: list[float] = [60, 40, 0, 0],
     final_allocation: list[float] = [40, 60, 0, 0],
@@ -974,8 +1170,14 @@ def save_case(
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
     bequest: float | None = None,
-    optimize_ss_ages: bool = False,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
+    slcsp: float | None = None,
     output_dir: str = ".",
     case_name: str | None = None,
 ) -> str:
@@ -1002,17 +1204,26 @@ def save_case(
             pension_indexed, pension_survivor_fractions,
             wages, contributions, big_ticket_items,
             debts, fixed_assets, spias,
-            objective, rate_method, survivor_fraction,
+            objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
             initial_allocation, final_allocation,
             spending_profile, smile_dip, smile_increase, smile_delay,
             constrain_mean,
             interpolation_method, interpolation_center, interpolation_width,
             balance_date,
+            heirs_tax_rate=heirs_tax_rate,
+            slcsp=slcsp,
+            aca_start_year=aca_start_year,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build error: {e}"})
 
     plan.solverOptions["units"] = "1"  # MCP uses full dollars; plan API defaults to $k
+    if previous_magis is not None:
+        plan.solverOptions["previousMAGIs"] = list(previous_magis)
+    if with_medicare is not None:
+        plan.solverOptions["withMedicare"] = with_medicare
+    if with_aca is not None:
+        plan.solverOptions["withACA"] = with_aca
     if net_spending is not None:
         plan.solverOptions["netSpending"] = net_spending
     if min_taxable_balance is not None:
@@ -1025,8 +1236,9 @@ def save_case(
         plan.solverOptions["maxRothConversion"] = max_roth_conversion
     if bequest is not None:
         plan.solverOptions["bequest"] = bequest
-    if optimize_ss_ages:
-        plan.solverOptions["withSSAges"] = "optimize"
+    _ssa = _ss_ages_opt(optimize_ss_ages)
+    if _ssa is not None:
+        plan.solverOptions["withSSAges"] = _ssa
 
     stem = (case_name or plan._name).replace(" ", "_")
     out = Path(output_dir)
@@ -1150,12 +1362,139 @@ def _build_stochastic_json(plan, result, target_success_rate, scenario_method):
     }
 
 
+def _build_distribution_json(plan, results, objective, scenario_method, n_attempted):
+    """Build a compact JSON-ready dict from a list of per-scenario result dicts."""
+    xi0 = float(plan.xi_n[0])
+    n_solved = len(results)
+
+    if objective == "maxSpending":
+        values = np.array([r["value"] for r in results])
+        label_today = "spending_today_dollars"
+        label_nominal = "spending_year1_nominal"
+    else:
+        values = np.array([r["value"] for r in results])
+        label_today = "bequest_today_dollars"
+        label_nominal = "bequest_final_nominal"
+
+    def _pct(arr, q):
+        return int(round(float(np.percentile(arr, q))))
+
+    dist = {
+        "min":    int(round(float(np.min(values)))),
+        "p10":    _pct(values, 10),
+        "p25":    _pct(values, 25),
+        "median": int(round(float(np.median(values)))),
+        "mean":   int(round(float(np.mean(values)))),
+        "p75":    _pct(values, 75),
+        "p90":    _pct(values, 90),
+        "max":    int(round(float(np.max(values)))),
+    }
+
+    out = {
+        "status": "completed",
+        "case_name": plan._name,
+        "objective": objective,
+        "scenario_method": scenario_method,
+        "n_scenarios_attempted": int(n_attempted),
+        "n_scenarios_solved": int(n_solved),
+        "distribution": {label_today: dist},
+    }
+
+    # Historical (non-augmented): include per-year breakdown
+    if scenario_method == "historical" and results and "year" in results[0]:
+        by_year = []
+        for r in results:
+            v = r["value"]
+            entry = {
+                "year": r["year"],
+                label_today: int(round(float(v))),
+            }
+            if objective == "maxSpending":
+                entry[label_nominal] = int(round(float(v) * xi0))
+            else:
+                entry[label_nominal] = int(round(float(v) * float(plan.gamma_n[-1])))
+            by_year.append(entry)
+        out["by_start_year"] = by_year
+
+    return out
+
+
+def _historical_blocking(plan, objective, opts, ystart, yend, augmented, reverse, roll):
+    """Solve plan across historical year sequences; returns (plan, n_attempted, results)."""
+    from itertools import product as iproduct
+    from owlplanner.rates import FROM, TO
+
+    _ystart = int(ystart) if ystart is not None else FROM
+    _yend = int(yend) if yend is not None else TO
+
+    if _yend + plan.N_n > plan.year_n[0]:
+        _yend = plan.year_n[0] - plan.N_n
+
+    if _yend < _ystart:
+        raise ValueError(
+            f"ystart={_ystart} too large: a {plan.N_n}-year horizon needs yend ≤ {plan.year_n[0] - plan.N_n}."
+        )
+
+    if augmented:
+        pairs = list(iproduct([False, True], range(plan.N_n)))
+    else:
+        pairs = [(bool(reverse), int(roll))]
+
+    n_attempted = (_yend - _ystart + 1) * len(pairs)
+    results = []
+
+    for year in range(_ystart, _yend + 1):
+        for rev, rll in pairs:
+            plan.setRates("historical", year, reverse=rev, roll=rll)
+            plan.solve(objective, opts)
+            if plan.caseStatus == "solved":
+                val = float(plan.basis) if objective == "maxSpending" else float(plan.bequest)
+                entry = {"value": val}
+                if not augmented:
+                    entry["year"] = year
+                results.append(entry)
+
+    return plan, n_attempted, results
+
+
+def _monte_carlo_blocking(plan, objective, opts, n_scenarios, seed):
+    """Solve plan across Monte Carlo rate draws; returns (plan, n_attempted, results)."""
+    from owlplanner.stresstests import MC_TIME_LIMIT
+
+    if getattr(plan, "rateModel", None) is None or getattr(plan.rateModel, "deterministic", True):
+        raise ValueError(
+            "Monte Carlo requires a stochastic rate method "
+            "(e.g. 'historical_gaussian', 'lognormal', 'historical_bootstrap'). "
+            "Current rate model is deterministic."
+        )
+
+    if seed is not None:
+        plan.setReproducible(True, seed=int(seed))
+
+    myopts = dict(opts)
+    if "maxTime" not in myopts:
+        myopts["maxTime"] = MC_TIME_LIMIT
+
+    if plan.reproducibleRates and hasattr(plan.rateModel, "_rng"):
+        plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
+
+    results = []
+    for _ in range(int(n_scenarios)):
+        plan.regenRates(override_reproducible=True)
+        plan.solve(objective, myopts)
+        if plan.caseStatus == "solved":
+            val = float(plan.basis) if objective == "maxSpending" else float(plan.bequest)
+            results.append({"value": val})
+
+    return plan, int(n_scenarios), results
+
+
 @mcp.tool()
 async def run_stochastic(
     scenario_method: str = "historical",
     target_success_rate: float = 0.90,
     filename: str | None = None,
-    overrides: list[str] = [],
+    overrides: list[str] | None = None,
     names: list[str] | None = None,
     birth_years: list[int] | None = None,
     life_expectancy: list[int] | None = None,
@@ -1179,6 +1518,9 @@ async def run_stochastic(
     state: str = "TX",
     objective: str = "maxSpending",
     rate_method: str = "conservative",
+    rate_values: list[float] | None = None,
+    rate_frm: int | None = None,
+    rate_to: int | None = None,
     survivor_fraction: float = 60.0,
     initial_allocation: list[float] = [60, 40, 0, 0],
     final_allocation: list[float] = [40, 60, 0, 0],
@@ -1196,8 +1538,15 @@ async def run_stochastic(
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
     bequest: float | None = None,
-    optimize_ss_ages: bool = False,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
+    slcsp: float | None = None,
+    rate_params: dict | None = None,
     n_scenarios: int = 200,
     ystart: int | None = None,
     yend: int | None = None,
@@ -1252,8 +1601,15 @@ async def run_stochastic(
         objective:            "maxSpending" (default) or "maxBequest".
         rate_method:          Rate model for the base deterministic solve and for MC scenarios.
         survivor_fraction:    Survivor spending as % of couple spending (default 60).
-        initial_allocation:   Starting [stocks,bonds,real_estate,cash] allocation percentages.
+        initial_allocation:   Starting [equities, corporate_bonds, t_notes, cash] allocation %.
         final_allocation:     Ending allocation percentages (glide path).
+        rate_values:          Fixed rates in % [equities, corporate_bonds, t_notes, inflation]
+                              for rate_method="user".
+        rate_frm:             First year of historical rate window.
+        rate_to:              Last year of historical rate window.
+        previous_magis:       Prior-year MAGI per person in $ for Medicare IRMAA (first 2 years).
+        with_medicare:        Medicare IRMAA mode: "none", "loop", or "optimize".
+        slcsp:                Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
         interpolation_method: "linear" (default) or "s-curve".  See run_from_params for details.
         interpolation_center: S-curve inflection point in years from plan start (default 15).
         interpolation_width:  S-curve transition half-width in years (default 5).
@@ -1273,15 +1629,22 @@ async def run_stochastic(
         no_roth_person:       Name of individual excluded from all Roth conversions (couples only).
         max_roth_conversion:  Annual per-person Roth conversion cap in $/year.
         bequest:              Target bequest in today's $ for maxSpending objective.
-        optimize_ss_ages:     If True, MIP optimizes SS claiming month (62–70) per person.
+        optimize_ss_ages:     Controls SS claiming-age optimization (MIP, monthly precision, 62–70).
+                              None/False → disabled; True/"all" → all persons; a single name
+                              string → that person only; a list of names → those persons only.
+                              Individuals who have already claimed are auto-detected and excluded.
         constrain_mean:       If True, generated rate series means are pinned to historical
                               averages, isolating sequence-of-returns risk.  Supported by
                               historical_gaussian, historical_lognormal, historical_copula,
                               garch_dcc, gmm, hmm.  Ignored for other methods.
+        rate_params:          Extra rate model parameters as a dict, e.g.
+                              {"bootstrap_type": "block", "block_size": 5}.  Only used with
+                              flat params (not filename=); ignored for historical scenarios.
         solver:               "HiGHS", "MOSEK", or None (auto-select).
         max_time:             Per-scenario solver time limit in seconds.
         seed:                 Random seed for reproducibility.
     """
+    overrides = _norm_overrides(overrides)
     # Build or load plan
     if filename is not None:
         try:
@@ -1294,7 +1657,7 @@ async def run_stochastic(
             except Exception as e:
                 return json.dumps({"error": f"Invalid override: {e}"})
         try:
-            plan = await asyncio.get_event_loop().run_in_executor(
+            plan = await asyncio.get_running_loop().run_in_executor(
                 None,
                 lambda: config_to_plan(diconf, dirname, verbose=False,
                                        logstreams=[sys.stderr], loadHFP=True),
@@ -1316,12 +1679,16 @@ async def run_stochastic(
                 pension_indexed, pension_survivor_fractions,
                 wages, contributions, big_ticket_items,
                 debts, fixed_assets, spias,
-                objective, rate_method, survivor_fraction,
+                objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
                 initial_allocation, final_allocation,
                 spending_profile, smile_dip, smile_increase, smile_delay,
                 constrain_mean,
                 interpolation_method, interpolation_center, interpolation_width,
                 balance_date,
+                heirs_tax_rate=heirs_tax_rate,
+                slcsp=slcsp,
+                aca_start_year=aca_start_year,
+                rate_params=rate_params,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -1331,8 +1698,6 @@ async def run_stochastic(
         opts["solver"] = solver
     if max_time is not None:
         opts["maxTime"] = max_time
-    if gap is not None:
-        opts["gap"] = gap
     if net_spending is not None:
         opts["netSpending"] = net_spending
     if min_taxable_balance is not None:
@@ -1345,11 +1710,18 @@ async def run_stochastic(
         opts["maxRothConversion"] = max_roth_conversion
     if bequest is not None:
         opts["bequest"] = bequest
-    if optimize_ss_ages:
-        opts["withSSAges"] = "optimize"
+    _ssa = _ss_ages_opt(optimize_ss_ages)
+    if _ssa is not None:
+        opts["withSSAges"] = _ssa
+    if previous_magis is not None:
+        opts["previousMAGIs"] = list(previous_magis)
+    if with_medicare is not None:
+        opts["withMedicare"] = with_medicare
+    if with_aca is not None:
+        opts["withACA"] = with_aca
 
     try:
-        plan, result = await asyncio.get_event_loop().run_in_executor(
+        plan, result = await asyncio.get_running_loop().run_in_executor(
             None,
             _stochastic_blocking,
             plan, scenario_method, ystart, yend, n_scenarios, opts, seed,
@@ -1377,7 +1749,7 @@ def _longevity_stochastic_blocking(
     pension_indexed, pension_survivor_fractions,
     wages, contributions, big_ticket_items,
     debts, fixed_assets, spias,
-    objective, rate_method, survivor_fraction,
+    objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
     initial_allocation, final_allocation,
     spending_profile, smile_dip, smile_increase, smile_delay,
     constrain_mean,
@@ -1385,6 +1757,10 @@ def _longevity_stochastic_blocking(
     balance_date,
     sexes, mortality_table,
     scenario_method, ystart, yend, n_scenarios, opts, seed,
+    heirs_tax_rate=None,
+    slcsp=None,
+    aca_start_year=None,
+    rate_params=None,
 ):
     """Build plan, configure longevity sampling, solve, run stochastic frontier."""
     from owlplanner.stresstests import run_stochastic_spending
@@ -1398,12 +1774,16 @@ def _longevity_stochastic_blocking(
         pension_indexed, pension_survivor_fractions,
         wages, contributions, big_ticket_items,
         debts, fixed_assets, spias,
-        objective, rate_method, survivor_fraction,
+        objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
         initial_allocation, final_allocation,
         spending_profile, smile_dip, smile_increase, smile_delay,
         constrain_mean,
         interpolation_method, interpolation_center, interpolation_width,
         balance_date,
+        heirs_tax_rate=heirs_tax_rate,
+        slcsp=slcsp,
+        aca_start_year=aca_start_year,
+        rate_params=rate_params,
     )
 
     plan.setSexes(list(sexes))
@@ -1468,6 +1848,9 @@ async def run_longevity_stochastic(
     state: str = "TX",
     objective: str = "maxSpending",
     rate_method: str = "conservative",
+    rate_values: list[float] | None = None,
+    rate_frm: int | None = None,
+    rate_to: int | None = None,
     survivor_fraction: float = 60.0,
     initial_allocation: list[float] = [60, 40, 0, 0],
     final_allocation: list[float] = [40, 60, 0, 0],
@@ -1485,8 +1868,15 @@ async def run_longevity_stochastic(
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
     bequest: float | None = None,
-    optimize_ss_ages: bool = False,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
+    slcsp: float | None = None,
+    rate_params: dict | None = None,
     mortality_table: str = "SSA2025",
     scenario_method: str = "mc",
     target_success_rate: float = 0.90,
@@ -1515,8 +1905,8 @@ async def run_longevity_stochastic(
                           "M" (male) or "F" (female), e.g. ["M", "F"] for a couple.
         mortality_table:  Actuarial table key (from list_mortality_tables) for lifespan
                           draws (default "SSA2025").
-        scenario_method:  "mc" (default) or "historical".  Note: longevity sampling is
-                          only supported with Monte Carlo ("mc").
+        scenario_method:  "mc" (default).  Longevity sampling requires Monte Carlo;
+                          "historical" is rejected (lifespans can exceed data range).
         target_success_rate: Desired probability of no shortfall (default 0.90).
         names:            Person names, e.g. ["Alice", "Bob"].
         birth_years:      Birth years, e.g. [1963, 1961].
@@ -1544,8 +1934,14 @@ async def run_longevity_stochastic(
         objective:        "maxSpending" (default) or "maxBequest".
         rate_method:      Rate model for scenarios.
         survivor_fraction: Survivor spending as % of couple spending (default 60).
-        initial_allocation: Starting [stocks,bonds,real_estate,cash] allocation percentages.
+        initial_allocation: Starting [equities, corporate_bonds, t_notes, cash] allocation %.
         final_allocation:   Ending allocation percentages (glide path).
+        rate_values:        Fixed rates in % [equities, corporate_bonds, t_notes, inflation].
+        rate_frm:           First year of historical rate window.
+        rate_to:            Last year of historical rate window.
+        previous_magis:     Prior-year MAGI per person in $ for Medicare IRMAA.
+        with_medicare:      Medicare IRMAA mode: "none", "loop", or "optimize".
+        slcsp:              Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
         interpolation_method: "linear" (default) or "s-curve".
         interpolation_center: S-curve inflection point in years (default 15).
         interpolation_width:  S-curve half-width in years (default 5).
@@ -1560,8 +1956,13 @@ async def run_longevity_stochastic(
         no_roth_person:   Name of individual excluded from Roth conversions.
         max_roth_conversion: Annual per-person Roth conversion cap in $/year.
         bequest:          Target bequest in today's $ for maxSpending objective.
-        optimize_ss_ages: If True, MIP optimizes SS claiming month per person.
+        optimize_ss_ages: Controls SS claiming-age optimization (MIP, monthly precision, 62–70).
+                          None/False → disabled; True/"all" → all persons; a single name string
+                          → that person only; a list of names → those persons only.
+                          Individuals who have already claimed are auto-detected and excluded.
         constrain_mean:   If True, pin rate series means to historical averages.
+        rate_params:      Extra rate model parameters, e.g. {"bootstrap_type":"block","block_size":5}.
+                          Only used with flat params (not filename=).
         n_scenarios:      Number of Monte Carlo scenarios (mc mode only, default 200).
         ystart:           First historical start year (historical mode).
         yend:             Last historical start year (historical mode).
@@ -1569,13 +1970,20 @@ async def run_longevity_stochastic(
         max_time:         Per-scenario solver time limit in seconds.
         seed:             Random seed for reproducibility.
     """
+    if scenario_method == "historical":
+        return json.dumps({
+            "error": (
+                "Longevity risk is not supported with historical scenarios "
+                "(drawn lifespans can exceed the available historical data range). "
+                "Use scenario_method='mc' with a stochastic rate_method."
+            ),
+        })
+
     opts = {"units": "1"}
     if solver:
         opts["solver"] = solver
     if max_time is not None:
         opts["maxTime"] = max_time
-    if gap is not None:
-        opts["gap"] = gap
     if net_spending is not None:
         opts["netSpending"] = net_spending
     if min_taxable_balance is not None:
@@ -1588,11 +1996,18 @@ async def run_longevity_stochastic(
         opts["maxRothConversion"] = max_roth_conversion
     if bequest is not None:
         opts["bequest"] = bequest
-    if optimize_ss_ages:
-        opts["withSSAges"] = "optimize"
+    _ssa = _ss_ages_opt(optimize_ss_ages)
+    if _ssa is not None:
+        opts["withSSAges"] = _ssa
+    if previous_magis is not None:
+        opts["previousMAGIs"] = list(previous_magis)
+    if with_medicare is not None:
+        opts["withMedicare"] = with_medicare
+    if with_aca is not None:
+        opts["withACA"] = with_aca
 
     try:
-        plan, result = await asyncio.get_event_loop().run_in_executor(
+        plan, result = await asyncio.get_running_loop().run_in_executor(
             None,
             _longevity_stochastic_blocking,
             names, birth_years, life_expectancy, state,
@@ -1602,7 +2017,7 @@ async def run_longevity_stochastic(
             pension_indexed, pension_survivor_fractions,
             wages, contributions, big_ticket_items,
             debts, fixed_assets, spias,
-            objective, rate_method, survivor_fraction,
+            objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
             initial_allocation, final_allocation,
             spending_profile, smile_dip, smile_increase, smile_delay,
             constrain_mean,
@@ -1610,6 +2025,10 @@ async def run_longevity_stochastic(
             balance_date,
             sexes, mortality_table,
             scenario_method, ystart, yend, n_scenarios, opts, seed,
+            heirs_tax_rate,
+            slcsp,
+            aca_start_year,
+            rate_params,
         )
     except Exception as e:
         return json.dumps({"error": f"Longevity stochastic run error: {e}"})
@@ -1624,6 +2043,488 @@ async def run_longevity_stochastic(
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
 
 
+@mcp.tool()
+async def run_historical(
+    filename: str | None = None,
+    overrides: list[str] | None = None,
+    names: list[str] | None = None,
+    birth_years: list[int] | None = None,
+    life_expectancy: list[int] | None = None,
+    taxable: list[float] | None = None,
+    tax_deferred: list[float] | None = None,
+    roth: list[float] | None = None,
+    hsa: list[float] | None = None,
+    cost_basis: list[float] | None = None,
+    ss_monthly_pias: list[float] | None = None,
+    ss_ages: list[int] | None = None,
+    pension_monthly_amounts: list[float] | None = None,
+    pension_ages: list[int] | None = None,
+    pension_indexed: list[bool] | None = None,
+    pension_survivor_fractions: list[float] | None = None,
+    wages: list[dict] | None = None,
+    contributions: list[dict] | None = None,
+    big_ticket_items: list[dict] | None = None,
+    debts: list[dict] | None = None,
+    fixed_assets: list[dict] | None = None,
+    spias: list[dict] | None = None,
+    state: str = "TX",
+    objective: str = "maxSpending",
+    rate_method: str = "conservative",
+    rate_values: list[float] | None = None,
+    rate_frm: int | None = None,
+    rate_to: int | None = None,
+    survivor_fraction: float = 60.0,
+    initial_allocation: list[float] | None = None,
+    final_allocation: list[float] | None = None,
+    interpolation_method: str = "linear",
+    interpolation_center: float | None = None,
+    interpolation_width: float | None = None,
+    balance_date: str | None = None,
+    spending_profile: str = "smile",
+    smile_dip: int = 15,
+    smile_increase: int = 12,
+    smile_delay: int = 0,
+    net_spending: float | None = None,
+    min_taxable_balance: list[float] | None = None,
+    start_roth_year: int | None = None,
+    no_roth_person: str | None = None,
+    max_roth_conversion: float | None = None,
+    bequest: float | None = None,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    slcsp: float | None = None,
+    ystart: int | None = None,
+    yend: int | None = None,
+    augmented: bool = False,
+    reverse: bool = False,
+    roll: int = 0,
+    solver: str | None = None,
+    max_time: float | None = None,
+) -> str:
+    """Backtest a plan across historical rate sequences and return a distribution of outcomes.
+
+    For each historical start year in [ystart, yend], the optimizer finds the best possible
+    outcome (max spending or max bequest) using rates drawn from that year onward.  The result
+    is a distribution showing how the plan would have fared under every historical market cycle
+    in the data window (1928–present).
+
+    Unlike run_stochastic, which pre-commits to a spending level and measures shortfall risk,
+    run_historical lets the optimizer adapt fully to each scenario — the distribution shows the
+    range of outcomes if you could have foreseen the sequence.
+
+    Provide the plan either as a saved TOML file (filename=) or directly via flat parameters
+    (same set accepted by run_from_params).
+
+    Args:
+        filename:         Path to a .toml case file (alternative to flat params).
+        overrides:        KEY.PATH=VALUE overrides when using filename=.
+        names:            Person names, e.g. ["Alice", "Bob"].
+        birth_years:      Birth years, e.g. [1963, 1961].
+        life_expectancy:  Life expectancy in years per person.
+        taxable:          Taxable account balances in $ per person.
+        tax_deferred:     Tax-deferred (401k/IRA) balances in $ per person.
+        roth:             Roth account balances in $ per person.
+        hsa:              HSA balances in $ per person (optional).
+        cost_basis:       Taxable cost basis in $ per person (optional).
+        ss_monthly_pias:  Monthly SS PIA per person in $/month.
+        ss_ages:          SS claiming ages per person.
+        pension_monthly_amounts: Monthly pension amounts in $/month per person.
+        pension_ages:     Pension commencement ages per person.
+        pension_indexed:  CPI-indexed pension flags per person.
+        pension_survivor_fractions: Survivor benefit fractions per person (0–1).
+        wages:            Wage streams (see run_from_params for format).
+        contributions:    Retirement contributions (see run_from_params).
+        big_ticket_items: Extra annual expenses (see run_from_params).
+        debts:            Amortizing loans (see run_from_params).
+        fixed_assets:     Assets to be sold (see run_from_params).
+        spias:            Single Premium Immediate Annuities (see run_from_params).
+        state:            Two-letter US state code (default "TX").
+        objective:        "maxSpending" (default) or "maxBequest".
+        rate_method:      Rate model for the base/deterministic context (does not affect
+                          the historical scenarios, which always use historical data).
+        survivor_fraction: Survivor spending as % of couple spending (default 60).
+        initial_allocation: Starting [equities, corporate_bonds, t_notes, cash] allocation %.
+        final_allocation:   Ending allocation percentages (glide path).
+        rate_values:      Fixed rates in % [equities, corporate_bonds, t_notes, inflation]
+                          for rate_method="user".
+        rate_frm:         First year of historical rate window for the base solve.
+        rate_to:          Last year of historical rate window for the base solve.
+        interpolation_method: "linear" (default) or "s-curve".
+        interpolation_center: S-curve inflection point in years from plan start (default 15).
+        interpolation_width:  S-curve transition half-width in years (default 5).
+        balance_date:     Date balances were recorded as "MM-DD" or "YYYY-MM-DD" (default: today).
+        spending_profile: "smile" (default) or "flat".
+        smile_dip:        Slow-go dip depth in % (default 15).
+        smile_increase:   No-go medical cost increase in % (default 12).
+        smile_delay:      Go-go years before dip begins (default 0).
+        net_spending:     Required when objective is "maxBequest": the annual spending
+                          floor in $/year (e.g. 90000).  Ignored for maxSpending.
+        min_taxable_balance: Minimum taxable account balance (safety net) in $ per person.
+        start_roth_year:  Year before which Roth conversions are disabled.
+        no_roth_person:   Name of individual excluded from Roth conversions.
+        max_roth_conversion: Annual per-person Roth conversion cap in $/year.
+        bequest:          Target bequest in today's $ for maxSpending objective.
+        heirs_tax_rate:   Override heirs' marginal tax rate (0–1) for estate planning.
+        previous_magis:   Prior-year MAGI per person in $ for Medicare IRMAA (first 2 years).
+        with_medicare:    Medicare IRMAA mode: "none", "loop", or "optimize".
+        slcsp:            Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
+        with_aca:         ACA premium modeling: "none", "loop", or "optimize". Requires slcsp > 0.
+        aca_start_year:   Calendar year ACA coverage begins.
+        ystart:           First historical start year to test (default: earliest available, 1928).
+        yend:             Last historical start year to test (default: latest year that fits
+                          the plan horizon in the data).
+        augmented:        If True, run every combination of reverse/roll for each year,
+                          expanding the sample to n_years × 2 × N_plan_years scenarios.
+                          Produces a much larger (and slower) sample.
+        reverse:          Reverse the rate sequence in time for this run (non-augmented only).
+        roll:             Shift the rate sequence by this many years (non-augmented only).
+        solver:           "HiGHS", "MOSEK", or None (auto-select).
+        max_time:         Per-scenario solver time limit in seconds.
+    """
+    overrides = _norm_overrides(overrides)
+
+    if filename is not None:
+        try:
+            diconf, dirname, _ = load_toml(filename)
+        except Exception as e:
+            return json.dumps({"error": f"Failed to load {filename}: {e}"})
+        if overrides:
+            try:
+                diconf = apply_overrides(diconf, overrides)
+            except Exception as e:
+                return json.dumps({"error": f"Invalid override: {e}"})
+        try:
+            plan = await asyncio.get_running_loop().run_in_executor(
+                None,
+                lambda: config_to_plan(diconf, dirname, verbose=False,
+                                       logstreams=[sys.stderr], loadHFP=True),
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Failed to build plan from {filename}: {e}"})
+    else:
+        if names is None or birth_years is None or life_expectancy is None:
+            return json.dumps({"error": (
+                "Provide either 'filename' or flat parameters: "
+                "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+            )})
+        try:
+            plan = _build_plan_from_params(
+                names, birth_years, life_expectancy, state,
+                taxable, tax_deferred, roth, hsa, cost_basis,
+                ss_monthly_pias, ss_ages,
+                pension_monthly_amounts, pension_ages,
+                pension_indexed, pension_survivor_fractions,
+                wages, contributions, big_ticket_items,
+                debts, fixed_assets, spias,
+                objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
+                initial_allocation, final_allocation,
+                spending_profile, smile_dip, smile_increase, smile_delay,
+                False,  # constrain_mean (N/A for historical)
+                interpolation_method, interpolation_center, interpolation_width,
+                balance_date,
+                heirs_tax_rate=heirs_tax_rate,
+                slcsp=slcsp,
+                aca_start_year=aca_start_year,
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Plan build error: {e}"})
+
+    opts = {"units": "1"}
+    if solver:
+        opts["solver"] = solver
+    if max_time is not None:
+        opts["maxTime"] = max_time
+    if net_spending is not None:
+        opts["netSpending"] = net_spending
+    if min_taxable_balance is not None:
+        opts["minTaxableBalance"] = list(min_taxable_balance)
+    if start_roth_year is not None:
+        opts["startRothConversions"] = int(start_roth_year)
+    if no_roth_person is not None:
+        opts["noRothConversions"] = no_roth_person
+    if max_roth_conversion is not None:
+        opts["maxRothConversion"] = max_roth_conversion
+    if bequest is not None:
+        opts["bequest"] = bequest
+    if previous_magis is not None:
+        opts["previousMAGIs"] = list(previous_magis)
+    if with_medicare is not None:
+        opts["withMedicare"] = with_medicare
+    if with_aca is not None:
+        opts["withACA"] = with_aca
+
+    try:
+        plan, n_attempted, results = await asyncio.get_running_loop().run_in_executor(
+            None,
+            _historical_blocking,
+            plan, objective, opts, ystart, yend, augmented, reverse, roll,
+        )
+    except Exception as e:
+        return json.dumps({"error": f"Historical run error: {e}"})
+
+    if not results:
+        return json.dumps({"error": "No scenarios solved successfully."})
+
+    out = _build_distribution_json(plan, results, objective, "historical", n_attempted)
+    out["ystart_used"] = int(out.get("by_start_year", [{}])[0].get("year", ystart or 1928))
+    out["yend_used"] = int(out.get("by_start_year", [{}])[-1].get("year", yend or 9999))
+    out["augmented"] = augmented
+    return json.dumps(out, indent=2, cls=_NumpyEncoder)
+
+
+@mcp.tool()
+async def run_monte_carlo(
+    filename: str | None = None,
+    overrides: list[str] | None = None,
+    names: list[str] | None = None,
+    birth_years: list[int] | None = None,
+    life_expectancy: list[int] | None = None,
+    taxable: list[float] | None = None,
+    tax_deferred: list[float] | None = None,
+    roth: list[float] | None = None,
+    hsa: list[float] | None = None,
+    cost_basis: list[float] | None = None,
+    ss_monthly_pias: list[float] | None = None,
+    ss_ages: list[int] | None = None,
+    pension_monthly_amounts: list[float] | None = None,
+    pension_ages: list[int] | None = None,
+    pension_indexed: list[bool] | None = None,
+    pension_survivor_fractions: list[float] | None = None,
+    wages: list[dict] | None = None,
+    contributions: list[dict] | None = None,
+    big_ticket_items: list[dict] | None = None,
+    debts: list[dict] | None = None,
+    fixed_assets: list[dict] | None = None,
+    spias: list[dict] | None = None,
+    state: str = "TX",
+    objective: str = "maxSpending",
+    rate_method: str = "gmm",
+    rate_values: list[float] | None = None,
+    rate_frm: int | None = None,
+    rate_to: int | None = None,
+    survivor_fraction: float = 60.0,
+    initial_allocation: list[float] | None = None,
+    final_allocation: list[float] | None = None,
+    interpolation_method: str = "linear",
+    interpolation_center: float | None = None,
+    interpolation_width: float | None = None,
+    balance_date: str | None = None,
+    spending_profile: str = "smile",
+    smile_dip: int = 15,
+    smile_increase: int = 12,
+    smile_delay: int = 0,
+    net_spending: float | None = None,
+    min_taxable_balance: list[float] | None = None,
+    start_roth_year: int | None = None,
+    no_roth_person: str | None = None,
+    max_roth_conversion: float | None = None,
+    bequest: float | None = None,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    slcsp: float | None = None,
+    constrain_mean: bool = False,
+    rate_params: dict | None = None,
+    n_scenarios: int = 200,
+    solver: str | None = None,
+    max_time: float | None = None,
+    seed: int | None = None,
+) -> str:
+    """Run Monte Carlo simulations and return a distribution of optimal outcomes.
+
+    Generates stochastic rate sequences and solves the plan independently for each one.
+    Each scenario finds the best possible outcome (max spending or max bequest) given its
+    randomly drawn rate path.  The result is a distribution showing the range of outcomes
+    across simulated market environments.
+
+    A stochastic rate_method is required (e.g. 'historical_gaussian', 'lognormal',
+    'historical_bootstrap').  Use list_rate_models("stochastic") to see all options.
+
+    The bootstrap family ('historical_bootstrap') supports extra parameters via rate_params:
+      - bootstrap_type: "iid" (default), "block", "circular", or "stationary"
+      - block_size:     block length for block-based types (default 1)
+      - crisis_years:   list of years to oversample, e.g. [1973, 2000, 2008]
+      - crisis_weight:  sampling multiplier for crisis years (default 1.0)
+
+    Provide the plan either as a saved TOML file (filename=) or directly via flat parameters
+    (same set accepted by run_from_params).
+
+    Args:
+        filename:         Path to a .toml case file (alternative to flat params).
+        overrides:        KEY.PATH=VALUE overrides when using filename=.
+        names:            Person names, e.g. ["Alice", "Bob"].
+        birth_years:      Birth years, e.g. [1963, 1961].
+        life_expectancy:  Life expectancy in years per person.
+        taxable:          Taxable account balances in $ per person.
+        tax_deferred:     Tax-deferred (401k/IRA) balances in $ per person.
+        roth:             Roth account balances in $ per person.
+        hsa:              HSA balances in $ per person (optional).
+        cost_basis:       Taxable cost basis in $ per person (optional).
+        ss_monthly_pias:  Monthly SS PIA per person in $/month.
+        ss_ages:          SS claiming ages per person.
+        pension_monthly_amounts: Monthly pension amounts in $/month per person.
+        pension_ages:     Pension commencement ages per person.
+        pension_indexed:  CPI-indexed pension flags per person.
+        pension_survivor_fractions: Survivor benefit fractions per person (0–1).
+        wages:            Wage streams (see run_from_params for format).
+        contributions:    Retirement contributions (see run_from_params).
+        big_ticket_items: Extra annual expenses (see run_from_params).
+        debts:            Amortizing loans (see run_from_params).
+        fixed_assets:     Assets to be sold (see run_from_params).
+        spias:            Single Premium Immediate Annuities (see run_from_params).
+        state:            Two-letter US state code (default "TX").
+        objective:        "maxSpending" (default) or "maxBequest".
+        rate_method:      Stochastic rate model (REQUIRED to be stochastic).  Default "gmm"
+                          (Gaussian mixture — defaults to full 1928-present calibration window).
+                          All methods that draw from historical data (gmm, hmm, garch_dcc,
+                          historical_gaussian, historical_lognormal, historical_bootstrap)
+                          use the full historical range when rate_frm/rate_to are omitted;
+                          provide them to calibrate from a specific sub-period.
+                          historical_* methods require rate_frm and rate_to.
+                          See list_rate_models("stochastic") for all options.
+        rate_values:      Fixed rates in % for rate_method="user" (rarely used for MC).
+        rate_frm:         First year of the historical calibration or data window (e.g. 1970).
+                          Required for historical_* methods; optional (but recommended) for
+                          gmm, hmm, garch_dcc, and vector_ar — defaults to full history.
+        rate_to:          Last year of the calibration window (e.g. 2020).  Same rules as rate_frm.
+        survivor_fraction: Survivor spending as % of couple spending (default 60).
+        initial_allocation: Starting [equities, corporate_bonds, t_notes, cash] allocation %.
+        final_allocation:   Ending allocation percentages (glide path).
+        interpolation_method: "linear" (default) or "s-curve".
+        interpolation_center: S-curve inflection point in years from plan start (default 15).
+        interpolation_width:  S-curve transition half-width in years (default 5).
+        balance_date:     Date balances were recorded as "MM-DD" or "YYYY-MM-DD" (default: today).
+        spending_profile: "smile" (default) or "flat".
+        smile_dip:        Slow-go dip depth in % (default 15).
+        smile_increase:   No-go medical cost increase in % (default 12).
+        smile_delay:      Go-go years before dip begins (default 0).
+        net_spending:     Required when objective is "maxBequest": the annual spending
+                          floor in $/year (e.g. 90000).  Ignored for maxSpending.
+        min_taxable_balance: Minimum taxable account balance (safety net) in $ per person.
+        start_roth_year:  Year before which Roth conversions are disabled.
+        no_roth_person:   Name of individual excluded from Roth conversions.
+        max_roth_conversion: Annual per-person Roth conversion cap in $/year.
+        bequest:          Target bequest in today's $ for maxSpending objective.
+        heirs_tax_rate:   Override heirs' marginal tax rate (0–1) for estate planning.
+        previous_magis:   Prior-year MAGI per person in $ for Medicare IRMAA (first 2 years).
+        with_medicare:    Medicare IRMAA mode: "none", "loop", or "optimize".
+        slcsp:            Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
+        with_aca:         ACA premium modeling: "none", "loop", or "optimize". Requires slcsp > 0.
+        aca_start_year:   Calendar year ACA coverage begins.
+        constrain_mean:   If True, pin each scenario's mean returns to historical averages,
+                          isolating sequence-of-returns risk.
+        rate_params:      Extra rate model parameters as a dict.  Bootstrap example:
+                          {"bootstrap_type": "block", "block_size": 5,
+                           "crisis_years": [1973, 2000, 2008], "crisis_weight": 2.0}.
+                          Gaussian/lognormal: none needed.  Only used with flat params.
+        n_scenarios:      Number of Monte Carlo trials (default 200).
+        solver:           "HiGHS", "MOSEK", or None (auto-select).
+        max_time:         Per-scenario solver time limit in seconds.
+        seed:             Random seed for reproducible results.
+    """
+    overrides = _norm_overrides(overrides)
+
+    if filename is not None:
+        try:
+            diconf, dirname, _ = load_toml(filename)
+        except Exception as e:
+            return json.dumps({"error": f"Failed to load {filename}: {e}"})
+        if overrides:
+            try:
+                diconf = apply_overrides(diconf, overrides)
+            except Exception as e:
+                return json.dumps({"error": f"Invalid override: {e}"})
+        try:
+            plan = await asyncio.get_running_loop().run_in_executor(
+                None,
+                lambda: config_to_plan(diconf, dirname, verbose=False,
+                                       logstreams=[sys.stderr], loadHFP=True),
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Failed to build plan from {filename}: {e}"})
+        # MC needs a stochastic model. Apply rate_method (default "gmm") when the
+        # TOML's rate model is deterministic so the tool always works out of the box.
+        try:
+            if getattr(getattr(plan, "rateModel", None), "deterministic", True):
+                plan.setRates(rate_method, frm=rate_frm, to=rate_to,
+                              constrain_mean=constrain_mean, **(rate_params or {}))
+        except Exception as e:
+            return json.dumps({"error": f"Failed to set rate model '{rate_method}': {e}"})
+    else:
+        if names is None or birth_years is None or life_expectancy is None:
+            return json.dumps({"error": (
+                "Provide either 'filename' or flat parameters: "
+                "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+            )})
+        try:
+            plan = _build_plan_from_params(
+                names, birth_years, life_expectancy, state,
+                taxable, tax_deferred, roth, hsa, cost_basis,
+                ss_monthly_pias, ss_ages,
+                pension_monthly_amounts, pension_ages,
+                pension_indexed, pension_survivor_fractions,
+                wages, contributions, big_ticket_items,
+                debts, fixed_assets, spias,
+                objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
+                initial_allocation, final_allocation,
+                spending_profile, smile_dip, smile_increase, smile_delay,
+                constrain_mean,
+                interpolation_method, interpolation_center, interpolation_width,
+                balance_date,
+                heirs_tax_rate=heirs_tax_rate,
+                slcsp=slcsp,
+                aca_start_year=aca_start_year,
+                rate_params=rate_params,
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Plan build error: {e}"})
+
+    opts = {"units": "1"}
+    if solver:
+        opts["solver"] = solver
+    if max_time is not None:
+        opts["maxTime"] = max_time
+    if net_spending is not None:
+        opts["netSpending"] = net_spending
+    if min_taxable_balance is not None:
+        opts["minTaxableBalance"] = list(min_taxable_balance)
+    if start_roth_year is not None:
+        opts["startRothConversions"] = int(start_roth_year)
+    if no_roth_person is not None:
+        opts["noRothConversions"] = no_roth_person
+    if max_roth_conversion is not None:
+        opts["maxRothConversion"] = max_roth_conversion
+    if bequest is not None:
+        opts["bequest"] = bequest
+    if previous_magis is not None:
+        opts["previousMAGIs"] = list(previous_magis)
+    if with_medicare is not None:
+        opts["withMedicare"] = with_medicare
+    if with_aca is not None:
+        opts["withACA"] = with_aca
+
+    try:
+        plan, n_attempted, results = await asyncio.get_running_loop().run_in_executor(
+            None,
+            _monte_carlo_blocking,
+            plan, objective, opts, n_scenarios, seed,
+        )
+    except Exception as e:
+        return json.dumps({"error": f"Monte Carlo run error: {e}"})
+
+    if not results:
+        return json.dumps({"error": "No scenarios solved successfully."})
+
+    out = _build_distribution_json(plan, results, objective, "mc", n_attempted)
+    out["rate_method"] = plan.rateMethod if hasattr(plan, "rateMethod") else rate_method
+    return json.dumps(out, indent=2, cls=_NumpyEncoder)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Click command
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1632,17 +2533,21 @@ async def run_longevity_stochastic(
 def cmd_serve():
     """Start the Owl MCP server (stdio transport).
 
-    Exposes eight tools to any MCP-compatible AI client:
+    Exposes twelve tools to any MCP-compatible AI client:
 
     \b
-      list_cases        enumerate .toml case files in a directory
-      explain_case      describe a case without solving
-      list_rate_models  enumerate available rate models
-      run_case          solve and return JSON results
-      compare_cases     run base + variant and return delta metrics
-      run_from_params   build and solve from structured parameters (no TOML needed)
-      save_case         save structured parameters to TOML + HFP Excel
-      run_stochastic    efficient frontier over historical or Monte Carlo scenarios
+      list_cases               enumerate .toml case files in a directory
+      explain_case             describe a case without solving
+      list_rate_models         enumerate available rate models
+      list_mortality_tables    actuarial tables for longevity sampling
+      run_case                 solve and return JSON results
+      compare_cases            run base + variant and return delta metrics
+      run_from_params          build and solve from structured parameters (no TOML needed)
+      save_case                save structured parameters to TOML + HFP Excel
+      run_stochastic           spending frontier over historical or Monte Carlo scenarios
+      run_longevity_stochastic frontier with joint market + lifespan sampling
+      run_historical           backtest across historical sequences, return outcome distribution
+      run_monte_carlo          Monte Carlo simulations, return outcome distribution
 
     Configure Claude Desktop by adding to mcpServers in claude_desktop_config.json:
 

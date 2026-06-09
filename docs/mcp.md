@@ -12,27 +12,57 @@ optimizations, and compare scenarios through natural conversation.
 | `list_cases(directory)` | Enumerate `.toml` case files in a directory | No |
 | `explain_case(filename, overrides)` | Describe a case: individuals, balances, income, options | No |
 | `list_rate_models(category)` | Enumerate return models with parameters | No |
+| `list_mortality_tables()` | Actuarial mortality tables for longevity risk sampling | No |
 | `run_case(filename, overrides, ...)` | Solve and return full JSON results | Yes |
 | `compare_cases(filename, overrides, ...)` | Solve base + variant, return delta | Yes |
 | `run_from_params(names, birth_years, ...)` | Build and solve from structured parameters — no TOML file needed | Yes |
 | `save_case(names, birth_years, ...)` | Save structured parameters to TOML + HFP Excel for reproducibility | No |
-| `run_stochastic(scenario_method, ...)` | Efficient frontier over historical or Monte Carlo scenarios | Yes (×N) |
+| `run_stochastic(scenario_method, ...)` | Spending efficient frontier over historical or Monte Carlo scenarios | Yes (×N) |
+| `run_longevity_stochastic(sexes, ...)` | Spending frontier with joint market + random lifespan sampling | Yes (×N) |
+| `run_historical(ystart, yend, ...)` | Backtest across historical sequences — distribution of optimal outcomes | Yes (×N) |
+| `run_monte_carlo(n_scenarios, ...)` | Monte Carlo simulations — distribution of optimal outcomes | Yes (×N) |
 
-`run_case` and `compare_cases` accept optional `solver`, `max_time`, `gap`, and `seed`
-arguments. The `overrides` argument uses `KEY.PATH=VALUE` syntax identical to
-`owlcli run --set` (values are JSON-parsed).
+`run_case` and `compare_cases` accept optional `solver`, `max_time`, and `seed`
+arguments. MIP gap tolerance and other solver options can be set via `overrides`
+(e.g. `solver_options.gap=1e-4`), same as `owlcli run --set`. The `overrides`
+argument uses `KEY.PATH=VALUE` syntax identical to `owlcli run --set` (values are
+JSON-parsed).
 
-`run_from_params`, `save_case`, and `run_stochastic` accept the full set of plan
-parameters directly, eliminating the need to write a TOML file first. All monetary
-balances and solver limits are in full dollars ($); time-series amounts (wages,
-contributions) are in $/year; Social Security is the monthly PIA from your SSA
-statement ($/month); pensions are in $/month.
+**File paths:** The MCP server runs in its own working directory. Use **absolute
+paths** for `directory`, `filename`, and `output_dir` (e.g. `/path/to/Owl/examples/`).
 
-`run_stochastic` returns the optimal committed spending at a target success rate
-and the full efficient frontier (spending vs. probability of success).
-Use `scenario_method="historical"` (default, sweeps 1928–present) for historically
-grounded answers, or `"mc"` with a stochastic `rate_method` (e.g. `"gmm"`,
-`"lognormal"`) for Monte Carlo.
+`run_from_params`, `save_case`, `run_stochastic`, `run_longevity_stochastic`,
+`run_historical`, and `run_monte_carlo` accept the full set of plan parameters
+directly, eliminating the need to write a TOML file first. All monetary balances
+and solver limits are in full dollars ($); time-series amounts (wages, contributions)
+are in $/year; Social Security is the monthly PIA from your SSA statement ($/month);
+pensions are in $/month. Asset allocation arrays are `[equities, corporate_bonds,
+t_notes, cash]` in percent. Fixed user rates (`rate_method="user"`) use
+`[equities, corporate_bonds, t_notes, inflation]` in percent. Pre-65 ACA coverage
+can be modeled via the `slcsp` parameter (annual Silver benchmark premium in $/year).
+
+**Three distinct stress-test tools:**
+
+`run_stochastic` pre-commits to a spending level and asks: *across N scenarios, how
+often does it succeed?* Returns the spending efficient frontier (spending vs.
+probability of success) at a requested target success rate.
+Use `scenario_method="historical"` (default, sweeps 1928–present) or `"mc"` with a
+stochastic `rate_method`.
+
+`run_historical` backtests the plan's full flexibility across every historical start
+year in `[ystart, yend]`.  Each year the optimizer solves optimally for that sequence —
+no pre-committed spending.  Returns a distribution (`min/p10/median/p90/max`) and a
+per-year breakdown.  Use this to see which decades were hardest and what the optimizer
+could have achieved in each.
+
+`run_monte_carlo` is the same as `run_historical` but with randomly generated rate
+sequences instead of historical ones.  Requires a stochastic `rate_method` (default
+`"gmm"`).  All methods that draw from or are calibrated to historical data — `gmm`,
+`hmm`, `garch_dcc`, `vector_ar`, and the `historical_*` family — accept `rate_frm`
+and `rate_to` to define the calibration window; the `historical_*` methods require
+these parameters, while the others default to the full 1928–present record.  The
+bootstrap family (`historical_bootstrap`) supports additional resampling options via
+`rate_params`, e.g. `{"bootstrap_type":"block","block_size":5}`.
 
 ---
 
@@ -101,6 +131,76 @@ claude mcp list
 
 ---
 
+## Cursor
+
+Cursor supports MCP in **Agent** mode (Composer). Add Owl once; the tools are then
+available in any workspace.
+
+### Option A — Settings UI (recommended)
+
+1. Open **Cursor Settings** → **MCP** (or search “MCP” in settings).
+2. Click **Add new MCP server** (or edit an existing entry).
+3. Name it `owl` and use:
+
+   - **Command:** `uv`
+   - **Args:** `run --project /path/to/Owl owlcli serve`
+
+   Replace `/path/to/Owl` with the absolute path to your Owl clone.
+
+4. Save and confirm the server shows **Connected** (green status).
+5. Open **Agent** chat and ask a retirement question — Cursor will call Owl tools
+   automatically (e.g. `run_from_params`, `list_cases`).
+
+If the server fails to start, click it in the MCP list to read stderr (solver logs
+also go to stderr and do not break the MCP channel).
+
+### Option B — Config file
+
+Create or edit `~/.cursor/mcp.json` (user-wide, all projects):
+
+```json
+{
+  "mcpServers": {
+    "owl": {
+      "command": "uv",
+      "args": ["run", "--project", "/path/to/Owl", "owlcli", "serve"]
+    }
+  }
+}
+```
+
+For a **project-only** setup, put the same JSON in `.cursor/mcp.json` at the root
+of the Owl repo (or your planning workspace) and use the repo’s absolute path in
+`--project`.
+
+### Alternative: `owlcli` already on PATH
+
+If you installed Owl globally and `owlcli` is on your `PATH`:
+
+```json
+{
+  "mcpServers": {
+    "owl": {
+      "command": "owlcli",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
+### Verify it works
+
+1. In **Settings → MCP**, `owl` should show **Connected**.
+2. In Agent chat, try: *“List cases in `/path/to/Owl/examples/` using Owl.”*
+   Use an **absolute path** — the MCP process may not resolve relative paths like
+   `examples/` from the repo root.
+3. Optional CLI check (Claude Code users): `claude mcp list` if you also use that
+   client with the same `uv run ... owlcli serve` command.
+
+Toggle the server off/on or restart Cursor if you change `mcp.json`.
+
+---
+
 ## Testing the server (no AI required)
 
 FastMCP ships a browser-based inspector that lets you call tools manually
@@ -120,25 +220,6 @@ it to an AI.
 
 Any client that supports the MCP stdio transport uses the same pattern —
 a command and argument list that launches `owlcli serve`. Common examples:
-
-### Cursor
-
-Create or edit `.cursor/mcp.json` in your home directory (or open Cursor Settings →
-MCP):
-
-```json
-{
-  "mcpServers": {
-    "owl": {
-      "command": "uv",
-      "args": ["run", "--project", "/path/to/Owl", "owlcli", "serve"]
-    }
-  }
-}
-```
-
-Owl's tools appear automatically in Cursor's Composer (agent mode). Type `@owl`
-or let Cursor's agent pick the right tool from context.
 
 ### VS Code (GitHub Copilot)
 
@@ -208,7 +289,7 @@ Edit `~/.config/zed/settings.json`:
 
 ### Windsurf and other Codeium-based editors
 
-Follow the same `mcpServers` format as Cursor.
+Follow the same `mcpServers` format as [Cursor](#cursor) above.
 
 ---
 
@@ -271,6 +352,10 @@ translate your description into `--set` overrides, and interpret the results.
 > *"How does the 90% spending change if I delay SS to 70?"*
 > → calls `run_stochastic` twice via `compare_cases`-style overrides, reports delta
 
+> *"What's safe spending at 90% success if we also account for longevity risk?"*
+> → calls `list_mortality_tables`, then `run_longevity_stochastic` with `sexes=["F"]`,
+> `scenario_method="mc"`, and a stochastic `rate_method` (e.g. `"gmm"`)
+
 ### Sensitivity and comparisons
 
 > *"Run the jack+jill case and tell me the optimal spending."*
@@ -301,6 +386,8 @@ translate your description into `--set` overrides, and interpret the results.
 
 ## Notes
 
+- **Longevity + historical:** `run_longevity_stochastic` requires `scenario_method="mc"`.
+  Historical mode is rejected because random lifespans can exceed the data window.
 - **Solver output** (progress, timing) goes to stderr and is never sent to the AI.
   Only the structured JSON result is returned as the tool output.
 - **Long solves**: `run_case` and `compare_cases` run the LP/MIP solver in a

@@ -81,8 +81,10 @@ Tell your AI your age, accounts, and income sources, and it runs the optimizer,
 computes a probability-of-success frontier, and explains the results in plain English.
 No files to prepare. No forms to fill in.
 
-> *"I'm 65, have $800k in my IRA and $200k taxable, $2,400/month Social Security
-> at 67 — what can I safely spend each year with 90% historical probability of success?"*""")
+> *"I'm 65, have \\$800k in my IRA and \\$200k taxable, $2,400/month Social Security
+> at 67 — what can I safely spend each year with 90% historical probability of success?"*
+
+See [setup and usage instructions](https://github.com/mdlacasse/Owl/blob/main/docs/mcp.md).""")
 
 with col2:
     st.image(logofile, width="stretch")
