@@ -95,6 +95,12 @@ class DataFrameRateModel(BaseRateModel):
         n_years = self.get_param("n_years")
         offset = int(self.get_param("offset") or 0)
 
+        if N != n_years:
+            raise ValueError(
+                f"DataFrameRateModel was configured for n_years={n_years} "
+                f"but generate() was called with N={N}."
+            )
+
         # --------------------------------------------------
         # Validate required columns (exact names, no aliases)
         # --------------------------------------------------

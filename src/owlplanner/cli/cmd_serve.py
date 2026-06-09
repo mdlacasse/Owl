@@ -47,11 +47,13 @@ from owlplanner.config.schema import CLI_SOLVER_OVERRIDE_MAP, parse_solver_optio
 from owlplanner.export import plan_metrics
 from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF
 from owlplanner.rate_models.loader import get_all_models_metadata, RATE_MODEL_ALIASES
-from owlplanner.data.mortality_tables import MORTALITY_TABLE_KEYS
+from owlplanner.data.mortality_tables import MORTALITY_TABLE_KEYS, MORTALITY_TABLE_INFO
+
+from owlplanner.rate_models.constants import CONSTRAIN_MEAN_METHODS
 
 from .cmd_explain import _plan_to_explain
 from .cmd_run import _parse_solver_opts
-from .formatters import plan_to_dict, _NumpyEncoder
+from .formatters import plan_to_dict, _NumpyEncoder, _diff, _pct, KEY_METRICS
 from .set_override import apply_overrides
 
 
@@ -276,44 +278,6 @@ def list_rate_models(
 # Tool: list_mortality_tables
 # ─────────────────────────────────────────────────────────────────────────────
 
-_MORTALITY_TABLE_INFO = {
-    "VBT2015-SM": {
-        "le_at_65": 82,
-        "description": "Smokers — Valuation Basic Table 2015, smoker lives.",
-    },
-    "SSA2025": {
-        "le_at_65": 83,
-        "description": "General US population — Social Security Administration 2025 period life table."
-                       " Use when no specific category fits.",
-    },
-    "Pub2010-Safety": {
-        "le_at_65": 85,
-        "description": "Public safety workers — police, fire, corrections (PubH 2010).",
-    },
-    "Pub2010-General": {
-        "le_at_65": 86,
-        "description": "General government employees — non-safety, non-teacher public sector (PubG 2010).",
-    },
-    "RP2014": {
-        "le_at_65": 86,
-        "description": "Private-sector pension recipients — Retirement Plans 2014.",
-    },
-    "VBT2015-NS": {
-        "le_at_65": 87,
-        "description": "Non-smokers — Valuation Basic Table 2015, non-smoker lives.",
-    },
-    "IAM2012": {
-        "le_at_65": 87,
-        "description": "Annuity purchasers — Individual Annuity Mortality 2012."
-                       " Use when the individual owns or plans to buy a life annuity (SPIA).",
-    },
-    "Pub2010-Teacher": {
-        "le_at_65": 87,
-        "description": "Teachers and school employees — K-12 and university educators (PubT 2010).",
-    },
-}
-
-
 @mcp.tool()
 def list_mortality_tables() -> str:
     """List available actuarial mortality tables for longevity risk sampling.
@@ -345,10 +309,10 @@ def list_mortality_tables() -> str:
     twice with different tables to bracket the range.
     """
     tables = [
-        {"key": key, "le_at_65": _MORTALITY_TABLE_INFO[key]["le_at_65"],
-         "description": _MORTALITY_TABLE_INFO[key]["description"]}
+        {"key": key, "le_at_65": MORTALITY_TABLE_INFO[key]["le_at_65"],
+         "description": MORTALITY_TABLE_INFO[key]["description"]}
         for key in MORTALITY_TABLE_KEYS
-        if key in _MORTALITY_TABLE_INFO
+        if key in MORTALITY_TABLE_INFO
     ]
     tables.sort(key=lambda t: t["le_at_65"])
     return json.dumps({"mortality_tables": tables}, indent=2)
@@ -444,25 +408,6 @@ async def run_case(
 # Tool: compare_cases
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _diff(base: dict, variant: dict) -> dict:
-    delta = {}
-    for k in base:
-        if k not in variant:
-            continue
-        bv, vv = base[k], variant[k]
-        if isinstance(bv, (int, float)) and isinstance(vv, (int, float)):
-            delta[k] = round(vv - bv, 6)
-        else:
-            delta[k] = None
-    return delta
-
-
-def _pct(delta_val, base_val):
-    if base_val and base_val != 0:
-        return round((delta_val / abs(base_val)) * 100, 2)
-    return None
-
-
 def _compare_blocking(diconf_base, diconf_variant, dirname, solver, max_time, seed):
     plan_base = _solve_blocking(diconf_base, dirname, solver, max_time, seed, [])
     plan_variant = _solve_blocking(diconf_variant, dirname, solver, max_time, seed, [])
@@ -528,15 +473,9 @@ async def compare_cases(
     m_variant = plan_metrics(plan_variant)
     delta = _diff(m_base, m_variant)
 
-    key_metrics = [
-        "spending_basis", "total_spending_today", "total_spending_nominal",
-        "ss_income_today", "roth_conversions_today",
-        "federal_income_tax_today", "state_tax_today", "medicare_today", "aca_today",
-        "final_bequest_today", "final_bequest_nominal", "effective_tax_rate",
-    ]
     pct_change = {
         k: _pct(delta[k], m_base[k])
-        for k in key_metrics
+        for k in KEY_METRICS
         if k in delta and delta[k] is not None
     }
 
@@ -649,6 +588,11 @@ def _build_plan_from_params(
         )
 
     # Rates, state tax, spending profile
+    if constrain_mean and rate_method not in CONSTRAIN_MEAN_METHODS:
+        raise ValueError(
+            f"constrain_mean=True has no effect for rate_method='{rate_method}'. "
+            f"Supported methods: {', '.join(sorted(CONSTRAIN_MEAN_METHODS))}."
+        )
     plan.setRates(rate_method, frm=rate_frm, to=rate_to, values=rate_values,
                   constrain_mean=constrain_mean, **(rate_params or {}))
     if state:
@@ -780,17 +724,22 @@ def _build_plan_from_params(
 def _build_hfp_dataframes(plan):
     """Reconstruct timeLists and houseLists DataFrames from plan arrays for HFP export."""
     from owlplanner.hfp_io import _timeHorizonItems  # noqa: PLC2701
+    # Row 0..4 are the 5 lead-in years before thisyear; row 5+n = plan year n.
+    # This mirrors the layout written by hfp_io and read by setContributions.
+    assert _timeHorizonItems[0] == "year", (
+        "HFP column layout has changed; update the row-offset logic here to match."
+    )
+    _LEAD_IN = 5
     thisyear = datetime.date.today().year
     tl = {}
     for i, iname in enumerate(plan.inames):
         h = int(plan.horizons[i])
-        years = list(range(thisyear - 5, thisyear + h))
+        years = list(range(thisyear - _LEAD_IN, thisyear + h))
         n_rows = len(years)
         df = pd.DataFrame(0.0, index=range(n_rows), columns=_timeHorizonItems)
         df["year"] = years
-        # Plan arrays cover [0, N_n); offset 5 = thisyear in the time-list row ordering
         for n in range(h):
-            row = 5 + n
+            row = _LEAD_IN + n
             df.at[row, "anticipated wages"] = float(plan.omega_in[i, n])
             df.at[row, "big-ticket items"] = float(plan.Lambda_in[i, n])
             df.at[row, "taxable ctrb"] = float(plan.kappa_ijn[i, 0, n])
@@ -1486,12 +1435,12 @@ def _historical_blocking(plan, objective, opts, ystart, yend, augmented, reverse
     _ystart = int(ystart) if ystart is not None else FROM
     _yend = int(yend) if yend is not None else TO
 
-    if _yend + plan.N_n > plan.year_n[0]:
-        _yend = plan.year_n[0] - plan.N_n
+    if _yend + plan.N_n > TO + 1:
+        _yend = TO + 1 - plan.N_n
 
     if _yend < _ystart:
         raise ValueError(
-            f"ystart={_ystart} too large: a {plan.N_n}-year horizon needs yend ≤ {plan.year_n[0] - plan.N_n}."
+            f"ystart={_ystart} too large: a {plan.N_n}-year horizon needs yend ≤ {TO + 1 - plan.N_n}."
         )
 
     if augmented:
@@ -1714,6 +1663,9 @@ async def run_stochastic(
         seed:                 Random seed for reproducibility.
     """
     overrides = _norm_overrides(overrides)
+    if filename is not None and names is not None:
+        msg = "Provide either 'filename' or flat parameters (names, birth_years, ...) — not both."
+        return json.dumps({"error": msg})
     # Build or load plan
     if filename is not None:
         try:
@@ -1734,7 +1686,8 @@ async def run_stochastic(
         except Exception as e:
             return json.dumps({"error": f"Failed to build plan from {filename}: {e}"})
     else:
-        if names is None or birth_years is None or life_expectancy is None:
+        if (names is None or birth_years is None or life_expectancy is None
+                or taxable is None or tax_deferred is None or roth is None):
             return json.dumps({"error": (
                 "Provide either 'filename' or flat parameters: "
                 "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
@@ -2251,6 +2204,9 @@ async def run_historical(
         max_time:         Per-scenario solver time limit in seconds.
     """
     overrides = _norm_overrides(overrides)
+    if filename is not None and names is not None:
+        msg = "Provide either 'filename' or flat parameters (names, birth_years, ...) — not both."
+        return json.dumps({"error": msg})
 
     if filename is not None:
         try:
@@ -2271,7 +2227,8 @@ async def run_historical(
         except Exception as e:
             return json.dumps({"error": f"Failed to build plan from {filename}: {e}"})
     else:
-        if names is None or birth_years is None or life_expectancy is None:
+        if (names is None or birth_years is None or life_expectancy is None
+                or taxable is None or tax_deferred is None or roth is None):
             return json.dumps({"error": (
                 "Provide either 'filename' or flat parameters: "
                 "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."

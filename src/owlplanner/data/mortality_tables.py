@@ -542,6 +542,45 @@ _QX = _TABLES["SSA2025"]
 
 MORTALITY_TABLE_KEYS = list(_TABLES.keys())
 
+# Life expectancy at 65 (avg M+F) and MCP selection-guide description for each table.
+# Ordered to match the sort order used by list_mortality_tables (shortest → longest LE).
+MORTALITY_TABLE_INFO: dict[str, dict] = {
+    "VBT2015-SM": {
+        "le_at_65": 82,
+        "description": "Smokers — Valuation Basic Table 2015, smoker lives.",
+    },
+    "SSA2025": {
+        "le_at_65": 83,
+        "description": "General US population — Social Security Administration 2025 period life table."
+                       " Use when no specific category fits.",
+    },
+    "Pub2010-Safety": {
+        "le_at_65": 85,
+        "description": "Public safety workers — police, fire, corrections (PubH 2010).",
+    },
+    "Pub2010-General": {
+        "le_at_65": 86,
+        "description": "General government employees — non-safety, non-teacher public sector (PubG 2010).",
+    },
+    "RP2014": {
+        "le_at_65": 86,
+        "description": "Private-sector pension recipients — Retirement Plans 2014.",
+    },
+    "VBT2015-NS": {
+        "le_at_65": 87,
+        "description": "Non-smokers — Valuation Basic Table 2015, non-smoker lives.",
+    },
+    "IAM2012": {
+        "le_at_65": 87,
+        "description": "Annuity purchasers — Individual Annuity Mortality 2012."
+                       " Use when the individual owns or plans to buy a life annuity (SPIA).",
+    },
+    "Pub2010-Teacher": {
+        "le_at_65": 87,
+        "description": "Teachers and school employees — K-12 and university educators (PubT 2010).",
+    },
+}
+
 MORTALITY_DESCRIPTIONS = {
     "SSA2025": (
         "Average US population (2025). A good starting point for most people — reflects typical"

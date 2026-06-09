@@ -24,15 +24,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 ###########################################################################
-import os
-import sys
 import numpy as np
-import pandas as pd
 from scipy.stats import multivariate_normal
 
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
-from owlplanner.rate_models._builtin_impl import apply_return_floors, constrain_series_mean
+from owlplanner.rate_models._builtin_impl import apply_return_floors, constrain_series_mean, load_historical_slice
 from owlplanner.rates import FROM, TO
 
 _MAX_ITER = 200
@@ -129,7 +125,7 @@ class HMMRateModel(BaseRateModel):
             self.init_regime = ir
 
         self._rng = np.random.default_rng(seed)
-        self._historical_data = self._load_historical_slice()
+        self._historical_data, _ = load_historical_slice(self.frm, self.to)
         T = len(self._historical_data)
         if T < self.n_components:
             raise ValueError(
@@ -143,26 +139,6 @@ class HMMRateModel(BaseRateModel):
         self._constrain_mean = bool(self.get_param("constrain_mean"))
         if self._constrain_mean:
             self._hist_target_means = self._historical_data.mean(axis=0)
-
-    #######################################################################
-    # Historical Data
-    #######################################################################
-
-    def _load_historical_slice(self):
-        where = os.path.dirname(sys.modules["owlplanner"].__file__)
-        file = os.path.join(where, "data/rates.csv")
-
-        df = pd.read_csv(file)
-        if "year" not in df.columns:
-            raise ValueError("rates.csv must contain a 'year' column.")
-
-        mask = (df["year"] >= self.frm) & (df["year"] <= self.to)
-        data = df.loc[mask, list(REQUIRED_RATE_COLUMNS)].values
-
-        if len(data) == 0:
-            raise ValueError(f"No historical data in range [{self.frm}, {self.to}].")
-
-        return data / 100.0  # percent → decimal
 
     #######################################################################
     # Baum-Welch Algorithm

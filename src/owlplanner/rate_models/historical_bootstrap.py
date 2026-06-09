@@ -25,13 +25,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 ###################################################################
 import numpy as np
-import pandas as pd
-import os
-import sys
 
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
-from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
+from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR, load_historical_slice
 from owlplanner.rates import FROM, TO
 
 
@@ -119,35 +115,8 @@ class BootstrapSORRateModel(BaseRateModel):
 
         self._rng = np.random.default_rng(seed)
 
-        self._historical_data, self._years = self._load_historical_slice()
+        self._historical_data, self._years = load_historical_slice(self.frm, self.to)
         self._base_weights = self._build_sampling_weights()
-
-    #######################################################################
-    # Historical Data
-    #######################################################################
-
-    def _load_historical_slice(self):
-
-        where = os.path.dirname(sys.modules["owlplanner"].__file__)
-        file = os.path.join(where, "data/rates.csv")
-
-        df = pd.read_csv(file)
-
-        if "year" not in df.columns:
-            raise ValueError("Historical rates.csv must contain a 'year' column.")
-
-        mask = (df["year"] >= self.frm) & (df["year"] <= self.to)
-        df_slice = df.loc[mask]
-
-        if df_slice.empty:
-            raise ValueError("No historical data in selected range.")
-
-        years = df_slice["year"].values
-
-        data = df_slice[list(REQUIRED_RATE_COLUMNS)].values
-        data = data / 100.0  # percent → decimal
-
-        return data, years
 
     #######################################################################
     # Crisis Weighting

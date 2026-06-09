@@ -31,14 +31,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 ###########################################################################
 import numpy as np
-import pandas as pd
-import os
-import sys
 
 from owlplanner.rate_models.base import BaseRateModel
-from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
 from owlplanner.rate_models.inflation_transform import fit_inflation_transform, inv_pwl_transform, pwl_transform
-from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
+from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR, load_historical_slice
 from owlplanner.rates import FROM, TO
 
 
@@ -102,7 +98,7 @@ class VARRateModel(BaseRateModel):
         if self.frm >= self.to:
             raise ValueError("frm must be < to (need at least 2 observations to fit VAR(1)).")
 
-        data = self._load_historical_slice()
+        data, _ = load_historical_slice(self.frm, self.to)
 
         if len(data) < 10:
             raise ValueError(
@@ -122,31 +118,6 @@ class VARRateModel(BaseRateModel):
         self._fit(data)
 
         self._rng = np.random.default_rng(seed)
-
-    #######################################################################
-    # Historical Data
-    #######################################################################
-
-    def _load_historical_slice(self):
-        """Load and return decimal-scale historical data (T × 4)."""
-        where = os.path.dirname(sys.modules["owlplanner"].__file__)
-        file = os.path.join(where, "data/rates.csv")
-
-        df = pd.read_csv(file)
-
-        if "year" not in df.columns:
-            raise ValueError("Historical rates.csv must contain a 'year' column.")
-
-        mask = (df["year"] >= self.frm) & (df["year"] <= self.to)
-        df_slice = df.loc[mask]
-
-        if df_slice.empty:
-            raise ValueError("No historical data in selected range.")
-
-        data = df_slice[list(REQUIRED_RATE_COLUMNS)].values.astype(float)
-        data = data / 100.0  # percent → decimal
-
-        return data
 
     #######################################################################
     # OLS Fitting

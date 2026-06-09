@@ -18,7 +18,7 @@ from owlplanner.config.schema import CLI_SOLVER_OVERRIDE_MAP, parse_solver_optio
 from owlplanner.export import plan_metrics
 
 from .cmd_run import validate_toml, _parse_solver_opts
-from .formatters import _NumpyEncoder
+from .formatters import _NumpyEncoder, _diff, _pct, KEY_METRICS
 from .params_help import print_solver_options_help
 from .set_override import apply_overrides
 
@@ -49,27 +49,6 @@ def _solve_case(diconf, dirname, solver, max_time, gap, verbose, solver_opts, se
     click.echo(f"Solving {label}…", err=True)
     plan.solve(plan.objective, opts)
     return plan
-
-
-def _diff(base: dict, variant: dict) -> dict:
-    """Compute numeric delta for every key present in both dicts."""
-    delta = {}
-    for k in base:
-        if k not in variant:
-            continue
-        bv, vv = base[k], variant[k]
-        if isinstance(bv, (int, float)) and isinstance(vv, (int, float)):
-            delta[k] = round(vv - bv, 6)
-        else:
-            delta[k] = None  # non-numeric (e.g. time_horizon_years when different)
-    return delta
-
-
-def _pct(delta_val, base_val):
-    """Percent change, or None if base is zero."""
-    if base_val and base_val != 0:
-        return round((delta_val / abs(base_val)) * 100, 2)
-    return None
 
 
 @click.command(
@@ -156,17 +135,9 @@ def cmd_compare(filename, set_overrides, solver, max_time, gap, verbose, solver_
     m_variant = plan_metrics(plan_variant)
     delta = _diff(m_base, m_variant)
 
-    # Build a compact pct_change dict for the most decision-relevant metrics.
-    key_metrics = [
-        "spending_basis", "total_spending_today", "total_spending_nominal",
-        "ss_income_today", "roth_conversions_today",
-        "federal_income_tax_today", "state_tax_today", "medicare_today", "aca_today",
-        "final_bequest_today", "final_bequest_nominal",
-        "effective_tax_rate",
-    ]
     pct_change = {
         k: _pct(delta[k], m_base[k])
-        for k in key_metrics
+        for k in KEY_METRICS
         if k in delta and delta[k] is not None
     }
 

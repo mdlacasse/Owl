@@ -137,13 +137,13 @@ class TestBuiltinRateModelMethods:
 
     def test_set_method_historical_invalid_range(self):
         """Test that historical method validates year range."""
-        with pytest.raises(ValueError, match="out of bounds"):
+        with pytest.raises(ValueError, match="out of range"):
             BuiltinRateModel(_model_config("historical", frm=1900, to=2000))
-        with pytest.raises(ValueError, match="out of bounds"):
+        with pytest.raises(ValueError, match="out of range"):
             BuiltinRateModel(_model_config("historical", frm=2000, to=3000))
-        with pytest.raises(ValueError, match="Unacceptable range"):
+        with pytest.raises(ValueError, match="must be less than"):
             BuiltinRateModel(_model_config("historical", frm=2000, to=2000))
-        with pytest.raises(ValueError, match="Unacceptable range"):
+        with pytest.raises(ValueError, match="must be less than"):
             BuiltinRateModel(_model_config("historical", frm=2010, to=2000))
 
     def test_set_method_historical_average(self):

@@ -167,3 +167,46 @@ def plan_to_dict(plan) -> dict:
 def plan_to_json(plan, indent: int = 2) -> str:
     """Return plan_to_dict serialized as a JSON string."""
     return json.dumps(plan_to_dict(plan), indent=indent, cls=_NumpyEncoder)
+
+
+# ---------------------------------------------------------------------------
+# Shared comparison helpers (used by cmd_compare.py and cmd_serve.py)
+# ---------------------------------------------------------------------------
+
+KEY_METRICS = [
+    "spending_basis", "total_spending_today", "total_spending_nominal",
+    "ss_income_today", "roth_conversions_today",
+    "federal_income_tax_today", "state_tax_today", "medicare_today", "aca_today",
+    "final_bequest_today", "final_bequest_nominal",
+    "effective_tax_rate",
+]
+
+
+def _diff(base: dict, variant: dict) -> dict:
+    """Compute numeric delta (variant minus base) for every key present in both dicts."""
+    delta = {}
+    for k in base:
+        if k not in variant:
+            continue
+        bv, vv = base[k], variant[k]
+        if isinstance(bv, (int, float)) and isinstance(vv, (int, float)):
+            delta[k] = round(vv - bv, 6)
+        else:
+            delta[k] = None
+    return delta
+
+
+def _pct(delta_val, base_val):
+    """Percent change, or None if base is zero."""
+    if base_val and base_val != 0:
+        return round((delta_val / abs(base_val)) * 100, 2)
+    return None
+
+
+def build_pct_change(delta: dict, base: dict) -> dict:
+    """Return percent-change dict for KEY_METRICS, skipping None deltas."""
+    return {
+        k: _pct(delta[k], base[k])
+        for k in KEY_METRICS
+        if k in delta and delta[k] is not None
+    }

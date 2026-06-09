@@ -13,7 +13,7 @@ Copyright (C) 2025-2026 The Owl Authors
 """
 ###########################################################################
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 import numpy as np
 
 
@@ -49,6 +49,8 @@ class BaseRateModel(ABC):
     more_info: Optional[str] = None
     deterministic = False
     constant = False
+
+    _global_hints: ClassVar[frozenset[str]] = frozenset({"constrain_mean"})
 
     # Parameter schema
     required_parameters: dict[str, Any] = {}
@@ -108,10 +110,7 @@ class BaseRateModel(ABC):
         # --------------------------------------------------
         # 3. Detect unknown parameters
         # --------------------------------------------------
-        # constrain_mean is a globally recognised hint: models that support it
-        # declare it in optional_parameters and pick it up above; models that
-        # don't support it silently ignore it rather than raising an error.
-        allowed = set(required.keys()) | set(optional.keys()) | {"method", "constrain_mean"}
+        allowed = set(required.keys()) | set(optional.keys()) | {"method"} | type(self)._global_hints
 
         for key in config:
             if key not in allowed:

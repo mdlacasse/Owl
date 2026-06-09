@@ -8,8 +8,14 @@ Copyright (C) 2025-2026 The Owl Authors
 """
 from __future__ import annotations
 
-import numpy as np
+import functools
+import os
+import sys
 
+import numpy as np
+import pandas as pd
+
+from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
 from owlplanner.rate_models.inflation_transform import fit_inflation_transform, inv_pwl_transform, pwl_transform
 from owlplanner.rates import (
     FROM,
@@ -20,6 +26,34 @@ from owlplanner.rates import (
     TNotes,
     getRatesDistributions,
 )
+
+
+@functools.lru_cache(maxsize=None)
+def load_historical_slice(frm: int, to: int):
+    """Return (data_decimal, years) for the given year range, cached by (frm, to)."""
+    where = os.path.dirname(sys.modules["owlplanner"].__file__)
+    file = os.path.join(where, "data/rates.csv")
+    df = pd.read_csv(file)
+    if "year" not in df.columns:
+        raise ValueError("Historical rates.csv must contain a 'year' column.")
+    mask = (df["year"] >= frm) & (df["year"] <= to)
+    df_slice = df.loc[mask]
+    if df_slice.empty:
+        raise ValueError(f"No historical data in range [{frm}, {to}].")
+    data = df_slice[list(REQUIRED_RATE_COLUMNS)].values.astype(float) / 100.0
+    years = df_slice["year"].values
+    return data, years
+
+
+def _validate_historical_range(frm: int, to: int) -> None:
+    if not (FROM <= frm <= TO):
+        raise ValueError(f"frm={frm} out of range [{FROM}, {TO}].")
+    if not (FROM <= to <= TO):
+        raise ValueError(f"to={to} out of range [{FROM}, {TO}].")
+    if frm >= to:
+        raise ValueError(f"frm={frm} must be less than to={to}.")
+    if to - frm < 2:
+        raise ValueError(f"Window [{frm}, {to}] has only {to - frm + 1} years; need at least 3.")
 
 
 def _build_corr_matrix(corr, Nk: int = 4) -> np.ndarray:

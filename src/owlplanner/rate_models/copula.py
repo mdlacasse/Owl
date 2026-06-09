@@ -37,6 +37,7 @@ from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models._builtin_impl import (
     INFLATION_FLOOR,
     _historical_arith_means,
+    _validate_historical_range,
     apply_return_floors,
     constrain_series_mean,
 )
@@ -196,14 +197,3 @@ class HistoCopulaRateModel(BaseRateModel):
         if self._constrain_mean:
             series = constrain_series_mean(series, self._hist_target_means)
         return apply_return_floors(series)
-
-
-def _validate_historical_range(frm: int, to: int) -> None:
-    if not (FROM <= frm <= TO):
-        raise ValueError(f"frm={frm} out of range [{FROM}, {TO}].")
-    if not (FROM <= to <= TO):
-        raise ValueError(f"to={to} out of range [{FROM}, {TO}].")
-    if frm >= to:
-        raise ValueError(f"frm={frm} must be less than to={to}.")
-    if to - frm < 2:
-        raise ValueError(f"Window [{frm}, {to}] has only {to - frm + 1} years; need at least 3.")

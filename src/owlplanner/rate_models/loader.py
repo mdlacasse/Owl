@@ -24,6 +24,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ###########################################################################
 import importlib.util
 import pathlib
+import types
 from urllib.parse import urlparse
 
 from owlplanner.rate_models.builtin import (
@@ -162,7 +163,7 @@ def get_all_models_metadata():
     return entries
 
 
-RATE_MODEL_ALIASES = _METHOD_ALIASES
+RATE_MODEL_ALIASES = types.MappingProxyType(_METHOD_ALIASES)
 
 
 # ------------------------------------------------------------
@@ -201,8 +202,8 @@ def _collect_all_model_metadata():
             "more_info": md.get("more_info"),
             "required_parameters": md.get("required_parameters", {}),
             "optional_parameters": md.get("optional_parameters", {}),
-            "deterministic": md.get("deterministic", True),
-            "constant": md.get("constant", True),
+            "deterministic": md.get("deterministic", False),
+            "constant": md.get("constant", False),
         })
 
     return metadata

@@ -9,6 +9,7 @@ import numpy as np
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models import _builtin_impl as impl
+from owlplanner.rate_models._builtin_impl import _validate_historical_range
 
 
 # ---------------------------------------------------------------------------
@@ -23,15 +24,6 @@ def _normalize_aliases(config: dict) -> dict:
     if "correlations" in config and "corr" not in config:
         config["corr"] = config.pop("correlations")
     return config
-
-
-def _validate_historical_range(frm: int, to: int) -> None:
-    if not (impl.FROM <= frm <= impl.TO):
-        raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
-    if not (impl.FROM <= to <= impl.TO):
-        raise ValueError(f"Upper range 'to={to}' out of bounds.")
-    if frm >= to:
-        raise ValueError("Unacceptable range.")
 
 
 # ---------------------------------------------------------------------------
