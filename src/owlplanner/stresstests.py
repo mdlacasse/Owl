@@ -157,14 +157,26 @@ def _compute_efficient_frontier(bases, n_points=60):
     return lambdas, np.array(frontier_g), np.array(frontier_prob), np.array(frontier_shortfall)
 
 
-def g_for_success_rate(target_success_rate, lambdas, frontier_g, frontier_prob):
+def _validate_success_rate_pct(target_success_rate_pct):
+    """Raise ValueError unless target_success_rate_pct is a percentage in (1, 100]."""
+    if not (1 < target_success_rate_pct <= 100):
+        hint = ""
+        if 0 < target_success_rate_pct <= 1:
+            hint = f" Did you mean {target_success_rate_pct * 100:g}?"
+        raise ValueError(
+            f"target_success_rate_pct must be a percentage in (1, 100] (e.g. 90 for 90%), "
+            f"got {target_success_rate_pct}.{hint}"
+        )
+
+
+def g_for_success_rate(target_success_rate_pct, lambdas, frontier_g, frontier_prob):
     """
     Return (g_opt, lam) for the least conservative lambda that achieves the target success rate.
 
     Parameters
     ----------
-    target_success_rate : float
-        Desired fraction of scenarios with no shortfall (e.g. 0.90 for 90%).
+    target_success_rate_pct : float
+        Desired percentage of scenarios with no shortfall, in (1, 100] (e.g. 90 for 90%).
     lambdas : ndarray
         Lambda values from _compute_efficient_frontier.
     frontier_g : ndarray
@@ -177,7 +189,8 @@ def g_for_success_rate(target_success_rate, lambdas, frontier_g, frontier_prob):
     g_opt : float
     lam : float
     """
-    target_shortfall_prob = 1.0 - target_success_rate
+    _validate_success_rate_pct(target_success_rate_pct)
+    target_shortfall_prob = 1.0 - target_success_rate_pct / 100.0
     candidates = np.where(frontier_prob <= target_shortfall_prob)[0]
     if len(candidates) == 0:
         return float(frontier_g[-1]), float(lambdas[-1])
@@ -213,7 +226,7 @@ def compute_cvar(bases, frontier_g, frontier_prob, floor):
         ])
 
 
-def compute_res(frontier_g, frontier_prob, frontier_cvar, floor, target_success_rate):
+def compute_res(frontier_g, frontier_prob, frontier_cvar, floor, target_success_rate_pct):
     """
     Retirement Efficiency Score at each frontier point and summary statistics.
 
@@ -223,29 +236,31 @@ def compute_res(frontier_g, frontier_prob, frontier_cvar, floor, target_success_
     frontier_prob : ndarray — shortfall probability at each frontier point
     frontier_cvar : ndarray — floor-capped CVaR (from compute_cvar)
     floor : float           — spending floor used in CVaR computation
-    target_success_rate : float — user-chosen ρ (e.g. 0.85)
+    target_success_rate_pct : float — user-chosen success rate ρ as a percentage in
+        (1, 100] (e.g. 85 for 85%)
 
     Returns
     -------
     dict with keys:
         "res_values"     : ndarray — RES at each frontier point (nan where undefined)
-        "rho_star"       : float   — success rate at RES maximum
+        "rho_star_pct"   : float   — success rate (%) at RES maximum
         "res_star"       : float   — maximum RES value
-        "cvar_star"      : float   — CVaR at rho_star
-        "cvar_at_target" : float   — CVaR at target_success_rate
+        "cvar_star"      : float   — CVaR at rho_star_pct
+        "cvar_at_target" : float   — CVaR at target_success_rate_pct
     Returns None when no valid RES point exists.
     """
+    _validate_success_rate_pct(target_success_rate_pct)
     valid = (frontier_cvar > 0) & (frontier_g > floor)
     safe_cvar = np.where(frontier_cvar > 0, frontier_cvar, 1.0)
     res_values = np.where(valid, (frontier_g - floor) / safe_cvar, np.nan)
     if not np.any(valid):
         return None
     rho_star_idx = int(np.nanargmax(res_values))
-    target_idx = int(np.searchsorted(-frontier_prob, -(1.0 - target_success_rate)))
+    target_idx = int(np.searchsorted(-frontier_prob, -(1.0 - target_success_rate_pct / 100.0)))
     target_idx = min(target_idx, len(frontier_cvar) - 1)
     return {
         "res_values":     res_values,
-        "rho_star":       1.0 - float(frontier_prob[rho_star_idx]),
+        "rho_star_pct":   100.0 * (1.0 - float(frontier_prob[rho_star_idx])),
         "res_star":       float(res_values[rho_star_idx]),
         "cvar_star":      float(frontier_cvar[rho_star_idx]),
         "cvar_at_target": float(frontier_cvar[target_idx]),

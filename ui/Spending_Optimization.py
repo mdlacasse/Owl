@@ -33,7 +33,7 @@ if ret is None or kz.caseHasNoPlan():
     kz.no_case_info()
 else:
     kz.initCaseKey("stoch_scenario_method", "historical")
-    kz.initCaseKey("stoch_target_success_rate", 0.85)
+    kz.initCaseKey("stoch_target_success_rate_pct", 85)
     kz.initCaseKey("stoch_ystart", owb.FROM)
     kz.initCaseKey("stoch_yend", owb.TO)
     kz.initCaseKey("stoch_N_mc", 200)
@@ -203,17 +203,17 @@ Select a target success rate to find the committed spending that meets it.
                 if summary:
                     st.code(summary, language=None)
             with col_slider:
-                target_sr = st.slider(
+                target_sr_pct = st.slider(
                     ":orange[Target success rate]",
                     min_value=50,
                     max_value=100,
-                    value=int(round(kz.getCaseKey("stoch_target_success_rate") * 100)),
+                    value=int(round(kz.getCaseKey("stoch_target_success_rate_pct"))),
                     step=1,
                     format="%d%%",
-                    key=kz.genCaseKey("stoch_target_sr_slider"),
+                    key=kz.genCaseKey("stoch_target_sr_pct_slider"),
                     on_change=owb.updateStochasticTarget,
                 )
-                kz.storeCaseKey("stoch_target_success_rate", target_sr / 100.0)
+                kz.storeCaseKey("stoch_target_success_rate_pct", target_sr_pct)
 
         col1, col2 = st.columns(2, gap="medium")
         if fig_frontier:

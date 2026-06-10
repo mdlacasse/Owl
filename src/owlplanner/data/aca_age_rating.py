@@ -9,8 +9,6 @@ Source: CMS, "Age Rating Under the Affordable Care Act," Table of Relative Rates
         https://www.cms.gov/marketplace/resources/regulations-guidance
 """
 
-from __future__ import annotations
-
 # Age rating factors indexed by age 0–64.
 # Ages 0–14 share the child rate; ages 15–17 share one rate; 18–20 share another.
 # Ages 21–64 follow the published adult curve (3:1 band, age 21 baseline = 1.000).

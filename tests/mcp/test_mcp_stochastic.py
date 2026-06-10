@@ -187,24 +187,24 @@ def _hist_result():
 @pytest.mark.toml
 def test_build_json_top_level_keys(_hist_result):
     plan, result = _hist_result
-    out = _build_stochastic_json(plan, result, 0.90, "historical")
+    out = _build_stochastic_json(plan, result, 90.0, "historical")
     for key in ("status", "case_name", "scenario_method", "n_scenarios_run",
-                "n_scenarios_infeasible", "target_success_rate",
-                "achieved_success_rate", "spending_at_target", "max_spending", "frontier"):
+                "n_scenarios_infeasible", "target_success_rate_pct",
+                "achieved_success_rate_pct", "spending_at_target", "max_spending", "frontier"):
         assert key in out, f"Missing key: {key}"
 
 
 @pytest.mark.toml
 def test_build_json_status_completed(_hist_result):
     plan, result = _hist_result
-    out = _build_stochastic_json(plan, result, 0.90, "historical")
+    out = _build_stochastic_json(plan, result, 90.0, "historical")
     assert out["status"] == "completed"
 
 
 @pytest.mark.toml
 def test_build_json_spending_at_target_keys(_hist_result):
     plan, result = _hist_result
-    out = _build_stochastic_json(plan, result, 0.90, "historical")
+    out = _build_stochastic_json(plan, result, 90.0, "historical")
     assert "today_dollars" in out["spending_at_target"]
     assert "year1_nominal" in out["spending_at_target"]
 
@@ -212,7 +212,7 @@ def test_build_json_spending_at_target_keys(_hist_result):
 @pytest.mark.toml
 def test_build_json_spending_positive(_hist_result):
     plan, result = _hist_result
-    out = _build_stochastic_json(plan, result, 0.90, "historical")
+    out = _build_stochastic_json(plan, result, 90.0, "historical")
     assert out["spending_at_target"]["today_dollars"] > 0
     assert out["max_spending"]["today_dollars"] > 0
 
@@ -221,7 +221,7 @@ def test_build_json_spending_positive(_hist_result):
 def test_build_json_target_le_max_spending(_hist_result):
     """Constrained (90%) spending must be ≤ unconstrained maximum."""
     plan, result = _hist_result
-    out = _build_stochastic_json(plan, result, 0.90, "historical")
+    out = _build_stochastic_json(plan, result, 90.0, "historical")
     assert out["spending_at_target"]["today_dollars"] <= out["max_spending"]["today_dollars"]
 
 
@@ -229,17 +229,17 @@ def test_build_json_target_le_max_spending(_hist_result):
 def test_build_json_achieved_success_rate_at_least_target(_hist_result):
     """Achieved success rate must meet or exceed the requested target."""
     plan, result = _hist_result
-    out = _build_stochastic_json(plan, result, 0.90, "historical")
-    assert out["achieved_success_rate"] >= 0.90 - 1e-6
+    out = _build_stochastic_json(plan, result, 90.0, "historical")
+    assert out["achieved_success_rate_pct"] >= 90.0 - 1e-6
 
 
 @pytest.mark.toml
 def test_build_json_frontier_structure(_hist_result):
     plan, result = _hist_result
-    out = _build_stochastic_json(plan, result, 0.90, "historical")
+    out = _build_stochastic_json(plan, result, 90.0, "historical")
     assert len(out["frontier"]) >= 5
     for pt in out["frontier"]:
-        assert "success_rate" in pt
+        assert "success_rate_pct" in pt
         assert "spending_today_dollars" in pt
         assert "spending_year1_nominal" in pt
 
@@ -247,24 +247,24 @@ def test_build_json_frontier_structure(_hist_result):
 @pytest.mark.toml
 def test_build_json_frontier_rates_in_range(_hist_result):
     plan, result = _hist_result
-    out = _build_stochastic_json(plan, result, 0.90, "historical")
+    out = _build_stochastic_json(plan, result, 90.0, "historical")
     for pt in out["frontier"]:
-        assert 0.0 <= pt["success_rate"] <= 1.0
+        assert 0.0 <= pt["success_rate_pct"] <= 100.0
 
 
 @pytest.mark.toml
 def test_build_json_different_targets_order(_hist_result):
     """Higher target success rate yields lower or equal spending."""
     plan, result = _hist_result
-    out_90 = _build_stochastic_json(plan, result, 0.90, "historical")
-    out_70 = _build_stochastic_json(plan, result, 0.70, "historical")
+    out_90 = _build_stochastic_json(plan, result, 90.0, "historical")
+    out_70 = _build_stochastic_json(plan, result, 70.0, "historical")
     assert out_90["spending_at_target"]["today_dollars"] <= out_70["spending_at_target"]["today_dollars"]
 
 
 @pytest.mark.toml
 def test_build_json_n_scenarios_matches(_hist_result):
     plan, result = _hist_result
-    out = _build_stochastic_json(plan, result, 0.90, "historical")
+    out = _build_stochastic_json(plan, result, 90.0, "historical")
     # yend may be clipped so n_scenarios_run ≤ requested range
     assert out["n_scenarios_run"] >= 1
     assert out["n_scenarios_run"] <= HIST_YEND - HIST_YSTART + 1
@@ -278,7 +278,7 @@ def test_build_json_n_scenarios_matches(_hist_result):
 def test_run_stochastic_historical_single():
     result = _run(run_stochastic(
         scenario_method="historical",
-        target_success_rate=0.90,
+        target_success_rate_pct=90.0,
         ystart=HIST_YSTART,
         yend=HIST_YEND,
         **_SINGLE,
@@ -292,7 +292,7 @@ def test_run_stochastic_historical_single():
 def test_run_stochastic_historical_couple():
     result = _run(run_stochastic(
         scenario_method="historical",
-        target_success_rate=0.85,
+        target_success_rate_pct=85.0,
         ystart=HIST_YSTART,
         yend=HIST_YEND,
         **_COUPLE,
@@ -307,7 +307,7 @@ def test_run_stochastic_historical_couple():
 def test_run_stochastic_mc_single():
     result = _run(run_stochastic(
         scenario_method="mc",
-        target_success_rate=0.90,
+        target_success_rate_pct=90.0,
         n_scenarios=20,
         seed=42,
         names=["Martin"],
@@ -331,14 +331,14 @@ def test_run_stochastic_mc_single():
 def test_run_stochastic_full_json_structure():
     result = _run(run_stochastic(
         scenario_method="historical",
-        target_success_rate=0.90,
+        target_success_rate_pct=90.0,
         ystart=HIST_YSTART,
         yend=HIST_YEND,
         **_SINGLE,
     ))
     d = json.loads(result)
     for key in ("status", "case_name", "scenario_method", "n_scenarios_run",
-                "target_success_rate", "achieved_success_rate",
+                "target_success_rate_pct", "achieved_success_rate_pct",
                 "spending_at_target", "max_spending", "frontier"):
         assert key in d, f"Missing key: {key}"
 
@@ -359,14 +359,14 @@ def test_run_stochastic_frontier_non_empty():
 def test_run_stochastic_higher_target_lower_spending():
     r90 = _run(run_stochastic(
         scenario_method="historical",
-        target_success_rate=0.90,
+        target_success_rate_pct=90.0,
         ystart=HIST_YSTART,
         yend=HIST_YEND,
         **_SINGLE,
     ))
     r70 = _run(run_stochastic(
         scenario_method="historical",
-        target_success_rate=0.70,
+        target_success_rate_pct=70.0,
         ystart=HIST_YSTART,
         yend=HIST_YEND,
         **_SINGLE,
@@ -385,7 +385,7 @@ def test_run_stochastic_from_toml():
     result = _run(run_stochastic(
         filename=BILL_TOML,
         scenario_method="historical",
-        target_success_rate=0.90,
+        target_success_rate_pct=90.0,
         ystart=HIST_YSTART,
         yend=HIST_YEND,
     ))
@@ -400,7 +400,7 @@ def test_run_stochastic_from_toml_with_override():
         filename=BILL_TOML,
         overrides=["basic_info.state=CA"],
         scenario_method="historical",
-        target_success_rate=0.90,
+        target_success_rate_pct=90.0,
         ystart=HIST_YSTART,
         yend=HIST_YEND,
     ))
@@ -446,3 +446,81 @@ def test_run_stochastic_bad_scenario_method_returns_error():
     ))
     d = json.loads(result)
     assert "error" in d
+
+
+# ---------------------------------------------------------------------------
+# run_stochastic — target_success_rate_pct validation (0-100 convention)
+# ---------------------------------------------------------------------------
+
+def test_run_stochastic_old_convention_target_returns_error():
+    """target_success_rate_pct=0.90 (old 0-1 convention) is rejected with a 'Did you mean' hint."""
+    result = _run(run_stochastic(
+        scenario_method="historical",
+        target_success_rate_pct=0.90,
+        ystart=HIST_YSTART,
+        yend=HIST_YEND,
+        **_SINGLE,
+    ))
+    d = json.loads(result)
+    assert "error" in d
+    assert "(1, 100]" in d["error"]
+    assert "90" in d["error"]
+
+
+def test_run_stochastic_target_above_100_returns_error():
+    result = _run(run_stochastic(
+        scenario_method="historical",
+        target_success_rate_pct=150.0,
+        ystart=HIST_YSTART,
+        yend=HIST_YEND,
+        **_SINGLE,
+    ))
+    d = json.loads(result)
+    assert "error" in d
+    assert "(1, 100]" in d["error"]
+
+
+def test_run_stochastic_target_zero_returns_error():
+    result = _run(run_stochastic(
+        scenario_method="historical",
+        target_success_rate_pct=0.0,
+        ystart=HIST_YSTART,
+        yend=HIST_YEND,
+        **_SINGLE,
+    ))
+    d = json.loads(result)
+    assert "error" in d
+
+
+# ---------------------------------------------------------------------------
+# run_stochastic — n_scenarios ignored in historical mode
+# ---------------------------------------------------------------------------
+
+@pytest.mark.toml
+def test_run_stochastic_historical_n_scenarios_note():
+    """A non-default n_scenarios in historical mode is ignored, with an explanatory note."""
+    result = _run(run_stochastic(
+        scenario_method="historical",
+        n_scenarios=5,
+        ystart=HIST_YSTART,
+        yend=HIST_YEND,
+        **_SINGLE,
+    ))
+    d = json.loads(result)
+    assert d["status"] == "completed"
+    assert "note" in d
+    assert "n_scenarios=5" in d["note"]
+
+
+@pytest.mark.toml
+def test_run_stochastic_historical_default_n_scenarios_no_note():
+    """The default n_scenarios=200 in historical mode does not trigger the note."""
+    result = _run(run_stochastic(
+        scenario_method="historical",
+        ystart=HIST_YSTART,
+        yend=HIST_YEND,
+        **_SINGLE,
+    ))
+    d = json.loads(result)
+    assert d["status"] == "completed"
+    assert "note" not in d

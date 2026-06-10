@@ -21,6 +21,12 @@ MCP-compatible client.
   file or flat parameters. Accepts `"historical"` (back-test) or `"mc"` (Monte Carlo) scenarios,
   sweeps risk-aversion parameter λ across the frontier, and returns committed spending at a
   target success rate and the full efficient frontier — all as structured JSON.
+- **`convert_ss_benefit`**: Utility tool that converts between a Social Security PIA
+  (Primary Insurance Amount, the benefit at Full Retirement Age) and the actual monthly
+  benefit at a given claiming age, in either direction. Lets an AI assistant turn a
+  statement like "I'm 65 and I get a $2,800 check" into the PIA value expected by
+  `ss_monthly_pias` in `run_from_params`, `save_case`, `run_stochastic`,
+  `run_longevity_stochastic`, `run_historical`, and `run_monte_carlo`.
 
 **MCP parameter coverage — all three tools (`run_from_params`, `save_case`, `run_stochastic`):**
 

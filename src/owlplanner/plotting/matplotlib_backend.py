@@ -656,7 +656,7 @@ class MatplotlibBackend(PlotBackend):
         return fig, description
 
     def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate, g_opt, year_n, start_years=None,
+                                 target_success_rate_pct, g_opt, year_n, start_years=None,
                                  with_longevity=False):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
         thisyear = int(year_n[0])
@@ -665,10 +665,10 @@ class MatplotlibBackend(PlotBackend):
 
         ax = axes[0]
         ax.plot(frontier_prob * 100, frontier_g / 1000, color="steelblue", linewidth=1.5)
-        shortfall_pct = (1.0 - target_success_rate) * 100
+        shortfall_pct = 100.0 - target_success_rate_pct
         ax.axvline(shortfall_pct, color="firebrick", linestyle="--", linewidth=1, alpha=0.7)
         ax.scatter([shortfall_pct], [g_opt / 1000], color="firebrick", zorder=5, s=60,
-                   label=f"{target_success_rate*100:.0f}% success: {u.d(g_opt)}")
+                   label=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}")
         ax.set_xlabel("Shortfall probability (%)", fontsize=11)
         ax.set_ylabel(f"Committed spending ({thisyear} $k)", fontsize=11)
         ax.set_title("Success rate curve", fontsize=12)
@@ -698,7 +698,7 @@ class MatplotlibBackend(PlotBackend):
         plt.tight_layout()
         return fig
 
-    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate, year_n,
+    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate_pct, year_n,
                                  with_longevity=False):
         """Bar chart of achieved spending by scenario.
 
@@ -749,18 +749,18 @@ class MatplotlibBackend(PlotBackend):
             ax.xaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"{x:.0f}%"))
             ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
 
-        ax.set_title(f"Scenario outcomes — {target_success_rate*100:.0f}% target{longevity_tag}", fontsize=12)
+        ax.set_title(f"Scenario outcomes — {target_success_rate_pct:.0f}% target{longevity_tag}", fontsize=12)
         ax.tick_params(axis="both", labelsize=10)
         ax.legend(loc="lower center", fontsize=10, framealpha=0.3)
         ax.grid(True, alpha=0.3, axis="y")
         plt.tight_layout()
         return fig
 
-    def plot_stochastic_cvar_vs_pos(self, frontier_prob, frontier_cvar, rho_star, cvar_star,
-                                    target_success_rate, year_n):
+    def plot_stochastic_cvar_vs_pos(self, frontier_prob, frontier_cvar, rho_star_pct, cvar_star,
+                                    target_success_rate_pct, year_n):
         return None
 
-    def plot_stochastic_res_vs_cvar(self, frontier_cvar, res_values, rho_star, res_star,
+    def plot_stochastic_res_vs_cvar(self, frontier_cvar, res_values, rho_star_pct, res_star,
                                     cvar_star, cvar_at_target, year_n, floor_label="HSF"):
         return None
 

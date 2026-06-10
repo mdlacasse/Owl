@@ -7,8 +7,6 @@ Uses Pydantic schema for structure and validation.
 Copyright (C) 2025-2026 The Owl Authors
 """
 
-from __future__ import annotations
-
 from owlplanner import mylogging as log
 
 from . import legacy

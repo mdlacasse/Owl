@@ -898,12 +898,12 @@ class PlotlyBackend(PlotBackend):
         return fig, description
 
     def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate, g_opt, year_n, start_years=None,
+                                 target_success_rate_pct, g_opt, year_n, start_years=None,
                                  with_longevity=False):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
         thisyear = int(year_n[0])
         frontier_type = "Historical" if start_years is not None else "Stochastic"
-        shortfall_pct = (1.0 - target_success_rate) * 100
+        shortfall_pct = 100.0 - target_success_rate_pct
 
         fig = make_subplots(rows=1, cols=2,
                             subplot_titles=("Success rate curve", "Efficient frontier"))
@@ -916,7 +916,7 @@ class PlotlyBackend(PlotBackend):
         fig.add_trace(go.Scatter(
             x=[shortfall_pct], y=[g_opt / 1000],
             mode="markers+text",
-            name=f"{target_success_rate*100:.0f}% success: {u.d(g_opt)}",
+            name=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}",
             marker=dict(color="firebrick", size=10),
             text=[f"{u.d(g_opt)}"],
             textposition="top right",
@@ -935,7 +935,7 @@ class PlotlyBackend(PlotBackend):
         fig.add_trace(go.Scatter(
             x=[sf_at_target], y=[g_opt / 1000],
             mode="markers+text",
-            name=f"{target_success_rate*100:.0f}% success: {u.d(g_opt)}",
+            name=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}",
             marker=dict(color="firebrick", size=10),
             text=[f"{u.d(g_opt)}"],
             textposition="top right",
@@ -961,8 +961,8 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
-    def plot_stochastic_cvar_vs_pos(self, frontier_prob, frontier_cvar, rho_star, cvar_star,
-                                    target_success_rate, year_n):
+    def plot_stochastic_cvar_vs_pos(self, frontier_prob, frontier_cvar, rho_star_pct, cvar_star,
+                                    target_success_rate_pct, year_n):
         """CVaR vs Probability of Success curve with current target and optimal ρ* marked."""
         thisyear = int(year_n[0])
         pos_pct = (1.0 - frontier_prob) * 100
@@ -973,13 +973,13 @@ class PlotlyBackend(PlotBackend):
             mode="lines", line=dict(color="steelblue", width=2),
             showlegend=False,
         ))
-        fig.add_vline(x=target_success_rate * 100, line_dash="dot", line_color="firebrick",
+        fig.add_vline(x=target_success_rate_pct, line_dash="dot", line_color="firebrick",
                       opacity=0.6)
         fig.add_trace(go.Scatter(
-            x=[rho_star * 100], y=[cvar_star / 1000],
+            x=[rho_star_pct], y=[cvar_star / 1000],
             mode="markers+text",
             marker=dict(symbol="diamond", color="darkorange", size=12),
-            text=[f"ρ*={rho_star:.0%}"],
+            text=[f"ρ*={rho_star_pct:.0f}%"],
             textposition="top left",
             showlegend=False,
         ))
@@ -993,7 +993,7 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
-    def plot_stochastic_res_vs_cvar(self, frontier_cvar, res_values, rho_star, res_star,
+    def plot_stochastic_res_vs_cvar(self, frontier_cvar, res_values, rho_star_pct, res_star,
                                     cvar_star, cvar_at_target, year_n, floor_label="HSF"):
         """RES vs CVaR curve with current target and RES* marked."""
         thisyear = int(year_n[0])
@@ -1027,7 +1027,7 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
-    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate, year_n,
+    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate_pct, year_n,
                                  with_longevity=False):
         """Bar chart of achieved spending by scenario.
 
@@ -1088,7 +1088,7 @@ class PlotlyBackend(PlotBackend):
                              tickprefix="$", title_font_size=14, tickfont_size=11)
 
         fig.update_layout(
-            title=dict(text=f"Scenario outcomes — {target_success_rate*100:.0f}% target{longevity_tag}",
+            title=dict(text=f"Scenario outcomes — {target_success_rate_pct:.0f}% target{longevity_tag}",
                        font_size=20),
             template=self.template,
             barmode="overlay",

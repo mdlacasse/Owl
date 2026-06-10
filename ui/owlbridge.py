@@ -245,28 +245,28 @@ def runMC(plan):
         st.error(f"Monte Carlo solution failed: {e}", icon=":material/error:")
 
 
-def _apply_stochastic_target(result, target_sr, plotter, plan=None):
+def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
     """Recompute g_opt and regenerate plots from cached scenario data and a new target rate."""
     import numpy as np
     g_opt, lam = owl.g_for_success_rate(
-        target_sr, result["lambdas"], result["frontier_g"], result["frontier_prob"])
+        target_sr_pct, result["lambdas"], result["frontier_g"], result["frontier_prob"])
     lam_idx = int(np.argmin(np.abs(result["lambdas"] - lam)))
-    actual_sr = 1.0 - float(result["frontier_prob"][lam_idx])
+    actual_sr_pct = 100.0 * (1.0 - float(result["frontier_prob"][lam_idx]))
 
     kz.storeCaseKey("stochResult", {
         "g_opt": g_opt,
         "lam": lam,
-        "target_success_rate": target_sr,
-        "actual_success_rate": actual_sr,
+        "target_success_rate_pct": target_sr_pct,
+        "actual_success_rate_pct": actual_sr_pct,
     })
     with_longevity = result.get("with_longevity", False)
     fig_frontier = plotter.plot_stochastic_frontier(
         result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
-        target_sr, g_opt, result["year_n"], result["start_years"],
+        target_sr_pct, g_opt, result["year_n"], result["start_years"],
         with_longevity=with_longevity)
     fig_outcomes = plotter.plot_stochastic_outcomes(
         result["start_years"], result["bases"], g_opt,
-        target_sr, result["year_n"],
+        target_sr_pct, result["year_n"],
         with_longevity=with_longevity)
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
@@ -314,13 +314,13 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
         floor = float(kz.getCaseKey("stoch_res_floor_value") or 0.0)
         floor_label = f"${floor:,.0f}/yr (custom)"
     frontier_cvar = owl.compute_cvar(bases_arr, frontier_g, frontier_prob, floor)
-    res = owl.compute_res(frontier_g, frontier_prob, frontier_cvar, floor, target_sr)
+    res = owl.compute_res(frontier_g, frontier_prob, frontier_cvar, floor, target_sr_pct)
     if res is not None:
         fig_cvar = plotter.plot_stochastic_cvar_vs_pos(
-            frontier_prob, frontier_cvar, res["rho_star"], res["cvar_star"],
-            target_sr, result["year_n"])
+            frontier_prob, frontier_cvar, res["rho_star_pct"], res["cvar_star"],
+            target_sr_pct, result["year_n"])
         fig_res = plotter.plot_stochastic_res_vs_cvar(
-            frontier_cvar, res["res_values"], res["rho_star"], res["res_star"],
+            frontier_cvar, res["res_values"], res["rho_star_pct"], res["res_star"],
             res["cvar_star"], res["cvar_at_target"], result["year_n"], floor_label)
         kz.storeCaseKey("stochCVaRPlot", fig_cvar)
         kz.storeCaseKey("stochRESPlot", fig_res)
@@ -333,7 +333,8 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
     median_spending = float(np.median(bases))
     exp_shortfall = float(np.mean(np.maximum(0.0, g_opt - bases)))
     exp_shortfall_pct = exp_shortfall / g_opt if g_opt > 0 else 0.0
-    cvar = exp_shortfall / (1 - actual_sr) if actual_sr < 1.0 else 0.0
+    shortfall_frac = (100.0 - actual_sr_pct) / 100.0
+    cvar = exp_shortfall / shortfall_frac if shortfall_frac > 0 else 0.0
     cvar_pct = cvar / g_opt if g_opt > 0 else 0.0
     if is_historical:
         tail_spending = float(np.min(bases))
@@ -365,7 +366,7 @@ def _apply_stochastic_target(result, target_sr, plotter, plan=None):
 
     kz.storeCaseKey("stochSummary", (
         f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
-        f"Target success rate:             {target_sr:.0%}  (actual: {actual_sr:.0%})\n"
+        f"Target success rate:             {target_sr_pct:.0f}%  (actual: {actual_sr_pct:.0f}%)\n"
         f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
         f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
         f"Mean shortfall:                  ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
@@ -449,8 +450,8 @@ def runStochasticSpending(plan):
     prepareRun(plan1)
 
     scenario_method = kz.getCaseKey("stoch_scenario_method") or "historical"
-    target_sr = kz.getCaseKey("stoch_target_success_rate")
-    target_sr = 0.85 if target_sr is None else float(target_sr)
+    target_sr_pct = kz.getCaseKey("stoch_target_success_rate_pct")
+    target_sr_pct = 85.0 if target_sr_pct is None else float(target_sr_pct)
 
     objective, options = kz.getSolveParameters()
     with_longevity = bool(kz.getCaseKey("stoch_with_longevity") or False)
@@ -486,7 +487,7 @@ def runStochasticSpending(plan):
         result["mortality_table"] = mortality_table
         result["rate_method"] = "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "")
         kz.storeCaseKey("stochScenarioData", result)
-        _apply_stochastic_target(result, target_sr, plan1._plotter, plan1)
+        _apply_stochastic_target(result, target_sr_pct, plan1._plotter, plan1)
     except Exception as e:
         kz.storeCaseKey("stochFrontierPlot", None)
         kz.storeCaseKey("stochOutcomePlot", None)
@@ -507,12 +508,12 @@ def updateStochasticTarget(plan):
     if result is None:
         return  # no data yet; slider fired before first run, silently ignore
     # Read from the widget key directly — on_change fires before storeCaseKey runs.
-    widget_key = kz.genCaseKey("stoch_target_sr_slider")
+    widget_key = kz.genCaseKey("stoch_target_sr_pct_slider")
     raw = kz.ss.get(widget_key)
-    target_sr = (int(raw) / 100.0) if raw is not None else (kz.getCaseKey("stoch_target_success_rate") or 0.85)
-    kz.storeCaseKey("stoch_target_success_rate", target_sr)
+    target_sr_pct = float(raw) if raw is not None else (kz.getCaseKey("stoch_target_success_rate_pct") or 85.0)
+    kz.storeCaseKey("stoch_target_success_rate_pct", target_sr_pct)
     try:
-        _apply_stochastic_target(result, target_sr, plan._plotter, plan)
+        _apply_stochastic_target(result, target_sr_pct, plan._plotter, plan)
     except Exception as e:
         st.error(f"Failed to update target: {e}", icon=":material/error:")
 
@@ -531,9 +532,9 @@ def updateStochasticFloor(plan, *_):
     raw_val = kz.ss.get(val_key)
     if raw_val is not None:
         kz.storeCaseKey("stoch_res_floor_value", raw_val)
-    target_sr = kz.getCaseKey("stoch_target_success_rate") or 0.85
+    target_sr_pct = kz.getCaseKey("stoch_target_success_rate_pct") or 85.0
     try:
-        _apply_stochastic_target(result, target_sr, plan._plotter, plan)
+        _apply_stochastic_target(result, target_sr_pct, plan._plotter, plan)
     except Exception as e:
         st.error(f"Failed to update RES floor: {e}", icon=":material/error:")
 

@@ -13,6 +13,7 @@ optimizations, and compare scenarios through natural conversation.
 | `explain_case(filename, overrides)` | Describe a case: individuals, balances, income, options | No |
 | `list_rate_models(category)` | Enumerate return models with parameters | No |
 | `list_mortality_tables()` | Actuarial mortality tables for longevity risk sampling | No |
+| `convert_ss_benefit(birth_year, claiming_age, ...)` | Convert between SS PIA and actual benefit at a claiming age | No |
 | `run_case(filename, overrides, ...)` | Solve and return full JSON results | Yes |
 | `compare_cases(filename, overrides, ...)` | Solve base + variant, return delta | Yes |
 | `run_from_params(names, birth_years, ...)` | Build and solve from structured parameters — no TOML file needed | Yes |
@@ -41,6 +42,12 @@ Security is the monthly PIA from your SSA statement (\$ per month); pensions are
 \$ per month. Asset allocation arrays are `[equities, corporate_bonds, t_notes, cash]`
 in percent. Fixed user rates (`rate_method="user"`) use
 `[equities, corporate_bonds, t_notes, inflation]` in percent.
+
+**Social Security PIA vs. actual benefit:** `ss_monthly_pias` must be the Primary
+Insurance Amount (the benefit at Full Retirement Age, from the SSA statement) — NOT
+the check amount someone describes receiving if they claimed before or after FRA
+(e.g. "I'm 65 and I get $2,800/month"). If the user only knows their actual benefit
+at a given claiming age, call `convert_ss_benefit` first to back out the PIA.
 
 **Parameter reference** (all optional unless marked *required*):
 
@@ -105,8 +112,8 @@ in percent. Fixed user rates (`rate_method="user"`) use
 | | `obbba_expiration_year` | Year OBBBA tax rates sunset to pre-TCJA levels (default `2032`) |
 | | `dividend_rate` | Taxable account annual dividend yield in % (default `1.8`) |
 | **Stochastic only** | `scenario_method` | `"historical"` (default) or `"mc"` (Monte Carlo) |
-| | `target_success_rate` | Desired shortfall-free fraction, e.g. `0.90` (default) |
-| | `n_scenarios` | Number of Monte Carlo draws (mc mode, default `200`) |
+| | `target_success_rate_pct` | Desired shortfall-free percentage, in `(1, 100]`, e.g. `90` (default) |
+| | `n_scenarios` | Number of Monte Carlo draws (mc mode, default `200`); ignored in historical mode |
 | | `ystart` / `yend` | Historical window start/end years (historical mode) |
 | | `seed` | Random seed for reproducibility |
 | **`save_case` only** | `output_dir` | Directory where `Case_*.toml` and `HFP_*.xlsx` are written (default: `.`) |
@@ -411,7 +418,7 @@ translate your description into `--set` overrides, and interpret the results.
 ### Probability of success and efficient frontier
 
 > *"What's the maximum I can spend with a 90% historical probability of success?"*
-> → calls `run_stochastic` with `scenario_method="historical"`, `target_success_rate=0.90`
+> → calls `run_stochastic` with `scenario_method="historical"`, `target_success_rate_pct=90`
 
 > *"I'm Martin, born 1960, life expectancy 88. I have \$200k taxable, \$800k in a 401(k),
 > \$100k Roth, SS PIA \$2,500/month claiming at 67. What can I safely spend at 90% confidence?"*

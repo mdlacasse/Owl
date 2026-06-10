@@ -15,7 +15,6 @@ generated samples.
 The kink point k is the empirical median; slope_lo and slope_hi are auto-fit
 to minimize skewness² + excess-kurtosis² of the transformed values.
 """
-from __future__ import annotations
 
 import numpy as np
 from scipy.optimize import minimize

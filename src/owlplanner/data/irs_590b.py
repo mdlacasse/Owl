@@ -8,8 +8,6 @@ Tables:
 This module centralizes access to both tables for use in tax and RMD logic.
 """
 
-from __future__ import annotations
-
 from owlplanner.data.irs_590b_table_ii import JOINT_LIFE_TABLE    # noqa: F401
 
 # ---------------------------------------------------------------------------

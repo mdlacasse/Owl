@@ -7,8 +7,6 @@ scratch (e.g. in the UI) so they align with TOML-loaded cases.
 Copyright (C) 2025-2026 The Owl Authors
 """
 
-from __future__ import annotations
-
 import copy
 from datetime import date
 

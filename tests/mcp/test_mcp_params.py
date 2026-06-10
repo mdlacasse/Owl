@@ -24,6 +24,7 @@ from owlplanner.cli.cmd_serve import (
     _build_hfp_dataframes,
     _ss_ages_opt,
     _build_distribution_json,
+    convert_ss_benefit,
     run_from_params,
     save_case,
     run_historical,
@@ -137,6 +138,68 @@ def test_ss_monthly_pia_passed_directly():
 def test_ss_zero_no_error():
     plan = _single(ss_monthly_pias=[0], ss_ages=[67])
     assert plan.ssecAmounts[0] == 0
+
+
+# ---------------------------------------------------------------------------
+# convert_ss_benefit
+# ---------------------------------------------------------------------------
+
+def test_convert_ss_benefit_pia_to_actual_early_claim():
+    """Born 1961 (FRA=67), claiming at 65 reduces the PIA by the early-claim factor."""
+    from owlplanner.socialsecurity import getFRAs, getSelfFactor
+
+    result = json.loads(convert_ss_benefit(birth_year=1961, claiming_age=65, pia=3231.02))
+    fra = float(getFRAs([1961], [7], [1])[0])
+    expected_factor = getSelfFactor(fra, 65, True)  # default birth_day=1 -> bornOnFirst=True
+    assert result["fra"] == pytest.approx(67.0)
+    assert result["factor"] == pytest.approx(expected_factor, abs=1e-4)
+    assert result["actual_benefit"] == pytest.approx(3231.02 * expected_factor, rel=1e-4)
+
+
+def test_convert_ss_benefit_birth_day_two_not_treated_as_first():
+    """Born on the 2nd does NOT get the +1/12 SSA-age bump (only born-on-1st does, per
+    socialsecurity._ssa_age / compute_social_security_benefits' bornOnFirst rule)."""
+    from owlplanner.socialsecurity import getFRAs, getSelfFactor
+
+    result = json.loads(convert_ss_benefit(birth_year=1961, claiming_age=65, pia=3231.02, birth_day=2))
+    fra = float(getFRAs([1961], [7], [2])[0])
+    expected_factor = getSelfFactor(fra, 65, False)  # birth_day=2 -> bornOnFirst=False
+    assert result["factor"] == pytest.approx(expected_factor, abs=1e-4)
+
+
+def test_convert_ss_benefit_actual_to_pia_round_trip():
+    """actual_benefit -> pia is the inverse of pia -> actual_benefit."""
+    forward = json.loads(convert_ss_benefit(birth_year=1961, claiming_age=65, pia=3231.02))
+    back = json.loads(
+        convert_ss_benefit(birth_year=1961, claiming_age=65, actual_benefit=forward["actual_benefit"])
+    )
+    assert back["pia"] == pytest.approx(3231.02, rel=1e-3)
+
+
+def test_convert_ss_benefit_at_fra_factor_near_one():
+    """Claiming at conventional age == FRA gives a factor very close to 1.0."""
+    result = json.loads(convert_ss_benefit(birth_year=1961, claiming_age=67, pia=2500))
+    assert result["factor"] == pytest.approx(1.0, abs=0.01)
+    assert result["actual_benefit"] == pytest.approx(2500, rel=0.01)
+
+
+def test_convert_ss_benefit_delayed_claim_increases_benefit():
+    """Delaying past FRA to 70 increases the benefit above the PIA (~8%/yr delayed credit)."""
+    result = json.loads(convert_ss_benefit(birth_year=1961, claiming_age=70, pia=2500))
+    assert result["factor"] > 1.2
+    assert result["actual_benefit"] > 2500
+
+
+def test_convert_ss_benefit_requires_exactly_one_input():
+    assert "error" in json.loads(convert_ss_benefit(birth_year=1961, claiming_age=65))
+    assert "error" in json.loads(
+        convert_ss_benefit(birth_year=1961, claiming_age=65, pia=2500, actual_benefit=2500)
+    )
+
+
+def test_convert_ss_benefit_claiming_age_out_of_range():
+    result = json.loads(convert_ss_benefit(birth_year=1961, claiming_age=61, pia=2500))
+    assert "error" in result
 
 
 def test_objective_stored():

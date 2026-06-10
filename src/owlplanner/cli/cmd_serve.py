@@ -1,7 +1,7 @@
 """
 CLI command that starts an MCP (Model Context Protocol) server for Owl.
 
-Exposes twelve tools over stdio so any MCP-compatible AI client (Claude Desktop,
+Exposes thirteen tools over stdio so any MCP-compatible AI client (Claude Desktop,
 Claude Code, etc.) can discover cases, inspect configurations, run optimizations,
 and compare scenarios without touching the filesystem directly.
 
@@ -10,6 +10,7 @@ Tools exposed:
   explain_case             — describe a case without solving
   list_rate_models         — enumerate available rate models and their parameters
   list_mortality_tables    — actuarial tables for longevity risk sampling
+  convert_ss_benefit       — convert between SS PIA and actual benefit at a claiming age
   run_case                 — solve a case and return structured JSON results
   compare_cases            — run base + variant and return delta metrics
   run_from_params          — build and solve from structured parameters (no TOML needed)
@@ -48,6 +49,7 @@ from owlplanner.export import plan_metrics
 from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF
 from owlplanner.rate_models.loader import get_all_models_metadata, RATE_MODEL_ALIASES
 from owlplanner.data.mortality_tables import MORTALITY_TABLE_KEYS, MORTALITY_TABLE_INFO
+from owlplanner.socialsecurity import getFRAs, getSelfFactor
 
 from owlplanner.rate_models.constants import CONSTRAIN_MEAN_METHODS
 
@@ -316,6 +318,67 @@ def list_mortality_tables() -> str:
     ]
     tables.sort(key=lambda t: t["le_at_65"])
     return json.dumps({"mortality_tables": tables}, indent=2)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: convert_ss_benefit
+# ─────────────────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def convert_ss_benefit(
+    birth_year: Annotated[int, Field(description="Birth year, e.g. 1961.")],
+    claiming_age: Annotated[
+        float,
+        Field(description="SS claiming age in years (62-70); can be fractional, e.g. 65.5."),
+    ],
+    pia: Annotated[
+        float | None,
+        Field(description="Monthly PIA (Primary Insurance Amount, the benefit at Full "
+              "Retirement Age) in $/month. Provide this OR actual_benefit, not both."),
+    ] = None,
+    actual_benefit: Annotated[
+        float | None,
+        Field(description="Actual (or projected) monthly benefit at claiming_age, in "
+              "$/month — e.g. the check amount someone says they 'get'. "
+              "Provide this OR pia, not both."),
+    ] = None,
+    birth_month: Annotated[int, Field(description="Birth month (1-12). Default 7.")] = 7,
+    birth_day: Annotated[int, Field(description="Birth day of month (1-31). Default 1.")] = 1,
+) -> str:
+    """Convert between Social Security PIA and the actual monthly benefit at a claiming age.
+
+    run_from_params, save_case, run_stochastic, run_longevity_stochastic, run_historical,
+    and run_monte_carlo all take ss_monthly_pias — the Primary Insurance Amount (PIA),
+    i.e. the benefit at Full Retirement Age (FRA) shown on the SSA statement. This is
+    NOT the same as the check amount someone describes if they claimed before or after
+    FRA. Use this tool to convert in either direction:
+
+      - Given pia: returns the actual benefit payable starting at claiming_age.
+      - Given actual_benefit (e.g. "I'm 65 and I get a $2,800 check"): returns the
+        equivalent PIA, which can then be passed as ss_monthly_pias (with
+        ss_ages=[claiming_age]) to the run_* tools.
+
+    Provide exactly one of pia or actual_benefit. birth_month/birth_day default to
+    Owl's internal convention (July 1) and only matter for FRA-transition birth years
+    (1955-1959) and for the exact early/delayed-claiming reduction near month boundaries.
+    """
+    if (pia is None) == (actual_benefit is None):
+        return json.dumps({"error": "Provide exactly one of 'pia' or 'actual_benefit'."})
+
+    try:
+        fra = float(getFRAs([birth_year], [birth_month], [birth_day])[0])
+        born_on_first = birth_day == 1
+        factor = getSelfFactor(fra, claiming_age, born_on_first)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
+
+    if pia is not None:
+        result = {"pia": pia, "actual_benefit": round(pia * factor, 2)}
+    else:
+        result = {"pia": round(actual_benefit / factor, 2), "actual_benefit": actual_benefit}
+
+    result.update({"fra": round(fra, 4), "claiming_age": claiming_age, "factor": round(factor, 4)})
+    return json.dumps(result, indent=2)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1317,7 +1380,7 @@ def _stochastic_blocking(plan, scenario_method, ystart, yend, n_scenarios, opts,
     return plan, result
 
 
-def _build_stochastic_json(plan, result, target_success_rate, scenario_method):
+def _build_stochastic_json(plan, result, target_success_rate_pct, scenario_method):
     """Distil run_stochastic_spending result into a compact JSON-ready dict."""
     from owlplanner.stresstests import g_for_success_rate
 
@@ -1330,18 +1393,18 @@ def _build_stochastic_json(plan, result, target_success_rate, scenario_method):
     xi0 = float(plan.xi_n[0])
 
     # Spending commitment at the requested success rate (frontier_g units = today's $)
-    g_target, _ = g_for_success_rate(target_success_rate, lambdas, frontier_g, frontier_prob)
+    g_target, _ = g_for_success_rate(target_success_rate_pct, lambdas, frontier_g, frontier_prob)
 
     # Achieved success rate at that frontier point
-    target_shortfall = 1.0 - target_success_rate
+    target_shortfall = 1.0 - target_success_rate_pct / 100.0
     candidates = np.where(frontier_prob <= target_shortfall)[0]
-    achieved_success = round(1.0 - float(frontier_prob[candidates[0] if len(candidates) else -1]), 4)
+    achieved_success_pct = round(100.0 * (1.0 - float(frontier_prob[candidates[0] if len(candidates) else -1])), 2)
 
     # Downsample frontier to ~20 evenly spaced points for compact output
     step = max(1, len(frontier_g) // 20)
     frontier_pts = [
         {
-            "success_rate": round(1.0 - float(frontier_prob[i]), 4),
+            "success_rate_pct": round(100.0 * (1.0 - float(frontier_prob[i])), 2),
             "spending_today_dollars": int(round(float(frontier_g[i]))),
             "spending_year1_nominal": int(round(float(frontier_g[i]) * xi0)),
         }
@@ -1354,8 +1417,8 @@ def _build_stochastic_json(plan, result, target_success_rate, scenario_method):
         "scenario_method": scenario_method,
         "n_scenarios_run": int(len(bases)),
         "n_scenarios_infeasible": int(n_infeasible),
-        "target_success_rate": target_success_rate,
-        "achieved_success_rate": achieved_success,
+        "target_success_rate_pct": target_success_rate_pct,
+        "achieved_success_rate_pct": achieved_success_pct,
         "spending_at_target": {
             "today_dollars": int(round(g_target)),
             "year1_nominal": int(round(g_target * xi0)),
@@ -1363,7 +1426,7 @@ def _build_stochastic_json(plan, result, target_success_rate, scenario_method):
         "max_spending": {
             "today_dollars": int(round(float(frontier_g[0]))),
             "year1_nominal": int(round(float(frontier_g[0]) * xi0)),
-            "success_rate": round(1.0 - float(frontier_prob[0]), 4),
+            "success_rate_pct": round(100.0 * (1.0 - float(frontier_prob[0])), 2),
         },
         "frontier": frontier_pts,
     }
@@ -1500,7 +1563,7 @@ def _monte_carlo_blocking(plan, objective, opts, n_scenarios, seed):
 @mcp.tool()
 async def run_stochastic(
     scenario_method: str = "historical",
-    target_success_rate: float = 0.90,
+    target_success_rate_pct: float = 90.0,
     filename: str | None = None,
     overrides: list[str] | None = None,
     names: list[str] | None = None,
@@ -1579,7 +1642,9 @@ async def run_stochastic(
         scenario_method:      "historical" (sweep 1928–present, default) or "mc" (Monte Carlo).
                               Monte Carlo requires a stochastic rate_method such as
                               'historical_gaussian', 'lognormal', or 'historical_bootstrap'.
-        target_success_rate:  Desired fraction of scenarios with no shortfall, e.g. 0.90 for 90%.
+        target_success_rate_pct: Desired percentage of scenarios with no shortfall, in (1, 100],
+                              e.g. 90 for a 90% success rate. Like other percent-valued
+                              parameters, this is on a 0-100 scale, not 0-1.
         filename:             Path to a .toml case file (alternative to flat params).
         overrides:            KEY.PATH=VALUE overrides when using filename=.
         names:                Person names, e.g. ["Alice", "Bob"].
@@ -1662,6 +1727,12 @@ async def run_stochastic(
         max_time:             Per-scenario solver time limit in seconds.
         seed:                 Random seed for reproducibility.
     """
+    from owlplanner.stresstests import _validate_success_rate_pct
+    try:
+        _validate_success_rate_pct(target_success_rate_pct)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
+
     overrides = _norm_overrides(overrides)
     if filename is not None and names is not None:
         msg = "Provide either 'filename' or flat parameters (names, birth_years, ...) — not both."
@@ -1737,9 +1808,17 @@ async def run_stochastic(
         return json.dumps({"error": f"Stochastic run error: {e}"})
 
     try:
-        out = _build_stochastic_json(plan, result, target_success_rate, scenario_method)
+        out = _build_stochastic_json(plan, result, target_success_rate_pct, scenario_method)
     except Exception as e:
         return json.dumps({"error": f"Result processing error: {e}"})
+
+    if scenario_method == "historical" and n_scenarios != 200:
+        out["note"] = (
+            f"n_scenarios={n_scenarios} was ignored: 'historical' mode ran "
+            f"{out['n_scenarios_run']} scenarios, one per historical start year "
+            "(controlled by ystart/yend, default the full 1928-present range). "
+            "Use scenario_method='mc' to control the scenario count via n_scenarios."
+        )
 
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
 
@@ -1898,7 +1977,7 @@ async def run_longevity_stochastic(
     dividend_rate: float | None = None,
     mortality_table: str = "SSA2025",
     scenario_method: str = "mc",
-    target_success_rate: float = 0.90,
+    target_success_rate_pct: float = 90.0,
     n_scenarios: int = 200,
     ystart: int | None = None,
     yend: int | None = None,
@@ -1926,7 +2005,9 @@ async def run_longevity_stochastic(
                           draws (default "SSA2025").
         scenario_method:  "mc" (default).  Longevity sampling requires Monte Carlo;
                           "historical" is rejected (lifespans can exceed data range).
-        target_success_rate: Desired probability of no shortfall (default 0.90).
+        target_success_rate_pct: Desired percentage of scenarios with no shortfall, in (1, 100]
+                          (default 90). Like other percent-valued parameters, this is on a
+                          0-100 scale, not 0-1.
         names:            Person names, e.g. ["Alice", "Bob"].
         birth_years:      Birth years, e.g. [1963, 1961].
         life_expectancy:  Deterministic life expectancy used for the base solve (years per
@@ -1994,6 +2075,12 @@ async def run_longevity_stochastic(
         max_time:         Per-scenario solver time limit in seconds.
         seed:             Random seed for reproducibility.
     """
+    from owlplanner.stresstests import _validate_success_rate_pct
+    try:
+        _validate_success_rate_pct(target_success_rate_pct)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
+
     if scenario_method == "historical":
         return json.dumps({
             "error": (
@@ -2043,7 +2130,7 @@ async def run_longevity_stochastic(
         return json.dumps({"error": f"Longevity stochastic run error: {e}"})
 
     try:
-        out = _build_stochastic_json(plan, result, target_success_rate, scenario_method)
+        out = _build_stochastic_json(plan, result, target_success_rate_pct, scenario_method)
     except Exception as e:
         return json.dumps({"error": f"Result processing error: {e}"})
 

@@ -61,7 +61,7 @@ def test_run_longevity_historical_rejected_upfront():
 def test_run_longevity_stochastic_mc_smoke():
     result = _run(run_longevity_stochastic(
         scenario_method="mc",
-        target_success_rate=0.70,
+        target_success_rate_pct=70.0,
         n_scenarios=10,
         seed=42,
         **_SINGLE,
@@ -74,3 +74,31 @@ def test_run_longevity_stochastic_mc_smoke():
     # Longevity sampling can zero out spending for imminent-death draws; max is more stable.
     assert data["max_spending"]["today_dollars"] >= 0
     assert len(data["frontier"]) >= 1
+
+
+def test_run_longevity_old_convention_target_returns_error():
+    """target_success_rate_pct=0.70 (old 0-1 convention) is rejected with a 'Did you mean' hint."""
+    result = _run(run_longevity_stochastic(
+        scenario_method="mc",
+        target_success_rate_pct=0.70,
+        n_scenarios=10,
+        seed=42,
+        **_SINGLE,
+    ))
+    data = json.loads(result)
+    assert "error" in data
+    assert "(1, 100]" in data["error"]
+    assert "70" in data["error"]
+
+
+def test_run_longevity_target_above_100_returns_error():
+    result = _run(run_longevity_stochastic(
+        scenario_method="mc",
+        target_success_rate_pct=150.0,
+        n_scenarios=10,
+        seed=42,
+        **_SINGLE,
+    ))
+    data = json.loads(result)
+    assert "error" in data
+    assert "(1, 100]" in data["error"]
