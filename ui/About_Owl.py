@@ -36,7 +36,7 @@ with col1:
     st.markdown("### Owl - *Optimal wealth lab*")
     kz.divider("orange")
     st.markdown(
-        f"**Version {owb.version()}** on Streamlit **{st.__version__}** and Python **{platform.python_version()}**"
+        f"**Version {owb.version()}** running on Streamlit **{st.__version__}** and Python **{platform.python_version()}**"
     )
     st.markdown("### :orange[The **Owl** Retirement Planner]")
     st.markdown("""
