@@ -84,7 +84,7 @@ Line length limit is **120 characters** (configured in `.flake8`).
 
 ## Code conventions
 
-- **Python 3.11+** required. CI runs against 3.11, 3.12, and 3.13.
+- **Python 3.11+** required. CI runs against 3.11, 3.12, 3.13, and 3.14.
 - **Comments**: only add one when the *why* is non-obvious — a hidden constraint,
   a subtle invariant, or a workaround for a specific bug. Don't describe what the
   code does; well-named identifiers already do that.
@@ -140,3 +140,15 @@ the change and passes after.
 Changes merged to `dev` are automatically deployed to
 [owlplanner-dev.streamlit.app](https://owlplanner-dev.streamlit.app), so you
 can verify the live effect without running locally.
+
+---
+
+## Releasing (maintainers only)
+
+See [INSTALL.md](INSTALL.md#publishing-a-release-maintainers-only) for the
+version-bump and pre-release checks. Two helper scripts in `docker/` (with
+`.sh` and `.cmd` variants for Unix and Windows) automate the rest:
+
+- `buildPackage` — builds and publishes the package to PyPI.
+- `buildContainers` — builds and pushes the `edge` and versioned Docker images
+  to Docker Hub.

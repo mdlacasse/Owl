@@ -159,10 +159,12 @@ $env:OWL_TEST_SOLVER="HiGHS" ; pytest -n auto
 $env:OWL_TEST_SOLVER="MOSEK" ; pytest -n auto
 ```
 
-Update the version number in `src/owlplanner/version.py`, then build and upload:
+Bump the version in `pyproject.toml` (`[project].version`, the single source of
+truth), then sync the mirrored copy in `src/owlplanner/version.py` and the lockfile:
 ```shell
-rm dist/*
-python -m build
-twine upload --repository [repo] dist/*
+make update
 ```
-where `[repo]` is `testpypi` or `pypi` depending on the type of release.
+
+Then build and publish the package to PyPI by running `docker/buildPackage.sh`
+(or `buildPackage.cmd` on Windows). It removes old `dist/` artifacts and runs
+`uv build` followed by `uv publish`, picking up the PyPI token from `~/.pypirc`.
