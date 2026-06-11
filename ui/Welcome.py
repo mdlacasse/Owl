@@ -37,7 +37,7 @@ owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/p
 def _welcome_session_reminder():
     st.markdown(
         f"""
-**Owl** - *Optimal wealth lab* is for **educational and research purposes** only. Nothing in this session constitutes
+**Owl** – *Optimal wealth lab* is for **educational and research purposes** only. Nothing in this session constitutes
 **financial, tax, or investment advice**—consult a qualified professional for decisions specific to your situation.
 
 This software is released under the [GNU General Public License v3]({_GPLV3_URL}).
@@ -60,7 +60,7 @@ with col1:
     kz.divider("orange")
     st.markdown("""
 ### :orange[Stop guessing. Start optimizing.]
-Retire with confidence and clarity.
+No more guesswork—just a clear, optimized plan.
 **Owl** builds a sophisticated mathematical model of your entire financial landscape—mapping
 everything from taxable accounts to Roth conversions and Medicare premiums.
 
@@ -90,7 +90,7 @@ with col2:
     st.image(logofile, width="stretch")
     st.caption("*Retirement planner with great wisdom*")
 
-st.markdown("### :orange[Powered by best-in-class optimizer]")
+st.markdown("### :orange[Powered by a best-in-class optimizer]")
 col1, col2 = st.columns([17, 83], gap="medium")
 with col1:
     moseklogo = "https://www.mosek.com/static/images/branding/partnergraphmosekinside.jpg"
@@ -110,7 +110,7 @@ We are grateful for MOSEK's support of open-source retirement planning.
 
 st.markdown("""
 ### :orange[Private by design]
-**Owl** is open source. Your data stays private in all cases—we don't store, track,
+**Owl** is open source. Your data stays private in all cases—we don’t store, track,
 or resell your financial data, whether cloud-hosted, or self-hosted on your device.
 - **No Sign-ups:** Start planning immediately.
 - **No Fees:** Professional-grade modeling, free for everyone.
@@ -120,7 +120,7 @@ or resell your financial data, whether cloud-hosted, or self-hosted on your devi
 # Benefits
 st.markdown("### :orange[How is **Owl** different? Optimization, not just projection.]")
 st.markdown(
-    "Most **retirement calculators** give you one rigid path. **Owl** **optimizes** "
+    "Most **retirement calculators** give you one rigid path. **Owl** *optimizes* "
     "your plan given your assumptions so you can:"
 )
 col1, col2, col3 = st.columns(3, gap="medium")
@@ -144,7 +144,7 @@ with st.expander("*Explore some case examples*"):
 
     step1, step2, step3 = st.columns(3, gap="medium")
     with step1:
-        st.markdown("**1. Load the case**")
+        st.markdown("**1. Load a case**")
         st.markdown("Go to **Create Case**, then choose any example from the dropdown.")
     with step2:
         st.markdown("**2. Load the financial profile**")
@@ -152,14 +152,14 @@ with st.expander("*Explore some case examples*"):
                     " *Load example workbook* button. View the content on the *Financial Profile* page.")
     with step3:
         st.markdown("**3. View the results**")
-        st.markdown("Navigate to **Graphs**, **Worksheets**, or **Reports** under Results to see results.")
+        st.markdown("Navigate to **Graphs**, **Worksheets**, or **Reports** under Results to explore your personalized plan.")
 
     st.markdown("**Start here:**")
     st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
     st.caption("Once you’ve run your first case,"
-               " explore other Case Setup pages to change assumptions. Explore other cases.")
+               " explore other Case Setup pages to change assumptions.")
 
-st.markdown("### :orange[Curious what Owl can do? The scope is substantial.]")
+st.markdown("### :orange[Curious what Owl can do? See the full picture.]")
 modeling_md = Path(__file__).resolve().parent.parent / "docs" / "modeling-capabilities.md"
 with st.expander("*See what Owl models—and its limitations*"):
     try:
@@ -221,7 +221,7 @@ kz.divider("orange")
 st.markdown("### :orange[Get involved]")
 st.markdown(
     "Created by a lead developer and enriched by contributions from retired experts, "
-    "**Owl** leverages extensive engineering expertise to advance knowledge sharing."
+    "**Owl** leverages extensive engineering expertise to bring rigorous, data-driven retirement planning to everyone."
 )
 gi1, gi2, gi3 = st.columns(3, gap="medium")
 with gi1:
