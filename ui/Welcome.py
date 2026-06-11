@@ -74,7 +74,11 @@ to see exactly how robust your future really is.
 **Owl** integrates US federal tax laws, Social Security rules, and 401(k)/Roth regulations
 to ensure your plan is grounded in reality.
 
-### :orange[AI-powered retirement planning — ask your AI assistant]
+### :orange[Powered by Actual Intelligence — connect it to your AI assistant]
+**Owl**'s optimizer runs on real mathematical optimization — mixed-integer linear programming,
+not language-model guesswork. For everyday use, you can also connect it to an AI assistant
+for natural-language queries: the best of both worlds.
+
 **Owl** connects to AI assistants via the [Model Context Protocol](https://modelcontextprotocol.io)
 (MCP) — an open standard supported by Claude, Cursor, Zed, VS Code, and more.
 Tell your AI your age, accounts, and income sources, and it runs the optimizer,

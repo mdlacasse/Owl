@@ -9,7 +9,7 @@
 [![Docker](https://img.shields.io/docker/v/owlplanner/owldocker?label=docker)](https://hub.docker.com/r/owlplanner/owldocker)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://owlplanner.streamlit.app)
 
-## Open-source AI-powered retirement planning optimizer for tax-efficient withdrawal strategies
+## Open-source retirement planning optimizer powered by Actual Intelligence — connect it to your AI assistant
 
 *Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Claude Cursor Zed VS Code*
 
