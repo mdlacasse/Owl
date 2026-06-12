@@ -3826,23 +3826,30 @@ class Plan:
                         J_n_lp = trace["J_n_lp"][best_idx]
                 else:
                     self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
-                # Consistency solve: each iteration's LTCG bracket room (room15_n, room20_n)
-                # is built from the *previous* iteration's G_n (one-step lag). When the selected
-                # best solution comes from a non-final iteration, G_n in memory belongs to the
-                # last iteration rather than the selected one. If G_n oscillated significantly,
-                # the stale room bounds allow q[1]/q[2] to inflate far beyond Q_n. Fix: update
-                # G_n from the selected solution and do one extra solve with corrected room bounds.
-                last_idx = len(trace["scaledObjectives"]) - 1
-                if best_idx is not None and best_idx != last_idx:
-                    self._computeNLstuff(xx, includeMedicare=False, fixedPsi=fixed_psi)
-                    # Extra solve uses the current M_n/ACA_n/J_n (unchanged by _computeNLstuff above).
-                    M_n_lp = self.M_n.copy()
-                    ACA_n_lp = self.ACA_n.copy()
-                    J_n_lp = self.J_n.copy()
-                    _, xx_fix, fix_ok, _, _ = actualSolverMethod(objective, options)
-                    if fix_ok and xx_fix is not None:
+                # Consistency solve: LTCG bracket room (room15_n, room20_n) is built from the
+                # *previous* iteration's G_n (one-step lag). Re-solve with monolithic solver
+                # (not Benders/sequential) until U_n <= 20% * Q_n or passes exhausted.
+                if not getattr(self, "_ltcg_lp", False):
+                    _ltcg_passes = 0
+                    for _ltcg_pass in range(5):
+                        self._computeNLstuff(xx, includeMedicare=False, fixedPsi=fixed_psi)
+                        max_excess = float(
+                            np.max(self.U_n - 0.20 * np.maximum(self.Q_n, 0))
+                        )
+                        if max_excess <= 1.0:
+                            break
+                        M_n_lp = self.M_n.copy()
+                        ACA_n_lp = self.ACA_n.copy()
+                        J_n_lp = self.J_n.copy()
+                        _, xx_fix, fix_ok, _, _ = solverMethod(objective, options)
+                        if not fix_ok or xx_fix is None:
+                            break
                         xx = xx_fix
-                        self.mylog.vprint("Performed LTCG consistency solve after non-final iteration selection.")
+                        _ltcg_passes += 1
+                    if _ltcg_passes:
+                        self.mylog.vprint(
+                            f"Performed LTCG consistency solve ({_ltcg_passes} pass(es))."
+                        )
                 break
 
             it += 1

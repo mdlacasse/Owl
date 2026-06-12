@@ -90,7 +90,7 @@ if platform == "darwin":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_740,
+            "net_spending_basis": 102_867,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -117,7 +117,7 @@ elif platform == "linux":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_740,
+            "net_spending_basis": 102_867,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -144,7 +144,7 @@ elif platform == "win32":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_740,
+            "net_spending_basis": 102_867,
             "bequest": 400_000,
         },
         "Case_joe": {
