@@ -372,6 +372,105 @@ class TestGetDebtPaymentsArray:
         assert result[1] > result[0]
 
 
+class TestGetDebtBalancesArray:
+    """Tests for get_debt_balances_array function."""
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        df = pd.DataFrame(columns=["name", "type", "year", "term", "amount", "rate"])
+        result = debts.get_debt_balances_array(df, 10)
+        assert len(result) == 10
+        assert np.all(result == 0)
+
+    def test_none_dataframe(self):
+        """Test with None DataFrame."""
+        result = debts.get_debt_balances_array(None, 10)
+        assert len(result) == 10
+        assert np.all(result == 0)
+
+    def test_loan_starting_this_year(self):
+        """Test that balance at start of origination year equals the principal."""
+        df = pd.DataFrame([{
+            "name": "mortgage",
+            "type": "mortgage",
+            "year": 2025,
+            "term": 30,
+            "amount": 200_000,
+            "rate": 4.5
+        }])
+        thisyear = 2025
+        N_n = 10
+        result = debts.get_debt_balances_array(df, N_n, thisyear)
+        assert len(result) == N_n
+        # Balance at the start of the origination year is the full principal
+        assert result[0] == pytest.approx(200_000, abs=1.0)
+        # Balance should decrease (but stay positive) over time
+        assert 0 < result[9] < result[0]
+
+    def test_loan_starting_mid_horizon(self):
+        """Test with loan starting in the middle of the horizon."""
+        df = pd.DataFrame([{
+            "name": "car_loan",
+            "type": "loan",
+            "year": 2028,
+            "term": 5,
+            "amount": 30_000,
+            "rate": 6.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        result = debts.get_debt_balances_array(df, N_n, thisyear)
+        assert len(result) == N_n
+        # Before the loan starts, balance is zero
+        assert np.all(result[:3] == 0)
+        # At the start of the origination year, balance is the full principal
+        assert result[3] == pytest.approx(30_000, abs=1.0)
+        # After the loan term ends, balance is zero again
+        assert np.all(result[8:] == 0)
+
+    def test_loan_paid_off_before_horizon(self):
+        """Test with loan fully paid off before the plan starts."""
+        df = pd.DataFrame([{
+            "name": "car_loan",
+            "type": "loan",
+            "year": 1990,
+            "term": 5,
+            "amount": 30_000,
+            "rate": 6.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        result = debts.get_debt_balances_array(df, N_n, thisyear)
+        assert np.all(result == 0)
+
+    def test_multiple_loans(self):
+        """Test with multiple loans, balances should sum."""
+        df = pd.DataFrame([
+            {
+                "name": "mortgage",
+                "type": "mortgage",
+                "year": 2020,
+                "term": 30,
+                "amount": 200_000,
+                "rate": 4.5
+            },
+            {
+                "name": "car_loan",
+                "type": "loan",
+                "year": 2025,
+                "term": 5,
+                "amount": 30_000,
+                "rate": 6.0
+            }
+        ])
+        thisyear = 2025
+        N_n = 10
+        result = debts.get_debt_balances_array(df, N_n, thisyear)
+        # First year should include both the mortgage balance and the car loan principal
+        mortgage_only = debts.calculate_remaining_balance(200_000, 4.5, 30, 5)
+        assert result[0] == pytest.approx(mortgage_only + 30_000, abs=1.0)
+
+
 class TestGetRemainingDebtBalance:
     """Tests for get_remaining_debt_balance function."""
 

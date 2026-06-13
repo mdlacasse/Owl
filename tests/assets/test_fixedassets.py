@@ -744,3 +744,185 @@ class TestGetFixedAssetsBequestValue:
 
         # Verify no overlap: stocks not in bequest, house not in arrays
         # (already verified by the above assertions)
+
+
+class TestGetFixedAssetsCurrentValuesArray:
+    """Tests for get_fixed_assets_current_values_array function."""
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        df = pd.DataFrame(columns=["name", "type", "year", "basis", "value", "rate", "yod", "commission"])
+        values = fixedassets.get_fixed_assets_current_values_array(df, 10, None)
+        assert len(values) == 10
+        assert np.all(values == 0)
+
+    def test_none_dataframe(self):
+        """Test with None DataFrame."""
+        values = fixedassets.get_fixed_assets_current_values_array(None, 10, None)
+        assert len(values) == 10
+        assert np.all(values == 0)
+
+    def test_asset_held_for_full_horizon(self):
+        """Test asset held for the entire plan (yod beyond plan end)."""
+        df = pd.DataFrame([{
+            "name": "house",
+            "type": "residence",
+            "basis": 200_000,
+            "value": 300_000,
+            "rate": 0.0,  # No growth, for a simple check
+            "yod": 2040,  # Beyond plan end (plan ends 2034)
+            "commission": 5.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
+        # No growth, so the value is unchanged for every year of the plan
+        assert values == pytest.approx(np.full(N_n, 300_000), abs=1.0)
+
+    def test_asset_with_growth(self):
+        """Test asset value grows over time before disposition."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "basis": 100_000,
+            "value": 100_000,
+            "rate": 5.0,  # 5% growth per year
+            "yod": 2030,  # Disposed in 5 years
+            "commission": 1.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
+        # Held from 2025 (index 0) through 2029 (index 4), gone by 2030 (index 5)
+        for n in range(5):
+            expected = 100_000 * (1.05 ** n)
+            assert values[n] == pytest.approx(expected, abs=1.0)
+        assert np.all(values[5:] == 0)
+
+    def test_asset_disposed_year_not_counted(self):
+        """Test that an asset is no longer counted starting in its disposition year."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "basis": 100_000,
+            "value": 120_000,
+            "rate": 0.0,
+            "yod": 2027,
+            "commission": 1.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
+        n = 2027 - 2025  # Disposition year index
+        assert values[0] == pytest.approx(120_000, abs=1.0)
+        assert values[1] == pytest.approx(120_000, abs=1.0)
+        assert values[n] == 0.0
+        assert np.all(values[n:] == 0)
+
+    def test_asset_acquired_mid_horizon(self):
+        """Test asset acquired after plan start is not counted before its reference year."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "year": 2027,  # Acquired in 2027
+            "basis": 100_000,
+            "value": 100_000,
+            "rate": 0.0,
+            "yod": 2040,  # Held beyond plan end
+            "commission": 1.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
+        # Not yet acquired in 2025 and 2026
+        n = 2027 - 2025
+        assert np.all(values[:n] == 0)
+        # Held from 2027 onward
+        assert np.all(values[n:] == pytest.approx(100_000, abs=1.0))
+
+    def test_negative_yod_counts_from_plan_end(self):
+        """Test negative yod offsets from the end of the plan."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "basis": 100_000,
+            "value": 120_000,
+            "rate": 0.0,
+            "yod": -1,  # Disposed in the last plan year
+            "commission": 0.0
+        }])
+        thisyear = 2025
+        N_n = 3  # Plan years: 2025, 2026, 2027
+        values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
+        # yod = -1 maps to end_year (2027), so the asset is held through 2026 (index 1)
+        assert values[0] == pytest.approx(120_000, abs=1.0)
+        assert values[1] == pytest.approx(120_000, abs=1.0)
+        assert values[2] == 0.0
+
+    def test_asset_disposed_before_acquisition_ignored(self):
+        """Test asset with invalid yod < acquisition year is ignored."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "year": 2027,
+            "basis": 100_000,
+            "value": 100_000,
+            "rate": 5.0,
+            "yod": 2025,  # Disposed before acquisition (invalid)
+            "commission": 1.0
+        }])
+        thisyear = 2025
+        N_n = 10
+        values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
+        assert np.all(values == 0)
+
+    def test_real_rate_asset_with_gamma(self):
+        """Test real-rate asset type scales with gamma_n (inflation)."""
+        df = pd.DataFrame([{
+            "name": "house",
+            "type": "residence",
+            "basis": 200_000,
+            "value": 300_000,
+            "rate": 0.0,  # Real rate of 0 -> tracks inflation exactly
+            "yod": 2040,  # Held beyond plan
+            "commission": 5.0
+        }])
+        thisyear = 2025
+        N_n = 3
+        # gamma_n: cumulative inflation factor, length N_n+1
+        gamma_n = np.array([1.0, 1.03, 1.03 ** 2, 1.03 ** 3])
+        values = fixedassets.get_fixed_assets_current_values_array(df, N_n, gamma_n, thisyear)
+        for n in range(N_n):
+            expected = 300_000 * gamma_n[n] / gamma_n[0]
+            assert values[n] == pytest.approx(expected, abs=1.0)
+
+    def test_multiple_assets_summed(self):
+        """Test multiple assets held simultaneously are summed."""
+        df = pd.DataFrame([
+            {
+                "name": "house",
+                "type": "residence",
+                "basis": 200_000,
+                "value": 300_000,
+                "rate": 0.0,
+                "yod": 2040,
+                "commission": 5.0
+            },
+            {
+                "name": "stocks",
+                "type": "stocks",
+                "basis": 50_000,
+                "value": 80_000,
+                "rate": 0.0,
+                "yod": 2027,
+                "commission": 1.0
+            }
+        ])
+        thisyear = 2025
+        N_n = 10
+        values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
+        # In 2025 and 2026, both assets present
+        assert values[0] == pytest.approx(380_000, abs=1.0)
+        assert values[1] == pytest.approx(380_000, abs=1.0)
+        # From 2027 on, stocks are gone (disposed), only house remains
+        assert values[2] == pytest.approx(300_000, abs=1.0)

@@ -40,7 +40,7 @@ colorama==0.4.6 ; sys_platform == 'win32'
     #   loguru
 contourpy==1.3.3
     # via matplotlib
-cryptography==48.0.0
+cryptography==49.0.0
     # via pyjwt
 cycler==0.12.1
     # via matplotlib
@@ -91,13 +91,13 @@ loguru==0.7.3
     # via owlplanner
 markupsafe==3.0.3
     # via jinja2
-matplotlib==3.10.9
+matplotlib==3.11.0
     # via
     #   owlplanner
     #   seaborn
 mcp==1.27.2
     # via owlplanner
-mosek==11.2.1
+mosek==11.2.2
     # via owlplanner
 narwhals==2.22.1
     # via
@@ -136,7 +136,7 @@ pillow==12.2.0
     #   streamlit
 plotly==6.8.0
     # via owlplanner
-protobuf==7.35.0
+protobuf==7.35.1
     # via streamlit
 pyarrow==24.0.0
     # via streamlit
@@ -189,7 +189,7 @@ smmap==5.0.3
     # via gitdb
 sse-starlette==3.4.4
     # via mcp
-starlette==1.2.1
+starlette==1.3.1
     # via
     #   mcp
     #   sse-starlette

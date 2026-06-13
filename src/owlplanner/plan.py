@@ -290,6 +290,8 @@ class Plan:
 
         # Debt payments array (length N_n)
         self.debt_payments_n = np.zeros(self.N_n)
+        # Remaining debt balance at the start of each year (length N_n)
+        self.fixed_assets_debt_balances_remaining_n = np.zeros(self.N_n)
 
         # SPIA arrays.
         self.spiaBar_in = np.zeros((self.N_i, self.N_n))
@@ -300,6 +302,8 @@ class Plan:
         self.fixed_assets_tax_free_n = np.zeros(self.N_n)
         self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
         self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
+        # Current market value of fixed assets still held at the start of each year (length N_n)
+        self.fixed_assets_current_asset_values_n = np.zeros(self.N_n)
         # Fixed assets bequest value (assets with yod past plan end)
         self.fixed_assets_bequest_value = 0.0
 
@@ -1538,9 +1542,13 @@ class Plan:
             self.remaining_debt_balance = debts.get_remaining_debt_balance(
                 self.houseLists["Debts"], self.N_n, thisyear
             )
+            self.fixed_assets_debt_balances_remaining_n = debts.get_debt_balances_array(
+                self.houseLists["Debts"], self.N_n, thisyear
+            )
         else:
             self.debt_payments_n = np.zeros(self.N_n)
             self.remaining_debt_balance = 0.0
+            self.fixed_assets_debt_balances_remaining_n = np.zeros(self.N_n)
 
         # Process fixed assets
         if "Fixed Assets" in self.houseLists and not u.is_dataframe_empty(self.houseLists["Fixed Assets"]):
@@ -1555,11 +1563,16 @@ class Plan:
             self.fixed_assets_bequest_value = fxasst.get_fixed_assets_bequest_value(
                 self.houseLists["Fixed Assets"], self.N_n, gamma_n, thisyear
             )
+            # Current market value of fixed assets still held at the start of each year
+            self.fixed_assets_current_asset_values_n = fxasst.get_fixed_assets_current_values_array(
+                self.houseLists["Fixed Assets"], self.N_n, gamma_n, thisyear
+            )
         else:
             self.fixed_assets_tax_free_n = np.zeros(self.N_n)
             self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
             self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
             self.fixed_assets_bequest_value = 0.0
+            self.fixed_assets_current_asset_values_n = np.zeros(self.N_n)
 
     def getFixedAssetsBequestValueInTodaysDollars(self):
         """

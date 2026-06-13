@@ -292,3 +292,86 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, gamma_n, thisyear=None)
             total_bequest_value += proceeds
 
     return total_bequest_value
+
+
+def get_fixed_assets_current_values_array(fixed_assets_df, N_n, gamma_n, thisyear=None):
+    """
+    Process fixed_assets_df to provide an array of length N_n containing the
+    total current market value of all fixed assets still held at the start
+    of each year of the plan.
+
+    Unlike get_fixed_assets_arrays(), no commission or tax treatment is applied
+    here: this is a gross market value, suitable for a balance-sheet snapshot
+    of assets owned at the start of each year. An asset disposed in year n
+    (yod == thisyear + n) is no longer counted starting that year, since its
+    value has already been converted to a cash flow in get_fixed_assets_arrays().
+
+    Parameters:
+    -----------
+    fixed_assets_df : pd.DataFrame
+        DataFrame with columns: name, type, year, basis, value, rate, yod, commission
+        where 'year' is the reference year (this year or after). Basis and
+        value are in reference-year dollars.
+    N_n : int
+        Number of years in the plan (length of output array)
+    gamma_n : ndarray or None
+        Cumulative inflation multiplier array (length N_n+1) from gen_gamma_n().
+        Applied to real-rate asset types (residence, real estate, collectibles,
+        precious metals) where `rate` is real (above-inflation) growth.
+        Pass None only when the dataset contains no real-rate asset types.
+    thisyear : int, optional
+        Starting year of the plan (defaults to date.today().year).
+        Array index 0 corresponds to thisyear, index 1 to thisyear+1, etc.
+
+    Returns:
+    --------
+    np.ndarray
+        Array of length N_n with the total current market value of fixed
+        assets still held at the start of each year. values_n[0] = value
+        at the start of thisyear, values_n[1] = value at the start of
+        thisyear+1, etc.
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+
+    if u.is_dataframe_empty(fixed_assets_df):
+        return np.zeros(N_n)
+
+    end_year = thisyear + N_n - 1  # Last year of the plan
+    values_n = np.zeros(N_n)
+
+    for _, asset in fixed_assets_df.iterrows():
+        # Skip if active column exists and is False (treat NaN/None as True)
+        if not u.is_row_active(asset):
+            continue
+
+        asset_type = str(asset["type"]).lower()
+        value_at_reference = float(asset["value"])  # Value at reference year
+        annual_rate = float(asset["rate"])
+        reference_year = _get_reference_year(asset, thisyear)
+        yod = int(asset["yod"])  # Year of disposition
+
+        # Account for negative or null yod with reference to end of plan
+        if yod <= 0:
+            yod = end_year + yod + 1
+
+        # Skip if disposition is before reference year (invalid)
+        if yod < reference_year:
+            continue
+
+        ref_n = max(0, reference_year - thisyear)
+
+        for n in range(N_n):
+            year = thisyear + n
+            # Asset not yet acquired, or already disposed (cash flow booked elsewhere)
+            if year < reference_year or year >= yod:
+                continue
+
+            years_from_reference = year - reference_year
+            future_value = calculate_future_value(value_at_reference, annual_rate, years_from_reference)
+            if asset_type in REAL_RATE_TYPES and gamma_n is not None:
+                future_value *= gamma_n[n] / gamma_n[ref_n]
+
+            values_n[n] += future_value
+
+    return values_n

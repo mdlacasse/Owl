@@ -233,6 +233,46 @@ def get_debt_payments_array(debts_df, N_n, thisyear=None):
     return payments_n
 
 
+def get_debt_balances_array(debts_df, N_n, thisyear=None):
+    """
+    Process debts_df to provide a single array of length N_n containing
+    the remaining debt balance at the start of each year of the plan.
+
+    Parameters:
+    -----------
+    debts_df : pd.DataFrame
+        DataFrame with columns: name, type, year, term, amount, rate
+    N_n : int
+        Number of years in the plan (length of output array)
+    thisyear : int, optional
+        Starting year of the plan (defaults to date.today().year).
+        Array index 0 corresponds to thisyear, index 1 to thisyear+1, etc.
+
+    Returns:
+    --------
+    np.ndarray
+        Array of length N_n with the remaining debt balance at the start
+        of each year. balances_n[0] = balance at the start of thisyear,
+        balances_n[1] = balance at the start of thisyear+1, etc.
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+
+    if u.is_dataframe_empty(debts_df):
+        return np.zeros(N_n)
+
+    balances_n = np.zeros(N_n)
+
+    for start_year, term, end_year, principal, rate in _active_loans(debts_df):
+        for n in range(N_n):
+            year = thisyear + n
+            if start_year <= year < end_year:
+                years_elapsed = year - start_year
+                balances_n[n] += calculate_remaining_balance(principal, rate, term, years_elapsed)
+
+    return balances_n
+
+
 def get_remaining_debt_balance(debts_df, N_n, thisyear=None):
     """
     Calculate total remaining debt balance at the end of the plan horizon.

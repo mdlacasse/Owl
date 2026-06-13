@@ -1,5 +1,19 @@
 
 
+### Version 2026.6.12
+
+#### Balance-sheet arrays for fixed assets and debts (issue #128)
+
+`Plan` exposes two new arrays (length N_n), computed in `processDebtsAndFixedAssets()`:
+- `fixed_assets_current_asset_values_n` — gross market value of fixed assets still held
+  at the start of each year (`fixedassets.get_fixed_assets_current_values_array`).
+- `fixed_assets_debt_balances_remaining_n` — remaining loan balance at the start of each
+  year (`debts.get_debt_balances_array`).
+
+No commission or tax treatment applied — simple snapshots for a future balance-sheet worksheet.
+
+---
+
 ### Version 2026.6.9
 
 #### MCP server — AI assistant access to Owl
