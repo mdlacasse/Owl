@@ -266,3 +266,59 @@ def test_obbba_bonus_mfj_threshold():
     """MFJ couple at $100k MAGI (above $75k single threshold, below $150k MFJ threshold)
     each receives the full $6,000 bonus, confirming the MFJ threshold is used."""
     assert _obbba_bonus_mfj_total(100_000) == pytest.approx(12000)
+
+
+# ---------------------------------------------------------------------------
+# contributionLimits() — IRS retirement-account contribution ceilings.
+# 2026 figures: elective deferral $24,500 (+$8,000 catch-up / +$11,250 for
+# ages 60-63); IRA $7,500 (+$1,100 catch-up); HSA $4,400 self-only / $8,750
+# family (+$1,000 catch-up at 55+).
+# ---------------------------------------------------------------------------
+
+def test_contribution_limits_under_50_no_catchup():
+    lim = tx.contributionLimits(1980, tax_year=2026)  # age 46
+    assert lim["age_in_tax_year"] == 46
+    assert lim["elective_deferral"] == {"base": 24_500, "catchup": 0, "max": 24_500}
+    assert lim["ira"] == {"base": 7_500, "catchup": 0, "max": 7_500}
+    assert lim["hsa_self_only"] == {"base": 4_400, "catchup": 0, "max": 4_400}
+    assert lim["hsa_family"] == {"base": 8_750, "catchup": 0, "max": 8_750}
+
+
+def test_contribution_limits_50_to_59_standard_catchup():
+    lim = tx.contributionLimits(1972, tax_year=2026)  # age 54
+    assert lim["elective_deferral"] == {"base": 24_500, "catchup": 8_000, "max": 32_500}
+    assert lim["ira"] == {"base": 7_500, "catchup": 1_100, "max": 8_600}
+    assert lim["hsa_self_only"]["catchup"] == 0  # under 55
+
+
+def test_contribution_limits_60_to_63_super_catchup():
+    lim = tx.contributionLimits(1965, tax_year=2026)  # age 61
+    assert lim["elective_deferral"] == {"base": 24_500, "catchup": 11_250, "max": 35_750}
+    assert lim["ira"]["catchup"] == 1_100
+    assert lim["hsa_family"] == {"base": 8_750, "catchup": 1_000, "max": 9_750}
+
+
+def test_contribution_limits_64_plus_reverts_to_standard_catchup():
+    lim = tx.contributionLimits(1961, tax_year=2026)  # age 65
+    assert lim["elective_deferral"] == {"base": 24_500, "catchup": 8_000, "max": 32_500}
+    assert lim["hsa_self_only"]["catchup"] == 1_000
+
+
+def test_contribution_limits_default_tax_year_is_current_year():
+    lim = tx.contributionLimits(1970)
+    assert lim["tax_year"] == date.today().year
+
+
+def test_contribution_limits_future_year_falls_back_to_latest_table_entry():
+    """A tax_year beyond the tabulated range uses the most recent known limits."""
+    lim_future = tx.contributionLimits(1980, tax_year=2030)
+    lim_2026 = tx.contributionLimits(1980, tax_year=2026)
+    assert lim_future["elective_deferral"]["base"] == lim_2026["elective_deferral"]["base"]
+    assert lim_future["hsa_family"]["base"] == lim_2026["hsa_family"]["base"]
+
+
+def test_contribution_limits_past_year_falls_back_to_earliest_table_entry():
+    """A tax_year before the tabulated range uses the earliest known limits."""
+    lim = tx.contributionLimits(1974, tax_year=2024)  # age 50 in 2024
+    assert lim["elective_deferral"] == {"base": 23_500, "catchup": 7_500, "max": 31_000}
+    assert lim["ira"] == {"base": 7_000, "catchup": 1_000, "max": 8_000}

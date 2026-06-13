@@ -2117,69 +2117,76 @@ class Plan:
         so all conversions are treated as fully taxable. Users with significant IRA basis should
         be aware of this limitation and consult a tax professional.
         """
-        # Values in file supercedes everything.
-        if "maxRothConversion" in options and options["maxRothConversion"] == "file":
-            for i in range(self.N_i):
-                for n in range(self.horizons[i]):
-                    rhs = self.myRothX_in[i][n]
-                    self.B.setRange(self.vm["x"].idx(i, n), rhs, rhs)
-        else:
-            # Don't exclude anyone by default.
-            i_xcluded = -1
-            if "noRothConversions" in options and options["noRothConversions"] not in ("none", "None"):
-                rhsopt = options["noRothConversions"]
-                try:
-                    i_xcluded = self.inames.index(rhsopt)
-                except ValueError as e:
-                    raise ValueError(f"Unknown individual '{rhsopt}' for noRothConversions:") from e
-                for n in range(self.horizons[i_xcluded]):
-                    self.B.setRange(self.vm["x"].idx(i_xcluded, n), 0, 0)
+        # Don't exclude anyone by default.
+        i_xcluded = -1
+        if "noRothConversions" in options and options["noRothConversions"] not in ("none", "None"):
+            rhsopt = options["noRothConversions"]
+            try:
+                i_xcluded = self.inames.index(rhsopt)
+            except ValueError as e:
+                raise ValueError(f"Unknown individual '{rhsopt}' for noRothConversions:") from e
+            for n in range(self.horizons[i_xcluded]):
+                self.B.setRange(self.vm["x"].idx(i_xcluded, n), 0, 0)
 
-            if "maxRothConversion" in options:
-                rhsopt = u.get_monetary_option(options, "maxRothConversion", 0)
+        if "maxRothConversion" in options:
+            rhsopt = u.get_monetary_option(options, "maxRothConversion", 0)
 
-                if rhsopt >= 0:
-                    for i in range(self.N_i):
-                        if i == i_xcluded:
-                            continue
-                        for n in range(self.horizons[i]):
-                            # Apply the cap per individual.
-                            self.B.setRange(self.vm["x"].idx(i, n), 0, rhsopt)
-
-            if "startRothConversions" in options:
-                rhsopt = int(u.get_numeric_option(options, "startRothConversions", 0))
-                thisyear = date.today().year
-                yearn = max(rhsopt - thisyear, 0)
+            if rhsopt >= 0:
                 for i in range(self.N_i):
                     if i == i_xcluded:
                         continue
-                    nstart = min(yearn, self.horizons[i])
-                    for n in range(0, nstart):
-                        self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
+                    for n in range(self.horizons[i]):
+                        # Apply the cap per individual.
+                        self.B.setRange(self.vm["x"].idx(i, n), 0, rhsopt)
 
-            if "swapRothConverters" in options and i_xcluded == -1:
-                rhsopt = int(u.get_numeric_option(options, "swapRothConverters", 0))
-                if self.N_i == 2 and rhsopt != 0:
-                    thisyear = date.today().year
-                    absrhsopt = abs(rhsopt)
-                    yearn = max(absrhsopt - thisyear, 0)
-                    i_x = 0 if rhsopt > 0 else 1
-                    i_y = (i_x + 1) % 2
-
-                    transy = min(yearn, self.horizons[i_y])
-                    for n in range(0, transy):
-                        self.B.setRange(self.vm["x"].idx(i_y, n), 0, 0)
-
-                    transx = min(yearn, self.horizons[i_x])
-                    for n in range(transx, self.horizons[i_x]):
-                        self.B.setRange(self.vm["x"].idx(i_x, n), 0, 0)
-
-            # Disallow Roth conversions in last two years alive.
+        if "startRothConversions" in options:
+            rhsopt = int(u.get_numeric_option(options, "startRothConversions", 0))
+            thisyear = date.today().year
+            yearn = max(rhsopt - thisyear, 0)
             for i in range(self.N_i):
                 if i == i_xcluded:
                     continue
-                for n in range(max(0, self.horizons[i] - 2), self.horizons[i]):
+                nstart = min(yearn, self.horizons[i])
+                for n in range(0, nstart):
                     self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
+
+        if "swapRothConverters" in options and i_xcluded == -1:
+            rhsopt = int(u.get_numeric_option(options, "swapRothConverters", 0))
+            if self.N_i == 2 and rhsopt != 0:
+                thisyear = date.today().year
+                absrhsopt = abs(rhsopt)
+                yearn = max(absrhsopt - thisyear, 0)
+                i_x = 0 if rhsopt > 0 else 1
+                i_y = (i_x + 1) % 2
+
+                transy = min(yearn, self.horizons[i_y])
+                for n in range(0, transy):
+                    self.B.setRange(self.vm["x"].idx(i_y, n), 0, 0)
+
+                transx = min(yearn, self.horizons[i_x])
+                for n in range(transx, self.horizons[i_x]):
+                    self.B.setRange(self.vm["x"].idx(i_x, n), 0, 0)
+
+        # Disallow Roth conversions in last two years alive.
+        for i in range(self.N_i):
+            if i == i_xcluded:
+                continue
+            for n in range(max(0, self.horizons[i] - 2), self.horizons[i]):
+                self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
+
+        # Per-cell overrides from the "Roth conv" column take precedence over all
+        # policy constraints above: positive values pin x[i,n] to that exact amount
+        # (bypassing the cap), negative values (any magnitude) force x[i,n] to 0.
+        if options.get("useRothConvOverrides", False):
+            for i in range(self.N_i):
+                if i == i_xcluded:
+                    continue
+                for n in range(self.horizons[i]):
+                    v = self.myRothX_in[i][n]
+                    if v > 0:
+                        self.B.setRange(self.vm["x"].idx(i, n), v, v)
+                    elif v < 0:
+                        self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
 
     def _add_safety_net(self, options):
         """
@@ -2472,11 +2479,9 @@ class Plan:
                 )
 
         if "maxRothConversion" in options:
-            rhsopt = options.get("maxRothConversion")
-            if rhsopt != "file":
-                rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
-                if rhsopt < -1:
-                    return
+            rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
+            if rhsopt < -1:
+                return
 
         # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
         # A Roth conversion cannot be done in the same year as a Roth withdrawal.
@@ -3385,6 +3390,7 @@ class Plan:
             "timePreference",  # Subjective time discount rate (%/year) to front-load spending
             "startRothConversions",
             "swapRothConverters",
+            "useRothConvOverrides",
             "maxTime",
             "units",
             "verbose",
@@ -3433,15 +3439,15 @@ class Plan:
         oppCostX = myoptions.get("oppCostX", 0.)
         self.xnet = 1 - oppCostX / 100.
 
-        if "swapRothConverters" in myoptions and "noRothConversions" in myoptions:
-            self.mylog.print("Ignoring 'noRothConversions' as 'swapRothConverters' option present.")
+        if int(u.get_numeric_option(myoptions, "swapRothConverters", 0)) != 0 and "noRothConversions" in myoptions:
+            self.mylog.print("Ignoring 'noRothConversions' as 'swapRothConverters' option present.", tag="WARNING")
             myoptions.pop("noRothConversions")
 
         # Go easy on MILP - auto gap somehow.
         if "gap" not in myoptions and myoptions.get("withMedicare", "loop") == "optimize":
             fac = 1
             maxRoth = myoptions.get("maxRothConversion", 100)
-            if maxRoth != "file" and maxRoth <= 15:
+            if maxRoth <= 15:
                 fac = 10
             # Loosen default MIP gap when Medicare is optimized. Even more if rothX == 0
             gap = fac * MILP_GAP

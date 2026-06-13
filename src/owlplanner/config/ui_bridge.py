@@ -31,6 +31,7 @@ from owlplanner.config.defaults import (
 )
 from owlplanner.config.schema import KNOWN_SECTIONS
 from owlplanner.rates import FROM, get_fixed_rate_values
+from owlplanner.utils import derive_swap_roth_converters, parse_swap_roth_converters
 from owlplanner.rate_models.constants import (
     CONSTRAIN_MEAN_METHODS,
     FIXED_TYPE_UI,
@@ -56,6 +57,7 @@ ACC_CONF = ACCOUNT_TYPES
 #   withSSAges         -> ssAgesMode
 #   previousMAGIs      -> MAGI0 / MAGI1
 #   minTaxableBalance  -> minTaxableBalance0 / minTaxableBalance1
+#   swapRothConverters -> swapRothConvertersEnabled / swapRothConvertersFirst / swapRothConvertersYear
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
     "amoConstraints",
@@ -82,9 +84,9 @@ SOLVER_UI_PASSTHROUGH_KEYS = [
     "solver",
     "spendingSlack",
     "startRothConversions",
-    "swapRothConverters",
     "timePreference",
     "units",
+    "useRothConvOverrides",
     "verbose",
     "withSCLoop",
 ]
@@ -331,6 +333,11 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
     dic["useDecomposition"] = so.get("withDecomposition", "none")
+
+    enabled, swap_year, swap_first = parse_swap_roth_converters(so.get("swapRothConverters", 0), names)
+    dic["swapRothConvertersEnabled"] = enabled
+    dic["swapRothConvertersYear"] = swap_year
+    dic["swapRothConvertersFirst"] = swap_first
 
     ss_taxability = so.get("withSSTaxability", "loop")
     if isinstance(ss_taxability, (int, float)):
@@ -632,6 +639,12 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     if use_decomp != "none" and not (optimize_med or optimize_aca or optimize_ltcg or optimize_niit):
         use_decomp = "none"
     diconf["solver_options"]["withDecomposition"] = use_decomp
+
+    swap_year = _get_ui(uidic, "swapRothConvertersYear", date.today().year, int)
+    swap_first = uidic.get("swapRothConvertersFirst")
+    diconf["solver_options"]["swapRothConverters"] = derive_swap_roth_converters(
+        names, uidic.get("swapRothConvertersEnabled", False), swap_first, swap_year
+    )
 
     ss_mode = uidic.get("ssTaxabilityMode", "loop")
     if ss_mode == "value":

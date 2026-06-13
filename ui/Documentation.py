@@ -420,21 +420,29 @@ the reader **drops** every column on a person sheet whose header is not in the c
 (blank and `Unnamed` columns are removed as well). Only columns with the headers described above
 are loaded into the planner.
 
-Manual Roth conversions can be specified in the column marked *Roth conv*.
-This column is provided to override the Roth conversion optimization in **Owl**.
-When the option `Convert as in Wages and Contributions tables` is toggled
-in the **Run Options** page,
-values from the **Wages and Contributions** table will be used and no optimization on Roth conversions
-will be performed. This column is provided for flexibility and to allow comparisons
-between an optimized solution and your best guesses.
+The column marked *Roth conv* lets you override **Owl**'s Roth conversion optimization on a
+year-by-year, individual-by-individual basis, when the toggle `Use Roth conversion overrides
+from Wages and Contributions tables` is enabled on the **Run Options** page. Each cell can take
+one of three kinds of values:
+- `0` (the default): let **Owl** optimize that year's conversion as usual, subject to the other
+  Roth conversion settings on the **Run Options** page.
+- A positive value: pin that year's conversion to exactly this amount (e.g., a conversion you've
+  already made, or a value computed with another tool), bypassing the maximum annual conversion
+  cap.
+- A negative value: force *no* conversion that year. The magnitude is ignored, so you can flip
+  the sign of a value you are considering without losing it -- handy for comparing an optimized
+  run against "what if I skip this year?"
+
+This column is provided for flexibility, e.g. to compare an optimized solution against your own
+guesses or a previously executed conversion.
 
 Finally, *big-ticket items* are used for accounting for the sale or purchase of a house, or any
 other major expense or money that you would give or receive (e.g., inheritance, or large gifts
 to or from you). Therefore, the sign (+/-) of entries in this column is important.
 Positive numbers will be considered in the cash flow for that year and the surplus, if any, will be
 deposited in the taxable savings accounts. Negative numbers will potentially generate additional
-withdrawals and distributions from retirement accounts. This is the only column that can contain
-negative numbers: all other column entries must be positive.
+withdrawals and distributions from retirement accounts. Along with *Roth conv*, this is one of
+the only two columns that can contain negative numbers: all other column entries must be positive.
 
 When loading an Excel workbook, each individual in the *case* must have an associated sheet
 for reporting yearly transactions affecting the *case*. The association is made by having
@@ -1220,14 +1228,21 @@ This page configures Roth conversions, health insurance costs, the self-consiste
 The **objective**, **safety net**, and **spending profile** are set on the **Goals** page.
 
 The maximum amount for Roth conversions and which spouse can execute them is configurable.
-Roth conversions are optimized for reducing taxes and maximizing the selected objective function,
-unless the `Convert as in Wages and Contributions tables`
-toggle is on, in which case Roth conversions will not be optimized,
-but will rather be performed according to
-the *Roth conv* column on the
-**Wages and Contributions** page.
+Roth conversions are optimized for reducing taxes and maximizing the selected objective function.
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
+
+Turning on the `Use Roth conversion overrides from Wages and Contributions tables` toggle lets
+the *Roth conv* column on the **Wages and Contributions** page pin or block conversions for
+individual years -- see the description of that column on the **Wages and Contributions** page
+for the full semantics. Years left at `0` continue to be optimized subject to the cap, start
+year, and exclusion settings above, while a pinned (positive) year bypasses the cap, even if
+it exceeds the **Maximum annual Roth conversion** set above.
+
+For married couples, the **Swap Roth converters mid-plan** toggle lets one spouse perform Roth
+conversions up to a given year, after which the other spouse takes over for the remainder of the
+plan. This is useful when, e.g., one spouse retires (and thus has a lower tax bracket) before the
+other. This setting overrides the **Exclude Roth conversions for...** selection above.
 
 The **Health Insurance** section groups three related subsections:
 

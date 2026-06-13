@@ -301,26 +301,13 @@ class SolverOptions(BaseModel):
     maxIter: Optional[int] = None
     bendersMaxIter: Optional[int] = None
 
-    # Roth conversion options (float or "file")
-    maxRothConversion: Optional[Union[float, str]] = None
+    # Roth conversion options
+    maxRothConversion: Optional[float] = None
     noRothConversions: Optional[str] = None
 
     startRothConversions: Optional[int] = None
     swapRothConverters: Optional[int] = None
-
-    @field_validator("maxRothConversion", mode="before")
-    @classmethod
-    def _coerce_max_roth(cls, v: Any) -> Any:
-        if v is None or v == "file":
-            return v
-        if isinstance(v, (int, float)):
-            return float(v)
-        if isinstance(v, str) and v.strip():
-            try:
-                return float(v)
-            except ValueError:
-                return v  # e.g. "file" stays as str
-        return v
+    useRothConvOverrides: Optional[bool] = None
 
     # Objectives and constraints
     bequest: Optional[float] = None

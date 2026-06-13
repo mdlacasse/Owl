@@ -43,7 +43,7 @@ def _welcome_session_reminder():
 This software is released under the [GNU General Public License v3]({_GPLV3_URL}).
 """
     )
-    st.caption(f"**Owl** version {owb.version()}")
+    st.caption(f"🦉 **Owl** version {owb.version()}")
     if st.button("OK"):
         kz.storeGlobalKey(_WELCOME_DISCLAIMER_DISMISSED, True)
         st.rerun()
@@ -156,7 +156,8 @@ with st.expander("*Explore some case examples*"):
                     " *Load example workbook* button. View the content on the *Financial Profile* page.")
     with step3:
         st.markdown("**3. View the results**")
-        st.markdown("Navigate to **Graphs**, **Worksheets**, or **Reports** under Results to explore your personalized plan.")
+        st.markdown("Navigate to **Graphs**, **Worksheets**, or **Reports** under Results "
+                    "to explore your personalized plan.")
 
     st.markdown("**Start here:**")
     st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")

@@ -183,7 +183,7 @@ def _checkColumns(df, iname, colList, required_cols=None):
 def _conditionTimetables(dfDict, inames, horizons, mylog):
     """
     Make sure that time horizons contain all years up to life expectancy,
-    and that values are positive (except big-ticket items).
+    and that values are positive (except big-ticket items and Roth conv).
     """
     timeLists = {}
     thisyear = date.today().year
@@ -222,7 +222,15 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
                 missing.append(year)
             else:
                 for item in _timeHorizonItems:
-                    if item != "big-ticket items" and year_rows[item].iloc[0] < 0:
+                    if year_rows[item].iloc[0] < 0:
+                        if item == "big-ticket items":
+                            continue
+                        # Negative "Roth conv" is a useRothConvOverrides sentinel
+                        # ("force conversion to 0 this year") and only applies to
+                        # current/future years (n >= 0). The n < 0 tail feeds the
+                        # 5-year seasoning rule and must stay non-negative.
+                        if item == "Roth conv" and n >= 0:
+                            continue
                         raise ValueError(f"Item {item} for {iname} in year {year} is < 0.")
 
         if len(missing) > 0:
