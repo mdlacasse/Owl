@@ -53,13 +53,19 @@ else:
     with col1:
         iname0 = kz.getCaseKey("iname0")
         helpmsg = "Value is in nominal \\$k."
-        kz.initCaseKey("readRothX", False)
-        fromFile = kz.getCaseKey("readRothX")
+        kz.initCaseKey("useRothConvOverrides", False)
         kz.initCaseKey("maxRothConversion", 50)
-        ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion",
-                        disabled=fromFile, help=helpmsg)
-        helpmsg = "Convert using values from the *Roth conv* column of the *Wages and Contributions* table."
-        ret = kz.getToggle("Convert as in Wages and Contributions tables", "readRothX", help=helpmsg)
+        ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion", help=helpmsg)
+        helpmsg = (
+            "Use the *Roth conv* column of the *Wages and Contributions* table to override "
+            "individual years: 0 (the default) lets Owl optimize that year, subject to the "
+            "Maximum annual Roth conversion above, a positive value pins the conversion to "
+            "exactly that amount (even above the maximum), and a negative value forces no "
+            "conversion that year (the magnitude is ignored, so flipping the sign keeps the "
+            "value for later)."
+        )
+        ret = kz.getToggle("Use Roth conversion overrides from Wages and Contributions tables",
+                           "useRothConvOverrides", help=helpmsg)
         # kz.initCaseKey("oppCostX", 0.)
         # helpmsg = "Estimated opportunity cost for paying estimated tax on Roth conversions."
         # ret = kz.getNum("Opportunity cost for conversion (%)", "oppCostX", step=0.01, format="%.2f",
@@ -70,15 +76,42 @@ else:
         thisyear = date.today().year
         kz.initCaseKey("startRothConversions", thisyear)
         ret = kz.getIntNum("Year to start considering Roth conversions", "startRothConversions",
-                           min_value=thisyear, disabled=fromFile, help=helpmsg)
+                           min_value=thisyear, help=helpmsg)
     with col3:
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
             choices = ["none", iname0, iname1]
             kz.initCaseKey("noRothConversions", choices[0])
+            kz.initCaseKey("swapRothConvertersEnabled", False)
+            swapon = kz.getCaseKey("swapRothConvertersEnabled")
+            excludeset = kz.getCaseKey("noRothConversions") != "none"
+
             helpmsg = "`none` means no exclusion. To exclude both spouses, set `Maximum annual Roth conversion` to 0."
+            # Only lock a control once it is at its default, so a pre-existing conflicting
+            # state (both set) always leaves at least one control free to resolve it.
+            excludeoff = swapon and not excludeset
+            if excludeoff:
+                helpmsg += " Disabled while *Swap Roth converters mid-plan* is enabled."
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions",
-                              disabled=fromFile, help=helpmsg)
+                              help=helpmsg, disabled=excludeoff)
+
+            st.divider()
+            swapoff = excludeset and not swapon
+            helpmsg = (
+                "Switch which spouse performs Roth conversions partway through the plan. "
+                "This overrides the exclusion above."
+            )
+            if swapoff:
+                helpmsg += " Disabled while an exclusion is set above."
+            ret = kz.getToggle("Swap Roth converters mid-plan", "swapRothConvertersEnabled",
+                               help=helpmsg, disabled=swapoff)
+            if kz.getCaseKey("swapRothConvertersEnabled"):
+                kz.initCaseKey("swapRothConvertersFirst", iname0)
+                ret = kz.getSelectbox("Converts first", [iname0, iname1], "swapRothConvertersFirst")
+                kz.initCaseKey("swapRothConvertersYear", thisyear)
+                helpmsg = "Year in which the other spouse takes over Roth conversions."
+                ret = kz.getIntNum("Year to switch converters", "swapRothConvertersYear",
+                                   min_value=thisyear, help=helpmsg)
 
     st.divider()
     st.markdown("#### :orange[Health Insurance]")

@@ -1560,6 +1560,14 @@ def genDic(plan):
     dic["optimizeNIIT"] = plan.solverOptions.get("withNIIT", "loop") == "optimize"
     dic["useDecomposition"] = plan.solverOptions.get("withDecomposition", "none")
 
+    swap_roth = int(plan.solverOptions.get("swapRothConverters", 0) or 0)
+    dic["swapRothConvertersEnabled"] = swap_roth != 0
+    dic["swapRothConvertersYear"] = abs(swap_roth) if swap_roth != 0 else date.today().year
+    if swap_roth < 0 and plan.N_i > 1:
+        dic["swapRothConvertersFirst"] = plan.inames[1]
+    else:
+        dic["swapRothConvertersFirst"] = plan.inames[0] if plan.N_i > 0 else ""
+
     ss_val = plan.solverOptions.get("withSSTaxability", "loop")
     if isinstance(ss_val, (int, float)):
         dic["ssTaxabilityMode"] = "value"

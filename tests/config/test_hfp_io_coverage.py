@@ -202,6 +202,36 @@ def test_condition_timetables_big_ticket_can_be_negative():
     assert 'Joe' in result
 
 
+def test_condition_timetables_roth_conv_can_be_negative():
+    """Test _conditionTimetables allows negative Roth conv (force-zero override sentinel)."""
+    inames = ['Joe']
+    horizons = [20]
+    mylog = type('Logger', (), {
+        'vprint': lambda self, *args: None
+    })()
+
+    thisyear = date.today().year
+    df = pd.DataFrame({
+        'year': [thisyear, thisyear + 1],
+        'anticipated wages': [0, 0],
+        'other inc': [0, 0],
+        'net inv': [0, 0],
+        'taxable ctrb': [0, 0],
+        '401k ctrb': [0, 0],
+        'Roth 401k ctrb': [0, 0],
+        'IRA ctrb': [0, 0],
+        'Roth IRA ctrb': [0, 0],
+        'HSA ctrb': [0, 0],
+        'Roth conv': [-1, -50000],  # Can be negative regardless of magnitude
+        'big-ticket items': [0, 0]
+    })
+
+    df_dict = {'Joe': df}
+
+    result = hfp_io._conditionTimetables(df_dict, inames, horizons, mylog)
+    assert 'Joe' in result
+
+
 def test_condition_house_tables():
     """Test _conditionHouseTables."""
     mylog = type('Logger', (), {

@@ -407,6 +407,61 @@ def test_solver_options_with_ss_ages_married_optimize_roundtrip():
     assert back["solver_options"]["withSSAges"] == "optimize"
 
 
+def test_swap_roth_converters_disabled_by_default():
+    """With no swapRothConverters set, the UI toggle is off and config round-trips to 0."""
+    diconf = _minimal_married_config()
+    diconf["solver_options"] = {}
+    uidic = config_to_ui(diconf)
+    assert uidic["swapRothConvertersEnabled"] is False
+
+    back = ui_to_config(uidic)
+    assert back["solver_options"]["swapRothConverters"] == 0
+
+
+@pytest.mark.parametrize("first_index,sign", [(0, 1), (1, -1)])
+def test_swap_roth_converters_bidirectional_mapping(first_index, sign):
+    """swapRothConverters <-> swapRothConvertersEnabled/First/Year round-trips with correct sign."""
+    diconf = _minimal_married_config()
+    diconf["solver_options"] = {"swapRothConverters": sign * 2032}
+    uidic = config_to_ui(diconf)
+    assert uidic["swapRothConvertersEnabled"] is True
+    assert uidic["swapRothConvertersYear"] == 2032
+    assert uidic["swapRothConvertersFirst"] == diconf["basic_info"]["names"][first_index]
+
+    back = ui_to_config(uidic)
+    assert back["solver_options"]["swapRothConverters"] == sign * 2032
+
+
+def test_max_roth_conversion_file_migrates_to_overrides():
+    """Legacy maxRothConversion = 'file' migrates to useRothConvOverrides + numeric cap."""
+    so = parse_solver_options({"maxRothConversion": "file", "bequest": 100})
+    assert so["useRothConvOverrides"] is True
+    assert so["maxRothConversion"] == 50.0
+    assert so["bequest"] == 100
+
+
+def test_roth_conv_overrides_disabled_by_default():
+    """With no useRothConvOverrides set, the key is simply absent from both dicts (defaults to False)."""
+    diconf = _minimal_married_config()
+    diconf["solver_options"] = {}
+    uidic = config_to_ui(diconf)
+    assert "useRothConvOverrides" not in uidic
+
+    back = ui_to_config(uidic)
+    assert "useRothConvOverrides" not in back["solver_options"]
+
+
+def test_roth_conv_overrides_bidirectional_mapping():
+    """useRothConvOverrides round-trips between config and UI under the same name."""
+    diconf = _minimal_married_config()
+    diconf["solver_options"] = {"useRothConvOverrides": True}
+    uidic = config_to_ui(diconf)
+    assert uidic["useRothConvOverrides"] is True
+
+    back = ui_to_config(uidic)
+    assert back["solver_options"]["useRothConvOverrides"] is True
+
+
 def test_solver_options_with_ss_ages_single_name_roundtrip():
     """withSSAges single-name string round-trips: "Joe" → ssAgesMode "Joe" → "Joe"."""
     diconf = _minimal_married_config()
@@ -505,12 +560,14 @@ def test_solver_ui_passthrough_keys_match_plan_known_options():
     from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
 
     # Subset of src/owlplanner/plan.py solve() knownOptions for passthrough scalars.
+    # swapRothConverters is intentionally excluded: it is derived from
+    # swapRothConvertersEnabled/First/Year (see config_to_ui / ui_to_config).
     plan_known = {
         "absTol", "amoConstraints", "amoRoth", "amoSurplus", "bequest", "bigMaca", "bigMamo",
         "bigMltcg", "bigMniit", "bigMss", "bendersMaxIter", "epsilon", "fixedSpending", "gap",
         "maxIter", "maxRothConversion", "maxTime", "netSpending", "noLateSurplus",
         "noRothConversions", "oppCostX", "relTol", "solver", "spendingSlack",
-        "startRothConversions", "swapRothConverters", "timePreference", "units", "verbose",
+        "startRothConversions", "timePreference", "units", "useRothConvOverrides", "verbose",
         "withSCLoop",
     }
     assert set(SOLVER_UI_PASSTHROUGH_KEYS) == plan_known

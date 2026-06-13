@@ -1,5 +1,20 @@
 
 
+### Version 2026.6.13
+
+#### Per-cell Roth conversion overrides (discussion #129)
+
+New `useRothConvOverrides` solver option lets the *Roth conv* column of the Wages and
+Contributions table pin a year/individual's conversion to an exact amount — bypassing the
+annual cap — or force it to zero, while every other year stays optimized. Replaces the
+all-or-nothing `maxRothConversion="file"` mode (old TOMLs auto-migrate). Run Options also
+gains a "Swap Roth converters mid-plan" control for couples, mutually exclusive with the
+existing Roth-conversion exclusion selector.
+
+#### CI: bump `actions/checkout` and `astral-sh/setup-uv` to Node 24 releases ahead of GitHub's Node 20 deprecation.
+
+---
+
 ### Version 2026.6.12
 
 #### LTCG bracket-partition and state-tax LP fixes
@@ -12,8 +27,6 @@ pattern was also present for no-income-tax states (FL, TX, AK, ...): state-tax L
 variables (`st_f`/`st_e`/`st_re`) are now skipped entirely when every bracket rate is
 zero, since they could never contribute to `st_T_n` anyway. Added a new regression test
 for `maxRothConversion="file"`.
-
----
 
 #### Balance-sheet arrays for fixed assets and debts (issue #128)
 

@@ -120,7 +120,11 @@ For these initial five years, only Roth-related entries are read; all other colu
             formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
             cols = list(df.columns)
             for col in cols[1:-1]:
-                formatdic[col] = st.column_config.NumberColumn(None, min_value=0.0, format="accounting")
+                if col == "Roth conv":
+                    # Negative values are a valid "skip this year" override sentinel.
+                    formatdic[col] = st.column_config.NumberColumn(None, format="accounting")
+                else:
+                    formatdic[col] = st.column_config.NumberColumn(None, min_value=0.0, format="accounting")
             formatdic[cols[-1]] = st.column_config.NumberColumn(None, format="accounting")
 
             styled_df = df.style.apply(owb.highlight_year_row, axis=1)

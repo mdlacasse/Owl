@@ -635,8 +635,14 @@ def getSolveParameters():
         # ss_ages_mode is an individual name or "both" — pass directly.
         options["withSSAges"] = ss_ages_mode
 
-    if getCaseKey("readRothX"):
-        options["maxRothConversion"] = "file"
+    # Swap Roth converters: derive signed swapRothConverters from the UI controls.
+    if getCaseKey("status") == "married" and getCaseKey("swapRothConvertersEnabled"):
+        swapYear = int(getCaseKey("swapRothConvertersYear") or date.today().year)
+        swapFirst = getCaseKey("swapRothConvertersFirst")
+        sign = -1 if swapFirst == getCaseKey("iname1") else 1
+        options["swapRothConverters"] = sign * swapYear
+    else:
+        options["swapRothConverters"] = 0
 
     # Build minTaxableBalance list from per-spouse UI values (today's $k)
     ni = 2 if getCaseKey("status") == "married" else 1

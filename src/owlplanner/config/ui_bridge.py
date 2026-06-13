@@ -56,6 +56,7 @@ ACC_CONF = ACCOUNT_TYPES
 #   withSSAges         -> ssAgesMode
 #   previousMAGIs      -> MAGI0 / MAGI1
 #   minTaxableBalance  -> minTaxableBalance0 / minTaxableBalance1
+#   swapRothConverters -> swapRothConvertersEnabled / swapRothConvertersFirst / swapRothConvertersYear
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
     "amoConstraints",
@@ -82,9 +83,9 @@ SOLVER_UI_PASSTHROUGH_KEYS = [
     "solver",
     "spendingSlack",
     "startRothConversions",
-    "swapRothConverters",
     "timePreference",
     "units",
+    "useRothConvOverrides",
     "verbose",
     "withSCLoop",
 ]
@@ -331,6 +332,14 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
     dic["useDecomposition"] = so.get("withDecomposition", "none")
+
+    swap_roth = int(so.get("swapRothConverters", 0) or 0)
+    dic["swapRothConvertersEnabled"] = swap_roth != 0
+    dic["swapRothConvertersYear"] = abs(swap_roth) if swap_roth != 0 else date.today().year
+    if swap_roth < 0 and len(names) > 1:
+        dic["swapRothConvertersFirst"] = names[1]
+    else:
+        dic["swapRothConvertersFirst"] = names[0] if names else ""
 
     ss_taxability = so.get("withSSTaxability", "loop")
     if isinstance(ss_taxability, (int, float)):
@@ -632,6 +641,14 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     if use_decomp != "none" and not (optimize_med or optimize_aca or optimize_ltcg or optimize_niit):
         use_decomp = "none"
     diconf["solver_options"]["withDecomposition"] = use_decomp
+
+    if uidic.get("swapRothConvertersEnabled"):
+        swap_year = _get_ui(uidic, "swapRothConvertersYear", date.today().year, int)
+        swap_first = uidic.get("swapRothConvertersFirst")
+        sign = -1 if (len(names) > 1 and swap_first == names[1]) else 1
+        diconf["solver_options"]["swapRothConverters"] = sign * swap_year
+    else:
+        diconf["solver_options"]["swapRothConverters"] = 0
 
     ss_mode = uidic.get("ssTaxabilityMode", "loop")
     if ss_mode == "value":
