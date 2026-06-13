@@ -362,12 +362,6 @@ def parse_solver_options(raw: dict) -> dict:
     """
     if not raw:
         return {}
-    if raw.get("maxRothConversion") == "file":
-        # Legacy TOML compat: "file" used to pin every Roth conversion to the
-        # "Roth conv" column. Migrate to the new per-cell override mechanism.
-        raw = dict(raw)
-        raw["useRothConvOverrides"] = True
-        raw["maxRothConversion"] = 50.0
     validated = SolverOptions.model_validate(raw)
     # Exclude None to avoid overwriting plan defaults
     dumped = validated.model_dump(by_alias=False, exclude_none=True)

@@ -34,6 +34,7 @@ sys.path.insert(0, "../src")
 
 from owlplanner.rate_models.constants import STOCHASTIC_METHODS
 from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
+from owlplanner.utils import derive_swap_roth_converters
 from owlplanner.export import METRICS_COLUMN_MAP
 
 
@@ -636,13 +637,13 @@ def getSolveParameters():
         options["withSSAges"] = ss_ages_mode
 
     # Swap Roth converters: derive signed swapRothConverters from the UI controls.
-    if getCaseKey("status") == "married" and getCaseKey("swapRothConvertersEnabled"):
-        swapYear = int(getCaseKey("swapRothConvertersYear") or date.today().year)
-        swapFirst = getCaseKey("swapRothConvertersFirst")
-        sign = -1 if swapFirst == getCaseKey("iname1") else 1
-        options["swapRothConverters"] = sign * swapYear
-    else:
-        options["swapRothConverters"] = 0
+    swapYear = int(getCaseKey("swapRothConvertersYear") or date.today().year)
+    options["swapRothConverters"] = derive_swap_roth_converters(
+        [getCaseKey("iname0"), getCaseKey("iname1")],
+        getCaseKey("status") == "married" and getCaseKey("swapRothConvertersEnabled"),
+        getCaseKey("swapRothConvertersFirst"),
+        swapYear,
+    )
 
     # Build minTaxableBalance list from per-spouse UI values (today's $k)
     ni = 2 if getCaseKey("status") == "married" else 1

@@ -2179,6 +2179,8 @@ class Plan:
         # (bypassing the cap), negative values (any magnitude) force x[i,n] to 0.
         if options.get("useRothConvOverrides", False):
             for i in range(self.N_i):
+                if i == i_xcluded:
+                    continue
                 for n in range(self.horizons[i]):
                     v = self.myRothX_in[i][n]
                     if v > 0:

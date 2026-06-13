@@ -14,6 +14,7 @@ optimizations, and compare scenarios through natural conversation.
 | `list_rate_models(category)` | Enumerate return models with parameters | No |
 | `list_mortality_tables()` | Actuarial mortality tables for longevity risk sampling | No |
 | `convert_ss_benefit(birth_year, claiming_age, ...)` | Convert between SS PIA and actual benefit at a claiming age | No |
+| `list_contribution_limits(birth_years, tax_year)` | IRS contribution-limit ceilings (incl. 50+ and 60-63 catch-up) by birth year | No |
 | `run_case(filename, overrides, ...)` | Solve and return full JSON results | Yes |
 | `compare_cases(filename, overrides, ...)` | Solve base + variant, return delta | Yes |
 | `run_from_params(names, birth_years, ...)` | Build and solve from structured parameters — no TOML file needed | Yes |
@@ -68,7 +69,7 @@ at a given claiming age, call `convert_ss_benefit` first to back out the PIA.
 | | `pension_indexed` | CPI-linked flags per person, e.g. `[True, False]` |
 | | `pension_survivor_fractions` | Survivor benefit fractions (0–1) per person, e.g. `[0.5, 0.0]` |
 | **Time series** | `wages` | Wage streams: `[{"person":0,"annual_amount":90_000,"end_year":2032}]` |
-| | `contributions` | Retirement contributions; `account` is `taxable`, `tax_deferred`, `roth`, or `hsa` |
+| | `contributions` | Retirement contributions; `account` is `taxable`, `tax_deferred`, `roth`, or `hsa`. Use `list_contribution_limits` to find IRS max amounts (incl. catch-up) |
 | | `big_ticket_items` | One-time or recurring extra expenses reducing spending budget |
 | **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining"}` |
 | | `fixed_assets` | Assets to sell: `{"label","type","value","basis","sell_year","commission"}` |
@@ -386,6 +387,11 @@ translate your description into `--set` overrides, and interpret the results.
 
 > *"What stochastic rate models are available?"*
 > → calls `list_rate_models("stochastic")`
+
+> *"I'm 61 and my wife is 54 — what's the most we can each put into our 401(k)s,
+> IRAs, and HSA this year?"*
+> → calls `list_contribution_limits(birth_years=[1965, 1972])`, then offers to add
+> the max amounts as `contributions` entries in `run_from_params`/`save_case`
 
 ### Running a case from scratch
 

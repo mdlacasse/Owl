@@ -114,6 +114,38 @@ capGainRates = np.array(
     ]
 )
 
+# Retirement-account contribution limits (IRS-published, indexed for inflation).
+# Source: IRS Notice 2025-67 (tax year 2026); IRS Notice 2024-80 (tax year 2025).
+# TODO: Update annually — the IRS typically announces next year's limits in
+# late October / early November of the prior year.
+
+# Elective deferral limit for 401(k), 403(b), governmental 457(b), and TSP plans.
+electiveDeferralLimit = {2025: 23_500, 2026: 24_500}
+
+# Age 50+ catch-up contribution for the plans above.
+electiveDeferralCatchup50 = {2025: 7_500, 2026: 8_000}
+
+# SECURE 2.0 Act "super" catch-up for individuals who turn 60-63 during the tax
+# year (available starting 2025). Replaces -- does not stack with -- the 50+
+# catch-up above for those four ages.
+electiveDeferralCatchup60to63 = {2025: 11_250, 2026: 11_250}
+
+# Traditional/Roth IRA combined annual contribution limit (per person).
+iraContributionLimit = {2025: 7_000, 2026: 7_500}
+
+# IRA catch-up contribution for individuals age 50+ by year-end.
+iraCatchup50 = {2025: 1_000, 2026: 1_100}
+
+# HSA annual contribution limits: [self-only coverage, family coverage].
+hsaContributionLimit = {
+    2025: np.array([4_300, 8_550]),
+    2026: np.array([4_400, 8_750]),
+}
+
+# HSA catch-up for individuals age 55+ by year-end. Fixed by statute (not
+# inflation-indexed) since HSAs were introduced in 2003.
+HSA_CATCHUP_55 = 1_000
+
 ###############################################################################
 # End of section where rates need to be actualized every year.
 ###############################################################################
@@ -787,3 +819,64 @@ def rho_in(yobs, longevity, N_n):
                 rho[i][n] = 1.0 / UNIFORM_LIFETIME_DIVISOR_BY_AGE[yage]
 
     return rho
+
+
+def _limit_for_year(table, year):
+    """Return table[year], clamped to the nearest tabulated year if out of range."""
+    years = sorted(table)
+    if year <= years[0]:
+        return table[years[0]]
+    if year >= years[-1]:
+        return table[years[-1]]
+    return table[year]
+
+
+def contributionLimits(birth_year, tax_year=None):
+    """
+    Return IRS contribution-limit ceilings for a person born in birth_year,
+    for tax_year (default: the current calendar year).
+
+    Catch-up eligibility follows IRS convention: based on the age the person
+    attains by December 31 of tax_year (birth_year alone is sufficient --
+    birth month/day do not affect eligibility).
+
+    Returns a dict with "base", "catchup", and "max" (= base + catchup) for:
+      - "elective_deferral": 401(k)/403(b)/governmental 457(b)/TSP employee
+        contributions. Ages 60-63 get the SECURE 2.0 "super" catch-up instead
+        of the standard 50+ catch-up.
+      - "ira": Traditional + Roth IRA combined annual limit (per person).
+      - "hsa_self_only" / "hsa_family": HSA contribution limit by coverage tier;
+        the 55+ catch-up is the same for either tier.
+
+    This reports statutory ceilings only -- it does NOT check income-based
+    eligibility (e.g. Roth IRA MAGI phase-outs, traditional IRA deductibility
+    phase-outs when covered by an employer plan, or HSA-eligible high-deductible
+    health plan enrollment).
+    """
+    if tax_year is None:
+        tax_year = date.today().year
+
+    age_eoy = tax_year - birth_year
+
+    ed_base = int(_limit_for_year(electiveDeferralLimit, tax_year))
+    if 60 <= age_eoy <= 63:
+        ed_catchup = int(_limit_for_year(electiveDeferralCatchup60to63, tax_year))
+    elif age_eoy >= 50:
+        ed_catchup = int(_limit_for_year(electiveDeferralCatchup50, tax_year))
+    else:
+        ed_catchup = 0
+
+    ira_base = int(_limit_for_year(iraContributionLimit, tax_year))
+    ira_catchup = int(_limit_for_year(iraCatchup50, tax_year)) if age_eoy >= 50 else 0
+
+    hsa_self, hsa_family = (int(v) for v in _limit_for_year(hsaContributionLimit, tax_year))
+    hsa_catchup = HSA_CATCHUP_55 if age_eoy >= 55 else 0
+
+    return {
+        "tax_year": tax_year,
+        "age_in_tax_year": age_eoy,
+        "elective_deferral": {"base": ed_base, "catchup": ed_catchup, "max": ed_base + ed_catchup},
+        "ira": {"base": ira_base, "catchup": ira_catchup, "max": ira_base + ira_catchup},
+        "hsa_self_only": {"base": hsa_self, "catchup": hsa_catchup, "max": hsa_self + hsa_catchup},
+        "hsa_family": {"base": hsa_family, "catchup": hsa_catchup, "max": hsa_family + hsa_catchup},
+    }

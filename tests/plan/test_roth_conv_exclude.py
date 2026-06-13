@@ -63,6 +63,17 @@ def test_no_roth_conversions_excludes_spouse():
     assert np.any(p.x_in[0, :] > 0)
 
 
+def test_no_roth_conversions_excludes_spouse_even_with_positive_override():
+    """A positive per-cell useRothConvOverrides pin for the excluded individual must not
+    bypass noRothConversions -- exclusion takes precedence over per-cell overrides."""
+    p = _make_couple_plan("roth_exclude_jill_with_override")
+    p.myRothX_in[1, 0] = 30_000
+    options = dict(_BASE_OPTIONS, maxRothConversion=50, noRothConversions="Jill", useRothConvOverrides=True)
+    p.solve("maxSpending", options)
+    assert p.caseStatus == "solved"
+    np.testing.assert_allclose(p.x_in[1, :], 0)
+
+
 def test_no_roth_conversions_ignored_when_swap_active():
     """When swapRothConverters is actually active (non-zero), noRothConversions is ignored --
     solving with both set must be identical to solving with only swapRothConverters set."""

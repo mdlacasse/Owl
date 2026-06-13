@@ -432,12 +432,14 @@ def test_swap_roth_converters_bidirectional_mapping(first_index, sign):
     assert back["solver_options"]["swapRothConverters"] == sign * 2032
 
 
-def test_max_roth_conversion_file_migrates_to_overrides():
-    """Legacy maxRothConversion = 'file' migrates to useRothConvOverrides + numeric cap."""
-    so = parse_solver_options({"maxRothConversion": "file", "bequest": 100})
-    assert so["useRothConvOverrides"] is True
-    assert so["maxRothConversion"] == 50.0
-    assert so["bequest"] == 100
+def test_max_roth_conversion_file_no_longer_supported():
+    """Legacy maxRothConversion = 'file' is no longer auto-migrated (breaking change);
+    it now fails schema validation with a clear error, pointing users to
+    useRothConvOverrides + the "Roth conv" column instead."""
+    import pydantic
+
+    with pytest.raises(pydantic.ValidationError):
+        parse_solver_options({"maxRothConversion": "file", "bequest": 100})
 
 
 def test_roth_conv_overrides_disabled_by_default():

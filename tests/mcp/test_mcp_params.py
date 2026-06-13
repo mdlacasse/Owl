@@ -22,9 +22,12 @@ import pytest
 from owlplanner.cli.cmd_serve import (
     _build_plan_from_params,
     _build_hfp_dataframes,
+    _run_from_params_blocking,
     _ss_ages_opt,
+    _swap_roth_converters_value,
     _build_distribution_json,
     convert_ss_benefit,
+    list_contribution_limits,
     run_from_params,
     save_case,
     run_historical,
@@ -202,6 +205,36 @@ def test_convert_ss_benefit_claiming_age_out_of_range():
     assert "error" in result
 
 
+# ---------------------------------------------------------------------------
+# list_contribution_limits
+# ---------------------------------------------------------------------------
+
+def test_list_contribution_limits_single_under_50():
+    result = json.loads(list_contribution_limits(birth_years=[1985], tax_year=2026))
+    person = result["persons"][0]
+    assert person["birth_year"] == 1985
+    assert person["age_in_tax_year"] == 41
+    assert person["elective_deferral"] == {"base": 24_500, "catchup": 0, "max": 24_500}
+    assert person["ira"] == {"base": 7_500, "catchup": 0, "max": 7_500}
+    assert person["hsa_self_only"]["max"] == 4_400
+    assert person["hsa_family"]["max"] == 8_750
+
+
+def test_list_contribution_limits_couple_mixed_catchup_tiers():
+    """One spouse in the 60-63 super catch-up window, the other in the 50-59 tier."""
+    result = json.loads(list_contribution_limits(birth_years=[1965, 1972], tax_year=2026))
+    p60_63, p50_59 = result["persons"]
+    assert p60_63["age_in_tax_year"] == 61
+    assert p60_63["elective_deferral"]["catchup"] == 11_250
+    assert p50_59["age_in_tax_year"] == 54
+    assert p50_59["elective_deferral"]["catchup"] == 8_000
+
+
+def test_list_contribution_limits_default_tax_year_is_current_year():
+    result = json.loads(list_contribution_limits(birth_years=[1970]))
+    assert result["persons"][0]["tax_year"] == THISYEAR
+
+
 def test_objective_stored():
     plan = _single(objective="maxSpending")
     assert plan.objective == "maxSpending"
@@ -318,6 +351,56 @@ def test_big_ticket_items_single_year():
     assert plan.Lambda_in[0, 4] == pytest.approx(0)
     assert plan.Lambda_in[0, 5] == pytest.approx(60_000)
     assert plan.Lambda_in[0, 6] == pytest.approx(0)
+
+
+# ---------------------------------------------------------------------------
+# _build_plan_from_params — roth_conversions (myRothX_in overrides)
+# ---------------------------------------------------------------------------
+
+def test_roth_conversions_positive_pins_amount():
+    plan = _single(roth_conversions=[
+        {"person": 0, "year": THISYEAR, "amount": 20_000}
+    ])
+    assert plan.myRothX_in[0, 0] == pytest.approx(20_000)
+    assert plan.myRothX_in[0, 1] == pytest.approx(0)
+
+
+def test_roth_conversions_negative_forces_zero_marker():
+    """A negative amount stores the (negative) marker as-is; sign, not magnitude, matters."""
+    plan = _single(roth_conversions=[
+        {"person": 0, "year": THISYEAR + 1, "amount": -1}
+    ])
+    assert plan.myRothX_in[0, 1] < 0
+
+
+def test_roth_conversions_multi_person():
+    plan = _couple(roth_conversions=[
+        {"person": 0, "year": THISYEAR, "amount": 15_000},
+        {"person": 1, "year": THISYEAR, "amount": -1},
+    ])
+    assert plan.myRothX_in[0, 0] == pytest.approx(15_000)
+    assert plan.myRothX_in[1, 0] < 0
+
+
+def test_roth_conversions_out_of_range_year_ignored():
+    """A year outside the plan horizon is silently ignored (same convention as big_ticket_items)."""
+    plan = _single(roth_conversions=[
+        {"person": 0, "year": THISYEAR - 5, "amount": 20_000}
+    ])
+    assert (plan.myRothX_in[0, :plan.N_n] == 0).all()
+
+
+def test_roth_conversions_invalid_person_raises():
+    with pytest.raises(ValueError, match="person index"):
+        _single(roth_conversions=[{"person": 5, "year": THISYEAR, "amount": 20_000}])
+
+
+def test_roth_conversions_alias_fields():
+    """Accepts 'value'/'start_year' aliases for 'amount'/'year' via _FIELD_ALIASES."""
+    plan = _single(roth_conversions=[
+        {"person": 0, "start_year": THISYEAR, "value": 12_000}
+    ])
+    assert plan.myRothX_in[0, 0] == pytest.approx(12_000)
 
 
 # ---------------------------------------------------------------------------
@@ -484,6 +567,19 @@ def test_build_hfp_dataframes_wages_roundtrip():
     assert df["anticipated wages"].iloc[9] == pytest.approx(0)
 
 
+def test_build_hfp_dataframes_roth_conv_roundtrip():
+    plan = _single(roth_conversions=[
+        {"person": 0, "year": THISYEAR, "amount": 20_000},
+        {"person": 0, "year": THISYEAR + 1, "amount": -1},
+    ])
+    tl, _ = _build_hfp_dataframes(plan)
+    df = tl["Martin"]
+    # Row 5 = THISYEAR (offset 5 past the 5 preamble years)
+    assert df["Roth conv"].iloc[5] == pytest.approx(20_000)
+    assert df["Roth conv"].iloc[6] < 0
+    assert df["Roth conv"].iloc[7] == pytest.approx(0)
+
+
 def test_build_hfp_dataframes_year_column():
     plan = _single()
     tl, _ = _build_hfp_dataframes(plan)
@@ -581,6 +677,61 @@ def test_save_case_custom_name():
         data = json.loads(result)
         assert data["case_name"] == "test_custom"
         assert Path(data["toml_file"]).exists()
+
+
+# ---------------------------------------------------------------------------
+# save_case — useRothConvOverrides / swapRothConverters solver options
+# ---------------------------------------------------------------------------
+
+def test_save_case_use_roth_conv_overrides_written():
+    import tempfile
+    from owlplanner.config import load_toml
+    with tempfile.TemporaryDirectory() as td:
+        result = save_case(
+            names=["Martin"], birth_years=[1960], life_expectancy=[88],
+            taxable=[200_000], tax_deferred=[800_000], roth=[100_000],
+            ss_monthly_pias=[2500], ss_ages=[67],
+            roth_conversions=[{"person": 0, "year": THISYEAR, "amount": 20_000}],
+            use_roth_conv_overrides=True,
+            output_dir=td,
+        )
+        data = json.loads(result)
+        diconf, _, _ = load_toml(data["toml_file"])
+        assert diconf["solver_options"]["useRothConvOverrides"] is True
+
+
+def test_save_case_swap_roth_converters_first_spouse_positive():
+    import tempfile
+    from owlplanner.config import load_toml
+    swap_year = THISYEAR + 5
+    with tempfile.TemporaryDirectory() as td:
+        result = save_case(
+            names=["Alice", "Bob"], birth_years=[1963, 1961], life_expectancy=[90, 87],
+            taxable=[150_000, 150_000], tax_deferred=[600_000, 600_000], roth=[75_000, 75_000],
+            ss_monthly_pias=[2333, 2667], ss_ages=[67, 67],
+            swap_roth_converters_first="Alice", swap_roth_converters_year=swap_year,
+            output_dir=td,
+        )
+        data = json.loads(result)
+        diconf, _, _ = load_toml(data["toml_file"])
+        assert diconf["solver_options"]["swapRothConverters"] == swap_year
+
+
+def test_save_case_swap_roth_converters_second_spouse_negative():
+    import tempfile
+    from owlplanner.config import load_toml
+    swap_year = THISYEAR + 5
+    with tempfile.TemporaryDirectory() as td:
+        result = save_case(
+            names=["Alice", "Bob"], birth_years=[1963, 1961], life_expectancy=[90, 87],
+            taxable=[150_000, 150_000], tax_deferred=[600_000, 600_000], roth=[75_000, 75_000],
+            ss_monthly_pias=[2333, 2667], ss_ages=[67, 67],
+            swap_roth_converters_first="Bob", swap_roth_converters_year=swap_year,
+            output_dir=td,
+        )
+        data = json.loads(result)
+        diconf, _, _ = load_toml(data["toml_file"])
+        assert diconf["solver_options"]["swapRothConverters"] == -swap_year
 
 
 @pytest.fixture(scope="module")
@@ -779,6 +930,77 @@ def test_run_from_params_min_taxable_balance_full_dollars():
 
 
 # ---------------------------------------------------------------------------
+# roth_conversions / use_roth_conv_overrides / swap_roth_converters_* (end-to-end)
+# ---------------------------------------------------------------------------
+
+_ROTH_OVERRIDE_PARAMS = dict(
+    names=["Martin"], birth_years=[1960], life_expectancy=[88],
+    taxable=[200_000], tax_deferred=[800_000], roth=[100_000],
+    hsa=None, cost_basis=None,
+    ss_monthly_pias=[2500], ss_ages=[67],
+    pension_monthly_amounts=None, pension_ages=None,
+    state="TX", rate_method="conservative",
+    max_roth_conversion=50_000,
+)
+
+
+@pytest.mark.toml
+def test_run_from_params_roth_conversion_pin_positive():
+    """A positive roth_conversions entry pins x_in[0,0] to that exact amount when
+    use_roth_conv_overrides is true, bypassing max_roth_conversion."""
+    plan = _run_from_params_blocking(
+        **_ROTH_OVERRIDE_PARAMS,
+        roth_conversions=[{"person": 0, "year": THISYEAR, "amount": 20_000}],
+        use_roth_conv_overrides=True,
+    )
+    assert plan.caseStatus == "solved"
+    assert plan.x_in[0, 0] == pytest.approx(20_000)
+
+
+@pytest.mark.toml
+def test_run_from_params_roth_conversion_forced_zero():
+    """A negative roth_conversions entry forces x_in[0,n] to 0 that year when
+    use_roth_conv_overrides is true."""
+    plan = _run_from_params_blocking(
+        **_ROTH_OVERRIDE_PARAMS,
+        roth_conversions=[{"person": 0, "year": THISYEAR, "amount": -1}],
+        use_roth_conv_overrides=True,
+    )
+    assert plan.caseStatus == "solved"
+    assert plan.x_in[0, 0] == pytest.approx(0)
+
+
+@pytest.mark.toml
+def test_run_from_params_roth_conversions_ignored_without_override():
+    """roth_conversions entries are inert unless use_roth_conv_overrides is true."""
+    plan = _run_from_params_blocking(
+        **_ROTH_OVERRIDE_PARAMS,
+        roth_conversions=[{"person": 0, "year": THISYEAR, "amount": -1}],
+    )
+    assert plan.caseStatus == "solved"
+    assert "useRothConvOverrides" not in plan.solverOptions or not plan.solverOptions["useRothConvOverrides"]
+
+
+@pytest.mark.toml
+def test_run_from_params_swap_roth_converters_couple():
+    """swap_roth_converters_first/_year combine into a signed swapRothConverters option
+    and the plan solves correctly for a couple."""
+    swap_year = THISYEAR + 3
+    plan = _run_from_params_blocking(
+        names=["Alice", "Bob"], birth_years=[1963, 1961], life_expectancy=[90, 87],
+        taxable=[150_000, 150_000], tax_deferred=[600_000, 600_000], roth=[75_000, 75_000],
+        hsa=None, cost_basis=None,
+        ss_monthly_pias=[2333, 2667], ss_ages=[67, 67],
+        pension_monthly_amounts=None, pension_ages=None,
+        state="TX", rate_method="conservative",
+        max_roth_conversion=20_000,
+        swap_roth_converters_first="Bob", swap_roth_converters_year=swap_year,
+    )
+    assert plan.caseStatus == "solved"
+    assert plan.solverOptions["swapRothConverters"] == -swap_year
+
+
+# ---------------------------------------------------------------------------
 # with_aca / aca_start_year
 # ---------------------------------------------------------------------------
 
@@ -837,6 +1059,26 @@ def test_ss_ages_opt_list_passthrough():
 
 def test_ss_ages_opt_single_element_list():
     assert _ss_ages_opt(["Alice"]) == ["Alice"]
+
+
+# ---------------------------------------------------------------------------
+# _swap_roth_converters_value helper
+# ---------------------------------------------------------------------------
+
+def test_swap_roth_converters_value_none_year_returns_none():
+    assert _swap_roth_converters_value(["Alice", "Bob"], "Alice", None) is None
+
+
+def test_swap_roth_converters_value_first_matches_inames0_positive():
+    assert _swap_roth_converters_value(["Alice", "Bob"], "Alice", 2035) == 2035
+
+
+def test_swap_roth_converters_value_first_is_other_spouse_negative():
+    assert _swap_roth_converters_value(["Alice", "Bob"], "Bob", 2035) == -2035
+
+
+def test_swap_roth_converters_value_no_first_name_defaults_positive():
+    assert _swap_roth_converters_value(["Alice", "Bob"], None, 2035) == 2035
 
 
 # ---------------------------------------------------------------------------

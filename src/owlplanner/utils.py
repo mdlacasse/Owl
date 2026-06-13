@@ -183,6 +183,35 @@ def get_monetary_list_option(options, key, min_length, *, min_value=None) -> lis
     return [units * v for v in get_numeric_list_option(options, key, min_length, min_value=min_value)]
 
 
+def derive_swap_roth_converters(inames, enabled, first_name, year) -> int:
+    """
+    Signed 'swapRothConverters' solver option from UI/MCP-style inputs.
+
+    Positive value: inames[0] converts first, until the transition year (abs(value)).
+    Negative value: inames[1] converts first (matches plan.py's convention).
+    Returns 0 when not enabled or year is falsy.
+    """
+    if not enabled or not year:
+        return 0
+    sign = -1 if (len(inames) > 1 and first_name == inames[1]) else 1
+    return sign * int(year)
+
+
+def parse_swap_roth_converters(swap_roth, inames) -> tuple[bool, int, str]:
+    """
+    Inverse of derive_swap_roth_converters: signed 'swapRothConverters' value ->
+    (enabled, year, first_name) for UI display.
+    """
+    swap_roth = int(swap_roth or 0)
+    enabled = swap_roth != 0
+    year = abs(swap_roth) if enabled else date.today().year
+    if swap_roth < 0 and len(inames) > 1:
+        first_name = inames[1]
+    else:
+        first_name = inames[0] if inames else ""
+    return enabled, year, first_name
+
+
 # Next two functions could be a one-line lambda functions.
 # e.g., krond = lambda a, b: 1 if a == b else 0
 def krond(a, b) -> int:

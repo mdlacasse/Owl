@@ -32,7 +32,12 @@ sys.path.insert(0, "./src")
 sys.path.insert(0, "../src")
 
 import owlplanner as owl
-from owlplanner.utils import drop_all_zero_numeric_columns, worksheet_age_on_dec_31_or_blank, get_monetary_option
+from owlplanner.utils import (
+    drop_all_zero_numeric_columns,
+    worksheet_age_on_dec_31_or_blank,
+    get_monetary_option,
+    parse_swap_roth_converters,
+)
 from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF, getTableTypes
 from owlplanner.mylogging import Logger
@@ -1560,13 +1565,12 @@ def genDic(plan):
     dic["optimizeNIIT"] = plan.solverOptions.get("withNIIT", "loop") == "optimize"
     dic["useDecomposition"] = plan.solverOptions.get("withDecomposition", "none")
 
-    swap_roth = int(plan.solverOptions.get("swapRothConverters", 0) or 0)
-    dic["swapRothConvertersEnabled"] = swap_roth != 0
-    dic["swapRothConvertersYear"] = abs(swap_roth) if swap_roth != 0 else date.today().year
-    if swap_roth < 0 and plan.N_i > 1:
-        dic["swapRothConvertersFirst"] = plan.inames[1]
-    else:
-        dic["swapRothConvertersFirst"] = plan.inames[0] if plan.N_i > 0 else ""
+    enabled, swap_year, swap_first = parse_swap_roth_converters(
+        plan.solverOptions.get("swapRothConverters", 0), plan.inames
+    )
+    dic["swapRothConvertersEnabled"] = enabled
+    dic["swapRothConvertersYear"] = swap_year
+    dic["swapRothConvertersFirst"] = swap_first
 
     ss_val = plan.solverOptions.get("withSSTaxability", "loop")
     if isinstance(ss_val, (int, float)):
