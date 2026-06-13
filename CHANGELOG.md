@@ -2,6 +2,19 @@
 
 ### Version 2026.6.12
 
+#### LTCG bracket-partition and state-tax LP fixes
+
+Fixed an LP degeneracy that could let the 20%-LTCG-bracket variable (`q_pn[2,n]`) be
+inflated far beyond the actual realized gain `Q_n` (most visible with
+`maxRothConversion="file"`). A companion upper bound on the bracket-partition row in
+`_configure_ltcg_constraints` now keeps `q_pn` tied to `Q_n`. The same flat-direction
+pattern was also present for no-income-tax states (FL, TX, AK, ...): state-tax LP
+variables (`st_f`/`st_e`/`st_re`) are now skipped entirely when every bracket rate is
+zero, since they could never contribute to `st_T_n` anyway. Added a new regression test
+for `maxRothConversion="file"`.
+
+---
+
 #### Balance-sheet arrays for fixed assets and debts (issue #128)
 
 `Plan` exposes two new arrays (length N_n), computed in `processDebtsAndFixedAssets()`:

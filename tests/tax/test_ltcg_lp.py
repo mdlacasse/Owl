@@ -403,3 +403,62 @@ class TestLTCGScLoopConsistency:
         )
         assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
         self._check_u_n_bounded(p)
+
+
+# ---------------------------------------------------------------------------
+# maxRothConversion="file": q-variable partition must stay tight even with a
+# large fixed Roth conversion that pushes G_n into higher brackets.
+# ---------------------------------------------------------------------------
+
+class TestLTCGPartitionBoundRothFile:
+    """
+    Regression guard for the LTCG partition constraint's companion upper bound
+    (q[0]+q[1]+q[2] <= Q_n + loss_buf).
+
+    Before this bound was added, q[1,n]/q[2,n] could be inflated along a flat LP
+    direction shared with f_tn's per-bracket split, while cash flow and the
+    objective stayed numerically identical -- producing q_pn far in excess of the
+    actual realized LTCG Q_n. maxRothConversion="file" (a fixed, non-optimized
+    Roth conversion amount) is a realistic trigger for this, and previously had
+    no dedicated test coverage.
+    """
+
+    def _make_plan_with_fixed_conversion(self, name, roth_conversion_year0):
+        thisyear = date.today().year
+        inames = ["Jack"]
+        dobs = [f"{thisyear - 66}-01-15"]
+        p = owl.Plan(inames, dobs, [80], name, verbose=False)
+        p.setSpendingProfile("flat", 60)
+        p.setAccountBalances(taxable=[100], taxDeferred=[800], taxFree=[50], startDate="1-1")
+        p.setInterpolationMethod("s-curve")
+        p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+        p.setPension([0], [65])
+        p.setSocialSecurity([0], [67])
+        p.setRates("historical", 2000)
+        # Fix a large Roth conversion in year 0 (mimics an HFP file-supplied schedule).
+        p.myRothX_in[0, 0] = roth_conversion_year0
+        return p
+
+    def test_q_partition_bounded_by_q_n_with_file_conversion(self):
+        """q[0,n]+q[1,n]+q[2,n] <= Q_n + tol for all years under maxRothConversion='file'."""
+        p = self._make_plan_with_fixed_conversion("ltcg_roth_file_partition", 200_000)
+        p.solve(
+            "maxSpending",
+            {"withMedicare": "None", "maxRothConversion": "file", "withDecomposition": "none"},
+        )
+        assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
+
+        q_total = p.q_pn.sum(axis=0)
+        tol = 1.0
+        over = np.where(q_total > p.Q_n + tol)[0]
+        assert len(over) == 0, (
+            f"q-partition exceeds Q_n in years {p.year_n[over].tolist()}: "
+            f"q_total={q_total[over].tolist()}, Q_n={p.Q_n[over].tolist()}"
+        )
+
+        max_ltcg_tax = 0.20 * np.maximum(p.Q_n, 0)
+        bad = np.where(p.U_n > max_ltcg_tax + tol)[0]
+        assert len(bad) == 0, (
+            f"U_n exceeds 20%% of Q_n in years {p.year_n[bad].tolist()}: "
+            f"U_n={p.U_n[bad].tolist()}, Q_n={p.Q_n[bad].tolist()}"
+        )

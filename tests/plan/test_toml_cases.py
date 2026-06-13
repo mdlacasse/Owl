@@ -83,6 +83,12 @@ def getHFP(exdir, case, check_exists=True):
 # other_medical_expenses=2.0 ($2k/year), which slightly changes bequest baselines.
 # Updated after taxable_cost_basis added to jack+jill, joe, robin: proper unrealized-gain
 # tracking increases LTCG tax, reducing max spending for those three cases.
+# Updated after fixing the LTCG bracket-partition LP degeneracy (companion upper bound on
+# q[0]+q[1]+q[2] in _configure_ltcg_constraints): jack+jill's SC loop now lands on a better
+# (higher) best-of-oscillation spending value, 102_867 -> 103_015.
+# Updated after dropping unused state-tax LP vars for no-income-tax states (st_lp now
+# requires a nonzero bracket rate): jack+jill is state="TX", so its SC loop's best-of-
+# oscillation fixed point shifted again, 103_015 -> 102_978.
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
@@ -90,7 +96,7 @@ if platform == "darwin":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_867,
+            "net_spending_basis": 102_978,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -117,7 +123,7 @@ elif platform == "linux":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_867,
+            "net_spending_basis": 102_978,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -144,7 +150,7 @@ elif platform == "win32":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_867,
+            "net_spending_basis": 102_978,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -181,9 +187,9 @@ def test_reproducibility():
     is successfully loaded for each case.
     """
     # MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
-    # (~103_018 vs HiGHS ~102_761) after the real-rate change for physical assets.
+    # (~103_210 vs HiGHS ~102_978) after the LTCG bracket-partition and state-tax LP fixes.
     if _active_solver() == 'MOSEK':
-        EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 103_018
+        EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 103_210
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version

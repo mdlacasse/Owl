@@ -1890,7 +1890,9 @@ class Plan:
         vm.add_if(niit_lp, "niis", self.N_n)        # NII surplus: max(0, MAGI-T-NII), no binary needed
         vm.add_if(ssa_lp, "ssb", self.N_i, self.N_n)   # SS own-benefit LP var (SS age optimize)
         # State income tax LP variables (continuous, before binary block).
-        st_lp = bool(self.state)
+        # No-income-tax states (FL, TX, AK, ...) have all-zero brackets, so st_T_n is
+        # identically zero regardless of st_f/st_e/st_re — skip these vars entirely.
+        st_lp = bool(self.state) and bool(np.any(self.st_theta_tn > 0))
         self._st_lp = st_lp
         st_re_lp = st_lp and np.any(self.st_re_cap_n > 0)
         vm.add_if(st_lp, "st_f", self.N_st, self.N_n)   # state bracket allocations
@@ -2825,6 +2827,16 @@ class Plan:
 
             # (3) q[0]+q[1]+q[2] − Q_portfolio_LP_vars ≥ Q_fixed + kappa_correction
             self.A.addNewRow(row_q, rhs_q, np.inf)
+
+            # (3') Companion upper bound on the same row: prevents q[1,n]/q[2,n] from being
+            # inflated along the flat direction shared with f_tn's per-bracket split (q[2,n]
+            # is otherwise unbounded above in loop mode). loss_buf widens the bound by last
+            # iteration's realized loss (Q_n < 0) so a capital-loss year stays feasible;
+            # tol=$1 matches the LTCG-consistency-loop tolerance in _scSolve.
+            tol = 1.0
+            prevQ = getattr(self, "Q_n", None)
+            loss_buf = tol if prevQ is None else max(0.0, -float(prevQ[n])) + tol
+            self.A.addNewRow(row_q, -np.inf, rhs_q + loss_buf)
 
     def _add_magi_lp(self, options):
         """
