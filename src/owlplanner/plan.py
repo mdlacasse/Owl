@@ -71,6 +71,8 @@ ABS_TOL = 100
 REL_TOL = 5e-5
 TIME_LIMIT = 900
 EPSILON = 1e-8
+LTCG_CONSISTENCY_MAX_PASSES = 5  # max monolithic re-solves to clear stale LTCG bracket room
+LTCG_CONSISTENCY_TOL = 1.0       # allowed U_n - 0.20*Q_n slack ($) before a re-solve is needed
 
 
 ############################################################################
@@ -3840,16 +3842,22 @@ class Plan:
                 else:
                     self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
                 # Consistency solve: LTCG bracket room (room15_n, room20_n) is built from the
-                # *previous* iteration's G_n (one-step lag). Re-solve with monolithic solver
-                # (not Benders/sequential) until U_n <= 20% * Q_n or passes exhausted.
+                # *previous* iteration's G_n (one-step lag). Re-solve with the monolithic solver
+                # (not Benders/sequential) until U_n <= 20% * Q_n or passes exhausted. When
+                # decomposition is active, the monolithic re-solve is the expensive path the
+                # user opted out of, so limit it to a single attempt; any residual degeneracy
+                # still surfaces via the "may be degenerate" warning in _aggregateResults.
                 if not getattr(self, "_ltcg_lp", False):
+                    max_passes = (
+                        1 if actualSolverMethod is not solverMethod else LTCG_CONSISTENCY_MAX_PASSES
+                    )
                     _ltcg_passes = 0
-                    for _ltcg_pass in range(5):
+                    for _ltcg_pass in range(max_passes):
                         self._computeNLstuff(xx, includeMedicare=False, fixedPsi=fixed_psi)
                         max_excess = float(
                             np.max(self.U_n - 0.20 * np.maximum(self.Q_n, 0))
                         )
-                        if max_excess <= 1.0:
+                        if max_excess <= LTCG_CONSISTENCY_TOL:
                             break
                         M_n_lp = self.M_n.copy()
                         ACA_n_lp = self.ACA_n.copy()
