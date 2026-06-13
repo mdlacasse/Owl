@@ -3437,8 +3437,8 @@ class Plan:
         oppCostX = myoptions.get("oppCostX", 0.)
         self.xnet = 1 - oppCostX / 100.
 
-        if "swapRothConverters" in myoptions and "noRothConversions" in myoptions:
-            self.mylog.print("Ignoring 'noRothConversions' as 'swapRothConverters' option present.")
+        if int(u.get_numeric_option(myoptions, "swapRothConverters", 0)) != 0 and "noRothConversions" in myoptions:
+            self.mylog.print("Ignoring 'noRothConversions' as 'swapRothConverters' option present.", tag="WARNING")
             myoptions.pop("noRothConversions")
 
         # Go easy on MILP - auto gap somehow.
