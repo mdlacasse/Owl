@@ -16,12 +16,15 @@ maxing out tax-advantaged contributions before filling in the `contributions` li
 New `useRothConvOverrides` solver option lets the *Roth conv* column of the Wages and
 Contributions table pin a year/individual's conversion to an exact amount — bypassing the
 annual cap — or force it to zero, while every other year stays optimized. Replaces the
-all-or-nothing `maxRothConversion="file"` mode. **Breaking change:** `maxRothConversion="file"`
+all-or-nothing `maxRothConversion="file"` mode.
+
+**Breaking change:** `maxRothConversion="file"`
 is no longer accepted (raises a validation error); update TOMLs to use `useRothConvOverrides`
 instead. Run Options also gains a "Swap Roth converters mid-plan" control for couples,
 mutually exclusive with the existing Roth-conversion exclusion selector.
 
-#### CI: bump `actions/checkout` and `astral-sh/setup-uv` to Node 24 releases ahead of GitHub's Node 20 deprecation.
+#### CI: bump Node per GitHub's request
+Bump `actions/checkout` and `astral-sh/setup-uv` to Node 24 releases ahead of GitHub's Node 20 deprecation.
 
 ---
 
