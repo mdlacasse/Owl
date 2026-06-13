@@ -3,16 +3,17 @@
 Martin-D. Lacasse (mdlacasse)
 
 - Contributors (alphabetical order):
- Robert E. Anderson (NH-RedAnt) for bug fixes and suggestions,
- Clark Jefcoat (hubcity) for fruitful interactions,
- kg333 for fixing an error in Docker's instructions,
- John Leonard (jleonard99) for great suggestions, website, improved logger,
+ Robert E. Anderson (@NH-RedAnt) for bug fixes and suggestions,
+ Clark Jefcoat (@hubcity) for fruitful interactions,
+ @kg333 for fixing an error in Docker's instructions,
+ John Leonard (@jleonard99) for great suggestions, website, improved logger,
  stochastic rate generation, reproducibility, testing, and more to come...
- Benjamin Quinn (blquinn) for improvements and bug fixes,
- Dale Seng (sengsational) for great insights, testing, bug fixes, and suggestions,
- Eric Stratten (mechovision) for expanded IRS joint table,
- Josh Williams (noimjosh) for Docker image code,
- Gene Wood (gene1wood) for improvements and bug fixes.
+ Benjamin Quinn (@blquinn) for improvements and bug fixes,
+ @pcm2a for suggesting improved Roth conversion scheme,
+ Dale Seng (@sengsational) for great insights, testing, bug fixes, and suggestions,
+ Eric Stratten (@mechovision) for expanded IRS joint table,
+ Josh Williams (@noimjosh) for Docker image code,
+ Gene Wood (@gene1wood) for improvements and bug fixes.
 
 - Greg Grothaus for developing [ssa.tools](https://ssa.tools) and providing an integration with Owl.
 - [MOSEK](https://mosek.com) for providing a free license of their commercial software for Owl's
