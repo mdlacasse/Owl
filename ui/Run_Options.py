@@ -95,7 +95,7 @@ else:
             ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions",
                               help=helpmsg, disabled=excludeoff)
 
-            st.divider()
+            # st.divider()
             swapoff = excludeset and not swapon
             helpmsg = (
                 "Switch which spouse performs Roth conversions partway through the plan. "
