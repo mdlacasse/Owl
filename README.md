@@ -33,6 +33,13 @@ Owl covers the full US tax landscape: federal income tax, state income taxes for
 premiums, RMDs, and Roth conversion rules — all embedded directly in the optimizer so that
 tax-efficient retirement income planning is built into every result, not applied as an afterthought.
 
+<p align="center">
+<img src="papers/images/chris+pat_savings.png" width="700" alt="Owl Savings Balance plot: tax-deferred accounts drawn down while Roth balances grow through optimized conversions">
+<br>
+<em>Optimized account balances over time (today's dollars): Owl draws down tax-deferred
+accounts while growing tax-free Roth balances through early-retirement conversions.</em>
+</p>
+
 -------------------------------------------------------------------------------------
 
 **Key capabilities:**

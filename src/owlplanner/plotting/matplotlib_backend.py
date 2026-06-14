@@ -419,7 +419,7 @@ class MatplotlibBackend(PlotBackend):
             infladjust = gamma_n[:-1]
         else:
             series = {"taxable income": G_n / gamma_n[:-1]}
-            yformat = r"\$k (" + str(year_n[0]) + r"\$)"
+            yformat = r"\$k (constant " + str(year_n[0]) + r")"
             infladjust = 1
         fig, ax = self._line_income_plot(year_n, series, style, title, yformat)
         # Overlay tax brackets
@@ -446,7 +446,7 @@ class MatplotlibBackend(PlotBackend):
             yformat = r"\$k (nominal)"
         else:
             series = {"net": g_n / gamma_n[:-1], "target": (g_n[0] / xi_n[0]) * xi_n}
-            yformat = r"\$k (" + str(year_n[0]) + r"\$)"
+            yformat = r"\$k (constant " + str(year_n[0]) + r")"
 
         return self._line_income_plot(year_n, series, style, title, yformat)[0]
 
@@ -468,7 +468,7 @@ class MatplotlibBackend(PlotBackend):
             yformat = r"\$k (nominal)"
             infladjust = 1
         else:
-            yformat = r"\$k (" + str(year_n[0]) + r"\$)"
+            yformat = r"\$k (constant " + str(year_n[0]) + r")"
             infladjust = gamma_n
         years_n = np.array(year_n)
         years_n = np.append(years_n, [years_n[-1] + 1])
@@ -536,7 +536,7 @@ class MatplotlibBackend(PlotBackend):
             yformat = r"\$k (nominal)"
             savings = savings_in
         else:
-            yformat = r"\$k (" + str(year_n[0]) + r"\$)"
+            yformat = r"\$k (constant " + str(year_n[0]) + r")"
             savings = {k: v / gamma_n for k, v in savings_in.items()}
         fig, ax = self._stack_plot(year_n_full, inames, title, range(len(inames)),
                                    savings, stypes, "upper left", yformat)
@@ -551,7 +551,7 @@ class MatplotlibBackend(PlotBackend):
             scale_full = 1.0
             scale = 1.0
         else:
-            yformat = r"\$k (" + str(year_n[0]) + r"\$)"
+            yformat = r"\$k (constant " + str(year_n[0]) + r")"
             scale_full = gamma_n
             scale = gamma_n[:-1]
 
@@ -602,7 +602,7 @@ class MatplotlibBackend(PlotBackend):
             yformat = r"\$k (nominal)"
             sources = sources_in
         else:
-            yformat = r"\$k (" + str(year_n[0]) + r"\$)"
+            yformat = r"\$k (constant " + str(year_n[0]) + r")"
             sources = {k: v / gamma_n[:-1] for k, v in sources_in.items()}
         fig, ax = self._stack_plot(year_n, inames, title, range(len(inames)), sources, stypes, "upper left", yformat)
 
@@ -616,7 +616,7 @@ class MatplotlibBackend(PlotBackend):
             yformat = r"\$k (nominal)"
         else:
             series = {"income tax": T_n / gamma_n[:-1], "Medicare": M_n / gamma_n[:-1]}
-            yformat = r"\$k (" + str(year_n[0]) + r"\$)"
+            yformat = r"\$k (constant " + str(year_n[0]) + r")"
         if A_n is not None and np.any(A_n > 0):
             style["ACA"] = "--"
             if value == "nominal":

@@ -45,7 +45,8 @@ else:
         help_age = "Add per-person age columns (age on December 31 of each row's calendar year)."
         help_hide = "Hide numeric columns where every value is zero."
         help_real = (
-            "Display and save all currency values in inflation-adjusted (today's) dollars. "
+            f"Display and save all currency values in inflation-adjusted (today's) dollars, "
+            f"i.e. constant {owb.baseYear()} dollars. "
             "The saved Excel filename will have '_real' appended."
         )
         col_a, col_b, col_c = st.columns(3)

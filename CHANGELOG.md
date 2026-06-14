@@ -1,5 +1,24 @@
 
 
+### Version 2026.6.15
+
+#### Clearer "today's dollars" labeling on plots and in the UI
+
+Inflation-adjusted plots now label the vertical axis as `$k (constant <year>)` (e.g.
+`$k (constant 2026)`) instead of an ambiguous year tag, making the deflation base explicit and
+pairing cleanly with the `$k (nominal)` antonym. This also fixes a rendering bug where the
+dollar sign in the today's-dollars axis title was interpreted as a LaTeX/MathJax delimiter by
+the Plotly static-image export, mangling the label. The matching tooltips on the **Graphs**
+dollar-amount selector, the **Worksheets** "real (today's) dollars" toggle, and the **Goals**
+bequest/spending/safety-net fields now spell out "constant `<year>` dollars", all keyed off a
+new `baseYear()` helper so the wording always tracks the plan's base year.
+
+#### Documentation
+
+Added a Savings Balance example plot (the *chris+pat* case) to the README to illustrate how
+Owl draws down tax-deferred accounts while growing tax-free Roth balances through optimized
+early-retirement conversions.
+
 ### Version 2026.6.14
 
 #### Balance sheets in worksheets (traditional and liquid)

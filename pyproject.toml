@@ -8,8 +8,8 @@ force-include = { "PARAMETERS.md" = "owlplanner/PARAMETERS.md" }
 [project]
 name = "owlplanner"
 # Single source of truth for the version. Keep in sync with src/owlplanner/version.py
-# via `make sync-version` (enforced by tests/test_version.py).
-version = "2026.6.14"
+# via `make sync-version` (enforced by tests/utils/test_version.py).
+version = "2026.6.15"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]

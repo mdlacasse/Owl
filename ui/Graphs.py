@@ -42,7 +42,8 @@ else:
     with col1:
         choices = ["nominal", "today"]
         kz.initCaseKey("plots", choices[0])
-        helpmsg = "Plot can be in today's dollars or in nominal value."
+        helpmsg = (f"Plot can be in today's dollars or in nominal value. Today's dollars are "
+                   f"inflation-adjusted and labeled '\\$k (constant {owb.baseYear()})' on the axis.")
         ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg,
                           callback=owb.setDefaultPlots)
 

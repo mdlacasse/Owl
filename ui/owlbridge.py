@@ -390,6 +390,14 @@ def histYendMax():
     return int(plan.year_n[0]) - plan.N_n
 
 
+def baseYear():
+    """Return the plan's base year for 'today's dollars' (the constant-dollar reference year)."""
+    plan = kz.getCaseKey("plan")
+    if plan is None:
+        return date.today().year
+    return int(plan.year_n[0])
+
+
 def getGuaranteedIncome(plan):
     """Average annual guaranteed income in today's dollars (SS + pension + SPIA)."""
     import numpy as np

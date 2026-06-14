@@ -153,7 +153,7 @@ class PlotlyBackend(PlotBackend):
             infladjust = gamma_n[:-1]
         else:
             y_data = G_n / gamma_n[:-1] / 1000
-            y_title = f"$k ({year_n[0]}$)"
+            y_title = f"$k (constant {year_n[0]})"
             infladjust = 1
 
         fig.add_trace(go.Scatter(
@@ -201,7 +201,7 @@ class PlotlyBackend(PlotBackend):
         else:
             net_data = g_n / gamma_n[:-1] / 1000
             target_data = (g_n[0] / xi_n[0]) * xi_n / 1000
-            y_title = f"$k ({year_n[0]}$)"
+            y_title = f"$k (constant {year_n[0]})"
 
         # Add net spending line
         fig.add_trace(go.Scatter(
@@ -256,7 +256,7 @@ class PlotlyBackend(PlotBackend):
             medicare_data = M_n / gamma_n[:-1] / 1000
             aca_data = A_n / gamma_n[:-1] / 1000 if A_n is not None else None
             st_data = ST_n / gamma_n[:-1] / 1000 if ST_n is not None else None
-            y_title = f"$k ({year_n[0]}$)"
+            y_title = f"$k (constant {year_n[0]})"
 
         # Add income taxes line
         fig.add_trace(go.Scatter(
@@ -1218,7 +1218,7 @@ class PlotlyBackend(PlotBackend):
             yformat = "$k (nominal)"
             infladjust = 1
         else:
-            yformat = f"$k ({year_n[0]}$)"
+            yformat = f"$k (constant {year_n[0]})"
             infladjust = gamma_n
 
         # Prepare years array
@@ -1367,7 +1367,7 @@ class PlotlyBackend(PlotBackend):
             yformat = "$k (nominal)"
             savings = savings_in
         else:
-            yformat = f"$k ({year_n[0]}$)"
+            yformat = f"$k (constant {year_n[0]})"
             savings = {k: v / gamma_n for k, v in savings_in.items()}
 
         # Filter out zero series and create individual series names
@@ -1414,7 +1414,7 @@ class PlotlyBackend(PlotBackend):
             scale_full = 1.0
             scale = 1.0
         else:
-            yformat = f"$k ({year_n[0]}$)"
+            yformat = f"$k (constant {year_n[0]})"
             scale_full = gamma_n
             scale = gamma_n[:-1]
 
@@ -1498,7 +1498,7 @@ class PlotlyBackend(PlotBackend):
             yformat = "$k (nominal)"
             sources = sources_in
         else:
-            yformat = f"$k ({year_n[0]}$)"
+            yformat = f"$k (constant {year_n[0]})"
             sources = {k: v / gamma_n[:-1] for k, v in sources_in.items()}
 
         # Filter out zero series and create individual series names

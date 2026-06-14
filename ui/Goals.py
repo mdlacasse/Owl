@@ -57,7 +57,8 @@ else:
     with col2:
         if kz.getCaseKey("objective") == "Net spending":
             kz.initCaseKey("bequest", 0)
-            helpmsg_bequest = ("Desired bequest from savings accounts only (in today's \\$k). "
+            helpmsg_bequest = (f"Desired bequest from savings accounts only (in today's \\$k, i.e. constant "
+                               f"{owb.baseYear()} dollars). "
                                "Fixed assets liquidated at the end of the plan are added separately.")
             bequest = kz.getNum("Desired bequest from savings accounts (\\$k)", "bequest",
                                 help=helpmsg_bequest)
@@ -68,16 +69,19 @@ else:
 
             if fixed_assets_bequest_k > 0:
                 st.info(f"Fixed assets contribute an additional"
-                        f" \\${fixed_assets_bequest_k:,.0f}k to bequest (in today's \\$).")
+                        f" \\${fixed_assets_bequest_k:,.0f}k to bequest (in today's \\$, i.e. constant"
+                        f" {owb.baseYear()} dollars).")
 
         else:  # Bequest
             kz.initCaseKey("netSpending", 0)
-            helpmsg_spending = "Desired annual net spending in today's \\$k (the constraint when maximizing bequest)."
+            helpmsg_spending = (f"Desired annual net spending in today's \\$k, i.e. constant {owb.baseYear()} "
+                                "dollars (the constraint when maximizing bequest).")
             ret = kz.getNum("Desired annual net spending (\\$k)", "netSpending", help=helpmsg_spending)
 
     st.divider()
     st.markdown("#### :orange[Safety Net]")
-    helpmsg = ("Maintain a minimum inflation-adjusted taxable balance (today’s \\$k)"
+    helpmsg = (f"Maintain a minimum inflation-adjusted taxable balance (today's \\$k, i.e. constant "
+               f"{owb.baseYear()} dollars)"
                " from year 2 through life expectancy. This should ideally be less than the initial balance.")
     ni = 2 if kz.getCaseKey("status") == "married" else 1
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
@@ -96,7 +100,8 @@ else:
 
     if kz.getCaseKey("objective") == "Net spending" and (net0 + net1) > bequest:
         st.caption(":warning: When maximizing spending with a bequest target, the desired bequest should be at least "
-                   "as large as the survivor's safety net (in today's \\$), otherwise optimization may be infeasible.")
+                   "as large as the survivor's safety net (in today's \\$, i.e. constant "
+                   f"{owb.baseYear()} dollars), otherwise optimization may be infeasible.")
 
     txbl0 = kz.getCaseKey("txbl0") or 0
     if txbl0 > 0 and net0 > 0.60 * txbl0:
