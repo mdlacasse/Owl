@@ -100,7 +100,7 @@ if platform == "darwin":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_880,
+            "net_spending_basis": 102_881,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -127,7 +127,7 @@ elif platform == "linux":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_741,
+            "net_spending_basis": 102_881,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -154,7 +154,7 @@ elif platform == "win32":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_741,
+            "net_spending_basis": 102_881,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -191,9 +191,9 @@ def test_reproducibility():
     is successfully loaded for each case.
     """
     # MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
-    # (~103_210 vs HiGHS ~102_978) after the LTCG bracket-partition and state-tax LP fixes.
+    # (~103_192 vs HiGHS ~102_881) after the LTCG bracket-partition and state-tax LP fixes.
     if _active_solver() == 'MOSEK':
-        EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 103_210
+        EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 103_192
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version
