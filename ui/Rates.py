@@ -418,95 +418,99 @@ preserving stationarity."""
     if varying:
         owb.showRatesCDF(col1)
 
-    # st.divider()
     with st.expander("*Advanced options*"):
-        # Rate sequence (reverse / roll) — only for varying (non-fixed) methods
-        if kz.getCaseKey("rateType") == "varying":
+        col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+        with col1:
+            st.markdown("#### :orange[Income taxes]")
+            scol1, scol2 = st.columns(2, gap="small", vertical_alignment="top")
+            with scol1:
+                kz.initCaseKey("heirsTx", 30)
+                helpmsg = "Marginal tax rate that heirs would have to pay on inherited tax-deferred balance."
+                ret = kz.getNum("Heirs marginal tax rate (%)", "heirsTx", max_value=100.0, help=helpmsg, step=1.0)
+
+            with scol2:
+                kz.initCaseKey("yOBBBA", 2032)
+                thisyear = date.today().year
+                helpmsg = "Year at which the OBBBA tax rates are projected to expire and return to pre-TCJA rates."
+                ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
+                                   min_value=thisyear, max_value=thisyear+40, help=helpmsg)
+
+            st.markdown("#### :orange[Other Rates]")
+            scol1, scol2 = st.columns(2, gap="small", vertical_alignment="top")
+            with scol1:
+                kz.initCaseKey("divRate", 1.72)
+                helpmsg = """Average annual (qualified) dividend yield on stock portfolio in taxable account.
+    See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
+                ret = kz.getNum("Dividend rate (%)", "divRate", max_value=5.0, format="%.2f", help=helpmsg, step=1.0)
+
+        with col2:
+            st.markdown("#### :orange[Liquid balance sheet]")
+            scol1, scol2 = st.columns(2, gap="small", vertical_alignment="top")
+            with scol1:
+                kz.initCaseKey("liquidationTx", 24)
+                helpmsg = ("Assumed ordinary income tax rate applied to tax-deferred and HSA balances "
+                           "on the liquid balance sheet (tax owed if these accounts were liquidated).")
+                ret = kz.getNum("Liquidation tax rate (%)", "liquidationTx", max_value=100.0, help=helpmsg, step=1.0)
+
+            with scol2:
+                kz.initCaseKey("liquidationCG", 15)
+                helpmsg = ("Assumed capital-gains tax rate applied to fixed-asset disposition (commission plus this "
+                           "rate on the gain) on the liquid balance sheet.")
+                ret = kz.getNum("Liquidation cap-gains rate (%)", "liquidationCG",
+                                max_value=100.0, help=helpmsg, step=1.0)
+
+        col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
+        with col1:
+            # Reproducibility checkbox - only for stochastic methods that use a seed.
+            if kz.getCaseKey("varyingType") in STOCHASTIC_METHODS:
+                st.markdown("#### :orange[Rate Generation]")
+                kz.initCaseKey("reproducibleRates", False)
+                kz.initCaseKey("rateSeed", 1)
+                helpmsgRepro = """When enabled, the same random seed will be used to generate rates,
+ensuring reproducible results across case runs. This is useful for comparing
+other parameters while keeping rates constant."""
+                scol1, scol2 = st.columns(2, gap="small", vertical_alignment="top")
+                with scol1:
+                    st.checkbox(
+                        "Enable reproducible rates",
+                        value=kz.getCaseKey("reproducibleRates"),
+                        on_change=updateRates,
+                        args=["reproducibleRates"],
+                        key=kz.genCaseKey("reproducibleRates"),
+                        help=helpmsgRepro,
+                    )
+
+                    reproducible = kz.getCaseKey("reproducibleRates")
+                    helpmsg = "Draw a new random rate sequence. Disabled when reproducible rates is enabled."
+                    if st.button("Regenerate rates", disabled=reproducible, help=helpmsg):
+                        plan = kz.getCaseKey("plan")
+                        if plan is not None:
+                            plan.regenRates()
+                        st.rerun()
+
+                with scol2:
+                    helpmsgSeed = ("Integer seed ≥ 1 for the random number generator. "
+                                   "Change this value to explore different rate sequences while "
+                                   "keeping results reproducible.")
+                    kz.getIntNum("Random seed", "rateSeed", min_value=1, max_value=2**31 - 1,
+                                 callback=updateRates, help=helpmsgSeed, disabled=not reproducible)
+
+        with col2:
+            # Rate sequence (reverse / roll) — only for varying (non-fixed) methods
+            irreversible = kz.getCaseKey("rateType") == "constant"
             st.markdown("#### :orange[Rate sequence]")
             plan = kz.getCaseKey("plan")
             N_n = plan.N_n if plan is not None else 50
-            help_reverse = "Reverse the rate sequence along the time axis (e.g. run last year first)."
-            help_roll = "Roll the rate sequence by this many years (0 = no shift)."
-            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
-            with col2:
-                kz.getToggle("Reverse sequence", "reverse_sequence", callback=updateRates, help=help_reverse)
-            with col1:
+            scol1, scol2 = st.columns(2, gap="small", vertical_alignment="bottom")
+            with scol2:
+                help_reverse = "Reverse the rate sequence along the time axis (e.g. run last year first)."
+                kz.getToggle("Reverse sequence", "reverse_sequence", callback=updateRates,
+                             help=help_reverse, disabled=irreversible)
+            with scol1:
                 kz.initCaseKey("roll_sequence", 0)
+                help_roll = "Roll the rate sequence by this many years (0 = no shift)."
                 kz.getIntNum("Roll (years)", "roll_sequence", min_value=0, max_value=N_n,
-                             step=1, callback=updateRates, help=help_roll)
-
-        st.markdown("#### :orange[Other Rates]")
-        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-        with col1:
-            kz.initCaseKey("divRate", 1.72)
-            helpmsg = """Average annual (qualified) dividend yield on stock portfolio in taxable account.
-See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
-            ret = kz.getNum("Dividend rate (%)", "divRate", max_value=5.0, format="%.2f", help=helpmsg, step=1.0)
-
-        st.markdown("#### :orange[Income taxes]")
-        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-        with col1:
-            kz.initCaseKey("heirsTx", 30)
-            helpmsg = "Marginal tax rate that heirs would have to pay on inherited tax-deferred balance."
-            ret = kz.getNum("Heirs marginal tax rate (%)", "heirsTx", max_value=100.0, help=helpmsg, step=1.0)
-
-        with col2:
-            kz.initCaseKey("yOBBBA", 2032)
-            thisyear = date.today().year
-            helpmsg = "Year at which the OBBBA tax rates are projected to expire and return to pre-TCJA rates."
-            ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
-                               min_value=thisyear, max_value=thisyear+40, help=helpmsg)
-
-        st.markdown("#### :orange[Liquid balance sheet]")
-        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-        with col1:
-            kz.initCaseKey("liquidationTx", 24)
-            helpmsg = ("Assumed ordinary income tax rate applied to tax-deferred and HSA balances "
-                       "on the liquid balance sheet (tax owed if these accounts were liquidated).")
-            ret = kz.getNum("Liquidation tax rate (%)", "liquidationTx", max_value=100.0, help=helpmsg, step=1.0)
-
-        with col2:
-            kz.initCaseKey("liquidationCG", 15)
-            helpmsg = ("Assumed capital-gains tax rate applied to fixed-asset disposition (commission plus this "
-                       "rate on the gain) on the liquid balance sheet.")
-            ret = kz.getNum("Liquidation cap-gains rate (%)", "liquidationCG",
-                            max_value=100.0, help=helpmsg, step=1.0)
-
-        # Reproducibility checkbox - only for stochastic methods that use a seed.
-        if kz.getCaseKey("varyingType") in STOCHASTIC_METHODS:
-            st.markdown("#### :orange[Rate Generation]")
-            kz.initCaseKey("reproducibleRates", False)
-            kz.initCaseKey("rateSeed", 1)
-            helpmsgRepro = """When enabled, the same random seed will be used to generate rates,
-ensuring reproducible results across case runs. This is useful for comparing
-other parameters while keeping rates constant."""
-            helpmsgSeed = ("Integer seed ≥ 1 for the random number generator. "
-                           "Change this value to explore different rate sequences while keeping results reproducible.")
-            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
-            with col1:
-                st.checkbox(
-                    "Enable reproducible rates",
-                    value=kz.getCaseKey("reproducibleRates"),
-                    on_change=updateRates,
-                    args=["reproducibleRates"],
-                    key=kz.genCaseKey("reproducibleRates"),
-                    help=helpmsgRepro,
-                )
-            if kz.getCaseKey("reproducibleRates"):
-                with col2:
-                    kz.getIntNum("Random seed", "rateSeed", min_value=1, max_value=2**31 - 1,
-                                 callback=updateRates, help=helpmsgSeed)
-            with col3:
-                reproducible = kz.getCaseKey("reproducibleRates")
-                if st.button(
-                    "Regenerate rates",
-                    disabled=reproducible,
-                    help="Draw a new random rate sequence. Disabled when reproducible rates is enabled.",
-                ):
-                    plan = kz.getCaseKey("plan")
-                    if plan is not None:
-                        plan.regenRates()
-                    st.rerun()
+                             step=1, callback=updateRates, help=help_roll, disabled=irreversible)
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()
