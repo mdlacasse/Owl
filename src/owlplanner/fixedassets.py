@@ -294,6 +294,119 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, gamma_n, thisyear=None)
     return total_bequest_value
 
 
+def get_fixed_assets_disposition_costs_array(
+    fixed_assets_df, N_n, gamma_n, capgains_rate, thisyear=None, filing_status="single"
+):
+    """
+    Process fixed_assets_df to provide an array of length N_n containing the
+    estimated cost of disposing of all fixed assets still held at the start of
+    each year, i.e. the commission plus the capital-gains tax that would be due
+    if every asset were sold that year. This is the liability counterpart to
+    get_fixed_assets_current_values_array() and is used for the liquid balance
+    sheet.
+
+    For each asset still held at the start of a year, the cost is:
+        commission + capgains_rate * max(0, taxable_gain)
+    where the commission and the taxable gain mirror the treatment in
+    get_fixed_assets_arrays(): commission reduces proceeds, the gain is computed
+    against basis, and a primary residence receives the $250k/$500k exclusion.
+    Fixed annuities are taxed as ordinary income elsewhere; their gain is taxed
+    here at the same capgains_rate as a conservative liquid-value estimate.
+
+    Parameters:
+    -----------
+    fixed_assets_df : pd.DataFrame
+        DataFrame with columns: name, type, year, basis, value, rate, yod, commission
+        where 'year' is the reference year (this year or after). Basis and
+        value are in reference-year dollars.
+    N_n : int
+        Number of years in the plan (length of output array)
+    gamma_n : ndarray or None
+        Cumulative inflation multiplier array (length N_n+1) from gen_gamma_n().
+        Applied to real-rate asset types (residence, real estate, collectibles,
+        precious metals) where `rate` is real (above-inflation) growth.
+        Pass None only when the dataset contains no real-rate asset types.
+    capgains_rate : float
+        Assumed capital-gains tax rate (decimal, e.g. 0.15) applied to gains.
+    thisyear : int, optional
+        Starting year of the plan (defaults to date.today().year).
+        Array index 0 corresponds to thisyear, index 1 to thisyear+1, etc.
+    filing_status : str, optional
+        Filing status: "single" or "married" (defaults to "single").
+        Affects primary residence exclusion limits.
+
+    Returns:
+    --------
+    np.ndarray
+        Array of length N_n with the total disposition cost (commission plus
+        estimated capital-gains tax) of fixed assets still held at the start of
+        each year.
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+
+    if u.is_dataframe_empty(fixed_assets_df):
+        return np.zeros(N_n)
+
+    if filing_status == "married":
+        residence_exclusion = RESIDENCE_EXCLUSION_MARRIED
+    else:
+        residence_exclusion = RESIDENCE_EXCLUSION_SINGLE
+
+    end_year = thisyear + N_n - 1  # Last year of the plan
+    costs_n = np.zeros(N_n)
+
+    for _, asset in fixed_assets_df.iterrows():
+        # Skip if active column exists and is False (treat NaN/None as True)
+        if not u.is_row_active(asset):
+            continue
+
+        asset_type = str(asset["type"]).lower()
+        basis = float(asset["basis"])
+        value_at_reference = float(asset["value"])  # Value at reference year
+        annual_rate = float(asset["rate"])
+        reference_year = _get_reference_year(asset, thisyear)
+        yod = int(asset["yod"])  # Year of disposition
+        commission_pct = float(asset["commission"]) / 100.0
+
+        # Account for negative or null yod with reference to end of plan
+        if yod <= 0:
+            yod = end_year + yod + 1
+
+        # Skip if disposition is before reference year (invalid)
+        if yod < reference_year:
+            continue
+
+        ref_n = max(0, reference_year - thisyear)
+
+        for n in range(N_n):
+            year = thisyear + n
+            # Asset not yet acquired, or already disposed (cash flow booked elsewhere)
+            if year < reference_year or year >= yod:
+                continue
+
+            years_from_reference = year - reference_year
+            future_value = calculate_future_value(value_at_reference, annual_rate, years_from_reference)
+            if asset_type in REAL_RATE_TYPES and gamma_n is not None:
+                future_value *= gamma_n[n] / gamma_n[ref_n]
+
+            commission_amount = future_value * commission_pct
+            proceeds = future_value - commission_amount
+            gain = proceeds - basis
+
+            cost = commission_amount
+            if gain > 0:
+                if asset_type == "residence":
+                    taxable_gain = max(0, gain - residence_exclusion)
+                else:
+                    taxable_gain = gain
+                cost += capgains_rate * taxable_gain
+
+            costs_n[n] += cost
+
+    return costs_n
+
+
 def get_fixed_assets_current_values_array(fixed_assets_df, N_n, gamma_n, thisyear=None):
     """
     Process fixed_assets_df to provide an array of length N_n containing the

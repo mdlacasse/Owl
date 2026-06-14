@@ -152,6 +152,8 @@ Rates use standard financial conventions:
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `heirs_rate_on_tax_deferred_estate` | float | Tax rate (as percentage, e.g., `30.0` for 30%) that heirs will pay on inherited tax-deferred and HSA accounts. Non-spouse HSA beneficiaries must include the full inherited HSA balance as ordinary income (IRC §223(f)(8)(B)) |
+| `liquidation_tax_rate` | float | Assumed ordinary income tax rate (as percentage, e.g., `24.0` for 24%) applied to tax-deferred and HSA balances on the liquid balance sheet (tax owed if those accounts were liquidated). Default is `24.0` |
+| `liquidation_capgains_rate` | float | Assumed capital-gains tax rate (as percentage, e.g., `15.0` for 15%) applied to fixed-asset disposition (commission plus this rate on the gain) on the liquid balance sheet. Default is `15.0` |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
 | `method` | string | Method for determining rates. Valid values: `"trailing-30"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"gaussian"`, `"histogaussian"`, `"lognormal"`, `"histolognormal"`, `"bootstrap_sor"`, `"var"`, `"garch_dcc"`, `"historical_copula"`, `"gmm"`, `"hmm"`, `"dataframe"` |
@@ -413,6 +415,8 @@ social_security_ages = [70.0, 67.0]
 
 [rates_selection]
 heirs_rate_on_tax_deferred_estate = 30.0
+liquidation_tax_rate = 24.0
+liquidation_capgains_rate = 15.0
 dividend_rate = 1.8
 obbba_expiration_year = 2032
 method = "historical average"

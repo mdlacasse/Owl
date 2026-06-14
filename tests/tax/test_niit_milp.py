@@ -84,6 +84,12 @@ def _solve_base(extra_options=None, n_individuals=2):
     return p
 
 
+@pytest.fixture(scope="class")
+def solved_plan():
+    """One shared solve for tests that only need a feasible NIIT MILP solution."""
+    return _solve_base()
+
+
 class TestNIITMilp:
     """Tests for the NIIT MILP formulation (withNIIT='optimize')."""
 
@@ -97,11 +103,6 @@ class TestNIITMilp:
     def _solve(self, extra_options=None, n_individuals=2):
         """Couple plan (short horizon) solved with NIIT MILP."""
         return _solve_base(extra_options=extra_options, n_individuals=n_individuals)
-
-    @pytest.fixture(scope="class")
-    def solved_plan(self):
-        """One shared solve for tests that only need a feasible NIIT MILP solution."""
-        return _solve_base()
 
     def test_niit_milp_feasible(self, solved_plan):
         """withNIIT='optimize' produces a feasible solution."""

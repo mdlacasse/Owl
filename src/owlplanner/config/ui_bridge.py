@@ -25,6 +25,8 @@ from owlplanner.config.defaults import (
     DEFAULT_GENERIC_ALLOCATION,
     DEFAULT_HEIRS_RATE,
     DEFAULT_LIFE_EXPECTANCY,
+    DEFAULT_LIQUIDATION_CAPGAINS_RATE,
+    DEFAULT_LIQUIDATION_TAX_RATE,
     DEFAULT_OBBBA_YEAR,
     DEFAULT_PENSION_AGE,
     DEFAULT_SS_AGE,
@@ -204,6 +206,8 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["survivor"] = int(op.get("surviving_spouse_spending_percent", 60))
     dic["divRate"] = float(rs.get("dividend_rate", DEFAULT_DIVIDEND_RATE))
     dic["heirsTx"] = float(rs.get("heirs_rate_on_tax_deferred_estate", DEFAULT_HEIRS_RATE))
+    dic["liquidationTx"] = float(rs.get("liquidation_tax_rate", DEFAULT_LIQUIDATION_TAX_RATE))
+    dic["liquidationCG"] = float(rs.get("liquidation_capgains_rate", DEFAULT_LIQUIDATION_CAPGAINS_RATE))
     dic["yOBBBA"] = int(rs.get("obbba_expiration_year", DEFAULT_OBBBA_YEAR))
     dic["surplusFraction"] = float(sa.get("spousal_surplus_deposit_fraction", 0.5))
     dic["plots"] = res.get("default_plots", "nominal")
@@ -472,6 +476,10 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
         },
         "rates_selection": {
             "heirs_rate_on_tax_deferred_estate": _get_ui(uidic, "heirsTx", DEFAULT_HEIRS_RATE, float),
+            "liquidation_tax_rate": _get_ui(uidic, "liquidationTx", DEFAULT_LIQUIDATION_TAX_RATE, float),
+            "liquidation_capgains_rate": _get_ui(
+                uidic, "liquidationCG", DEFAULT_LIQUIDATION_CAPGAINS_RATE, float
+            ),
             "dividend_rate": _get_ui(uidic, "divRate", DEFAULT_DIVIDEND_RATE, float),
             "obbba_expiration_year": _get_ui(uidic, "yOBBBA", DEFAULT_OBBBA_YEAR, int),
             "method": _ui_rate_method_to_config(uidic),

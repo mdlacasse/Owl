@@ -921,6 +921,64 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     ws = wb.create_sheet("HSA")
     fillsheet(ws, hsaDic, "currency", scale=inv_gamma, sheet_name="HSA")
 
+    # --- Balance sheets (traditional and liquid) ---
+    # Time-series, beginning-of-year snapshot, plus a final end-of-plan (bequest) row.
+    year_bs = np.append(plan.year_n, [plan.year_n[-1] + 1])
+    inv_gamma_bs = (1.0 / plan.gamma_n[:plan.N_n + 1]) if real else None
+
+    taxable_bs = np.sum(plan.b_ijn[:, 0, :], axis=0)
+    taxdef_bs = np.sum(plan.b_ijn[:, 1, :], axis=0)
+    taxfree_bs = np.sum(plan.b_ijn[:, 2, :], axis=0)
+    hsa_bs = np.sum(plan.b_ijn[:, 3, :], axis=0)
+    fixed_bs = np.append(plan.fixed_assets_current_asset_values_n, plan.fixed_assets_bequest_value)
+    debt_bs = np.append(plan.fixed_assets_debt_balances_remaining_n, plan.remaining_debt_balance)
+    dispo_bs = np.append(plan.fixed_assets_disposition_costs_n, 0.0)
+    total_assets_bs = taxable_bs + taxdef_bs + taxfree_bs + hsa_bs + fixed_bs
+
+    tradDic = {
+        "taxable": taxable_bs,
+        "tax-deferred": taxdef_bs,
+        "tax-free": taxfree_bs,
+        "HSA": hsa_bs,
+        "fixed assets": fixed_bs,
+        "total assets": total_assets_bs,
+        "debt": debt_bs,
+        "net worth": total_assets_bs - debt_bs,
+    }
+
+    deferred_tax_bs = (taxdef_bs + hsa_bs) * plan.liquidationTaxRate
+    total_liab_bs = debt_bs + deferred_tax_bs + dispo_bs
+    liquidDic = {
+        "taxable": taxable_bs,
+        "tax-deferred": taxdef_bs,
+        "tax-free": taxfree_bs,
+        "HSA": hsa_bs,
+        "fixed assets": fixed_bs,
+        "total assets": total_assets_bs,
+        "debt": debt_bs,
+        "deferred income tax": deferred_tax_bs,
+        "disposition costs": dispo_bs,
+        "total liabilities": total_liab_bs,
+        "liquid net worth": total_assets_bs - total_liab_bs,
+    }
+
+    for bs_name, bs_dic in (("Balance Sheet", tradDic), ("Liquid Balance Sheet", liquidDic)):
+        ws = wb.create_sheet(bs_name)
+        rawData = {"year": year_bs}
+        for key in bs_dic:
+            val = bs_dic[key]
+            if inv_gamma_bs is not None:
+                val = val * inv_gamma_bs
+            rawData[key] = u.roundCents(val)
+        df = pd.DataFrame(rawData)
+        if plan.worksheetShowAges and "year" in df.columns:
+            df = _insert_age_cols_into_df(df, plan, bs_name)
+        for row in dataframe_to_rows(df, index=False, header=True):
+            ws.append(row)
+        _format_spreadsheet(ws, "currency")
+        if plan.worksheetShowAges:
+            _format_age_cols_in_ws(ws)
+
     TxDic = {}
     for t in range(plan.N_t):
         tname = tx.taxBracketNames[t] if t < len(tx.taxBracketNames) else f"Bracket {t}"

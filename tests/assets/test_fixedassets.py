@@ -926,3 +926,97 @@ class TestGetFixedAssetsCurrentValuesArray:
         assert values[1] == pytest.approx(380_000, abs=1.0)
         # From 2027 on, stocks are gone (disposed), only house remains
         assert values[2] == pytest.approx(300_000, abs=1.0)
+
+
+class TestGetFixedAssetsDispositionCostsArray:
+    """Tests for get_fixed_assets_disposition_costs_array function."""
+
+    def test_empty_dataframe(self):
+        df = pd.DataFrame(columns=["name", "type", "year", "basis", "value", "rate", "yod", "commission"])
+        costs = fixedassets.get_fixed_assets_disposition_costs_array(df, 10, None, 0.15)
+        assert len(costs) == 10
+        assert np.all(costs == 0)
+
+    def test_none_dataframe(self):
+        costs = fixedassets.get_fixed_assets_disposition_costs_array(None, 10, None, 0.15)
+        assert len(costs) == 10
+        assert np.all(costs == 0)
+
+    def test_commission_plus_capgains(self):
+        """Stocks: cost = commission + capgains_rate * gain (gain net of basis, after commission)."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "basis": 100_000,
+            "value": 200_000,
+            "rate": 0.0,
+            "yod": 2040,  # Held throughout
+            "commission": 1.0,
+        }])
+        thisyear = 2025
+        N_n = 3
+        capgains_rate = 0.15
+        costs = fixedassets.get_fixed_assets_disposition_costs_array(df, N_n, None, capgains_rate, thisyear)
+        commission = 200_000 * 0.01
+        gain = (200_000 - commission) - 100_000
+        expected = commission + capgains_rate * gain
+        for n in range(N_n):
+            assert costs[n] == pytest.approx(expected, abs=1.0)
+
+    def test_residence_exclusion_applied(self):
+        """Residence gain within the $250k single exclusion incurs no cap-gains tax (commission only)."""
+        df = pd.DataFrame([{
+            "name": "house",
+            "type": "residence",
+            "basis": 200_000,
+            "value": 400_000,  # gain ~200k < 250k single exclusion
+            "rate": 0.0,
+            "yod": 2040,
+            "commission": 5.0,
+        }])
+        thisyear = 2025
+        N_n = 2
+        costs = fixedassets.get_fixed_assets_disposition_costs_array(
+            df, N_n, None, 0.15, thisyear, filing_status="single"
+        )
+        commission = 400_000 * 0.05
+        # gain after commission = (400000-20000) - 200000 = 180000 < 250000 -> no taxable gain
+        for n in range(N_n):
+            assert costs[n] == pytest.approx(commission, abs=1.0)
+
+    def test_asset_excluded_after_disposition(self):
+        """No disposition cost is booked once the asset's disposition year is reached."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "basis": 50_000,
+            "value": 80_000,
+            "rate": 0.0,
+            "yod": 2027,
+            "commission": 1.0,
+        }])
+        thisyear = 2025
+        N_n = 5
+        costs = fixedassets.get_fixed_assets_disposition_costs_array(df, N_n, None, 0.15, thisyear)
+        n = 2027 - 2025
+        assert costs[0] > 0
+        assert costs[1] > 0
+        assert np.all(costs[n:] == 0)
+
+    def test_loss_incurs_commission_only(self):
+        """An asset sold at a loss incurs only commission (no negative tax)."""
+        df = pd.DataFrame([{
+            "name": "stocks",
+            "type": "stocks",
+            "basis": 200_000,
+            "value": 100_000,
+            "rate": 0.0,
+            "yod": 2040,
+            "commission": 2.0,
+        }])
+        thisyear = 2025
+        N_n = 2
+        costs = fixedassets.get_fixed_assets_disposition_costs_array(df, N_n, None, 0.15, thisyear)
+        commission = 100_000 * 0.02
+        for n in range(N_n):
+            assert costs[n] == pytest.approx(commission, abs=1.0)

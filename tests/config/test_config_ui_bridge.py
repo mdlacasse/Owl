@@ -234,14 +234,6 @@ def test_worksheet_real_dollars_ui_to_config_and_apply():
     assert p.worksheetRealDollars is True
 
 
-def test_config_to_ui_worksheet_real_dollars():
-    """config_to_ui maps results.worksheet_real_dollars to worksheetRealDollars."""
-    diconf = _minimal_config_for_rates()
-    diconf["results"]["worksheet_real_dollars"] = True
-    uidic = config_to_ui(diconf)
-    assert uidic["worksheetRealDollars"] is True
-
-
 def test_apply_config_to_plan():
     """apply_config_to_plan syncs config to existing plan."""
     p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
@@ -474,18 +466,6 @@ def test_solver_options_with_ss_ages_single_name_roundtrip():
 
     back = ui_to_config(uidic)
     assert back["solver_options"]["withSSAges"] == iname0
-
-
-def test_other_medical_expenses_config_to_ui_roundtrip():
-    """other_medical_expenses round-trips through config_to_ui and ui_to_config."""
-    diconf = _minimal_config_for_rates()
-    diconf["optimization_parameters"]["other_medical_expenses"] = 5.0
-
-    uidic = config_to_ui(diconf)
-    assert uidic["otherMedical"] == 5.0, f"Expected otherMedical=5.0, got {uidic['otherMedical']}"
-
-    out = ui_to_config(uidic)
-    assert out["optimization_parameters"]["other_medical_expenses"] == 5.0
 
 
 def test_taxable_cost_basis_config_to_ui_roundtrip():

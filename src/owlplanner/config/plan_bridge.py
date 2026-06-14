@@ -129,10 +129,14 @@ def _apply_rates_to_plan(plan: "Plan", known: dict) -> None:
 
     plan.setDividendRate(float(rates_section.get("dividend_rate", 1.8)))
     plan.setHeirsTaxRate(float(rates_section.get("heirs_rate_on_tax_deferred_estate", 30.0)))
+    plan.setLiquidationTaxRate(float(rates_section.get("liquidation_tax_rate", 24.0)))
+    plan.setLiquidationCapGainsRate(float(rates_section.get("liquidation_capgains_rate", 15.0)))
     plan.yOBBBA = int(rates_section.get("obbba_expiration_year", 2032))
 
     rates_section.pop("dividend_rate", None)
     rates_section.pop("heirs_rate_on_tax_deferred_estate", None)
+    rates_section.pop("liquidation_tax_rate", None)
+    rates_section.pop("liquidation_capgains_rate", None)
     rates_section.pop("effective_tax_rate", None)  # legacy key — silently ignore
     rates_section.pop("obbba_expiration_year", None)
 
@@ -452,6 +456,8 @@ def plan_to_config(myplan: "Plan") -> dict:
     rate_method = myplan.rateMethod
     diconf["rates_selection"] = {
         "heirs_rate_on_tax_deferred_estate": float(100 * myplan.nu),
+        "liquidation_tax_rate": float(100 * myplan.liquidationTaxRate),
+        "liquidation_capgains_rate": float(100 * myplan.liquidationCapGainsRate),
         "dividend_rate": float(100 * myplan.mu),
         "obbba_expiration_year": myplan.yOBBBA,
         "method": rate_method,

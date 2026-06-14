@@ -147,6 +147,12 @@ class RatesSelection(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     heirs_rate_on_tax_deferred_estate: float = Field(default=30.0, description="Heirs tax rate (%)")
+    liquidation_tax_rate: float = Field(
+        default=24.0, description="Ordinary tax rate on tax-deferred/HSA for liquid balance sheet (%)"
+    )
+    liquidation_capgains_rate: float = Field(
+        default=15.0, description="Capital-gains tax rate on fixed-asset disposition for liquid balance sheet (%)"
+    )
     dividend_rate: Optional[float] = Field(default=1.8, description="Dividend rate (%)")
     obbba_expiration_year: Optional[int] = Field(default=2032, description="OBBBA expiry year")
     method: str = Field(default="historical_average", description="Rate method")

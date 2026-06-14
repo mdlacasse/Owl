@@ -245,6 +245,8 @@ class Plan:
         self.taxable_basis_i = None     # Per-person initial cost basis (N_i,); None = legacy cap-gain approx
         self.gain_fraction_in = None    # (N_i, N_n) unrealized gain fraction; updated each SC iteration
         self.nu = 0.300   # Heirs tax rate (decimal)
+        self.liquidationTaxRate = 0.240    # Assumed ordinary tax rate on tax-deferred/HSA if liquidated (decimal)
+        self.liquidationCapGainsRate = 0.150  # Assumed capital-gains tax rate on fixed-asset disposition (decimal)
         self.bequest = 0.0                    # After-tax bequest in today's dollars (set after full solve)
         self.heir_tax_liability = 0.0         # Heir taxes on final bequest (IRA+HSA), today's $
         self.partial_heir_tax_liability = 0.0  # Heir taxes on partial bequest, today's $
@@ -306,6 +308,8 @@ class Plan:
         self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
         # Current market value of fixed assets still held at the start of each year (length N_n)
         self.fixed_assets_current_asset_values_n = np.zeros(self.N_n)
+        # Disposition cost (commission + capital-gains tax) of fixed assets still held (length N_n)
+        self.fixed_assets_disposition_costs_n = np.zeros(self.N_n)
         # Fixed assets bequest value (assets with yod past plan end)
         self.fixed_assets_bequest_value = 0.0
 
@@ -622,6 +626,32 @@ class Plan:
         nu /= 100
         self.mylog.vprint(f"Heirs tax rate on tax-deferred portion of estate set to {u.pc(nu, f=0)}.")
         self.nu = nu
+        self.caseStatus = "modified"
+
+    def setLiquidationTaxRate(self, rate):
+        """
+        Set the assumed ordinary income tax rate applied to tax-deferred and HSA
+        balances on the liquid balance sheet (the tax owed if those accounts were
+        liquidated). Rate is in percent. Default is 24%.
+        """
+        if not (0 <= rate <= 100):
+            raise ValueError("Rate must be between 0 and 100.")
+        rate /= 100
+        self.mylog.vprint(f"Liquidation tax rate on tax-deferred/HSA set to {u.pc(rate, f=0)}.")
+        self.liquidationTaxRate = rate
+        self.caseStatus = "modified"
+
+    def setLiquidationCapGainsRate(self, rate):
+        """
+        Set the assumed capital-gains tax rate applied to fixed-asset disposition
+        on the liquid balance sheet (commission plus this rate on the gain).
+        Rate is in percent. Default is 15%.
+        """
+        if not (0 <= rate <= 100):
+            raise ValueError("Rate must be between 0 and 100.")
+        rate /= 100
+        self.mylog.vprint(f"Liquidation capital-gains rate on fixed assets set to {u.pc(rate, f=0)}.")
+        self.liquidationCapGainsRate = rate
         self.caseStatus = "modified"
 
     def _actual_effective_tax_rate(self):
@@ -1574,12 +1604,18 @@ class Plan:
             self.fixed_assets_current_asset_values_n = fxasst.get_fixed_assets_current_values_array(
                 self.houseLists["Fixed Assets"], self.N_n, gamma_n, thisyear
             )
+            # Disposition cost (commission + capital-gains tax) of assets still held each year
+            self.fixed_assets_disposition_costs_n = fxasst.get_fixed_assets_disposition_costs_array(
+                self.houseLists["Fixed Assets"], self.N_n, gamma_n,
+                self.liquidationCapGainsRate, thisyear, filing_status
+            )
         else:
             self.fixed_assets_tax_free_n = np.zeros(self.N_n)
             self.fixed_assets_ordinary_income_n = np.zeros(self.N_n)
             self.fixed_assets_capital_gains_n = np.zeros(self.N_n)
             self.fixed_assets_bequest_value = 0.0
             self.fixed_assets_current_asset_values_n = np.zeros(self.N_n)
+            self.fixed_assets_disposition_costs_n = np.zeros(self.N_n)
 
     def getFixedAssetsBequestValueInTodaysDollars(self):
         """

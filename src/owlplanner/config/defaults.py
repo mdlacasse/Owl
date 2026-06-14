@@ -19,6 +19,8 @@ DEFAULT_SS_AGE = 67.0  # Full retirement age for many birth years
 DEFAULT_PENSION_AGE = 65.0
 DEFAULT_DOB = "1965-01-15"
 DEFAULT_HEIRS_RATE = 30.0
+DEFAULT_LIQUIDATION_TAX_RATE = 24.0
+DEFAULT_LIQUIDATION_CAPGAINS_RATE = 15.0
 DEFAULT_DIVIDEND_RATE = 1.8
 DEFAULT_OBBBA_YEAR = 2032
 # Default allocation: 60/40 stock/bond initially, 70/30 at end (per individual)
@@ -77,6 +79,8 @@ def default_config(ni: int = 1) -> dict:
         },
         "rates_selection": {
             "heirs_rate_on_tax_deferred_estate": DEFAULT_HEIRS_RATE,
+            "liquidation_tax_rate": DEFAULT_LIQUIDATION_TAX_RATE,
+            "liquidation_capgains_rate": DEFAULT_LIQUIDATION_CAPGAINS_RATE,
             "dividend_rate": DEFAULT_DIVIDEND_RATE,
             "obbba_expiration_year": DEFAULT_OBBBA_YEAR,
             "method": "historical_average",

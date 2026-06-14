@@ -1281,7 +1281,7 @@ def showWorkbook(plan):
     if wb is None:
         return
 
-    currencySheets = ["Income", "Cash Flow", "Sources", "Accounts", "HSA"]
+    currencySheets = ["Income", "Cash Flow", "Sources", "Accounts", "HSA", "Balance"]
 
     def _render_sheet(name):
         dollars = any(word in name for word in currencySheets)
@@ -1339,11 +1339,14 @@ def showWorkbook(plan):
             else:
                 raise ValueError(f"Worksheet '{name}' not classified — add it to currencySheets or handle explicitly.")
 
-    theme_tabs = {"Accounts": [], "Cash Flow": [], "Income & Taxes": [], "Allocations & Rates": []}
+    theme_tabs = {"Accounts": [], "Balance Sheets": [], "Cash Flow": [],
+                  "Income & Taxes": [], "Allocations & Rates": []}
     for name in wb.sheetnames:
         if name == "Summary" or name.startswith("Config"):
             continue
-        if "Accounts" in name or name == "HSA":
+        if "Balance" in name:
+            theme_tabs["Balance Sheets"].append(name)
+        elif "Accounts" in name or name == "HSA":
             theme_tabs["Accounts"].append(name)
         elif name == "Cash Flow" or "Sources" in name:
             theme_tabs["Cash Flow"].append(name)
@@ -1500,6 +1503,8 @@ def genDic(plan):
     dic["survivor"] = 100 * plan.chi
     dic["divRate"] = 100 * plan.mu
     dic["heirsTx"] = 100 * plan.nu
+    dic["liquidationTx"] = 100 * plan.liquidationTaxRate
+    dic["liquidationCG"] = 100 * plan.liquidationCapGainsRate
     dic["yOBBBA"] = plan.yOBBBA
     dic["surplusFraction"] = plan.eta
     dic["plots"] = plan.defaultPlots

@@ -1,5 +1,36 @@
 
 
+### Version 2026.6.14
+
+#### Balance sheets in worksheets (traditional and liquid)
+
+Two new worksheets summarize total wealth by combining savings accounts, fixed assets, and
+debts at the beginning of each year (plus a final end-of-plan bequest row). The **Balance
+Sheet** uses traditional accounting at gross market value: assets (taxable, tax-deferred,
+tax-free, HSA, fixed assets), `total assets`, `debt`, and `net worth`. The **Liquid Balance
+Sheet** shows the same gross assets but adds future obligations as liabilities to estimate
+realizable wealth: `debt`, `deferred income tax` (tax-deferred + HSA balances times a new
+*Liquidation tax rate*), `disposition costs` (fixed-asset commission plus capital-gains tax
+at a new *Liquidation cap-gains rate*, with the primary-residence exclusion applied),
+`total liabilities`, and `liquid net worth`. Taxable savings are shown at face value and HSA
+balances are treated as ordinary-taxable (a conservative estimate). Both rates are set on the
+**Rates** page and saved with the case. The sheets appear under a new **Balance Sheets** tab
+in the **Worksheets** page and honor all display options (nominal/today's dollars, optional
+age columns, hide all-zero columns) and the Excel download.
+
+#### Tests: generic schema-driven config round-trip guard
+
+Added `tests/config/test_roundtrip_generic.py`, which introspects the Pydantic schema and
+verifies every scalar parameter survives both the plan and UI config bridges, with a
+completeness guard so a newly-added field that isn't wired (or consciously skip-listed) fails
+loudly — replacing the need for a hand-written round-trip test per parameter.
+
+---
+
+### Version 2026.6.13
+
+---
+
 ### Version 2026.6.13
 
 #### Fix: Social Security treatment in MAGI (IRMAA / NIIT vs ACA)

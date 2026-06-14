@@ -434,7 +434,6 @@ preserving stationarity."""
                 kz.initCaseKey("roll_sequence", 0)
                 kz.getIntNum("Roll (years)", "roll_sequence", min_value=0, max_value=N_n,
                              step=1, callback=updateRates, help=help_roll)
-            # st.markdown("#####")
 
         st.markdown("#### :orange[Other Rates]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
@@ -444,7 +443,6 @@ preserving stationarity."""
 See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             ret = kz.getNum("Dividend rate (%)", "divRate", max_value=5.0, format="%.2f", help=helpmsg, step=1.0)
 
-        # st.markdown("#####")
         st.markdown("#### :orange[Income taxes]")
         col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
         with col1:
@@ -459,9 +457,23 @@ See latest data [here](https://us500.com/tools/data/sp500-dividend-yield)."""
             ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
                                min_value=thisyear, max_value=thisyear+40, help=helpmsg)
 
+        st.markdown("#### :orange[Liquid balance sheet]")
+        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+        with col1:
+            kz.initCaseKey("liquidationTx", 24)
+            helpmsg = ("Assumed ordinary income tax rate applied to tax-deferred and HSA balances "
+                       "on the liquid balance sheet (tax owed if these accounts were liquidated).")
+            ret = kz.getNum("Liquidation tax rate (%)", "liquidationTx", max_value=100.0, help=helpmsg, step=1.0)
+
+        with col2:
+            kz.initCaseKey("liquidationCG", 15)
+            helpmsg = ("Assumed capital-gains tax rate applied to fixed-asset disposition (commission plus this "
+                       "rate on the gain) on the liquid balance sheet.")
+            ret = kz.getNum("Liquidation cap-gains rate (%)", "liquidationCG",
+                            max_value=100.0, help=helpmsg, step=1.0)
+
         # Reproducibility checkbox - only for stochastic methods that use a seed.
         if kz.getCaseKey("varyingType") in STOCHASTIC_METHODS:
-            st.markdown("#####")
             st.markdown("#### :orange[Rate Generation]")
             kz.initCaseKey("reproducibleRates", False)
             kz.initCaseKey("rateSeed", 1)

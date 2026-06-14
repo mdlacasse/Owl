@@ -1442,7 +1442,7 @@ jointly as a single Excel workbook by clicking on the `Download Worksheets` on t
 **Reports** page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 
-Worksheets are organized into four tabs:
+Worksheets are organized into five tabs:
 
 **Accounts** *(shown first as most actionable)* — per-individual savings account detail:
 - *`<individual>`'s Accounts* — balances, contributions, deposits, withdrawals, and Roth conversions
@@ -1451,6 +1451,18 @@ Worksheets are organized into four tabs:
 - *HSA* *(when HSA is present)* — HSA diagnostics: `Medicare`, `QME`, `HSA total wdrwl`,
   `HSA→Medicare`, `HSA→QME`, and per-individual HSA balances, contributions, and withdrawals.
   Presented separately so the **Cash Flow** table remains a balancing identity.
+
+**Balance Sheets** — consolidated wealth (savings accounts, fixed assets, and debts) at the
+beginning of each year, plus a final end-of-plan (bequest) row:
+- *Balance Sheet* — traditional accounting at gross market value: assets (taxable, tax-deferred,
+  tax-free, HSA, and fixed assets), `total assets`, `debt`, and `net worth` (= total assets − debt).
+- *Liquid Balance Sheet* — the same gross assets, but with future obligations shown as liabilities to
+  estimate realizable wealth: `debt`, `deferred income tax` (tax-deferred + HSA balances times the
+  *Liquidation tax rate* set on the **Rates** page), `disposition costs` (fixed-asset commission plus
+  capital-gains tax at the *Liquidation cap-gains rate*, with the primary-residence exclusion applied),
+  `total liabilities`, and `liquid net worth` (= total assets − total liabilities). Taxable savings are
+  shown at face value (no per-year unrealized capital gains are modeled), and HSA balances are treated
+  as ordinary-taxable at the liquidation rate (a conservative estimate).
 
 **Cash Flow** — household cash flow:
 - *Cash Flow* — full breakdown of inflows and outflows that balance to net spending.
