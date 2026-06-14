@@ -314,7 +314,12 @@ class Plan:
 
         # Previous 2 years of MAGI needed for Medicare.
         self.prevMAGI = np.zeros((2))
+        # MAGI_n is the canonical AGI-basis MAGI (AGI + tax-exempt interest, i.e. taxable SS
+        # only): used by IRMAA, NIIT (IRC §1411), and the OBBBA 65+ senior-deduction phaseout.
+        # MAGI_aca_n is the full-SS variant (adds back non-taxable SS): used by ACA (§36B) and
+        # SS-taxability provisional income (PI = MAGI_aca - 0.5*SS). See _aggregateResults.
         self.MAGI_n = np.zeros(self.N_n)
+        self.MAGI_aca_n = np.zeros(self.N_n)
         self.solverOptions = {}
 
         # Init current balances to none.
@@ -1923,6 +1928,7 @@ class Plan:
         Refactored for clarity and maintainability.
         """
         # Ensure parameters are adjusted for inflation and MAGI.
+        # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)
         self.other_medical_n = self.other_medical_k * self.gamma_n[:-1]
 
@@ -2835,40 +2841,45 @@ class Plan:
 
             # (3') Companion upper bound on the same row: prevents q[1,n]/q[2,n] from being
             # inflated along the flat direction shared with f_tn's per-bracket split (q[2,n]
-            # is otherwise unbounded above in loop mode). loss_buf widens the bound by last
-            # iteration's realized loss (Q_n < 0) so a capital-loss year stays feasible;
-            # tol=$1 matches the LTCG-consistency-loop tolerance in _scSolve.
+            # is otherwise unbounded above in loop mode). loss_buf widens the bound so a
+            # capital-loss year (Q_n < 0) stays feasible; tol=$1 matches the
+            # LTCG-consistency-loop tolerance in _scSolve. Two loss sources are covered:
+            #   - fixed-asset capital loss for year n is a known parameter, so cover it
+            #     directly (this keeps iteration 0, where prevQ is None, safe);
+            #   - any portfolio loss surfaces in the previous iteration's realized Q_n.
+            # prevQ[n] already includes the fixed-asset component, so take the larger.
             tol = 1.0
+            fixed_loss = max(0.0, -float(self.fixed_assets_capital_gains_n[n]))
             prevQ = getattr(self, "Q_n", None)
-            loss_buf = tol if prevQ is None else max(0.0, -float(prevQ[n])) + tol
+            prev_loss = 0.0 if prevQ is None else max(0.0, -float(prevQ[n]))
+            loss_buf = max(fixed_loss, prev_loss) + tol
             self.A.addNewRow(row_q, -np.inf, rhs_q + loss_buf)
 
     def _add_magi_lp(self, options):
         """
         Add MAGI equality constraints when withNIIT='optimize'.
 
-        Links vm["magi"].idx(n) to:
-          MAGI_n = G_n + e_n + Q_n + (1-Psi_n)*zetaBar_n
+        The "magi" LP variable is the AGI-basis MAGI used by NIIT (IRC §1411): taxable SS
+        only, NOT the full-SS ACA MAGI. Since e_n + G_n already include the taxable SS
+        portion (via _add_taxable_income), AGI = e_n + G_n + Q_n with NO extra SS term:
+
+          magi_n = G_n + e_n + Q_n
         where:
           - G_n = sum_t f_tn  (ordinary taxable income, via gn LP var or direct f_tn sum)
-          - e_n = standard deduction headroom
+          - e_n = standard deduction headroom (carries the taxable SS already)
           - Q_n = q[0]+q[1]+q[2]  (LTCG bracket allocation variables; equals Q_n at partition minimum)
-          - zetaBar_n = total SS benefits (parameter)
-          - tss_n = taxable SS (LP var when withSSTaxability=optimize, else Psi_n*zetaBar_n param)
 
         Rewritten as equality constraint with all LP vars on LHS:
-          magi_n - gn_n - e_n - q[0] - q[1] - q[2] = (1-Psi_n)*zetaBar_n
+          magi_n - gn_n - e_n - q[0] - q[1] - q[2] = 0
         """
         if not self._niit_lp:
             return
-
-        zetaBar_n = np.sum(self.zetaBar_in, axis=0)
 
         for n in range(self.N_n):
             magi_idx = self.vm["magi"].idx(n)
             e_idx = self.vm["e"].idx(n)
 
-            # Build MAGI equality row: magi_n = G_n + e_n + Q_n + (1-Psi_n)*zetaBar_n
+            # Build MAGI equality row: magi_n = G_n + e_n + Q_n
             row = {magi_idx: 1, e_idx: -1}
 
             # G_n contribution: either via gn LP var or directly from f_tn vars
@@ -2884,7 +2895,6 @@ class Plan:
             # partition minimum the sum equals Q_n. Do NOT substitute the portfolio LP
             # expression for Q_n: those portfolio terms (b, w, d) cancel q_total at the
             # partition minimum, removing Q_n from MAGI entirely (the root-cause bug).
-            rhs_magi = 0.0
             q0_idx = self.vm["q"].idx(0, n)
             q1_idx = self.vm["q"].idx(1, n)
             q2_idx = self.vm["q"].idx(2, n)
@@ -2892,17 +2902,8 @@ class Plan:
             row[q1_idx] = row.get(q1_idx, 0) - 1
             row[q2_idx] = row.get(q2_idx, 0) - 1
 
-            # SS: zetaBar_n (parameter) minus taxable SS
-            rhs_magi += zetaBar_n[n]
-            if "tss" in self.vm:
-                # tss is an LP var: subtract it from LHS
-                tss_idx = self.vm["tss"].idx(n)
-                row[tss_idx] = row.get(tss_idx, 0) + 1  # +1 because moved to LHS: magi - tss = rhs
-            else:
-                # Use Psi_n parameter: taxable SS = Psi_n * zetaBar_n
-                rhs_magi -= self.Psi_n[n] * zetaBar_n[n]
-
-            self.A.addNewRow(row, rhs_magi, rhs_magi)
+            # No SS term: taxable SS is already embedded in e_n + G_n (AGI basis).
+            self.A.addNewRow(row, 0.0, 0.0)
 
     def _configure_NIIT_binary_variables(self, options):
         """
@@ -2919,8 +2920,9 @@ class Plan:
           (2)  J_n <= M*zj                                             [J=0 when below threshold]
           (3)  MAGI_n <= T + M*zj                                      [MAGI bounded when zj=0]
           (4)  niis_n <= (MAGI_n - T) - NII_n + M*(1-zj)              [NII cap on surplus]
-               equivalently: niis_n - G_n - e_n + tss_n <= zetaBar_n - T - I_n + M*(1-zj)
-               (Q_n cancels between MAGI and NII; I_n is a SC-loop parameter)
+               with AGI-basis MAGI = G_n + e_n + Q_n: MAGI_n - NII_n = G_n + e_n - I_n
+               equivalently: niis_n - G_n - e_n <= -T - I_n + M*(1-zj)
+               (Q_n and SS cancel between MAGI and NII; I_n is a SC-loop parameter)
 
         Since J_n is a cost the optimizer minimizes, it naturally drives niis_n to its upper
         bound (= max(0, MAGI-T-NII)), giving J_n = 0.038*min(MAGI-T, NII). No second binary
@@ -2934,8 +2936,6 @@ class Plan:
         I_n_param = getattr(self, "I_n", None)
         if I_n_param is None:
             I_n_param = np.sum(self.netinv_in, axis=0)
-
-        zetaBar_n = np.sum(self.zetaBar_in, axis=0)
 
         for n in range(self.N_n):
             # Per-year filing status: couple switches to Single at n_d.
@@ -2976,10 +2976,11 @@ class Plan:
             self.A.addNewRow({magi_idx: 1, zj_idx: -M_niit}, -np.inf, T_niit)
 
             # (4) niis_n <= (MAGI_n - T) - (I_n + Q_n) + M*(1-zj)
-            # Since MAGI = G_n + e_n + Q_n + zetaBar - tss, Q_n cancels:
-            #   niis_n <= G_n + e_n + (zetaBar - tss) - T - I_n + M*(1-zj)
-            #   niis_n - G_n - e_n + tss + M*zj <= zetaBar_n - T - I_n + M
-            rhs4 = M_niit + zetaBar_n[n] - T_niit - float(I_n_param[n])
+            # With the AGI-basis MAGI = G_n + e_n + Q_n, both Q_n and the SS terms cancel:
+            #   MAGI_n - NII_n = (G_n + e_n + Q_n) - (I_n + Q_n) = G_n + e_n - I_n
+            #   niis_n <= G_n + e_n - T - I_n + M*(1-zj)
+            #   niis_n - G_n - e_n + M*zj <= M - T - I_n
+            rhs4 = M_niit - T_niit - float(I_n_param[n])
             row4 = {niis_idx: 1, e_idx: -1, zj_idx: M_niit}
             if "gn" in self.vm:
                 row4[self.vm["gn"].idx(n)] = row4.get(self.vm["gn"].idx(n), 0) - 1
@@ -2987,11 +2988,6 @@ class Plan:
                 for t in range(self.N_t):
                     f_idx = self.vm["f"].idx(t, n)
                     row4[f_idx] = row4.get(f_idx, 0) - 1
-            if "tss" in self.vm:
-                tss_idx = self.vm["tss"].idx(n)
-                row4[tss_idx] = row4.get(tss_idx, 0) + 1
-            else:
-                rhs4 -= self.Psi_n[n] * zetaBar_n[n]  # subtract taxable SS from zetaBar
             self.A.addNewRow(row4, -np.inf, rhs4)
 
     def _configure_Medicare_binary_variables(self, options):
@@ -3039,6 +3035,10 @@ class Plan:
             rhs = (self.fixed_assets_ordinary_income_n[n2]
                    + self.fixed_assets_capital_gains_n[n2])
 
+            # IRMAA MAGI is AGI-basis: include only the *taxable* portion of SS. When SS
+            # taxability is optimized, taxable SS is the LP var tss[n2] (added once, below);
+            # otherwise it is the SC-loop parameter Psi_n[n2]*zetaBar_in[i,n2].
+            ss_lp = "tss" in self.vm
             row.addElem(self.vm["e"].idx(n2), -1)
             for i in range(self.N_i):
                 row.addElem(self.vm["w"].idx(i, 1, n2), -1)
@@ -3055,16 +3055,19 @@ class Plan:
                 bfac = self.alpha_ijkn[i, 0, 0, n2] * self._effective_cap_gain_coef(i, n2)
                 row.addElem(self.vm["w"].idx(i, 0, n2), afac - bfac)
 
-                # MAGI includes total Social Security (taxable + non-taxable) for IRMAA.
                 sumoni = (self.omega_in[i, n2]
                           + self.other_inc_in[i, n2]
                           + self.netinv_in[i, n2]
-                          + self.zetaBar_in[i, n2]
                           + self.piBar_in[i, n2]
                           + self.spiaBar_in[i, n2]
                           + 0.5 * self.kappa_ijn[i, 0, n2] * afac)
+                if not ss_lp:
+                    sumoni += self.Psi_n[n2] * self.zetaBar_in[i, n2]   # taxable SS (SC-loop param)
                 rhs += sumoni
                 rhs -= self.kappa_ijn[i, 3, n2]   # HSA contributions reduce MAGI
+
+            if ss_lp:
+                row.addElem(self.vm["tss"].idx(n2), -1)   # taxable SS (LP var) on LHS
 
             self.A.addRow(row, rhs, rhs)
 
@@ -3464,6 +3467,7 @@ class Plan:
         self.lambdha = lambdha / 100
 
         # Reset MAGI to zero.
+        self.MAGI_aca_n = np.zeros(self.N_n)
         self.MAGI_n = np.zeros(self.N_n)
         self.J_n = np.zeros(self.N_n)
         self.M_n = np.zeros(self.N_n)
@@ -3488,6 +3492,7 @@ class Plan:
              self.st_tax_ss, _st_ss_thresh_n) = tax_state.st_taxParams(
                 self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs)
 
+        # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)
         self._buildOffsetMap(myoptions)
 
@@ -4562,6 +4567,20 @@ class Plan:
 
         if best_x is not None:
             final_gap = (UB - LB) / max(abs(UB), 1.0) if UB < np.inf and LB > -np.inf else -1.0
+            if final_gap > mygap:
+                # Benders could not certify optimality within the requested gap. This is
+                # typically an inherent LP-relaxation gap (fractional zx the cuts cannot
+                # close) or an early break on an SP-LP-infeasible / stalled z*. The
+                # returned best_x is feasible but possibly suboptimal, so fall back to the
+                # relax-and-fix heuristic and keep whichever objective is better (lower,
+                # since the problem is minimized). relax-and-fix does not call back into
+                # Benders, so there is no recursion.
+                self.mylog.vprint(
+                    f"Benders: gap {final_gap:.4f} > {mygap:.4f}; falling back to relax-and-fix."
+                )
+                rf_obj, rf_x, rf_ok, rf_msg, rf_gap = self._relax_and_fix_solve(objective, options)
+                if rf_ok and rf_x is not None and rf_obj is not None and rf_obj < UB:
+                    return rf_obj, rf_x, True, f"Benders→relax-and-fix ({rf_msg})", float(rf_gap)
             return UB, best_x, True, f"Benders ({len(benders_cuts)} cuts)", float(final_gap)
 
         self.mylog.vprint("Benders: no feasible solution found; falling back to monolithic.")
@@ -4631,7 +4650,7 @@ class Plan:
 
         ss_n = np.sum(self.zetaBar_in, axis=0)
         new_Psi_n = tx.compute_social_security_taxability(
-            self.N_i, self.MAGI_n, ss_n, ssec_tax_fraction=None, n_d=self.n_d
+            self.N_i, self.MAGI_aca_n, ss_n, ssec_tax_fraction=None, n_d=self.n_d
         )
 
         # 30% damping blend: damp oscillation near threshold boundaries.
@@ -4647,6 +4666,7 @@ class Plan:
         if x is None:
             # Reset all nonlinear quantities to their starting values for a fresh solve.
             self.Psi_n = np.ones(self.N_n) * (fixedPsi if fixedPsi is not None else 0.85)
+            self.MAGI_aca_n = np.zeros(self.N_n)
             self.MAGI_n = np.zeros(self.N_n)
             self.G_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
@@ -4685,6 +4705,8 @@ class Plan:
                 self._ssa_spousal_offset[i, :] = new_zetaBar_in[i, :] - self._ssa_B_own[i, k_opt, :]
             self.zetaBar_in = new_zetaBar_in
 
+        # NIIT (IRC §1411) and IRMAA use the AGI-basis MAGI_n (taxable SS only). ACA (below)
+        # uses the full-SS MAGI_aca_n (§36B adds back non-taxable SS).
         if not getattr(self, "_niit_lp", False):
             self.J_n = tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, self.N_n)
         # LTCG tax is in the LP via q bracket variables; U_n is set by _aggregateResults.
@@ -4702,7 +4724,7 @@ class Plan:
         if self.slcsp_annual > 0 and not self._aca_lp:
             n_aca_start = (max(0, self.aca_start_year - int(self.year_n[0]))
                            if self.aca_start_year > 0 else 0)
-            self.ACA_n = tx.acaCosts(self.yobs, self.horizons, self.MAGI_n, self.gamma_n[:-1],
+            self.ACA_n = tx.acaCosts(self.yobs, self.horizons, self.MAGI_aca_n, self.gamma_n[:-1],
                                      self.slcsp_annual, self.N_n, n_aca_start=n_aca_start)
 
         return None
@@ -4807,12 +4829,16 @@ class Plan:
         if "Jn" in vm:
             self.J_n = vm["Jn"].extract(x)
 
-        # Also add back non-taxable part of SS.
+        # Two MAGI flavors. e_n + G_n already include the *taxable* SS portion (via
+        # _add_taxable_income), so AGI = e_n + G_n + Q_n. The NIIT "magi" LP variable, when
+        # present, is the AGI-basis MAGI (see _add_magi_lp).
         if "magi" in vm:
             self.MAGI_n = vm["magi"].extract(x)
         else:
-            self.MAGI_n = (self.G_n + self.e_n + self.Q_n
-                           + np.sum((1 - self.Psi_n) * self.zetaBar_in, axis=0))
+            self.MAGI_n = self.G_n + self.e_n + self.Q_n
+        # Full-SS MAGI adds back the non-taxable SS portion (for ACA §36B and SS-taxability
+        # provisional income). Equals AGI + (1-Psi)*zetaBar = AGI + (zetaBar - taxable SS).
+        self.MAGI_aca_n = self.MAGI_n + np.sum((1 - self.Psi_n) * self.zetaBar_in, axis=0)
 
         # Only positive returns count as interest/dividend income (matches _add_taxable_income).
         I_in = ((self.b_ijn[:, 0, :-1] + self.d_in - self.w_ijn[:, 0, :])

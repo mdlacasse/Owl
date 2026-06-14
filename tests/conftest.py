@@ -50,14 +50,17 @@ def configure_test_solver():
     path in plan.py falls back to _mosek_available(), which ignores the env var.
     """
     solver_env = os.environ.get("OWL_TEST_SOLVER", "default").lower()
-    if solver_env == "highs":
-        with patch("owlplanner.plan._mosek_available", return_value=False):
-            yield
-    elif solver_env == "mosek":
+    if solver_env == "mosek":
         with patch("owlplanner.plan._mosek_available", return_value=True):
             yield
     else:
-        yield
+        # Default (unset / "highs" / "default"): pin HiGHS so the default solver is
+        # deterministic regardless of import order. Without this, importing any ui
+        # module during the session sets MOSEKLM_LICENSE_FILE (see ui/moseklicense.py)
+        # and flips _mosek_available() to True mid-run, silently switching unpinned
+        # tests to MOSEK and producing non-reproducible reference values.
+        with patch("owlplanner.plan._mosek_available", return_value=False):
+            yield
 
 
 @pytest.fixture(autouse=True, scope="session")

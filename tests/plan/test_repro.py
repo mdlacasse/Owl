@@ -31,21 +31,23 @@ import owlplanner as owl
 
 # Updated after HFP dollar conversion ($ not $k) in update_hfp_coverage.py
 # Note: reference values below were established with HiGHS; verify on MOSEK if values diverge.
+# After the MAGI SS-basis fix, jack+jill maxBequest diverges slightly by solver (HiGHS
+# ~951_805, MOSEK ~951_751); BEQUEST1 is set to the midpoint so both pass within ABS_TOL.
 if platform == "darwin":
     SPENDING1 = 89_356
-    BEQUEST1 = 951_382
+    BEQUEST1 = 951_778
     SPENDING2 = 99_493
     SPENDING1_FIXED = 93_548
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
     SPENDING1 = 89_356
-    BEQUEST1 = 951_382
+    BEQUEST1 = 951_778
     SPENDING2 = 99_493
     SPENDING1_FIXED = 93_548
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
     SPENDING1 = 89_356
-    BEQUEST1 = 951_382
+    BEQUEST1 = 951_778
     SPENDING2 = 99_493
     SPENDING1_FIXED = 93_548
     BEQUEST1_FIXED = 500_000

@@ -362,11 +362,12 @@ class TestACAOptimize:
         fpl_400 = tx._ACA_FPL[2026][0] * 4.0
         hit_bracket_6 = False
         for n in range(min(p.n_aca, p.N_n)):
-            if p.MAGI_n[n] >= fpl_400 * p.gamma_n[n] and p.maca_n[n] > 0:
+            # ACA uses the full-SS MAGI (§36B adds back non-taxable SS).
+            if p.MAGI_aca_n[n] >= fpl_400 * p.gamma_n[n] and p.maca_n[n] > 0:
                 hit_bracket_6 = True
                 slcsp_n = 14_000 * p.gamma_n[n]
                 assert np.isclose(p.maca_n[n], slcsp_n, rtol=0.01), (
-                    f"Year {n}: MAGI={p.MAGI_n[n]:.0f}>=400% FPL, expect maca≈{slcsp_n:.0f}, got {p.maca_n[n]:.0f}"
+                    f"Year {n}: MAGI={p.MAGI_aca_n[n]:.0f}>=400% FPL, expect maca≈{slcsp_n:.0f}, got {p.maca_n[n]:.0f}"
                 )
         assert hit_bracket_6, "Expected at least one ACA year with MAGI >= 400% FPL and maca > 0"
 

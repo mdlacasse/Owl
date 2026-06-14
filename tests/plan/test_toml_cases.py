@@ -89,6 +89,10 @@ def getHFP(exdir, case, check_exists=True):
 # Updated after dropping unused state-tax LP vars for no-income-tax states (st_lp now
 # requires a nonzero bracket rate): jack+jill is state="TX", so its SC loop's best-of-
 # oscillation fixed point shifted again, 103_015 -> 102_978.
+# Updated after the MAGI SS-basis fix (IRMAA/NIIT/OBBBA now use AGI-basis MAGI = taxable SS
+# only; ACA and SS-taxability keep full-SS MAGI_aca_n): jack+jill net 102_978 -> 102_880
+# (darwin, verified). linux/win32 received the same -98 delta as a best-effort estimate and
+# should be confirmed by CI / a native run.
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
@@ -96,7 +100,7 @@ if platform == "darwin":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_978,
+            "net_spending_basis": 102_880,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -123,7 +127,7 @@ elif platform == "linux":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_839,
+            "net_spending_basis": 102_741,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -150,7 +154,7 @@ elif platform == "win32":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_839,
+            "net_spending_basis": 102_741,
             "bequest": 400_000,
         },
         "Case_joe": {

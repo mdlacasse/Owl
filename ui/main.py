@@ -23,6 +23,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import streamlit as st
 
 import sskeys as kz
+import moseklicense
+
+# Provision the MOSEK license at app startup (Streamlit Cloud reads it from secrets).
+# Done here explicitly rather than as an import side effect so that merely importing a
+# ui module (e.g. in the test suite) does not set MOSEKLM_LICENSE_FILE and silently
+# switch owlplanner's default solver from HiGHS to MOSEK.
+moseklicense.createLicense()
 
 # Default page width is set here; switch to layout="centered" in this file if you prefer.
 st.set_page_config(layout="wide", page_title="Owl — Optimal wealth lab")

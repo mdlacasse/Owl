@@ -2,6 +2,27 @@
 
 ### Version 2026.6.13
 
+#### Fix: Social Security treatment in MAGI (IRMAA / NIIT vs ACA)
+
+MAGI is now computed on two distinct bases instead of one. IRMAA (Medicare Part B/D
+surcharges), the Net Investment Income Tax, and the OBBBA 65+ senior-deduction phaseout use
+the **AGI-basis** MAGI (`MAGI_n`), which includes only the *taxable* portion of Social
+Security — matching the statutory definition (SSA POMS HI 01101.010: AGI + tax-exempt
+interest). The ACA premium credit (IRC §36B) and the Social Security provisional-income
+formula continue to use the **full-SS** MAGI (`MAGI_aca_n`), which adds back the non-taxable
+portion. Previously a single full-SS MAGI drove all of them, overstating IRMAA/NIIT/OBBBA
+exposure for households collecting Social Security. The fix applies in both loop and
+optimize modes (Medicare and NIIT MILP embeddings updated). `papers/owl.tex` updated to
+match; reproducibility references shifted accordingly (bequest/spending rise slightly).
+
+#### Robustness: Benders fall-back and LTCG bracket-partition bound
+
+`withDecomposition="benders"` now falls back to the relax-and-fix heuristic when it cannot
+certify optimality within the requested gap (keeping the better objective), instead of
+silently returning an uncertified solution. The LTCG bracket-partition companion bound now
+seeds its capital-loss buffer from the known fixed-asset capital gains so a first-iteration
+fixed-asset loss cannot make the partition infeasible.
+
 #### MCP: `list_contribution_limits` tool for IRS contribution ceilings
 
 New MCP tool returns each person's maximum annual contribution to 401(k)/403(b)/457(b)/TSP,

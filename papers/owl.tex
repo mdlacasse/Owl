@@ -339,8 +339,8 @@ survivor FRA (minimum 71.5\% at age~60).
 Reference: CFR~§~404.338 \cite{ssa-poms}.
 
 The fraction of SS benefits subject to federal income tax ranges from 0\% to
-85\% based on ``provisional income'' (PI), defined as modified adjusted gross
-income (MAGI) minus half of total SS benefits.
+85\% based on ``provisional income'' (PI), defined as adjusted gross income
+(excluding Social Security) plus tax-exempt interest plus half of total SS benefits.
 Thresholds are \$25,000/\$34,000 (single) and \$32,000/\$44,000 (MFJ), frozen
 since 1983 and 1994 respectively.
 Reference: IRS Publication~915 \cite{irs915}.
@@ -714,7 +714,9 @@ The formulation uses 7 MAGI brackets (6 intervals up to 400\% FPL, plus one abov
 with SOS1 binary selection, MAGI decomposition, and a piecewise cost: brackets 0--5
 use proportional contribution rates; bracket 6 (above 400\% FPL) imposes the full
 SLCSP.
-ACA uses current-year MAGI (no two-year lag like Medicare IRMAA).
+ACA uses current-year MAGI (no two-year lag like Medicare IRMAA). Unlike IRMAA and
+the NIIT, the ACA MAGI is the full-Social-Security variant $\mathbb{G}^{\mathrm{aca}}_n$
+(IRC~§36B adds the non-taxable portion of Social Security back to AGI).
 
 \subsection*{Limitations and assumptions}
 
@@ -744,10 +746,14 @@ In 2026, the five incremental per-person per-month surcharges are \$81.20,
 doubled for married filing jointly (MFJ).
 Reference: CMS 2026 IRMAA tables \cite{cms2026}.
 
-MAGI for IRMAA purposes includes all ordinary taxable income, LTCG, dividends,
-and the \emph{full} amount of Social Security benefits (not just the taxable
-fraction).
-Reference: IRS Publication~915 \cite{irs915}.
+MAGI for IRMAA purposes is the beneficiary's adjusted gross income (AGI, IRS
+Form~1040 line~11) plus tax-exempt interest income (line~2a). It therefore
+includes all ordinary taxable income, LTCG, and dividends, but only the
+\emph{taxable} portion of Social Security benefits (the up-to-85\% already in
+AGI); the non-taxable remainder is \emph{not} added back. This differs from the
+Affordable Care Act definition (Section~\ref{sec:aca}), which does add back
+non-taxable Social Security.
+Reference: SSA POMS HI~01101.010 \cite{ssa-poms}.
 For couples, premiums reflect both individuals when both are Medicare-eligible.
 Filing status transitions from MFJ to single at the first spouse's death.
 
@@ -1388,10 +1394,10 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	In \code{withMedicare="loop"} mode (the default), $m_n$ is computed via the SC loop and treated as a parameter.
 \item [$h^{\mathrm{aca}}_{rn}$]
 	Segment of ACA bracket $r$ in which the current-year modified adjusted gross income (MAGI)
-	$\mathbb{G}_n$ is contained for ACA-eligible year $n$.
+	$\mathbb{G}^{\mathrm{aca}}_n$ is contained for ACA-eligible year $n$.
 	Used only when \code{withACA="optimize"}; index $n$ runs over the first $n_{\mathrm{aca}}$
 	plan years when at least one individual is under age~65 and within their horizon.
-	One bracket $r'$ contains MAGI, so $\sum_r h^{\mathrm{aca}}_{rn} = \mathbb{G}_n$.
+	One bracket $r'$ contains MAGI, so $\sum_r h^{\mathrm{aca}}_{rn} = \mathbb{G}^{\mathrm{aca}}_n$.
 	ACA uses \emph{current-year} MAGI (no two-year lag like Medicare IRMAA).
 \item [$m^{\mathrm{aca}}_n$]
 	ACA net premium cost in year $n$ (after Premium Tax Credit).
@@ -1908,21 +1914,29 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	new purchases added at full cost (zero embedded gain).
 
 \item [$\mathbb{G}_n$]
-	Modified adjusted gross income or MAGI for year $n$. When non-taxable
-        municipal bonds are ignored, the MAGI can be expressed as
+	Modified adjusted gross income (MAGI) for year $n$, on the adjusted-gross-income
+	(AGI) basis. This is the canonical tax MAGI (AGI plus tax-exempt interest) used
+	for IRMAA, the Net Investment Income Tax, and the OBBBA 65+ senior-deduction
+	phaseout. Ignoring non-taxable municipal interest,
 	\begin{equation}
-		\mathbb{G}_n = G_n + Q_n + e_n + (1 - R_n)\sum_i \bar{\zeta}_{in}.
+		\mathbb{G}_n = G_n + Q_n + e_n,
 	\end{equation}
-	Because $G_n$ already contains the taxable Social Security term
-	$R_n\sum_i\bar{\zeta}_{in}$, adding back $(1-R_n)\sum_i\bar{\zeta}_{in}$
-	restores the full benefit in MAGI,
-	consistent with the IRS definition.
-	This approach ignores additional IRS
-	rules around tax-free interests which are insignificant in most cases.
+	where $G_n + e_n$ already contains \emph{only} the taxable Social Security term
+	$R_n\sum_i\bar{\zeta}_{in}$ (the non-taxable remainder is not part of AGI).
+
+\item [$\mathbb{G}^{\mathrm{aca}}_n$]
+	Full-Social-Security MAGI variant. The Affordable Care Act premium credit
+	(IRC~§36B) adds the non-taxable portion of Social Security back to AGI, and the
+	Social Security provisional-income formula likewise uses the full benefit:
+	\begin{equation}
+		\mathbb{G}^{\mathrm{aca}}_n = \mathbb{G}_n + (1 - R_n)\sum_i \bar{\zeta}_{in}.
+	\end{equation}
+	This approach ignores additional IRS rules around tax-free interests which are
+	insignificant in most cases.
 
 \item [$\Pi_n$]
 	Provisional income for Social Security taxability in year $n$ (IRS Publication~915):
-	$\Pi_n = \mathbb{G}_n - \tfrac{1}{2}\sum_i\bar{\zeta}_{in}$.
+	$\Pi_n = \mathbb{G}^{\mathrm{aca}}_n - \tfrac{1}{2}\sum_i\bar{\zeta}_{in}$.
 	Used to determine the taxable portion of Social Security; see Eq.~(\ref{Eq:PI})
 	and the Social Security taxability paragraph in the Constraints section.
 
@@ -2491,19 +2505,22 @@ In this case, the objective function will need to consider the sum over all year
 	Constraint~(\ref{Eq:NIIT_cap}) bounds the surplus:
 	$\delta^j_n \le \mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}} - \mathbb{I}_n - Q_n$
 	when $z^j_n=1$.
-	The $Q_n$ terms cancel because
-	$\mathbb{G}_n = G_n + e_n + Q_n + \sum_i\bar\zeta_{in} - t^\sigma_n$,
-	so Constraint~(\ref{Eq:NIIT_cap}) involves only ordinary income,
+	The $Q_n$ and Social Security terms cancel because, on the AGI basis,
+	$\mathbb{G}_n = G_n + e_n + Q_n$ and $\mathrm{NII}_n = \mathbb{I}_n + Q_n$, so
+	$\mathbb{G}_n - \mathrm{NII}_n = G_n + e_n - \mathbb{I}_n$; thus
+	Constraint~(\ref{Eq:NIIT_cap}) involves only ordinary income,
 	deduction headroom, and the SC-loop parameter $\mathbb{I}_n$.
 	Together, Constraints~(\ref{Eq:NIIT_lb})--(\ref{Eq:NIIT_cap}) reproduce
 	$J_n = 0.038\,\min(\mathbb{G}_n - \mathbb{G}^{\mathrm{NIIT}},\,\mathbb{I}_n + Q_n)$
 	without any additional binary variables.
 
 	\subsubsection*{MAGI equality}
-	An equality constraint links MAGI to ordinary income, dividends, LTCG, and
-	the non-taxable portion of Social Security:
+	An equality constraint links the NIIT MAGI (AGI basis) to ordinary income,
+	dividends, and LTCG. Because $G_n + e_n$ already carries the taxable Social
+	Security portion $R_n\sum_i\bar\zeta_{in}$, no additional Social Security term
+	is added:
 	\begin{equation}
-		\mathbb{G}_n = G_n + Q_n + e_n + \bigl(1 - R_n\bigr)\textstyle\sum_i\bar{\zeta}_{in}.
+		\mathbb{G}_n = G_n + Q_n + e_n.
 		\label{Eq:MAGI}
 	\end{equation}
 	In the LP, $Q_n$ is represented directly by the LTCG bracket allocation
@@ -2682,10 +2699,11 @@ In this case, the objective function will need to consider the sum over all year
         it can be computed using binary variables and mixed-integer linear
 	programming. In the current tax code, this adjustment
 	depends on the modified adjusted gross income (MAGI) $\mathbb{G}$ from 2 years earlier. For the
-	MAGI, we use $\mathbb{G}_{(n-2)} = G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}
-	+ (1 - \Psi_{(n-2)})\sum_i \bar{\zeta}_{i(n-2)}$,
-	i.e., gross taxable ordinary income plus dividends,
-	plus standard exemption and the non-taxable portion of Social Security from 2 years ago.
+	MAGI, we use the AGI basis $\mathbb{G}_{(n-2)} = G_{(n-2)} + Q_{(n-2)} + e_{(n-2)}$,
+	i.e., gross taxable ordinary income plus dividends and capital gains plus the
+	standard exemption.
+	Only the \emph{taxable} portion of Social Security enters IRMAA MAGI (it is already
+	contained in $G_{(n-2)} + e_{(n-2)}$); the non-taxable portion is not added back.
 	If the plan
         has its oldest individual currently either 64 or 65 years old, MAGI values for previous years
 	must be provided by the user to complete the calculations.
@@ -2754,7 +2772,7 @@ In this case, the objective function will need to consider the sum over all year
 		\sum_{q=0}^{N_q-1} h_{qn} &=&
 		\mathcal{A}^x_{(n-2)} + \mathcal{A}^c_{(n-2)}
 		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)} \nonumber \\
-		&& \quad + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \nonumber \\
+		&& \quad + R_{(n-2)}\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \nonumber \\
 		&& - e_{(n-2)} - \sum_i [w_{i1(n-2)} + x_{i(n-2)}] \nonumber \\
 		&& - \sum_i \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})\right. \nonumber \\
 		&&\quad\left.\cdot\left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] \nonumber \\
@@ -2774,7 +2792,7 @@ In this case, the objective function will need to consider the sum over all year
 		+ \mu\alpha_{i00(n-2)}\right)\Bigr] \\
 		&- \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu)] \\
 		&= \mathcal{A}^x_{(n-2)} + \mathcal{A}^c_{(n-2)}
-		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)} + \bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \\
+		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)} + R_{(n-2)}\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \\
 		&\quad + 0.5\sum_{i} \Bigl[\kappa_{i0(n-2)} \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}]
 		+ \mu\alpha_{i00(n-2)}\right)\Bigr].
 		\end{aligned}
@@ -2783,9 +2801,11 @@ In this case, the objective function will need to consider the sum over all year
 	to yield a linear equality in the decision variables; it is implemented directly
 	in the constraint matrix. For indices at the beginning of the time sequence,
 	we use $\tau_{0, \max(0, n-x)}$, when $x>n$.
-	Note that $G_{(n-2)}$ already includes the taxable portion of Social Security (via $R_n\bar{\zeta}_{in}$),
-	and the additional $(1-\Psi_{(n-2)})\bar{\zeta}_{i(n-2)}$ term restores the non-taxable portion so that MAGI uses
-	total Social Security benefits.
+	IRMAA MAGI is on the AGI basis, so only the \emph{taxable} portion
+	$R_{(n-2)}\bar{\zeta}_{i(n-2)}$ of Social Security enters; the non-taxable remainder
+	is not added back. When Social Security taxability is itself optimized
+	(\code{withSSTaxability="optimize"}), the taxable amount is the LP variable
+	$t^\sigma_{(n-2)}$ rather than the parameter $R_{(n-2)}\bar{\zeta}_{i(n-2)}$.
 
 	For plans where the year index when Medicare first starts $n_m<2$, we will request
 	and use user-provided values for the first years' MAGIs as $\mathbb{G}_{(-1)}$ and possibly

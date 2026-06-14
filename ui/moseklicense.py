@@ -65,6 +65,8 @@ def createLicense():
     # print(f"Created MOSEK license file {license_path}")
     os.environ[MOSEKLM_LICENSE_FILE] = os.path.abspath(license_path)
 
-
-# Create license file once when this module is loaded.
-createLicense()
+# NOTE: createLicense() must be invoked explicitly at app startup (see ui/main.py),
+# NOT as an import-time side effect. Setting os.environ here on import would flip
+# owlplanner.plan._mosek_available() to True for any process that merely imports a
+# ui module — e.g. the test suite — silently switching the default solver from HiGHS
+# to MOSEK depending on import order and causing non-reproducible results.
