@@ -7,14 +7,14 @@ Below is a draft specification you can drop into your documentation for
 the new TOML methods:
 
 - `method = "toeplitz_sor"`
-- `method = "historical_bootstrap"`
+- `method = "bootstrap_sor"`
 
 # Additions to `[rates_selection]`
 
 ## New Methods
 
     method = "toeplitz_sor"
-    method = "historical_bootstrap"
+    method = "bootstrap_sor"
 
 These methods model **sequence-of-returns risk using time dependence
 across years** rather than independent annual draws.
@@ -62,7 +62,7 @@ Required unless using historical calibration (see below).
 Type: 4×4 matrix or 6-value flattened list Description: Cross-asset
 contemporaneous correlation matrix.
 
-Same format as current stochastic method.
+Same format as current gaussian method.
 
 ### `autocorrelation_lag1`
 
@@ -137,7 +137,7 @@ Type: boolean Description: Whether to reuse the seed or regenerate.
 
 # Bootstrap Sequence-of-Returns Method
 
-    method = "historical_bootstrap"
+    method = "bootstrap_sor"
 
 ## Description
 
@@ -214,7 +214,7 @@ Type: boolean Description: Whether to reuse seed.
 
 # Comparison Summary (for Documentation)
 
-| Feature                   | toeplitz_sor | historical_bootstrap |
+| Feature                   | toeplitz_sor | bootstrap_sor |
 |---------------------------|--------------|---------------|
 | Stationary                | Yes          | No            |
 | Gaussian assumption       | Optional     | No            |

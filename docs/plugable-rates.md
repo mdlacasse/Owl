@@ -1,9 +1,14 @@
 # Towards plugable rate models
 
-> **Note:** This document describes an earlier design proposal. The current
-> implementation uses `BuiltinRateModel` (in `builtin.py`) and `load_rate_model`
-> (in `loader.py`) with `method_file` for external plugins. See
-> `src/owlplanner/rate_models/README.md` for the current architecture.
+
+> [!NOTE]
+>
+> ### Design document
+>
+> This document describes an earlier design proposal. The current
+> implementation uses `BuiltinRateModel` (in `builtin.py`) and
+> `load_rate_model()` (in `loader.py`). See
+> `src/owlplanner/rate_models/README.md` for the actual architecture.
 
 Given the existing Plan/Rates structure, we want to design a plugin
 system for rate generation that allows easy addition of new models
@@ -86,46 +91,14 @@ This replaces your `RATE_METHODS_NO_REGEN` logic for plugins.
 
 ------------------------------------------------------------------------
 
-# 🧱 Step 2 — Basic Rate Model
+# 🧱 Step 2 — Built-in Rate Models
 
-Create:
-
-    owlplanner/rate_models/basic.py
-
-``` python
-import numpy as np
-from .base import BaseRateModel
-
-class BasicRateModel(BaseRateModel):
-
-    def __init__(self, N, method, frm, to, values, stdev, corr,
-                 seed=None, reproducible=False, override_reproducible=False,
-                 **kwargs):
-        super().__init__(N, seed, reproducible)
-
-        self.method = method
-        self.frm = frm
-        self.to = to
-        self.values = values
-        self.stdev = stdev
-        self.corr = corr
-        self.override_reproducible = override_reproducible
-
-    @property
-    def needs_regen(self):
-        from owlplanner.rate_models.constants import RATE_METHODS_NO_REGEN
-        return self.method not in RATE_METHODS_NO_REGEN
-
-    def generate(self):
-        # Use BuiltinRateModel for built-in methods.
-        from owlplanner.rate_models.builtin import BuiltinRateModel
-        cfg = {"method": self.method, "frm": self.frm, "to": self.to,
-               "values": self.values, "stdev": self.stdev, "corr": self.corr}
-        m = BuiltinRateModel(cfg, seed=self.seed)
-        return m.generate(self.N)
-```
-
-Now built-in methods are wrapped as a “model”.
+The built-in methods (trailing-30, optimistic, conservative, user,
+historical, historical average, histogaussian, gaussian) are implemented
+in `BuiltinRateModel`, which uses helper functions in
+`owlplanner.rate_models._builtin_impl`. The rate model loader
+(`load_rate_model`) resolves builtin method names to `BuiltinRateModel`.
+There is no legacy `Rates` class; the single API is `Plan.setRates()`.
 
 ------------------------------------------------------------------------
 
@@ -170,7 +143,7 @@ def setRates(self, method, frm=None, to=None, values=None, stdev=None, corr=None
     # Seed logic (unchanged)
     # ----------------------------------------
 
-    if method in ["gaussian", "historical_gaussian"]:
+    if method in ["gaussian", "histogaussian"]:
         if self.reproducibleRates and not override_reproducible:
             if self.rateSeed is None:
                 raise RuntimeError("Config error: reproducibleRates is True but rateSeed is None.")

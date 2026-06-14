@@ -88,7 +88,7 @@ No files to prepare. No forms to fill in.
 > *"I'm 65, have \\$800k in my IRA and \\$200k taxable, $2,400/month Social Security
 > at 67 — what can I safely spend each year with 90% historical probability of success?"*
 
-See [setup and usage instructions](https://github.com/mdlacasse/Owl/blob/main/docs/mcp.md).""")
+See [setup and usage instructions](https://github.com/mdlacasse/Owl/blob/main/info/mcp.md).""")
 
 with col2:
     st.image(logofile, width="stretch")
@@ -165,13 +165,13 @@ with st.expander("*Explore some case examples*"):
                " explore other Case Setup pages to change assumptions.")
 
 st.markdown("### :orange[Curious what Owl can do? See the full picture.]")
-modeling_md = Path(__file__).resolve().parent.parent / "docs" / "modeling-capabilities.md"
+modeling_md = Path(__file__).resolve().parent.parent / "info" / "modeling-capabilities.md"
 with st.expander("*See what Owl models—and its limitations*"):
     try:
         st.markdown(modeling_md.read_text(encoding="utf-8"))
     except OSError:
         st.markdown("""
-[Modeling capabilities & limitations](https://github.com/mdlacasse/Owl/blob/main/docs/modeling-capabilities.md)
+[Modeling capabilities & limitations](https://github.com/mdlacasse/Owl/blob/main/info/modeling-capabilities.md)
 — full reference on GitHub.
 """)
 
@@ -218,7 +218,7 @@ Instructions [here](https://github.com/mdlacasse/Owl/blob/main/INSTALL.md).""")
         st.markdown("""**:material/smart_toy: AI assistant (MCP)**
 \nConnect **Owl** to Claude, Gemini, Cursor, Zed, VS Code, or any MCP-compatible AI client
 and run scenarios through natural conversation.
-Instructions [here](https://github.com/mdlacasse/Owl/blob/main/docs/mcp.md).""")
+Instructions [here](https://github.com/mdlacasse/Owl/blob/main/info/mcp.md).""")
 
 kz.divider("orange")
 

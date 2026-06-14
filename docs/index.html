@@ -2,13 +2,16 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.26">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Owl - Optimal wealth lab</title>
+<title>Owl - Optimal wealth lab – Owl</title>
 <style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
 div.columns{display: flex; gap: min(4vw, 1.5em);}
@@ -32,15 +35,14 @@ ul.task-list li input[type="checkbox"] {
 <meta name="quarto:offset" content="./">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-45a48b56c8ad2523a9a31c69be39928e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-158031087360bce0ff56dc785ce39e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -177,15 +179,15 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="capabilities">Capabilities</h2>
 <p>Owl can optimize for either maximum net spending under the constraint of a given bequest (which can be zero), or maximize the after-tax value of a bequest under the constraint of a desired net spending profile, and under the assumption of a heirs marginal tax rate.</p>
 <p>Roth conversions are also considered, subject to an optional maximum conversion amount, and optimized to suit the goals of the selected objective function.</p>
-<p>All calculations are indexed for inflation, which is either provided as a fixed rate, or through historical values, as are all other rates used for the calculations. These rates can be used for backtesting different scenarios by choosing <em>historical</em> rates, or by choosing <em>historical average</em> rates over a historical year range, or what I coined “<em>histochastic</em>” rates which are generated using the statistical distribution of observed historical rates.</p>
+<p>All calculations are indexed for inflation, which is either provided as a fixed rate, or through historical values, as are all other rates used for the calculations. These rates can be used for backtesting different scenarios by choosing <em>historical</em> rates, or by choosing <em>historical average</em> rates over a historical year range, or <em>histogaussian</em> rates which are generated using the statistical distribution of observed historical rates.</p>
 <p>Portfolios available for experimenting include assets from the S&amp;P 500, Corporate Bonds Baa, Treasury 10-y Notes, and cash assets assumed to just follow inflation which is represented by the Consumer Price Index. Other asset classes can easily be added, but would add complexity while only providing diminishing insights.</p>
 <p>Historical data used are from <a href="https://pages.stern.nyu.edu/~adamodar/">Aswath Damodaran</a> at the Stern School of Business.</p>
 <p>Asset allocations are selected for the duration of the plan, and these can glide linearly or along a configurable s-curve over the lifespan of the individual.</p>
-<p>Spending profiles are adjusted for inflation, and so are all other indexable quantities. Proflies can be flat or follow a <em>smile</em> curve which is also adjustable through three simple parameters.</p>
+<p>Spending profiles are adjusted for inflation, and so are all other indexable quantities. Profiles can be flat or follow a <em>smile</em> curve which is also adjustable through three simple parameters.</p>
 <ul>
 <li><p>Available rates are from 1928 to last year and can be used to test historical performance.</p></li>
-<li><p>Fixed rates can also be provided, as well as <em>histochastic</em> rates, which are generated using the statistical characteristics (means and covariance matrix) of a selected historical year range.</p></li>
-<li><p>Pure <em>stochastic</em> rates can also be generated if the user provides means, volatility (expressed as standard deviation), and optionally the correlations between the different assets return rates provided as a matrix, or a list of the off-diagonal elements (see documentation for details).</p></li>
+<li><p>Fixed rates can also be provided, as well as <em>histogaussian</em> rates, which are generated using the statistical characteristics (means and covariance matrix) of a selected historical year range.</p></li>
+<li><p>Pure <em>gaussian</em> rates can also be generated if the user provides means, volatility (expressed as standard deviation), and optionally the correlations between the different assets return rates provided as a matrix, or a list of the off-diagonal elements (see documentation for details).</p></li>
 <li><p>Average rates calculated over a historical data period can also be chosen.</p></li>
 </ul>
 <p>Monte Carlo simulations capabilities are included and provide a probability of success and a histogram of outcomes. These simulations can be used for either determining the probability distribution of the maximum net spending amount under the constraint of a desired bequest, or the probability distribution of the maximum bequest under the constraint of a desired net spending amount.</p>
@@ -203,7 +205,7 @@ ul.task-list li input[type="checkbox"] {
 <li><p>Only the US federal income tax is considered (and minimized through the optimization algorithm). Head of household filing status has not been added but can easily be.</p></li>
 <li><p>Required minimum distributions are calculated, but tables for spouses more than 10 years apart are not included. These cases are detected and will generate an error message.</p></li>
 <li><p>Current version has no optimization of asset allocations between individuals and/or types of savings accounts. If there is interest, that could be added in the future.</p></li>
-<li><p>In the current implementation, social securiy is always taxed at 85%, assuming that your taxable income will be larger than 34 k$ (single) or 44 k$ (married filing jointly).</p></li>
+<li><p>In the current implementation, social security is always taxed at 85%, assuming that your taxable income will be larger than 34 k$ (single) or 44 k$ (married filing jointly).</p></li>
 <li><p>When Medicare calculations are done through a self-consistent loop, the Medicare premiums are calculated after an initial solution is generated, and then a new solution is re-generated with these premiums as a constraint. In some situations, when the income (MAGI) is near an IRMAA bracket, oscillatory solutions can arise. While the solutions generated are very close to one another, Owl will pick the smallest solution for being conservative. While sometimes computationally costly, a comparison with a full Medicare optimization should always be performed.</p></li>
 <li><p>Medicare Part B and Part D (including IRMAA) are included; Part D base premium is optional and can be disabled if you have other drug coverage.</p></li>
 <li><p>Future tax brackets are pure speculations derived from the little we know now and projected to the next 30 years. Your guesses are as good as mine.</p></li>

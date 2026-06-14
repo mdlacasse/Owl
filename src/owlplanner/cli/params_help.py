@@ -10,8 +10,8 @@ from pathlib import Path
 def _find_parameters_md() -> Path | None:
     """Locate PARAMETERS.md: cwd, project root (dev project root), or package dir."""
     candidates = [
-        Path.cwd() / "PARAMETERS.md",
-        Path(__file__).resolve().parent.parent.parent.parent / "PARAMETERS.md",
+        Path.cwd() / "info" / "PARAMETERS.md",
+        Path(__file__).resolve().parent.parent.parent.parent / "info" / "PARAMETERS.md",
         Path(__file__).resolve().parent.parent / "PARAMETERS.md",
     ]
     for p in candidates:
@@ -76,7 +76,7 @@ def get_solver_options_help() -> str:
     path = _find_parameters_md()
     if not path:
         return (
-            "Solver options: See PARAMETERS.md in the Owl repository for the full list.\n"
+            "Solver options: See info/PARAMETERS.md in the Owl repository for the full list.\n"
             "Common options: solver, maxTime, gap, verbose, maxRothConversion, withMedicare."
         )
 

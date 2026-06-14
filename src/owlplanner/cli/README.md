@@ -126,7 +126,7 @@ owlcli serve
 ```
 
 Starts an MCP (Model Context Protocol) server over stdio, exposing all five
-tools to any compatible AI client. See [`docs/mcp.md`](../../../docs/mcp.md)
+tools to any compatible AI client. See [`info/mcp.md`](../../../info/mcp.md)
 for setup instructions.
 
 ---

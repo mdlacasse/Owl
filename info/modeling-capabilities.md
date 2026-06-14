@@ -46,7 +46,7 @@ Owl's modeling capabilities are available through four interfaces:
 | **Streamlit web UI** | Browser-based interactive tool — no installation. Hosted at [owlplanner.streamlit.app](https://owlplanner.streamlit.app) or self-hosted. |
 | **Python API / Jupyter** | Import `owlplanner` directly; build and solve `Plan` objects programmatically. See `USER_GUIDE.md`. |
 | **CLI (`owlcli`)** | Run, compare, and explain cases from the terminal using TOML case files. |
-| **AI assistant (MCP)** | Connect Owl as a tool to Claude, Gemini, Cursor, Zed, VS Code (Copilot or Cline), or any MCP-compatible AI client. Describe your financial situation in plain language; the AI runs the optimizer and interprets the results. See `docs/mcp.md`. |
+| **AI assistant (MCP)** | Connect Owl as a tool to Claude, Gemini, Cursor, Zed, VS Code (Copilot or Cline), or any MCP-compatible AI client. Describe your financial situation in plain language; the AI runs the optimizer and interprets the results. See `mcp.md`. |
 
 ---
 

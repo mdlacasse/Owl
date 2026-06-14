@@ -28,7 +28,7 @@ import owlbridge as owb
 
 logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
 
-parameters_path = Path(__file__).resolve().parents[1] / "PARAMETERS.md"
+parameters_path = Path(__file__).resolve().parents[1] / "info" / "PARAMETERS.md"
 try:
     content = parameters_path.read_text(encoding="utf-8")
 except FileNotFoundError:

@@ -77,7 +77,7 @@ def _parse_solver_opts(value):
 @click.command(
     name="run",
     epilog="Solver options can also be set in the [solver_options] section of the TOML file. "
-    "Use --help-solver-options to list all options from PARAMETERS.md.",
+    "Use --help-solver-options to list all options from info/PARAMETERS.md.",
 )
 @click.argument(
     "filename",
@@ -155,7 +155,7 @@ def _parse_solver_opts(value):
     is_eager=True,
     expose_value=False,
     callback=lambda ctx, param, value: (print_solver_options_help(), ctx.exit(0)) if value else None,
-    help="Show all solver options (parsed from PARAMETERS.md) and exit.",
+    help="Show all solver options (parsed from info/PARAMETERS.md) and exit.",
 )
 @click.option(
     "--loguru",
@@ -174,7 +174,7 @@ def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose,
 
     Solver options are read from the [solver_options] section of the TOML
     file. Command-line flags override those values. Use --solver-opt to
-    set any option (see PARAMETERS.md for the full list).
+    set any option (see info/PARAMETERS.md for the full list).
     """
     diconf, dirname, _ = load_toml(str(filename))
     if set_overrides:

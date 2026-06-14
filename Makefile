@@ -6,7 +6,7 @@ help: ## Show available targets
 	    awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
 rate-model-docs: ## Overwrite RATE_MODELS.md documentation
-	uv run python -c "from owlplanner.rate_models.loader import export_rate_models_markdown; export_rate_models_markdown('RATE_MODELS.md')"
+	uv run python -c "from owlplanner.rate_models.loader import export_rate_models_markdown; export_rate_models_markdown('info/RATE_MODELS.md')"
 
 requirements: ## Regenerate requirements.txt from uv lockfile
 	uv export --frozen --no-dev --no-hashes -o requirements.txt

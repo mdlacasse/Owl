@@ -92,7 +92,7 @@ the boundaries of tax brackets.
 ```python
 plan.showGrossIncome(value='nominal')
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/taxIncomePlot.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/taxIncomePlot.png?raw=true" width="75%">
 
 The optimal spending profile is shown in the next plot (in today's dollars). Notice the drop
 (recall we selected 60% survivor needs) at the passing of the first spouse.
@@ -100,20 +100,20 @@ The optimal spending profile is shown in the next plot (in today's dollars). Not
 plan.showProfile('today')
 ```
 
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/spendingPlot.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/spendingPlot.png?raw=true" width="75%">
 
 The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill.
 It was generated using
 ```python
 plan.showAccounts(value='nominal')
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/savingsPlot.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/savingsPlot.png?raw=true" width="75%">
 
 while this plot shows the complex cash flow from all sources, which was generated with
 ```python
 plan.showSources(value='nominal')
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/sourcesPlot.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/sourcesPlot.png?raw=true" width="75%">
 
 For taxes, the following call will display federal income tax, Medicare premiums
 (including Part B IRMAA fees), and ACA marketplace premiums when configured via
@@ -122,7 +122,7 @@ Excel export (Cash Flow sheet).
 ```python
 plan.showTaxes(value='nominal')
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/taxesPlot.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/taxesPlot.png?raw=true" width="75%">
 
 For the case at hand, recall that asset allocations were selected above through
 
@@ -134,9 +134,9 @@ Assets distribution in all accounts in today's $ over time can be displayed from
 ```python
 plan.showAssetComposition(value='today')
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/AD-taxable.png?raw=true" width="75%">
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/AD-taxDef.png?raw=true" width="75%">
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/AD-taxFree.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/AD-taxable.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/AD-taxDef.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/AD-taxFree.png?raw=true" width="75%">
 
 These plots are irregular because we used historical rates from 1969. The volatility of
 the rates offers Roth conversion benefits which are exploited by the optimizer.
@@ -144,7 +144,7 @@ The rates used can be displayed by:
 ```python
 plan.showRates()
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/ratesPlot.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/ratesPlot.png?raw=true" width="75%">
 
 Values between brackets <> are the average values and volatility over the selected period. 
 
@@ -152,7 +152,7 @@ For the statisticians, rates distributions and correlations between them can be 
 ```python
 plan.showRatesCorrelations()
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/ratesCorrelations.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/ratesCorrelations.png?raw=true" width="75%">
 
 A short text summary of the outcome of the optimization can be displayed through using:
 ```python
@@ -252,13 +252,13 @@ by selecting *gaussian* or another stochastic rate method and using
 ```
 plan.runMC('maxSpending', ...)
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/MC-tutorial2a.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/MC-tutorial2a.png?raw=true" width="75%">
 
 Similarly, the next one was generated using
 ```
 plan.runMC('maxBequest', ...)
 ```
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/MC-tutorial2b.png?raw=true" width="75%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/MC-tutorial2b.png?raw=true" width="75%">
 
 
 See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_1.ipynb),
@@ -273,8 +273,9 @@ See tutorial notebooks [1](https://github.com/mdlacasse/Owl/blob/main/notebooks/
 
 Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn.
 The user front-end was built on Streamlit.
-Package `odfpy` might be required if one read files created by LibreOffice. These dependencies
-will be installed by pip using the installation guide [here](INSTALL.md).
+Package `odfpy` (installed automatically) enables reading OpenDocument (`.ods`) workbooks
+created by LibreOffice. All these dependencies are installed automatically by `uv` (or `pip`)
+following the installation guide [here](../INSTALL.md).
 
 ### Running Owl
 
@@ -283,7 +284,7 @@ Run `streamlit run ui/main.py` from the project root, or use the `owlplanner.cmd
 `owlplanner.sh` (Linux/macOS) script if available, which will start the interface in your browser.
 Here is a screenshot of one of the multiple tabs of the interface:
 
-<img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/OwlUI.png?raw=true" width="100%">
+<img src="https://github.com/mdlacasse/Owl/blob/main/info/images/OwlUI.png?raw=true" width="100%">
 
 Alternatively, one can prefer using Owl from Jupyter notebooks. For that purpose, the `examples` directory
 contains many files as a tutorial. The Jupyter Notebook interface is a browser-based application

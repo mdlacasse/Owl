@@ -2,13 +2,16 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.26">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
 <title>Users Guide – Owl</title>
 <style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
 div.columns{display: flex; gap: min(4vw, 1.5em);}
@@ -67,15 +70,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <meta name="quarto:offset" content="./">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-45a48b56c8ad2523a9a31c69be39928e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-158031087360bce0ff56dc785ce39e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -204,7 +206,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>plan.setAccountBalances(taxable<span class="op">=</span>[<span class="fl">90.5</span>, <span class="fl">60.2</span>], taxDeferred<span class="op">=</span>[<span class="fl">600.5</span>, <span class="dv">150</span>], taxFree<span class="op">=</span>[<span class="fl">50.6</span> <span class="op">+</span> <span class="dv">20</span>, <span class="fl">40.8</span>])</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>plan.readHFP(<span class="st">'jack+jill.xlsx'</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>plan.readHFP(<span class="st">'examples/HFP_jack+jill.xlsx'</span>)</span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Jack will glide an s-curve for asset allocations from a 60/40 -&gt; 70/30  stocks/bonds portfolio.</span></span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Jill will do the same thing but is a bit more conservative from 50/50 -&gt; 70/30 stocks/bonds portfolio.</span></span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>plan.setInterpolationMethod(<span class="st">'s-curve'</span>)</span>
@@ -233,31 +235,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>plan.setDefaultPlots(<span class="st">'today'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>would change all graphs to report in today’s dollars. Each plot can also override the default by setting the <code>value</code> parameters to either <em>nominal</em> or <em>today</em>, such as in the following example, which shows the taxable ordinary income over the duration of the plan, along with inflation-adjusted extrapolated tax brackets. Notice how the optimized income is surfing the boundaries of tax brackets.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>plan.showGrossIncome(value<span class="op">=</span><span class="st">'nominal'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/taxIncomePlot.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/taxIncomePlot.png?raw=true" width="75%"></p>
 <p>The optimal spending profile is shown in the next plot (in today’s dollars). Notice the drop (recall we selected 60% survivor needs) at the passing of the first spouse.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>plan.showProfile(<span class="st">'today'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/spendingPlot.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/spendingPlot.png?raw=true" width="75%"></p>
 <p>The following plot shows the account balances in nominal value for all savings accounts owned by Jack and Jill. It was generated using</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>plan.showAccounts(value<span class="op">=</span><span class="st">'nominal'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/savingsPlot.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/savingsPlot.png?raw=true" width="75%"></p>
 <p>while this plot shows the complex cash flow from all sources, which was generated with</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>plan.showSources(value<span class="op">=</span><span class="st">'nominal'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/sourcesPlot.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/sourcesPlot.png?raw=true" width="75%"></p>
 <p>For taxes, the following call will display Medicare premiums (including Part B IRMAA fees) and federal income tax</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>plan.showTaxes(value<span class="op">=</span><span class="st">'nominal'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/taxesPlot.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/taxesPlot.png?raw=true" width="75%"></p>
 <p>For the case at hand, recall that asset allocations were selected above through</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>plan.setAllocationRatios(<span class="st">'individual'</span>, generic<span class="op">=</span>[[[<span class="dv">60</span>, <span class="dv">40</span>, <span class="dv">0</span>, <span class="dv">0</span>], [<span class="dv">70</span>, <span class="dv">30</span>, <span class="dv">0</span>, <span class="dv">0</span>]], [[<span class="dv">50</span>, <span class="dv">50</span>, <span class="dv">0</span>, <span class="dv">0</span>], [<span class="dv">70</span>, <span class="dv">30</span>, <span class="dv">0</span>, <span class="dv">0</span>]]])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>gliding from a 60%/40% stocks/bonds portfolio to 70%/30% for Jack, and 50%/50% -&gt; 70%/30% for Jill. Assets distribution in all accounts in today’s $ over time can be displayed from</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>plan.showAssetDistribution(value<span class="op">=</span><span class="st">'today'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/AD-taxable.png?raw=true" width="75%"> <img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/AD-taxDef.png?raw=true" width="75%"> <img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/AD-taxFree.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/AD-taxable.png?raw=true" width="75%"> <img src="https://github.com/mdlacasse/Owl/blob/main/info/images/AD-taxDef.png?raw=true" width="75%"> <img src="https://github.com/mdlacasse/Owl/blob/main/info/images/AD-taxFree.png?raw=true" width="75%"></p>
 <p>These plots are irregular because we used historical rates from 1969. The volatility of the rates offers Roth conversion benefits which are exploited by the optimizer. The rates used can be displayed by:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>plan.showRates()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/ratesPlot.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/ratesPlot.png?raw=true" width="75%"></p>
 <p>Values between brackets &lt;&gt; are the average values and volatility over the selected period.</p>
 <p>For the statisticians, rates distributions and correlations between them can be shown using:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>plan.showRatesCorrelations()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/ratesCorrelations.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/ratesCorrelations.png?raw=true" width="75%"></p>
 <p>A short text summary of the outcome of the optimization can be displayed through using:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>plan.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The output of the last command reports that if future rates are exactly like those observed starting from 1969 and the following years, Jack and Jill could afford an annual spending of \$97k starting this year (with a basis of \$88.8k - the basis multiplies the profile which can vary over the course of the plan). The summary also contains some details:</p>
@@ -288,21 +290,21 @@ Case executed on: 2025-02-04 at 22:55:03
 ------------------------------------------------------------------------</code></pre>
 <p>And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>plan.saveWorkbook(overwrite<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>For Monte Carlo simulations, the mean return rates, their volatility and covariance are specified and used to generate random scenarios. A histogram of outcomes is generated such as this one for Jack and Jill, which was generated by selecting <em>stochastic</em> rates and using</p>
+<p>For Monte Carlo simulations, the mean return rates, their volatility and covariance are specified and used to generate random scenarios. A histogram of outcomes is generated such as this one for Jack and Jill, which was generated by selecting <em>gaussian</em> or another stochastic rate method and using</p>
 <pre><code>plan.runMC('maxSpending', ...)</code></pre>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/MC-tutorial2a.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/MC-tutorial2a.png?raw=true" width="75%"></p>
 <p>Similarly, the next one was generated using</p>
 <pre><code>plan.runMC('maxBequest', ...)</code></pre>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/MC-tutorial2b.png?raw=true" width="75%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/MC-tutorial2b.png?raw=true" width="75%"></p>
 <p>See tutorial notebooks <a href="https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_1.ipynb">1</a>, <a href="https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_2.ipynb">2</a>, and <a href="https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_3.ipynb">3</a> for more info.</p>
 </section>
 <section id="requirements" class="level2">
 <h2 class="anchored" data-anchor-id="requirements">Requirements</h2>
 <p>Owl relies on common Python modules such as NumPy, Pandas, SciPy, matplotlib, and Seaborn. The user front-end was built on Streamlit. Package <code>odfpy</code> might be required if one read files created by LibreOffice. These dependencies will be installed by pip using the installation guide <a href="./installation.html">here</a>..</p>
 <p>The simplest way to get started with Owl is to use the <code>streamlit</code> browser-based user interface that is started by the <code>owlplanner.cmd</code> script, which will start a user interface on your own browser. Here is a screenshot of one of the multiple tabs of the interface:</p>
-<p><img src="https://github.com/mdlacasse/Owl/blob/main/docs/images/OwlUI.png?raw=true" width="100%"></p>
+<p><img src="https://github.com/mdlacasse/Owl/blob/main/info/images/OwlUI.png?raw=true" width="100%"></p>
 <p>Alternatively, one can prefer using Owl from Jupyter notebooks. For that purpose, the <code>examples</code> directory contains many files as a tutorial. The Jupyter Notebook interface is a browser-based application for authoring documents that combines live-code with narrative text, equations and visualizations. Jupyter will run in your default web browser, from your computer to your browser, and therefore no data is ever transferred on the Internet (your computer, i.e., <code>localhost</code>, is the server).</p>
-<p>For simulating your own realizations, use the files beginning with the word <em>template</em>. Make a copy and rename them with your own names while keeping the same extension. Then you’ll be able to personalize a case with your own numbers and start experimenting with Owl. Notebooks with detailed explanations can be found in <a href="https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb">tutorial_1</a>, <a href="https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_1.ipynb">tutorial_2</a>, and <a href="https://github.com/mdlacasse/Owl/blob/main/examples/tutorial_2.ipynb">tutorial_3</a>.</p>
+<p>For simulating your own realizations, use the files beginning with the word <em>template</em>. Make a copy and rename them with your own names while keeping the same extension. Then you’ll be able to personalize a case with your own numbers and start experimenting with Owl. Notebooks with detailed explanations can be found in <a href="https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_1.ipynb">tutorial_1</a>, <a href="https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_2.ipynb">tutorial_2</a>, and <a href="https://github.com/mdlacasse/Owl/blob/main/notebooks/tutorial_3.ipynb">tutorial_3</a>.</p>
 <p>Finally, you will also need the capability to read and edit Excel files. One can have an Excel license, or use the LibreOffice free alternative. You can also use Google docs.</p>
 <p>Copyright © 2024 - Martin-D. Lacasse</p>
 <p>Disclaimers: I am not a financial planner. You make your own decisions. This program comes with no guarantee. Use at your own risk.</p>

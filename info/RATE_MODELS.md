@@ -116,6 +116,7 @@ DCC-GARCH(1,1) model (Engle 2002) fitted by two-step MLE on historical data. Cap
 | `method` | Yes | str | model name (`"garch_dcc"`) |
 | `from` | Yes | int | First year of historical window. |
 | `to` | Yes | int | Last year of historical window. |
+| `constrain_mean` | No | bool | Shift each generated series so its arithmetic mean matches the historical window mean. Preserves volatility clustering and DCC correlation dynamics; only the mean is corrected. Default False. |
 
 **Example:**
 
@@ -156,6 +157,7 @@ Fits a multivariate Gaussian Mixture Model on historical returns via EM, capturi
 | `from` | No | int | First historical year for fitting (inclusive). |
 | `to` | No | int | Last historical year for fitting (inclusive). |
 | `n_components` | No | int | Number of mixture components (market regimes). |
+| `constrain_mean` | No | bool | Shift each generated series so its arithmetic mean matches the historical window mean. Preserves distribution shape; only the mean is corrected. Default False. |
 
 **Example:**
 
@@ -196,6 +198,7 @@ Samples from a Gaussian copula fitted to the selected historical window. Each as
 | `method` | Yes | str | model name (`"historical_copula"`) |
 | `from` | Yes | int | First year of historical window (inclusive). |
 | `to` | Yes | int | Last year of historical window (inclusive). |
+| `constrain_mean` | No | bool | Shift each generated series so its arithmetic mean matches the historical window mean. Preserves distribution shape; only the mean is corrected. Default False. |
 
 **Example:**
 
@@ -215,6 +218,7 @@ Samples from a multivariate normal distribution fitted to the selected historica
 | `method` | Yes | str | model name (`"historical_gaussian"`) |
 | `from` | Yes | int | First year of historical window (inclusive). |
 | `to` | Yes | int | Last year of historical window (inclusive). |
+| `constrain_mean` | No | bool | Shift each generated series so its arithmetic mean matches the historical window mean. Preserves distribution shape; only the mean is corrected. Default False. |
 
 **Example:**
 
@@ -234,6 +238,7 @@ Fits a correlated log-normal model to the selected historical window and samples
 | `method` | Yes | str | model name (`"historical_lognormal"`) |
 | `from` | Yes | int | First year of historical window (inclusive). |
 | `to` | Yes | int | Last year of historical window (inclusive). |
+| `constrain_mean` | No | bool | Shift each generated series so its arithmetic mean matches the historical window mean. Preserves distribution shape; only the mean is corrected. Default False. |
 
 **Example:**
 
@@ -256,6 +261,7 @@ Fits a Hidden Markov Model on historical returns via Baum-Welch EM, adding tempo
 | `n_components` | No | int | Number of hidden states (market regimes). |
 | `reg_trans` | No | float | Additive smoothing on transition counts (prevents zero-probability transitions). |
 | `init_regime` | No | int | Starting regime index for generation (0 to n_components-1). None = draw from stationary distribution. |
+| `constrain_mean` | No | bool | Shift each generated series so its arithmetic mean matches the historical window mean. Preserves distribution shape; only the mean is corrected. Default False. |
 
 **Example:**
 

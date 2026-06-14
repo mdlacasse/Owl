@@ -34,7 +34,7 @@ premiums, RMDs, and Roth conversion rules — all embedded directly in the optim
 tax-efficient retirement income planning is built into every result, not applied as an afterthought.
 
 <p align="center">
-<img src="papers/images/chris+pat_savings.png" width="700" alt="Owl Savings Balance plot: tax-deferred accounts drawn down while Roth balances grow through optimized conversions">
+<img src="info/images/chris+pat_savings.png" width="700" alt="Owl Savings Balance plot: tax-deferred accounts drawn down while Roth balances grow through optimized conversions">
 <br>
 <em>Optimized account balances over time (today's dollars): Owl draws down tax-deferred
 accounts while growing tax-free Roth balances through early-retirement conversions.</em>
@@ -76,7 +76,7 @@ Claude Code, Gemini CLI, Cursor, Zed, VS Code (Copilot or Cline), or any
 [MCP-compatible client](https://modelcontextprotocol.io).
 The AI can discover cases, run optimizations, compute probability-of-success frontiers,
 and compare scenarios through natural conversation — no TOML files required.
-Requires a local installation; see <a href="docs/mcp.md" target="_blank" rel="noopener noreferrer">docs/mcp.md</a> for setup.
+Requires a local installation; see <a href="info/mcp.md" target="_blank" rel="noopener noreferrer">info/mcp.md</a> for setup.
 
 
 ---------------------------------------------------------------
@@ -84,14 +84,14 @@ Requires a local installation; see <a href="docs/mcp.md" target="_blank" rel="no
 
 | Document | Description |
 |---------|-------------|
-| <a href="docs/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">docs/modeling-capabilities.md</a> | Summary of modeled components, assumptions, and limitations |
+| <a href="info/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">info/modeling-capabilities.md</a> | Summary of modeled components, assumptions, and limitations |
 | <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">INSTALL.md</a> | Installation guide, Python environment setup, and developer build steps |
-| <a href="USER_GUIDE.md" target="_blank" rel="noopener noreferrer">USER_GUIDE.md</a> | Python API usage with examples for Jupyter notebooks and scripts |
-| <a href="PARAMETERS.md" target="_blank" rel="noopener noreferrer">PARAMETERS.md</a> | Complete reference for TOML case file parameters |
+| <a href="info/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">info/USER_GUIDE.md</a> | Python API usage with examples for Jupyter notebooks and scripts |
+| <a href="info/PARAMETERS.md" target="_blank" rel="noopener noreferrer">info/PARAMETERS.md</a> | Complete reference for TOML case file parameters |
 | <a href="CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md</a> | Version history and changelog |
 | <a href="CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> | Guidelines for contributing code, issues, and pull requests |
-| <a href="RATE_MODELS.md" target="_blank" rel="noopener noreferrer">RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
-| <a href="docs/mcp.md" target="_blank" rel="noopener noreferrer">docs/mcp.md</a> | MCP server setup for AI-native access via Claude, Gemini, Cursor, Zed, VS Code, and other clients |
+| <a href="info/RATE_MODELS.md" target="_blank" rel="noopener noreferrer">info/RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
+| <a href="info/mcp.md" target="_blank" rel="noopener noreferrer">info/mcp.md</a> | MCP server setup for AI-native access via Claude, Gemini, Cursor, Zed, VS Code, and other clients |
 | <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.pdf</a> | Mathematical foundations |
 
 Documentation for the app user interface is also available from the [Streamlit UI](https://owlplanner.streamlit.app/Documentation).
