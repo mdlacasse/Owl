@@ -84,12 +84,12 @@ Requires a local installation; see <a href="info/mcp.md" target="_blank" rel="no
 
 | Document | Description |
 |---------|-------------|
-| <a href="info/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">info/modeling-capabilities.md</a> | Summary of modeled components, assumptions, and limitations |
 | <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">INSTALL.md</a> | Installation guide, Python environment setup, and developer build steps |
-| <a href="info/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">info/USER_GUIDE.md</a> | Python API usage with examples for Jupyter notebooks and scripts |
-| <a href="info/PARAMETERS.md" target="_blank" rel="noopener noreferrer">info/PARAMETERS.md</a> | Complete reference for TOML case file parameters |
 | <a href="CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md</a> | Version history and changelog |
 | <a href="CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> | Guidelines for contributing code, issues, and pull requests |
+| <a href="info/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">info/modeling-capabilities.md</a> | Summary of modeled components, assumptions, and limitations |
+| <a href="info/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">info/USER_GUIDE.md</a> | Python API usage with examples for Jupyter notebooks and scripts |
+| <a href="info/PARAMETERS.md" target="_blank" rel="noopener noreferrer">info/PARAMETERS.md</a> | Complete reference for TOML case file parameters |
 | <a href="info/RATE_MODELS.md" target="_blank" rel="noopener noreferrer">info/RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
 | <a href="info/mcp.md" target="_blank" rel="noopener noreferrer">info/mcp.md</a> | MCP server setup for AI-native access via Claude, Gemini, Cursor, Zed, VS Code, and other clients |
 | <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.pdf</a> | Mathematical foundations |
