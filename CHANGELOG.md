@@ -19,6 +19,24 @@ Added a Savings Balance example plot (the *chris+pat* case) to the README to ill
 Owl draws down tax-deferred accounts while growing tax-free Roth balances through optimized
 early-retirement conversions.
 
+#### Documentation reorganization
+
+Hand-authored reference docs now live in a single top-level `info/` directory instead of being
+split between the repository root and the Quarto site's output folder (`docs/`). `USER_GUIDE.md`,
+`PARAMETERS.md`, `RATE_MODELS.md`, `mcp.md`, `modeling-capabilities.md`, and `year-end-update.md`
+moved to `info/`; community-health files (`README`, `CHANGELOG`, `CONTRIBUTING`, `CREDITS`,
+`LICENSE`, `INSTALL`) remain at the root. All internal links, the wheel `force-include` for
+`PARAMETERS.md`, the CLI/UI path resolution, and the `make rate-model-docs` target were updated
+accordingly, leaving `docs/` reserved for generated Quarto output.
+
+Documentation images were likewise separated: the markdown screenshots and plots moved to
+`info/images/`, leaving `papers/images/` for the LaTeX figures used by `owl.tex`; two unused
+images were removed. Several long-broken references were fixed in passing — the `docs/images/`
+image paths, the tutorial-notebook links, and the worked-example's data file
+(`HFP_jack+jill.xlsx`) — and the `odfpy`/`uv` installation wording was clarified. A new
+`make site` target renders the Quarto website and cleans up render artifacts (the demo workbook
+and orphaned hashed assets).
+
 ### Version 2026.6.14
 
 #### Balance sheets in worksheets (traditional and liquid)
