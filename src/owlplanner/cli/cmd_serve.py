@@ -2,7 +2,7 @@
 CLI command that starts an MCP (Model Context Protocol) server for Owl.
 
 Exposes fourteen tools over stdio so any MCP-compatible AI client (Claude Desktop,
-Claude Code, etc.) can discover cases, inspect configurations, run optimizations,
+Claude Code, Gemini CLI, etc.) can discover cases, inspect configurations, run optimizations,
 and compare scenarios without touching the filesystem directly.
 
 Tools exposed:

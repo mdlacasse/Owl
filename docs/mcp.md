@@ -1,7 +1,7 @@
 # Owl MCP Server — AI Integration
 
 Owl ships with an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server
-that lets any compatible AI assistant — Claude Desktop, Claude Code, Cursor, and others —
+that lets any compatible AI assistant — Claude Desktop, Claude Code, Gemini CLI, Cursor, and others —
 call Owl directly as a tool. The AI can discover cases, inspect configurations, run
 optimizations, and compare scenarios through natural conversation.
 
@@ -294,6 +294,35 @@ If you installed Owl globally and `owlcli` is on your `PATH`:
    client with the same `uv run ... owlcli serve` command.
 
 Toggle the server off/on or restart Cursor if you change `mcp.json`.
+
+---
+
+## Gemini CLI
+
+[Gemini CLI](https://github.com/google-gemini/gemini-cli) supports MCP servers over the
+same stdio transport. Add Owl to its settings file — `~/.gemini/settings.json` for a
+user-wide setup (all projects), or `.gemini/settings.json` at a project root for a
+project-only setup:
+
+```json
+{
+  "mcpServers": {
+    "owl": {
+      "command": "uv",
+      "args": ["run", "--project", "/path/to/Owl", "owlcli", "serve"]
+    }
+  }
+}
+```
+
+If you always launch Gemini CLI from within the Owl project directory, you can drop
+`--project /path/to/Owl` and use `"args": ["run", "owlcli", "serve"]`. If `owlcli` is
+already on your PATH, use `"command": "owlcli"` with `"args": ["serve"]` instead.
+
+Restart Gemini CLI after editing the file. List or inspect registered servers from within
+the CLI with the `/mcp` command; the Owl tools are then called automatically when you ask a
+retirement question. As with the other clients, pass **absolute paths** to tools like
+`list_cases` — the MCP process may not resolve relative paths from the repo root.
 
 ---
 

@@ -80,7 +80,7 @@ not language-model guesswork. For everyday use, you can also connect it to an AI
 for natural-language queries: the best of both worlds.
 
 **Owl** connects to AI assistants via the [Model Context Protocol](https://modelcontextprotocol.io)
-(MCP) — an open standard supported by Claude, Cursor, Zed, VS Code, and more.
+(MCP) — an open standard supported by Claude, Gemini, Cursor, Zed, VS Code, and more.
 Tell your AI your age, accounts, and income sources, and it runs the optimizer,
 computes a probability-of-success frontier, and explains the results in plain English.
 No files to prepare. No forms to fill in.
@@ -216,7 +216,7 @@ Instructions [here](https://github.com/mdlacasse/Owl/blob/main/docker/README.md)
 Instructions [here](https://github.com/mdlacasse/Owl/blob/main/INSTALL.md).""")
     with run4:
         st.markdown("""**:material/smart_toy: AI assistant (MCP)**
-\nConnect **Owl** to Claude, Cursor, Zed, VS Code, or any MCP-compatible AI client
+\nConnect **Owl** to Claude, Gemini, Cursor, Zed, VS Code, or any MCP-compatible AI client
 and run scenarios through natural conversation.
 Instructions [here](https://github.com/mdlacasse/Owl/blob/main/docs/mcp.md).""")
 

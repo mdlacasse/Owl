@@ -11,7 +11,7 @@
 
 ## Open-source retirement planning optimizer powered by Actual Intelligence — connect it to your AI assistant
 
-*Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Claude Cursor Zed VS Code*
+*Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Claude Gemini Cursor Zed VS Code*
 
 <img align="right" src="papers/images/owl.png" width="250">
 
@@ -53,7 +53,7 @@ accounts while growing tax-free Roth balances through early-retirement conversio
 - **Asset allocation** — user-specified glide path (linear or s-curve) across four asset classes (equities, corporate bonds, T-notes, cash); per-account, per-individual, or household-wide
 - **Stochastic analysis** — Monte Carlo with optional longevity risk (mortality tables by sex and category: SSA, VBT, RP-2014, IAM-2012, Pub-2010); spending efficiency frontier tracing the optimal spending vs. shortfall-risk trade-off
 - **Rate models** — 14 models including historical replay, bootstrap, VAR, GARCH-DCC, HMM, GMM, and Gaussian copula
-- **AI assistant** — MCP server lets Claude Desktop, Claude Code, Cursor, Zed, VS Code (Copilot/Cline), and other MCP-compatible AI clients run optimizations, compute probability-of-success frontiers, and compare scenarios through natural conversation — no TOML files required:
+- **AI assistant** — MCP server lets Claude Desktop, Claude Code, Gemini CLI, Cursor, Zed, VS Code (Copilot/Cline), and other MCP-compatible AI clients run optimizations, compute probability-of-success frontiers, and compare scenarios through natural conversation — no TOML files required:
   > *"I'm 65, have $800k in my IRA and $200k taxable, $2,400/month Social Security at 67 — what can I safely spend each year with 90% historical probability of success?"*
 
 Among open-source retirement planning tools, Owl stands out for the breadth and rigor of its financial modeling. While the full API rewards those willing to invest time, the Streamlit web interface provides an accessible entry point for all users.
@@ -72,7 +72,7 @@ Follow these <a href="docker/README.md" target="_blank" rel="noopener noreferrer
 Follow these <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">instructions</a> to install from the source code and self-host on your own computer.
 
 1) **AI assistant (MCP):** Connect Owl as a tool to an AI assistant — Claude Desktop,
-Claude Code, Cursor, Zed, VS Code (Copilot or Cline), or any
+Claude Code, Gemini CLI, Cursor, Zed, VS Code (Copilot or Cline), or any
 [MCP-compatible client](https://modelcontextprotocol.io).
 The AI can discover cases, run optimizations, compute probability-of-success frontiers,
 and compare scenarios through natural conversation — no TOML files required.
@@ -91,7 +91,7 @@ Requires a local installation; see <a href="docs/mcp.md" target="_blank" rel="no
 | <a href="CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md</a> | Version history and changelog |
 | <a href="CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> | Guidelines for contributing code, issues, and pull requests |
 | <a href="RATE_MODELS.md" target="_blank" rel="noopener noreferrer">RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
-| <a href="docs/mcp.md" target="_blank" rel="noopener noreferrer">docs/mcp.md</a> | MCP server setup for AI-native access via Claude, Cursor, Zed, VS Code, and other clients |
+| <a href="docs/mcp.md" target="_blank" rel="noopener noreferrer">docs/mcp.md</a> | MCP server setup for AI-native access via Claude, Gemini, Cursor, Zed, VS Code, and other clients |
 | <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.pdf</a> | Mathematical foundations |
 
 Documentation for the app user interface is also available from the [Streamlit UI](https://owlplanner.streamlit.app/Documentation).
